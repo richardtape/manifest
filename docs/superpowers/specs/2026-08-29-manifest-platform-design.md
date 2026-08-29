@@ -99,8 +99,9 @@ These are fixed. Designs that violate them are wrong.
   sizing, no YAML authoring by a human. The AI writes the spec; the platform
   interprets it.
 - **C4 — Every production app requires its own UBC IAM registration and its own
-  Privacy Impact Assessment. Non-negotiable.** IAM registration is manual and
-  slow; no design may assume programmatic SP registration with real UBC CWL. A
+  Privacy Impact Assessment. Non-negotiable.** IAM registration is reviewed by
+  people and runs on its own cadence; no design may assume programmatic SP
+  registration with real UBC CWL. A
   production launch is therefore gated on two external, human, multi-week
   processes, and the platform's job is to *drive* them, not merely wait on them
   (D19).
@@ -214,6 +215,7 @@ boundary intact even when the code inside is actively hostile.
 | D29 | **Audience size and burstiness are fields on the Project, set by a human, and shape production capacity only.** They are not `manifest.yaml` fields. | Faculty can answer "who is this for" and cannot answer "how many replicas" — that is C3 restated for capacity. Keeping the answer out of `manifest.yaml` matters for a second reason: the file is agent-writable, and capacity costs real money, so an agent that could edit it could silently multiply an app's hardware bill. Under D14 that makes it a human decision by definition. Burstiness is asked separately from headcount because 200 students over a week and 200 students at 10:03 on Tuesday are different engineering problems with the same headcount. |
 | D30 | **Each blueprint ships a machine-readable descriptor**, and the control plane hard-codes nothing about any particular language or stack. One blueprint ships in v1. | This is the difference between "we will add more blueprints later" being a folder and being a rewrite. The v1 platform will otherwise grow implicit Node assumptions in the builder, the health-check convention, the service catalogue and the injection contract — none of them written down, all of them load-bearing. A descriptor costs little now because there is exactly one blueprint to describe, and it converts §18's "multi-language auto-detection is a non-goal" from a limitation into a deferred, cheap extension. Not a contradiction of §18: auto-*detection* remains a non-goal; explicit, admin-published blueprints are the mechanism instead. |
 | D31 | **Administration is a role on the same public API, not a second API**, and the admin console's primary screen is the queue of things blocked on a human. | A private admin API would drift from the public one and would quietly become the place where capabilities land that faculty clients then cannot have — the exact failure D22's import rule exists to prevent for the console. The queue framing matters more than it sounds: the platform's own design (C4, D9, D14, D19, D24, D27, D29) deliberately routes a specific set of actions through human judgement, so the number of people waiting on an administrator is the platform's central operational metric, not an afterthought on a dashboard. |
+| D32 | **A fork inherits the code and the spec, and none of the trust.** No data, no secrets, no SP keypair or IAM registration, no privacy assessment, no custom domain, no audience setting, no prior approval. | Forking is the platform's best answer to forty people building the same rubric tool, so it must be safe enough to encourage. Every item on the not-copied list is specific to a person, a cohort or a purpose: copying an SP keypair would put two applications behind one identity at UBC, and copying an audience setting would silently size a 14-person tool for 900. What *is* inherited is the expensive part — the design, the code, and a privacy draft a reviewer has already accepted for a similar app. |
 
 ---
 
@@ -534,7 +536,7 @@ The other two are the app-facing paths (D6):
 |---|---|---|
 | IdP | Manifest IdP (SimpleSAMLphp) | real UBC Shibboleth |
 | Users | test users (`bio_prof`, `bio_student`) | real staff and students |
-| Registration | automatic, seconds | **manual UBC IAM request, weeks** (C4) |
+| Registration | automatic, seconds | **a request to UBC IAM, reviewed by people** (C4) |
 | Keypair | per app+environment, rotatable freely | long-lived and stable (D20) |
 | PIA | not required | **required** (C4) |
 | `passport-ubcshib` preset | `LOCAL` (pointed at the Manifest IdP) | `PRODUCTION` |
@@ -559,8 +561,10 @@ keypair     generated per app+environment; private key stored as a Secret,
 
 ### Production: real UBC IAM registration
 
-No automation exists or is assumed. Manifest's contribution is to make the manual
-process fast, accurate and legible to someone who has never heard of SAML (D19).
+No programmatic registration exists or is assumed. Manifest's contribution is to
+make the submission accurate, complete and legible to someone who has never heard
+of SAML (D19) — so that what reaches the reviewer needs as little back-and-forth as
+possible.
 
 **Manifest generates the registration package** from the AppSpec, reusing
 `saml-metadata-generator` as a library:
@@ -585,7 +589,7 @@ process fast, accurate and legible to someone who has never heard of SAML (D19).
 **Attribute drift is a build-time failure, not a login-time one.** Manifest stores
 `registered_attributes` and validates every production release against it (§7). If
 the agent adds an attribute IAM never registered, the build fails with a plain
-message and a pre-generated change request — weeks before a student would have hit
+message and a pre-generated change request, long before a student would have hit
 a broken login.
 
 **Certificate lifecycle.** `saml-metadata-generator` issues certificates valid for
@@ -611,6 +615,30 @@ nothing:
 
 `PrivacyAssessment` tracks `draft → submitted → approved`. Production deployment
 is blocked until it is `approved`.
+
+### Toward automated submission (direction, not a v1 feature)
+
+Today Manifest **drafts and tracks**; a person submits, and colleagues at UBC IAM
+and the Privacy Office review. That division is correct for v1 and is not a
+workaround — but it is not the end state either.
+
+Everything needed to submit directly already exists in the design: the registration
+package is generated (§9), the PIA draft is generated, both are first-class tracked
+objects with state machines (D19), and both carry the external ticket reference that
+a submission API would populate. What is missing is an agreed machine interface on
+the receiving side, and the trust relationship that would justify one.
+
+So the hook is real and the sequencing is deliberate: `IamRegistration` and
+`PrivacyAssessment` are modelled as objects with submission state rather than as
+attachments or checklist booleans, precisely so that "submitted by a human, with a
+ticket reference pasted in" and "submitted over an API" are the same state
+transition with a different driver behind it. This mirrors the source and runtime
+driver pattern (D5, D10): one interface, a manual first implementation, a
+programmatic second one when it is available.
+
+**What this changes for a faculty member today: nothing.** They must plan for review
+time. What it changes for the design is that we do not build anything that would
+have to be unpicked when submission becomes programmatic.
 
 ### Pre-production rehearsal (D21)
 
@@ -1089,8 +1117,10 @@ Everything else on the ambition list can wait.
 | `Instance.kind` (`web`\|`worker`\|`cron`) | always `web` | scheduled jobs and background workers |
 | `integrations: []` in the spec | reserved, must be empty | LTI 1.3 launch inside Canvas; roster/class-list integration via `FakeAcademicAPI` and `canvas-bridge` |
 | `data: {classification, retention_days}` | **partly enforced already**: `classification` gates model routing at spec validation (D17); `retention_days` drives backup retention (§12). Placement is the unenforced part. | FIPPA-driven placement constraints |
-| `Project.forked_from` | always null | fork and remix — one good rubric tool becomes forty |
-| `Project.visibility` / `published` | private | an institutional app gallery |
+| `Project.forked_from` | **used from Phase 2** — the showcase ships with forking (§27) | remix at scale; provenance across a fleet of derived apps |
+| `Project.visibility` / `published` | **used from Phase 2** — the showcase (§27) | department- and faculty-scoped galleries; curation |
+| `IamRegistration` / `PrivacyAssessment` submission state | a human submits and pastes a ticket reference | **direct submission to UBC IAM and the Privacy Office** when a machine interface exists on their side (§9). Modelled now as a state transition with a swappable driver, so nothing is unpicked later |
+| `auth.audience` — *who* may sign in, not just *whether* | reserved; today an app admits any valid CWL holder | **roster-scoped access**: only students registered in a named course section. Needs the roster integration below, but the *question* is asked from day one because the answer changes the attribute request and the PIA even while the answer is "everyone with a CWL" |
 | `checks: []` in the spec | reserved, must be empty | *app-declared* checks. Platform-mandatory scanning (dependency, secret) does **not** use this field — it runs on every build regardless (§12). Unlocks the automated WCAG accessibility gate before public launch (a legal requirement for UBC; `tlef-starter` already carries Playwright a11y configs). |
 | Platform-initiated `AgentSession` | **Phase 3**, with sandboxes — an AgentSession has nothing to attach to before then. Callable by any client holding a delegated token (D24). | self-healing apps: crash at 2am, repair sandbox opens, owner accepts a release in the morning |
 
@@ -1168,7 +1198,7 @@ both.
 | **1a — Baseline & deploy spine** | S1–S3 + S7 applied. §21's local stack (dnsmasq/`manifest.test`, custom Caddy + trusted CA, Postgres, registry, Verdaccio, egress proxy, builder), `make seed/up/reset/doctor`. Driver interface + Docker driver + fake Driver + driver contract suite. Spec parse/validate, local git driver, blueprint-managed build → image digest, service provisioning, staging deploy, routing. **All cross-cutting security lands here**: container hardening, per-app networks, default-deny egress, authorization contract suite. **Demo:** a fixture app routed and healthy at a `manifest.test` URL, from a clean checkout, offline. | Does C1 hold, and is the containment real? |
 | **1b — Identity, secrets & AI** | SP auto-provisioning against SQL metadata, per-app keypairs, `secrets/` envelope encryption, the §8 injection contract, the `node-ts-mongo` blueprint **with its §25 descriptor and compatibility check**, LiteLLM client with the classification-gated model catalogue, events, WS streaming, redaction at capture, incidents. **Demo:** the proof app — CWL login, writes to its own Mongo, asks the LLM — driven by `curl`. | Is the loop real? |
 | **1c — Contract & clients** | OpenAPI generation, versioned TS client, `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API (D25), `console/` with its import boundary, a read-only `LaunchReadiness` view, **the audience question at project creation (§24) and a read-only fleet list**, the CI acceptance script. **Demo:** the §1 journey, clickable, run twice over one contract. | Is the API complete, and can a second developer reproduce all of it? |
-| **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, **custom domains end to end (§23) and the audience tiers' production effects (§24)**, the admin console built around its queue (§26), IAM registration package + PIA draft generation | Is it safe, and can we get an app legitimately launched? |
+| **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, **custom domains end to end (§23), the audience tiers' production effects (§24), and the showcase with forking (§27)**, the admin console built around its queue (§26), IAM registration package + PIA draft generation | Is it safe, and can we get an app legitimately launched? |
 | **3 — Sandboxes** | agent `exec`, per-session keys, preview routes; a chat pane added to the reference console against the same API; the **MCP server** (§22), making "bring your own agent" real. **The separate front-end project can now begin against a real, exercised API.** | Can an AI build here? |
 | **4 — Reconciler & hibernation** | straight-line path becomes the loop; wake-on-request | Does it scale down? |
 | **5 — UBC infra driver** | k8s or VM driver passing the contract suite; real deployment | Does it leave the laptop? |
@@ -2033,3 +2063,77 @@ where that is discharged.
 Rudimentary and deliberately so: tables, filters, a queue, and the actions the API
 already exposes. It is an operations tool for the team running the platform, not a
 product surface, and it inherits `console/`'s quality bar (§22) for the same reason.
+
+---
+
+## 27. The showcase and forking
+
+`Project.visibility`, `Project.published` and `Project.forked_from` have been in the
+domain model since §6 with no section describing what they are for. This is that
+section.
+
+### The problem it solves
+
+Forty faculty members will independently describe a rubric tool, a queue, a booking
+page. Each description will be slightly different, each build will burn model
+budget, and each result will be reviewed, registered and assessed separately. The
+platform's most valuable asset after its first year is not any single app — it is
+**the set of apps that already work and have already been through review.**
+
+### Publishing
+
+An owner may publish a project to the showcase. Publishing exposes, to every
+authenticated Manifest user:
+
+- the description, the blueprint, and the `manifest.yaml` — what it needs, in
+  platform terms
+- a screenshot or short description supplied by the owner
+- provenance: what it was forked from, and how many projects have forked it
+- whether it is live, and roughly what audience it serves (`Project.audience`)
+
+Publishing exposes **no data, no secrets, no logs, no user list and no running
+instance.** A published project is a description and a recipe, never a running
+system — the showcase is a catalogue, not a hosting tier.
+
+`visibility` remains the access control on the project itself; `published` is the
+separate act of listing it. The two are deliberately not one flag: an owner may
+want colleagues to collaborate on a project without it appearing in an institutional
+gallery, and may want a gallery entry for an app whose repository stays closed.
+
+### Forking (D32)
+
+Forking creates a **new project owned by the person who forked it**, seeded from the
+source project's code and `manifest.yaml`, with `forked_from` set.
+
+What a fork carries: the code, the spec, the blueprint pin, the description.
+
+**What a fork never carries**, and this is the whole of the security argument:
+
+| Not copied | Why |
+|---|---|
+| The database and its contents | The source app's data is its owners' and often its students'. A fork is a new app with an empty database, always. |
+| Secrets | Envelope-encrypted per project (§12). A fork gets none and must supply its own. |
+| The SP keypair and IAM registration | Registered to a specific `entityID` and ACS URL for a specific app (§9, D15). A fork is a different app and needs its own registration; copying one would mean two applications presenting the same identity to UBC. |
+| The privacy assessment | Assessed against a specific owner, audience and purpose. A different course with a different roster is a different assessment. |
+| Custom domains | Verified against a specific project (§23, D28). |
+| `Project.audience` | Reset to unanswered. A tool built for 14 people being forked for 900 is exactly the case the question exists to catch. |
+| Production approval | A fork has never been approved. It starts at the beginning of the gate. |
+
+A fork therefore **inherits the work and none of the trust.** That is the correct
+default: the expensive part of the source project was the design and the code, and
+the parts that are not copied are precisely the parts that are specific to a person,
+a cohort and a purpose.
+
+### What forking does inherit, usefully
+
+The generated PIA draft and registration package for a fork are seeded from the
+source project's approved ones. The owner still reviews, signs and submits their own
+— but they start from a document that a reviewer has already accepted for a
+substantially similar app, rather than from nothing. Over time this is where most of
+the showcase's value accrues.
+
+### Scope
+
+Phase 2, alongside production environments and approvals. The showcase is a list, a
+detail page and a fork button; curation, ratings, categories and search beyond a
+text filter are explicitly out of scope until there is enough in it to need them.
