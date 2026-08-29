@@ -208,6 +208,12 @@ boundary intact even when the code inside is actively hostile.
 | D23 | **The public API is resource-oriented, event-streamed, and agent-framework agnostic** (§22). | These are the constraints that actually preserve front-end flexibility. In particular, no agent SDK type appears anywhere in the API surface: Vibonarium pinned `pi` to `0.79.3` and recorded that SDK's churn as a standing hazard. Manifest exposes sandbox lifecycle, `exec`, file operations and streams as primitives so any harness can drive them. |
 | D24 | **Two credential classes.** An *interactive session* (browser, CWL, CSRF, step-up re-auth) can do anything the user can. A *delegated token* (agent, CLI, CI, MCP) is scoped and may **never** carry production promotion, secret read, quota change or member management; requesting one of those creates a **pending action** a human confirms interactively. | This is what makes "bring your own agent" (§1) safe rather than a hole. Note what a delegated token *can* do: create projects, read everything, trigger builds, deploy to sandbox and staging, stream logs and events — the entire build loop. Only four things need a human. |
 | D25 | **The agent knowledge pack is served over the API**, versioned with its blueprint — not only baked into sandbox images. | A third-party agent on someone's laptop cannot read a file inside a container it never runs. Without this, a BYO agent has no way to learn how to write a valid `manifest.yaml` or wire CWL auth, which is exactly the knowledge that makes an app work on this platform. |
+| D26 | **Every app has a permanent canonical hostname. A custom production domain is an addition to it, never a replacement.** | The canonical name is what Manifest controls, what its wildcard certificate covers, and what internal tooling, health checks and the SP `entityID` are pinned to. Letting a vanity domain *replace* it would make the identity registration (§9) a function of a field a faculty member can edit, which is precisely the assertion-phishing shape D15 exists to prevent. Keeping both means a broken or lapsed custom domain degrades to a working app on an ugly URL, rather than to an outage. |
+| D27 | **A custom domain on a CWL app must be chosen before its UBC IAM registration is submitted.** Adding or changing one afterwards is an IAM change request, not a platform setting. | The ACS URL is part of what UBC IAM registers (§9, D15), and it must contain the hostname the browser is actually on or the assertion will not be accepted. This is the ordering constraint faculty are most likely to get wrong: choosing a domain is a five-second decision in week one that costs a multi-week change request in week twelve. Manifest therefore asks for the domain *at* registration time rather than offering it as a later convenience. Apps with `auth.provider: none` have no such constraint and may change domain freely. |
+| D28 | **A custom domain is verified by DNS before it can be attached**, using a CNAME to the canonical hostname plus a proof-of-control TXT record; certificates are then issued automatically. A certificate upload path exists for departments that cannot CNAME. | Attaching an unverified hostname lets one project claim traffic for a name it does not control. Requiring the CNAME first also means the automated certificate challenge is reachable by construction — traffic already arrives at the edge — so verification and certificate issuance are the same event rather than two failure modes. The upload path is not a loophole: those certificates are tracked with the same expiry alarms as SP certificates (D20), because an unnoticed expiry kills a live course application mid-term. |
+| D29 | **Audience size and burstiness are fields on the Project, set by a human, and shape production capacity only.** They are not `manifest.yaml` fields. | Faculty can answer "who is this for" and cannot answer "how many replicas" — that is C3 restated for capacity. Keeping the answer out of `manifest.yaml` matters for a second reason: the file is agent-writable, and capacity costs real money, so an agent that could edit it could silently multiply an app's hardware bill. Under D14 that makes it a human decision by definition. Burstiness is asked separately from headcount because 200 students over a week and 200 students at 10:03 on Tuesday are different engineering problems with the same headcount. |
+| D30 | **Each blueprint ships a machine-readable descriptor**, and the control plane hard-codes nothing about any particular language or stack. One blueprint ships in v1. | This is the difference between "we will add more blueprints later" being a folder and being a rewrite. The v1 platform will otherwise grow implicit Node assumptions in the builder, the health-check convention, the service catalogue and the injection contract — none of them written down, all of them load-bearing. A descriptor costs little now because there is exactly one blueprint to describe, and it converts §18's "multi-language auto-detection is a non-goal" from a limitation into a deferred, cheap extension. Not a contradiction of §18: auto-*detection* remains a non-goal; explicit, admin-published blueprints are the mechanism instead. |
+| D31 | **Administration is a role on the same public API, not a second API**, and the admin console's primary screen is the queue of things blocked on a human. | A private admin API would drift from the public one and would quietly become the place where capabilities land that faculty clients then cannot have — the exact failure D22's import rule exists to prevent for the console. The queue framing matters more than it sounds: the platform's own design (C4, D9, D14, D19, D24, D27, D29) deliberately routes a specific set of actions through human judgement, so the number of people waiting on an administrator is the platform's central operational metric, not an afterthought on a dashboard. |
 
 ---
 
@@ -265,11 +271,13 @@ identity/       Manifest's own CWL login, users, roles
 projects/       projects, members, quotas, provenance
 source/         git provider drivers (local, github)
 spec/           manifest.yaml schema, parse, validate, diff, sensitivity
-blueprints/     blueprint registry: skeleton, Dockerfile, knowledge pack, versioning
+blueprints/     blueprint registry: descriptor, skeleton, Dockerfile, knowledge
+                pack, versioning, compatibility checking (§25)
 build/          source + spec -> image digest (Dockerfile comes from the blueprint, D13)
 runtime/        Driver interface, drivers, instance state machine, reconciler
 services/       backing service provisioning + credentials
-routing/        hostnames, Caddy config, listener assignment
+routing/        hostnames, custom domains + DNS verification, Caddy config,
+                listener assignment, certificates (§23)
 secrets/        envelope encryption, injection
 sso/            Manifest IdP SP registration (sandbox + staging)
 launch/         production identity & privacy lifecycle: IamRegistration,
@@ -292,17 +300,20 @@ admin-ui/       React admin front-end
 | Entity | Key fields |
 |---|---|
 | **User** | `id`, `ubc_cwl_puid` (from `ubcEduCwlPuid`), `email`, `display_name`, `role` (`admin` \| `member`) |
-| **Project** | `id`, `slug`, `owner_id`, `blueprint_ref`, `quota`, `visibility`, `published`, `forked_from` |
+| **Project** | `id`, `slug`, `owner_id`, `blueprint_ref`, `quota`, `audience`, `visibility`, `published`, `forked_from` |
 | | `quota` = `{max_cpu, max_memory, max_services, ai_monthly_usd}`; enforced at spec validation (§7) |
+| | `audience` = `{scale, burst, justification, set_by, set_at}`; human-set, shapes production capacity only (§24, D29) |
 | **ProjectMember** | `project_id`, `user_id`, `role` (`owner` \| `collaborator`) |
-| **Blueprint** | `name`, `major_version`, `source_ref`, `default_spec`, `knowledge_pack_path` |
+| **Blueprint** | `name`, `major_version`, `source_ref`, `default_spec`, `knowledge_pack_path`, `descriptor` |
+| | `descriptor` = the parsed `blueprint.yaml` of §25: runtime, capabilities, defaults, schema compatibility (D30) |
 | **AppSpec** | `id`, `project_id`, `commit_sha`, `parsed` (jsonb), `schema_version`, `valid`, `errors` |
 | **Build** | `id`, `project_id`, `commit_sha`, `appspec_id`, `image_digest`, `status`, `logs_ref` |
 | **Release** | `id`, `project_id`, `build_id`, `appspec_id`, `resolved_config`, `created_by`, `summary` |
 | **Environment** | `id`, `project_id`, `kind` (`sandbox` \| `staging` \| `production`), `policy`, `hostname` |
 | **Instance** | `id`, `environment_id`, `release_id`, `driver`, `kind` (`web` \| `worker` \| `cron`), `state`, `handle`, `last_seen_at` |
 | **ServiceInstance** | `id`, `environment_id`, `type`, `version`, `name`, `handle`, `credentials_secret_id` |
-| **Route** | `id`, `instance_id`, `hostname`, `listener` (`internal` \| `public`) |
+| **Route** | `id`, `instance_id`, `hostname`, `listener` (`internal` \| `public`), `kind` (`canonical` \| `custom`) |
+| **Domain** | `id`, `project_id`, `hostname`, `state` (`pending` \| `verified` \| `attached` \| `failed` \| `detached`), `verification_token`, `cert_source` (`acme` \| `uploaded`), `cert_expires_at`, `last_checked_at`, `verified_at` |
 | **Secret** | `id`, `project_id`, `environment_kind`, `name`, `ciphertext`, `created_at` |
 | **Approval** | `id`, `release_id`, `decision`, `decided_by`, `reason`, `diff_snapshot` |
 | **IamRegistration** | `id`, `project_id`, `entity_id`, `acs_url`, `slo_url`, `cert_fingerprint`, `cert_expires_at`, `registered_attributes`, `state` (`draft` \| `submitted` \| `active` \| `change_requested` \| `expired`), `external_ticket_ref` |
@@ -429,6 +440,10 @@ Rejected at parse time, before any build:
 - for a production release: `auth.attributes` not a subset of the app's
   `IamRegistration.registered_attributes` (§9). Failing here, at build time, turns
   a launch-day login outage into a change request.
+
+Schema validation is then followed by a **blueprint compatibility check** against
+the pinned blueprint's descriptor — services it cannot bind, auth providers it does
+not support, a `manifest:` version it does not understand (§25, D30).
 
 ### Classification gates model routing (D17)
 
@@ -830,6 +845,10 @@ rest of this subsection is settled; this part is not.
   failures under Node's IPv6-first resolution order.
 - UBC: a wildcard DNS record per listener.
 
+**The names themselves — the zone per environment kind, custom production domains
+and their verification and certificates — are §23.** This subsection settles only
+how a name resolves in both contexts.
+
 ### Egress — default deny, every environment (D18)
 
 All environments route outbound traffic through a forced HTTP(S) proxy. The policy
@@ -1147,9 +1166,9 @@ both.
 | Phase | Deliverable | Question answered |
 |---|---|---|
 | **1a — Baseline & deploy spine** | S1–S3 + S7 applied. §21's local stack (dnsmasq/`manifest.test`, custom Caddy + trusted CA, Postgres, registry, Verdaccio, egress proxy, builder), `make seed/up/reset/doctor`. Driver interface + Docker driver + fake Driver + driver contract suite. Spec parse/validate, local git driver, blueprint-managed build → image digest, service provisioning, staging deploy, routing. **All cross-cutting security lands here**: container hardening, per-app networks, default-deny egress, authorization contract suite. **Demo:** a fixture app routed and healthy at a `manifest.test` URL, from a clean checkout, offline. | Does C1 hold, and is the containment real? |
-| **1b — Identity, secrets & AI** | SP auto-provisioning against SQL metadata, per-app keypairs, `secrets/` envelope encryption, the §8 injection contract, the `node-ts-mongo` blueprint, LiteLLM client with the classification-gated model catalogue, events, WS streaming, redaction at capture, incidents. **Demo:** the proof app — CWL login, writes to its own Mongo, asks the LLM — driven by `curl`. | Is the loop real? |
-| **1c — Contract & clients** | OpenAPI generation, versioned TS client, `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API (D25), `console/` with its import boundary, a read-only `LaunchReadiness` view, the CI acceptance script. **Demo:** the §1 journey, clickable, run twice over one contract. | Is the API complete, and can a second developer reproduce all of it? |
-| **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, admin UI, IAM registration package + PIA draft generation | Is it safe, and can we get an app legitimately launched? |
+| **1b — Identity, secrets & AI** | SP auto-provisioning against SQL metadata, per-app keypairs, `secrets/` envelope encryption, the §8 injection contract, the `node-ts-mongo` blueprint **with its §25 descriptor and compatibility check**, LiteLLM client with the classification-gated model catalogue, events, WS streaming, redaction at capture, incidents. **Demo:** the proof app — CWL login, writes to its own Mongo, asks the LLM — driven by `curl`. | Is the loop real? |
+| **1c — Contract & clients** | OpenAPI generation, versioned TS client, `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API (D25), `console/` with its import boundary, a read-only `LaunchReadiness` view, **the audience question at project creation (§24) and a read-only fleet list**, the CI acceptance script. **Demo:** the §1 journey, clickable, run twice over one contract. | Is the API complete, and can a second developer reproduce all of it? |
+| **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, **custom domains end to end (§23) and the audience tiers' production effects (§24)**, the admin console built around its queue (§26), IAM registration package + PIA draft generation | Is it safe, and can we get an app legitimately launched? |
 | **3 — Sandboxes** | agent `exec`, per-session keys, preview routes; a chat pane added to the reference console against the same API; the **MCP server** (§22), making "bring your own agent" real. **The separate front-end project can now begin against a real, exercised API.** | Can an AI build here? |
 | **4 — Reconciler & hibernation** | straight-line path becomes the loop; wake-on-request | Does it scale down? |
 | **5 — UBC infra driver** | k8s or VM driver passing the contract suite; real deployment | Does it leave the laptop? |
@@ -1164,6 +1183,15 @@ listed as Phase 2 but Phase 1's CWL login needs the SAML private key and
 `SESSION_SECRET` — it is a **1b** module. `LaunchReadiness` was listed as Phase 2 but
 §1 and §22 step 7 put "request production and see the gate" in the Phase 1 journey —
 so **1c** ships the read-only view and **Phase 2** ships the gate that blocks on it.
+
+**The blueprint descriptor is a Phase 1 item, not a Phase 5 one (D30).** It is the
+only piece of §23–§26 that cannot be deferred: everything else adds capability to a
+platform that already works, whereas a descriptor added after the fact is a
+refactor of the builder, the health check, the service catalogue and the injection
+contract at once. §23's custom domains and §24's capacity tiers both need
+production environments, so both belong in Phase 2 with them — but §24's *question*
+is asked at project creation, so 1c collects the answer even though nothing acts on
+it until Phase 2.
 
 **Start the proof app's IAM registration and PIA during Phase 1.** Both have
 multi-week external lead times (C4). Sequencing them after Phase 2 would leave a
@@ -1181,7 +1209,9 @@ Each phase ends in something demonstrable in a browser.
 - Long-lived human-attached dev environments (SSH, port forwarding, IDE attach,
   persistent home directories). Coder's core product; dead weight here, because
   our users never open a terminal.
-- Multi-language buildpack auto-detection. One blueprint in v1.
+- Multi-language buildpack **auto-detection**. One blueprint in v1. Additional
+  blueprints are explicit and admin-published (§25); nothing is ever inferred from
+  the contents of a repository.
 - A metrics or logging platform. Manifest surfaces what faculty need and forwards
   the rest.
 - Programmatic registration with real UBC IAM (C4).
@@ -1623,3 +1653,383 @@ Flexibility for the future front-end is preserved by constraints, not intentions
    the implementation, the OpenAPI document and `manifest-mock` fails CI, so a
    front-end built against the mock cannot compile against a contract the real API
    does not serve.
+
+---
+
+## 23. Hostnames and custom domains
+
+§12 settles how a name *resolves*. This section settles what the names **are**, who
+chooses them, and what it takes to put an app on a name the platform does not own.
+
+### The three platform zones
+
+Each environment kind is served from one zone, and the zone is **platform
+configuration — one setting each**, not something derived from the app. The only
+app-supplied part of any platform hostname is the project slug:
+
+```
+<slug>.<zone for that environment kind>
+```
+
+| Environment | UBC zone | Example |
+|---|---|---|
+| sandbox | `manifest.sandbox.apps.ltic.ubc.ca` | `chem-labs.manifest.sandbox.apps.ltic.ubc.ca` |
+| staging | `manifest.staging.apps.ltic.ubc.ca` | `chem-labs.manifest.staging.apps.ltic.ubc.ca` |
+| production (canonical) | `manifest.apps.ltic.ubc.ca` | `chem-labs.manifest.apps.ltic.ubc.ca` |
+
+On the laptop the same three settings hold the `manifest.test` equivalents
+(`chem-labs.sandbox.manifest.test`, `.staging.`, and `chem-labs.manifest.test`).
+The zones differ between deployments; the derivation rule does not, which is what
+lets the same code path build every hostname.
+
+Because the app contributes only a slug that is already validated as
+`^[a-z][a-z0-9-]{2,38}$` (§7), hostname construction cannot be steered by app
+content. This is D15's reasoning applied to routing rather than to SAML: nothing
+free-text reaches a hostname.
+
+**One sandbox environment per project at a time**, so its hostname is stable and
+predictable. Concurrent sandboxes, if they are ever needed, take a suffixed slug;
+the zone scheme does not change.
+
+### Certificates for the platform zones
+
+One wildcard certificate per zone — `*.manifest.sandbox.apps.ltic.ubc.ca` and the
+other two — covers every app in that tier, because every platform hostname is
+exactly one label deep. Three certificates for the whole fleet, renewed centrally,
+with no per-app issuance on the critical path of a deploy. On the laptop, Caddy's
+internal CA serves all three (§21).
+
+### The canonical hostname is permanent (D26)
+
+Every project has a production canonical hostname from the moment it exists, and it
+never changes. A custom domain is **added alongside it**, never in place of it.
+
+Three things depend on that permanence:
+
+- The SP `entityID` and ACS URL registered with UBC IAM (§9). These must be stable
+  for the life of the app; a rotating hostname would mean a rotating registration.
+- Health checks, internal tooling and the event stream, which should not care what
+  a faculty member typed into a domain field last week.
+- Failure behaviour. If a custom domain lapses, is mistyped, or its department
+  restructures its DNS, the app degrades to *a working app on an ugly URL* rather
+  than to an outage.
+
+`Route.kind` distinguishes the two. Both point at the same instance; only the
+canonical route is created automatically.
+
+### Custom production domains
+
+A custom domain is production-only, and only on the public listener. Sandbox and
+staging are bound to the internal listener (D12) precisely so they cannot be
+reached from outside UBC, and a custom domain is a request to be reachable — the
+two are contradictory, so the API rejects the combination rather than quietly
+ignoring it.
+
+**Lifecycle.** `Domain` moves through `pending → verified → attached`, with
+`failed` and `detached` as exits:
+
+1. **Requested.** The owner enters `labs.chem.ubc.ca`. Manifest allocates a
+   verification token and shows the two records to be created — worded as a request
+   the owner can forward to whoever runs that zone, since a faculty member almost
+   never controls departmental DNS themselves:
+
+   ```
+   labs.chem.ubc.ca.                       CNAME  chem-labs.manifest.apps.ltic.ubc.ca.
+   _manifest-challenge.labs.chem.ubc.ca.   TXT    "manifest-domain-verification=<token>"
+   ```
+
+2. **Verified.** Manifest polls until both records resolve. The CNAME proves
+   traffic will arrive; the **TXT proves *this project* was authorised to claim the
+   name**, which the CNAME alone does not — without it, a department that had
+   already pointed a name at the platform could have it claimed by whichever
+   project asked first.
+
+3. **Attached.** Attaching is a change to the public edge, so it is done by an
+   **administrator in an interactive session** (D14) and is never available to a
+   delegated token — the owner requests, an admin attaches.
+   Certificate issuance happens here, and it works by construction: the CNAME
+   already directs the ACME challenge at the edge that is answering it. Verification
+   and issuance are one event rather than two independent failure modes.
+
+**Apex domains and departments that cannot CNAME** take the upload path: an A
+record to the public edge plus a certificate supplied by the department or by UBC
+IT. This is not a loophole. Uploaded certificates are tracked with an expiry date
+and alarmed months ahead, exactly as SP certificates are under D20 — an unnoticed
+expiry silently kills a live course application mid-term, and it does not matter
+whether the certificate was issued automatically or by hand.
+
+**After attachment, checking continues.** DNS blips, so a failed check does not
+detach anything; it marks the custom route degraded, notifies the owner, and leaves
+the canonical route serving. Detachment is always an explicit human action.
+
+### Choosing a domain must precede IAM registration (D27)
+
+**This is the ordering constraint faculty are most likely to get wrong, and it is
+expensive.** For an app with `auth.provider: cwl`, the ACS URL is part of what UBC
+IAM registers (§9, D15), and it must carry the hostname the browser is actually on
+or the assertion will not be accepted. So:
+
+- The custom domain question is asked **at registration time**, inside the launch
+  readiness flow — not offered later as a convenience setting.
+- Adding or changing a custom domain after registration is an **IAM change
+  request** with the same multi-week external turnaround as the original (C4).
+  Manifest generates it and tracks it like any other, but it cannot make it fast.
+- Apps with `auth.provider: none` have no such constraint and may add, change or
+  remove custom domains freely.
+
+The platform states this at the moment of choice rather than discovering it at
+launch. A five-second decision in week one otherwise costs a month in week twelve.
+
+### What this adds to launch readiness
+
+`LaunchReadiness` (§13) gains a domain item: either *canonical only — no action* or
+*custom domain verified and attached*. For a CWL app it is ordered **before** the
+IAM registration item, because the registration consumes its answer.
+
+---
+
+## 24. Audience and scale
+
+C3 says faculty never see infrastructure. That has been read so far as "no YAML, no
+containers", but it applies just as much to capacity: a faculty member can answer
+*who is this for*, and cannot answer *how many replicas*. This section is C3
+applied to sizing.
+
+### Two questions, asked of a human (D29)
+
+Both live on the `Project`, set through an interactive session, and **neither is a
+`manifest.yaml` field**:
+
+**How many people?**
+
+| `scale` | Means | Rough ceiling |
+|---|---|---|
+| `solo` | Me, or me and a few colleagues | ~25 |
+| `class` | One course section | ~400 |
+| `large_course` | A large course, or several sections | ~5,000 |
+| `public` | Anyone with the link, including people outside UBC | unbounded |
+
+**Do they all arrive at once?**
+
+| `burst` | Means |
+|---|---|
+| `steady` | Usage spreads across days — a booking tool, a reference app |
+| `synchronised` | Everyone arrives inside a few minutes — used live in a lecture, or opened the moment registration does |
+
+Burstiness is asked separately because it is a different engineering problem with
+the same headcount: 200 students across a week is trivial, and 200 students at
+10:03 on Tuesday because the URL went on a slide is not.
+
+**Why not in `manifest.yaml`.** Two reasons, and the second is the load-bearing
+one. First, it is a statement about people rather than about code, so it does not
+belong in a file that describes the app. Second, `manifest.yaml` is
+**agent-writable**, and capacity costs real money — a field an agent can edit is a
+field an agent can be talked into multiplying twentyfold. Under D14 that makes it a
+human decision by construction.
+
+### What each answer actually changes — production only
+
+| | `solo` | `class` | `large_course` | `public` |
+|---|---|---|---|---|
+| Instances | 1 | ≥2 | ≥3 with headroom | ≥3 with headroom |
+| Hibernation (§11) | yes | not during term | never | never |
+| Backups | weekly | daily | daily | daily |
+| Alerting | none | health only | health + saturation, paged | health + saturation, paged |
+| Edge rate limiting | default | default | tuned | tuned, plus abuse controls |
+| Extra launch gate | — | — | load rehearsal | load rehearsal + security review |
+
+`burst: synchronised` additionally pre-warms capacity ahead of a window the owner
+declares, because **wake-on-request (§11) is correct for `solo` and wrong here** —
+a cold start is invisible to one person checking a tool on Thursday and is a failed
+lecture for 200 people at 10:03. The two features are not in tension; they serve
+different rows of the same table.
+
+`public` carries the extra scrutiny not because of headcount but because its users
+are unauthenticated, which removes CWL as an accountability layer and widens §3.5's
+"student using a manifested app" actor to anyone.
+
+### Sandbox and staging ignore all of it
+
+Both are always one small instance that hibernates when idle, whatever the project
+says — with exactly one exception, the rehearsal below. That keeps iteration cheap
+and the fleet's idle cost near zero, but it means **staging does not test load by
+default**, and that divergence must be stated rather than discovered.
+
+The mitigation mirrors D21's IdP rehearsal: for `large_course` and `public`, launch
+readiness includes a **load rehearsal** against staging with production-shaped
+capacity temporarily granted. An app whose first contact with its real audience is
+launch day will fail on launch day, and that is as true of capacity as it is of
+identity.
+
+### Audience is not `resources`
+
+`manifest.yaml`'s `resources` block sizes *one instance* and is bounded by the
+project quota (§7); audience decides *how many of them run in production* and
+under which policies. The two compose and neither
+subsumes the other — which is why one is a spec field the agent may write and the
+other is not.
+
+### Changing the answer
+
+Upward is a request an admin approves, because it consumes shared capacity and
+budget; it appears in the admin queue (§26) with the owner's justification.
+Downward is immediate and needs no approval. Both are recorded with actor and
+timestamp on the project, so "why is this app running three instances" always has
+an answer.
+
+---
+
+## 25. Blueprints as a pluggable catalogue
+
+A blueprint is Manifest's equivalent of a Coder template: an admin-published,
+versioned definition of what a generated app looks like. §18 keeps "one blueprint
+in v1" and keeps auto-detection a non-goal. This section is about making the second
+blueprint a **new folder rather than a rewrite** (D30).
+
+### The failure being prevented
+
+Ship one blueprint with no descriptor and the platform grows implicit Node
+assumptions in the builder, the health-check convention, the service catalogue and
+the injection contract — none written down, all load-bearing, and every one of them
+discovered the week someone asks for Python. The cost of avoiding this is small
+precisely because there is currently one blueprint to describe.
+
+### The descriptor
+
+Each blueprint ships a `blueprint.yaml` at its root, parsed into `Blueprint.descriptor`:
+
+```yaml
+blueprint: node-ts-mongo
+major_version: 2
+schema_versions: [1]              # manifest: versions this blueprint understands
+
+runtime:
+  language: typescript
+  base_image: <digest-pinned reference>
+  default_port: 3000
+  health_path: /healthz
+  run_as_uid: 10001
+
+provides:
+  services: [mongo, qdrant]       # service types this blueprint can bind
+  auth_providers: [cwl, none]
+  ai: true
+
+defaults:
+  resources: { cpu: 0.5, memory: 512Mi, pids: 256, disk: 2Gi }
+
+injection:
+  contract: v1                    # which §8 table this blueprint reads
+
+dockerfile: ./Dockerfile.tmpl     # blueprint-managed, per D13
+knowledge_pack: ./agents/         # served over the API, per D25
+```
+
+### What this changes in the control plane
+
+**Validation becomes two stages.** Schema validation (§7) is unchanged. It is
+followed by a **compatibility check against the blueprint's descriptor**, which
+produces errors of a distinctly more useful kind:
+
+```
+blueprint node-ts-mongo@2 cannot bind service type "postgres"
+  (supported: mongo, qdrant)
+blueprint node-ts-mongo@2 does not support auth.provider "cwl"
+```
+
+**And four assumptions become lookups**, which is the whole point: the builder asks
+the descriptor for the language and base image rather than knowing them; the health
+check asks for the path rather than defaulting to `/healthz`; the service catalogue
+is intersected with `provides.services` rather than being global; and the injection
+contract is a version the blueprint names rather than the only table that exists.
+
+`spec/` therefore exposes `checkBlueprintCompatibility(spec, descriptor)` alongside
+its existing schema validation, and no module outside `blueprints/` names a
+language.
+
+### Publishing and versioning
+
+Blueprints are published by administrators, never by faculty and never by an agent
+— they are the one artifact in the system that *is* reviewed on every change (§20),
+and that property only holds while the set of people who can change them is small.
+
+Apps pin a major version. A major bump is already one of §7's seven sensitive
+fields, so moving an app to a new blueprint major re-escalates to approval (D9);
+under D13 the blueprint *is* the build definition, so this is a change to every
+layer beneath the app and is gated accordingly.
+
+**v1 ships exactly one catalogue entry.** The registry, the descriptor and the
+version pinning all exist anyway, because they are what make entry two cheap.
+
+---
+
+## 26. The admin console
+
+§5 places `admin-ui/` in this repo and §17 lands it in Phase 2. This section says
+what it is for.
+
+### Administration is a role, not a second API (D31)
+
+The admin console consumes the same public API as `console/`, `mcp/` and the CI
+harness, with administrative capability granted by role. A private admin API would
+drift from the public one, and would become the place where capabilities
+accumulate that faculty clients then cannot have — the exact failure D22's import
+rule exists to prevent. The import boundary that binds `console/` binds
+`admin-ui/`.
+
+Cross-project and fleet-wide reads are therefore **admin-scoped endpoints on the
+public API**, documented in the same OpenAPI document as everything else.
+
+### The primary screen is the queue
+
+Not the fleet list. Manifest's design deliberately routes a specific, enumerable
+set of actions through human judgement — C4, D9, D14, D19, D24, D27, D29 — so the
+number of people waiting on an administrator is the platform's central operational
+metric rather than an afterthought.
+
+Every queue item is derived from an entity that already exists:
+
+| Queue item | Source | Decided by |
+|---|---|---|
+| Release awaiting approval | `Approval` (D9) | admin |
+| Confirmation of a delegated-token action | `PendingAction` (D24) | the requesting user, in *their* queue — listed here because it is the same mechanism |
+| IAM registration to submit or amend | `IamRegistration` (D19) | admin + UBC IAM |
+| Privacy assessment to review | `PrivacyAssessment` | owner, then Privacy Office |
+| Verified domain awaiting attach | `Domain` (D28) | admin |
+| Audience upgrade request | `Project.audience` (D29) | admin |
+| Launch item needing an override | `LaunchReadiness` | admin, recorded as an override |
+
+Each item shows what is being asked, by whom, what changes if it is granted, the
+diff where there is one, and **how long it has waited**. The console's headline
+health number is the age of the oldest item, because a queue that is merely long is
+working and a queue that is stale is not.
+
+### The other screens
+
+- **Fleet** — every app: owner and department, environments and their state, current
+  release digest, audience tier, domains, last deploy, open incidents, AI spend this
+  month.
+- **People** — every user, role, the projects they own or collaborate on, last seen,
+  and their outstanding delegated tokens.
+- **Spend** — AI spend by project and by end user, which D8's per-user attribution
+  already produces. Answers "which of 300 students spent the budget" without a
+  bespoke report.
+- **Health and risk** — open incidents (§14); certificates expiring within 90 days,
+  covering both SP certificates (D20) and uploaded custom-domain certificates
+  (D28); policies a driver reports it cannot enforce (§12 `capabilities()`); failed
+  vulnerability scans (§20); apps still pinned to a superseded blueprint major.
+- **Audit** — the append-only log (§20), filterable by actor, project and action.
+
+### Non-repudiation
+
+Every administrative action is audited with its actor. An admin action taken **on
+another person's project** additionally requires a reason string, which is stored
+with the audit entry and shown to the project owner in their event stream. §3.5
+lists insider risk as a real threat with a stated need for non-repudiation; this is
+where that is discharged.
+
+### Scope
+
+Rudimentary and deliberately so: tables, filters, a queue, and the actions the API
+already exposes. It is an operations tool for the team running the platform, not a
+product surface, and it inherits `console/`'s quality bar (§22) for the same reason.
