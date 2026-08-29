@@ -29,9 +29,13 @@ services, routing, secrets, identity provisioning, and AI credential brokering.
 The platform is real when, **on a MacBook with no cloud dependencies**, a caller
 can drive this loop end to end:
 
-> create project → repo provisioned → build → deploy to staging → open the URL →
-> log in with CWL → the app writes to its own database → the app asks an LLM a
-> question → promote to production behind an approval gate.
+> a person logs into the **reference console** (§22) → creates a project → watches
+> it provision → builds → deploys to staging → opens the app → logs in with CWL
+> inside it → the app writes to its own database → the app asks an LLM a question →
+> requests production and sees the launch-readiness gate.
+
+Driven by a human through a UI, not by `curl`. Until that journey is clickable,
+nothing has been proven to anyone outside the team.
 
 The laptop proves the **mechanism** of that final step, not a real launch: a
 genuine production launch additionally requires a UBC IAM registration and an
@@ -168,6 +172,8 @@ boundary intact even when the code inside is actively hostile.
 | D6 | **Two identity paths.** The Manifest IdP (a SimpleSAMLphp instance Manifest controls) serves **sandbox and staging** with test users. **Production apps are registered directly with real UBC Shibboleth**, one registration per app. The Manifest IdP does not proxy to real CWL and never authenticates a real user. | Per C4, which is non-negotiable. A useful side effect: the Manifest IdP's signing key never touches real identities, which removes it from the top of the asset list in §3.5. *(A SAML-proxy variant was considered and rejected.)* |
 | D19 | **Manifest generates and tracks the IAM registration and the PIA as first-class objects**, and blocks production deployment until both are approved. | The platform knows more about the app than its owner does: it can derive the SP metadata, a per-attribute justification, and most of a PIA from the AppSpec. A faculty member should review and sign, not author from nothing. This converts C4 from a blocker into the platform's most valuable service. |
 | D20 | **The production SP keypair is long-lived and stable**, generated once at registration; rotation is a tracked IAM change request with an overlap window. Certificate expiry is monitored and alarmed months ahead. | An SP certificate is registered with UBC IAM; rotating it per deploy would break authentication. Conversely an unnoticed expiry silently kills login for a live course application mid-term — an operational hazard that is invisible until it is urgent. |
+| D22 | **This repo ships a `console/` — a reference console — as a Phase 1 deliverable.** It is the executable proof that the public API is complete and sufficient, not the product. It imports *only* the generated client from `contract/`, enforced by a lint boundary and a test. | Without it, the faculty journey is undemonstrable until Phase 3, and API gaps surface when the front-end team hits them rather than while they are cheap to fix. The import rule converts "is the API complete?" from an opinion into a build failure. |
+| D23 | **The public API is resource-oriented, event-streamed, and agent-framework agnostic** (§22). | These are the constraints that actually preserve front-end flexibility. In particular, no agent SDK type appears anywhere in the API surface: Vibonarium pinned `pi` to `0.79.3` and recorded that SDK's churn as a standing hazard. Manifest exposes sandbox lifecycle, `exec`, file operations and streams as primitives so any harness can drive them. |
 | D21 | **A pre-production rehearsal against UBC's staging IdP (`authentication.stg.id.ubc.ca`) is part of launch readiness**, not part of the daily build loop. | Staging on the Manifest IdP keeps iteration frictionless, but an app whose first contact with real Shibboleth is production launch day will fail on launch day. The rehearsal validates the registration, the attribute release and the certificate before anything is public. |
 | D7 | Manifest is a **client of LiteLLM's admin API**, not a gateway of its own. | LiteLLM already provides virtual keys, budgets, multi-provider routing and an admin API. Building a second one would be waste. |
 | D8 | Virtual keys are minted **per app+environment**, **per agent session**, and spend is attributed **per end user** via hashed CWL `uid`. | A looping agent burns its own cap. Per-user attribution answers "which of 300 students spent the budget" and enables fair-share quotas inside a manifested app. |
@@ -220,6 +226,9 @@ logs, deploy transitions and incidents. A front-end developer runs one process, 
 the whole platform. Without this, front-end work is gated on the entire stack being
 healthy, which is exactly the fragility C1 exists to prevent.
 
+It also ships a **reference console** (§22) — the minimal faculty-facing client
+that makes the journey clickable in Phase 1 and proves the API can carry it.
+
 **In scope, and easily misplaced:** the **agent knowledge pack** — the `AGENTS.md`
 and task-skill files that teach an AI to write a valid `manifest.yaml` and wire CWL
 auth. These must version alongside the platform contract they describe, so they
@@ -247,6 +256,7 @@ observability/  events, logs, incidents, metrics
 api/            HTTP + WS surface
 contract/       OpenAPI document + generated TypeScript client (published)
 mock/           manifest-mock: fixture server for the same contract
+console/        reference console: the faculty-facing proof client (§22)
 admin-ui/       React admin front-end
 ```
 
@@ -963,7 +973,8 @@ the system becomes ordinary test-first development.
 | **Security regression** | Secrets never appear in captured logs, incidents or events; a sandbox cannot reach the control plane, the LiteLLM admin port or a metadata endpoint; a spec with a `runtime.build` block or a non-path `auth.callback` is rejected; a `confidential` app cannot resolve an off-premise model. |
 | **Contract** | The OpenAPI document is generated from the routes and checked in; drift fails CI. `manifest-mock` is validated against the same document, so a front-end built against the mock cannot compile against a contract the real API does not serve. |
 | **Integration** | Real Postgres, real Docker driver, one tiny fixture app; Supertest per route. |
-| **Acceptance** | The proof app, end to end, on the laptop and in CI. |
+| **Acceptance** | The §1 journey, driven twice against the same published API: by a human in the reference console, and headlessly in CI by a script using the same generated client. Two independent clients over one contract. |
+| **API completeness** | `console/` imports nothing but `contract/`. A violation fails the build — this is what makes "the API is sufficient" a checkable claim rather than an assertion. |
 
 ### The proof app
 
@@ -998,9 +1009,9 @@ alongside Phases 1–2.
 
 | Phase | Deliverable | Question answered |
 |---|---|---|
-| **1 — The spine** | project → repo → build → staging deploy → CWL login → AI call, live at a URL. One blueprint (`node-ts-mongo`, from `tlef-starter`). Imperative path. Laptop only. **Plus the non-negotiable security baseline:** container hardening, per-app networks, default-deny egress, derived ACS URLs, redaction at capture, authorization contract suite. **Plus the local baseline of §21** and the front-end contract: OpenAPI document, generated client, and `manifest-mock`. | Is the loop real, is the containment real, and can a second developer reproduce it? |
+| **1 — The spine** | The §1 journey, clickable in the reference console (§22): project → repo → build → staging deploy → CWL login → AI call, live at a URL. One blueprint (`node-ts-mongo`, from `tlef-starter`). Imperative path. Laptop only. **Plus the non-negotiable security baseline:** container hardening, per-app networks, default-deny egress, derived ACS URLs, redaction at capture, authorization contract suite. **Plus the local baseline of §21** and the front-end contract: OpenAPI document, generated client, and `manifest-mock`. | Is the loop real, is the containment real, and can a second developer reproduce it? |
 | **2 — Environments & approvals** | production, promotion by digest, `LaunchReadiness`, sensitive-diff escalation, secrets, admin UI, IAM registration package + PIA draft generation | Is it safe, and can we get an app legitimately launched? |
-| **3 — Sandboxes** | agent `exec`, per-session keys, preview routes. **The front-end project can now begin against a real API.** | Can an AI build here? |
+| **3 — Sandboxes** | agent `exec`, per-session keys, preview routes; a chat pane added to the reference console against the same API. **The separate front-end project can now begin against a real, exercised API.** | Can an AI build here? |
 | **4 — Reconciler & hibernation** | straight-line path becomes the loop; wake-on-request | Does it scale down? |
 | **5 — UBC infra driver** | k8s or VM driver passing the contract suite; real deployment | Does it leave the laptop? |
 
@@ -1199,6 +1210,7 @@ application:
 | Control plane | 7100 | **Host Node process**, not a container — it needs the Docker socket, and §12 forbids mounting that socket into a container. Also faster to iterate on. |
 | Admin UI (Vite) | 7101 | |
 | `manifest-mock` | 7102 | |
+| Reference console (§22) | 7104 | Served at `console.manifest.test` through Caddy, leaving `app.manifest.test` for the separate front-end project |
 | Ollama | 11434 | **Host application** — Metal GPU access is unavailable from a container |
 
 Git uses the local driver (bare repositories on disk), so it needs no container.
@@ -1253,9 +1265,11 @@ Front-end developers are not required to run the platform. `manifest-mock` (§5,
 streams for build logs, deploy transitions and incidents — so the common case is
 one process, not eight containers plus a language model.
 
-**Sequencing for the front-end team:** the contract and mock land in Phase 1; real
-read and deploy APIs in Phase 2; the live agent loop needs sandbox `exec` and WS
-streaming, so it is genuinely available in **Phase 3**.
+**Sequencing for the front-end team:** the contract, the mock and the reference
+console land in Phase 1 — so the team starts against an API that has already been
+driven end to end by a real client, not a paper contract. Real read and deploy APIs
+in Phase 2; the live agent loop needs sandbox `exec` and WS streaming, so it is
+genuinely available in **Phase 3**.
 
 ### What offline AI does and does not prove
 
@@ -1294,3 +1308,95 @@ Stated so nobody discovers them at the wrong moment:
 5. The Manifest IdP serves test users only; no real Shibboleth is involved (D6).
 6. `Driver.capabilities().isolationLevel` is `container`, the weakest level (§20).
    Spike S6 determines whether that is acceptable for sandboxes.
+
+
+---
+
+## 22. The public API and its reference clients
+
+### Why this section exists
+
+The faculty-facing front-end is a separate project (§5), which creates a specific
+risk: an API designed in the abstract, discovered to be insufficient months later
+by a team that cannot change it quickly. The countermeasure is to build a client in
+this repo, in Phase 1, that drives the entire journey — and to constrain it so that
+any gap in the API becomes a build failure rather than a conversation.
+
+### The reference console (D22)
+
+`console/` is a small web client with one job: **prove the public API is complete
+and sufficient.** It is not the product.
+
+**Quality bar: plain but presentable.** No design system, no branding, system
+fonts, minimal CSS — coherent enough that a pilot faculty member can be walked
+through it, obviously not polished enough that anyone mistakes its choices for
+product decisions. The real experience is the separate front-end project's job.
+
+**The rule that makes it work:** `console/` imports *only* the generated client
+from `contract/`. A lint boundary and a test enforce this. If the console needs
+something the API does not expose, the API is incomplete — and that is discovered
+in Phase 1, while it is cheap, rather than in Phase 3 by a team blocked on it.
+
+**A hard constraint on scope:** no capability may exist in the console that is not
+available through the published API. The console never gets a shortcut.
+
+### The journey it drives
+
+Phase 1 — no AI authoring yet, since sandboxes arrive in Phase 3, so "describe your
+app" is "choose a blueprint":
+
+1. Log in with CWL (Manifest IdP, test user)
+2. Create a project — name and blueprint
+3. Watch provisioning: repository created, `manifest.yaml` validated
+4. Trigger a build; build logs stream live
+5. Deploy to staging; instance state transitions stream live
+6. Open the running app; log in with CWL *inside* it; write a note; ask the LLM
+7. Request production; see `LaunchReadiness` (§13) with its blocked items and why
+
+Phase 3 adds a chat pane, sandbox lifecycle and agent streaming — to the same
+console, against the same API.
+
+### The CI half comes free
+
+The acceptance harness is a **script using the same generated client** (§16). Same
+journey, same contract, headless, no browser automation. Two independent clients
+over one API is also the cheapest possible evidence that the API is genuinely
+client-agnostic rather than shaped around one consumer.
+
+### API design principles (D23)
+
+Flexibility for the future front-end is preserved by constraints, not intentions:
+
+1. **Resource-oriented, never view-oriented.** No `GET /dashboard` returning a blob
+   shaped for today's layout — that quietly makes the API a function of one UI, and
+   the real front-end then cannot diverge without server changes. Resources, plus
+   an explicit `?expand=` where round-trips genuinely hurt.
+
+2. **One event stream per project, not polling.** Build logs, instance state
+   transitions, incidents and approval decisions all flow over
+   `WS /projects/:id/events`. A polling API bakes in an assumption about UI shape;
+   a stream lets a chat interface, a dashboard, a CLI or a notification bot all
+   react to the same source.
+
+3. **Agent-framework agnostic.** No agent SDK type appears anywhere in the API
+   surface. Sandbox lifecycle, `exec`, file operations and output streams are
+   exposed as primitives, so any harness — or a plain shell script — can drive
+   them. Vibonarium pinned `pi` to `0.79.3` and recorded that SDK's release
+   velocity as a standing hazard; that dependency must not reach this API.
+
+4. **The API is the only integration point**, authentication included: a session
+   cookie for browser clients, a token path for CLI and CI. Nothing a client needs
+   is available only through a side channel.
+
+5. **No server-held UI state.** The server owns domain state; clients own
+   presentation state. Otherwise the API accretes fields like `sidebarCollapsed`
+   and every client inherits one client's habits.
+
+6. **Idempotency keys on every mutating action.** Clients retry, and users
+   double-click. Creating a project twice because a request was replayed is the
+   kind of defect that is trivial to prevent now and miserable to retrofit.
+
+7. **The contract is versioned and generated from the routes** (§16). Drift between
+   the implementation, the OpenAPI document and `manifest-mock` fails CI, so a
+   front-end built against the mock cannot compile against a contract the real API
+   does not serve.
