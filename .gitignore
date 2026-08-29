@@ -1,0 +1,23 @@
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json
+
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+
+# Environment and secrets — never commit these
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Local platform state (see spec §21)
+.manifest-local/
