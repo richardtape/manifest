@@ -8,8 +8,9 @@ the API contract it consumes.
 
 **Note on planning scope:** this document is the architecture for Phases 0–5
 (§17). It is deliberately larger than one implementation plan. The first
-implementation plan covers **Phase 0 (spikes S1–S3) and Phase 1 (the spine)**
-only. Later phases get their own plans against this same architecture.
+implementation plan covers **Phase 0 (spikes S1–S3 and S7) and Phase 1a (the local
+baseline and deploy spine)** only. Phases 1b and 1c get their own plans against this
+same architecture, as do the later phases.
 
 ---
 
@@ -168,9 +169,11 @@ boundary intact even when the code inside is actively hostile.
 - Faculty owners are accountable for their app's data but **cannot assess its
   security**. Platform controls are what make that accountability tenable; this is
   the platform's core value proposition to the Privacy Office, not a caveat.
-- Application code is **never reviewed by a human** after first launch (D9). All
-  compensating controls are therefore preventive and containment-based, not
-  review-based.
+- Application code is **never reviewed by a human at all** — not at first launch
+  either. §13's gate reviews `manifest.yaml`, not code (D9). Every compensating
+  control is therefore preventive and containment-based, never review-based. The
+  one exception is the blueprint itself (§20), which is reviewed on every change
+  precisely because there is only one of it.
 - A container is a **weak** boundary against a determined attacker. Sandbox
   isolation strength is recorded, not assumed (§20).
 
@@ -186,25 +189,25 @@ boundary intact even when the code inside is actively hostile.
 | D4 | The app→platform contract is a schema-validated **`manifest.yaml` in the repo**. | Versioned with the code, diffable at the approval gate, and expressive enough to state "this app needs Qdrant and CWL with these attributes". |
 | D5 | Git access is behind a **provider interface**; driver 1 is local bare repos, driver 2 is a UBC GitHub org. | Satisfies C1: the laptop build needs no GitHub org, no tokens, no webhook tunnel. |
 | D6 | **Two identity paths.** The Manifest IdP (a SimpleSAMLphp instance Manifest controls) serves **sandbox and staging** with test users. **Production apps are registered directly with real UBC Shibboleth**, one registration per app. The Manifest IdP does not proxy to real CWL and never authenticates a real user. | Per C4, which is non-negotiable. A useful side effect: the Manifest IdP's signing key never touches real identities, which removes it from the top of the asset list in §3.5. *(A SAML-proxy variant was considered and rejected.)* |
-| D19 | **Manifest generates and tracks the IAM registration and the PIA as first-class objects**, and blocks production deployment until both are approved. | The platform knows more about the app than its owner does: it can derive the SP metadata, a per-attribute justification, and most of a PIA from the AppSpec. A faculty member should review and sign, not author from nothing. This converts C4 from a blocker into the platform's most valuable service. |
-| D20 | **The production SP keypair is long-lived and stable**, generated once at registration; rotation is a tracked IAM change request with an overlap window. Certificate expiry is monitored and alarmed months ahead. | An SP certificate is registered with UBC IAM; rotating it per deploy would break authentication. Conversely an unnoticed expiry silently kills login for a live course application mid-term — an operational hazard that is invisible until it is urgent. |
-| D22 | **This repo ships a `console/` — a reference console — as a Phase 1 deliverable.** It is the executable proof that the public API is complete and sufficient, not the product. It imports *only* the generated client from `contract/`, enforced by a lint boundary and a test. | Without it, the faculty journey is undemonstrable until Phase 3, and API gaps surface when the front-end team hits them rather than while they are cheap to fix. The import rule converts "is the API complete?" from an opinion into a build failure. |
-| D23 | **The public API is resource-oriented, event-streamed, and agent-framework agnostic** (§22). | These are the constraints that actually preserve front-end flexibility. In particular, no agent SDK type appears anywhere in the API surface: Vibonarium pinned `pi` to `0.79.3` and recorded that SDK's churn as a standing hazard. Manifest exposes sandbox lifecycle, `exec`, file operations and streams as primitives so any harness can drive them. |
-| D21 | **A pre-production rehearsal against UBC's staging IdP (`authentication.stg.id.ubc.ca`) is part of launch readiness**, not part of the daily build loop. | Staging on the Manifest IdP keeps iteration frictionless, but an app whose first contact with real Shibboleth is production launch day will fail on launch day. The rehearsal validates the registration, the attribute release and the certificate before anything is public. |
 | D7 | Manifest is a **client of LiteLLM's admin API**, not a gateway of its own. | LiteLLM already provides virtual keys, budgets, multi-provider routing and an admin API. Building a second one would be waste. |
-| D8 | Virtual keys are minted **per app+environment**, **per agent session**, and spend is attributed **per end user** via hashed CWL `uid`. | A looping agent burns its own cap. Per-user attribution answers "which of 300 students spent the budget" and enables fair-share quotas inside a manifested app. |
+| D8 | Virtual keys are minted **per app+environment**, **per agent session**, and spend is attributed **per end user** via hashed `ubcEduCwlPuid`. | A looping agent burns its own cap. Per-user attribution answers "which of 300 students spent the budget" and enables fair-share quotas inside a manifested app. |
 | D9 | Production approval is **first-launch only**, plus **automatic re-escalation when a sensitive field changes**. | Preserves faculty velocity while closing the "the AI silently rewrote the app" hole. The escalation is free because the diff is computed for the first review anyway. |
 | D10 | Control plane is a **desired-state reconciler with pluggable drivers**, but the first implementation is a **straight-line imperative path**. | Learn the domain against real Docker before committing to a loop. The reconciler later *wraps* the straight-line function rather than replacing it. |
 | D11 | Stack: **TypeScript/Node + Fastify, Postgres, Drizzle, React+Vite** admin UI. | Team fit, and LiteLLM already requires Postgres — the control plane database adds no new infrastructure dependency. |
 | D12 | Edge proxy is **Caddy**, with **separate listeners** for internal (sandbox+staging) and public (production) traffic. | HTTPS on a laptop from Caddy's internal CA (one automated trust-store step, not a manual mkcert dance — §21); JSON admin API instead of templated config. Separate listeners fail closed; IP allowlists fail open and quietly. |
 | D13 | **Dockerfiles are blueprint-managed.** Apps cannot supply their own build definition. | Build time is the most privileged moment in the pipeline; an app-supplied Dockerfile is arbitrary RCE on the builder. It also violated the rule in D4/§7 that an app declares *what*, never *how*. Custom Dockerfiles may return later behind rootless BuildKit with a credential-free, network-restricted builder. |
 | D14 | **Privileged actions require an interactive human session, whichever client initiates them.** No agent-held credential — Manifest's own or a third party's — carries privileged capability. A sandbox in particular holds no credential able to mutate anything outside itself. | Prompt injection makes any agent a confused deputy: text it reads — a student PDF, a scraped page, a package README — is potential attacker instruction. The property is *not* "our front-end does it", which would make third-party clients second-class by construction and misstate the control. Stated this way it protects against a prompt-injected agent on someone's laptop exactly as it protects against one in our sandbox: one rule, one enforcement point. Generalises Vibonarium's *"the agent suggests, the human clicks, the gateway executes."* |
-| D24 | **Two credential classes.** An *interactive session* (browser, CWL, CSRF, step-up re-auth) can do anything the user can. A *delegated token* (agent, CLI, CI, MCP) is scoped and may **never** carry production promotion, secret read, quota change or member management; requesting one of those creates a **pending action** a human confirms interactively. | This is what makes "bring your own agent" (§1) safe rather than a hole. Note what a delegated token *can* do: create projects, read everything, trigger builds, deploy to sandbox and staging, stream logs and events — the entire build loop. Only four things need a human. |
-| D25 | **The agent knowledge pack is served over the API**, versioned with its blueprint — not only baked into sandbox images. | A third-party agent on someone's laptop cannot read a file inside a container it never runs. Without this, a BYO agent has no way to learn how to write a valid `manifest.yaml` or wire CWL auth, which is exactly the knowledge that makes an app work on this platform. |
 | D15 | **SAML ACS and SLO URLs are derived by Manifest**, never accepted from the app. `auth.callback` is a path, not a URL. | Registering an SP means directing signed identity assertions at a URL. Free-text ACS is an assertion-phishing primitive reachable from a buggy agent or an injection in the registration path. |
 | D16 | **A newly requested CWL attribute requires approval in every environment**, not only production. | Under D6 staging uses test users, so the harvesting risk is lower than first assessed — but the control is retained for a stronger reason: in production, `auth.attributes` must be a subset of what UBC IAM actually registered. Catching an attribute change at approval time turns a launch-day login failure into a change request raised weeks earlier. |
 | D17 | **`data.classification` constrains which logical models an app may use.** | A BC public body sending student personal information to a US model provider is a FIPPA problem, and the pre-review design was one YAML line away from it by accident. Both fields already existed; linking them is nearly free. |
 | D18 | **Egress is default-deny in every environment**, through a forced proxy. | The pre-review design enforced egress only in sandboxes. Production is long-lived, holds real data and sits inside UBC's network — a compromised production app is a better pivot than a 45-minute sandbox. |
+| D19 | **Manifest generates and tracks the IAM registration and the PIA as first-class objects**, and blocks production deployment until both are approved. | The platform knows more about the app than its owner does: it can derive the SP metadata, a per-attribute justification, and most of a PIA from the AppSpec. A faculty member should review and sign, not author from nothing. This converts C4 from a blocker into the platform's most valuable service. |
+| D20 | **The production SP keypair is long-lived and stable**, generated once at registration; rotation is a tracked IAM change request with an overlap window. Certificate expiry is monitored and alarmed months ahead. | An SP certificate is registered with UBC IAM; rotating it per deploy would break authentication. Conversely an unnoticed expiry silently kills login for a live course application mid-term — an operational hazard that is invisible until it is urgent. |
+| D21 | **A pre-production rehearsal against UBC's staging IdP (`authentication.stg.id.ubc.ca`) is part of launch readiness**, not part of the daily build loop. | Staging on the Manifest IdP keeps iteration frictionless, but an app whose first contact with real Shibboleth is production launch day will fail on launch day. The rehearsal validates the registration, the attribute release and the certificate before anything is public. |
+| D22 | **This repo ships a `console/` — a reference console — as a Phase 1 deliverable.** It is the executable proof that the public API is complete and sufficient, not the product. It imports *only* the generated client from `contract/`, enforced by a lint boundary and a test. | Without it, the faculty journey is undemonstrable until Phase 3, and API gaps surface when the front-end team hits them rather than while they are cheap to fix. The import rule converts "is the API complete?" from an opinion into a build failure. |
+| D23 | **The public API is resource-oriented, event-streamed, and agent-framework agnostic** (§22). | These are the constraints that actually preserve front-end flexibility. In particular, no agent SDK type appears anywhere in the API surface: Vibonarium pinned `pi` to `0.79.3` and recorded that SDK's churn as a standing hazard. Manifest exposes sandbox lifecycle, `exec`, file operations and streams as primitives so any harness can drive them. |
+| D24 | **Two credential classes.** An *interactive session* (browser, CWL, CSRF, step-up re-auth) can do anything the user can. A *delegated token* (agent, CLI, CI, MCP) is scoped and may **never** carry production promotion, secret read, quota change or member management; requesting one of those creates a **pending action** a human confirms interactively. | This is what makes "bring your own agent" (§1) safe rather than a hole. Note what a delegated token *can* do: create projects, read everything, trigger builds, deploy to sandbox and staging, stream logs and events — the entire build loop. Only four things need a human. |
+| D25 | **The agent knowledge pack is served over the API**, versioned with its blueprint — not only baked into sandbox images. | A third-party agent on someone's laptop cannot read a file inside a container it never runs. Without this, a BYO agent has no way to learn how to write a valid `manifest.yaml` or wire CWL auth, which is exactly the knowledge that makes an app work on this platform. |
 
 ---
 
@@ -262,12 +265,15 @@ identity/       Manifest's own CWL login, users, roles
 projects/       projects, members, quotas, provenance
 source/         git provider drivers (local, github)
 spec/           manifest.yaml schema, parse, validate, diff, sensitivity
-build/          source + spec -> image digest
+blueprints/     blueprint registry: skeleton, Dockerfile, knowledge pack, versioning
+build/          source + spec -> image digest (Dockerfile comes from the blueprint, D13)
 runtime/        Driver interface, drivers, instance state machine, reconciler
 services/       backing service provisioning + credentials
 routing/        hostnames, Caddy config, listener assignment
 secrets/        envelope encryption, injection
-sso/            Manifest IdP SP registration
+sso/            Manifest IdP SP registration (sandbox + staging)
+launch/         production identity & privacy lifecycle: IamRegistration,
+                PrivacyAssessment, LaunchReadiness, registration-package generation
 ai/             LiteLLM admin client, key minting, spend
 releases/       releases, approvals, promotion
 observability/  events, logs, incidents, metrics
@@ -285,7 +291,7 @@ admin-ui/       React admin front-end
 
 | Entity | Key fields |
 |---|---|
-| **User** | `id`, `cwl_uid`, `email`, `display_name`, `role` (`admin` \| `member`) |
+| **User** | `id`, `ubc_cwl_puid` (from `ubcEduCwlPuid`), `email`, `display_name`, `role` (`admin` \| `member`) |
 | **Project** | `id`, `slug`, `owner_id`, `blueprint_ref`, `quota`, `visibility`, `published`, `forked_from` |
 | | `quota` = `{max_cpu, max_memory, max_services, ai_monthly_usd}`; enforced at spec validation (§7) |
 | **ProjectMember** | `project_id`, `user_id`, `role` (`owner` \| `collaborator`) |
@@ -302,6 +308,8 @@ admin-ui/       React admin front-end
 | **IamRegistration** | `id`, `project_id`, `entity_id`, `acs_url`, `slo_url`, `cert_fingerprint`, `cert_expires_at`, `registered_attributes`, `state` (`draft` \| `submitted` \| `active` \| `change_requested` \| `expired`), `external_ticket_ref` |
 | **PrivacyAssessment** | `id`, `project_id`, `generated_draft`, `state` (`draft` \| `submitted` \| `approved`), `reviewer`, `approved_at` |
 | **LaunchReadiness** | `project_id`, checklist state across IAM registration, PIA, rehearsal, security scan, admin approval |
+| **DelegatedToken** | `id`, `user_id`, `project_id`, `capabilities` (explicit set; never the privileged four — D24), `expires_at`, `last_used_at`, `rate_limit` |
+| **PendingAction** | `id`, `project_id`, `requested_by_token`, `action`, `payload`, `state` (`pending` \| `confirmed` \| `rejected` \| `expired`), `resolved_by`, `resolved_at` |
 | **AgentSession** | `id`, `project_id`, `instance_id`, `litellm_key_id`, `expires_at` |
 | **Event** | `id`, `project_id`, `subject`, `type`, `machine_detail`, `human_message`, `created_at` |
 | **Incident** | `id`, `instance_id`, `exit_reason`, `log_tail`, `failed_check`, `diff_since_healthy` |
@@ -321,7 +329,8 @@ what satisfies C3 (faculty see no infrastructure) and C2 (drivers are swappable)
 
 ```yaml
 manifest: 1                       # required, schema version
-name: chem-lab-scheduler          # required, ^[a-z][a-z0-9-]{2,38}$, immutable
+name: chem-lab-scheduler          # required, ^[a-z][a-z0-9-]{2,38}$; renameable until
+                                  # first production launch, immutable after (§9)
 blueprint: node-ts-mongo@2        # required, pins the knowledge pack
 description: string               # optional
 
@@ -343,7 +352,7 @@ services:                         # may be empty
 
 auth:
   provider: cwl                   # cwl | none (default none)
-  attributes: [uid, mail, givenName, sn, eduPersonAffiliation]
+  attributes: [ubcEduCwlPuid, mail, givenName, sn, eduPersonAffiliation]
   callback: /auth/ubcshib/callback   # PATH only, ^/[A-Za-z0-9/_-]{1,64}$ (D15)
   logout: /auth/logout               # PATH only, same validation
 
@@ -368,9 +377,9 @@ integrations: []                  # HOOK (§15) — reserved, must be empty in v
 jobs: []                          # HOOK (§15) — reserved, must be empty in v1
 checks: []                        # HOOK (§15) — reserved, must be empty in v1
 
-environments:                     # per-environment overrides
+environments:                     # per-environment overrides; resources and env only
   staging:    { resources: { memory: 256Mi } }
-  production: { resources: { memory: 1Gi }, replicas: 2 }
+  production: { resources: { memory: 1Gi } }
 ```
 
 ### Logical model names
@@ -382,13 +391,20 @@ no redeploys, no faculty involvement.
 
 ### Sensitive fields
 
-These five fields, and only these, trigger re-escalation to approval (D9):
+These seven fields, and only these, trigger re-escalation to approval (D9):
 
 - `services`
 - `auth.attributes`
 - `egress.allow`
 - `resources` (increase only)
 - `data.classification`
+- `ai.models` — a model change can move personal information to a different
+  jurisdiction, which invalidates an approved PIA (§9). `data.classification`
+  catches a change to the *claim*, not to where the data actually goes.
+- `blueprint` (major version) — under D13 the blueprint **is** the build
+  definition, so a major bump changes the Dockerfile, base image and knowledge pack
+  in production. Ungated, that is an unreviewed change to every layer beneath the
+  app.
 
 The schema and the approval policy are therefore the same object. `spec/` exposes
 `isSensitiveDiff(before, after) -> {sensitive: boolean, fields: string[]}`.
@@ -399,7 +415,12 @@ Rejected at parse time, before any build:
 - unknown top-level keys, or non-empty reserved blocks (`integrations`, `jobs`, `checks`)
 - a `runtime.build` block of any kind (D13)
 - `services[].type` outside the platform catalogue
-- `auth.attributes` outside the whitelist in `passport-ubcshib/ATTRIBUTES.md`
+- `auth.attributes` outside Manifest's attribute whitelist (copied into the schema
+  from `passport-ubcshib/ATTRIBUTES.md`, which is prose in a repo Manifest does not
+  version; a test asserts the copy has not drifted). Note `uid` is **not** a UBC
+  attribute — the identifier is `ubcEduCwlPuid`. Only `ubcEduCwlPuid`, `mail` and
+  `eduPersonAffiliation` are pre-authorized by UBC IAM; anything else needs
+  justification in the registration request (§9).
 - `auth.callback` / `auth.logout` that are not paths matching `^/[A-Za-z0-9/_-]{1,64}$` (D15)
 - `ai.models` outside the platform's logical catalogue
 - `ai.models` whose catalogue `max_classification` is lower than `data.classification` (D17)
@@ -431,51 +452,68 @@ are a deliberate, documented configuration decision, not a default.
 
 ## 8. Environment injection contract
 
-**Frozen**, documented in every blueprint, and chosen so `passport-ubcshib` and
-`ubc-genai-toolkit` work with zero adaptation — these are the variable names they
-already read.
+**Frozen**, documented in every blueprint. Verified against
+`passport-ubcshib/index.js` and `tlef-starter/.env.example` — these are the names
+the blueprint actually reads.
 
-```
-MANIFEST_ENV                 staging
-MANIFEST_APP_URL             https://chem-lab-scheduler-staging.manifest.ubc.ca
-MANIFEST_PROJECT_SLUG        chem-lab-scheduler
+Two facts about `passport-ubcshib` shape this table, and both are easy to get
+wrong:
 
-DB_URL / <NAME>_URL          one per declared service, named from services[].name
-                             e.g. name: db -> DB_URL ; name: vectors -> VECTORS_URL
+1. **The library itself reads exactly two environment variables** —
+   `SAML_ENVIRONMENT` (`index.js:120`) and `SAML_LOGOUT_URL` (`index.js:305`).
+   Everything else is a *constructor option*. So this is **Manifest's contract with
+   the blueprint**, which passes these values into the strategy; it is not a set of
+   names the library picks up by itself.
+2. **`SAML_ENVIRONMENT` defaults to `'STAGING'`.** An app deployed without it
+   points at `https://authentication.stg.id.ubc.ca` — real UBC infrastructure.
+   Manifest must therefore inject it explicitly in **every** environment. §16's
+   identity-path regression test exists to catch exactly this.
 
-SAML_ENTITY_ID               sandbox/staging: https://manifest.ubc.ca/sp/{slug}/{env}
-                             production:      the entityID registered with UBC IAM (§9)
-SAML_CALLBACK_URL            <MANIFEST_APP_URL>/auth/ubcshib/callback
-SAML_LOGOUT_URL              <IdP logout endpoint>
-SAML_IDP_METADATA_URL        sandbox/staging: the Manifest IdP
-                             production:      https://authentication.ubc.ca/idp/shibboleth
-                             (matches passport-ubcshib's LOCAL / PRODUCTION presets)
-SAML_PRIVATE_KEY_PATH        /run/manifest/saml/private.key   (mounted)
+| Variable | Value | Required in |
+|---|---|---|
+| `MANIFEST_ENV` | `sandbox` \| `staging` \| `production` | all |
+| `MANIFEST_APP_URL` | the app's own base URL | all |
+| `MANIFEST_PROJECT_SLUG` | project slug | all |
+| `PORT` | `runtime.port` | all |
+| `SESSION_SECRET` | generated per app+environment | all |
+| **`SAML_ENVIRONMENT`** | `LOCAL` for sandbox and staging (Manifest IdP), `PRODUCTION` for production. **Never left unset** — see above. | all |
+| `SAML_ISSUER` | sandbox/staging: `https://manifest.ubc.ca/sp/{slug}/{env}`; production: the entityID registered with UBC IAM (§9) | all |
+| `SAML_CALLBACK_URL` | `{MANIFEST_APP_URL}{auth.callback}`, derived (D15) | all |
+| **`SAML_ENTRY_POINT`** | the IdP SSO endpoint. Required because `UBC_CONFIG.LOCAL` hardcodes `http://localhost:8080/simplesaml/...` and the Manifest IdP is elsewhere (§21). | all |
+| `SAML_LOGOUT_URL` | IdP logout endpoint. The library's `logout()` helper reads this from **env, not options** — so it must be injected even though the entry point is passed in code. | all |
+| `SAML_IDP_METADATA_URL` | sandbox/staging: the Manifest IdP; production: `https://authentication.ubc.ca/idp/shibboleth` | all |
+| **`SAML_IDP_CERT_PATH`** | mounted path to the IdP's public signing certificate. **Mandatory:** the strategy builds `cert: options.cert \|\| (() => { throw ... })()`, an IIFE that evaluates at construction — so it throws unless a certificate is supplied, and the library's `_fetchCertificate()` fallback is unreachable. Manifest mounts it; the blueprint never fetches it at runtime. | all |
+| `SAML_PRIVATE_KEY_PATH` | mounted path to the **SP's own** private key, used to sign AuthnRequests and decrypt assertions. Required in staging and production (the Manifest IdP requires signed AuthnRequests per §9, and real UBC encrypts assertions). Optional in sandbox. | staging, production |
+| `MONGODB_URI`, `MONGODB_DB_NAME` | per declared `mongo` service | if declared |
+| `QDRANT_URL`, `QDRANT_API_KEY`, `QDRANT_COLLECTION` | per declared `qdrant` service | if declared |
+| `LLM_PROVIDER` | `openai` — LiteLLM is OpenAI-compatible, so the toolkit's existing provider is used unchanged | if `ai.models` |
+| `LLM_ENDPOINT` | the LiteLLM endpoint | if `ai.models` |
+| `LLM_API_KEY` | this app+environment's virtual key (D8) | if `ai.models` |
+| `LLM_DEFAULT_MODEL` | resolves the app's first logical chat model | if `ai.models` |
+| `EMBEDDINGS_PROVIDER`, `EMBEDDINGS_MODEL` | resolves the app's logical embedding model | if declared |
 
-AI_BASE_URL                  LiteLLM endpoint
-AI_API_KEY                   this app+environment's virtual key
-AI_CHAT_MODEL                resolves default-chat
-AI_EMBED_MODEL               resolves default-embed
-
-SESSION_SECRET               generated per app+environment
-PORT                         runtime.port
-```
+**A service declaration produces more than one variable.** `services[].name` is a
+convenience label, not a variable name: Mongo needs a URI *and* a database name;
+Qdrant needs a URL, a key and a collection. The `spec/` module owns the mapping
+from a declared service to its full variable set, and that mapping is versioned
+with the blueprint.
 
 Consequence: the AI's task for authentication is *"copy the blueprint's auth
 component"*, not *"implement SAML"*. This is the single largest reliability lever
-in the agent experience.
-
-**Note (from `vibonarium/AGENTS.md`, verified against `passport-ubcshib`):** the
-package's `logout()` helper reads the logout URL from the `SAML_LOGOUT_URL`
-environment variable rather than from strategy options. `SAML_LOGOUT_URL` must
-therefore always be injected, not just `SAML_IDP_METADATA_URL`.
+in the agent experience — and it is only true while this table matches the
+blueprint, so §16 carries a test asserting exactly that.
 
 ---
 
 ## 9. Identity
 
-There are **two identity paths** (D6), and conflating them is the easiest mistake
-to make in this design:
+There are **three** identity paths, and conflating them is the easiest mistake to
+make in this design. The first is easy to forget: **Manifest itself is an SP.** Its
+own users log in with CWL (`identity/`, §22 step 1), so on UBC infrastructure the
+control plane needs **its own IAM registration and its own platform-level PIA**,
+independent of any app's. Locally it uses the Manifest IdP like everything else.
+
+The other two are the app-facing paths (D6):
 
 | | **sandbox + staging** | **production** |
 |---|---|---|
@@ -512,7 +550,11 @@ process fast, accurate and legible to someone who has never heard of SAML (D19).
 **Manifest generates the registration package** from the AppSpec, reusing
 `saml-metadata-generator` as a library:
 
-- entityID — stable, derived from the production hostname, fixed at registration.
+- entityID — `https://{platform-domain}/sp/{slug}/production`, where the platform
+  domain is deployment configuration (`manifest.ubc.ca` on UBC infrastructure,
+  `manifest.test` locally). SAML entityIDs are identifiers, not URLs to fetch, so
+  they need not resolve — but they must be **stable**, so the value is fixed at
+  registration and stored on the `IamRegistration` rather than recomputed.
   Because it is registered externally, **the project slug is immutable after
   production launch**; renaming requires re-registration.
 - ACS and SLO URLs, derived as in D15
@@ -591,10 +633,13 @@ to SQL-backed metadata widens it. Controls:
 ### Attribute changes are gated in every environment (D16)
 
 A newly requested attribute re-escalates to approval regardless of the target
-environment. Staging on UBC infrastructure authenticates real users against real
-CWL, so gating only production would leave a silent harvesting path open.
+environment. Under D6 staging uses the Manifest IdP with test users, so the
+harvesting risk is lower than first assessed — the control is retained for a
+stronger reason: in production, `auth.attributes` must be a subset of what UBC IAM
+registered, so catching the change at approval turns a launch-day login outage into
+a change request raised weeks earlier.
 
-### Enforced attribute release
+### Enforced attribute release (sandbox and staging)
 
 Attribute release is enforced **at the IdP**, populated from `auth.attributes`.
 An app cannot receive an attribute it did not declare. The approval diff on that
@@ -604,10 +649,17 @@ makes reviewing it worth doing.
 ### Local behaviour
 
 The same IdP runs on the laptop with the existing `bio_prof` / `bio_student` test
-users from `authsources.php`. **App code is byte-identical across all three
-environments** — only the IdP metadata URL, entityID and keys differ, which is
-exactly what `passport-ubcshib`'s `LOCAL` / `STAGING` / `PRODUCTION` presets
-already express. That parity is what makes the production cutover a configuration
+users from `authsources.php`. **App code is identical across all three
+environments — because the blueprint makes it so, not because the environments
+match.** They do not: `docker-simple-saml` releases friendly attribute names
+(`saml20-idp-hosted.php` sets `attributes.NameFormat => basic`), while real UBC
+Shibboleth sends OID and MACE URNs. `tlef-starter` carries
+`server/src/components/auth/saml-attributes.ts` precisely to bridge that, because
+`passport-ubcshib`'s own mapping has gaps.
+
+Manifest inherits that bridge in the blueprint. It is also a concrete reason D21's
+pre-production rehearsal exists: attribute *naming* differences are invisible until
+an app meets real Shibboleth. That parity is what makes the production cutover a configuration
 change rather than a code change, which matters when the code was written by an
 agent that will not be present at launch.
 
@@ -634,7 +686,7 @@ Manifest calls LiteLLM's admin API (`/key/generate`, `/key/update`, `/key/delete
 |---|---|---|---|
 | **App key** | app + environment | rotated every deploy, revoked on archive | `ai.budget.project_monthly_usd` |
 | **Agent key** | one `AgentSession` | dies with the sandbox | hard session cap, independent of the app budget |
-| **End user** | app passes hashed CWL `uid` as LiteLLM `user` | per request | `ai.budget.per_user_monthly_usd` |
+| **End user** | app passes hashed `ubcEduCwlPuid` as LiteLLM `user` | per request | `ai.budget.per_user_monthly_usd` |
 
 Local topology: LiteLLM + Postgres in Compose, configured against Ollama on the
 host. Virtual keys and budgets work identically; the budgets simply never bind.
@@ -657,6 +709,7 @@ interface Driver {
   ensureInstance(d: InstanceSpec): Promise<InstanceHandle>   // idempotent
   stopInstance(id: string): Promise<void>       // hibernate — volumes survive
   destroyInstance(id: string): Promise<void>
+  destroyService(id: string, opts: { deleteData: boolean }): Promise<void>
   status(id: string): Promise<InstanceStatus>
   logs(id: string, opts: LogOpts): AsyncIterable<LogLine>
   exec(id: string, cmd: string[], opts: ExecOpts): ExecStream  // sandbox only
@@ -669,11 +722,14 @@ Every call is idempotent and keyed by a deterministic name derived from
 `(project, environment, release)`. That property is the entire reason
 reconciliation is safe to retry.
 
-`capabilities()` lets a driver honestly declare what it cannot enforce — e.g.
-`{ enforcesEgress: false, isolationLevel: 'container' }` for the Docker driver —
-rather than silently pretending. `isolationLevel` (`container` | `gvisor` | `vm`)
-matters most for sandboxes, where a plain container is a weak boundary around
-unreviewed code; see §20. The control plane surfaces declared-but-unenforced policy as a warning
+`capabilities()` lets a driver honestly declare what it cannot enforce, rather than
+silently pretending. The Docker driver reports
+`{ enforcesEgress: true, isolationLevel: 'container', remoteTarget: false }` — it
+*does* enforce egress, via an internal network with a proxy-only route (§12), which
+is why default-deny egress is in Phase 1's non-negotiable baseline (§17).
+`isolationLevel` (`container` | `gvisor` | `vm`) matters most for sandboxes, where a
+plain container is a weak boundary around unreviewed code; the hardening baseline is
+in §12 and spike S6 tests it. `remoteTarget` drives the image-promotion rule (§13). The control plane surfaces declared-but-unenforced policy as a warning
 on the app, not as a silent gap.
 
 ### Lifetime policies
@@ -715,7 +771,11 @@ by API calls. Phase 4 wraps that same function in the loop.
 ### Hibernation and wake-on-request
 
 The edge holds the incoming request, asks the control plane to wake the instance,
-streams a *"starting your app…"* holding page, then proxies through. Because
+and proxies through once it is healthy. **The exact mechanism is S4's question**, not
+a settled design: a response body cannot be streamed and then replaced by a proxied
+response, so the options are a retry window at the edge (Caddy's `lb_try_duration`)
+for short waits, or a holding page that polls and reloads for longer ones. The
+difference matters to both user experience and timeouts, so the spike decides it. Because
 services are dedicated per app (D3), the database hibernates with the app, so an
 idle app consumes nothing. This is what makes C5's ~500-app case affordable.
 
@@ -742,22 +802,30 @@ developer's browser on the host, and a process inside a container — and it mus
 resolve correctly from both, because a SAML `entityID` and ACS URL must match
 byte-for-byte in both contexts (§9).
 
-`*.manifest.localhost` fails that test. It resolves on the host (verified on
-macOS, though to `::1`, not `127.0.0.1`), but **inside a container `.localhost` is
-the container's own loopback** — so an app container fetching
+`*.manifest.localhost` fails that test. It resolves fine on the host (verified on
+macOS: `dscacheutil` returns both `::1` and `127.0.0.1`), but **inside a container
+`.localhost` is the container's own loopback** — so an app container fetching
 `SAML_IDP_METADATA_URL` would call itself, and Manifest's health checks would do
 the same. It also does not resolve at all on Linux, where glibc special-cases
 `localhost` but not `*.localhost`, which breaks any colleague not on a Mac.
 
 The design is therefore:
 
-- **`*.manifest.test`**, served by a **dnsmasq container** that is the DNS server
-  for every Manifest Docker network, resolving to the host-gateway address.
-- On the host, `/etc/resolver/manifest.test` points at that dnsmasq. Scoped to
+- **`*.manifest.test`**, served by a **dnsmasq container**.
+- On the host, `/etc/resolver/manifest.test` points at it. Scoped to
   `manifest.test` rather than all of `.test` so it cannot collide with a
-  developer's other projects.
-- One hostname, correct from host and container alike, resolving with the network
-  off, on macOS and Linux.
+  developer's other projects — a live example of why: `/etc/resolver/test` already
+  exists on the author's machine, pointing at a nameserver that isn't listening.
+- Containers receive it as their resolver. This is **per-container** (`--dns` takes
+  an IP and no port), not a Docker network setting, so the driver configures every
+  workload container explicitly.
+
+**Open, and S7's job to settle:** the host needs these names to resolve to
+`127.0.0.1` while containers need the Docker gateway address, and a single A record
+cannot serve both. The likely answer is interface-bound dnsmasq views
+(`--listen-address` with per-interface `--address` rules), but that is a hypothesis,
+not a design. S7 must produce a working configuration or a different approach — the
+rest of this subsection is settled; this part is not.
 - Everything binds `127.0.0.1` explicitly; relying on `::1` produces intermittent
   failures under Node's IPv6-first resolution order.
 - UBC: a wildcard DNS record per listener.
@@ -768,9 +836,11 @@ All environments route outbound traffic through a forced HTTP(S) proxy. The poli
 is **deny by default**: a platform baseline (the registry mirror, LiteLLM, the
 Manifest IdP) plus whatever the app declares in `egress.allow`.
 
-Sandboxes get a wider baseline — package registries — because they must install
-dependencies; production does not, because a production app that suddenly needs a
-new registry is a signal, not a convenience.
+Sandboxes get a wider baseline than production, but **that baseline is the package
+mirror, not the public registries** — Verdaccio is the only dependency source, which
+is what makes C1's offline claim true and what gives the supply-chain controls below
+something to enforce. Production is narrower still: an app that suddenly needs a new
+outbound destination is a signal, not a convenience.
 
 `capabilities()` still reports what a driver cannot enforce, and any
 declared-but-unenforced policy surfaces as a warning on the app rather than a
@@ -795,7 +865,7 @@ Applies to every app, service and sandbox container, on every driver:
 
 - **The container runtime socket is never exposed to a workload container.** This
   is the primary container-escape path and it is worth naming explicitly: the
-  `coder.com` reference compose file in this repository's sibling directory mounts
+  reference compose file at `/Users/rich/Developer/coder.com/docker-compose.yml` mounts
   `/var/run/docker.sock`, and that pattern is deliberately rejected here. The
   control plane's own socket access is unreachable from any container network.
 - never `--privileged`; `cap-drop ALL` with a minimal, documented add list
@@ -809,6 +879,26 @@ strength of the boundary a driver actually provides. A plain container is a weak
 boundary for a sandbox running unreviewed code; recording that honestly is what
 lets us upgrade sandboxes to a stronger runtime later without redesign.
 
+### The builder
+
+Build time is the most privileged moment in the pipeline (D13), so the builder is a
+specified component, not an implied one:
+
+- **Ephemeral per build**, created and destroyed by the driver.
+- **Holds no control-plane credential** — no database access, no driver access, no
+  secrets. It receives a source tree, a blueprint-generated Dockerfile and a
+  registry push token scoped to one repository path.
+- **Network-restricted to the package mirror and the registry.** Nothing else,
+  including the control plane. This is what makes "network-restricted builder" in
+  §20's control map a real control rather than an aspiration.
+- **Rootless BuildKit**, so a malicious dependency's build script cannot reach the
+  host daemon.
+- **Bounded**: build timeout, disk quota, and a concurrency cap per project and
+  globally.
+
+It appears in §21's local inventory as a transient container, not a long-running
+service.
+
 ### Supply chain
 
 The agent installs packages it chose, sometimes packages it hallucinated —
@@ -816,11 +906,21 @@ The agent installs packages it chose, sometimes packages it hallucinated —
 live attack class aimed squarely at this workflow.
 
 - dependencies resolve through a **private registry mirror** with an allowlist, or
-  quarantine-on-first-use for unknown packages
+  allowlist. (Quarantine-on-first-use is the Phase 4+ alternative; v1 picks the
+  allowlist, because two mechanisms would be built and neither finished.)
 - committed lockfiles are required; builds fail without one
 - install scripts disabled where the ecosystem allows it
 - base images pinned by digest, not tag
-- an SBOM is produced per build and retained with the Release
+- an SBOM is produced per build and retained with the Release (Syft or equivalent,
+  in the local inventory)
+
+**Offline behaviour, stated because scanners age badly.** Vulnerability databases go
+stale without network. `make seed` pulls the scanner database; `make doctor` reports
+its age. Secret scanning and lockfile enforcement are pattern-based and run fully
+offline, so they never degrade. Vulnerability scanning **warns rather than blocks**
+when its database is older than 7 days, and the staleness is recorded on the Release
+— a local developer is not stopped, and a stale scan can never be mistaken for a
+clean one.
 - dependency and secret scanning run as **platform-mandatory build gates** on
   every build — they are not app-declared and cannot be waived by an app
 
@@ -890,12 +990,18 @@ AI-written plain-English summary of what changed since the last approved release
   overwriting a tag.
 - Approval is a non-repudiable record: actor, timestamp, and the exact diff shown
   at decision time. Approving requires step-up re-authentication (§20).
-- **Images built on a developer laptop are never promoted beyond it.** Developer
+- **Images built on a developer laptop never reach UBC infrastructure.** Developer
   machines are arm64; UBC infrastructure will be x86-64, and "promote the exact
   digest" makes an architecture mismatch unresolvable at deploy time rather than
-  build time. Everything reaching staging or production is built by CI on the
-  target architecture. Locally this is enforced by tagging laptop-built images with
-  a `local` registry namespace that the staging and production drivers refuse.
+  build time. Everything reaching *UBC* staging or production is built by CI on the
+  target architecture.
+
+  The rule is scoped to the **driver**, not the environment kind: laptop builds go
+  to a `local/` registry namespace, and a driver whose `capabilities()` declare a
+  remote target refuses it. A laptop's own staging environment runs on the local
+  Docker driver and accepts `local/` images — which is what makes the Phase 1
+  journey (§1) possible offline. Attaching the rule to "staging and production"
+  would have forbidden the only image a laptop can produce.
 
 ### Residual risk, stated plainly
 
@@ -963,11 +1069,11 @@ Everything else on the ambition list can wait.
 |---|---|---|
 | `Instance.kind` (`web`\|`worker`\|`cron`) | always `web` | scheduled jobs and background workers |
 | `integrations: []` in the spec | reserved, must be empty | LTI 1.3 launch inside Canvas; roster/class-list integration via `FakeAcademicAPI` and `canvas-bridge` |
-| `data: {classification, retention_days}` | recorded, unenforced | FIPPA-driven placement constraints and backup policy |
+| `data: {classification, retention_days}` | **partly enforced already**: `classification` gates model routing at spec validation (D17); `retention_days` drives backup retention (§12). Placement is the unenforced part. | FIPPA-driven placement constraints |
 | `Project.forked_from` | always null | fork and remix — one good rubric tool becomes forty |
 | `Project.visibility` / `published` | private | an institutional app gallery |
 | `checks: []` in the spec | reserved, must be empty | *app-declared* checks. Platform-mandatory scanning (dependency, secret) does **not** use this field — it runs on every build regardless (§12). Unlocks the automated WCAG accessibility gate before public launch (a legal requirement for UBC; `tlef-starter` already carries Playwright a11y configs). |
-| Platform-initiated `AgentSession` | API present, callable by any client holding a delegated token (D24) | self-healing apps: crash at 2am, repair sandbox opens, owner accepts a release in the morning |
+| Platform-initiated `AgentSession` | **Phase 3**, with sandboxes — an AgentSession has nothing to attach to before then. Callable by any client holding a delegated token (D24). | self-healing apps: crash at 2am, repair sandbox opens, owner accepts a release in the morning |
 
 **Named but explicitly not designed here:** auto-sunset of dormant apps (falls out
 of hibernation plus Events), cost and carbon attribution per department (falls out
@@ -988,6 +1094,7 @@ the system becomes ordinary test-first development.
 | **Unit** | spec parse/validate/diff/sensitivity, state-machine transitions, policy decisions, injection-contract rendering. Pure functions, no I/O. |
 | **Driver contract suite** | One suite every driver must pass. The k8s driver later proves itself against the exact tests the Docker driver passes — this is what keeps the abstraction honest rather than aspirational. |
 | **Authorization contract suite** | Every API route, exercised as owner, collaborator, unrelated user, and admin. IDOR is the likeliest bug class in a multi-tenant control plane, so tenant isolation is a test tier rather than a code-review hope. |
+| **Injection-contract drift** | The §8 table is asserted against the blueprint: every variable the blueprint reads is injected, and `SAML_ENVIRONMENT` is never absent. This is what keeps §8 honest — it was wrong once, from being written against memory of the libraries rather than against them. |
 | **Identity-path regression** | A production release whose `auth.attributes` exceed `IamRegistration.registered_attributes` fails at build; a production environment never resolves to the Manifest IdP; a sandbox or staging environment never resolves to real UBC Shibboleth; certificate expiry within 90 days raises an alert. |
 | **Security regression** | Secrets never appear in captured logs, incidents or events; a sandbox cannot reach the control plane, the LiteLLM admin port or a metadata endpoint; a spec with a `runtime.build` block or a non-path `auth.callback` is rejected; a `confidential` app cannot resolve an off-premise model. |
 | **Contract** | The OpenAPI document is generated from the routes and checked in; drift fails CI. `manifest-mock` is validated against the same document, so a front-end built against the mock cannot compile against a contract the real API does not serve. |
@@ -1020,19 +1127,43 @@ If that runs on a MacBook, the platform is real.
 | **S7** | **The local baseline boots.** The full platform stack of §21 plus the dnsmasq/`manifest.test` resolution design, on a clean machine, offline after seeding. This is the spike that decides whether C1 is a real constraint or an aspiration, and it is cheap — run it early. |
 | **S6** | **Container isolation.** With the hardening baseline of §20 applied, what can a hostile process in a sandbox actually reach — the runtime socket, the control plane, another app's database, a metadata endpoint? Establishes whether plain containers are adequate for sandboxes or whether gVisor/Kata is needed, and produces the security regression tests. |
 
-S1–S3 are required before Phase 1. **S6 is required before Phase 3** (the first
-time untrusted code executes with `exec`), and earlier is better. S4 and S5 may run
-alongside Phases 1–2.
+**S7 runs first, alongside S2.** Phase 1a's entire deliverable is the local baseline,
+so S7 is its prerequisite rather than a nice-to-have — and it must settle the
+split-horizon DNS question §12 leaves open. S2 runs first among the rest because a
+"no" reshapes §9. S1 and S3 follow. **S6 is required before Phase 3** (the first time
+untrusted code executes with `exec`), and earlier is better; it must also test the
+host-gateway exposure recorded in §21's divergences. S4 and S5 may run alongside
+Phases 1–2.
 
 ### Phases
 
+**Phase 1 is three increments, not one.** As first written it pulled in fifteen of
+the seventeen modules in §5 plus the whole of §21 — a platform, not an increment. It
+also could not be sequenced honestly, because D22's "the console proves the API is
+complete" is a *retrospective* check that wants the API to exist, while §1's "the
+journey must be clickable" wants the console to co-evolve with it. Splitting resolves
+both.
+
 | Phase | Deliverable | Question answered |
 |---|---|---|
-| **1 — The spine** | The §1 journey, clickable in the reference console (§22): project → repo → build → staging deploy → CWL login → AI call, live at a URL. One blueprint (`node-ts-mongo`, from `tlef-starter`). Imperative path. Laptop only. **Plus the non-negotiable security baseline:** container hardening, per-app networks, default-deny egress, derived ACS URLs, redaction at capture, authorization contract suite. **Plus the local baseline of §21** and the front-end contract: OpenAPI document, generated client, and `manifest-mock`. **Plus the delegated-token model and `PendingAction` flow (D24)** — CI needs it regardless — and the agent knowledge pack served over the API (D25). | Is the loop real, is the containment real, and can a second developer reproduce it? |
-| **2 — Environments & approvals** | production, promotion by digest, `LaunchReadiness`, sensitive-diff escalation, secrets, admin UI, IAM registration package + PIA draft generation | Is it safe, and can we get an app legitimately launched? |
+| **1a — Baseline & deploy spine** | S1–S3 + S7 applied. §21's local stack (dnsmasq/`manifest.test`, custom Caddy + trusted CA, Postgres, registry, Verdaccio, egress proxy, builder), `make seed/up/reset/doctor`. Driver interface + Docker driver + fake Driver + driver contract suite. Spec parse/validate, local git driver, blueprint-managed build → image digest, service provisioning, staging deploy, routing. **All cross-cutting security lands here**: container hardening, per-app networks, default-deny egress, authorization contract suite. **Demo:** a fixture app routed and healthy at a `manifest.test` URL, from a clean checkout, offline. | Does C1 hold, and is the containment real? |
+| **1b — Identity, secrets & AI** | SP auto-provisioning against SQL metadata, per-app keypairs, `secrets/` envelope encryption, the §8 injection contract, the `node-ts-mongo` blueprint, LiteLLM client with the classification-gated model catalogue, events, WS streaming, redaction at capture, incidents. **Demo:** the proof app — CWL login, writes to its own Mongo, asks the LLM — driven by `curl`. | Is the loop real? |
+| **1c — Contract & clients** | OpenAPI generation, versioned TS client, `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API (D25), `console/` with its import boundary, a read-only `LaunchReadiness` view, the CI acceptance script. **Demo:** the §1 journey, clickable, run twice over one contract. | Is the API complete, and can a second developer reproduce all of it? |
+| **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, admin UI, IAM registration package + PIA draft generation | Is it safe, and can we get an app legitimately launched? |
 | **3 — Sandboxes** | agent `exec`, per-session keys, preview routes; a chat pane added to the reference console against the same API; the **MCP server** (§22), making "bring your own agent" real. **The separate front-end project can now begin against a real, exercised API.** | Can an AI build here? |
 | **4 — Reconciler & hibernation** | straight-line path becomes the loop; wake-on-request | Does it scale down? |
 | **5 — UBC infra driver** | k8s or VM driver passing the contract suite; real deployment | Does it leave the laptop? |
+
+**Security lands in 1a, not spread across the three.** §3.5's framing means
+containment has to be true before anything runs; retrofitting per-app networks and
+egress policy after services and routing exist is exactly the rework this document
+avoids elsewhere.
+
+**Two boundaries corrected, because they contradicted §1 and §9.** `secrets/` was
+listed as Phase 2 but Phase 1's CWL login needs the SAML private key and
+`SESSION_SECRET` — it is a **1b** module. `LaunchReadiness` was listed as Phase 2 but
+§1 and §22 step 7 put "request production and see the gate" in the Phase 1 journey —
+so **1c** ships the read-only view and **Phase 2** ships the gate that blocks on it.
 
 **Start the proof app's IAM registration and PIA during Phase 1.** Both have
 multi-week external lead times (C4). Sequencing them after Phase 2 would leave a
@@ -1063,7 +1194,8 @@ Each phase ends in something demonstrable in a browser.
 |---|---|---|
 | SimpleSAMLphp SQL metadata source works as required | **Unverified — spike S2** | Manifest team |
 | Final UBC target infrastructure (RHEL 9 VMs vs Kubernetes) | Undecided; Phase 5 blocked on it, Phases 0–4 are not | UBC IT |
-| One-time UBC IAM registration for a future real-CWL path | Not required for Phases 0–5 (D6) | UBC IAM |
+| **UBC IAM registration for the Manifest control plane itself** — Manifest is an SP for its own CWL login (§9) | Blocks deploying the control plane to UBC infrastructure | UBC IAM + Manifest team |
+| **Platform-level PIA for the control plane** (separate from each app's) | Blocks UBC deployment | UBC Privacy Office |
 | On-prem model endpoints and their LiteLLM configuration | Exists; needs a logical-name mapping | Manifest team |
 | Wildcard DNS and certificates on UBC infra | Needed at Phase 5 | UBC IT |
 | **Privacy Impact Assessment — resolved: one per production app** (C4). Manifest generates the draft (§9); the owner reviews and signs. A platform-level PIA covering the control plane itself is still needed separately. | Blocks every production launch | UBC Privacy Office + project owner |
@@ -1091,9 +1223,13 @@ nowhere else, and maps everything back to §3.5.
 - **Admin bootstrapping is explicit:** the first administrator is created by a
   documented out-of-band procedure, never by "first user to log in wins". Role
   changes are audited.
-- **Step-up re-authentication** for approving a release, reading a secret, or
-  changing the model catalogue. A stolen admin session must not be sufficient to
-  put an app on the public internet.
+- **Step-up re-authentication** for the privileged set — approving a release,
+  reading a secret, changing a quota, changing project membership — plus the
+  admin-only actions of changing the model catalogue and publishing a blueprint. A
+  stolen admin session must not be sufficient to put an app on the public internet.
+  The first four are exactly D24's forbidden delegated-token capabilities; the two
+  admin actions are additionally restricted to platform admins. Keeping the two
+  lists aligned is a test, not a convention.
 - Multi-factor authentication for administrators, delegated to CWL where available.
 
 ### Credential classes (D24)
@@ -1137,6 +1273,13 @@ remove them. Caddy applies, on every route:
 - per-app and per-IP rate limits; request body size caps
 - optionally Coraza / OWASP CRS on public production routes
 
+**These are not stock Caddy.** Rate limiting and Coraza are third-party modules
+requiring an `xcaddy` build, so §21's inventory carries a **pinned custom Caddy
+image**, built during `make seed` — the one image that is built rather than pulled.
+Security headers and the admin API are stock. Deferring the custom build would mean
+calling the edge "the highest-leverage control in the platform" while shipping only
+part of it.
+
 One configuration point protects the whole fleet. This is the highest-leverage
 control in the platform.
 
@@ -1150,13 +1293,17 @@ control in the platform.
 
 ### Vulnerability management
 
+*Phase 4+ unless noted. Specified here so the interfaces anticipate it; none of it
+is needed to answer Phase 1's question.*
+
 Dedicated per-app service containers (D3) make patching *harder*, not easier: 500
 apps means 500 Mongo and Qdrant instances that will not update themselves. This is
 the security half of the "version sprawl" cost accepted in D3, and it needs a
 control-plane capability rather than a script written later:
 
 - service images are **platform-owned and platform-pinned**; apps choose a
-  supported version line, not an arbitrary tag
+  supported version line, not an arbitrary tag *(Phase 1 — it is how services get
+  provisioned at all)*
 - a fleet-wide **"rebuild every app on base image X"** operation, with staged
   rollout and per-app health verification
 - forced rolling upgrade of service containers on a CVE above an agreed severity
@@ -1238,12 +1385,15 @@ be verifiable rather than described.
 
 ### Platform inventory
 
-Eight containers, plus the control plane as a host process and Ollama as a host
-application:
+Nine long-running containers, plus three host processes (control plane, admin UI,
+console) and Ollama as a host application. The builder and scanner are transient,
+created per build and destroyed:
 
 | Component | Port | Notes |
 |---|---|---|
-| Caddy (edge) | 80, 443 | Both listeners on loopback locally |
+| Caddy (edge) | 80, 443 | Both listeners on loopback locally. **Custom `xcaddy` build** (§20). **80 and 443 are the likeliest conflict on any developer machine** — both are in use on the author's right now — so `make doctor` checks them explicitly and both are overridable. |
+| Builder | — | Transient, per build; rootless BuildKit (§12) |
+| Scanner + SBOM | — | Transient, per build; database age reported by `make doctor` (§12) |
 | dnsmasq | 7153 | Serves `*.manifest.test`; see §12 |
 | Postgres | 7103 | **One server, three databases**: control plane, LiteLLM, IdP metadata — consistent with D11 and worth ~400 MB on a 16 GB machine |
 | Manifest IdP (SimpleSAMLphp) | 7122 | Deliberately *not* 6122 — that is already taken by the standalone `docker-simple-saml` on this machine |
@@ -1251,10 +1401,10 @@ application:
 | Registry (`registry:2`) | 7107 | Required: §13 binds approval to a digest and restricts pushes |
 | Verdaccio | 7108 | The private package mirror §12 mandates; also what makes offline installs possible |
 | Egress proxy | 7109 | Default-deny must exist locally, or an app works here and fails in staging |
-| Control plane | 7100 | **Host Node process**, not a container — it needs the Docker socket, and §12 forbids mounting that socket into a container. Also faster to iterate on. |
-| Admin UI (Vite) | 7101 | |
-| `manifest-mock` | 7102 | |
-| Reference console (§22) | 7104 | Served at `console.manifest.test` through Caddy, leaving `app.manifest.test` for the separate front-end project |
+| Control plane | 7100 | **Host Node process**, not a container — it needs the Docker socket, which §12 forbids mounting into *workload* containers while explicitly permitting the control plane's own access. Running on the host sidesteps the question and iterates faster. |
+| Admin UI (Vite) | 7101 | Host process |
+| `manifest-mock` | 7102 | Host process; needed only when working on the front-end without the platform |
+| Reference console (§22) | 7104 | Host process (Vite). Served at `console.manifest.test` through Caddy, leaving `app.manifest.test` for the separate front-end project |
 | Ollama | 11434 | **Host application** — Metal GPU access is unavailable from a container |
 
 Git uses the local driver (bare repositories on disk), so it needs no container.
@@ -1310,10 +1460,10 @@ streams for build logs, deploy transitions and incidents — so the common case 
 one process, not eight containers plus a language model.
 
 **Sequencing for the front-end team:** the contract, the mock and the reference
-console land in Phase 1 — so the team starts against an API that has already been
-driven end to end by a real client, not a paper contract. Real read and deploy APIs
-in Phase 2; the live agent loop needs sandbox `exec` and WS streaming, so it is
-genuinely available in **Phase 3**.
+console land in **Phase 1c** — so the team starts against an API that has already
+been driven end to end by two real clients, not a paper contract. Production and
+approvals arrive in Phase 2; the live agent loop needs sandbox `exec` and WS
+streaming, so it is genuinely available in **Phase 3**.
 
 ### What offline AI does and does not prove
 
@@ -1350,8 +1500,17 @@ Stated so nobody discovers them at the wrong moment:
 4. **Developer laptops are arm64 and UBC infrastructure is x86-64.** Laptop-built
    images are never promoted (§13); CI builds everything that leaves the laptop.
 5. The Manifest IdP serves test users only; no real Shibboleth is involved (D6).
-6. `Driver.capabilities().isolationLevel` is `container`, the weakest level (§20).
+6. `Driver.capabilities().isolationLevel` is `container`, the weakest level (§12).
    Spike S6 determines whether that is acceptable for sandboxes.
+7. **Workload containers can reach the developer's own machine.** Resolving
+   `*.manifest.test` to the host gateway gives every app and sandbox container a
+   route to the host — which on a typical developer machine listens on far more than
+   Manifest's ports (MongoDB, MySQL, other projects' databases; all three are live on
+   the author's machine now). §12's east-west denials cover app-to-app, the control
+   plane and metadata endpoints, but the host itself is reachable by construction.
+   Egress policy must deny the host gateway except for the ports an app actually
+   needs, and **S6 must test it** — this is the one local divergence that is a real
+   security weakening rather than a convenience.
 
 
 ---
