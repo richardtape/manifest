@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Manifest — Six Faculty Stories</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="manifest.css">
+</head>
+<body>
+<div class="shell">
+<nav class="rail" aria-label="Stories">
+  <h2>Six stories</h2>
+  <ol>
+    <li><a href="#s1"><span class="n">01</span>Reading roulette</a></li>
+    <li><a href="#s2"><span class="n">02</span>Lab bench booking</a></li>
+    <li><a href="#s3"><span class="n">03</span>Office hours queue</a></li>
+    <li><a href="#s4"><span class="n">04</span>Reading responses</a></li>
+    <li><a href="#s5"><span class="n">05</span>Field data explorer</a></li>
+    <li><a href="#s6"><span class="n">06</span>Advising assistant</a></li>
+    <li><a href="#pattern"><span class="n">07</span>What they show</a></li>
+  </ol>
+  <div class="also">
+  <ol>
+    <li><a href="manifest-schematic.html"><span class="n">&larr;</span>Overview</a></li>
+    <li><a href="manifest-decisions.html"><span class="n">B</span>The 31 decisions</a></li>
+    <li><a href="manifest-phases.html"><span class="n">C</span>What gets built when</a></li>
+  </ol>
+  </div>
+</nav>
+
+<main>
+<header class="mast">
+  <a class="back" href="manifest-schematic.html">&larr; Manifest overview</a>
+  <p class="eyebrow">Reference &middot; A</p>
+  <h1>Six faculty stories</h1>
+  <p class="lede">The same platform, six very different asks &mdash; from a fourteen-person
+  seminar tool built in an afternoon to a chatbot answering five thousand students.
+  <strong>Each story is here because it hits something the others do not.</strong></p>
+  <div class="meta">
+    <span><b>These people are invented.</b> The situations are the ones the design has to handle.</span>
+  </div>
+</header>
+
+<section id="s1" class="story">
+  <div class="storyhead"><span class="num">01</span><h2>Reading roulette</h2></div>
+  <p class="who"><b>Art History.</b> Runs a graduate seminar of fourteen. Wants every student
+  to present a different reading each week, wants it to feel fair, and is tired of doing it
+  in a spreadsheet at eleven at night.</p>
+  <ul class="facts">
+    <li>14 people</li><li>no sign-in</li><li>tiny database</li><li>no AI</li>
+    <li>Manifest address</li><li class="hi">simplest possible</li>
+  </ul>
+
+  <ul class="beats">
+    <li><span class="wk">Tuesday afternoon</span>Signs in with their CWL and types one
+      sentence: <em>&ldquo;A page where I paste my seminar reading list and it assigns each
+      student a different one each week, without repeats.&rdquo;</em></li>
+    <li class="key"><span class="wk">Twenty minutes later</span>A working version is running
+      at a practice address they can click. They paste last term&rsquo;s reading list and find
+      the shuffle puts two long articles back to back. They say so, in the chat. It changes.</li>
+    <li><span class="wk">Thursday</span>Two colleagues try it on their own seminars and
+      nothing breaks. They ask to go live.</li>
+    <li class="snag"><span class="wk">The launch check</span>Manifest points out that with no
+      sign-in, <strong>anybody who has the link can change the assignments</strong>. It offers
+      to add CWL sign-in, which would mean UBC registration and a few weeks&rsquo; wait. They
+      decide fourteen people who already know each other do not need it, and record that
+      choice &mdash; which is now on the record rather than an unexamined assumption.</li>
+    <li class="key"><span class="wk">Friday</span>Live. No paperwork, because with no sign-in
+      there is no personal information and no registration to do.</li>
+  </ul>
+
+  <div class="ends"><dl>
+    <dt>Live at</dt><dd><code>reading-roulette.manifest.apps.ltic.ubc.ca</code></dd>
+    <dt>Size</dt><dd>Me and a few colleagues &mdash; one small copy that sleeps when nobody is using it</dd>
+    <dt>Elapsed</dt><dd>Three days, most of it waiting for colleagues to try it</dd>
+    <dt>Shows</dt><dd>The floor. No sign-in, no paperwork, no waiting &mdash; and a guardrail that
+      informs rather than blocks</dd>
+  </dl></div>
+</section>
+
+<section id="s2" class="story">
+  <div class="storyhead"><span class="num">02</span><h2>Lab bench booking</h2></div>
+  <p class="who"><b>Chemistry.</b> Coordinates a first-year lab course. 240 students choose one
+  of forty bench slots. Booking opens at 9am on a Monday in September and, historically, the
+  departmental page falls over at 9:01.</p>
+  <ul class="facts">
+    <li>240 students</li><li class="hi">all at once</li><li>CWL sign-in</li>
+    <li>database</li><li>no AI</li><li class="hi">custom address</li>
+  </ul>
+
+  <ul class="beats">
+    <li><span class="wk">Week 1</span>Describes it: students sign in, see available benches,
+      take one, can swap until a cutoff. Because it needs to know <em>who</em> booked, it needs
+      CWL sign-in &mdash; so this app will need UBC registration, and Manifest says so on day one
+      rather than in August.</li>
+    <li><span class="wk">Week 1&ndash;2</span>Builds in the sandbox against fake test students.
+      Discovers by trying it that two people can grab the same bench in the same second, and
+      that gets fixed before anyone real sees it.</li>
+    <li class="key"><span class="wk">Week 2 &mdash; the size question</span>Manifest asks who
+      this is for. <em>A whole course.</em> Then it asks the second question: do they all arrive
+      at once? <em>Yes &mdash; 9am, September, all 240.</em> That second answer is what changes
+      the plan: several copies running, capacity warmed up before the window opens, and nobody
+      arriving at a cold app.</li>
+    <li class="snag"><span class="wk">Week 2 &mdash; the address</span>They want
+      <code>chem.ubc.ca/labs</code>. That is a <em>path</em> on a site the department already
+      runs, which Manifest cannot serve &mdash; it can answer for a whole name, not a folder on
+      somebody else&rsquo;s. They take <code>labs.chem.ubc.ca</code> instead. Manifest prints the
+      two DNS records for the departmental IT contact, who creates them that afternoon.</li>
+    <li class="key"><span class="wk">Week 2, ordered deliberately</span>The address is settled
+      <strong>before</strong> the UBC registration is submitted, because the address is written
+      into it. Had they chosen it in August, changing it would have meant going back through
+      that registration &mdash; another few weeks, in the week before term.</li>
+    <li><span class="wk">Weeks 3&ndash;7</span>Waiting on UBC: the sign-in registration and the
+      privacy assessment. Manifest wrote the first draft of both. Meanwhile they keep improving
+      the app against test students.</li>
+    <li><span class="wk">Week 7</span>A rehearsal sign-in against UBC&rsquo;s real test system
+      catches a mismatch in one field name. Twenty minutes to fix in August; a broken launch
+      morning in September.</li>
+    <li class="key"><span class="wk">Week 8</span>A load rehearsal: 240 simulated students in
+      sixty seconds. It holds.</li>
+    <li><span class="wk">September, 9am</span>It holds for real.</li>
+  </ul>
+
+  <div class="ends"><dl>
+    <dt>Live at</dt><dd><code>labs.chem.ubc.ca</code><br>
+      <span style="color:var(--muted);font-size:13.5px">and permanently also at
+      <code>chem-lab-booking.manifest.apps.ltic.ubc.ca</code></span></dd>
+    <dt>Size</dt><dd>A whole course, all arriving at once &mdash; several copies, warmed ahead
+      of the booking window</dd>
+    <dt>Elapsed</dt><dd>Eight weeks, five of them waiting on UBC paperwork that ran in parallel
+      with the building</dd>
+    <dt>Shows</dt><dd>The full path: sign-in, a custom address, a burst of traffic, and the
+      ordering rule that costs a month if you get it wrong</dd>
+  </dl></div>
+</section>
+
+<section id="s3" class="story">
+  <div class="storyhead"><span class="num">03</span><h2>Office hours queue</h2></div>
+  <p class="who"><b>Mathematics.</b> Six instructors across three sections, roughly 180 students.
+  Wants a queue so students stop hovering in the corridor and can see how many people are ahead
+  of them.</p>
+  <ul class="facts">
+    <li>180 students</li><li>steady use</li><li>CWL sign-in</li>
+    <li>database</li><li>no AI</li><li class="hi">nearly missed the address</li>
+  </ul>
+
+  <ul class="beats">
+    <li><span class="wk">Week 1</span>Straightforward to build. Sign in, join the queue, see
+      your position, instructors call the next person.</li>
+    <li class="snag"><span class="wk">Week 2 &mdash; the question that saved a month</span>At
+      registration, Manifest asks whether this app will ever live at a departmental address.
+      Their instinct is to say no and get on with it. The warning next to the question is
+      specific: <strong>say no now and saying yes later means going back through this
+      registration</strong>. So they ask the department head, who says the department has
+      wanted <code>queue.math.ubc.ca</code> for two years.</li>
+    <li class="key"><span class="wk">Week 2</span>Address settled first, registration submitted
+      second. Two days of delay instead of a change request in November, mid-term, with 180
+      students already using it.</li>
+    <li><span class="wk">Weeks 3&ndash;6</span>Paperwork. The privacy assessment is short: the
+      app stores a student number and a timestamp, and Manifest&rsquo;s draft says so plainly,
+      because it can see exactly what the app asked for.</li>
+    <li><span class="wk">Week 7</span>Live, in time for midterms.</li>
+    <li><span class="wk">February</span>An instructor asks for a &ldquo;how long have people
+      been waiting on average&rdquo; view. It ships that week, with no approval needed &mdash;
+      it does not touch anything sensitive, so it simply deploys.</li>
+  </ul>
+
+  <div class="ends"><dl>
+    <dt>Live at</dt><dd><code>queue.math.ubc.ca</code></dd>
+    <dt>Size</dt><dd>A whole course, steady &mdash; two copies, no sleeping during term</dd>
+    <dt>Elapsed</dt><dd>Seven weeks</dd>
+    <dt>Shows</dt><dd>The platform asking the awkward question at the only moment the answer is
+      cheap &mdash; and afterwards, how little friction ordinary updates carry</dd>
+  </dl></div>
+</section>
+
+<section id="s4" class="story">
+  <div class="storyhead"><span class="num">04</span><h2>Reading responses</h2></div>
+  <p class="who"><b>Education.</b> Teaches a 90-student course with weekly written responses to
+  set readings. Wants a tool that reads a student&rsquo;s response alongside the reading and
+  drafts feedback for the instructor to edit &mdash; never sent to the student automatically.</p>
+  <ul class="facts">
+    <li>90 students</li><li>CWL sign-in</li><li>database</li>
+    <li class="hi">AI over documents</li><li class="stop">confidential data</li>
+    <li class="stop">wants Canvas</li>
+  </ul>
+
+  <ul class="beats">
+    <li><span class="wk">Week 1</span>Describes it. This is the first story where the AI is
+      part of the running app rather than just the thing that built it: the app searches the
+      course readings for relevant passages and asks a model to draft feedback grounded in them.</li>
+    <li class="snag"><span class="wk">Week 1 &mdash; the first refusal</span>They mark the data
+      as confidential, correctly &mdash; it is student work with names attached. Manifest
+      immediately narrows the list of AI models the app may use to those running on UBC hardware.
+      The faster, cheaper option is simply not offered. <strong>The reason is shown, not just the
+      restriction</strong>: a BC public body may not send student personal information to a model
+      running in another country.</li>
+    <li class="snag"><span class="wk">Week 2 &mdash; the second refusal</span>They ask for the
+      class list to come from Canvas automatically. Manifest cannot do that yet. What it does
+      instead is say so plainly, show that a place is reserved for exactly this, and offer a CSV
+      upload in the meantime. They upload a CSV.</li>
+    <li><span class="wk">Weeks 2&ndash;4</span>Building. Costs are visible per student as they
+      test, so the projected termly bill is a number rather than a worry.</li>
+    <li class="key"><span class="wk">Week 4 &mdash; the review that mattered</span>The privacy
+      assessment is the longest of these six, because the app sends student writing to a language
+      model. Manifest&rsquo;s draft states which model, where it runs, what it is sent, and how
+      long it is kept. The Privacy Office asks two questions and approves. The instructor did not
+      have to write any of that from scratch, which is the difference between this happening and
+      not happening.</li>
+    <li><span class="wk">Week 9</span>Live, with a per-student AI spending cap so one
+      pathological essay cannot consume the term&rsquo;s budget.</li>
+  </ul>
+
+  <div class="ends"><dl>
+    <dt>Live at</dt><dd><code>reading-responses.manifest.apps.ltic.ubc.ca</code>
+      <span style="color:var(--muted);font-size:13.5px">&mdash; no custom address wanted</span></dd>
+    <dt>Size</dt><dd>A whole course, steady</dd>
+    <dt>Elapsed</dt><dd>Nine weeks, most of it privacy review</dd>
+    <dt>Shows</dt><dd>Guardrails doing their job twice &mdash; once by narrowing a choice with a
+      reason attached, once by refusing clearly instead of half-delivering</dd>
+  </dl></div>
+</section>
+
+<section id="s5" class="story">
+  <div class="storyhead"><span class="num">05</span><h2>Field data explorer</h2></div>
+  <p class="who"><b>Forestry.</b> A research group with one graduate student who codes. They have
+  their own AI assistant set up on their own laptop and no intention of using anybody
+  else&rsquo;s chat window. They want their field measurements browsable by the eight people on
+  the project.</p>
+  <ul class="facts">
+    <li>8 people</li><li>CWL sign-in</li><li>database</li><li>no AI in the app</li>
+    <li class="hi">own AI, own laptop</li><li class="hi">never opens the console</li>
+  </ul>
+
+  <ul class="beats">
+    <li class="key"><span class="wk">Day 1</span>Signs in once, in a browser, to create the
+      project and issue themselves a token. That is the only time they open Manifest&rsquo;s
+      web interface for weeks.</li>
+    <li><span class="wk">Day 1</span>Their own AI asks Manifest for its instruction pack and
+      learns the conventions &mdash; how to declare a database, how to wire up sign-in &mdash;
+      without ever running inside Manifest. That pack being published rather than buried inside
+      a sandbox is the whole reason this works.</li>
+    <li><span class="wk">Days 2&ndash;9</span>They work entirely in their own editor. Push code,
+      Manifest builds it, they watch the log stream in their terminal, the test version updates.
+      No sandbox: they already have a laptop and an AI, so they need code storage and an interface,
+      which is exactly what they get.</li>
+    <li class="key"><span class="wk">Day 10 &mdash; the boundary</span>Their AI tries to promote
+      the app to live. It cannot, and the design says it never will: that is one of the four
+      actions no AI may take, whoever owns it. Instead a confirmation appears, waiting for a
+      person. They read it, click it, and it proceeds.</li>
+    <li><span class="wk">Weeks 3&ndash;6</span>Paperwork, same as everybody else. Eight users
+      does not exempt an app from registration when it uses CWL.</li>
+  </ul>
+
+  <div class="ends"><dl>
+    <dt>Live at</dt><dd><code>forest-plots.manifest.apps.ltic.ubc.ca</code></dd>
+    <dt>Size</dt><dd>Me and a few colleagues &mdash; one small copy that sleeps between field seasons</dd>
+    <dt>Elapsed</dt><dd>Six weeks, almost all paperwork</dd>
+    <dt>Shows</dt><dd>The audience that would never open a chat interface, served by the same
+      platform &mdash; and the one wall their AI hits, by design</dd>
+  </dl></div>
+</section>
+
+<section id="s6" class="story">
+  <div class="storyhead"><span class="num">06</span><h2>Advising assistant</h2></div>
+  <p class="who"><b>Medicine.</b> The advising office answers the same 200 questions every
+  September &mdash; deadlines, elective rules, forms. They want a chat assistant that answers
+  from the faculty&rsquo;s own handbook and says &ldquo;ask an advisor&rdquo; when it does not
+  know. Roughly 5,000 people, including applicants who have no CWL.</p>
+  <ul class="facts">
+    <li>~5,000 people</li><li class="hi">public &mdash; no sign-in</li>
+    <li class="hi">AI over documents</li><li>two databases</li>
+    <li class="hi">custom address</li><li class="stop">heaviest review</li>
+  </ul>
+
+  <ul class="beats">
+    <li><span class="wk">Week 1</span>The most complex of these six: the handbook has to be
+      indexed so the assistant can find relevant passages, then a model answers using only
+      those passages, with a link back to the source paragraph.</li>
+    <li class="snag"><span class="wk">Week 2 &mdash; two hard questions at once</span>The
+      audience is <em>public</em>, which means no CWL, which means no accountability for who is
+      asking &mdash; so this app gets the extra scrutiny reserved for anything unauthenticated.
+      And the questions people type <em>are themselves personal information</em>: &ldquo;I failed
+      this course, what happens to my standing?&rdquo; That reshapes the privacy assessment
+      entirely.</li>
+    <li class="key"><span class="wk">Week 3</span>Decisions follow from that. Conversations are
+      not retained beyond the session. Only UBC-hosted models are used. Rate limiting at the
+      front door, because a public AI-backed app is an expensive thing to leave unguarded.</li>
+    <li><span class="wk">Weeks 4&ndash;9</span>Building, and testing with real advisors who
+      keep finding questions it answers confidently and wrongly. Each one becomes a handbook fix
+      or a refusal rule. This is the longest build of the six and none of it is infrastructure.</li>
+    <li><span class="wk">Week 10</span>An independent security review, required because it is
+      public. A load rehearsal for 5,000 people.</li>
+    <li class="key"><span class="wk">Week 12</span>Launched to the advising office only, at
+      first. Then one program. Then everyone. The platform makes that staging trivial, which is
+      what makes a cautious rollout the easy option rather than the diligent one.</li>
+  </ul>
+
+  <div class="ends"><dl>
+    <dt>Live at</dt><dd><code>advising.med.ubc.ca</code></dd>
+    <dt>Size</dt><dd>Public &mdash; several copies with headroom, always awake, watched and paged on</dd>
+    <dt>Elapsed</dt><dd>Twelve weeks</dd>
+    <dt>Shows</dt><dd>The ceiling. Everything the platform has, all at once &mdash; and the
+      reminder that at this scale the hard part is the content, not the hosting</dd>
+  </dl></div>
+</section>
+
+<section id="pattern">
+  <p class="kicker">07 &mdash; What they show</p>
+  <h2>Read across the six</h2>
+  <p class="claim">Put side by side, the stories say something the individual cases do not.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>&nbsp;</th><th>People</th><th>Sign-in</th><th>AI inside</th>
+      <th>Own address</th><th>Weeks</th><th>Of which waiting</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Reading roulette</td><td class="num">14</td><td class="no">no</td>
+        <td class="no">no</td><td class="no">no</td><td class="num">&lt;1</td><td class="num">0</td></tr>
+      <tr><td class="k">Lab bench booking</td><td class="num">240</td><td class="yes">yes</td>
+        <td class="no">no</td><td class="yes">yes</td><td class="num">8</td><td class="num">5</td></tr>
+      <tr><td class="k">Office hours queue</td><td class="num">180</td><td class="yes">yes</td>
+        <td class="no">no</td><td class="yes">yes</td><td class="num">7</td><td class="num">4</td></tr>
+      <tr><td class="k">Reading responses</td><td class="num">90</td><td class="yes">yes</td>
+        <td class="yes">yes</td><td class="no">no</td><td class="num">9</td><td class="num">5</td></tr>
+      <tr><td class="k">Field data explorer</td><td class="num">8</td><td class="yes">yes</td>
+        <td class="no">no</td><td class="no">no</td><td class="num">6</td><td class="num">4</td></tr>
+      <tr><td class="k">Advising assistant</td><td class="num">~5,000</td><td class="no">no</td>
+        <td class="yes">yes</td><td class="yes">yes</td><td class="num">12</td><td class="num">3</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>The building is never the slow part</h3>
+  <p>In five of six stories, most of the elapsed time is spent waiting on UBC sign-in
+  registration and privacy approval &mdash; not on writing the app. That is why Manifest treats
+  the paperwork as something to actively drive rather than something to wait on, and why the
+  drafting it does is arguably its most valuable feature.</p>
+
+  <h3>The one that needed no paperwork needed no sign-in</h3>
+  <p>Reading roulette went live in three days because it handles no personal information and
+  needs no CWL. That is a real category: simple tools for small groups, live the same week.
+  Being honest that it exists matters, because otherwise every request looks like an
+  eight-week request.</p>
+
+  <h3>The awkward questions get asked early on purpose</h3>
+  <p>Who is this for. Will they all arrive at once. Will this ever live at a departmental
+  address. How sensitive is the data. Every one is cheap to answer in week one and expensive to
+  revisit in week twelve, and the platform is arranged so they surface at the first moment they
+  can be answered.</p>
+
+  <h3>Two of the six never open the front-end at all</h3>
+  <p>The Forestry student uses their own AI on their own laptop. The Medicine project is mostly
+  content work by advisors. Manifest is a platform with a front-end attached, not a front-end
+  with a platform behind it &mdash; and these two stories are why that distinction was worth
+  designing for.</p>
+
+  <p class="foot">These six people are invented. The situations, constraints and timelines
+  are drawn from <code>2026-08-29-manifest-platform-design.md</code> and are what the design
+  is built to handle.<br>
+  <a href="manifest-schematic.html">Overview</a> &middot;
+  <a href="manifest-decisions.html">The 31 decisions</a> &middot;
+  <a href="manifest-phases.html">What gets built when</a></p>
+</section>
+</main>
+</div>
+<script src="manifest.js"></script>
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Manifest — What Gets Built When</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="manifest.css">
+</head>
+<body>
+<div class="shell">
+<nav class="rail" aria-label="Sections">
+  <h2>Manifest</h2>
+  <ol>
+    <li><a href="#first"><span class="n">01</span>Questions first</a></li>
+    <li><a href="#build"><span class="n">02</span>The eight stages</a></li>
+    <li><a href="#order"><span class="n">03</span>Why this order</a></li>
+    <li><a href="#late"><span class="n">04</span>What waits</a></li>
+  </ol>
+  <div class="also">
+  <ol>
+    <li><a href="manifest-schematic.html"><span class="n">&larr;</span>Overview</a></li>
+    <li><a href="manifest-stories.html"><span class="n">A</span>Six faculty stories</a></li>
+    <li><a href="manifest-decisions.html"><span class="n">B</span>The 31 decisions</a></li>
+  </ol>
+  </div>
+</nav>
+
+<main>
+<header class="mast">
+  <a class="back" href="manifest-schematic.html">&larr; Manifest overview</a>
+  <p class="eyebrow">Reference &middot; C</p>
+  <h1>What gets built when</h1>
+  <p class="lede">Manifest is built in eight stages. <strong>Each one ends in something you can
+  open in a browser and show to somebody</strong> &mdash; not a status report, an actual working
+  thing.</p>
+  <div class="meta">
+    <span><b>Now</b> stage 1a, the first plan</span>
+    <span><b>Full detail</b> &sect;17 of the design document</span>
+  </div>
+</header>
+
+<section id="first">
+  <p class="kicker">01 &mdash; Questions first</p>
+  <h2>Seven experiments, before any of it</h2>
+  <p class="claim">Before the real build starts, seven small throwaway experiments answer
+  questions that would be <strong>ruinously expensive to get wrong later</strong>. Each one
+  takes days, not weeks. Every one of them is meant to be deleted afterwards.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Experiment</th><th>The question it answers</th><th>Why it cannot wait</th></tr></thead>
+    <tbody>
+      <tr><td class="k nw">S7 &middot; first</td>
+        <td>Does the whole platform actually run on one laptop, with the internet switched off, from a fresh copy?</td>
+        <td>The entire first stage is built on the assumption that it does. If it does not, we need to know in week one.</td></tr>
+      <tr><td class="k nw">S2 &middot; first</td>
+        <td>Can we register an app for sign-in by adding a row to a database, rather than editing files by hand?</td>
+        <td>If not, the whole approach to practice sign-ins has to be redesigned &mdash; better learned in an afternoon than in month two.</td></tr>
+      <tr><td class="k nw">S1</td>
+        <td>Can we go from source code to a running, reachable app with a working database?</td>
+        <td>It is the single most basic thing the platform does.</td></tr>
+      <tr><td class="k nw">S3</td>
+        <td>Do AI model access, spending caps and a locally-run model work together on a Mac?</td>
+        <td>Everything about offline AI depends on the answer.</td></tr>
+      <tr><td class="k nw">S6</td>
+        <td>If somebody hostile got inside a sandbox, what could they actually reach?</td>
+        <td>Required before the platform first runs code nobody has reviewed. Its output becomes a permanent set of security tests.</td></tr>
+      <tr><td class="k nw">S4</td>
+        <td>Can a sleeping app be woken by someone visiting it, without them seeing an error?</td>
+        <td>Needed for apps to cost nothing while idle. Can run alongside other work.</td></tr>
+      <tr><td class="k nw">S5</td>
+        <td>Can an AI work inside a sandbox and produce a real code change?</td>
+        <td>The heart of the product, but not needed until stage 3.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="tnote">The first two run before anything else. S6 must finish before stage 3, when
+  the platform first executes code that nobody has read.</p>
+</section>
+
+<section id="build">
+  <p class="kicker">02 &mdash; The eight stages</p>
+  <h2>Each one ends in something you can show</h2>
+  <p class="claim">Stage 1 is deliberately split into three. Written as one stage it was
+  a platform rather than an increment &mdash; fifteen separate pieces at once, with no honest
+  way to sequence them.</p>
+
+  <div class="phases">
+    <div class="ph now">
+      <div class="pid">1a<span>foundations</span></div>
+      <div>
+        <h4>The ground it all stands on</h4>
+        <p>Everything needed to take source code, turn it into a running app, give it a
+        database and put it at a working web address &mdash; on one laptop, offline, from a
+        fresh copy. <strong>All the security containment lands here too</strong>: apps
+        isolated from each other, unable to reach the internet unless they have said what
+        they need, unable to reach the platform that runs them.</p>
+        <p><b>You can show:</b> a small test app, running and healthy at a real web address,
+        from a clean checkout, with the network switched off.</p>
+        <p class="q">Does the &ldquo;runs on a laptop&rdquo; promise hold, and is the isolation real?</p>
+      </div>
+    </div>
+
+    <div class="ph">
+      <div class="pid">1b<span>the real loop</span></div>
+      <div>
+        <h4>Sign-in, secrets and AI</h4>
+        <p>Apps can register themselves for practice sign-in, hold passwords safely, and
+        call an AI model within a spending cap. The first blueprint arrives, along with the
+        description of itself that lets later blueprints be added without a rewrite.</p>
+        <p><b>You can show:</b> a real app where you sign in, save something to your own
+        database and ask an AI a question.</p>
+        <p class="q">Is the loop genuinely real, end to end?</p>
+      </div>
+    </div>
+
+    <div class="ph">
+      <div class="pid">1c<span>ways in</span></div>
+      <div>
+        <h4>The public interface and a console to prove it</h4>
+        <p>The published interface everybody builds against, a basic web console that uses
+        nothing but that interface, and tokens so somebody&rsquo;s own AI can drive the same
+        thing from their own laptop. The question &ldquo;who is this app for?&rdquo; starts
+        being asked here, even though nothing acts on the answer until stage 2.</p>
+        <p><b>You can show:</b> the whole faculty journey, clickable, driven twice &mdash;
+        once by a person and once by a script &mdash; over the same interface.</p>
+        <p class="q">Is the interface complete, and can a second developer reproduce all of it?</p>
+      </div>
+    </div>
+
+    <div class="ph">
+      <div class="pid">2<span>going live</span></div>
+      <div>
+        <h4>Live apps, approvals, addresses and size</h4>
+        <p>Real production apps, promoted from the tested version without rebuilding.
+        The launch checklist becomes a gate that actually blocks. Custom web addresses,
+        proven by DNS and given certificates. The size question starts having an effect
+        on capacity. The admin dashboard arrives, built around its queue.</p>
+        <p><b>You can show:</b> an app legitimately launched, with its paperwork approved
+        and its department&rsquo;s own address on it.</p>
+        <p class="q">Is it safe, and can we get an app genuinely launched?</p>
+      </div>
+    </div>
+
+    <div class="ph">
+      <div class="pid">3<span>the AI part</span></div>
+      <div>
+        <h4>Sandboxes and building by describing</h4>
+        <p>An AI can now work inside a sandbox: writing files, running commands, showing a
+        live preview. A chat panel is added to the same console. Manifest also becomes
+        available as a set of tools any AI can use directly, which is what makes
+        &ldquo;bring your own AI&rdquo; real rather than theoretical.</p>
+        <p><b>You can show:</b> describing an app in a sentence and watching it appear.
+        <strong>The separate faculty-facing front-end project can begin here</strong>,
+        against an interface that has already been exercised.</p>
+        <p class="q">Can an AI actually build in this environment?</p>
+      </div>
+    </div>
+
+    <div class="ph">
+      <div class="pid">4<span>scaling down</span></div>
+      <div>
+        <h4>Self-correction and sleeping apps</h4>
+        <p>The straight-line process becomes a loop that continually checks what should be
+        running against what is, and repairs the difference. Idle apps sleep and wake when
+        somebody visits.</p>
+        <p class="q">Does it cost nothing when nobody is using it?</p>
+      </div>
+    </div>
+
+    <div class="ph">
+      <div class="pid">5<span>leaving the laptop</span></div>
+      <div>
+        <h4>Real UBC infrastructure</h4>
+        <p>A second way of running apps &mdash; on UBC servers or a cluster, whichever UBC
+        chooses &mdash; that passes the identical set of tests the laptop version passes.</p>
+        <p class="q">Does it work anywhere other than a developer&rsquo;s machine?</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="order">
+  <p class="kicker">03 &mdash; Why this order</p>
+  <h2>Four sequencing choices worth defending</h2>
+
+  <h3>Security is in stage 1a, not spread through the middle</h3>
+  <p>Manifest&rsquo;s core job is to safely contain code that nobody has reviewed. That has to
+  be true <em>before</em> anything runs, not added once apps and databases already exist.
+  Retrofitting isolation is exactly the kind of rework the rest of the plan avoids.</p>
+
+  <h3>The blueprint&rsquo;s self-description cannot wait</h3>
+  <p>It is the one piece of the recent additions that has to land early. Everything else
+  adds capability to a platform that already works. This one, added late, means untangling
+  assumptions about a single language that will by then be woven through the build process,
+  the health checks and the list of available databases. Doing it now costs a day; doing it
+  in stage 5 costs a rewrite.</p>
+
+  <h3>The UBC paperwork starts during stage 1</h3>
+  <p>Registering an app for CWL and getting a privacy assessment approved both take weeks,
+  and both happen outside the team. Starting them after stage 2 would leave a finished
+  platform sitting idle waiting on tickets. Starting them in parallel means stage 2 ends with
+  an application that can genuinely launch &mdash; and it tests the paperwork Manifest
+  generates against a real reviewer while it is still cheap to change.</p>
+
+  <h3>The console comes before the real front-end</h3>
+  <p>The faculty-facing front-end is a separate project. If its team discovered gaps in the
+  interface in month eight, those gaps would be expensive and they would be blocked. Building
+  a plain console here in stage 1c finds the same gaps in month two, when fixing them is a
+  morning&rsquo;s work.</p>
+</section>
+
+<section id="late">
+  <p class="kicker">04 &mdash; What waits</p>
+  <h2>Things deliberately not built yet</h2>
+  <p class="claim">Each of these has a place to slot into later. None of them requires
+  going back and undoing something.</p>
+  <ul>
+    <li><b>More than one blueprint.</b> One ships first. The catalogue, the version pinning
+      and the self-description all exist from stage 1, so a second is a new folder.</li>
+    <li><b>Canvas and other UBC system connections.</b> There is a reserved, currently-empty
+      place in every app&rsquo;s settings file for them.</li>
+    <li><b>Scheduled background jobs</b> &mdash; nightly reminders, weekly digests. Same:
+      reserved and empty.</li>
+    <li><b>Apps that bring their own build instructions.</b> Deliberately refused for now,
+      because building is the moment the platform is most exposed. It may return later
+      behind stronger isolation.</li>
+    <li><b>A general-purpose hosting platform.</b> Manifest serves AI-built UBC teaching
+      and research apps. That focus is what lets it make promises a general platform could
+      not.</li>
+  </ul>
+
+  <p class="foot">Corresponds to &sect;17 and &sect;15 of
+  <code>2026-08-29-manifest-platform-design.md</code>, rewritten here in plain language.<br>
+  <a href="manifest-schematic.html">Overview</a> &middot;
+  <a href="manifest-stories.html">Six faculty stories</a> &middot;
+  <a href="manifest-decisions.html">The 31 decisions</a></p>
+</section>
+</main>
+</div>
+<script src="manifest.js"></script>
+</body>
+</html>
