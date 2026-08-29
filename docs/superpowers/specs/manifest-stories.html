@@ -23,7 +23,7 @@
   <div class="also">
   <ol>
     <li><a href="manifest-schematic.html"><span class="n">&larr;</span>Overview</a></li>
-    <li><a href="manifest-decisions.html"><span class="n">B</span>The 31 decisions</a></li>
+    <li><a href="manifest-decisions.html"><span class="n">B</span>The 32 decisions</a></li>
     <li><a href="manifest-phases.html"><span class="n">C</span>What gets built when</a></li>
   </ol>
   </div>
@@ -63,7 +63,7 @@
       nothing breaks. They ask to go live.</li>
     <li class="snag"><span class="wk">The launch check</span>Manifest points out that with no
       sign-in, <strong>anybody who has the link can change the assignments</strong>. It offers
-      to add CWL sign-in, which would mean UBC registration and a few weeks&rsquo; wait. They
+      to add CWL sign-in, which would mean going through UBC registration first. They
       decide fourteen people who already know each other do not need it, and record that
       choice &mdash; which is now on the record rather than an unexamined assumption.</li>
     <li class="key"><span class="wk">Friday</span>Live. No paperwork, because with no sign-in
@@ -73,7 +73,7 @@
   <div class="ends"><dl>
     <dt>Live at</dt><dd><code>reading-roulette.manifest.apps.ltic.ubc.ca</code></dd>
     <dt>Size</dt><dd>Me and a few colleagues &mdash; one small copy that sleeps when nobody is using it</dd>
-    <dt>Elapsed</dt><dd>Three days, most of it waiting for colleagues to try it</dd>
+    <dt>Start to live</dt><dd>Three days, most of it waiting for colleagues to try it. No UBC review needed at all</dd>
     <dt>Shows</dt><dd>The floor. No sign-in, no paperwork, no waiting &mdash; and a guardrail that
       informs rather than blocks</dd>
   </dl></div>
@@ -110,15 +110,16 @@
     <li class="key"><span class="wk">Week 2, ordered deliberately</span>The address is settled
       <strong>before</strong> the UBC registration is submitted, because the address is written
       into it. Had they chosen it in August, changing it would have meant going back through
-      that registration &mdash; another few weeks, in the week before term.</li>
-    <li><span class="wk">Weeks 3&ndash;7</span>Waiting on UBC: the sign-in registration and the
-      privacy assessment. Manifest wrote the first draft of both. Meanwhile they keep improving
-      the app against test students.</li>
-    <li><span class="wk">Week 7</span>A rehearsal sign-in against UBC&rsquo;s real test system
-      catches a mismatch in one field name. Twenty minutes to fix in August; a broken launch
-      morning in September.</li>
-    <li class="key"><span class="wk">Week 8</span>A load rehearsal: 240 simulated students in
-      sixty seconds. It holds.</li>
+      that registration a second time, in the week before term.</li>
+    <li><span class="wk">In parallel</span>The sign-in registration and the privacy assessment
+      go to the colleagues who review them. Manifest drafted both and tracks them from here.
+      Meanwhile the app keeps improving against test students &mdash; none of that work is
+      blocked, which is the point of running the two things alongside each other.</li>
+    <li><span class="wk">Once registered</span>A rehearsal sign-in against UBC&rsquo;s real test
+      system catches a mismatch in one field name. Twenty minutes to fix in August; a broken
+      launch morning in September.</li>
+    <li class="key"><span class="wk">Before launch</span>A load rehearsal: 240 simulated
+      students in sixty seconds. It holds.</li>
     <li><span class="wk">September, 9am</span>It holds for real.</li>
   </ul>
 
@@ -128,8 +129,8 @@
       <code>chem-lab-booking.manifest.apps.ltic.ubc.ca</code></span></dd>
     <dt>Size</dt><dd>A whole course, all arriving at once &mdash; several copies, warmed ahead
       of the booking window</dd>
-    <dt>Elapsed</dt><dd>Eight weeks, five of them waiting on UBC paperwork that ran in parallel
-      with the building</dd>
+    <dt>Plan for</dt><dd>Started in May for a September course, on purpose. The reviews ran
+      alongside the building rather than after it</dd>
     <dt>Shows</dt><dd>The full path: sign-in, a custom address, a burst of traffic, and the
       ordering rule that costs a month if you get it wrong</dd>
   </dl></div>
@@ -148,28 +149,31 @@
   <ul class="beats">
     <li><span class="wk">Week 1</span>Straightforward to build. Sign in, join the queue, see
       your position, instructors call the next person.</li>
-    <li class="snag"><span class="wk">Week 2 &mdash; the question that saved a month</span>At
+    <li class="snag"><span class="wk">Week 2 &mdash; the question worth stopping for</span>At
       registration, Manifest asks whether this app will ever live at a departmental address.
       Their instinct is to say no and get on with it. The warning next to the question is
       specific: <strong>say no now and saying yes later means going back through this
       registration</strong>. So they ask the department head, who says the department has
       wanted <code>queue.math.ubc.ca</code> for two years.</li>
     <li class="key"><span class="wk">Week 2</span>Address settled first, registration submitted
-      second. Two days of delay instead of a change request in November, mid-term, with 180
-      students already using it.</li>
-    <li><span class="wk">Weeks 3&ndash;6</span>Paperwork. The privacy assessment is short: the
-      app stores a student number and a timestamp, and Manifest&rsquo;s draft says so plainly,
+      second. Two days of their own delay, instead of going back through registration in
+      November, mid-term, with 180 students already using it.</li>
+    <li><span class="wk">In parallel</span>The reviews. The privacy assessment is short: the app
+      stores a student number and a timestamp, and Manifest&rsquo;s draft says so plainly,
       because it can see exactly what the app asked for.</li>
-    <li><span class="wk">Week 7</span>Live, in time for midterms.</li>
+    <li><span class="wk">Once approved</span>Live, in time for midterms.</li>
     <li><span class="wk">February</span>An instructor asks for a &ldquo;how long have people
       been waiting on average&rdquo; view. It ships that week, with no approval needed &mdash;
       it does not touch anything sensitive, so it simply deploys.</li>
+    <li class="key"><span class="wk">The following year</span>They share it in the showcase.
+      Eleven other courses start from it rather than describing a queue from scratch &mdash; each
+      one their own app, with their own students, doing their own review.</li>
   </ul>
 
   <div class="ends"><dl>
     <dt>Live at</dt><dd><code>queue.math.ubc.ca</code></dd>
     <dt>Size</dt><dd>A whole course, steady &mdash; two copies, no sleeping during term</dd>
-    <dt>Elapsed</dt><dd>Seven weeks</dd>
+    <dt>Plan for</dt><dd>Built over the summer for a fall course. The reviews set the launch date, not the building</dd>
     <dt>Shows</dt><dd>The platform asking the awkward question at the only moment the answer is
       cheap &mdash; and afterwards, how little friction ordinary updates carry</dd>
   </dl></div>
@@ -202,13 +206,13 @@
       upload in the meantime. They upload a CSV.</li>
     <li><span class="wk">Weeks 2&ndash;4</span>Building. Costs are visible per student as they
       test, so the projected termly bill is a number rather than a worry.</li>
-    <li class="key"><span class="wk">Week 4 &mdash; the review that mattered</span>The privacy
-      assessment is the longest of these six, because the app sends student writing to a language
+    <li class="key"><span class="wk">The review that mattered</span>The privacy assessment is
+      the most substantial of these six, because the app sends student writing to a language
       model. Manifest&rsquo;s draft states which model, where it runs, what it is sent, and how
       long it is kept. The Privacy Office asks two questions and approves. The instructor did not
       have to write any of that from scratch, which is the difference between this happening and
       not happening.</li>
-    <li><span class="wk">Week 9</span>Live, with a per-student AI spending cap so one
+    <li><span class="wk">Once approved</span>Live, with a per-student AI spending cap so one
       pathological essay cannot consume the term&rsquo;s budget.</li>
   </ul>
 
@@ -216,7 +220,7 @@
     <dt>Live at</dt><dd><code>reading-responses.manifest.apps.ltic.ubc.ca</code>
       <span style="color:var(--muted);font-size:13.5px">&mdash; no custom address wanted</span></dd>
     <dt>Size</dt><dd>A whole course, steady</dd>
-    <dt>Elapsed</dt><dd>Nine weeks, most of it privacy review</dd>
+    <dt>Plan for</dt><dd>A full term ahead. This one has the most for a reviewer to consider, and that is the right outcome rather than a delay</dd>
     <dt>Shows</dt><dd>Guardrails doing their job twice &mdash; once by narrowing a choice with a
       reason attached, once by refusing clearly instead of half-delivering</dd>
   </dl></div>
@@ -236,7 +240,7 @@
   <ul class="beats">
     <li class="key"><span class="wk">Day 1</span>Signs in once, in a browser, to create the
       project and issue themselves a token. That is the only time they open Manifest&rsquo;s
-      web interface for weeks.</li>
+      web interface again for the rest of the project.</li>
     <li><span class="wk">Day 1</span>Their own AI asks Manifest for its instruction pack and
       learns the conventions &mdash; how to declare a database, how to wire up sign-in &mdash;
       without ever running inside Manifest. That pack being published rather than buried inside
@@ -249,14 +253,14 @@
       the app to live. It cannot, and the design says it never will: that is one of the four
       actions no AI may take, whoever owns it. Instead a confirmation appears, waiting for a
       person. They read it, click it, and it proceeds.</li>
-    <li><span class="wk">Weeks 3&ndash;6</span>Paperwork, same as everybody else. Eight users
-      does not exempt an app from registration when it uses CWL.</li>
+    <li><span class="wk">In parallel</span>The reviews, same as everybody else. Eight users does
+      not exempt an app from registration when it uses CWL.</li>
   </ul>
 
   <div class="ends"><dl>
     <dt>Live at</dt><dd><code>forest-plots.manifest.apps.ltic.ubc.ca</code></dd>
     <dt>Size</dt><dd>Me and a few colleagues &mdash; one small copy that sleeps between field seasons</dd>
-    <dt>Elapsed</dt><dd>Six weeks, almost all paperwork</dd>
+    <dt>Plan for</dt><dd>The building took nine days. The reviews set the launch date</dd>
     <dt>Shows</dt><dd>The audience that would never open a chat interface, served by the same
       platform &mdash; and the one wall their AI hits, by design</dd>
   </dl></div>
@@ -290,17 +294,17 @@
     <li><span class="wk">Weeks 4&ndash;9</span>Building, and testing with real advisors who
       keep finding questions it answers confidently and wrongly. Each one becomes a handbook fix
       or a refusal rule. This is the longest build of the six and none of it is infrastructure.</li>
-    <li><span class="wk">Week 10</span>An independent security review, required because it is
-      public. A load rehearsal for 5,000 people.</li>
-    <li class="key"><span class="wk">Week 12</span>Launched to the advising office only, at
-      first. Then one program. Then everyone. The platform makes that staging trivial, which is
+    <li><span class="wk">Before launch</span>An independent security review, required because
+      it is public. A load rehearsal for 5,000 people.</li>
+    <li class="key"><span class="wk">Launch, in stages</span>Released to the advising office
+      only, at first. Then one program. Then everyone. The platform makes that staging trivial, which is
       what makes a cautious rollout the easy option rather than the diligent one.</li>
   </ul>
 
   <div class="ends"><dl>
     <dt>Live at</dt><dd><code>advising.med.ubc.ca</code></dd>
     <dt>Size</dt><dd>Public &mdash; several copies with headroom, always awake, watched and paged on</dd>
-    <dt>Elapsed</dt><dd>Twelve weeks</dd>
+    <dt>Plan for</dt><dd>A term of work, most of it writing and testing answers rather than building software</dd>
     <dt>Shows</dt><dd>The ceiling. Everything the platform has, all at once &mdash; and the
       reminder that at this scale the hard part is the content, not the hosting</dd>
   </dl></div>
@@ -314,41 +318,47 @@
   <div class="tw">
   <table>
     <thead><tr><th>&nbsp;</th><th>People</th><th>Sign-in</th><th>AI inside</th>
-      <th>Own address</th><th>Weeks</th><th>Of which waiting</th></tr></thead>
+      <th>Own address</th><th>Needs UBC review</th><th>Their own build effort</th></tr></thead>
     <tbody>
       <tr><td class="k">Reading roulette</td><td class="num">14</td><td class="no">no</td>
-        <td class="no">no</td><td class="no">no</td><td class="num">&lt;1</td><td class="num">0</td></tr>
+        <td class="no">no</td><td class="no">no</td><td class="yes">none</td><td>an afternoon</td></tr>
       <tr><td class="k">Lab bench booking</td><td class="num">240</td><td class="yes">yes</td>
-        <td class="no">no</td><td class="yes">yes</td><td class="num">8</td><td class="num">5</td></tr>
+        <td class="no">no</td><td class="yes">yes</td><td class="no">both</td><td>about two weeks</td></tr>
       <tr><td class="k">Office hours queue</td><td class="num">180</td><td class="yes">yes</td>
-        <td class="no">no</td><td class="yes">yes</td><td class="num">7</td><td class="num">4</td></tr>
+        <td class="no">no</td><td class="yes">yes</td><td class="no">both</td><td>about a week</td></tr>
       <tr><td class="k">Reading responses</td><td class="num">90</td><td class="yes">yes</td>
-        <td class="yes">yes</td><td class="no">no</td><td class="num">9</td><td class="num">5</td></tr>
+        <td class="yes">yes</td><td class="no">no</td><td class="no">both, in depth</td><td>about three weeks</td></tr>
       <tr><td class="k">Field data explorer</td><td class="num">8</td><td class="yes">yes</td>
-        <td class="no">no</td><td class="no">no</td><td class="num">6</td><td class="num">4</td></tr>
+        <td class="no">no</td><td class="no">no</td><td class="no">both</td><td>nine days</td></tr>
       <tr><td class="k">Advising assistant</td><td class="num">~5,000</td><td class="no">no</td>
-        <td class="yes">yes</td><td class="yes">yes</td><td class="num">12</td><td class="num">3</td></tr>
+        <td class="yes">yes</td><td class="yes">yes</td><td class="no">both, plus security</td><td>about two months</td></tr>
     </tbody>
   </table>
   </div>
 
-  <h3>The building is never the slow part</h3>
-  <p>In five of six stories, most of the elapsed time is spent waiting on UBC sign-in
-  registration and privacy approval &mdash; not on writing the app. That is why Manifest treats
-  the paperwork as something to actively drive rather than something to wait on, and why the
-  drafting it does is arguably its most valuable feature.</p>
+  <h3>The building is rarely what sets the date</h3>
+  <p>In five of six stories, the app itself was finished well before it could go live. What
+  determines the launch date is the review &mdash; the sign-in registration and the privacy
+  assessment, both read by colleagues at UBC. <strong>Those steps are human on purpose, and
+  they are not something Manifest can decide.</strong></p>
+  <p>What Manifest can do is make sure none of that time is spent waiting on <em>it</em>: it
+  drafts both documents from what it already knows about the app, submits them, tracks them, and
+  keeps the building unblocked the whole time. The direction of travel is for the platform to
+  hand them over directly to those teams, which is something we are working towards with them.
+  <strong>For now the practical advice for faculty is simple: start a term ahead, and build the
+  review into your plan.</strong></p>
 
-  <h3>The one that needed no paperwork needed no sign-in</h3>
+  <h3>The one that needed no review needed no sign-in</h3>
   <p>Reading roulette went live in three days because it handles no personal information and
-  needs no CWL. That is a real category: simple tools for small groups, live the same week.
-  Being honest that it exists matters, because otherwise every request looks like an
-  eight-week request.</p>
+  needs no CWL. That is a real category &mdash; simple tools for small groups, live the same
+  week &mdash; and being honest that it exists matters, because otherwise every request looks
+  like a term-long request.</p>
 
   <h3>The awkward questions get asked early on purpose</h3>
   <p>Who is this for. Will they all arrive at once. Will this ever live at a departmental
-  address. How sensitive is the data. Every one is cheap to answer in week one and expensive to
-  revisit in week twelve, and the platform is arranged so they surface at the first moment they
-  can be answered.</p>
+  address. How sensitive is the data. What else at UBC does it need to talk to. Every one is
+  cheap to answer at the start and expensive to revisit once students are using it, so the
+  platform is arranged to surface them at the first moment they can be answered.</p>
 
   <h3>Two of the six never open the front-end at all</h3>
   <p>The Forestry student uses their own AI on their own laptop. The Medicine project is mostly
@@ -360,7 +370,7 @@
   are drawn from <code>2026-08-29-manifest-platform-design.md</code> and are what the design
   is built to handle.<br>
   <a href="manifest-schematic.html">Overview</a> &middot;
-  <a href="manifest-decisions.html">The 31 decisions</a> &middot;
+  <a href="manifest-decisions.html">The 32 decisions</a> &middot;
   <a href="manifest-phases.html">What gets built when</a></p>
 </section>
 </main>

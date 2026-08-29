@@ -21,7 +21,7 @@
   <ol>
     <li><a href="manifest-schematic.html"><span class="n">&larr;</span>Overview</a></li>
     <li><a href="manifest-stories.html"><span class="n">A</span>Six faculty stories</a></li>
-    <li><a href="manifest-decisions.html"><span class="n">B</span>The 31 decisions</a></li>
+    <li><a href="manifest-decisions.html"><span class="n">B</span>The 32 decisions</a></li>
   </ol>
   </div>
 </nav>
@@ -136,7 +136,8 @@
         <p>Real production apps, promoted from the tested version without rebuilding.
         The launch checklist becomes a gate that actually blocks. Custom web addresses,
         proven by DNS and given certificates. The size question starts having an effect
-        on capacity. The admin dashboard arrives, built around its queue.</p>
+        on capacity. The showcase and forking arrive, so the second person to want a queue
+        starts from the first one. The admin dashboard arrives, built around its queue.</p>
         <p><b>You can show:</b> an app legitimately launched, with its paperwork approved
         and its department&rsquo;s own address on it.</p>
         <p class="q">Is it safe, and can we get an app genuinely launched?</p>
@@ -197,12 +198,13 @@
   the health checks and the list of available databases. Doing it now costs a day; doing it
   in stage 5 costs a rewrite.</p>
 
-  <h3>The UBC paperwork starts during stage 1</h3>
-  <p>Registering an app for CWL and getting a privacy assessment approved both take weeks,
-  and both happen outside the team. Starting them after stage 2 would leave a finished
-  platform sitting idle waiting on tickets. Starting them in parallel means stage 2 ends with
-  an application that can genuinely launch &mdash; and it tests the paperwork Manifest
-  generates against a real reviewer while it is still cheap to change.</p>
+  <h3>The UBC reviews start during stage 1</h3>
+  <p>Registering an app for CWL and having a privacy assessment approved are both decided by
+  colleagues outside this team, on their own cadence. Beginning them only after stage 2 would
+  leave a finished platform with nothing legitimately launchable in it. Running them alongside
+  the build means stage 2 ends with an application that can genuinely go live &mdash; and it
+  puts the documents Manifest generates in front of a real reviewer while they are still cheap
+  to change, which is the only way to find out whether they are actually any good.</p>
 
   <h3>The console comes before the real front-end</h3>
   <p>The faculty-facing front-end is a separate project. If its team discovered gaps in the
@@ -219,8 +221,16 @@
   <ul>
     <li><b>More than one blueprint.</b> One ships first. The catalogue, the version pinning
       and the self-description all exist from stage 1, so a second is a new folder.</li>
-    <li><b>Canvas and other UBC system connections.</b> There is a reserved, currently-empty
-      place in every app&rsquo;s settings file for them.</li>
+    <li><b>Canvas and other UBC system connections</b> &mdash; opening inside Canvas, pulling a
+      class list, sending marks back. There is a reserved, currently-empty place in every
+      app&rsquo;s settings file for them, and faculty are asked what they need from day one even
+      while the answer is a file upload.</li>
+    <li><b>Handing the UBC reviews over electronically.</b> Today Manifest drafts both documents
+      and a person submits them. Both are already tracked as live objects with a status rather
+      than as email attachments, precisely so that submitting by hand and submitting over an
+      interface are the same step with a different mechanism behind it. What is missing is an
+      agreed way to hand them over, which is a conversation with those teams rather than
+      software.</li>
     <li><b>Scheduled background jobs</b> &mdash; nightly reminders, weekly digests. Same:
       reserved and empty.</li>
     <li><b>Apps that bring their own build instructions.</b> Deliberately refused for now,
@@ -235,7 +245,7 @@
   <code>2026-08-29-manifest-platform-design.md</code>, rewritten here in plain language.<br>
   <a href="manifest-schematic.html">Overview</a> &middot;
   <a href="manifest-stories.html">Six faculty stories</a> &middot;
-  <a href="manifest-decisions.html">The 31 decisions</a></p>
+  <a href="manifest-decisions.html">The 32 decisions</a></p>
 </section>
 </main>
 </div>

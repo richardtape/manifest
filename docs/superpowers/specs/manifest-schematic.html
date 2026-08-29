@@ -18,16 +18,17 @@
     <li><a href="#addresses"><span class="n">04</span>Web addresses</a></li>
     <li><a href="#size"><span class="n">05</span>How many people</a></li>
     <li><a href="#blueprints"><span class="n">06</span>Blueprints</a></li>
-    <li><a href="#limits"><span class="n">07</span>What apps can touch</a></li>
-    <li><a href="#signin"><span class="n">08</span>Signing in</a></li>
-    <li><a href="#admin"><span class="n">09</span>The admin view</a></li>
-    <li><a href="#laptop"><span class="n">10</span>On one laptop</a></li>
-    <li><a href="#glossary"><span class="n">11</span>Glossary</a></li>
+    <li><a href="#showcase"><span class="n">07</span>The showcase</a></li>
+    <li><a href="#limits"><span class="n">08</span>What apps can touch</a></li>
+    <li><a href="#signin"><span class="n">09</span>Signing in</a></li>
+    <li><a href="#admin"><span class="n">10</span>The admin view</a></li>
+    <li><a href="#laptop"><span class="n">11</span>On one laptop</a></li>
+    <li><a href="#glossary"><span class="n">12</span>Glossary</a></li>
   </ol>
   <div class="also">
   <ol>
     <li><a href="manifest-stories.html"><span class="n">A</span>Six faculty stories</a></li>
-    <li><a href="manifest-decisions.html"><span class="n">B</span>The 31 decisions</a></li>
+    <li><a href="manifest-decisions.html"><span class="n">B</span>The 32 decisions</a></li>
     <li><a href="manifest-phases.html"><span class="n">C</span>What gets built when</a></li>
   </ol>
   </div>
@@ -103,7 +104,7 @@
 
     <rect class="grp" x="714" y="222" width="366" height="46" rx="4"/>
     <text class="sm guardtx" x="730" y="242">A GATE. Approval, UBC sign-in registration,</text>
-    <text class="sm guardtx" x="730" y="258">privacy assessment. Weeks, not minutes.</text>
+    <text class="sm guardtx" x="730" y="258">privacy assessment. Read by people.</text>
 
     <rect class="okfill" x="714" y="292" width="366" height="64" rx="4"/>
     <text class="lbl oktx" x="730" y="316">Live</text>
@@ -114,9 +115,10 @@
   </svg>
   </div>
   <figcaption>The gate before &ldquo;live&rdquo; is deliberate and cannot be removed. Every live app
-  at UBC needs its own sign-in registration and its own privacy assessment, and both take weeks
-  of external review. What Manifest does is <b>draft them and chase them</b>, rather than simply
-  waiting.</figcaption>
+  at UBC needs its own sign-in registration and its own privacy assessment, both read by
+  colleagues at UBC whose judgement is the point of the step. What Manifest does is <b>draft
+  them, submit them and track them</b>, so the only thing anyone waits on is a decision &mdash;
+  never a form nobody has written yet.</figcaption>
   </figure>
 </section>
 
@@ -179,6 +181,80 @@
     each person is?</em> The answer here is yes &mdash; you cannot book a bench anonymously
     &mdash; and that single answer commits the app to CWL sign-in, which commits it to UBC
     registration, which is why it is asked on day one rather than in August.</p>
+  </li>
+
+  <li>
+    <h3>What does it need to connect to?</h3>
+    <span class="where">WHERE <b>the same conversation</b> &middot; asked in plain words, not in UBC system names</span>
+    <p>Almost every teaching app needs something from somewhere else at UBC. Rather than
+    asking which systems to integrate with, Manifest asks what the app needs to be able to
+    do &mdash; and works out the rest.</p>
+    <p>Some of these answers are available today. Some are not yet. <strong>Manifest asks
+    anyway</strong>, because the answer changes the paperwork immediately: an app for one
+    course section asks UBC for different information than one open to every student, and
+    gets a different privacy review.</p>
+
+    <figure class="shot">
+    <div class="chrome">
+      <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">manifest.ltic.ubc.ca/apps/chem-lab-booking/connections</span><span class="mockflag">mock</span></div>
+      <div class="screen solo">
+        <div class="ui-main">
+          <div class="ui-top">
+            <div><div class="ui-h">What does this app need to do?</div>
+              <p class="ui-sub">Tick anything that applies. We will tell you what is possible today.</p></div>
+          </div>
+
+          <div class="ui-conn on"><span class="bx">&#10003;</span><span class="bd">
+            <span class="ui-pill ok tag">available</span>
+            <b>Let people sign in with their UBC account</b>
+            <p>Anyone with a CWL can use it. You choose what the app is told about them &mdash;
+            usually just enough to know who booked what.</p></span></div>
+
+          <div class="ui-conn on"><span class="bx">&#10003;</span><span class="bd">
+            <span class="ui-pill wait tag">not yet</span>
+            <b>Only let in students registered in a specific course section</b>
+            <p>The app checks the class list, so a student from another section cannot take a
+            bench. <b>For now:</b> upload the class list yourself. When the automatic version
+            arrives, nothing about your app changes.</p></span></div>
+
+          <div class="ui-conn soon"><span class="bx">&#10003;</span><span class="bd">
+            <span class="ui-pill wait tag">not yet</span>
+            <b>Open inside Canvas as a course tool</b>
+            <p>Students click it in Canvas and are already signed in.</p></span></div>
+
+          <div class="ui-conn soon"><span class="bx">&#10003;</span><span class="bd">
+            <span class="ui-pill wait tag">not yet</span>
+            <b>Read coursework and files from Canvas</b>
+            <p>For apps that need to see what students submitted.</p></span></div>
+
+          <div class="ui-conn soon"><span class="bx">&#10003;</span><span class="bd">
+            <span class="ui-pill wait tag">not yet</span>
+            <b>Send marks back to Canvas</b>
+            <p>So you are not copying numbers between two places.</p></span></div>
+
+          <div class="ui-conn"><span class="bx">&#10003;</span><span class="bd">
+            <b>None of these &mdash; anyone with the link can use it</b>
+            <p>Simplest by far, and it needs no UBC registration at all.</p></span></div>
+
+          <div class="ui-card sunk" style="margin-top:16px">
+            <div class="t">You picked two things we cannot do automatically yet</div>
+            <p>You can still build the app. Upload your class list as a file, and the app will
+            work exactly as you described. When the Canvas connection is ready we will switch it
+            over for you &mdash; your app does not change.<br><br>
+            Because you said &ldquo;only students in one section&rdquo;, your privacy review will
+            say that too, which makes it a narrower and simpler review than one covering every
+            student at UBC.</p>
+          </div>
+          <div class="ui-btnrow"><span class="ui-btn pri">Continue</span>
+            <span class="ui-btn gho">What do these mean?</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="shotcap">The honest labelling matters more than the feature list. <b>An app that
+    promises a Canvas connection it does not have is worse than one that says &ldquo;not
+    yet&rdquo; and offers a file upload</b> &mdash; and asking the question now means the
+    paperwork is right, whichever way the answer is eventually delivered.</p>
+    </figure>
   </li>
 
   <li>
@@ -318,14 +394,20 @@
 
   <li class="gate">
     <h3>Asking to go live &mdash; and meeting the gate</h3>
-    <span class="where">WHERE <b>the going-live checklist</b> &middot; the only slow part of the whole process</span>
-    <p>This is where the process stops being fast, and it is the honest heart of the design.
-    Every live UBC app that knows who its users are needs <strong>its own sign-in registration
-    with UBC, and its own privacy assessment</strong>. Both are reviewed by people outside the
-    team. Both take weeks. Neither can be skipped or automated away.</p>
-    <p>What Manifest does instead is write the first draft of both. It knows what the app asked
-    for, so it can state what personal information is involved and why &mdash; which turns a blank
-    form into a document to review and sign.</p>
+    <span class="where">WHERE <b>the going-live checklist</b> &middot; the part that is deliberately not instant</span>
+    <p>This is the honest heart of the design. Every live UBC app that knows who its users are
+    needs <strong>its own sign-in registration and its own privacy assessment</strong>. Both are
+    read by colleagues at UBC &mdash; the identity team, and the privacy team who run PIAs.
+    <strong>These steps are human on purpose.</strong> Somebody should look properly at an
+    application that is about to hold student information, and no amount of software replaces
+    that judgement.</p>
+    <p>What Manifest does is write the first draft of both. It knows what the app asked for, so
+    it can state what personal information is involved and why &mdash; which turns a blank form
+    into a document to review and sign, and means what reaches a reviewer is complete the first
+    time.</p>
+    <p><strong>What this means for a faculty member: you cannot go from idea to live in a day
+    today, and it is worth building that into your plans.</strong> Start before the term you need
+    it in. The building carries on throughout &mdash; none of this stops you improving the app.</p>
 
     <figure class="shot">
     <div class="chrome">
@@ -337,7 +419,7 @@
           <div class="ui-nav">Preview</div>
           <div class="ui-nav">Settings</div>
           <div class="ui-nav on">Going live<b>3</b></div>
-          <div class="ui-sidefoot">chem-lab-booking<br><span style="color:var(--flow)">&#9679; waiting on UBC</span></div>
+          <div class="ui-sidefoot">chem-lab-booking<br><span style="color:var(--flow)">&#9679; in review</span></div>
         </div>
         <div class="ui-main">
           <div class="ui-top">
@@ -352,15 +434,15 @@
             <b>Security scan</b><p>No known problems in anything the app uses</p></span></div>
           <div class="ui-check"><span class="mk wait">&#8226;</span><span class="bd">
             <b>UBC sign-in registration</b>
-            <p>Submitted 6 May, with UBC IAM. Typically 2&ndash;4 weeks. We drafted it; you signed it.</p></span></div>
+            <p>With the UBC identity team since 6 May. We drafted it, you signed it. You will be told the moment it moves.</p></span></div>
           <div class="ui-check"><span class="mk wait">&#8226;</span><span class="bd">
             <b>Privacy assessment</b>
             <p>Draft ready for your review. It covers: student number, name, and which bench they
             booked. Nothing else leaves the app.</p></span></div>
           <div class="ui-check"><span class="mk stop">&#8226;</span><span class="bd">
             <b>Rehearsal sign-in</b>
-            <p>Runs automatically once the registration is approved. Catches problems in August
-            rather than in September.</p></span></div>
+            <p>Runs automatically once the registration is approved. Catches problems before
+            students would.</p></span></div>
           <div class="ui-btnrow">
             <span class="ui-btn dis">Go live</span>
             <span class="ui-btn">Review the privacy draft</span>
@@ -369,9 +451,8 @@
       </div>
     </div>
     <p class="shotcap">The <b>Go live</b> button is deliberately visible and deliberately
-    unavailable. Showing exactly what is outstanding, who has it and how long it usually takes
-    is more useful than hiding the button &mdash; and it is a far better answer than
-    &ldquo;ask IT&rdquo;.</p>
+    unavailable. Showing exactly what is outstanding and who has it is far more useful than
+    hiding the button, and a much better answer than &ldquo;ask IT&rdquo;.</p>
     </figure>
   </li>
 
@@ -379,8 +460,8 @@
     <h3>Live</h3>
     <span class="where">WHERE <b>labs.chem.ubc.ca</b> &middot; and permanently also at its Manifest address</span>
     <p>Once the registration and the assessment come back approved, going live is one click and
-    takes seconds &mdash; because the package being deployed is the identical one that was tested
-    for the last six weeks.</p>
+    takes seconds &mdash; because the package being deployed is the identical one that has been
+    tested all along.</p>
     <p>From here on, ordinary improvements ship without ceremony. Approval is asked for again
     only when the app starts asking for something genuinely new: another database, a new outside
     connection, more personal information about students, a different AI model. Everything else
@@ -388,16 +469,55 @@
   </li>
   </ol>
 
-  <div class="note">
-    <p><b>The other way in.</b> Nothing above requires the Manifest console. A graduate student
-    with their own AI assistant on their own laptop can do all of it through the published
-    interface &mdash; create the project, build, test, watch the logs &mdash; without opening a
-    chat window at all. They sign in once in a browser, and again for the four actions that
-    always need a person: going live, reading a password, raising a spending limit, and adding
-    someone to a project.</p>
-    <p>Their AI can do everything else and never those four, <b>whoever owns it</b>. That single
-    rule is what makes bringing your own AI safe rather than a hole in the design.</p>
+  <h3>The other way in</h3>
+  <p>Nothing above requires the Manifest console. Someone with their own AI assistant on their
+  own laptop can do all of it from a terminal &mdash; create the project, build, test, watch the
+  logs &mdash; without ever opening a chat window. They sign in once in a browser to get started,
+  and again only for the four actions that always need a person.</p>
+  <p>Their assistant first asks Manifest how to build for this platform. Those instructions are
+  published deliberately, rather than being buried inside a sandbox that somebody else's AI never
+  runs in &mdash; without that, a person&rsquo;s own assistant has no way to learn the
+  conventions that make an app work here.</p>
+
+  <figure class="shot">
+  <div class="chrome">
+    <div class="bar termbar"><span class="dots"><i></i><i></i><i></i></span><span class="url plain">forest-plots &mdash; agent session</span><span class="mockflag">mock</span></div>
+    <div class="term"><span class="td">~/forest-plots $</span> <span class="tu">pi</span>
+
+<span class="tg">&#9679;</span> <span class="tu">Manifest connected</span>  <span class="td">project</span> forest-plots <span class="td">&middot; Forestry &middot; token expires in 6 days</span>
+  <span class="td">platform guide v2 loaded &mdash; 14 conventions, 3 worked examples</span>
+
+<span class="ta">&rsaquo;</span> <span class="tu">add a page that charts plot measurements over time</span>
+
+  <span class="td">writing </span> src/routes/plots.tsx
+  <span class="td">writing </span> src/lib/chart.ts
+  <span class="td">checking</span> manifest.yaml <span class="td">&mdash; no new services needed, nothing to re-approve</span>
+  <span class="tg">&#10003;</span> pushed 3 files
+
+  <span class="td">build 47</span> <span class="tg">&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;</span> <span class="tg">passed</span> <span class="td">41s</span>
+  <span class="td">deployed to your test copy</span>
+  <span class="tb">https://forest-plots.manifest.staging.apps.ltic.ubc.ca</span>
+
+<span class="ta">&rsaquo;</span> <span class="tu">looks good, put it live</span>
+
+  <span class="tr">&#9995; That one needs you, not me.</span>
+  <span class="td">Going live is one of four things no agent can do, whoever it
+  belongs to. I have opened a confirmation in your browser:</span>
+
+  <span class="tb">https://manifest.ltic.ubc.ca/confirm/8c41d2</span>
+  <span class="td">waiting for you&hellip;</span>
+</div>
   </div>
+  <p class="shotcap">The last exchange is the whole security model in six lines. This agent has
+  just built, pushed, built again and deployed with no human involved &mdash; and then hit a wall
+  it cannot talk its way past. <b>The rule is about agents, not about our software</b>, so it
+  applies identically to this one on somebody&rsquo;s laptop and to the one inside our own
+  sandbox.</p>
+  </figure>
+
+  <p>The four are: going live, reading a password, raising a spending limit, and adding someone
+  to a project. Everything else &mdash; the entire daily loop &mdash; an assistant can do on its
+  own.</p>
 
   <p><a href="manifest-stories.html">Six faculty stories &rarr;</a> follow this same path
   through six very different apps &mdash; from a fourteen-person seminar tool built in an
@@ -509,13 +629,12 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
   </figure>
 
   <div class="note warn">
-    <p><b>The mistake that costs a month.</b> If an app uses CWL sign-in, its address is written
+    <p><b>The ordering that matters.</b> If an app uses CWL sign-in, its address is written
     into its UBC registration &mdash; because that is where UBC delivers proof of who just signed
     in. So the address has to be settled <em>before</em> the registration is submitted.</p>
-    <p>Choosing one afterwards means going back through that registration: another two to four
-    weeks, usually discovered at the worst possible moment. Manifest therefore asks the question
-    at registration time, with the warning attached, rather than offering it later as a
-    convenience setting. <b>Apps with no sign-in are unaffected</b> and can change address
+    <p>Choosing one afterwards means going back through that registration a second time, usually
+    discovered at the worst possible moment. Manifest therefore asks the question at registration
+    time, with the warning attached, rather than offering it later as a convenience setting. <b>Apps with no sign-in are unaffected</b> and can change address
     whenever they like.</p>
   </div>
 </section>
@@ -601,8 +720,128 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
   </div>
 </section>
 
+<section id="showcase">
+  <p class="kicker">07 &mdash; The showcase</p>
+  <h2>The fortieth person to want a rubric tool should not start from nothing</h2>
+  <p class="claim">Forty faculty members will independently describe a queue, a booking page, a
+  marking helper. <strong>The platform&rsquo;s most valuable asset after its first year is not
+  any one app &mdash; it is the set of apps that already work and have already been
+  reviewed.</strong></p>
+
+  <p>Anyone can choose to share an app they have built. Sharing puts it in a list colleagues can
+  browse, along with a description of what it does and what it needed. It does not share the app
+  itself: no data, no student records, no passwords, no running copy. <strong>The showcase is a
+  catalogue, not a place where apps run.</strong></p>
+
+  <figure class="shot">
+  <div class="chrome">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">manifest.ltic.ubc.ca/showcase</span><span class="mockflag">mock</span></div>
+    <div class="screen">
+      <div class="ui-side">
+        <div class="ui-brand">Manifest<span>UBC</span></div>
+        <div class="ui-nav">My apps</div>
+        <div class="ui-nav">Shared with me</div>
+        <div class="ui-nav on">Showcase</div>
+        <div class="ui-nav">Help</div>
+        <div class="ui-sidefoot">Signed in via CWL<br>Mathematics</div>
+      </div>
+      <div class="ui-main">
+        <div class="ui-top">
+          <div><div class="ui-h">Showcase</div>
+            <p class="ui-sub">28 apps colleagues have chosen to share</p></div>
+          <span class="ui-spacer"></span>
+          <span class="ui-btn">All faculties &#9662;</span>
+        </div>
+        <div class="ui-gal">
+          <div class="ui-gcard"><div class="ui-gtop">OH</div><div class="ui-gbody">
+            <b>Office hours queue</b><div class="by">Mathematics</div>
+            <p>Students join a queue and see how many people are ahead of them.</p>
+            <div class="ui-gmeta"><span>180 users</span><span>CWL</span><span>11 forks</span></div>
+            <span class="ui-btn pri">Start from this</span></div></div>
+
+          <div class="ui-gcard"><div class="ui-gtop">LB</div><div class="ui-gbody">
+            <b>Lab bench booking</b><div class="by">Chemistry</div>
+            <p>Students pick a lab slot and can swap with each other until a cutoff.</p>
+            <div class="ui-gmeta"><span>240 users</span><span>CWL</span><span>3 forks</span></div>
+            <span class="ui-btn pri">Start from this</span></div></div>
+
+          <div class="ui-gcard"><div class="ui-gtop">RR</div><div class="ui-gbody">
+            <b>Reading roulette</b><div class="by">Art History</div>
+            <p>Assigns seminar readings so nobody presents the same one twice.</p>
+            <div class="ui-gmeta"><span>14 users</span><span>no sign-in</span><span>6 forks</span></div>
+            <span class="ui-btn pri">Start from this</span></div></div>
+
+          <div class="ui-gcard"><div class="ui-gtop">RH</div><div class="ui-gbody">
+            <b>Rubric helper</b><div class="by">Education</div>
+            <p>Drafts feedback against a rubric for an instructor to edit.</p>
+            <div class="ui-gmeta"><span>90 users</span><span>uses AI</span><span>17 forks</span></div>
+            <span class="ui-btn pri">Start from this</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="shotcap">The fork count is the useful number on each card. <b>Seventeen people
+  starting from one marking helper is seventeen apps that did not have to be described, built and
+  reviewed from scratch</b> &mdash; and one design that has been improved by seventeen people
+  using it.</p>
+  </figure>
+
+  <h3>Starting from someone else&rsquo;s app</h3>
+  <p>Choosing &ldquo;start from this&rdquo; gives you your own copy to change however you like.
+  It is yours from that moment: the original owner cannot see it, cannot change it, and is not
+  responsible for it.</p>
+  <p>What you get is the design and the code. <strong>What you never get is anything that
+  belonged to the other person&rsquo;s app or the other person&rsquo;s students.</strong></p>
+
+  <figure class="shot">
+  <div class="chrome">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">manifest.ltic.ubc.ca/showcase/office-hours-queue/fork</span><span class="mockflag">mock</span></div>
+    <div class="screen solo">
+      <div class="ui-main">
+        <div class="ui-top">
+          <div><div class="ui-h">Start from &ldquo;Office hours queue&rdquo;</div>
+            <p class="ui-sub">Shared by Mathematics &middot; forked 11 times</p></div>
+        </div>
+        <div class="ui-field">
+          <span class="lb">Your copy will be called</span>
+          <span class="val mono">math-oh-queue-2</span>
+          <span class="hint">You can rename it any time before it goes live.</span>
+        </div>
+        <div class="ui-grid" style="margin-bottom:13px">
+          <div class="ui-card"><div class="t">You get</div>
+            <p>&#10003; How the app works<br>&#10003; All of its code<br>
+            &#10003; What it needs to run<br>&#10003; A head start on the privacy paperwork</p></div>
+          <div class="ui-card"><div class="t">You do not get</div>
+            <p>&times; Their students&rsquo; data<br>&times; Their passwords<br>
+            &times; Their sign-in registration<br>&times; Their web address</p></div>
+        </div>
+        <div class="ui-card sunk">
+          <div class="t">Your copy starts fresh</div>
+          <p>Empty database, no users, and its own trip through going live. It has never been
+          approved, because it is not their app any more &mdash; it is yours, for your course,
+          with your students.</p>
+        </div>
+        <div class="ui-btnrow"><span class="ui-btn pri">Make my copy</span>
+          <span class="ui-btn gho">Look at it first</span></div>
+      </div>
+    </div>
+  </div>
+  <p class="shotcap">A fork <b>inherits the work and none of the trust</b>. Copying a sign-in
+  registration would put two different applications behind one identity at UBC; copying an
+  audience setting would quietly size a fourteen-person tool for nine hundred. Everything on the
+  right-hand list is specific to one person, one cohort and one purpose.</p>
+  </figure>
+
+  <div class="note good">
+    <p><b>The one thing a fork does inherit from the paperwork.</b> Your privacy draft starts
+    from theirs. You still review it, sign it and submit it yourself &mdash; but you begin from a
+    document a reviewer has already accepted for a very similar app, rather than from a blank
+    page. Over time this is where most of the showcase&rsquo;s value ends up.</p>
+  </div>
+</section>
+
 <section id="limits">
-  <p class="kicker">07 &mdash; What apps can touch</p>
+  <p class="kicker">08 &mdash; What apps can touch</p>
   <h2>The code nobody read</h2>
   <p class="claim">Every app on this platform is written by an AI and reviewed by nobody. That
   one fact shapes more of the design than anything else. <strong>Manifest&rsquo;s first job is
@@ -648,7 +887,7 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
 </section>
 
 <section id="signin">
-  <p class="kicker">08 &mdash; Signing in</p>
+  <p class="kicker">09 &mdash; Signing in</p>
   <h2>Two sign-in systems, and why they must not be confused</h2>
   <p class="claim">Practice apps sign in against a Manifest-run copy with invented users. Live
   apps sign in against real UBC CWL. <strong>They are never the same system, and the practice one
@@ -660,17 +899,28 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
     <tbody>
       <tr><td class="k">Signs in against</td><td>A Manifest-run sign-in system</td><td class="yes">Real UBC CWL</td></tr>
       <tr><td class="k">The users are</td><td>Invented test people</td><td class="yes">Real staff and students</td></tr>
-      <tr><td class="k">Setting it up takes</td><td>Under a second, automatic</td><td class="no">Two to four weeks, by hand, at UBC</td></tr>
+      <tr><td class="k">Setting it up</td><td>Under a second, automatic</td><td class="no">A request to UBC, read by people</td></tr>
       <tr><td class="k">If it were broken into</td><td>You could impersonate a fake student</td><td class="no">Serious</td></tr>
     </tbody>
   </table>
   </div>
 
-  <p>Registering a live app with UBC is manual, slow, and cannot be automated &mdash; that is
-  UBC&rsquo;s requirement, not a limitation of the platform. Rather than pretending otherwise,
-  Manifest builds the whole design around it: practice sign-in is instant so that daily work is
-  never blocked, and the real registration is treated as a tracked piece of work the platform
-  drafts, submits and chases.</p>
+  <p>Registering a live app with UBC is a request that people read and decide on. That step
+  exists so somebody accountable looks properly at an application about to handle real
+  identities, and Manifest is built around it rather than against it: practice sign-in is
+  instant, so daily work is never held up, and the real registration is treated as a tracked
+  piece of work the platform drafts, submits and follows up on.</p>
+
+  <div class="note good">
+    <p><b>Where this is going.</b> Today Manifest prepares the request and a person submits it.
+    Most of what would be needed to submit directly to the identity and privacy teams already
+    exists &mdash; the documents are generated, and both are tracked as live things with a status
+    rather than as attachments to an email. What is missing is an agreed way to hand them over
+    electronically, which is a conversation with those teams rather than a piece of software.</p>
+    <p>So this is a direction we are working towards with them, not a promise with a date.
+    <b>For now, faculty should build review time into their plans</b> &mdash; and the platform's
+    job is to make sure none of that time is ever spent waiting on Manifest.</p>
+  </div>
 
   <h3>Three things this arrangement buys</h3>
   <ul>
@@ -686,7 +936,7 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
 </section>
 
 <section id="admin">
-  <p class="kicker">09 &mdash; The admin view</p>
+  <p class="kicker">10 &mdash; The admin view</p>
   <h2>What the team running Manifest sees</h2>
   <p class="claim">The main screen is not a list of apps. It is <strong>the list of things
   waiting on a person</strong> &mdash; because the design deliberately routes a specific set of
@@ -727,8 +977,8 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
             <tr><td class="nm">med-advising</td><td>Approval to go live
               <span class="ui-pill stop">public</span></td><td class="dim">Medicine</td>
               <td class="mono">9d</td><td><span class="ui-btn">Review</span></td></tr>
-            <tr><td class="nm">chem-lab-booking</td><td>Sign-in registration &mdash; chase UBC IAM</td>
-              <td class="dim">Chemistry</td><td class="mono">6d</td><td><span class="ui-btn">Open</span></td></tr>
+            <tr><td class="nm">chem-lab-booking</td><td>Registration came back with a question about one attribute</td>
+              <td class="dim">Chemistry</td><td class="mono">6d</td><td><span class="ui-btn">Answer</span></td></tr>
             <tr><td class="nm">math-oh-queue</td><td>Web address verified &mdash; ready to attach
               <span class="ui-pill ok">DNS ok</span></td><td class="dim">Mathematics</td>
               <td class="mono">2d</td><td><span class="ui-btn">Attach</span></td></tr>
@@ -767,7 +1017,7 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
 </section>
 
 <section id="laptop">
-  <p class="kicker">10 &mdash; On one laptop</p>
+  <p class="kicker">11 &mdash; On one laptop</p>
   <h2>All of it runs on a MacBook, with the internet switched off</h2>
   <p class="claim">Not a demonstration version. <strong>The actual platform</strong> &mdash;
   building, databases, sign-in, AI models, web addresses, certificates &mdash; on one machine,
@@ -796,7 +1046,7 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
 </section>
 
 <section id="glossary">
-  <p class="kicker">11 &mdash; Glossary</p>
+  <p class="kicker">12 &mdash; Glossary</p>
   <h2>Words that appear on this page</h2>
   <dl class="gloss">
     <div><dt>Blueprint</dt><dd>The prepared starting shape every new app is built from. One to
@@ -809,9 +1059,14 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
       requiring UBC registration and privacy approval.</dd></div>
     <div><dt>CWL</dt><dd>Campus-Wide Login &mdash; the UBC username everyone already has.</dd></div>
     <div><dt>Sign-in registration</dt><dd>The formal request that lets a specific live app use
-      CWL. Manual, done by UBC, two to four weeks. One per app, every time.</dd></div>
-    <div><dt>Privacy assessment</dt><dd>UBC&rsquo;s formal review of what personal information an
-      app handles and why. Also one per live app. Manifest writes the first draft.</dd></div>
+      CWL. Read and decided on by the UBC identity team. One per app, every time.</dd></div>
+    <div><dt>Privacy assessment</dt><dd>UBC&rsquo;s review of what personal information an app
+      handles and why, run by the privacy team. Also one per live app. Manifest writes the first
+      draft.</dd></div>
+    <div><dt>Fork</dt><dd>Starting a new app from an existing one. You get its design and its
+      code; you never get its data, its sign-in registration or its web address.</dd></div>
+    <div><dt>Showcase</dt><dd>The list of apps colleagues have chosen to share, so the fortieth
+      person to want a rubric tool starts from the first one.</dd></div>
     <div><dt>Manifest address</dt><dd>The permanent web address every app has from the day it is
       created. It never changes and never goes away.</dd></div>
     <div><dt>Custom address</dt><dd>A departmental address such as <code>labs.chem.ubc.ca</code>,
@@ -831,14 +1086,14 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
 </section>
 
 <section id="next">
-  <p class="kicker">12 &mdash; Go deeper</p>
+  <p class="kicker">13 &mdash; Go deeper</p>
   <h2>Three companion pages</h2>
   <ul class="xn">
     <li><a href="manifest-stories.html"><b>Six faculty stories</b>
       <span>The same platform, six very different asks &mdash; from a fourteen-person seminar tool
       to a chat assistant for five thousand people. The fastest way to understand what this feels
       like to use.</span></a></li>
-    <li><a href="manifest-decisions.html"><b>The 31 decisions</b>
+    <li><a href="manifest-decisions.html"><b>The 32 decisions</b>
       <span>Every significant choice, with the reason behind it. Most are here because the
       obvious alternative turned out to be wrong.</span></a></li>
     <li><a href="manifest-phases.html"><b>What gets built when</b>

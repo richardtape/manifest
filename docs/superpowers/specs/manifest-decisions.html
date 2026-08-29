@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Manifest — The 31 Decisions</title>
+<title>Manifest — The 32 Decisions</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <link rel="stylesheet" href="manifest.css">
 </head>
@@ -14,7 +14,7 @@
   <ol>
     <li><a href="manifest-schematic.html"><span class="n">&larr;</span>Overview</a></li>
     <li><a href="manifest-stories.html"><span class="n">A</span>Six faculty stories</a></li>
-    <li><a href="manifest-decisions.html" aria-current="true"><span class="n">B</span>The 31 decisions</a></li>
+    <li><a href="manifest-decisions.html" aria-current="true"><span class="n">B</span>The 32 decisions</a></li>
     <li><a href="manifest-phases.html"><span class="n">C</span>What gets built when</a></li>
   </ol>
 </nav>
@@ -23,7 +23,7 @@
 <header class="mast">
   <a class="back" href="manifest-schematic.html">&larr; Manifest overview</a>
   <p class="eyebrow">Reference &middot; B</p>
-  <h1>The 31 decisions</h1>
+  <h1>The 32 decisions</h1>
   <p class="lede">Every significant choice made while designing Manifest, with the reason it was
   made. <strong>Most of them are here because the obvious alternative turned out to be wrong,
   and it is worth remembering why.</strong></p>
@@ -35,10 +35,10 @@
 
 <section id="decisions" style="border-top:0">
   <p class="claim">A decision is written down when reversing it later would be expensive.
-  Small choices are not here. These 31 are.</p>
+  Small choices are not here. These 32 are.</p>
 
   <div class="filters">
-    <button class="tagbtn" type="button" data-tag="all" aria-pressed="true">all 31</button>
+    <button class="tagbtn" type="button" data-tag="all" aria-pressed="true">all 32</button>
     <button class="tagbtn" type="button" data-tag="Safety" aria-pressed="false">safety</button>
     <button class="tagbtn" type="button" data-tag="Signing in" aria-pressed="false">signing in</button>
     <button class="tagbtn" type="button" data-tag="Running apps" aria-pressed="false">running apps</button>
@@ -79,7 +79,7 @@
 
 <article class="d" data-tag="Signing in"><div class="did">D6</div><div>
 <p class="dwhat">There are two separate sign-in systems. Practice apps use a Manifest-run copy with fake test users. Live apps use the real UBC CWL, registered one app at a time.</p>
-<p class="dwhy">UBC requires a separate registration for every live application and that process is manual and slow &mdash; so it cannot be part of a daily build loop. A side benefit: the practice sign-in system never touches a real person&rsquo;s identity, so breaking into it gets you nothing.</p>
+<p class="dwhy">UBC requires a separate registration for every live application, decided by people rather than by software &mdash; so it cannot sit inside a daily build loop. A side benefit: the practice sign-in system never touches a real person&rsquo;s identity, so breaking into it gets you nothing.</p>
 <span class="dtag">Signing in</span></div></article>
 
 <article class="d" data-tag="AI"><div class="did">D7</div><div>
@@ -129,7 +129,7 @@
 
 <article class="d" data-tag="Signing in"><div class="did">D16</div><div>
 <p class="dwhat">Asking for a new piece of personal information about users needs approval everywhere, not just in the live app.</p>
-<p class="dwhy">A live app may only receive what UBC agreed to release when it was registered. Catching a new request during practice turns a login that would have failed on launch day into a paperwork question raised weeks earlier.</p>
+<p class="dwhy">A live app may only receive what UBC agreed to release when it was registered. Catching a new request during practice turns a login that would have failed on launch day into a question raised while there is still time to answer it.</p>
 <span class="dtag">Signing in</span></div></article>
 
 <article class="d" data-tag="Safety"><div class="did">D17</div><div>
@@ -143,8 +143,8 @@
 <span class="dtag">Safety</span></div></article>
 
 <article class="d" data-tag="Signing in"><div class="did">D19</div><div>
-<p class="dwhat">Manifest writes the first draft of the two pieces of UBC paperwork every live app needs &mdash; the sign-in registration and the privacy assessment &mdash; and tracks them until they are approved.</p>
-<p class="dwhy">The platform knows more about the app than its owner does. It can work out what personal information the app will handle and why, so a faculty member reviews and signs rather than starting from a blank form. This turns the platform&rsquo;s biggest external obstacle into its most useful service.</p>
+<p class="dwhat">Manifest writes the first draft of the two documents every live app needs &mdash; the sign-in registration and the privacy assessment &mdash; and tracks them until they are approved.</p>
+<p class="dwhy">The platform knows more about the app than its owner does. It can work out what personal information the app will handle and why, so a faculty member reviews and signs rather than starting from a blank form, and what reaches a reviewer is complete the first time. Both are deliberately modelled as tracked objects with a status rather than as attachments to an email, so that submitting by hand today and handing them over electronically later are the same step with a different mechanism behind it.</p>
 <span class="dtag">Signing in</span></div></article>
 
 <article class="d" data-tag="Signing in"><div class="did">D20</div><div>
@@ -207,10 +207,15 @@
 <p class="dwhy">A private admin interface would drift out of step, and would become the place where useful capabilities land that faculty then cannot have. The choice of main screen matters more than it sounds: the design deliberately routes a specific set of actions through human judgement, so how many people are waiting on an administrator is the platform&rsquo;s central health measure, not a footnote.</p>
 <span class="dtag">Ways in</span></div></article>
 
-  </div>
-  <p class="dcount" id="dcount">Showing all 31 decisions.</p>
+<article class="d" data-tag="Safety"><div class="did">D32</div><div>
+<p class="dwhat">Starting from someone else&rsquo;s app gives you their design and their code, and none of their trust. No data, no passwords, no sign-in registration, no privacy approval, no web address, no size setting.</p>
+<p class="dwhy">Forking is the platform&rsquo;s best answer to forty people building the same marking tool, so it has to be safe enough to encourage. Everything on the not-copied list belongs to one person, one group of students and one purpose: copying a sign-in registration would put two different applications behind one identity at UBC, and copying a size setting would quietly size a fourteen-person tool for nine hundred. What you do inherit is the expensive part &mdash; the design, the code, and a privacy draft a reviewer has already accepted for a very similar app.</p>
+<span class="dtag">Safety</span></div></article>
 
-  <p class="foot">Decisions D1&ndash;D31 correspond to &sect;4 of
+  </div>
+  <p class="dcount" id="dcount">Showing all 32 decisions.</p>
+
+  <p class="foot">Decisions D1&ndash;D32 correspond to &sect;4 of
   <code>2026-08-29-manifest-platform-design.md</code>, rewritten here in plain language.
   The design document states each one in full, with the technical detail this page leaves out.<br>
   <a href="manifest-schematic.html">Overview</a> &middot;
