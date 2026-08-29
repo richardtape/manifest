@@ -20,6 +20,22 @@ member describe an application in plain language, have an AI agent build it, and
 have it deployed, authenticated, and running on UBC infrastructure — without the
 faculty member ever encountering a container, a template, or a terminal.
 
+### Bring your own agent
+
+Manifest's own front-end is **one way in, not the only way**. Everything a faculty
+member can do through it — create a project, build, deploy to staging, stream logs,
+request production — is available over the public API to any client, including
+someone's own coding agent running on their own machine.
+
+For those users the **sandbox is optional**: they already have a machine and an
+execution environment, so they need git plus an API. Faculty with no agent get the
+sandbox and the console. Same API, same deploy path, same guarantees.
+
+This widens the audience at nearly zero cost — research groups with one graduate
+student who codes, central IT, developers who would never open a chat interface but
+will happily `git push`. It also reframes what this repo is: **a platform with a
+reference front-end, not a front-end with a backend.**
+
 This document specifies the **deployment control plane**: the system that owns
 projects, source, builds, releases, approvals, running instances, backing
 services, routing, secrets, identity provisioning, and AI credential brokering.
@@ -111,7 +127,7 @@ second one wins.
 | Actor | Capability | Principal risk |
 |---|---|---|
 | **The agent — unreliable, not hostile** | writes and executes code in a sandbox | ships vulnerable code; leaks secrets into logs and repositories |
-| **A prompt-injected agent** | the same, but steered by attacker-supplied text that arrived in a PDF, a scraped page, a package README or student work | the sharpest threat in the model: a confused deputy with `exec` — addressed by D14 |
+| **A prompt-injected agent** — in our sandbox *or* a third-party agent on a user's own machine holding a delegated token (§1) | steered by attacker-supplied text that arrived in a PDF, a scraped page, a package README or student work | the sharpest threat in the model: a confused deputy with `exec` or an API token — addressed by D14 and D24 |
 | **Curious or malicious faculty** | full control over what the agent is asked to build | tenant escape; lateral movement into UBC systems |
 | **A student using a manifested app** | untrusted HTTP input into LLM-written code | other students' data, grades, impersonation |
 | **External attacker** | the public production edge | a foothold inside UBC's network |
@@ -182,7 +198,9 @@ boundary intact even when the code inside is actively hostile.
 | D11 | Stack: **TypeScript/Node + Fastify, Postgres, Drizzle, React+Vite** admin UI. | Team fit, and LiteLLM already requires Postgres — the control plane database adds no new infrastructure dependency. |
 | D12 | Edge proxy is **Caddy**, with **separate listeners** for internal (sandbox+staging) and public (production) traffic. | HTTPS on a laptop from Caddy's internal CA (one automated trust-store step, not a manual mkcert dance — §21); JSON admin API instead of templated config. Separate listeners fail closed; IP allowlists fail open and quietly. |
 | D13 | **Dockerfiles are blueprint-managed.** Apps cannot supply their own build definition. | Build time is the most privileged moment in the pipeline; an app-supplied Dockerfile is arbitrary RCE on the builder. It also violated the rule in D4/§7 that an app declares *what*, never *how*. Custom Dockerfiles may return later behind rootless BuildKit with a credential-free, network-restricted builder. |
-| D14 | **A sandbox holds no Manifest API credential capable of mutating anything outside itself.** Deploy, promote, secret read, service creation, SP registration and key minting are triggered by an authenticated human via the front-end. | Prompt injection makes the agent a confused deputy: any text it reads — a student PDF, a scraped page, a package README — is potential attacker instruction. Restores Vibonarium's principle *"the agent suggests, the human clicks, the gateway executes."* |
+| D14 | **Privileged actions require an interactive human session, whichever client initiates them.** No agent-held credential — Manifest's own or a third party's — carries privileged capability. A sandbox in particular holds no credential able to mutate anything outside itself. | Prompt injection makes any agent a confused deputy: text it reads — a student PDF, a scraped page, a package README — is potential attacker instruction. The property is *not* "our front-end does it", which would make third-party clients second-class by construction and misstate the control. Stated this way it protects against a prompt-injected agent on someone's laptop exactly as it protects against one in our sandbox: one rule, one enforcement point. Generalises Vibonarium's *"the agent suggests, the human clicks, the gateway executes."* |
+| D24 | **Two credential classes.** An *interactive session* (browser, CWL, CSRF, step-up re-auth) can do anything the user can. A *delegated token* (agent, CLI, CI, MCP) is scoped and may **never** carry production promotion, secret read, quota change or member management; requesting one of those creates a **pending action** a human confirms interactively. | This is what makes "bring your own agent" (§1) safe rather than a hole. Note what a delegated token *can* do: create projects, read everything, trigger builds, deploy to sandbox and staging, stream logs and events — the entire build loop. Only four things need a human. |
+| D25 | **The agent knowledge pack is served over the API**, versioned with its blueprint — not only baked into sandbox images. | A third-party agent on someone's laptop cannot read a file inside a container it never runs. Without this, a BYO agent has no way to learn how to write a valid `manifest.yaml` or wire CWL auth, which is exactly the knowledge that makes an app work on this platform. |
 | D15 | **SAML ACS and SLO URLs are derived by Manifest**, never accepted from the app. `auth.callback` is a path, not a URL. | Registering an SP means directing signed identity assertions at a URL. Free-text ACS is an assertion-phishing primitive reachable from a buggy agent or an injection in the registration path. |
 | D16 | **A newly requested CWL attribute requires approval in every environment**, not only production. | Under D6 staging uses test users, so the harvesting risk is lower than first assessed — but the control is retained for a stronger reason: in production, `auth.attributes` must be a subset of what UBC IAM actually registered. Catching an attribute change at approval time turns a launch-day login failure into a change request raised weeks earlier. |
 | D17 | **`data.classification` constrains which logical models an app may use.** | A BC public body sending student personal information to a US model provider is a FIPPA problem, and the pre-review design was one YAML line away from it by accident. Both fields already existed; linking them is nearly free. |
@@ -257,6 +275,7 @@ api/            HTTP + WS surface
 contract/       OpenAPI document + generated TypeScript client (published)
 mock/           manifest-mock: fixture server for the same contract
 console/        reference console: the faculty-facing proof client (§22)
+mcp/            MCP server: Manifest as tools for any agent (Phase 3, §22)
 admin-ui/       React admin front-end
 ```
 
@@ -948,7 +967,7 @@ Everything else on the ambition list can wait.
 | `Project.forked_from` | always null | fork and remix — one good rubric tool becomes forty |
 | `Project.visibility` / `published` | private | an institutional app gallery |
 | `checks: []` in the spec | reserved, must be empty | *app-declared* checks. Platform-mandatory scanning (dependency, secret) does **not** use this field — it runs on every build regardless (§12). Unlocks the automated WCAG accessibility gate before public launch (a legal requirement for UBC; `tlef-starter` already carries Playwright a11y configs). |
-| Platform-initiated `AgentSession` | API present, called only by the front-end | self-healing apps: crash at 2am, repair sandbox opens, owner accepts a release in the morning |
+| Platform-initiated `AgentSession` | API present, callable by any client holding a delegated token (D24) | self-healing apps: crash at 2am, repair sandbox opens, owner accepts a release in the morning |
 
 **Named but explicitly not designed here:** auto-sunset of dormant apps (falls out
 of hibernation plus Events), cost and carbon attribution per department (falls out
@@ -1009,9 +1028,9 @@ alongside Phases 1–2.
 
 | Phase | Deliverable | Question answered |
 |---|---|---|
-| **1 — The spine** | The §1 journey, clickable in the reference console (§22): project → repo → build → staging deploy → CWL login → AI call, live at a URL. One blueprint (`node-ts-mongo`, from `tlef-starter`). Imperative path. Laptop only. **Plus the non-negotiable security baseline:** container hardening, per-app networks, default-deny egress, derived ACS URLs, redaction at capture, authorization contract suite. **Plus the local baseline of §21** and the front-end contract: OpenAPI document, generated client, and `manifest-mock`. | Is the loop real, is the containment real, and can a second developer reproduce it? |
+| **1 — The spine** | The §1 journey, clickable in the reference console (§22): project → repo → build → staging deploy → CWL login → AI call, live at a URL. One blueprint (`node-ts-mongo`, from `tlef-starter`). Imperative path. Laptop only. **Plus the non-negotiable security baseline:** container hardening, per-app networks, default-deny egress, derived ACS URLs, redaction at capture, authorization contract suite. **Plus the local baseline of §21** and the front-end contract: OpenAPI document, generated client, and `manifest-mock`. **Plus the delegated-token model and `PendingAction` flow (D24)** — CI needs it regardless — and the agent knowledge pack served over the API (D25). | Is the loop real, is the containment real, and can a second developer reproduce it? |
 | **2 — Environments & approvals** | production, promotion by digest, `LaunchReadiness`, sensitive-diff escalation, secrets, admin UI, IAM registration package + PIA draft generation | Is it safe, and can we get an app legitimately launched? |
-| **3 — Sandboxes** | agent `exec`, per-session keys, preview routes; a chat pane added to the reference console against the same API. **The separate front-end project can now begin against a real, exercised API.** | Can an AI build here? |
+| **3 — Sandboxes** | agent `exec`, per-session keys, preview routes; a chat pane added to the reference console against the same API; the **MCP server** (§22), making "bring your own agent" real. **The separate front-end project can now begin against a real, exercised API.** | Can an AI build here? |
 | **4 — Reconciler & hibernation** | straight-line path becomes the loop; wake-on-request | Does it scale down? |
 | **5 — UBC infra driver** | k8s or VM driver passing the contract suite; real deployment | Does it leave the laptop? |
 
@@ -1076,6 +1095,31 @@ nowhere else, and maps everything back to §3.5.
   changing the model catalogue. A stolen admin session must not be sufficient to
   put an app on the public internet.
 - Multi-factor authentication for administrators, delegated to CWL where available.
+
+### Credential classes (D24)
+
+| | Obtained by | Carries |
+|---|---|---|
+| **Interactive session** | CWL login in a browser; `Secure`/`HttpOnly`/`SameSite` cookie, CSRF-protected | everything the user is entitled to; step-up re-auth for the most privileged actions |
+| **Delegated token** | minted by the user in an interactive session, scoped to a project and a capability set, with an expiry | the build loop: create, read, build, deploy to sandbox and staging, stream events, *request* production |
+
+A delegated token can **never** hold production promotion, secret read, quota change
+or member management, regardless of how it was minted. Requesting one of those
+produces a `PendingAction` that a human resolves in an interactive session. This is
+enforced centrally at the authorization layer, not per-route, so a new privileged
+route cannot accidentally omit it.
+
+Delegated tokens carry **per-token rate limits and quotas**. The edge limits in this
+section protect deployed apps; the control-plane API needs its own, because a
+third-party agent is code the platform did not write, running on a machine it does
+not control.
+
+### Machine-actionable errors
+
+Agents read error responses and act on them. Every error carries a stable code and a
+remediation hint alongside the human-readable message — the same discipline that
+makes §14's faculty-legible events work, extended to clients that are programs. This
+improves the console too; it is not extra work done only for third parties.
 
 ### Authorization
 
@@ -1356,6 +1400,20 @@ app" is "choose a blueprint":
 Phase 3 adds a chat pane, sandbox lifecycle and agent streaming — to the same
 console, against the same API.
 
+### The third reference client: MCP (Phase 3)
+
+`mcp/` is a thin MCP server over the published API, so any MCP-capable agent gets
+Manifest as native tools and the knowledge pack (D25) as MCP resources. Subject to
+the same import rule as the console: it may use nothing but `contract/`.
+
+Its value is not only convenience. Console (human), CI script (automation) and MCP
+(agent) are **three independent clients over one contract**, which is much stronger
+evidence that the API is genuinely client-agnostic than two clients written by the
+same person in the same week.
+
+It lands in Phase 3, when sandboxes make the agent story real. The delegated token
+model it depends on lands in Phase 1, because CI needs it regardless.
+
 ### The CI half comes free
 
 The acceptance harness is a **script using the same generated client** (§16). Same
@@ -1384,9 +1442,12 @@ Flexibility for the future front-end is preserved by constraints, not intentions
    them. Vibonarium pinned `pi` to `0.79.3` and recorded that SDK's release
    velocity as a standing hazard; that dependency must not reach this API.
 
-4. **The API is the only integration point**, authentication included: a session
-   cookie for browser clients, a token path for CLI and CI. Nothing a client needs
-   is available only through a side channel.
+4. **The API is the only integration point**, authentication included: an
+   interactive session cookie for browsers, a scoped delegated token for agents,
+   CLI and CI (D24). Nothing a client needs is available only through a side
+   channel — including the **agent knowledge pack**, which is served over the API
+   and versioned with its blueprint (D25) so a third-party agent can learn the
+   platform's conventions without ever running inside it.
 
 5. **No server-held UI state.** The server owns domain state; clients own
    presentation state. Otherwise the API accretes fields like `sidebarCollapsed`
@@ -1396,7 +1457,10 @@ Flexibility for the future front-end is preserved by constraints, not intentions
    double-click. Creating a project twice because a request was replayed is the
    kind of defect that is trivial to prevent now and miserable to retrofit.
 
-7. **The contract is versioned and generated from the routes** (§16). Drift between
+7. **Errors are machine-actionable** (§20): stable codes plus remediation hints, so
+   an agent can correct itself rather than surfacing a wall of text to its user.
+
+8. **The contract is versioned and generated from the routes** (§16). Drift between
    the implementation, the OpenAPI document and `manifest-mock` fails CI, so a
    front-end built against the mock cannot compile against a contract the real API
    does not serve.
