@@ -844,6 +844,15 @@ Every call is idempotent and keyed by a deterministic name derived from
 `(project, environment, release)`. That property is the entire reason
 reconciliation is safe to retry.
 
+**S1 exercised this interface against real Docker and it needed no revision.**
+`buildImage`, `ensureService`, `ensureInstance`, `stopInstance`, `destroyInstance`,
+`destroyService`, `status`, `logs` and `capabilities` were all implementable as
+declared; idempotency held on the second call for both `ensure*` operations and for
+both destroys; and `logs` demuxes the Docker Engine API's framed stream into an
+`AsyncIterable<LogLine>` in around forty dependency-free lines. `exec` and
+`snapshotService` remain unexercised — they belong to S5 and to production
+respectively.
+
 `capabilities()` lets a driver honestly declare what it cannot enforce, rather than
 silently pretending. The Docker driver reports
 `{ enforcesEgress: true, isolationLevel: 'container', remoteTarget: false }` — it
@@ -916,6 +925,13 @@ Caddy, driven by its JSON admin API from `routing/`. Two listeners:
 The staging-is-UBC-only requirement is met by listener assignment, not IP
 allowlisting: a misconfigured allowlist leaks quietly, whereas a route bound to
 the wrong listener is simply unreachable.
+
+**Routes added at runtime live only in the running Caddy config**, so restarting the
+edge discards every one of them (S1 lost a live app's route by restarting Caddy). The
+control plane re-applies all routes on edge start. Route changes themselves are safe
+under load: S1 measured **0 failures in 400 requests across 12 add/remove cycles**.
+Use `PUT` on `…/routes/0` to insert — `POST` appends, which lands the route *behind*
+the wildcard whose `terminal: true` then swallows it.
 
 ### DNS
 
@@ -1035,7 +1051,14 @@ Applies to every app, service and sandbox container, on every driver:
 - never `--privileged`; `cap-drop ALL` with a minimal, documented add list
 - `no-new-privileges`, read-only root filesystem with explicit tmpfs mounts
 - the default seccomp profile, never `unconfined`
-- user-namespace remapping; the blueprint runs the app as a non-root UID
+- the blueprint runs the app as a **non-root UID** — verified enforced (S1)
+- **user-namespace remapping where the daemon provides it.** S1 found Docker Desktop
+  does **not**: `docker info` reports only `seccomp` and `cgroupns`, with no `userns`.
+  Every other item in this list genuinely enforces there (`CapEff` all zeros,
+  `NoNewPrivs=1`, `Seccomp=2`, read-only root, `pids` and memory ceilings), so this is
+  the one baseline item the local Docker driver cannot deliver. It is reported through
+  `capabilities()` rather than assumed, and it matters most for S6's sandbox
+  judgement.
 - resource ceilings including `pids` and disk, not only CPU and memory
 
 `DriverCapabilities.isolationLevel` (`container` | `gvisor` | `vm`) records the
@@ -1054,9 +1077,22 @@ specified component, not an implied one:
   registry push token scoped to one repository path.
 - **Network-restricted to the package mirror and the registry.** Nothing else,
   including the control plane. This is what makes "network-restricted builder" in
-  §20's control map a real control rather than an aspiration.
+  §20's control map a real control rather than an aspiration. Implemented as a Docker
+  **`--internal` network holding the builder alone**; verified in S1 by confirming the
+  builder cannot reach the public npm registry while the mirror and registry stay
+  reachable. The registry and mirror are **dual-homed** onto an ordinary network as
+  well, because a container attached *only* to an internal network **loses its
+  published ports** and would then be unreachable from the host.
 - **Rootless BuildKit**, so a malicious dependency's build script cannot reach the
-  host daemon.
+  host daemon. **On Docker Desktop, run `moby/buildkit:<version>-rootless` as a
+  non-privileged container and attach buildx's `remote` driver to it** (S1). Buildx's
+  own `docker-container` driver runs the rootless image *inside a `--privileged`
+  container*, which satisfies "rootless" while contradicting the hardening baseline
+  below. Two further settings are required and neither is discoverable from the error
+  messages: the daemon must listen on its **default unix socket** (a `--addr tcp://…`
+  makes the `docker-container://` transport time out), and `buildkitd.toml` needs
+  `[dns] nameservers = ["127.0.0.11"]`, because BuildKit generates its own
+  `resolv.conf` for `RUN` steps and Docker service names otherwise do not resolve.
 - **Bounded**: build timeout, disk quota, and a concurrency cap per project and
   globally.
 
@@ -1584,7 +1620,7 @@ created per build and destroyed:
 | Registry (`registry:2`) | 7107 | Required: §13 binds approval to a digest and restricts pushes |
 | Verdaccio | 7108 | The private package mirror §12 mandates; also what makes offline installs possible |
 | Egress proxy | 7109 | Default-deny must exist locally, or an app works here and fails in staging |
-| Control plane | 7100 | **Host Node process**, not a container — it needs the Docker socket, which §12 forbids mounting into *workload* containers while explicitly permitting the control plane's own access. Running on the host sidesteps the question and iterates faster. |
+| Control plane | 7100 | **Host Node process**, not a container — it needs the Docker socket, which §12 forbids mounting into *workload* containers while explicitly permitting the control plane's own access. Running on the host sidesteps the question and iterates faster. **It cannot reach container IPs** on Docker Desktop (S1), so health checks and readiness polling go through the edge or a published port, never the container address. |
 | Admin UI (Vite) | 7101 | Host process |
 | `manifest-mock` | 7102 | Host process; needed only when working on the front-end without the platform |
 | Reference console (§22) | 7104 | Host process (Vite). Served at `console.manifest.internal` through Caddy, leaving `app.manifest.internal` for the separate front-end project |
@@ -1633,7 +1669,7 @@ otherwise.
 
 | | |
 |---|---|
-| `make seed` | **The only step needing network.** Pulls digest-pinned base images, warms Verdaccio with the blueprint's dependency closure, pulls Ollama models, installs the resolver file and trusts the CA. |
+| `make seed` | **The only step needing network.** Pulls digest-pinned base images **and pushes them into the local registry** — S1 found this is required, not incidental: BuildKit re-resolves every `FROM` against a registry on each build, and the Docker daemon's own cache is invisible to the rootless worker, so a base image that is merely pulled leaves the build failing offline. Blueprints therefore reference base images **from the local registry**, never from Docker Hub. Also warms Verdaccio with the blueprint's dependency closure, pulls Ollama models, installs the resolver file and trusts the CA. |
 | `make up` | Boots the stack. Works offline after seeding. |
 | `make reset` | Destroys all projects, volumes and registry contents; keeps the seed cache. |
 | `make doctor` | **The reproducibility tool.** Checks Docker running and VM memory, Ollama up with the required models present, resolver file installed, CA trusted, ports free, disk space, and architecture. Every "works on my machine" report should start with its output. |
