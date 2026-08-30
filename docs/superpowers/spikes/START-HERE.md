@@ -1,3 +1,16 @@
+> ## ⚠️ SUPERSEDED IN PART — read `HANDOFF-2026-08-30.md` first
+>
+> This document briefed the agent who ran **S7 and S2**. **Both are now done and
+> both answered yes** (`S7-findings.md`, `S2-findings.md`), and their findings have
+> been applied to the spec. Do **not** run them again.
+>
+> It remains the best introduction to *what Manifest is* (§1, §2) and to *how to
+> work* (§7, §8). But **§6's "findings already established" list is stale, and two
+> of its entries are now known to be wrong** — corrections are marked inline below.
+> `HANDOFF-2026-08-30.md` §4 replaces that section entirely.
+>
+> **The local zone is now `*.manifest.internal`, not `*.manifest.test`.**
+
 # Start here — Phase 0 spike execution briefing
 
 **You are picking up a project with no code in it.** This document is your entire
@@ -5,6 +18,9 @@ context. Read it fully before running anything.
 
 **Your job:** run spikes **S7** and **S2**, and write a findings note for each. You
 are not writing implementation plans, and you are not writing production code.
+
+> **Both were completed on 2026-08-29.** If you are a new agent, your job is **S1**
+> (and optionally S3) — see `HANDOFF-2026-08-30.md`.
 
 ---
 
@@ -98,6 +114,9 @@ three are configured as working directories: `manifest`, `coder.com`,
 
 ## 6. Findings already established — do not spend time rediscovering these
 
+> **STALE.** Superseded by `HANDOFF-2026-08-30.md` §4, which is verified as of
+> 2026-08-29. Two entries below are wrong and are struck through.
+
 A previous session inspected these files. Everything below is **verified**, with the
 file and line where known. Treat it as a head start, but **re-verify anything you
 are about to depend on** — versions move.
@@ -144,12 +163,17 @@ are about to depend on** — versions move.
 - **dnsmasq's `--address` is global to a process, not per-interface.** The
   hypothesis in the brief (two listeners with different answers) follows from this.
   Verify the premise before building on it.
-- **`/etc/resolver/test` already exists on this machine**, pointing at a nameserver
-  that is not listening. This is why the design scopes the resolver file to
-  `manifest.test` rather than all of `.test`. Do not break the existing file.
-- **Ports 80 and 443 are in use on this machine.** §21 says `make doctor` must check
-  them explicitly and both must be overridable. Confirm the override path works
-  including certificates.
+- ~~**`/etc/resolver/test` already exists on this machine**, pointing at a
+  nameserver that is not listening.~~ **WRONG — corrected by S7.** The nameserver
+  *is* listening: a Homebrew dnsmasq 2.91 owned by **Laravel Valet**, answering
+  `address=/.test/127.0.0.1` for the whole TLD, with Valet's nginx on ports 80 and
+  443. `.test` is therefore unusable and **the zone is now `*.manifest.internal`**.
+  Several UBC developers run Valet, so this was never machine-specific. Do not touch
+  any of it.
+- **Ports 80 and 443 are in use on this machine** — by **Valet's nginx**, confirmed
+  by S7. The override path works, but S7 found a **better answer**: a `127.0.0.2`
+  loopback alias, so host and container URLs stay byte-identical as §9 requires. A
+  port in the host URL breaks that parity.
 - **`*.manifest.localhost` was already evaluated and rejected** — inside a container
   `.localhost` is the container's own loopback, and glibc does not special-case
   `*.localhost` on Linux at all. Do not revisit it.

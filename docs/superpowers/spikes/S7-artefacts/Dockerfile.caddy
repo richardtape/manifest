@@ -1,0 +1,13 @@
+# S7 spike: the custom Caddy build §20 requires (rate-limit + Coraza/OWASP-CRS).
+# Pinned exactly, because §20 calls this "the one image built rather than pulled".
+# Coraza pins this: coraza-caddy/v2@v2.6.0 REQUIRES caddy/v2@v2.11.4 and xcaddy
+# refuses any other version. Do not bump one without the other.
+ARG CADDY_VERSION=2.11.4
+FROM caddy:${CADDY_VERSION}-builder AS builder
+ARG CADDY_VERSION
+RUN xcaddy build v${CADDY_VERSION} \
+    --with github.com/mholt/caddy-ratelimit@v0.1.0 \
+    --with github.com/corazawaf/coraza-caddy/v2@v2.6.0
+
+FROM caddy:${CADDY_VERSION}
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy

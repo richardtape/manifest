@@ -1,0 +1,11 @@
+{
+	admin 0.0.0.0:2019
+	local_certs
+	skip_install_trust
+}
+
+# §23's three platform zones, local equivalents, on the new zone.
+*.manifest.internal, *.sandbox.manifest.internal, *.staging.manifest.internal {
+	tls internal
+	respond "manifest-spike OK host={host} scheme={scheme} remote={remote_host}" 200
+}
