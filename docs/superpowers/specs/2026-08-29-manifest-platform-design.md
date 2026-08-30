@@ -748,9 +748,18 @@ naming **per SP, from the metadata row** (`attributes.NameFormat` plus a per-SP
 vocabulary production uses. Two conditions come with it: the blueprint must pass
 `attributeConfig` to `passport-ubcshib` — the library only runs its OID mapping when
 that option is non-empty — and must carry a complete attribute map, because the
-library's own covers six names and its MACE entry for `ubcEduCwlPuid` is unreachable
-(a reverse-map collision, so **prefer OID over MACE**). `ubcEduCwlPuid` is in no
-attribute map SimpleSAMLphp ships, so its OID is supplied inline.
+library's own covers six names, has **no OID entry at all for `uid` or
+`eduPersonPrincipalName`**, and its MACE entry for `ubcEduCwlPuid` is unreachable (a
+reverse-map collision). `ubcEduCwlPuid` is in no attribute map SimpleSAMLphp ships,
+so its OID is supplied inline.
+
+**Use OID, not MACE.** `tlef-biocbot` authenticates against
+`authentication.stg.id.ubc.ca` with no bridge of its own and the OID as its only
+reachable key for `ubcEduCwlPuid`, which indicates real UBC Shibboleth sends OID.
+The library's MACE gap is therefore latent rather than active, and **no
+`passport-ubcshib` change is required for Manifest** — `tlef-starter`, the first
+blueprint, already carries a bridge accepting both forms, and C6 forbids a library
+change being a prerequisite in any case.
 
 Manifest inherits that bridge in the blueprint. **This does not retire D21's
 pre-production rehearsal:** registration validity, the certificate and UBC's actual

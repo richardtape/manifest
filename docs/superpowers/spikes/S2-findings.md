@@ -399,10 +399,33 @@ This is exactly the gap §9 says `tlef-starter`'s `saml-attributes.ts` exists to
 bridge, now measured rather than asserted.
 
 **Verdict: pass with a condition.** Adopt URN naming **and** make the blueprint
-pass `attributeConfig` and carry a complete map. Choosing **OID** rather than MACE
-for `ubcEduCwlPuid` sidesteps the library bug without patching it — but confirm
-against real Shibboleth at D21's rehearsal which format UBC actually sends. If UBC
-sends MACE, `passport-ubcshib` needs a fix before the blueprint can rely on it.
+pass `attributeConfig` and carry a complete map. Choose **OID** rather than MACE for
+`ubcEduCwlPuid`, which sidesteps the library bug without patching it.
+
+**Corroborated after the spike, from the existing consumers.** Two independent
+pieces of evidence say the bug is **latent rather than active**:
+
+1. `tlef-starter/server/src/components/auth/saml-attributes.ts` documents the
+   *identical* reverse-map collision, found in practice by whoever wrote it — "the
+   second (the OID) overwrites the first (MACE), so a MACE-named PUID matches
+   nothing and is silently discarded." It also names a **second gap that is
+   arguably worse**: `uid` and `eduPersonPrincipalName` have **no OID entries at
+   all**, so they survive only when the IdP sends friendly names.
+2. Of the seven `passport-ubcshib` consumers, **exactly one is evidence about real
+   Shibboleth**: `tlef-biocbot` runs `SAML_ENVIRONMENT=STAGING`, passes
+   `attributeConfig: ['ubcEduCwlPuid', 'mail', 'eduPersonAffiliation']`, and has no
+   bridge of its own. If it authenticates, the OID is the only reachable key, so
+   **UBC sends OID**. The four apps on `SAML_ENVIRONMENT=LOCAL` prove nothing —
+   `docker-simple-saml` sends friendly names, which take the library's fallback
+   path, not the OID path — and `tlef-starter`/`tlef-financebot` carry the bridge,
+   so they work either way.
+
+**Consequence: the library needs no fix for Manifest to work.** `tlef-starter` is
+the first blueprint and already carries a bridge handling both formats, so Manifest
+inherits a correct one. Under C6 a library change must never be a prerequisite
+anyway. A fix would benefit the *other* consumers, is purely additive (a discarded
+attribute starts resolving; nothing working stops), and should ship as **0.2.0** so
+the `^0.1.6` ranges mean each app adopts deliberately rather than silently.
 
 ### 12. Malformed and partial rows — fails closed structurally, **fails open on attributes**
 
@@ -602,17 +625,20 @@ Do not edit the spec; these are for the human's decision.
 
 ## Open questions
 
-- **Which attribute name format does real UBC Shibboleth actually send —
-  OID, MACE, or a mix per attribute?** The whole URN opportunity is calibrated on
-  the answer, and `passport-ubcshib` handles OID but not MACE for `ubcEduCwlPuid`.
-  **Needs no spike** — it is answered by D21's rehearsal, or sooner by asking UBC
-  IAM or reading a real assertion. Until then, configure OID.
+- **Which attribute name format does real UBC Shibboleth actually send?**
+  **Largely answered: OID**, inferred from `tlef-biocbot` running against
+  `authentication.stg.id.ubc.ca` with no bridge and the OID as its only reachable
+  key for `ubcEduCwlPuid`. Configure OID. Worth one confirmation from UBC IAM or one
+  real assertion, but **no longer blocking** and **not a spike** — D21's rehearsal
+  closes it either way.
 
-- **Should `passport-ubcshib` be fixed upstream, or bridged in the blueprint?** The
-  reverse-map bug and the six-name map are both small fixes in a repo UBC owns
-  (`github.com/ubc/passport-ubcshib`, v0.1.6), but `tlef-starter` already carries
-  `saml-attributes.ts` as a bridge. **A decision, not a spike.** Note that fixing
-  upstream helps every UBC app, not only manifested ones.
+- **Should `passport-ubcshib` be fixed upstream?** **Not needed for Manifest** —
+  `tlef-starter`, the first blueprint, already bridges both formats, and C6 forbids
+  a library change being a prerequisite. It remains worth doing *for the other
+  consumers*, especially the missing `uid` and `eduPersonPrincipalName` OID entries,
+  which bite any app that requests them against real Shibboleth. **A decision, not a
+  spike**, and no longer on the critical path. Ship as 0.2.0 so adoption is
+  deliberate; the library is live in several running apps.
 
 - **Where does registration-time validation live?** Rejecting an empty `attributes`
   list is a control-plane concern (§7 validation), a database constraint, or both.
