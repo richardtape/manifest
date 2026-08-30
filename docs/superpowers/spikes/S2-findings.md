@@ -412,10 +412,12 @@ pieces of evidence say the bug is **latent rather than active**:
    arguably worse**: `uid` and `eduPersonPrincipalName` have **no OID entries at
    all**, so they survive only when the IdP sends friendly names.
 2. Of the seven `passport-ubcshib` consumers, **exactly one is evidence about real
-   Shibboleth**: `tlef-biocbot` runs `SAML_ENVIRONMENT=STAGING`, passes
-   `attributeConfig: ['ubcEduCwlPuid', 'mail', 'eduPersonAffiliation']`, and has no
-   bridge of its own. If it authenticates, the OID is the only reachable key, so
-   **UBC sends OID**. The four apps on `SAML_ENVIRONMENT=LOCAL` prove nothing —
+   Shibboleth**: `tlef-biocbot` passes
+   `attributeConfig: ['ubcEduCwlPuid', 'mail', 'eduPersonAffiliation']` and has no
+   bridge of its own. **Rich confirms it works against UBC Shibboleth in both
+   staging and production**, and the OID is its only reachable key for
+   `ubcEduCwlPuid` — therefore **UBC sends OID**. This is now confirmed, not
+   inferred. The four apps on `SAML_ENVIRONMENT=LOCAL` prove nothing —
    `docker-simple-saml` sends friendly names, which take the library's fallback
    path, not the OID path — and `tlef-starter`/`tlef-financebot` carry the bridge,
    so they work either way.
@@ -625,12 +627,9 @@ Do not edit the spec; these are for the human's decision.
 
 ## Open questions
 
-- **Which attribute name format does real UBC Shibboleth actually send?**
-  **Largely answered: OID**, inferred from `tlef-biocbot` running against
-  `authentication.stg.id.ubc.ca` with no bridge and the OID as its only reachable
-  key for `ubcEduCwlPuid`. Configure OID. Worth one confirmation from UBC IAM or one
-  real assertion, but **no longer blocking** and **not a spike** — D21's rehearsal
-  closes it either way.
+- ~~Which attribute name format does real UBC Shibboleth send?~~ **Closed: OID.**
+  `tlef-biocbot` works against UBC Shibboleth in staging and production with no
+  bridge, and the OID is its only reachable key for `ubcEduCwlPuid`. Configure OID.
 
 - **Should `passport-ubcshib` be fixed upstream?** **Not needed for Manifest** —
   `tlef-starter`, the first blueprint, already bridges both formats, and C6 forbids

@@ -753,9 +753,9 @@ library's own covers six names, has **no OID entry at all for `uid` or
 reverse-map collision). `ubcEduCwlPuid` is in no attribute map SimpleSAMLphp ships,
 so its OID is supplied inline.
 
-**Use OID, not MACE.** `tlef-biocbot` authenticates against
-`authentication.stg.id.ubc.ca` with no bridge of its own and the OID as its only
-reachable key for `ubcEduCwlPuid`, which indicates real UBC Shibboleth sends OID.
+**Use OID, not MACE. Confirmed:** `tlef-biocbot` authenticates against UBC
+Shibboleth in **both staging and production** with no bridge of its own, and the OID
+is its only reachable key for `ubcEduCwlPuid` — so real UBC Shibboleth sends OID.
 The library's MACE gap is therefore latent rather than active, and **no
 `passport-ubcshib` change is required for Manifest** — `tlef-starter`, the first
 blueprint, already carries a bridge accepting both forms, and C6 forbids a library
