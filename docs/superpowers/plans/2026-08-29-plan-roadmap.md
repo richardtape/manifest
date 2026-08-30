@@ -42,7 +42,9 @@ Three of §17's sequencing arguments were checked and stand as written:
 
 Kept here rather than in a handoff note, because handoffs are rewritten and this is
 what tells you whether a plan's blocking condition has cleared. **Update this row
-when a findings note lands.**
+when a findings note lands** — it is step 3 of the close-out checklist in
+`../spikes/HANDOFF-2026-08-30.md` §6, which also lists the other documents that state
+status and go stale.
 
 | Spike | Status | Answer, in one line | Unblocked |
 |---|---|---|---|
