@@ -2425,7 +2425,7 @@ export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
         const existing = instances.get(existingId)!
         existing.spec = spec
         if (existing.state === 'hibernated') existing.state = 'starting'
-        return { id: existingId, name: spec.name, url: `https://${spec.name}.manifest.test` }
+        return { id: existingId, name: spec.name, url: `https://${spec.name}.manifest.internal` }
       }
       const id = `inst-${instances.size + 1}`
       instances.set(id, {
@@ -2434,7 +2434,7 @@ export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
         logs: [{ at: new Date(), stream: 'stdout', text: `starting ${spec.name}` }],
       })
       byName.set(`instance:${spec.name}`, id)
-      return { id, name: spec.name, url: `https://${spec.name}.manifest.test` }
+      return { id, name: spec.name, url: `https://${spec.name}.manifest.internal` }
     },
 
     async stopInstance(id: string): Promise<void> {

@@ -589,7 +589,7 @@ possible.
 
 - entityID — `https://{platform-domain}/sp/{slug}/production`, where the platform
   domain is deployment configuration (`manifest.ubc.ca` on UBC infrastructure,
-  `manifest.test` locally). SAML entityIDs are identifiers, not URLs to fetch, so
+  `manifest.internal` locally). SAML entityIDs are identifiers, not URLs to fetch, so
   they need not resolve — but they must be **stable**, so the value is fixed at
   registration and stored on the `IamRegistration` rather than recomputed.
   Because it is registered externally, **the project slug is immutable after
@@ -675,8 +675,18 @@ to SQL-backed metadata widens it. Controls:
 - **Origins are never accepted as input.** The app supplies a path; Manifest
   supplies the origin, computed from the project slug, environment and the
   platform's own domain. A free-text ACS URL is an assertion-phishing primitive.
-- **The SimpleSAMLphp database user is read-only.** Only the control plane writes
-  SP metadata, through parameterized statements.
+- **The SimpleSAMLphp *metadata* database user is read-only** — verified in S2 with
+  `CONNECT`, schema `USAGE` and `SELECT` only. Only the control plane writes SP
+  metadata, through parameterized statements. Note the scope: SimpleSAMLphp's
+  session and data store (`store.sql.*`) is a **separate subsystem with its own
+  credentials, and it writes**. Reading this as "SimpleSAMLphp never writes to
+  Postgres" would mis-provision §21's shared server.
+- **The deployed IdP ships no `saml20-sp-remote.php`.** S2 found that when the same
+  entityID exists in both a flatfile and the SQL store, **the first matching
+  `metadata.sources` entry wins** — so a stale file silently shadows a
+  control-plane-written row and nothing reports it. `docker-simple-saml`'s current
+  file defines 15 SPs, which Manifest would inherit unless packaging removes it.
+  `make doctor` should assert its absence.
 - **Every registration and change is an append-only audit Event**, with alerting
   specifically on ACS URL changes.
 - **The Manifest IdP signing key is in separate custody** from application
@@ -702,10 +712,24 @@ a change request raised weeks earlier.
 
 ### Enforced attribute release (sandbox and staging)
 
-Attribute release is enforced **at the IdP**, populated from `auth.attributes`.
-An app cannot receive an attribute it did not declare. The approval diff on that
-field is therefore backed by enforcement rather than by trust — which is what
-makes reviewing it worth doing.
+Attribute release is enforced **at the IdP** by the `core:AttributeLimit`
+processing filter, populated from `auth.attributes`. An app cannot receive an
+attribute it did not declare.
+
+**S2 found this is not free, and its failure mode is silent.** The filter is **not
+in SimpleSAMLphp's default chain**: without it the metadata row's `attributes` list
+is advisory and every attribute the auth source produced is released (13 where 3
+were declared). Even with the filter enabled, a row whose `attributes` key is
+**missing or empty** releases everything, because the filter treats an empty
+allow-list as "no limit". Two requirements follow, and neither is optional:
+
+- Manifest's IdP configuration enables `core:AttributeLimit` in `authproc.idp`.
+- Registration **rejects** a row whose `attributes` list is missing or empty, before
+  it is written; a database constraint should make the half-written row impossible.
+
+With both in place the enforcement is real and was verified end to end. The approval
+diff on that field is therefore backed by enforcement rather than by trust — which
+is what makes reviewing it worth doing.
 
 ### Local behaviour
 
@@ -718,17 +742,34 @@ Shibboleth sends OID and MACE URNs. `tlef-starter` carries
 `server/src/components/auth/saml-attributes.ts` precisely to bridge that, because
 `passport-ubcshib`'s own mapping has gaps.
 
-Manifest inherits that bridge in the blueprint. It is also a concrete reason D21's
-pre-production rehearsal exists: attribute *naming* differences are invisible until
-an app meets real Shibboleth. That parity is what makes the production cutover a configuration
+**S2 closed most of that gap.** Manifest's own IdP instance sets URN/OID attribute
+naming **per SP, from the metadata row** (`attributes.NameFormat` plus a per-SP
+`core:AttributeMap` `authproc`), so sandbox and staging exercise the attribute
+vocabulary production uses. Two conditions come with it: the blueprint must pass
+`attributeConfig` to `passport-ubcshib` — the library only runs its OID mapping when
+that option is non-empty — and must carry a complete attribute map, because the
+library's own covers six names and its MACE entry for `ubcEduCwlPuid` is unreachable
+(a reverse-map collision, so **prefer OID over MACE**). `ubcEduCwlPuid` is in no
+attribute map SimpleSAMLphp ships, so its OID is supplied inline.
+
+Manifest inherits that bridge in the blueprint. **This does not retire D21's
+pre-production rehearsal:** registration validity, the certificate and UBC's actual
+release policy still need proving against real Shibboleth, and which format UBC
+sends is not yet known. That parity is what makes the production cutover a configuration
 change rather than a code change, which matters when the code was written by an
 agent that will not be present at launch.
 
 ### Risk
 
-SimpleSAMLphp's SQL metadata source is an **unverified property of third-party
-software**, and it is spiked early (§17, S2) because a "yes" means Manifest writes
-no PHP at all.
+SimpleSAMLphp's SQL metadata source was an unverified property of third-party
+software. **S2 verified it against SimpleSAMLphp 2.4.9 on 2026-08-29: the answer is
+yes, and Manifest writes no PHP at all.** One `INSERT` registers a working SP on the
+next HTTP request — no file write, no reload, no restart, and no metadata cache to
+expire. Per-app keypairs, signed AuthnRequests and per-SP attribute naming all work
+from the row. The residual risk is narrower and different in kind: a SimpleSAMLphp
+**major upgrade** changing `MetaDataStorageHandlerPdo` or the `authproc` contract,
+which a fixture test asserting that a known-good row still yields a known-good
+assertion will catch in CI rather than in staging.
 
 It is **not** the design's highest technical risk, and an earlier draft that said so
 mispriced it. Auto-provisioning does not collapse without it: `docker-simple-saml`
@@ -883,21 +924,59 @@ the same. It also does not resolve at all on Linux, where glibc special-cases
 
 The design is therefore:
 
-- **`*.manifest.test`**, served by a **dnsmasq container**.
-- On the host, `/etc/resolver/manifest.test` points at it. Scoped to
-  `manifest.test` rather than all of `.test` so it cannot collide with a
-  developer's other projects — a live example of why: `/etc/resolver/test` already
-  exists on the author's machine, pointing at a nameserver that isn't listening.
+- **`*.manifest.internal`**, served by **dnsmasq**.
+- **Not `*.manifest.test`.** S7 found that Laravel Valet claims the entire `.test`
+  TLD — its own dnsmasq on port 53 answering `address=/.test/127.0.0.1`, plus nginx
+  on ports 80 and 443 — and several UBC developers run Valet. The failure is quiet:
+  names resolve, so DNS looks healthy, and requests land on the wrong web server.
+  `.internal` was reserved by ICANN in July 2024 for exactly this purpose and will
+  never be delegated publicly.
+- On the host, `/etc/resolver/manifest.internal` points at it. Scoped to
+  `manifest.internal` rather than all of `.internal`, because Docker's own
+  `host.docker.internal` and `gateway.docker.internal` live in that TLD and must
+  keep resolving. The same scoping rule that protects a developer's other projects
+  protects Docker's names here.
 - Containers receive it as their resolver. This is **per-container** (`--dns` takes
   an IP and no port), not a Docker network setting, so the driver configures every
-  workload container explicitly.
+  workload container explicitly. On Docker Desktop `--dns` sets the **upstream** for
+  Docker's embedded resolver rather than replacing it, so container-to-container
+  service names keep working — provided our dnsmasq forwards non-zone queries back
+  to `127.0.0.11`.
 
-**Open, and S7's job to settle:** the host needs these names to resolve to
-`127.0.0.1` while containers need the Docker gateway address, and a single A record
-cannot serve both. The likely answer is interface-bound dnsmasq views
-(`--listen-address` with per-interface `--address` rules), but that is a hypothesis,
-not a design. S7 must produce a working configuration or a different approach — the
-rest of this subsection is settled; this part is not.
+**Settled by S7** (`docs/superpowers/spikes/S7-findings.md`). The host needs these
+names to resolve to a loopback address while containers need an address they can
+route to, and a single A record cannot serve both. `--address` is global to a
+dnsmasq **process**, not per-interface — verified, so interface-bound views do not
+exist. The answer is **two dnsmasq processes, run as two containers**:
+
+- **Containers** — `--listen-address=<dnsmasq-A's platform-network IP>`,
+  `--address=/manifest.internal/<Caddy's platform-network IP>`. Workload containers
+  get `--dns <dnsmasq-A's IP>`.
+- **Host** — `--listen-address=<dnsmasq-B's platform-network IP>`,
+  `--address=/manifest.internal/127.0.0.2`, published to the host as
+  `127.0.0.1:7153` (UDP **and** TCP). `/etc/resolver/manifest.internal` carries
+  `nameserver 127.0.0.1` and `port 7153`.
+
+Two containers rather than two processes in one, because each needs
+`--bind-interfaces` on a different address and a container has one platform-network
+IP; `docker logs` then also separates host queries from container queries, which is
+most of the debugging value when this misbehaves.
+
+Three flags are load-bearing and none is obvious:
+
+- **`--local=/manifest.internal/`** — without it dnsmasq answers AAAA with
+  **SERVFAIL** rather than NODATA, and both musl and glibc treat SERVFAIL on either
+  half of a dual-stack lookup as total failure. The symptom is
+  `curl: could not resolve host` **while `dig +short` returns the correct A record**.
+- **`--server=127.0.0.11`** — forwards everything outside the zone to Docker's
+  embedded resolver. Without it, `--no-resolv` makes dnsmasq authoritative for the
+  whole namespace and containers lose service names and external resolution alike.
+- **`--bind-interfaces`** — required to bind one address rather than the wildcard.
+
+Verified end to end: `https://console.manifest.internal/` returns the same response
+from the host browser, host `curl` and inside a container, with a trusted
+certificate and no port in the URL — including names allocated at runtime through
+Caddy's admin API.
 - Everything binds `127.0.0.1` explicitly; relying on `::1` produces intermittent
   failures under Node's IPv6-first resolution order.
 - UBC: a wildcard DNS record per listener.
@@ -1202,7 +1281,7 @@ If that runs on a MacBook, the platform is real.
 | **S3** | LiteLLM + Ollama + virtual keys + budgets on macOS. |
 | **S4** | Wake-on-request: can Caddy hold a request while the control plane starts an instance? |
 | **S5** | Sandbox `exec` with an agent running inside, producing a commit. |
-| **S7** | **The local baseline boots.** The full platform stack of §21 plus the dnsmasq/`manifest.test` resolution design, on a clean machine, offline after seeding. This is the spike that decides whether C1 is a real constraint or an aspiration, and it is cheap — run it early. |
+| **S7** | **The local baseline boots.** The full platform stack of §21 plus the dnsmasq/`manifest.internal` resolution design, on a clean machine, offline after seeding. This is the spike that decides whether C1 is a real constraint or an aspiration, and it is cheap — run it early. |
 | **S6** | **Container isolation.** With the hardening baseline of §20 applied, what can a hostile process in a sandbox actually reach — the runtime socket, the control plane, another app's database, a metadata endpoint? Establishes whether plain containers are adequate for sandboxes or whether gVisor/Kata is needed, and produces the security regression tests. |
 
 **S7 runs first, alongside S2.** Phase 1a's entire deliverable is the local baseline,
@@ -1224,7 +1303,7 @@ both.
 
 | Phase | Deliverable | Question answered |
 |---|---|---|
-| **1a — Baseline & deploy spine** | S1–S3 + S7 applied. §21's local stack (dnsmasq/`manifest.test`, custom Caddy + trusted CA, Postgres, registry, Verdaccio, egress proxy, builder), `make seed/up/reset/doctor`. Driver interface + Docker driver + fake Driver + driver contract suite. Spec parse/validate, local git driver, service provisioning, staging deploy, routing. **The blueprint *machinery*** — the §25 registry, descriptor parsing, `checkBlueprintCompatibility()` and major-version pinning — plus **one minimal blueprint**, because under D13 the builder needs a Dockerfile from somewhere and D30's argument applies to the builder, health check, service catalogue and injection contract that all live here. **All cross-cutting security lands here**: container hardening, per-app networks, default-deny egress, authorization contract suite. **Demo:** a fixture app routed and healthy at a `manifest.test` URL, from a clean checkout, offline. | Does C1 hold, and is the containment real? |
+| **1a — Baseline & deploy spine** | S1–S3 + S7 applied. §21's local stack (dnsmasq/`manifest.internal`, custom Caddy + trusted CA, Postgres, registry, Verdaccio, egress proxy, builder), `make seed/up/reset/doctor`. Driver interface + Docker driver + fake Driver + driver contract suite. Spec parse/validate, local git driver, service provisioning, staging deploy, routing. **The blueprint *machinery*** — the §25 registry, descriptor parsing, `checkBlueprintCompatibility()` and major-version pinning — plus **one minimal blueprint**, because under D13 the builder needs a Dockerfile from somewhere and D30's argument applies to the builder, health check, service catalogue and injection contract that all live here. **All cross-cutting security lands here**: container hardening, per-app networks, default-deny egress, authorization contract suite. **Demo:** a fixture app routed and healthy at a `manifest.internal` URL, from a clean checkout, offline. | Does C1 hold, and is the containment real? |
 | **1b — Identity, secrets & AI** | SP auto-provisioning against the metadata mechanism S2 selects, per-app keypairs, `secrets/` envelope encryption, the §8 injection contract, the **`node-ts-mongo` blueprint *content*** against 1a's machinery — auth component, attribute bridge, AI wiring, knowledge pack — LiteLLM client with the classification-gated model catalogue, events, WS streaming, redaction at capture, incidents. **Demo:** the proof app — CWL login, writes to its own Mongo, asks the LLM — driven by `curl`. | Is the loop real? |
 | **1c — Contract & clients** | OpenAPI generation, versioned TS client, `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API (D25), `console/` with its import boundary, a read-only `LaunchReadiness` view, **the audience question at project creation (§24) and a read-only fleet list**, the CI acceptance script. **Demo:** the §1 journey, clickable, run twice over one contract. | Is the API complete, and can a second developer reproduce all of it? |
 | **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, **custom domains end to end (§23), the audience tiers' production effects (§24), and the showcase with forking (§27)**, the admin console built around its queue (§26), IAM registration package + PIA draft generation | Is it safe, and can we get an app legitimately launched? |
@@ -1281,7 +1360,7 @@ Each phase ends in something demonstrable in a browser.
 
 | Item | Status | Owner |
 |---|---|---|
-| SimpleSAMLphp SQL metadata source works as required | **Unverified — spike S2.** Not a blocker: `docker-simple-saml` is ours, so a "no" means writing a metadata source module rather than redesigning §9 | Manifest team |
+| SimpleSAMLphp SQL metadata source works as required | **Verified 2026-08-29 (spike S2)** against SimpleSAMLphp 2.4.9 — a row registers a working SP with no reload. Attribute release needs `core:AttributeLimit` plus registration-time validation (§9) | Manifest team |
 | Final UBC target infrastructure (RHEL 9 VMs vs Kubernetes) | Undecided; Phase 5 blocked on it, Phases 0–4 are not | UBC IT |
 | **UBC IAM registration for the Manifest control plane itself** — Manifest is an SP for its own CWL login (§9) | Blocks deploying the control plane to UBC infrastructure | UBC IAM + Manifest team |
 | **Platform-level PIA for the control plane** (separate from each app's) | Blocks UBC deployment | UBC Privacy Office |
@@ -1365,6 +1444,12 @@ remove them. Caddy applies, on every route:
 **These are not stock Caddy.** Rate limiting and Coraza are third-party modules
 requiring an `xcaddy` build, so §21's inventory carries a **pinned custom Caddy
 image**, built during `make seed` — the one image that is built rather than pulled.
+S7 built it successfully and recorded two constraints that belong in §12's
+supply-chain review: **Coraza pins the Caddy version** (`coraza-caddy/v2@v2.6.0`
+requires `caddy/v2@v2.11.4` and xcaddy refuses any other, so upgrading Caddy is
+gated on Coraza), and **`caddy-ratelimit` has exactly one published release ever**
+(`v0.1.0`) — a single-version dependency inside what this section calls the
+highest-leverage control in the platform.
 Security headers and the admin API are stock. Deferring the custom build would mean
 calling the edge "the highest-leverage control in the platform" while shipping only
 part of it.
@@ -1480,10 +1565,10 @@ created per build and destroyed:
 
 | Component | Port | Notes |
 |---|---|---|
-| Caddy (edge) | 80, 443 | Both listeners on loopback locally. **Custom `xcaddy` build** (§20). **80 and 443 are the likeliest conflict on any developer machine** — both are in use on the author's right now — so `make doctor` checks them explicitly and both are overridable. |
+| Caddy (edge) | 80, 443 | Both listeners on loopback locally. **Custom `xcaddy` build** (§20). **80 and 443 are the likeliest conflict on any developer machine** — both are held by Laravel Valet's nginx on the author's right now — so `make doctor` checks them explicitly and both are overridable. **Prefer a loopback alias to a port override** (S7): `sudo ifconfig lo0 alias 127.0.0.2 up`, then bind Caddy to `127.0.0.2:80`/`:443`. A port in the host URL breaks the byte-for-byte hostname parity §9 requires, whereas the alias keeps host and container URLs identical and leaves the conflicting service untouched. The alias does not survive a reboot, so `make up` re-adds it. |
 | Builder | — | Transient, per build; rootless BuildKit (§12) |
 | Scanner + SBOM | — | Transient, per build; database age reported by `make doctor` (§12) |
-| dnsmasq | 7153 | Serves `*.manifest.test`; see §12 |
+| dnsmasq | 7153 | Serves `*.manifest.internal`; see §12. **Two processes** — one answering containers, one answering the host — because `--address` is global to a dnsmasq process (S7) |
 | Postgres | 7103 | **One server, three databases**: control plane, LiteLLM, IdP metadata — consistent with D11 and worth ~400 MB on a 16 GB machine |
 | Manifest IdP (SimpleSAMLphp) | 7122 | Deliberately *not* 6122 — that is already taken by the standalone `docker-simple-saml` on this machine |
 | LiteLLM | 7106 | Virtual keys and budgets against the shared Postgres |
@@ -1493,7 +1578,7 @@ created per build and destroyed:
 | Control plane | 7100 | **Host Node process**, not a container — it needs the Docker socket, which §12 forbids mounting into *workload* containers while explicitly permitting the control plane's own access. Running on the host sidesteps the question and iterates faster. |
 | Admin UI (Vite) | 7101 | Host process |
 | `manifest-mock` | 7102 | Host process; needed only when working on the front-end without the platform |
-| Reference console (§22) | 7104 | Host process (Vite). Served at `console.manifest.test` through Caddy, leaving `app.manifest.test` for the separate front-end project |
+| Reference console (§22) | 7104 | Host process (Vite). Served at `console.manifest.internal` through Caddy, leaving `app.manifest.internal` for the separate front-end project |
 | Ollama | 11434 | **Host application** — Metal GPU access is unavailable from a container |
 
 Git uses the local driver (bare repositories on disk), so it needs no container.
@@ -1510,7 +1595,7 @@ affordable on a laptop.
 
 | | |
 |---|---|
-| Minimum | 16 GB RAM, 4 cores, 40 GB free disk, ≥8 GB allocated to the Docker VM |
+| Minimum | 16 GB RAM, 4 cores, 40 GB free disk, **≥8 GB (decimal, i.e. 8,000,000,000 bytes) allocated to the Docker VM** — state the unit or `make doctor` cannot implement the check: the author's machine reports 8.32 GB decimal but 7.75 GiB binary, and passes or fails depending on the reading |
 | Recommended | 32 GB |
 | Rough budget | platform ~3 GB · Ollama chat model ~6 GB · embedding model ~1 GB · each app environment ~0.5 GB |
 
@@ -1521,11 +1606,19 @@ laptop from thrashing.
 
 ### TLS
 
-Caddy's internal CA issues the certificates, but the root must be trusted in two
-places: the macOS keychain (for the browser) and container trust stores via
-`NODE_EXTRA_CA_CERTS` (for server-side SAML metadata fetches and LiteLLM calls).
-This is one automated step in `make seed`, not a manual dance — but it is not free,
-and D12 should not be read as claiming otherwise.
+Caddy's internal CA issues the certificates, but the root must be trusted in
+**three** places (S7 — the earlier "two" missed one):
+
+1. the **macOS keychain**, for browsers and `curl`;
+2. **container** trust stores via `NODE_EXTRA_CA_CERTS`, for server-side SAML
+   metadata fetches and LiteLLM calls;
+3. the **host Node processes** — control plane, admin UI and console are host
+   processes in the inventory above, and Node ignores the macOS keychain, so they
+   need `NODE_EXTRA_CA_CERTS` exported too.
+
+This is automated in `make seed`, but it is not silent: `security add-trusted-cert`
+**prompts for a password** even under `sudo`. D12 should not be read as claiming
+otherwise.
 
 ### Commands
 
@@ -1539,7 +1632,7 @@ and D12 should not be read as claiming otherwise.
 ### The front-end in the local topology
 
 The faculty-facing front-end is a first-class citizen of this stack (C1). It is
-served at `app.manifest.test` **through the same Caddy**, so cookie scope, CSRF
+served at `app.manifest.internal` **through the same Caddy**, so cookie scope, CSRF
 origin and SAML redirect origins match production rather than being accidentally
 different on a bare Vite port.
 
@@ -1591,15 +1684,19 @@ Stated so nobody discovers them at the wrong moment:
 5. The Manifest IdP serves test users only; no real Shibboleth is involved (D6).
 6. `Driver.capabilities().isolationLevel` is `container`, the weakest level (§12).
    Spike S6 determines whether that is acceptable for sandboxes.
-7. **Workload containers can reach the developer's own machine.** Resolving
-   `*.manifest.test` to the host gateway gives every app and sandbox container a
-   route to the host — which on a typical developer machine listens on far more than
-   Manifest's ports (MongoDB, MySQL, other projects' databases; all three are live on
-   the author's machine now). §12's east-west denials cover app-to-app, the control
-   plane and metadata endpoints, but the host itself is reachable by construction.
-   Egress policy must deny the host gateway except for the ports an app actually
-   needs, and **S6 must test it** — this is the one local divergence that is a real
-   security weakening rather than a convenience.
+7. **Workload containers can reach the developer's own machine.** **S7 narrowed
+   this, but did not close it.** The zone now resolves, for containers, to Caddy's
+   address on the platform network rather than to the host gateway, so
+   `*.manifest.internal` no longer hands every container a route to the host — the
+   original wording of this divergence overstated it. Docker still provides
+   `host.docker.internal` and `gateway.docker.internal` independently of our DNS,
+   and a developer machine listens on far more than Manifest's ports (MongoDB,
+   MySQL, other projects' databases; all three are live on the author's machine
+   now). §12's east-west denials cover app-to-app, the control plane and metadata
+   endpoints, but the host remains reachable. Egress policy must deny the host
+   gateway except for the ports an app actually needs, and **S6 must test it** —
+   this is the one local divergence that is a real security weakening rather than a
+   convenience.
 
 
 ---
@@ -1736,8 +1833,10 @@ app-supplied part of any platform hostname is the project slug:
 | staging | `manifest.staging.apps.ltic.ubc.ca` | `chem-labs.manifest.staging.apps.ltic.ubc.ca` |
 | production (canonical) | `manifest.apps.ltic.ubc.ca` | `chem-labs.manifest.apps.ltic.ubc.ca` |
 
-On the laptop the same three settings hold the `manifest.test` equivalents
-(`chem-labs.sandbox.manifest.test`, `.staging.`, and `chem-labs.manifest.test`).
+On the laptop the same three settings hold the `manifest.internal` equivalents
+(`chem-labs.sandbox.manifest.internal`, `.staging.`, and
+`chem-labs.manifest.internal`). All three were verified serving with a trusted
+wildcard certificate in S7.
 The zones differ between deployments; the derivation rule does not, which is what
 lets the same code path build every hostname.
 

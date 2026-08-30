@@ -45,7 +45,7 @@ Three of §17's sequencing arguments were checked and stand as written:
 | **P0** | 0 | Seven spike briefs | a findings note per spike |
 | **P1** | 1a-i | Local substrate | `make doctor` green offline; one name resolving correctly from host **and** container |
 | **P2** | 1a-ii | Control-plane spine | project → spec → release, against the fake driver, in milliseconds, no Docker |
-| **P3** | 1a-iii | Docker driver & deploy spine | fixture app healthy at a `manifest.test` URL, clean checkout, offline |
+| **P3** | 1a-iii | Docker driver & deploy spine | fixture app healthy at a `manifest.internal` URL, clean checkout, offline |
 | **P4** | 1b | Identity, secrets & AI | the proof app — CWL login, Mongo write, LLM answer — via `curl` |
 | **P5** | 1c | Contract & clients | the §1 journey, clickable, driven twice over one contract |
 | **P6–P11** | 2 | six plans, listed below, **not written yet** | — |
@@ -71,7 +71,7 @@ real bar — *a new developer reaches a working loop from a clean checkout* — 
 is a property of this plan and nothing else.
 
 **Demo:** `make seed && make up && make doctor` on a second machine, offline after
-seeding, with a placeholder served over trusted HTTPS at a `manifest.test` name
+seeding, with a placeholder served over trusted HTTPS at a `manifest.internal` name
 that resolves identically from the host browser and from inside a container.
 
 ### P2 — 1a-ii · Control-plane spine
@@ -125,7 +125,7 @@ everything that only exists once containers do:
 - `Driver.capabilities()` reporting honestly what it cannot enforce
 
 **Demo:** the fixture app built from a bare repo, routed, healthy at a
-`manifest.test` URL, from a clean checkout, with the network off — plus S6's probe
+`manifest.internal` URL, from a clean checkout, with the network off — plus S6's probe
 matrix showing what a hostile process in that container could reach.
 
 ### P4 — 1b · Identity, secrets & AI
