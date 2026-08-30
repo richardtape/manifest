@@ -1,14 +1,20 @@
-> ## ⚠️ SUPERSEDED IN PART — read `HANDOFF-2026-08-30.md` first
+> ## ⚠️ SUPERSEDED IN PART — read `HANDOFF-2026-08-31.md` first
 >
-> This document briefed the agent who ran **S7 and S2**. Those, **and S1, are now
-> done and all three answered yes** (`S7-findings.md`, `S2-findings.md`,
-> `S1-findings.md`), and their findings have been applied to the spec. Do **not** run
-> them again. **The remaining spike is S3.**
+> This document briefed the agent who ran **S7 and S2**. Those, **and S1 and S3, are
+> now done and all four answered yes** (`S7-findings.md`, `S2-findings.md`,
+> `S1-findings.md`, `S3-findings.md`), and their findings have been applied to the
+> spec. Do **not** run them again.
+>
+> **No spike is outstanding.** Every spike blocking Phase 1a has reported, and the
+> next job is writing **P1** — not running another spike. The three remaining spikes
+> are deliberately later: S6 is P3's acceptance exercise, S5 follows S6, and S4 comes
+> before Phase 4.
 >
 > It remains the best introduction to *what Manifest is* (§1, §2) and to *how to
 > work* (§7, §8). But **§6's "findings already established" list is stale, and two
 > of its entries are now known to be wrong** — corrections are marked inline below.
-> `HANDOFF-2026-08-30.md` §4 replaces that section entirely.
+> `HANDOFF-2026-08-30.md` §4 replaces that section entirely, and
+> `HANDOFF-2026-08-31.md` supersedes that.
 >
 > **The local zone is now `*.manifest.internal`, not `*.manifest.test`.**
 
@@ -20,8 +26,8 @@ context. Read it fully before running anything.
 **Your job:** run spikes **S7** and **S2**, and write a findings note for each. You
 are not writing implementation plans, and you are not writing production code.
 
-> **Both were completed on 2026-08-29.** If you are a new agent, your job is **S1**
-> (and optionally S3) — see `HANDOFF-2026-08-30.md`.
+> **Both were completed on 2026-08-29**, and S1 and S3 on 2026-08-30. If you are a
+> new agent, **no spike is waiting for you** — see `HANDOFF-2026-08-31.md`.
 
 ---
 
@@ -109,7 +115,7 @@ three are configured as working directories: `manifest`, `coder.com`,
 | `passport-ubcshib/` | The Passport strategy manifested apps use. `github.com/ubc/passport-ubcshib`, v0.1.6. |
 | `tlef-starter/` | The app that becomes the first blueprint. Carries `server/src/components/auth/saml-attributes.ts`, the attribute bridge §9 refers to. |
 | `saml-metadata-generator/` | Generates RSA-4096 SP metadata packages. Absorbed as a library later; not needed for these spikes. |
-| `ubc-genai-toolkit/` | Used by manifested apps for LLM access. Relevant to S3, not to you. |
+| `ubc-genai-toolkit/` | Used by manifested apps for LLM access. **S3 drove `ubc-genai-toolkit-llm` 0.4.0 through LiteLLM unmodified** — read `S3-findings.md` §Evidence 8 before writing any AI wiring. |
 
 ---
 
@@ -231,7 +237,7 @@ Somebody should be able to read that one sentence and know what to do next.
 | "I'll make the spike code nice, we'll need it later." | Only the named artefacts under *What survives* are kept. Everything else is deleted. Speed over polish. |
 | "The timebox is nearly up but I'm close." | Write up where you are. "Nearly" is a finding. |
 | "S2 says the SQL metadata source doesn't work, so §9 is dead." | It is not. `docker-simple-saml` is ours; the brief's re-ranked fallbacks cover it, and the preferred one is better in two ways. Read that section before concluding anything dramatic. |
-| "Should I also run S1 and S3?" | Only if S7 and S2 are both written up and you have time. They are next in order, and S1 unblocks the rest of the P2 plan. |
+| "Should I also run S1 and S3?" | **Both are done** (2026-08-30). Nothing here is left to run. |
 
 ---
 

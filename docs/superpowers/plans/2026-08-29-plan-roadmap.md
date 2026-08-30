@@ -51,12 +51,14 @@ status and go stale.
 | **S7** | ✅ **done** 2026-08-29 (~1.5 h of 3 days) | **Yes** — split-horizon DNS works via two dnsmasq processes. **The zone changed to `*.manifest.internal`**: Laravel Valet owns `.test` plus ports 53/80/443 on UBC developers' machines. | **P1** in full; P3's routing |
 | **S2** | ✅ **done** 2026-08-29 (~0.5 h of 2 days) | **Yes** — one `INSERT` registers a working SP, no reload, no restart, no cache TTL. Manifest writes no PHP. Attribute release needs `core:AttributeLimit` *and* registration-time validation, or it fails open. | **P4 (1b)**'s shape; P2's IdP metadata schema |
 | **S1** | ✅ **done** 2026-08-30 (~2 h of 3 days) | **Yes** — bare repo → routed healthy container with a bound database, and **§11's `Driver` interface needed no revision**. Rootless BuildKit works, but not via buildx's own driver. | **P3**; **P2 Tasks 9+** |
-| **S3** | ⬜ **next** — 2 days | LiteLLM virtual keys, budgets and Ollama routing (D7). S7 already had it booting and answering completions — see the handoff. | **P4 (1b)** |
+| **S3** | ✅ **done** 2026-08-30 (~2 h of 2 days) | **Yes** — every mechanism §10 assumes works and `ubc-genai-toolkit` needs no change, but **three defaults are wrong**: keys need `allowed_routes` (one port serves admin *and* proxy, and an app key can mint a child that outlives it), `embed()` needs `encoding_format: 'float'` (192 zeros instead of 768 floats, silently), and the LiteLLM `user` must be namespaced per app (end-user budgets are global). | **P4 (1b)** |
 | **S6** | ⬜ deferred — runs as P3's acceptance | Container isolation; becomes §16's security regression tier. | Phase 3 |
 | **S4** | ⬜ deferred — before Phase 4 | Wake-on-request. | Phase 4 |
 | **S5** | ⬜ deferred — before Phase 3, after S6 | An agent inside a sandbox. | Phase 3 |
 
-**After S3, every spike blocking Phase 1a is done and P1 can be written.**
+**Every spike blocking Phase 1a is now done. P1, P2 and P3 can all be written.**
+The remaining three spikes are deliberately later: S6 runs as P3's acceptance
+exercise, S5 after S6, and S4 before Phase 4. **Nothing is waiting on a spike.**
 
 Findings notes live in `docs/superpowers/spikes/`. All spec changes each spike
 implied have already been applied to
@@ -75,6 +77,13 @@ Recorded here because they are about *how to run this work*, and each was paid f
   `.npmrc` was copied *after* `npm install`. Only checking the mirror's storage caught
   it. Test every claimed control with a **negative control**: show it correctly
   failing when you remove the thing that makes it work.
+- **Assert the shape of the answer, not that an answer arrived.** S3 ran six toolkit
+  checks against LiteLLM and all six passed; one of them was returning 192 numbers
+  where 768 belonged, almost all zero, with no error anywhere. The bug was visible
+  only because the *dimension* was printed and someone knew what `nomic-embed-text`
+  produces. "It returned a vector" and "it returned the right vector" are different
+  claims, and only the second is worth writing down. The same applies to a stream
+  that yields zero chunks and calls it success.
 - **Treat a briefing document as evidence, not fact.** `START-HERE.md` stated that
   `/etc/resolver/test` pointed at a dead nameserver. It did not, and that single wrong
   premise is what forced the zone change. Re-verify anything you are about to depend
@@ -183,7 +192,7 @@ matrix showing what a hostile process in that container could reach.
 
 ### P4 — 1b · Identity, secrets & AI
 
-*Depends on: S2, S3, P3.*
+*Depends on: S2, S3, P3. **Both spikes have reported**; only P3 is outstanding.*
 
 As §17 has it, with gap 2's boundary applied: SP auto-provisioning against
 **whichever metadata mechanism S2 selects**, per-app keypairs, `secrets/` envelope
@@ -196,7 +205,16 @@ Two consequences of the revised C6 land here: the blueprint descriptor **pins ex
 versions** of `passport-ubcshib` and `ubc-genai-toolkit`, and if either 0.2.0 safety
 change has shipped by then, this is where Manifest adopts it. Neither is a
 prerequisite — P4 must work against the currently published versions, or C6's final
-clause is violated.
+clause is violated. S3 confirmed the AI half of that: `ubc-genai-toolkit-llm` 0.4.0
+drives completions, embeddings, streaming and per-user attribution through LiteLLM
+**unmodified**.
+
+**Three S3 findings are P4 tasks, not notes.** The LiteLLM client mints every key
+with `allowed_routes` and every agent key with a `duration` TTL; the blueprint's AI
+wiring passes `encoding_format: 'float'` on every embedding call; and the end-user
+identifier is `hash(ubcEduCwlPuid ‖ project ‖ environment)`, never a bare PUID hash.
+Each has a §16 test attached. Read `spikes/S3-findings.md` §Evidence 8 and 11 before
+writing the AI module — the two failures they describe are both silent.
 
 **Demo:** §16's proof app — log in with CWL, write a note to its own Mongo, ask the
 LLM a question, display the answer — driven by `curl`.
@@ -249,7 +267,8 @@ execution layer.** Each is written when its predecessor lands.
 1. **Write P0.** Done.
 2. **Run S7 and S2.** These are the two the spec puts first. Nothing else on this
    list should start before they report.
-3. **Run S1 and S3.**
+3. **Run S1 and S3.** Done — 2026-08-30. All four Phase-1a-blocking spikes have
+   reported.
 4. **Write P1, P2 and P3** with real findings in them.
 5. **Execute P1 → P2 → P3.** S6 is P3's acceptance exercise.
 6. **Start the external track now** (below), in parallel with all of the above. It

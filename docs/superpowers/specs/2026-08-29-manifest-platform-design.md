@@ -412,6 +412,15 @@ vendor model IDs. Manifest maps them to LiteLLM model groups. An admin repoints
 the entire fleet at new on-prem hardware by editing one mapping — no app changes,
 no redeploys, no faculty involvement.
 
+**The catalogue is held in LiteLLM's database** (`STORE_MODEL_IN_DB`), not in
+`config.yaml`. S3 found a config-file deployment cannot be removed through the admin
+API at all — `/model/delete` answers `not found in db` — so a file-held catalogue
+turns every fleet change into a restart. Repointing a DB-held group takes effect in
+about ten seconds with no restart and no client change. Each catalogue entry also
+carries its `max_classification` in LiteLLM's `model_info`, which survives
+round-trip, so the D17 catalogue below has one source of truth rather than a copy
+inside Manifest.
+
 ### Sensitive fields
 
 These seven fields, and only these, trigger re-escalation to approval (D9):
@@ -473,7 +482,22 @@ clear message at build time rather than a privacy incident at runtime.
 
 LiteLLM's own request/response logging is a related exposure: those logs contain
 prompt content, which is student data. Retention and destination for LiteLLM logs
-are a deliberate, documented configuration decision, not a default.
+are a deliberate, documented configuration decision, not a default. **That decision,
+made:**
+
+- **The default is off**, verified across 105 spend rows with a canary string —
+  nothing reached the database or the container's stdout (S3).
+- Manifest pins **`store_prompts_in_spend_logs: false` explicitly in
+  `config.yaml`**. The line is load-bearing: when the key is *absent* from the YAML,
+  LiteLLM prefers the value the admin UI wrote to the database, so without it one
+  click starts retaining student prompts and the config file will not override it.
+- Manifest never runs LiteLLM with **`--detailed_debug`**, which writes full prompt
+  text to stdout and hence into §14's log pipeline.
+- When the flag *is* on, prompts land in `proxy_server_request` and completions in
+  `response`. The `messages` column stays `{}` for everything but realtime calls, so
+  an auditor checking `messages` alone would wrongly conclude nothing is retained.
+- Always retained regardless: `requester_ip_address` and `request_tags` (the
+  User-Agent). Small, but part of the retention decision.
 
 ---
 
@@ -521,7 +545,7 @@ wrong:
 | `SAML_PRIVATE_KEY_PATH` | mounted path to the **SP's own** private key, used to sign AuthnRequests and decrypt assertions. Required in staging and production (the Manifest IdP requires signed AuthnRequests per §9, and real UBC encrypts assertions). Optional in sandbox. | staging, production |
 | `MONGODB_URI`, `MONGODB_DB_NAME` | per declared `mongo` service | if declared |
 | `QDRANT_URL`, `QDRANT_API_KEY`, `QDRANT_COLLECTION` | per declared `qdrant` service | if declared |
-| `LLM_PROVIDER` | `openai` — LiteLLM is OpenAI-compatible, so the toolkit's existing provider is used unchanged | if `ai.models` |
+| `LLM_PROVIDER` | `openai` — LiteLLM is OpenAI-compatible, so the toolkit's existing provider is used unchanged. **There is no `openai-compat` provider**: `ProviderType` is `'openai' \| 'anthropic' \| 'ollama' \| 'ubc-llm-sandbox'`, and `openai-compat-mapping.ts` is a shared internal mapping module, not a provider. S3 drove a completion, an embedding, a stream and per-user attribution through `'openai'` against LiteLLM with the toolkit unmodified | if `ai.models` |
 | `LLM_ENDPOINT` | the LiteLLM endpoint | if `ai.models` |
 | `LLM_API_KEY` | this app+environment's virtual key (D8) | if `ai.models` |
 | `LLM_DEFAULT_MODEL` | resolves the app's first logical chat model | if `ai.models` |
@@ -804,14 +828,39 @@ launch.
 Manifest calls LiteLLM's admin API (`/key/generate`, `/key/update`, `/key/delete`,
 `/user/new`, spend endpoints). It builds no gateway of its own (D7).
 
+**Every key Manifest mints carries `allowed_routes`**, restricting it to
+`/v1/chat/completions`, `/v1/embeddings` and `/v1/models`. This is not
+belt-and-braces. S3 found that a key whose `user_id` was created by `/user/new` can
+itself call `/key/generate` and mint a child key **that survives revocation of its
+parent** — so following the rest of this section without `allowed_routes` is what
+creates the escalation. The confinement also replaces §12's admin-port denial, which
+cannot be built as originally written: LiteLLM serves admin and proxy traffic on a
+single port.
+
 | Key | Scope | Lifetime | Budget source |
 |---|---|---|---|
-| **App key** | app + environment | rotated every deploy, revoked on archive | `ai.budget.project_monthly_usd` |
-| **Agent key** | one `AgentSession` | dies with the sandbox | hard session cap, independent of the app budget |
-| **End user** | app passes hashed `ubcEduCwlPuid` as LiteLLM `user` | per request | `ai.budget.per_user_monthly_usd` |
+| **App key** | app + environment | rotated every deploy, revoked on archive | `ai.budget.project_monthly_usd`, held on the LiteLLM *user* rather than the key, so it survives key rotation |
+| **Agent key** | one `AgentSession` | dies with the sandbox — and carries a `duration` TTL, so it expires even if the control plane never calls `/key/delete` | hard session cap, independent of the app budget |
+| **End user** | app passes `hash(ubcEduCwlPuid ‖ project ‖ environment)` as LiteLLM `user` | per request | `ai.budget.per_user_monthly_usd` |
+
+**The end-user identifier must be namespaced per app and environment, not a bare
+hash of the CWL PUID.** LiteLLM keys its end-user budget on that string globally
+rather than per key, so an un-namespaced hash means a student who exhausts their
+budget in one course tool is refused by *every* Manifest application — an ordinary
+day's use turning into a cross-app outage (S3). Manifest holds the mapping, so the
+cross-app view of one person remains available on its side.
+
+Budgets are a ceiling that is crossed, not one that is never reached: the cost of a
+request is unknown until the completion exists, so enforcement overshoots by roughly
+one request per concurrent caller. Hard caps are set below the real limit
+accordingly, and `budget_duration: 1mo` is used for monthly budgets — `30d` is not a
+rolling window.
 
 Local topology: LiteLLM + Postgres in Compose, configured against Ollama on the
-host. Virtual keys and budgets work identically; the budgets simply never bind.
+host. Virtual keys, budgets, per-user attribution, model groups, streaming and
+revocation all work identically (S3). Budgets bind only because the local model
+entries carry a **synthetic per-token cost**; Ollama is free, so without one no
+budget is reachable and every per-user spend row reads `$0.00`.
 
 UBC topology: the same LiteLLM, fronting on-prem hardware plus commercial
 providers, with real budgets.
@@ -874,7 +923,7 @@ on the app, not as a silent gap.
 | Egress | broad (registries), via forced proxy | spec-declared | spec-declared |
 | Data | disposable volumes | persistent, resettable | persistent, backed up |
 | Secrets | throwaway only | environment secrets | environment secrets |
-| AI key | session-scoped, hard cap | app key | app key |
+| AI key | session-scoped, hard cap, **plus a `duration` TTL** so the key expires even if the control plane never calls `/key/delete` (S3) | app key | app key |
 | Approval | none | none | first launch + sensitive diff |
 
 **Rule, stated concretely because it is easy to violate by accident: a sandbox
@@ -1034,7 +1083,11 @@ denied by default:
 
 - app → any other app or its services
 - app or sandbox → the control plane API
-- app or sandbox → the LiteLLM **admin** port (the proxy port only is reachable)
+- app or sandbox → LiteLLM's admin **routes**. **Not a port rule.** LiteLLM serves
+  admin and proxy traffic on a *single* port (S3), so this is enforced per key with
+  `allowed_routes` (§10). That control is stronger than a network rule would have
+  been: it holds regardless of how the app reaches the proxy, and it is what stops
+  an app key minting a child key that outlives it.
 - app or sandbox → the IdP administrative interface
 - app or sandbox → `169.254.169.254` and any cloud/hypervisor metadata endpoint
 - app or sandbox → UBC management subnets
@@ -1254,6 +1307,15 @@ Therefore `Incident.log_tail`, build logs and `Event.machine_detail` are
 Redaction matches every value in the app's own secret set (an exact, high-confidence
 match), plus entropy and pattern heuristics for tokens and credential-bearing URLs.
 
+Third-party error bodies are captured under the same rule. **LiteLLM's
+key-revocation error contains the masked key *and the full key hash*** (S3), so it
+must never be surfaced verbatim in an `Event`; the control plane maps LiteLLM
+failures to its own codes rather than passing the body through. That mapping cannot
+rely on LiteLLM's `type` field alone — a route denial arrives in a different envelope
+with no `type` at all, and key-over-budget and end-user-over-budget share
+`budget_exceeded` while needing different faculty-legible messages. §16 pins the
+mapping to the LiteLLM version in the inventory.
+
 This is defence in depth, not a guarantee: heuristics miss things. It is one reason
 production secrets never reach a sandbox (§11) and why the blast radius of any
 single app's secrets is limited to that app and environment.
@@ -1297,8 +1359,9 @@ the system becomes ordinary test-first development.
 | **Driver contract suite** | One suite every driver must pass. The k8s driver later proves itself against the exact tests the Docker driver passes — this is what keeps the abstraction honest rather than aspirational. |
 | **Authorization contract suite** | Every API route, exercised as owner, collaborator, unrelated user, and admin. IDOR is the likeliest bug class in a multi-tenant control plane, so tenant isolation is a test tier rather than a code-review hope. |
 | **Injection-contract drift** | The §8 table is asserted against the blueprint: every variable the blueprint reads is injected, and `SAML_ENVIRONMENT` is never absent. This is what keeps §8 honest — it was wrong once, from being written against memory of the libraries rather than against them. |
+| **AI-path regression** | An embedding through the blueprint asserts its **dimension**, not merely that a vector came back — without `encoding_format: 'float'` the toolkit silently returns 192 near-zero values in place of 768 (§21, S3), and every other assertion still passes. A *streamed* completion through `default-chat` asserts non-empty content, which a thinking model fails silently. LiteLLM's over-budget, revoked-key, expired-key and route-denied responses are pinned to the mapping in §20, against the LiteLLM version in §21's inventory. |
 | **Identity-path regression** | A production release whose `auth.attributes` exceed `IamRegistration.registered_attributes` fails at build; a production environment never resolves to the Manifest IdP; a sandbox or staging environment never resolves to real UBC Shibboleth; certificate expiry within 90 days raises an alert. |
-| **Security regression** | Secrets never appear in captured logs, incidents or events; a sandbox cannot reach the control plane, the LiteLLM admin port or a metadata endpoint; a spec with a `runtime.build` block or a non-path `auth.callback` is rejected; a `confidential` app cannot resolve an off-premise model. |
+| **Security regression** | Secrets never appear in captured logs, incidents or events; a sandbox cannot reach the control plane or a metadata endpoint; **a sandbox's LiteLLM key is refused on `/key/generate` and every other admin route** (there is no admin *port* to block — §10, §12 — so this asserts the `allowed_routes` confinement, and a key minted without it is the negative control); a spec with a `runtime.build` block or a non-path `auth.callback` is rejected; a `confidential` app cannot resolve an off-premise model. |
 | **Contract** | The OpenAPI document is generated from the routes and checked in; drift fails CI. `manifest-mock` is validated against the same document, so a front-end built against the mock cannot compile against a contract the real API does not serve. |
 | **Integration** | Real Postgres, real Docker driver, one tiny fixture app; Supertest per route. |
 | **Acceptance** | The §1 journey, driven twice against the same published API: by a human in the reference console, and headlessly in CI by a script using the same generated client. Two independent clients over one contract. |
@@ -1616,7 +1679,7 @@ created per build and destroyed:
 | dnsmasq | 7153 | Serves `*.manifest.internal`; see §12. **Two processes** — one answering containers, one answering the host — because `--address` is global to a dnsmasq process (S7) |
 | Postgres | 7103 | **One server, three databases**: control plane, LiteLLM, IdP metadata — consistent with D11 and worth ~400 MB on a 16 GB machine |
 | Manifest IdP (SimpleSAMLphp) | 7122 | Deliberately *not* 6122 — that is already taken by the standalone `docker-simple-saml` on this machine |
-| LiteLLM | 7106 | Virtual keys and budgets against the shared Postgres |
+| LiteLLM | 7106 | Virtual keys and budgets against the shared Postgres. Reaches Ollama on the host via `extra_hosts: host.docker.internal:host-gateway` and `api_base: http://host.docker.internal:11434` (S7, S3). Runs with **`STORE_MODEL_IN_DB`** — the model catalogue must be DB-held, not file-held (§7) — and **without `--detailed_debug`**, which would write student prompts into the log pipeline (§7). One port serves both admin and proxy traffic, so key confinement is `allowed_routes` (§10) |
 | Registry (`registry:2`) | 7107 | Required: §13 binds approval to a digest and restricts pushes |
 | Verdaccio | 7108 | The private package mirror §12 mandates; also what makes offline installs possible |
 | Egress proxy | 7109 | Default-deny must exist locally, or an app works here and fails in staging |
@@ -1624,7 +1687,7 @@ created per build and destroyed:
 | Admin UI (Vite) | 7101 | Host process |
 | `manifest-mock` | 7102 | Host process; needed only when working on the front-end without the platform |
 | Reference console (§22) | 7104 | Host process (Vite). Served at `console.manifest.internal` through Caddy, leaving `app.manifest.internal` for the separate front-end project |
-| Ollama | 11434 | **Host application** — Metal GPU access is unavailable from a container |
+| Ollama | 11434 | **Host application** — Metal GPU access is unavailable from a container. `make seed` pulls a **non-thinking** chat model and an embedding model by name; a thinking model streams no content at all (§21, S3) |
 
 Git uses the local driver (bare repositories on disk), so it needs no container.
 The 7100–7199 block was chosen to avoid the ports already in use on this machine
@@ -1699,6 +1762,15 @@ budget enforcement, streaming, the agent's tool loop, incident-to-repair. It doe
 not represent the *quality* of an agent building a full-stack application, which at
 that size will be poor.
 
+**The local chat model must be a non-thinking model**, and `make seed` pulls one
+deliberately rather than inheriting whatever the developer has in Ollama. A thinking
+model streams its reasoning as `reasoning_content` deltas, which the toolkit's stream
+callback discards, so the console receives **zero chunks, an empty string and no
+error** — at any token budget. S3 measured 1,677 reasoning frames and zero content
+frames from a 4B thinking model asked to count to five. `make doctor` therefore
+asserts that a *streamed* completion through `default-chat` returns non-empty
+content, not merely that a completion succeeds.
+
 Offline mode is for verifying plumbing and for CI. A developer with network points
 LiteLLM at a real provider by changing one line — which is exactly what LiteLLM's
 model groups and §7's logical model names were chosen to make possible.
@@ -1729,7 +1801,16 @@ Stated so nobody discovers them at the wrong moment:
 5. The Manifest IdP serves test users only; no real Shibboleth is involved (D6).
 6. `Driver.capabilities().isolationLevel` is `container`, the weakest level (§12).
    Spike S6 determines whether that is acceptable for sandboxes.
-7. **Workload containers can reach the developer's own machine.** **S7 narrowed
+7. **Embeddings through LiteLLM's Ollama path ignore `encoding_format`.** The
+   OpenAI Node SDK (≥ 4.75) defaults the format to base64 and then decodes the
+   reply unconditionally, so an `embed()` call that does **not** pass
+   `encoding_format: 'float'` gets 192 near-zero values where 768 floats belong —
+   with no error, in a test that otherwise passes. Blueprints pass it explicitly and
+   §16 asserts the *dimension*, not merely that a vector came back. This is a
+   silent-corruption divergence rather than a convenience one: a RAG index built
+   without the option is garbage that reads as poor retrieval quality. Whether a
+   commercial provider behind LiteLLM behaves the same way is unmeasured (S3).
+8. **Workload containers can reach the developer's own machine.** **S7 narrowed
    this, but did not close it.** The zone now resolves, for containers, to Caddy's
    address on the platform network rather than to the host gateway, so
    `*.manifest.internal` no longer hands every container a route to the host — the

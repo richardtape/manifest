@@ -4,8 +4,12 @@
 artefacts named under *What survives the spike*. These are those, made runnable
 rather than left as prose. **S1 used them** — its checklist needed `--dns` from S7,
 Caddy's admin API, the registry and a routed name reachable from both host and
-container — and any later spike or P1 work wanting a live stack can too. **S3 does
-not need them**: LiteLLM, Postgres and Ollama are enough.
+container. **S3 did not**: LiteLLM, Postgres and Ollama were enough, and it ran with
+no `sudo` and no host changes at all.
+
+**No spike needs them now — all four Phase-1a-blocking spikes have reported.** These
+files exist for **P1**, which rewrites them as Compose plus a Makefile, and for
+anyone who wants a live stack while writing it.
 
 **These are spike scaffolding, not P1 code.** P1 rewrites them as Compose plus a
 Makefile. Do not polish them; do reuse them.
