@@ -38,6 +38,57 @@ Three of §17's sequencing arguments were checked and stand as written:
 
 ---
 
+## Spike status — the ledger plan authors read
+
+Kept here rather than in a handoff note, because handoffs are rewritten and this is
+what tells you whether a plan's blocking condition has cleared. **Update this row
+when a findings note lands.**
+
+| Spike | Status | Answer, in one line | Unblocked |
+|---|---|---|---|
+| **S7** | ✅ **done** 2026-08-29 (~1.5 h of 3 days) | **Yes** — split-horizon DNS works via two dnsmasq processes. **The zone changed to `*.manifest.internal`**: Laravel Valet owns `.test` plus ports 53/80/443 on UBC developers' machines. | **P1** in full; P3's routing |
+| **S2** | ✅ **done** 2026-08-29 (~0.5 h of 2 days) | **Yes** — one `INSERT` registers a working SP, no reload, no restart, no cache TTL. Manifest writes no PHP. Attribute release needs `core:AttributeLimit` *and* registration-time validation, or it fails open. | **P4 (1b)**'s shape; P2's IdP metadata schema |
+| **S1** | ✅ **done** 2026-08-30 (~2 h of 3 days) | **Yes** — bare repo → routed healthy container with a bound database, and **§11's `Driver` interface needed no revision**. Rootless BuildKit works, but not via buildx's own driver. | **P3**; **P2 Tasks 9+** |
+| **S3** | ⬜ **next** — 2 days | LiteLLM virtual keys, budgets and Ollama routing (D7). S7 already had it booting and answering completions — see the handoff. | **P4 (1b)** |
+| **S6** | ⬜ deferred — runs as P3's acceptance | Container isolation; becomes §16's security regression tier. | Phase 3 |
+| **S4** | ⬜ deferred — before Phase 4 | Wake-on-request. | Phase 4 |
+| **S5** | ⬜ deferred — before Phase 3, after S6 | An agent inside a sandbox. | Phase 3 |
+
+**After S3, every spike blocking Phase 1a is done and P1 can be written.**
+
+Findings notes live in `docs/superpowers/spikes/`. All spec changes each spike
+implied have already been applied to
+[`2026-08-29-manifest-platform-design.md`](../specs/2026-08-29-manifest-platform-design.md),
+so **the spec is current and outranks the spike briefs**, which are deliberately
+left as a record of what was originally asked.
+
+---
+
+## Lessons that outlive any one spike
+
+Recorded here because they are about *how to run this work*, and each was paid for.
+
+- **A green result is not evidence a control is in force.** S1's first build appeared
+  to succeed while silently using the public npm registry instead of the mirror —
+  `.npmrc` was copied *after* `npm install`. Only checking the mirror's storage caught
+  it. Test every claimed control with a **negative control**: show it correctly
+  failing when you remove the thing that makes it work.
+- **Treat a briefing document as evidence, not fact.** `START-HERE.md` stated that
+  `/etc/resolver/test` pointed at a dead nameserver. It did not, and that single wrong
+  premise is what forced the zone change. Re-verify anything you are about to depend
+  on.
+- **Briefings go stale within days.** `HANDOFF-2026-08-30.md` was sending its reader
+  to a finished spike one day after it was written. Anything that states current
+  status needs an owner and a date.
+- **Prefer ownership-adjusted risk.** S2's risk was priced as existential and was not,
+  because `docker-simple-saml` is ours. Ask what a "no" actually costs *given what we
+  control* before ranking a risk.
+- **Spikes have come in far under their timeboxes** (~1.5 h, ~0.5 h, ~2 h against
+  3, 2 and 3 days). Do not re-plan the schedule on that: all three were the tractable
+  ones, and the estimate that matters — C4's IAM/PIA turnaround — is still unmeasured.
+
+---
+
 ## The plan set
 
 | Plan | Phase | Scope | Demo |
@@ -218,8 +269,10 @@ wrong in two ways:
 Roughly the first half of P2 — scaffolding, `spec/`, `blueprints/` and the database
 schema — is genuinely settled by §7 and §25 and survives any spike outcome. It is
 written and paused at that boundary
-([`2026-08-29-p2-control-plane-spine.md`](./2026-08-29-p2-control-plane-spine.md)),
-to be completed once S1 reports.
+([`2026-08-29-p2-control-plane-spine.md`](./2026-08-29-p2-control-plane-spine.md)).
+**S1 reported on 2026-08-30 and the `Driver` interface needed no revision**, so the
+remainder can now be written — Tasks 9 and 10's existing sketch is validated rather
+than superseded.
 
 The point of steps 2–4 is that **no plan ever contains a placeholder standing in
 for a spike result.** A step reading *"determine the dnsmasq configuration"* is a

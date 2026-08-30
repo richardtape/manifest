@@ -2,9 +2,10 @@
 
 `docs/superpowers/spikes/START-HERE.md` says spike code is thrown away except the
 artefacts named under *What survives the spike*. These are those, made runnable
-rather than left as prose, because **S1 depends on them** — its checklist needs
-`--dns` from S7, Caddy's admin API, the registry and a routed name reachable from
-both host and container.
+rather than left as prose. **S1 used them** — its checklist needed `--dns` from S7,
+Caddy's admin API, the registry and a routed name reachable from both host and
+container — and any later spike or P1 work wanting a live stack can too. **S3 does
+not need them**: LiteLLM, Postgres and Ollama are enough.
 
 **These are spike scaffolding, not P1 code.** P1 rewrites them as Compose plus a
 Makefile. Do not polish them; do reuse them.

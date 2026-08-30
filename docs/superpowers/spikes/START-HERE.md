@@ -1,8 +1,9 @@
 > ## ⚠️ SUPERSEDED IN PART — read `HANDOFF-2026-08-30.md` first
 >
-> This document briefed the agent who ran **S7 and S2**. **Both are now done and
-> both answered yes** (`S7-findings.md`, `S2-findings.md`), and their findings have
-> been applied to the spec. Do **not** run them again.
+> This document briefed the agent who ran **S7 and S2**. Those, **and S1, are now
+> done and all three answered yes** (`S7-findings.md`, `S2-findings.md`,
+> `S1-findings.md`), and their findings have been applied to the spec. Do **not** run
+> them again. **The remaining spike is S3.**
 >
 > It remains the best introduction to *what Manifest is* (§1, §2) and to *how to
 > work* (§7, §8). But **§6's "findings already established" list is stale, and two

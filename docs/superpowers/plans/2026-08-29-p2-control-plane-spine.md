@@ -12,9 +12,28 @@
 
 **Roadmap:** [`2026-08-29-plan-roadmap.md`](./2026-08-29-plan-roadmap.md) — P2's scope, and gaps 1, 2 and 3 which this plan discharges.
 
-**Depends on:** P1 (for a running Postgres) to execute, and **S1** to finish being written.
+**Depends on:** P1 (for a running Postgres) to execute. **S1 has now reported.**
 
-> ## ⚠ This plan is incomplete and deliberately paused
+> ## ✅ The pause condition is met — S1 reported on 2026-08-30
+>
+> This plan was paused pending S1, and **S1 answered in the best possible way for
+> it: §11's `Driver` interface needed no revision.** S1 implemented `buildImage`,
+> `ensureService`, `ensureInstance`, `stopInstance`, `destroyInstance`,
+> `destroyService`, `status`, `logs` and `capabilities` against real Docker; all were
+> implementable as declared, idempotency held on the second call for both `ensure*`
+> operations and both destroys, and the sub-question asking for *"a list of `Driver`
+> interface signatures that turned out to be wrong"* **came back empty**.
+>
+> **What that means for Tasks 9 and 10:** the sketch below can be promoted to
+> instructions rather than rewritten. Reconcile it against `S1-findings.md` — in
+> particular `capabilities()` must be able to report **user-namespace remapping as
+> unavailable**, since Docker Desktop does not provide it, and `logs()` returns an
+> `AsyncIterable<LogLine>` demuxed from the Engine API's 8-byte-framed stream.
+> `exec()` and `snapshotService()` remain unexercised (S5 and production).
+>
+> **Tasks 11 onward are still unwritten** and remain a deliberate next step.
+
+> ## ⚠ Original pause note, kept for the record
 >
 > **Tasks 1–8 are final.** Scaffolding, `spec/`, `blueprints/` and the database
 > schema are settled by §7 and §25 of the spec. No spike outcome changes them, and
@@ -33,6 +52,7 @@
 > deploy — is unwritten because it consumes Task 9's types.
 >
 > Resume when S1's findings note exists at `docs/superpowers/spikes/S1-findings.md`.
+> — **satisfied 2026-08-30; see the box above.**
 
 ---
 
