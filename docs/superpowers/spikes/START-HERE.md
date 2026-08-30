@@ -5,9 +5,10 @@
 > `S1-findings.md`, `S3-findings.md`), and their findings have been applied to the
 > spec. Do **not** run them again.
 >
-> **No spike is outstanding.** Every spike blocking Phase 1a has reported, and the
-> next job is writing **P1** — not running another spike. The three remaining spikes
-> are deliberately later: S6 is P3's acceptance exercise, S5 follows S6, and S4 comes
+> **No spike is outstanding.** Every spike blocking Phase 1a has reported, and **P1
+> has been written** (`plans/2026-08-30-p1-local-substrate.md`) — the next job is
+> executing it, not running another spike. The three remaining spikes are
+> deliberately later: S6 is P3's acceptance exercise, S5 follows S6, and S4 comes
 > before Phase 4.
 >
 > It remains the best introduction to *what Manifest is* (§1, §2) and to *how to

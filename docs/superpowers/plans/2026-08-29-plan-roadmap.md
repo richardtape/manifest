@@ -119,7 +119,9 @@ standing in for a spike result.
 
 ### P1 — 1a-i · Local substrate
 
-*Depends on: S7.*
+*Depends on: S7. **Written 2026-08-30** —
+[`2026-08-30-p1-local-substrate.md`](./2026-08-30-p1-local-substrate.md), 13 tasks.
+Ready to execute; nothing blocks it.*
 
 §21's platform inventory as running infrastructure: dnsmasq with S7's resolved
 split-horizon design, the custom `xcaddy` image carrying rate-limiting and
@@ -135,6 +137,15 @@ is a property of this plan and nothing else.
 **Demo:** `make seed && make up && make doctor` on a second machine, offline after
 seeding, with a placeholder served over trusted HTTPS at a `manifest.internal` name
 that resolves identically from the host browser and from inside a container.
+
+**Three decisions the plan makes**, called out here because they were open and are
+now closed: `make up` re-adds the `127.0.0.2` loopback alias itself with `sudo`,
+guarded so it prompts only when the alias is actually missing (a launchd daemon was
+rejected — it leaves a root-owned service `make reset` would not remove); `make up`
+brings up the **whole** §21 inventory including LiteLLM and the IdP, so P4 writes
+clients rather than infrastructure; and `make doctor` (preconditions) and
+`make verify` (properties) are separate deliverables, which is what gives an
+infrastructure plan a real test cycle.
 
 ### P2 — 1a-ii · Control-plane spine
 
@@ -269,7 +280,9 @@ execution layer.** Each is written when its predecessor lands.
    list should start before they report.
 3. **Run S1 and S3.** Done — 2026-08-30. All four Phase-1a-blocking spikes have
    reported.
-4. **Write P1, P2 and P3** with real findings in them.
+4. **Write P1, P2 and P3** with real findings in them. **P1 is written**
+   (2026-08-30). P2 is written through Task 8 and its pause condition has cleared.
+   P3 is next to write, and can be written now.
 5. **Execute P1 → P2 → P3.** S6 is P3's acceptance exercise.
 6. **Start the external track now** (below), in parallel with all of the above. It
    has the longest lead time in the project and no software dependency.
