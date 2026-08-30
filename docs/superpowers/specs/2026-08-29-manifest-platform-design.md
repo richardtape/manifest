@@ -70,9 +70,9 @@ supersedes:
 | Asset | Relationship to Manifest |
 |---|---|
 | `tlef-starter` | Source of the first **blueprint**. Already a TS client/server app wired to Mongo, Qdrant, `passport-ubcshib` and the GenAI toolkit, with per-component `AGENTS.md` written for coding agents. |
-| `passport-ubcshib` | Used **unchanged** by manifested apps. Its `LOCAL`/`STAGING`/`PRODUCTION` presets and env var names constrain Manifest's injection contract (§7). |
-| `docker-simple-saml` | Becomes the **Manifest IdP**. Its file-based `saml20-sp-remote.php` is replaced by a SQL metadata source so SPs can be registered programmatically (§9). |
-| `ubc-genai-toolkit` | Used **unchanged** by manifested apps. Its `openai-compat` provider points at LiteLLM. |
+| `passport-ubcshib` | **Ours, changed only with discipline (C6).** Used as-is by manifested apps; its `LOCAL`/`STAGING`/`PRODUCTION` presets and env var names constrain Manifest's injection contract (§7). Manifest pins an exact version. |
+| `docker-simple-saml` | **Ours, freely editable.** Becomes the **Manifest IdP**, deployed as its own instance separate from the standalone one (§21). Its file-based `saml20-sp-remote.php` is replaced by a programmatic metadata source — SimpleSAMLphp's SQL source if S2 confirms it, a metadata module we write if not (§9). |
+| `ubc-genai-toolkit` | **Ours, changed only with discipline (C6).** Used as-is by manifested apps; its `openai-compat` provider points at LiteLLM. Manifest pins an exact version. |
 | `tlef-ansible` | Describes how UBC deploys today (RHEL 9 VMs, nginx, Let's Encrypt, GitHub webhooks). Informs the eventual VM driver; not a dependency of the MVP. |
 | `saml-metadata-generator` | **Absorbed as a library.** Already generates RSA-4096 certificates and UBC-standard SP metadata as a downloadable package — exactly the artifact a UBC IAM registration request requires (§9). Not rebuilt. |
 | `FakeAcademicAPI`, `canvas-bridge` | Future `integrations:` targets. Reserved for post-MVP (§15). |
@@ -107,8 +107,18 @@ These are fixed. Designs that violate them are wrong.
   (D19).
 - **C5 — Start small, design for large.** Pilot scale now; no interface may
   foreclose the ~500-app case.
-- **C6 — Existing app-side libraries are unchanged.** `passport-ubcshib` and
-  `ubc-genai-toolkit` are used as-is. Manifest adapts to them, not the reverse.
+- **C6 — Manifest adapts to existing app-side libraries rather than reshaping
+  them.** `passport-ubcshib` and `ubc-genai-toolkit` are UBC's own, so "unchanged"
+  is a discipline rather than a fact, and the constraint states the discipline.
+  Changes to them are permitted only where they are strictly safer or more correct
+  **for every consumer**, are released under a version Manifest **pins exactly**
+  (never a range), and are **never a prerequisite for Manifest to work** — if
+  Manifest requires a library change, the design is wrong and is fixed in Manifest.
+  The discipline is what stops Manifest quietly becoming the system that dictates
+  how every UBC application does authentication. The blast radius is smaller than it
+  looks: six applications consume `passport-ubcshib` today, all on `0.1.4` or
+  `^0.1.6`, and a caret range on a `0.x` version pins to the *minor* — so a `0.2.0`
+  release reaches none of them silently, and each adopts deliberately.
 
 ---
 
@@ -477,14 +487,22 @@ Two facts about `passport-ubcshib` shape this table, and both are easy to get
 wrong:
 
 1. **The library itself reads exactly two environment variables** —
-   `SAML_ENVIRONMENT` (`index.js:120`) and `SAML_LOGOUT_URL` (`index.js:305`).
-   Everything else is a *constructor option*. So this is **Manifest's contract with
-   the blueprint**, which passes these values into the strategy; it is not a set of
-   names the library picks up by itself.
-2. **`SAML_ENVIRONMENT` defaults to `'STAGING'`.** An app deployed without it
-   points at `https://authentication.stg.id.ubc.ca` — real UBC infrastructure.
-   Manifest must therefore inject it explicitly in **every** environment. §16's
-   identity-path regression test exists to catch exactly this.
+   `SAML_ENVIRONMENT` (`index.js:120` and again at `:307`) and `SAML_LOGOUT_URL`
+   (`index.js:305`). Everything else is a *constructor option*. So this is
+   **Manifest's contract with the blueprint**, which passes these values into the
+   strategy; it is not a set of names the library picks up by itself.
+2. **`SAML_ENVIRONMENT` defaults to `'STAGING'`** — at *both* sites, `:120` and
+   `:307`. An app deployed without it points at
+   `https://authentication.stg.id.ubc.ca`, real UBC infrastructure. Manifest must
+   therefore inject it explicitly in **every** environment, and §16's identity-path
+   regression test exists to catch exactly this.
+
+   This is a fail-open default, and it is wrong for every consumer of the library,
+   not just for Manifest. Making it throw on an unset value is precisely the kind of
+   change C6 permits: strictly safer for all six consuming applications, released as
+   `0.2.0`, adopted deliberately. Manifest must keep working against the currently
+   published version regardless — C6's final clause — so the regression test stays
+   either way.
 
 | Variable | Value | Required in |
 |---|---|---|
@@ -708,10 +726,21 @@ agent that will not be present at launch.
 
 ### Risk
 
-SimpleSAMLphp's SQL metadata source is **the highest-risk *technical* unknown in
-this design** — it is an unverified property of third-party software, and
-auto-provisioning for sandbox and staging collapses without it. It is spiked first
-(§17, S2).
+SimpleSAMLphp's SQL metadata source is an **unverified property of third-party
+software**, and it is spiked early (§17, S2) because a "yes" means Manifest writes
+no PHP at all.
+
+It is **not** the design's highest technical risk, and an earlier draft that said so
+mispriced it. Auto-provisioning does not collapse without it: `docker-simple-saml`
+is ours (§2), so a "no" means writing a metadata source module — implementing one
+documented SimpleSAMLphp abstract class in a repository we already extend — rather
+than redesigning §9. That fallback is in some respects *better*: we would own the
+schema and the caching behaviour instead of inheriting both. What a "no" costs is
+PHP we maintain and review on each SimpleSAMLphp major upgrade.
+
+**The highest-risk technical unknown is S7's split-horizon DNS question** (§12): a
+hostname must resolve correctly both from the developer's browser and from inside a
+container, and no amount of ownership makes that requirement go away.
 
 The highest-risk dependency overall is not technical: it is the **per-app IAM
 registration and PIA turnaround** imposed by C4. It cannot be engineered away, only
@@ -1195,8 +1224,8 @@ both.
 
 | Phase | Deliverable | Question answered |
 |---|---|---|
-| **1a — Baseline & deploy spine** | S1–S3 + S7 applied. §21's local stack (dnsmasq/`manifest.test`, custom Caddy + trusted CA, Postgres, registry, Verdaccio, egress proxy, builder), `make seed/up/reset/doctor`. Driver interface + Docker driver + fake Driver + driver contract suite. Spec parse/validate, local git driver, blueprint-managed build → image digest, service provisioning, staging deploy, routing. **All cross-cutting security lands here**: container hardening, per-app networks, default-deny egress, authorization contract suite. **Demo:** a fixture app routed and healthy at a `manifest.test` URL, from a clean checkout, offline. | Does C1 hold, and is the containment real? |
-| **1b — Identity, secrets & AI** | SP auto-provisioning against SQL metadata, per-app keypairs, `secrets/` envelope encryption, the §8 injection contract, the `node-ts-mongo` blueprint **with its §25 descriptor and compatibility check**, LiteLLM client with the classification-gated model catalogue, events, WS streaming, redaction at capture, incidents. **Demo:** the proof app — CWL login, writes to its own Mongo, asks the LLM — driven by `curl`. | Is the loop real? |
+| **1a — Baseline & deploy spine** | S1–S3 + S7 applied. §21's local stack (dnsmasq/`manifest.test`, custom Caddy + trusted CA, Postgres, registry, Verdaccio, egress proxy, builder), `make seed/up/reset/doctor`. Driver interface + Docker driver + fake Driver + driver contract suite. Spec parse/validate, local git driver, service provisioning, staging deploy, routing. **The blueprint *machinery*** — the §25 registry, descriptor parsing, `checkBlueprintCompatibility()` and major-version pinning — plus **one minimal blueprint**, because under D13 the builder needs a Dockerfile from somewhere and D30's argument applies to the builder, health check, service catalogue and injection contract that all live here. **All cross-cutting security lands here**: container hardening, per-app networks, default-deny egress, authorization contract suite. **Demo:** a fixture app routed and healthy at a `manifest.test` URL, from a clean checkout, offline. | Does C1 hold, and is the containment real? |
+| **1b — Identity, secrets & AI** | SP auto-provisioning against the metadata mechanism S2 selects, per-app keypairs, `secrets/` envelope encryption, the §8 injection contract, the **`node-ts-mongo` blueprint *content*** against 1a's machinery — auth component, attribute bridge, AI wiring, knowledge pack — LiteLLM client with the classification-gated model catalogue, events, WS streaming, redaction at capture, incidents. **Demo:** the proof app — CWL login, writes to its own Mongo, asks the LLM — driven by `curl`. | Is the loop real? |
 | **1c — Contract & clients** | OpenAPI generation, versioned TS client, `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API (D25), `console/` with its import boundary, a read-only `LaunchReadiness` view, **the audience question at project creation (§24) and a read-only fleet list**, the CI acceptance script. **Demo:** the §1 journey, clickable, run twice over one contract. | Is the API complete, and can a second developer reproduce all of it? |
 | **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, **custom domains end to end (§23), the audience tiers' production effects (§24), and the showcase with forking (§27)**, the admin console built around its queue (§26), IAM registration package + PIA draft generation | Is it safe, and can we get an app legitimately launched? |
 | **3 — Sandboxes** | agent `exec`, per-session keys, preview routes; a chat pane added to the reference console against the same API; the **MCP server** (§22), making "bring your own agent" real. **The separate front-end project can now begin against a real, exercised API.** | Can an AI build here? |
@@ -1252,7 +1281,7 @@ Each phase ends in something demonstrable in a browser.
 
 | Item | Status | Owner |
 |---|---|---|
-| SimpleSAMLphp SQL metadata source works as required | **Unverified — spike S2** | Manifest team |
+| SimpleSAMLphp SQL metadata source works as required | **Unverified — spike S2.** Not a blocker: `docker-simple-saml` is ours, so a "no" means writing a metadata source module rather than redesigning §9 | Manifest team |
 | Final UBC target infrastructure (RHEL 9 VMs vs Kubernetes) | Undecided; Phase 5 blocked on it, Phases 0–4 are not | UBC IT |
 | **UBC IAM registration for the Manifest control plane itself** — Manifest is an SP for its own CWL login (§9) | Blocks deploying the control plane to UBC infrastructure | UBC IAM + Manifest team |
 | **Platform-level PIA for the control plane** (separate from each app's) | Blocks UBC deployment | UBC Privacy Office |
