@@ -53,3 +53,7 @@ The machine must end up as it started — a standing requirement from Rich:
 bash down.sh
 sudo bash host-undo.sh
 ```
+
+Either order works. `host-undo.sh` removes the CA by common name, so it does not
+need `ca/manifest-root.crt` to still exist — an earlier version did, and printed
+`Error reading file ca/manifest-root.crt` when `down.sh` had already deleted it.
