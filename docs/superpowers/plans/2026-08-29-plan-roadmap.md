@@ -38,6 +38,10 @@ Three of §17's sequencing arguments were checked and stand as written:
 
 ---
 
+**New here?** Read [`../ORIENTATION.md`](../ORIENTATION.md) first — what Manifest is,
+what has been established, what this machine will do to you, and the plan queue. This
+file is the *status* record; that one is the durable briefing.
+
 ## Spike status — the ledger plan authors read
 
 Kept here rather than in a handoff note, because handoffs are rewritten and this is
@@ -91,6 +95,21 @@ Recorded here because they are about *how to run this work*, and each was paid f
 - **Briefings go stale within days.** `HANDOFF-2026-08-30.md` was sending its reader
   to a finished spike one day after it was written. Anything that states current
   status needs an owner and a date.
+- **Handoff chains strand durable knowledge.** The list of this machine's landmines —
+  Valet's ports, the three load-bearing dnsmasq flags, `PUT`-not-`POST` — spent a day
+  behind a SUPERSEDED banner because it lived inside a dated handoff. Durable content
+  belongs in a durable document (`../ORIENTATION.md`); only *what to do next* belongs
+  in a handoff.
+- **Run the plan self-review, and record what it caught.** P1's found five defects
+  before anyone executed a line. The worst: the verification script used
+  `apk add bind-tools` to get `dig` into a container — which needs the network, so
+  the offline acceptance test would have failed on its own harness. Writing down what
+  the review caught stops the next reader mistaking a deliberate fix for a mistake.
+- **Decide, then document the decision.** Rich would rather an agent settle a routine
+  question and record the reasoning than block on asking. P1's *Decisions this plan
+  makes* section is the pattern: the option chosen, the options rejected, and what it
+  would cost to change course later. Questions are for what is genuinely his — spec
+  changes, host changes, anything irreversible.
 - **Prefer ownership-adjusted risk.** S2's risk was priced as existential and was not,
   because `docker-simple-saml` is ours. Ask what a "no" actually costs *given what we
   control* before ranking a risk.

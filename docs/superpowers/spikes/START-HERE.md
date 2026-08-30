@@ -1,4 +1,4 @@
-> ## ⚠️ SUPERSEDED IN PART — read `HANDOFF-2026-08-31.md` first
+> ## ⚠️ HISTORICAL — read [`../ORIENTATION.md`](../ORIENTATION.md) first
 >
 > This document briefed the agent who ran **S7 and S2**. Those, **and S1 and S3, are
 > now done and all four answered yes** (`S7-findings.md`, `S2-findings.md`,
@@ -11,11 +11,11 @@
 > deliberately later: S6 is P3's acceptance exercise, S5 follows S6, and S4 comes
 > before Phase 4.
 >
-> It remains the best introduction to *what Manifest is* (§1, §2) and to *how to
-> work* (§7, §8). But **§6's "findings already established" list is stale, and two
-> of its entries are now known to be wrong** — corrections are marked inline below.
-> `HANDOFF-2026-08-30.md` §4 replaces that section entirely, and
-> `HANDOFF-2026-08-31.md` supersedes that.
+> **`ORIENTATION.md` replaces this document for every purpose.** It carries what
+> Manifest is, what the spikes established, the machine's landmines, how to work
+> here, and the plan queue — all maintained. This file is kept as the record of what
+> the first agent was told, and **§6 is actively wrong in two places** (marked
+> inline). Do not use it as a briefing.
 >
 > **The local zone is now `*.manifest.internal`, not `*.manifest.test`.**
 

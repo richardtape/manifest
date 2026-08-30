@@ -11,17 +11,28 @@ console that proves the API can carry the whole journey.
 
 ## Status: pre-implementation
 
-**There is no code yet.** The design is approved and complete; the first work is
-seven throwaway spikes that answer questions which would be expensive to get wrong
-later. Two of them block everything else.
+**There is no code yet**, and that is deliberate. The design is approved and complete.
+Seven throwaway spikes de-risk it; **four are done — S7, S2, S1 and S3 — and all four
+answered yes**, each far inside its timebox, with every spec change they implied
+already applied. The remaining three are scheduled later, against machinery that does
+not exist yet.
+
+**Two implementation plans are written** (P1, the local substrate; P2, the
+control-plane spine, complete through Task 8). **P3, P4 and P5 are unwritten, and
+writing them is the current work.**
 
 ## Where to start
 
+**Everyone starts here:** [`docs/superpowers/ORIENTATION.md`](docs/superpowers/ORIENTATION.md).
+It assumes no context and carries what the project is, what has been established, what
+this machine will do to you, and what to do next. Then:
+
 | If you are… | Read |
 |---|---|
-| **Running the spikes** (the current job) | [`docs/superpowers/spikes/START-HERE.md`](docs/superpowers/spikes/START-HERE.md) — a complete briefing that assumes no context |
-| Writing or executing an implementation plan | [`docs/superpowers/plans/2026-08-29-plan-roadmap.md`](docs/superpowers/plans/2026-08-29-plan-roadmap.md) — which plans exist, in what order, and what blocks what |
-| Looking for the architecture | [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](docs/superpowers/specs/2026-08-29-manifest-platform-design.md) — authoritative, 2,100 lines. The roadmap and briefs tell you which sections you actually need |
+| Writing the next implementation plan (**the current job**) | ORIENTATION §7 — the plan queue, in the order they should be written — then [`docs/superpowers/plans/2026-08-29-plan-roadmap.md`](docs/superpowers/plans/2026-08-29-plan-roadmap.md) |
+| Executing a plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan |
+| Looking for what a spike proved | `docs/superpowers/spikes/S{7,2,1,3}-findings.md` — the answer is the first sentence of each |
+| Looking for the architecture | [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](docs/superpowers/specs/2026-08-29-manifest-platform-design.md) — authoritative, ~2,340 lines. ORIENTATION §3 tells you which sections you actually need |
 | Explaining this to someone non-technical | [`manifest-schematic.html`](docs/superpowers/specs/manifest-schematic.html) and its companions — the same design in plain language, plus six worked faculty stories |
 | Tracking the UBC reviews | [`docs/external-track.md`](docs/external-track.md) — the items decided by people outside this team, which carry the longest lead times in the project |
 
@@ -43,4 +54,7 @@ later. Two of them block everything else.
 - Spikes run on `spike/<id>` branches that are **never merged**. Only the artefacts
   named in the brief are copied out.
 - The design document is marked *Approved design*. Proposed changes are recorded in
-  a findings note or a plan, not edited in directly.
+  a findings note or a plan and approved before they are made, not edited in directly.
+- **Status lives in one place**: the *Spike status* ledger in the roadmap. If any
+  other document disagrees with it, the ledger wins — several have gone stale within
+  a day of being written, and that is now a documented lesson rather than a surprise.
