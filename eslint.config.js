@@ -6,6 +6,18 @@ export default tseslint.config(
   {
     files: ['packages/control-plane/src/**/*.ts'],
     rules: {
+      // An underscore prefix is the project's "deliberately unused" marker. The
+      // Driver interface fixes several signatures that an implementation may not
+      // need in full — the fake driver's `exec(id, cmd, _opts)` is the first —
+      // and without this the rule fires on faithfully implementing the interface.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       'no-restricted-imports': [
         'error',
         {

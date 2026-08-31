@@ -463,6 +463,19 @@ export default tseslint.config(
   {
     files: ['packages/control-plane/src/**/*.ts'],
     rules: {
+      // An underscore prefix is the project's "deliberately unused" marker.
+      // typescript-eslint does NOT honour it by default. The §11 Driver interface
+      // fixes several signatures an implementation may not need in full — the fake
+      // driver's `exec(id, cmd, _opts)` in Task 9 is the first — so without this,
+      // `pnpm lint` fails on code that implements the interface correctly.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       'no-restricted-imports': [
         'error',
         {
