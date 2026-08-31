@@ -70,19 +70,28 @@ implied have already been applied to
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
 
-### Open spec action, raised by P2 — needs Rich
+### Spec action raised by P2 — ✅ applied 2026-08-31
 
-**§11 and §23 disagree about environment hostnames.** §11's lifetime table gives
-sandbox `{slug}-sbx-{id}` and staging `{slug}-staging` — suffixed labels in one zone.
-§23 gives `<slug>.<zone for that environment kind>`, three separate zone settings, and
-says explicitly *"One sandbox environment per project at a time, so its hostname is
-stable and predictable"* — no id suffix. Both cannot be right.
+**§11 and §23 disagreed about environment hostnames.** §11's lifetime table gave
+sandbox `{slug}-sbx-{id}` and staging `{slug}-staging` — suffixed labels sharing one
+zone. §23 gives `<slug>.<zone for that environment kind>`, three separate zone
+settings, and no id suffix. Both could not be right, and P3's `routing/` builds these
+names for real.
 
-**P2 follows §23** (Task 14), because §23's stated job is to settle *"what the names
-are"*, it is the more specific rule, and S7 verified all three `manifest.internal`
-names serving under one wildcard certificate. **Proposed change: replace §11's
-hostname row with a pointer to §23.** Not applied — the spec is approved design.
-P3's `routing/` will build hostnames for real, so this wants deciding before P3.
+**Resolved in §23's favour, with Rich's approval, and both edits applied:** §11's
+hostname row now points at §23, and §23 records *why* the kind lives in the zone.
+
+**What settled it was not seniority between the sections but a flaw neither of them
+had noticed.** The suffixes in §11's scheme are themselves legal slugs under §7's
+`^[a-z][a-z0-9-]{2,38}$`, so a project named `chem-labs-staging` and the staging
+environment of a project named `chem-labs` both resolve to `chem-labs-staging` —
+squattable in a platform where faculty create projects self-serve. Putting the kind in
+the zone makes that unrepresentable, with no reserved-suffix list to keep in sync.
+The alternative would have needed a new §7 rule just to be safe.
+
+Everything already built agreed with §23 — S7 curled all three zones, P1's Caddyfile
+serves all three, P2's `config.ts` and Task 14 assert them — so this was one stale
+row, not a design change.
 
 ---
 

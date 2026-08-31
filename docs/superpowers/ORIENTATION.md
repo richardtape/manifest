@@ -293,12 +293,6 @@ machine that has Valet installed**; that is the known interesting case.
 
 Surface these; do not decide them.
 
-- **§11 and §23 disagree about environment hostnames.** §11's lifetime table says
-  sandbox is `{slug}-sbx-{id}` and staging `{slug}-staging`; §23 says
-  `<slug>.<zone for that environment kind>` with three zone settings and **no id
-  suffix**, because there is one sandbox per project at a time. P2 follows §23 and
-  says why (Task 14). **Proposed: replace §11's hostname row with a pointer to §23.**
-  Worth settling before P3, whose `routing/` builds these names for real.
 
 - **C4's actual turnaround time** for UBC IAM registration and the PIA is
   **unmeasured**, §9 calls it the highest-risk dependency in the design, and
@@ -313,6 +307,11 @@ Surface these; do not decide them.
 - **Does LiteLLM's embedding `encoding_format` bug affect a commercial provider, or
   only the Ollama path?** Unmeasured — only Ollama was reachable offline. Cheap to
   settle the first time anyone has a provider key.
+
+**Closed recently:** the §11/§23 hostname disagreement — settled 2026-08-31 in §23's
+favour and both spec edits applied. The environment kind lives in the **zone**, never
+as a suffix on the label, because those suffixes are themselves legal slugs and
+`{slug}-staging` is squattable across tenants. §11's row now points at §23.
 
 **Closed recently:** who re-adds the `127.0.0.2` alias after a reboot. P1 decides it:
 `make up` does, with `sudo`, guarded so it prompts only when the alias is missing. A

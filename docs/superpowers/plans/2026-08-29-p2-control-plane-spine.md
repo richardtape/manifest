@@ -3833,16 +3833,15 @@ wants `LaunchReadiness` surfaced *"the moment a project is created — not at th
 the owner asks to go live"*, and neither is possible if the production environment
 row appears only at first deploy.
 
-> **Spec action for Rich — a §11/§23 disagreement, not a decision this plan should
-> make.** §11's lifetime table gives sandbox the hostname `{slug}-sbx-{id}` and
-> staging `{slug}-staging`, i.e. a suffixed label in one zone. §23 gives
-> `<slug>.<zone for that environment kind>` with a separate zone per kind, and says
-> explicitly *"One sandbox environment per project at a time, so its hostname is
-> stable and predictable"* — no id suffix. These cannot both be right. **This plan
-> follows §23**, because that is the section whose stated job is to settle *"what the
-> names are"*, it is the more specific rule, and S7 verified all three
-> `manifest.internal` names serving under a wildcard certificate. Proposed change:
-> replace §11's hostname row with a pointer to §23. Flagged, not applied.
+> **✅ Settled 2026-08-31 — the spec now agrees with this task.** §11's lifetime table
+> used to give sandbox `{slug}-sbx-{id}` and staging `{slug}-staging`, suffixed labels
+> sharing one zone, which contradicted §23's `<slug>.<zone for that environment kind>`.
+> Raised with Rich and resolved in §23's favour: §11's hostname row now points at §23,
+> and §23 records the reason. **The reason is a flaw neither section had noticed** —
+> `-staging` and `-sbx-…` are themselves legal slugs under §7, so a project named
+> `chem-labs-staging` collides with the staging environment of `chem-labs`, and the
+> first to register owns the name. Putting the kind in the zone makes the collision
+> unrepresentable rather than merely forbidden.
 
 - [ ] **Step 1: Write the failing authorization test**
 

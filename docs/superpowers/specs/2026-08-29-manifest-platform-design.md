@@ -917,7 +917,7 @@ on the app, not as a silent gap.
 | | **sandbox** | **staging** | **production** |
 |---|---|---|---|
 | Lifetime | destroyed after 45 min idle | hibernated after 7 days idle | always-on (hibernate opt-in) |
-| Hostname | `{slug}-sbx-{id}` | `{slug}-staging` | `{slug}` |
+| Hostname | `{slug}.{sandbox zone}` | `{slug}.{staging zone}` | `{slug}.{production zone}` — see §23 |
 | Listener | internal | internal | public |
 | `exec` | yes | no | no |
 | Egress | broad (registries), via forced proxy | spec-declared | spec-declared |
@@ -925,6 +925,13 @@ on the app, not as a silent gap.
 | Secrets | throwaway only | environment secrets | environment secrets |
 | AI key | session-scoped, hard cap, **plus a `duration` TTL** so the key expires even if the control plane never calls `/key/delete` (S3) | app key | app key |
 | Approval | none | none | first launch + sensitive diff |
+
+**Hostnames belong to §23, not to this table.** The environment kind is carried by
+the **zone**, not by a suffix on the label, and the slug is the only app-supplied
+part of any hostname. This row previously read `{slug}-sbx-{id}` / `{slug}-staging` /
+`{slug}`, which put all three kinds in one zone; it was corrected on 2026-08-31 to
+match §23, which is the section that settles what the names are. See §23 for the
+reason the suffix scheme was wrong rather than merely different.
 
 **Rule, stated concretely because it is easy to violate by accident: a sandbox
 never receives staging or production secrets.** It receives its own scoped
@@ -1970,6 +1977,19 @@ Because the app contributes only a slug that is already validated as
 `^[a-z][a-z0-9-]{2,38}$` (§7), hostname construction cannot be steered by app
 content. This is D15's reasoning applied to routing rather than to SAML: nothing
 free-text reaches a hostname.
+
+**Why the environment kind is in the zone and never a suffix on the label.** The
+obvious alternative — one zone, with `{slug}-staging` and `{slug}-sbx-{id}` beside
+`{slug}` — collides across tenants, because those suffixes are themselves legal
+slugs. A project named `chem-labs-staging` and the staging environment of a project
+named `chem-labs` both resolve to `chem-labs-staging`, and whichever was created
+first owns the name. In a platform where faculty create projects self-serve, that is
+squattable: register `chem-labs-staging` before someone registers `chem-labs`, and
+their staging traffic arrives at your app. Putting the kind in the zone makes the
+collision unrepresentable — `chem-labs.staging.<zone>` and `chem-labs-staging.<zone>`
+are different names by construction, with no reserved-suffix list to maintain and
+keep in sync with §7. This is the reasoning the two paragraphs above depend on, and
+it is why §11's lifetime table now points here.
 
 **One sandbox environment per project at a time**, so its hostname is stable and
 predictable. Concurrent sandboxes, if they are ever needed, take a suffixed slug;
