@@ -5,7 +5,7 @@ entry point: what Manifest is, what has been established, what the machine will 
 you, and what to do next. It is written for someone with **no prior context** —
 a new agent with a fresh window, or a developer joining.
 
-*Last verified 2026-08-30.* Two things in this file state current status and will go
+*Last verified 2026-08-31.* Two things in this file state current status and will go
 stale: §2 and §7. **The roadmap's ledger outranks both** — it is the maintained
 record. Everything else here is durable.
 
@@ -26,12 +26,12 @@ everything.
 
 ## 2. Where things stand
 
-**Four spikes are done. Two plans are written. No product code exists.**
+**Four spikes are done. Two plans are complete. No product code exists.**
 
 | | State |
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. S6, S5 and S4 are deliberately later (S6 is P3's acceptance exercise, S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
-| **Plans** | **P0** (spike briefs) and **P1** (local substrate, 13 tasks) are complete. **P2** is complete through Task 8, with Tasks 9–10 drafted before S1 and still carrying "not instructions" banners. **P3, P4, P5 are unwritten.** |
+| **Plans** | **P0** (spike briefs), **P1** (local substrate, 13 tasks) and **P2** (control-plane spine, 21 tasks) are complete. P2 was finished on 2026-08-31: its Tasks 9–10 banners were lifted against S1, and Tasks 11–21 written. **P3, P4, P5 are unwritten.** |
 | **Code** | None. No `package.json`, no `Makefile`, no `src/`. The repository is documentation only. |
 | **Spec** | Current. Every spike's actions have been applied with Rich's explicit approval, four times running. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
@@ -222,23 +222,10 @@ Rich's current intent is to **write the remaining plans before implementing any 
 them.** Each item below is a self-contained job for one agent with a fresh context.
 They are listed in the order they should be written.
 
-### 7a. Lift P2's two "drafted before S1" banners *(smallest — start here)*
+### 7a. Write P3 — Docker driver and deploy spine (1a-iii) *(start here)*
 
-`plans/2026-08-29-p2-control-plane-spine.md` Tasks 9 and 10 carry
-**⚠ Drafted before S1. Not instructions.** S1 has since reported and **§11's `Driver`
-interface needed no revision**, so this is a reconciliation pass, not a rewrite:
-
-- read `spikes/S1-findings.md`, especially *What survives* and *Spec actions*;
-- confirm each signature against §11 as it now reads;
-- make `capabilities()` able to report **user-namespace remapping as unavailable**,
-  since Docker Desktop does not provide it;
-- confirm `logs()` returns an `AsyncIterable<LogLine>` demuxing Docker's framed
-  stream — S1 did it in ~40 dependency-free lines;
-- remove both banners and the pause banner at the top of the plan.
-
-### 7b. Write P3 — Docker driver and deploy spine (1a-iii)
-
-*Depends on S1, which is done. Executes after P1 and P2.*
+*Depends on S1, which is done, and on **P2's driver contract suite**, which exists.
+Executes after P1 and P2.*
 
 This is the largest remaining plan and **S1's findings are most of its content**:
 the rootless builder invocation, the dual-homed registry, digest-not-tag promotion,
@@ -251,7 +238,7 @@ become §16's security-regression tier.
 **Demo:** a fixture app healthy at a `manifest.internal` URL, from a clean checkout,
 offline.
 
-### 7c. Write P4 — identity, secrets and AI (1b)
+### 7b. Write P4 — identity, secrets and AI (1b)
 
 *Depends on S2 and S3, both done, and on P3.*
 
@@ -265,7 +252,7 @@ catalogue, events, WebSocket streaming, redaction at capture, incidents.
 
 **Demo:** the proof app — CWL login, a Mongo write, an LLM answer — driven by `curl`.
 
-### 7d. Write P5 — contract and clients (1c)
+### 7c. Write P5 — contract and clients (1c)
 
 *Depends on P4.* The published OpenAPI contract, `manifest-mock`, the generated
 client, and the reference console (D22) that imports **only** the generated
@@ -286,6 +273,13 @@ machine that has Valet installed**; that is the known interesting case.
 ## 8. Decisions waiting on Rich
 
 Surface these; do not decide them.
+
+- **§11 and §23 disagree about environment hostnames.** §11's lifetime table says
+  sandbox is `{slug}-sbx-{id}` and staging `{slug}-staging`; §23 says
+  `<slug>.<zone for that environment kind>` with three zone settings and **no id
+  suffix**, because there is one sandbox per project at a time. P2 follows §23 and
+  says why (Task 14). **Proposed: replace §11's hostname row with a pointer to §23.**
+  Worth settling before P3, whose `routing/` builds these names for real.
 
 - **C4's actual turnaround time** for UBC IAM registration and the PIA is
   **unmeasured**, §9 calls it the highest-risk dependency in the design, and

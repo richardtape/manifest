@@ -17,9 +17,9 @@ answered yes**, each far inside its timebox, with every spec change they implied
 already applied. The remaining three are scheduled later, against machinery that does
 not exist yet.
 
-**Two implementation plans are written** (P1, the local substrate; P2, the
-control-plane spine, complete through Task 8). **P3, P4 and P5 are unwritten, and
-writing them is the current work.**
+**Two implementation plans are complete** — P1, the local substrate (13 tasks), and
+P2, the control-plane spine (21 tasks). **P3, P4 and P5 are unwritten, and writing
+P3 is the current work.**
 
 ## Where to start
 

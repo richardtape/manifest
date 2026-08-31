@@ -70,6 +70,20 @@ implied have already been applied to
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
 
+### Open spec action, raised by P2 — needs Rich
+
+**§11 and §23 disagree about environment hostnames.** §11's lifetime table gives
+sandbox `{slug}-sbx-{id}` and staging `{slug}-staging` — suffixed labels in one zone.
+§23 gives `<slug>.<zone for that environment kind>`, three separate zone settings, and
+says explicitly *"One sandbox environment per project at a time, so its hostname is
+stable and predictable"* — no id suffix. Both cannot be right.
+
+**P2 follows §23** (Task 14), because §23's stated job is to settle *"what the names
+are"*, it is the more specific rule, and S7 verified all three `manifest.internal`
+names serving under one wildcard certificate. **Proposed change: replace §11's
+hostname row with a pointer to §23.** Not applied — the spec is approved design.
+P3's `routing/` will build hostnames for real, so this wants deciding before P3.
+
 ---
 
 ## Lessons that outlive any one spike
@@ -170,10 +184,14 @@ infrastructure plan a real test cycle.
 
 *Depends on: **S1**, for the `Driver` interface only. Executes after P1.*
 
-*Status: written through Task 8 and paused. Tasks 1–8 — scaffolding, `spec/`,
-`blueprints/`, the database schema — are settled by §7 and §25 and survive any
-spike outcome. Tasks 9 onward wait for S1, because the `Driver` interface, the fake
-driver and the contract suite P3 inherits are what S1 exists to correct.*
+*Status: **complete — 21 tasks**, 2026-08-31. Written in two passes. Tasks 1–8 landed
+first and paused there: settled by §7 and §25, and safe against any spike outcome.
+Tasks 9–10 were drafted at the same time but held back, because S1 existed to correct
+the `Driver` interface and the contract suite P3 inherits; Tasks 11 onward were
+blocked behind them, consuming their types. **S1 reported on 2026-08-30 and the
+interface needed no revision**, so Tasks 9–10 were promoted rather than rewritten and
+Tasks 11–21 written against them. The plan's self-review caught seven defects and
+records each one.*
 
 Repository scaffolding (gap 1), the Fastify service, Drizzle schema for §6's
 entities, and the modules that are pure functions or driver-agnostic:
@@ -300,8 +318,9 @@ execution layer.** Each is written when its predecessor lands.
 3. **Run S1 and S3.** Done — 2026-08-30. All four Phase-1a-blocking spikes have
    reported.
 4. **Write P1, P2 and P3** with real findings in them. **P1 is written**
-   (2026-08-30). P2 is written through Task 8 and its pause condition has cleared.
-   P3 is next to write, and can be written now.
+   (2026-08-30). **P2 is complete** (2026-08-31, 21 tasks). **P3 is next to write**,
+   and can be written now — S1 and S7 have both reported, and P3 inherits P2's driver
+   contract suite unchanged.
 5. **Execute P1 → P2 → P3.** S6 is P3's acceptance exercise.
 6. **Start the external track now** (below), in parallel with all of the above. It
    has the longest lead time in the project and no software dependency.
@@ -320,12 +339,12 @@ wrong in two ways:
   unexecutable while S7 ran. Writing it early bought no schedule, only risk.
 
 Roughly the first half of P2 — scaffolding, `spec/`, `blueprints/` and the database
-schema — is genuinely settled by §7 and §25 and survives any spike outcome. It is
-written and paused at that boundary
-([`2026-08-29-p2-control-plane-spine.md`](./2026-08-29-p2-control-plane-spine.md)).
-**S1 reported on 2026-08-30 and the `Driver` interface needed no revision**, so the
-remainder can now be written — Tasks 9 and 10's existing sketch is validated rather
-than superseded.
+schema — is genuinely settled by §7 and §25 and survives any spike outcome, and was
+written first for that reason. **S1 reported on 2026-08-30 and the `Driver` interface
+needed no revision**, which validated Tasks 9 and 10's existing sketch rather than
+superseding it and unblocked Tasks 11 onward. The plan is now complete
+([`2026-08-29-p2-control-plane-spine.md`](./2026-08-29-p2-control-plane-spine.md),
+21 tasks).
 
 The point of steps 2–4 is that **no plan ever contains a placeholder standing in
 for a spike result.** A step reading *"determine the dnsmasq configuration"* is a
