@@ -3127,12 +3127,20 @@ export class InvalidTransitionError extends Error {
   }
 }
 
+/**
+ * `?.` rather than a bare index on purpose. The table is typed to cover every
+ * InstanceState, so a missing row can only arrive through drift — a state added to
+ * `driver.ts` and not here, or an old enum value read back from the database after
+ * the union changed. Unguarded, both produce a TypeError from dereferencing
+ * undefined; guarded, they produce the documented InvalidTransitionError, and the
+ * drift test below is left as the only thing that fails.
+ */
 export function canTransition(from: InstanceState, event: InstanceEvent): boolean {
-  return TRANSITIONS[from][event] !== undefined
+  return TRANSITIONS[from]?.[event] !== undefined
 }
 
 export function nextState(from: InstanceState, event: InstanceEvent): InstanceState {
-  const to = TRANSITIONS[from][event]
+  const to = TRANSITIONS[from]?.[event]
   if (to === undefined) throw new InvalidTransitionError(from, event)
   return to
 }
@@ -3174,9 +3182,16 @@ object so it still compiles. Run the tests again.
 Expected: **FAIL** on *"has an entry for every state the driver interface declares"* —
 and only that test. Restore the line and confirm green.
 
+**"Only that test" depends on the `?.` in `canTransition`.** Written with a bare
+index, removing `gone` also crashes *"lets any live state be destroyed, and gone
+accepts nothing"* with a TypeError, because `TRANSITIONS['gone']` is `undefined`
+before `[event]` is applied. Two failures, one of them a crash in an unrelated test,
+is a much worse signal than one named failure that says exactly what drifted. Verified
+both ways during execution.
+
 This is the control that matters in this task. Without it, a state added to
-`driver.ts` in P3 gets a silently missing table entry, and `TRANSITIONS[from]` returns
-`undefined` at the first call site that reaches it.
+`driver.ts` in P3 gets a silently missing table entry, and every call site that
+reaches it fails somewhere unrelated to the omission.
 
 - [ ] **Step 6: Commit**
 

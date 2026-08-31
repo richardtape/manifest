@@ -6,3 +6,4 @@ export type {
 export { instanceName, serviceName } from './driver.js'
 export { createFakeDriver } from './fake-driver.js'
 export type { FakeDriverOptions } from './fake-driver.js'
+export * from './state-machine.js'
