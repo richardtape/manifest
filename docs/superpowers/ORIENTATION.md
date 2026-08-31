@@ -26,13 +26,13 @@ everything.
 
 ## 2. Where things stand
 
-**Four spikes are done. Two plans are complete. No product code exists.**
+**Four spikes are done. Two plans are complete. The first product code is running.**
 
 | | State |
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. S6, S5 and S4 are deliberately later (S6 is P3's acceptance exercise, S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
 | **Plans** | **P0** (spike briefs), **P1** (local substrate, 13 tasks) and **P2** (control-plane spine, 21 tasks) are complete. P2 was finished on 2026-08-31: its Tasks 9–10 banners were lifted against S1, and Tasks 11–21 written. **P3, P4, P5 are unwritten.** |
-| **Code** | None. No `package.json`, no `Makefile`, no `src/`. The repository is documentation only. |
+| **Code** | **P2's runtime island, built 2026-08-31 and green**: pnpm workspace, the §11 `Driver` interface, the fake driver, the driver contract suite P3 inherits unchanged, the instance state machine. 19 tests via `pnpm test`; no Docker, no Postgres, no network. No `Makefile` yet (P1), no HTTP surface yet (P2 Tasks 12–21). |
 | **Spec** | Current. Every spike's actions have been applied with Rich's explicit approval, four times running. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
 The immediate work is **writing the remaining plans** — see §7.
@@ -98,6 +98,25 @@ spike. It was previously stranded inside a superseded handoff; it lives here now
 - **Caddy binds `127.0.0.2`**, a loopback alias, so Valet keeps `127.0.0.1:443`. The
   alias **does not survive a reboot**; `can't assign requested address` means it is
   gone.
+
+### The toolchain, and what executing P2 put on this machine
+
+- **Node is 24, not 22.** nvm has only `v24.12.0`; there is no Node 22 on this
+  machine. P2's plan originally pinned 22 for no reason that survived checking — the
+  spec names no Node version, no spike treated it as a variable, and the only evidence
+  was `passport-ubcshib`'s `">=22.0.0"`, which is a floor. **Repinned to 24**
+  (2026-08-31, Rich's call). Nothing was tried on 24 and found wanting.
+- **The app-side base image is still `node:22-alpine`** and is a *separate* decision:
+  it is what faculty apps run in, S1 recorded its digest and mirrored it into the
+  local registry, and P1 references it in three places including the offline test.
+- **`pnpm` was added via `corepack enable pnpm`** — pnpm 11.24.0, a shim in
+  `~/.nvm/versions/node/v24.12.0/bin/`. User-owned, **no `sudo`**, reversible with
+  `corepack disable pnpm`. This is the only host change P2's execution made.
+- **pnpm 11 blocks dependency install scripts by default**, as a hard error, so
+  `pnpm test` will not run until they are allowed. The key is `allowBuilds` in
+  `pnpm-workspace.yaml`; pnpm 10's `onlyBuiltDependencies` is still *read back* by
+  `pnpm config get` but has no effect, which makes hand-writing it look like a
+  mystery. Use `pnpm approve-builds <pkg>`.
 
 ### Rules of engagement
 

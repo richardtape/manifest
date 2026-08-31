@@ -9,9 +9,12 @@ This repository is the **deployment control plane**. The faculty-facing front-en
 a separate project; what lives here is the platform it consumes, plus a reference
 console that proves the API can carry the whole journey.
 
-## Status: pre-implementation
+## Status: implementation has started
 
-**There is no code yet**, and that is deliberate. The design is approved and complete.
+**The first product code landed on 2026-08-31** — P2's runtime island: the §11
+`Driver` interface, the in-memory fake driver, the shared driver contract suite P3
+inherits unchanged, and the instance state machine. 19 tests, no Docker, no Postgres,
+no network. Everything else is still design; the design is approved and complete.
 Seven throwaway spikes de-risk it; **four are done — S7, S2, S1 and S3 — and all four
 answered yes**, each far inside its timebox, with every spec change they implied
 already applied. The remaining three are scheduled later, against machinery that does

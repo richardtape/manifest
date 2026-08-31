@@ -7,12 +7,18 @@ plan queue, and the conventions below in full. Everything here is the short vers
 
 ## State
 
-Pre-implementation. **There is no product code** — no `package.json`, no `Makefile`,
-no `src/`. The repository is documentation. The design is approved and complete.
+Implementation has started. **P2's runtime island is built and green** — a pnpm
+workspace, the §11 `Driver` interface, the fake driver, the driver contract suite P3
+inherits, and the instance state machine. 19 tests, run with `pnpm test`; no Docker,
+no Postgres, no network. There is still no `Makefile` (P1) and no HTTP surface (P2
+Tasks 12-21). The design is approved and complete.
 
-Four spikes are done (S7, S2, S1, S3 — all answered yes). P0 and P1 are written; P2
-is complete through Task 8. **P3, P4 and P5 are unwritten, and writing them is the
-current work.** The maintained status record is the *Spike status* ledger in
+**Toolchain:** Node 24 via nvm, pnpm 11 via corepack. `pnpm test`, `pnpm lint`,
+`pnpm --filter @manifest/control-plane typecheck` must all be clean before a commit.
+
+Four spikes are done (S7, S2, S1, S3 — all answered yes). P0, P1 and P2 are written;
+P2 Tasks 1, 9, 10 and 11 are also **executed and green**. **P3, P4 and P5 are
+unwritten, and writing P3 is the current work.** The maintained status record is the *Spike status* ledger in
 `docs/superpowers/plans/2026-08-29-plan-roadmap.md`; if any document disagrees with
 it, the ledger wins.
 

@@ -193,6 +193,15 @@ interface needed no revision**, so Tasks 9–10 were promoted rather than rewrit
 Tasks 11–21 written against them. The plan's self-review caught seven defects and
 records each one.*
 
+*Execution began 2026-08-31: **Tasks 1, 9, 10 and 11 are built and green** — the
+runtime island, which needs no Postgres and no Docker. 19 tests. Running them found
+four further defects the self-review could not have: pnpm 11 makes an un-named
+dependency build script a hard error; the ESLint boundary patterns were backwards and
+caught almost nothing; `typescript-eslint` does not honour an `_` prefix by default,
+so the fake driver's faithful `exec(id, cmd, _opts)` failed lint; and the state
+machine's unguarded table index turned drift into a TypeError in an unrelated test.
+All four are fixed in the plan. **Tasks 2–8 and 12–21 are written but unexecuted.***
+
 Repository scaffolding (gap 1), the Fastify service, Drizzle schema for §6's
 entities, and the modules that are pure functions or driver-agnostic:
 
