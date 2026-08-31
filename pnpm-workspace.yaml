@@ -1,0 +1,19 @@
+packages:
+  - 'packages/*'
+
+# pnpm 10+ refuses to run a dependency's install scripts unless it is named here,
+# and pnpm 11 makes an un-named one a hard error rather than a warning — `pnpm test`
+# will not run at all. Allowing one is a supply-chain decision, so each entry
+# carries its reason.
+#
+# NOTE: pnpm 11 spells this `allowBuilds` (a map). Earlier pnpm 10 docs say
+# `onlyBuiltDependencies` (a list); pnpm 11 still *reads* that key — `pnpm config
+# get onlyBuiltDependencies` returns it — but does not act on it, so the error
+# persists with no indication the setting was seen. Use `pnpm approve-builds <pkg>`
+# rather than hand-writing either key.
+#
+#   esbuild — vitest's bundler. Its postinstall (`node install.js`) fetches the
+#   platform binary; without it vitest cannot start. Pinned transitively by
+#   vitest 2.1.9 as esbuild@0.21.5.
+allowBuilds:
+  esbuild: true

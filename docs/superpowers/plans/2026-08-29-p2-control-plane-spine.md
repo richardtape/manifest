@@ -6,7 +6,7 @@
 
 **Architecture:** A pnpm workspace whose `control-plane` package holds §5's module map as `src/<module>/` folders, each with a public `index.ts` and no reach into another module's internals. Domain logic is pure functions over plain data; all infrastructure sits behind the §11 `Driver` interface, which has two implementations — a fake one here, a Docker one in P3 — that pass the identical contract suite. Fastify serves a minimal HTTP surface; every mutating route takes an idempotency key and every route carries an explicit `ProjectMember` check.
 
-**Tech Stack:** TypeScript (strict), Node 22 LTS, pnpm workspaces, Fastify, Postgres 16, Drizzle ORM + Drizzle Kit, Zod (+ `fastify-type-provider-zod`), Vitest, Supertest, ESLint flat config + Prettier.
+**Tech Stack:** TypeScript (strict), Node 24 LTS, pnpm workspaces, Fastify, Postgres 16, Drizzle ORM + Drizzle Kit, Zod (+ `fastify-type-provider-zod`), Vitest, Supertest, ESLint flat config + Prettier.
 
 **Spec:** [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](../specs/2026-08-29-manifest-platform-design.md)
 
@@ -100,7 +100,11 @@ signature changes. P3 adds the real builder and may take the split then.
 
 Every task's requirements implicitly include this section. Values are copied verbatim from the spec.
 
-- **Node 22 LTS**, pinned in `.nvmrc` and `engines`. `passport-ubcshib` declares `"node": ">=22.0.0"`.
+- **Node 24 LTS**, pinned in `.nvmrc` and `engines`. Node 24 is the current Active LTS; Node 22 is in maintenance. `passport-ubcshib` declares `"node": ">=22.0.0"`, which is a **floor**, not a pin, and 24 clears it.
+
+  *This was 22 in the first draft, for no reason that survived checking.* The spec names no Node version anywhere; no spike ever treated the Node version as a variable; and S1's use of `node:22-alpine` was incidental — it was the image already pulled. Repinned to 24 on 2026-08-31 at Rich's direction. **Nothing was tried on 24 and found wanting**, because nothing had been tried on 24 at all.
+
+- **The app-side Node version is a separate decision, and is still 22.** The blueprint's `base_image` is `node:22-alpine` — what *faculty apps* run in, not what the control plane runs on. They need not match: §25 and D30 make blueprints independently versioned precisely so a blueprint's runtime is its own business. Changing it is not free — S1 recorded that image's exact digest and mirrored it into the local registry, P1 references it in three places including `make doctor` and the **offline** acceptance test, and `node:24-alpine` is not pulled on this machine. Decide it when P1 executes, not in passing here.
 - **TypeScript `strict: true`.** No `any` in committed code; use `unknown` and narrow.
 - **No module reaches into another module's internals** (§5). Imports cross module boundaries only through `src/<module>/index.ts`. Enforced by ESLint *and* by a test (Task 1).
 - **Project slug / `name` regex:** `^[a-z][a-z0-9-]{2,38}$` (§7).
@@ -142,7 +146,7 @@ manifest/
         ├── drizzle/                        generated migrations
         └── src/
             ├── index.ts                    boot
-            ├── config.ts                   env parsing, dev-auth guard
+            ├── config.ts                   env parsing, dev-auth kill switch
             ├── db/
             │   ├── schema.ts               Drizzle tables for §6
             │   ├── client.ts
@@ -183,8 +187,6 @@ manifest/
             │   ├── build.ts
             │   ├── release.ts              create, deploy, promote
             │   └── index.ts
-            ├── config.ts                   env parsing, dev-auth kill switch
-            ├── index.ts                    boot
             └── api/
                 ├── server.ts               Fastify wiring, session hook, idempotency hook
                 ├── errors.ts               the D23.7 error envelope
@@ -234,12 +236,30 @@ would end up in the shipped bundle.
 ```yaml
 packages:
   - 'packages/*'
+
+# pnpm 10+ refuses to run a dependency's install scripts unless it is named here,
+# and pnpm 11 makes an un-named one a HARD ERROR rather than a warning — `pnpm test`
+# does not run at all. Allowing one is a supply-chain decision, so each entry
+# carries its reason.
+#
+#   esbuild — vitest's bundler. Its postinstall (`node install.js`) fetches the
+#   platform binary; without it vitest cannot start. Pulled in transitively by
+#   vitest 2.1.9 as esbuild@0.21.5.
+allowBuilds:
+  esbuild: true
 ```
+
+**Do not hand-write this key from memory.** pnpm 11 spells it `allowBuilds` (a map);
+pnpm 10's documentation says `onlyBuiltDependencies` (a list). pnpm 11 still *reads*
+the old key — `pnpm config get onlyBuiltDependencies` dutifully returns your value —
+but does not act on it, so the install keeps failing with no hint that the setting was
+seen. Run **`pnpm approve-builds esbuild`** and let pnpm write the key; then restore
+the comment above, which `approve-builds` strips.
 
 `.nvmrc`:
 
 ```
-22
+24
 ```
 
 `package.json`:
@@ -249,7 +269,7 @@ packages:
   "name": "manifest",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.0.0" },
+  "engines": { "node": ">=24.0.0" },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
@@ -258,7 +278,7 @@ packages:
     "typecheck": "tsc -b --pretty"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
+    "@types/node": "^24.0.0",
     "eslint": "^9.17.0",
     "prettier": "^3.4.2",
     "typescript": "^5.7.2",
@@ -421,10 +441,12 @@ Temporarily add to `src/spec/index.ts`:
 
 ```ts
 // @ts-expect-error deliberate violation, removed in the next step
-import { nothing } from '../blueprints/index.js'
+import { nothing } from '../blueprints/descriptor.js'
 ```
 
 Run `pnpm test`. Expected: **FAIL**, listing `spec/index.ts` in `violations`. Then delete those two lines and confirm it passes again.
+
+**The target must be a module-internal file, not `index.js`.** `../blueprints/index.js` is a *public entry point* and is exactly what the rule permits — using it here would produce a green run and a false sense of a working control. `descriptor.ts` need not exist yet: the test reads source as text and resolves paths, it never imports anything.
 
 A test that has never failed is not evidence of anything. This step is not optional.
 
@@ -446,7 +468,21 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ['../*/!(index)', '../*/*/**'],
+              // ESLint 9's `group` takes gitignore-style globs, which have NO
+              // extglob support: `!(index)` is read literally and matches nothing.
+              // A leading `!` is the negation this syntax does support. Verified
+              // against all four shapes — see the note below.
+              group: [
+                './*/*',
+                '../*/*',
+                '../../*/*',
+                '!./*/index.js',
+                '!../*/index.js',
+                '!../../*/index.js',
+                '!./*/testing.js',
+                '!../*/testing.js',
+                '!../../*/testing.js',
+              ],
               message:
                 'Cross-module imports must go through the module’s public index.ts (§5).',
             },
@@ -458,7 +494,52 @@ export default tseslint.config(
 )
 ```
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Prove the ESLint half fires too — it is the half that silently does not**
+
+The plan claims the boundary is enforced twice. A lint rule that never fires is worse
+than no lint rule: it is a false report of a control. Check all four shapes with
+throwaway fixtures, then delete them.
+
+```bash
+mkdir -p packages/control-plane/src/probe packages/control-plane/src/api/routes
+
+# must be SILENT — these are the permitted public entry points
+cat > packages/control-plane/src/probe/legit.ts <<'EOF'
+// @ts-expect-error fixture
+import { a } from '../db/index.js'
+// @ts-expect-error fixture
+import { b } from '../db/testing.js'
+export const LEGIT = [a, b]
+EOF
+
+# must ERROR — one level up, into a module's internals
+cat > packages/control-plane/src/probe/bad.ts <<'EOF'
+// @ts-expect-error fixture
+import { c } from '../db/schema.js'
+export const BAD = c
+EOF
+
+# must ERROR — two levels up, the shape api/routes/*.ts actually uses
+cat > packages/control-plane/src/api/routes/probe.ts <<'EOF'
+// @ts-expect-error fixture
+import { d } from '../../db/schema.js'
+export const PROBE = d
+EOF
+
+pnpm lint
+rm -rf packages/control-plane/src/probe packages/control-plane/src/api
+```
+
+Expected: **exactly two `no-restricted-imports` errors** — `probe/bad.ts` and
+`api/routes/probe.ts` — and **nothing** for `probe/legit.ts`.
+
+*The original pattern set (`['../*/!(index)', '../*/*/**']`) got this exactly
+backwards:* it missed the one-level violation entirely, and caught the two-level one
+only by accident, because `*` happened to match `..`. It would also have flagged the
+legitimate `../db/index.js`. Both halves of a doubly-enforced rule have now been
+watched failing and watched passing.
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add .nvmrc package.json pnpm-workspace.yaml tsconfig.base.json eslint.config.js \
