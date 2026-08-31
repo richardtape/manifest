@@ -99,6 +99,16 @@ row, not a design change.
 
 Recorded here because they are about *how to run this work*, and each was paid for.
 
+- **A plan is not verified until it runs.** P2's written self-review found seven
+  defects. Executing four of its twenty-one tasks then found five more, none of them
+  findable on paper — pnpm 11 making an un-named build script a hard error, ESLint 9's
+  gitignore-style globs having no extglob so the boundary rule caught almost nothing,
+  typescript-eslint not honouring the `_` prefix the plan's own code used, a negative
+  control pointed at a target that could not fail, and an unguarded table index that
+  turned drift into a crash in an unrelated test. Five in four tasks. The seventeen
+  unexecuted P2 tasks and all of P3–P5 carry the same unmeasured rate. Keep planning
+  ahead — but execute a cheap representative slice early rather than banking a large
+  unexecuted stack.
 - **A green result is not evidence a control is in force.** S1's first build appeared
   to succeed while silently using the public npm registry instead of the mirror —
   `.npmrc` was copied *after* `npm install`. Only checking the mirror's storage caught

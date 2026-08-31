@@ -33,9 +33,9 @@ everything.
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. S6, S5 and S4 are deliberately later (S6 is P3's acceptance exercise, S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
 | **Plans** | **P0** (spike briefs), **P1** (local substrate, 13 tasks) and **P2** (control-plane spine, 21 tasks) are complete. P2 was finished on 2026-08-31: its Tasks 9–10 banners were lifted against S1, and Tasks 11–21 written. **P3, P4, P5 are unwritten.** |
 | **Code** | **P2's runtime island, built 2026-08-31 and green**: pnpm workspace, the §11 `Driver` interface, the fake driver, the driver contract suite P3 inherits unchanged, the instance state machine. 19 tests via `pnpm test`; no Docker, no Postgres, no network. No `Makefile` yet (P1), no HTTP surface yet (P2 Tasks 12–21). |
-| **Spec** | Current. Every spike's actions have been applied with Rich's explicit approval, four times running. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
+| **Spec** | Current. Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
-The immediate work is **writing the remaining plans** — see §7.
+The immediate work is **writing P3** — see §7.
 
 ---
 
@@ -48,7 +48,8 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
 | **writing a plan** | §7 below, the roadmap's section for your plan, the findings notes it names, and `plans/2026-08-30-p1-local-substrate.md` **or** `2026-08-29-p2-control-plane-spine.md` as the house style. |
 | **executing a plan** | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan. |
-| **changing the spec** | Don't, without asking. It is marked *Approved design*. Record the proposed change and Rich decides — that has been the pattern four times. |
+| **writing code** | `packages/control-plane/src/runtime/` is the only module that exists. Read `driver.ts` and `driver-contract.ts` first — everything else in the system is built against them. |
+| **changing the spec** | Don't, without asking. It is marked *Approved design*. Record the proposed change and Rich decides — that has been the pattern five times. |
 
 ```
 docs/superpowers/
@@ -61,7 +62,8 @@ docs/superpowers/
 ├── plans/
 │   ├── 2026-08-29-plan-roadmap.md                 THE LEDGER. Status lives here.
 │   ├── 2026-08-29-phase-0-spike-briefs.md         P0. Historical record.
-│   ├── 2026-08-29-p2-control-plane-spine.md       P2. Complete through Task 8.
+│   ├── 2026-08-29-p2-control-plane-spine.md       P2. Complete, 21 tasks.
+│   │                                              Tasks 1, 9, 10, 11 are EXECUTED.
 │   └── 2026-08-30-p1-local-substrate.md           P1. Complete, 13 tasks.
 └── spikes/
     ├── S7-findings.md  DNS, the edge, TLS       ← P1's content
@@ -69,8 +71,31 @@ docs/superpowers/
     ├── S1-findings.md  Docker round-trip        ← P3's content
     ├── S3-findings.md  LiteLLM, Ollama, budgets ← P4's AI half
     ├── START-HERE.md   the ORIGINAL spike briefing. Historical; §6 is wrong.
-    └── HANDOFF-2026-08-3*.md  dated handoffs. Historical once superseded.
+    └── HANDOFF-2026-08-3*.md  dated handoffs. BOTH SUPERSEDED by this file.
+                               Kept as a record; do not act on either.
 ```
+
+**And the code**, all of it, as of 2026-08-31:
+
+```
+.nvmrc  package.json  pnpm-workspace.yaml  tsconfig.base.json
+eslint.config.js  vitest.workspace.ts          the workspace (P2 Task 1)
+packages/control-plane/src/
+├── module-boundaries.test.ts   the §5 rule, enforced by a test that resolves
+│                               imports and compares modules
+├── spec/index.ts               a placeholder. P2 Task 2 replaces it.
+└── runtime/
+    ├── driver.ts               the §11 Driver interface           (Task 9)
+    ├── fake-driver.ts          in-memory implementation           (Task 9)
+    ├── driver-contract.ts      THE SHARED SUITE P3 IMPORTS UNCHANGED (Task 10)
+    ├── fake-driver.test.ts     points the suite at the fake driver
+    ├── state-machine.ts        §11 transitions + IDLE_POLICY      (Task 11)
+    └── state-machine.test.ts
+```
+
+`pnpm test` → **19 tests, ~190ms**, no Docker, no Postgres, no network. Also
+`pnpm lint` and `pnpm --filter @manifest/control-plane typecheck`. All three must be
+clean before you commit.
 
 **Which spec sections matter, by topic:** §7 the `manifest.yaml` contract · §9 identity ·
 §10 AI access · §11 execution model and the `Driver` interface · §12 networking,
@@ -217,18 +242,21 @@ coherent. Follow them.
    `superpowers:subagent-driven-development` or `executing-plans` to execute one,
    `superpowers:brainstorming` before creative work. If a skill applies, use it.
 2. **Ask before `sudo`, and before modifying anything outside your branch.**
-3. **Record exact versions.** Image digests, package versions, macOS and Docker
+   Installing a global tool counts. So does touching the spec.
+3. **Green before you commit:** `pnpm test`, `pnpm lint`, and
+   `pnpm --filter @manifest/control-plane typecheck`. All three, every time.
+4. **Record exact versions.** Image digests, package versions, macOS and Docker
    Desktop versions. A finding without a version is not reproducible.
-4. **Make the judgment call, then write down why.** Rich would rather you decide a
+5. **Make the judgment call, then write down why.** Rich would rather you decide a
    routine question and record the reasoning as a documented decision than block on
    asking. Reserve questions for things that are genuinely his — spec changes, host
    changes, anything irreversible. P1's *Decisions this plan makes* section is the
    pattern.
-5. **Capture negative controls.** "It works" is much weaker than "it works, and here
+6. **Capture negative controls.** "It works" is much weaker than "it works, and here
    it is correctly failing when I remove the thing that makes it work."
-6. **Write for a reader who was not there.** Every one of these documents will be
+7. **Write for a reader who was not there.** Every one of these documents will be
    read cold by someone with no context. That is the normal case, not the exception.
-7. **Close out properly.** Update the roadmap ledger, sweep for documents that state
+8. **Close out properly.** Update the roadmap ledger, sweep for documents that state
    status, and leave the machine as you found it. The sweep is the step that gets
    forgotten, and forgetting it is how four documents once spent a day lying about
    the state of the project.
@@ -256,6 +284,18 @@ become §16's security-regression tier.
 
 **Demo:** a fixture app healthy at a `manifest.internal` URL, from a clean checkout,
 offline.
+
+**Read S1's *Open questions* before you start — it assigns four things to P3, and
+two of them are controls rather than implementation details.** The house rule is that
+no plan may contain a step standing in for a spike result, so these need settling
+*while* P3 is written, not discovered inside it:
+
+| S1 left open | Why it is not a detail |
+|---|---|
+| **A registry push token scoped to one repository path.** S1's registry had *no auth at all*. | §13's *"the image registry rejects pushes from app and sandbox contexts"* is what stops "promotion never rebuilds" being defeated by overwriting a tag. **Nobody has made `registry:2` do scoped auth.** If it cannot, that is a design change, not a task. Worth an hour's probe before writing the task that assumes it. |
+| **Builder timeout, disk quota, concurrency caps.** S1: *"The builder ran unbounded."* | An unbounded builder is a local denial of service. §12 says "Bounded"; nothing has tested that BuildKit honours it. |
+| **`exec()`** was never exercised. | S5's problem, not P3's — but do not write P3 as though `exec` is proven. |
+| **Multi-arch / image promotion**, and whether `--internal` survives a Docker Desktop restart. | §21's divergence 4 says laptop images are never promoted, and nothing in the driver *enforces* it yet. A P3 decision; `make doctor` could assert the second. |
 
 ### 7b. Write P4 — identity, secrets and AI (1b)
 
@@ -307,6 +347,13 @@ Surface these; do not decide them.
 - **Does LiteLLM's embedding `encoding_format` bug affect a commercial provider, or
   only the Ollama path?** Unmeasured — only Ollama was reachable offline. Cheap to
   settle the first time anyone has a provider key.
+- **Should the blueprint base image move from `node:22-alpine` to 24?** The *control
+  plane* was repinned to Node 24 on 2026-08-31; this is the separate, app-side
+  question — what faculty apps run in. Not free: S1 recorded that image's exact
+  digest and mirrored it into the local registry, P1 references it in three places
+  including `make doctor` and the **offline** acceptance test, and `node:24-alpine`
+  is not pulled on this machine. **Decide it when P1 executes**, where the cost is
+  visible, not in passing.
 
 **Closed recently:** the §11/§23 hostname disagreement — settled 2026-08-31 in §23's
 favour and both spec edits applied. The environment kind lives in the **zone**, never
@@ -325,6 +372,17 @@ not remove.
 These are about *how to work here*, and they are in the roadmap too, which is the
 maintained copy.
 
+- **A plan is not verified until it runs, and the gap is not small.** P2's written
+  self-review found seven defects. Then executing just **four of its twenty-one
+  tasks** found **five more**, and not one was findable on paper: a package manager
+  that makes an un-named build script a hard error, a lint config whose glob dialect
+  silently has no extglob, a linter that does not honour the `_` convention the
+  plan's own code assumed, a negative control aimed at a target that could not fail,
+  and an unguarded table index that turned drift into a crash in an unrelated test.
+  **Five defects in four tasks.** The seventeen unexecuted P2 tasks, and every task
+  in P3–P5, carry the same unmeasured rate. Plan-ahead is still the right strategy
+  here — but treat "the plan is written" as a hypothesis, and execute the cheapest
+  representative slice early rather than banking a large unexecuted stack.
 - **A green result is not evidence a control is in force.** S1's first build appeared
   to succeed while silently using the public npm registry instead of the mirror.
   Only checking the mirror's storage caught it.
