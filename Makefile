@@ -2,9 +2,17 @@
 # working loop from a clean checkout, so every target here is part of that claim.
 SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
-COMPOSE := docker compose -f infra/compose.yaml -p manifest
+# --env-file is required: Compose resolves a bare `.env` against the compose
+# file's directory (infra/), not the repo root. See infra/lib/common.sh.
+COMPOSE := docker compose -f infra/compose.yaml -p manifest --env-file .env
 
 .PHONY: help seed up down reset doctor verify host-setup host-undo
+
+# Every compose target needs .env to exist — `--env-file` on a missing file is a
+# hard error, not a warning. `make seed` also writes it; this makes `make up` on
+# a fresh clone explain itself instead of failing inside Compose.
+.env:
+	@cp .env.example .env && echo "created .env from .env.example"
 
 help:  ## Show this help
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \

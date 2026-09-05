@@ -105,4 +105,23 @@ edge_serves_container_side() {
 }
 check "a container reaches https://console.$ZONE with the platform CA"  edge_serves_container_side
 
+echo
+echo "Postgres — one server, three databases (§21)"
+
+pg_has_three_databases() {
+  local got want="litellm manifest_control manifest_idp"
+  got=$(docker exec manifest-postgres psql -U manifest -d postgres -tAc \
+        "SELECT datname FROM pg_database WHERE datname IN ('manifest_control','litellm','manifest_idp') ORDER BY datname" \
+        2>&1 | tr '\n' ' ' | sed 's/ *$//')
+  echo "found: ${got:-<none>} (want $want)"
+  [ "$got" = "$want" ]
+}
+check "manifest_control, litellm and manifest_idp all exist"  pg_has_three_databases
+
+pg_reachable_from_host() {
+  # §21: the control plane is a HOST process and connects over the published port.
+  nc -z 127.0.0.1 "$PORT_POSTGRES" && echo "127.0.0.1:$PORT_POSTGRES accepting connections"
+}
+check "Postgres is reachable from the host on $PORT_POSTGRES"  pg_reachable_from_host
+
 summary

@@ -246,8 +246,22 @@ VM_MEMORY_FLOOR_BYTES=8000000000
 DISK_FLOOR_GB=40
 
 CA_FILE="infra/ca/manifest-root.crt"
-COMPOSE="docker compose -f infra/compose.yaml -p manifest"
+# --env-file IS REQUIRED. Compose resolves a bare `.env` against the PROJECT
+# DIRECTORY, which defaults to the compose file's own directory — so with
+# `-f infra/compose.yaml` it looks for infra/.env and never sees the repo-root
+# .env this plan creates. The symptom is every ${VAR} interpolating to nothing.
+# `--project-directory .` would also find it but would then re-root every
+# relative volume path in the compose file, which is worse.
+COMPOSE="docker compose -f infra/compose.yaml -p manifest --env-file .env"
 ```
+
+> **Defect found in execution (2026-09-05).** Both this constant and the
+> `Makefile`'s originally read `docker compose -f infra/compose.yaml -p manifest`
+> with no `--env-file`. Compose v5.4.0 then looks for `infra/.env`, so Task 6's
+> Postgres service failed at interpolation:
+> `required variable POSTGRES_PASSWORD is missing a value`. `--env-file` on a
+> *missing* file is itself a hard error, so the `Makefile` also gained a `.env:`
+> rule that creates it from `.env.example`.
 
 - [ ] **Step 3: Write `doctor.sh` with one check that cannot pass yet, and run it**
 
@@ -287,9 +301,17 @@ Expected: **FAIL** — `infra/compose.yaml` does not exist yet, and the run exit
 # working loop from a clean checkout, so every target here is part of that claim.
 SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
-COMPOSE := docker compose -f infra/compose.yaml -p manifest
+# --env-file is required: Compose resolves a bare `.env` against the compose
+# file's directory (infra/), not the repo root. See infra/lib/common.sh.
+COMPOSE := docker compose -f infra/compose.yaml -p manifest --env-file .env
 
 .PHONY: help seed up down reset doctor verify host-setup host-undo
+
+# Every compose target needs .env to exist — `--env-file` on a missing file is a
+# hard error, not a warning. `make seed` also writes it; this makes `make up` on
+# a fresh clone explain itself instead of failing inside Compose.
+.env:
+	@cp .env.example .env && echo "created .env from .env.example"
 
 help:  ## Show this help
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \

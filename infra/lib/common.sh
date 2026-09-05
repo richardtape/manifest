@@ -31,4 +31,10 @@ VM_MEMORY_FLOOR_BYTES=8000000000
 DISK_FLOOR_GB=40
 
 CA_FILE="infra/ca/manifest-root.crt"
-COMPOSE="docker compose -f infra/compose.yaml -p manifest"
+# --env-file IS REQUIRED. Compose resolves a bare `.env` against the PROJECT
+# DIRECTORY, which defaults to the compose file's own directory — so with
+# `-f infra/compose.yaml` it looks for infra/.env and never sees the repo-root
+# .env this plan creates. The symptom is every ${VAR} interpolating to nothing.
+# `--project-directory .` would also find it but would then re-root every
+# relative volume path in the compose file, which is worse.
+COMPOSE="docker compose -f infra/compose.yaml -p manifest --env-file .env"

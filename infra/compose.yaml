@@ -70,7 +70,11 @@ services:
     networks:
       platform: { ipv4_address: 10.89.0.10 }
     ports:
-      # Task 4 adds 127.0.0.2:80 and :443 once the lo0 alias exists.
+      # Real 80/443, on the loopback ALIAS. Valet keeps 127.0.0.1:80 and :443 and
+      # neither is aware of the other. A PORT IN THE URL WOULD BREAK the parity
+      # property §9 needs, so an override port is not an acceptable fallback here.
+      - "127.0.0.2:80:80"
+      - "127.0.0.2:443:443"
       - "127.0.0.1:7119:2019"
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
@@ -83,6 +87,28 @@ services:
       timeout: 3s
       retries: 12
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: manifest-postgres
+    restart: unless-stopped
+    networks: [platform]
+    environment:
+      POSTGRES_USER: manifest
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: manifest_control
+    ports:
+      - "127.0.0.1:7103:5432"
+    volumes:
+      - ./postgres/initdb:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U manifest -d manifest_control"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
 volumes:
   caddy-data:
     name: manifest-caddy-data
+  pgdata:
+    name: manifest-pgdata

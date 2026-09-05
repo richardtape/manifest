@@ -95,4 +95,43 @@ check_zone_unclaimed() {
 }
 check "nothing but Manifest claims $ZONE"  check_zone_unclaimed
 
+echo
+echo "Host setup (make host-setup)"
+
+check_resolver() {
+  local f=/etc/resolver/$ZONE
+  [ -f "$f" ] || { echo "$f missing — run: make host-setup"; return 1; }
+  grep -q "^nameserver 127.0.0.1$" "$f" && grep -q "^port $PORT_DNS$" "$f" \
+    || { echo "$f present but wrong: $(tr '\n' ' ' < "$f")"; return 1; }
+  echo "$f -> 127.0.0.1:$PORT_DNS"
+}
+check "/etc/resolver/$ZONE installed and correct"  check_resolver
+
+check_alias() {
+  ifconfig lo0 | grep -q "inet $EDGE_IP" \
+    || { echo "$EDGE_IP not on lo0 — Docker will refuse to bind Caddy. Lost on every reboot; \`make up\` re-adds it."; return 1; }
+  echo "$EDGE_IP present on lo0"
+}
+check "the $EDGE_IP loopback alias exists"  check_alias
+
+check_ca_keychain() {
+  local n
+  n=$(security find-certificate -a -c "Caddy Local Authority" /Library/Keychains/System.keychain 2>/dev/null | grep -c keychain)
+  echo "$n Caddy root(s) in the System keychain"
+  [ "$n" -ge 1 ]
+}
+check "the platform CA is trusted in the macOS keychain"  check_ca_keychain
+
+# The keychain does NOT cover host Node processes — Node ignores it entirely, and
+# the control plane, admin UI and console are all host Node processes (S7).
+check_node_ca() {
+  [ -f "$CA_FILE" ] || { echo "$CA_FILE missing — run make seed"; return 1; }
+  node -e '
+    const https=require("https");
+    https.get("https://console.manifest.internal/",r=>{console.log("node reached the edge, status",r.statusCode);process.exit(0)})
+         .on("error",e=>{console.log("node failed:",e.code);process.exit(1)});
+  '
+}
+check_warn "host Node trusts the CA (needs NODE_EXTRA_CA_CERTS)"  check_node_ca
+
 summary
