@@ -155,9 +155,35 @@ services:
       - ./egress/tinyproxy.conf:/etc/tinyproxy/tinyproxy.conf:ro
       - ./egress/allowlist:/etc/tinyproxy/allowlist:ro
 
+  builder:
+    # Transient in production use — the driver creates and destroys one per build
+    # (§12). Here it sits behind a profile so `make up` does not carry it.
+    profiles: [build]
+    image: moby/buildkit:v0.32.2-rootless
+    container_name: manifest-buildkitd
+    restart: unless-stopped
+    # INTERNAL NETWORK ONLY. This is the network restriction, and Task 7's
+    # negative control is what proves it is in force.
+    networks: [build-internal]
+    # Rootless BuildKit needs these three. It does NOT need --privileged, and
+    # §12 forbids it; buildx's own docker-container driver would add it.
+    security_opt:
+      - seccomp=unconfined
+      - apparmor=unconfined
+    devices:
+      - /dev/fuse
+    volumes:
+      - ./buildkit/buildkitd.toml:/home/user/.config/buildkit/buildkitd.toml:ro
+      - buildkit-cache:/home/user/.local/share/buildkit
+    # Default unix socket ONLY. `--addr tcp://…` makes the docker-container://
+    # transport hang on "waiting for connection: context deadline exceeded" (S1).
+    command: ["--oci-worker-no-process-sandbox"]
+
 volumes:
   caddy-data:
     name: manifest-caddy-data
+  buildkit-cache:
+    name: manifest-buildkit-cache
   registry-data:
     name: manifest-registry-data
   verdaccio-storage:

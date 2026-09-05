@@ -1690,11 +1690,25 @@ if docker inspect manifest-buildkitd >/dev/null 2>&1; then
   }
   check "rootlesskit is the process supervisor"  builder_runs_rootlesskit
 
+  # Judge by wget's EXIT CODE, not its output. With -q a SUCCESSFUL fetch prints
+  # the page body and a BLOCKED one prints "wget: bad address" on stderr, so an
+  # `[ -z "$out" ]` assertion is non-empty either way and can essentially never
+  # pass — it reported FAIL here while egress was correctly blocked. And as in
+  # Task 7, a failure of `docker exec` itself (125/126/127) means the command
+  # never ran, which tells us nothing about egress.
+  # The POSITIVE HALF is the very next check: the builder must still reach the
+  # mirror, or "blocked" would just mean the builder has no networking at all.
   builder_egress_blocked() {
-    local out
-    out=$(docker exec manifest-buildkitd wget -q -T4 -O- https://registry.npmjs.org/ 2>&1)
-    echo "builder reaching npmjs: ${out:0:60}"
-    [ -z "$out" ]
+    local out rc
+    out=$(docker exec manifest-buildkitd wget -q -T4 -O- https://registry.npmjs.org/ 2>&1); rc=$?
+    if [ "$rc" -eq 0 ]; then
+      echo "REACHED npmjs from the builder — egress is NOT restricted"; return 1
+    fi
+    if [ "$rc" -ge 125 ]; then
+      echo "docker exec itself failed (exit $rc), so egress was never exercised: ${out:0:80}"
+      return 1
+    fi
+    echo "wget exited $rc: ${out:0:60}"
   }
   check "NEGATIVE CONTROL: the builder cannot reach the public internet"  builder_egress_blocked
 

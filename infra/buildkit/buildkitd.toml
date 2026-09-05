@@ -1,0 +1,14 @@
+# BOTH stanzas are required and NEITHER is discoverable from the error message
+# they prevent (S1).
+
+# BuildKit generates its own resolv.conf for RUN steps, so Docker service names
+# do not resolve without this. The symptom is:
+#   npm error ... getaddrinfo ENOTFOUND manifest-verdaccio
+[dns]
+  nameservers = ["127.0.0.11"]
+
+# The local registry is plain HTTP. Without this the builder refuses to pull the
+# mirrored base images `make seed` pushed, and offline builds fail.
+[registry."manifest-registry:5000"]
+  http = true
+  insecure = true

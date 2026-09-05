@@ -234,4 +234,56 @@ egress_proxy_survives_denial() {
 }
 check "the egress proxy survives denying a request"  egress_proxy_survives_denial
 
+echo
+echo "Builder (§12, S1) — only checked when the 'build' profile is up"
+if docker inspect manifest-buildkitd >/dev/null 2>&1; then
+
+  builder_not_privileged() {
+    local p u
+    p=$(docker inspect manifest-buildkitd --format '{{.HostConfig.Privileged}}')
+    u=$(docker inspect manifest-buildkitd --format '{{.Config.User}}')
+    echo "Privileged=$p User=$u (want false, and a non-root uid)"
+    [ "$p" = "false" ] && [ -n "$u" ] && [ "$u" != "root" ] && [ "$u" != "0:0" ]
+  }
+  check "the builder is rootless AND non-privileged"  builder_not_privileged
+
+  builder_runs_rootlesskit() {
+    local out; out=$(docker exec manifest-buildkitd ps -o user,comm 2>&1)
+    echo "$out" | tr '\n' ' '
+    echo "$out" | grep -q rootlesskit
+  }
+  check "rootlesskit is the process supervisor"  builder_runs_rootlesskit
+
+  # Judge by wget's EXIT CODE, not its output. With -q a SUCCESSFUL fetch prints
+  # the page body and a BLOCKED one prints "wget: bad address" on stderr, so an
+  # `[ -z "$out" ]` assertion is non-empty either way and can essentially never
+  # pass — it reported FAIL here while egress was correctly blocked. And as in
+  # Task 7, a failure of `docker exec` itself (125/126/127) means the command
+  # never ran, which tells us nothing about egress.
+  # The POSITIVE HALF is the very next check: the builder must still reach the
+  # mirror, or "blocked" would just mean the builder has no networking at all.
+  builder_egress_blocked() {
+    local out rc
+    out=$(docker exec manifest-buildkitd wget -q -T4 -O- https://registry.npmjs.org/ 2>&1); rc=$?
+    if [ "$rc" -eq 0 ]; then
+      echo "REACHED npmjs from the builder — egress is NOT restricted"; return 1
+    fi
+    if [ "$rc" -ge 125 ]; then
+      echo "docker exec itself failed (exit $rc), so egress was never exercised: ${out:0:80}"
+      return 1
+    fi
+    echo "wget exited $rc: ${out:0:60}"
+  }
+  check "NEGATIVE CONTROL: the builder cannot reach the public internet"  builder_egress_blocked
+
+  builder_reaches_mirror() {
+    docker exec manifest-buildkitd wget -q -T4 -O- http://manifest-verdaccio:4873/-/ping >/dev/null &&
+    echo "mirror reachable from the builder"
+  }
+  check "the builder can reach the package mirror"  builder_reaches_mirror
+
+else
+  report "builder" echo "not running — start with: docker compose --profile build up -d builder"
+fi
+
 summary
