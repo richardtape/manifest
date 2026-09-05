@@ -330,10 +330,31 @@ coherent. Follow them.
    it is correctly failing when I remove the thing that makes it work."
 7. **Write for a reader who was not there.** Every one of these documents will be
    read cold by someone with no context. That is the normal case, not the exception.
-8. **Close out properly.** Update the roadmap ledger, sweep for documents that state
-   status, and leave the machine as you found it. The sweep is the step that gets
-   forgotten, and forgetting it is how four documents once spent a day lying about
-   the state of the project.
+8. **Close out properly.** Update the roadmap ledger, sweep every document that
+   states status, and leave the machine as you found it. **The sweep is the step that
+   gets forgotten**, and forgetting it is how four documents once spent a day lying
+   about the state of the project — and how the four HTML pages spent five days
+   telling outsiders the project was "designed, not yet built" after it was neither.
+
+   Sweeping by memory is what fails, so here is the list. Check each one every time:
+
+   | Document | What in it goes stale |
+   |---|---|
+   | `plans/2026-08-29-plan-roadmap.md` | **The ledger — update this first, it outranks the rest.** Spike status, the plan set table, *Order of operations* |
+   | `ORIENTATION.md` | §2 and §7 by design; §4 whenever the machine changes; §8 when something becomes or stops being Rich's call |
+   | `README.md` | The status section, and the *Where to start* table's "current job" row |
+   | `CLAUDE.md` | The *State* paragraph |
+   | `specs/manifest-schematic.html` | **Shared outside the team.** The `Status` line in the header, the footer, and the "no user interface has been built yet" disclaimers |
+   | `specs/manifest-phases.html` | **Shared outside the team.** The spike section — how many have run, what they answered, where the remaining ones sit |
+   | `specs/manifest-decisions.html` | **Shared outside the team.** Drifts when a **decision** changes, not when status does — check it after any spec action is applied |
+   | `specs/manifest-stories.html` | **Shared outside the team.** Hostname examples, which must match §23's zone rule |
+   | `external-track.md` | Owners and states of the UBC items |
+   | `machine-baseline-*.md` | **Do not edit these.** They are dated evidence. Re-run `scripts/snapshot-machine.sh` and add a new one |
+
+   **The four HTML pages are the easiest to forget and the most expensive to get
+   wrong**, because Rich shares them with people outside the team and nothing in the
+   build checks them. They are also the slowest to drift: their architecture stays
+   right for months while their *status* is wrong within days.
 
 ---
 
