@@ -1,0 +1,5 @@
+# Platform baseline only. One extended regular expression per line.
+^manifest-registry$
+^manifest-verdaccio$
+^manifest-litellm$
+^manifest-idp$

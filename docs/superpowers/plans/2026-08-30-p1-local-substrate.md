@@ -1416,13 +1416,40 @@ internal_network_denies_egress() {
 check "NEGATIVE CONTROL: the internal network cannot reach the public internet"  internal_network_denies_egress
 
 egress_proxy_denies_by_default() {
-  local code
-  code=$(curl -sS -o /dev/null -w '%{http_code}' -x "http://127.0.0.1:$PORT_EGRESS" \
-         -m 8 https://example.com/ 2>&1)
-  echo "example.com through the proxy -> $code (want 403; deny by default, D18)"
-  [ "$code" = "403" ]
+  # %{http_code} is the WRONG variable here. For an https:// URL through a proxy
+  # the request is a CONNECT tunnel; when the proxy refuses it, the tunnelled
+  # response never happens and %{http_code} is 000 while the proxy plainly
+  # answered 403. %{http_connect} carries the CONNECT's own status. Measured
+  # 2026-09-05: http_code=000, http_connect=403, curl exit 56.
+  local denied allowed
+  denied=$(curl -sS -o /dev/null -w '%{http_connect}' -x "http://127.0.0.1:$PORT_EGRESS" \
+           -m 8 https://example.com/ 2>/dev/null)
+  # POSITIVE HALF. A proxy that refused EVERYTHING would pass a deny-only test
+  # while being useless, so assert an allowlisted destination still gets through.
+  # The proxy resolves manifest-registry itself; the host cannot.
+  allowed=$(curl -sS -o /dev/null -w '%{http_code}' -x "http://127.0.0.1:$PORT_EGRESS" \
+            -m 8 http://manifest-registry:5000/v2/ 2>/dev/null)
+  echo "example.com -> CONNECT $denied (want 403, D18); allowlisted registry -> $allowed (want 200)"
+  [ "$denied" = "403" ] && [ "$allowed" = "200" ]
 }
-check "the egress proxy denies an undeclared destination"  egress_proxy_denies_by_default
+check "the egress proxy denies an undeclared destination, and allows a declared one"  egress_proxy_denies_by_default
+# The egress proxy must SURVIVE denying. Without DefaultErrorFile, tinyproxy
+# 1.11.0 exits after serving a 403 and `restart: unless-stopped` puts it back —
+# so the 403 above is correct while the proxy is briefly down behind it, and an
+# allowed request racing the restart gets "Empty reply from server". Measured
+# 2026-09-05. Compare the restart count ACROSS a denial rather than asserting it
+# is zero, so an unrelated earlier restart does not fail this.
+egress_proxy_survives_denial() {
+  local before after
+  before=$(docker inspect manifest-egress --format '{{.RestartCount}}' 2>/dev/null)
+  curl -sS -o /dev/null -x "http://127.0.0.1:$PORT_EGRESS" -m 8 https://example.com/ >/dev/null 2>&1
+  sleep 3
+  after=$(docker inspect manifest-egress --format '{{.RestartCount}}' 2>/dev/null)
+  echo "restart count $before -> $after across one denial (want no change)"
+  [ -n "$before" ] && [ "$before" = "$after" ]
+}
+check "the egress proxy survives denying a request"  egress_proxy_survives_denial
+
 ```
 
 Run: `make verify` — all five FAIL.
@@ -1470,6 +1497,22 @@ Listen 0.0.0.0
 Timeout 600
 LogLevel Warning
 MaxClients 100
+
+# Drop privileges, matching the image's own default. Without these tinyproxy
+# runs as root and says so on every start.
+User nobody
+Group nobody
+
+# LOAD-BEARING, and not obviously so. A DENIED request is precisely when
+# tinyproxy has to render an error page; without DefaultErrorFile the process
+# EXITS (cleanly, code 0) after serving the 403, and `restart: unless-stopped`
+# hides it — so the proxy is briefly down after every denial and an allowed
+# request racing it gets "Empty reply from server". Measured 2026-09-05 on
+# tinyproxy 1.11.0: 3 allowed requests caused 0 restarts, 1 denied request
+# caused 1. The 403 itself is correct either way, which is why a deny-only
+# check never notices.
+DefaultErrorFile "/usr/share/tinyproxy/default.html"
+StatFile "/usr/share/tinyproxy/stats.html"
 
 # Deny everything not named here. tinyproxy answers 403 for a denied host.
 FilterDefaultDeny Yes
@@ -1555,6 +1598,25 @@ Append under `volumes:`:
   verdaccio-storage:
     name: manifest-verdaccio-storage
 ```
+
+> **Two defects found in execution (2026-09-05), and the first is the serious one.**
+>
+> 1. **The egress negative control was not a control.** It asserted only that
+>    `curl` exited non-zero. With `manifest-build-internal` not yet created,
+>    `docker run` failed with **exit 125** and the check reported a green
+>    *"the internal network cannot reach the public internet"*. It now requires the
+>    network to exist, requires the failure to be **curl's** rather than Docker's
+>    (≥125 means the container never ran), and adds a **positive half** — the same
+>    request must succeed on the platform network, so the denial is attributable to
+>    the network. The positive half is skipped when the host is offline, for Task 13.
+> 2. **`%{http_code}` is the wrong variable for a proxy denial.** For an `https://`
+>    URL the request is a CONNECT tunnel; when the proxy refuses it, the tunnelled
+>    response never happens, so `%{http_code}` is `000` while the proxy plainly
+>    answered 403. `%{http_connect}` carries it. The check also gained a positive
+>    half, because a proxy that refused *everything* would pass a deny-only test.
+> 3. **tinyproxy exits after every denial** unless `DefaultErrorFile` is set — see
+>    the config above. `restart: unless-stopped` masks it entirely. A new check
+>    compares the container's restart count across a denial.
 
 - [ ] **Step 5: Start them and re-run verify**
 

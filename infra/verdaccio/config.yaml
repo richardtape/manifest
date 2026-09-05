@@ -1,0 +1,23 @@
+# The private package mirror §12 mandates. This — not the public registry — is
+# what makes C1's offline claim true: after `make seed` warms it, installs work
+# with the network off.
+storage: /verdaccio/storage
+auth:
+  htpasswd:
+    file: /verdaccio/storage/htpasswd
+    max_users: -1          # local only; the platform is not multi-tenant here
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+    cache: true            # cache: true IS the offline story
+    timeout: 30s
+packages:
+  '@*/*':
+    access: $all
+    publish: $all
+    proxy: npmjs
+  '**':
+    access: $all
+    publish: $all
+    proxy: npmjs
+log: { type: stdout, format: pretty, level: warn }

@@ -8,6 +8,9 @@ networks:
       config:
         - subnet: 10.89.0.0/24
           gateway: 10.89.0.1
+  build-internal:
+    name: manifest-build-internal
+    internal: true          # no gateway. THIS is the network restriction (§12).
 
 services:
   # ---------------------------------------------------------------------------
@@ -107,8 +110,57 @@ services:
       timeout: 3s
       retries: 20
 
+  registry:
+    image: registry:2
+    container_name: manifest-registry
+    restart: unless-stopped
+    # DUAL-HOMED. A container on an --internal network ONLY loses its published
+    # ports (S1), so the registry would become unreachable from the host and the
+    # daemon. Only the BUILDER stays internal-only.
+    networks: [platform, build-internal]
+    ports:
+      - "127.0.0.1:7107:5000"
+    volumes:
+      - registry-data:/var/lib/registry
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5000/v2/"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  verdaccio:
+    image: verdaccio/verdaccio:6
+    container_name: manifest-verdaccio
+    restart: unless-stopped
+    networks: [platform, build-internal]     # dual-homed, same reason
+    ports:
+      - "127.0.0.1:7108:4873"
+    volumes:
+      - ./verdaccio/config.yaml:/verdaccio/conf/config.yaml:ro
+      - verdaccio-storage:/verdaccio/storage
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4873/-/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  egress:
+    image: vimagick/tinyproxy
+    container_name: manifest-egress
+    restart: unless-stopped
+    networks: [platform]
+    ports:
+      - "127.0.0.1:7109:8888"
+    volumes:
+      - ./egress/tinyproxy.conf:/etc/tinyproxy/tinyproxy.conf:ro
+      - ./egress/allowlist:/etc/tinyproxy/allowlist:ro
+
 volumes:
   caddy-data:
     name: manifest-caddy-data
+  registry-data:
+    name: manifest-registry-data
+  verdaccio-storage:
+    name: manifest-verdaccio-storage
   pgdata:
     name: manifest-pgdata
