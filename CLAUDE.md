@@ -16,9 +16,12 @@ Tasks 12-21). The design is approved and complete.
 **Toolchain:** Node 24 via nvm, pnpm 11 via corepack. `pnpm test`, `pnpm lint`,
 `pnpm --filter @manifest/control-plane typecheck` must all be clean before a commit.
 
-Four spikes are done (S7, S2, S1, S3 — all answered yes). P0, P1 and P2 are written;
-P2 Tasks 1, 9, 10 and 11 are also **executed and green**. **P3, P4 and P5 are
-unwritten, and writing P3 is the current work.** The maintained status record is the *Spike status* ledger in
+Four spikes are done (S7, S2, S1, S3 — all answered yes). P0, P1, P2 and P3 are
+written; P2 Tasks 1, 9, 10 and 11 are also **executed and green**. **P4 and P5 are
+unwritten, deliberately — executing P1 is the current work.** Plan-writing stopped on
+2026-09-04 in favour of execution, because the one time anyone measured it, four
+executed P2 tasks produced five defects that no reading would have found. The
+maintained status record is the *Spike status* ledger in
 `docs/superpowers/plans/2026-08-29-plan-roadmap.md`; if any document disagrees with
 it, the ledger wins.
 

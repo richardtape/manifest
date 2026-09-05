@@ -20,9 +20,12 @@ answered yes**, each far inside its timebox, with every spec change they implied
 already applied. The remaining three are scheduled later, against machinery that does
 not exist yet.
 
-**Two implementation plans are complete** — P1, the local substrate (13 tasks), and
-P2, the control-plane spine (21 tasks). **P3, P4 and P5 are unwritten, and writing
-P3 is the current work.**
+**Three implementation plans are complete** — P1, the local substrate (13 tasks), P2,
+the control-plane spine (21 tasks), and P3, the Docker driver and deploy spine
+(19 tasks). **P4 and P5 are unwritten, and that is deliberate: on 2026-09-04 the
+project stopped writing plans and started executing them**, because the defect rate of
+an unexecuted plan has been measured once — four of P2's tasks yielded five defects,
+none of them findable on paper. **Executing P1 is the current work.**
 
 ## Where to start
 
@@ -32,8 +35,9 @@ this machine will do to you, and what to do next. Then:
 
 | If you are… | Read |
 |---|---|
-| Writing the next implementation plan (**the current job**) | ORIENTATION §7 — the plan queue, in the order they should be written — then [`docs/superpowers/plans/2026-08-29-plan-roadmap.md`](docs/superpowers/plans/2026-08-29-plan-roadmap.md) |
-| Executing a plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan |
+| Executing P1 (**the current job**) | ORIENTATION §7a, then [`docs/superpowers/plans/2026-08-30-p1-local-substrate.md`](docs/superpowers/plans/2026-08-30-p1-local-substrate.md) |
+| Executing any plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan — fix it there |
+| Writing the next plan (**P4, and not yet**) | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-29-plan-roadmap.md`](docs/superpowers/plans/2026-08-29-plan-roadmap.md). It is held until P3 executes |
 | Looking for what a spike proved | `docs/superpowers/spikes/S{7,2,1,3}-findings.md` — the answer is the first sentence of each |
 | Looking for the architecture | [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](docs/superpowers/specs/2026-08-29-manifest-platform-design.md) — authoritative, ~2,340 lines. ORIENTATION §3 tells you which sections you actually need |
 | Explaining this to someone non-technical | [`manifest-schematic.html`](docs/superpowers/specs/manifest-schematic.html) and its companions — the same design in plain language, plus six worked faculty stories |

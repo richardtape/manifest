@@ -1,11 +1,12 @@
 # Orientation — read this first
 
-**You are picking up a project with no product code in it yet.** This is the single
-entry point: what Manifest is, what has been established, what the machine will do to
+**You are picking up a project whose design is finished, whose first four plans are
+written, and which has one small island of running code.** This is the single entry
+point: what Manifest is, what has been established, what the machine will do to
 you, and what to do next. It is written for someone with **no prior context** —
 a new agent with a fresh window, or a developer joining.
 
-*Last verified 2026-08-31.* Two things in this file state current status and will go
+*Last verified 2026-09-04.* Two things in this file state current status and will go
 stale: §2 and §7. **The roadmap's ledger outranks both** — it is the maintained
 record. Everything else here is durable.
 
@@ -26,16 +27,21 @@ everything.
 
 ## 2. Where things stand
 
-**Four spikes are done. Two plans are complete. The first product code is running.**
+**Four spikes are done. Four plans are written. The first product code is running,
+and executing it is now the work.**
 
 | | State |
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. S6, S5 and S4 are deliberately later (S6 is P3's acceptance exercise, S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
-| **Plans** | **P0** (spike briefs), **P1** (local substrate, 13 tasks) and **P2** (control-plane spine, 21 tasks) are complete. P2 was finished on 2026-08-31: its Tasks 9–10 banners were lifted against S1, and Tasks 11–21 written. **P3, P4, P5 are unwritten.** |
+| **Plans** | **P0** (spike briefs), **P1** (local substrate, 13 tasks), **P2** (control-plane spine, 21 tasks) and **P3** (Docker driver and deploy spine, 19 tasks) are complete. P3 was written 2026-08-31 and self-reviewed 2026-09-04, which found seven defects — the worst being that **nothing wired the Docker driver into the boot entry point**, so its own `make demo` would have passed against the fake driver. **P4 and P5 are unwritten, deliberately** — see §7. |
 | **Code** | **P2's runtime island, built 2026-08-31 and green**: pnpm workspace, the §11 `Driver` interface, the fake driver, the driver contract suite P3 inherits unchanged, the instance state machine. 19 tests via `pnpm test`; no Docker, no Postgres, no network. No `Makefile` yet (P1), no HTTP surface yet (P2 Tasks 12–21). |
 | **Spec** | Current. Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
-The immediate work is **writing P3** — see §7.
+The immediate work is **executing P1** — see §7. That is a change of course made on
+2026-09-04: plan-writing stops until P3 has run. The reasoning is in the roadmap's
+*Order of operations*, and the short version is that the only time anyone measured the
+defect rate of an unexecuted plan, four of P2's tasks yielded five defects that no
+amount of reading would have found.
 
 ---
 
@@ -64,12 +70,22 @@ docs/superpowers/
 │   ├── 2026-08-29-phase-0-spike-briefs.md         P0. Historical record.
 │   ├── 2026-08-29-p2-control-plane-spine.md       P2. Complete, 21 tasks.
 │   │                                              Tasks 1, 9, 10, 11 are EXECUTED.
-│   └── 2026-08-30-p1-local-substrate.md           P1. Complete, 13 tasks.
+│   ├── 2026-08-30-p1-local-substrate.md           P1. Complete, 13 tasks.
+│   │                                              EXECUTE THIS ONE NEXT.
+│   └── 2026-08-31-p3-docker-driver-deploy-spine.md
+│                                                  P3. Complete, 19 tasks. Ends with
+│                                                  S6 as Task 18. Proposes five spec
+│                                                  actions, applies none.
 └── spikes/
     ├── S7-findings.md  DNS, the edge, TLS       ← P1's content
     ├── S2-findings.md  SimpleSAMLphp metadata   ← P4's shape
     ├── S1-findings.md  Docker round-trip        ← P3's content
     ├── S3-findings.md  LiteLLM, Ollama, budgets ← P4's AI half
+    ├── S1-controls-settled.md  the two controls S1 left to P3, probed
+    │                           2026-08-31 before P3 was written. Scoped
+    │                           registry tokens work; the builder's bounds
+    │                           are three mechanisms and one of them
+    │                           does not exist.
     ├── START-HERE.md   the ORIGINAL spike briefing. Historical; §6 is wrong.
     └── HANDOFF-2026-08-3*.md  dated handoffs. BOTH SUPERSEDED by this file.
                                Kept as a record; do not act on either.
@@ -263,43 +279,52 @@ coherent. Follow them.
 
 ---
 
-## 7. What to do next — the plan queue
+## 7. What to do next — execute P1
 
-Rich's current intent is to **write the remaining plans before implementing any of
-them.** Each item below is a self-contained job for one agent with a fresh context.
-They are listed in the order they should be written.
+**This section changed direction on 2026-09-04.** The intent until then was to write
+every remaining plan before implementing any of them. It is now the opposite:
+**execute what is written, and do not write P4 until P3 has run.** The full reasoning
+is the roadmap's *Order of operations*; the short version is that the defect rate of
+an unexecuted plan has been measured exactly once — four of P2's twenty-one tasks
+yielded **five** defects, and **none of the five was findable on paper.** There are
+now 53 written tasks, **49 of which have never been run**. Adding P4 to that stack
+prices nothing.
 
-### 7a. Write P3 — Docker driver and deploy spine (1a-iii) *(start here)*
+### 7a. Execute P1 — the local substrate (1a-i) *(start here)*
 
-*Depends on S1, which is done, and on **P2's driver contract suite**, which exists.
-Executes after P1 and P2.*
+[`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md) —
+13 tasks. It is self-contained by construction; if it is not, that is a defect in the
+plan and should be fixed there rather than worked around.
 
-This is the largest remaining plan and **S1's findings are most of its content**:
-the rootless builder invocation, the dual-homed registry, digest-not-tag promotion,
-the §12 hardening flag set as an Engine API `HostConfig`, the Caddy admin API request
-shapes, log demuxing, and the idempotency properties. It imports P2's driver contract
-suite **unchanged** — that is what makes the abstraction a contract rather than a
-hope. **S6 is P3's acceptance exercise**, so the plan ends with it and its probes
-become §16's security-regression tier.
+**Use `superpowers:subagent-driven-development` or `superpowers:executing-plans`.**
 
-**Demo:** a fixture app healthy at a `manifest.internal` URL, from a clean checkout,
-offline.
+**Three things about P1 specifically:**
 
-**Read S1's *Open questions* before you start — it assigns four things to P3, and
-two of them are controls rather than implementation details.** The house rule is that
-no plan may contain a step standing in for a spike result, so these need settling
-*while* P3 is written, not discovered inside it:
-
-| S1 left open | Why it is not a detail |
+| | |
 |---|---|
-| **A registry push token scoped to one repository path.** S1's registry had *no auth at all*. | §13's *"the image registry rejects pushes from app and sandbox contexts"* is what stops "promotion never rebuilds" being defeated by overwriting a tag. **Nobody has made `registry:2` do scoped auth.** If it cannot, that is a design change, not a task. Worth an hour's probe before writing the task that assumes it. |
-| **Builder timeout, disk quota, concurrency caps.** S1: *"The builder ran unbounded."* | An unbounded builder is a local denial of service. §12 says "Bounded"; nothing has tested that BuildKit honours it. |
-| **`exec()`** was never exercised. | S5's problem, not P3's — but do not write P3 as though `exec` is proven. |
-| **Multi-arch / image promotion**, and whether `--internal` survives a Docker Desktop restart. | §21's divergence 4 says laptop images are never promoted, and nothing in the driver *enforces* it yet. A P3 decision; `make doctor` could assert the second. |
+| **It needs `sudo`, once** | `make up` re-adds the `127.0.0.2` loopback alias, guarded so it only prompts when the alias is missing. **`sudo` cannot prompt from a tool call** — bundle it and ask Rich to run `! sudo …` in his own terminal. The alias does not survive a reboot; `can't assign requested address` means it is gone. |
+| **Its demo is C1's bar** | `make doctor` green **offline**, and one name resolving correctly from the host **and** from inside a container. Two parts of it have never been tested: the offline `make up`, and a fresh clone on a second machine. |
+| **The second-machine test wants a machine with Valet** | That is the known interesting case, because Valet owns `.test`, port 53 and ports 80/443 — see §4. |
 
-### 7b. Write P4 — identity, secrets and AI (1b)
+**Expect defects, and record them.** P1's own self-review found five; that is a
+statement about what a *written* plan is worth, not about P1. When execution finds
+something the plan got wrong, fix the plan, not just the code.
 
-*Depends on S2 and S3, both done, and on P3.*
+### 7b. Then P2 Tasks 12–21, then P3
+
+P2's Tasks 1, 9, 10 and 11 are already executed and green. Tasks 2–8 and 12–21 are
+the HTTP surface, the database schema and `spec/`. Then P3 in full, whose **Task 18
+is S6** and whose demo is the fixture app healthy at a `manifest.internal` URL, from
+a clean checkout, offline.
+
+P3 also **proposes five spec actions and applies none of them** — they are listed at
+the end of the plan and they are Rich's to approve. One of them is deliberately
+deferred until Task 18 has actually measured what it describes.
+
+### 7c. Write P4 — identity, secrets and AI (1b) *(held)*
+
+*Depends on S2 and S3, both done, and on P3 — which is written, so nothing blocks
+this except the 2026-09-04 decision above. **Write it once P3 has executed.***
 
 SP auto-provisioning against the SQL metadata mechanism S2 proved, per-app keypairs,
 `secrets/` envelope encryption, the §8 injection contract and its drift test, the
@@ -311,21 +336,14 @@ catalogue, events, WebSocket streaming, redaction at capture, incidents.
 
 **Demo:** the proof app — CWL login, a Mongo write, an LLM answer — driven by `curl`.
 
-### 7c. Write P5 — contract and clients (1c)
+### 7d. Write P5 — contract and clients (1c)
 
 *Depends on P4.* The published OpenAPI contract, `manifest-mock`, the generated
-client, and the reference console (D22) that imports **only** the generated
-client — a lint boundary *and* a test enforce it, which is what converts "is the API
+client, and the reference console (D22) that imports **only** the generated client —
+a lint boundary *and* a test enforce it, which is what converts "is the API
 complete?" from an opinion into a build failure.
 
 **Demo:** the §1 faculty journey, clickable, driven twice over one contract.
-
-### Then, and only then
-
-Execute in order: **P1 → P2 → P3** (with S6 as P3's acceptance) **→ P4 → P5**.
-P1's own demo is C1's bar and has two parts nothing has tested yet — an offline
-`make up`, and a fresh clone on a second machine. **Run the second-machine test on a
-machine that has Valet installed**; that is the known interesting case.
 
 ---
 
@@ -333,7 +351,16 @@ machine that has Valet installed**; that is the known interesting case.
 
 Surface these; do not decide them.
 
-
+- **P3 proposes five spec actions and applies none of them.** They are listed at the
+  end of [`plans/2026-08-31-p3-docker-driver-deploy-spine.md`](plans/2026-08-31-p3-docker-driver-deploy-spine.md),
+  in the same form the four spikes used, and every one of them is **measured** rather
+  than argued: narrowing §21's divergence 8 now that app networks are `--internal`;
+  recording in §12 that `--storage-opt size=` does not enforce on Docker Desktop;
+  splitting §12's *"Bounded"* sentence into the four mechanisms it actually names;
+  adding the registry token realm's mechanics to §12's builder paragraph; and adding
+  positive controls to §16's security-regression tier. **The first should not be
+  applied until P3's Task 18 has measured it** — the wording should follow the probe
+  matrix, not precede it.
 - **C4's actual turnaround time** for UBC IAM registration and the PIA is
   **unmeasured**, §9 calls it the highest-risk dependency in the design, and
   **nobody has started the clock.** It has weeks of latency and no software
@@ -379,10 +406,12 @@ maintained copy.
   silently has no extglob, a linter that does not honour the `_` convention the
   plan's own code assumed, a negative control aimed at a target that could not fail,
   and an unguarded table index that turned drift into a crash in an unrelated test.
-  **Five defects in four tasks.** The seventeen unexecuted P2 tasks, and every task
-  in P3–P5, carry the same unmeasured rate. Plan-ahead is still the right strategy
-  here — but treat "the plan is written" as a hypothesis, and execute the cheapest
-  representative slice early rather than banking a large unexecuted stack.
+  **Five defects in four tasks.** P3's own self-review then found **seven** more,
+  the worst being that no task wired the Docker driver into the boot entry point — so
+  its `make demo`, the plan's entire acceptance, would have passed against the fake
+  driver. **Acted on 2026-09-04**: plan-writing stops until P3 has executed. Treat
+  "the plan is written" as a hypothesis, and execute the cheapest representative
+  slice early rather than banking a large unexecuted stack.
 - **A green result is not evidence a control is in force.** S1's first build appeared
   to succeed while silently using the public npm registry instead of the mirror.
   Only checking the mirror's storage caught it.

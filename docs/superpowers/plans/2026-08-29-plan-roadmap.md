@@ -47,8 +47,9 @@ file is the *status* record; that one is the durable briefing.
 Kept here rather than in a handoff note, because handoffs are rewritten and this is
 what tells you whether a plan's blocking condition has cleared. **Update this row
 when a findings note lands** — it is step 3 of the close-out checklist in
-`../spikes/HANDOFF-2026-08-30.md` §6, which also lists the other documents that state
-status and go stale.
+[`../ORIENTATION.md`](../ORIENTATION.md) §6, which also lists the other documents that
+state status and go stale. (That checklist used to live in `HANDOFF-2026-08-30.md`,
+which is superseded; the pointer moved on 2026-09-04.)
 
 | Spike | Status | Answer, in one line | Unblocked |
 |---|---|---|---|
@@ -56,13 +57,27 @@ status and go stale.
 | **S2** | ✅ **done** 2026-08-29 (~0.5 h of 2 days) | **Yes** — one `INSERT` registers a working SP, no reload, no restart, no cache TTL. Manifest writes no PHP. Attribute release needs `core:AttributeLimit` *and* registration-time validation, or it fails open. | **P4 (1b)**'s shape; P2's IdP metadata schema |
 | **S1** | ✅ **done** 2026-08-30 (~2 h of 3 days) | **Yes** — bare repo → routed healthy container with a bound database, and **§11's `Driver` interface needed no revision**. Rootless BuildKit works, but not via buildx's own driver. | **P3**; **P2 Tasks 9+** |
 | **S3** | ✅ **done** 2026-08-30 (~2 h of 2 days) | **Yes** — every mechanism §10 assumes works and `ubc-genai-toolkit` needs no change, but **three defaults are wrong**: keys need `allowed_routes` (one port serves admin *and* proxy, and an app key can mint a child that outlives it), `embed()` needs `encoding_format: 'float'` (192 zeros instead of 768 floats, silently), and the LiteLLM `user` must be namespaced per app (end-user budgets are global). | **P4 (1b)** |
-| **S6** | ⬜ deferred — runs as P3's acceptance | Container isolation; becomes §16's security regression tier. | Phase 3 |
+| **S6** | ⬜ deferred — **is P3 Task 18**, written 2026-08-31 | Container isolation; becomes §16's security regression tier. The probe matrix is written and each denial is paired with a positive control. | Phase 3 |
 | **S4** | ⬜ deferred — before Phase 4 | Wake-on-request. | Phase 4 |
 | **S5** | ⬜ deferred — before Phase 3, after S6 | An agent inside a sandbox. | Phase 3 |
 
 **Every spike blocking Phase 1a is now done. P1, P2 and P3 can all be written.**
 The remaining three spikes are deliberately later: S6 runs as P3's acceptance
 exercise, S5 after S6, and S4 before Phase 4. **Nothing is waiting on a spike.**
+
+### Controls probed outside a spike
+
+The house rule is that **no plan may contain a step standing in for a spike result.**
+S1's *Open questions* left two controls to P3 that a task must not merely assume, so
+they were probed before P3 was written rather than discovered inside it.
+
+| Probe | Status | Answer, in one line | Unblocked |
+|---|---|---|---|
+| **S1's two open controls** | ✅ **done** 2026-08-31 (~1 h 25 m of a 2 h timebox) | **Both work, and `registry:2` needs no design change.** A push token scoped to one repository path is enforceable with a JWT the control plane signs, and the negative control holds through `docker push` **and** rootless BuildKit. The builder's bounds are three mechanisms rather than one: **BuildKit has no build timeout at all**, and **`--storage-opt size=` is accepted, recorded in `HostConfig`, and silently does nothing** on Docker Desktop. | **P3** Tasks 9 and 10 |
+
+[`../spikes/S1-controls-settled.md`](../spikes/S1-controls-settled.md). The disk-quota
+finding is a second `enforcesUserNamespaceRemapping`-shaped gap, and P3 reports it
+through `capabilities()` for the same reason: declare it, do not imply it.
 
 Findings notes live in `docs/superpowers/spikes/`. All spec changes each spike
 implied have already been applied to
@@ -108,7 +123,9 @@ Recorded here because they are about *how to run this work*, and each was paid f
   turned drift into a crash in an unrelated test. Five in four tasks. The seventeen
   unexecuted P2 tasks and all of P3–P5 carry the same unmeasured rate. Keep planning
   ahead — but execute a cheap representative slice early rather than banking a large
-  unexecuted stack.
+  unexecuted stack. **Acted on 2026-09-04**: P4 is held until P3 executes, and P3's
+  own self-review then found seven more defects including one that would have let its
+  acceptance pass against the fake driver. See *Order of operations*.
 - **A green result is not evidence a control is in force.** S1's first build appeared
   to succeed while silently using the public npm registry instead of the mirror —
   `.npmrc` was copied *after* `npm install`. Only checking the mirror's storage caught
@@ -159,13 +176,14 @@ Recorded here because they are about *how to run this work*, and each was paid f
 | **P0** | 0 | Seven spike briefs | a findings note per spike |
 | **P1** | 1a-i | Local substrate | `make doctor` green offline; one name resolving correctly from host **and** container |
 | **P2** | 1a-ii | Control-plane spine | project → spec → release, against the fake driver, in milliseconds, no Docker |
-| **P3** | 1a-iii | Docker driver & deploy spine | fixture app healthy at a `manifest.internal` URL, clean checkout, offline |
+| **P3** | 1a-iii | Docker driver & deploy spine ✅ **written** | fixture app healthy at a `manifest.internal` URL, clean checkout, offline |
 | **P4** | 1b | Identity, secrets & AI | the proof app — CWL login, Mongo write, LLM answer — via `curl` |
 | **P5** | 1c | Contract & clients | the §1 journey, clickable, driven twice over one contract |
 | **P6–P11** | 2 | six plans, listed below, **not written yet** | — |
 
-**P0 is written.** P1–P5 are written when their inputs exist; see *Order of
-operations*. Each of P1–P5 carries the required plan header, its own file-structure
+**P0, P1, P2 and P3 are written. P4 and P5 are not, deliberately** — see the
+2026-09-04 decision in *Order of operations*, which puts execution before any further
+plan-writing. Each of P1–P5 carries the required plan header, its own file-structure
 map, and bite-sized TDD steps with real content — no plan may contain a step
 standing in for a spike result.
 
@@ -247,7 +265,13 @@ runs in under a second.
 
 ### P3 — 1a-iii · Docker driver & deploy spine
 
-*Depends on: S1, S7, P1, P2. **S6 runs as its acceptance.***
+*Depends on: S1, S7, P1, P2. **S6 runs as its acceptance**, as Task 18.*
+***Written 2026-08-31*** —
+[`2026-08-31-p3-docker-driver-deploy-spine.md`](./2026-08-31-p3-docker-driver-deploy-spine.md),
+**19 tasks, 136 steps**, self-reviewed 2026-09-04. Written against
+`../spikes/S1-controls-settled.md`, so no step stands in for a spike result. It
+**proposes five spec actions and applies none of them** — those are Rich's, and they
+are listed at the end of the plan.
 
 The real Docker driver passing the same contract suite the fake driver passes, plus
 everything that only exists once containers do:
@@ -268,7 +292,9 @@ matrix showing what a hostile process in that container could reach.
 
 ### P4 — 1b · Identity, secrets & AI
 
-*Depends on: S2, S3, P3. **Both spikes have reported**; only P3 is outstanding.*
+*Depends on: S2, S3, P3. Both spikes have reported and **P3 is written** — so
+nothing blocks writing this. It is **deliberately not written yet**: the 2026-09-04
+decision in *Order of operations* holds it until P3 has executed.*
 
 As §17 has it, with gap 2's boundary applied: SP auto-provisioning against
 **whichever metadata mechanism S2 selects**, per-app keypairs, `secrets/` envelope
@@ -345,14 +371,52 @@ execution layer.** Each is written when its predecessor lands.
    list should start before they report.
 3. **Run S1 and S3.** Done — 2026-08-30. All four Phase-1a-blocking spikes have
    reported.
-4. **Write P1, P2 and P3** with real findings in them. **P1 is written**
-   (2026-08-30). **P2 is complete** (2026-08-31, 21 tasks). **P3 is next to write**,
-   and can be written now — S1 and S7 have both reported, and P3 inherits P2's driver
-   contract suite unchanged.
-5. **Execute P1 → P2 → P3.** S6 is P3's acceptance exercise.
+4. **Write P1, P2 and P3** with real findings in them. **All three are written** —
+   P1 on 2026-08-30 (13 tasks), P2 on 2026-08-31 (21 tasks), P3 on 2026-08-31
+   (19 tasks, self-reviewed 2026-09-04).
+5. **Execute P1 → P2 → P3.** S6 is P3's acceptance exercise, as its Task 18.
+   **← the current work, starting with P1.**
 6. **Start the external track now** (below), in parallel with all of the above. It
    has the longest lead time in the project and no software dependency.
-7. **Write P4 when P3 lands**, and P5 when P4 lands.
+7. **Write P4 once P3 has executed**, and P5 when P4 lands. Not before — see the
+   decision immediately below.
+
+### Decided 2026-09-04: execute before writing P4
+
+**The intent until now was to write every remaining plan before executing any of
+them. That is changed. P1 executes next, and P4 is not written until P3 has run.**
+Rich's call, on this evidence.
+
+*Why.* The first lesson above already said to execute a cheap representative slice
+early rather than bank a large unexecuted stack, and nothing had acted on it. The
+measurements are one-sided:
+
+- P2's written self-review found **seven** defects. Executing **four** of its
+  twenty-one tasks then found **five more**, and **not one of the five was findable
+  by reading**.
+- P3's self-review has just found **seven** more. The worst of them was a driver that
+  no task ever wired into the boot entry point — which would have let this plan's
+  entire acceptance, `make demo` included, pass against an in-memory fake.
+
+Three written plans is 53 tasks, of which **49 have never been run** (P2's Tasks 1,
+9, 10 and 11 are executed and green). That is a stack carrying a defect rate measured
+exactly once, at five per four tasks. Writing P4 would add to it rather than price
+it.
+
+*Rejected:* writing P4 and P5 first, on the argument that plan-writing and execution
+want different context and batching them is cheaper per plan. It is — and it is more
+expensive overall when the plans are wrong in ways only execution reveals, which is
+what the one measurement says happens.
+
+*Cost of changing course back:* structurally nothing. P4's inputs — S2, S3 and P3 —
+are all in hand, so it can be written at any point without waiting on anything.
+
+*What executing P1 needs from Rich, and cannot do for itself:* `make up` re-adds the
+`127.0.0.2` loopback alias with `sudo`, guarded so it prompts only when the alias is
+missing. **`sudo` cannot prompt from a tool call.** It has to be `! sudo …` in Rich's
+own terminal. P1's demo also has two parts nothing has tested yet — an **offline**
+`make up`, and a **fresh clone on a second machine**, which should be a machine with
+Valet installed, because that is the known interesting case.
 
 **Spikes come before plans, including P2.** An earlier version of this section said
 to write P2 during step 2 on the grounds that it was spike-independent. That was
