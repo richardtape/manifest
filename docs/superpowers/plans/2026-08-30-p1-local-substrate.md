@@ -1889,14 +1889,38 @@ litellm_embedding_dimension() {
 }
 check "an embedding comes back at full dimension"  litellm_embedding_dimension
 
+# THE TABLE MUST EXIST AND HOLD ROWS, or this proves nothing. As written without
+# those two guards it PASSED with LiteLLM not even running: psql errored, $n was
+# empty, and ${n:-0} made "0 rows carry prompt content" trivially true. Measured
+# 2026-09-05. The checks above have already driven a completion and an embedding
+# through the proxy, so by here there is something to inspect.
 litellm_prompt_logging_off() {
-  local n
+  local exists total n
+  exists=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
+           "SELECT to_regclass('public.\"LiteLLM_SpendLogs\"') IS NOT NULL" 2>/dev/null | tr -d ' ')
+  [ "$exists" = "t" ] || { echo "LiteLLM_SpendLogs does not exist — nothing is under test"; return 1; }
+  total=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
+          'SELECT count(*) FROM "LiteLLM_SpendLogs"' 2>/dev/null | tr -d ' ')
+  [ "${total:-0}" -gt 0 ] || { echo "no spend rows written yet — nothing is under test"; return 1; }
   n=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
-      "SELECT count(*) FROM \"LiteLLM_SpendLogs\" WHERE proxy_server_request::text NOT IN ('{}','null')" 2>/dev/null)
-  echo "$n spend rows carry request content (want 0 — §7's retention decision)"
-  [ "${n:-0}" = "0" ]
+      "SELECT count(*) FROM \"LiteLLM_SpendLogs\" WHERE proxy_server_request::text NOT IN ('{}','null')" 2>/dev/null | tr -d ' ')
+  echo "$n of $total spend rows carry request content (want 0 — §7's retention decision)"
+  [ "${n:-1}" = "0" ]
 }
 check "no prompt content is persisted"  litellm_prompt_logging_off
+
+# S3's FIRST finding, asserted rather than assumed. Ollama is free, so without a
+# synthetic per-token cost every spend row reads $0.00 — no budget in §10 is ever
+# reachable and D8's per-user attribution is untestable. Nothing else in this
+# plan notices if the cost lines are dropped from litellm/config.yaml.
+litellm_spend_is_attributed() {
+  local mx
+  mx=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
+       'SELECT COALESCE(max(spend),0) FROM "LiteLLM_SpendLogs"' 2>/dev/null | tr -d ' ')
+  echo "highest recorded spend = ${mx:-<none>} (want > 0; \$0.00 means the synthetic cost is missing)"
+  awk -v v="${mx:-0}" 'BEGIN{exit !(v+0 > 0)}'
+}
+check "spend is actually attributed, not \$0.00 (S3)"  litellm_spend_is_attributed
 ```
 
 And append to `scripts/doctor.sh`, before `summary`:

@@ -1,0 +1,49 @@
+# Logical model names only (§7): an app never sees a vendor model id, and an admin
+# repoints the whole fleet by changing one mapping.
+#
+# The catalogue is DB-held at runtime (STORE_MODEL_IN_DB); these entries are the
+# bootstrap set. A config-file deployment cannot be deleted through the admin API
+# at all, so anything expected to change lives in the database (S3 §Evidence 7).
+
+model_list:
+  - model_name: default-chat
+    litellm_params:
+      model: ollama_chat/ministral-3:latest
+      api_base: http://host.docker.internal:11434
+      # SYNTHETIC COST — load-bearing. Ollama is free, so without it no budget is
+      # ever reachable AND every per-user spend row reads $0.00, which makes D8's
+      # attribution as untestable as §10's budgets (S3 §Evidence 4, 5).
+      input_cost_per_token: 0.000001     # $1.00 / M input tokens
+      output_cost_per_token: 0.000003    # $3.00 / M output tokens
+    model_info:
+      max_classification: internal       # D17; survives round-trip via /model/info
+
+  - model_name: default-chat-onprem
+    litellm_params:
+      model: ollama_chat/ministral-3:latest
+      api_base: http://host.docker.internal:11434
+      input_cost_per_token: 0.000001
+      output_cost_per_token: 0.000003
+    model_info:
+      max_classification: confidential
+
+  - model_name: default-embed
+    litellm_params:
+      model: ollama/nomic-embed-text
+      api_base: http://host.docker.internal:11434
+      input_cost_per_token: 0.0000001
+      output_cost_per_token: 0.0
+    model_info:
+      mode: embedding
+      max_classification: internal
+
+litellm_settings:
+  drop_params: true
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  # EXPLICIT, and load-bearing. The default is off, but when this key is ABSENT
+  # from the YAML, LiteLLM prefers the value the admin UI wrote to the database —
+  # so without this line one click starts retaining student prompts and the config
+  # file will not override it (§7, S3 §Evidence 12).
+  store_prompts_in_spend_logs: false

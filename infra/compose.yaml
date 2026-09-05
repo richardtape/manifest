@@ -179,6 +179,36 @@ services:
     # transport hang on "waiting for connection: context deadline exceeded" (S1).
     command: ["--oci-worker-no-process-sandbox"]
 
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: manifest-litellm
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [platform]
+    environment:
+      DATABASE_URL: postgresql://manifest:${POSTGRES_PASSWORD}@postgres:5432/litellm
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?set LITELLM_MASTER_KEY in .env}
+      LITELLM_SALT_KEY: ${LITELLM_SALT_KEY:?set LITELLM_SALT_KEY in .env}
+      # The catalogue must be DB-held or every fleet repoint needs a restart (§7).
+      STORE_MODEL_IN_DB: "True"
+    extra_hosts:
+      # Ollama is a HOST application — Metal GPU access is unavailable from a
+      # container (§21). This is how the container reaches it (S7, S3).
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./litellm/config.yaml:/app/config.yaml:ro
+    ports:
+      - "127.0.0.1:7106:4000"
+    # NOT --detailed_debug: it writes full prompt text to stdout and hence into
+    # §14's log pipeline (S3 §Evidence 12).
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:4000/health/readiness"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+
 volumes:
   caddy-data:
     name: manifest-caddy-data

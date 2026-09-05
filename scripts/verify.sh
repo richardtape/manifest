@@ -286,4 +286,84 @@ else
   report "builder" echo "not running — start with: docker compose --profile build up -d builder"
 fi
 
+echo
+echo "AI (§10, S3)"
+
+litellm_ready() {
+  local out; out=$(curl -sS "http://127.0.0.1:$PORT_LITELLM/health/readiness")
+  echo "$out"
+  echo "$out" | grep -q '"db":"connected"'
+}
+check "LiteLLM is up with its database connected"  litellm_ready
+
+litellm_logical_names_only() {
+  local got
+  got=$(curl -sS "http://127.0.0.1:$PORT_LITELLM/v1/models" -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
+        | sed 's/.*"data"://' | grep -o '"id":"[^"]*"' | cut -d'"' -f4 | sort | tr '\n' ' ')
+  echo "catalogue: $got"
+  echo "$got" | grep -q 'default-chat' && echo "$got" | grep -q 'default-embed' \
+    && ! echo "$got" | grep -q 'ollama'
+}
+check "only logical model names are exposed (§7)"  litellm_logical_names_only
+
+# THE CHECK THAT CATCHES A THINKING MODEL. A completion alone would pass; only a
+# STREAM with non-empty content proves the console will work (S3).
+litellm_streams_content() {
+  local n
+  n=$(curl -sS -N "http://127.0.0.1:$PORT_LITELLM/v1/chat/completions" \
+       -H "Authorization: Bearer $LITELLM_MASTER_KEY" -H 'Content-Type: application/json' \
+       -d '{"model":"default-chat","stream":true,"max_tokens":300,
+            "messages":[{"role":"user","content":"Count 1 to 5, digits only."}]}' \
+       | grep -c '"content":"[^"]')
+  echo "$n streamed frames carried content (0 means default-chat is a THINKING model)"
+  [ "$n" -gt 0 ]
+}
+check "a streamed completion returns non-empty content"  litellm_streams_content
+
+# THE CHECK THAT CATCHES THE SILENT EMBEDDING CORRUPTION. Asserts the DIMENSION,
+# not that a vector came back — 192 near-zero values look like success (S3).
+litellm_embedding_dimension() {
+  local d
+  d=$(curl -sS "http://127.0.0.1:$PORT_LITELLM/v1/embeddings" \
+       -H "Authorization: Bearer $LITELLM_MASTER_KEY" -H 'Content-Type: application/json' \
+       -d '{"model":"default-embed","input":"chemistry lab scheduling","encoding_format":"float"}' \
+       | grep -o '\[[-0-9].*\]' | tr ',' '\n' | wc -l | tr -d ' ')
+  echo "embedding dimension = $d (want 768 for nomic-embed-text)"
+  [ "$d" = "768" ]
+}
+check "an embedding comes back at full dimension"  litellm_embedding_dimension
+
+# THE TABLE MUST EXIST AND HOLD ROWS, or this proves nothing. As written without
+# those two guards it PASSED with LiteLLM not even running: psql errored, $n was
+# empty, and ${n:-0} made "0 rows carry prompt content" trivially true. Measured
+# 2026-09-05. The checks above have already driven a completion and an embedding
+# through the proxy, so by here there is something to inspect.
+litellm_prompt_logging_off() {
+  local exists total n
+  exists=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
+           "SELECT to_regclass('public.\"LiteLLM_SpendLogs\"') IS NOT NULL" 2>/dev/null | tr -d ' ')
+  [ "$exists" = "t" ] || { echo "LiteLLM_SpendLogs does not exist — nothing is under test"; return 1; }
+  total=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
+          'SELECT count(*) FROM "LiteLLM_SpendLogs"' 2>/dev/null | tr -d ' ')
+  [ "${total:-0}" -gt 0 ] || { echo "no spend rows written yet — nothing is under test"; return 1; }
+  n=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
+      "SELECT count(*) FROM \"LiteLLM_SpendLogs\" WHERE proxy_server_request::text NOT IN ('{}','null')" 2>/dev/null | tr -d ' ')
+  echo "$n of $total spend rows carry request content (want 0 — §7's retention decision)"
+  [ "${n:-1}" = "0" ]
+}
+check "no prompt content is persisted"  litellm_prompt_logging_off
+
+# S3's FIRST finding, asserted rather than assumed. Ollama is free, so without a
+# synthetic per-token cost every spend row reads $0.00 — no budget in §10 is ever
+# reachable and D8's per-user attribution is untestable. Nothing else in this
+# plan notices if the cost lines are dropped from litellm/config.yaml.
+litellm_spend_is_attributed() {
+  local mx
+  mx=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
+       'SELECT COALESCE(max(spend),0) FROM "LiteLLM_SpendLogs"' 2>/dev/null | tr -d ' ')
+  echo "highest recorded spend = ${mx:-<none>} (want > 0; \$0.00 means the synthetic cost is missing)"
+  awk -v v="${mx:-0}" 'BEGIN{exit !(v+0 > 0)}'
+}
+check "spend is actually attributed, not \$0.00 (S3)"  litellm_spend_is_attributed
+
 summary

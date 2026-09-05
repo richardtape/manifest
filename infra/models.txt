@@ -1,0 +1,5 @@
+# Models `make seed` pulls. NON-THINKING chat model, deliberately: a thinking
+# model streams reasoning_content deltas the toolkit discards, so the console
+# receives zero chunks and no error, at any token budget (S3 §Evidence 9).
+ministral-3:latest
+nomic-embed-text:latest

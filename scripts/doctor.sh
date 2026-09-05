@@ -134,4 +134,19 @@ check_node_ca() {
 }
 check_warn "host Node trusts the CA (needs NODE_EXTRA_CA_CERTS)"  check_node_ca
 
+echo
+echo "Ollama (host application — §21)"
+check "Ollama is running"  sh -c 'curl -sf http://127.0.0.1:11434/api/version'
+check_models() {
+  local missing="" m
+  while read -r m; do
+    [ -z "$m" ] && continue
+    case "$m" in \#*) continue;; esac
+    ollama list | awk 'NR>1{print $1}' | grep -qx "$m" || missing="$missing $m"
+  done < infra/models.txt
+  [ -z "$missing" ] && { echo "all models in infra/models.txt present"; return 0; }
+  echo "missing:$missing — run: make seed"; return 1
+}
+check "the models infra/models.txt names are present"  check_models
+
 summary
