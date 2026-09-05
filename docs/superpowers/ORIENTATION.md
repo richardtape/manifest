@@ -159,6 +159,42 @@ spike. It was previously stranded inside a superseded handoff; it lives here now
   `pnpm config get` but has no effect, which makes hand-writing it look like a
   mystery. Use `pnpm approve-builds <pkg>`.
 
+### What is a container, and what is actually on this machine
+
+**Almost nothing Manifest runs is installed on the Mac.** This is worth stating
+plainly because every list of "absent" images in this project reads like a missing
+dependency and is not one. §21's inventory is the authority; this is its summary.
+
+**Host-resident, and only these:**
+
+| | Why it cannot be a container |
+|---|---|
+| **Ollama** | Metal GPU access is unavailable from a container |
+| **The control plane** (Node, 7100) | It needs the Docker socket, which §12 forbids mounting into *workload* containers. Running it on the host sidesteps the question and iterates faster. It **cannot reach container IPs** on Docker Desktop (S1), so health checks go through the edge or a published port |
+| **Admin UI (7101), `manifest-mock` (7102), reference console (7104)** | Vite dev servers |
+
+**Everything else is a container**: Caddy, Postgres, the registry, Verdaccio,
+LiteLLM, the Manifest IdP, both dnsmasq processes, the egress proxy, the builder, and
+the Syft/Grype scanners. So:
+
+- **Caddy is never `brew install`ed.** It is a **custom `xcaddy` build** (§20), because
+  S7 established that **Coraza pins the Caddy version**. `make seed` builds that image.
+  `caddy: ABSENT` from a host-tool check means nothing at all.
+- **Syft and Grype are transient per build** (§21: *"Scanner + SBOM — transient, per
+  build"*). P3 Task 12 runs each as a throwaway container against the Docker socket.
+- **The Manifest IdP is ours and is built from scratch** — `infra/idp/Dockerfile`,
+  `FROM php:8.3-apache` plus `composer create-project simplesamlphp/simplesamlphp:^2.0`,
+  its own `manifest_idp` database, on **port 7122 deliberately not 6122**. It has **no
+  dependency on `/Users/rich/Developer/docker-simple-saml`** running, or existing.
+  That repository is read-only to us and stays clean; what S2 took from it was
+  knowledge — `pdo_pgsql` needs `libpq-dev`, `database.*` and `store.sql.*` are
+  different subsystems, one `INSERT` into `saml20_sp_remote` registers an SP — not code.
+
+**The images `make seed` must therefore fetch or build include** `caddy:2.11.4` and
+its builder, `anchore/syft`, `anchore/grype`, `php:8.3-apache` and `composer:2` —
+none of which are on this machine today. Seed is the one step that needs the network,
+which is why P1's **offline** acceptance can only run after a successful seed.
+
 ### Rules of engagement
 
 - **`sudo` cannot prompt from a tool call.** You get
