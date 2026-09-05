@@ -1,0 +1,62 @@
+# §21's platform inventory. One Compose project, project name `manifest`.
+name: manifest
+
+networks:
+  platform:
+    name: manifest-platform
+    ipam:
+      config:
+        - subnet: 10.89.0.0/24
+          gateway: 10.89.0.1
+
+services:
+  # ---------------------------------------------------------------------------
+  # Two dnsmasq PROCESSES, as two CONTAINERS. Not one container with two
+  # listeners: `--address` is global to a dnsmasq process (S7 verified this), and
+  # `--bind-interfaces` needs a different address for each, while a container has
+  # one platform-network IP. `docker logs` then also separates the two views.
+  # ---------------------------------------------------------------------------
+  dns-containers:
+    build: { context: ./dnsmasq }
+    image: manifest-dnsmasq:local
+    container_name: manifest-dns-containers
+    restart: unless-stopped
+    networks:
+      platform: { ipv4_address: 10.89.0.53 }
+    command:
+      - --keep-in-foreground
+      - --no-daemon
+      - --log-queries
+      - --no-resolv
+      - --listen-address=10.89.0.53
+      - --bind-interfaces
+      # LOAD-BEARING. Without it, AAAA is answered SERVFAIL rather than NODATA and
+      # every dual-stack resolver treats the whole lookup as failed (S7).
+      - --local=/manifest.internal/
+      - --address=/manifest.internal/10.89.0.10
+      # LOAD-BEARING. Forwards everything outside the zone to Docker's embedded
+      # resolver; without it containers lose service names and external DNS (S7).
+      - --server=127.0.0.11
+
+  dns-host:
+    build: { context: ./dnsmasq }
+    image: manifest-dnsmasq:local
+    container_name: manifest-dns-host
+    restart: unless-stopped
+    networks:
+      platform: { ipv4_address: 10.89.0.54 }
+    ports:
+      # BOTH protocols. macOS resolver(5) will use TCP for some queries.
+      - "127.0.0.1:7153:53/udp"
+      - "127.0.0.1:7153:53/tcp"
+    command:
+      - --keep-in-foreground
+      - --no-daemon
+      - --log-queries
+      - --no-resolv
+      - --listen-address=10.89.0.54
+      - --bind-interfaces
+      - --local=/manifest.internal/
+      # The host's answer differs from the containers' answer. That difference IS
+      # the split horizon, and it is the entire point of running two processes.
+      - --address=/manifest.internal/127.0.0.2

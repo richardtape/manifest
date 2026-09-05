@@ -358,15 +358,33 @@ check "disk >= 40 GB free"  check_disk
 echo
 echo "Ports"
 port_free() { ! lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1; }
-check_block() {
-  local p busy=""
-  for p in $(seq $PORT_BLOCK_START $PORT_BLOCK_END); do
-    port_free "$p" || busy="$busy $p"
-  done
-  [ -z "$busy" ] && { echo "7100-7199 all free"; return 0; }
-  echo "in use:$busy"; return 1
+
+# Ports the platform's OWN containers publish. doctor has to pass both with the
+# stack down (a fresh machine) and with it up — `make up && make doctor` is the
+# RUNBOOK's first-time flow and Task 12's round trip — so "free" cannot mean
+# "unbound". It means "held by nothing except us".
+manifest_own_ports() {
+  docker ps --filter 'name=^manifest-' --format '{{.Ports}}' 2>/dev/null \
+    | tr ',' '\n' | sed -n 's/.*:\([0-9][0-9]*\)->.*/\1/p' | sort -u
 }
-check "ports 7100-7199 free"  check_block
+check_block() {
+  local p busy="" foreign="" ours
+  ours=" $(manifest_own_ports | tr '\n' ' ')"
+  for p in $(seq $PORT_BLOCK_START $PORT_BLOCK_END); do
+    port_free "$p" && continue
+    case "$ours" in
+      *" $p "*) busy="$busy $p" ;;
+      *)        foreign="$foreign $p" ;;
+    esac
+  done
+  if [ -n "$foreign" ]; then
+    echo "CLAIMED BY SOMETHING ELSE:$foreign — the platform cannot bind these"
+    return 1
+  fi
+  [ -z "$busy" ] && { echo "7100-7199 all free"; return 0; }
+  echo "7100-7199 free except$busy, which Manifest's own containers publish"
+}
+check "ports 7100-7199 free, or held only by Manifest"  check_block
 
 # NEVER assume 53, 80 or 443 are free. Valet owns all three here (S7) and the
 # design accommodates that rather than fighting it.
@@ -387,6 +405,15 @@ port_owner() {
 report "port 53 owner"   port_owner udp 53
 report "port 443 owner"  port_owner tcp 443
 ```
+
+> **Second defect found in execution (2026-09-05).** The port-block check
+> originally asserted 7100–7199 were **all unbound**. That is unsatisfiable on the
+> plan's own acceptance path: Task 11 Step 7, Task 12 Step 5, Task 13 Step 2 and
+> the RUNBOOK's first-time block all run `make doctor` *after* the platform is up,
+> when Manifest itself publishes 7103, 7107, 7108, 7119, 7122 and 7153. The check
+> now excludes ports published by `manifest-*` containers and still fails on a
+> foreign one — verified by starting an unrelated container on 7177 and watching
+> it report `CLAIMED BY SOMETHING ELSE: 7177`.
 
 > **Defect found in execution (2026-09-05).** The original of this step used
 > `sh -c 'lsof … | awk "NR==2{…}" || echo "(none)"'`. The `||` never fires: `awk`
@@ -471,14 +498,18 @@ dns_host_view() {
 }
 check "the host resolves the zone to the loopback alias"  dns_host_view
 
-# THE NEGATIVE CONTROL that cost S7 the most time. Without --local, dnsmasq
-# answers AAAA with SERVFAIL instead of NODATA, and both musl and glibc treat
-# SERVFAIL on either half of a dual-stack lookup as total failure. The symptom is
+# THE NEGATIVE CONTROL that cost S7 the most time. Without --local, dnsmasq does
+# not answer AAAA authoritatively, and both musl and glibc treat a hard error on
+# either half of a dual-stack lookup as total failure. The symptom is
 # "curl: could not resolve host" WHILE dig returns the correct A record.
+#
+# MEASURED 2026-09-05 on dnsmasq 2.91 / alpine 3.22.5: removing --local gives
+# REFUSED, not SERVFAIL as S7 recorded. Assert NOERROR rather than listing the
+# failure codes — the exact code varies and only NOERROR is correct.
 dns_aaaa_is_nodata() {
   local st
   st=$(dig AAAA @127.0.0.1 -p "$PORT_DNS" "console.$ZONE" | awk -F'status: ' '/status:/{split($2,a,","); print a[1]}')
-  echo "AAAA status = ${st:-<none>} (want NOERROR, i.e. NODATA; SERVFAIL means --local is missing)"
+  echo "AAAA status = ${st:-<none>} (want NOERROR, i.e. NODATA; anything else means --local is missing)"
   [ "$st" = "NOERROR" ]
 }
 check "AAAA returns NODATA, not SERVFAIL"  dns_aaaa_is_nodata
@@ -605,9 +636,20 @@ docker run -d --name manifest-dns-host --network manifest-platform --ip 10.89.0.
   --keep-in-foreground --no-daemon --no-resolv --listen-address=10.89.0.54 \
   --bind-interfaces --address=/manifest.internal/127.0.0.2
 dig AAAA @127.0.0.1 -p 7153 console.manifest.internal | grep status:
+curl -sS -m 5 http://console.manifest.internal/ ; dig +short A @127.0.0.1 -p 7153 console.manifest.internal
 ```
 
-Expected: `status: SERVFAIL` — the flag removed, the failure returns. Then restore:
+Expected: **a status that is not NOERROR** — the flag removed, the failure returns.
+**Measured 2026-09-05 (dnsmasq 2.91, alpine 3.22.5): `status: REFUSED`, not the
+`SERVFAIL` S7 recorded.** The code differs; the symptom S7 named is exactly
+reproduced, and it is the symptom that matters:
+
+```
+curl: (6) Could not resolve host: console.manifest.internal
+127.0.0.2          <- dig +short still returns the right A record
+```
+
+Then restore:
 
 ```bash
 docker rm -f manifest-dns-host
@@ -2565,7 +2607,7 @@ wrong during a spike; none is hypothetical.
 
 | Symptom | Cause |
 |---|---|
-| `curl: (6) Could not resolve host` **while `dig +short` returns the right address** | dnsmasq is missing `--local=/manifest.internal/`, so AAAA is SERVFAIL and both musl and glibc fail the whole dual-stack lookup. |
+| `curl: (6) Could not resolve host` **while `dig +short` returns the right address** | dnsmasq is missing `--local=/manifest.internal/`, so AAAA is answered with a hard error (REFUSED on dnsmasq 2.91) instead of NODATA, and both musl and glibc fail the whole dual-stack lookup. |
 | `bind: can't assign requested address` | The `127.0.0.2` alias is gone — a reboot removes it. `make up` re-adds it. |
 | A container cannot resolve `manifest-postgres` | dnsmasq is missing `--server=127.0.0.11`, so `--no-resolv` made it authoritative for everything. |
 | Node reaches the edge but `curl` does not, or vice versa | Trust is needed in **three** places, not two: the macOS keychain, container trust stores, and `NODE_EXTRA_CA_CERTS` for host Node processes. |

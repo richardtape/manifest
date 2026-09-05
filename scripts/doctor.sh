@@ -35,15 +35,33 @@ check "disk >= 40 GB free"  check_disk
 echo
 echo "Ports"
 port_free() { ! lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1; }
-check_block() {
-  local p busy=""
-  for p in $(seq $PORT_BLOCK_START $PORT_BLOCK_END); do
-    port_free "$p" || busy="$busy $p"
-  done
-  [ -z "$busy" ] && { echo "7100-7199 all free"; return 0; }
-  echo "in use:$busy"; return 1
+
+# Ports the platform's OWN containers publish. doctor has to pass both with the
+# stack down (a fresh machine) and with it up — `make up && make doctor` is the
+# RUNBOOK's first-time flow and Task 12's round trip — so "free" cannot mean
+# "unbound". It means "held by nothing except us".
+manifest_own_ports() {
+  docker ps --filter 'name=^manifest-' --format '{{.Ports}}' 2>/dev/null \
+    | tr ',' '\n' | sed -n 's/.*:\([0-9][0-9]*\)->.*/\1/p' | sort -u
 }
-check "ports 7100-7199 free"  check_block
+check_block() {
+  local p busy="" foreign="" ours
+  ours=" $(manifest_own_ports | tr '\n' ' ')"
+  for p in $(seq $PORT_BLOCK_START $PORT_BLOCK_END); do
+    port_free "$p" && continue
+    case "$ours" in
+      *" $p "*) busy="$busy $p" ;;
+      *)        foreign="$foreign $p" ;;
+    esac
+  done
+  if [ -n "$foreign" ]; then
+    echo "CLAIMED BY SOMETHING ELSE:$foreign — the platform cannot bind these"
+    return 1
+  fi
+  [ -z "$busy" ] && { echo "7100-7199 all free"; return 0; }
+  echo "7100-7199 free except$busy, which Manifest's own containers publish"
+}
+check "ports 7100-7199 free, or held only by Manifest"  check_block
 
 # NEVER assume 53, 80 or 443 are free. Valet owns all three here (S7) and the
 # design accommodates that rather than fighting it.
@@ -63,5 +81,18 @@ port_owner() {
 }
 report "port 53 owner"   port_owner udp 53
 report "port 443 owner"  port_owner tcp 443
+
+echo
+echo "Zone"
+# Valet answers for ALL of .test. If something already owns our zone, names
+# resolve, DNS looks healthy, and requests land on the wrong web server.
+check_zone_unclaimed() {
+  local got
+  got=$(dscacheutil -q host -a name "probe-unclaimed.$ZONE" 2>/dev/null | awk '/ip_address/{print $2}' | head -1)
+  if [ -z "$got" ]; then echo "nothing answers for $ZONE yet (correct before host-setup)"; return 0; fi
+  echo "$ZONE resolves to $got"
+  [ "$got" = "$EDGE_IP" ]
+}
+check "nothing but Manifest claims $ZONE"  check_zone_unclaimed
 
 summary
