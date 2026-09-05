@@ -42,10 +42,17 @@
 
 <section id="first">
   <p class="kicker">01 &mdash; Questions first</p>
-  <h2>Seven experiments, before any of it</h2>
-  <p class="claim">Before the real build starts, seven small throwaway experiments answer
-  questions that would be <strong>ruinously expensive to get wrong later</strong>. Each one
-  takes days, not weeks. Every one of them is meant to be deleted afterwards.</p>
+  <h2>Seven experiments, before committing to any of it</h2>
+  <p class="claim">Seven small throwaway experiments answer questions that would be
+  <strong>ruinously expensive to get wrong later</strong>. Each one takes days, not weeks, and
+  every one is meant to be deleted afterwards.
+  <strong>Four have now run &mdash; S7, S2, S1 and S3 &mdash; and all four answered yes</strong>,
+  each well inside its time limit &mdash; the longest took about two hours against a three-day
+  budget. Every correction they produced has been applied to the design. The largest was moving
+  the local development web address after one experiment found the intended name was already
+  taken on developer machines; the rest were details, several of which fail silently and would
+  have been expensive to find later. The remaining three are
+  deliberately later, because each needs machinery that does not exist yet.</p>
 
   <div class="tw">
   <table>
@@ -75,8 +82,10 @@
     </tbody>
   </table>
   </div>
-  <p class="tnote">The first two run before anything else. S6 must finish before stage 3, when
-  the platform first executes code that nobody has read.</p>
+  <p class="tnote">The first four are done. S6 is no longer a separate exercise &mdash; it runs
+  as the acceptance test for the deployment work itself, so its findings shape that work rather
+  than arriving after it, and the security probes it produces become a permanent part of the test
+  suite. S5 follows S6, and S4 comes before stage 4.</p>
 </section>
 
 <section id="build">
