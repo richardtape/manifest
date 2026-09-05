@@ -209,6 +209,31 @@ services:
       timeout: 5s
       retries: 24
 
+  idp:
+    build: { context: ./idp }
+    image: manifest-idp:local
+    container_name: manifest-idp
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [platform]
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SSP_SECRET_SALT: ${SSP_SECRET_SALT:-change-me-locally}
+      SSP_ADMIN_PASSWORD: ${SSP_ADMIN_PASSWORD:-change-me-locally}
+      # Read by the entrypoint only, to wait for Postgres before initialising
+      # SimpleSAMLphp's metadata tables with its own initialiser.
+      SSP_DSN: pgsql:host=postgres;port=5432;dbname=manifest_idp
+      SSP_DB_USER: manifest
+      SSP_DB_PASS: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./idp/config/config.php:/var/simplesamlphp/config/config.php:ro
+      - ./idp/config/authsources.php:/var/simplesamlphp/config/authsources.php:ro
+    ports:
+      # 7122, deliberately NOT 6122 — that is the standalone docker-simple-saml
+      # on this machine (§21).
+      - "127.0.0.1:7122:80"
+
 volumes:
   caddy-data:
     name: manifest-caddy-data

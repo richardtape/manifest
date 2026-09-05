@@ -2102,7 +2102,7 @@ git commit -m "feat: litellm against host ollama, with S3's three mandatory sett
 **Files:**
 - Create: `infra/idp/Dockerfile`
 - Create: `infra/idp/config/config.php`, `infra/idp/config/authsources.php`
-- Create: `infra/postgres/initdb/20-idp-metadata.sql`
+- Create: `infra/idp/docker-entrypoint.sh` *(replaces the hand-written `infra/postgres/initdb/20-idp-metadata.sql` — see the defects below)*
 - Modify: `infra/compose.yaml` (the `idp` service)
 - Modify: `scripts/verify.sh`
 
@@ -2127,12 +2127,19 @@ Append to `scripts/verify.sh`, before `summary`:
 echo
 echo "Identity (§9, S2)"
 
+# FOLLOW THE REDIRECT. SimpleSAMLphp 2.x answers `/` with 303 (not the 302 this
+# check originally allowed) and sends you to /module.php/core/welcome. Asserting
+# only the first status is how a BROKEN IdP reads as healthy: with a partial
+# config.php the 303 was still correct while its destination returned 500
+# ("Missing cachedir parameter"). Measured 2026-09-05. Assert the destination.
 idp_serves() {
-  local code; code=$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT_IDP/")
-  echo "http://127.0.0.1:$PORT_IDP/ -> $code"
-  [ "$code" = "200" ] || [ "$code" = "302" ]
+  local first final
+  first=$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT_IDP/")
+  final=$(curl -sSL -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT_IDP/")
+  echo "http://127.0.0.1:$PORT_IDP/ -> $first, and after redirects -> $final (want 200)"
+  [ "$final" = "200" ]
 }
-check "the Manifest IdP serves"  idp_serves
+check "the Manifest IdP serves, and its redirect target works"  idp_serves
 
 idp_has_pdo_pgsql() {
   local out; out=$(docker exec manifest-idp php -m 2>/dev/null | grep -c '^pdo_pgsql$')
@@ -2141,14 +2148,50 @@ idp_has_pdo_pgsql() {
 }
 check "the IdP image has pdo_pgsql"  idp_has_pdo_pgsql
 
-# The SQL metadata source is the mechanism S2 proved: one INSERT registers an SP
-# on the NEXT HTTP request — no reload, no restart, no cache TTL.
+# The SQL metadata source is the mechanism S2 proved and P4 is built on: one
+# INSERT registers an SP on the NEXT request — no reload, no restart, no cache
+# TTL. ASSERT THE ROUND TRIP, not that a table exists. P1 first created
+# saml20_sp_remote with 1.x's (entityid, entitydata); SimpleSAMLphp 2.x queries
+# `SELECT entity_id, entity_data`, so the table existed, an existence check
+# passed, and every metadata read threw. Measured 2026-09-05.
 idp_reads_metadata_from_sql() {
+  local eid='https://verify-probe.manifest.internal/sp' out rc
   docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
-    "SELECT to_regclass('public.saml20_sp_remote') IS NOT NULL" | grep -q t \
-    && echo "saml20_sp_remote exists in manifest_idp"
+    "INSERT INTO saml20_sp_remote (entity_id, entity_data) VALUES ('$eid', '{\"entityid\":\"$eid\",\"AssertionConsumerService\":[{\"Binding\":\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\",\"Location\":\"https://verify-probe.manifest.internal/acs\",\"index\":0}]}') ON CONFLICT (entity_id) DO NOTHING" >/dev/null 2>&1 \
+    || { echo "could not insert a probe SP row"; return 1; }
+
+  out=$(docker exec manifest-idp php -r '
+    require "/var/simplesamlphp/vendor/autoload.php";
+    $h = \SimpleSAML\Metadata\MetaDataStorageHandler::getMetadataHandler();
+    $m = $h->getMetaData(getenv("PROBE_EID"), "saml20-sp-remote");
+    echo $m["AssertionConsumerService"][0]["Location"];
+  ' 2>&1); rc=$?
+  docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
+    "DELETE FROM saml20_sp_remote WHERE entity_id='$eid'" >/dev/null 2>&1
+
+  echo "SimpleSAMLphp read the probe SP back as: ${out##*$'\n'}"
+  [ "$rc" -eq 0 ] && [ "$out" = "https://verify-probe.manifest.internal/acs" ]
 }
-check "the SQL metadata table exists"  idp_reads_metadata_from_sql
+check "one INSERT registers an SP, read back through SimpleSAMLphp (S2)"  idp_reads_metadata_from_sql
+
+# S2's THIRD finding, asserted rather than assumed: database.* and store.sql.*
+# are DIFFERENT SUBSYSTEMS, and proving one works proves nothing about the other.
+# The check above exercises database.*; this one exercises store.sql.*.
+idp_sql_session_store_works() {
+  local out
+  out=$(docker exec manifest-idp php -r '
+    require "/var/simplesamlphp/vendor/autoload.php";
+    $s = \SimpleSAML\Store\StoreFactory::getInstance(
+           \SimpleSAML\Configuration::getInstance()->getOptionalString("store.type","phpsession"));
+    $s->set("test", "manifest-verify-probe", "ok", time()+300);
+    echo get_class($s), " ", var_export($s->get("test","manifest-verify-probe"), true);
+  ' 2>&1)
+  docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
+    "DELETE FROM simplesamlphp_kvstore WHERE _key='manifest-verify-probe'" >/dev/null 2>&1
+  echo "${out##*$'\n'}"
+  echo "$out" | grep -q "SQLStore 'ok'"
+}
+check "the SQL session store is a DIFFERENT subsystem, and also works (S2)"  idp_sql_session_store_works
 ```
 
 Run: `make verify` — all three FAIL.
@@ -2162,9 +2205,14 @@ Run: `make verify` — all three FAIL.
 # identified: pdo_pgsql, which ALSO needs libpq-dev — the ext-install alone fails.
 FROM php:8.3-apache
 
+# TWO extensions, not one. S2 recorded that pdo_pgsql needs libpq-dev, and that
+# is still true. It did NOT need bcmath — but simplesamlphp/xml-common v2.8.2 now
+# requires ext-bcmath, so `composer create-project` fails outright without it:
+#   simplesamlphp/xml-common v2.8.2 requires ext-bcmath * -> it is missing
+# Measured 2026-09-05. bcmath needs no extra system library.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libpq-dev unzip git \
- && docker-php-ext-install pdo_pgsql \
+ && docker-php-ext-install pdo_pgsql bcmath \
  && apt-get purge -y --auto-remove git \
  && rm -rf /var/lib/apt/lists/*
 
@@ -2264,6 +2312,42 @@ CREATE TABLE IF NOT EXISTS saml20_idp_hosted (
   entitydata TEXT NOT NULL
 );
 ```
+
+> **Four defects found in execution (2026-09-05). Two of them were controls that
+> passed against a broken IdP.**
+>
+> 1. **`ext-bcmath` is now required.** S2 recorded that `pdo_pgsql` needs
+>    `libpq-dev`, and that is still true — but `simplesamlphp/xml-common v2.8.2`
+>    now requires `ext-bcmath`, so `composer create-project` fails outright.
+>    `docker-php-ext-install pdo_pgsql bcmath`.
+> 2. **Bind-mounting a partial `config.php` replaces the whole configuration.**
+>    SimpleSAMLphp 2.x ships only `config.php.dist`; there is no `config.php` in
+>    the image. So "only the parts P1 sets; the rest is upstream default" was
+>    false — every unset key was simply missing, starting with `cachedir`. The
+>    symptom is `/` answering 303 correctly while its destination returns 500.
+>    The file now `require`s the dist (which assigns `$config` and does not
+>    return it) and `array_merge`s the deltas over it, so it stays a delta file
+>    across upgrades. The Dockerfile also creates the cache/log/data directories
+>    the dist points at and chowns them to `www-data`.
+> 3. **The health check asserted the redirect, not its target.** It accepted
+>    `200` or `302`; SimpleSAMLphp 2.x answers `303`. Widening it to allow 303
+>    would have declared the IdP healthy while `/module.php/core/welcome`
+>    returned 500. It now follows redirects and asserts the final status.
+> 4. **The hand-written table schema was SimpleSAMLphp 1.x's.** `20-idp-metadata.sql`
+>    created `saml20_sp_remote (entityid, entitydata)`; 2.x's
+>    `MetaDataStorageHandlerPdo` queries `SELECT entity_id, entity_data`. The
+>    table existed, the "SQL metadata table exists" check passed, and **every
+>    metadata read threw** — a defect that would have landed on P4. The SQL file
+>    is deleted; the IdP's entrypoint now runs SimpleSAMLphp's own
+>    `bin/initMDSPdo.php`, which is authoritative, idempotent and moves with the
+>    version. Note it records what it has made in `simplesamlphp_tableversion`,
+>    so a manually corrupted table is **not** self-healing.
+>
+> The existence check is replaced by the round trip S2 actually proved — INSERT a
+> probe SP, read it back through `MetaDataStorageHandler`, delete it — plus a
+> second check exercising `store.sql.*`, because S2's own finding is that it and
+> `database.*` are different subsystems and proving one proves nothing about the
+> other. Both were verified to fail when the schema is wrong.
 
 - [ ] **Step 5: Add the service**
 

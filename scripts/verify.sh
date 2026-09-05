@@ -366,4 +366,73 @@ litellm_spend_is_attributed() {
 }
 check "spend is actually attributed, not \$0.00 (S3)"  litellm_spend_is_attributed
 
+echo
+echo "Identity (§9, S2)"
+
+# FOLLOW THE REDIRECT. SimpleSAMLphp 2.x answers `/` with 303 (not the 302 this
+# check originally allowed) and sends you to /module.php/core/welcome. Asserting
+# only the first status is how a BROKEN IdP reads as healthy: with a partial
+# config.php the 303 was still correct while its destination returned 500
+# ("Missing cachedir parameter"). Measured 2026-09-05. Assert the destination.
+idp_serves() {
+  local first final
+  first=$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT_IDP/")
+  final=$(curl -sSL -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT_IDP/")
+  echo "http://127.0.0.1:$PORT_IDP/ -> $first, and after redirects -> $final (want 200)"
+  [ "$final" = "200" ]
+}
+check "the Manifest IdP serves, and its redirect target works"  idp_serves
+
+idp_has_pdo_pgsql() {
+  local out; out=$(docker exec manifest-idp php -m 2>/dev/null | grep -c '^pdo_pgsql$')
+  echo "pdo_pgsql loaded: $out (needs libpq-dev at build time — S2)"
+  [ "$out" = "1" ]
+}
+check "the IdP image has pdo_pgsql"  idp_has_pdo_pgsql
+
+# The SQL metadata source is the mechanism S2 proved and P4 is built on: one
+# INSERT registers an SP on the NEXT request — no reload, no restart, no cache
+# TTL. ASSERT THE ROUND TRIP, not that a table exists. P1 first created
+# saml20_sp_remote with 1.x's (entityid, entitydata); SimpleSAMLphp 2.x queries
+# `SELECT entity_id, entity_data`, so the table existed, an existence check
+# passed, and every metadata read threw. Measured 2026-09-05.
+idp_reads_metadata_from_sql() {
+  local eid='https://verify-probe.manifest.internal/sp' out rc
+  docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
+    "INSERT INTO saml20_sp_remote (entity_id, entity_data) VALUES ('$eid', '{\"entityid\":\"$eid\",\"AssertionConsumerService\":[{\"Binding\":\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\",\"Location\":\"https://verify-probe.manifest.internal/acs\",\"index\":0}]}') ON CONFLICT (entity_id) DO NOTHING" >/dev/null 2>&1 \
+    || { echo "could not insert a probe SP row"; return 1; }
+
+  out=$(docker exec -e PROBE_EID="$eid" manifest-idp php -r '
+    require "/var/simplesamlphp/vendor/autoload.php";
+    $h = \SimpleSAML\Metadata\MetaDataStorageHandler::getMetadataHandler();
+    $m = $h->getMetaData(getenv("PROBE_EID"), "saml20-sp-remote");
+    echo $m["AssertionConsumerService"][0]["Location"];
+  ' 2>&1); rc=$?
+  docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
+    "DELETE FROM saml20_sp_remote WHERE entity_id='$eid'" >/dev/null 2>&1
+
+  echo "SimpleSAMLphp read the probe SP back as: ${out##*$'\n'}"
+  [ "$rc" -eq 0 ] && [ "$out" = "https://verify-probe.manifest.internal/acs" ]
+}
+check "one INSERT registers an SP, read back through SimpleSAMLphp (S2)"  idp_reads_metadata_from_sql
+
+# S2's THIRD finding, asserted rather than assumed: database.* and store.sql.*
+# are DIFFERENT SUBSYSTEMS, and proving one works proves nothing about the other.
+# The check above exercises database.*; this one exercises store.sql.*.
+idp_sql_session_store_works() {
+  local out
+  out=$(docker exec manifest-idp php -r '
+    require "/var/simplesamlphp/vendor/autoload.php";
+    $s = \SimpleSAML\Store\StoreFactory::getInstance(
+           \SimpleSAML\Configuration::getInstance()->getOptionalString("store.type","phpsession"));
+    $s->set("test", "manifest-verify-probe", "ok", time()+300);
+    echo get_class($s), " ", var_export($s->get("test","manifest-verify-probe"), true);
+  ' 2>&1)
+  docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
+    "DELETE FROM simplesamlphp_kvstore WHERE _key='manifest-verify-probe'" >/dev/null 2>&1
+  echo "${out##*$'\n'}"
+  echo "$out" | grep -q "SQLStore 'ok'"
+}
+check "the SQL session store is a DIFFERENT subsystem, and also works (S2)"  idp_sql_session_store_works
+
 summary
