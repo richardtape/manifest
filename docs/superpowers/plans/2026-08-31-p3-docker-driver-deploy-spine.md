@@ -6,7 +6,7 @@
 
 **Architecture:** A `runtime/docker/` folder implementing §11's `Driver` against the Docker Engine API over its unix socket, with **no client library** — S1 established that the whole round-trip is ~40 lines of dependency-free code per operation. Everything §12 requires is a *value in a request body*, not a comment: the hardening baseline is a `HostConfig` literal, the network restriction is an `--internal` network, egress default-deny is a per-app forced proxy, and the builder is an ephemeral rootless BuildKit container destroyed in a `finally`. Around it sit three modules §5 names and P2 deliberately left empty — `build/` (source + spec → digest, with the platform-mandatory scan gates), `services/` (dedicated Mongo per app+environment, D3) and `routing/` (§23 hostnames, listener assignment, Caddy's JSON admin API). Tests run in **two tiers**: everything pure stays in `pnpm test` with no Docker, and everything that needs a daemon runs in `pnpm test:docker`, which **fails rather than skips** when it is supposed to run.
 
-**Tech Stack:** TypeScript (strict), Node 24, pnpm workspaces, Vitest, the Docker Engine API v1.51 over `/var/run/docker.sock`, rootless BuildKit v0.32.2 driven through `docker buildx` v0.36.1, `registry:2` (distribution 2.8.3) with bearer-token auth, Caddy 2.11.4's JSON admin API, `mongodb/mongodb-community-server:7.0.28-ubi8`, Syft v1.51.1 and Grype v0.118.0.
+**Tech Stack:** TypeScript (strict), Node 24, pnpm workspaces, Vitest, the Docker Engine API **v1.44** over `/var/run/docker.sock`, rootless BuildKit v0.32.2 driven through `docker buildx` v0.36.1, `registry:2` (distribution 2.8.3) with bearer-token auth, Caddy 2.11.4's JSON admin API, `mongodb/mongodb-community-server:7.0.28-ubi8`, Syft v1.51.1 and Grype v0.118.0.
 
 **Spec:** [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](../specs/2026-08-29-manifest-platform-design.md) — §11 (execution model, the `Driver` interface), §12 in full (edge, DNS, egress, east-west, hardening, the builder, supply chain), §13 (digest binding, promotion, gate integrity), §16 (the driver contract suite and the security-regression tier), §20 (the control map), §21 (local topology and its honest divergences), §23 (the three zones).
 
@@ -14,7 +14,7 @@
 
 **Depends on:** **P1** for the substrate this plan drives (Caddy on `127.0.0.2` with its admin API on `127.0.0.1:7119`, the dual-homed registry on `127.0.0.1:7107`, Verdaccio, the internal build network, Postgres) and **P2** for the `Driver` interface, the contract suite, the state machine, `Config`/`hostnameFor`, `resolveConfig`, and the release records this plan gives digests to.
 
-**Status: complete — 19 tasks.** No step in this plan stands in for a spike result. The two controls S1 left open were settled **before** it was written; see the next section.
+**Status: complete — 19 tasks, self-reviewed.** No step in this plan stands in for a spike result. The two controls S1 left open were settled **before** it was written; see the next section. The self-review ran on 2026-09-04 and found seven defects, all fixed — *What the self-review caught*, near the end, records them.
 
 ---
 
@@ -497,11 +497,17 @@ Expected: FAIL — `Cannot find module './names.js'` and `'./engine.js'`.
  * platform's, `mf-*` is per-app and ours, and everything else on the developer's
  * machine is somebody else's.
  */
-import { instanceName, serviceName } from '../driver.js'
+import type { InstanceSpec } from '../driver.js'
 
 export const MF_PREFIX = 'mf-'
 
-export type EnvironmentKind = 'sandbox' | 'staging' | 'production'
+/**
+ * NOT redefined here, for the reason `routing/hostnames.ts` gives at Task 13: a
+ * literal second copy of this union is a second thing to keep in step with
+ * `InstanceSpec`, and the drift would be silent. Four modules import this one
+ * (Tasks 4, 5 and 6), so it is the copy that would do the damage.
+ */
+export type EnvironmentKind = InstanceSpec['environmentKind']
 
 /**
  * The Docker name is the interface's deterministic name with our prefix on it.
@@ -1068,9 +1074,15 @@ In `packages/control-plane/src/runtime/driver.ts`, inside `DriverCapabilities`, 
   enforcesDiskQuota: boolean
 ```
 
-In `packages/control-plane/src/runtime/fake-driver.ts`, add `enforcesDiskQuota: true`
-to the default capabilities object. **The fake driver enforces everything it claims,
-because it is memory** — that is what makes it a useful baseline to differ from.
+In `packages/control-plane/src/runtime/fake-driver.ts`, add `enforcesDiskQuota: false`
+to the default capabilities object, beside the two honesty comments already in it.
+**`false` is both the honest value and the convention that file already sets.** P2
+wrote `enforcesEgress: false // honest: an in-memory driver enforces nothing` and
+`enforcesUserNamespaceRemapping: false // honest: nothing is namespaced`; an
+in-memory driver does not enforce a disk quota either. Reporting `true` would be the
+exact move Decision 4 refuses — implying an enforcement nothing performs — and it
+would silently invert any later contract assertion written as *"if the driver claims
+`enforcesDiskQuota`, exceeding the quota must fail."*
 
 **Do not touch `runtime/driver-contract.ts`.** Its capabilities test asserts the
 fields it knows about are boolean and stays green; the new field is pinned by
@@ -2956,7 +2968,7 @@ The demuxer is fed one byte at a time in test, because a chunk is not a frame."
 - Create: `packages/control-plane/src/runtime/docker/testing.ts`
 - Create: `packages/control-plane/src/api/routes/registry-token.ts`
 - Modify: `packages/control-plane/src/api/server.ts` (register the route)
-- Modify: `packages/control-plane/src/config.ts` (`registryTokenKeyPath`, `registryUrl`, `registryInternalUrl`)
+- Modify: `packages/control-plane/src/config.ts` (`registryTokenKeyPath`, `registryTokenCertPath`, `buildCredentialSecret`, `registryUrl`, `registryInternalUrl`)
 - Modify: `infra/compose.yaml` (registry gains token auth)
 - Create: `infra/seed/mint-token.mjs`
 - Modify: `infra/seed/seed.sh`, `infra/seed/mirror-images.sh`, `scripts/verify.sh`
@@ -5583,13 +5595,15 @@ at the hostname is a different claim from the container's own healthcheck."
 - Create: `packages/control-plane/src/runtime/docker/driver.ts`
 - Create: `packages/control-plane/src/runtime/docker/index.ts`
 - Modify: `packages/control-plane/src/runtime/index.ts` (re-export `createDockerDriver`)
+- Modify: `packages/control-plane/src/config.ts` (`dnsServer`, `masterSecret`, `dockerSocket`)
+- Modify: `packages/control-plane/src/index.ts` (**the boot entry point — Step 6**)
 - Test: `packages/control-plane/src/runtime/docker/driver.docker.test.ts`
 - Test: `packages/control-plane/src/runtime/docker/capabilities.test.ts`
 
 **Interfaces:**
 - Consumes: every module from Tasks 1 through 14.
 - Produces:
-  - `interface DockerDriverOptions { engine; config; masterSecret; limits; blueprintDir; dnsServer; registryHost; registryPublicHost }`
+  - `interface DockerDriverOptions { engine; masterSecret; buildCredentialSecret; blueprintDir; dnsServer; registryHost; registryPublicHost; hostnameFor; routing; limits? }`
   - `createDockerDriver(options: DockerDriverOptions): Promise<Driver>`
 
 **This is the task the plan exists for.** §16 calls the driver contract suite *"one
@@ -5911,18 +5925,128 @@ Expected: this does **not** reach a test — it fails to **compile**, because
 `DriverCapabilities` requires it. That is Decision 4 working: the shared suite was not
 edited, and the omission is caught earlier than a test could catch it.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Wire it into the boot entry point**
+
+**Without this step the plan builds a driver nothing uses.** P2's `src/index.ts`
+carries the line *"P3 swaps this for the Docker driver. Nothing else in this file
+changes"* — and until it is swapped, `buildServer` still receives
+`createFakeDriver()`. That matters more than it sounds: Task 17's `make demo` would
+then build nothing, route nothing, touch no daemon, and **pass**, because the fake
+driver answers every call happily in memory. It is the project's own lesson —
+*a green result is not evidence a control is in force* — pointed at the plan's own
+acceptance criterion.
+
+First, `packages/control-plane/src/config.ts` — three fields, beside the ones Tasks 9
+and 13 add:
+
+```ts
+  /** §12 makes the resolver per-container: dnsmasq-A's address on the platform network. */
+  dnsServer: string        // MANIFEST_DNS_SERVER, default '10.89.0.53'
+  /** Task 6 derives every service credential from this by HMAC. */
+  masterSecret: string     // MANIFEST_MASTER_SECRET
+  dockerSocket: string     // MANIFEST_DOCKER_SOCKET, default resolveSocketPath()
+```
+
+Then `packages/control-plane/src/index.ts`:
+
+```ts
+import { buildServer } from './api/index.js'
+import { db } from './db/index.js'
+import { hostnameFor, loadConfig } from './config.js'
+import { createDockerDriver } from './runtime/index.js'
+import { createEngineClient } from './runtime/docker/index.js'
+import { createCaddyClient } from './routing/index.js'
+import { createLocalSourceDriver } from './source/index.js'
+import { loadBlueprints } from './blueprints/index.js'
+
+const config = loadConfig()
+
+// Hoisted rather than constructed inline: Step 7 reads `driver.name` back, and the
+// boot log is the only place the choice this file makes is observable.
+const driver = await createDockerDriver({
+  engine: createEngineClient({ socketPath: config.dockerSocket }),
+  masterSecret: config.masterSecret,
+  buildCredentialSecret: config.buildCredentialSecret,
+  blueprintDir: config.blueprintsRoot,
+  dnsServer: config.dnsServer,
+  // These two are NOT interchangeable, and nothing fails loudly if they are
+  // swapped: `registryHost` is what the BUILDER calls the registry (Task 9's
+  // `registryInternalUrl`, reachable on the internal build network) and
+  // `registryPublicHost` is what the DAEMON calls it. Same content, addressed by
+  // digest. Swapped, builds push somewhere the daemon cannot pull from, and the
+  // failure surfaces at `ensureInstance` as a pull error naming an image that
+  // was, from the builder's point of view, pushed successfully.
+  registryHost: config.registryInternalUrl,
+  registryPublicHost: config.registryUrl,
+  // P2's `hostnameFor` is `(config, kind, slug)`; the driver's option is
+  // `(kind, slug)`. Config is bound here rather than threaded through the driver,
+  // which has no other use for it.
+  hostnameFor: (kind, slug) => hostnameFor(config, kind, slug),
+  routing: {
+    caddy: createCaddyClient(config.caddyAdminUrl),
+    servers: config.caddyServers,
+  },
+})
+
+const app = await buildServer({
+  db,
+  config,
+  driver,
+  source: createLocalSourceDriver(config.reposRoot),
+  blueprints: await loadBlueprints(config.blueprintsRoot),
+})
+
+await app.listen({ port: config.port, host: '127.0.0.1' })
+
+// Which driver actually booted is the one fact this file decides, and every
+// acceptance in this plan is meaningless if it is 'fake'. One line, so the answer
+// is in the log rather than inferred from behaviour.
+app.log.info({ driver: driver.name }, 'control plane ready')
+```
+
+**`createDockerDriver` is `async` and `createFakeDriver` was not**, which is why this
+file gains a top-level `await`: the driver reads the daemon's capabilities once at
+construction (Step 3) rather than making `capabilities()` async on every driver that
+will ever implement §11. The package is ESM, so top-level `await` needs no wrapper.
+
+- [ ] **Step 7: Prove the wiring, not just the driver**
+
+Boot the control plane and read which driver it came up with:
+
+```bash
+pnpm --filter @manifest/control-plane dev 2>&1 | tee /tmp/mf-boot.log &
+sleep 5
+grep -q '"driver":"docker"' /tmp/mf-boot.log && echo WIRED
+```
+
+Expected: `WIRED`.
+
+Then the negative control, which is the point of the step: put `createFakeDriver()`
+back, restart, and re-run.
+
+Expected: **no match** — the log says `"driver":"fake"` and the control plane comes up
+perfectly happily, serving every route, passing every unit test. That state is
+indistinguishable from success at every level above this file, which is why it is
+asserted here rather than assumed from a working `make demo`.
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add packages/control-plane/src/runtime/docker/driver.ts \
         packages/control-plane/src/runtime/docker/index.ts \
         packages/control-plane/src/runtime/docker/driver.docker.test.ts \
         packages/control-plane/src/runtime/docker/capabilities.test.ts \
-        packages/control-plane/src/runtime/index.ts
+        packages/control-plane/src/runtime/index.ts \
+        packages/control-plane/src/config.ts \
+        packages/control-plane/src/index.ts
 git commit -m "feat(runtime): the Docker driver passes P2's contract suite unchanged
 
 driver-contract.ts is imported byte-for-byte as P2 wrote it. Verified by breaking
-ensureInstance's idempotency and watching two named contract tests fail."
+ensureInstance's idempotency and watching two named contract tests fail.
+
+The boot entry point now constructs it instead of the fake driver, verified by
+reading driver:docker back from /healthz — without that swap every later
+acceptance in this plan passes against an in-memory driver."
 ```
 
 ---
@@ -6789,6 +6913,35 @@ Named so the next reader does not go looking, and so P4 and P5 know what they in
 | Custom production domains, `Domain` verification | **Phase 2** | §23's lifecycle needs the public listener and an admin flow; P3 builds canonical routes only |
 | Multi-arch builds | **CI, Phase 2** | §21 divergence 4: laptop images are never promoted, and Task 16 now enforces it |
 | `contract/`, `manifest-mock`, `console/` | **P5** | — |
+
+---
+
+## What the self-review caught
+
+Recorded because the roadmap's lesson says to: *"Run the plan self-review, and record
+what it caught. Writing down what the review caught stops the next reader mistaking a
+deliberate fix for a mistake."* P1's found five defects, P2's found seven. This one
+found **seven**, and the first is the one that mattered.
+
+| # | Defect | Why it would have cost something |
+|---|---|---|
+| 1 | **Nothing wired the Docker driver into the boot entry point.** P2's `src/index.ts` says *"P3 swaps this for the Docker driver"*; no task did, and `runtime/index.ts` only re-exported it. | The plan's entire acceptance — Task 17's `make demo`, and every Docker-tier assertion reached through the API — would have run against `createFakeDriver()` and **passed**. The fake driver answers every call happily in memory. This is the project's twice-paid lesson (*a green result is not evidence a control is in force*) aimed at the plan's own demo. Fixed as Task 15 Steps 6–7, with the negative control that puts the fake driver back and watches the platform come up perfectly. |
+| 2 | `runtime/docker/names.ts` **redefined `EnvironmentKind`** as a literal union — a third copy, after `spec/resolve.ts` and the inline one in `driver.ts`. | Tasks 4, 5 and 6 import *this* copy, so it is the one that would drift. Task 13 states the rule against exactly this (*"a second copy is a second thing to keep in step, and the drift would be silent"*) and Task 1 broke it. Now derived from `InstanceSpec['environmentKind']`, the same way Task 13 does it. |
+| 3 | The same file **imported `instanceName` and `serviceName` and used neither.** | `pnpm lint` must be clean before a commit, and P2's execution already lost time to a linter disagreeing with plan code. Removed by the fix for #2, which needs a type import instead. |
+| 4 | Task 15's `Produces` block **disagreed with its own code in four ways** — it listed a `config` field that does not exist and omitted `buildCredentialSecret`, `hostnameFor` and `routing`, all three load-bearing. | The `Interfaces` block is how a task's implementer learns neighbouring signatures without reading the neighbour. Three missing fields means three constructor arguments discovered by compiler error. |
+| 5 | Task 3 told the executor to set **`enforcesDiskQuota: true` on the fake driver**, reasoning that *"the fake driver enforces everything it claims, because it is memory."* | The file it edits says the opposite twice, in P2's own words: `enforcesEgress: false // honest: an in-memory driver enforces nothing`. `true` is the exact move Decision 4 refuses — implying an enforcement nothing performs — and it would invert any later contract test written as *"if the driver claims the quota, exceeding it must fail."* Now `false`. |
+| 6 | The **Tech Stack header said Engine API v1.51**; the plan pins **v1.44** deliberately, in five places, with the reasoning attached. | v1.51 is Syft's version, one line away in the same sentence. The header is what a reader skims first, and the number they would have carried into Task 1 was wrong. |
+| 7 | Task 9's `config.ts` change **omitted `registryTokenCertPath` and `buildCredentialSecret`**, both required by its own `RegistryTokenDeps`, and both already present as env vars in *Running it*. | The token issuer cannot mint without the cert, and cannot verify a build credential without the secret. Two fields, discovered at runtime rather than in the plan. |
+
+**What the review did not find**, stated because a clean pass is evidence too: no
+placeholders, no `TBD`s, no step standing in for a spike result, all twelve `Driver`
+members implemented, §12's nine subsections each mapped to a task or explicitly
+deferred with a reason, and §16's security-regression items either in Task 18's
+matrix or named as P4's.
+
+**And what it could not check.** Every defect above was found by reading. P2's lesson
+is that executing four of twenty-one tasks found five more defects that *no* reading
+would have caught. Seven found on paper is not evidence the remaining rate is low.
 
 ---
 
