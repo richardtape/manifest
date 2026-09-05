@@ -6,7 +6,27 @@ before P1's execution begins, so that "leave the machine exactly as you found it
 file is evidence of one moment, and three images on a previous list vanished between
 sessions.
 
-**What this run contradicted in ORIENTATION §4**, all now corrected there:
+## Host or container? — the distinction this file is easiest to misread on
+
+**Almost nothing Manifest runs is installed on this machine.** §21's inventory is
+explicit: the only host-resident pieces are **Ollama** (Metal GPU is unreachable from
+a container), the **control plane** Node process (it needs the Docker socket, which
+§12 forbids mounting into *workload* containers), and three Vite dev servers — the
+admin UI, `manifest-mock` and the reference console.
+
+**Caddy, Postgres, the registry, Verdaccio, LiteLLM, the Manifest IdP, dnsmasq, the
+egress proxy, the builder, and Syft/Grype are all containers.** When this file says
+`caddy:2.11.4` is absent it means *the image has not been pulled or built*, not that
+software is missing from the Mac. Caddy specifically is a **custom `xcaddy` build**
+(§20) — S7 established that Coraza pins the Caddy version — so `make seed` builds
+that image; nobody ever runs `brew install caddy`. Syft and Grype are listed in §21 as
+*"Scanner + SBOM — transient, per build"*: P3 Task 12 runs each as a throwaway
+container against the Docker socket.
+
+An earlier version of `snapshot-machine.sh` listed `caddy` under the host toolchain
+and printed `ABSENT`, which reads as a missing dependency and is not one. Fixed.
+
+## What this run contradicted in ORIENTATION §4, all now corrected there:
 
 - **macOS is 26.6.2 (build 25G83)**, not 26.5.2 / 25F84. The machine was updated.
 - **`caddy:2.11.4` and `caddy:2.11.4-builder` are still absent.** P1 needs both, and
@@ -32,7 +52,7 @@ user", never "free". The script's first run reported `(free)` and that was wrong
 
 ```
 Manifest machine snapshot
-taken: 2026-09-04 17:19:31 PDT
+taken: 2026-09-04 17:26:53 PDT
 host:  Richs-MBP.localdomain
 user:  rich
 
@@ -44,15 +64,16 @@ RAM         36 GiB
 free disk   163Gi
 bash        3.2.57(1)-release
 
-=== Toolchain ===
+=== Host toolchain — things that genuinely live on this machine ===
 node         v24.12.0
 pnpm         11.24.0
 npm          11.6.2
 docker       Docker version 29.7.2, build a7dcaa6
 git          git version 2.50.1 (Apple Git-155)
+make         GNU Make 3.81
 openssl      OpenSSL 3.6.3 9 Jun 2026 (Library: OpenSSL 3.6.3 9 Jun 2026)
-caddy        ABSENT
-dig          Invalid option: --version
+ollama       ollama version is 0.33.3
+  models     qwen3.8:27b nemotron3:33b qwen3.6:27b gemma4:31b gemma4:e4b gemma4:26b gpt-oss:20b qwen3.5:4b qwen3.5:9b ministral-3:latest glm-4.7-flash:latest nomic-embed-text:latest 
 .nvmrc       24
 
 === Docker daemon ===

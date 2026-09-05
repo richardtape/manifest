@@ -35,14 +35,28 @@ printf 'RAM         %s GiB\n' "$(( $(sysctl -n hw.memsize) / 1073741824 ))"
 printf 'free disk   %s\n' "$(df -h / | awk 'NR==2 {print $4}')"
 printf 'bash        %s\n' "${BASH_VERSION}"
 
-section "Toolchain"
-for t in node pnpm npm docker git openssl caddy dig; do
+section "Host toolchain — things that genuinely live on this machine"
+# §21: the ONLY host-resident pieces are Ollama (Metal GPU is unreachable from a
+# container), the control plane, the admin UI, manifest-mock and the console. Caddy,
+# Postgres, the registry, Verdaccio, LiteLLM, the IdP, the builder and the scanners
+# are all CONTAINERS and must never be installed here. An earlier version of this
+# script listed `caddy` under the host toolchain and printed ABSENT, which reads as a
+# missing dependency and is not one.
+for t in node pnpm npm docker git make openssl; do
   if have "$t"; then
     printf '%-12s %s\n' "$t" "$("$t" --version 2>&1 | head -1)"
   else
     printf '%-12s ABSENT\n' "$t"
   fi
 done
+if have ollama; then
+  printf '%-12s %s\n' "ollama" "$(ollama --version 2>&1 | head -1)"
+  printf '%-12s %s\n' "  models" "$(ollama list 2>/dev/null | awk 'NR>1 {printf "%s ", $1}')"
+else
+  printf '%-12s ABSENT — §21 needs it as a HOST app; make seed pulls a non-thinking\n' "ollama"
+  printf '             chat model and an embedding model (a thinking model streams\n'
+  printf '             no content at all — S3).\n'
+fi
 printf '%-12s %s\n' ".nvmrc" "$(cat .nvmrc 2>/dev/null || echo 'not in this directory')"
 
 section "Docker daemon"
