@@ -21,3 +21,7 @@ npm-debug.log*
 
 # Local platform state (see spec §21)
 .manifest-local/
+
+# P1 local substrate: minted at seed time, never committed
+infra/ca/
+infra/seed-cache/

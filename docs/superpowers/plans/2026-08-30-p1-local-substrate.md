@@ -370,9 +370,29 @@ check "ports 7100-7199 free"  check_block
 
 # NEVER assume 53, 80 or 443 are free. Valet owns all three here (S7) and the
 # design accommodates that rather than fighting it.
-report "port 53 owner"   sh -c 'lsof -nP -iUDP:53 2>/dev/null | awk "NR==2{print \$1, \$3}" || echo "(none)"'
-report "port 443 owner"  sh -c 'lsof -nP -iTCP:443 -sTCP:LISTEN 2>/dev/null | awk "NR==2{print \$1, \$3}" || echo "(none)"'
+#
+# WITHOUT sudo, lsof CANNOT SEE SOCKETS OWNED BY OTHER USERS, and Valet's dnsmasq
+# runs as `nobody`. So an empty result means "nothing visible to this user", NOT
+# "free" — printing a bare blank line here is how a busy port reads as an idle
+# one. scripts/snapshot-machine.sh was corrected for exactly this misreading.
+port_owner() {
+  local proto="$1" port="$2" out
+  case "$proto" in
+    udp) out=$(lsof -nP -iUDP:"$port" 2>/dev/null | awk 'NR>1{print $1" ("$3")"}' | sort -u | tr '\n' ' ') ;;
+    *)   out=$(lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null | awk 'NR>1{print $1" ("$3")"}' | sort -u | tr '\n' ' ') ;;
+  esac
+  if [ -n "$out" ]; then echo "$out"
+  else echo "nothing visible to this user — lsof cannot see other users' sockets without sudo, and Valet's dnsmasq runs as nobody"; fi
+}
+report "port 53 owner"   port_owner udp 53
+report "port 443 owner"  port_owner tcp 443
 ```
+
+> **Defect found in execution (2026-09-05).** The original of this step used
+> `sh -c 'lsof … | awk "NR==2{…}" || echo "(none)"'`. The `||` never fires: `awk`
+> exits 0 with no output, so a port nobody can see prints a **blank line**, which
+> reads as *free*. ORIENTATION §4 says exactly this about port 53 and the snapshot
+> script was already corrected for it; the plan had not carried the fix across.
 
 - [ ] **Step 7: Run doctor and confirm it passes**
 
