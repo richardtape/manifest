@@ -64,4 +64,45 @@ dns_forwards_non_zone() {
 }
 check "non-zone queries still reach Docker's resolver"  dns_forwards_non_zone
 
+echo
+echo "Edge — the custom Caddy build (§20)"
+
+caddy_has_modules() {
+  local mods
+  mods=$(docker exec manifest-caddy caddy list-modules 2>/dev/null | grep -E '^http\.handlers\.(rate_limit|waf)$' | sort | tr '\n' ' ')
+  echo "modules: ${mods:-<none>} (want http.handlers.rate_limit http.handlers.waf)"
+  [ "$(echo "$mods" | wc -w | tr -d ' ')" = "2" ]
+}
+check "Caddy carries the rate-limit and Coraza modules"  caddy_has_modules
+
+caddy_version_pinned() {
+  local v; v=$(docker exec manifest-caddy caddy version 2>/dev/null | awk '{print $1}')
+  echo "caddy $v (Coraza v2.6.0 requires exactly v2.11.4)"
+  [ "$v" = "v2.11.4" ]
+}
+check "Caddy is pinned to v2.11.4"  caddy_version_pinned
+
+# GUARD, and it is load-bearing. `docker run -v $PWD/$CA_FILE:/ca.crt` with the
+# CA absent makes Docker CREATE infra/ca/manifest-root.crt as a DIRECTORY — the
+# exact path `make seed` must later write the root to. `docker cp` would then put
+# the certificate INSIDE it, and both `--cacert` and `security add-trusted-cert`
+# fail on a directory. Every check that mounts the CA calls this first.
+require_ca() {
+  [ -f "$CA_FILE" ] && return 0
+  echo "$CA_FILE is not a file — run \`make seed\` to mint it. Not mounting it: Docker would create a directory there."
+  return 1
+}
+
+# The container half of the parity property. The host half is Task 5.
+edge_serves_container_side() {
+  require_ca || return 1
+  local out
+  out=$(docker run --rm --network "$NET" --dns "$DNS_C_IP" \
+        -v "$PWD/$CA_FILE":/ca.crt:ro curlimages/curl:8.11.1 \
+        --cacert /ca.crt -sS "https://console.$ZONE/" 2>&1)
+  echo "$out"
+  echo "$out" | grep -q "host=console.$ZONE"
+}
+check "a container reaches https://console.$ZONE with the platform CA"  edge_serves_container_side
+
 summary

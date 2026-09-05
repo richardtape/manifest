@@ -60,3 +60,29 @@ services:
       # The host's answer differs from the containers' answer. That difference IS
       # the split horizon, and it is the entire point of running two processes.
       - --address=/manifest.internal/127.0.0.2
+
+  caddy:
+    build: { context: ./caddy }
+    image: manifest-caddy:local
+    container_name: manifest-caddy
+    restart: unless-stopped
+    depends_on: [dns-containers]
+    networks:
+      platform: { ipv4_address: 10.89.0.10 }
+    ports:
+      # Task 4 adds 127.0.0.2:80 and :443 once the lo0 alias exists.
+      - "127.0.0.1:7119:2019"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # NEVER destroyed by `make reset`: the internal CA lives here, and
+      # regenerating it invalidates the root the developer trusted.
+      - caddy-data:/data
+    healthcheck:
+      test: ["CMD", "caddy", "version"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  caddy-data:
+    name: manifest-caddy-data

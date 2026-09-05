@@ -1,0 +1,18 @@
+{
+	# The admin API is how the driver adds a route for a name allocated at
+	# runtime (§12, S1). Published to 127.0.0.1:7119 only.
+	admin 0.0.0.0:2019
+	local_certs
+	# We install trust ourselves, in three places, during `make seed` (S7):
+	# the macOS keychain, container trust stores, and the HOST Node processes.
+	skip_install_trust
+}
+
+# §23's three platform zones, local equivalents. One wildcard certificate each,
+# because every platform hostname is exactly one label deep.
+*.manifest.internal, *.sandbox.manifest.internal, *.staging.manifest.internal {
+	tls internal
+	# The placeholder C1's demo asks for. P3 replaces the reverse_proxy target
+	# per app via the admin API; this wildcard stays as the fallback.
+	respond "manifest OK host={host} scheme={scheme} remote={remote_host}" 200
+}

@@ -729,8 +729,20 @@ caddy_version_pinned() {
 }
 check "Caddy is pinned to v2.11.4"  caddy_version_pinned
 
+# GUARD, and it is load-bearing. `docker run -v $PWD/$CA_FILE:/ca.crt` with the
+# CA absent makes Docker CREATE infra/ca/manifest-root.crt as a DIRECTORY — the
+# exact path `make seed` must later write the root to. `docker cp` would then put
+# the certificate INSIDE it, and both `--cacert` and `security add-trusted-cert`
+# fail on a directory. Every check that mounts the CA calls this first.
+require_ca() {
+  [ -f "$CA_FILE" ] && return 0
+  echo "$CA_FILE is not a file — run \`make seed\` to mint it. Not mounting it: Docker would create a directory there."
+  return 1
+}
+
 # The container half of the parity property. The host half is Task 5.
 edge_serves_container_side() {
+  require_ca || return 1
   local out
   out=$(docker run --rm --network "$NET" --dns "$DNS_C_IP" \
         -v "$PWD/$CA_FILE":/ca.crt:ro curlimages/curl:8.11.1 \
@@ -740,6 +752,14 @@ edge_serves_container_side() {
 }
 check "a container reaches https://console.$ZONE with the platform CA"  edge_serves_container_side
 ```
+
+> **Defect found in execution (2026-09-05).** Without `require_ca`, Step 2 of this
+> task — running `make verify` *before* the CA exists, which is the whole point of
+> the step — makes Docker create `infra/ca/manifest-root.crt` as a **directory**.
+> That is the path `make seed` writes the root to, so `docker cp` then lands the
+> certificate *inside* it and every later `--cacert` mount and
+> `security add-trusted-cert` fails on a directory. Observed, then guarded. Task 5
+> and Task 13's CA-mounting checks call the same guard.
 
 - [ ] **Step 2: Run and watch them fail**
 
