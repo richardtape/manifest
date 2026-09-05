@@ -179,8 +179,10 @@ spike. It was previously stranded inside a superseded handoff; it lives here now
   The **7100–7199** block was entirely free.
 - Docker VM memory is **8.32 GB decimal / 7.75 GiB binary** — passes or fails §21's
   "≥8 GB" floor *depending on the unit*, which is why the spec now states the unit.
-- Host: 36 GiB RAM, 12 cores, ~173 GiB free. macOS 26.5.2, arm64, Docker Desktop
-  4.87.0, Docker Engine 29.7.2, Compose v5.4.0.
+- Host: 36 GiB RAM, 12 cores, ~163 GiB free. **macOS 26.6.2 (build 25G83)** — the
+  machine was updated; §4 said 26.5.2 until 2026-09-04. arm64, Docker Engine 29.7.2,
+  which serves **API 1.55, minimum 1.40** (so P3's deliberate `v1.44` pin is inside
+  the window).
 - **macOS ships bash 3.2 and a BSD userland.** No associative arrays, no `mapfile`,
   no `xargs -r`, no `readlink -f`. A script that needs Homebrew bash 5 is a C1 defect.
 
@@ -219,9 +221,29 @@ spike. It was previously stranded inside a superseded handoff; it lives here now
 `ghcr.io/berriai/litellm:main-stable`, `node:22-alpine`, `curlimages/curl:8.11.1`,
 `moby/buildkit:v0.32.2-rootless`, `mongodb/mongodb-community-server:7.0.28-ubi8`.
 
-**`alpine:3.22`, `caddy:2.11.4` and `caddy:2.11.4-builder` were on this list and are
-now gone** — pruned between sessions. Treat any list of machine state as a hint, not
-a fact; `make doctor` is the thing that should check.
+**That list is a hint, not a fact.** Verified against the machine on 2026-09-04:
+`caddy:2.11.4` and `caddy:2.11.4-builder` are **still absent** and P1 needs both;
+**`anchore/syft:v1.51.1` and `anchore/grype:v0.118.0` are absent** and P3 Task 12
+needs them; the `alpine` present is **3.20**, not 3.22, and its digest is the one
+`S1-controls-settled.md` used; and **`moby/buildkit:v0.27.0-rootless` sits alongside
+the `v0.32.2` P3 pins**, so do not let a tool pick the older one.
+
+**Take a snapshot before you touch anything:** `./scripts/snapshot-machine.sh`. It is
+read-only, needs no `sudo` and no network, and runs under macOS's bash 3.2. Run it
+again at the end and `diff` the two — that is how "leave the machine exactly as you
+found it" stops being a memory. Today's baseline is
+[`machine-baseline-2026-09-04.md`](machine-baseline-2026-09-04.md).
+
+**Two things that snapshot found which will bite you.** The `127.0.0.2` alias is
+**absent right now**, so P1's `make up` will want `sudo` on its first run. And
+`docker-simple-saml-saml-idp-1` is **exited, not running** — "must survive" means do
+not delete it, not that it is up.
+
+**Do not read a blank port as a free port.** Without `sudo`, `lsof` cannot see sockets
+owned by other users, and Valet's dnsmasq runs as `nobody` — so port 53 reads as empty
+while dnsmasq is plainly listening on it. The snapshot script reported `(free)` on its
+first run and that was wrong; it now says "nothing visible to this user" and explains
+why. `make doctor` (P1 Task 2) will need the same care.
 
 ---
 
