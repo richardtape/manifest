@@ -110,12 +110,14 @@ would only test the easy path.
 
 Two smaller things this execution did not settle:
 
-- **`make host-undo` has never been run end to end.** Every host change is
-  scripted and reversible by construction, and `host-undo.sh` was deliberately
-  written to be order-independent (S7 shipped one that was not), but the reversal
-  itself has not been exercised. Run `make host-undo` followed by `make
-  host-setup` to prove it; both are one command and the platform comes straight
-  back.
+- ~~`make host-undo` has never been run end to end.~~ **Run and verified
+  2026-09-05.** All three changes reversed cleanly — `/etc/resolver/manifest.internal`
+  gone, no `127.0.0.2` on `lo0`, zero Caddy roots in the keychain — with Valet
+  untouched and still serving, and the platform containers left running (they are
+  `make down`'s job, not the host script's). It also exposed one defect: the script
+  reported `Error 1` on a *successful* teardown, because its last command was a
+  `grep -c` that exits 1 when it counts zero. Fixed — it now asserts each reversal
+  and is idempotent.
 - **Valet's `.test` did not resolve during this session — diagnosed and fixed, and
   it was not a Manifest problem.** Valet's own dnsmasq had hung in `sendto` to an
   upstream nameserver; being single-threaded, that froze every lookup it served,

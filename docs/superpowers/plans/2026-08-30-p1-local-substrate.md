@@ -1057,12 +1057,58 @@ security delete-certificate -c "Caddy Local Authority - 2026 ECC Root" \
   /Library/Keychains/System.keychain 2>/dev/null
 [ -f "$CA_FILE" ] && security remove-trusted-cert -d "$CA_FILE" 2>/dev/null
 
-echo "--- /etc/resolver should no longer list $ZONE:"; ls /etc/resolver/
-echo "--- lo0 should hold only 127.0.0.1:"; ifconfig lo0 | grep 'inet 127'
-echo "--- Caddy roots remaining (want 0):"
-security find-certificate -a -c "Caddy Local Authority" \
-  /Library/Keychains/System.keychain 2>&1 | grep -c keychain
+# ---------------------------------------------------------------------------
+# ASSERT the reversal, and set the exit status from THAT.
+#
+# The original of this block ended with
+#   security find-certificate … | grep -c keychain
+# `grep -c` exits 1 when it counts ZERO — which is the SUCCESS condition — so a
+# PERFECT teardown reported `make: *** [host-undo] Error 1`. Measured 2026-09-05,
+# the first time anyone ran it. An exit status should be asserted, never
+# inherited from whatever command happened to run last.
+# ---------------------------------------------------------------------------
+failed=0
+
+if [ -f "/etc/resolver/$ZONE" ]; then
+  echo "STILL PRESENT  /etc/resolver/$ZONE"; failed=1
+else
+  echo "removed        /etc/resolver/$ZONE"
+fi
+
+if ifconfig lo0 | grep -q "inet $EDGE_IP"; then
+  echo "STILL PRESENT  $EDGE_IP on lo0"; failed=1
+else
+  echo "removed        $EDGE_IP from lo0"
+fi
+
+roots=$(security find-certificate -a -c "Caddy Local Authority" \
+        /Library/Keychains/System.keychain 2>/dev/null | grep -c keychain)
+if [ "${roots:-0}" -ne 0 ]; then
+  echo "STILL PRESENT  $roots Caddy root(s) in the System keychain"; failed=1
+else
+  echo "removed        Caddy root(s) from the System keychain"
+fi
+
+# Valet must have survived all of the above. It is never touched, but say so.
+echo "untouched      /etc/resolver holds: $(ls /etc/resolver/ 2>/dev/null | tr '\n' ' ')"
+
+echo
+if [ "$failed" -eq 0 ]; then
+  echo "All three host changes reversed. The platform containers are still running;"
+  echo "\`make down\` stops them. \`make host-setup\` puts the host changes back."
+else
+  echo "One or more host changes could NOT be reversed — see above."
+fi
+exit "$failed"
 ```
+
+> **Defect found the first time this ran (2026-09-05).** The teardown itself was
+> perfect — resolver gone, `lo0` clean, zero Caddy roots, Valet untouched — and
+> `make host-undo` still printed `make: *** [host-undo] Error 1`, because the
+> script's last command was a `grep -c` that exits 1 on a count of zero. The block
+> above replaces reporting with assertion, so the exit status now means what it
+> says, and the script is idempotent: running it again on an already-undone host
+> exits 0.
 
 - [ ] **Step 6: Write the alias guard both `make seed` and `make up` will call**
 
