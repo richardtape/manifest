@@ -317,8 +317,13 @@ is never checked is a 400 arriving three tasks later with no explanation.
 import { describe, expect, it } from 'vitest'
 import { instanceName, serviceName } from '../driver.js'
 import {
-  MF_PREFIX, appContainer, appNetwork, egressContainer, isManifestOwned,
-  serviceContainer, serviceVolume,
+  MF_PREFIX,
+  appContainer,
+  appNetwork,
+  egressContainer,
+  isManifestOwned,
+  serviceContainer,
+  serviceVolume,
 } from './names.js'
 
 // A real release id. Task 8 of P2 makes it `uuid().defaultRandom()`, so the first
@@ -380,13 +385,20 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { EngineError, assertApiVersionSupported, createEngineClient, resolveSocketPath } from './engine.js'
+import {
+  EngineError,
+  assertApiVersionSupported,
+  createEngineClient,
+  resolveSocketPath,
+} from './engine.js'
 
 let server: Server | undefined
 let dir: string | undefined
 
 /** A stand-in daemon on a unix socket. Exercises the transport with no Docker. */
-function fakeDaemon(handler: (path: string, method: string) => { status: number; body: unknown }) {
+function fakeDaemon(
+  handler: (path: string, method: string) => { status: number; body: unknown },
+) {
   dir = mkdtempSync(join(tmpdir(), 'mf-engine-'))
   const socketPath = join(dir, 'docker.sock')
   server = createServer((req, res) => {
@@ -394,7 +406,9 @@ function fakeDaemon(handler: (path: string, method: string) => { status: number;
     res.writeHead(status, { 'content-type': 'application/json' })
     res.end(JSON.stringify(body))
   })
-  return new Promise<string>((resolve) => server!.listen(socketPath, () => resolve(socketPath)))
+  return new Promise<string>((resolve) =>
+    server!.listen(socketPath, () => resolve(socketPath)),
+  )
 }
 
 afterEach(() => {
@@ -412,7 +426,9 @@ describe('the Engine API client', () => {
       return { status: 200, body: { Id: 'abc123' } }
     })
     const engine = createEngineClient({ socketPath })
-    expect(await engine.get<{ Id: string }>('/containers/abc/json')).toEqual({ Id: 'abc123' })
+    expect(await engine.get<{ Id: string }>('/containers/abc/json')).toEqual({
+      Id: 'abc123',
+    })
     expect(seen[0]).toBe('/v1.44/containers/abc/json')
   })
 
@@ -437,7 +453,10 @@ describe('the Engine API client', () => {
   // caller decides. Returning undefined is what lets destroyInstance swallow it
   // without string-matching an exception message.
   it('returns undefined for 404 rather than throwing', async () => {
-    const socketPath = await fakeDaemon(() => ({ status: 404, body: { message: 'no such container' } }))
+    const socketPath = await fakeDaemon(() => ({
+      status: 404,
+      body: { message: 'no such container' },
+    }))
     const engine = createEngineClient({ socketPath })
     expect(await engine.get('/containers/nope/json')).toBeUndefined()
     expect(await engine.del('/containers/nope')).toBeUndefined()
@@ -462,7 +481,9 @@ describe('the Engine API client', () => {
       status: 200,
       body: { ApiVersion: '1.55', MinAPIVersion: '1.40', Version: '29.7.2' },
     }))
-    await expect(assertApiVersionSupported(createEngineClient({ socketPath }))).resolves.toBeUndefined()
+    await expect(
+      assertApiVersionSupported(createEngineClient({ socketPath })),
+    ).resolves.toBeUndefined()
   })
 
   // Digit-concatenation would compare 1100 against 155 here and reject a daemon
@@ -473,20 +494,26 @@ describe('the Engine API client', () => {
       status: 200,
       body: { ApiVersion: '1.100', MinAPIVersion: '1.40', Version: '99.0.0' },
     }))
-    await expect(assertApiVersionSupported(createEngineClient({ socketPath }))).resolves.toBeUndefined()
+    await expect(
+      assertApiVersionSupported(createEngineClient({ socketPath })),
+    ).resolves.toBeUndefined()
   })
 })
 
 describe('socket discovery', () => {
   it('prefers DOCKER_HOST when it is a unix socket', () => {
-    expect(resolveSocketPath({ DOCKER_HOST: 'unix:///custom/docker.sock' })).toBe('/custom/docker.sock')
+    expect(resolveSocketPath({ DOCKER_HOST: 'unix:///custom/docker.sock' })).toBe(
+      '/custom/docker.sock',
+    )
   })
 
   // A TCP DOCKER_HOST is not a socket path. Silently falling back to the default
   // would talk to a DIFFERENT daemon than `docker` does — the driver would create
   // containers the developer cannot see.
   it('refuses a non-unix DOCKER_HOST rather than falling back', () => {
-    expect(() => resolveSocketPath({ DOCKER_HOST: 'tcp://10.0.0.5:2376' })).toThrow(EngineError)
+    expect(() => resolveSocketPath({ DOCKER_HOST: 'tcp://10.0.0.5:2376' })).toThrow(
+      EngineError,
+    )
   })
 
   it('honours MANIFEST_DOCKER_SOCKET when DOCKER_HOST is unset', () => {
@@ -641,9 +668,13 @@ export function createEngineClient(opts: {
           socketPath: opts.socketPath,
           path: `/${version}${path}`,
           method,
-          headers: payload === undefined
-            ? {}
-            : { 'content-type': 'application/json', 'content-length': Buffer.byteLength(payload) },
+          headers:
+            payload === undefined
+              ? {}
+              : {
+                  'content-type': 'application/json',
+                  'content-length': Buffer.byteLength(payload),
+                },
         },
         resolve,
       )
@@ -666,7 +697,11 @@ export function createEngineClient(opts: {
     return text
   }
 
-  const json = async <T>(method: string, path: string, body?: unknown): Promise<T | undefined> => {
+  const json = async <T>(
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<T | undefined> => {
     const res = await send(method, path, body)
     const text = await collect(res)
     const status = res.statusCode ?? 0
@@ -684,7 +719,7 @@ export function createEngineClient(opts: {
       throw new EngineError(
         'DOCKER_ENGINE_ERROR',
         `${method} ${path} failed (${status}): ${message}`,
-        'The message is the daemon\'s own. Check the container name, image digest or network first.',
+        "The message is the daemon's own. Check the container name, image digest or network first.",
         status,
       )
     }
@@ -701,11 +736,17 @@ export function createEngineClient(opts: {
 
 /** A version pin nobody checks is a 400 arriving three tasks later with no explanation. */
 export async function assertApiVersionSupported(engine: EngineClient): Promise<void> {
-  const info = await engine.get<{ ApiVersion: string; MinAPIVersion: string; Version: string }>(
-    '/version',
-  )
+  const info = await engine.get<{
+    ApiVersion: string
+    MinAPIVersion: string
+    Version: string
+  }>('/version')
   if (!info) {
-    throw new EngineError('DOCKER_UNREACHABLE', 'the daemon did not answer /version', 'Is Docker running?')
+    throw new EngineError(
+      'DOCKER_UNREACHABLE',
+      'the daemon did not answer /version',
+      'Is Docker running?',
+    )
   }
   // Compare (major, minor) as a pair. Concatenating the digits looks equivalent
   // and stops being so the day Docker ships API 1.100, which would compare as
@@ -716,7 +757,10 @@ export async function assertApiVersionSupported(engine: EngineClient): Promise<v
   }
   const cmp = (a: [number, number], b: [number, number]) => a[0] - b[0] || a[1] - b[1]
   const pinned = parts(API_VERSION)
-  if (cmp(pinned, parts(info.ApiVersion)) > 0 || cmp(pinned, parts(info.MinAPIVersion)) < 0) {
+  if (
+    cmp(pinned, parts(info.ApiVersion)) > 0 ||
+    cmp(pinned, parts(info.MinAPIVersion)) < 0
+  ) {
     throw new EngineError(
       'DOCKER_API_VERSION_UNSUPPORTED',
       `this driver pins Docker API ${API_VERSION}, but the daemon (${info.Version}) serves ` +
