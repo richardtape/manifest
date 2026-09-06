@@ -1687,6 +1687,33 @@ describe('isSensitiveDiff (§7, D9)', () => {
     expect(isSensitiveDiff(base(), base()).sensitive).toBe(false)
   })
 
+  it('flags a swap to a DIFFERENT blueprint at the same major version', () => {
+    const after = base({ blueprint: 'python-fastapi@2' })
+    expect(isSensitiveDiff(base(), after).fields).toEqual(['blueprint'])
+  })
+
+  it('flags a declared resource being REMOVED, because the default may be higher', () => {
+    const before = base({ resources: { cpu: 0.5 } })
+    const after = base({ resources: {} })
+    expect(isSensitiveDiff(before, after).fields).toEqual(['resources'])
+  })
+
+  it('does not escalate on services being REORDERED', () => {
+    const before = base({
+      services: [
+        { type: 'mongo', version: '7', name: 'db' },
+        { type: 'qdrant', version: '1', name: 'vectors' },
+      ],
+    })
+    const after = base({
+      services: [
+        { type: 'qdrant', version: '1', name: 'vectors' },
+        { type: 'mongo', version: '7', name: 'db' },
+      ],
+    })
+    expect(isSensitiveDiff(before, after)).toEqual({ sensitive: false, fields: [] })
+  })
+
   it('reports every changed field, not just the first', () => {
     const after = base({
       services: [{ type: 'mongo', version: '7', name: 'db' }],
@@ -1738,26 +1765,45 @@ const stable = (value: unknown): string => JSON.stringify(value)
 const sameSet = (a: readonly string[], b: readonly string[]): boolean =>
   stable([...a].sort()) === stable([...b].sort())
 
-const majorOf = (blueprintRef: string): string => blueprintRef.split('@')[1] ?? ''
+/**
+ * The same rule for a list of objects: compare as an unordered multiset by sorting
+ * the serialised entries. `services` was originally compared with a plain
+ * JSON.stringify, so swapping two service declarations escalated a release to
+ * approval while changing nothing — the very "reordering is not a change of
+ * intent" the line above states.
+ */
+const sameObjectSet = (a: readonly unknown[], b: readonly unknown[]): boolean =>
+  stable(a.map(stable).sort()) === stable(b.map(stable).sort())
 
 /**
  * `resources` is sensitive on INCREASE only (§7). A faculty member trimming memory
  * should not wait on an approval; one quietly tripling it should.
  */
 function resourcesIncreased(before: ManifestSpec, after: ManifestSpec): boolean {
-  const beforeCpu = before.resources.cpu ?? 0
-  const afterCpu = after.resources.cpu ?? 0
-  if (afterCpu > beforeCpu) return true
+  const mib = (q: string | undefined) => (q === undefined ? undefined : toMebibytes(q))
 
-  const beforeMem = before.resources.memory ? toMebibytes(before.resources.memory) : 0
-  const afterMem = after.resources.memory ? toMebibytes(after.resources.memory) : 0
-  if (afterMem > beforeMem) return true
+  return (
+    dimensionRose(before.resources.cpu, after.resources.cpu) ||
+    dimensionRose(mib(before.resources.memory), mib(after.resources.memory)) ||
+    dimensionRose(mib(before.resources.disk), mib(after.resources.disk)) ||
+    dimensionRose(before.resources.pids, after.resources.pids)
+  )
+}
 
-  const beforeDisk = before.resources.disk ? toMebibytes(before.resources.disk) : 0
-  const afterDisk = after.resources.disk ? toMebibytes(after.resources.disk) : 0
-  if (afterDisk > beforeDisk) return true
-
-  return (after.resources.pids ?? 0) > (before.resources.pids ?? 0)
+/**
+ * One resource dimension, with the absent case handled honestly.
+ *
+ * An absent field does not mean zero — §7 says the value is "inherited from the
+ * blueprint", and Task 16 resolves it as a third layer this function cannot see.
+ * So dropping a declared `cpu: 0.5` can RAISE the effective ceiling, and the
+ * original `?? 0` read it as a decrease to zero and waved it through. Where the
+ * direction cannot be known, escalate: a needless approval costs a click, a
+ * missed one is an unreviewed production change (D9).
+ */
+function dimensionRose(before: number | undefined, after: number | undefined): boolean {
+  if (before === undefined) return after !== undefined && after > 0
+  if (after === undefined) return true
+  return after > before
 }
 
 export function isSensitiveDiff(
@@ -1766,7 +1812,7 @@ export function isSensitiveDiff(
 ): { sensitive: boolean; fields: string[] } {
   const fields: string[] = []
 
-  if (stable(before.services) !== stable(after.services)) fields.push('services')
+  if (!sameObjectSet(before.services, after.services)) fields.push('services')
 
   // Both directions matter: in production auth.attributes must remain a subset of
   // what UBC IAM registered, so a removal is still a change worth seeing (D16, §9).
@@ -1784,8 +1830,14 @@ export function isSensitiveDiff(
   if (!sameSet(before.ai.models, after.ai.models)) fields.push('ai.models')
 
   // Under D13 the blueprint IS the build definition, so a major bump changes the
-  // Dockerfile, base image and knowledge pack beneath the app.
-  if (majorOf(before.blueprint) !== majorOf(after.blueprint)) fields.push('blueprint')
+  // Dockerfile, base image and knowledge pack beneath the app. The WHOLE reference
+  // is compared, not just the major: `node-ts-mongo@2` -> `python-fastapi@2`
+  // replaces every one of those layers while leaving the major digit alone, and
+  // comparing only the digit let that through the gate unreviewed. The schema pins
+  // the reference as `name@major` and nothing finer, so two references differ
+  // exactly when the name or the major does — §7's "(major version)" is a
+  // description of the reference, not an instruction to ignore its name.
+  if (before.blueprint !== after.blueprint) fields.push('blueprint')
 
   return { sensitive: fields.length > 0, fields }
 }
@@ -1806,7 +1858,55 @@ export type { SensitiveField } from './diff.js'
 pnpm --filter @manifest/control-plane test src/spec/
 ```
 
-Expected: PASS, 34 tests.
+Expected: PASS, **43 tests** across the four spec files.
+
+> **Three defects found in execution (2026-09-05). Two of them are holes in a
+> security gate.** All three were found by asking what the eleven tests above do
+> *not* reach, and each was watched failing before it was fixed.
+>
+> **1. Swapping to a different blueprint at the same major escaped the gate.**
+> `majorOf()` split on `@` and compared only the digit, so
+> `node-ts-mongo@2` → `python-fastapi@2` produced `{ sensitive: false }`. §7 gates
+> `blueprint` because *"under D13 the blueprint **is** the build definition, so a
+> major bump changes the Dockerfile, base image and knowledge pack in production.
+> Ungated, that is an unreviewed change to every layer beneath the app"* — and
+> replacing the blueprint outright changes all of that and more. The schema pins
+> the reference as `name@major` and nothing finer, so comparing the whole string
+> is exactly "(major version)" plus the name it was silently discarding.
+> **Measured against:** restoring the digit-only comparison turns *flags a swap to
+> a DIFFERENT blueprint at the same major version* red with `expected [] to deeply
+> equal [ 'blueprint' ]`.
+>
+> **2. Removing a declared resource read as a decrease to zero.** `?? 0` treats an
+> absent field as zero, but §7 says an absent value is *inherited from the
+> blueprint* — Task 16 resolves exactly that as a third layer. So deleting
+> `cpu: 0.5` could raise the effective ceiling and the gate waved it through as a
+> reduction. `dimensionRose` now escalates when a dimension goes from declared to
+> absent, because the direction is genuinely unknowable here: a needless approval
+> costs a click, a missed one is an unreviewed production change.
+> **Measured against:** restoring `if (after === undefined) return false` turns
+> *flags a declared resource being REMOVED* red.
+>
+> **3. Reordering services escalated a release that had not changed.** `services`
+> was compared with a plain `JSON.stringify`, while the three string lists beside
+> it used `sameSet` under the comment *"reordering a list is not a change of
+> intent."* The same rule now applies to services via `sameObjectSet`. This one is
+> a false positive rather than a hole — it costs an approval nobody needed, which
+> is how a gate gets ignored. **Measured against:** restoring the `stable(...)
+> !== stable(...)` comparison turns *does not escalate on services being
+> REORDERED* red.
+>
+> **Negative controls run (2026-09-05).** Ten mutations, each reverted: each of the
+> seven field comparisons disabled in turn; `dimensionRose` made symmetric so a
+> *decrease* would escalate too (red — §7 says increase only); the absent-after
+> case restored to `false`; and the blueprint comparison restored to digit-only.
+> Every one turned a named test red while the rest of the suite stayed green.
+
+> **For Rich — a spec inconsistency, not fixed here.** §7 lists **seven** sensitive
+> fields; §20's *Residual risk, stated plainly* says *"only changes to the **five**
+> sensitive fields re-escalate."* The seven-item list is the one everything else in
+> the spec and both plans build on, so the prose count looks like the stale half.
+> Editing the spec is Rich's call, so it is recorded rather than changed.
 
 - [ ] **Step 6: Commit**
 

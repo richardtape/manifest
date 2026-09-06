@@ -9,6 +9,8 @@ export type { ValidationContext } from './policy.js'
 export { CLASSIFICATION_RANK, SLUG, AUTH_PATH, manifestSchema } from './schema.js'
 export { toMebibytes, POLICY_CODES } from './policy.js'
 export { SPEC_CODES } from './errors.js'
+export { isSensitiveDiff, SENSITIVE_FIELDS } from './diff.js'
+export type { SensitiveField } from './diff.js'
 
 export type ValidationResult =
   { valid: true; spec: ManifestSpec } | { valid: false; errors: ManifestError[] }
