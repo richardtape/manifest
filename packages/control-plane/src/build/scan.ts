@@ -8,27 +8,14 @@ import { demux, registryAuthHeader, type EngineClient } from '../runtime/index.j
 export const STALENESS_THRESHOLD_DAYS = 7
 const BLOCKING_SEVERITIES = new Set(['Critical', 'High'])
 
-/**
- * Grype's `artifact.type` for the OS package managers.
- *
- * A finding in one of these is in the **base image**, which is platform-owned and
- * digest-pinned by the blueprint (D13) — no rebuild of an app can clear it, and §20
- * says so outright: *"a vulnerability in the blueprint is a vulnerability in every
- * app"*, with the fleet-wide rebuild as its remedy in Phase 4+.
- *
- * Measured, and this is why the rule exists: `alpine:3.22` against a database built
- * the same morning reports **4 Critical and 14 High**, all of them `libcrypto3` and
- * `libssl3`. Blocking on those would have made the platform unable to deploy
- * anything at all while presenting as a working gate.
- */
-export const PLATFORM_OWNED_PACKAGE_TYPES = new Set(['apk', 'deb', 'rpm'])
-
 export interface Vulnerability {
   id: string
   severity: 'Critical' | 'High' | 'Medium' | 'Low' | 'Negligible' | 'Unknown'
   package: string
-  /** Grype's `artifact.type`. `apk`/`deb`/`rpm` are the base image's; `npm` is the app's. */
+  /** Grype's `artifact.type`: `apk`, `npm`, … Recorded; NOT what decides blocking. */
   packageType: string
+  /** The image layers the evidence was found in. Grype reports RootFS diff ids. */
+  layerIds: string[]
   /** Recorded for the owner report (§20), deliberately NOT part of the block rule. */
   fixAvailable: boolean
 }
@@ -36,53 +23,112 @@ export interface Vulnerability {
 export interface ScanResult {
   sbom: string
   vulnerabilities: Vulnerability[]
+  /** Findings this build introduced. The only ones a rebuild of this app can clear. */
+  appFindings: Vulnerability[]
+  /** Findings the base image already carried — §20's fleet-wide rebuild, Phase 4+. */
+  baseImageFindings: Vulnerability[]
+  baseImageKnown: boolean
   databaseAgeDays: number
   stale: boolean
   blocked: boolean
   reason: string
 }
 
+const isBaseOwned = (v: Vulnerability, baseLayerIds: ReadonlySet<string>): boolean =>
+  v.layerIds.length > 0 && v.layerIds.every((id) => baseLayerIds.has(id))
+
 /**
- * §12, both halves. A stale database WARNS instead of blocking, so an offline
- * laptop can still deploy (C1) — and a clean result from a stale database is still
- * marked stale, so it can never be read as evidence there is nothing to find.
+ * §12, in three parts, and the middle one was got wrong twice before it was measured.
+ *
+ * 1. A stale database WARNS instead of blocking, so an offline laptop can still
+ *    deploy (C1) — and a clean result from a stale database is still marked stale,
+ *    so it can never be read as evidence there is nothing to find.
+ *
+ * 2. **A finding is the app's only if this build's own layers introduced it.** The
+ *    base image is platform-owned and digest-pinned by the blueprint (D13), so no
+ *    rebuild of an app clears a finding it already carried; §20 says exactly that
+ *    ("a vulnerability in the blueprint is a vulnerability in every app") and makes
+ *    the fleet-wide rebuild its remedy, in Phase 4+.
+ *
+ *    The discriminator is the LAYER, not the package ecosystem. Measured, and the
+ *    reason: `alpine:3.22` carries 4 Critical and 14 High, all `apk` — but
+ *    `node:22-alpine`, which is what faculty apps actually run on, carries those
+ *    PLUS 1 Critical and 10 High **`npm`** findings, every one of them inside
+ *    `/usr/local/lib/node_modules/npm/` — npm's own bundled dependency tree, shipped
+ *    in the base image. An "OS packages are the platform's, npm is the app's" rule
+ *    reads as correct and blocks every build there is.
+ *
+ * 3. **Not knowing fails CLOSED.** With no base image to compare against, every
+ *    finding is treated as the app's. A scan that cannot tell what this build added
+ *    must not answer "nothing to worry about"; `baseImageKnown` says which happened.
  */
 export function assessScan(input: {
   databaseAgeDays: number
   vulnerabilities: Vulnerability[]
-}): { stale: boolean; blocked: boolean; reason: string } {
-  const stale = input.databaseAgeDays > STALENESS_THRESHOLD_DAYS
+  /** RootFS diff ids of the blueprint's base image. Absent ⇒ classify nothing as its. */
+  baseLayerIds?: ReadonlySet<string>
+}): {
+  stale: boolean
+  blocked: boolean
+  reason: string
+  appFindings: Vulnerability[]
+  baseImageFindings: Vulnerability[]
+  baseImageKnown: boolean
+} {
+  const baseLayerIds = input.baseLayerIds
   const serious = input.vulnerabilities.filter((v) => BLOCKING_SEVERITIES.has(v.severity))
-  const platform = serious.filter((v) => PLATFORM_OWNED_PACKAGE_TYPES.has(v.packageType))
-  const actionable = serious.filter(
-    (v) => !PLATFORM_OWNED_PACKAGE_TYPES.has(v.packageType),
-  )
-  const platformNote =
-    platform.length > 0
-      ? ` ${platform.length} more are in platform-owned base image packages ` +
-        `(${[...new Set(platform.map((v) => v.package))].join(', ')}), which no rebuild of ` +
-        'this app can clear — they are recorded for §20 fleet-wide rebuild, not blocked on.'
+  const baseImageFindings =
+    baseLayerIds === undefined ? [] : serious.filter((v) => isBaseOwned(v, baseLayerIds))
+  const appFindings =
+    baseLayerIds === undefined
+      ? serious
+      : serious.filter((v) => !isBaseOwned(v, baseLayerIds))
+  const stale = input.databaseAgeDays > STALENESS_THRESHOLD_DAYS
+
+  const baseNote =
+    baseImageFindings.length > 0
+      ? ` ${baseImageFindings.length} more were already in the platform's base image ` +
+        `(${[...new Set(baseImageFindings.map((v) => v.package))].slice(0, 6).join(', ')}), which no ` +
+        'rebuild of this app can clear — recorded for §20 fleet-wide rebuild, not blocked on.'
+      : ''
+  const unknownNote =
+    baseLayerIds === undefined
+      ? ' The base image was not identified, so EVERY finding is attributed to this app: a scan ' +
+        'that cannot tell what the build added does not get to call it somebody else’s.'
       : ''
 
+  const common = {
+    appFindings,
+    baseImageFindings,
+    baseImageKnown: baseLayerIds !== undefined,
+  }
   if (stale) {
     return {
+      ...common,
       stale: true,
       blocked: false,
       reason:
         `the vulnerability database is ${input.databaseAgeDays.toFixed(1)} days old ` +
         `(threshold ${STALENESS_THRESHOLD_DAYS}); this scan is STALE and warns rather than blocks. ` +
         `${serious.length} high or critical finding(s) were reported by a database that may not be current.` +
-        platformNote,
+        baseNote +
+        unknownNote,
     }
   }
   return {
+    ...common,
     stale: false,
-    blocked: actionable.length > 0,
+    blocked: appFindings.length > 0,
     reason:
-      (actionable.length > 0
-        ? `${actionable.length} high or critical finding(s) in this app's own dependencies: ` +
-          actionable.map((v) => `${v.id} (${v.package})`).join(', ')
-        : 'no high or critical findings in this app’s own dependencies') + platformNote,
+      (appFindings.length > 0
+        ? `${appFindings.length} high or critical finding(s) this build introduced: ` +
+          appFindings
+            .slice(0, 10)
+            .map((v) => `${v.id} (${v.package})`)
+            .join(', ')
+        : 'no high or critical findings in what this build added') +
+      baseNote +
+      unknownNote,
   }
 }
 
@@ -92,6 +138,12 @@ const GRYPE = 'anchore/grype:v0.118.0'
 export interface ScanOptions {
   /** A scoped pull token, when the image still has to come out of the registry. */
   registryToken?: string
+  /**
+   * The blueprint's digest-pinned base image, as the DAEMON names it. Without it
+   * `scanImage` cannot tell a finding this build introduced from one the base image
+   * already carried, and fails closed by attributing every finding to the app.
+   */
+  baseImageRef?: string
 }
 
 /**
@@ -114,6 +166,7 @@ export async function scanImage(
   imageRef: string,
   options: ScanOptions = {},
 ): Promise<ScanResult> {
+  const baseLayerIds = await baseImageLayers(engine, options)
   // ONE export, two scanners. Exporting twice would double the slowest step for
   // nothing, and would let the two tools disagree about which image they read.
   return withImageArchive(engine, imageRef, options, async (dir) => {
@@ -135,7 +188,7 @@ export async function scanImage(
     const parsed = JSON.parse(raw) as {
       matches: {
         vulnerability: { id: string; severity: string; fix?: { state?: string } }
-        artifact: { name: string; type: string }
+        artifact: { name: string; type: string; locations?: { layerID?: string }[] }
       }[]
       descriptor?: { db?: { status?: { built?: string } } }
     }
@@ -144,6 +197,9 @@ export async function scanImage(
       severity: m.vulnerability.severity as Vulnerability['severity'],
       package: m.artifact.name,
       packageType: m.artifact.type,
+      layerIds: [...new Set((m.artifact.locations ?? []).map((l) => l.layerID))].filter(
+        (id): id is string => id !== undefined,
+      ),
       fixAvailable: m.vulnerability.fix?.state === 'fixed',
     }))
     /**
@@ -161,9 +217,41 @@ export async function scanImage(
       built === undefined
         ? Number.POSITIVE_INFINITY
         : (Date.now() - Date.parse(built)) / 86_400_000
-    const assessed = assessScan({ databaseAgeDays, vulnerabilities })
+    const assessed = assessScan({
+      databaseAgeDays,
+      vulnerabilities,
+      ...(baseLayerIds === undefined ? {} : { baseLayerIds }),
+    })
     return { sbom, vulnerabilities, databaseAgeDays, ...assessed }
   })
+}
+
+/**
+ * The base image's RootFS diff ids — which is exactly what Grype reports as a
+ * finding's `layerID`, verified against `docker image inspect`.
+ *
+ * The base is pulled if the daemon does not hold it: a build resolves `FROM` inside
+ * the BUILDER, so the base image can be absent from the daemon's own store even
+ * though the app image built from it is present.
+ */
+async function baseImageLayers(
+  engine: EngineClient,
+  options: ScanOptions,
+): Promise<ReadonlySet<string> | undefined> {
+  if (options.baseImageRef === undefined) return undefined
+  await ensureImagePresent(engine, options.baseImageRef, options.registryToken)
+  const inspect = await engine.get<{ RootFS: { Layers: string[] } }>(
+    `/images/${options.baseImageRef}/json`,
+  )
+  if (!inspect) {
+    throw new ScanError(
+      'SCAN_BASE_IMAGE_MISSING',
+      `the blueprint's base image ${options.baseImageRef} is not available to the daemon`,
+      'Without it a scan cannot tell a finding this build introduced from one the base image ' +
+        "already carried, and §12's gate would block on findings no app can fix.",
+    )
+  }
+  return new Set(inspect.RootFS.Layers)
 }
 
 export class ScanError extends Error {

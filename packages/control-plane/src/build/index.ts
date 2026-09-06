@@ -17,7 +17,6 @@ export {
 } from './gates.js'
 export type { GateFinding } from './gates.js'
 export {
-  PLATFORM_OWNED_PACKAGE_TYPES,
   STALENESS_THRESHOLD_DAYS,
   ScanError,
   assessScan,

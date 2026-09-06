@@ -7950,7 +7950,7 @@ task, from P2's last two batches. Finding them is the expected outcome.*
 | — | 9 | (plan warning **confirmed**, so nobody re-tests it) Flipping the last base64url character of the signature does **not** invalidate the token. | Measured on this registry: original → **200**, last character flipped → **200**. Signing with a different key → **401**. The plan's warning is exactly right and the naive control would have read as "signatures are not checked". |
 | — | 9 | (caught by P2's own guards, so they work) The route-completeness guard named both new routes before they were authorized; the module-boundary test caught the end-to-end test importing `api/routes/*` by a deep path from `runtime/`. | The first is quoted in Step 5. The second is why `runtime/testing.ts` now exists — the module-level public test surface P2's rule allows, matching `api/testing.ts`. |
 
-### Session 3b — Tasks 10-12 (2026-09-06). 14 defects.
+### Session 3b — Tasks 10-12 (2026-09-06). 15 defects.
 
 *Three of them are a security gate that could never fire, and one is a module git
 would have refused to commit.*
@@ -7975,11 +7975,20 @@ would have refused to commit.*
 | — | 12 | (deliberately not built) `infra/scanner/grype.yaml`, which the Files list names. | Everything it would hold — `db.auto-update`, `db.cache-dir`, the update check — is an environment variable the container already reads, and a file would need a bind mount to reach it. Not created; the settings live in `runScanner`'s `Env`, next to the comment explaining why each is load-bearing. |
 | — | 12 | (caught by P2's own guards, so they work) The plan's Docker suite imports `../runtime/docker/docker-tier.js` from `build/` — a deep path across a module boundary — and `scan.ts` imports `EngineClient` and `demux` from `../runtime/index.js`, which exported neither. | The boundary test names the first; `tsc` names the second. `runtime/index.ts` now exports the engine client and `demux`; `runtime/testing.ts` exports `createEngineClient`, `resolveSocketPath` and `REPO_ROOT`. |
 
+| 45 | 12 | **The fix for 41 was wrong in the same way 41 was, one ecosystem over.** "OS packages are the platform's, `npm` is the app's" reads as correct and blocks every build there is. Found because Rich asked whether a newer base image would just clear the findings. | Measured on **`node:22-alpine`**, which is what faculty apps actually run on — not `alpine`, which is only a probe image. It carries the 18 `apk` findings **plus 1 Critical and 10 High `npm`** ones: `tar`, `pacote`, `sigstore`, `brace-expansion`, `picomatch`, `ip-address`, every one of them inside `/usr/local/lib/node_modules/npm/` — **npm's own bundled dependency tree, shipped in the base image**. The rule is now about the **layer**: Grype reports each finding's `layerID`, and those are the image's RootFS diff ids (verified against `docker image inspect`), so a finding is the app's unless every layer it was found in belongs to the blueprint's base image. Not knowing the base image **fails closed** — everything is the app's, and `baseImageKnown: false` says so on the Release. Controls: the ecosystem rule turns the real `node:22-alpine` scan red, and so does making the unknown-base case fail open. |
+| — | 12 | (trap recorded, and it bit while running the control above) A `python3 …replace()` control silently matched nothing after Prettier had reformatted the target, and **all five tests passed** — which reads as "the control does not fail" and means "the control never ran". | The replacement now asserts its pattern matched before writing. Same shape as every "check that could not fail" in this table, in the tooling rather than in the code. |
+
+**Two facts about the base image, measured 2026-09-06, that are Rich's to act on:**
+
+- **There is no newer base image that fixes it.** The `alpine:3.22` and `node:22-alpine` tags Docker Hub serves *today* have moved digest since `infra/images.lock` was written — and scan **identically**: `libcrypto3`/`libssl3` are still `3.5.7-r0`, and the fix is `3.5.8-r0`. Upgrading the pin changes nothing.
+- **`node:24-alpine` is measurably better on the npm half**: the same 18 `apk` findings, but **4 High and 0 Critical** in npm packages against 22's 1 Critical + 10 High. That is a new data point for the open question in ORIENTATION §8 (*"should the blueprint base image move from `node:22-alpine` to 24?"*), which was previously priced only in effort.
+
 **What Task 15 must carry forward, so it is not rediscovered:**
 
 - `withEphemeralBuilder(engine, buildId, limits, fn, options.registryHost)` — the fifth argument (defect 36).
 - **`scanImage` needs a minted registry JWT, not the build credential.** The daemon pulls the image so it can be exported, and it cannot reach the realm: from inside the VM `127.0.0.1:7100` is the VM's own loopback. Measured — `failed to fetch oauth token … connection refused`. So the control plane must `mintRegistryToken(...)` a pull scope on `local/<slug>` itself and pass it as `{ registryToken }`, which means `DockerDriverOptions` needs the issuer key and certificate.
 - `scanImage(engine, ref)`'s ref is what the **daemon** calls the registry (`127.0.0.1:7107/...`), never `manifest-registry:5000` — the daemon cannot resolve the in-network name.
+- **`scanImage` must be passed `baseImageRef`** — the blueprint descriptor's `runtime.base_image`, rewritten to the daemon-facing host. Without it the scan fails closed and every build is blocked on findings no app can fix (defect 45).
 
 
 **Controls verified as real, so nobody re-checks them:** removing `no-new-privileges`

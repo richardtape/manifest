@@ -37,19 +37,40 @@ describeDocker('SBOM and vulnerability scanning (§12)', () => {
   })
 
   /**
-   * The whole point of `PLATFORM_OWNED_PACKAGE_TYPES`, against the real database.
-   * Alpine's `libcrypto3`/`libssl3` findings are Critical and High and cannot be
-   * fixed by any app — if this blocked, nothing would ever deploy.
+   * The rule that decides what blocks, against the image faculty apps actually run
+   * on — and it is `node:22-alpine`, not `alpine`, because that is where the rule
+   * this replaced fell over.
+   *
+   * Measured: `node:22-alpine` carries 4 Critical + 14 High `apk` findings AND 1
+   * Critical + 10 High **`npm`** findings, the latter all inside
+   * `/usr/local/lib/node_modules/npm/` — npm's own bundled tree, shipped in the
+   * base image. Scanning an image against ITSELF as base must therefore attribute
+   * every one of them to the base and block on nothing.
    */
-  it('finds real OS findings in alpine and does not block on them', async () => {
-    const result = await scanImage(engine, 'alpine:3.22')
-    const serious = result.vulnerabilities.filter(
-      (v) => v.severity === 'Critical' || v.severity === 'High',
-    )
-    expect(serious.length).toBeGreaterThan(0)
-    expect(serious.every((v) => v.packageType === 'apk')).toBe(true)
+  it('attributes every finding in the base image to the base image', async () => {
+    const result = await scanImage(engine, 'node:22-alpine', {
+      baseImageRef: 'node:22-alpine',
+    })
+    expect(result.baseImageKnown).toBe(true)
+    expect(result.baseImageFindings.length).toBeGreaterThan(10)
+    // The half that catches an ecosystem-based rule: npm findings live in the base
+    // image too, and calling them the app's blocks every build.
+    expect(result.baseImageFindings.some((v) => v.packageType === 'npm')).toBe(true)
+    expect(result.baseImageFindings.some((v) => v.packageType === 'apk')).toBe(true)
+    expect(result.appFindings).toEqual([])
     expect(result.blocked).toBe(false)
-    expect(result.reason).toMatch(/base image/)
+  })
+
+  /**
+   * FAILS CLOSED, against the same real image. Without a base to compare against,
+   * those same findings are all the app's and the build is refused — a scan that
+   * cannot tell what the build added must not answer "nothing to worry about".
+   */
+  it('blocks the identical image when the base is unknown', async () => {
+    const result = await scanImage(engine, 'node:22-alpine')
+    expect(result.baseImageKnown).toBe(false)
+    expect(result.blocked).toBe(true)
+    expect(result.reason).toMatch(/not identified/i)
   })
 
   /**
