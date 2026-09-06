@@ -88,7 +88,8 @@ export async function devLogin(
     })
 
   const [user] = await db.select().from(users).where(eq(users.ubcCwlPuid, seed.puid))
-  if (!user) throw new Error(`dev login upserted '${seed.puid}' but could not read it back`)
+  if (!user)
+    throw new Error(`dev login upserted '${seed.puid}' but could not read it back`)
 
   return { user, session: issueSession(user, now) }
 }

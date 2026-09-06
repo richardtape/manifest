@@ -14,7 +14,11 @@ afterAll(resetDatabase)
 async function loggedIn(puid = 'bio_prof') {
   const deps = await testDeps({ devAuth: true })
   const app = await buildServer(deps)
-  const login = await app.inject({ method: 'POST', url: '/auth/dev-login', payload: { puid } })
+  const login = await app.inject({
+    method: 'POST',
+    url: '/auth/dev-login',
+    payload: { puid },
+  })
   const session = login.cookies.find((c) => c.name === 'manifest_session')!.value
   return { app, deps, session }
 }
@@ -39,15 +43,19 @@ describe('POST /projects', () => {
     expect(body.repositoryUrl).toMatch(/^file:\/\/.*chem-labs\.git$/)
     expect(body.commitSha).toMatch(/^[0-9a-f]{40}$/)
     expect(body.specValid).toBe(true)
-    expect(body.environments.map((e: { kind: string }) => e.kind).sort())
-      .toEqual(['production', 'sandbox', 'staging'])
+    expect(body.environments.map((e: { kind: string }) => e.kind).sort()).toEqual([
+      'production',
+      'sandbox',
+      'staging',
+    ])
     await app.close()
   })
 
   it('refuses a mutating request with no Idempotency-Key', async () => {
     const { app, session } = await loggedIn()
     const response = await app.inject({
-      ...create('chem-labs'), cookies: { manifest_session: session },
+      ...create('chem-labs'),
+      cookies: { manifest_session: session },
     })
     expect(response.statusCode).toBe(400)
     expect(response.json().error.code).toBe('IDEMPOTENCY_KEY_REQUIRED')
@@ -58,16 +66,22 @@ describe('POST /projects', () => {
     const { app, session } = await loggedIn()
     const headers = { 'idempotency-key': randomUUID() }
     const first = await app.inject({
-      ...create('chem-labs'), cookies: { manifest_session: session }, headers,
+      ...create('chem-labs'),
+      cookies: { manifest_session: session },
+      headers,
     })
     const second = await app.inject({
-      ...create('chem-labs'), cookies: { manifest_session: session }, headers,
+      ...create('chem-labs'),
+      cookies: { manifest_session: session },
+      headers,
     })
     expect(second.statusCode).toBe(first.statusCode)
     expect(second.json().id).toBe(first.json().id)
 
     const list = await app.inject({
-      method: 'GET', url: '/projects', cookies: { manifest_session: session },
+      method: 'GET',
+      url: '/projects',
+      cookies: { manifest_session: session },
     })
     expect(list.json()).toHaveLength(1)
     await app.close()
@@ -87,7 +101,8 @@ describe('POST /projects', () => {
   it('refuses an unauthenticated request', async () => {
     const { app } = await loggedIn()
     const response = await app.inject({
-      ...create('chem-labs'), headers: { 'idempotency-key': randomUUID() },
+      ...create('chem-labs'),
+      headers: { 'idempotency-key': randomUUID() },
     })
     expect(response.statusCode).toBe(401)
     await app.close()
@@ -105,12 +120,15 @@ describe('GET /projects/:id', () => {
     const id = created.json().id
 
     const plain = await app.inject({
-      method: 'GET', url: `/projects/${id}`, cookies: { manifest_session: session },
+      method: 'GET',
+      url: `/projects/${id}`,
+      cookies: { manifest_session: session },
     })
     expect(plain.json().environments).toBeUndefined()
 
     const expanded = await app.inject({
-      method: 'GET', url: `/projects/${id}?expand=environments`,
+      method: 'GET',
+      url: `/projects/${id}?expand=environments`,
       cookies: { manifest_session: session },
     })
     expect(expanded.json().environments).toHaveLength(3)
@@ -125,7 +143,8 @@ describe('GET /projects/:id', () => {
       headers: { 'idempotency-key': randomUUID() },
     })
     const spec = await app.inject({
-      method: 'GET', url: `/projects/${created.json().id}/spec`,
+      method: 'GET',
+      url: `/projects/${created.json().id}/spec`,
       cookies: { manifest_session: session },
     })
     expect(spec.statusCode).toBe(200)
@@ -142,12 +161,15 @@ describe('GET /projects/:id', () => {
       headers: { 'idempotency-key': randomUUID() },
     })
     const other = await app.inject({
-      method: 'POST', url: '/auth/dev-login', payload: { puid: 'bio_student' },
+      method: 'POST',
+      url: '/auth/dev-login',
+      payload: { puid: 'bio_student' },
     })
     const otherSession = other.cookies.find((c) => c.name === 'manifest_session')!.value
 
     const response = await app.inject({
-      method: 'GET', url: `/projects/${created.json().id}`,
+      method: 'GET',
+      url: `/projects/${created.json().id}`,
       cookies: { manifest_session: otherSession },
     })
     expect(response.statusCode).toBe(404)
@@ -167,12 +189,17 @@ describe('POST /projects/:id/members', () => {
 
     // The invitee must have logged in once — there is no user row otherwise.
     const invitee = await app.inject({
-      method: 'POST', url: '/auth/dev-login', payload: { puid: 'bio_student' },
+      method: 'POST',
+      url: '/auth/dev-login',
+      payload: { puid: 'bio_student' },
     })
-    const inviteeSession = invitee.cookies.find((c) => c.name === 'manifest_session')!.value
+    const inviteeSession = invitee.cookies.find(
+      (c) => c.name === 'manifest_session',
+    )!.value
 
     const added = await app.inject({
-      method: 'POST', url: `/projects/${id}/members`,
+      method: 'POST',
+      url: `/projects/${id}/members`,
       payload: { puid: 'bio_student', role: 'collaborator' },
       cookies: { manifest_session: session },
       headers: { 'idempotency-key': randomUUID() },
@@ -180,7 +207,9 @@ describe('POST /projects/:id/members', () => {
     expect(added.statusCode).toBe(201)
 
     const read = await app.inject({
-      method: 'GET', url: `/projects/${id}`, cookies: { manifest_session: inviteeSession },
+      method: 'GET',
+      url: `/projects/${id}`,
+      cookies: { manifest_session: inviteeSession },
     })
     expect(read.statusCode).toBe(200)
     await app.close()
@@ -196,18 +225,24 @@ describe('POST /projects/:id/members', () => {
     const id = created.json().id
 
     const invitee = await app.inject({
-      method: 'POST', url: '/auth/dev-login', payload: { puid: 'bio_student' },
+      method: 'POST',
+      url: '/auth/dev-login',
+      payload: { puid: 'bio_student' },
     })
-    const inviteeSession = invitee.cookies.find((c) => c.name === 'manifest_session')!.value
+    const inviteeSession = invitee.cookies.find(
+      (c) => c.name === 'manifest_session',
+    )!.value
     await app.inject({
-      method: 'POST', url: `/projects/${id}/members`,
+      method: 'POST',
+      url: `/projects/${id}/members`,
       payload: { puid: 'bio_student', role: 'collaborator' },
       cookies: { manifest_session: session },
       headers: { 'idempotency-key': randomUUID() },
     })
 
     const response = await app.inject({
-      method: 'POST', url: `/projects/${id}/members`,
+      method: 'POST',
+      url: `/projects/${id}/members`,
       payload: { puid: 'unrelated_user', role: 'collaborator' },
       cookies: { manifest_session: inviteeSession },
       headers: { 'idempotency-key': randomUUID() },

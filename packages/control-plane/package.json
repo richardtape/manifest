@@ -5,10 +5,13 @@
   "type": "module",
   "main": "./dist/index.js",
   "scripts": {
+    "dev": "pnpm run build && node dist/index.js",
+    "build": "tsc",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

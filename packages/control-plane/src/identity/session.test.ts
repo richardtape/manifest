@@ -21,7 +21,10 @@ describe('sessions', () => {
     const [payload, mac] = token.split('.') as [string, string]
     // Re-encode the payload claiming admin, keeping the original signature.
     const forged = Buffer.from(
-      JSON.stringify({ ...JSON.parse(Buffer.from(payload, 'base64url').toString()), role: 'admin' }),
+      JSON.stringify({
+        ...JSON.parse(Buffer.from(payload, 'base64url').toString()),
+        role: 'admin',
+      }),
     ).toString('base64url')
     expect(verifySession(`${forged}.${mac}`, SECRET, NOW + 1000)).toBeNull()
   })

@@ -3,14 +3,21 @@ import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { appSpecs, users } from '../../db/index.js'
 import {
-  addMember, assertCapability, createProject, getProject, listEnvironments, listProjectsFor,
+  addMember,
+  assertCapability,
+  createProject,
+  getProject,
+  listEnvironments,
+  listProjectsFor,
 } from '../../projects/index.js'
 import { validateSpec } from '../../spec/index.js'
 import { BadRequestError, SpecInvalidError } from '../errors.js'
 import { requireActor, type ServerDeps } from '../server.js'
 
 const createBody = z.object({
-  slug: z.string().regex(/^[a-z][a-z0-9-]{2,38}$/, 'slug must match ^[a-z][a-z0-9-]{2,38}$'),
+  slug: z
+    .string()
+    .regex(/^[a-z][a-z0-9-]{2,38}$/, 'slug must match ^[a-z][a-z0-9-]{2,38}$'),
   blueprint: z.string().min(1),
 })
 
@@ -23,7 +30,13 @@ const memberBody = z.object({
 function validationContext(projectSlug: string, quota: Record<string, unknown>) {
   return {
     projectSlug,
-    attributeWhitelist: ['ubcEduCwlPuid', 'mail', 'givenName', 'sn', 'eduPersonAffiliation'],
+    attributeWhitelist: [
+      'ubcEduCwlPuid',
+      'mail',
+      'givenName',
+      'sn',
+      'eduPersonAffiliation',
+    ],
     serviceCatalogue: ['mongo', 'qdrant'],
     modelCatalogue: [
       { name: 'default-chat-onprem', maxClassification: 'confidential' as const },
@@ -39,7 +52,10 @@ function validationContext(projectSlug: string, quota: Record<string, unknown>) 
   }
 }
 
-export async function registerProjectRoutes(app: FastifyInstance, deps: ServerDeps): Promise<void> {
+export async function registerProjectRoutes(
+  app: FastifyInstance,
+  deps: ServerDeps,
+): Promise<void> {
   app.post('/projects', async (request, reply) => {
     const actor = requireActor(request)
     const parsed = createBody.safeParse(request.body)
@@ -57,13 +73,18 @@ export async function registerProjectRoutes(app: FastifyInstance, deps: ServerDe
       throw new BadRequestError(
         'BLUEPRINT_NOT_FOUND',
         `no blueprint '${blueprint}'`,
-        `Available: ${deps.blueprints.list().map((b) => `${b.blueprint}@${b.major_version}`).join(', ')}`,
+        `Available: ${deps.blueprints
+          .list()
+          .map((b) => `${b.blueprint}@${b.major_version}`)
+          .join(', ')}`,
       )
     }
 
     const { status, body } = await app.idempotent(request, async () => {
       const { project, environments } = await createProject(deps.db, deps.config, {
-        slug, ownerId: actor.userId, blueprintRef: blueprint,
+        slug,
+        ownerId: actor.userId,
+        blueprintRef: blueprint,
       })
 
       // §22 step 3: "repository created, manifest.yaml validated".
@@ -80,7 +101,8 @@ export async function registerProjectRoutes(app: FastifyInstance, deps: ServerDe
         'src/index.js': "import http from 'node:http'\n",
       })
       const commitSha = await deps.source.headCommit(repo)
-      const yamlText = (await deps.source.readFile(repo, commitSha, 'manifest.yaml')) ?? ''
+      const yamlText =
+        (await deps.source.readFile(repo, commitSha, 'manifest.yaml')) ?? ''
 
       const result = validateSpec(
         yamlText,
@@ -110,7 +132,9 @@ export async function registerProjectRoutes(app: FastifyInstance, deps: ServerDe
           specErrors: result.valid ? [] : result.errors,
           appSpecId: appSpec!.id,
           environments: environments.map((e) => ({
-            id: e.id, kind: e.kind, hostname: e.hostname,
+            id: e.id,
+            kind: e.kind,
+            hostname: e.hostname,
           })),
         },
       }
@@ -148,7 +172,11 @@ export async function registerProjectRoutes(app: FastifyInstance, deps: ServerDe
       .orderBy(desc(appSpecs.createdAt))
       .limit(1)
 
-    if (!latest) throw new BadRequestError('SPEC_NOT_FOUND', 'this project has no validated spec yet')
+    if (!latest)
+      throw new BadRequestError(
+        'SPEC_NOT_FOUND',
+        'this project has no validated spec yet',
+      )
     if (!latest.valid) throw new SpecInvalidError(latest.errors as never)
 
     return { commitSha: latest.commitSha, spec: latest.parsed, appSpecId: latest.id }
@@ -162,7 +190,8 @@ export async function registerProjectRoutes(app: FastifyInstance, deps: ServerDe
     await assertCapability(deps.db, actor, projectId, 'members:manage')
 
     const parsed = memberBody.safeParse(request.body)
-    if (!parsed.success) throw new BadRequestError('MEMBER_INVALID_INPUT', parsed.error.message)
+    if (!parsed.success)
+      throw new BadRequestError('MEMBER_INVALID_INPUT', parsed.error.message)
 
     const [user] = await deps.db
       .select()

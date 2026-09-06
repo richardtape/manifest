@@ -42,5 +42,7 @@ const TABLES = [
 ]
 
 export async function resetDatabase(): Promise<void> {
-  await db.execute(sql.raw(`TRUNCATE TABLE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`))
+  await db.execute(
+    sql.raw(`TRUNCATE TABLE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`),
+  )
 }

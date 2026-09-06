@@ -30,7 +30,10 @@ export class ReleaseError extends Error {
  * numbers or force a re-resolution the approver never saw. Freezing all three means
  * the diff reviewed at approval is exactly what each environment will get.
  */
-export type ResolvedConfigSet = Record<'sandbox' | 'staging' | 'production', ResolvedConfig>
+export type ResolvedConfigSet = Record<
+  'sandbox' | 'staging' | 'production',
+  ResolvedConfig
+>
 
 export interface CreateReleaseInput {
   projectId: string
@@ -49,7 +52,8 @@ export interface CreateReleaseInput {
  */
 export async function createRelease(db: Db, input: CreateReleaseInput): Promise<Release> {
   const [build] = await db.select().from(builds).where(eq(builds.id, input.buildId))
-  if (!build) throw new ReleaseError('RELEASE_BUILD_NOT_FOUND', `no build '${input.buildId}'`)
+  if (!build)
+    throw new ReleaseError('RELEASE_BUILD_NOT_FOUND', `no build '${input.buildId}'`)
   if (build.status !== 'succeeded' || !build.imageDigest) {
     throw new ReleaseError(
       'RELEASE_BUILD_NOT_DEPLOYABLE',
@@ -99,15 +103,22 @@ export async function deployRelease(
   input: DeployInput,
   healthWait: HealthWait = DEFAULT_HEALTH_WAIT,
 ): Promise<Instance> {
-  const [release] = await db.select().from(releases).where(eq(releases.id, input.releaseId))
-  if (!release) throw new ReleaseError('RELEASE_NOT_FOUND', `no release '${input.releaseId}'`)
+  const [release] = await db
+    .select()
+    .from(releases)
+    .where(eq(releases.id, input.releaseId))
+  if (!release)
+    throw new ReleaseError('RELEASE_NOT_FOUND', `no release '${input.releaseId}'`)
 
   const [environment] = await db
     .select()
     .from(environments)
     .where(eq(environments.id, input.environmentId))
   if (!environment) {
-    throw new ReleaseError('RELEASE_ENVIRONMENT_NOT_FOUND', `no environment '${input.environmentId}'`)
+    throw new ReleaseError(
+      'RELEASE_ENVIRONMENT_NOT_FOUND',
+      `no environment '${input.environmentId}'`,
+    )
   }
 
   // Decisions item 5. The LaunchReadiness entities (§13) land in P4/P6; gating a
@@ -123,7 +134,11 @@ export async function deployRelease(
 
   const [build] = await db.select().from(builds).where(eq(builds.id, release.buildId))
   const digest = build?.imageDigest
-  if (!digest) throw new ReleaseError('RELEASE_DIGEST_MISSING', `release '${release.id}' has no digest`)
+  if (!digest)
+    throw new ReleaseError(
+      'RELEASE_DIGEST_MISSING',
+      `release '${release.id}' has no digest`,
+    )
 
   // §23 gives the hostname as `<slug>.<zone>`, so the first label is the slug.
   const projectSlug = environment.hostname.split('.')[0]!

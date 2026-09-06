@@ -19,7 +19,11 @@ export interface StartBuildInput {
  * build is a recorded row with `status: 'failed'` and no digest — not an exception —
  * because a faculty member needs to see the failure and its logs (§14).
  */
-export async function startBuild(db: Db, driver: Driver, input: StartBuildInput): Promise<Build> {
+export async function startBuild(
+  db: Db,
+  driver: Driver,
+  input: StartBuildInput,
+): Promise<Build> {
   const [created] = await db
     .insert(builds)
     .values({
@@ -38,7 +42,11 @@ export async function startBuild(db: Db, driver: Driver, input: StartBuildInput)
     )
     const [done] = await db
       .update(builds)
-      .set({ status: 'succeeded', imageDigest: image.digest, logsRef: `build:${created.id}` })
+      .set({
+        status: 'succeeded',
+        imageDigest: image.digest,
+        logsRef: `build:${created.id}`,
+      })
       .where(eq(builds.id, created.id))
       .returning()
     return done!

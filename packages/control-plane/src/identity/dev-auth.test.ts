@@ -27,7 +27,9 @@ describe('the dev auth shim (roadmap gap 3)', () => {
 
   it('seeds the platform admin with the admin role', async () => {
     await withRollback(async (db) => {
-      const { user, session } = await devLogin(db, 'platform_admin', { devAuthEnabled: true })
+      const { user, session } = await devLogin(db, 'platform_admin', {
+        devAuthEnabled: true,
+      })
       expect(user.role).toBe('admin')
       expect(session.role).toBe('admin')
     })

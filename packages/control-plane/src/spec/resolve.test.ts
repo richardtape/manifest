@@ -43,8 +43,8 @@ describe('environment override resolution (§7)', () => {
   it('overrides only the resource fields the override names', () => {
     const resolved = resolveConfig(spec, 'staging', DEFAULTS)
     expect(resolved.resources.memory).toBe('256Mi')
-    expect(resolved.resources.cpu).toBe(0.5)     // from the spec, untouched
-    expect(resolved.resources.pids).toBe(256)    // from the spec, untouched
+    expect(resolved.resources.cpu).toBe(0.5) // from the spec, untouched
+    expect(resolved.resources.pids).toBe(256) // from the spec, untouched
   })
 
   // The layer that is easiest to get wrong: §7 says resource defaults are
@@ -60,10 +60,10 @@ describe('environment override resolution (§7)', () => {
     })
     const resolved = resolveConfig(sparse, 'sandbox', DEFAULTS)
     expect(resolved.resources).toEqual({
-      cpu: 0.25,          // blueprint
-      memory: '512Mi',    // spec
-      pids: 64,           // blueprint
-      disk: '1Gi',        // blueprint
+      cpu: 0.25, // blueprint
+      memory: '512Mi', // spec
+      pids: 64, // blueprint
+      disk: '1Gi', // blueprint
     })
   })
 
@@ -86,7 +86,11 @@ describe('environment override resolution (§7)', () => {
       environments: { staging: { env: [{ name: 'STAGING_ONLY', value: 'yes' }] } },
     })
     const resolved = resolveConfig(withNew, 'staging', DEFAULTS)
-    expect(resolved.env.map((e) => e.name)).toEqual(['COURSE_CODE', 'LOG_LEVEL', 'STAGING_ONLY'])
+    expect(resolved.env.map((e) => e.name)).toEqual([
+      'COURSE_CODE',
+      'LOG_LEVEL',
+      'STAGING_ONLY',
+    ])
   })
 
   it('does not mutate the spec it was given', () => {

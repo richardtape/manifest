@@ -4,7 +4,10 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve, sep } from 'node:path'
 import { promisify } from 'node:util'
 import {
-  type RepoRef, type SeedFiles, SourceError, type SourceDriver,
+  type RepoRef,
+  type SeedFiles,
+  SourceError,
+  type SourceDriver,
 } from './git-driver.js'
 
 const run = promisify(execFile)
@@ -18,9 +21,12 @@ const SLUG = /^[a-z][a-z0-9-]{2,38}$/
 
 /** Deterministic authorship so a seeded repo is reproducible across machines. */
 const GIT_IDENTITY = [
-  '-c', 'user.name=Manifest',
-  '-c', 'user.email=manifest@manifest.internal',
-  '-c', 'commit.gpgsign=false',
+  '-c',
+  'user.name=Manifest',
+  '-c',
+  'user.email=manifest@manifest.internal',
+  '-c',
+  'commit.gpgsign=false',
 ]
 
 export { SourceError } from './git-driver.js'
@@ -39,7 +45,10 @@ export function createLocalSourceDriver(root: string): SourceDriver {
     const path = resolve(repoRoot, `${projectSlug}.git`)
     // Belt and braces: even with the regex above, never operate outside the root.
     if (path !== repoRoot && !path.startsWith(repoRoot + sep)) {
-      throw new SourceError('SOURCE_PATH_ESCAPE', `'${projectSlug}' resolves outside the repo root`)
+      throw new SourceError(
+        'SOURCE_PATH_ESCAPE',
+        `'${projectSlug}' resolves outside the repo root`,
+      )
     }
     return path
   }
@@ -60,13 +69,19 @@ export function createLocalSourceDriver(root: string): SourceDriver {
       const { stdout } = await run('git', args, { cwd, maxBuffer: 32 * 1024 * 1024 })
       return stdout
     } catch (error) {
-      throw new SourceError('SOURCE_GIT_FAILED', `git ${args[0]} failed: ${String(error)}`)
+      throw new SourceError(
+        'SOURCE_GIT_FAILED',
+        `git ${args[0]} failed: ${String(error)}`,
+      )
     }
   }
 
   /** Writes files in a throwaway worktree and pushes them into the bare repo. */
   async function commitThroughWorktree(
-    bare: string, files: SeedFiles, message: string, firstCommit: boolean,
+    bare: string,
+    files: SeedFiles,
+    message: string,
+    firstCommit: boolean,
   ): Promise<string> {
     const work = await mkdtemp(join(tmpdir(), 'manifest-worktree-'))
     try {
@@ -79,7 +94,10 @@ export function createLocalSourceDriver(root: string): SourceDriver {
       for (const [relative, content] of Object.entries(files)) {
         const target = resolve(work, relative)
         if (!target.startsWith(resolve(work) + sep)) {
-          throw new SourceError('SOURCE_PATH_ESCAPE', `seed path '${relative}' escapes the worktree`)
+          throw new SourceError(
+            'SOURCE_PATH_ESCAPE',
+            `seed path '${relative}' escapes the worktree`,
+          )
         }
         await mkdir(dirname(target), { recursive: true })
         await writeFile(target, content, 'utf8')
@@ -126,8 +144,15 @@ export function createLocalSourceDriver(root: string): SourceDriver {
 
     async listBranches(repo) {
       const path = assertOwned(repo)
-      const stdout = await git(path, ['for-each-ref', '--format=%(refname:short)', 'refs/heads/'])
-      return stdout.split('\n').map((line) => line.trim()).filter((line) => line.length > 0)
+      const stdout = await git(path, [
+        'for-each-ref',
+        '--format=%(refname:short)',
+        'refs/heads/',
+      ])
+      return stdout
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
     },
 
     async destroyRepository(repo) {

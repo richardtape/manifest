@@ -13,7 +13,11 @@ const base = {
 
 describe('configuration', () => {
   it('parses a development environment and defaults the port to 7100', () => {
-    const config = loadConfig({ ...base, MANIFEST_ENV: 'development', MANIFEST_DEV_AUTH: '1' })
+    const config = loadConfig({
+      ...base,
+      MANIFEST_ENV: 'development',
+      MANIFEST_DEV_AUTH: '1',
+    })
     expect(config.env).toBe('development')
     expect(config.devAuth).toBe(true)
     expect(config.port).toBe(7100)
@@ -37,13 +41,21 @@ describe('configuration', () => {
   })
 
   it('starts in production when dev auth is off', () => {
-    const config = loadConfig({ ...base, MANIFEST_ENV: 'production', MANIFEST_DEV_AUTH: '0' })
+    const config = loadConfig({
+      ...base,
+      MANIFEST_ENV: 'production',
+      MANIFEST_DEV_AUTH: '0',
+    })
     expect(config.devAuth).toBe(false)
   })
 
   it('refuses a session secret shorter than 32 characters', () => {
     expect(() =>
-      loadConfig({ ...base, MANIFEST_SESSION_SECRET: 'too-short', MANIFEST_ENV: 'development' }),
+      loadConfig({
+        ...base,
+        MANIFEST_SESSION_SECRET: 'too-short',
+        MANIFEST_ENV: 'development',
+      }),
     ).toThrow(ConfigError)
   })
 

@@ -73,7 +73,11 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
     if (!token) return
     const session = verifySession(token, deps.config.sessionSecret)
     if (!session) return
-    request.actor = { userId: session.userId, platformRole: session.role, puid: session.puid }
+    request.actor = {
+      userId: session.userId,
+      platformRole: session.role,
+      puid: session.puid,
+    }
   })
 
   // D23.6, applied by the framework rather than remembered per route.
@@ -97,7 +101,11 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
   app.setErrorHandler((error, request, reply) => {
     if ((error as { statusCode?: number }).statusCode === 401) {
       return reply.status(401).send({
-        error: { code: 'UNAUTHENTICATED', message: 'a session is required', hint: 'Log in first.' },
+        error: {
+          code: 'UNAUTHENTICATED',
+          message: 'a session is required',
+          hint: 'Log in first.',
+        },
       })
     }
     const { status, body } = toErrorResponse(error)
@@ -108,7 +116,10 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
   /** Wraps a mutating handler in its idempotency record. */
   app.decorate(
     'idempotent',
-    async (request: FastifyRequest, handler: () => Promise<{ status: number; body: unknown }>) => {
+    async (
+      request: FastifyRequest,
+      handler: () => Promise<{ status: number; body: unknown }>,
+    ) => {
       const actor = requireActor(request)
       return replayOrStore(
         deps.db,

@@ -36,7 +36,11 @@ export async function createProject(
 
   const [project] = await db
     .insert(projects)
-    .values({ slug: input.slug, ownerId: input.ownerId, blueprintRef: input.blueprintRef })
+    .values({
+      slug: input.slug,
+      ownerId: input.ownerId,
+      blueprintRef: input.blueprintRef,
+    })
     .returning()
   if (!project) throw new Error('project insert returned no row')
 
@@ -63,7 +67,10 @@ export async function createProject(
   return { project, environments: created }
 }
 
-export async function getProject(db: Db, projectId: string): Promise<Project | undefined> {
+export async function getProject(
+  db: Db,
+  projectId: string,
+): Promise<Project | undefined> {
   const [project] = await db.select().from(projects).where(eq(projects.id, projectId))
   return project
 }
@@ -101,6 +108,9 @@ export async function addMember(
     })
 }
 
-export async function listEnvironments(db: Db, projectId: string): Promise<Environment[]> {
+export async function listEnvironments(
+  db: Db,
+  projectId: string,
+): Promise<Environment[]> {
   return db.select().from(environments).where(eq(environments.projectId, projectId))
 }

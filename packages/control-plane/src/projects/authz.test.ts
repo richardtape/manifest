@@ -1,9 +1,16 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { AuthorizationError, assertCapability, capabilitiesFor } from './authz.js'
 import { createProject } from './repository.js'
-import { withRollback } from '../db/testing.js'
+import { resetDatabase, withRollback } from '../db/testing.js'
 import { users } from '../db/index.js'
 import { loadConfig } from '../config.js'
+
+// Each database file starts from a known slate rather than trusting whatever ran
+// before it to have cleaned up. `withRollback` isolates a test from its OWN writes
+// only, so a committed row left by an API test — they cannot roll back — collided
+// with the `chem-labs` these suites insert. Asserting the precondition beats
+// depending on every other file remembering an afterAll.
+beforeAll(resetDatabase)
 
 const config = loadConfig({
   MANIFEST_ENV: 'development',
@@ -49,11 +56,21 @@ describe('assertCapability', () => {
   async function seed(db: Parameters<typeof createProject>[0]) {
     const [owner] = await db
       .insert(users)
-      .values({ ubcCwlPuid: 'owner', email: 'o@ubc.ca', displayName: 'O', role: 'member' })
+      .values({
+        ubcCwlPuid: 'owner',
+        email: 'o@ubc.ca',
+        displayName: 'O',
+        role: 'member',
+      })
       .returning()
     const [stranger] = await db
       .insert(users)
-      .values({ ubcCwlPuid: 'stranger', email: 's@ubc.ca', displayName: 'S', role: 'member' })
+      .values({
+        ubcCwlPuid: 'stranger',
+        email: 's@ubc.ca',
+        displayName: 'S',
+        role: 'member',
+      })
       .returning()
     const { project } = await createProject(db, config, {
       slug: 'chem-labs',
@@ -67,7 +84,12 @@ describe('assertCapability', () => {
     await withRollback(async (db) => {
       const { owner, project } = await seed(db)
       await expect(
-        assertCapability(db, { userId: owner.id, platformRole: 'member' }, project.id, 'project:write'),
+        assertCapability(
+          db,
+          { userId: owner.id, platformRole: 'member' },
+          project.id,
+          'project:write',
+        ),
       ).resolves.toBeUndefined()
     })
   })
@@ -77,7 +99,10 @@ describe('assertCapability', () => {
       const { stranger, project } = await seed(db)
       try {
         await assertCapability(
-          db, { userId: stranger.id, platformRole: 'member' }, project.id, 'project:read',
+          db,
+          { userId: stranger.id, platformRole: 'member' },
+          project.id,
+          'project:read',
         )
         throw new Error('expected the check to refuse')
       } catch (error) {
@@ -92,7 +117,10 @@ describe('assertCapability', () => {
       const { owner, project } = await seed(db)
       try {
         await assertCapability(
-          db, { userId: owner.id, platformRole: 'member' }, project.id, 'release:approve',
+          db,
+          { userId: owner.id, platformRole: 'member' },
+          project.id,
+          'release:approve',
         )
         throw new Error('expected the check to refuse')
       } catch (error) {

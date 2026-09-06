@@ -1,8 +1,15 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { db } from './client.js'
-import { withRollback } from './testing.js'
+import { resetDatabase, withRollback } from './testing.js'
 import { projects, projectMembers, users } from './schema.js'
+
+// Each database file starts from a known slate rather than trusting whatever ran
+// before it to have cleaned up. `withRollback` isolates a test from its OWN writes
+// only, so a committed row left by an API test — they cannot roll back — collided
+// with the `chem-labs` these suites insert. Asserting the precondition beats
+// depending on every other file remembering an afterAll.
+beforeAll(resetDatabase)
 
 describe('control plane schema (§6)', () => {
   it('stores a user, a project and its owner membership', async () => {

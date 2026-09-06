@@ -61,6 +61,49 @@ this machine will do to you, and what to do next. Then:
 | Explaining this to someone non-technical | [`manifest-schematic.html`](docs/superpowers/specs/manifest-schematic.html) and its companions — the same design in plain language, plus six worked faculty stories |
 | Tracking the UBC reviews | [`docs/external-track.md`](docs/external-track.md) — the items decided by people outside this team, which carry the longest lead times in the project |
 
+## Running the control plane
+
+Requires P1's substrate (`make up`) for Postgres on 7103. Run these **from the repo
+root** — `MANIFEST_BLUEPRINTS_ROOT` and `MANIFEST_REPOS_ROOT` are read as given, and
+`pnpm --filter` runs with the *package* directory as its working directory, so
+relative paths there point at the wrong place.
+
+```bash
+set -a; . ./.env; set +a   # make seed writes .env; the password is NOT "manifest"
+export MANIFEST_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"
+export MANIFEST_SESSION_SECRET=$(openssl rand -hex 32)
+export MANIFEST_DEV_AUTH=1
+export MANIFEST_BLUEPRINTS_ROOT="$PWD/blueprints"
+export MANIFEST_REPOS_ROOT="$PWD/.manifest/repos"
+
+pnpm --filter @manifest/control-plane db:migrate
+pnpm --filter @manifest/control-plane dev      # tsc, then node dist/index.js
+```
+
+It listens on `http://127.0.0.1:7100`. Verified end to end on 2026-09-05:
+
+```bash
+curl -s http://127.0.0.1:7100/auth/me
+# {"error":{"code":"UNAUTHENTICATED","message":"a session is required","hint":"Log in first."}}
+
+curl -s -c /tmp/jar -X POST -H 'content-type: application/json' \
+  -d '{"puid":"bio_prof"}' http://127.0.0.1:7100/auth/dev-login
+
+curl -s -b /tmp/jar -X POST -H 'content-type: application/json' \
+  -H "idempotency-key: $(uuidgen)" \
+  -d '{"slug":"boot-check","blueprint":"fixture-node@1"}' http://127.0.0.1:7100/projects
+```
+
+**`node src/index.ts` does not work**, though Node 24 strips types natively: the
+source uses NodeNext `.js` specifiers, which Node resolves literally rather than
+mapping back to `.ts`. Hence the build step.
+
+**`MANIFEST_DEV_AUTH=1` enables the temporary login shim** and is refused outside
+`MANIFEST_ENV=development` — the process exits with
+`CONFIG_DEV_AUTH_OUTSIDE_DEVELOPMENT` before anything binds the port. Verified by
+starting it with `MANIFEST_ENV=production`. P4 replaces the shim with CWL and deletes
+it.
+
 ## The three things that shape every decision
 
 - **Laptop-first, and reproducibly so.** The entire platform runs on one developer

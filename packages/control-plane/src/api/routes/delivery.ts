@@ -3,34 +3,66 @@ import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { appSpecs, environments, instances, projects } from '../../db/index.js'
 import { assertCapability, AuthorizationError } from '../../projects/index.js'
-import { createRelease, deployRelease, getBuild, startBuild } from '../../releases/index.js'
+import {
+  createRelease,
+  deployRelease,
+  getBuild,
+  startBuild,
+} from '../../releases/index.js'
 import { checkBlueprintCompatibility } from '../../blueprints/index.js'
 import { resolveConfig } from '../../spec/index.js'
 import type { ManifestSpec } from '../../spec/index.js'
 import { BadRequestError, SpecInvalidError } from '../errors.js'
 import { requireActor, type ServerDeps } from '../server.js'
 
-const buildBody = z.object({ commitSha: z.string().regex(/^[0-9a-f]{40}$/).optional() })
-const releaseBody = z.object({ buildId: z.string().uuid(), summary: z.string().max(500).optional() })
+const buildBody = z.object({
+  commitSha: z
+    .string()
+    .regex(/^[0-9a-f]{40}$/)
+    .optional(),
+})
+const releaseBody = z.object({
+  buildId: z.string().uuid(),
+  summary: z.string().max(500).optional(),
+})
 const deployBody = z.object({ releaseId: z.string().uuid() })
 
 /** §13's checklist, as data, so the refusal can name what is missing. */
 const LAUNCH_READINESS = [
   { item: 'IamRegistration', owner: 'UBC IAM', blocking: true, deliveredBy: 'P4' },
-  { item: 'PrivacyAssessment', owner: 'UBC Privacy Office', blocking: true, deliveredBy: 'P4' },
-  { item: 'PreProductionRehearsal', owner: 'Manifest', blocking: true, deliveredBy: 'P4' },
-  { item: 'DependencyAndSecretScans', owner: 'Manifest', blocking: true, deliveredBy: 'P3' },
+  {
+    item: 'PrivacyAssessment',
+    owner: 'UBC Privacy Office',
+    blocking: true,
+    deliveredBy: 'P4',
+  },
+  {
+    item: 'PreProductionRehearsal',
+    owner: 'Manifest',
+    blocking: true,
+    deliveredBy: 'P4',
+  },
+  {
+    item: 'DependencyAndSecretScans',
+    owner: 'Manifest',
+    blocking: true,
+    deliveredBy: 'P3',
+  },
   { item: 'AdminApproval', owner: 'platform admin', blocking: true, deliveredBy: 'P4' },
 ] as const
 
-export async function registerDeliveryRoutes(app: FastifyInstance, deps: ServerDeps): Promise<void> {
+export async function registerDeliveryRoutes(
+  app: FastifyInstance,
+  deps: ServerDeps,
+): Promise<void> {
   app.post('/projects/:projectId/builds', async (request, reply) => {
     const actor = requireActor(request)
     const { projectId } = request.params as { projectId: string }
     await assertCapability(deps.db, actor, projectId, 'build:create')
 
     const parsed = buildBody.safeParse(request.body ?? {})
-    if (!parsed.success) throw new BadRequestError('BUILD_INVALID_INPUT', parsed.error.message)
+    if (!parsed.success)
+      throw new BadRequestError('BUILD_INVALID_INPUT', parsed.error.message)
 
     const [spec] = await deps.db
       .select()
@@ -38,7 +70,11 @@ export async function registerDeliveryRoutes(app: FastifyInstance, deps: ServerD
       .where(eq(appSpecs.projectId, projectId))
       .orderBy(desc(appSpecs.createdAt))
       .limit(1)
-    if (!spec) throw new BadRequestError('SPEC_NOT_FOUND', 'this project has no validated spec yet')
+    if (!spec)
+      throw new BadRequestError(
+        'SPEC_NOT_FOUND',
+        'this project has no validated spec yet',
+      )
     if (!spec.valid) {
       throw new BadRequestError(
         'SPEC_INVALID',
@@ -47,7 +83,10 @@ export async function registerDeliveryRoutes(app: FastifyInstance, deps: ServerD
       )
     }
 
-    const [project] = await deps.db.select().from(projects).where(eq(projects.id, projectId))
+    const [project] = await deps.db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, projectId))
     if (!project) throw new AuthorizationError('NOT_FOUND', `no project '${projectId}'`)
 
     // D30/§25: the spec is checked against the blueprint it pins, here rather than at
@@ -60,7 +99,10 @@ export async function registerDeliveryRoutes(app: FastifyInstance, deps: ServerD
         `this project pins '${project.blueprintRef}', which is no longer in the registry`,
       )
     }
-    const incompatibilities = checkBlueprintCompatibility(spec.parsed as ManifestSpec, descriptor)
+    const incompatibilities = checkBlueprintCompatibility(
+      spec.parsed as ManifestSpec,
+      descriptor,
+    )
     if (incompatibilities.length > 0) throw new SpecInvalidError(incompatibilities)
 
     const { status, body } = await app.idempotent(request, async () => {
@@ -93,9 +135,13 @@ export async function registerDeliveryRoutes(app: FastifyInstance, deps: ServerD
     await assertCapability(deps.db, actor, projectId, 'release:create')
 
     const parsed = releaseBody.safeParse(request.body)
-    if (!parsed.success) throw new BadRequestError('RELEASE_INVALID_INPUT', parsed.error.message)
+    if (!parsed.success)
+      throw new BadRequestError('RELEASE_INVALID_INPUT', parsed.error.message)
 
-    const [project] = await deps.db.select().from(projects).where(eq(projects.id, projectId))
+    const [project] = await deps.db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, projectId))
     if (!project) throw new AuthorizationError('NOT_FOUND', `no project '${projectId}'`)
 
     const [spec] = await deps.db
@@ -104,7 +150,11 @@ export async function registerDeliveryRoutes(app: FastifyInstance, deps: ServerD
       .where(eq(appSpecs.projectId, projectId))
       .orderBy(desc(appSpecs.createdAt))
       .limit(1)
-    if (!spec) throw new BadRequestError('SPEC_NOT_FOUND', 'this project has no validated spec yet')
+    if (!spec)
+      throw new BadRequestError(
+        'SPEC_NOT_FOUND',
+        'this project has no validated spec yet',
+      )
 
     const { status, body } = await app.idempotent(request, async () => {
       const parsedSpec = spec.parsed as ManifestSpec
@@ -144,11 +194,13 @@ export async function registerDeliveryRoutes(app: FastifyInstance, deps: ServerD
       .select()
       .from(environments)
       .where(eq(environments.id, environmentId))
-    if (!environment) throw new AuthorizationError('NOT_FOUND', `no environment '${environmentId}'`)
+    if (!environment)
+      throw new AuthorizationError('NOT_FOUND', `no environment '${environmentId}'`)
     await assertCapability(deps.db, actor, environment.projectId, 'release:deploy')
 
     const parsed = deployBody.safeParse(request.body)
-    if (!parsed.success) throw new BadRequestError('DEPLOY_INVALID_INPUT', parsed.error.message)
+    if (!parsed.success)
+      throw new BadRequestError('DEPLOY_INVALID_INPUT', parsed.error.message)
 
     // §13: not forbidden, not ready. Say which items and who owns them.
     if (environment.kind === 'production') {
@@ -180,7 +232,8 @@ export async function registerDeliveryRoutes(app: FastifyInstance, deps: ServerD
       .select()
       .from(environments)
       .where(eq(environments.id, environmentId))
-    if (!environment) throw new AuthorizationError('NOT_FOUND', `no environment '${environmentId}'`)
+    if (!environment)
+      throw new AuthorizationError('NOT_FOUND', `no environment '${environmentId}'`)
     await assertCapability(deps.db, actor, environment.projectId, 'project:read')
 
     const [instance] = await deps.db

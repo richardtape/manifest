@@ -1,10 +1,17 @@
-import { describe, expect, it, vi } from 'vitest'
-import { withRollback } from '../db/testing.js'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { resetDatabase, withRollback } from '../db/testing.js'
 import { appSpecs, builds, users } from '../db/index.js'
 import { createFakeDriver } from '../runtime/index.js'
 import { createProject } from '../projects/index.js'
 import { loadConfig } from '../config.js'
 import { ReleaseError, createRelease, deployRelease, startBuild } from './index.js'
+
+// Each database file starts from a known slate rather than trusting whatever ran
+// before it to have cleaned up. `withRollback` isolates a test from its OWN writes
+// only, so a committed row left by an API test — they cannot roll back — collided
+// with the `chem-labs` these suites insert. Asserting the precondition beats
+// depending on every other file remembering an afterAll.
+beforeAll(resetDatabase)
 
 const config = loadConfig({
   MANIFEST_ENV: 'development',
@@ -37,13 +44,18 @@ async function fixture(db: Parameters<typeof createProject>[0]) {
     .values({ ubcCwlPuid: 'o', email: 'o@ubc.ca', displayName: 'O', role: 'member' })
     .returning()
   const { project, environments } = await createProject(db, config, {
-    slug: 'chem-labs', ownerId: user!.id, blueprintRef: 'fixture-node@1',
+    slug: 'chem-labs',
+    ownerId: user!.id,
+    blueprintRef: 'fixture-node@1',
   })
   const [appSpec] = await db
     .insert(appSpecs)
     .values({
-      projectId: project.id, commitSha: 'a'.repeat(40), parsed: {},
-      schemaVersion: 1, valid: true,
+      projectId: project.id,
+      commitSha: 'a'.repeat(40),
+      parsed: {},
+      schemaVersion: 1,
+      valid: true,
     })
     .returning()
   const byKind = Object.fromEntries(environments.map((e) => [e.kind, e]))
@@ -56,8 +68,11 @@ describe('builds', () => {
       const { project, appSpec } = await fixture(db)
       const driver = createFakeDriver()
       const build = await startBuild(db, driver, {
-        projectId: project.id, projectSlug: project.slug, appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha, blueprintRef: project.blueprintRef,
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
         repoUrl: 'file:///tmp/chem-labs.git',
       })
       expect(build.status).toBe('succeeded')
@@ -71,8 +86,11 @@ describe('builds', () => {
       const driver = createFakeDriver()
       vi.spyOn(driver, 'buildImage').mockRejectedValueOnce(new Error('compile error'))
       const build = await startBuild(db, driver, {
-        projectId: project.id, projectSlug: project.slug, appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha, blueprintRef: project.blueprintRef,
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
         repoUrl: 'file:///tmp/chem-labs.git',
       })
       expect(build.status).toBe('failed')
@@ -88,19 +106,26 @@ describe('releases (§13)', () => {
       const [pending] = await db
         .insert(builds)
         .values({
-          projectId: project.id, commitSha: appSpec.commitSha,
-          appSpecId: appSpec.id, status: 'pending',
+          projectId: project.id,
+          commitSha: appSpec.commitSha,
+          appSpecId: appSpec.id,
+          status: 'pending',
         })
         .returning()
       const attempt = createRelease(db, {
-        projectId: project.id, buildId: pending!.id, appSpecId: appSpec.id,
-        createdBy: user.id, resolvedConfig: RESOLVED,
+        projectId: project.id,
+        buildId: pending!.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: RESOLVED,
       })
       // Both the type and the code: a bare `code` match would also accept a plain
       // Error somebody happened to hang a `code` on, which the API error envelope
       // maps to 500 rather than 409.
       await expect(attempt).rejects.toBeInstanceOf(ReleaseError)
-      await expect(attempt).rejects.toMatchObject({ code: 'RELEASE_BUILD_NOT_DEPLOYABLE' })
+      await expect(attempt).rejects.toMatchObject({
+        code: 'RELEASE_BUILD_NOT_DEPLOYABLE',
+      })
     })
   })
 
@@ -109,16 +134,23 @@ describe('releases (§13)', () => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver()
       const build = await startBuild(db, driver, {
-        projectId: project.id, projectSlug: project.slug, appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha, blueprintRef: project.blueprintRef,
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
         repoUrl: 'file:///tmp/chem-labs.git',
       })
       const release = await createRelease(db, {
-        projectId: project.id, buildId: build.id, appSpecId: appSpec.id,
-        createdBy: user.id, resolvedConfig: RESOLVED,
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: RESOLVED,
       })
       const instance = await deployRelease(db, driver, config, {
-        releaseId: release.id, environmentId: byKind.staging!.id,
+        releaseId: release.id,
+        environmentId: byKind.staging!.id,
       })
       expect(instance.state).toBe('healthy')
       expect(instance.handle).toBeTruthy()
@@ -131,21 +163,29 @@ describe('releases (§13)', () => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver()
       const build = await startBuild(db, driver, {
-        projectId: project.id, projectSlug: project.slug, appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha, blueprintRef: project.blueprintRef,
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
         repoUrl: 'file:///tmp/chem-labs.git',
       })
       const release = await createRelease(db, {
-        projectId: project.id, buildId: build.id, appSpecId: appSpec.id,
-        createdBy: user.id, resolvedConfig: RESOLVED,
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: RESOLVED,
       })
 
       const buildSpy = vi.spyOn(driver, 'buildImage')
       await deployRelease(db, driver, config, {
-        releaseId: release.id, environmentId: byKind.staging!.id,
+        releaseId: release.id,
+        environmentId: byKind.staging!.id,
       })
       await deployRelease(db, driver, config, {
-        releaseId: release.id, environmentId: byKind.sandbox!.id,
+        releaseId: release.id,
+        environmentId: byKind.sandbox!.id,
       })
       expect(buildSpy).not.toHaveBeenCalled()
     })
@@ -156,17 +196,24 @@ describe('releases (§13)', () => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver()
       const build = await startBuild(db, driver, {
-        projectId: project.id, projectSlug: project.slug, appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha, blueprintRef: project.blueprintRef,
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
         repoUrl: 'file:///tmp/chem-labs.git',
       })
       const release = await createRelease(db, {
-        projectId: project.id, buildId: build.id, appSpecId: appSpec.id,
-        createdBy: user.id, resolvedConfig: RESOLVED,
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: RESOLVED,
       })
       await expect(
         deployRelease(db, driver, config, {
-          releaseId: release.id, environmentId: byKind.production!.id,
+          releaseId: release.id,
+          environmentId: byKind.production!.id,
         }),
       ).rejects.toMatchObject({ code: 'RELEASE_PRODUCTION_GATE_UNAVAILABLE' })
     })
@@ -180,17 +227,24 @@ describe('releases (§13)', () => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver({ capabilities: { remoteTarget: true } })
       const build = await startBuild(db, driver, {
-        projectId: project.id, projectSlug: project.slug, appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha, blueprintRef: project.blueprintRef,
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
         repoUrl: 'file:///tmp/chem-labs.git',
       })
       const release = await createRelease(db, {
-        projectId: project.id, buildId: build.id, appSpecId: appSpec.id,
-        createdBy: user.id, resolvedConfig: RESOLVED,
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: RESOLVED,
       })
       await expect(
         deployRelease(db, driver, config, {
-          releaseId: release.id, environmentId: byKind.staging!.id,
+          releaseId: release.id,
+          environmentId: byKind.staging!.id,
         }),
       ).rejects.toMatchObject({ code: 'RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER' })
     })
@@ -208,21 +262,34 @@ describe('waiting for health', () => {
     vi.spyOn(driver, 'status').mockImplementation(async (id: string) => {
       calls += 1
       const healthy = calls >= n
-      return { id, state: healthy ? ('healthy' as const) : ('starting' as const), healthy }
+      return {
+        id,
+        state: healthy ? ('healthy' as const) : ('starting' as const),
+        healthy,
+      }
     })
     return driver
   }
 
-  async function releaseFor(db: Parameters<typeof createProject>[0], driver: ReturnType<typeof createFakeDriver>) {
+  async function releaseFor(
+    db: Parameters<typeof createProject>[0],
+    driver: ReturnType<typeof createFakeDriver>,
+  ) {
     const { user, project, appSpec, byKind } = await fixture(db)
     const build = await startBuild(db, driver, {
-      projectId: project.id, projectSlug: project.slug, appSpecId: appSpec.id,
-      commitSha: appSpec.commitSha, blueprintRef: project.blueprintRef,
+      projectId: project.id,
+      projectSlug: project.slug,
+      appSpecId: appSpec.id,
+      commitSha: appSpec.commitSha,
+      blueprintRef: project.blueprintRef,
       repoUrl: 'file:///tmp/chem-labs.git',
     })
     const release = await createRelease(db, {
-      projectId: project.id, buildId: build.id, appSpecId: appSpec.id,
-      createdBy: user.id, resolvedConfig: RESOLVED,
+      projectId: project.id,
+      buildId: build.id,
+      appSpecId: appSpec.id,
+      createdBy: user.id,
+      resolvedConfig: RESOLVED,
     })
     return { release, byKind }
   }
@@ -232,7 +299,9 @@ describe('waiting for health', () => {
       const driver = healthyOnCall(3)
       const { release, byKind } = await releaseFor(db, driver)
       const instance = await deployRelease(
-        db, driver, config,
+        db,
+        driver,
+        config,
         { releaseId: release.id, environmentId: byKind.staging!.id },
         { timeoutMs: 2000, intervalMs: 1 },
       )
@@ -246,7 +315,9 @@ describe('waiting for health', () => {
       const driver = healthyOnCall(Number.POSITIVE_INFINITY)
       const { release, byKind } = await releaseFor(db, driver)
       const instance = await deployRelease(
-        db, driver, config,
+        db,
+        driver,
+        config,
         { releaseId: release.id, environmentId: byKind.staging!.id },
         { timeoutMs: 20, intervalMs: 1 },
       )
@@ -265,8 +336,11 @@ describe('the InstanceSpec handed to the driver', () => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver()
       const build = await startBuild(db, driver, {
-        projectId: project.id, projectSlug: project.slug, appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha, blueprintRef: project.blueprintRef,
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
         repoUrl: 'file:///tmp/chem-labs.git',
       })
       const built = await driver.buildImage(
@@ -275,7 +349,9 @@ describe('the InstanceSpec handed to the driver', () => {
       )
 
       const release = await createRelease(db, {
-        projectId: project.id, buildId: build.id, appSpecId: appSpec.id,
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
         createdBy: user.id,
         resolvedConfig: {
           ...RESOLVED,
@@ -288,7 +364,8 @@ describe('the InstanceSpec handed to the driver', () => {
 
       const spy = vi.spyOn(driver, 'ensureInstance')
       await deployRelease(db, driver, config, {
-        releaseId: release.id, environmentId: byKind.staging!.id,
+        releaseId: release.id,
+        environmentId: byKind.staging!.id,
       })
 
       const spec = spy.mock.calls[0]![0]

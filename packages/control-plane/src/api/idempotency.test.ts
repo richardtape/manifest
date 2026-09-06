@@ -15,8 +15,15 @@ describe('idempotency (D23.6)', () => {
   it('runs the handler once and replays the stored response', async () => {
     await withRollback(async (db) => {
       const user = await aUser(db)
-      const handler = vi.fn().mockResolvedValue({ status: 201, body: { id: 'project-1' } })
-      const params = { key: 'abc', userId: user.id, route: 'POST /projects', body: { slug: 'x' } }
+      const handler = vi
+        .fn()
+        .mockResolvedValue({ status: 201, body: { id: 'project-1' } })
+      const params = {
+        key: 'abc',
+        userId: user.id,
+        route: 'POST /projects',
+        body: { slug: 'x' },
+      }
 
       const first = await replayOrStore(db, params, handler)
       const second = await replayOrStore(db, params, handler)
@@ -30,13 +37,23 @@ describe('idempotency (D23.6)', () => {
   it('rejects the same key replayed with a different body', async () => {
     await withRollback(async (db) => {
       const user = await aUser(db)
-      const handler = vi.fn().mockResolvedValue({ status: 201, body: { id: 'project-1' } })
+      const handler = vi
+        .fn()
+        .mockResolvedValue({ status: 201, body: { id: 'project-1' } })
       await replayOrStore(
-        db, { key: 'abc', userId: user.id, route: 'POST /projects', body: { slug: 'x' } }, handler,
+        db,
+        { key: 'abc', userId: user.id, route: 'POST /projects', body: { slug: 'x' } },
+        handler,
       )
       await expect(
         replayOrStore(
-          db, { key: 'abc', userId: user.id, route: 'POST /projects', body: { slug: 'DIFFERENT' } },
+          db,
+          {
+            key: 'abc',
+            userId: user.id,
+            route: 'POST /projects',
+            body: { slug: 'DIFFERENT' },
+          },
           handler,
         ),
       ).rejects.toThrow(IdempotencyConflictError)
@@ -49,17 +66,27 @@ describe('idempotency (D23.6)', () => {
       const one = await aUser(db)
       const [two] = await db
         .insert(users)
-        .values({ ubcCwlPuid: 'k2', email: 'k2@ubc.ca', displayName: 'K2', role: 'member' })
+        .values({
+          ubcCwlPuid: 'k2',
+          email: 'k2@ubc.ca',
+          displayName: 'K2',
+          role: 'member',
+        })
         .returning()
-      const handler = vi.fn()
+      const handler = vi
+        .fn()
         .mockResolvedValueOnce({ status: 201, body: { id: 'a' } })
         .mockResolvedValueOnce({ status: 201, body: { id: 'b' } })
 
       const first = await replayOrStore(
-        db, { key: 'same', userId: one.id, route: 'POST /projects', body: {} }, handler,
+        db,
+        { key: 'same', userId: one.id, route: 'POST /projects', body: {} },
+        handler,
       )
       const second = await replayOrStore(
-        db, { key: 'same', userId: two!.id, route: 'POST /projects', body: {} }, handler,
+        db,
+        { key: 'same', userId: two!.id, route: 'POST /projects', body: {} },
+        handler,
       )
       expect(first.body).toEqual({ id: 'a' })
       expect(second.body).toEqual({ id: 'b' })

@@ -22,8 +22,13 @@ export interface Actor {
 }
 
 const OWNER: readonly Capability[] = [
-  'project:read', 'project:write', 'project:delete', 'members:manage',
-  'build:create', 'release:create', 'release:deploy',
+  'project:read',
+  'project:write',
+  'project:delete',
+  'members:manage',
+  'build:create',
+  'release:create',
+  'release:deploy',
 ]
 
 // §13: "same as owner except member management and deletion"
@@ -62,7 +67,9 @@ export async function membershipOf(
   const [row] = await db
     .select({ role: projectMembers.role })
     .from(projectMembers)
-    .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)))
+    .where(
+      and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)),
+    )
   return row?.role ?? null
 }
 
@@ -79,12 +86,18 @@ export async function assertCapability(
   projectId: string,
   capability: Capability,
 ): Promise<void> {
-  const [project] = await db.select({ id: projects.id }).from(projects).where(eq(projects.id, projectId))
+  const [project] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.id, projectId))
   if (!project) {
     throw new AuthorizationError('NOT_FOUND', `no project '${projectId}'`)
   }
 
-  const projectRole = actor.platformRole === 'admin' ? null : await membershipOf(db, actor.userId, projectId)
+  const projectRole =
+    actor.platformRole === 'admin'
+      ? null
+      : await membershipOf(db, actor.userId, projectId)
   if (actor.platformRole !== 'admin' && projectRole === null) {
     throw new AuthorizationError('NOT_FOUND', `no project '${projectId}'`)
   }

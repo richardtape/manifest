@@ -25,7 +25,9 @@ export class IdempotencyConflictError extends Error {
 }
 
 function hashOf(body: unknown): string {
-  return createHash('sha256').update(JSON.stringify(body ?? null)).digest('hex')
+  return createHash('sha256')
+    .update(JSON.stringify(body ?? null))
+    .digest('hex')
 }
 
 /**
@@ -52,7 +54,8 @@ export async function replayOrStore(
     )
 
   if (existing) {
-    if (existing.requestHash !== requestHash) throw new IdempotencyConflictError(params.key)
+    if (existing.requestHash !== requestHash)
+      throw new IdempotencyConflictError(params.key)
     return { status: existing.responseStatus, body: existing.responseBody }
   }
 

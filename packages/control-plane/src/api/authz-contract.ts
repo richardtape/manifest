@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { resetDatabase } from '../db/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
@@ -42,39 +42,91 @@ const ALL_ACTORS: Actor[] = ['owner', 'collaborator', 'stranger', 'admin', 'anon
  */
 const ROUTES: RouteCase[] = [
   {
-    method: 'GET', url: '/auth/me',
+    method: 'GET',
+    url: '/auth/me',
     request: () => ({ url: '/auth/me' }),
-    expect: { owner: 'pass', collaborator: 'pass', stranger: 'pass', admin: 'pass', anonymous: 401 },
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 401,
+    },
   },
   {
-    method: 'POST', url: '/auth/logout',
+    method: 'POST',
+    url: '/auth/logout',
     request: () => ({ url: '/auth/logout' }),
-    expect: { owner: 'pass', collaborator: 'pass', stranger: 'pass', admin: 'pass', anonymous: 'pass' },
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 'pass',
+    },
   },
   {
-    method: 'POST', url: '/auth/dev-login',
+    method: 'POST',
+    url: '/auth/dev-login',
     request: () => ({ url: '/auth/dev-login', payload: { puid: 'bio_prof' } }),
-    expect: { owner: 'pass', collaborator: 'pass', stranger: 'pass', admin: 'pass', anonymous: 'pass' },
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 'pass',
+    },
   },
   {
-    method: 'POST', url: '/projects',
-    request: () => ({ url: '/projects', payload: { slug: `p-${randomUUID().slice(0, 8)}`, blueprint: 'fixture-node@1' } }),
-    expect: { owner: 'pass', collaborator: 'pass', stranger: 'pass', admin: 'pass', anonymous: 401 },
+    method: 'POST',
+    url: '/projects',
+    request: () => ({
+      url: '/projects',
+      payload: { slug: `p-${randomUUID().slice(0, 8)}`, blueprint: 'fixture-node@1' },
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 401,
+    },
   },
   {
-    method: 'GET', url: '/projects',
+    method: 'GET',
+    url: '/projects',
     request: () => ({ url: '/projects' }),
-    expect: { owner: 'pass', collaborator: 'pass', stranger: 'pass', admin: 'pass', anonymous: 401 },
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 401,
+    },
   },
   {
-    method: 'GET', url: '/projects/:projectId',
+    method: 'GET',
+    url: '/projects/:projectId',
     request: (f) => ({ url: `/projects/${f.projectId}` }),
-    expect: { owner: 'pass', collaborator: 'pass', stranger: 404, admin: 'pass', anonymous: 401 },
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
   },
   {
-    method: 'GET', url: '/projects/:projectId/spec',
+    method: 'GET',
+    url: '/projects/:projectId/spec',
     request: (f) => ({ url: `/projects/${f.projectId}/spec` }),
-    expect: { owner: 'pass', collaborator: 'pass', stranger: 404, admin: 'pass', anonymous: 401 },
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
   },
   {
     // The only route requiring `members:manage`, and so the only place a
@@ -82,37 +134,88 @@ const ROUTES: RouteCase[] = [
     // The payload re-adds a member who is already a collaborator: addMember is
     // idempotent, so running this case as owner and as admin does not change the
     // membership graph the other cases depend on.
-    method: 'POST', url: '/projects/:projectId/members',
+    method: 'POST',
+    url: '/projects/:projectId/members',
     request: (f) => ({
       url: `/projects/${f.projectId}/members`,
       payload: { puid: 'bio_student', role: 'collaborator' },
     }),
-    expect: { owner: 'pass', collaborator: 403, stranger: 404, admin: 'pass', anonymous: 401 },
+    expect: {
+      owner: 'pass',
+      collaborator: 403,
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
   },
   {
-    method: 'POST', url: '/projects/:projectId/builds',
-    request: (f) => ({ url: `/projects/${f.projectId}/builds`, payload: { commitSha: f.commitSha } }),
-    expect: { owner: 'pass', collaborator: 'pass', stranger: 404, admin: 'pass', anonymous: 401 },
+    method: 'POST',
+    url: '/projects/:projectId/builds',
+    request: (f) => ({
+      url: `/projects/${f.projectId}/builds`,
+      payload: { commitSha: f.commitSha },
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
   },
   {
-    method: 'GET', url: '/builds/:buildId',
+    method: 'GET',
+    url: '/builds/:buildId',
     request: (f) => ({ url: `/builds/${f.buildId}` }),
-    expect: { owner: 'pass', collaborator: 'pass', stranger: 404, admin: 'pass', anonymous: 401 },
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
   },
   {
-    method: 'POST', url: '/projects/:projectId/releases',
-    request: (f) => ({ url: `/projects/${f.projectId}/releases`, payload: { buildId: f.buildId } }),
-    expect: { owner: 'pass', collaborator: 'pass', stranger: 404, admin: 'pass', anonymous: 401 },
+    method: 'POST',
+    url: '/projects/:projectId/releases',
+    request: (f) => ({
+      url: `/projects/${f.projectId}/releases`,
+      payload: { buildId: f.buildId },
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
   },
   {
-    method: 'POST', url: '/environments/:environmentId/deploy',
-    request: (f) => ({ url: `/environments/${f.environmentId.staging}/deploy`, payload: { releaseId: f.releaseId } }),
-    expect: { owner: 'pass', collaborator: 'pass', stranger: 404, admin: 'pass', anonymous: 401 },
+    method: 'POST',
+    url: '/environments/:environmentId/deploy',
+    request: (f) => ({
+      url: `/environments/${f.environmentId.staging}/deploy`,
+      payload: { releaseId: f.releaseId },
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
   },
   {
-    method: 'GET', url: '/environments/:environmentId',
+    method: 'GET',
+    url: '/environments/:environmentId',
     request: (f) => ({ url: `/environments/${f.environmentId.staging}` }),
-    expect: { owner: 'pass', collaborator: 'pass', stranger: 404, admin: 'pass', anonymous: 401 },
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
   },
 ]
 
@@ -127,10 +230,13 @@ export function describeAuthorizationContract(
 
     async function login(puid: string): Promise<Record<string, string>> {
       const response = await app.inject({
-        method: 'POST', url: '/auth/dev-login', payload: { puid },
+        method: 'POST',
+        url: '/auth/dev-login',
+        payload: { puid },
       })
       return {
-        manifest_session: response.cookies.find((c) => c.name === 'manifest_session')!.value,
+        manifest_session: response.cookies.find((c) => c.name === 'manifest_session')!
+          .value,
       }
     }
 
@@ -151,21 +257,27 @@ export function describeAuthorizationContract(
       cookies.admin = await login('platform_admin')
 
       const project = await app.inject({
-        method: 'POST', url: '/projects',
+        method: 'POST',
+        url: '/projects',
         payload: { slug: 'authz-fixture', blueprint: 'fixture-node@1' },
-        cookies: cookies.owner, headers: { 'idempotency-key': randomUUID() },
+        cookies: cookies.owner,
+        headers: { 'idempotency-key': randomUUID() },
       })
       const body = project.json()
 
       const build = await app.inject({
-        method: 'POST', url: `/projects/${body.id}/builds`,
+        method: 'POST',
+        url: `/projects/${body.id}/builds`,
         payload: { commitSha: body.commitSha },
-        cookies: cookies.owner, headers: { 'idempotency-key': randomUUID() },
+        cookies: cookies.owner,
+        headers: { 'idempotency-key': randomUUID() },
       })
       const release = await app.inject({
-        method: 'POST', url: `/projects/${body.id}/releases`,
+        method: 'POST',
+        url: `/projects/${body.id}/releases`,
         payload: { buildId: build.json().id },
-        cookies: cookies.owner, headers: { 'idempotency-key': randomUUID() },
+        cookies: cookies.owner,
+        headers: { 'idempotency-key': randomUUID() },
       })
 
       fixture = {
@@ -174,8 +286,11 @@ export function describeAuthorizationContract(
         buildId: build.json().id,
         releaseId: release.json().id,
         environmentId: {
-          staging: body.environments.find((e: { kind: string }) => e.kind === 'staging').id,
-          production: body.environments.find((e: { kind: string }) => e.kind === 'production').id,
+          staging: body.environments.find((e: { kind: string }) => e.kind === 'staging')
+            .id,
+          production: body.environments.find(
+            (e: { kind: string }) => e.kind === 'production',
+          ).id,
         },
       }
 
@@ -184,22 +299,30 @@ export function describeAuthorizationContract(
       // still goes green, because 404 is not 'pass' and the test would fail — but
       // the reverse mistake (a stranger who is secretly a member) fails silently.
       await app.inject({
-        method: 'POST', url: `/projects/${body.id}/members`,
+        method: 'POST',
+        url: `/projects/${body.id}/members`,
         payload: { puid: 'bio_student', role: 'collaborator' },
-        cookies: cookies.owner, headers: { 'idempotency-key': randomUUID() },
+        cookies: cookies.owner,
+        headers: { 'idempotency-key': randomUUID() },
       })
 
       // The stranger must be a member of nothing. Assert it rather than assume it.
       const strangerView = await app.inject({
-        method: 'GET', url: '/projects', cookies: cookies.stranger,
+        method: 'GET',
+        url: '/projects',
+        cookies: cookies.stranger,
       })
       expect(strangerView.json()).toEqual([])
     })
 
+    afterAll(resetDatabase)
+
     // The drift guard. A route added without an entry here fails the build.
     it('covers every route the server registers', () => {
       const covered = new Set(ROUTES.map((route) => `${route.method} ${route.url}`))
-      const registered = app.registeredRoutes.map((route) => `${route.method} ${route.url}`)
+      const registered = app.registeredRoutes.map(
+        (route) => `${route.method} ${route.url}`,
+      )
       const uncovered = registered.filter((route) => !covered.has(route))
       expect(uncovered).toEqual([])
     })

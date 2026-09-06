@@ -129,6 +129,11 @@ export function toErrorResponse(error: unknown): { status: number; body: ErrorEn
 
   return {
     status: 500,
-    body: { error: { code: 'INTERNAL', message: 'the control plane failed to handle this request' } },
+    body: {
+      error: {
+        code: 'INTERNAL',
+        message: 'the control plane failed to handle this request',
+      },
+    },
   }
 }

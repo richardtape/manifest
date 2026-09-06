@@ -11,7 +11,12 @@ export { toMebibytes, POLICY_CODES } from './policy.js'
 export { SPEC_CODES } from './errors.js'
 export { isSensitiveDiff, SENSITIVE_FIELDS } from './diff.js'
 export { resolveConfig } from './resolve.js'
-export type { ResolvedConfig, ResolvedEnvVar, ResourceDefaults, EnvironmentKind } from './resolve.js'
+export type {
+  ResolvedConfig,
+  ResolvedEnvVar,
+  ResourceDefaults,
+  EnvironmentKind,
+} from './resolve.js'
 export type { SensitiveField } from './diff.js'
 
 export type ValidationResult =

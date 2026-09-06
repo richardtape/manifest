@@ -1,0 +1,123 @@
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { randomUUID } from 'node:crypto'
+import { resetDatabase } from './db/testing.js'
+import { buildServer } from './api/index.js'
+import { testDeps } from './api/testing.js'
+
+beforeEach(resetDatabase)
+// This file commits for real, so it clears up behind itself too.
+afterAll(resetDatabase)
+
+const key = () => ({ 'idempotency-key': randomUUID() })
+
+describe('P2 acceptance: the full lifecycle against the fake driver', () => {
+  it('goes from no project to a healthy staging instance, in under a second', async () => {
+    const started = performance.now()
+    const app = await buildServer(await testDeps({ devAuth: true }))
+
+    // 1. Log in (§22 step 1 — the dev shim stands in for CWL until P4).
+    const login = await app.inject({
+      method: 'POST',
+      url: '/auth/dev-login',
+      payload: { puid: 'bio_prof' },
+    })
+    expect(login.statusCode).toBe(200)
+    const cookies = {
+      manifest_session: login.cookies.find((c) => c.name === 'manifest_session')!.value,
+    }
+
+    // 2. Create a project (§22 step 2) — and 3, provisioning: repository created,
+    //    manifest.yaml validated.
+    const created = await app.inject({
+      method: 'POST',
+      url: '/projects',
+      payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
+      cookies,
+      headers: key(),
+    })
+    expect(created.statusCode).toBe(201)
+    const project = created.json()
+    expect(project.specValid).toBe(true)
+    expect(project.specErrors).toEqual([])
+    expect(project.commitSha).toMatch(/^[0-9a-f]{40}$/)
+    expect(project.environments).toHaveLength(3)
+
+    // The spec that was validated is the spec at that commit, read from a bare repo.
+    const spec = await app.inject({
+      method: 'GET',
+      url: `/projects/${project.id}/spec`,
+      cookies,
+    })
+    expect(spec.json().commitSha).toBe(project.commitSha)
+    expect(spec.json().spec.name).toBe('chem-labs')
+
+    // 4. Build (§22 step 4). Assert the digest, not that a build row came back.
+    const build = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/builds`,
+      payload: { commitSha: project.commitSha },
+      cookies,
+      headers: key(),
+    })
+    expect(build.json().status).toBe('succeeded')
+    expect(build.json().imageDigest).toMatch(/^sha256:[0-9a-f]{64}$/)
+
+    // 5. Release — immutable: build + appspec + resolved config (§13).
+    const release = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/releases`,
+      payload: { buildId: build.json().id, summary: 'first release' },
+      cookies,
+      headers: key(),
+    })
+    expect(release.statusCode).toBe(201)
+    expect(release.json().buildId).toBe(build.json().id)
+    expect(release.json().resolvedConfig.staging.port).toBe(3000)
+    expect(release.json().resolvedConfig.production.resources.memory).toBe('512Mi')
+
+    // 6. Deploy to staging (§22 step 5) and reach healthy.
+    const staging = project.environments.find(
+      (e: { kind: string }) => e.kind === 'staging',
+    )
+    const deployed = await app.inject({
+      method: 'POST',
+      url: `/environments/${staging.id}/deploy`,
+      payload: { releaseId: release.json().id },
+      cookies,
+      headers: key(),
+    })
+    expect(deployed.statusCode).toBe(200)
+    expect(deployed.json().state).toBe('healthy')
+
+    const environment = await app.inject({
+      method: 'GET',
+      url: `/environments/${staging.id}`,
+      cookies,
+    })
+    expect(environment.json().hostname).toBe('chem-labs.staging.manifest.internal')
+    expect(environment.json().instance.releaseId).toBe(release.json().id)
+
+    // 7. Ask for production, and be told what is blocking (§22 step 7, §13 D19).
+    const production = project.environments.find(
+      (e: { kind: string }) => e.kind === 'production',
+    )
+    const blocked = await app.inject({
+      method: 'POST',
+      url: `/environments/${production.id}/deploy`,
+      payload: { releaseId: release.json().id },
+      cookies,
+      headers: key(),
+    })
+    expect(blocked.statusCode).toBe(409)
+    expect(
+      blocked
+        .json()
+        .error.launchReadiness.filter((i: { blocking: boolean }) => i.blocking),
+    ).toHaveLength(5)
+
+    await app.close()
+
+    // §16's claim is "milliseconds, no Docker, no network". Hold it to that.
+    expect(performance.now() - started).toBeLessThan(1000)
+  })
+})

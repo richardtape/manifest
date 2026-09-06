@@ -14,7 +14,8 @@ afterEach(async () => {
 })
 
 const seed = {
-  'manifest.yaml': 'manifest: 1\nname: chem-labs\nblueprint: fixture-node@1\nruntime:\n  port: 3000\n',
+  'manifest.yaml':
+    'manifest: 1\nname: chem-labs\nblueprint: fixture-node@1\nruntime:\n  port: 3000\n',
   'src/index.js': "console.log('hello')\n",
 }
 
@@ -46,12 +47,20 @@ describe('the local bare-repo source driver (D5 driver 1)', () => {
     const repo = await driver.createRepository('chem-labs', seed)
     const first = await driver.headCommit(repo)
 
-    await driver.commitFiles(repo, { 'manifest.yaml': 'manifest: 1\nname: renamed\n' }, 'edit')
+    await driver.commitFiles(
+      repo,
+      { 'manifest.yaml': 'manifest: 1\nname: renamed\n' },
+      'edit',
+    )
     const second = await driver.headCommit(repo)
 
     expect(second).not.toBe(first)
-    expect(await driver.readFile(repo, first, 'manifest.yaml')).toContain('name: chem-labs')
-    expect(await driver.readFile(repo, second, 'manifest.yaml')).toContain('name: renamed')
+    expect(await driver.readFile(repo, first, 'manifest.yaml')).toContain(
+      'name: chem-labs',
+    )
+    expect(await driver.readFile(repo, second, 'manifest.yaml')).toContain(
+      'name: renamed',
+    )
   })
 
   it('lists the default branch', async () => {
