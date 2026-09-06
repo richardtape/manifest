@@ -435,4 +435,63 @@ idp_sql_session_store_works() {
 }
 check "the SQL session store is a DIFFERENT subsystem, and also works (S2)"  idp_sql_session_store_works
 
+echo
+echo "C1 — host/container parity (S7 §Evidence 4, 5)"
+
+host_reaches_edge() {
+  local out
+  out=$(curl -sS "https://console.$ZONE/" 2>&1)
+  echo "$out"
+  echo "$out" | grep -q "host=console.$ZONE"
+}
+check "the host reaches https://console.$ZONE with no -k and no port"  host_reaches_edge
+
+host_trusts_cert() {
+  local r
+  r=$(curl -sS -o /dev/null -w '%{ssl_verify_result}' "https://console.$ZONE/" 2>&1)
+  echo "ssl_verify_result=$r (0 means the macOS keychain trusts it)"
+  [ "$r" = "0" ]
+}
+check "the certificate verifies against the macOS keychain"  host_trusts_cert
+
+# THE PARITY ASSERTION. Same command string, both contexts, compared.
+parity() {
+  require_ca || return 1
+  local h c
+  h=$(curl -sS "https://console.$ZONE/" 2>&1 | sed 's/ remote=.*//')
+  c=$(docker run --rm --network "$NET" --dns "$DNS_C_IP" \
+      -v "$PWD/$CA_FILE":/ca.crt:ro curlimages/curl:8.11.1 \
+      --cacert /ca.crt -sS "https://console.$ZONE/" 2>&1 | sed 's/ remote=.*//')
+  echo "host     : $h"
+  echo "container: $c"
+  [ -n "$h" ] && [ "$h" = "$c" ]
+}
+check "host and container see a byte-identical hostname and scheme"  parity
+
+# All three of §23's zones, one wildcard certificate each.
+zones_serve() {
+  local n host
+  for host in "chem-labs.$ZONE" "chem-labs.sandbox.$ZONE" "chem-labs.staging.$ZONE"; do
+    curl -sS -o /dev/null "https://$host/" || { echo "$host FAILED"; return 1; }
+    n="$n $host"
+  done
+  echo "served:$n"
+}
+check "all three §23 platform zones serve with a trusted certificate"  zones_serve
+
+# A name that exists in no config file, added through the admin API as the driver
+# will (§12, S1). PUT inserts; POST appends behind the wildcard, whose
+# terminal:true then swallows the new route.
+runtime_route() {
+  curl -sS -X PUT "http://127.0.0.1:$PORT_CADDY_ADMIN/config/apps/http/servers/srv0/routes/0" \
+    -H 'Content-Type: application/json' \
+    -d "{\"match\":[{\"host\":[\"late-arrival.$ZONE\"]}],\"handle\":[{\"handler\":\"static_response\",\"body\":\"runtime route OK\",\"status_code\":200}],\"terminal\":true}" \
+    >/dev/null || { echo "admin API rejected the route"; return 1; }
+  local got; got=$(curl -sS "https://late-arrival.$ZONE/" 2>&1)
+  echo "$got"
+  curl -sS -X DELETE "http://127.0.0.1:$PORT_CADDY_ADMIN/config/apps/http/servers/srv0/routes/0" >/dev/null
+  [ "$got" = "runtime route OK" ]
+}
+check "a name allocated at runtime resolves, routes and gets a certificate"  runtime_route
+
 summary

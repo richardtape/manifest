@@ -204,7 +204,13 @@ services:
     # §14's log pipeline (S3 §Evidence 12).
     command: ["--config", "/app/config.yaml", "--port", "4000"]
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://127.0.0.1:4000/health/readiness"]
+      # NOT curl — it is NOT IN THIS IMAGE, and neither are wget or nc. A curl
+      # healthcheck never passes: the container runs fine while Docker reports
+      # `unhealthy` forever (FailingStreak 149 when measured, 2026-09-05), which
+      # would make `make up --wait` hang and any `depends_on: service_healthy`
+      # deadlock. Python is present because LiteLLM is a Python application.
+      test: ["CMD", "python3", "-c",
+             "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:4000/health/readiness',timeout=4).status==200 else 1)"]
       interval: 5s
       timeout: 5s
       retries: 24

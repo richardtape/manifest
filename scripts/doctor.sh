@@ -124,12 +124,22 @@ check "the platform CA is trusted in the macOS keychain"  check_ca_keychain
 
 # The keychain does NOT cover host Node processes — Node ignores it entirely, and
 # the control plane, admin UI and console are all host Node processes (S7).
+# Verified 2026-09-05: with NODE_EXTRA_CA_CERTS Node gets 200; without it,
+# UNABLE_TO_GET_ISSUER_CERT_LOCALLY, while curl on the same URL is fine.
+#
+# .env is sourced here for the same reason verify.sh sources it — it is where
+# P1 puts NODE_EXTRA_CA_CERTS, so a developer who has run `make seed` should see
+# a PASS rather than a WARN telling them to export something already recorded.
 check_node_ca() {
   [ -f "$CA_FILE" ] || { echo "$CA_FILE missing — run make seed"; return 1; }
-  node -e '
+  if [ -z "${NODE_EXTRA_CA_CERTS:-}" ] && [ -f .env ]; then
+    set -a; . ./.env; set +a
+  fi
+  [ -n "${NODE_EXTRA_CA_CERTS:-}" ] || { echo "NODE_EXTRA_CA_CERTS is unset and .env does not supply it"; return 1; }
+  NODE_EXTRA_CA_CERTS="$NODE_EXTRA_CA_CERTS" node -e '
     const https=require("https");
-    https.get("https://console.manifest.internal/",r=>{console.log("node reached the edge, status",r.statusCode);process.exit(0)})
-         .on("error",e=>{console.log("node failed:",e.code);process.exit(1)});
+    https.get("https://console.manifest.internal/",r=>{console.log("node reached the edge with NODE_EXTRA_CA_CERTS="+process.env.NODE_EXTRA_CA_CERTS+", status",r.statusCode);process.exit(0)})
+         .on("error",e=>{console.log("node failed:",e.code,"— the keychain does NOT cover Node (S7)");process.exit(1)});
   '
 }
 check_warn "host Node trusts the CA (needs NODE_EXTRA_CA_CERTS)"  check_node_ca
