@@ -56,6 +56,7 @@ wrong during a spike or during P1's execution; none is hypothetical.
 | The console streams nothing, with no error | `default-chat` is pointed at a *thinking* model. Its reasoning arrives as `reasoning_content`, which clients discard. Measured: 0 content frames and 472 reasoning frames from a 4B thinking model asked to count to five. Use a non-thinking model. |
 | An embedding "works" but retrieval is nonsense | The caller omitted `encoding_format: 'float'` and got 192 zeros instead of 768 floats. LiteLLM's Ollama path ignores the parameter, so a client's base64 default decodes to rubbish. |
 | The egress proxy 403s correctly but requests near it fail with `Empty reply from server` | tinyproxy exits after serving a denial unless `DefaultErrorFile` is set, and `restart: unless-stopped` hides it. `make verify` checks the restart count across a denial. |
+| **Nothing** resolves — not `.test`, not `manifest.internal`, not `google.com` — while `nc -z 127.0.0.1 53` succeeds | Valet's dnsmasq is hung in `sendto` to an upstream nameserver. It is single-threaded, so one stuck send freezes everything it serves. `sudo launchctl kickstart -k system/homebrew.mxcl.dnsmasq`, then `sudo killall -HUP mDNSResponder`. Nothing to do with Manifest, which uses port 7153. |
 | A service shows `unhealthy` while plainly working | Its healthcheck uses a binary the image does not ship. The LiteLLM image has no `curl`, `wget` or `nc` — only `python3`. |
 
 ## What this does to your machine
@@ -115,8 +116,10 @@ Two smaller things this execution did not settle:
   itself has not been exercised. Run `make host-undo` followed by `make
   host-setup` to prove it; both are one command and the platform comes straight
   back.
-- **Valet's `.test` did not resolve during this session.** This predates the work
-  and P1 did not cause it: Valet's config files are unmodified (mtime
-  2026-07-03), its dnsmasq is the same process it has been since 1 September, and
-  Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153`.
-  Its nginx still answers on `127.0.0.1:443`. Flagged, not touched.
+- **Valet's `.test` did not resolve during this session — diagnosed and fixed, and
+  it was not a Manifest problem.** Valet's own dnsmasq had hung in `sendto` to an
+  upstream nameserver; being single-threaded, that froze every lookup it served,
+  `.test` included. Restarting it fixed it, with no configuration changed. The full
+  diagnosis and the one-line fix are in `ORIENTATION.md` §4 under *Things that will
+  cost you a morning*, because the symptom is deeply misleading: process alive,
+  config correct, port open, nothing answers.

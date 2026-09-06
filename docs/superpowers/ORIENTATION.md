@@ -285,9 +285,37 @@ Caddy root trusted in the System keychain. All three are reversible with
 untouched: its config files are unmodified (mtime 2026-07-03) and its dnsmasq is the
 same process it has run since 1 September.
 
-**One pre-existing oddity, flagged not fixed.** Valet's `.test` did not resolve
-during P1's execution, although `/etc/resolver/test` and Valet's dnsmasq config are
-both intact and unmodified. P1 did not cause it and did not touch it.
+**Valet's dnsmasq hangs, and when it does NOTHING resolves — including `.test`.**
+Hit on 2026-09-05 and diagnosed. The symptom is the most misleading kind: the
+process is alive, `/etc/resolver/test` is correct, the config is correct,
+`nc -z 127.0.0.1 53` **succeeds** — and every query times out. It is not a `.test`
+problem: `vibonarium.local` and `google.com` time out too.
+
+A stack sample of the hung process showed all 2497 samples in one place:
+
+```
+main → receive_query → forward_query → __sendto
+```
+
+**dnsmasq was blocked in `sendto` to an upstream nameserver, and dnsmasq is
+single-threaded** — so one stuck upstream send freezes the entire resolver,
+including names it would have answered locally with no upstream at all. `lsof`
+showed `com.cisco` (root) holding DNS sockets to UBC's nameservers 137.82.1.2 and
+142.103.1.42, so **suspect the Cisco Secure Client / VPN** on connect, disconnect
+or network change.
+
+**The fix, which changes no configuration:**
+
+```bash
+sudo launchctl kickstart -k system/homebrew.mxcl.dnsmasq
+```
+
+Then `sudo killall -HUP mDNSResponder`. **Diagnose before restarting** — if
+`google.com` resolves and only `.test` does not, this is *not* the problem and a
+restart will not help. Manifest is not involved either way: its dnsmasq containers
+publish `127.0.0.1:7153`, never 53, and the two resolvers coexist — verified with
+`cms.test` → 127.0.0.1 and `console.manifest.internal` → 127.0.0.2 answering at the
+same time, each served by its own web server.
 
 **Do not read a blank port as a free port.** Without `sudo`, `lsof` cannot see sockets
 owned by other users, and Valet's dnsmasq runs as `nobody` — so port 53 reads as empty
