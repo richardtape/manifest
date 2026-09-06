@@ -1200,7 +1200,10 @@ async function startProbe(overrides: Record<string, unknown> = {}): Promise<void
     ...overrides,
   }
   await engine.post(`/containers/create?name=${NAME}`, {
-    Image: 'alpine:3.20',
+    // alpine:3.22, NOT 3.20. P1's infra/images.txt mirrors 3.22 into the local
+    // registry and `make seed` pulls it; 3.20 is in neither, so this step would
+    // fail the moment the network is off — which is this plan's own demo.
+    Image: 'alpine:3.22',
     User: '10001:10001',
     Cmd: ['sleep', '120'],
     HostConfig: hostConfig,
@@ -1727,7 +1730,11 @@ export async function ensureEgressProxy(
   ].join('\n')
 
   await engine.post(`/containers/create?name=${name}`, {
-    Image: 'vimagick/tinyproxy',
+    // manifest-egress:local, NOT vimagick/tinyproxy. P1 replaced that image
+    // because it is amd64-only and ran under emulation on arm64; the local build
+    // is native and, unlike vimagick, is present offline. Its tinyproxy.conf must
+    // also set DefaultErrorFile, or the proxy EXITS after serving each denial.
+    Image: 'manifest-egress:local',
     Entrypoint: ['/bin/sh', '-c'],
     Cmd: [
       `printf '%s\\n' "$ALLOWLIST" > /tmp/allowlist && ` +
@@ -2898,7 +2905,10 @@ describeDocker('logs and exec against a real container', () => {
   it('demuxes a real container\'s stdout and stderr', async () => {
     await engine.del(`/containers/${NAME}?force=true&v=true`)
     await engine.post(`/containers/create?name=${NAME}`, {
-      Image: 'alpine:3.20',
+      // alpine:3.22, NOT 3.20. P1's infra/images.txt mirrors 3.22 into the local
+    // registry and `make seed` pulls it; 3.20 is in neither, so this step would
+    // fail the moment the network is off — which is this plan's own demo.
+    Image: 'alpine:3.22',
       Cmd: ['sh', '-c', 'echo to-stdout; echo to-stderr >&2; sleep 60'],
       HostConfig: { NetworkMode: 'none' },
     })
@@ -3503,7 +3513,7 @@ const mintFor = async (repository: string): Promise<string> =>
 describeDocker('registry push scoping (§13)', () => {
   it('accepts a push to the repository the token names', async () => {
     const config = dockerConfigWith(await mintFor('local/scopetest'))
-    await run('docker', ['tag', 'alpine:3.20', '127.0.0.1:7107/local/scopetest:probe'])
+    await run('docker', ['tag', 'alpine:3.22', '127.0.0.1:7107/local/scopetest:probe'])
     await expect(
       run('docker', ['push', '127.0.0.1:7107/local/scopetest:probe'], {
         env: { ...process.env, DOCKER_CONFIG: config },
@@ -3514,7 +3524,7 @@ describeDocker('registry push scoping (§13)', () => {
   // THE CONTROL. Same credential, different repository path.
   it('REFUSES a push to any other repository with the same token', async () => {
     const config = dockerConfigWith(await mintFor('local/scopetest'))
-    await run('docker', ['tag', 'alpine:3.20', '127.0.0.1:7107/local/someone-else:probe'])
+    await run('docker', ['tag', 'alpine:3.22', '127.0.0.1:7107/local/someone-else:probe'])
     await expect(
       run('docker', ['push', '127.0.0.1:7107/local/someone-else:probe'], {
         env: { ...process.env, DOCKER_CONFIG: config },
@@ -4058,7 +4068,7 @@ describeDocker('the ephemeral rootless builder (§12, D13)', () => {
 
   it('builds and pushes, and yields a digest', async () => {
     const dir = context(
-      'FROM manifest-registry:5000/base/alpine:3.20\nRUN echo built > /proof.txt\n',
+      'FROM manifest-registry:5000/base/alpine:3.22\nRUN echo built > /proof.txt\n',
     )
     const token = await mintFor('local/buildertest')
     const result = await withEphemeralBuilder(engine, 't1', DEFAULT_BUILD_LIMITS, (name) =>
@@ -4078,7 +4088,7 @@ describeDocker('the ephemeral rootless builder (§12, D13)', () => {
   // proved it for `docker push`; this proves it for BuildKit, which pushes by a
   // different code path and fetches its token as a different client_id.
   it('REFUSES to push to a repository the token does not name', async () => {
-    const dir = context('FROM manifest-registry:5000/base/alpine:3.20\nRUN true\n')
+    const dir = context('FROM manifest-registry:5000/base/alpine:3.22\nRUN true\n')
     const token = await mintFor('local/buildertest')
     await expect(
       withEphemeralBuilder(engine, 't1', DEFAULT_BUILD_LIMITS, (name) =>
@@ -4809,7 +4819,7 @@ a developer:
 ```bash
 scanner_db_age() {
   local built age
-  built=$(docker run --rm -v manifest-grype-db:/db alpine:3.20 \
+  built=$(docker run --rm -v manifest-grype-db:/db alpine:3.22 \
           sh -c 'cat /db/*/metadata.json 2>/dev/null' \
           | sed -n 's/.*"built":"\([^"]*\)".*/\1/p' | head -1)
   if [ -z "$built" ]; then
@@ -4826,7 +4836,7 @@ check_warn "the vulnerability database is fresh"  scanner_db_age
 
 - [ ] **Step 5: Write the Docker-tier test**
 
-`packages/control-plane/src/build/scan.docker.test.ts` — scan `alpine:3.20`, assert
+`packages/control-plane/src/build/scan.docker.test.ts` — scan `alpine:3.22`, assert
 the SBOM parses as SPDX JSON and names at least one package, and assert
 `databaseAgeDays` is a finite number. **Assert the shape of the answer, not that an
 answer arrived**: an SBOM with zero packages is a scanner that ran and found nothing,
@@ -4842,7 +4852,7 @@ const engine = createEngineClient({ socketPath: resolveSocketPath() })
 
 describeDocker('SBOM and vulnerability scanning (§12)', () => {
   it('produces an SBOM that actually lists packages', async () => {
-    const result = await scanImage(engine, 'alpine:3.20')
+    const result = await scanImage(engine, 'alpine:3.22')
     const sbom = JSON.parse(result.sbom) as { packages?: unknown[]; spdxVersion?: string }
     expect(sbom.spdxVersion).toMatch(/^SPDX-/)
     // The assertion that matters: "it returned an SBOM" and "it returned an SBOM of
@@ -4851,7 +4861,7 @@ describeDocker('SBOM and vulnerability scanning (§12)', () => {
   })
 
   it('reports a database age, and treats an unknown age as stale', async () => {
-    const result = await scanImage(engine, 'alpine:3.20')
+    const result = await scanImage(engine, 'alpine:3.22')
     expect(Number.isNaN(result.databaseAgeDays)).toBe(false)
     if (!Number.isFinite(result.databaseAgeDays)) expect(result.stale).toBe(true)
   })
@@ -5298,7 +5308,7 @@ describeDocker('runtime routing through the Caddy admin API', () => {
     await run('docker', ['rm', '-f', 'mf-routetest-staging-app']).catch(() => undefined)
     await run('docker', [
       'run', '-d', '--name', 'mf-routetest-staging-app', '--network', 'manifest-platform',
-      'alpine:3.20', 'sh', '-c',
+      'alpine:3.22', 'sh', '-c',
       'while true; do printf "HTTP/1.1 200 OK\\r\\nContent-Length: 2\\r\\n\\r\\nok" | nc -l -p 8080; done',
     ])
     await applyRoute(deps, { hostname: HOST, upstream: 'mf-routetest-staging-app:8080', kind: 'staging' })
@@ -6650,7 +6660,7 @@ describeDocker('S6 probe matrix — what a hostile process in an app container r
 
   it('has no Docker socket, and the host does', async () => {
     const inside = await run('docker', [
-      'run', '--rm', '--network', APP_NET, 'alpine:3.20',
+      'run', '--rm', '--network', APP_NET, 'alpine:3.22',
       'sh', '-c', 'test -S /var/run/docker.sock && echo PRESENT || echo ABSENT',
     ])
     expect(inside.stdout.trim()).toBe('ABSENT')
@@ -6877,7 +6887,8 @@ Requires P1's substrate and P2's control plane.
     make seed          # once, with network: images, base-image mirroring, the
                        # registry token issuer, the Grype database, the CA
     make up            # the platform
-    export MANIFEST_DATABASE_URL=postgres://manifest:manifest@127.0.0.1:7103/manifest_control_plane
+    set -a; . ./.env; set +a   # P1 creates .env; the password is NOT "manifest"
+    export MANIFEST_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"
     export MANIFEST_SESSION_SECRET=$(openssl rand -hex 32)
     export MANIFEST_BUILD_CREDENTIAL_SECRET=$(openssl rand -hex 32)
     export MANIFEST_REGISTRY_TOKEN_KEY=infra/registry-auth/token.key

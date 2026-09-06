@@ -33,10 +33,15 @@ while read -r tag; do
   repo=$(echo "$tag" | sed 's#.*/##' | cut -d: -f1)
   ver=$(echo "$tag" | sed 's#.*:##')
 
+  # base/ IS LOAD-BEARING, not decoration. The registry holds two kinds of image:
+  # mirrored upstream bases and per-app builds. P3 pushes apps to `local/<slug>`
+  # and expects bases at `base/<repo>`, and its registry-token scoping controls
+  # are written against those two prefixes. Flat naming would let an app whose
+  # slug is `node` or `alpine` collide with a base image.
   # 127.0.0.1, NEVER localhost — it resolves to ::1 and times out (S1, §12).
-  docker tag "$tag" "127.0.0.1:$PORT_REGISTRY/$repo:$ver"
-  docker push -q "127.0.0.1:$PORT_REGISTRY/$repo:$ver" >/dev/null
-  echo "  mirrored -> 127.0.0.1:$PORT_REGISTRY/$repo:$ver"
+  docker tag "$tag" "127.0.0.1:$PORT_REGISTRY/base/$repo:$ver"
+  docker push -q "127.0.0.1:$PORT_REGISTRY/base/$repo:$ver" >/dev/null
+  echo "  mirrored -> 127.0.0.1:$PORT_REGISTRY/base/$repo:$ver"
 done < infra/images.txt
 
 echo "  wrote $LOCK"

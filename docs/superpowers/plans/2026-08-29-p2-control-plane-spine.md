@@ -2119,7 +2119,16 @@ git commit -m "feat(blueprints): fixture-node@1, the minimal build target for P2
 
 **Scope.** Only the §6 entities P2 actually writes. `Event`, `Incident`, `Secret`, `IamRegistration`, `PrivacyAssessment`, `Domain`, `Approval`, `DelegatedToken`, `PendingAction` and `AgentSession` arrive with the phases that use them — P4, P5 and P6. Creating empty tables now would be speculative schema, and the migration is cheap either way.
 
-**Prerequisite:** P1's Postgres on port 7103. Set `MANIFEST_DATABASE_URL=postgres://manifest:manifest@127.0.0.1:7103/manifest_control_plane`.
+**Prerequisite:** P1's Postgres on port 7103 — it is **built and running** as of
+2026-09-05. Two things this plan originally got wrong about it, corrected after P1
+executed: the database is **`manifest_control`**, not `manifest_control_plane`, and
+the password is **not** `manifest` — it comes from `.env`, which `make seed` creates.
+Derive the URL rather than hardcoding it, exactly as `verify.sh` and `seed.sh` do:
+
+```bash
+set -a; . ./.env; set +a
+export MANIFEST_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"
+```
 
 - [ ] **Step 1: Add the dependencies**
 
@@ -3241,7 +3250,10 @@ import { describe, expect, it } from 'vitest'
 import { ConfigError, loadConfig, zoneFor } from './config.js'
 
 const base = {
-  MANIFEST_DATABASE_URL: 'postgres://manifest:manifest@127.0.0.1:7103/manifest_control_plane',
+  // A fixture for loadConfig — never connected to. The database name still
+  // matches the real one (manifest_control, which P1 built) so nobody copies
+  // the wrong name out of a test.
+  MANIFEST_DATABASE_URL: 'postgres://manifest:manifest@127.0.0.1:7103/manifest_control',
   MANIFEST_SESSION_SECRET: 'x'.repeat(32),
   MANIFEST_BLUEPRINTS_ROOT: '/tmp/blueprints',
   MANIFEST_REPOS_ROOT: '/tmp/repos',
@@ -7482,7 +7494,8 @@ Add to `README.md`, under a new *Running the control plane* heading:
 
 Requires P1's substrate (`make up`) for Postgres on 7103.
 
-    export MANIFEST_DATABASE_URL=postgres://manifest:manifest@127.0.0.1:7103/manifest_control_plane
+    set -a; . ./.env; set +a   # P1 creates .env; the password is NOT "manifest"
+    export MANIFEST_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"
     export MANIFEST_SESSION_SECRET=$(openssl rand -hex 32)
     export MANIFEST_DEV_AUTH=1
     export MANIFEST_BLUEPRINTS_ROOT=blueprints

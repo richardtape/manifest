@@ -173,7 +173,7 @@ check "infra/images.lock exists and pins every base image"  check_lockfile
 check_registry_has_bases() {
   local missing="" repo
   for repo in $(grep -v '^#\|^$' infra/images.txt | cut -d: -f1 | sed 's#.*/##'); do
-    curl -sf "http://127.0.0.1:$PORT_REGISTRY/v2/$repo/tags/list" >/dev/null 2>&1 \
+    curl -sf "http://127.0.0.1:$PORT_REGISTRY/v2/base/$repo/tags/list" >/dev/null 2>&1 \
       || missing="$missing $repo"
   done
   [ -z "$missing" ] && { echo "every base image is in the local registry"; return 0; }

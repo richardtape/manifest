@@ -531,7 +531,7 @@ if [ "${MANIFEST_VERIFY_OFFLINE:-0}" = "1" ]; then
     # BuildKit re-resolves FROM on every build against a REGISTRY. This is the
     # exact failure `make seed`'s mirroring step exists to prevent (S1).
     docker run --rm --network "$NET_BUILD" curlimages/curl:8.11.1 \
-      -sf "http://manifest-registry:5000/v2/node/tags/list" >/dev/null &&
+      -sf "http://manifest-registry:5000/v2/base/node/tags/list" >/dev/null &&
     echo "node:22-alpine resolvable from the local registry with no network"
   }
   check "base images resolve from the local registry offline"  offline_build_resolves_base_image
