@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { z } from 'zod'
 
 export class ConfigError extends Error {
@@ -24,6 +25,22 @@ const envSchema = z.object({
   MANIFEST_ZONE_SANDBOX: z.string().min(1).default('sandbox.manifest.internal'),
   MANIFEST_ZONE_STAGING: z.string().min(1).default('staging.manifest.internal'),
   MANIFEST_ZONE_PRODUCTION: z.string().min(1).default('manifest.internal'),
+  // §13's gate integrity. `make seed` generates the pair into the gitignored
+  // infra/registry-auth/; registry:2 validates minted tokens against the cert.
+  MANIFEST_REGISTRY_TOKEN_KEY: z.string().min(1).default('infra/registry-auth/token.key'),
+  MANIFEST_REGISTRY_TOKEN_CERT: z
+    .string()
+    .min(1)
+    .default('infra/registry-auth/token.crt'),
+  // Deliberately OPTIONAL, and then required outside development below. Making it
+  // required here would break every existing caller of loadConfig, and giving it a
+  // literal default would put a real secret in the source tree.
+  MANIFEST_BUILD_CREDENTIAL_SECRET: z.string().min(32).optional(),
+  // Host-facing and in-network. Two addresses for one registry: the control plane
+  // and the daemon reach it on the published port, while a container on the
+  // internal build network reaches it by service name (P1 dual-homes it for this).
+  MANIFEST_REGISTRY_URL: z.string().min(1).default('127.0.0.1:7107'),
+  MANIFEST_REGISTRY_INTERNAL_URL: z.string().min(1).default('manifest-registry:5000'),
 })
 
 export interface Config {
@@ -35,6 +52,12 @@ export interface Config {
   blueprintsRoot: string
   reposRoot: string
   zones: { sandbox: string; staging: string; production: string }
+  registryTokenKeyPath: string
+  registryTokenCertPath: string
+  /** Signs the short-lived credential the token realm verifies (§13). */
+  buildCredentialSecret: string
+  registryUrl: string
+  registryInternalUrl: string
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -61,6 +84,32 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     )
   }
 
+  /**
+   * §13 rests on this secret: it signs the short-lived credential the registry
+   * token realm verifies before granting a push scope. Absent, anyone who can
+   * reach the realm can mint a push token for any repository.
+   *
+   * Fail closed outside development, exactly as the dev-auth shim does above —
+   * two independent reads of one setting, which is the shape the roadmap's
+   * lesson asks for. In development a per-process random secret is used instead
+   * of a literal default, because a default in the source tree is a published
+   * secret. The only cost is that a build credential does not survive a restart
+   * in development, and they live for minutes.
+   */
+  if (
+    raw.MANIFEST_BUILD_CREDENTIAL_SECRET === undefined &&
+    raw.MANIFEST_ENV !== 'development'
+  ) {
+    throw new ConfigError(
+      'CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED',
+      `MANIFEST_BUILD_CREDENTIAL_SECRET is required when MANIFEST_ENV is '${raw.MANIFEST_ENV}'. ` +
+        'It signs the credential the registry token realm verifies (§13); without it ' +
+        'the realm cannot tell one build from another.',
+    )
+  }
+  const buildCredentialSecret =
+    raw.MANIFEST_BUILD_CREDENTIAL_SECRET ?? randomBytes(32).toString('hex')
+
   return {
     env: raw.MANIFEST_ENV,
     databaseUrl: raw.MANIFEST_DATABASE_URL,
@@ -74,6 +123,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       staging: raw.MANIFEST_ZONE_STAGING,
       production: raw.MANIFEST_ZONE_PRODUCTION,
     },
+    registryTokenKeyPath: raw.MANIFEST_REGISTRY_TOKEN_KEY,
+    registryTokenCertPath: raw.MANIFEST_REGISTRY_TOKEN_CERT,
+    buildCredentialSecret,
+    registryUrl: raw.MANIFEST_REGISTRY_URL,
+    registryInternalUrl: raw.MANIFEST_REGISTRY_INTERNAL_URL,
   }
 }
 

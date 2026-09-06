@@ -40,7 +40,16 @@ while read -r tag; do
   # slug is `node` or `alpine` collide with a base image.
   # 127.0.0.1, NEVER localhost — it resolves to ::1 and times out (S1, §12).
   docker tag "$tag" "127.0.0.1:$PORT_REGISTRY/base/$repo:$ver"
-  docker push -q "127.0.0.1:$PORT_REGISTRY/base/$repo:$ver" >/dev/null
+  # The registry requires a scoped token now (§13). `docker login` is not an
+  # option here: there is no password, and the realm is the control plane, which
+  # is not running during `make seed`. A pre-minted bearer token in a throwaway
+  # docker config is the supported path.
+  SEED_DOCKER_CONFIG="${PWD}/infra/seed-cache/dockercfg"
+  mkdir -p "$SEED_DOCKER_CONFIG"
+  TOKEN=$(node infra/seed/mint-token.mjs "base/$repo")
+  printf '{"auths":{"127.0.0.1:%s":{"registrytoken":"%s"}}}\n' "$PORT_REGISTRY" "$TOKEN" \
+    > "$SEED_DOCKER_CONFIG/config.json"
+  DOCKER_CONFIG="$SEED_DOCKER_CONFIG" docker push -q "127.0.0.1:$PORT_REGISTRY/base/$repo:$ver" >/dev/null
   echo "  mirrored -> 127.0.0.1:$PORT_REGISTRY/base/$repo:$ver"
 done < infra/images.txt
 

@@ -217,6 +217,44 @@ const ROUTES: RouteCase[] = [
       anonymous: 401,
     },
   },
+  /**
+   * The registry token realm. Unlike every other route in this table it carries NO
+   * session: its caller is BuildKit or the Docker daemon speaking the distribution
+   * token protocol, and it authenticates with the short-lived build credential in
+   * the request itself. `requireActor` is never called, so every actor — anonymous
+   * included — passes here, and the authorization that matters is the credential
+   * check inside `issue()`, covered by runtime/docker/registry-auth.test.ts.
+   *
+   * Recorded as a decision rather than an oversight: these endpoints mint registry
+   * PUSH credentials, and P2's completeness guard refused to let them ship unnamed.
+   */
+  {
+    method: 'POST',
+    url: '/internal/registry/token',
+    request: () => ({
+      url: '/internal/registry/token',
+      payload: { scope: '', username: '', password: '' },
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 'pass',
+    },
+  },
+  {
+    method: 'GET',
+    url: '/internal/registry/token',
+    request: () => ({ url: '/internal/registry/token' }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 'pass',
+    },
+  },
 ]
 
 export function describeAuthorizationContract(

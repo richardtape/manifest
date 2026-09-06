@@ -1,5 +1,6 @@
 import { db } from '../db/index.js'
 import { loadConfig } from '../config.js'
+import { testIssuer } from '../runtime/testing.js'
 import { createFakeDriver } from '../runtime/index.js'
 import { createLocalSourceDriver } from '../source/index.js'
 import { loadBlueprints } from '../blueprints/index.js'
@@ -36,6 +37,7 @@ export const TEST_REPOS_ROOT = join(tmpdir(), 'manifest-test-repos')
 export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> {
   await mkdir(TEST_REPOS_ROOT, { recursive: true })
   const reposRoot = await mkdtemp(join(TEST_REPOS_ROOT, 'run-'))
+  const issuer = testIssuer()
   const config = loadConfig({
     MANIFEST_ENV: 'development',
     MANIFEST_DATABASE_URL: process.env.MANIFEST_DATABASE_URL!,
@@ -43,6 +45,12 @@ export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> 
     MANIFEST_DEV_AUTH: opts.devAuth ? '1' : '0',
     MANIFEST_BLUEPRINTS_ROOT: BLUEPRINTS_ROOT,
     MANIFEST_REPOS_ROOT: reposRoot,
+    // The GENERATED test issuer, not infra/registry-auth/ — the suite must not
+    // depend on `make seed` having run. See runtime/docker/testing.ts for why it
+    // is generated rather than committed.
+    MANIFEST_REGISTRY_TOKEN_KEY: issuer.keyPath,
+    MANIFEST_REGISTRY_TOKEN_CERT: issuer.certPath,
+    MANIFEST_BUILD_CREDENTIAL_SECRET: 'c'.repeat(32),
   })
   return {
     db,

@@ -13,9 +13,16 @@ set -a; . ./.env; set +a
 echo "2/6  building the platform images"
 $COMPOSE build
 
+# §13's gate integrity. Must run BEFORE any `compose up`: the registry
+# bind-mounts token.crt, and Docker creates a directory at a missing bind source.
+bash infra/lib/ensure-registry-auth.sh
+
 echo "3/6  starting the registry and the mirror"
 $COMPOSE up -d registry verdaccio postgres
-until curl -sf "http://127.0.0.1:$PORT_REGISTRY/v2/" >/dev/null; do sleep 1; done
+# NOT `curl -sf`. The registry now requires a token, so /v2/ answers 401 and `-f`
+# would fail — this loop would spin for ever and `make seed` would never finish.
+# A 401 is itself proof the registry is up AND that token auth is configured.
+until [ "$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT_REGISTRY/v2/" 2>/dev/null)" != "000" ]; do sleep 1; done
 until curl -sf "http://127.0.0.1:$PORT_VERDACCIO/-/ping" >/dev/null; do sleep 1; done
 
 echo "4/6  mirroring base images into the local registry"

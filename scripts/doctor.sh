@@ -171,9 +171,19 @@ check_lockfile() {
 check "infra/images.lock exists and pins every base image"  check_lockfile
 
 check_registry_has_bases() {
-  local missing="" repo
+  local missing="" repo token
+  # The registry requires a scoped token from P3 Task 9 onwards, so an
+  # unauthenticated GET answers 401 and `curl -sf` reports every base image as
+  # missing. Minting one per repository keeps this check asserting what it always
+  # asserted -- and additionally proves the issuer keypair works.
+  if [ ! -f infra/registry-auth/token.key ]; then
+    echo "infra/registry-auth/token.key is missing -- cannot query the registry. Run: make seed"
+    return 1
+  fi
   for repo in $(grep -v '^#\|^$' infra/images.txt | cut -d: -f1 | sed 's#.*/##'); do
-    curl -sf "http://127.0.0.1:$PORT_REGISTRY/v2/base/$repo/tags/list" >/dev/null 2>&1 \
+    token=$(node infra/seed/mint-token.mjs "base/$repo" 2>/dev/null)
+    curl -sf -H "Authorization: Bearer $token" \
+      "http://127.0.0.1:$PORT_REGISTRY/v2/base/$repo/tags/list" >/dev/null 2>&1 \
       || missing="$missing $repo"
   done
   [ -z "$missing" ] && { echo "every base image is in the local registry"; return 0; }

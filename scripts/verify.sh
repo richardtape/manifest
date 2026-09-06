@@ -127,13 +127,29 @@ check "Postgres is reachable from the host on $PORT_POSTGRES"  pg_reachable_from
 echo
 echo "Supply chain (§12)"
 
-registry_from_host() {
-  # NOT localhost: it resolves to ::1 and times out (S1, §12).
-  local code; code=$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT_REGISTRY/v2/")
-  echo "http://127.0.0.1:$PORT_REGISTRY/v2/ -> $code"
+# STRONGER than "answers 200", which is what this asserted before P3 Task 9: a
+# registry that still answers 200 anonymously has no auth at all (§13).
+# NOT localhost: it resolves to ::1 and times out (S1, §12).
+registry_requires_a_token() {
+  local out
+  out=$(curl -sS -i -m 6 "http://127.0.0.1:$PORT_REGISTRY/v2/" | tr -d '\r')
+  echo "$out" | head -1
+  echo "$out" | grep -qi '^HTTP/1.1 401' &&
+  echo "$out" | grep -qi '^Www-Authenticate: Bearer realm='
+}
+check "the registry refuses an anonymous request and advertises its realm"  registry_requires_a_token
+
+# The other half: a SCOPED token is accepted. A registry that refused everything
+# would pass the check above while being useless.
+registry_accepts_a_scoped_token() {
+  local token code
+  token=$(node infra/seed/mint-token.mjs base/node)
+  code=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $token" \
+         "http://127.0.0.1:$PORT_REGISTRY/v2/base/node/tags/list")
+  echo "scoped token -> $code (want 200)"
   [ "$code" = "200" ]
 }
-check "the registry answers on the host's published port"  registry_from_host
+check "the registry accepts a correctly scoped token"  registry_accepts_a_scoped_token
 
 verdaccio_from_host() {
   local code; code=$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT_VERDACCIO/-/ping")
@@ -212,8 +228,12 @@ egress_proxy_denies_by_default() {
   # The proxy resolves manifest-registry itself; the host cannot.
   allowed=$(curl -sS -o /dev/null -w '%{http_code}' -x "http://127.0.0.1:$PORT_EGRESS" \
             -m 8 http://manifest-registry:5000/v2/ 2>/dev/null)
-  echo "example.com -> CONNECT $denied (want 403, D18); allowlisted registry -> $allowed (want 200)"
-  [ "$denied" = "403" ] && [ "$allowed" = "200" ]
+  # 401 from P3 Task 9 onwards, and it proves exactly what this half is for: the
+  # request REACHED the registry through the proxy. The registry's own token auth
+  # is a different control, checked above. Accepting only 200 here would turn a
+  # supply-chain control into a false failure of an egress control.
+  echo "example.com -> CONNECT $denied (want 403, D18); allowlisted registry -> $allowed (want 200 or 401)"
+  [ "$denied" = "403" ] && { [ "$allowed" = "200" ] || [ "$allowed" = "401" ]; }
 }
 check "the egress proxy denies an undeclared destination, and allows a declared one"  egress_proxy_denies_by_default
 
@@ -530,8 +550,13 @@ if [ "${MANIFEST_VERIFY_OFFLINE:-0}" = "1" ]; then
   offline_build_resolves_base_image() {
     # BuildKit re-resolves FROM on every build against a REGISTRY. This is the
     # exact failure `make seed`'s mirroring step exists to prevent (S1).
+    # A token is required from P3 Task 9 onwards; without one this answers 401 and
+    # `-sf` reports the base image as absent, which would read as a mirroring
+    # failure and is not one.
+    local token; token=$(node infra/seed/mint-token.mjs base/node)
     docker run --rm --network "$NET_BUILD" curlimages/curl:8.11.1 \
-      -sf "http://manifest-registry:5000/v2/base/node/tags/list" >/dev/null &&
+      -sf -H "Authorization: Bearer $token" \
+      "http://manifest-registry:5000/v2/base/node/tags/list" >/dev/null &&
     echo "node:22-alpine resolvable from the local registry with no network"
   }
   check "base images resolve from the local registry offline"  offline_build_resolves_base_image

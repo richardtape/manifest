@@ -3742,6 +3742,9 @@ import { readFileSync } from 'node:fs'
  * the gitignored `infra/registry-auth/`. `testing.ts` is the second public entry
  * point P2 Task 1's boundary rule allows, so this never reaches `index.ts` and
  * therefore never reaches the shipped bundle.
+ *
+ * Task 11's secret scanner MUST be able to tell this from an incident: it is a
+ * committed PEM private key, which is precisely what that gate exists to block.
  */
 export function testIssuer(): { keyPem: string; certPem: string } {
   const at = (file: string) => new URL(`./__fixtures__/${file}`, import.meta.url)
@@ -3760,7 +3763,11 @@ export function testIssuer(): { keyPem: string; certPem: string } {
 import { X509Certificate } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import {
-  applyGrantPolicy, issueBuildCredential, mintRegistryToken, parseScopeStrings, verifyBuildCredential,
+  applyGrantPolicy,
+  issueBuildCredential,
+  mintRegistryToken,
+  parseScopeStrings,
+  verifyBuildCredential,
 } from './registry-auth.js'
 import { testIssuer } from './testing.js'
 
@@ -3768,8 +3775,13 @@ const { keyPem, certPem } = testIssuer()
 const SECRET = 's'.repeat(32)
 
 const decode = (token: string) =>
-  JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString()) as {
-    iss: string; aud: string; sub: string; exp: number; nbf: number; jti: string
+  JSON.parse(Buffer.from(token.split('.')[1]!, 'base64url').toString()) as {
+    iss: string
+    aud: string
+    sub: string
+    exp: number
+    nbf: number
+    jti: string
     access: { type: string; name: string; actions: string[] }[]
   }
 
@@ -3778,7 +3790,9 @@ describe('scope parsing (the shape Docker actually sends)', () => {
   // `docker push` (client_id=containerd-client) and buildx (client_id=buildkit-client).
   it('splits one space-separated scope field into several grants', () => {
     expect(
-      parseScopeStrings(['repository:local/chem-labs:pull repository:base/alpine:pull,push']),
+      parseScopeStrings([
+        'repository:local/chem-labs:pull repository:base/alpine:pull,push',
+      ]),
     ).toEqual([
       { type: 'repository', name: 'local/chem-labs', actions: ['pull'] },
       { type: 'repository', name: 'base/alpine', actions: ['pull', 'push'] },
@@ -3786,7 +3800,9 @@ describe('scope parsing (the shape Docker actually sends)', () => {
   })
 
   it('keeps a multi-segment repository path intact', () => {
-    expect(parseScopeStrings(['repository:local/a/b/c:push'])[0].name).toBe('local/a/b/c')
+    expect(parseScopeStrings(['repository:local/a/b/c:push'])[0]!.name).toBe(
+      'local/a/b/c',
+    )
   })
 })
 
@@ -3796,7 +3812,9 @@ describe('the grant policy (§13)', () => {
       applyGrantPolicy('local/chem-labs', [
         { type: 'repository', name: 'local/chem-labs', actions: ['pull', 'push'] },
       ]),
-    ).toEqual([{ type: 'repository', name: 'local/chem-labs', actions: ['pull', 'push'] }])
+    ).toEqual([
+      { type: 'repository', name: 'local/chem-labs', actions: ['pull', 'push'] },
+    ])
   })
 
   // THE CONTROL. §13: only the builder may push, and only to its own path.
@@ -3821,7 +3839,9 @@ describe('the grant policy (§13)', () => {
 
   it('grants nothing for a non-repository scope such as registry:catalog', () => {
     expect(
-      applyGrantPolicy('local/chem-labs', [{ type: 'registry', name: 'catalog', actions: ['*'] }]),
+      applyGrantPolicy('local/chem-labs', [
+        { type: 'registry', name: 'catalog', actions: ['*'] },
+      ]),
     ).toEqual([{ type: 'registry', name: 'catalog', actions: [] }])
   })
 })
@@ -3832,19 +3852,21 @@ describe('the minted token', () => {
       issuer: 'manifest-control-plane',
       service: 'manifest-registry',
       subject: 'build-1',
-      access: [{ type: 'repository', name: 'local/chem-labs', actions: ['pull', 'push'] }],
+      access: [
+        { type: 'repository', name: 'local/chem-labs', actions: ['pull', 'push'] },
+      ],
     })
-    const header = JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString()) as {
-      alg: string; x5c: string[]
-    }
+    const header = JSON.parse(
+      Buffer.from(token.split('.')[0]!, 'base64url').toString(),
+    ) as { alg: string; x5c: string[] }
     expect(header.alg).toBe('RS256')
     expect(header.x5c).toHaveLength(1)
-    expect(() => new X509Certificate(Buffer.from(header.x5c[0], 'base64'))).not.toThrow()
+    expect(() => new X509Certificate(Buffer.from(header.x5c[0]!, 'base64'))).not.toThrow()
 
     const claims = decode(token)
     expect(claims.iss).toBe('manifest-control-plane')
     expect(claims.aud).toBe('manifest-registry')
-    expect(claims.access[0].name).toBe('local/chem-labs')
+    expect(claims.access[0]!.name).toBe('local/chem-labs')
     expect(claims.exp - claims.nbf).toBeLessThanOrEqual(600)
     expect(claims.jti).toMatch(/[0-9a-f-]{36}/)
   })
@@ -3915,11 +3937,11 @@ export function parseScopeStrings(raw: readonly string[]): Grant[] {
       const parts = one.split(':')
       if (parts.length < 3) continue
       out.push({
-        type: parts[0],
+        type: parts[0]!,
         // A repository name may contain slashes but never a colon, so everything
         // between the first and last colon is the name.
         name: parts.slice(1, -1).join(':'),
-        actions: parts[parts.length - 1].split(',').filter((a) => a !== ''),
+        actions: parts[parts.length - 1]!.split(',').filter((a) => a !== ''),
       })
     }
   }
@@ -3949,7 +3971,13 @@ export function applyGrantPolicy(
 export function mintRegistryToken(
   keyPem: string,
   certPem: string,
-  input: { issuer: string; service: string; subject: string; access: Grant[]; ttlSeconds?: number },
+  input: {
+    issuer: string
+    service: string
+    subject: string
+    access: Grant[]
+    ttlSeconds?: number
+  },
 ): string {
   const now = Math.floor(Date.now() / 1000)
   const ttl = input.ttlSeconds ?? 300
@@ -3982,7 +4010,9 @@ export function issueBuildCredential(
   input: { repository: string; buildId: string; expiresAt: number },
 ): { username: string; password: string } {
   const body = `${input.buildId}.${input.expiresAt}`
-  const mac = createHmac('sha256', secret).update(`${input.repository}.${body}`).digest('hex')
+  const mac = createHmac('sha256', secret)
+    .update(`${input.repository}.${body}`)
+    .digest('hex')
   return { username: input.repository, password: `${body}.${mac}` }
 }
 
@@ -4012,7 +4042,10 @@ export function verifyBuildCredential(
 ```ts
 import type { FastifyPluginAsync } from 'fastify'
 import {
-  applyGrantPolicy, mintRegistryToken, parseScopeStrings, verifyBuildCredential,
+  applyGrantPolicy,
+  mintRegistryToken,
+  parseScopeStrings,
+  verifyBuildCredential,
 } from '../../runtime/index.js'
 
 export interface RegistryTokenDeps {
@@ -4032,7 +4065,11 @@ export const registryTokenRoutes =
   (deps: RegistryTokenDeps): FastifyPluginAsync =>
   async (app) => {
     const issue = (scopes: string[], username: string, password: string) => {
-      const verified = verifyBuildCredential(deps.buildCredentialSecret, username, password)
+      const verified = verifyBuildCredential(
+        deps.buildCredentialSecret,
+        username,
+        password,
+      )
       // An unverifiable credential is granted NOTHING rather than refused with a
       // 401. registry:2 turns an empty grant into the same `insufficient_scope` the
       // client already knows how to report, whereas a 401 from the realm makes the
@@ -4045,7 +4082,12 @@ export const registryTokenRoutes =
         subject: verified?.repository ?? 'anonymous',
         access,
       })
-      return { token, access_token: token, expires_in: 300, issued_at: new Date().toISOString() }
+      return {
+        token,
+        access_token: token,
+        expires_in: 300,
+        issued_at: new Date().toISOString(),
+      }
     }
 
     // `idempotency: 'exempt'` is NOT optional here, and it is not decoration.
@@ -4059,10 +4101,18 @@ export const registryTokenRoutes =
     // is exactly why P2 exempts `/auth/*` the same way.
     //
     // The form Docker 29 and BuildKit actually use. Everything is in the body.
-    app.post('/internal/registry/token', { config: { idempotency: 'exempt' } }, async (request) => {
-      const body = (request.body ?? {}) as Record<string, string>
-      return issue(body.scope === undefined ? [] : [body.scope], body.username ?? '', body.password ?? '')
-    })
+    app.post(
+      '/internal/registry/token',
+      { config: { idempotency: 'exempt' } },
+      async (request) => {
+        const body = (request.body ?? {}) as Record<string, string>
+        return issue(
+          body.scope === undefined ? [] : [body.scope],
+          body.username ?? '',
+          body.password ?? '',
+        )
+      },
+    )
 
     // The GET + Basic form. In the distribution spec and used by other clients;
     // NOT observed in use by anything in this platform. Ten lines, and its absence
@@ -4228,14 +4278,15 @@ check "the registry refuses an anonymous request and advertises its realm"  regi
 
 ```ts
 import { execFile } from 'node:child_process'
-import { mkdtempSync, symlinkSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
-import { expect, it } from 'vitest'
+import { afterAll, expect, it } from 'vitest'
 import { describeDocker } from './docker-tier.js'
 
 const run = promisify(execFile)
+const created: string[] = []
 
 /**
  * A docker config carrying a pre-minted bearer token. NOTE the cli-plugins symlink:
@@ -4245,6 +4296,7 @@ const run = promisify(execFile)
  */
 function dockerConfigWith(token: string): string {
   const dir = mkdtempSync(join(tmpdir(), 'mf-dockercfg-'))
+  created.push(dir)
   writeFileSync(
     join(dir, 'config.json'),
     JSON.stringify({ auths: { '127.0.0.1:7107': { registrytoken: token } } }),
@@ -4252,6 +4304,19 @@ function dockerConfigWith(token: string): string {
   symlinkSync(join(homedir(), '.docker', 'cli-plugins'), join(dir, 'cli-plugins'))
   return dir
 }
+
+// Every temp directory this file makes is removed. P2 shipped a helper that
+// mkdtemp'd per test with no teardown and accumulated 944 directories in one
+// afternoon; it also violates CLAUDE.md's "leave the machine as you found it".
+afterAll(async () => {
+  for (const dir of created) rmSync(dir, { recursive: true, force: true })
+  await run('docker', ['rmi', '-f', '127.0.0.1:7107/local/scopetest:probe']).catch(
+    () => undefined,
+  )
+  await run('docker', ['rmi', '-f', '127.0.0.1:7107/local/someone-else:probe']).catch(
+    () => undefined,
+  )
+})
 
 const mintFor = async (repository: string): Promise<string> =>
   (await run('node', ['infra/seed/mint-token.mjs', repository])).stdout
@@ -4275,27 +4340,27 @@ describeDocker('registry push scoping (§13)', () => {
       run('docker', ['push', '127.0.0.1:7107/local/someone-else:probe'], {
         env: { ...process.env, DOCKER_CONFIG: config },
       }),
-    ).rejects.toThrow(/insufficient_scope|authorization failed|denied/)
+    ).rejects.toThrow(/insufficient_scope|authorization failed|denied|unauthorized/i)
   })
 
   it('REFUSES an anonymous push', async () => {
-    const config = mkdtempSync(join(tmpdir(), 'mf-empty-cfg-'))
-    writeFileSync(join(config, 'config.json'), '{}')
+    const dir = mkdtempSync(join(tmpdir(), 'mf-empty-cfg-'))
+    created.push(dir)
+    writeFileSync(join(dir, 'config.json'), '{}')
     await expect(
       run('docker', ['push', '127.0.0.1:7107/local/scopetest:probe'], {
-        env: { ...process.env, DOCKER_CONFIG: config },
+        env: { ...process.env, DOCKER_CONFIG: dir },
       }),
     ).rejects.toThrow()
   })
 
   it('leaves no trace of the refused repository in the registry', async () => {
-    const config = dockerConfigWith(await mintFor('local/scopetest'))
-    const { stdout } = await run(
-      'curl',
-      ['-sS', '-H', `Authorization: Bearer ${await mintFor('local/scopetest')}`,
-       'http://127.0.0.1:7107/v2/local/someone-else/tags/list'],
-      { env: { ...process.env, DOCKER_CONFIG: config } },
-    )
+    const { stdout } = await run('curl', [
+      '-sS',
+      '-H',
+      `Authorization: Bearer ${await mintFor('local/scopetest')}`,
+      'http://127.0.0.1:7107/v2/local/someone-else/tags/list',
+    ])
     expect(stdout).toMatch(/UNAUTHORIZED|NAME_UNKNOWN/)
   })
 })
@@ -4318,7 +4383,18 @@ In `applyGrantPolicy`, change the final `return { ...grant, actions: [] }` to
 `return { ...grant }`.
 
 Expected: **FAIL** on *"grants NOTHING on another project repository"* (unit) and
-*"REFUSES a push to any other repository with the same token"* (Docker). Restore.
+*"the realm grants nothing on another repository, and the registry refuses that
+token"* (Docker). Restore.
+
+> **Corrected 2026-09-06, by running it.** This step named the wrong Docker test:
+> *"REFUSES a push to any other repository with the same token"* **cannot** fail
+> here. Every Docker test in this task uses a token from `mint-token.mjs`, which
+> never calls `applyGrantPolicy` — they prove the **registry** enforces a token's
+> scope, which is a different claim from the **realm** refusing to grant one.
+> Disabling the policy left all 36 Docker tests green. The realm route had **no
+> end-to-end coverage at all**; a new test in `api/` now drives it over real HTTP
+> with a real build credential, asserts the grant comes back empty, and then
+> presents that token to the real registry and requires a 401.
 
 Then the signature control: change `mintRegistryToken` to sign with a freshly
 generated key rather than `keyPem`, and re-run the Docker tier.
@@ -7852,6 +7928,19 @@ task, from P2's last two batches. Finding them is the expected outcome.*
 | — | 8 | (tidy, not a defect) `demux`'s `flush` took a `final` flag that was only ever passed `false`, making its branch unreachable. | Removed. |
 
 | 24 | 6 | **`destroyServiceContainer` leaked one anonymous volume per deploy.** It deleted the container with `force=true` but **without `v=true`** — while `destroyInstanceContainer`, two files away, uses `v=true` and carries the comment explaining why. `mongodb/mongodb-community-server` declares **both** `/data/db` and `/data/configdb` as `VOLUME`s, and only the first is bound to a named volume. | Found by diffing the machine snapshot at session end: **42 orphaned anonymous volumes**, none attached to any container, none named. Unbounded disk growth on the laptop C1 requires this to run on, and the same class as P2's 944 leaked temp directories. Fixed with `v=true` (which removes anonymous volumes only, so `deleteData` still governs the named one) plus a test that counts anonymous volumes across a create/destroy cycle. Control: dropping `v=true` gives `expected […85] to deeply equal […84]`. |
+
+### Session 3 — Task 9 (2026-09-06).
+
+| # | Task | Defect | Measured against |
+|---|---|---|---|
+| 25 | 9 | **The `Config` change is named in the Files list and never shown.** Five fields — `registryTokenKeyPath`, `registryTokenCertPath`, `buildCredentialSecret`, `registryUrl`, `registryInternalUrl` — with no schema, no defaults, no guard. The self-review even recorded fixing *omissions within* that change (its defect #7), so it was expected to exist. | Designed here: paths default to `infra/registry-auth/`, the secret is **optional in the schema and required outside development** (making it required outright breaks every existing `loadConfig` caller; a literal default publishes a secret). Guard tested, and the control removes it and fails exactly one test. |
+| 26 | 9 | **Turning on token auth breaks SIX things, and the plan changes one.** | Enumerated by reading every registry assertion first: `doctor.sh check_registry_has_bases` (`curl -sf` → 401), `verify.sh registry_from_host`, `verify.sh`'s egress **positive** half (wants 200, now 401), `verify.sh offline_build_resolves_base_image` (`-sf`), the compose **healthcheck** (`wget -qO-` fails on 401, so the container never becomes healthy and `make up --wait` hangs), and worst — **`seed.sh`'s readiness loop `until curl -sf …/v2/`, which would spin for ever so `make seed` never finishes**. All six fixed; `reachable_from_internal` was checked and genuinely survives. `verify` is now 32 checks, having gained a scoped-token positive control. |
+| 27 | 9 | Nothing generated the issuer keypair before `compose up`, and the registry **bind-mounts** `token.crt`. Docker silently creates a **directory** at a missing bind source. | Moved into `infra/lib/ensure-registry-auth.sh`, called by both `make seed` and `make up` — the same shape as P1's `ensure-alias.sh`, so a fresh clone works instead of failing inside Compose. |
+| 28 | 9 | **Step 9's Docker control cannot fail.** It names *"REFUSES a push to any other repository with the same token"*, but every Docker test here uses a token from `mint-token.mjs`, which never calls `applyGrantPolicy`. They prove the **registry** enforces a token's scope, not that the **realm** refuses to grant one — and the realm route had **no end-to-end coverage at all**. | Disabling the policy left all **36** Docker tests green. A new test in `api/` drives the realm over real HTTP with a real build credential, asserts the returned grant is empty, and presents that token to the real registry for a 401. It now fails when the policy is disabled. |
+| 29 | 9 | **The committed test fixture cannot be committed.** `.gitignore` carries a blanket `*.key` under *"Environment and secrets"*, so `git add` **silently skips** the private half. It passes on the machine that generated it and fails on every clone with `ENOENT` — P1's open second-machine gap, exactly. | `git check-ignore -v` names `.gitignore:19:*.key`. Rather than negate the one rule that stops a real key being committed, `testIssuer()` now **generates** the pair on first use into a gitignored `.test-fixtures/`. Control: `rm -rf` the directory, run the suite, watch it regenerate. Also removes the exception Task 11's secret scanner would have needed. |
+| 30 | 9 | The Docker-tier test `mkdtemp`s a docker config per test and never removes one — the same leak the reconciliation found in P2's `api/testing.ts` (944 directories). | Added teardown for every directory and both tagged probe images. |
+| — | 9 | (plan warning **confirmed**, so nobody re-tests it) Flipping the last base64url character of the signature does **not** invalidate the token. | Measured on this registry: original → **200**, last character flipped → **200**. Signing with a different key → **401**. The plan's warning is exactly right and the naive control would have read as "signatures are not checked". |
+| — | 9 | (caught by P2's own guards, so they work) The route-completeness guard named both new routes before they were authorized; the module-boundary test caught the end-to-end test importing `api/routes/*` by a deep path from `runtime/`. | The first is quoted in Step 5. The second is why `runtime/testing.ts` now exists — the module-level public test surface P2's rule allows, matching `api/testing.ts`. |
 
 **Controls verified as real, so nobody re-checks them:** removing `no-new-privileges`
 gives `NoNewPrivs: 0` and `seccomp=unconfined` gives `Seccomp: 0` (Task 3); flipping

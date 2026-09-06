@@ -120,10 +120,27 @@ services:
     networks: [platform, build-internal]
     ports:
       - "127.0.0.1:7107:5000"
+    environment:
+      REGISTRY_AUTH: token
+      # The control plane, on the host. Measured: the buildx CLIENT performs this
+      # exchange, so the realm never has to be reachable from the internal build
+      # network (S1-controls-settled.md, finding 2).
+      REGISTRY_AUTH_TOKEN_REALM: http://127.0.0.1:7100/internal/registry/token
+      REGISTRY_AUTH_TOKEN_SERVICE: manifest-registry
+      REGISTRY_AUTH_TOKEN_ISSUER: manifest-control-plane
+      REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE: /certs/token.crt
+      # Task 17's offline control removes a mirrored base image to prove the build
+      # genuinely depends on it. Without this the DELETE answers 405, nothing is
+      # removed, the build succeeds, and the control silently proves nothing.
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
     volumes:
       - registry-data:/var/lib/registry
+      - ./registry-auth/token.crt:/certs/token.crt:ro
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5000/v2/"]
+      # 401 is the healthy answer now: token auth is on, so an unauthenticated
+      # /v2/ MUST be refused. `wget -qO-` treats 401 as failure, so the container
+      # would never become healthy and `make up --wait` would hang.
+      test: ["CMD-SHELL", "wget -q -S -O /dev/null http://127.0.0.1:5000/v2/ 2>&1 | grep -q '401\\|200'"]
       interval: 5s
       timeout: 3s
       retries: 12

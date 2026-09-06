@@ -23,6 +23,37 @@ describe('configuration', () => {
     expect(config.port).toBe(7100)
   })
 
+  // §13's gate integrity rests on this secret, and it is optional in the schema so
+  // that existing callers keep working — which means the ONLY thing stopping a
+  // production control plane from running with a per-process random secret is this
+  // guard. Same shape as the dev-auth safeguard below, and tested for the same
+  // reason: P2 shipped a guard that was one line from being an auth bypass.
+  it('refuses to start outside development without a build credential secret', () => {
+    expect(() => loadConfig({ ...base, MANIFEST_ENV: 'production' })).toThrow(ConfigError)
+    try {
+      loadConfig({ ...base, MANIFEST_ENV: 'production' })
+    } catch (error) {
+      expect((error as ConfigError).code).toBe('CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED')
+    }
+    // Supplied, it starts.
+    expect(
+      loadConfig({
+        ...base,
+        MANIFEST_ENV: 'production',
+        MANIFEST_BUILD_CREDENTIAL_SECRET: 'b'.repeat(32),
+      }).buildCredentialSecret,
+    ).toBe('b'.repeat(32))
+  })
+
+  // In development it is generated rather than defaulted: a literal default in the
+  // source tree is a published secret.
+  it('generates a per-process secret in development instead of defaulting to a literal', () => {
+    const a = loadConfig({ ...base, MANIFEST_ENV: 'development' }).buildCredentialSecret
+    const b = loadConfig({ ...base, MANIFEST_ENV: 'development' }).buildCredentialSecret
+    expect(a).toHaveLength(64)
+    expect(a).not.toBe(b)
+  })
+
   it('refuses to start with dev auth enabled in production', () => {
     expect(() =>
       loadConfig({ ...base, MANIFEST_ENV: 'production', MANIFEST_DEV_AUTH: '1' }),
@@ -45,6 +76,9 @@ describe('configuration', () => {
       ...base,
       MANIFEST_ENV: 'production',
       MANIFEST_DEV_AUTH: '0',
+      // Required outside development from P3 Task 9 onwards: it signs the
+      // credential the registry token realm verifies (§13).
+      MANIFEST_BUILD_CREDENTIAL_SECRET: 'b'.repeat(32),
     })
     expect(config.devAuth).toBe(false)
   })

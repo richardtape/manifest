@@ -29,6 +29,7 @@ verify:  ## Is the running platform correct? Needs `make up` first.
 
 up: .env  ## Boot the platform. Works offline after `make seed`.
 	@bash infra/lib/ensure-alias.sh
+	@bash infra/lib/ensure-registry-auth.sh
 	@$(COMPOSE) up -d --wait
 	@echo
 	@echo "  platform up. Next: make doctor && make verify"

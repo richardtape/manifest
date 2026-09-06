@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import cookie from '@fastify/cookie'
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify'
 import type { Db } from '../db/index.js'
@@ -12,6 +13,7 @@ import { replayOrStore } from './idempotency.js'
 import { registerAuthRoutes } from './routes/auth.js'
 import { registerProjectRoutes } from './routes/projects.js'
 import { registerDeliveryRoutes } from './routes/delivery.js'
+import { registryTokenRoutes } from './routes/registry-token.js'
 
 export interface ServerDeps {
   db: Db
@@ -52,6 +54,25 @@ export function requireActor(request: FastifyRequest): Actor & { puid: string } 
 export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: false })
   await app.register(cookie)
+
+  /**
+   * Fastify does not parse `application/x-www-form-urlencoded` by default, and the
+   * registry token realm receives exactly that: Docker 29 and BuildKit use the
+   * OAuth2 POST form grant. Without a parser `request.body` is `undefined`, every
+   * grant comes back empty, and the symptom is a scope refusal on a correct
+   * credential — indistinguishable from the policy working.
+   *
+   * Written here rather than by adding `@fastify/formbody`. Six lines against a
+   * dependency in the process that holds the Docker socket and mints registry push
+   * tokens; Decision 1 makes that trade for the same reason one component down.
+   */
+  app.addContentTypeParser(
+    'application/x-www-form-urlencoded',
+    { parseAs: 'string' },
+    (_request, body, done) => {
+      done(null, Object.fromEntries(new URLSearchParams(body as string)))
+    },
+  )
 
   app.decorateRequest('actor', undefined)
 
@@ -132,6 +153,32 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
         handler,
       )
     },
+  )
+
+  /**
+   * The PEMs are read once, here, and a missing file is a hard failure naming the
+   * command that creates it. The alternative — registering the realm with empty
+   * PEMs — produces a route that exists, answers, and mints tokens no registry will
+   * ever accept, which is the kind of green this project keeps paying for.
+   */
+  const readIssuerPem = (path: string, which: string): string => {
+    try {
+      return readFileSync(path, 'utf8')
+    } catch {
+      throw new Error(
+        `cannot read the registry token ${which} at '${path}'. ` +
+          'Run `make seed`, which generates infra/registry-auth/token.{key,crt}.',
+      )
+    }
+  }
+  await app.register(
+    registryTokenRoutes({
+      keyPem: readIssuerPem(deps.config.registryTokenKeyPath, 'key'),
+      certPem: readIssuerPem(deps.config.registryTokenCertPath, 'certificate'),
+      issuer: 'manifest-control-plane',
+      service: 'manifest-registry',
+      buildCredentialSecret: deps.config.buildCredentialSecret,
+    }),
   )
 
   await registerAuthRoutes(app, deps)
