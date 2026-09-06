@@ -118,7 +118,7 @@ for p in 53 80 443 6122 6333 6334 8081 11434 27017; do
   printf '%-6s %s\n' "$p" "$who"
 done
 printf '\n(free) is NOT what a blank means here. Without sudo, lsof cannot see sockets\n'
-printf 'owned by other users, and Valet\'s dnsmasq runs as `nobody` — so port 53 reads\n'
+printf "owned by other users, and Valet's dnsmasq runs as 'nobody' — so port 53 reads\n"
 printf 'as empty on this machine while dnsmasq is plainly listening on it. Confirm\n'
 printf 'against the Valet section below, or re-run one port under sudo. This script\n'
 printf 'reports what it can see and says so; it does not claim a port is free.\n'
