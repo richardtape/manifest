@@ -40,7 +40,10 @@ const PLACEHOLDER = /\{\{([A-Z0-9_]+)\}\}/g
  * silently shipping `{{DATABASE_URL}}` to the daemon turns a blueprint authoring
  * mistake into a build error three layers away.
  */
-export function renderDockerfile(template: string, values: Record<string, string>): string {
+export function renderDockerfile(
+  template: string,
+  values: Record<string, string>,
+): string {
   const unresolved: string[] = []
   const rendered = template.replace(PLACEHOLDER, (match, key: string) => {
     const value = values[key]
@@ -66,7 +69,7 @@ async function loadDescriptor(blueprintDir: string): Promise<BlueprintDescriptor
     throw new BuildContextError(
       'BLUEPRINT_DESCRIPTOR_MISSING',
       `no blueprint.yaml in ${blueprintDir}`,
-      'The build definition is the blueprint\'s (D13). Check MANIFEST_BLUEPRINTS_ROOT and that ' +
+      "The build definition is the blueprint's (D13). Check MANIFEST_BLUEPRINTS_ROOT and that " +
         'the project pins a blueprint that exists.',
     )
   })
@@ -95,21 +98,22 @@ export async function assembleContext(input: ContextInput): Promise<string> {
     throw new BuildContextError(
       'SOURCE_EXPORT_FAILED',
       `cannot export ${input.commitSha} from ${input.repoPath}: ${error.message}`,
-      'The commit must exist in the project\'s bare repository. `git --git-dir=<repo> ' +
+      "The commit must exist in the project's bare repository. `git --git-dir=<repo> " +
         'cat-file -t <sha>` is the same question asked directly.',
     )
   })
 
   const descriptor = await loadDescriptor(input.blueprintDir)
-  const template = await readFile(join(input.blueprintDir, descriptor.dockerfile), 'utf8').catch(
-    () => {
-      throw new BuildContextError(
-        'BLUEPRINT_DOCKERFILE_MISSING',
-        `blueprint.yaml names ${descriptor.dockerfile}, which is not in ${input.blueprintDir}`,
-        'The `dockerfile:` field is a path relative to the blueprint directory.',
-      )
-    },
-  )
+  const template = await readFile(
+    join(input.blueprintDir, descriptor.dockerfile),
+    'utf8',
+  ).catch(() => {
+    throw new BuildContextError(
+      'BLUEPRINT_DOCKERFILE_MISSING',
+      `blueprint.yaml names ${descriptor.dockerfile}, which is not in ${input.blueprintDir}`,
+      'The `dockerfile:` field is a path relative to the blueprint directory.',
+    )
+  })
   await writeFile(
     join(dir, 'Dockerfile'),
     renderDockerfile(template, {

@@ -15,7 +15,10 @@ const BLUEPRINT_DIR = fileURLToPath(
   new URL('../../../../blueprints/fixture-node/', import.meta.url),
 )
 
-function bareRepoWith(files: Record<string, string>): { repoPath: string; commitSha: string } {
+function bareRepoWith(files: Record<string, string>): {
+  repoPath: string
+  commitSha: string
+} {
   const work = mkdtempSync(join(tmpdir(), 'mf-src-'))
   for (const [path, body] of Object.entries(files)) {
     mkdirSync(join(work, path, '..'), { recursive: true })
@@ -88,7 +91,9 @@ describe('build context assembly (D13)', () => {
     expect(dockerfile).not.toContain('{{')
     // Digest-pinned and at the LOCAL registry: the two properties that make an
     // offline build possible (§12, S1).
-    expect(dockerfile).toMatch(/^FROM manifest-registry:5000\/base\/node@sha256:[0-9a-f]{64}$/m)
+    expect(dockerfile).toMatch(
+      /^FROM manifest-registry:5000\/base\/node@sha256:[0-9a-f]{64}$/m,
+    )
     expect(dockerfile).toContain('adduser -u 10001')
   })
 })

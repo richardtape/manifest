@@ -13,4 +13,8 @@ export {
   dockerTierRequested,
   assertDockerAvailable,
 } from './docker/docker-tier.js'
-export { testIssuer } from './docker/testing.js'
+export { testIssuer, REPO_ROOT } from './docker/testing.js'
+
+// `build/`'s Docker-tier suite drives the real engine (Task 12). It reaches the
+// client through this module's public test surface, not by a deep path.
+export { createEngineClient, resolveSocketPath } from './docker/engine.js'

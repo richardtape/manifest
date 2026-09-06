@@ -5,7 +5,11 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { requireLockfile, runMandatoryGates, scanForSecrets } from './gates.js'
 
-const blueprint = { lockfile: 'package-lock.json', name: 'fixture-node', version: '1.0.0' }
+const blueprint = {
+  lockfile: 'package-lock.json',
+  name: 'fixture-node',
+  version: '1.0.0',
+}
 
 function fixture(files: Record<string, string>): string {
   const dir = mkdtempSync(join(tmpdir(), 'mf-gate-'))
@@ -30,7 +34,8 @@ describe('the secret gate (§12, pattern-based, never degrades offline)', () => 
 
   it('finds a private key block and a GitHub token', async () => {
     const dir = fixture({
-      'deploy.pem': '-----BEGIN RSA PRIVATE KEY-----\nMIIEow==\n-----END RSA PRIVATE KEY-----\n',
+      'deploy.pem':
+        '-----BEGIN RSA PRIVATE KEY-----\nMIIEow==\n-----END RSA PRIVATE KEY-----\n',
       '.env.local': 'GITHUB_TOKEN=ghp_0123456789abcdefghijklmnopqrstuvwxyz\n',
     })
     const findings = await scanForSecrets(dir)
@@ -45,7 +50,9 @@ describe('the secret gate (§12, pattern-based, never degrades offline)', () => 
   })
 
   it('passes a clean tree', async () => {
-    expect(await scanForSecrets(fixture({ 'src/app.js': 'export const x = 1\n' }))).toEqual([])
+    expect(
+      await scanForSecrets(fixture({ 'src/app.js': 'export const x = 1\n' })),
+    ).toEqual([])
   })
 
   it("skips node_modules, which is neither the app's code nor its responsibility", async () => {

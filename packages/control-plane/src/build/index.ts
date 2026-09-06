@@ -9,5 +9,19 @@
  */
 export { BuildContextError, assembleContext, renderDockerfile } from './context.js'
 export type { ContextInput } from './context.js'
-export { BuildGateError, requireLockfile, runMandatoryGates, scanForSecrets } from './gates.js'
+export {
+  BuildGateError,
+  requireLockfile,
+  runMandatoryGates,
+  scanForSecrets,
+} from './gates.js'
 export type { GateFinding } from './gates.js'
+export {
+  PLATFORM_OWNED_PACKAGE_TYPES,
+  STALENESS_THRESHOLD_DAYS,
+  ScanError,
+  assessScan,
+  generateSbom,
+  scanImage,
+} from './scan.js'
+export type { ScanOptions, ScanResult, Vulnerability } from './scan.js'

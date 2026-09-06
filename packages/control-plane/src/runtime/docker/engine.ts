@@ -51,10 +51,44 @@ export function resolveSocketPath(env: NodeJS.ProcessEnv = process.env): string 
 
 export interface EngineClient {
   get<T>(path: string): Promise<T | undefined>
-  post<T>(path: string, body?: unknown): Promise<T | undefined>
+  post<T>(
+    path: string,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ): Promise<T | undefined>
   del<T>(path: string): Promise<T | undefined>
-  /** For endpoints that answer with a raw byte stream: logs, exec, attach. */
-  stream(path: string, method?: 'GET' | 'POST', body?: unknown): Promise<IncomingMessage>
+  /**
+   * For endpoints that answer with a raw byte stream: logs, exec, attach — and for
+   * `/images/create`, which answers with newline-delimited JSON progress rather
+   * than one document, so `post` cannot parse it.
+   *
+   * `headers` exists for exactly one of them: `X-Registry-Auth`, which is the only
+   * way to hand the daemon a registry credential. See `registryAuthHeader`.
+   */
+  stream(
+    path: string,
+    method?: 'GET' | 'POST',
+    body?: unknown,
+    headers?: Record<string, string>,
+  ): Promise<IncomingMessage>
+}
+
+/**
+ * `X-Registry-Auth` as the daemon decodes it: base64 of the auth JSON, WITH
+ * padding.
+ *
+ * Node's `'base64url'` encoding omits the `=` padding and the daemon's decoder
+ * rejects the result — measured, and the failure is deeply misleading: the request
+ * succeeds, the daemon falls back to **anonymous**, and the error blames the token
+ * realm (`failed to fetch anonymous token … connection refused`) rather than the
+ * header. The same request with padded base64 pulls in under a second.
+ */
+export function registryAuthHeader(registryToken: string): Record<string, string> {
+  return {
+    'X-Registry-Auth': Buffer.from(
+      JSON.stringify({ registrytoken: registryToken }),
+    ).toString('base64'),
+  }
 }
 
 export function createEngineClient(opts: {
@@ -63,7 +97,12 @@ export function createEngineClient(opts: {
 }): EngineClient {
   const version = opts.apiVersion ?? API_VERSION
 
-  const send = (method: string, path: string, body?: unknown): Promise<IncomingMessage> =>
+  const send = (
+    method: string,
+    path: string,
+    body?: unknown,
+    headers: Record<string, string> = {},
+  ): Promise<IncomingMessage> =>
     new Promise((resolve, reject) => {
       const payload = body === undefined ? undefined : JSON.stringify(body)
       const req = httpRequest(
@@ -73,8 +112,9 @@ export function createEngineClient(opts: {
           method,
           headers:
             payload === undefined
-              ? {}
+              ? headers
               : {
+                  ...headers,
                   'content-type': 'application/json',
                   'content-length': Buffer.byteLength(payload),
                 },
@@ -104,8 +144,9 @@ export function createEngineClient(opts: {
     method: string,
     path: string,
     body?: unknown,
+    headers?: Record<string, string>,
   ): Promise<T | undefined> => {
-    const res = await send(method, path, body)
+    const res = await send(method, path, body, headers)
     const text = await collect(res)
     const status = res.statusCode ?? 0
     // 404 is not an error here. §11 makes both destroys idempotent, and a caller
@@ -131,9 +172,9 @@ export function createEngineClient(opts: {
 
   return {
     get: (path) => json('GET', path),
-    post: (path, body) => json('POST', path, body),
+    post: (path, body, headers) => json('POST', path, body, headers),
     del: (path) => json('DELETE', path),
-    stream: (path, method = 'GET', body) => send(method, path, body),
+    stream: (path, method = 'GET', body, headers) => send(method, path, body, headers),
   }
 }
 

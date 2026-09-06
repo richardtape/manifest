@@ -41,6 +41,15 @@ JSON
    --no-audit --no-fund --silent) || echo "     WARN: mirror warm failed"
 rm -rf "$tmp"
 
+echo "4c/6 pulling the vulnerability database"
+# §12: `make seed` pulls the scanner database. This is the ONLY part of a scan that
+# needs the network, and from here on `make doctor` reports its age. Grype is then
+# run with GRYPE_DB_AUTO_UPDATE=false, so an offline build gets a stale-but-recorded
+# result rather than a slow failure -- the behaviour §12 spends a paragraph on.
+docker volume create manifest-grype-db >/dev/null
+docker run --rm -v manifest-grype-db:/db \
+  -e GRYPE_DB_CACHE_DIR=/db anchore/grype:v0.118.0 db update
+
 echo "5/6  minting the platform CA"
 # Caddy publishes on 127.0.0.2:80/443, so the alias must exist before it starts —
 # otherwise Docker refuses with "can't assign requested address". Calling the

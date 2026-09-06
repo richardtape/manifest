@@ -189,9 +189,34 @@ check_registry_has_bases() {
   [ -z "$missing" ] && { echo "every base image is in the local registry"; return 0; }
   # This is the difference between a build that works and one that fails the
   # moment the network goes away (S1 §Evidence 5).
-  echo "NOT mirrored:$missing — offline builds will fail. Run: make seed"; return 1
+  echo "NOT mirrored:$missing — offline builds and scans will fail. Run: make seed"; return 1
 }
 check "base images are IN the local registry, not merely pulled"  check_registry_has_bases
+
+# A WARNING, never a check: §12 says a stale database warns rather than blocks, and
+# a doctor that fails here would stop an offline developer for the one gate that is
+# explicitly allowed to degrade.
+scanner_db_age() {
+  local built age
+  # Ask GRYPE, not the volume. The v6 database has no metadata.json -- it is
+  # `import.json`, `last_update_check` and `vulnerability.db` -- so reading a file
+  # by name reports "no database" against a perfectly good one.
+  built=$(docker run --rm -v manifest-grype-db:/db \
+            -e GRYPE_DB_CACHE_DIR=/db -e GRYPE_DB_AUTO_UPDATE=false \
+            -e GRYPE_CHECK_FOR_APP_UPDATE=false \
+            anchore/grype:v0.118.0 db status -o json 2>/dev/null \
+          | sed -n 's/.*"built": *"\([^"]*\)".*/\1/p' | head -1)
+  if [ -z "$built" ]; then
+    echo "no vulnerability database -- run 'make seed' with network"
+    return 1
+  fi
+  # BSD date. No -d, no --date; and -u, or an ISO-8601 Z timestamp is read as LOCAL
+  # time and the age is off by the offset.
+  age=$(( ( $(date +%s) - $(date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$built" +%s 2>/dev/null || echo 0) ) / 86400 ))
+  echo "vulnerability database built $built, ${age} days old (warns above 7, never blocks)"
+  [ "$age" -le 7 ]
+}
+check_warn "the vulnerability database is fresh"  scanner_db_age
 
 check_env_file() {
   [ -f .env ] || { echo ".env missing — run: make seed"; return 1; }

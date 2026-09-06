@@ -30,3 +30,17 @@ export {
   verifyBuildCredential,
 } from './docker/registry-auth.js'
 export type { Grant } from './docker/registry-auth.js'
+
+// The Docker driver's own surface, for the modules §5 lets reach it: `build/` needs
+// a client and the log demuxer to run the scanner (Task 12), and reaches them here
+// rather than by a deep path into runtime/docker/.
+export {
+  API_VERSION,
+  EngineError,
+  assertApiVersionSupported,
+  createEngineClient,
+  registryAuthHeader,
+  resolveSocketPath,
+} from './docker/engine.js'
+export type { EngineClient } from './docker/engine.js'
+export { demux } from './docker/logs.js'

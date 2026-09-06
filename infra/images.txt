@@ -5,3 +5,10 @@ node:22-alpine
 alpine:3.22
 mongodb/mongodb-community-server:7.0.28-ubi8
 curlimages/curl:8.11.1
+# The §12 supply-chain scanners. They are mirrored as `base/syft` and `base/grype`
+# like everything else here, which is a slight misnomer -- nothing pulls them FROM
+# the registry, the daemon runs them by tag from its own store. They are in this
+# list for the two things it buys: a digest in infra/images.lock, and an offline
+# `make reset` + re-seed that still has them.
+anchore/syft:v1.51.1
+anchore/grype:v0.118.0
