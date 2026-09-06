@@ -159,4 +159,34 @@ check_models() {
 }
 check "the models infra/models.txt names are present"  check_models
 
+echo
+echo "Seed state"
+
+check_lockfile() {
+  [ -f infra/images.lock ] || { echo "infra/images.lock missing — run: make seed"; return 1; }
+  local n; n=$(grep -vc '^#\|^$' infra/images.lock)
+  echo "$n images pinned by digest"
+  [ "$n" -ge 1 ]
+}
+check "infra/images.lock exists and pins every base image"  check_lockfile
+
+check_registry_has_bases() {
+  local missing="" repo
+  for repo in $(grep -v '^#\|^$' infra/images.txt | cut -d: -f1 | sed 's#.*/##'); do
+    curl -sf "http://127.0.0.1:$PORT_REGISTRY/v2/$repo/tags/list" >/dev/null 2>&1 \
+      || missing="$missing $repo"
+  done
+  [ -z "$missing" ] && { echo "every base image is in the local registry"; return 0; }
+  # This is the difference between a build that works and one that fails the
+  # moment the network goes away (S1 §Evidence 5).
+  echo "NOT mirrored:$missing — offline builds will fail. Run: make seed"; return 1
+}
+check "base images are IN the local registry, not merely pulled"  check_registry_has_bases
+
+check_env_file() {
+  [ -f .env ] || { echo ".env missing — run: make seed"; return 1; }
+  echo ".env present"
+}
+check ".env exists"  check_env_file
+
 summary

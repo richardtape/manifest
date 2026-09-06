@@ -18,6 +18,9 @@ help:  ## Show this help
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
 	  | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
+seed: .env  ## The only step needing network. Run once, then work offline.
+	@bash infra/seed/seed.sh
+
 doctor:  ## Can this machine run the platform? Works with nothing up.
 	@bash scripts/doctor.sh
 

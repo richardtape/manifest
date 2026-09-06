@@ -1,0 +1,6 @@
+# Written by make seed. tag<TAB>digest. Do not edit by hand.
+# Regenerate with: make seed
+node:22-alpine	sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
+alpine:3.22	sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce
+mongodb/mongodb-community-server:7.0.28-ubi8	sha256:56d07a0227ceeb04ba763bfe5681660c465114d2f6fb943e8e8f3718134b5436
+curlimages/curl:8.11.1	sha256:c1fe1679c34d9784c1b0d1e5f62ac0a79fca01fb6377cdd33e90473c6f9f9a69

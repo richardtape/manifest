@@ -1,0 +1,7 @@
+# TAGS ONLY. `make seed` resolves each to a digest, writes infra/images.lock, and
+# PUSHES each into the local registry — BuildKit re-resolves FROM on every build
+# and cannot see the daemon's cache, so pulling alone is not enough (S1).
+node:22-alpine
+alpine:3.22
+mongodb/mongodb-community-server:7.0.28-ubi8
+curlimages/curl:8.11.1
