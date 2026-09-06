@@ -512,4 +512,43 @@ runtime_route() {
 }
 check "a name allocated at runtime resolves, routes and gets a certificate"  runtime_route
 
+if [ "${MANIFEST_VERIFY_OFFLINE:-0}" = "1" ]; then
+  echo
+  echo "Offline (C1)"
+
+  # If this PASSES, the machine still has network and the offline claim is not
+  # being tested. Fail loudly rather than reporting a false green.
+  host_is_offline() {
+    if curl -sf -m 5 https://registry.npmjs.org/ >/dev/null 2>&1; then
+      echo "the host still reaches npmjs — turn Wi-Fi off before claiming offline"
+      return 1
+    fi
+    echo "host has no network, as required"
+  }
+  check "the machine is genuinely offline"  host_is_offline
+
+  offline_build_resolves_base_image() {
+    # BuildKit re-resolves FROM on every build against a REGISTRY. This is the
+    # exact failure `make seed`'s mirroring step exists to prevent (S1).
+    docker run --rm --network "$NET_BUILD" curlimages/curl:8.11.1 \
+      -sf "http://manifest-registry:5000/v2/node/tags/list" >/dev/null &&
+    echo "node:22-alpine resolvable from the local registry with no network"
+  }
+  check "base images resolve from the local registry offline"  offline_build_resolves_base_image
+
+  offline_npm_install() {
+    local t rc; t=$(mktemp -d)
+    printf '{"name":"o","private":true,"dependencies":{"zod":"3.24.1"}}\n' > "$t/package.json"
+    # Capture npm's status FIRST. Putting `&& echo` before `rc=$?` would record
+    # the echo's status and the check could never fail.
+    (cd "$t" && npm install --registry "http://127.0.0.1:$PORT_VERDACCIO" \
+       --no-audit --no-fund --silent) >/dev/null 2>&1; rc=$?
+    rm -rf "$t"
+    [ "$rc" -eq 0 ] && echo "npm install succeeded against the mirror with no network" \
+                    || echo "npm install FAILED offline (exit $rc)"
+    return "$rc"
+  }
+  check "npm install works against the mirror offline"  offline_npm_install
+fi
+
 summary
