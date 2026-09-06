@@ -2668,7 +2668,13 @@ export async function destroyServiceContainer(
   name: string,
   opts: { deleteData: boolean },
 ): Promise<void> {
-  await engine.del(`/containers/${name}?force=true`)
+  // `v=true`, exactly as destroyInstanceContainer does and for the same reason.
+  // It removes ANONYMOUS volumes only; the named `-data` volume is D3's and is
+  // governed by `deleteData` below. Without it every service leaks one volume per
+  // deploy: `mongodb/mongodb-community-server` declares BOTH `/data/db` and
+  // `/data/configdb` as VOLUMEs, and only the first is bound to a named volume.
+  // Measured: 42 orphaned anonymous volumes accumulated in one session.
+  await engine.del(`/containers/${name}?force=true&v=true`)
   if (opts.deleteData) await engine.del(`/volumes/${name}-data?force=true`)
 }
 ```
@@ -2780,6 +2786,28 @@ describeDocker('dedicated backing services (D3)', () => {
     expect(await run(handle.endpoint.replace(/\/\/[^@]+@/, '//'))).not.toBe(0)
   })
 
+  // The container leaves nothing behind but its named data volume. The mongo
+  // image declares /data/configdb as a VOLUME too, so without `v=true` on the
+  // container delete every deploy orphans one anonymous volume for ever — which
+  // is unbounded disk growth on the laptop C1 requires this to run on.
+  it('leaves no anonymous volume behind', async () => {
+    const anonymous = async (): Promise<string[]> => {
+      const list = await engine.get<{ Volumes: { Name: string }[] }>('/volumes')
+      return (list?.Volumes ?? [])
+        .map((v) => v.Name)
+        .filter((n) => /^[0-9a-f]{64}$/.test(n))
+        .sort()
+    }
+    // Clean slate first: an earlier test in this file leaves a service running,
+    // and destroying it correctly reclaims ITS anonymous volume — which would
+    // make the count go DOWN and read as a failure of this assertion.
+    await destroyServiceContainer(engine, `mf-${binding.name}`, { deleteData: false })
+    const before = await anonymous()
+    await ensureServiceContainer(engine, binding, 'staging', SECRET)
+    await destroyServiceContainer(engine, `mf-${binding.name}`, { deleteData: false })
+    expect(await anonymous()).toEqual(before)
+  })
+
   it('honours deleteData:false — the volume survives', async () => {
     await destroyServiceContainer(engine, `mf-${binding.name}`, { deleteData: false })
     expect(await volumeExists()).toBe(true)
@@ -2799,7 +2827,7 @@ describeDocker('dedicated backing services (D3)', () => {
 pnpm test && pnpm test:docker
 ```
 
-Expected: 8 unit tests, 6 Docker tests. (It said 8 before the catalogue gained a
+Expected: 8 unit tests, **7** Docker tests (the seventh is the anonymous-volume leak check added below). (It said 8 before the catalogue gained a
 scheme test and the file defined 7 — count them rather than trusting the number.)
 
 - [ ] **Step 7: Prove `deleteData` is not a no-op in either direction**
@@ -7822,6 +7850,8 @@ task, from P2's last two batches. Finding them is the expected outcome.*
 | 22 | 8 | **A failing `exec` was two bugs at once.** `exitCode` never settled — the caller waits for ever — and the rejection escaped as an **unhandled rejection**, which Node treats as fatal by default. In the one component that holds the Docker socket. | Probed against a container that does not exist: `TIMED-OUT-NEVER-RESOLVED` plus `Unhandled Rejection`. The error is now routed to `exitCode` (and so to both stream drains), and a permanent Docker-tier test asserts it; control: removing the routing gives `expected 'NEVER-SETTLED' to contain 'no such container'`. |
 | 23 | 8 | A missing container reached `created!.Id` as `undefined`, because Task 1 maps 404 to `undefined` by design — so the failure surfaced as `Cannot read properties of undefined`, which is not machine-actionable (§20). | Now throws `EXEC_TARGET_NOT_FOUND` with a hint. |
 | — | 8 | (tidy, not a defect) `demux`'s `flush` took a `final` flag that was only ever passed `false`, making its branch unreachable. | Removed. |
+
+| 24 | 6 | **`destroyServiceContainer` leaked one anonymous volume per deploy.** It deleted the container with `force=true` but **without `v=true`** — while `destroyInstanceContainer`, two files away, uses `v=true` and carries the comment explaining why. `mongodb/mongodb-community-server` declares **both** `/data/db` and `/data/configdb` as `VOLUME`s, and only the first is bound to a named volume. | Found by diffing the machine snapshot at session end: **42 orphaned anonymous volumes**, none attached to any container, none named. Unbounded disk growth on the laptop C1 requires this to run on, and the same class as P2's 944 leaked temp directories. Fixed with `v=true` (which removes anonymous volumes only, so `deleteData` still governs the named one) plus a test that counts anonymous volumes across a create/destroy cycle. Control: dropping `v=true` gives `expected […85] to deeply equal […84]`. |
 
 **Controls verified as real, so nobody re-checks them:** removing `no-new-privileges`
 gives `NoNewPrivs: 0` and `seccomp=unconfined` gives `Seccomp: 0` (Task 3); flipping

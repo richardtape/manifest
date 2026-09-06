@@ -118,6 +118,12 @@ export async function destroyServiceContainer(
   name: string,
   opts: { deleteData: boolean },
 ): Promise<void> {
-  await engine.del(`/containers/${name}?force=true`)
+  // `v=true`, exactly as destroyInstanceContainer does and for the same reason.
+  // It removes ANONYMOUS volumes only; the named `-data` volume is D3's and is
+  // governed by `deleteData` below. Without it every service leaks one volume per
+  // deploy: `mongodb/mongodb-community-server` declares BOTH `/data/db` and
+  // `/data/configdb` as VOLUMEs, and only the first is bound to a named volume.
+  // Measured: 42 orphaned anonymous volumes accumulated in one session.
+  await engine.del(`/containers/${name}?force=true&v=true`)
   if (opts.deleteData) await engine.del(`/volumes/${name}-data?force=true`)
 }

@@ -100,6 +100,28 @@ describeDocker('dedicated backing services (D3)', () => {
     expect(await run(handle.endpoint.replace(/\/\/[^@]+@/, '//'))).not.toBe(0)
   })
 
+  // The container leaves nothing behind but its named data volume. The mongo
+  // image declares /data/configdb as a VOLUME too, so without `v=true` on the
+  // container delete every deploy orphans one anonymous volume for ever — which
+  // is unbounded disk growth on the laptop C1 requires this to run on.
+  it('leaves no anonymous volume behind', async () => {
+    const anonymous = async (): Promise<string[]> => {
+      const list = await engine.get<{ Volumes: { Name: string }[] }>('/volumes')
+      return (list?.Volumes ?? [])
+        .map((v) => v.Name)
+        .filter((n) => /^[0-9a-f]{64}$/.test(n))
+        .sort()
+    }
+    // Clean slate first: an earlier test in this file leaves a service running,
+    // and destroying it correctly reclaims ITS anonymous volume — which would
+    // make the count go DOWN and read as a failure of this assertion.
+    await destroyServiceContainer(engine, `mf-${binding.name}`, { deleteData: false })
+    const before = await anonymous()
+    await ensureServiceContainer(engine, binding, 'staging', SECRET)
+    await destroyServiceContainer(engine, `mf-${binding.name}`, { deleteData: false })
+    expect(await anonymous()).toEqual(before)
+  })
+
   it('honours deleteData:false — the volume survives', async () => {
     await destroyServiceContainer(engine, `mf-${binding.name}`, { deleteData: false })
     expect(await volumeExists()).toBe(true)
