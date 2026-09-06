@@ -3359,7 +3359,10 @@ describe('the Docker log frame demuxer', () => {
   // THE TEST THAT MATTERS. A demuxer that assumes a chunk contains whole frames
   // passes every small test and corrupts output from a chatty container.
   it('reassembles a frame split across chunk boundaries', async () => {
-    const whole = Buffer.concat([frame(1, 'split-across-chunks\n'), frame(2, 'and-this-one\n')])
+    const whole = Buffer.concat([
+      frame(1, 'split-across-chunks\n'),
+      frame(2, 'and-this-one\n'),
+    ])
     const oneByteAtATime = [...whole].map((b) => Buffer.from([b]))
     const lines = await collect(demux(once(oneByteAtATime)))
     expect(lines.map((l) => [l.stream, l.text])).toEqual([
@@ -3375,7 +3378,7 @@ describe('the Docker log frame demuxer', () => {
 
   it('gives every line a timestamp', async () => {
     const [line] = await collect(demux(once([frame(1, 'x\n')])))
-    expect(line.at).toBeInstanceOf(Date)
+    expect(line!.at).toBeInstanceOf(Date)
   })
 })
 ```
@@ -3408,11 +3411,10 @@ export async function* demux(source: AsyncIterable<Buffer>): AsyncIterable<LogLi
   let buffer = Buffer.alloc(0)
   const partial: Record<'stdout' | 'stderr', string> = { stdout: '', stderr: '' }
 
-  const flush = function* (stream: 'stdout' | 'stderr', text: string, final: boolean) {
+  const flush = function* (stream: 'stdout' | 'stderr', text: string) {
     const combined = partial[stream] + text
     const lines = combined.split('\n')
-    partial[stream] = final ? '' : (lines.pop() ?? '')
-    if (final && lines.length > 0 && lines.at(-1) === '') lines.pop()
+    partial[stream] = lines.pop() ?? ''
     for (const line of lines) yield { at: new Date(), stream, text: line }
   }
 
@@ -3425,7 +3427,7 @@ export async function* demux(source: AsyncIterable<Buffer>): AsyncIterable<LogLi
       const stream = buffer[0] === 2 ? 'stderr' : 'stdout'
       const payload = buffer.subarray(HEADER, HEADER + size).toString('utf8')
       buffer = buffer.subarray(HEADER + size)
-      yield* flush(stream, payload, false)
+      yield* flush(stream, payload)
     }
   }
   // Whatever is left has no trailing newline. Dropping it loses the last line of
@@ -3461,7 +3463,7 @@ export async function* containerLogs(
 
 ```ts
 import type { ExecOpts, ExecStream } from '../driver.js'
-import type { EngineClient } from './engine.js'
+import { EngineError, type EngineClient } from './engine.js'
 import { demux } from './logs.js'
 
 /**
@@ -3479,7 +3481,11 @@ export function containerExec(
   const stdoutLines: string[] = []
   const stderrLines: string[] = []
   let resolveExit: (code: number) => void = () => {}
-  const exitCode = new Promise<number>((resolve) => (resolveExit = resolve))
+  let rejectExit: (error: unknown) => void = () => {}
+  const exitCode = new Promise<number>((resolve, reject) => {
+    resolveExit = resolve
+    rejectExit = reject
+  })
 
   const started = (async () => {
     const created = await engine.post<{ Id: string }>(`/containers/${id}/exec`, {
@@ -3489,13 +3495,42 @@ export function containerExec(
       WorkingDir: opts.cwd,
       Env: Object.entries(opts.env ?? {}).map(([k, v]) => `${k}=${v}`),
     })
-    const res = await engine.stream(`/exec/${created!.Id}/start`, 'POST', { Detach: false, Tty: false })
+    // 404 -> undefined (Task 1), so a missing container arrives here as
+    // `undefined` rather than as an exception. Left alone it surfaces as
+    // "Cannot read properties of undefined", which is not machine-actionable (§20).
+    if (!created) {
+      throw new EngineError(
+        'EXEC_TARGET_NOT_FOUND',
+        `cannot exec in '${id}': no such container`,
+        'The instance may have been destroyed, or never created. `status()` reports ' +
+          '`gone` for an id the daemon does not know.',
+      )
+    }
+    const res = await engine.stream(`/exec/${created.Id}/start`, 'POST', {
+      Detach: false,
+      Tty: false,
+    })
     for await (const line of demux(res as unknown as AsyncIterable<Buffer>)) {
       ;(line.stream === 'stderr' ? stderrLines : stdoutLines).push(line.text)
     }
-    const info = await engine.get<{ ExitCode: number | null }>(`/exec/${created!.Id}/json`)
+    const info = await engine.get<{ ExitCode: number | null }>(`/exec/${created.Id}/json`)
     resolveExit(info?.ExitCode ?? -1)
   })()
+
+  /**
+   * Without this, a failing exec is TWO bugs at once — both measured against a
+   * container that does not exist: `exitCode` **never settles**, so the caller
+   * waits for ever, and the rejection escapes as an **unhandled rejection**,
+   * which Node treats as fatal by default. In a long-running control plane that
+   * is the whole process.
+   *
+   * The error is routed to `exitCode`, so anyone awaiting it — or draining
+   * either stream, since both await `started` — sees it. The `catch` also marks
+   * this handle as handled, so the same rejection is not reported twice.
+   */
+  started.catch((error: unknown) => {
+    rejectExit(error)
+  })
 
   const drain = async function* (buffer: string[]): AsyncIterable<string> {
     await started
@@ -3526,13 +3561,13 @@ describeDocker('logs and exec against a real container', () => {
     await engine.del(`/containers/${NAME}?force=true&v=true`)
   })
 
-  it('demuxes a real container\'s stdout and stderr', async () => {
+  it("demuxes a real container's stdout and stderr", async () => {
     await engine.del(`/containers/${NAME}?force=true&v=true`)
     await engine.post(`/containers/create?name=${NAME}`, {
       // alpine:3.22, NOT 3.20. P1's infra/images.txt mirrors 3.22 into the local
-    // registry and `make seed` pulls it; 3.20 is in neither, so this step would
-    // fail the moment the network is off — which is this plan's own demo.
-    Image: 'alpine:3.22',
+      // registry and `make seed` pulls it; 3.20 is in neither, so this step would
+      // fail the moment the network is off — which is this plan's own demo.
+      Image: 'alpine:3.22',
       Cmd: ['sh', '-c', 'echo to-stdout; echo to-stderr >&2; sleep 60'],
       HostConfig: { NetworkMode: 'none' },
     })
@@ -3554,6 +3589,20 @@ describeDocker('logs and exec against a real container', () => {
     expect(seen).toBe(1)
   })
 
+  /**
+   * Measured before this was fixed: `exitCode` never settled — the caller waited
+   * for ever — and the rejection escaped as an unhandled rejection, which Node
+   * treats as fatal. Both in a component that holds the Docker socket.
+   */
+  it('surfaces an exec failure instead of hanging on it', async () => {
+    const stream = containerExec(engine, 'mf-no-such-container-at-all', ['echo'], {})
+    const outcome = await Promise.race([
+      stream.exitCode.then(() => 'resolved').catch((e: unknown) => (e as Error).message),
+      new Promise<string>((r) => setTimeout(() => r('NEVER-SETTLED'), 5000)),
+    ])
+    expect(outcome).toContain('no such container')
+  })
+
   it('runs exec and reports stdout and the exit code', async () => {
     const stream = containerExec(engine, NAME, ['sh', '-c', 'echo hi; exit 3'], {})
     const out: string[] = []
@@ -3570,7 +3619,7 @@ describeDocker('logs and exec against a real container', () => {
 pnpm test && pnpm test:docker
 ```
 
-Expected: 5 unit tests, 3 Docker tests.
+Expected: 5 unit tests, **4** Docker tests (the fourth is the exec failure path added below).
 
 - [ ] **Step 6: Prove the frame-reassembly test has teeth**
 
@@ -7769,6 +7818,10 @@ task, from P2's last two batches. Finding them is the expected outcome.*
 | 19 | 7 | `message: inspect.State.Error === '' ? undefined : …` against `message?: string`. | **`TS2375`**, verbatim. Conditional spread is the fix. `pnpm test` is green with it present — Vitest strips types. Seventh instance of the class P2 hit six times. |
 | 20 | 7 | The unit test's `state({ Health: undefined })` against `Partial<DockerState>`. | **`TS2379`**, verbatim. Same class, in the plan's *test* code. Changed to `state({})`. |
 | 21 | 7 | **The lifecycle tests never observed a running container.** `alpine` with no command exits in under a second, so the hibernation test stopped an already-*crashed* container and still passed — it was comparing two dead containers, proving nothing about the marker. The crash test then failed outright: `409 … container is not running`. | Measured: `Status=exited` 1 s after start. `InstanceDeps` gains an optional `command` (real apps get theirs from the blueprint's `CMD`, D13) and the test holds the container open with `sleep 600`; the hibernation test now asserts the container is up **before** stopping it. |
+
+| 22 | 8 | **A failing `exec` was two bugs at once.** `exitCode` never settled — the caller waits for ever — and the rejection escaped as an **unhandled rejection**, which Node treats as fatal by default. In the one component that holds the Docker socket. | Probed against a container that does not exist: `TIMED-OUT-NEVER-RESOLVED` plus `Unhandled Rejection`. The error is now routed to `exitCode` (and so to both stream drains), and a permanent Docker-tier test asserts it; control: removing the routing gives `expected 'NEVER-SETTLED' to contain 'no such container'`. |
+| 23 | 8 | A missing container reached `created!.Id` as `undefined`, because Task 1 maps 404 to `undefined` by design — so the failure surfaced as `Cannot read properties of undefined`, which is not machine-actionable (§20). | Now throws `EXEC_TARGET_NOT_FOUND` with a hint. |
+| — | 8 | (tidy, not a defect) `demux`'s `flush` took a `final` flag that was only ever passed `false`, making its branch unreachable. | Removed. |
 
 **Controls verified as real, so nobody re-checks them:** removing `no-new-privileges`
 gives `NoNewPrivs: 0` and `seccomp=unconfined` gives `Seccomp: 0` (Task 3); flipping
