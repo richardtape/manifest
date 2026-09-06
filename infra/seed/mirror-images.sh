@@ -15,8 +15,16 @@ while read -r tag; do
   [ -z "$tag" ] && continue
   case "$tag" in \#*) continue;; esac
 
-  echo "  pulling $tag"
-  docker pull -q "$tag" >/dev/null
+  # Pull only if the daemon does not already hold it. This is what lets the same
+  # script re-mirror OFFLINE after `make reset` has emptied the registry volume:
+  # the images are still in the daemon's image store, and re-tagging and pushing
+  # them to a local registry needs no network.
+  if docker image inspect "$tag" >/dev/null 2>&1; then
+    echo "  $tag already local"
+  else
+    echo "  pulling $tag"
+    docker pull -q "$tag" >/dev/null
+  fi
 
   digest=$(docker image inspect "$tag" --format '{{index .RepoDigests 0}}' | cut -d@ -f2)
   printf '%s\t%s\n' "$tag" "$digest" >> "$LOCK"

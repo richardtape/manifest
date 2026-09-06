@@ -1904,14 +1904,31 @@ check "an embedding comes back at full dimension"  litellm_embedding_dimension
 # empty, and ${n:-0} made "0 rows carry prompt content" trivially true. Measured
 # 2026-09-05. The checks above have already driven a completion and an embedding
 # through the proxy, so by here there is something to inspect.
+#
+# BUT WAIT FOR IT. LiteLLM writes spend logs ASYNCHRONOUSLY, on a batch timer
+# (proxy_batch_write_at, 10s by default), so against a freshly-initialised
+# database the rows are not there yet when these checks run and both of them
+# fail with "nothing is under test". That is a flake on exactly the path the
+# RUNBOOK tells a new developer to take — `make up && make doctor && make
+# verify` right after `make reset` or a first `make seed`. Poll, bounded.
+wait_for_spend_rows() {
+  local i n
+  for i in $(seq 1 40); do
+    n=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
+        'SELECT count(*) FROM "LiteLLM_SpendLogs"' 2>/dev/null | tr -d ' ')
+    [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null && { echo "$n"; return 0; }
+    sleep 1
+  done
+  echo 0; return 1
+}
+
 litellm_prompt_logging_off() {
   local exists total n
   exists=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
            "SELECT to_regclass('public.\"LiteLLM_SpendLogs\"') IS NOT NULL" 2>/dev/null | tr -d ' ')
   [ "$exists" = "t" ] || { echo "LiteLLM_SpendLogs does not exist — nothing is under test"; return 1; }
-  total=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
-          'SELECT count(*) FROM "LiteLLM_SpendLogs"' 2>/dev/null | tr -d ' ')
-  [ "${total:-0}" -gt 0 ] || { echo "no spend rows written yet — nothing is under test"; return 1; }
+  total=$(wait_for_spend_rows) \
+    || { echo "no spend rows after 40s — nothing is under test (LiteLLM batches these writes)"; return 1; }
   n=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
       "SELECT count(*) FROM \"LiteLLM_SpendLogs\" WHERE proxy_server_request::text NOT IN ('{}','null')" 2>/dev/null | tr -d ' ')
   echo "$n of $total spend rows carry request content (want 0 — §7's retention decision)"
@@ -1925,6 +1942,7 @@ check "no prompt content is persisted"  litellm_prompt_logging_off
 # plan notices if the cost lines are dropped from litellm/config.yaml.
 litellm_spend_is_attributed() {
   local mx
+  wait_for_spend_rows >/dev/null || { echo "no spend rows after 40s — nothing is under test"; return 1; }
   mx=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
        'SELECT COALESCE(max(spend),0) FROM "LiteLLM_SpendLogs"' 2>/dev/null | tr -d ' ')
   echo "highest recorded spend = ${mx:-<none>} (want > 0; \$0.00 means the synthetic cost is missing)"
@@ -2678,22 +2696,55 @@ up:  ## Boot the platform. Works offline after `make seed`.
 	@echo "  platform up. Next: make doctor && make verify"
 	@echo "  edge: https://console.manifest.internal/"
 
-down:  ## Stop everything. Data, the seed cache and the CA all survive.
-	@$(COMPOSE) down
+# --profile build IS REQUIRED. `docker compose down` ignores services behind a
+# profile, so without it the builder keeps running, this target's own help text
+# ("stop everything") is false, and the down emits
+# `manifest-build-internal Resource is still in use` because the builder still
+# holds the internal network. Measured 2026-09-05.
+down:  ## Stop everything, including the profiled builder. Data, seed cache and CA survive.
+	@$(COMPOSE) --profile build down
 
 reset:  ## Destroy projects, volumes and registry contents. KEEPS the seed cache and the CA.
 	@echo "This destroys all project data, the registry contents and the databases."
 	@echo "It KEEPS infra/images.lock, the Ollama models and the Caddy CA."
 	@read -p "Type 'reset' to continue: " ans; [ "$$ans" = reset ] || exit 1
-	@$(COMPOSE) down
+	@$(COMPOSE) --profile build down
 	@docker volume rm -f manifest-pgdata manifest-registry-data \
 	   manifest-verdaccio-storage manifest-buildkit-cache 2>/dev/null || true
 	@docker ps -aq --filter 'name=^mf-' | xargs docker rm -f 2>/dev/null || true
 	@docker network ls -q --filter 'name=^mf-' | xargs docker network rm 2>/dev/null || true
 	@docker volume ls -q --filter 'name=^mf-' | xargs docker volume rm 2>/dev/null || true
-	@echo "reset done. manifest-caddy-data was NOT removed — the trusted CA lives there."
+	@echo "  re-mirroring base images into the fresh registry (no network needed)"
+	@$(COMPOSE) up -d --wait registry >/dev/null
+	@bash infra/seed/mirror-images.sh
+	@echo "reset done. manifest-caddy-data was NOT removed — the trusted CA lives there,"
+	@echo "and the mirrored base images are back, so the machine is still offline-capable."
 	@echo "Run: make up"
 ```
+
+> **Three defects found in execution (2026-09-05).**
+>
+> 1. **`make down` did not stop everything.** `docker compose down` ignores
+>    services behind a profile, so `manifest-buildkitd` kept running and the down
+>    reported `manifest-build-internal Resource is still in use`. Both `down` and
+>    `reset` now pass `--profile build`.
+> 2. **`make reset` quietly broke C1's offline claim.** The plan says reset "keeps
+>    the seed cache", but nothing ever writes to `infra/seed-cache/` — the seed
+>    cache is really the mirrored base images in the registry volume and the npm
+>    packages in Verdaccio's, and reset destroyed both. Afterwards `make doctor`
+>    failed with *"NOT mirrored: node alpine … Run: make seed"*, and `make seed`
+>    needs the network. Fixed to match the plan's stated intent:
+>    `manifest-verdaccio-storage` is no longer destroyed (a cache of public
+>    packages, not project state), and `reset` re-pushes the base images from the
+>    daemon's own image store — `mirror-images.sh` now pulls only when the tag is
+>    not already local, so the re-push needs no network. Verified: 61 mirror
+>    packages before a reset and 61 after, doctor green.
+> 3. **The two spend-log checks flaked on a fresh database.** They require rows to
+>    exist — correctly, since without that guard they pass vacuously — but LiteLLM
+>    writes spend logs asynchronously on a batch timer, so immediately after
+>    `make reset` the rows are not there yet and both fail with "nothing is under
+>    test". That is a flake on exactly the path the RUNBOOK prescribes. They now
+>    poll for up to 40 s. Verified across three fresh-database cycles.
 
 - [ ] **Step 2: Prove `--wait` gates on health, not on start**
 

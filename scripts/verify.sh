@@ -338,14 +338,31 @@ check "an embedding comes back at full dimension"  litellm_embedding_dimension
 # empty, and ${n:-0} made "0 rows carry prompt content" trivially true. Measured
 # 2026-09-05. The checks above have already driven a completion and an embedding
 # through the proxy, so by here there is something to inspect.
+#
+# BUT WAIT FOR IT. LiteLLM writes spend logs ASYNCHRONOUSLY, on a batch timer
+# (proxy_batch_write_at, 10s by default), so against a freshly-initialised
+# database the rows are not there yet when these checks run and both of them
+# fail with "nothing is under test". That is a flake on exactly the path the
+# RUNBOOK tells a new developer to take — `make up && make doctor && make
+# verify` right after `make reset` or a first `make seed`. Poll, bounded.
+wait_for_spend_rows() {
+  local i n
+  for i in $(seq 1 40); do
+    n=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
+        'SELECT count(*) FROM "LiteLLM_SpendLogs"' 2>/dev/null | tr -d ' ')
+    [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null && { echo "$n"; return 0; }
+    sleep 1
+  done
+  echo 0; return 1
+}
+
 litellm_prompt_logging_off() {
   local exists total n
   exists=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
            "SELECT to_regclass('public.\"LiteLLM_SpendLogs\"') IS NOT NULL" 2>/dev/null | tr -d ' ')
   [ "$exists" = "t" ] || { echo "LiteLLM_SpendLogs does not exist — nothing is under test"; return 1; }
-  total=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
-          'SELECT count(*) FROM "LiteLLM_SpendLogs"' 2>/dev/null | tr -d ' ')
-  [ "${total:-0}" -gt 0 ] || { echo "no spend rows written yet — nothing is under test"; return 1; }
+  total=$(wait_for_spend_rows) \
+    || { echo "no spend rows after 40s — nothing is under test (LiteLLM batches these writes)"; return 1; }
   n=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
       "SELECT count(*) FROM \"LiteLLM_SpendLogs\" WHERE proxy_server_request::text NOT IN ('{}','null')" 2>/dev/null | tr -d ' ')
   echo "$n of $total spend rows carry request content (want 0 — §7's retention decision)"
@@ -359,6 +376,7 @@ check "no prompt content is persisted"  litellm_prompt_logging_off
 # plan notices if the cost lines are dropped from litellm/config.yaml.
 litellm_spend_is_attributed() {
   local mx
+  wait_for_spend_rows >/dev/null || { echo "no spend rows after 40s — nothing is under test"; return 1; }
   mx=$(docker exec manifest-postgres psql -U manifest -d litellm -tAc \
        'SELECT COALESCE(max(spend),0) FROM "LiteLLM_SpendLogs"' 2>/dev/null | tr -d ' ')
   echo "highest recorded spend = ${mx:-<none>} (want > 0; \$0.00 means the synthetic cost is missing)"
