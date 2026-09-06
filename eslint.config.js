@@ -18,31 +18,26 @@ export default tseslint.config(
           caughtErrorsIgnorePattern: '^_',
         },
       ],
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: [
-                // ESLint 9's `group` takes gitignore-style globs, which have no
-                // extglob: `!(index)` is read literally and matches nothing. A
-                // leading `!` is the negation this syntax does support.
-                './*/*',
-                '../*/*',
-                '../../*/*',
-                '!./*/index.js',
-                '!../*/index.js',
-                '!../../*/index.js',
-                '!./*/testing.js',
-                '!../*/testing.js',
-                '!../../*/testing.js',
-              ],
-              message:
-                'Cross-module imports must go through the module’s public index.ts (§5).',
-            },
-          ],
-        },
-      ],
+      // §5's module boundary is enforced by src/module-boundaries.test.ts, NOT here.
+      //
+      // `no-restricted-imports` matches its `group` globs with gitignore semantics,
+      // and that dialect cannot express this rule. Measured 2026-09-05: a ban wide
+      // enough to catch `../db/schema.js` — say `../*/*` — also matches the
+      // DIRECTORY `../../identity`, and gitignore cannot re-include a file whose
+      // parent directory is excluded. So `!../../*/index.js` is unreachable and a
+      // legitimate `api/routes/auth.ts -> ../../identity/index.js` is reported as a
+      // violation. Every arrangement of bans and negations tried had the same hole:
+      // the two are the same pattern at different depths.
+      //
+      // This is the second defect this one rule has produced (the first: ESLint 9's
+      // globs have no extglob, so `!(index)` matched nothing). The test resolves
+      // each import and compares the modules the two files belong to, which is
+      // correct at any depth and is what self-review defect 7 fixed it to do.
+      // Verified by pointing api/routes/auth.ts at ../../identity/session.js and
+      // watching the test name both violations.
+      //
+      // If a lint-time check is wanted back, it needs a rule that understands paths
+      // rather than globs — eslint-plugin-import's `no-restricted-paths` zones.
     },
   },
 )
