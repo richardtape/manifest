@@ -1,0 +1,5 @@
+export { descriptorSchema } from './descriptor.js'
+export type { BlueprintDescriptor } from './descriptor.js'
+export { checkBlueprintCompatibility, BLUEPRINT_CODES } from './compatibility.js'
+export { loadBlueprints } from './registry.js'
+export type { BlueprintRegistry } from './registry.js'

@@ -1959,7 +1959,7 @@ function checkBlueprintCompatibility(spec: ManifestSpec, d: BlueprintDescriptor)
 ```ts
 import { describe, expect, it } from 'vitest'
 import { manifestSchema, type ManifestSpec } from '../spec/index.js'
-import { descriptorSchema, checkBlueprintCompatibility, loadBlueprints } from './index.js'
+import { descriptorSchema, checkBlueprintCompatibility } from './index.js'
 
 const descriptor = descriptorSchema.parse({
   blueprint: 'fixture-node',
@@ -1992,6 +1992,32 @@ describe('blueprint descriptor (§25, D30)', () => {
   it('rejects a base image pinned by tag rather than digest (§12)', () => {
     const bad = { ...descriptor, runtime: { ...descriptor.runtime, base_image: 'node:22' } }
     expect(descriptorSchema.safeParse(bad).success).toBe(false)
+  })
+
+  it('rejects an unknown key, so a typo is never silently ignored', () => {
+    expect(
+      descriptorSchema.safeParse({ ...descriptor, knowledgePack: './agents/' }).success,
+    ).toBe(false)
+  })
+
+  it('refuses a pinned_dependencies RANGE, not just a missing pin (C6, §16)', () => {
+    const exact = { ...descriptor, pinned_dependencies: { mongodb: '6.12.0' } }
+    expect(descriptorSchema.safeParse(exact).success).toBe(true)
+    for (const range of ['^6.12.0', '~6.12.0', '6.x', '>=6.12.0', 'latest']) {
+      const r = descriptorSchema.safeParse({
+        ...descriptor,
+        pinned_dependencies: { mongodb: range },
+      })
+      expect(r.success, `${range} must be refused`).toBe(false)
+    }
+  })
+
+  it('refuses a default resource quantity the resolver cannot read', () => {
+    const bad = (resources: Record<string, unknown>) =>
+      descriptorSchema.safeParse({ ...descriptor, defaults: { resources } }).success
+    expect(bad({ cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' })).toBe(true)
+    expect(bad({ cpu: 0.5, memory: 'lots', pids: 256, disk: '2Gi' })).toBe(false)
+    expect(bad({ cpu: 0.5, memory: '512Mi', pids: 256, disk: 'plenty' })).toBe(false)
   })
 })
 
@@ -2029,16 +2055,6 @@ describe('checkBlueprintCompatibility (§25)', () => {
     expect(errors[0]?.code).toBe('BLUEPRINT_SCHEMA_VERSION_UNSUPPORTED')
   })
 })
-
-describe('blueprint registry', () => {
-  it('loads the on-disk catalogue and resolves by name@major', async () => {
-    const registry = await loadBlueprints(new URL('../../../../blueprints/', import.meta.url).pathname)
-    expect(registry.list().length).toBeGreaterThan(0)
-    expect(registry.resolve('fixture-node@1')?.blueprint).toBe('fixture-node')
-    expect(registry.resolve('fixture-node@9')).toBeUndefined()
-    expect(registry.resolve('does-not-exist@1')).toBeUndefined()
-  })
-})
 ```
 
 - [ ] **Step 2: Run it to make sure it fails**
@@ -2058,6 +2074,15 @@ import { z } from 'zod'
 
 /** Base images are pinned by digest, never by tag (§12 supply chain). */
 const DIGEST_PINNED = /@sha256:[0-9a-f]{64}$/
+
+/**
+ * The same quantity grammar the app-side schema uses. It is repeated rather than
+ * imported because §5 forbids `blueprints/` reaching into `spec/`'s internals, and
+ * because a blueprint default that the resolver cannot read is worse than a missing
+ * one: Task 16 merges these underneath the app's own numbers, and `toMebibytes`
+ * returns NaN for anything else — which compares false against every quota.
+ */
+const QUANTITY = /^\d+(\.\d+)?(Mi|Gi)?$/
 
 export const descriptorSchema = z
   .object({
@@ -2087,9 +2112,9 @@ export const descriptorSchema = z
         resources: z
           .object({
             cpu: z.number().positive(),
-            memory: z.string(),
+            memory: z.string().regex(QUANTITY),
             pids: z.number().int().positive(),
-            disk: z.string(),
+            disk: z.string().regex(QUANTITY),
           })
           .strict(),
       })
@@ -2228,13 +2253,44 @@ export type { BlueprintRegistry } from './registry.js'
 
 - [ ] **Step 6: Run the tests**
 
-The registry test needs Task 7's blueprint on disk, so expect it to fail until then.
-
 ```bash
 pnpm --filter @manifest/control-plane test src/blueprints/
 ```
 
-Expected: the descriptor and compatibility tests PASS (6 tests); the registry test FAILS with `ENOENT` on `blueprints/`. That is the correct intermediate state — Task 7 closes it.
+Expected: PASS, **9 tests**.
+
+> **Defect found in execution (2026-09-05): this task could not be committed
+> green.** As written, Step 6 expected the registry test to FAIL with `ENOENT` and
+> Step 7 committed anyway — which contradicts this plan's own Global Constraints
+> (*"Green before you commit: `pnpm test`, `pnpm lint`, and `typecheck`. All three,
+> every time"*) and would have put a red commit in the history for anyone
+> bisecting. The registry test exercises Task 7's on-disk artefact, not Task 6's
+> code, so it has **moved to Task 7**, where its subject lives. Both tasks are now
+> green at their own commit.
+>
+> **Three more defects, all of them controls that were not there.** The descriptor
+> had exactly one test — the digest pin — leaving three properties it claims
+> untested:
+>
+> - **`.strict()` was unasserted**, so a typo like `knowledgePack:` would have been
+>   silently dropped and the blueprint would have loaded without a knowledge pack.
+> - **`pinned_dependencies` refusing a RANGE was unasserted**, though the field's
+>   own comment explains why it must: *"§16's injection-contract drift test asserts
+>   against a stated version, and a range would let the contract drift underneath
+>   the test built to catch drift."* A property with a stated safety rationale and
+>   no test is the shape this project keeps paying for.
+> - **`defaults.resources.memory` and `.disk` were bare `z.string()`**, while the
+>   app-side schema constrains the same quantities. Task 16 merges these underneath
+>   the app's numbers and `toMebibytes` returns `NaN` for anything else — and `NaN`
+>   compares **false** against every quota, so a blueprint default of `memory: lots`
+>   would have disabled the memory quota rather than failing. They now carry the
+>   same `QUANTITY` grammar, repeated rather than imported because §5 forbids
+>   `blueprints/` reaching into `spec/`'s internals.
+>
+> **Negative controls run (2026-09-05).** Nine mutations, each reverted: the digest
+> pin relaxed to `/.*/`, `.strict()` removed, `pinned_dependencies` widened to any
+> string, each of the two quantity regexes dropped, and each of the four
+> compatibility checks disabled. Every one turned a named test red.
 
 - [ ] **Step 7: Commit**
 
@@ -2400,13 +2456,32 @@ blueprint faculty use — see `node-ts-mongo` for that.
   origin itself (D15).
 ```
 
-- [ ] **Step 5: Run the blueprint tests, which should now all pass**
+- [ ] **Step 5: Add the registry test, and run the blueprint suite**
+
+This test moved here from Task 6 in execution: its subject is the blueprint on
+disk, which is what this task creates. Append to
+`packages/control-plane/src/blueprints/blueprints.test.ts`, and add `loadBlueprints`
+to that file's import from `./index.js`:
+
+```ts
+describe('blueprint registry', () => {
+  it('loads the on-disk catalogue and resolves by name@major', async () => {
+    const registry = await loadBlueprints(
+      new URL('../../../../blueprints/', import.meta.url).pathname,
+    )
+    expect(registry.list().length).toBeGreaterThan(0)
+    expect(registry.resolve('fixture-node@1')?.blueprint).toBe('fixture-node')
+    expect(registry.resolve('fixture-node@9')).toBeUndefined()
+    expect(registry.resolve('does-not-exist@1')).toBeUndefined()
+  })
+})
+```
 
 ```bash
 pnpm --filter @manifest/control-plane test src/blueprints/
 ```
 
-Expected: PASS, 7 tests — including the registry test that failed at the end of Task 6.
+Expected: PASS, **10 tests**.
 
 - [ ] **Step 6: Commit**
 
