@@ -982,8 +982,23 @@ const RESERVED = new Set(['integrations', 'jobs', 'checks'])
 
 const pathOf = (issue: z.ZodIssue) => issue.path.join('.')
 
+/**
+ * Two zod issues can describe one mistake — a reserved block raises both a
+ * length error and an element error — so the mapped errors are deduplicated by
+ * (code, path). Order is preserved: the first occurrence wins.
+ */
+function dedupe(errors: ManifestError[]): ManifestError[] {
+  const seen = new Set<string>()
+  return errors.filter((e) => {
+    const key = `${e.code}\u0000${e.path}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 export function toManifestErrors(issues: z.ZodIssue[]): ManifestError[] {
-  return issues.map((issue): ManifestError => {
+  return dedupe(issues.map((issue): ManifestError => {
     const path = pathOf(issue)
 
     if (path === 'runtime.build' || (issue.code === 'unrecognized_keys' && issue.keys.includes('build') && path === 'runtime')) {
@@ -995,21 +1010,34 @@ export function toManifestErrors(issues: z.ZodIssue[]): ManifestError[] {
       }
     }
 
-    if (RESERVED.has(path)) {
+    // Matched on the FIRST SEGMENT, not the whole path. A non-empty reserved
+    // block raises two issues — `too_big` at `integrations` and `invalid_type`
+    // at `integrations.0` — and mapping only the first left the second to fall
+    // through to SPEC_INVALID_VALUE, whose hint invites the reader to look up
+    // the permitted values of `integrations.0`. §15 permits none. Both issues
+    // now collapse onto the one true error, and `dedupe` drops the repeat.
+    const block = path.split('.')[0] ?? ''
+    if (RESERVED.has(block)) {
       return {
         code: SPEC_CODES.RESERVED_BLOCK_NOT_EMPTY,
-        path,
-        message: `${path} is reserved and must be empty in schema version 1`,
-        hint: `${path} is a forward-compatibility hook (§15). Leave it as an empty list.`,
+        path: block,
+        message: `${block} is reserved and must be empty in schema version 1`,
+        hint: `${block} is a forward-compatibility hook (§15). Leave it as an empty list.`,
       }
     }
 
     if (issue.code === 'unrecognized_keys') {
+      // The top-level key list is only the right vocabulary at the top level.
+      // Naming it for `data.bogus` would send a self-correcting agent to rename
+      // the key to `services`, which `data` does not accept either.
+      const hint = path
+        ? `${path} does not define that key. Check §7 for the keys ${path} accepts.`
+        : `Allowed top-level keys are: ${TOP_LEVEL_KEYS}.`
       return {
         code: SPEC_CODES.UNKNOWN_KEY,
         path: [path, issue.keys[0]].filter(Boolean).join('.'),
         message: `unknown key: ${issue.keys.join(', ')}`,
-        hint: `Allowed top-level keys are: ${TOP_LEVEL_KEYS}.`,
+        hint,
       }
     }
 
@@ -1043,10 +1071,16 @@ export function toManifestErrors(issues: z.ZodIssue[]): ManifestError[] {
     return {
       code: SPEC_CODES.INVALID_VALUE,
       path,
-      message: issue.message,
+      // zod's message for a failed `.regex()` is the single word "Invalid",
+      // which satisfies "an error has a message" and tells a reader nothing.
+      // §20 asks for a human-readable one, so name the field and the reason.
+      message:
+        issue.message === 'Invalid'
+          ? `${path || 'this field'} does not match the format §7 requires`
+          : issue.message,
       hint: `Check the type and permitted values of ${path || 'this field'} in §7 of the platform design.`,
     }
-  })
+  }))
 }
 ```
 
@@ -1056,7 +1090,52 @@ export function toManifestErrors(issues: z.ZodIssue[]): ManifestError[] {
 pnpm --filter @manifest/control-plane test src/spec/errors.test.ts
 ```
 
-Expected: PASS, 6 tests.
+Expected: PASS, 9 tests — the six above and the three added in execution below.
+
+> **Three defects found in execution (2026-09-05), and all three hide behind the
+> same habit.** Every one of the six tests above reads `errorsFor(...)[0]`. Two of
+> these defects live in an error the tests never look at, and the third is a field
+> the tests assert is *truthy* rather than *useful*. They were found by printing
+> the full mapped output for six inputs rather than the first element of one —
+> the roadmap's *"assert the shape of the answer, not that an answer arrived."*
+>
+> **1. A non-empty reserved block produced two errors, and the second was wrong.**
+> `integrations: [{ lti: true }]` raises `too_big` at `integrations` *and*
+> `invalid_type` at `integrations.0`. Only the first matched `RESERVED.has(path)`;
+> the second fell through to `SPEC_INVALID_VALUE` with the hint *"Check the type
+> and permitted values of integrations.0 in §7."* §7 permits **no** value there —
+> the block must be empty — so an agent self-correcting against that hint is being
+> sent to look for something that does not exist. Matching on the path's first
+> segment plus `dedupe` collapses both onto the one true error.
+> **Measured against:** disabling `dedupe` → *reports a non-empty reserved block
+> once, not twice* fails with `[ 'SPEC_INVALID_VALUE', …(1) ]`; restoring the
+> whole-path match → the same test fails the same way.
+>
+> **2. A nested unknown key was told the top-level vocabulary.**
+> `data: { bogus: 1 }` mapped to `SPEC_UNKNOWN_KEY` with *"Allowed top-level keys
+> are: manifest, name, blueprint…"* — a list `data` does not accept a single
+> member of. The hint now names the containing block. **Measured against:**
+> restoring the unconditional hint → *names the containing block when an unknown
+> key is nested* fails on `expected 'Allowed top-level keys are: manifest,…' not
+> to match /top-level/`.
+>
+> **3. The human-readable message was sometimes the word "Invalid".** That is
+> zod's entire message for a failed `.regex()`, so `resources: { memory: 'lots' }`
+> produced `message: 'Invalid'`. The original test asserted `expect(e.message)
+> .toBeTruthy()`, which "Invalid" satisfies — a check passing while the thing it
+> checks is useless. **Measured against:** passing `issue.message` straight
+> through → *never passes zod's bare "Invalid" through as the human message* fails
+> on `expected 'Invalid' not to be 'Invalid'`.
+>
+> **Negative controls run (2026-09-05).** Nine mutations, each applied to
+> `errors.ts` alone and reverted: each of the five branches (build block, reserved
+> block, `unrecognized_keys`, slug, path-expected) disabled in turn, plus the three
+> fixes above reverted, plus `dedupe` removed. **Every one turned a named test red
+> with an assertion failure, and in every one the other tests still passed** — the
+> second half matters, because the first version of this harness reported four
+> mutations as "RED (good)" that were red only because the file no longer compiled.
+> A control that cannot distinguish a failed assertion from a syntax error is not a
+> control.
 
 - [ ] **Step 5: Commit**
 
