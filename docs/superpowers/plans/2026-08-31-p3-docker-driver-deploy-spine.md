@@ -1545,7 +1545,7 @@ the drift at compile time instead."
   - `ensureAppNetwork(engine, slug, kind): Promise<string>` — idempotent, returns the network id
   - `attachPlatformNeighbours(engine, network, names: string[]): Promise<void>`
   - `destroyAppNetwork(engine, slug, kind): Promise<void>`
-  - `PLATFORM_NEIGHBOURS = ['manifest-caddy', 'manifest-dnsmasq-containers']`
+  - `PLATFORM_NEIGHBOURS = ['manifest-caddy', 'manifest-dns-containers']` — P1's real `container_name` values
 
 **The app network is `--internal`, and that single flag is most of §12's east-west section.**
 §12 denies, by default: app → any other app or its services; app or sandbox → the
@@ -1584,21 +1584,21 @@ import { afterAll, beforeAll, expect, it } from 'vitest'
 import { createEngineClient, resolveSocketPath } from './engine.js'
 import { describeDocker } from './docker-tier.js'
 import { appNetwork } from './names.js'
-import { destroyAppNetwork, ensureAppNetwork } from './networks.js'
+import { PLATFORM_NEIGHBOURS, destroyAppNetwork, ensureAppNetwork } from './networks.js'
 
 const engine = createEngineClient({ socketPath: resolveSocketPath() })
 const SLUG = 'nettest'
 const KIND = 'staging' as const
 
 /**
- * Runs one command on a network and returns curl's EXIT CODE. Judging by exit code
+ * Runs one container on a network and returns its EXIT CODE. Judging by exit code
  * rather than by grepping output is deliberate: P1's self-review caught a check
  * whose failure message contained the very word it was grepping for.
  */
-async function curlExit(network: string, args: string[]): Promise<number> {
+async function runExit(network: string, image: string, cmd: string[]): Promise<number> {
   const created = await engine.post<{ Id: string }>('/containers/create', {
-    Image: 'curlimages/curl:8.11.1',
-    Cmd: ['-sS', '-m', '5', '-o', '/dev/null', ...args],
+    Image: image,
+    Cmd: cmd,
     HostConfig: { NetworkMode: network, AutoRemove: false },
   })
   const id = created!.Id
@@ -1610,6 +1610,20 @@ async function curlExit(network: string, args: string[]): Promise<number> {
     await engine.del(`/containers/${id}?force=true&v=true`)
   }
 }
+
+const curlExit = (network: string, args: string[]): Promise<number> =>
+  runExit(network, 'curlimages/curl:8.11.1', [
+    '-sS',
+    '-m',
+    '5',
+    '-o',
+    '/dev/null',
+    ...args,
+  ])
+
+/** 0 = the container has a default route; 1 = it has none. */
+const hasDefaultRoute = (network: string): Promise<number> =>
+  runExit(network, 'alpine:3.22', ['sh', '-c', 'ip route | grep -q default'])
 
 describeDocker('per-app networks and §12 east-west denials', () => {
   beforeAll(async () => {
@@ -1633,30 +1647,66 @@ describeDocker('per-app networks and §12 east-west denials', () => {
     expect(net!.Name).toBe('mf-nettest-staging-net')
   })
 
-  it('DENIES the control plane: an app container has no route to the host', async () => {
-    // 7100 is the control plane (§21). On a bridge network this would connect.
-    expect(await curlExit(appNetwork(SLUG, KIND), ['http://host.docker.internal:7100/'])).not.toBe(0)
+  // Nothing else asserts this, and it cannot be inferred from a successful connect:
+  // the daemon answers 404 for a container that does not exist, and the engine
+  // client maps 404 to `undefined` rather than throwing. Without this readback a
+  // renamed platform container produces app networks with no resolver and no edge,
+  // silently, and the first symptom is an unexplainable DNS failure at Task 13.
+  it('attaches the platform neighbours, and can tell when it did not', async () => {
+    const net = await engine.get<{ Containers?: Record<string, { Name: string }> }>(
+      `/networks/${appNetwork(SLUG, KIND)}`,
+    )
+    const attached = Object.values(net!.Containers ?? {}).map((c) => c.Name)
+    for (const neighbour of PLATFORM_NEIGHBOURS) expect(attached).toContain(neighbour)
   })
 
-  it('DENIES the cloud metadata endpoint', async () => {
+  /**
+   * THE MECHANISM, asserted directly. Every denial below is caused by this one
+   * fact and nothing else, so it is the assertion that must hold even when a
+   * particular destination happens to be unreachable for its own reasons.
+   *
+   * It also covers the §12 denials that CANNOT be probed on this machine.
+   * `169.254.169.254` is the clearest: measured, it times out from an ordinary
+   * bridge network too, because Docker Desktop runs no metadata service — so a
+   * probe for it is green on any topology and proves nothing. With no default
+   * route there is no path to any off-network address, link-local included.
+   * Task 18's S6 matrix measures the reachable set directly.
+   *
+   * Note IPAM is NOT the place to check this: measured, both an internal and an
+   * ordinary bridge network report an `IPAM.Config[].Gateway`. The difference is
+   * only visible from inside the container's routing table.
+   */
+  it('has no default route — the mechanism behind every denial below', async () => {
+    expect(await hasDefaultRoute(appNetwork(SLUG, KIND))).not.toBe(0)
+    expect(await hasDefaultRoute('bridge')).toBe(0)
+  })
+
+  /**
+   * §12 denies app -> the developer's own machine, where the control plane listens.
+   * Probed at 7107 (the registry), NOT 7100: the control plane is a HOST process
+   * and is usually not running during tests, so a probe at 7100 fails from an
+   * ordinary bridge network too — measured, exit 7 — and the denial would pass on
+   * any topology. Reaching *any* host port is the property; 7107 is the one that
+   * always answers.
+   */
+  it('DENIES the host, where the control plane listens', async () => {
     expect(
-      await curlExit(appNetwork(SLUG, KIND), ['http://169.254.169.254/latest/meta-data/']),
+      await curlExit(appNetwork(SLUG, KIND), ['http://host.docker.internal:7107/v2/']),
     ).not.toBe(0)
   })
 
   it('DENIES the public internet — there is no egress until Task 5 gives it one', async () => {
-    expect(await curlExit(appNetwork(SLUG, KIND), ['https://registry.npmjs.org/'])).not.toBe(0)
+    expect(
+      await curlExit(appNetwork(SLUG, KIND), ['https://registry.npmjs.org/']),
+    ).not.toBe(0)
   })
 
-  // THE NEGATIVE CONTROL. The three denials above must be caused by `internal: true`
-  // and nothing else. On an ordinary bridge network the same probes must SUCCEED —
+  // THE NEGATIVE CONTROL. The denials above must be caused by `internal: true` and
+  // nothing else. On an ordinary bridge network the same probes must SUCCEED —
   // otherwise they are passing because the image is broken, the timeout is too
   // short, or the machine is offline, and they would keep passing after someone
   // removed the flag.
   it('NEGATIVE CONTROL: the same probes succeed on an ordinary bridge network', async () => {
-    // Reaching the HOST is the property under test, and 7100 may legitimately
-    // refuse the connection when the control plane is not running — so probe the
-    // registry, which is published on the host and always answering.
     expect(await curlExit('bridge', ['http://host.docker.internal:7107/v2/'])).toBe(0)
     expect(await curlExit('bridge', ['https://registry.npmjs.org/'])).toBe(0)
   })
@@ -1676,7 +1726,7 @@ Expected: FAIL — `Cannot find module './networks.js'`.
 `packages/control-plane/src/runtime/docker/networks.ts`:
 
 ```ts
-import type { EngineClient } from './engine.js'
+import { EngineError, type EngineClient } from './engine.js'
 import { appNetwork, type EnvironmentKind } from './names.js'
 
 /**
@@ -1684,8 +1734,10 @@ import { appNetwork, type EnvironmentKind } from './names.js'
  * Caddy because §21 forbids the control plane from reaching container IPs, so the
  * edge is the only thing that can. dnsmasq because §12 makes the resolver
  * per-container and an internal network cannot forward a query off itself.
+ *
+ * These are P1's `container_name` values from `infra/compose.yaml`, not guesses.
  */
-export const PLATFORM_NEIGHBOURS = ['manifest-caddy', 'manifest-dnsmasq-containers']
+export const PLATFORM_NEIGHBOURS = ['manifest-caddy', 'manifest-dns-containers']
 
 /**
  * `Internal: true` is the whole east-west section of §12 expressed as one flag: no
@@ -1715,7 +1767,17 @@ export async function ensureAppNetwork(
   return created!.Id
 }
 
-/** Idempotent: the daemon answers 403 when the container is already attached. */
+/**
+ * Idempotent: the daemon answers 403 when the container is already attached.
+ *
+ * Then it READS THE NETWORK BACK, because the POST cannot tell us it worked. A
+ * container that does not exist answers **404**, and the engine client maps 404 to
+ * `undefined` rather than throwing — deliberately, so §11's destroys can be
+ * idempotent. The two rules compose into a silent no-op: measured, a connect for
+ * `manifest-dnsmasq-containers` (a name that does not exist on this machine; P1
+ * calls it `manifest-dns-containers`) returned 404 and this function reported
+ * success. Every app network would have come up with no resolver and no edge.
+ */
 export async function attachPlatformNeighbours(
   engine: EngineClient,
   network: string,
@@ -1729,6 +1791,20 @@ export async function attachPlatformNeighbours(
       if (!message.includes('already exists in network')) throw error
     }
   }
+  const net = await engine.get<{ Containers?: Record<string, { Name: string }> }>(
+    `/networks/${network}`,
+  )
+  const attached = Object.values(net?.Containers ?? {}).map((c) => c.Name)
+  const missing = names.filter((n) => !attached.includes(n))
+  if (missing.length > 0) {
+    throw new EngineError(
+      'PLATFORM_NEIGHBOUR_NOT_ATTACHED',
+      `app network ${network} is missing ${missing.join(', ')}`,
+      'Is the platform up? `make up`, then `make doctor`. If a platform container ' +
+        'was renamed, PLATFORM_NEIGHBOURS in runtime/docker/networks.ts is the ' +
+        'single place that names them.',
+    )
+  }
 }
 
 export async function destroyAppNetwork(
@@ -1739,7 +1815,10 @@ export async function destroyAppNetwork(
   const name = appNetwork(slug, kind)
   for (const container of PLATFORM_NEIGHBOURS) {
     try {
-      await engine.post(`/networks/${name}/disconnect`, { Container: container, Force: true })
+      await engine.post(`/networks/${name}/disconnect`, {
+        Container: container,
+        Force: true,
+      })
     } catch {
       /* not attached, or the network is already gone — both are the desired end state */
     }
@@ -1754,20 +1833,50 @@ export async function destroyAppNetwork(
 pnpm test:docker
 ```
 
-Expected: PASS — 6 network tests, including three denials and the bridge-network
-positive control.
+Expected: PASS — 7 network tests: idempotency, the `Internal` flag, the platform
+neighbour readback, the no-default-route mechanism, two denials, and the
+bridge-network positive control.
 
 - [ ] **Step 5: Prove the denials come from `Internal: true`**
 
 Change `Internal: true` to `Internal: false` in `ensureAppNetwork`, remove the network
 by hand (`docker network rm mf-nettest-staging-net`) so it is recreated, and re-run.
 
-Expected: **FAIL** on all three denial tests at once — the metadata endpoint, the
-control plane and npmjs all become reachable. Restore the flag, remove the network
+Expected: **FAIL** on four tests at once — the `Internal` flag assertion, the
+no-default-route mechanism, and both denials. Restore the flag, remove the network
 again, and confirm green.
 
-**The one-line change failing three tests is the signal to look for.** If it fails only
-one, the other two were passing for a reason other than the topology.
+**The one-line change failing four tests is the signal to look for.** If it fails
+fewer, the rest were passing for a reason other than the topology.
+
+> **Corrected 2026-09-06, by running this control and counting.** It failed **two**,
+> of which only **one** was a denial. Three defects, all in the same family — a
+> denial that cannot fail:
+>
+> 1. **`PLATFORM_NEIGHBOURS` named `manifest-dnsmasq-containers`.** P1 calls it
+>    **`manifest-dns-containers`**. Measured: `POST /networks/<n>/connect` for a
+>    container that does not exist answers **404**, and Task 1's client maps 404 to
+>    `undefined` by design so §11's destroys can be idempotent — so the connect
+>    *reported success*. Every app network would have come up with **no resolver**,
+>    silently, first surfacing as an unexplainable DNS failure around Task 13.
+>    `attachPlatformNeighbours` now reads the network back and throws
+>    `PLATFORM_NEIGHBOUR_NOT_ATTACHED`; a test asserts both neighbours are present.
+>    Control: restoring the wrong name fails the run with exit **1** (it exits 0
+>    with the right name).
+> 2. **"DENIES the control plane" probed `host.docker.internal:7100`.** The control
+>    plane is a **host process** and is not running during tests, so that probe fails
+>    from an ordinary bridge network too — measured, **exit 7**. It passed on any
+>    topology. Repointed to **7107**, the registry, which always answers and which
+>    the positive control already proves reachable from bridge.
+> 3. **"DENIES the cloud metadata endpoint" probed `169.254.169.254`.** Measured, it
+>    times out from a bridge network too — **exit 28** — because Docker Desktop runs
+>    no metadata service. Nothing on this machine can make that probe discriminate.
+>    Replaced by asserting the **mechanism**: the container has no default route,
+>    paired with a bridge container that has one. That implies the metadata denial
+>    and every other off-network denial. **Do not check IPAM for this** — measured,
+>    an internal network and an ordinary bridge network *both* report an
+>    `IPAM.Config[].Gateway`; only the container's routing table differs. Task 18's
+>    S6 matrix measures the reachable set directly.
 
 - [ ] **Step 6: Commit**
 
