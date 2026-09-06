@@ -35,7 +35,7 @@
   open in a browser and show to somebody</strong> &mdash; not a status report, an actual working
   thing.</p>
   <div class="meta">
-    <span><b>Now</b> stage 1a, the first plan</span>
+    <span><b>Now</b> stage 1a &mdash; the first plan is built and running</span>
     <span><b>Full detail</b> &sect;17 of the design document</span>
   </div>
 </header>
@@ -53,6 +53,21 @@
   taken on developer machines; the rest were details, several of which fail silently and would
   have been expensive to find later. The remaining three are
   deliberately later, because each needs machinery that does not exist yet.</p>
+
+  <p class="claim"><strong>The first plan of stage 1a is now built, not just designed.</strong>
+  As of 5 September 2026 the platform&rsquo;s foundations run on one laptop &mdash; local web
+  addresses, the secure edge with its trusted certificates, the databases, the private package
+  and image registries, the locked-down build service, the AI gateway and the practice sign-in
+  service &mdash; and they start and pass their own checks <strong>with the internet switched
+  off</strong>, which is what S7 above was asking. Two commands bring it up, and two more
+  check <strong>49 separate properties</strong> of it &mdash; not that it started, but that it
+  is correct.</p>
+
+  <p class="claim">Building it was also a lesson about planning. The plan had been written and
+  reviewed before anyone ran it, and running it still turned up <strong>18 things that were
+  wrong</strong> &mdash; a third of them <em>checks that reported success while the thing they
+  were checking was broken or missing entirely</em>. That is the argument for the sequencing
+  choice below: build the earliest thing you can, rather than writing more plans first.</p>
 
   <div class="tw">
   <table>

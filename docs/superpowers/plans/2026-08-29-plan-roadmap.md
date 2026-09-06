@@ -114,6 +114,26 @@ row, not a design change.
 
 Recorded here because they are about *how to run this work*, and each was paid for.
 
+- **Executing P1 measured the plan-to-reality gap a second time, and it got wider.**
+  P1 was written, then self-reviewed (which found five defects). Executing its 13
+  tasks on 2026-09-05 found **18 more**. The proportions matter more than the count:
+  **six were checks that passed while the thing under test was broken or absent** —
+  an egress *negative control* that reported success because the network did not
+  exist and `docker` exited 125; a prompt-retention check that passed with LiteLLM
+  not running; an IdP metadata check that passed against a table built to
+  SimpleSAMLphp **1.x's** schema while every read threw; an IdP health check that
+  asserted a 303 arrived while its destination returned 500; a `port 53` report that
+  printed a blank line, which reads as *free*; and a builder egress check whose
+  assertion could not pass in either direction. One was a **genuine platform bug no
+  reading would find**: tinyproxy exits after every denial unless `DefaultErrorFile`
+  is set, and `restart: unless-stopped` hid it entirely — three allowed requests
+  caused zero restarts, one denied request caused one. Two were **plan-level
+  impossibilities**: `make doctor` asserted 7100–7199 were unbound on a path that
+  runs it *after* `make up`, and the `COMPOSE` constant had no `--env-file`, so
+  Compose looked for `infra/.env` and every `${VAR}` interpolated to nothing.
+  **The lesson is not "write better plans" — it is that a control is worth nothing
+  until you have watched it fail.** Every fix was accompanied by removing the thing
+  it protects and confirming red.
 - **A plan is not verified until it runs.** P2's written self-review found seven
   defects. Executing four of its twenty-one tasks then found five more, none of them
   findable on paper — pnpm 11 making an un-named build script a hard error, ESLint 9's
@@ -174,14 +194,15 @@ Recorded here because they are about *how to run this work*, and each was paid f
 | Plan | Phase | Scope | Demo |
 |---|---|---|---|
 | **P0** | 0 | Seven spike briefs | a findings note per spike |
-| **P1** | 1a-i | Local substrate | `make doctor` green offline; one name resolving correctly from host **and** container |
+| **P1** | 1a-i | Local substrate ✅ **EXECUTED 2026-09-05** | `make doctor` green offline; one name resolving correctly from host **and** container — **both demonstrated** |
 | **P2** | 1a-ii | Control-plane spine | project → spec → release, against the fake driver, in milliseconds, no Docker |
 | **P3** | 1a-iii | Docker driver & deploy spine ✅ **written** | fixture app healthy at a `manifest.internal` URL, clean checkout, offline |
 | **P4** | 1b | Identity, secrets & AI | the proof app — CWL login, Mongo write, LLM answer — via `curl` |
 | **P5** | 1c | Contract & clients | the §1 journey, clickable, driven twice over one contract |
 | **P6–P11** | 2 | six plans, listed below, **not written yet** | — |
 
-**P0, P1, P2 and P3 are written. P4 and P5 are not, deliberately** — see the
+**P1 is EXECUTED and green (2026-09-05).** P0, P2 and P3 are written; P2's Tasks 1
+and 9–11 are also executed. **P4 and P5 are not written, deliberately** — see the
 2026-09-04 decision in *Order of operations*, which puts execution before any further
 plan-writing. Each of P1–P5 carries the required plan header, its own file-structure
 map, and bite-sized TDD steps with real content — no plan may contain a step
@@ -189,9 +210,18 @@ standing in for a spike result.
 
 ### P1 — 1a-i · Local substrate
 
-*Depends on: S7. **Written 2026-08-30** —
-[`2026-08-30-p1-local-substrate.md`](./2026-08-30-p1-local-substrate.md), 13 tasks.
-Ready to execute; nothing blocks it.*
+*Depends on: S7. **Written 2026-08-30**, **executed 2026-09-05** —
+[`2026-08-30-p1-local-substrate.md`](./2026-08-30-p1-local-substrate.md), 13 tasks,
+all 13 done. `make doctor` 14 checks / 0 failed; `make verify` 31 checks / 0 failed;
+both green **offline**. Runbook: [`../RUNBOOK.md`](../RUNBOOK.md).*
+
+**Execution found 18 defects in a plan that had already been self-reviewed** — see
+*Lessons*. Six of them were **checks that passed while the thing under test was
+broken or absent**, and one was a genuine platform bug the plan's own check could
+never have caught. All are fixed in the code and written back into the plan with
+the measurement that found each. **The one part of P1's acceptance not run is the
+second-machine clean-clone test** — no second Mac was available; it is recorded as
+a gap in `RUNBOOK.md` rather than marked complete.
 
 §21's platform inventory as running infrastructure: dnsmasq with S7's resolved
 split-horizon design, the custom `xcaddy` image carrying rate-limiting and
@@ -375,7 +405,8 @@ execution layer.** Each is written when its predecessor lands.
    P1 on 2026-08-30 (13 tasks), P2 on 2026-08-31 (21 tasks), P3 on 2026-08-31
    (19 tasks, self-reviewed 2026-09-04).
 5. **Execute P1 → P2 → P3.** S6 is P3's acceptance exercise, as its Task 18.
-   **← the current work, starting with P1.**
+   **P1 is done — executed and green on 2026-09-05, and green offline.** ← the
+   current work is now **P2 Tasks 2–8 and 12–21**, then P3 in full.
 6. **Start the external track now** (below), in parallel with all of the above. It
    has the longest lead time in the project and no software dependency.
 7. **Write P4 once P3 has executed**, and P5 when P4 lands. Not before — see the
@@ -403,6 +434,13 @@ Three written plans is 53 tasks, of which **49 have never been run** (P2's Tasks
 exactly once, at five per four tasks. Writing P4 would add to it rather than price
 it.
 
+**Confirmed by P1's execution, 2026-09-05.** All 13 of P1's tasks ran; they yielded
+**18 defects** on top of the five its own self-review had already caught. The
+decision above was correct and the effect is larger than the numbers that motivated
+it: a third of the defects were controls reporting green against something broken or
+absent, which is the one failure mode that a *stack of unexecuted plans* cannot
+reveal and actively conceals. **36 tasks remain unrun** (P2's 17, P3's 19).
+
 *Rejected:* writing P4 and P5 first, on the argument that plan-writing and execution
 want different context and batching them is cheaper per plan. It is — and it is more
 expensive overall when the plans are wrong in ways only execution reveals, which is
@@ -411,12 +449,18 @@ what the one measurement says happens.
 *Cost of changing course back:* structurally nothing. P4's inputs — S2, S3 and P3 —
 are all in hand, so it can be written at any point without waiting on anything.
 
-*What executing P1 needs from Rich, and cannot do for itself:* `make up` re-adds the
-`127.0.0.2` loopback alias with `sudo`, guarded so it prompts only when the alias is
-missing. **`sudo` cannot prompt from a tool call.** It has to be `! sudo …` in Rich's
-own terminal. P1's demo also has two parts nothing has tested yet — an **offline**
-`make up`, and a **fresh clone on a second machine**, which should be a machine with
-Valet installed, because that is the known interesting case.
+*What executing P1 needed from Rich, and could not do for itself* — **all settled
+2026-09-05.** `sudo` cannot prompt from a tool call, so `make host-setup` was
+bundled and Rich ran it in his own terminal; the alias, resolver and keychain trust
+all landed first time. The **offline** run was likewise his, because disabling Wi-Fi
+cuts the agent off too — `scripts/offline-acceptance.sh` exists for exactly that, and
+it **passed**: `make up` green with no network, doctor 14/14, verify 33/33. The
+**fresh clone on a second machine remains untested** — no second Mac was available,
+and it is recorded as a gap in `RUNBOOK.md` rather than claimed. It should be a
+machine with Valet installed, because that is the known interesting case.
+
+*What is still Rich's:* `make host-undo` has never been run end to end. It is one
+command, and `make host-setup` puts everything straight back.
 
 **Spikes come before plans, including P2.** An earlier version of this section said
 to write P2 during step 2 on the grounds that it was spike-independent. That was

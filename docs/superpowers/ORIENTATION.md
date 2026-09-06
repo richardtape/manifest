@@ -6,7 +6,7 @@ point: what Manifest is, what has been established, what the machine will do to
 you, and what to do next. It is written for someone with **no prior context** —
 a new agent with a fresh window, or a developer joining.
 
-*Last verified 2026-09-04.* Two things in this file state current status and will go
+*Last verified 2026-09-05.* Two things in this file state current status and will go
 stale: §2 and §7. **The roadmap's ledger outranks both** — it is the maintained
 record. Everything else here is durable.
 
@@ -27,18 +27,18 @@ everything.
 
 ## 2. Where things stand
 
-**Four spikes are done. Four plans are written. The first product code is running,
-and executing it is now the work.**
+**Four spikes are done. Four plans are written. P1 is fully executed and green —
+the platform actually runs, offline — and P2's remaining tasks are next.**
 
 | | State |
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. S6, S5 and S4 are deliberately later (S6 is P3's acceptance exercise, S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
-| **Plans** | **P0** (spike briefs), **P1** (local substrate, 13 tasks), **P2** (control-plane spine, 21 tasks) and **P3** (Docker driver and deploy spine, 19 tasks) are complete. P3 was written 2026-08-31 and self-reviewed 2026-09-04, which found seven defects — the worst being that **nothing wired the Docker driver into the boot entry point**, so its own `make demo` would have passed against the fake driver. **P4 and P5 are unwritten, deliberately** — see §7. |
-| **Code** | **P2's runtime island, built 2026-08-31 and green**: pnpm workspace, the §11 `Driver` interface, the fake driver, the driver contract suite P3 inherits unchanged, the instance state machine. 19 tests via `pnpm test`; no Docker, no Postgres, no network. No `Makefile` yet (P1), no HTTP surface yet (P2 Tasks 12–21). |
+| **Plans** | **P1 is EXECUTED, 2026-09-05 — all 13 tasks, green, and green offline.** **P0** (spike briefs), **P2** (control-plane spine, 21 tasks) and **P3** (Docker driver and deploy spine, 19 tasks) are written. P3 was written 2026-08-31 and self-reviewed 2026-09-04, which found seven defects — the worst being that **nothing wired the Docker driver into the boot entry point**, so its own `make demo` would have passed against the fake driver. **P4 and P5 are unwritten, deliberately** — see §7. |
+| **Code** | **The platform runs.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. **`make doctor` 14 checks / 0 failed, `make verify` 31 checks / 0 failed, both green offline.** Alongside it, **P2's runtime island** (2026-08-31): the §11 `Driver` interface, the fake driver, the contract suite P3 inherits, the instance state machine — 19 tests via `pnpm test`. Still no HTTP surface (P2 Tasks 12–21). |
 | **Spec** | Current. Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
-The immediate work is **executing P1** — see §7. That is a change of course made on
-2026-09-04: plan-writing stops until P3 has run. The reasoning is in the roadmap's
+The immediate work is **P2 Tasks 2–8 and 12–21**, then P3 — see §7. Plan-writing
+stays stopped until P3 has run. The reasoning is in the roadmap's
 *Order of operations*, and the short version is that the only time anyone measured the
 defect rate of an unexecuted plan, four of P2's tasks yielded five defects that no
 amount of reading would have found.
@@ -54,12 +54,14 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
 | **writing a plan** | §7 below, the roadmap's section for your plan, the findings notes it names, and `plans/2026-08-30-p1-local-substrate.md` **or** `2026-08-29-p2-control-plane-spine.md` as the house style. |
 | **executing a plan** | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan. |
-| **writing code** | `packages/control-plane/src/runtime/` is the only module that exists. Read `driver.ts` and `driver-contract.ts` first — everything else in the system is built against them. |
+| **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
+| **writing code** | `packages/control-plane/src/runtime/` is the only TypeScript module that exists. Read `driver.ts` and `driver-contract.ts` first — everything else in the system is built against them. |
 | **changing the spec** | Don't, without asking. It is marked *Approved design*. Record the proposed change and Rich decides — that has been the pattern five times. |
 
 ```
 docs/superpowers/
 ├── ORIENTATION.md          ← you are here
+├── RUNBOOK.md              HOW TO RUN THE PLATFORM. Start here to use it.
 ├── external-track.md       the UBC IAM / PIA work that runs in parallel
 ├── specs/
 │   ├── 2026-08-29-manifest-platform-design.md    AUTHORITATIVE. 27 sections.
@@ -91,7 +93,9 @@ docs/superpowers/
                                Kept as a record; do not act on either.
 ```
 
-**And the code**, all of it, as of 2026-08-31:
+**And the code.** P1 added the whole `infra/` and `scripts/` tree on 2026-09-05 —
+`Makefile`, `infra/compose.yaml` and the ten platform services, `scripts/doctor.sh`
+and `scripts/verify.sh`. Below is the TypeScript island as of 2026-08-31:
 
 ```
 .nvmrc  package.json  pnpm-workspace.yaml  tsconfig.base.json
@@ -257,8 +261,11 @@ which is why P1's **offline** acceptance can only run after a successful seed.
 `ghcr.io/berriai/litellm:main-stable`, `node:22-alpine`, `curlimages/curl:8.11.1`,
 `moby/buildkit:v0.32.2-rootless`, `mongodb/mongodb-community-server:7.0.28-ubi8`.
 
-**That list is a hint, not a fact.** Verified against the machine on 2026-09-04:
-`caddy:2.11.4` and `caddy:2.11.4-builder` are **still absent** and P1 needs both;
+**That list is a hint, not a fact.** P1's execution on 2026-09-05 pulled and built
+what it needed, so `caddy:2.11.4`, `alpine:3.22`, `php:8.3-apache` and `composer:2`
+are now present, and four base images are **mirrored into the local registry** with
+their digests pinned in `infra/images.lock` — which is what makes offline builds
+work, since merely pulling is not enough. As verified on 2026-09-04, before that:
 **`anchore/syft:v1.51.1` and `anchore/grype:v0.118.0` are absent** and P3 Task 12
 needs them; the `alpine` present is **3.20**, not 3.22, and its digest is the one
 `S1-controls-settled.md` used; and **`moby/buildkit:v0.27.0-rootless` sits alongside
@@ -270,10 +277,17 @@ again at the end and `diff` the two — that is how "leave the machine exactly a
 found it" stops being a memory. Today's baseline is
 [`machine-baseline-2026-09-04.md`](machine-baseline-2026-09-04.md).
 
-**Two things that snapshot found which will bite you.** The `127.0.0.2` alias is
-**absent right now**, so P1's `make up` will want `sudo` on its first run. And
-`docker-simple-saml-saml-idp-1` is **exited, not running** — "must survive" means do
-not delete it, not that it is up.
+**What P1's execution changed, 2026-09-05.** The three host changes are now **in
+place**: `/etc/resolver/manifest.internal`, the `127.0.0.2` alias on `lo0`, and the
+Caddy root trusted in the System keychain. All three are reversible with
+`make host-undo`. `docker-simple-saml-saml-idp-1` is still **exited, not running** —
+"must survive" means do not delete it, not that it is up. Valet was verified
+untouched: its config files are unmodified (mtime 2026-07-03) and its dnsmasq is the
+same process it has run since 1 September.
+
+**One pre-existing oddity, flagged not fixed.** Valet's `.test` did not resolve
+during P1's execution, although `/etc/resolver/test` and Valet's dnsmasq config are
+both intact and unmodified. P1 did not cause it and did not touch it.
 
 **Do not read a blank port as a free port.** Without `sudo`, `lsof` cannot see sockets
 owned by other users, and Valet's dnsmasq runs as `nobody` — so port 53 reads as empty
@@ -358,38 +372,46 @@ coherent. Follow them.
 
 ---
 
-## 7. What to do next — execute P1
+## 7. What to do next — finish P2, then P3
 
-**This section changed direction on 2026-09-04.** The intent until then was to write
+**This section changed direction on 2026-09-04, and P1 has since executed.** The intent until then was to write
 every remaining plan before implementing any of them. It is now the opposite:
 **execute what is written, and do not write P4 until P3 has run.** The full reasoning
 is the roadmap's *Order of operations*; the short version is that the defect rate of
 an unexecuted plan has been measured exactly once — four of P2's twenty-one tasks
-yielded **five** defects, and **none of the five was findable on paper.** There are
-now 53 written tasks, **49 of which have never been run**. Adding P4 to that stack
-prices nothing.
+yielded **five** defects, and **none of the five was findable on paper.**
 
-### 7a. Execute P1 — the local substrate (1a-i) *(start here)*
+**P1's execution then measured it again, at full scale: 13 tasks, 18 defects** — a
+third of them controls reporting green against something broken or absent. **36
+written tasks remain unrun** (P2's 17, P3's 19). Adding P4 to that stack prices
+nothing.
+
+### 7a. P1 is done *(executed 2026-09-05)*
 
 [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md) —
-13 tasks. It is self-contained by construction; if it is not, that is a defect in the
-plan and should be fixed there rather than worked around.
+13 tasks, all executed and green. The platform runs; read
+[`RUNBOOK.md`](RUNBOOK.md) to start it, not the plan.
 
-**Use `superpowers:subagent-driven-development` or `superpowers:executing-plans`.**
+`make doctor` is 14 checks / 0 failed, `make verify` is 31 checks / 0 failed, and
+**both are green with the network off** — the offline half no spike had ever tested.
+The C1 demo holds: `https://console.manifest.internal/` returns a byte-identical
+hostname and scheme from the host and from inside a container, no port, no `-k`.
 
-**Three things about P1 specifically:**
+**Executing it found 18 defects in an already-self-reviewed plan**, and the shape of
+them is the durable lesson: **six were checks that passed while the thing under test
+was broken or absent.** An egress negative control reported success because the
+network did not exist; a retention check passed with LiteLLM not running; an IdP
+metadata check passed against a SimpleSAMLphp **1.x** schema while every read threw.
+One was a real platform bug nothing on paper would find — tinyproxy exits after
+every denial without `DefaultErrorFile`, and `restart: unless-stopped` hid it.
+Every fix is written back into the plan with the measurement that found it.
 
-| | |
-|---|---|
-| **It needs `sudo`, once** | `make up` re-adds the `127.0.0.2` loopback alias, guarded so it only prompts when the alias is missing. **`sudo` cannot prompt from a tool call** — bundle it and ask Rich to run `! sudo …` in his own terminal. The alias does not survive a reboot; `can't assign requested address` means it is gone. |
-| **Its demo is C1's bar** | `make doctor` green **offline**, and one name resolving correctly from the host **and** from inside a container. Two parts of it have never been tested: the offline `make up`, and a fresh clone on a second machine. |
-| **The second-machine test wants a machine with Valet** | That is the known interesting case, because Valet owns `.test`, port 53 and ports 80/443 — see §4. |
+**The one thing P1 did not prove: the second-machine clean clone.** No second Mac
+was available. It is recorded as a gap in `RUNBOOK.md`, not quietly dropped — and
+the interesting case is a Mac **with Valet**, since that collision is why the zone
+is `manifest.internal`. `make host-undo` has also never been run end to end.
 
-**Expect defects, and record them.** P1's own self-review found five; that is a
-statement about what a *written* plan is worth, not about P1. When execution finds
-something the plan got wrong, fix the plan, not just the code.
-
-### 7b. Then P2 Tasks 12–21, then P3
+### 7b. P2 Tasks 2–8 and 12–21, then P3 *(start here)*
 
 P2's Tasks 1, 9, 10 and 11 are already executed and green. Tasks 2–8 and 12–21 are
 the HTTP surface, the database schema and `spec/`. Then P3 in full, whose **Task 18
@@ -453,18 +475,27 @@ Surface these; do not decide them.
 - **Does LiteLLM's embedding `encoding_format` bug affect a commercial provider, or
   only the Ollama path?** Unmeasured — only Ollama was reachable offline. Cheap to
   settle the first time anyone has a provider key.
-- **Should the blueprint base image move from `node:22-alpine` to 24?** The *control
-  plane* was repinned to Node 24 on 2026-08-31; this is the separate, app-side
-  question — what faculty apps run in. Not free: S1 recorded that image's exact
-  digest and mirrored it into the local registry, P1 references it in three places
-  including `make doctor` and the **offline** acceptance test, and `node:24-alpine`
-  is not pulled on this machine. **Decide it when P1 executes**, where the cost is
-  visible, not in passing.
+- **Should the blueprint base image move from `node:22-alpine` to 24?** Still open,
+  but **the cost is now measured** rather than guessed — P1 said to price it during
+  execution, and execution has happened. It is **one line in `infra/images.txt` plus
+  a `make seed`**. The offline acceptance check turned out to reference the registry
+  *repository* (`/v2/node/tags/list`), not the tag, so it is unaffected; `make
+  doctor` compares against `infra/images.lock`, which `make seed` regenerates. The
+  digest S1 recorded stays valid as a record of what 22 was. So the earlier "not
+  free, three places" framing was too pessimistic: the only real cost is pulling a
+  new image once, with network. **Still Rich's call** — it changes what faculty apps
+  run in, which is a compatibility decision, not a mechanical one.
 
 **Closed recently:** the §11/§23 hostname disagreement — settled 2026-08-31 in §23's
 favour and both spec edits applied. The environment kind lives in the **zone**, never
 as a suffix on the label, because those suffixes are themselves legal slugs and
 `{slug}-staging` is squattable across tenants. §11's row now points at §23.
+
+**Closed 2026-09-05, by executing P1.** Two things that had been open assumptions:
+the **offline** half of C1 (now demonstrated — `make up`, doctor and verify all
+green with Wi-Fi off), and whether `make host-setup`'s three privileged steps work
+as one bundled command (they do, first time). What remains untested is the
+**second machine**; see `RUNBOOK.md`'s *Known gaps*.
 
 **Closed recently:** who re-adds the `127.0.0.2` alias after a reboot. P1 decides it:
 `make up` does, with `sudo`, guarded so it prompts only when the alias is missing. A
