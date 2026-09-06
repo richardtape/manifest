@@ -702,9 +702,11 @@ const resourcesSchema = z
   })
   .strict()
 
-// runtime is NOT .strict() — it is .strip()ped after an explicit `build` check, so
-// that a build block produces its own error code (D13) rather than a generic
-// "unrecognized key". Task 3 maps it.
+// `build` is DECLARED as `z.never().optional()` rather than left to .strict()'s
+// unknown-key handling. Both reject it, but only the declared field reports at
+// path `runtime.build`; .strict() alone reports `unrecognized_keys` at path
+// `runtime`, which is how D13's refusal would have arrived as a generic
+// "unrecognized key". Task 3 maps the path to SPEC_BUILD_BLOCK_FORBIDDEN.
 const runtimeSchema = z
   .object({
     port: z.number().int().min(1).max(65535),
@@ -783,6 +785,27 @@ pnpm --filter @manifest/control-plane test src/spec/schema.test.ts
 ```
 
 Expected: PASS, 6 tests.
+
+> **Defect found in execution (2026-09-05).** The comment above `runtimeSchema`
+> said *"runtime is NOT `.strict()` — it is `.strip()`ped after an explicit
+> `build` check"* while the code three lines below it was `.strict()`. The code was
+> right and the comment was wrong, but the comment is the part a reader trusts when
+> deciding whether a `runtime` key may be silently dropped — and P2 hands this file
+> to P3 and P4. **Measured against:** the mutation `build: z.never().optional()` →
+> `z.unknown().optional()`, which turns Task 2's D13 test red and Task 3's
+> `SPEC_BUILD_BLOCK_FORBIDDEN` test red with it. The declared-field-versus-strict
+> distinction is real and load-bearing; only the description of it was inverted.
+> The comment now states what the code does and why.
+
+> **Negative controls run (2026-09-05).** Eight mutations, each applied to
+> `schema.ts` alone, each reverted: top-level `.strict()` removed → *rejects unknown
+> top-level keys* red; `build` declared `z.unknown()` → *rejects a runtime.build
+> block* red; `AUTH_PATH` dropped from `auth.callback` → *rejects auth.callback that
+> is a URL* red; `SLUG` dropped from `name` → *rejects a name that breaks the slug
+> regex* red; reserved blocks retyped `z.array(z.unknown())` → *rejects non-empty
+> reserved blocks* red; and each of the three defaults the first test pins
+> (`/healthz`, `internal`, `none`) changed → *applies defaults* red. **No mutation
+> left the suite green.**
 
 - [ ] **Step 5: Commit**
 
