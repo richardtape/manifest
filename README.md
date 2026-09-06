@@ -9,7 +9,7 @@ This repository is the **deployment control plane**. The faculty-facing front-en
 a separate project; what lives here is the platform it consumes, plus a reference
 console that proves the API can carry the whole journey.
 
-## Status: the platform runs locally
+## Status: the platform runs locally, and so does the control plane
 
 **P1 is executed and green as of 2026-09-05.** `make seed && make host-setup &&
 make up` brings up the whole §21 inventory — split-horizon DNS, a custom `xcaddy`
@@ -21,28 +21,40 @@ network off**. `https://console.manifest.internal/` returns the same hostname an
 scheme from the host browser and from inside a container — no port, no certificate
 warning. See [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md).
 
-**P2 is eleven tasks in.** Its runtime island landed 2026-08-31 — the §11 `Driver`
-interface, the in-memory fake driver, the shared contract suite P3 inherits
-unchanged, and the instance state machine. **Tasks 2–8 followed on 2026-09-05**: the
-`manifest.yaml` schema, machine-actionable errors, policy validation,
-`isSensitiveDiff`, the blueprint descriptor and registry, the `fixture-node`
-blueprint, and the Drizzle schema against P1's Postgres. **80 tests.** The design is
-approved and complete.
+**P2 is executed and green as of 2026-09-05 — all 21 tasks.** The control plane
+serves HTTP on **7100**: the `manifest.yaml` schema and its machine-actionable
+errors, policy validation, blueprints, the §11 `Driver` interface with an in-memory
+fake and the contract suite P3 inherits unchanged, the instance state machine, the
+Drizzle schema against P1's Postgres, signed session cookies with a dev-only auth
+shim, the §13 capability model, a local bare-repo source driver, immutable releases,
+and a Fastify surface with D23.6 idempotency keys and the D23.7 error envelope on
+every failure. **224 tests.** The whole faculty lifecycle — project, spec, build,
+release, staging deploy to healthy, production correctly refused with its §13
+checklist — runs against the fake driver in **~300 ms**. See
+[*Running the control plane*](#running-the-control-plane) below.
+
+The design is approved and complete.
 Seven throwaway spikes de-risk it; **four are done — S7, S2, S1 and S3 — and all four
 answered yes**, each far inside its timebox, with every spec change they implied
 already applied. The remaining three are scheduled later, against machinery that does
 not exist yet.
 
-**Three implementation plans are complete** — P1, the local substrate (13 tasks,
-**all executed**), P2, the control-plane spine (21 tasks, **eleven executed**), and
-P3, the Docker driver and deploy spine (19 tasks). **P4 and P5 are unwritten, and that
-is deliberate: on 2026-09-04 the project stopped writing plans and started executing
-them.** P1's execution vindicated that decision — 13 tasks produced **18 defects** in
-a plan that had already been self-reviewed, and a third of them were *checks that
-passed while the thing under test was broken or absent*. **P2's Tasks 2–8 then
-produced 20 more**, including a `pnpm format` that would have rewritten the approved
-spec and a blueprint Dockerfile that could not build at all. **P2 Tasks 12–21 are the
-current work.**
+**Three implementation plans are complete, and two of them have run** — P1, the
+local substrate (13 tasks, **all executed**), P2, the control-plane spine (21 tasks,
+**all executed**), and P3, the Docker driver and deploy spine (19 tasks, **the only
+unrun plan**). **P4 and P5 are unwritten, and that is deliberate: on 2026-09-04 the
+project stopped writing plans and started executing them.**
+
+Execution vindicated that decision three times over. P1's 13 tasks produced **18
+defects** in a plan that had already been self-reviewed, a third of them *checks that
+passed while the thing under test was broken or absent*. P2's Tasks 2–8 produced
+**20 more**, including a `pnpm format` that would have rewritten the approved spec.
+P2's Tasks 12–21 produced **27 more** — six type errors **no test could catch**,
+because Vitest strips types without checking them; five test-isolation defects that
+made the suite pass or fail on the order Vitest happened to pick; and two safety
+mechanisms that turned out to be **one edit from a live authentication bypass and a
+live IDOR**, both of which answered `200` when broken. **Executing P3 is the current
+work.**
 
 ## Where to start
 
@@ -53,9 +65,10 @@ this machine will do to you, and what to do next. Then:
 | If you are… | Read |
 |---|---|
 | Running the platform | [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md) — `make seed && make host-setup && make up` |
-| Finishing P2 (**the current job**) | ORIENTATION §7b, then [`docs/superpowers/plans/2026-08-29-p2-control-plane-spine.md`](docs/superpowers/plans/2026-08-29-p2-control-plane-spine.md) — **Tasks 12–21**; 1–11 are executed |
+| Executing P3 (**the current job**) | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md`](docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md) — 19 tasks, written and self-reviewed, never run |
+| Running the control plane | [*Running the control plane*](#running-the-control-plane) below — `make up`, then `pnpm --filter @manifest/control-plane dev` |
 | Executing any plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan — fix it there |
-| Writing the next plan (**P4, and not yet**) | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-29-plan-roadmap.md`](docs/superpowers/plans/2026-08-29-plan-roadmap.md). It is held until P3 executes |
+| Writing the next plan (**P4, and not yet**) | ORIENTATION §7d, then [`docs/superpowers/plans/2026-08-29-plan-roadmap.md`](docs/superpowers/plans/2026-08-29-plan-roadmap.md). It is held until P3 executes |
 | Looking for what a spike proved | `docs/superpowers/spikes/S{7,2,1,3}-findings.md` — the answer is the first sentence of each |
 | Looking for the architecture | [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](docs/superpowers/specs/2026-08-29-manifest-platform-design.md) — authoritative, ~2,340 lines. ORIENTATION §3 tells you which sections you actually need |
 | Explaining this to someone non-technical | [`manifest-schematic.html`](docs/superpowers/specs/manifest-schematic.html) and its companions — the same design in plain language, plus six worked faculty stories |

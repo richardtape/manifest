@@ -195,15 +195,16 @@ Recorded here because they are about *how to run this work*, and each was paid f
 |---|---|---|---|
 | **P0** | 0 | Seven spike briefs | a findings note per spike |
 | **P1** | 1a-i | Local substrate ✅ **EXECUTED 2026-09-05** | `make doctor` green offline; one name resolving correctly from host **and** container — **both demonstrated** |
-| **P2** | 1a-ii | Control-plane spine — **11 of 21 tasks executed** (1–11) | project → spec → release, against the fake driver, in milliseconds, no Docker |
+| **P2** | 1a-ii | Control-plane spine ✅ **EXECUTED 2026-09-05** — all 21 tasks | project → spec → release → staging deploy, against the fake driver, **~300 ms**, no Docker — **demonstrated** |
 | **P3** | 1a-iii | Docker driver & deploy spine ✅ **written** | fixture app healthy at a `manifest.internal` URL, clean checkout, offline |
 | **P4** | 1b | Identity, secrets & AI | the proof app — CWL login, Mongo write, LLM answer — via `curl` |
 | **P5** | 1c | Contract & clients | the §1 journey, clickable, driven twice over one contract |
 | **P6–P11** | 2 | six plans, listed below, **not written yet** | — |
 
-**P1 is EXECUTED and green (2026-09-05).** P0, P2 and P3 are written; **P2's Tasks
-1–11 are executed** — 1 and 9–11 on 2026-08-31, then **2–8 on 2026-09-05**, which
-found **20 defects** of their own. **Tasks 12–21 remain**, then P3 in full. **P4 and P5 are not written, deliberately** — see the
+**P1 and P2 are both EXECUTED and green (2026-09-05).** P0 and P3 are written; P2's 21 tasks
+ran in three sittings — 1 and 9–11 on 2026-08-31, **2–8** and then **12–21** on
+2026-09-05, finding **20** and **27** defects respectively. **P3 is the whole of the
+remaining written work.** **P4 and P5 are not written, deliberately** — see the
 2026-09-04 decision in *Order of operations*, which puts execution before any further
 plan-writing. Each of P1–P5 carries the required plan header, its own file-structure
 map, and bite-sized TDD steps with real content — no plan may contain a step
@@ -252,7 +253,7 @@ infrastructure plan a real test cycle.
 
 *Depends on: **S1**, for the `Driver` interface only. Executes after P1.*
 
-*Status: **complete — 21 tasks**, 2026-08-31. Written in two passes. Tasks 1–8 landed
+*Status: **EXECUTED — all 21 tasks, 2026-09-05.** Written 2026-08-31 in two passes. Written in two passes. Tasks 1–8 landed
 first and paused there: settled by §7 and §25, and safe against any spike outcome.
 Tasks 9–10 were drafted at the same time but held back, because S1 existed to correct
 the `Driver` interface and the contract suite P3 inherits; Tasks 11 onward were
@@ -261,11 +262,23 @@ interface needed no revision**, so Tasks 9–10 were promoted rather than rewrit
 Tasks 11–21 written against them. The plan's self-review caught seven defects and
 records each one.*
 
-*Executed so far: **Tasks 1, 9, 10 and 11** on 2026-08-31, and **Tasks 2–8 on
-2026-09-05** — the `manifest.yaml` schema, machine-actionable errors, policy
-validation, `isSensitiveDiff`, the blueprint descriptor and registry, the
-`fixture-node` blueprint, and the database schema against P1's Postgres. **80 tests
-green**, plus `pnpm lint`, `typecheck` and `format:check`. **Tasks 12–21 remain.***
+*Executed in three sittings: **Tasks 1, 9, 10 and 11** on 2026-08-31 (the runtime
+island — no Postgres, no Docker), **Tasks 2–8 on 2026-09-05** (the `manifest.yaml`
+schema, machine-actionable errors, policy validation, `isSensitiveDiff`, the
+blueprint descriptor and registry, the `fixture-node` blueprint, and the database
+schema against P1's Postgres), and **Tasks 12–21 on 2026-09-05** — configuration and
+the dev-auth kill switch, sessions and the shim, the §13 capability model, the D5
+source driver, environment resolution and immutable releases, the Fastify server with
+D23.6 idempotency and the D23.7 error envelope, the project, spec and delivery
+routes, the §16 authorization contract suite, and the lifecycle acceptance.*
+
+***P2's demo holds.** `pnpm test` is **224 tests / 23 files**, with `pnpm lint`,
+`typecheck` and `format:check` clean. The full lifecycle — log in, create a project,
+provision a bare repository, validate the spec at that commit, build, release, deploy
+to staging and reach healthy, then be refused production with its §13 checklist —
+runs against the fake driver in **~300 ms** against a 1000 ms budget. The control
+plane also **boots and serves HTTP on 7100**, verified with `curl` rather than only
+by `app.inject`. fastify 5.12.3, @fastify/cookie 11.1.2.*
 
 *Executing Tasks 2–8 found **20 defects**, each recorded inline at its task with what
 it was measured against. The three worst were not in the code the tasks wrote but in
@@ -288,7 +301,34 @@ caught almost nothing; `typescript-eslint` does not honour an `_` prefix by defa
 so the fake driver's faithful `exec(id, cmd, _opts)` failed lint; and the state
 machine's unguarded table index turned drift into a TypeError in an unrelated test.
 All four are fixed in the plan. **Tasks 2–8 followed on 2026-09-05** — see the
-paragraphs above. **Tasks 12–21 are written but unexecuted.***
+paragraphs above.*
+
+*Executing **Tasks 12–21** on 2026-09-05 found **27 more defects**, each recorded
+inline with its measurement. **Tasks 12–15 had none**; all 27 landed in the six tasks
+from `releases/` onward, where the plan stopped being pure functions and started
+touching a framework, a database and a process. The classes, in size order: **six**
+`exactOptionalPropertyTypes` failures in six files that **no test could ever catch**,
+because Vitest strips types without checking them; **five** test-isolation defects —
+API tests share one real database, collide on a unique slug, and left `pnpm test`
+not repeatable, while `withRollback` turned out not to isolate a suite from rows
+somebody else **committed**, so three suites had been green only because the database
+happened to be empty; **five** controls that were green because they were not looking;
+**four** concrete values wrong on contact; **four** stated properties the code did not
+have.*
+
+***Two of them were one edit away from being live.** `/auth/dev-login` passed
+`devAuthEnabled: true` as a literal, so the route-registration guard was the only
+thing between that endpoint and an authentication bypass — removing it made the route
+answer **200 with a real session**, not the refusal the plan's own step predicted.
+And `GET /builds/:buildId` made to honour a client-supplied `projectId` let one user
+read another's build with **200**. Both read, in review, as "check the project".*
+
+***And nothing had ever executed the boot entry point.** No test imports
+`src/index.ts`; the `dev` script the plan's README section names did not exist, and
+would not have worked if it had, because Node resolves NodeNext `.js` specifiers
+literally. **This is the same gap P3's self-review found in P3** — no task wired the
+Docker driver into boot, so `make demo` would have passed against the fake one. P3
+should assume its entry point is untested until something has curled it.*
 
 Repository scaffolding (gap 1), the Fastify service, Drizzle schema for §6's
 entities, and the modules that are pure functions or driver-agnostic:
@@ -422,13 +462,13 @@ execution layer.** Each is written when its predecessor lands.
    list should start before they report.
 3. **Run S1 and S3.** Done — 2026-08-30. All four Phase-1a-blocking spikes have
    reported.
-4. **Write P1, P2 and P3** with real findings in them. **All three are written** —
+4. **Write P1, P2 and P3** with real findings in them. **All three are written, and P1 and P2 are executed** —
    P1 on 2026-08-30 (13 tasks), P2 on 2026-08-31 (21 tasks), P3 on 2026-08-31
    (19 tasks, self-reviewed 2026-09-04).
 5. **Execute P1 → P2 → P3.** S6 is P3's acceptance exercise, as its Task 18.
-   **P1 is done — executed and green on 2026-09-05, and green offline.** ← the
-   current work is now **P2 Tasks 12–21**, then P3 in full. Tasks 2–8 were executed
-   on 2026-09-05.
+   **P1 and P2 are both done — executed and green on 2026-09-05**, P1 green offline
+   too. ← the current work is now **P3 in full**, all 19 tasks. It is the last plan
+   written, and executing it is what unblocks writing P4.
 6. **Start the external track once the local proof of concept works end to end.**
    **Changed 2026-09-05, Rich's call.** This step previously said *"start now, in
    parallel"*, on the argument that C4 has the longest lead time and no software
@@ -451,6 +491,15 @@ Rich's call, on this evidence.
 early rather than bank a large unexecuted stack, and nothing had acted on it. The
 measurements are one-sided:
 
+- **P2 is now fully measured, and the rate did not fall.** 21 tasks, executed in
+  three sittings, produced **7** defects on paper and **51** in execution — 5 from
+  Tasks 1/9/10/11, 20 from Tasks 2–8, 27 from Tasks 12–21. The last batch is the
+  most useful, because it is the first time this project executed tasks that touch a
+  *framework*: six of those 27 were type errors **no test could catch**, since Vitest
+  strips types without checking them, and five were test-isolation defects that made
+  the suite pass or fail depending on the order Vitest happened to pick. **Two were
+  one edit from a live authentication bypass or a live IDOR**, and both read in
+  review as "check the thing".
 - P2's written self-review found **seven** defects. Executing **four** of its
   twenty-one tasks then found **five more**, and **not one of the five was findable
   by reading**.
@@ -461,18 +510,33 @@ measurements are one-sided:
 Three written plans is 53 tasks, of which **49 had never been run** when this was
 written (P2's Tasks 1, 9, 10 and 11 were executed and green). That is a stack
 carrying a defect rate measured exactly once, at five per four tasks. Writing P4
-would add to it rather than price it. *As of 2026-09-05 it is **29 unrun**: P1's 13
-and P2's 2–8 have since run, and both raised the measured rate rather than lowering
-it.*
+would add to it rather than price it. *As of 2026-09-05 the stack is **19 unrun** —
+P3's tasks, and nothing else. P1's 13 and all of P2's 21 have run, and every batch
+raised the measured rate rather than lowering it.*
 
 **Confirmed by P1's execution, 2026-09-05.** All 13 of P1's tasks ran; they yielded
 **18 defects** on top of the five its own self-review had already caught. The
 decision above was correct and the effect is larger than the numbers that motivated
 it: a third of the defects were controls reporting green against something broken or
 absent, which is the one failure mode that a *stack of unexecuted plans* cannot
-reveal and actively conceals. **29 tasks remain unrun** (P2's 10, P3's 19) — Tasks
-2–8 came off that stack on 2026-09-05 and yielded 20 more defects — a rate of
-**2.9 per task**, against P1's 1.4.
+reveal and actively conceals.
+
+**Confirmed again, and harder, by finishing P2 the same day.** The whole plan has now
+run. The measured rate by batch:
+
+| Batch | Tasks | Defects | Per task |
+|---|---|---|---|
+| P1 | 13 | 18 | 1.4 |
+| P2 Tasks 1, 9, 10, 11 | 4 | 5 | 1.3 |
+| P2 Tasks 2–8 | 7 | 20 | 2.9 |
+| **P2 Tasks 12–21** | **10** | **27** | **2.7** |
+
+**19 tasks remain unrun — P3's, and only P3's.** The rate has not fallen with
+practice; it rose the moment the tasks stopped being pure functions. P3 is *entirely*
+infrastructure and controls, so budget for its 19 tasks accordingly, and note that
+**six of P2's last 27 were type errors no test could see** and **five were test
+isolation** — two classes that a plan self-review, however careful, cannot detect by
+reading.
 
 *Rejected:* writing P4 and P5 first, on the argument that plan-writing and execution
 want different context and batching them is cheaper per plan. It is — and it is more

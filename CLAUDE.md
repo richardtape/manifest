@@ -15,27 +15,40 @@ not the plan. The three host changes are in place and all reverse with
 `make host-undo`. **Untested: the second-machine clean clone** — no second Mac was
 available; it is recorded in the runbook's *Known gaps*, not quietly dropped.
 
-**P2's Tasks 1–11 are executed and green.** The runtime island (the §11 `Driver`
-interface, the fake driver, the contract suite P3 inherits, the state machine) landed
-2026-08-31; **Tasks 2–8 landed 2026-09-05** — the `manifest.yaml` schema, machine-
-actionable errors, policy validation, `isSensitiveDiff`, the blueprint descriptor and
-registry, the `fixture-node` blueprint, and the Drizzle schema against P1's Postgres.
-**80 tests** via `pnpm test`; the `db/` ones need `make up`, and derive their
-connection from `.env` themselves. **Tasks 12–21 are the current work**, then P3.
+**P2 is executed and green (2026-09-05) — all 21 tasks. The control plane runs.**
+It serves HTTP on **7100**: `spec/`, `blueprints/`, `db/`, `runtime/` (the §11
+`Driver`, the fake driver, the contract suite P3 inherits), `source/`, `identity/`,
+`projects/`, `releases/` and a Fastify `api/` with D23.6 idempotency and the D23.7
+error envelope. **224 tests** via `pnpm test` — **run it from the repo root**, not
+with `--filter`; the two differ and that difference found a defect. The database
+tests need `make up` and derive their connection from `.env` themselves. To run the
+server, see *Running the control plane* in `README.md`. **P3 is the current work**
+and the only unrun plan.
 
-Executing 2–8 found **20 defects**, recorded inline in the plan. Three were in what
-the tasks assumed rather than what they wrote: `pnpm format` would have rewritten the
-approved spec; the `fixture-node` Dockerfile called `groupadd`/`useradd`, which
-`node:22-alpine` does not have; and the database client broke `pnpm test` for the
-whole workspace.
+Executing P2 found **52 defects** across three sittings — 5, then 20, then **27 in
+Tasks 12–21**. Four from that last batch are worth carrying: the plan's code had
+**never been typechecked** against this repo's own tsconfig, and six
+`exactOptionalPropertyTypes` errors were invisible to every test because Vitest
+strips types without checking them; **five test-isolation defects** made the suite
+pass or fail on the order Vitest happened to pick, and `withRollback` turned out not
+to protect a suite from rows another test *committed*; **two safety mechanisms were
+one edit from being live** — `/auth/dev-login` hardcoded `devAuthEnabled: true`, and
+`GET /builds/:id` could be made to trust a client-supplied `projectId`, both
+answering `200` when broken; and **nothing had ever executed the boot entry point**,
+which is the same defect P3's self-review found in P3.
 
-**Toolchain:** Node 24 via nvm, pnpm 11 via corepack. `pnpm test`, `pnpm lint`,
-`pnpm --filter @manifest/control-plane typecheck` must all be clean before a commit.
-For the platform itself it is `make doctor` and `make verify`.
+**Toolchain:** Node 24 via nvm, pnpm 11 via corepack. **Four gates, all clean before
+a commit:** `pnpm test` (from the repo root), `pnpm lint`,
+`pnpm --filter @manifest/control-plane typecheck` and `pnpm format:check`. The last
+two are not optional extras — Vitest strips types without checking them, so `tsc` is
+the only thing that sees a whole class of error, and `format:check` was silently red
+on 29 files until 2026-09-05. Run `pnpm test` **twice**: a suite that is not
+repeatable has a state leak. For the platform itself it is `make doctor` and
+`make verify`.
 
 Four spikes are done (S7, S2, S1, S3 — all answered yes). P0, P1, P2 and P3 are
-written; **P1 is fully executed**, and P2 Tasks 1, 9, 10 and 11 are too. **P4 and P5
-are unwritten, deliberately.** Plan-writing stopped on 2026-09-04 in favour of
+written; **P1 and P2 are both fully executed**. **P4 and P5 are unwritten,
+deliberately.** Plan-writing stopped on 2026-09-04 in favour of
 execution — a decision P1 then confirmed, producing **18 defects across 13 tasks** in
 an already-self-reviewed plan, a third of them checks that passed while the thing
 under test was broken or absent. The maintained status record is the *Spike status*

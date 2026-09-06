@@ -54,7 +54,7 @@
   have been expensive to find later. The remaining three are
   deliberately later, because each needs machinery that does not exist yet.</p>
 
-  <p class="claim"><strong>The first plan of stage 1a is now built, not just designed.</strong>
+  <p class="claim"><strong>The first two plans of stage 1a are now built, not just designed.</strong>
   As of 5 September 2026 the platform&rsquo;s foundations run on one laptop &mdash; local web
   addresses, the secure edge with its trusted certificates, the databases, the private package
   and image registries, the locked-down build service, the AI gateway and the practice sign-in
@@ -63,11 +63,25 @@
   check <strong>49 separate properties</strong> of it &mdash; not that it started, but that it
   is correct.</p>
 
-  <p class="claim">Building it was also a lesson about planning. The plan had been written and
-  reviewed before anyone ran it, and running it still turned up <strong>18 things that were
-  wrong</strong> &mdash; a third of them <em>checks that reported success while the thing they
-  were checking was broken or missing entirely</em>. That is the argument for the sequencing
-  choice below: build the earliest thing you can, rather than writing more plans first.</p>
+  <p class="claim">The <em>second</em> plan followed the same day: the service that actually
+  drives all of that. It can now be asked to create a project, and it makes the code
+  repository, reads the app&rsquo;s plain-language description and checks it against the
+  rules, produces a fixed, unchangeable release, and puts that release live on a practice
+  address &mdash; then correctly <em>refuses</em> to put it in front of real students,
+  listing the university registrations and privacy review that have to happen first. The
+  whole sequence takes about a third of a second and is covered by <strong>224
+  automated checks</strong>. What is still missing is the part a person would look at:
+  <strong>there is still no user interface</strong>, and that is stage 1c.</p>
+
+  <p class="claim">Building them was also a lesson about planning. Each plan had been written
+  and reviewed before anyone ran it, and running the first still turned up <strong>18 things
+  that were wrong</strong> &mdash; a third of them <em>checks that reported success while the
+  thing they were checking was broken or missing entirely</em>. The second turned up
+  <strong>52 more</strong>, including two safeguards that were a single line away from not
+  working at all: one would have let anyone sign in as anyone, and one would have let a
+  person read another person&rsquo;s work. Both looked correct when read. That is the
+  argument for the sequencing choice below: build the earliest thing you can, rather than
+  writing more plans first.</p>
 
   <div class="tw">
   <table>

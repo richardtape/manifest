@@ -27,17 +27,18 @@ everything.
 
 ## 2. Where things stand
 
-**Four spikes are done. Four plans are written. P1 is fully executed and green —
-the platform actually runs, offline — and P2's remaining tasks are next.**
+**Four spikes are done. Four plans are written. P1 and P2 are both fully executed
+and green — the platform runs offline, and the control plane serves HTTP on 7100.
+P3 is the only written work left.**
 
 | | State |
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. S6, S5 and S4 are deliberately later (S6 is P3's acceptance exercise, S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
-| **Plans** | **P1 is EXECUTED, 2026-09-05 — all 13 tasks, green, and green offline.** **P0** (spike briefs), **P2** (control-plane spine, 21 tasks) and **P3** (Docker driver and deploy spine, 19 tasks) are written. P3 was written 2026-08-31 and self-reviewed 2026-09-04, which found seven defects — the worst being that **nothing wired the Docker driver into the boot entry point**, so its own `make demo` would have passed against the fake driver. **P4 and P5 are unwritten, deliberately** — see §7. |
-| **Code** | **The platform runs.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. **`make doctor` 14 checks / 0 failed, `make verify` 31 checks / 0 failed, both green offline.** Alongside it, **P2's Tasks 1–11**: the runtime island (2026-08-31) — the §11 `Driver` interface, the fake driver, the contract suite P3 inherits, the state machine — and **Tasks 2–8 (2026-09-05)** — `spec/` (schema, machine-actionable errors, policy, `isSensitiveDiff`), `blueprints/` (descriptor, registry, compatibility), the `fixture-node` blueprint on disk, and `db/` with its first migration applied to `manifest_control`. **80 tests via `pnpm test`.** Still no HTTP surface (P2 Tasks 12–21). |
+| **Plans** | **P1 and P2 are both EXECUTED, 2026-09-05** — P1's 13 tasks green and green offline, P2's 21 tasks green with **224 tests**. **P0** (spike briefs) is written; **P3** (Docker driver and deploy spine, 19 tasks) is written and is **the only unrun plan**. P3 was written 2026-08-31 and self-reviewed 2026-09-04, which found seven defects — the worst being that **nothing wired the Docker driver into the boot entry point**, so its own `make demo` would have passed against the fake driver. P2's execution hit that same defect in P2. **P4 and P5 are unwritten, deliberately** — see §7. |
+| **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. **`make doctor` 14 checks / 0 failed, `make verify` 31 checks / 0 failed, both green offline.** P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite. **224 tests via `pnpm test`**, and the full lifecycle runs in **~300 ms** against the fake driver. |
 | **Spec** | Current. Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
-The immediate work is **P2 Tasks 12–21**, then P3 — see §7. Plan-writing
+The immediate work is **P3, in full** — see §7. Plan-writing
 stays stopped until P3 has run. The reasoning is in the roadmap's
 *Order of operations*, and the short version is that the only time anyone measured the
 defect rate of an unexecuted plan, four of P2's tasks yielded five defects that no
@@ -53,16 +54,18 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 |---|---|
 | **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
 | **writing a plan** | §7 below, the roadmap's section for your plan, the findings notes it names, and `plans/2026-08-30-p1-local-substrate.md` **or** `2026-08-29-p2-control-plane-spine.md` as the house style. |
-| **executing a plan** | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan. |
+| **executing a plan** | The plan itself — currently **P3**. It is self-contained by construction; if it is not, that is a defect in the plan, so fix it there as you go. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
-| **writing code** | Five modules exist: `spec/`, `blueprints/`, `db/`, `errors/` and `runtime/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else in the system is built against them — then `spec/index.ts`, which is what every later task validates through. |
+| **writing code** | Ten modules exist: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else is built against them — then `api/server.ts` for how a request becomes an actor, and `projects/authz.ts` for the one function every route's security depends on. |
 | **changing the spec** | Don't, without asking. It is marked *Approved design*. Record the proposed change and Rich decides — that has been the pattern five times. |
 
 ```
+docs/
+├── external-track.md       the UBC IAM / PIA work that runs in parallel
+│                           (NOTE: docs/, not docs/superpowers/)
 docs/superpowers/
 ├── ORIENTATION.md          ← you are here
 ├── RUNBOOK.md              HOW TO RUN THE PLATFORM. Start here to use it.
-├── external-track.md       the UBC IAM / PIA work that runs in parallel
 ├── specs/
 │   ├── 2026-08-29-manifest-platform-design.md    AUTHORITATIVE. 27 sections.
 │   └── manifest-*.html                            plain-language versions for
@@ -70,12 +73,11 @@ docs/superpowers/
 ├── plans/
 │   ├── 2026-08-29-plan-roadmap.md                 THE LEDGER. Status lives here.
 │   ├── 2026-08-29-phase-0-spike-briefs.md         P0. Historical record.
-│   ├── 2026-08-29-p2-control-plane-spine.md       P2. Complete, 21 tasks.
-│   │                                              Tasks 1, 9, 10, 11 are EXECUTED.
-│   ├── 2026-08-30-p1-local-substrate.md           P1. Complete, 13 tasks.
-│   │                                              EXECUTE THIS ONE NEXT.
+│   ├── 2026-08-29-p2-control-plane-spine.md       P2. 21 tasks, ALL EXECUTED.
+│   ├── 2026-08-30-p1-local-substrate.md           P1. 13 tasks, ALL EXECUTED.
 │   └── 2026-08-31-p3-docker-driver-deploy-spine.md
-│                                                  P3. Complete, 19 tasks. Ends with
+│                                                  P3. 19 tasks, NEVER RUN.
+│                                                  EXECUTE THIS ONE NEXT. Ends with
 │                                                  S6 as Task 18. Proposes five spec
 │                                                  actions, applies none.
 └── spikes/
@@ -95,12 +97,15 @@ docs/superpowers/
 
 **And the code.** P1 added the whole `infra/` and `scripts/` tree on 2026-09-05 —
 `Makefile`, `infra/compose.yaml` and the ten platform services, `scripts/doctor.sh`
-and `scripts/verify.sh`. Below is the TypeScript island as of 2026-09-05, after P2
-Tasks 1–11:
+and `scripts/verify.sh`. Below is the TypeScript tree as of 2026-09-05, after **all
+21 of P2's tasks**:
 
 ```
 .nvmrc  package.json  pnpm-workspace.yaml  tsconfig.base.json
 eslint.config.js  vitest.workspace.ts          the workspace (P2 Task 1)
+vitest.config.ts                               ROOT: fileParallelism: false. It is a
+                                               root-level option and does nothing in
+                                               the package config          (Task 18)
 .prettierrc  .prettierignore                   Prettier owns packages/ ONLY —
                                                without the ignore, `pnpm format`
                                                rewrites the approved spec
@@ -109,40 +114,86 @@ blueprints/fixture-node/                       the on-disk blueprint    (Task 7)
 packages/control-plane/
 ├── drizzle/0000_*.sql           the first migration, applied  (Task 8)
 ├── drizzle.config.ts
-├── vitest.config.ts + vitest.setup.ts   derives MANIFEST_DATABASE_URL from .env
+├── vitest.config.ts             setupFiles + globalSetup
+├── vitest.env.ts                ensureDatabaseUrl() — .env → MANIFEST_DATABASE_URL
+├── vitest.setup.ts              per file; calls it
+├── vitest.global-setup.ts       ONCE per run: truncates the §6 tables, so a run
+│                                never inherits the last one's rows   (Task 18)
 └── src/
+    ├── index.ts                 BOOT. loadConfig, buildServer, listen 7100 (Task 17)
+    ├── config.ts                env parsing + the dev-auth kill switch    (Task 12)
     ├── module-boundaries.test.ts   the §5 rule, enforced by a test that resolves
-    │                               imports and compares modules
-    ├── errors/index.ts             ManifestError + ManifestValidationError (Task 3)
+    │                               imports and compares modules. THE enforcement —
+    │                               the ESLint rule was removed, see Task 17's notes
+    ├── lifecycle.test.ts        P2's acceptance: the whole journey, ~300ms (Task 21)
+    ├── errors/index.ts          ManifestError + ManifestValidationError   (Task 3)
     ├── spec/
-    │   ├── schema.ts               the §7 v1 zod schema              (Task 2)
-    │   ├── errors.ts               zod issue → stable code + hint    (Task 3)
-    │   ├── policy.ts               catalogues, whitelist, quota, D17 (Task 4)
-    │   ├── diff.ts                 isSensitiveDiff, the D9 gate      (Task 5)
-    │   └── index.ts                THE module's public surface
+    │   ├── schema.ts            the §7 v1 zod schema                      (Task 2)
+    │   ├── errors.ts            zod issue → stable code + hint            (Task 3)
+    │   ├── policy.ts            catalogues, whitelist, quota, D17         (Task 4)
+    │   ├── diff.ts              isSensitiveDiff, the D9 gate              (Task 5)
+    │   ├── resolve.ts           §7's THREE-layer override merge          (Task 16)
+    │   └── index.ts             THE module's public surface
     ├── blueprints/
-    │   ├── descriptor.ts           §25 blueprint.yaml schema         (Task 6)
-    │   ├── compatibility.ts        checkBlueprintCompatibility       (Task 6)
-    │   ├── registry.ts             load, resolve name@major          (Task 6)
+    │   ├── descriptor.ts        §25 blueprint.yaml schema                 (Task 6)
+    │   ├── compatibility.ts     checkBlueprintCompatibility — called from the
+    │   │                        build route, not at validation time      (Task 19)
+    │   ├── registry.ts          load, resolve name@major                  (Task 6)
     │   └── index.ts
     ├── db/
-    │   ├── schema.ts               the ten §6 tables P2 writes       (Task 8)
-    │   ├── client.ts               Drizzle over pg, from MANIFEST_DATABASE_URL
-    │   ├── testing.ts              withRollback — a tx that never commits
+    │   ├── schema.ts            the ten §6 tables P2 writes               (Task 8)
+    │   ├── client.ts            Drizzle over pg, from MANIFEST_DATABASE_URL
+    │   ├── testing.ts           withRollback, AND resetDatabase — the second
+    │   │                        because withRollback does not isolate you from
+    │   │                        rows somebody else COMMITTED             (Task 18)
     │   └── index.ts
-    └── runtime/
-        ├── driver.ts               the §11 Driver interface           (Task 9)
-        ├── fake-driver.ts          in-memory implementation           (Task 9)
-        ├── driver-contract.ts      THE SHARED SUITE P3 IMPORTS UNCHANGED (Task 10)
-        ├── fake-driver.test.ts     points the suite at the fake driver
-        ├── state-machine.ts        §11 transitions + IDLE_POLICY      (Task 11)
-        └── state-machine.test.ts
+    ├── runtime/
+    │   ├── driver.ts            the §11 Driver interface                  (Task 9)
+    │   ├── fake-driver.ts       in-memory implementation                  (Task 9)
+    │   ├── driver-contract.ts   THE SHARED SUITE P3 IMPORTS UNCHANGED    (Task 10)
+    │   ├── state-machine.ts     §11 transitions + IDLE_POLICY            (Task 11)
+    │   └── *.test.ts
+    ├── source/                  D5 driver 1: bare repos on disk          (Task 15)
+    │   ├── git-driver.ts        the provider interface driver 2 replaces
+    │   ├── local-driver.ts      ~130ms per createRepository — seven git calls
+    │   └── index.ts
+    ├── identity/                roadmap gap 3. P4 DELETES this module    (Task 13)
+    │   ├── session.ts           signed, expiring cookies; no sessions table
+    │   ├── dev-auth.ts          four named test users, never arbitrary text
+    │   └── index.ts
+    ├── projects/
+    │   ├── authz.ts             §13 capabilities; stranger → NOT_FOUND,  (Task 14)
+    │   │                        member-without-capability → FORBIDDEN
+    │   ├── repository.ts        createProject + all three environments at once
+    │   └── index.ts
+    ├── releases/                §5's build/ lives in here for P2         (Task 16)
+    │   ├── build.ts             a failed build is a ROW, not an exception
+    │   ├── release.ts           immutable releases; deploy waits for health
+    │   └── index.ts
+    └── api/
+        ├── server.ts            Fastify, session hook, idempotency hook  (Task 17)
+        ├── errors.ts            the D23.7 envelope — every failure exits here
+        ├── idempotency.ts       D23.6; replay same body, 409 on a different one
+        ├── testing.ts           testDeps — blueprints resolved from import.meta.url
+        ├── authz-contract.ts    THE SHARED SUITE P3 IMPORTS UNCHANGED    (Task 20)
+        ├── routes/auth.ts       dev login, me, logout
+        ├── routes/projects.ts   projects, spec, members
+        ├── routes/delivery.ts   builds, releases, deploy, environments   (Task 19)
+        └── index.ts
 ```
 
-`pnpm test` → **80 tests**. Everything except `src/db/` needs no Docker, no Postgres
-and no network; `src/db/` needs `make up`, and finds its connection string itself.
+`pnpm test` → **224 tests across 23 files**, **run from the repo root** (`pnpm test`,
+not `pnpm --filter … test` — the two set a different working directory, and that
+difference was a defect). Everything that touches `src/db/` or `src/api/` needs
+`make up`; the rest needs no Docker, no Postgres and no network. The connection string
+is derived from `.env` automatically.
+
 Also `pnpm lint`, `pnpm --filter @manifest/control-plane typecheck` and
-`pnpm format:check`. All four must be clean before you commit.
+`pnpm format:check`. **All four must be clean before you commit, and the last two are
+not formalities** — Vitest strips types without checking them, so `tsc` is the only
+gate that sees a whole class of error (it caught six in P2), and `format:check` was
+silently red on 29 files. **Run `pnpm test` twice:** a suite that is not repeatable
+has a state leak, which is how five of P2's defects were found.
 
 **Which spec sections matter, by topic:** §7 the `manifest.yaml` contract · §9 identity ·
 §10 AI access · §11 execution model and the `Driver` interface · §12 networking,
@@ -281,6 +332,28 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   firewall; confinement is per-key `allowed_routes`.
 - **Most Ollama models on this machine are *thinking* models**, and that breaks
   streaming silently: zero content frames, no error, at any token budget.
+- **`node src/index.ts` does not work here**, even though Node 24 strips TypeScript
+  types natively. The source uses NodeNext `.js` specifiers and Node resolves them
+  **literally**, so it looks for `src/api/index.js` and does not find it. Compile
+  with `tsc` and run `dist/index.js`. `pnpm --filter @manifest/control-plane dev`
+  does both.
+- **`pnpm test` and `pnpm --filter … test` are not the same command.** The filtered
+  form runs with the *package* directory as its working directory; the root form does
+  not. Any cwd-relative path in a test passes under one and `ENOENT`s under the other.
+  **`pnpm test` from the repo root is the one that counts** — it is what CLAUDE.md
+  requires before a commit.
+- **Vitest strips types; it does not check them.** A file can pass every one of its
+  tests and have four `tsc` errors. `pnpm --filter @manifest/control-plane typecheck`
+  is the only gate that sees them, and this repo's `exactOptionalPropertyTypes` makes
+  that class common: `hint: cond ? x : undefined` is a type error, conditional spread
+  is the fix.
+- **`fileParallelism` is a ROOT-level Vitest option.** Setting it in a package's
+  `vitest.config.ts` has no effect on a workspace run, and the symptom is a suite that
+  fails a *different* number of tests on each run.
+- **Fastify runs root-level hooks for the not-found handler too**, and an unmatched
+  route has no `routeOptions.config` to opt out with. A `preHandler` that throws will
+  turn every 404 into whatever it throws. Guard on
+  `request.routeOptions.url === undefined`.
 
 ### Images already pulled
 
@@ -417,7 +490,7 @@ coherent. Follow them.
    | `specs/manifest-phases.html` | **Shared outside the team.** The spike section — how many have run, what they answered, where the remaining ones sit |
    | `specs/manifest-decisions.html` | **Shared outside the team.** Drifts when a **decision** changes, not when status does — check it after any spec action is applied |
    | `specs/manifest-stories.html` | **Shared outside the team.** Hostname examples, which must match §23's zone rule |
-   | `external-track.md` | Owners and states of the UBC items |
+   | `docs/external-track.md` | Owners and states of the UBC items |
    | `machine-baseline-*.md` | **Do not edit these.** They are dated evidence. Re-run `scripts/snapshot-machine.sh` and add a new one |
 
    **The four HTML pages are the easiest to forget and the most expensive to get
@@ -427,7 +500,7 @@ coherent. Follow them.
 
 ---
 
-## 7. What to do next — finish P2, then P3
+## 7. What to do next — execute P3
 
 **This section changed direction on 2026-09-04, and P1 has since executed.** The intent until then was to write
 every remaining plan before implementing any of them. It is now the opposite:
@@ -437,9 +510,9 @@ an unexecuted plan has been measured exactly once — four of P2's twenty-one ta
 yielded **five** defects, and **none of the five was findable on paper.**
 
 **P1's execution then measured it again, at full scale: 13 tasks, 18 defects** — a
-third of them controls reporting green against something broken or absent. **36
-written tasks remain unrun** (P2's 17, P3's 19). Adding P4 to that stack prices
-nothing.
+third of them controls reporting green against something broken or absent. **P2 has
+since run in full: 21 tasks, 52 defects across three sittings.** **19 written tasks
+remain unrun — P3's, and only P3's.** Adding P4 to that stack prices nothing.
 
 ### 7a. P1 is done *(executed 2026-09-05)*
 
@@ -466,112 +539,106 @@ was available. It is recorded as a gap in `RUNBOOK.md`, not quietly dropped — 
 the interesting case is a Mac **with Valet**, since that collision is why the zone
 is `manifest.internal`. `make host-undo` has also never been run end to end.
 
-### 7b. Execute P2 Tasks 12–21, then P3 *(start here)*
+### 7b. P2 is done *(executed 2026-09-05)*
 
-[`plans/2026-08-29-p2-control-plane-spine.md`](plans/2026-08-29-p2-control-plane-spine.md).
-**10 of P2's 21 tasks remain: 12–21** — configuration and the whole HTTP surface.
+[`plans/2026-08-29-p2-control-plane-spine.md`](plans/2026-08-29-p2-control-plane-spine.md)
+— **all 21 tasks executed and green.** `pnpm test` is **224 tests / 23 files**;
+`pnpm lint`, `pnpm --filter @manifest/control-plane typecheck` and
+`pnpm format:check` are all clean. **Run `pnpm test` from the repo root**, not with
+`--filter` — the two are not equivalent, and the difference found a defect.
 
-**Tasks 2–8 were executed on 2026-09-05 and found 20 defects**, every one recorded
-inline at its task with what it was measured against. Four are worth knowing before
-you start, because they are about the *shape* of the mistakes this plan makes rather
-than about `spec/`:
+The demo holds: log in, create a project, provision a bare repository, validate the
+spec at that commit, build, release, deploy to staging and reach healthy, then be
+refused production with §13's checklist — **~300 ms** against the fake driver, no
+Docker for the driver itself. The control plane also boots and serves HTTP on 7100;
+`README.md`'s *Running the control plane* has the exact commands, verified with
+`curl`.
+
+**Executing it found 52 defects across three sittings — 5, then 20, then 27.** The
+last batch is the one to read before starting P3, because it is the first time this
+project executed tasks that touch a *framework* rather than pure functions:
 
 | | |
 |---|---|
-| **A command in the repo violated a non-negotiable** | `pnpm format` was `prettier --write .` with no `.prettierignore`, so it would have rewritten 50 files including the **approved spec**. Nothing in the build checked it. |
-| **A plan step could not be committed green** | Task 6's Step 6 expected a test to fail until Task 7 landed, against this plan's own *"green before you commit"* rule. The test belonged to Task 7. |
-| **A concrete value went stale between plans** | Task 7's base image was a row of zeros deferred to a `make seed` that had already run — and the obvious replacement, `infra/images.lock`'s digest, is **wrong**, because the local registry answers a different digest for the same tag. |
-| **A new dependency took down unrelated tests** | Task 8's `db/client.ts` throws at import without `MANIFEST_DATABASE_URL`, and the plan's only provision was a documented `export` line. Eight test files that need no database went red. |
+| **Six type errors no test could ever catch** | `exactOptionalPropertyTypes` rejects `hint: cond ? x : undefined`, `payload?: unknown`, a `Partial<T>` spread. **Vitest strips types without checking them**, so `pnpm test` is green while `tsc` has four errors. The typecheck is not a formality after the tests |
+| **Five test-isolation defects** | API tests commit (they drive a real server), collided on a unique slug, and left `pnpm test` **not repeatable**. And `withRollback` does not isolate a suite from rows somebody else *committed* — three suites were green only because the database happened to be empty. One hand-inserted row turned 10 tests red |
+| **Two controls one edit from being live** | `/auth/dev-login` passed `devAuthEnabled: true` as a literal, so the route-registration guard was the only thing between it and an authentication bypass — breaking that guard made it answer **200 with a real session**. And `GET /builds/:id` made to trust a client-supplied `projectId` let one user read another's build with **200** |
+| **Nothing had ever run the boot entry point** | No test imports `src/index.ts`. The `dev` script did not exist, and would not have worked — Node resolves NodeNext `.js` specifiers literally, so `node src/index.ts` cannot find its own imports. **This is the same defect P3's self-review found in P3** |
 
-Tasks 12–21 are where the plan is thinnest against reality: they are the first that
-serve HTTP, and §20's *"every route carries an explicit ownership check"* is the
-likeliest defect class in the whole plan.
+**One rule earned the whole batch.** *Never accept a check you have not watched
+fail.* Every task above ends by breaking the thing it built and naming the test that
+goes red. Task 13 originally had no such step and was given one — the session MAC
+had never been observed refusing a forged `role: admin` token.
 
-**Why that gap, and why it is not a skip.** Tasks **1, 9, 10 and 11 were executed on
-2026-08-31** — commits `538251f`, `ac6e55e`, `262288c`, `e82711d`, still green in
-`pnpm test`. They are the *runtime island*: workspace scaffolding and the §5
-module-boundary rule, the §11 `Driver` interface, the fake driver, the contract
-suite P3 inherits, and the instance state machine. Those four are the **only** P2
-tasks that need no infrastructure whatsoever — no Docker, no Postgres, no HTTP —
-which is exactly why they could be built before P1 existed. Everything else was
-waiting on the substrate P1 has now delivered.
+### 7c. Execute P3 — the Docker driver and deploy spine *(start here)*
 
-Tasks **2–8** followed on 2026-09-05 — the `manifest.yaml` schema, machine-actionable
-spec errors, policy validation, `isSensitiveDiff`, the blueprint descriptor, the
-`fixture-node` blueprint, and the **database schema**, the first task that touched
-P1's Postgres. So the remaining work is **Tasks 12–21**, configuration and the HTTP
-surface. Then P3 in full, whose **Task 18 is S6** and whose demo is the fixture app
-healthy at a `manifest.internal` URL, from a clean checkout, offline.
+[`plans/2026-08-31-p3-docker-driver-deploy-spine.md`](plans/2026-08-31-p3-docker-driver-deploy-spine.md)
+— **19 tasks, written and self-reviewed, never run.** It is the only unrun plan, and
+executing it is what unblocks writing P4.
 
-**P2 is no longer standalone.** It was written when nothing was running. P1 has
-since built the infrastructure it targets, so start it like this:
+**What P2 leaves you.** Two shared artefacts P3 imports *unchanged*:
+`src/runtime/driver-contract.ts`, which the Docker driver must pass exactly as the
+fake one does, and `src/api/authz-contract.ts`, which P3 points at a server backed by
+the Docker driver. The second resets the database in its own `beforeAll` for that
+reason. Swapping the driver is meant to be one line in `src/index.ts`.
 
-```bash
-make up                       # the platform must be running for Task 8 onward
-set -a; . ./.env; set +a      # make seed writes .env; never hardcode these
-export MANIFEST_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"
-```
+**Budget for the defects.** The measured rate rose the moment tasks stopped being
+pure functions — 2.9 and 2.7 per task for P2's last two batches, against P1's 1.4.
+**P3 is almost entirely infrastructure and controls**: the §12 hardening baseline,
+S6's probe matrix, the scanner and SBOM gate, registry-token scoping. A false green
+on a *security* control is the worst failure this project can ship, and P2 produced
+five "green because it was not looking" defects in ten tasks.
 
-**`pnpm test` no longer needs that export** — Task 8 added
-`packages/control-plane/vitest.setup.ts`, which derives the same URL from `.env`
-itself, because a documented `export` line is not something a test run executes. You
-still need it for `db:generate` and `db:migrate`, which are CLI tools.
+**Check every concrete value against the running system before trusting it** — see
+the table at the end of this section. P2 hit that class three more times: an image
+repository derived from a project UUID rather than the slug, `parseInt('1Gi')`
+evaluating to 1, and two cwd-relative paths that work under `pnpm --filter` and
+nowhere else.
 
-Verified 2026-09-05 — that exact string connects and returns
-`CONNECTED to manifest_control as manifest`. **There is no `psql` on the host**, so
-reach the database either from Node (which is what the control plane does) or
-through the container:
+P3 also **proposes five spec actions and applies none of them** — they are listed at
+the end of the plan and they are Rich's to approve. One is deliberately deferred
+until Task 18 has actually measured what it describes.
 
-```bash
-docker exec manifest-postgres psql -U manifest -d manifest_control -c '\dt'
-```
+**Two things P1 leaves you.** `make verify` is a regression net — keep it and
+`make doctor` green as you go, because they assert properties of the very
+infrastructure P3 builds on. And read [`RUNBOOK.md`](RUNBOOK.md) before touching the
+machine: its troubleshooting table is every failure this project has actually hit,
+including the one where *nothing* resolves because Valet's dnsmasq has hung.
 
-**Four facts that P2 and P3 originally got wrong about P1, corrected 2026-09-05
-after checking the plans against what is actually running.** They are fixed in
-both plans; they are repeated here because the same class of mistake will recur
-wherever a plan names a concrete resource:
+**Four facts that P2 and P3 originally got wrong about P1**, corrected 2026-09-05.
+They are fixed in both plans; they are repeated because the same class of mistake
+recurs wherever a plan names a concrete resource:
 
 | | |
 |---|---|
 | database | **`manifest_control`** — not `manifest_control_plane` |
 | password | from **`.env`** — not the literal `manifest` |
-| base images | **`alpine:3.22`**, and they live at **`base/<repo>`** in the registry (`base/node`, `base/alpine`); per-app images go to `local/<slug>` |
+| base images | **`alpine:3.22`**, and they live at **`base/<repo>`** in the registry (`base/node`, `base/alpine`); per-app images go to **`local/<slug>`** |
 | egress proxy | **`manifest-egress:local`** — not `vimagick/tinyproxy`, which is amd64-only and ran emulated |
 
-**So: any time a plan names a port, database, password, image tag or registry
-path, check it against the running system before trusting it.** That class of
-defect is invisible on paper and immediate on contact.
+**To run anything against the control plane**, the platform must be up:
 
-**The one rule that matters most, and it is not about P2.** Executing P1 found
-**19 defects in a plan that had already been self-reviewed**, and **seven of them
-were checks that passed while the thing under test was broken or absent** — an
-egress "negative control" that succeeded because the network did not exist; a
-retention check that passed with LiteLLM stopped; a metadata check that passed
-against a schema every read threw on; a teardown that reported failure when it
-worked. Not one was findable by reading.
+```bash
+make up                       # Postgres on 7103; asks for sudo only after a reboot
+pnpm test                     # from the REPO ROOT — 224 tests, derives .env itself
+```
+
+`pnpm test` needs no exported variables: `vitest.setup.ts` derives
+`MANIFEST_DATABASE_URL` from `.env` itself, and a `globalSetup` truncates the §6
+tables once per run so a run never inherits the last one's rows. You still need the
+export by hand for `db:generate` and `db:migrate`, which are CLI tools —
+`README.md` has it. **There is no `psql` on the host**; reach the database from Node
+or through the container:
+
+```bash
+docker exec manifest-postgres psql -U manifest -d manifest_control -c '\dt'
+```
 
 > **Never accept a check you have not watched fail.** Remove the thing it
 > protects, confirm red, put it back. It costs seconds.
 
-This matters more in P2 and P3 than it did in P1. **P3 is almost entirely
-controls** — the §12 hardening baseline, S6's probe matrix, the scanner and SBOM
-gate, the registry-token scoping — and a false green on a *security* control is
-the worst failure this project can ship. P3's own self-review already caught the
-shape of it: no task wired the Docker driver into the boot entry point, so its
-`make demo` would have passed against the fake driver.
 
-**Two things P1 leaves you.** `make verify` is now a regression net — keep it and
-`make doctor` green as you go, because they assert properties of the very
-infrastructure P2 and P3 build on. And read
-[`RUNBOOK.md`](RUNBOOK.md) before touching the machine: its troubleshooting table
-is every failure this project has actually hit, including the one where *nothing*
-resolves because Valet's dnsmasq has hung.
-
-P3 also **proposes five spec actions and applies none of them** — they are listed at
-the end of the plan and they are Rich's to approve. One of them is deliberately
-deferred until Task 18 has actually measured what it describes.
-
-### 7c. Write P4 — identity, secrets and AI (1b) *(held)*
+### 7d. Write P4 — identity, secrets and AI (1b) *(held)*
 
 *Depends on S2 and S3, both done, and on P3 — which is written, so nothing blocks
 this except the 2026-09-04 decision above. **Write it once P3 has executed.***
@@ -586,7 +653,7 @@ catalogue, events, WebSocket streaming, redaction at capture, incidents.
 
 **Demo:** the proof app — CWL login, a Mongo write, an LLM answer — driven by `curl`.
 
-### 7d. Write P5 — contract and clients (1c)
+### 7e. Write P5 — contract and clients (1c)
 
 *Depends on P4.* The published OpenAPI contract, `manifest-mock`, the generated
 client, and the reference console (D22) that imports **only** the generated client —
@@ -618,7 +685,7 @@ Surface these; do not decide them.
   starts once the local proof of concept works end to end, because the goal is to
   get this right rather than to get it started, and the conversation goes better
   with a working demonstration behind it. **Do not re-raise this**; the trigger is
-  P4's proof app running. See `external-track.md`.
+  P4's proof app running. See `docs/external-track.md`.
 - **Fix `passport-ubcshib` upstream, or leave it?** Not needed — `tlef-starter`
   already bridges both attribute formats and C6 forbids a library change being a
   prerequisite. Its real gaps are the unreachable MACE entry and missing OID entries
@@ -677,6 +744,19 @@ maintained copy.
 - **A green result is not evidence a control is in force.** S1's first build appeared
   to succeed while silently using the public npm registry instead of the mirror.
   Only checking the mirror's storage caught it.
+- **Some defects are invisible to every test that could be written.** Executing P2's
+  Tasks 12–21 produced 27 defects; **six were type errors** that `pnpm test` cannot
+  see, because Vitest strips types without checking them, and **five were test
+  isolation** — the suite passed or failed on the order Vitest happened to pick, and
+  three suites had been green only because the database happened to be empty. Neither
+  class is findable by reading a plan, and neither is findable by running its tests.
+  The gates are the plan: run all four, and run the suite twice.
+- **A guard whose enabling condition is written twice is a guard.** P2's
+  `/auth/dev-login` passed `devAuthEnabled: true` as a literal because the route was
+  only registered when the shim was on. Removing that single registration guard made
+  the endpoint mint **real sessions** — a complete authentication bypass, one line
+  from live, and it read correctly in review. The same shape produced an IDOR in
+  `GET /builds/:id`. Two independent reads of one setting cost nothing.
 - **Assert the shape of the answer, not that an answer arrived.** S3 ran six toolkit
   checks and all six passed; one was returning 192 numbers where 768 belonged, almost
   all zero, with no error anywhere. "It returned a vector" and "it returned the right
