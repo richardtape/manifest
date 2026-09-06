@@ -7620,6 +7620,18 @@ control works."
 
 ## Task 19: `doctor`, `verify` and `reset` learn about everything P3 created
 
+> **A check that is currently not running, found 2026-09-06.** `scripts/verify.sh`
+> wraps its four builder checks in `if docker inspect manifest-buildkitd; then …`,
+> and that container is a compose service behind the **`build` profile** which
+> nothing starts. Task 10 replaced it with ephemeral `mf-builder-*` containers, so
+> those four checks — *rootless AND non-privileged*, *rootlesskit is the supervisor*,
+> *NEGATIVE CONTROL: the builder cannot reach the public internet*, *the builder can
+> reach the package mirror* — **are not part of `make verify`'s 32 and have not run
+> since Task 10.** They must be re-pointed at a builder this task creates on demand,
+> or `manifest-buildkitd` deleted from `infra/compose.yaml` and the checks rewritten.
+> Leaving the `if` in place is the could-not-fail shape this plan keeps producing.
+
+
 **Files:**
 - Modify: `scripts/doctor.sh`
 - Modify: `scripts/verify.sh`

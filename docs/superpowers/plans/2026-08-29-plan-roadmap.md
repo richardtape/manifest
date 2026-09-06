@@ -196,15 +196,18 @@ Recorded here because they are about *how to run this work*, and each was paid f
 | **P0** | 0 | Seven spike briefs | a findings note per spike |
 | **P1** | 1a-i | Local substrate ✅ **EXECUTED 2026-09-05** | `make doctor` green offline; one name resolving correctly from host **and** container — **both demonstrated** |
 | **P2** | 1a-ii | Control-plane spine ✅ **EXECUTED 2026-09-05** — all 21 tasks | project → spec → release → staging deploy, against the fake driver, **~300 ms**, no Docker — **demonstrated** |
-| **P3** | 1a-iii | Docker driver & deploy spine ✅ **written** | fixture app healthy at a `manifest.internal` URL, clean checkout, offline |
+| **P3** | 1a-iii | Docker driver & deploy spine 🟡 **IN EXECUTION — 12 of 19 tasks done, 2026-09-06** | fixture app healthy at a `manifest.internal` URL, clean checkout, offline |
 | **P4** | 1b | Identity, secrets & AI | the proof app — CWL login, Mongo write, LLM answer — via `curl` |
 | **P5** | 1c | Contract & clients | the §1 journey, clickable, driven twice over one contract |
 | **P6–P11** | 2 | six plans, listed below, **not written yet** | — |
 
-**P1 and P2 are both EXECUTED and green (2026-09-05).** P0 and P3 are written; P2's 21 tasks
+**P1 and P2 are both EXECUTED and green (2026-09-05).** P2's 21 tasks
 ran in three sittings — 1 and 9–11 on 2026-08-31, **2–8** and then **12–21** on
-2026-09-05, finding **20** and **27** defects respectively. **P3 is the whole of the
-remaining written work.** **P4 and P5 are not written, deliberately** — see the
+2026-09-05, finding **20** and **27** defects respectively.
+
+**P3 is part-executed: Tasks 1–12 are done and green as of 2026-09-06; Tasks 13–19
+remain.** It is the whole of the remaining written work.
+**P4 and P5 are not written, deliberately** — see the
 2026-09-04 decision in *Order of operations*, which puts execution before any further
 plan-writing. Each of P1–P5 carries the required plan header, its own file-structure
 map, and bite-sized TDD steps with real content — no plan may contain a step
@@ -356,6 +359,17 @@ runs in under a second.
 
 ### P3 — 1a-iii · Docker driver & deploy spine
 
+**🟡 IN EXECUTION. Tasks 1–12 done and green, 2026-09-06. Tasks 13–19 remain.**
+
+| | |
+|---|---|
+| **Done** | 1–4 (Engine client, Docker tier, §12 hardening, per-app networks) · 5–8 (egress proxy, `services/`, instance lifecycle, logs + exec) · 9 (scoped registry push tokens) · **10–12** (ephemeral builder, `build/` + its gates, SBOM and vulnerability scanning) |
+| **Next** | **Session 4 — Tasks 13–15**: `routing/`, readiness *through the edge*, then `DockerDriver` assembled, run against P2's `driver-contract.ts` unchanged, and wired into `src/index.ts`. **Then Session 5 — Tasks 16–19 + close-out.** |
+| **Gates, as they stood at the end of Task 12** | `pnpm test` **332** · `pnpm test:docker` **48** · `make doctor` **15 checks / 0 failed** · `make verify` **32 / 0**. A different number on a clean checkout is signal, not noise. |
+| **Defects so far** | **45 across 12 tasks — 3.7 per task**, the highest rate this project has measured. Recorded in full in the plan's *What executing this plan found*, per session. |
+| **Read before Task 15** | *What Task 15 must carry forward*, at the end of the plan. Three fixes in Tasks 10–12 changed code Task 15 calls, and Task 15's heading carries a pointer to it. |
+
+
 *Reconciled against a running P2 on 2026-09-05, before execution.* P3 was written
 2026-08-31 against an imagined P2. Every **seam** was re-checked — each place it
 modifies a file P2 built, calls a P2 symbol, adds a sibling to a P2 error type, or
@@ -484,8 +498,9 @@ execution layer.** Each is written when its predecessor lands.
    (19 tasks, self-reviewed 2026-09-04).
 5. **Execute P1 → P2 → P3.** S6 is P3's acceptance exercise, as its Task 18.
    **P1 and P2 are both done — executed and green on 2026-09-05**, P1 green offline
-   too. ← the current work is now **P3 in full**, all 19 tasks. It is the last plan
-   written, and executing it is what unblocks writing P4.
+   too. ← the current work is **P3**, and it is part-executed: **Tasks 1–12 are done
+   and green (2026-09-06); 13–19 remain.** It is the last plan written, and
+   finishing it is what unblocks writing P4.
 6. **Start the external track once the local proof of concept works end to end.**
    **Changed 2026-09-05, Rich's call.** This step previously said *"start now, in
    parallel"*, on the argument that C4 has the longest lead time and no software
@@ -529,7 +544,8 @@ written (P2's Tasks 1, 9, 10 and 11 were executed and green). That is a stack
 carrying a defect rate measured exactly once, at five per four tasks. Writing P4
 would add to it rather than price it. *As of 2026-09-05 the stack is **19 unrun** —
 P3's tasks, and nothing else. P1's 13 and all of P2's 21 have run, and every batch
-raised the measured rate rather than lowering it.*
+raised the measured rate rather than lowering it. As of 2026-09-06 it is **7**:
+P3's Tasks 13–19, its first twelve having run at **3.7 defects per task**.*
 
 **Confirmed by P1's execution, 2026-09-05.** All 13 of P1's tasks ran; they yielded
 **18 defects** on top of the five its own self-review had already caught. The
@@ -548,10 +564,13 @@ run. The measured rate by batch:
 | P2 Tasks 2–8 | 7 | 20 | 2.9 |
 | **P2 Tasks 12–21** | **10** | **27** | **2.7** |
 | P2, found later while reconciling P3 | — | 2 | — |
+| **P3 Tasks 1–12** *(in progress)* | **12** | **45** | **3.7** |
 
-**19 tasks remain unrun — P3's, and only P3's.** The rate has not fallen with
-practice; it rose the moment the tasks stopped being pure functions. P3 is *entirely*
-infrastructure and controls, so budget for its 19 tasks accordingly, and note that
+**7 tasks remain unrun — P3's 13–19, and nothing else.** The rate has not fallen with
+practice; it rose the moment the tasks stopped being pure functions, and P3's
+first twelve tasks are running at **3.7 per task**, above the 2.7–2.9 this section
+predicted. P3 is *entirely* infrastructure and controls, so budget for its
+remaining seven accordingly, and note that
 **six of P2's last 27 were type errors no test could see** and **five were test
 isolation** — two classes that a plan self-review, however careful, cannot detect by
 reading.

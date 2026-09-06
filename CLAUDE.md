@@ -22,8 +22,16 @@ It serves HTTP on **7100**: `spec/`, `blueprints/`, `db/`, `runtime/` (the §11
 error envelope. **224 tests** via `pnpm test` — **run it from the repo root**, not
 with `--filter`; the two differ and that difference found a defect. The database
 tests need `make up` and derive their connection from `.env` themselves. To run the
-server, see *Running the control plane* in `README.md`. **P3 is the current work**
-and the only unrun plan.
+server, see *Running the control plane* in `README.md`.
+
+**P3 is part-executed (2026-09-06). Tasks 1–12 are done and green; 13–19 remain —
+pick up at Task 13.** It has added `runtime/docker/`, `services/` and `build/`, plus
+a second test tier: `pnpm test` is **332** and `pnpm test:docker` is **48** (needs
+`make up`; it **fails rather than skips** when asked to run). `make doctor` is now 15
+checks. Executing those twelve tasks found **45 defects — 3.7 per task**, above the
+2.7–2.9 the roadmap predicted; they are recorded per session in the plan's *What
+executing this plan found*, and *What Task 15 must carry forward* at its end changes
+code Task 15 calls.
 
 Executing P2 found **52 defects** across three sittings — 5, then 20, then **27 in
 Tasks 12–21**. Four from that last batch are worth carrying: the plan's code had
@@ -38,7 +46,8 @@ answering `200` when broken; and **nothing had ever executed the boot entry poin
 which is the same defect P3's self-review found in P3.
 
 **Toolchain:** Node 24 via nvm, pnpm 11 via corepack. **Four gates, all clean before
-a commit:** `pnpm test` (from the repo root), `pnpm lint`,
+a commit** — and `pnpm test:docker` too, once you are touching `runtime/docker/`,
+`services/` or `build/`: `pnpm test` (from the repo root), `pnpm lint`,
 `pnpm --filter @manifest/control-plane typecheck` and `pnpm format:check`. The last
 two are not optional extras — Vitest strips types without checking them, so `tsc` is
 the only thing that sees a whole class of error, and `format:check` was silently red
@@ -47,7 +56,7 @@ repeatable has a state leak. For the platform itself it is `make doctor` and
 `make verify`.
 
 Four spikes are done (S7, S2, S1, S3 — all answered yes). P0, P1, P2 and P3 are
-written; **P1 and P2 are both fully executed**. **P4 and P5 are unwritten,
+written; **P1 and P2 are fully executed and P3 is part-executed**. **P4 and P5 are unwritten,
 deliberately.** Plan-writing stopped on 2026-09-04 in favour of
 execution — a decision P1 then confirmed, producing **18 defects across 13 tasks** in
 an already-self-reviewed plan, a third of them checks that passed while the thing

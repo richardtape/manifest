@@ -1,12 +1,12 @@
 # Orientation — read this first
 
 **You are picking up a project whose design is finished, whose first four plans are
-written, and which has one small island of running code.** This is the single entry
+written, two of them executed, and whose third is more than half run.** This is the single entry
 point: what Manifest is, what has been established, what the machine will do to
 you, and what to do next. It is written for someone with **no prior context** —
 a new agent with a fresh window, or a developer joining.
 
-*Last verified 2026-09-05.* Two things in this file state current status and will go
+*Last verified 2026-09-06.* Two things in this file state current status and will go
 stale: §2 and §7. **The roadmap's ledger outranks both** — it is the maintained
 record. Everything else here is durable.
 
@@ -29,17 +29,18 @@ everything.
 
 **Four spikes are done. Four plans are written. P1 and P2 are both fully executed
 and green — the platform runs offline, and the control plane serves HTTP on 7100.
-P3 is the only written work left.**
+P3 is the only written work left, and it is PART-EXECUTED: Tasks 1–12 are done and
+green as of 2026-09-06, Tasks 13–19 remain.**
 
 | | State |
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. S6, S5 and S4 are deliberately later (S6 is P3's acceptance exercise, S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
-| **Plans** | **P1 and P2 are both EXECUTED, 2026-09-05** — P1's 13 tasks green and green offline, P2's 21 tasks green with **224 tests**. **P0** (spike briefs) is written; **P3** (Docker driver and deploy spine, 19 tasks) is written and is **the only unrun plan**. P3 was written 2026-08-31 and self-reviewed 2026-09-04, which found seven defects — the worst being that **nothing wired the Docker driver into the boot entry point**, so its own `make demo` would have passed against the fake driver. P2's execution hit that same defect in P2. **P4 and P5 are unwritten, deliberately** — see §7. |
-| **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. **`make doctor` 14 checks / 0 failed, `make verify` 31 checks / 0 failed, both green offline.** P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite. **224 tests via `pnpm test`**, and the full lifecycle runs in **~300 ms** against the fake driver. |
+| **Plans** | **P1 and P2 are both EXECUTED, 2026-09-05** — P1's 13 tasks green and green offline, P2's 21 tasks green with **224 tests**. **P0** (spike briefs) is written; **P3** (Docker driver and deploy spine, 19 tasks) is **part-executed — Tasks 1–12 green as of 2026-09-06, 13–19 remain**, and it is the only plan with unrun tasks. P3 was written 2026-08-31 and self-reviewed 2026-09-04, which found seven defects — the worst being that **nothing wired the Docker driver into the boot entry point**, so its own `make demo` would have passed against the fake driver. P2's execution hit that same defect in P2. **Executing P3's first twelve tasks has since found 45 more, 3.7 per task** — the highest rate measured here. **P4 and P5 are unwritten, deliberately** — see §7. |
+| **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. **`make doctor` 14 checks / 0 failed, `make verify` 31 checks / 0 failed, both green offline.** P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite. **224 tests via `pnpm test`**, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`** — `pnpm test` **332** and a second tier, `pnpm test:docker`, **48**. |
 | **Spec** | Current. Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
-The immediate work is **P3, in full** — see §7. Plan-writing
-stays stopped until P3 has run. The reasoning is in the roadmap's
+The immediate work is **the rest of P3 — Tasks 13–19** — see §7. Plan-writing
+stays stopped until P3 has run in full. The reasoning is in the roadmap's
 *Order of operations*, and the short version is that the only time anyone measured the
 defect rate of an unexecuted plan, four of P2's tasks yielded five defects that no
 amount of reading would have found.
@@ -54,7 +55,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 |---|---|
 | **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
 | **writing a plan** | §7 below, the roadmap's section for your plan, the findings notes it names, and `plans/2026-08-30-p1-local-substrate.md` **or** `2026-08-29-p2-control-plane-spine.md` as the house style. |
-| **executing a plan** | The plan itself — currently **P3**. It is self-contained by construction; if it is not, that is a defect in the plan, so fix it there as you go. |
+| **executing a plan** | The plan itself — currently **P3, from Task 13**. It is self-contained by construction; if it is not, that is a defect in the plan, so fix it there as you go. **Read the plan's *What executing this plan found* first** — 45 defects across Tasks 1–12, and the *What Task 15 must carry forward* block at its end changes code Task 15 calls. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
 | **writing code** | Ten modules exist: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else is built against them — then `api/server.ts` for how a request becomes an actor, and `projects/authz.ts` for the one function every route's security depends on. |
 | **changing the spec** | Don't, without asking. It is marked *Approved design*. Record the proposed change and Rich decides — that has been the pattern five times. |
@@ -76,8 +77,9 @@ docs/superpowers/
 │   ├── 2026-08-29-p2-control-plane-spine.md       P2. 21 tasks, ALL EXECUTED.
 │   ├── 2026-08-30-p1-local-substrate.md           P1. 13 tasks, ALL EXECUTED.
 │   └── 2026-08-31-p3-docker-driver-deploy-spine.md
-│                                                  P3. 19 tasks, NEVER RUN.
-│                                                  EXECUTE THIS ONE NEXT. Ends with
+│                                                  P3. 19 tasks; 1-12 RUN AND GREEN
+│                                                  (2026-09-06), 13-19 REMAIN.
+│                                                  CONTINUE FROM TASK 13. Ends with
 │                                                  S6 as Task 18. Proposes five spec
 │                                                  actions, applies none.
 └── spikes/
@@ -342,6 +344,18 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   not. Any cwd-relative path in a test passes under one and `ENOENT`s under the other.
   **`pnpm test` from the repo root is the one that counts** — it is what CLAUDE.md
   requires before a commit.
+- **`node --experimental-strip-types` cannot run this repo's TypeScript either**, and
+  for a *different* reason from the one above: strip-only mode rejects **parameter
+  properties**, and `EngineError`, `ScanError`, `BuildGateError` and `ConfigError` all
+  use them — `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`. So a throwaway `node -e` script that
+  imports a `.ts` file to poke at it does not work. Write a scratch **test** instead,
+  or drive the thing through `docker`/`curl` directly.
+- **A `sed`/`python .replace()` negative control silently matches nothing after
+  Prettier has reformatted its target — and every test then passes.** That reads as
+  *"the control cannot fail"* and means *"the control never ran"*; it happened on
+  2026-09-06 while proving a scan rule, and it is the same shape as every other
+  could-not-fail check this project has paid for. **Assert the pattern matched before
+  writing the file.** A `git diff` after the edit is the other cheap proof.
 - **Vitest strips types; it does not check them.** A file can pass every one of its
   tests and have four `tsc` errors. `pnpm --filter @manifest/control-plane typecheck`
   is the only gate that sees them, and this repo's `exactOptionalPropertyTypes` makes
@@ -570,11 +584,45 @@ fail.* Every task above ends by breaking the thing it built and naming the test 
 goes red. Task 13 originally had no such step and was given one — the session MAC
 had never been observed refusing a forged `role: admin` token.
 
-### 7c. Execute P3 — the Docker driver and deploy spine *(start here)*
+### 7c. Finish P3 — the Docker driver and deploy spine *(start here, at Task 13)*
 
 [`plans/2026-08-31-p3-docker-driver-deploy-spine.md`](plans/2026-08-31-p3-docker-driver-deploy-spine.md)
-— **19 tasks, written and self-reviewed, never run.** It is the only unrun plan, and
-executing it is what unblocks writing P4.
+— **19 tasks. Tasks 1–12 are executed and green (2026-09-06); Tasks 13–19 remain.**
+Finishing it is what unblocks writing P4.
+
+**Where to pick up.** The plan is being executed in sessions, and the remaining two
+are already scoped:
+
+| Session | Tasks | What it is |
+|---|---|---|
+| **4 — next** | 13, 14, 15 | `routing/` (§23 hostnames, listener assignment, Caddy's JSON admin API) · readiness polled **through the edge** · then `DockerDriver` assembled, run against P2's `driver-contract.ts` **unchanged**, and wired into `src/index.ts` |
+| **5** | 16–19 + close-out | promotion refusal · the fixture app and `make demo`, with the offline control that actually deletes the mirrored base image · S6's probe matrix and findings note · `doctor`/`verify`/`reset` learning about `mf-` · then the close-out sweep |
+
+**Before you write a line of Task 13, read two things in the plan:** *What executing
+this plan found* (45 defects across Tasks 1–12, per session, each with the
+measurement that found it) and *What Task 15 must carry forward* at its very end —
+three fixes in Tasks 10–12 changed code Task 15 calls, and Task 15's heading carries
+a pointer to it.
+
+**The baselines Tasks 1–12 leave you.** A different number on a clean checkout is
+signal, not noise:
+
+| | |
+|---|---|
+| `pnpm test` (repo root) | **332 tests**, and it must stay Docker-free |
+| `pnpm test:docker` | **48 tests**, ~65 s, needs `make up` |
+| `make doctor` | **15 checks / 0 failed** |
+| `make verify` | **32 checks / 0 failed** |
+
+**Two things Session 4 should treat as guilty until proven otherwise.** Task 15's
+boot wiring is the defect P3's own self-review called its worst — nothing wired the
+Docker driver into `src/index.ts`, so `make demo` would have passed against the fake
+one — and P2 shipped the identical defect. Make the boot check **fail on demand**
+before believing it. And `make verify`'s four builder checks are gated on
+`docker inspect manifest-buildkitd`, a compose service behind the `build` profile
+that P3 replaced with ephemeral `mf-builder-*` containers: **they are currently not
+running, so they are not part of the 32.** That is Task 19's to fix, and it is
+exactly the could-not-fail shape this plan keeps producing.
 
 **What P2 leaves you.** Two shared artefacts P3 imports *unchanged*:
 `src/runtime/driver-contract.ts`, which the Docker driver must pass exactly as the
@@ -582,12 +630,17 @@ fake one does, and `src/api/authz-contract.ts`, which P3 points at a server back
 the Docker driver. The second resets the database in its own `beforeAll` for that
 reason. Swapping the driver is meant to be one line in `src/index.ts`.
 
-**Budget for the defects.** The measured rate rose the moment tasks stopped being
-pure functions — 2.9 and 2.7 per task for P2's last two batches, against P1's 1.4.
-**P3 is almost entirely infrastructure and controls**: the §12 hardening baseline,
-S6's probe matrix, the scanner and SBOM gate, registry-token scoping. A false green
-on a *security* control is the worst failure this project can ship, and P2 produced
-five "green because it was not looking" defects in ten tasks.
+**Budget for the defects — the prediction was too low.** The rate was expected to be
+2.7–2.9 per task, from P2's last two batches. **P3's first twelve tasks produced 45
+defects: 3.7 per task**, the highest measured here. **P3 is almost entirely
+infrastructure and controls**: the §12 hardening baseline, S6's probe matrix, the
+scanner and SBOM gate, registry-token scoping. A false green on a *security* control
+is the worst failure this project can ship — and of those 45, the recurring shape is
+still a check that could not fail, plus a new one worth naming: **a rule that was
+validated against the wrong image.** The scan gate was twice given a plausible
+"who owns this finding" rule, and both times it was proved wrong by measuring
+`node:22-alpine` — the image faculty apps actually run on — rather than `alpine`,
+which is only a probe.
 
 **Check every concrete value against the running system before trusting it** — see
 the table at the end of this section. P2 hit that class three more times: an image
@@ -694,16 +747,36 @@ Surface these; do not decide them.
 - **Does LiteLLM's embedding `encoding_format` bug affect a commercial provider, or
   only the Ollama path?** Unmeasured — only Ollama was reachable offline. Cheap to
   settle the first time anyone has a provider key.
-- **Should the blueprint base image move from `node:22-alpine` to 24?** Still open,
-  but **the cost is now measured** rather than guessed — P1 said to price it during
-  execution, and execution has happened. It is **one line in `infra/images.txt` plus
-  a `make seed`**. The offline acceptance check turned out to reference the registry
-  *repository* (`/v2/node/tags/list`), not the tag, so it is unaffected; `make
-  doctor` compares against `infra/images.lock`, which `make seed` regenerates. The
-  digest S1 recorded stays valid as a record of what 22 was. So the earlier "not
-  free, three places" framing was too pessimistic: the only real cost is pulling a
-  new image once, with network. **Still Rich's call** — it changes what faculty apps
-  run in, which is a compatibility decision, not a mechanical one.
+- **Should the blueprint base image move from `node:22-alpine` to 24?** Open, and
+  **now priced in exposure as well as effort** (measured 2026-09-06 with Grype
+  v0.118.0 against a database built that morning):
+
+  | | apk Critical / High | npm Critical / High |
+  |---|---|---|
+  | `node:22-alpine` *(what the blueprint pins)* | 4 / 14 | **1 / 10** |
+  | `node:24-alpine` | 4 / 14 | **0 / 4** |
+
+  The npm findings are npm's **own bundled dependency tree** inside the image
+  (`/usr/local/lib/node_modules/npm/`), not anything an app chose. Moving to 24
+  removes the Critical from that half. The mechanical cost is what P1's execution
+  already measured: **one line in `infra/images.txt` plus a `make seed`**. **Still
+  Rich's call** — it changes what faculty apps run in, which is a compatibility
+  decision, not a mechanical one.
+
+- **Should Phase 1 ship an apk mirror alongside Verdaccio?** *Raised 2026-09-06, not
+  decided, and nothing in P3–P5 proposes one.* The 4 Critical and 14 High `apk`
+  findings above are `libcrypto3`/`libssl3` at `3.5.7-r0`; the fix is `3.5.8-r0`,
+  published 2026-08-26. **No newer base image clears them** — the `alpine:3.22` and
+  `node:22-alpine` tags Docker Hub serves today have moved digest since
+  `infra/images.lock` was written and scan *identically*. The only other route is
+  `RUN apk upgrade` in the blueprint Dockerfile, and that cannot work: the builder
+  sits on an `--internal` network with no route off it (a §12 control with its own
+  negative test), and Verdaccio mirrors npm, not apk. So **an apk mirror is the only
+  mechanism that would let a build clear them offline.** P3's scan gate does not
+  block on them — they are the base image's, and §20 already makes the fleet-wide
+  rebuild their remedy in Phase 4+ — but they are recorded on every Release, and
+  "ship on day one with four Criticals in the base image" is a decision rather than
+  an accident.
 
 **Closed recently:** the §11/§23 hostname disagreement — settled 2026-08-31 in §23's
 favour and both spec edits applied. The environment kind lives in the **zone**, never
