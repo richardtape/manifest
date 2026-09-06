@@ -7,7 +7,13 @@
 # Node
 node_modules/
 dist/
-build/
+# Build OUTPUT only, anchored. It said `build/` until 2026-09-06, which also matched
+# `packages/control-plane/src/build/` — §5's build module — so `git add` SILENTLY
+# SKIPPED an entire module: green on the machine that wrote it, broken on every
+# clone. Identical shape to the blanket `*.key` rule that skipped a test fixture
+# (P3 defect 29), and to P1's still-open second-machine gap.
+/build/
+packages/*/build/
 coverage/
 *.tsbuildinfo
 npm-debug.log*
