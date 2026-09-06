@@ -82,9 +82,14 @@ export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
         }
       }
       const id = `inst-${instances.size + 1}`
+      // An in-memory driver has no container to probe, so there is nothing that
+      // could move it out of `starting` later: reporting `starting` forever is the
+      // fake modelling a state it can never leave. It reports the outcome directly,
+      // and `failInstances` is how a test asks for the other one. `markHealthy`
+      // stays for tests that drive a hibernated instance back up.
       instances.set(id, {
         spec,
-        state: options.failInstances ? 'failed' : 'starting',
+        state: options.failInstances ? 'failed' : 'healthy',
         logs: [{ at: new Date(), stream: 'stdout', text: `starting ${spec.name}` }],
       })
       byName.set(`instance:${spec.name}`, id)
