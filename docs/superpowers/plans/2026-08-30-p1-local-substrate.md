@@ -1460,6 +1460,21 @@ egress_proxy_survives_denial() {
 }
 check "the egress proxy survives denying a request"  egress_proxy_survives_denial
 
+# No platform container should run under emulation. vimagick/tinyproxy was
+# amd64-only, so the egress proxy ran x86_64 on an arm64 host — `make up` warned
+# about it once and nothing else would ever have noticed. Measured 2026-09-05.
+no_emulated_containers() {
+  local host_arch c carch bad=""
+  case "$(uname -m)" in arm64|aarch64) host_arch=aarch64 ;; *) host_arch=x86_64 ;; esac
+  for c in $(docker ps --filter 'name=^manifest-' --format '{{.Names}}'); do
+    carch=$(docker exec "$c" uname -m 2>/dev/null) || continue
+    [ "$carch" = "$host_arch" ] || bad="$bad $c($carch)"
+  done
+  [ -z "$bad" ] && { echo "every running platform container is native $host_arch"; return 0; }
+  echo "EMULATED:$bad on a $host_arch host"; return 1
+}
+check "no platform container runs under emulation"  no_emulated_containers
+
 ```
 
 Run: `make verify` — all five FAIL.

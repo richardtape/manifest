@@ -145,7 +145,8 @@ services:
       retries: 12
 
   egress:
-    image: vimagick/tinyproxy
+    build: { context: ./egress }
+    image: manifest-egress:local
     container_name: manifest-egress
     restart: unless-stopped
     networks: [platform]

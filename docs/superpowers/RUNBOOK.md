@@ -73,6 +73,50 @@ were unmodified (mtime 2026-07-03), its dnsmasq was the same process throughout,
 Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` — never
 53, never `127.0.0.1:80/443`. Its nginx still answers on `127.0.0.1:443`.
 
+## C1's acceptance — what was actually run
+
+**Offline: PASSED, 2026-09-05.** Wi-Fi disabled on `en0` (the machine's only
+route), then `make down && make up && make doctor && MANIFEST_VERIFY_OFFLINE=1
+make verify` via `scripts/offline-acceptance.sh`:
+
+- `make up` — **0 failed**, every service Healthy, with no network. *This is the
+  half no spike had ever tested*: S7 could not test offline at all, and S1
+  evidenced only the build half, never the boot half.
+- `make doctor` — 14 checks, 0 failed, 0 warnings.
+- `make verify` — 33 checks, 0 failed, 0 warnings, including base images
+  resolving from the local registry and `npm install` against the mirror.
+- The C1 demo itself, host and container, no port and no `-k`:
+
+  ```
+  manifest OK host=console.manifest.internal scheme=https remote=10.89.0.1
+  manifest OK host=console.manifest.internal scheme=https remote=10.89.0.8
+  ```
+
+Machine: macOS 26.6.2 (arm64), Docker Engine 29.7.2, Docker Compose v5.4.0,
+Node 24.12.0, Ollama 0.33.3.
+
 ## Known gaps
 
-*(Completed by Task 13's offline and second-machine runs — see below.)*
+**The second-machine test has NOT been run.** *Recorded 2026-09-05.* No second
+Mac was available. So everything above is evidenced on **one machine only**, and
+the clean-clone path — `git clone` into a directory that has never held this
+project, on a Mac whose Docker has none of these images — is **unverified**.
+
+The interesting case remains a second Mac **with Laravel Valet installed**, because
+Valet owns `.test`, port 53 and ports 80/443, and that collision is why the zone is
+`manifest.internal` and why the edge binds `127.0.0.2`. A machine without Valet
+would only test the easy path.
+
+Two smaller things this execution did not settle:
+
+- **`make host-undo` has never been run end to end.** Every host change is
+  scripted and reversible by construction, and `host-undo.sh` was deliberately
+  written to be order-independent (S7 shipped one that was not), but the reversal
+  itself has not been exercised. Run `make host-undo` followed by `make
+  host-setup` to prove it; both are one command and the platform comes straight
+  back.
+- **Valet's `.test` did not resolve during this session.** This predates the work
+  and P1 did not cause it: Valet's config files are unmodified (mtime
+  2026-07-03), its dnsmasq is the same process it has been since 1 September, and
+  Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153`.
+  Its nginx still answers on `127.0.0.1:443`. Flagged, not touched.
