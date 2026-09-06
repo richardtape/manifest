@@ -2314,12 +2314,30 @@ replacement is a small diff.
 
 ```ts
 import { describe, expect, it } from 'vitest'
-import { SERVICE_CATALOGUE, ServiceCatalogueError, deriveCredentials, resolveServiceImage } from './index.js'
+import {
+  SERVICE_CATALOGUE,
+  ServiceCatalogueError,
+  deriveCredentials,
+  resolveServiceImage,
+} from './index.js'
 
 describe('the platform service catalogue (§20)', () => {
   it('pins every image by digest, never by tag alone', () => {
     for (const entry of Object.values(SERVICE_CATALOGUE)) {
       expect(entry.digest).toMatch(/^sha256:[0-9a-f]{64}$/)
+    }
+  })
+
+  // The URI scheme is not the service type, and the difference is not cosmetic:
+  // measured, `mongo://…` is rejected outright by mongosh as an invalid URI, and
+  // an endpoint without `authSource=admin` fails every authentication because
+  // Mongo's root user lives in `admin`, not in the app's database. Both were
+  // real defects; both are catchable here, with no Docker.
+  it('carries a URI scheme distinct from the service type', () => {
+    expect(resolveServiceImage('mongo', '7').uriScheme).toBe('mongodb')
+    expect(resolveServiceImage('mongo', '7').uriQuery).toBe('authSource=admin')
+    for (const [type, entry] of Object.entries(SERVICE_CATALOGUE)) {
+      expect(entry.uriScheme, `${type} must name its scheme`).not.toBe('')
     }
   })
 
@@ -2340,8 +2358,11 @@ describe('the platform service catalogue (§20)', () => {
 
 describe('derived service credentials', () => {
   const binding = {
-    name: 'chem-labs-staging-db', type: 'mongo', version: '7',
-    environmentId: 'env-1', projectSlug: 'chem-labs',
+    name: 'chem-labs-staging-db',
+    type: 'mongo',
+    version: '7',
+    environmentId: 'env-1',
+    projectSlug: 'chem-labs',
   }
 
   it('is deterministic, which is what makes ensureService idempotent', () => {
@@ -2352,7 +2373,10 @@ describe('derived service credentials', () => {
 
   it('differs per app and per environment', () => {
     const a = deriveCredentials('secret'.repeat(6), binding)
-    const b = deriveCredentials('secret'.repeat(6), { ...binding, name: 'chem-labs-production-db' })
+    const b = deriveCredentials('secret'.repeat(6), {
+      ...binding,
+      name: 'chem-labs-production-db',
+    })
     expect(b.password).not.toBe(a.password)
   })
 
@@ -2360,7 +2384,10 @@ describe('derived service credentials', () => {
   // never receives staging or production secrets. Different name => different key.
   it('gives a sandbox its own throwaway credentials', () => {
     const staging = deriveCredentials('secret'.repeat(6), binding)
-    const sandbox = deriveCredentials('secret'.repeat(6), { ...binding, name: 'chem-labs-sandbox-db' })
+    const sandbox = deriveCredentials('secret'.repeat(6), {
+      ...binding,
+      name: 'chem-labs-sandbox-db',
+    })
     expect(sandbox.password).not.toBe(staging.password)
   })
 
@@ -2390,6 +2417,25 @@ export interface ServiceImage {
   digest: string
   port: number
   supportedVersions: string[]
+  /**
+   * The URI scheme, which is NOT the service type. `binding.type` is `mongo` and
+   * the scheme is `mongodb` — measured, `mongo://…` is rejected outright by
+   * mongosh with `MongoshInvalidInputError: Invalid URI`.
+   */
+  uriScheme: string
+  /**
+   * Query string the endpoint needs to be usable. Mongo's root user is created in
+   * the `admin` database, so a connection aimed at the app's own database must say
+   * `authSource=admin` or every authentication attempt fails.
+   */
+  uriQuery: string
+  /**
+   * The container-side liveness probe, run by the DAEMON as a Docker healthcheck.
+   * It cannot be a probe the control plane makes itself: the control plane is a
+   * host process and §21 establishes it cannot reach container IPs, so it asks
+   * the daemon whether the container is healthy instead of connecting.
+   */
+  healthTest: string[]
 }
 
 export class ServiceCatalogueError extends Error {
@@ -2415,6 +2461,11 @@ export const SERVICE_CATALOGUE: Record<'mongo' | 'qdrant', ServiceImage> = {
     digest: 'sha256:56d07a0227ceeb04ba763bfe5681660c465114d2f6fb943e8e8f3718134b5436',
     port: 27017,
     supportedVersions: ['7'],
+    uriScheme: 'mongodb',
+    uriQuery: 'authSource=admin',
+    // `ping` is served before authentication, which makes it useless as a
+    // SECURITY assertion and exactly right as a LIVENESS one.
+    healthTest: ['CMD', 'mongosh', '--quiet', '--eval', 'db.adminCommand({ping:1}).ok'],
   },
   // §21: opt-in, not part of the default blueprint — one per app per environment is
   // affordable on UBC infrastructure and is not affordable on a laptop.
@@ -2423,6 +2474,9 @@ export const SERVICE_CATALOGUE: Record<'mongo' | 'qdrant', ServiceImage> = {
     digest: 'sha256:94728574965d17c6485dd361aa3c0818b325b9016dac5ea6afec7b4b2700865f',
     port: 6333,
     supportedVersions: ['1'],
+    uriScheme: 'http',
+    uriQuery: '',
+    healthTest: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:6333/readyz'],
   },
 }
 
@@ -2480,7 +2534,11 @@ export function deriveCredentials(
 `packages/control-plane/src/services/index.ts`:
 
 ```ts
-export { SERVICE_CATALOGUE, ServiceCatalogueError, resolveServiceImage } from './catalogue.js'
+export {
+  SERVICE_CATALOGUE,
+  ServiceCatalogueError,
+  resolveServiceImage,
+} from './catalogue.js'
 export type { ServiceImage } from './catalogue.js'
 export { deriveCredentials } from './credentials.js'
 ```
@@ -2492,8 +2550,13 @@ export { deriveCredentials } from './credentials.js'
 ```ts
 import type { ServiceBinding, ServiceHandle } from '../driver.js'
 import { deriveCredentials, resolveServiceImage } from '../../services/index.js'
-import type { EngineClient } from './engine.js'
-import { appNetwork, serviceContainer, serviceVolume, type EnvironmentKind } from './names.js'
+import { EngineError, type EngineClient } from './engine.js'
+import {
+  appNetwork,
+  serviceContainer,
+  serviceVolume,
+  type EnvironmentKind,
+} from './names.js'
 
 /** D3: dedicated per app+environment. The container IS the isolation boundary. */
 export async function ensureServiceContainer(
@@ -2508,7 +2571,12 @@ export async function ensureServiceContainer(
   // name is that with our prefix. One derivation, not two.
   const name = serviceContainer(binding.name)
   const volume = serviceVolume(binding.name)
-  const endpoint = `${binding.type}://${creds.username}:${creds.password}@${name}:${image.port}/${creds.database}`
+  // The scheme comes from the CATALOGUE, not from binding.type: the type is
+  // `mongo` and the scheme is `mongodb`, and `mongo://…` is not a valid URI.
+  // The query carries authSource=admin, without which the root user — which
+  // lives in `admin` — cannot authenticate against the app's own database.
+  const query = image.uriQuery === '' ? '' : `?${image.uriQuery}`
+  const endpoint = `${image.uriScheme}://${creds.username}:${creds.password}@${name}:${image.port}/${creds.database}${query}`
 
   const existing = await engine.get<{ Id: string; State: { Running: boolean } }>(
     `/containers/${name}/json`,
@@ -2518,7 +2586,10 @@ export async function ensureServiceContainer(
     return { id: name, name, endpoint }
   }
 
-  await engine.post('/volumes/create', { Name: volume, Labels: { 'manifest.slug': binding.projectSlug } })
+  await engine.post('/volumes/create', {
+    Name: volume,
+    Labels: { 'manifest.slug': binding.projectSlug },
+  })
   await engine.post(`/containers/create?name=${name}`, {
     Image: `${image.image}@${image.digest}`,
     Env: [
@@ -2537,10 +2608,54 @@ export async function ensureServiceContainer(
       Memory: 512 * 1024 * 1024,
       RestartPolicy: { Name: 'unless-stopped' },
     },
+    Healthcheck: {
+      Test: image.healthTest,
+      Interval: 1_000_000_000,
+      Timeout: 5_000_000_000,
+      Retries: 30,
+      StartPeriod: 1_000_000_000,
+    },
     Labels: { 'manifest.slug': binding.projectSlug, 'manifest.environment': kind },
   })
   await engine.post(`/containers/${name}/start`)
+  await waitForServiceHealthy(engine, name)
   return { id: name, name, endpoint }
+}
+
+/**
+ * A handle whose endpoint is not yet connectable is not a handle. Measured: Mongo
+ * refuses connections for roughly the first five seconds — at t=0 the probe gets
+ * `ECONNREFUSED`, at t=5 it succeeds — so returning as soon as the container is
+ * *started* hands the caller an endpoint that fails, and Task 7's app container
+ * connects at boot.
+ *
+ * This asks the DAEMON for the healthcheck result rather than connecting: the
+ * control plane is a host process and cannot reach container IPs (§21).
+ */
+async function waitForServiceHealthy(
+  engine: EngineClient,
+  name: string,
+  timeoutMs = 90_000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  for (;;) {
+    const inspect = await engine.get<{
+      State: { Running: boolean; Health?: { Status: string } }
+    }>(`/containers/${name}/json`)
+    const status = inspect?.State.Health?.Status
+    if (status === 'healthy') return
+    if (Date.now() > deadline) {
+      throw new EngineError(
+        'SERVICE_NOT_HEALTHY',
+        `service ${name} did not become healthy within ${timeoutMs} ms (last status: ${status ?? 'none'})`,
+        'Check `docker logs ' +
+          name +
+          '`. A service that never reports healthy ' +
+          'usually failed to initialise its data directory.',
+      )
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
 }
 
 /**
@@ -2577,7 +2692,10 @@ const SECRET = 'x'.repeat(32)
 const SLUG = 'svctest'
 const binding: ServiceBinding = {
   name: serviceName(SLUG, 'staging', 'db'),
-  type: 'mongo', version: '7', environmentId: 'env-1', projectSlug: SLUG,
+  type: 'mongo',
+  version: '7',
+  environmentId: 'env-1',
+  projectSlug: SLUG,
 }
 
 const volumeExists = async (): Promise<boolean> =>
@@ -2601,10 +2719,21 @@ describeDocker('dedicated backing services (D3)', () => {
 
   it('publishes no port and sits on the app network only', async () => {
     const inspect = await engine.get<{
-      NetworkSettings: { Ports: Record<string, unknown>; Networks: Record<string, unknown> }
+      NetworkSettings: {
+        Ports: Record<string, unknown>
+        Networks: Record<string, unknown>
+      }
+      HostConfig: { PortBindings: Record<string, unknown> }
     }>(`/containers/mf-${binding.name}/json`)
-    expect(Object.keys(inspect!.NetworkSettings.Ports)).toEqual([])
-    expect(Object.keys(inspect!.NetworkSettings.Networks)).toEqual(['mf-svctest-staging-net'])
+    // PUBLISHED, not EXPOSED. `NetworkSettings.Ports` lists what the IMAGE
+    // exposes — measured, `{"27017/tcp": null}` — and the null is the whole
+    // point: exposed, bound to nothing. Asserting that map is empty fails
+    // against a perfectly private container and says nothing about publication.
+    expect(inspect!.HostConfig.PortBindings).toEqual({})
+    expect(Object.values(inspect!.NetworkSettings.Ports)).toEqual([null])
+    expect(Object.keys(inspect!.NetworkSettings.Networks)).toEqual([
+      'mf-svctest-staging-net',
+    ])
   })
 
   it('runs the digest-pinned catalogue image, not a tag', async () => {
@@ -2621,25 +2750,34 @@ describeDocker('dedicated backing services (D3)', () => {
   // while the Docker-official `mongo` image reads MONGO_INITDB_*. Getting that
   // wrong starts a Mongo with NO authentication at all and every other test here
   // stays green.
-  it('accepts the derived credentials — and rejects a wrong one', async () => {
+  it('accepts the derived credentials, rejects a wrong one, and refuses none at all', async () => {
     const handle = await ensureServiceContainer(engine, binding, 'staging', SECRET)
-    const ping = async (uri: string): Promise<number> => {
+    const run = async (uri: string): Promise<number> => {
       const created = await engine.post<{ Id: string }>('/containers/create', {
         Image: 'mongodb/mongodb-community-server:7.0.28-ubi8',
         Entrypoint: ['mongosh'],
-        Cmd: [uri, '--quiet', '--eval', 'db.runCommand({ping:1}).ok'],
+        // insertOne, NOT ping. `ping` is one of the few commands MongoDB serves
+        // BEFORE authentication — measured, it answers ok=1 on an unauthenticated
+        // connection — so a ping-based check passes identically against a Mongo
+        // started with no authentication at all, which is the exact failure this
+        // test's own comment says it exists to catch.
+        Cmd: [uri, '--quiet', '--eval', 'db.probe.insertOne({a:1}).acknowledged'],
         HostConfig: { NetworkMode: 'mf-svctest-staging-net' },
       })
       const id = created!.Id
       try {
         await engine.post(`/containers/${id}/start`)
-        return (await engine.post<{ StatusCode: number }>(`/containers/${id}/wait`))!.StatusCode
+        return (await engine.post<{ StatusCode: number }>(`/containers/${id}/wait`))!
+          .StatusCode
       } finally {
         await engine.del(`/containers/${id}?force=true&v=true`)
       }
     }
-    expect(await ping(handle.endpoint)).toBe(0)
-    expect(await ping(handle.endpoint.replace(/:[^:@]+@/, ':wrong-password@'))).not.toBe(0)
+    expect(await run(handle.endpoint)).toBe(0)
+    expect(await run(handle.endpoint.replace(/:[^:@]+@/, ':wrong-password@'))).not.toBe(0)
+    // THE ONE THAT MATTERS: no credentials at all must be refused. This is what
+    // detects a service started without authentication actually enforced.
+    expect(await run(handle.endpoint.replace(/\/\/[^@]+@/, '//'))).not.toBe(0)
   })
 
   it('honours deleteData:false — the volume survives', async () => {
@@ -2661,7 +2799,8 @@ describeDocker('dedicated backing services (D3)', () => {
 pnpm test && pnpm test:docker
 ```
 
-Expected: 8 unit tests, 6 Docker tests.
+Expected: 8 unit tests, 6 Docker tests. (It said 8 before the catalogue gained a
+scheme test and the file defined 7 — count them rather than trusting the number.)
 
 - [ ] **Step 7: Prove `deleteData` is not a no-op in either direction**
 
@@ -7536,6 +7675,11 @@ task, from P2's last two batches. Finding them is the expected outcome.*
 | 12 | 5 | Adding P1's `User nobody`/`Group nobody` to the config **killed the proxy** — because this proxy, unlike P1's, sets `CapDrop: ["ALL"]`, which removes CAP_SETGID. | `tinyproxy: Unable to change to group "nobody"`, container not running. P1's platform proxy has `CapDrop=[]`, which is why it can drop privileges itself. Fixed by starting the *container* as `65534:65534` — already unprivileged, needing no capability to get there, and strictly stronger. Readback: `uid=65534(nobody)`, `CapBnd: 0…0`, `NoNewPrivs: 1`. A new test asserts it; control: removing `User` fails it with `expected '' to be '65534:65534'`. |
 | 13 | 5 | Step 6 predicted `FilterDefaultDeny No` would fail one test with *"every other test stays green"*. It fails **three**. | `FilterDefaultDeny No` inverts the filter file into a **denylist**, so the platform baseline is blocked too. Expectation corrected. |
 | — | 5 | (trap recorded, not a defect) tinyproxy 1.11.2 warns `deprecated option FilterExtended, use FilterType`. **Do not take that advice.** | Measured: `FilterType extended` is not understood by 1.11.2, the proxy fails to start, and **every** request returns `000` — allowed and denied alike. A deny-only check still sees a refusal and passes. The "ALLOWS the platform baseline" test is the control that catches it. |
+
+| 14 | 6 | *"publishes no port"* asserted `NetworkSettings.Ports` is empty. That map lists what the **image exposes**, not what is **published**. | Measured: `Ports={"27017/tcp":null}`, `PortBindings={}` — the `null` *is* the point, exposed and bound to nothing. The assertion failed against a perfectly private container. Now asserts `HostConfig.PortBindings` is `{}`. |
+| 15 | 6 | The endpoint was built as `${binding.type}://…` → **`mongo://`**, which is not a valid URI, and carried no `authSource`. | `MongoshInvalidInputError: Invalid URI: mongo://…`. And with `mongodb://`, `Authentication failed` — Mongo's root user lives in `admin`, so the endpoint needs `?authSource=admin`. Both now come from the **catalogue** (`uriScheme`, `uriQuery`), with a unit test that catches them **without Docker**. |
+| 16 | 6 | **The auth control could not detect the failure its own comment named.** It probed `db.runCommand({ping:1})`. | Measured: `ping` is served **before authentication** — it answers `ok=1` on an unauthenticated connection, while `insertOne` answers `Command insert requires authentication`. So the test passed identically against a Mongo with no auth enforced, which its comment says is exactly what it exists to catch. Now uses `insertOne`, and adds the assertion that mattered: **no credentials at all must be refused**. (Auth *is* enforced here — the image's entrypoint adds `--auth` itself; passing `--auth` again is `Multiple occurrences of option "--auth"` and the container dies.) |
+| 17 | 6 | `ensureServiceContainer` returned as soon as the container **started**, so the endpoint in the handle was not yet connectable. | Measured: `ECONNREFUSED` at t=0, working at t=5. Task 7's app container connects at boot, so this was a crash on first deploy. Fixed with a Docker **healthcheck** plus a poll of `State.Health.Status` — asking the daemon, because the control plane is a host process and cannot reach container IPs (§21). |
 
 **Controls verified as real, so nobody re-checks them:** removing `no-new-privileges`
 gives `NoNewPrivs: 0` and `seccomp=unconfined` gives `Seccomp: 0` (Task 3); flipping
