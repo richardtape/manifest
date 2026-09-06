@@ -1,6 +1,7 @@
+import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import { manifestSchema, type ManifestSpec } from '../spec/index.js'
-import { descriptorSchema, checkBlueprintCompatibility } from './index.js'
+import { descriptorSchema, checkBlueprintCompatibility, loadBlueprints } from './index.js'
 
 const descriptor = descriptorSchema.parse({
   blueprint: 'fixture-node',
@@ -101,5 +102,46 @@ describe('checkBlueprintCompatibility (§25)', () => {
     const older = { ...descriptor, schema_versions: [2] }
     const errors = checkBlueprintCompatibility(spec(), older)
     expect(errors[0]?.code).toBe('BLUEPRINT_SCHEMA_VERSION_UNSUPPORTED')
+  })
+})
+
+describe('blueprint registry', () => {
+  it('loads the on-disk catalogue and resolves by name@major', async () => {
+    const registry = await loadBlueprints(
+      new URL('../../../../blueprints/', import.meta.url).pathname,
+    )
+    expect(registry.list().length).toBeGreaterThan(0)
+    expect(registry.resolve('fixture-node@1')?.blueprint).toBe('fixture-node')
+    expect(registry.resolve('fixture-node@9')).toBeUndefined()
+    expect(registry.resolve('does-not-exist@1')).toBeUndefined()
+  })
+
+  it('pins its base image by digest at the LOCAL registry, so an offline build resolves', async () => {
+    // S1: an offline build resolves FROM against the local registry, not the
+    // daemon's cache. A Docker Hub reference here builds on this machine today and
+    // fails the moment the network is off, which is C1's whole claim.
+    const registry = await loadBlueprints(
+      new URL('../../../../blueprints/', import.meta.url).pathname,
+    )
+    const base = registry.resolve('fixture-node@1')?.runtime.base_image ?? ''
+    expect(base).toMatch(/^manifest-registry:5000\/base\//)
+    expect(base).toMatch(/@sha256:[0-9a-f]{64}$/)
+  })
+
+  it("agrees with the skeleton's own package.json about what it installs (C6)", async () => {
+    const registry = await loadBlueprints(
+      new URL('../../../../blueprints/', import.meta.url).pathname,
+    )
+    const pinned = registry.resolve('fixture-node@1')?.pinned_dependencies ?? {}
+    const pkg = JSON.parse(
+      await readFile(
+        new URL(
+          '../../../../blueprints/fixture-node/skeleton/package.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    ) as { dependencies?: Record<string, string> }
+    expect(pkg.dependencies).toEqual(pinned)
   })
 })

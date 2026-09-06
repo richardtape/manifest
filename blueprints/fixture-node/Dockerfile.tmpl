@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1
+FROM {{BASE_IMAGE}}
+
+# Non-root by construction (§12 hardening baseline). The base is Alpine, whose
+# BusyBox userland has addgroup/adduser and NEITHER groupadd NOR useradd — the
+# shadow package is not installed. Using the GNU names here would fail the build.
+RUN addgroup -g {{RUN_AS_UID}} app \
+ && adduser -u {{RUN_AS_UID}} -G app -D -h /home/app app
+
+WORKDIR /app
+
+# A committed lockfile is required; the build fails without one (§12 supply chain).
+COPY package.json package-lock.json ./
+# Install scripts are disabled: a malicious or hallucinated dependency does not get
+# to run arbitrary code at build time (§12).
+RUN npm ci --omit=dev --ignore-scripts
+
+COPY . .
+
+USER app
+EXPOSE 3000
+CMD ["node", "server.js"]

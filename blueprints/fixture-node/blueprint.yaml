@@ -1,0 +1,48 @@
+blueprint: fixture-node
+major_version: 1
+schema_versions: [1]
+
+runtime:
+  language: typescript
+  # Digest-pinned per §12, and pinned at the LOCAL REGISTRY, which is the only
+  # place an offline build can resolve it from (S1). Two things about this value
+  # were measured on 2026-09-05 rather than assumed:
+  #
+  #   * The host is `manifest-registry:5000`, which is how the builder reaches the
+  #     registry from inside the build network — P3 uses that exact name.
+  #   * The digest is NOT the one in infra/images.lock. That file records what
+  #     Docker Hub returned (sha256:c610fcd…, a multi-arch index); `docker pull` on
+  #     arm64 takes a single-arch manifest out of it and `docker push` republishes
+  #     that, so the local registry answers sha256:1ef15d3… for the same tag.
+  #     Pinning the images.lock digest here would fail to resolve offline.
+  #
+  # Re-measure after any `make seed` with:
+  #   curl -sI -H 'Accept: application/vnd.oci.image.manifest.v1+json' \
+  #     http://127.0.0.1:7107/v2/base/node/manifests/22-alpine | grep -i digest
+  base_image: manifest-registry:5000/base/node@sha256:1ef15d33d74602021f35ec64a4e72f4a21e2cfa68ebecd125fbe0c44af8f604a
+  default_port: 3000
+  health_path: /healthz
+  run_as_uid: 10001
+
+provides:
+  services: [mongo]
+  auth_providers: [none]
+  ai: false
+
+defaults:
+  resources:
+    cpu: 0.5
+    memory: 512Mi
+    pids: 256
+    disk: 2Gi
+
+injection:
+  contract: v1
+
+dockerfile: ./Dockerfile.tmpl
+knowledge_pack: ./agents/
+
+# What the skeleton installs, exactly (C6). The descriptor and skeleton/package.json
+# must agree; §16's injection-contract drift test asserts against a stated version.
+pinned_dependencies:
+  mongodb: 6.12.0

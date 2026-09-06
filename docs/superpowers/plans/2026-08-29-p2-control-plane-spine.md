@@ -2307,6 +2307,7 @@ git commit -m "feat(blueprints): §25 descriptor, registry and compatibility che
 - Create: `blueprints/fixture-node/blueprint.yaml`
 - Create: `blueprints/fixture-node/Dockerfile.tmpl`
 - Create: `blueprints/fixture-node/skeleton/package.json`
+- Create: `blueprints/fixture-node/skeleton/package-lock.json`
 - Create: `blueprints/fixture-node/skeleton/server.js`
 - Create: `blueprints/fixture-node/agents/AGENTS.md`
 
@@ -2327,9 +2328,22 @@ schema_versions: [1]
 
 runtime:
   language: typescript
-  # Digest-pinned per §12. Replace with a real digest during P1's `make seed`, which
-  # is the step that pulls it; `make doctor` reports the pinned value.
-  base_image: node@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  # Digest-pinned per §12, and pinned at the LOCAL REGISTRY, which is the only
+  # place an offline build can resolve it from (S1). Two things about this value
+  # were measured on 2026-09-05 rather than assumed:
+  #
+  #   * The host is `manifest-registry:5000`, which is how the builder reaches the
+  #     registry from inside the build network — P3 uses that exact name.
+  #   * The digest is NOT the one in infra/images.lock. That file records what
+  #     Docker Hub returned (sha256:c610fcd…, a multi-arch index); `docker pull` on
+  #     arm64 takes a single-arch manifest out of it and `docker push` republishes
+  #     that, so the local registry answers sha256:1ef15d3… for the same tag.
+  #     Pinning the images.lock digest here would fail to resolve offline.
+  #
+  # Re-measure after any `make seed` with:
+  #   curl -sI -H 'Accept: application/vnd.oci.image.manifest.v1+json' \
+  #     http://127.0.0.1:7107/v2/base/node/manifests/22-alpine | grep -i digest
+  base_image: manifest-registry:5000/base/node@sha256:1ef15d33d74602021f35ec64a4e72f4a21e2cfa68ebecd125fbe0c44af8f604a
   default_port: 3000
   health_path: /healthz
   run_as_uid: 10001
@@ -2351,6 +2365,11 @@ injection:
 
 dockerfile: ./Dockerfile.tmpl
 knowledge_pack: ./agents/
+
+# What the skeleton installs, exactly (C6). The descriptor and skeleton/package.json
+# must agree; §16's injection-contract drift test asserts against a stated version.
+pinned_dependencies:
+  mongodb: 6.12.0
 ```
 
 - [ ] **Step 2: Write the Dockerfile template**
@@ -2361,9 +2380,11 @@ knowledge_pack: ./agents/
 # syntax=docker/dockerfile:1
 FROM {{BASE_IMAGE}}
 
-# Non-root by construction (§12 hardening baseline).
-RUN groupadd --gid {{RUN_AS_UID}} app \
- && useradd --uid {{RUN_AS_UID}} --gid {{RUN_AS_UID}} --create-home app
+# Non-root by construction (§12 hardening baseline). The base is Alpine, whose
+# BusyBox userland has addgroup/adduser and NEITHER groupadd NOR useradd — the
+# shadow package is not installed. Using the GNU names here would fail the build.
+RUN addgroup -g {{RUN_AS_UID}} app \
+ && adduser -u {{RUN_AS_UID}} -G app -D -h /home/app app
 
 WORKDIR /app
 
@@ -2393,6 +2414,25 @@ CMD ["node", "server.js"]
   "dependencies": { "mongodb": "6.12.0" }
 }
 ```
+
+**And its lockfile**, which is not optional: the Dockerfile above runs `npm ci`,
+which fails outright without one, and §12 requires it. Generate it with
+
+```bash
+cd blueprints/fixture-node/skeleton
+npm install --package-lock-only --registry https://registry.npmjs.org --no-audit --no-fund
+```
+
+**Generate it against the public registry, not the local mirror.** A lockfile
+records a `resolved` URL per package, and generating it through Verdaccio writes
+`http://127.0.0.1:7108/...` into all twelve of them — an address no build container
+can reach. Canonical URLs are portable, and npm substitutes the configured registry
+at install time. **Measured 2026-09-05:** `npm ci --registry
+http://manifest-verdaccio:4873` on the `manifest-build-internal` network installs
+all 12 packages, exit 0, from a lockfile whose `resolved` URLs all name
+registry.npmjs.org — and the same command pointed at registry.npmjs.org on that
+network fails with `EAI_AGAIN`, because the network is `internal=true`. So the
+success came from the mirror, not from the internet.
 
 `blueprints/fixture-node/skeleton/server.js` — exercises exactly what P3 needs to prove: it starts, it answers the health path, and it writes to its declared service using the injected variables.
 
@@ -2477,11 +2517,74 @@ describe('blueprint registry', () => {
 })
 ```
 
+Add two more, which pin what execution found wrong in this task's own artefacts:
+
+```ts
+  it('pins its base image by digest at the LOCAL registry, so an offline build resolves', async () => {
+    const registry = await loadBlueprints(
+      new URL('../../../../blueprints/', import.meta.url).pathname,
+    )
+    const base = registry.resolve('fixture-node@1')?.runtime.base_image ?? ''
+    expect(base).toMatch(/^manifest-registry:5000\/base\//)
+    expect(base).toMatch(/@sha256:[0-9a-f]{64}$/)
+  })
+
+  it("agrees with the skeleton's own package.json about what it installs (C6)", async () => {
+    const registry = await loadBlueprints(
+      new URL('../../../../blueprints/', import.meta.url).pathname,
+    )
+    const pinned = registry.resolve('fixture-node@1')?.pinned_dependencies ?? {}
+    const pkg = JSON.parse(
+      await readFile(
+        new URL('../../../../blueprints/fixture-node/skeleton/package.json', import.meta.url),
+        'utf8',
+      ),
+    ) as { dependencies?: Record<string, string> }
+    expect(pkg.dependencies).toEqual(pinned)
+  })
+```
+
 ```bash
 pnpm --filter @manifest/control-plane test src/blueprints/
 ```
 
-Expected: PASS, **10 tests**.
+Expected: PASS, **12 tests**.
+
+> **Three defects found in execution (2026-09-05), and the first would have failed
+> P3's entire acceptance.**
+>
+> **1. The Dockerfile could not build. `node:22-alpine` has no `groupadd` and no
+> `useradd`** — Alpine's BusyBox userland provides `addgroup` and `adduser`, and the
+> `shadow` package is not installed. **Measured:** the Dockerfile exactly as written
+> fails at its first `RUN` with `exit code: 127`; with `addgroup`/`adduser` it builds
+> and `id` inside the image reports `uid=10001(app) gid=10001(app)`, so §12's
+> non-root property actually holds rather than merely being written down. P3's demo
+> — *the fixture app healthy at a `manifest.internal` URL, from a clean checkout,
+> offline* — builds this blueprint, so P3 would have failed on its first build.
+>
+> **2. The base image was a row of zeros, deferred to a `make seed` that has already
+> run.** The comment said *"replace with a real digest during P1's `make seed`"*;
+> P1 executed on 2026-09-05 and nothing came back to replace it. Worse, the obvious
+> replacement is wrong: `infra/images.lock` records Docker Hub's **multi-arch index**
+> digest (`sha256:c610fcd…`), while the local registry — the only thing an offline
+> build can resolve against (S1) — answers `sha256:1ef15d3…`, the single-arch
+> manifest `docker pull` on arm64 selected and `docker push` republished. **Measured
+> against:** `curl -sI …/v2/base/node/manifests/22-alpine` returning
+> `Docker-Content-Digest: sha256:1ef15d3…` beside `infra/images.lock`'s
+> `sha256:c610fcd…`. A test now pins that the reference names the local registry and
+> carries a digest; repointing it at Docker Hub turns that test red.
+>
+> **3. The skeleton shipped no lockfile, and the Dockerfile requires one.**
+> `npm ci` fails without `package-lock.json`, and the template's own comment says
+> *"a committed lockfile is required; the build fails without one (§12 supply
+> chain)"* — while Task 7's file list omitted it. See the generation step above,
+> including why it must be generated against the public registry.
+>
+> **Negative controls run (2026-09-05).** The base image repointed at Docker Hub →
+> the local-registry test red; `pinned_dependencies` changed to `6.13.0` so the
+> descriptor and the skeleton disagree → the C6 agreement test red; `blueprint.yaml`
+> removed → the registry tests red with ENOENT. Plus the two Docker builds above,
+> which are the only way to learn that a `RUN` line is wrong.
 
 - [ ] **Step 6: Commit**
 
