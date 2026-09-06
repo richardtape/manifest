@@ -514,7 +514,7 @@ coherent. Follow them.
 
 ---
 
-## 7. What to do next — execute P3
+## 7. What to do next — finish P3, from Task 13
 
 **This section changed direction on 2026-09-04, and P1 has since executed.** The intent until then was to write
 every remaining plan before implementing any of them. It is now the opposite:
