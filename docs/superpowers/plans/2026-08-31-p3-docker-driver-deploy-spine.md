@@ -7452,6 +7452,43 @@ addition to the fake driver is purely additive.
 
 ---
 
+## What executing this plan found
+
+*Appended per session. The rate the roadmap predicted for P3 was 2.7-2.9 defects per
+task, from P2's last two batches. Finding them is the expected outcome.*
+
+### Session 1 — pre-flight and Tasks 1-4 (2026-09-06). 10 defects.
+
+| # | Task | Defect | Measured against |
+|---|---|---|---|
+| 1 | pre-flight | **P1's `scripts/snapshot-machine.sh` died at parse time.** `\'` inside a single-quoted string on line 121 — no POSIX shell escapes that — so bash 3.2 emitted **11 of 15 sections** and exited 2. The four lost were the loopback alias, `/etc/resolver`, Valet and Repository: **all three of P1's host changes**. Both committed baselines are truncated; `machine-baseline-2026-09-05.md` has the interpreter's error pasted into it verbatim. | `bash -n` exit 2 → 0; sections 11 → 15; `=== end ===` absent → present. `machine-baseline-2026-09-06.md` is the first complete one and carries the correction; the earlier two are dated evidence and were left alone. |
+| 2 | 1 | Three of Task 1's four code blocks failed `pnpm format:check` — the fourth gate, which this plan added *because* P2 found it silently red on 29 files. | `prettier --check --config .prettierrc` on the blocks extracted verbatim: 3 of 4 dirty. Blocks replaced with Prettier's output, re-verified by re-extraction. **Measuring this outside the repo gives a false 4/4** — Prettier ignores `.prettierrc` there and applies double quotes and semicolons. Pass `--config`. |
+| 3 | 1 | `Produces` listed `postRaw` on `EngineClient`. It appears exactly once in the whole plan — that line. | `grep -c postRaw` → 1. Removed; `stream` already covers raw byte streams. |
+| 4 | 2 | Step 5 claimed `pnpm test:docker` *"passes trivially"* with no Docker tests. It exits **1**, `No test files found`. | Ran it. **Left failing deliberately** — `passWithNoTests` would green a tier that runs nothing the moment its glob stopped matching. |
+| 5 | 2 | **STRUCTURAL: the Docker tier could not run at all.** `tier-setup.ts` is a `globalSetup` and reached the guard through `docker-tier.ts`, which imports `describe` from `vitest`. Any `vitest` import in a globalSetup graph throws *"Vitest failed to access its internal state"*. Affects the Docker suites in Tasks 3-18. | `pnpm test:docker` reported **`no tests`** plus an unhandled error — the same signature as a bad glob. Guard split into `tier-guard.ts`; `docker-tier.ts` re-exports it so the import in 13 later tasks is unchanged. |
+| 6 | 3 | **A SECURITY CONTROL THAT COULD NOT FAIL.** The readback asserted `CapEff: 0…0` on a probe running as `User: 10001:10001`. **CapEff is zero for any non-root process**, with or without `CapDrop: ["ALL"]`. | Ran Step 7's control and watched it **pass**. Measured: cap-drop ALL + non-root → `CapBnd 0…0`; cap-add NET_ADMIN + non-root → `CapBnd 00000000a80435fb`. Switched to **CapBnd**, the bounding set. This also weakens **S1's** original evidence, which recorded CapEff. |
+| 7 | 3 | The Docker test started its probe inside the first `it`; tests 2 and 3 depended on that side effect — the ordering shape behind five of P2's 27 defects. | Moved to `beforeAll`, which also fails all three loudly if the container cannot start. |
+| 8 | 4 | `PLATFORM_NEIGHBOURS` named `manifest-dnsmasq-containers`; P1 calls it **`manifest-dns-containers`**. Compounded by Task 1's deliberate 404→`undefined`: the connect **reported success**. Every app network would have come up with **no resolver**, silently. | Measured connect: absent → **404**, present → 200, duplicate → **403**. Added a network readback and `PLATFORM_NEIGHBOUR_NOT_ATTACHED`. Control: wrong name exits **1**, right name exits **0**. |
+| 9 | 4 | *"DENIES the control plane"* probed `host.docker.internal:7100` — a **host process** not running during tests, so the probe fails from an ordinary bridge network too. It passed on any topology. | Measured: **exit 7** from bridge. Repointed to **7107**, the registry. |
+| 10 | 4 | *"DENIES the cloud metadata endpoint"* probed `169.254.169.254`. Docker Desktop runs no metadata service, so it times out from bridge too. | Measured: **exit 28** from bridge. Replaced with the **mechanism** — no default route in-container, paired against a bridge container that has one. **IPAM is not a discriminator**: internal and bridge networks *both* report an `IPAM.Config[].Gateway`. |
+
+**Controls verified as real, so nobody re-checks them:** removing `no-new-privileges`
+gives `NoNewPrivs: 0` and `seccomp=unconfined` gives `Seccomp: 0` (Task 3); flipping
+the root `vitest.config.ts` back to `fileParallelism: true` reproduces P2's exact ten
+failures, so the workspace rewrite did **not** orphan that file (Task 2).
+
+**The shape of these ten.** Four (5, 6, 9, 10) are checks that could not fail, and one
+more (8) is a call that could not fail. That is half the batch, in a plan whose author
+had already written *"never accept a check you have not watched fail"* into it — which
+is the argument for running the controls rather than reading them.
+
+**One risk carried forward, not yet a defect.** The bridge-network positive control in
+Task 4 probes `https://registry.npmjs.org/`, so it needs the internet. Task 17 runs the
+Docker tier **offline**; if `make verify` runs this suite with the network off, that
+control fails for the right reason but at the wrong moment. **Check it at Task 17.**
+
+---
+
 ## Spec actions proposed by this plan
 
 **Not applied.** The spec is approved design and changing it is Rich's call; this is
