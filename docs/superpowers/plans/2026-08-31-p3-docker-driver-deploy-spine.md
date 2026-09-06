@@ -280,7 +280,7 @@ rather than on a convention someone has to remember.
 **Interfaces:**
 - Consumes: nothing. This is the bottom of the stack.
 - Produces:
-  - `interface EngineClient` — `get`, `post`, `del`, `postRaw`, `stream`
+  - `interface EngineClient` — `get`, `post`, `del`, `stream`
   - `createEngineClient(opts: { socketPath: string; apiVersion?: string }): EngineClient`
   - `resolveSocketPath(env?: NodeJS.ProcessEnv): string`
   - `class EngineError extends Error` with `code`, `status`, `hint`
@@ -804,7 +804,9 @@ git commit -m "feat(runtime): dependency-free Docker Engine client and the mf- n
 ## Task 2: The Docker test tier, and the guard that stops it skipping silently
 
 **Files:**
+- Create: `packages/control-plane/src/runtime/docker/tier-guard.ts`
 - Create: `packages/control-plane/src/runtime/docker/docker-tier.ts`
+- Create: `packages/control-plane/src/runtime/docker/tier-setup.ts`
 - Modify: `vitest.workspace.ts` (a second project)
 - Modify: `package.json` (the `test:docker` script)
 - Test: `packages/control-plane/src/runtime/docker/docker-tier.test.ts`
@@ -850,10 +852,16 @@ describe('the Docker test tier', () => {
   // THE POINT OF THIS TASK. Requested-but-unavailable must fail, never skip.
   it('fails — does not skip — when it is requested and Docker is unreachable', async () => {
     await expect(
-      assertDockerAvailable({ MANIFEST_TEST_DOCKER: '1', MANIFEST_DOCKER_SOCKET: '/nonexistent.sock' }),
+      assertDockerAvailable({
+        MANIFEST_TEST_DOCKER: '1',
+        MANIFEST_DOCKER_SOCKET: '/nonexistent.sock',
+      }),
     ).rejects.toThrow(EngineError)
     try {
-      await assertDockerAvailable({ MANIFEST_TEST_DOCKER: '1', MANIFEST_DOCKER_SOCKET: '/nonexistent.sock' })
+      await assertDockerAvailable({
+        MANIFEST_TEST_DOCKER: '1',
+        MANIFEST_DOCKER_SOCKET: '/nonexistent.sock',
+      })
     } catch (error) {
       expect((error as EngineError).code).toBe('DOCKER_TIER_UNAVAILABLE')
       expect((error as EngineError).hint).toContain('MANIFEST_TEST_DOCKER')
@@ -878,11 +886,38 @@ Expected: FAIL — `Cannot find module './docker-tier.js'`.
 
 - [ ] **Step 3: Write the tier**
 
-`packages/control-plane/src/runtime/docker/docker-tier.ts`:
+> **Corrected 2026-09-06, by running it.** This was ONE file, and it made the whole
+> Docker tier impossible to run. `tier-setup.ts` is a vitest `globalSetup`, which
+> executes in a different context from the test workers, and **any `vitest` import
+> anywhere in its import graph** throws *"Vitest failed to access its internal
+> state"*. `docker-tier.ts` imports `describe` for `describeDocker`, so importing
+> the guard through it poisoned the setup. Measured: `pnpm test:docker` reported
+> **`no tests`** plus an unhandled error — the same misleading signature as a bad
+> glob (reconciliation defect 7a), on the one tier that carries every §12 control.
+>
+> So the guard lives in its own vitest-free file. `docker-tier.ts` re-exports it, so
+> **every later task's `import { describeDocker } from './docker-tier.js'` is
+> unchanged** — that import appears in 13 tasks.
+
+`packages/control-plane/src/runtime/docker/tier-guard.ts` — **nothing here may import `vitest`**:
 
 ```ts
-import { describe } from 'vitest'
-import { EngineError, assertApiVersionSupported, createEngineClient, resolveSocketPath } from './engine.js'
+/**
+ * The tier's decision and its guard — and NOTHING that imports `vitest`.
+ *
+ * `tier-setup.ts` is a vitest `globalSetup`, which runs in a different context from
+ * the test workers: importing `vitest` anywhere in its import graph throws
+ * "Vitest failed to access its internal state" and the whole Docker tier reports
+ * `no tests` — which reads like a bad glob and is not one. So `describeDocker`,
+ * which genuinely needs `describe`, lives in `docker-tier.ts` and this file stays
+ * importable from both sides.
+ */
+import {
+  EngineError,
+  assertApiVersionSupported,
+  createEngineClient,
+  resolveSocketPath,
+} from './engine.js'
 
 export function dockerTierRequested(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.MANIFEST_TEST_DOCKER === '1'
@@ -892,7 +927,9 @@ export function dockerTierRequested(env: NodeJS.ProcessEnv = process.env): boole
  * Two states, never three. Skipping when the tier was ASKED for is how a suite full
  * of security assertions stays green on a machine where none of them ran.
  */
-export async function assertDockerAvailable(env: NodeJS.ProcessEnv = process.env): Promise<void> {
+export async function assertDockerAvailable(
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<void> {
   if (!dockerTierRequested(env)) return
   try {
     const engine = createEngineClient({ socketPath: resolveSocketPath(env) })
@@ -906,6 +943,18 @@ export async function assertDockerAvailable(env: NodeJS.ProcessEnv = process.env
     )
   }
 }
+```
+
+`packages/control-plane/src/runtime/docker/docker-tier.ts`:
+
+```ts
+import { describe } from 'vitest'
+import { dockerTierRequested } from './tier-guard.js'
+
+// The guard itself lives in `tier-guard.js`, which must stay free of any `vitest`
+// import so that `tier-setup.ts` (a globalSetup) can reach it. Re-exported here so
+// every Docker-tier suite has one import path.
+export { assertDockerAvailable, dockerTierRequested } from './tier-guard.js'
 
 /**
  * Wraps a suite that needs a daemon. When the tier is not requested the suite is
@@ -914,7 +963,10 @@ export async function assertDockerAvailable(env: NodeJS.ProcessEnv = process.env
  */
 export function describeDocker(name: string, body: () => void): void {
   if (!dockerTierRequested()) {
-    describe.skip(`${name} [skipped: set MANIFEST_TEST_DOCKER=1 to run the Docker tier]`, body)
+    describe.skip(
+      `${name} [skipped: set MANIFEST_TEST_DOCKER=1 to run the Docker tier]`,
+      body,
+    )
     return
   }
   describe(name, body)
@@ -1009,11 +1061,14 @@ modes were hit getting this right, and each has a distinct signature:
 | the whole suite dies on `MANIFEST_DATABASE_URL` | `setupFiles` is missing |
 | passes once, fails on re-run | the `globalSetup` truncate is missing |
 | the count goes **up** by the number of Docker tests | the root `test` script is not scoped to `--project unit` |
+| `pnpm test:docker` reports **`no tests`** and *"Vitest failed to access its internal state"* | something in `globalSetup`'s import graph imports `vitest`. Nothing reachable from `tier-setup.ts` may — that is why the guard is its own file |
 
 `packages/control-plane/src/runtime/docker/tier-setup.ts`:
 
 ```ts
-import { assertDockerAvailable } from './docker-tier.js'
+// Imports the GUARD, never `docker-tier.js`: a globalSetup runs in a context where
+// importing `vitest` throws, and `docker-tier.ts` imports `describe`.
+import { assertDockerAvailable } from './tier-guard.js'
 
 /** Runs once, before any Docker-tier suite. Fails the whole run rather than each file. */
 export default async function setup(): Promise<void> {
@@ -1031,10 +1086,23 @@ Add to the root `package.json` `scripts`:
 
 ```bash
 pnpm test                 # unit only; the docker project matches no files yet
-pnpm test:docker          # passes trivially — no *.docker.test.ts exists yet
+pnpm test:docker          # exits 1: "No test files found". CORRECT — see below
 ```
 
 Expected: `pnpm test` green and fast, still Docker-free.
+
+> **Corrected 2026-09-06, by running it.** This step used to claim `pnpm test:docker`
+> *"passes trivially"*. It does not: vitest exits **1** with `No test files found`
+> until Task 3 adds the first `*.docker.test.ts`. That matters because it lands
+> exactly where you were told to expect green, in the fiddliest step in the plan,
+> beside four other tabulated failure signatures — so it sends you debugging the
+> workspace split instead.
+>
+> **Do not "fix" it with `passWithNoTests: true`.** That would make the Docker tier
+> report success while running nothing the moment its glob stopped matching — which
+> is the precise failure this whole task exists to prevent. Exiting 1 on an empty
+> tier is a free guard that the tier is still finding its files, and it is worth
+> more than a tidy first run. Task 3 makes the command green by adding a test to it.
 
 - [ ] **Step 6: Prove the guard fails rather than skips**
 
