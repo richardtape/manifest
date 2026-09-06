@@ -439,12 +439,74 @@ was available. It is recorded as a gap in `RUNBOOK.md`, not quietly dropped — 
 the interesting case is a Mac **with Valet**, since that collision is why the zone
 is `manifest.internal`. `make host-undo` has also never been run end to end.
 
-### 7b. P2 Tasks 2–8 and 12–21, then P3 *(start here)*
+### 7b. Execute P2 Tasks 2–8 and 12–21, then P3 *(start here)*
 
-P2's Tasks 1, 9, 10 and 11 are already executed and green. Tasks 2–8 and 12–21 are
-the HTTP surface, the database schema and `spec/`. Then P3 in full, whose **Task 18
-is S6** and whose demo is the fixture app healthy at a `manifest.internal` URL, from
-a clean checkout, offline.
+[`plans/2026-08-29-p2-control-plane-spine.md`](plans/2026-08-29-p2-control-plane-spine.md).
+Tasks 1, 9, 10 and 11 are already executed and green. **Tasks 2–8** are the
+`manifest.yaml` schema, spec errors, policy validation, `isSensitiveDiff`, the
+blueprint descriptor, the `fixture-node` blueprint and the **database schema**;
+**Tasks 12–21** are configuration and the HTTP surface. Then P3 in full, whose
+**Task 18 is S6** and whose demo is the fixture app healthy at a
+`manifest.internal` URL, from a clean checkout, offline.
+
+**P2 is no longer standalone.** It was written when nothing was running. P1 has
+since built the infrastructure it targets, so start it like this:
+
+```bash
+make up                       # the platform must be running for Task 8 onward
+set -a; . ./.env; set +a      # make seed writes .env; never hardcode these
+export MANIFEST_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"
+```
+
+Verified 2026-09-05 — that exact string connects and returns
+`CONNECTED to manifest_control as manifest`. **There is no `psql` on the host**, so
+reach the database either from Node (which is what the control plane does) or
+through the container:
+
+```bash
+docker exec manifest-postgres psql -U manifest -d manifest_control -c '\dt'
+```
+
+**Four facts that P2 and P3 originally got wrong about P1, corrected 2026-09-05
+after checking the plans against what is actually running.** They are fixed in
+both plans; they are repeated here because the same class of mistake will recur
+wherever a plan names a concrete resource:
+
+| | |
+|---|---|
+| database | **`manifest_control`** — not `manifest_control_plane` |
+| password | from **`.env`** — not the literal `manifest` |
+| base images | **`alpine:3.22`**, and they live at **`base/<repo>`** in the registry (`base/node`, `base/alpine`); per-app images go to `local/<slug>` |
+| egress proxy | **`manifest-egress:local`** — not `vimagick/tinyproxy`, which is amd64-only and ran emulated |
+
+**So: any time a plan names a port, database, password, image tag or registry
+path, check it against the running system before trusting it.** That class of
+defect is invisible on paper and immediate on contact.
+
+**The one rule that matters most, and it is not about P2.** Executing P1 found
+**19 defects in a plan that had already been self-reviewed**, and **seven of them
+were checks that passed while the thing under test was broken or absent** — an
+egress "negative control" that succeeded because the network did not exist; a
+retention check that passed with LiteLLM stopped; a metadata check that passed
+against a schema every read threw on; a teardown that reported failure when it
+worked. Not one was findable by reading.
+
+> **Never accept a check you have not watched fail.** Remove the thing it
+> protects, confirm red, put it back. It costs seconds.
+
+This matters more in P2 and P3 than it did in P1. **P3 is almost entirely
+controls** — the §12 hardening baseline, S6's probe matrix, the scanner and SBOM
+gate, the registry-token scoping — and a false green on a *security* control is
+the worst failure this project can ship. P3's own self-review already caught the
+shape of it: no task wired the Docker driver into the boot entry point, so its
+`make demo` would have passed against the fake driver.
+
+**Two things P1 leaves you.** `make verify` is now a regression net — keep it and
+`make doctor` green as you go, because they assert properties of the very
+infrastructure P2 and P3 build on. And read
+[`RUNBOOK.md`](RUNBOOK.md) before touching the machine: its troubleshooting table
+is every failure this project has actually hit, including the one where *nothing*
+resolves because Valet's dnsmasq has hung.
 
 P3 also **proposes five spec actions and applies none of them** — they are listed at
 the end of the plan and they are Rich's to approve. One of them is deliberately
@@ -491,10 +553,13 @@ Surface these; do not decide them.
   applied until P3's Task 18 has measured it** — the wording should follow the probe
   matrix, not precede it.
 - **C4's actual turnaround time** for UBC IAM registration and the PIA is
-  **unmeasured**, §9 calls it the highest-risk dependency in the design, and
-  **nobody has started the clock.** It has weeks of latency and no software
-  dependency, so it can start today. See `external-track.md`. This is the single
-  most valuable non-code action available.
+  **unmeasured**, and §9 calls it the highest-risk dependency in the design. It has
+  weeks of latency and no software dependency, so it *could* start today —
+  **and deliberately is not.** *Decided 2026-09-05, Rich's call:* the external track
+  starts once the local proof of concept works end to end, because the goal is to
+  get this right rather than to get it started, and the conversation goes better
+  with a working demonstration behind it. **Do not re-raise this**; the trigger is
+  P4's proof app running. See `external-track.md`.
 - **Fix `passport-ubcshib` upstream, or leave it?** Not needed — `tlef-starter`
   already bridges both attribute formats and C6 forbids a library change being a
   prerequisite. Its real gaps are the unreachable MACE entry and missing OID entries

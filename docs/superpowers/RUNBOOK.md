@@ -117,7 +117,11 @@ Two smaller things this execution did not settle:
   `make down`'s job, not the host script's). It also exposed one defect: the script
   reported `Error 1` on a *successful* teardown, because its last command was a
   `grep -c` that exits 1 when it counts zero. Fixed — it now asserts each reversal
-  and is idempotent.
+  and is idempotent. **The fix was then negative-controlled**, because a check that
+  has only been seen passing is exactly what this execution kept finding: run
+  against a host where all three changes *are* present, the assertions report
+  `STILL PRESENT` three times and exit 1. Full cycle proven twice —
+  `host-setup` → doctor 14/14 → `host-undo` → exit 0.
 - **Valet's `.test` did not resolve during this session — diagnosed and fixed, and
   it was not a Manifest problem.** Valet's own dnsmasq had hung in `sendto` to an
   upstream nameserver; being single-threaded, that froze every lookup it served,

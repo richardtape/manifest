@@ -407,8 +407,15 @@ execution layer.** Each is written when its predecessor lands.
 5. **Execute P1 → P2 → P3.** S6 is P3's acceptance exercise, as its Task 18.
    **P1 is done — executed and green on 2026-09-05, and green offline.** ← the
    current work is now **P2 Tasks 2–8 and 12–21**, then P3 in full.
-6. **Start the external track now** (below), in parallel with all of the above. It
-   has the longest lead time in the project and no software dependency.
+6. **Start the external track once the local proof of concept works end to end.**
+   **Changed 2026-09-05, Rich's call.** This step previously said *"start now, in
+   parallel"*, on the argument that C4 has the longest lead time and no software
+   dependency. That is still true, and it is deliberately not being acted on: the
+   goal is to get this right rather than to get it started, and a registration
+   conversation with UBC IAM goes better with a working end-to-end demonstration
+   behind it than with a design document. **Not a rush; not forgotten.** The
+   trigger is the local PoC running end to end — P4's proof app: CWL login, a Mongo
+   write, an LLM answer. Until then, do not re-raise it.
 7. **Write P4 once P3 has executed**, and P5 when P4 lands. Not before — see the
    decision immediately below.
 

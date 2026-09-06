@@ -113,3 +113,4 @@ Nothing else depends on it, so it fails quietly by never being requested. Ask ea
 | Date | Item | Change |
 |---|---|---|
 | 2026-08-29 | — | Page opened. All eight items unassigned. |
+| 2026-09-05 | — | **Deliberately still unstarted, and that is a decision rather than a slip.** Rich's call: the external track begins once the local proof of concept works end to end — P4's proof app, CWL login through to an LLM answer. The reasoning is that the goal is to get this right rather than to get it started, and a registration conversation goes better with a working demonstration behind it than with a design document. C4 keeps its weeks of latency and its §9 risk rating; nothing about the assessment changed, only the timing. Recorded so the next reader does not mistake it for an oversight and re-raise it. |
