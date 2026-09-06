@@ -34,10 +34,10 @@ the platform actually runs, offline — and P2's remaining tasks are next.**
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. S6, S5 and S4 are deliberately later (S6 is P3's acceptance exercise, S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
 | **Plans** | **P1 is EXECUTED, 2026-09-05 — all 13 tasks, green, and green offline.** **P0** (spike briefs), **P2** (control-plane spine, 21 tasks) and **P3** (Docker driver and deploy spine, 19 tasks) are written. P3 was written 2026-08-31 and self-reviewed 2026-09-04, which found seven defects — the worst being that **nothing wired the Docker driver into the boot entry point**, so its own `make demo` would have passed against the fake driver. **P4 and P5 are unwritten, deliberately** — see §7. |
-| **Code** | **The platform runs.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. **`make doctor` 14 checks / 0 failed, `make verify` 31 checks / 0 failed, both green offline.** Alongside it, **P2's runtime island** (2026-08-31): the §11 `Driver` interface, the fake driver, the contract suite P3 inherits, the instance state machine — 19 tests via `pnpm test`. Still no HTTP surface (P2 Tasks 12–21). |
+| **Code** | **The platform runs.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. **`make doctor` 14 checks / 0 failed, `make verify` 31 checks / 0 failed, both green offline.** Alongside it, **P2's Tasks 1–11**: the runtime island (2026-08-31) — the §11 `Driver` interface, the fake driver, the contract suite P3 inherits, the state machine — and **Tasks 2–8 (2026-09-05)** — `spec/` (schema, machine-actionable errors, policy, `isSensitiveDiff`), `blueprints/` (descriptor, registry, compatibility), the `fixture-node` blueprint on disk, and `db/` with its first migration applied to `manifest_control`. **80 tests via `pnpm test`.** Still no HTTP surface (P2 Tasks 12–21). |
 | **Spec** | Current. Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
-The immediate work is **P2 Tasks 2–8 and 12–21**, then P3 — see §7. Plan-writing
+The immediate work is **P2 Tasks 12–21**, then P3 — see §7. Plan-writing
 stays stopped until P3 has run. The reasoning is in the roadmap's
 *Order of operations*, and the short version is that the only time anyone measured the
 defect rate of an unexecuted plan, four of P2's tasks yielded five defects that no
@@ -55,7 +55,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | **writing a plan** | §7 below, the roadmap's section for your plan, the findings notes it names, and `plans/2026-08-30-p1-local-substrate.md` **or** `2026-08-29-p2-control-plane-spine.md` as the house style. |
 | **executing a plan** | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
-| **writing code** | `packages/control-plane/src/runtime/` is the only TypeScript module that exists. Read `driver.ts` and `driver-contract.ts` first — everything else in the system is built against them. |
+| **writing code** | Five modules exist: `spec/`, `blueprints/`, `db/`, `errors/` and `runtime/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else in the system is built against them — then `spec/index.ts`, which is what every later task validates through. |
 | **changing the spec** | Don't, without asking. It is marked *Approved design*. Record the proposed change and Rich decides — that has been the pattern five times. |
 
 ```
@@ -95,27 +95,54 @@ docs/superpowers/
 
 **And the code.** P1 added the whole `infra/` and `scripts/` tree on 2026-09-05 —
 `Makefile`, `infra/compose.yaml` and the ten platform services, `scripts/doctor.sh`
-and `scripts/verify.sh`. Below is the TypeScript island as of 2026-08-31:
+and `scripts/verify.sh`. Below is the TypeScript island as of 2026-09-05, after P2
+Tasks 1–11:
 
 ```
 .nvmrc  package.json  pnpm-workspace.yaml  tsconfig.base.json
 eslint.config.js  vitest.workspace.ts          the workspace (P2 Task 1)
-packages/control-plane/src/
-├── module-boundaries.test.ts   the §5 rule, enforced by a test that resolves
-│                               imports and compares modules
-├── spec/index.ts               a placeholder. P2 Task 2 replaces it.
-└── runtime/
-    ├── driver.ts               the §11 Driver interface           (Task 9)
-    ├── fake-driver.ts          in-memory implementation           (Task 9)
-    ├── driver-contract.ts      THE SHARED SUITE P3 IMPORTS UNCHANGED (Task 10)
-    ├── fake-driver.test.ts     points the suite at the fake driver
-    ├── state-machine.ts        §11 transitions + IDLE_POLICY      (Task 11)
-    └── state-machine.test.ts
+.prettierrc  .prettierignore                   Prettier owns packages/ ONLY —
+                                               without the ignore, `pnpm format`
+                                               rewrites the approved spec
+blueprints/fixture-node/                       the on-disk blueprint    (Task 7)
+    blueprint.yaml  Dockerfile.tmpl  skeleton/  agents/
+packages/control-plane/
+├── drizzle/0000_*.sql           the first migration, applied  (Task 8)
+├── drizzle.config.ts
+├── vitest.config.ts + vitest.setup.ts   derives MANIFEST_DATABASE_URL from .env
+└── src/
+    ├── module-boundaries.test.ts   the §5 rule, enforced by a test that resolves
+    │                               imports and compares modules
+    ├── errors/index.ts             ManifestError + ManifestValidationError (Task 3)
+    ├── spec/
+    │   ├── schema.ts               the §7 v1 zod schema              (Task 2)
+    │   ├── errors.ts               zod issue → stable code + hint    (Task 3)
+    │   ├── policy.ts               catalogues, whitelist, quota, D17 (Task 4)
+    │   ├── diff.ts                 isSensitiveDiff, the D9 gate      (Task 5)
+    │   └── index.ts                THE module's public surface
+    ├── blueprints/
+    │   ├── descriptor.ts           §25 blueprint.yaml schema         (Task 6)
+    │   ├── compatibility.ts        checkBlueprintCompatibility       (Task 6)
+    │   ├── registry.ts             load, resolve name@major          (Task 6)
+    │   └── index.ts
+    ├── db/
+    │   ├── schema.ts               the ten §6 tables P2 writes       (Task 8)
+    │   ├── client.ts               Drizzle over pg, from MANIFEST_DATABASE_URL
+    │   ├── testing.ts              withRollback — a tx that never commits
+    │   └── index.ts
+    └── runtime/
+        ├── driver.ts               the §11 Driver interface           (Task 9)
+        ├── fake-driver.ts          in-memory implementation           (Task 9)
+        ├── driver-contract.ts      THE SHARED SUITE P3 IMPORTS UNCHANGED (Task 10)
+        ├── fake-driver.test.ts     points the suite at the fake driver
+        ├── state-machine.ts        §11 transitions + IDLE_POLICY      (Task 11)
+        └── state-machine.test.ts
 ```
 
-`pnpm test` → **19 tests, ~190ms**, no Docker, no Postgres, no network. Also
-`pnpm lint` and `pnpm --filter @manifest/control-plane typecheck`. All three must be
-clean before you commit.
+`pnpm test` → **80 tests**. Everything except `src/db/` needs no Docker, no Postgres
+and no network; `src/db/` needs `make up`, and finds its connection string itself.
+Also `pnpm lint`, `pnpm --filter @manifest/control-plane typecheck` and
+`pnpm format:check`. All four must be clean before you commit.
 
 **Which spec sections matter, by topic:** §7 the `manifest.yaml` contract · §9 identity ·
 §10 AI access · §11 execution model and the `Driver` interface · §12 networking,
@@ -439,10 +466,26 @@ was available. It is recorded as a gap in `RUNBOOK.md`, not quietly dropped — 
 the interesting case is a Mac **with Valet**, since that collision is why the zone
 is `manifest.internal`. `make host-undo` has also never been run end to end.
 
-### 7b. Execute P2 Tasks 2–8 and 12–21, then P3 *(start here)*
+### 7b. Execute P2 Tasks 12–21, then P3 *(start here)*
 
 [`plans/2026-08-29-p2-control-plane-spine.md`](plans/2026-08-29-p2-control-plane-spine.md).
-**17 of P2's 21 tasks remain: 2–8 and 12–21.**
+**10 of P2's 21 tasks remain: 12–21** — configuration and the whole HTTP surface.
+
+**Tasks 2–8 were executed on 2026-09-05 and found 19 defects**, every one recorded
+inline at its task with what it was measured against. Four are worth knowing before
+you start, because they are about the *shape* of the mistakes this plan makes rather
+than about `spec/`:
+
+| | |
+|---|---|
+| **A command in the repo violated a non-negotiable** | `pnpm format` was `prettier --write .` with no `.prettierignore`, so it would have rewritten 50 files including the **approved spec**. Nothing in the build checked it. |
+| **A plan step could not be committed green** | Task 6's Step 6 expected a test to fail until Task 7 landed, against this plan's own *"green before you commit"* rule. The test belonged to Task 7. |
+| **A concrete value went stale between plans** | Task 7's base image was a row of zeros deferred to a `make seed` that had already run — and the obvious replacement, `infra/images.lock`'s digest, is **wrong**, because the local registry answers a different digest for the same tag. |
+| **A new dependency took down unrelated tests** | Task 8's `db/client.ts` throws at import without `MANIFEST_DATABASE_URL`, and the plan's only provision was a documented `export` line. Eight test files that need no database went red. |
+
+Tasks 12–21 are where the plan is thinnest against reality: they are the first that
+serve HTTP, and §20's *"every route carries an explicit ownership check"* is the
+likeliest defect class in the whole plan.
 
 **Why that gap, and why it is not a skip.** Tasks **1, 9, 10 and 11 were executed on
 2026-08-31** — commits `538251f`, `ac6e55e`, `262288c`, `e82711d`, still green in
@@ -453,12 +496,12 @@ tasks that need no infrastructure whatsoever — no Docker, no Postgres, no HTTP
 which is exactly why they could be built before P1 existed. Everything else was
 waiting on the substrate P1 has now delivered.
 
-So the remaining work is: **Tasks 2–8** — the `manifest.yaml` schema, machine-actionable
+Tasks **2–8** followed on 2026-09-05 — the `manifest.yaml` schema, machine-actionable
 spec errors, policy validation, `isSensitiveDiff`, the blueprint descriptor, the
-`fixture-node` blueprint, and the **database schema**, which is the first task that
-touches P1's Postgres — and **Tasks 12–21**, configuration and the HTTP surface. Then P3 in full, whose
-**Task 18 is S6** and whose demo is the fixture app healthy at a
-`manifest.internal` URL, from a clean checkout, offline.
+`fixture-node` blueprint, and the **database schema**, the first task that touched
+P1's Postgres. So the remaining work is **Tasks 12–21**, configuration and the HTTP
+surface. Then P3 in full, whose **Task 18 is S6** and whose demo is the fixture app
+healthy at a `manifest.internal` URL, from a clean checkout, offline.
 
 **P2 is no longer standalone.** It was written when nothing was running. P1 has
 since built the infrastructure it targets, so start it like this:
@@ -468,6 +511,11 @@ make up                       # the platform must be running for Task 8 onward
 set -a; . ./.env; set +a      # make seed writes .env; never hardcode these
 export MANIFEST_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"
 ```
+
+**`pnpm test` no longer needs that export** — Task 8 added
+`packages/control-plane/vitest.setup.ts`, which derives the same URL from `.env`
+itself, because a documented `export` line is not something a test run executes. You
+still need it for `db:generate` and `db:migrate`, which are CLI tools.
 
 Verified 2026-09-05 — that exact string connects and returns
 `CONNECTED to manifest_control as manifest`. **There is no `psql` on the host**, so

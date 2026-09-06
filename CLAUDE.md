@@ -15,10 +15,19 @@ not the plan. The three host changes are in place and all reverse with
 `make host-undo`. **Untested: the second-machine clean clone** — no second Mac was
 available; it is recorded in the runbook's *Known gaps*, not quietly dropped.
 
-**P2's runtime island is built and green** — a pnpm workspace, the §11 `Driver`
-interface, the fake driver, the driver contract suite P3 inherits, and the instance
-state machine. 19 tests, run with `pnpm test`; no Docker, no Postgres, no network.
-**P2 Tasks 2–8 and 12–21 are the current work**, then P3 in full.
+**P2's Tasks 1–11 are executed and green.** The runtime island (the §11 `Driver`
+interface, the fake driver, the contract suite P3 inherits, the state machine) landed
+2026-08-31; **Tasks 2–8 landed 2026-09-05** — the `manifest.yaml` schema, machine-
+actionable errors, policy validation, `isSensitiveDiff`, the blueprint descriptor and
+registry, the `fixture-node` blueprint, and the Drizzle schema against P1's Postgres.
+**80 tests** via `pnpm test`; the `db/` ones need `make up`, and derive their
+connection from `.env` themselves. **Tasks 12–21 are the current work**, then P3.
+
+Executing 2–8 found **19 defects**, recorded inline in the plan. Three were in what
+the tasks assumed rather than what they wrote: `pnpm format` would have rewritten the
+approved spec; the `fixture-node` Dockerfile called `groupadd`/`useradd`, which
+`node:22-alpine` does not have; and the database client broke `pnpm test` for the
+whole workspace.
 
 **Toolchain:** Node 24 via nvm, pnpm 11 via corepack. `pnpm test`, `pnpm lint`,
 `pnpm --filter @manifest/control-plane typecheck` must all be clean before a commit.

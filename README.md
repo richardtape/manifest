@@ -21,22 +21,27 @@ network off**. `https://console.manifest.internal/` returns the same hostname an
 scheme from the host browser and from inside a container — no port, no certificate
 warning. See [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md).
 
-**Before that, on 2026-08-31**, P2's runtime island landed: the §11 `Driver`
-interface, the in-memory fake driver, the shared driver contract suite P3 inherits
-unchanged, and the instance state machine — 19 tests, no Docker, no Postgres, no
-network. The design is approved and complete.
+**P2 is eleven tasks in.** Its runtime island landed 2026-08-31 — the §11 `Driver`
+interface, the in-memory fake driver, the shared contract suite P3 inherits
+unchanged, and the instance state machine. **Tasks 2–8 followed on 2026-09-05**: the
+`manifest.yaml` schema, machine-actionable errors, policy validation,
+`isSensitiveDiff`, the blueprint descriptor and registry, the `fixture-node`
+blueprint, and the Drizzle schema against P1's Postgres. **80 tests.** The design is
+approved and complete.
 Seven throwaway spikes de-risk it; **four are done — S7, S2, S1 and S3 — and all four
 answered yes**, each far inside its timebox, with every spec change they implied
 already applied. The remaining three are scheduled later, against machinery that does
 not exist yet.
 
 **Three implementation plans are complete** — P1, the local substrate (13 tasks,
-**all executed**), P2, the control-plane spine (21 tasks, four executed), and P3,
-the Docker driver and deploy spine (19 tasks). **P4 and P5 are unwritten, and that
+**all executed**), P2, the control-plane spine (21 tasks, **eleven executed**), and
+P3, the Docker driver and deploy spine (19 tasks). **P4 and P5 are unwritten, and that
 is deliberate: on 2026-09-04 the project stopped writing plans and started executing
 them.** P1's execution vindicated that decision — 13 tasks produced **18 defects** in
 a plan that had already been self-reviewed, and a third of them were *checks that
-passed while the thing under test was broken or absent*. **Finishing P2 is the
+passed while the thing under test was broken or absent*. **P2's Tasks 2–8 then
+produced 19 more**, including a `pnpm format` that would have rewritten the approved
+spec and a blueprint Dockerfile that could not build at all. **P2 Tasks 12–21 are the
 current work.**
 
 ## Where to start
@@ -48,7 +53,7 @@ this machine will do to you, and what to do next. Then:
 | If you are… | Read |
 |---|---|
 | Running the platform | [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md) — `make seed && make host-setup && make up` |
-| Finishing P2 (**the current job**) | ORIENTATION §7b, then [`docs/superpowers/plans/2026-08-29-p2-control-plane-spine.md`](docs/superpowers/plans/2026-08-29-p2-control-plane-spine.md) — Tasks 2–8 and 12–21 |
+| Finishing P2 (**the current job**) | ORIENTATION §7b, then [`docs/superpowers/plans/2026-08-29-p2-control-plane-spine.md`](docs/superpowers/plans/2026-08-29-p2-control-plane-spine.md) — **Tasks 12–21**; 1–11 are executed |
 | Executing any plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan — fix it there |
 | Writing the next plan (**P4, and not yet**) | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-29-plan-roadmap.md`](docs/superpowers/plans/2026-08-29-plan-roadmap.md). It is held until P3 executes |
 | Looking for what a spike proved | `docs/superpowers/spikes/S{7,2,1,3}-findings.md` — the answer is the first sentence of each |

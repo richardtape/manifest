@@ -195,14 +195,15 @@ Recorded here because they are about *how to run this work*, and each was paid f
 |---|---|---|---|
 | **P0** | 0 | Seven spike briefs | a findings note per spike |
 | **P1** | 1a-i | Local substrate ✅ **EXECUTED 2026-09-05** | `make doctor` green offline; one name resolving correctly from host **and** container — **both demonstrated** |
-| **P2** | 1a-ii | Control-plane spine | project → spec → release, against the fake driver, in milliseconds, no Docker |
+| **P2** | 1a-ii | Control-plane spine — **11 of 21 tasks executed** (1–11) | project → spec → release, against the fake driver, in milliseconds, no Docker |
 | **P3** | 1a-iii | Docker driver & deploy spine ✅ **written** | fixture app healthy at a `manifest.internal` URL, clean checkout, offline |
 | **P4** | 1b | Identity, secrets & AI | the proof app — CWL login, Mongo write, LLM answer — via `curl` |
 | **P5** | 1c | Contract & clients | the §1 journey, clickable, driven twice over one contract |
 | **P6–P11** | 2 | six plans, listed below, **not written yet** | — |
 
-**P1 is EXECUTED and green (2026-09-05).** P0, P2 and P3 are written; P2's Tasks 1
-and 9–11 are also executed. **P4 and P5 are not written, deliberately** — see the
+**P1 is EXECUTED and green (2026-09-05).** P0, P2 and P3 are written; **P2's Tasks
+1–11 are executed** — 1 and 9–11 on 2026-08-31, then **2–8 on 2026-09-05**, which
+found **19 defects** of their own. **Tasks 12–21 remain**, then P3 in full. **P4 and P5 are not written, deliberately** — see the
 2026-09-04 decision in *Order of operations*, which puts execution before any further
 plan-writing. Each of P1–P5 carries the required plan header, its own file-structure
 map, and bite-sized TDD steps with real content — no plan may contain a step
@@ -260,6 +261,25 @@ interface needed no revision**, so Tasks 9–10 were promoted rather than rewrit
 Tasks 11–21 written against them. The plan's self-review caught seven defects and
 records each one.*
 
+*Executed so far: **Tasks 1, 9, 10 and 11** on 2026-08-31, and **Tasks 2–8 on
+2026-09-05** — the `manifest.yaml` schema, machine-actionable errors, policy
+validation, `isSensitiveDiff`, the blueprint descriptor and registry, the
+`fixture-node` blueprint, and the database schema against P1's Postgres. **80 tests
+green**, plus `pnpm lint`, `typecheck` and `format:check`. **Tasks 12–21 remain.***
+
+*Executing Tasks 2–8 found **19 defects**, each recorded inline at its task with what
+it was measured against. The three worst were not in the code the tasks wrote but in
+what the tasks assumed: `pnpm format` would have rewritten the **approved spec**,
+because Task 1 shipped the script with no `.prettierignore`; Task 7's Dockerfile
+called `groupadd` and `useradd`, **neither of which exists in `node:22-alpine`**, so
+P3's whole acceptance would have failed at its first `RUN`; and Task 8's database
+client broke `pnpm test` **for the entire workspace**, taking down eight test files
+that need no database. Two more were holes in the D9 approval gate: swapping to a
+different blueprint at the same major version was not sensitive, and removing a
+declared resource read as a decrease to zero. **Three were checks that passed while
+the thing under test was absent** — three of the four quota checks could each be
+deleted with the suite still green.*
+
 *Execution began 2026-08-31: **Tasks 1, 9, 10 and 11 are built and green** — the
 runtime island, which needs no Postgres and no Docker. 19 tests. Running them found
 four further defects the self-review could not have: pnpm 11 makes an un-named
@@ -267,7 +287,8 @@ dependency build script a hard error; the ESLint boundary patterns were backward
 caught almost nothing; `typescript-eslint` does not honour an `_` prefix by default,
 so the fake driver's faithful `exec(id, cmd, _opts)` failed lint; and the state
 machine's unguarded table index turned drift into a TypeError in an unrelated test.
-All four are fixed in the plan. **Tasks 2–8 and 12–21 are written but unexecuted.***
+All four are fixed in the plan. **Tasks 2–8 followed on 2026-09-05** — see the
+paragraphs above. **Tasks 12–21 are written but unexecuted.***
 
 Repository scaffolding (gap 1), the Fastify service, Drizzle schema for §6's
 entities, and the modules that are pure functions or driver-agnostic:
@@ -406,7 +427,8 @@ execution layer.** Each is written when its predecessor lands.
    (19 tasks, self-reviewed 2026-09-04).
 5. **Execute P1 → P2 → P3.** S6 is P3's acceptance exercise, as its Task 18.
    **P1 is done — executed and green on 2026-09-05, and green offline.** ← the
-   current work is now **P2 Tasks 2–8 and 12–21**, then P3 in full.
+   current work is now **P2 Tasks 12–21**, then P3 in full. Tasks 2–8 were executed
+   on 2026-09-05.
 6. **Start the external track once the local proof of concept works end to end.**
    **Changed 2026-09-05, Rich's call.** This step previously said *"start now, in
    parallel"*, on the argument that C4 has the longest lead time and no software
@@ -436,17 +458,21 @@ measurements are one-sided:
   no task ever wired into the boot entry point — which would have let this plan's
   entire acceptance, `make demo` included, pass against an in-memory fake.
 
-Three written plans is 53 tasks, of which **49 have never been run** (P2's Tasks 1,
-9, 10 and 11 are executed and green). That is a stack carrying a defect rate measured
-exactly once, at five per four tasks. Writing P4 would add to it rather than price
-it.
+Three written plans is 53 tasks, of which **49 had never been run** when this was
+written (P2's Tasks 1, 9, 10 and 11 were executed and green). That is a stack
+carrying a defect rate measured exactly once, at five per four tasks. Writing P4
+would add to it rather than price it. *As of 2026-09-05 it is **29 unrun**: P1's 13
+and P2's 2–8 have since run, and both raised the measured rate rather than lowering
+it.*
 
 **Confirmed by P1's execution, 2026-09-05.** All 13 of P1's tasks ran; they yielded
 **18 defects** on top of the five its own self-review had already caught. The
 decision above was correct and the effect is larger than the numbers that motivated
 it: a third of the defects were controls reporting green against something broken or
 absent, which is the one failure mode that a *stack of unexecuted plans* cannot
-reveal and actively conceals. **36 tasks remain unrun** (P2's 17, P3's 19).
+reveal and actively conceals. **29 tasks remain unrun** (P2's 10, P3's 19) — Tasks
+2–8 came off that stack on 2026-09-05 and yielded 19 more defects, at a rate of
+roughly 2.7 per task, against P1's 1.4.
 
 *Rejected:* writing P4 and P5 first, on the argument that plan-writing and execution
 want different context and batching them is cheaper per plan. It is — and it is more
