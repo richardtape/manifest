@@ -2603,6 +2603,8 @@ git commit -m "feat(blueprints): fixture-node@1, the minimal build target for P2
 - Create: `packages/control-plane/src/db/index.ts`
 - Create: `packages/control-plane/src/db/testing.ts`
 - Create: `packages/control-plane/drizzle.config.ts`
+- Create: `packages/control-plane/vitest.config.ts`
+- Create: `packages/control-plane/vitest.setup.ts`
 - Modify: `packages/control-plane/package.json` (add Drizzle, pg, scripts)
 - Test: `packages/control-plane/src/db/schema.test.ts`
 
@@ -2871,7 +2873,14 @@ import pg from 'pg'
 import * as schema from './schema.js'
 
 const connectionString = process.env.MANIFEST_DATABASE_URL
-if (!connectionString) throw new Error('MANIFEST_DATABASE_URL is not set')
+if (!connectionString) {
+  throw new Error(
+    'MANIFEST_DATABASE_URL is not set. It is derived from the repo `.env`, which ' +
+      '`make seed` writes; run `make seed && make up`, or set it by hand:\n' +
+      '  set -a; . ./.env; set +a\n' +
+      '  export MANIFEST_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"',
+  )
+}
 
 export const pool = new pg.Pool({ connectionString })
 export const db = drizzle(pool, { schema })
@@ -2928,19 +2937,104 @@ pnpm --filter @manifest/control-plane db:migrate
 
 Expected: a migration file appears in `packages/control-plane/drizzle/` and applies cleanly.
 
+- [ ] **Step 6b: Wire the database URL into the test run**
+
+Without this the whole suite fails, not just the database tests — see the defect
+note below.
+
+`packages/control-plane/vitest.config.ts`:
+
+```ts
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: {
+    setupFiles: ['./vitest.setup.ts'],
+  },
+})
+```
+
+`packages/control-plane/vitest.setup.ts`:
+
+```ts
+import { readFileSync } from 'node:fs'
+
+const PORT_POSTGRES = 7103
+const DATABASE = 'manifest_control'
+
+if (!process.env.MANIFEST_DATABASE_URL) {
+  const envPath = new URL('../../.env', import.meta.url)
+  try {
+    const password = readFileSync(envPath, 'utf8')
+      .split('\n')
+      .find((line) => line.startsWith('POSTGRES_PASSWORD='))
+      ?.slice('POSTGRES_PASSWORD='.length)
+      .trim()
+    if (password) {
+      process.env.MANIFEST_DATABASE_URL = `postgres://manifest:${password}@127.0.0.1:${PORT_POSTGRES}/${DATABASE}`
+    }
+  } catch {
+    // No .env — leave it unset. client.ts raises the actionable error.
+  }
+}
+```
+
 - [ ] **Step 7: Run the tests to verify they pass**
 
 ```bash
 pnpm --filter @manifest/control-plane test src/db/
 ```
 
-Expected: PASS, 3 tests.
+Expected: PASS, **6 tests** — the three above and the three added in execution.
+
+> **Two defects found in execution (2026-09-05).**
+>
+> **1. This task broke `pnpm test` for the entire workspace.** `db/client.ts`
+> throws at *import* time when `MANIFEST_DATABASE_URL` is missing, and the plan's
+> only provision for setting it was a documented `export` line in the prerequisite
+> note. Nothing runs a documented line. **Measured:** with the task's files in
+> place and no exported variable, `pnpm test` reported
+> `Test Files 1 failed | 8 passed` with `Error: MANIFEST_DATABASE_URL is not set` —
+> taking down the eight pure test files that need no database at all, and with them
+> the property ORIENTATION states about P2's runtime island. Fixed by Step 6b: a
+> vitest setup file derives the URL from the repo `.env` exactly as the prerequisite
+> documents, so `pnpm test` works from a fresh shell. **The password is still never
+> hardcoded**, and when `.env` is absent the variable stays unset and `client.ts`
+> now says what to run.
+>
+> **2. Nothing tested `withRollback`, which every later database test depends on.**
+> If it committed instead of rolling back, the three tests above would pass on
+> their first run and fail on the second, against a database polluted by the first
+> — the slowest possible way to find out, and one that would have landed on
+> whoever ran the suite twice. Two tests now pin it: rows vanish after the callback
+> returns, and a real failure inside the callback still propagates rather than
+> being swallowed with the `Rollback` sentinel. A third test pins the `projects`
+> quota default, which Task 4's `ValidationContext.quota` reads.
+>
+> **Negative controls run (2026-09-05).** Five, each reverted: `projects_slug_key`
+> dropped from the live database → *refuses two projects with the same slug* red;
+> the `project_members` composite primary key dropped → *refuses the same user
+> twice* red; the `quota` column default changed → the quota test red; the
+> `throw new Rollback()` removed so the transaction commits → *leaves nothing
+> behind* red **and three rows left in the database, which were then deleted**;
+> the `instanceof Rollback` re-throw replaced with `void error` → *propagates a
+> real failure* red. `make doctor` and `make verify` are 14/0 and 31/0 afterwards
+> and every table is back to zero rows.
+>
+> **A seam to know about, not a defect.** The `quota` column's default is
+> `{ max_cpu, max_memory: '2Gi', max_services, ai_monthly_usd }`, while Task 4's
+> `ValidationContext.quota` is `{ maxCpu, maxMemoryMi, maxServices, aiMonthlyUsd }` —
+> different names **and different units**, since `maxMemoryMi` is a number of
+> mebibytes and `max_memory` is a quantity string. Whichever task first builds a
+> `ValidationContext` from a project row owns that conversion; `toMebibytes` is
+> exported from `spec/` for it.
 
 - [ ] **Step 8: Commit**
 
 ```bash
 git add packages/control-plane/src/db/ packages/control-plane/drizzle/ \
-        packages/control-plane/drizzle.config.ts packages/control-plane/package.json pnpm-lock.yaml
+        packages/control-plane/drizzle.config.ts packages/control-plane/vitest.config.ts \
+        packages/control-plane/vitest.setup.ts packages/control-plane/package.json pnpm-lock.yaml
 git commit -m "feat(db): Drizzle schema and first migration for the §6 entities P2 writes"
 ```
 
