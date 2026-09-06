@@ -973,6 +973,11 @@ export const SPEC_CODES = {
   RESERVED_BLOCK_NOT_EMPTY: 'SPEC_RESERVED_BLOCK_NOT_EMPTY',
   INVALID_BLUEPRINT_REF: 'SPEC_INVALID_BLUEPRINT_REF',
   INVALID_VALUE: 'SPEC_INVALID_VALUE',
+  // Raised by validateSpec (Task 4), not by a zod issue. It belongs here anyway:
+  // this is the set the Interfaces section calls "the frozen code set later
+  // modules and clients match on", and Task 4 originally spelt it as a bare
+  // string literal in index.ts, where no client could match on it.
+  YAML_PARSE_FAILED: 'SPEC_YAML_PARSE_FAILED',
 } as const
 
 const TOP_LEVEL_KEYS =
@@ -1210,6 +1215,16 @@ function errorCodes(text: string, c: ValidationContext = ctx) {
   return r.valid ? [] : r.errors.map((e) => e.code)
 }
 
+/**
+ * The four quota checks all raise SPEC_QUOTA_EXCEEDED, so a test asserting only
+ * the code cannot tell which of them fired — and three of the four turned out to
+ * have no coverage at all behind one that did. Assert the path.
+ */
+function errorPaths(text: string, c: ValidationContext = ctx) {
+  const r = validateSpec(text, c)
+  return r.valid ? [] : r.errors.map((e) => e.path)
+}
+
 describe('policy validation (§7)', () => {
   it('accepts a valid spec', () => {
     const r = validateSpec(yaml(), ctx)
@@ -1251,10 +1266,40 @@ describe('policy validation (§7)', () => {
     expect(errorCodes(text)).toEqual([])
   })
 
-  it('rejects resources above the project quota', () => {
-    const text = yaml(`resources:\n  cpu: 8\n  memory: 8Gi`)
-    const codes = errorCodes(text)
-    expect(codes).toContain('SPEC_QUOTA_EXCEEDED')
+  it('rejects CPU above the quota, on its own', () => {
+    const text = yaml(`resources:\n  cpu: 8`)
+    expect(errorCodes(text)).toContain('SPEC_QUOTA_EXCEEDED')
+    expect(errorPaths(text)).toContain('resources.cpu')
+  })
+
+  it('rejects memory above the quota, on its own', () => {
+    const text = yaml(`resources:\n  memory: 8Gi`)
+    expect(errorCodes(text)).toContain('SPEC_QUOTA_EXCEEDED')
+    expect(errorPaths(text)).toContain('resources.memory')
+  })
+
+  it('rejects an AI budget above the quota, on its own', () => {
+    const text = yaml(`ai:\n  budget:\n    project_monthly_usd: 500`)
+    expect(errorCodes(text)).toContain('SPEC_QUOTA_EXCEEDED')
+    expect(errorPaths(text)).toContain('ai.budget.project_monthly_usd')
+  })
+
+  it('reports every quota dimension that is over, not just the first', () => {
+    const text = yaml(
+      `resources:\n  cpu: 8\n  memory: 8Gi\n` +
+        `ai:\n  budget:\n    project_monthly_usd: 500\n` +
+        `services:\n` +
+        `  - { type: mongo, version: "7", name: a }\n` +
+        `  - { type: mongo, version: "7", name: b }\n` +
+        `  - { type: mongo, version: "7", name: c }\n` +
+        `  - { type: mongo, version: "7", name: d }`,
+    )
+    expect(errorPaths(text).sort()).toEqual([
+      'ai.budget.project_monthly_usd',
+      'resources.cpu',
+      'resources.memory',
+      'services',
+    ])
   })
 
   it('rejects more services than the quota allows', () => {
@@ -1266,6 +1311,7 @@ describe('policy validation (§7)', () => {
         `  - { type: mongo, version: "7", name: d }`,
     )
     expect(errorCodes(text)).toContain('SPEC_QUOTA_EXCEEDED')
+    expect(errorPaths(text)).toContain('services')
   })
 
   it('rejects attributes not registered with UBC IAM, for a production release (§9)', () => {
@@ -1449,13 +1495,17 @@ export function checkPolicy(spec: ManifestSpec, ctx: ValidationContext): Manifes
 import { parse as parseYaml } from 'yaml'
 import type { ManifestError } from '../errors/index.js'
 import { manifestSchema, type ManifestSpec } from './schema.js'
-import { toManifestErrors } from './errors.js'
+import { toManifestErrors, SPEC_CODES } from './errors.js'
 import { checkPolicy, type ValidationContext } from './policy.js'
 
 export type { ManifestSpec, Classification } from './schema.js'
 export type { ValidationContext } from './policy.js'
-export { CLASSIFICATION_RANK, SLUG, AUTH_PATH } from './schema.js'
-export { toMebibytes } from './policy.js'
+// `manifestSchema` is exported because Task 6's test imports it from HERE. §5
+// forbids reaching past this file to `./schema.js`, and the boundary test
+// enforces that, so anything another module needs has to leave through here.
+export { CLASSIFICATION_RANK, SLUG, AUTH_PATH, manifestSchema } from './schema.js'
+export { toMebibytes, POLICY_CODES } from './policy.js'
+export { SPEC_CODES } from './errors.js'
 
 export type ValidationResult =
   | { valid: true; spec: ManifestSpec }
@@ -1470,7 +1520,7 @@ export function validateSpec(yamlText: string, ctx: ValidationContext): Validati
       valid: false,
       errors: [
         {
-          code: 'SPEC_YAML_PARSE_FAILED',
+          code: SPEC_CODES.YAML_PARSE_FAILED,
           path: '',
           message: cause instanceof Error ? cause.message : 'manifest.yaml is not valid YAML',
           hint: 'Check indentation and quoting. Every value must be valid YAML before Manifest can read it.',
@@ -1495,7 +1545,47 @@ export function validateSpec(yamlText: string, ctx: ValidationContext): Validati
 pnpm --filter @manifest/control-plane test src/spec/
 ```
 
-Expected: PASS — all three spec test files, 23 tests.
+Expected: PASS — all three spec test files, **29 tests** (6 schema + 9 errors +
+14 policy, after the additions this task and Task 3 made in execution).
+
+> **Three defects found in execution (2026-09-05).**
+>
+> **1. The quota test could not tell which quota check had fired, and three of the
+> four had no coverage.** All four raise `SPEC_QUOTA_EXCEEDED`, and the original
+> test set `cpu: 8` *and* `memory: 8Gi` and then asserted only
+> `toContain('SPEC_QUOTA_EXCEEDED')`. **Measured:** with the CPU check disabled the
+> suite stayed **green** (memory still fired); with the memory check disabled it
+> stayed **green** (CPU still fired); and the `ai.budget.project_monthly_usd` check
+> — which no test exercised at all — could be deleted outright with the suite
+> **green**. Three of P2's own policy checks were unprotected behind an assertion
+> that looked like it covered them. Fixed by asserting the **path** rather than the
+> code, one test per dimension, plus a combined test that pins all four paths at
+> once. Re-measured after the fix: each of the four mutations now turns a named
+> test red.
+>
+> **2. `spec/index.ts` did not export `manifestSchema`, and Task 6 imports it from
+> there.** Task 6's test opens
+> `import { manifestSchema, type ManifestSpec } from '../spec/index.js'`, and §5's
+> boundary rule — enforced by both a lint rule and Task 1's test — forbids reaching
+> past `index.ts` to `./schema.js` instead. **Measured against:** Task 6's exact
+> import line placed in `src/blueprints/`, with the export removed, gives
+> `error TS2459: Module '"../spec/index.js"' declares 'manifestSchema' locally, but
+> it is not exported.` `SPEC_CODES` and `POLICY_CODES` are exported for the same
+> reason: Task 3's *Interfaces* calls `SPEC_CODES` *"the frozen code set later
+> modules and clients match on"* while leaving it unreachable from any other module.
+>
+> **3. `SPEC_YAML_PARSE_FAILED` was a bare string literal.** It is the one spec
+> error code raised outside the zod mapping, and writing it inline put it outside
+> the frozen set — a code no client could match on by name. Now a member of
+> `SPEC_CODES`.
+>
+> **Negative controls run (2026-09-05).** Twelve mutations against `policy.ts` and
+> `index.ts`, each reverted: each of the nine policy checks disabled in turn (the
+> D17 comparison was **inverted** rather than removed, which leaves the
+> *accepts an on-premise model* case green and only turns the rejection red — the
+> discriminating direction); the YAML `try`/`catch` removed, which lets the parse
+> error escape as an exception; and `checkPolicy`'s result dropped. Every one
+> turned a named test red.
 
 - [ ] **Step 6: Commit**
 
