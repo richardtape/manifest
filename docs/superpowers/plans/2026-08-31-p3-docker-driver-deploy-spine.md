@@ -1368,7 +1368,7 @@ export const REQUIRED_CAPABILITY_KEYS: Record<keyof DriverCapabilities, true> = 
 `packages/control-plane/src/runtime/docker/hardening.docker.test.ts`:
 
 ```ts
-import { afterAll, expect, it } from 'vitest'
+import { afterAll, beforeAll, expect, it } from 'vitest'
 import { createEngineClient, resolveSocketPath } from './engine.js'
 import { describeDocker } from './docker-tier.js'
 import { detectHostCapabilities, hardenedHostConfig } from './hardening.js'
@@ -1405,20 +1405,39 @@ const readFile = async (path: string): Promise<string> => {
     AttachStderr: true,
     Cmd: ['cat', path],
   })
-  const res = await engine.stream(`/exec/${exec!.Id}/start`, 'POST', { Detach: false, Tty: true })
+  const res = await engine.stream(`/exec/${exec!.Id}/start`, 'POST', {
+    Detach: false,
+    Tty: true,
+  })
   let out = ''
   for await (const chunk of res) out += String(chunk)
   return out
 }
 
 describeDocker('§12 hardening, read back off a real container', () => {
+  // Started ONCE, in a hook, not as a side effect of the first `it`. Three tests
+  // sharing a container created by the first of them is the ordering dependence
+  // that produced five of P2's 27 defects; a hook also fails all three loudly if
+  // the container cannot start, instead of failing two of them confusingly.
+  beforeAll(async () => {
+    await startProbe()
+  })
+
   afterAll(async () => {
     await engine.del(`/containers/${NAME}?force=true&v=true`)
   })
 
   it('drops every capability, forbids privilege escalation and keeps seccomp on', async () => {
-    await startProbe()
     const status = await readFile('/proc/1/status')
+    // CapBnd — the BOUNDING set — is what CapDrop:["ALL"] actually clears, and it
+    // is the only field here that distinguishes a hardened container from an
+    // unhardened one. Measured on this machine, alpine:3.22, Docker 29.7.2:
+    //   --cap-drop ALL --user 10001  -> CapBnd 0000000000000000
+    //   --cap-add NET_ADMIN --user 10001 -> CapBnd 00000000a80435fb
+    // CapEff is 0 for ANY non-root process, so asserting it proves only that the
+    // probe is not root — it passes identically with the baseline removed.
+    expect(status).toMatch(/CapBnd:\s+0000000000000000/)
+    // Kept as a second, weaker assertion: the process is genuinely unprivileged.
     expect(status).toMatch(/CapEff:\s+0000000000000000/)
     expect(status).toMatch(/NoNewPrivs:\s+1/)
     // 2 = filtered by a seccomp profile. 0 would mean unconfined.
@@ -1428,7 +1447,12 @@ describeDocker('§12 hardening, read back off a real container', () => {
   it('runs non-root with a read-only root and a writable /tmp', async () => {
     const inspect = await engine.get<{
       Config: { User: string }
-      HostConfig: { ReadonlyRootfs: boolean; PidsLimit: number; Memory: number; Privileged: boolean }
+      HostConfig: {
+        ReadonlyRootfs: boolean
+        PidsLimit: number
+        Memory: number
+        Privileged: boolean
+      }
     }>(`/containers/${NAME}/json`)
     expect(inspect!.Config.User).toBe('10001:10001')
     expect(inspect!.HostConfig.ReadonlyRootfs).toBe(true)
@@ -1458,18 +1482,42 @@ pnpm test:docker                                 # the readback, against real Do
 ```
 
 Expected: unit green; the Docker tier creates `mf-hardening-probe-staging-app`, reads
-`CapEff: 0000000000000000`, `NoNewPrivs: 1`, `Seccomp: 2`, and removes it.
+`CapBnd: 0000000000000000`, `NoNewPrivs: 1`, `Seccomp: 2`, and removes it.
 
 - [ ] **Step 7: Prove the readback is a control, not a formality**
 
-Change the Docker-tier `startProbe()` call in the first test to
+Change the `startProbe()` call in `beforeAll` to
 `startProbe({ CapDrop: [], CapAdd: ['NET_ADMIN'] })` and re-run `pnpm test:docker`.
 
-Expected: **FAIL** — `CapEff` is no longer all zeros. Restore it.
+Expected: **FAIL** — `expected … to match /CapBnd:\s+0000000000000000/`, with the
+received value `CapBnd: 00000000a80435fb`. Restore it.
 
-Without this step the test proves only that a container started. S1's original
-`CapEff` reading is the difference between "we asked for the flags" and "the kernel
-applied them", and it is the only half that matters.
+> **Corrected 2026-09-06, by running the control and watching it NOT fail.** This
+> step used to assert **`CapEff`**, and the probe runs as `User: '10001:10001'`.
+> **`CapEff` is `0000000000000000` for any non-root process whether or not
+> `CapDrop: ["ALL"]` was applied**, so the assertion passed identically with §12's
+> baseline removed — a security control that could not fail, on the single item
+> §12 names first. Measured on this machine (Docker 29.7.2, alpine:3.22):
+>
+> | container | CapEff | CapBnd |
+> |---|---|---|
+> | `--cap-drop ALL --user 10001` | `0…0` | **`0…0`** |
+> | `--cap-add NET_ADMIN --user 10001` | `0…0` | **`00000000a80435fb`** |
+> | `--cap-add NET_ADMIN` (root) | `a80435fb` | `a80435fb` |
+>
+> The **bounding set** is what `CapDrop` clears and the only field that separates
+> rows 1 and 2. `CapEff` is kept as a weaker second assertion — it says the process
+> is genuinely unprivileged — but it is not the control. **Note this also weakens
+> S1's original reading**, which recorded `CapEff`; the finding stands, but the
+> evidence for "capabilities are dropped" was the wrong field.
+>
+> The other two assertions in the same test **were** verified as real controls, so
+> nobody re-checks them: removing `no-new-privileges` gives `NoNewPrivs: 0`, and
+> `--security-opt seccomp=unconfined` gives `Seccomp: 0`.
+
+Without this step the test proves only that a container started. The difference
+between "we asked for the flags" and "the kernel applied them" is the only half that
+matters — and the first version of this step was on the wrong side of it.
 
 - [ ] **Step 8: Commit**
 

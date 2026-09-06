@@ -105,6 +105,15 @@ export interface DriverCapabilities {
    * assumed, and P3's Docker driver reports `false` on macOS. S6 reads it.
    */
   enforcesUserNamespaceRemapping: boolean
+  /**
+   * §12 lists "resource ceilings including `pids` and disk". `pids` enforces;
+   * disk does not on Docker Desktop. `--storage-opt size=` is accepted by the
+   * daemon and recorded in HostConfig, and a 128 MB write into a 64 MB quota
+   * succeeds — the containerd `overlayfs` snapshotter has no project-quota
+   * backing (S1-controls-settled.md). Declared here, like the userns gap above,
+   * rather than implied by an `InstanceSpec.resources.diskMi` nothing honours.
+   */
+  enforcesDiskQuota: boolean
 }
 
 export interface Driver {

@@ -150,6 +150,7 @@ export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
         supportsExec: true,
         supportsSnapshot: true,
         enforcesUserNamespaceRemapping: false, // honest: nothing is namespaced
+        enforcesDiskQuota: false, // honest: an in-memory driver has no disk to bound
         ...options.capabilities,
       }
     },
