@@ -58,3 +58,14 @@ export function testIssuer(): {
     certPath,
   }
 }
+
+/**
+ * The repository root, derived from this file rather than from `process.cwd()`.
+ *
+ * `pnpm test` and `pnpm --filter … test` set DIFFERENT working directories, and a
+ * cwd-relative path in a test passes under one and `ENOENT`s under the other —
+ * measured twice in P2. Anything reaching for `infra/` from a test goes through
+ * this.
+ */
+// src/runtime/docker/ -> the repository root
+export const REPO_ROOT = fileURLToPath(new URL('../../../../../', import.meta.url))
