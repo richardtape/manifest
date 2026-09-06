@@ -2875,21 +2875,30 @@ import { describe, expect, it } from 'vitest'
 import { dockerStateToInstanceState } from './instances.js'
 
 const state = (over: Partial<Parameters<typeof dockerStateToInstanceState>[0]> = {}) => ({
-  Status: 'running', ExitCode: 0, hibernationMarker: false, ...over,
+  Status: 'running',
+  ExitCode: 0,
+  hibernationMarker: false,
+  ...over,
 })
 
 describe('Docker state -> §11 InstanceState', () => {
   it('maps a running, healthy container to healthy', () => {
-    expect(dockerStateToInstanceState(state({ Health: { Status: 'healthy' } }))).toBe('healthy')
+    expect(dockerStateToInstanceState(state({ Health: { Status: 'healthy' } }))).toBe(
+      'healthy',
+    )
   })
 
   it('maps a running container that has not passed its healthcheck to starting', () => {
-    expect(dockerStateToInstanceState(state({ Health: { Status: 'starting' } }))).toBe('starting')
-    expect(dockerStateToInstanceState(state({ Health: undefined }))).toBe('starting')
+    expect(dockerStateToInstanceState(state({ Health: { Status: 'starting' } }))).toBe(
+      'starting',
+    )
+    expect(dockerStateToInstanceState(state({}))).toBe('starting')
   })
 
   it('maps a running container failing its healthcheck to failed', () => {
-    expect(dockerStateToInstanceState(state({ Health: { Status: 'unhealthy' } }))).toBe('failed')
+    expect(dockerStateToInstanceState(state({ Health: { Status: 'unhealthy' } }))).toBe(
+      'failed',
+    )
   })
 
   it('maps created to starting and removing to destroying', () => {
@@ -2899,17 +2908,29 @@ describe('Docker state -> §11 InstanceState', () => {
 
   // THE DISTINCTION THIS FUNCTION EXISTS FOR. Docker leaves both in `exited`.
   it('maps a deliberate stop to hibernated and a crash to failed', () => {
-    expect(dockerStateToInstanceState(state({ Status: 'exited', ExitCode: 0, hibernationMarker: true })))
-      .toBe('hibernated')
+    expect(
+      dockerStateToInstanceState(
+        state({ Status: 'exited', ExitCode: 0, hibernationMarker: true }),
+      ),
+    ).toBe('hibernated')
     // Same exit code, no marker: nobody asked for this. It is a failure.
-    expect(dockerStateToInstanceState(state({ Status: 'exited', ExitCode: 0, hibernationMarker: false })))
-      .toBe('failed')
-    expect(dockerStateToInstanceState(state({ Status: 'exited', ExitCode: 137, hibernationMarker: false })))
-      .toBe('failed')
+    expect(
+      dockerStateToInstanceState(
+        state({ Status: 'exited', ExitCode: 0, hibernationMarker: false }),
+      ),
+    ).toBe('failed')
+    expect(
+      dockerStateToInstanceState(
+        state({ Status: 'exited', ExitCode: 137, hibernationMarker: false }),
+      ),
+    ).toBe('failed')
     // A marker plus a non-zero code is still a stop we asked for: `docker stop`
     // SIGKILLs a container that ignores SIGTERM, and 137 is what that looks like.
-    expect(dockerStateToInstanceState(state({ Status: 'exited', ExitCode: 137, hibernationMarker: true })))
-      .toBe('hibernated')
+    expect(
+      dockerStateToInstanceState(
+        state({ Status: 'exited', ExitCode: 137, hibernationMarker: true }),
+      ),
+    ).toBe('hibernated')
   })
 
   it('maps dead to failed', () => {
@@ -2931,7 +2952,12 @@ Expected: FAIL — `Cannot find module './instances.js'`.
 `packages/control-plane/src/runtime/docker/instances.ts`:
 
 ```ts
-import type { InstanceHandle, InstanceSpec, InstanceState, InstanceStatus } from '../driver.js'
+import type {
+  InstanceHandle,
+  InstanceSpec,
+  InstanceState,
+  InstanceStatus,
+} from '../driver.js'
 import type { EngineClient } from './engine.js'
 import { hardenedHostConfig } from './hardening.js'
 import { appContainer } from './names.js'
@@ -2978,6 +3004,14 @@ export interface InstanceDeps {
   proxyUrl: string
   hostname: string
   diskQuotaEnforceable: boolean
+  /**
+   * Normally absent: a real app's command is its blueprint's `CMD` (D13), and the
+   * driver must not second-guess it. It exists because P3's own lifecycle test
+   * needs a container that STAYS UP — `alpine` with no command exits in under a
+   * second, and a test that stops an already-exited container proves nothing
+   * about the difference between a stop and a crash.
+   */
+  command?: string[]
 }
 
 export async function ensureInstanceContainer(
@@ -3006,10 +3040,14 @@ export async function ensureInstanceContainer(
       ...Object.entries(proxyEnvironment(deps.proxyUrl)).map(([k, v]) => `${k}=${v}`),
     ],
     ExposedPorts: { [`${spec.port}/tcp`]: {} },
+    ...(deps.command === undefined ? {} : { Cmd: deps.command }),
     // Runs INSIDE the container, so §21's "a host process cannot reach container
     // IPs" does not apply. BusyBox wget is a blueprint contract (D13).
     Healthcheck: {
-      Test: ['CMD-SHELL', `wget -q -O /dev/null http://127.0.0.1:${spec.port}${spec.healthPath} || exit 1`],
+      Test: [
+        'CMD-SHELL',
+        `wget -q -O /dev/null http://127.0.0.1:${spec.port}${spec.healthPath} || exit 1`,
+      ],
       Interval: 3_000_000_000,
       Timeout: 2_000_000_000,
       Retries: 20,
@@ -3033,31 +3071,56 @@ export async function ensureInstanceContainer(
 }
 
 /** §11: hibernate — volumes survive. S1 verified the Mongo row count rose across it. */
-export async function stopInstanceContainer(engine: EngineClient, id: string): Promise<void> {
-  await engine.post(`/volumes/create`, { Name: hibernationVolume(id), Labels: { 'manifest.marker': 'hibernated' } })
+export async function stopInstanceContainer(
+  engine: EngineClient,
+  id: string,
+): Promise<void> {
+  await engine.post(`/volumes/create`, {
+    Name: hibernationVolume(id),
+    Labels: { 'manifest.marker': 'hibernated' },
+  })
   await engine.post(`/containers/${id}/stop?t=10`)
 }
 
-export async function destroyInstanceContainer(engine: EngineClient, id: string): Promise<void> {
+export async function destroyInstanceContainer(
+  engine: EngineClient,
+  id: string,
+): Promise<void> {
   // `v=true` removes anonymous volumes only; named service volumes are D3's and
   // are removed by destroyService, which is the call that carries `deleteData`.
   await engine.del(`/containers/${id}?force=true&v=true`)
   await engine.del(`/volumes/${hibernationVolume(id)}?force=true`)
 }
 
-export async function instanceStatus(engine: EngineClient, id: string): Promise<InstanceStatus> {
+export async function instanceStatus(
+  engine: EngineClient,
+  id: string,
+): Promise<InstanceStatus> {
   const inspect = await engine.get<{
-    State: { Status: string; ExitCode: number; Health?: { Status: string }; Error?: string }
+    State: {
+      Status: string
+      ExitCode: number
+      Health?: { Status: string }
+      Error?: string
+    }
   }>(`/containers/${id}/json`)
   // 404 -> undefined (Task 1). §11 and the contract both require `gone`, never a throw.
   if (!inspect) return { id, state: 'gone', healthy: false }
   const marker = (await engine.get(`/volumes/${hibernationVolume(id)}`)) !== undefined
-  const state = dockerStateToInstanceState({ ...inspect.State, hibernationMarker: marker })
+  const state = dockerStateToInstanceState({
+    ...inspect.State,
+    hibernationMarker: marker,
+  })
+  // CONDITIONAL SPREAD, not `cond ? x : undefined`. `message?: string` under
+  // `exactOptionalPropertyTypes` rejects an explicit `undefined` — measured,
+  // TS2375 — and `pnpm test` is green either way, because Vitest strips types
+  // without checking them.
+  const error = inspect.State.Error
   return {
     id,
     state,
     healthy: inspect.State.Health?.Status === 'healthy',
-    message: inspect.State.Error === '' ? undefined : inspect.State.Error,
+    ...(error === undefined || error === '' ? {} : { message: error }),
   }
 }
 ```
@@ -3076,7 +3139,10 @@ import { destroyEgressProxy, ensureEgressProxy } from './egress.js'
 import { appContainer } from './names.js'
 import { destroyAppNetwork, ensureAppNetwork } from './networks.js'
 import {
-  destroyInstanceContainer, ensureInstanceContainer, instanceStatus, stopInstanceContainer,
+  destroyInstanceContainer,
+  ensureInstanceContainer,
+  instanceStatus,
+  stopInstanceContainer,
 } from './instances.js'
 
 const engine = createEngineClient({ socketPath: resolveSocketPath() })
@@ -3085,7 +3151,9 @@ const RELEASE = '9f1c4d2e-7a3b-4c5d-8e6f-0a1b2c3d4e5f'
 let deps: Parameters<typeof ensureInstanceContainer>[2]
 
 // A container that serves nothing: this task tests lifecycle, not the app. Task 17
-// runs the real fixture app.
+// runs the real fixture app. `sleep` keeps it running long enough to observe the
+// difference between a deliberate stop and a crash — alpine's default command
+// exits immediately, which would make every state `exited` before a test looked.
 const spec = (): InstanceSpec => ({
   name: instanceName(SLUG, 'staging', RELEASE),
   projectSlug: SLUG,
@@ -3093,7 +3161,10 @@ const spec = (): InstanceSpec => ({
   releaseId: RELEASE,
   image: {
     repository: 'alpine',
-    digest: 'sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc',
+    // alpine:3.22. The digest this task originally carried was alpine:3.20 —
+    // the very thing Task 3's comment warns against, since 3.20 is in neither
+    // infra/images.txt nor the local registry and so is unavailable offline.
+    digest: 'sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce',
   },
   env: { MANIFEST_ENV: 'staging' },
   port: 8080,
@@ -3106,13 +3177,21 @@ const spec = (): InstanceSpec => ({
 describeDocker('instance lifecycle (§11)', () => {
   beforeAll(async () => {
     await ensureAppNetwork(engine, SLUG, 'staging')
-    const proxy = await ensureEgressProxy(engine, { slug: SLUG, kind: 'staging', allow: [] })
+    const proxy = await ensureEgressProxy(engine, {
+      slug: SLUG,
+      kind: 'staging',
+      allow: [],
+    })
     deps = {
       networkName: 'mf-insttest-staging-net',
-      dnsServer: '10.89.0.53',
+      dnsServer: '127.0.0.11',
       proxyUrl: proxy.url,
       hostname: `${SLUG}.staging.manifest.internal`,
       diskQuotaEnforceable: false,
+      // Holds the container open. Without it `alpine` exits in under a second and
+      // every assertion below is made against an already-dead container — the
+      // hibernation test then "passes" having never stopped a running one.
+      command: ['sleep', '600'],
     }
   })
   afterAll(async () => {
@@ -3126,7 +3205,9 @@ describeDocker('instance lifecycle (§11)', () => {
     const second = await ensureInstanceContainer(engine, spec(), deps)
     expect(second.id).toBe(first.id)
     const all = await engine.get<{ Id: string }[]>(
-      `/containers/json?all=true&filters=${encodeURIComponent(JSON.stringify({ name: [first.name] }))}`,
+      `/containers/json?all=true&filters=${encodeURIComponent(
+        JSON.stringify({ name: [first.name] }),
+      )}`,
     )
     expect(all!.length).toBe(1)
   })
@@ -3140,6 +3221,9 @@ describeDocker('instance lifecycle (§11)', () => {
 
   it('reports hibernated after a stop, and wakes to the same container', async () => {
     const handle = await ensureInstanceContainer(engine, spec(), deps)
+    // The container must actually be UP before it is stopped, or this test is
+    // comparing two crashed containers and the marker proves nothing.
+    expect((await instanceStatus(engine, handle.id)).state).toBe('starting')
     await stopInstanceContainer(engine, handle.id)
     expect((await instanceStatus(engine, handle.id)).state).toBe('hibernated')
     const woken = await ensureInstanceContainer(engine, spec(), deps)
@@ -7680,6 +7764,11 @@ task, from P2's last two batches. Finding them is the expected outcome.*
 | 15 | 6 | The endpoint was built as `${binding.type}://…` → **`mongo://`**, which is not a valid URI, and carried no `authSource`. | `MongoshInvalidInputError: Invalid URI: mongo://…`. And with `mongodb://`, `Authentication failed` — Mongo's root user lives in `admin`, so the endpoint needs `?authSource=admin`. Both now come from the **catalogue** (`uriScheme`, `uriQuery`), with a unit test that catches them **without Docker**. |
 | 16 | 6 | **The auth control could not detect the failure its own comment named.** It probed `db.runCommand({ping:1})`. | Measured: `ping` is served **before authentication** — it answers `ok=1` on an unauthenticated connection, while `insertOne` answers `Command insert requires authentication`. So the test passed identically against a Mongo with no auth enforced, which its comment says is exactly what it exists to catch. Now uses `insertOne`, and adds the assertion that mattered: **no credentials at all must be refused**. (Auth *is* enforced here — the image's entrypoint adds `--auth` itself; passing `--auth` again is `Multiple occurrences of option "--auth"` and the container dies.) |
 | 17 | 6 | `ensureServiceContainer` returned as soon as the container **started**, so the endpoint in the handle was not yet connectable. | Measured: `ECONNREFUSED` at t=0, working at t=5. Task 7's app container connects at boot, so this was a crash on first deploy. Fixed with a Docker **healthcheck** plus a poll of `State.Health.Status` — asking the daemon, because the control plane is a host process and cannot reach container IPs (§21). |
+
+| 18 | 7 | The instance spec pinned alpine digest `d9e853e8…`, which is **alpine:3.20** — the exact thing Task 3's own comment warns against. | `docker image inspect`: `d9e853e8…` is 3.20; 3.22 is `14358309…`. 3.20 is in neither `infra/images.txt` nor the local registry, so this works only while a stale 3.20 lingers on the machine and breaks offline — which is this plan's own demo. Repinned to 3.22. |
+| 19 | 7 | `message: inspect.State.Error === '' ? undefined : …` against `message?: string`. | **`TS2375`**, verbatim. Conditional spread is the fix. `pnpm test` is green with it present — Vitest strips types. Seventh instance of the class P2 hit six times. |
+| 20 | 7 | The unit test's `state({ Health: undefined })` against `Partial<DockerState>`. | **`TS2379`**, verbatim. Same class, in the plan's *test* code. Changed to `state({})`. |
+| 21 | 7 | **The lifecycle tests never observed a running container.** `alpine` with no command exits in under a second, so the hibernation test stopped an already-*crashed* container and still passed — it was comparing two dead containers, proving nothing about the marker. The crash test then failed outright: `409 … container is not running`. | Measured: `Status=exited` 1 s after start. `InstanceDeps` gains an optional `command` (real apps get theirs from the blueprint's `CMD`, D13) and the test holds the container open with `sleep 600`; the hibernation test now asserts the container is up **before** stopping it. |
 
 **Controls verified as real, so nobody re-checks them:** removing `no-new-privileges`
 gives `NoNewPrivs: 0` and `seccomp=unconfined` gives `Seccomp: 0` (Task 3); flipping
