@@ -1,12 +1,24 @@
 import { describe, expect, it } from 'vitest'
 import {
-  IDLE_POLICY, InvalidTransitionError, TRANSITIONS, canTransition, nextState,
+  IDLE_POLICY,
+  InvalidTransitionError,
+  TRANSITIONS,
+  canTransition,
+  nextState,
 } from './state-machine.js'
 import type { InstanceState } from './driver.js'
 
 const ALL_STATES: InstanceState[] = [
-  'pending', 'building', 'provisioning', 'starting', 'healthy',
-  'failed', 'hibernated', 'waking', 'destroying', 'gone',
+  'pending',
+  'building',
+  'provisioning',
+  'starting',
+  'healthy',
+  'failed',
+  'hibernated',
+  'waking',
+  'destroying',
+  'gone',
 ]
 
 describe('instance state machine (§11)', () => {

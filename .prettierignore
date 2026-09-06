@@ -1,0 +1,20 @@
+# `pnpm format` is `prettier --write .`, and without this file that means the
+# WHOLE repository. Measured on 2026-09-05: 50 files, among them
+# docs/superpowers/specs/2026-08-29-manifest-platform-design.md — the document
+# CLAUDE.md's non-negotiables say never to edit — and pnpm-lock.yaml.
+#
+# So Prettier owns the TypeScript workspace and nothing else. Everything below
+# is either prose whose line breaks are deliberate, generated, or config that
+# belongs to a running platform.
+docs/
+infra/
+**/*.md
+**/*.yaml
+**/*.yml
+pnpm-lock.yaml
+node_modules/
+dist/
+drizzle/
+.env
+.env.example
+blueprints/*/skeleton/

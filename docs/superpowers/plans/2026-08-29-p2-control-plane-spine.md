@@ -218,7 +218,7 @@ would end up in the shipped bundle.
 ## Task 1: Workspace scaffolding and the module-boundary rule
 
 **Files:**
-- Create: `.nvmrc`, `package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`, `eslint.config.js`, `vitest.workspace.ts`
+- Create: `.nvmrc`, `package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`, `eslint.config.js`, `vitest.workspace.ts`, `.prettierrc`, `.prettierignore`
 - Create: `packages/control-plane/package.json`, `packages/control-plane/tsconfig.json`
 - Create: `packages/control-plane/src/spec/index.ts` (placeholder export, replaced in Task 2)
 - Test: `packages/control-plane/src/module-boundaries.test.ts`
@@ -275,6 +275,7 @@ the comment above, which `approve-builds` strips.
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "tsc -b --pretty"
   },
   "devDependencies": {
@@ -287,6 +288,31 @@ the comment above, which `approve-builds` strips.
   }
 }
 ```
+
+> **Defect found in execution (2026-09-05), and it is the dangerous kind.** Task 1
+> shipped `"format": "prettier --write ."` with **no `.prettierrc` and no
+> `.prettierignore`**, so the one command the repo offers for formatting rewrites
+> the whole repository. Measured on 2026-09-05: **50 files**, among them
+> `pnpm-lock.yaml` and
+> `docs/superpowers/specs/2026-08-29-manifest-platform-design.md` — the document
+> CLAUDE.md's non-negotiables say never to edit. Nothing in the build would have
+> caught it; a developer tidying their diff would have silently reflowed the
+> approved spec.
+>
+> There was no config, so no committed file conformed either: `prettier --check`
+> flagged **14 of 14** source files, and no `printWidth` reconciles hand-written
+> code with Prettier's defaults — the tree had simply never been run through it.
+>
+> **Fixed by** adding `.prettierrc` (`semi: false`, `singleQuote: true`,
+> `printWidth: 90` — the style every committed file was already written in, so the
+> plan's own code blocks stay conformant), a `.prettierignore` that gives Prettier
+> the TypeScript workspace and nothing else, and one mechanical normalisation of
+> the seven files that needed it. `format:check` above makes the property runnable.
+>
+> **Measured against:** with `.prettierignore` removed, `prettier --check .` flags
+> 34 files including the approved spec by name; with it in place, *"All matched
+> files use Prettier code style"*. `pnpm test` 34/34, `pnpm lint` and `typecheck`
+> clean across the normalisation.
 
 `tsconfig.base.json`:
 

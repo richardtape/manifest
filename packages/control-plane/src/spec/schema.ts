@@ -67,7 +67,10 @@ const authSchema = z
   .strict()
 
 const environmentOverrideSchema = z
-  .object({ resources: resourcesSchema.optional(), env: z.array(envEntrySchema).optional() })
+  .object({
+    resources: resourcesSchema.optional(),
+    env: z.array(envEntrySchema).optional(),
+  })
   .strict()
 
 export const manifestSchema = z
@@ -94,7 +97,10 @@ export const manifestSchema = z
       .strict()
       .default({}),
     env: z.array(envEntrySchema).default([]),
-    egress: z.object({ allow: z.array(z.string().min(1)).default([]) }).strict().default({}),
+    egress: z
+      .object({ allow: z.array(z.string().min(1)).default([]) })
+      .strict()
+      .default({}),
     data: z
       .object({
         classification: z.enum(CLASSIFICATIONS).default('internal'),

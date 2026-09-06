@@ -44,9 +44,9 @@ describe('manifest.yaml schema (§7)', () => {
       auth: { provider: 'cwl', attributes: ['ubcEduCwlPuid'], callback },
     })
     expect(manifestSchema.safeParse(withAuth('/auth/cb')).success).toBe(true)
-    expect(
-      manifestSchema.safeParse(withAuth('https://evil.example/cb')).success,
-    ).toBe(false)
+    expect(manifestSchema.safeParse(withAuth('https://evil.example/cb')).success).toBe(
+      false,
+    )
     expect(manifestSchema.safeParse(withAuth('auth/cb')).success).toBe(false)
     expect(manifestSchema.safeParse(withAuth('/a?b=c')).success).toBe(false)
   })

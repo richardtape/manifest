@@ -1,12 +1,31 @@
 import { createHash } from 'node:crypto'
 import type {
-  Driver, DriverCapabilities, ExecOpts, ExecStream, ImageRef, InstanceHandle,
-  InstanceSpec, InstanceStatus, LogLine, LogOpts, ServiceBinding, ServiceHandle,
-  SnapshotRef, SourceRef,
+  Driver,
+  DriverCapabilities,
+  ExecOpts,
+  ExecStream,
+  ImageRef,
+  InstanceHandle,
+  InstanceSpec,
+  InstanceStatus,
+  LogLine,
+  LogOpts,
+  ServiceBinding,
+  ServiceHandle,
+  SnapshotRef,
+  SourceRef,
 } from './driver.js'
 
-interface FakeInstance { spec: InstanceSpec; state: InstanceStatus['state']; logs: LogLine[] }
-interface FakeService { binding: ServiceBinding; handle: ServiceHandle; dataDeleted: boolean }
+interface FakeInstance {
+  spec: InstanceSpec
+  state: InstanceStatus['state']
+  logs: LogLine[]
+}
+interface FakeService {
+  binding: ServiceBinding
+  handle: ServiceHandle
+  dataDeleted: boolean
+}
 
 export interface FakeDriverOptions {
   /** Make ensureInstance land in `failed` — for testing failure paths without Docker. */
@@ -56,7 +75,11 @@ export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
         const existing = instances.get(existingId)!
         existing.spec = spec
         if (existing.state === 'hibernated') existing.state = 'starting'
-        return { id: existingId, name: spec.name, url: `https://${spec.name}.manifest.internal` }
+        return {
+          id: existingId,
+          name: spec.name,
+          url: `https://${spec.name}.manifest.internal`,
+        }
       }
       const id = `inst-${instances.size + 1}`
       instances.set(id, {
@@ -70,7 +93,7 @@ export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
 
     async stopInstance(id: string): Promise<void> {
       const instance = instances.get(id)
-      if (instance) instance.state = 'hibernated'   // volumes survive — §11
+      if (instance) instance.state = 'hibernated' // volumes survive — §11
     },
 
     async destroyInstance(id: string): Promise<void> {
@@ -103,7 +126,9 @@ export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
     },
 
     exec(id: string, cmd: string[], _opts: ExecOpts): ExecStream {
-      async function* out() { yield `fake exec: ${cmd.join(' ')}\n` }
+      async function* out() {
+        yield `fake exec: ${cmd.join(' ')}\n`
+      }
       async function* err() {}
       return { stdout: out(), stderr: err(), exitCode: Promise.resolve(0) }
     },
@@ -114,12 +139,12 @@ export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
 
     capabilities(): DriverCapabilities {
       return {
-        enforcesEgress: false,   // honest: an in-memory driver enforces nothing
+        enforcesEgress: false, // honest: an in-memory driver enforces nothing
         isolationLevel: 'container',
         remoteTarget: false,
         supportsExec: true,
         supportsSnapshot: true,
-        enforcesUserNamespaceRemapping: false,   // honest: nothing is namespaced
+        enforcesUserNamespaceRemapping: false, // honest: nothing is namespaced
         ...options.capabilities,
       }
     },
