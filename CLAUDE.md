@@ -23,7 +23,7 @@ registry, the `fixture-node` blueprint, and the Drizzle schema against P1's Post
 **80 tests** via `pnpm test`; the `db/` ones need `make up`, and derive their
 connection from `.env` themselves. **Tasks 12–21 are the current work**, then P3.
 
-Executing 2–8 found **19 defects**, recorded inline in the plan. Three were in what
+Executing 2–8 found **20 defects**, recorded inline in the plan. Three were in what
 the tasks assumed rather than what they wrote: `pnpm format` would have rewritten the
 approved spec; the `fixture-node` Dockerfile called `groupadd`/`useradd`, which
 `node:22-alpine` does not have; and the database client broke `pnpm test` for the

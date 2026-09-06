@@ -40,7 +40,7 @@ is deliberate: on 2026-09-04 the project stopped writing plans and started execu
 them.** P1's execution vindicated that decision — 13 tasks produced **18 defects** in
 a plan that had already been self-reviewed, and a third of them were *checks that
 passed while the thing under test was broken or absent*. **P2's Tasks 2–8 then
-produced 19 more**, including a `pnpm format` that would have rewritten the approved
+produced 20 more**, including a `pnpm format` that would have rewritten the approved
 spec and a blueprint Dockerfile that could not build at all. **P2 Tasks 12–21 are the
 current work.**
 

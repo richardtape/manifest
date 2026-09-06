@@ -203,7 +203,7 @@ Recorded here because they are about *how to run this work*, and each was paid f
 
 **P1 is EXECUTED and green (2026-09-05).** P0, P2 and P3 are written; **P2's Tasks
 1–11 are executed** — 1 and 9–11 on 2026-08-31, then **2–8 on 2026-09-05**, which
-found **19 defects** of their own. **Tasks 12–21 remain**, then P3 in full. **P4 and P5 are not written, deliberately** — see the
+found **20 defects** of their own. **Tasks 12–21 remain**, then P3 in full. **P4 and P5 are not written, deliberately** — see the
 2026-09-04 decision in *Order of operations*, which puts execution before any further
 plan-writing. Each of P1–P5 carries the required plan header, its own file-structure
 map, and bite-sized TDD steps with real content — no plan may contain a step
@@ -267,7 +267,7 @@ validation, `isSensitiveDiff`, the blueprint descriptor and registry, the
 `fixture-node` blueprint, and the database schema against P1's Postgres. **80 tests
 green**, plus `pnpm lint`, `typecheck` and `format:check`. **Tasks 12–21 remain.***
 
-*Executing Tasks 2–8 found **19 defects**, each recorded inline at its task with what
+*Executing Tasks 2–8 found **20 defects**, each recorded inline at its task with what
 it was measured against. The three worst were not in the code the tasks wrote but in
 what the tasks assumed: `pnpm format` would have rewritten the **approved spec**,
 because Task 1 shipped the script with no `.prettierignore`; Task 7's Dockerfile
@@ -471,8 +471,8 @@ decision above was correct and the effect is larger than the numbers that motiva
 it: a third of the defects were controls reporting green against something broken or
 absent, which is the one failure mode that a *stack of unexecuted plans* cannot
 reveal and actively conceals. **29 tasks remain unrun** (P2's 10, P3's 19) — Tasks
-2–8 came off that stack on 2026-09-05 and yielded 19 more defects, at a rate of
-roughly 2.7 per task, against P1's 1.4.
+2–8 came off that stack on 2026-09-05 and yielded 20 more defects — a rate of
+**2.9 per task**, against P1's 1.4.
 
 *Rejected:* writing P4 and P5 first, on the argument that plan-writing and execution
 want different context and batching them is cheaper per plan. It is — and it is more

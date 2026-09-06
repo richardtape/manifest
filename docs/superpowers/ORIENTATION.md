@@ -471,7 +471,7 @@ is `manifest.internal`. `make host-undo` has also never been run end to end.
 [`plans/2026-08-29-p2-control-plane-spine.md`](plans/2026-08-29-p2-control-plane-spine.md).
 **10 of P2's 21 tasks remain: 12–21** — configuration and the whole HTTP surface.
 
-**Tasks 2–8 were executed on 2026-09-05 and found 19 defects**, every one recorded
+**Tasks 2–8 were executed on 2026-09-05 and found 20 defects**, every one recorded
 inline at its task with what it was measured against. Four are worth knowing before
 you start, because they are about the *shape* of the mistakes this plan makes rather
 than about `spec/`:
