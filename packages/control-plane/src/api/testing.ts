@@ -3,7 +3,7 @@ import { loadConfig } from '../config.js'
 import { createFakeDriver } from '../runtime/index.js'
 import { createLocalSourceDriver } from '../source/index.js'
 import { loadBlueprints } from '../blueprints/index.js'
-import { mkdtemp } from 'node:fs/promises'
+import { mkdir, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
@@ -17,8 +17,25 @@ import type { ServerDeps } from './server.js'
  */
 const BLUEPRINTS_ROOT = fileURLToPath(new URL('../../../../blueprints', import.meta.url))
 
+/**
+ * One root for every repository directory the API tests create, removed wholesale
+ * by the global teardown.
+ *
+ * `testDeps` is called once per test, and it used to mkdtemp straight into TMPDIR
+ * with nothing ever removing the result: **944 directories** accumulated in a single
+ * afternoon, and the lifecycle test's 1000 ms budget drifted from ~300 ms to ~820 ms
+ * as they piled up. Both halves matter — the slow drift would eventually fail Task
+ * 21's acceptance for no reason a reader could see, and leaving litter on the
+ * machine is a non-negotiable in CLAUDE.md.
+ *
+ * Derived from tmpdir() rather than passed in, because vitest.global-setup.ts runs
+ * in a different process and computes the identical path.
+ */
+export const TEST_REPOS_ROOT = join(tmpdir(), 'manifest-test-repos')
+
 export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> {
-  const reposRoot = await mkdtemp(join(tmpdir(), 'manifest-api-repos-'))
+  await mkdir(TEST_REPOS_ROOT, { recursive: true })
+  const reposRoot = await mkdtemp(join(TEST_REPOS_ROOT, 'run-'))
   const config = loadConfig({
     MANIFEST_ENV: 'development',
     MANIFEST_DATABASE_URL: process.env.MANIFEST_DATABASE_URL!,

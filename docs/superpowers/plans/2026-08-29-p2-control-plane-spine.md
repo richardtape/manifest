@@ -8658,7 +8658,24 @@ git commit -m "test: P2 acceptance — the full lifecycle against the fake drive
 > `prettier --list-different .` reports nothing outside `packages/`, and
 > `git status docs/` is empty after formatting, so the approved spec is untouched.
 >
-> **The acceptance holds.** ~300 ms against the 1000 ms budget. **Step 3's negative
+> **Two more defects, found 2026-09-05 while reconciling P3 against this plan** —
+> both live in committed code, neither findable by reading:
+>
+> - **`api/testing.ts` leaked a temp directory per test.** `mkdtemp` into `TMPDIR`
+>   with no teardown; **944 directories** accumulated in one afternoon. Beyond the
+>   litter — which CLAUDE.md forbids — it degraded the very budget this task asserts.
+>   Fixed with one root plus a teardown returned from `vitest.global-setup.ts`.
+> - **The 1000 ms budget measured `git`, not the control plane.** Instrumented:
+>   `createProject` shells out seven times for **462–655 ms of a 586–813 ms run** —
+>   79%, and all of the variance. The control plane's own work is a steady
+>   **71–74 ms**. Idle, the total was ~300 ms; at load average 10.75 it was ~1150 ms
+>   and this assertion failed for reasons unrelated to the code. A budget that fails
+>   on a busy laptop is a check that gets deleted rather than read. Now two
+>   assertions: the control plane's own work `< 400 ms`, the total `< 5000 ms` so a
+>   hang is still caught. **Measured against:** a 500 ms delay injected inside the
+>   window gives `expected 700 to be less than 400`.
+>
+> **The acceptance holds.** The control plane's own work is ~75 ms. **Step 3's negative
 > control:** with `manifest-postgres` stopped the run fails at
 > `ECONNREFUSED 127.0.0.1:7103` — in `globalSetup`, before any test body — so P2
 > needs no Docker **for the driver**, which is not the same claim as needing no

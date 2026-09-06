@@ -356,6 +356,23 @@ runs in under a second.
 
 ### P3 — 1a-iii · Docker driver & deploy spine
 
+*Reconciled against a running P2 on 2026-09-05, before execution.* P3 was written
+2026-08-31 against an imagined P2. Every **seam** was re-checked — each place it
+modifies a file P2 built, calls a P2 symbol, adds a sibling to a P2 error type, or
+asserts through P2's HTTP surface — and that found **eight defects**, fixed inline.
+Two would have silently reverted P2's own fixes (a `vitest.workspace.ts` rewrite that
+dropped the database reset and the `.env` derivation); one sat on the single
+assertion P3's self-review had already flagged as its worst (a boot check reading a
+log line that `logger: false` swallows, whose negative control could not fail); and
+one would have left the builder unable to obtain a registry token, because P2's D23.6
+hook demands an `Idempotency-Key` that BuildKit never sends. Trying to *run* the fix
+rather than reason about it also turned up **two live defects in P2** — a temp-dir
+leak and an acceptance budget that was measuring `git`.
+
+**Deliberately not re-reviewed:** the Engine API client, §12's hardening, the builder
+bounds, S6's probe matrix. Reading does not find what running finds; the pass was
+scoped to stale references to things that now exist.
+
 *Depends on: S1, S7, P1, P2. **S6 runs as its acceptance**, as Task 18.*
 ***Written 2026-08-31*** —
 [`2026-08-31-p3-docker-driver-deploy-spine.md`](./2026-08-31-p3-docker-driver-deploy-spine.md),
@@ -530,6 +547,7 @@ run. The measured rate by batch:
 | P2 Tasks 1, 9, 10, 11 | 4 | 5 | 1.3 |
 | P2 Tasks 2–8 | 7 | 20 | 2.9 |
 | **P2 Tasks 12–21** | **10** | **27** | **2.7** |
+| P2, found later while reconciling P3 | — | 2 | — |
 
 **19 tasks remain unrun — P3's, and only P3's.** The rate has not fallen with
 practice; it rose the moment the tasks stopped being pure functions. P3 is *entirely*

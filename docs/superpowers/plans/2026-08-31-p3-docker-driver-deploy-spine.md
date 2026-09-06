@@ -14,7 +14,22 @@
 
 **Depends on:** **P1** for the substrate this plan drives (Caddy on `127.0.0.2` with its admin API on `127.0.0.1:7119`, the dual-homed registry on `127.0.0.1:7107`, Verdaccio, the internal build network, Postgres) and **P2** for the `Driver` interface, the contract suite, the state machine, `Config`/`hostnameFor`, `resolveConfig`, and the release records this plan gives digests to.
 
-**Status: complete — 19 tasks, self-reviewed.** No step in this plan stands in for a spike result. The two controls S1 left open were settled **before** it was written; see the next section. The self-review ran on 2026-09-04 and found seven defects, all fixed — *What the self-review caught*, near the end, records them.
+**Status: complete — 19 tasks, self-reviewed, and reconciled against a running P2.** No step in this plan stands in for a spike result. The two controls S1 left open were settled **before** it was written; see the next section. The self-review ran on 2026-09-04 and found seven defects, all fixed — *What the self-review caught*, near the end, records them.
+
+**Reconciled 2026-09-05, after P2 executed in full.** This plan was written on
+2026-08-31 against an *imagined* P2. P2 is now concrete and in several places
+different, so every seam was checked — each place this plan modifies a file P2 built,
+calls a P2 symbol, adds a sibling to a P2 error type, or asserts through P2's HTTP
+surface. **Seven defects, all fixed inline with the measurement that found them.**
+Two would have silently undone P2's own fixes, and one sat on the single assertion
+this plan's self-review had already identified as its worst defect. They are listed
+in *What the reconciliation found*, at the end.
+
+**Deliberately not re-reviewed:** the Docker logic, §12's hardening, and S6's probe
+matrix. This project has measured twice that reading a plan does not find what running
+it finds — P2's self-review found 7 defects and executing it found 52. The
+reconciliation was scoped to stale references to things that now exist, which is the
+one class that *is* cheap to find on paper and expensive to hit at task 15 of 19.
 
 ---
 
@@ -162,7 +177,9 @@ from the spec or from a findings note.
 - **Node 24**, TypeScript `strict: true`, **no `any` in committed code** — use `unknown` and narrow.
 - **No module reaches into another module's internals** (§5). Imports cross module boundaries only through `src/<module>/index.ts` or `src/<module>/testing.ts`. Enforced by ESLint *and* by P2 Task 1's boundary test, which resolves each import and compares modules — subdirectories inside a module (`runtime/docker/`) stay legal.
 - **`packages/control-plane/src/runtime/driver-contract.ts` is imported unchanged.** If a change to it seems necessary, that is a finding about the interface, not a licence to edit the suite. Say so and stop.
-- **Green before every commit:** `pnpm test`, `pnpm lint`, and `pnpm --filter @manifest/control-plane typecheck`. `pnpm test` must stay Docker-free.
+- **Green before every commit — FOUR gates, not three:** `pnpm test` (**from the repo root**, not `pnpm --filter … test`; the two set a different working directory and that difference was a P2 defect), `pnpm lint`, `pnpm --filter @manifest/control-plane typecheck`, and `pnpm format:check`. `pnpm test` must stay Docker-free, and must be **run twice** — a suite that is not repeatable has a state leak, which is how five of P2's defects surfaced.
+
+  *Corrected 2026-09-05 after P2 executed. This plan named three gates and never mentioned `format:check` at all, which was silently red on 29 files of P2's own code. And `typecheck` is not a formality after the tests: **Vitest strips types without checking them**, so a file can pass every test it has while `tsc` reports four errors — that happened six times in P2.*
 - **Naming:** platform containers are `manifest-<service>` (P1's). Everything this plan creates is `mf-<slug>-<env>[-<suffix>]` for containers, networks and volumes, and nothing outside those two prefixes may be named, inspected destructively, or removed.
 - **Never `--privileged`**, on any container, including the builder (§12, S1).
 - **The container runtime socket is never mounted into a workload container** (§12). The reference compose at `/Users/rich/Developer/coder.com/docker-compose.yml` does exactly this and is the named counter-example.
@@ -862,33 +879,92 @@ export function describeDocker(name: string, body: () => void): void {
 
 - [ ] **Step 4: Split the vitest projects and add the script**
 
-`vitest.workspace.ts`:
+> **Corrected 2026-09-05, after P2 executed.** This step was written when
+> `vitest.workspace.ts` was `['packages/*']` and nothing else existed. It is now
+> load-bearing, and the version this plan originally gave **silently undid two of
+> P2's fixes**:
+>
+> - Defining projects inline stops the workspace picking up
+>   `packages/control-plane/vitest.config.ts`, which carries
+>   `setupFiles: ['./vitest.setup.ts']` — the file that derives
+>   `MANIFEST_DATABASE_URL` from `.env`. Without it `db/client.ts` throws **at
+>   import**, and the *whole* suite dies, including the pure tests that need no
+>   database. That exact failure is P2 Task 8's recorded defect.
+> - `globalSetup: []` on the unit tier removes P2's once-per-run truncate. That is
+>   the mechanism that makes a run independent of the state it starts in;
+>   `withRollback` does **not** isolate a suite from rows another test committed.
+>   Deleting it puts three suites back to being green only when the database
+>   happens to be empty — five of P2's 27 defects, reintroduced silently.
+>
+> There is also now a **root `vitest.config.ts`** carrying `fileParallelism: false`,
+> because the API tests truncate and must not race the transactional ones.
+> `fileParallelism` is a root-level option and has no effect in a package config.
+> **Do not delete that file**; without it the suite fails a different number of
+> tests on each run.
+
+`vitest.workspace.ts` — **verified 2026-09-05 by running it**, which the first two
+attempts at this fix were not:
 
 ```ts
 import { defineWorkspace } from 'vitest/config'
 
+// Both projects root INSIDE the package. Not at the repo root: pnpm's strict
+// node_modules means `pg` does not resolve from there, and the whole run dies with
+// "Failed to load url pg" and `no tests` — which reads like a glob mistake and is
+// not one. Rooting here also keeps every path identical to P2's own config.
+const PKG = './packages/control-plane'
+
 export default defineWorkspace([
   {
-    // The fast tier. No Docker, no Postgres, no network — §16's highest-leverage
-    // property, and the reason `pnpm test` is measured in milliseconds.
+    // The fast tier. No Docker, no network — §16's highest-leverage property. It
+    // DOES need Postgres.
     test: {
       name: 'unit',
-      include: ['packages/*/src/**/*.test.ts'],
-      exclude: ['packages/*/src/**/*.docker.test.ts'],
-      globalSetup: [],
+      root: PKG,
+      include: ['src/**/*.test.ts'],
+      // Setting `exclude` REPLACES vitest's defaults, so node_modules and dist have
+      // to be restated or they are scanned.
+      exclude: ['**/node_modules/**', '**/dist/**', '**/*.docker.test.ts'],
+      setupFiles: ['./vitest.setup.ts'],
+      globalSetup: ['./vitest.global-setup.ts'],
     },
   },
   {
     test: {
       name: 'docker',
-      include: ['packages/*/src/**/*.docker.test.ts'],
+      root: PKG,
+      include: ['src/**/*.docker.test.ts'],
       testTimeout: 120_000,
       hookTimeout: 120_000,
-      globalSetup: ['./packages/control-plane/src/runtime/docker/tier-setup.ts'],
+      setupFiles: ['./vitest.setup.ts'],
+      // Order matters: reset the database, then assert the daemon is reachable.
+      globalSetup: ['./vitest.global-setup.ts', './src/runtime/docker/tier-setup.ts'],
     },
   },
 ])
 ```
+
+**And the root `test` script must name the unit project.** `vitest run` with no
+`--project` filter runs **every** project, so `pnpm test` would run the Docker tier
+too — the precise thing this task exists to prevent. Verified by adding a throwaway
+`scratch.docker.test.ts`: `pnpm test` reported **225** tests rather than 224 until the
+script was scoped. In the root `package.json`:
+
+```json
+"test": "vitest run --project unit",
+"test:docker": "MANIFEST_TEST_DOCKER=1 vitest run --project docker"
+```
+
+**Verify this step rather than assuming it.** After editing, `pnpm test` must report
+**the same number of tests it did before**, twice in a row. Four distinct failure
+modes were hit getting this right, and each has a distinct signature:
+
+| Symptom | Cause |
+|---|---|
+| `no tests`, plus `Failed to load url pg` | the project root is the repo root; `pg` does not resolve from there |
+| the whole suite dies on `MANIFEST_DATABASE_URL` | `setupFiles` is missing |
+| passes once, fails on re-run | the `globalSetup` truncate is missing |
+| the count goes **up** by the number of Docker tests | the root `test` script is not scoped to `--project unit` |
 
 `packages/control-plane/src/runtime/docker/tier-setup.ts`:
 
@@ -3347,8 +3423,18 @@ export const registryTokenRoutes =
       return { token, access_token: token, expires_in: 300, issued_at: new Date().toISOString() }
     }
 
+    // `idempotency: 'exempt'` is NOT optional here, and it is not decoration.
+    // P2's server applies D23.6 to every mutating route through a preHandler hook:
+    // a POST with no `Idempotency-Key` header of at least 8 characters is refused
+    // with 400 IDEMPOTENCY_KEY_REQUIRED. BuildKit and the Docker daemon will never
+    // send that header — they are speaking the distribution token protocol, not
+    // Manifest's API — so without this the builder cannot get a token at all, and
+    // the symptom is a 400 from a route that looks correctly implemented.
+    // Minting a token is also not a domain mutation; it is authentication, which
+    // is exactly why P2 exempts `/auth/*` the same way.
+    //
     // The form Docker 29 and BuildKit actually use. Everything is in the body.
-    app.post('/internal/registry/token', async (request) => {
+    app.post('/internal/registry/token', { config: { idempotency: 'exempt' } }, async (request) => {
       const body = (request.body ?? {}) as Record<string, string>
       return issue(body.scope === undefined ? [] : [body.scope], body.username ?? '', body.password ?? '')
     })
@@ -3368,6 +3454,41 @@ export const registryTokenRoutes =
     })
   }
 ```
+
+**These two routes must also be added to P2's authorization contract table.** P2
+Task 20 ships a drift guard — *"covers every route the server registers"* — that
+compares `app.registeredRoutes` against the `ROUTES` array in
+`packages/control-plane/src/api/authz-contract.ts` and fails naming any route nobody
+decided the authorization for. Registering these without touching that table **fails
+the build**, and that is the guard working: these endpoints mint registry push
+credentials, so their authorization is a decision, not an oversight.
+
+They are unlike every other route in the table: they carry **no session**, they
+authenticate with the build credential in the request itself, and `requireActor` is
+never called. So every actor — including `anonymous` — expects `'pass'`, and the
+authorization that matters is the credential check inside `issue()`, which
+`registry-auth.test.ts` covers. Add to `ROUTES`:
+
+```ts
+  {
+    // No session: authenticated by the build credential in the request body, which
+    // is why every actor passes here and the real check lives in registry-auth.ts.
+    method: 'POST', url: '/internal/registry/token',
+    request: () => ({ url: '/internal/registry/token', payload: { scope: '', username: '', password: '' } }),
+    expect: { owner: 'pass', collaborator: 'pass', stranger: 'pass', admin: 'pass', anonymous: 'pass' },
+  },
+  {
+    method: 'GET', url: '/internal/registry/token',
+    request: () => ({ url: '/internal/registry/token' }),
+    expect: { owner: 'pass', collaborator: 'pass', stranger: 'pass', admin: 'pass', anonymous: 'pass' },
+  },
+```
+
+**Watch the guard fail first.** Register the routes, run
+`pnpm --filter @manifest/control-plane test src/api/authz-contract`, and confirm it
+reports `expected [ 'POST /internal/registry/token', 'GET /internal/registry/token' ]
+to deeply equal []` before adding the rows. A completeness guard you have never seen
+fail is a completeness guard you are trusting on faith.
 
 Register it in `api/server.ts` beside the other route plugins, and make sure Fastify
 parses `application/x-www-form-urlencoded` — the POST body arrives form-encoded, and
@@ -6010,8 +6131,14 @@ await app.listen({ port: config.port, host: '127.0.0.1' })
 
 // Which driver actually booted is the one fact this file decides, and every
 // acceptance in this plan is meaningless if it is 'fake'. One line, so the answer
-// is in the log rather than inferred from behaviour.
-app.log.info({ driver: driver.name }, 'control plane ready')
+// is observable rather than inferred from behaviour.
+//
+// `console.log`, NOT `app.log.info`. P2 builds the server as
+// `Fastify({ logger: false })`, under which `app.log.info` exists, accepts the
+// call, and writes nothing. Measured 2026-09-05: the line vanishes. This is a
+// boot-time fact, printed once, before any request — it does not belong to the
+// request logger P2 deliberately turned off.
+console.log(JSON.stringify({ driver: driver.name, msg: 'control plane ready' }))
 ```
 
 **`createDockerDriver` is `async` and `createFakeDriver` was not**, which is why this
@@ -6026,18 +6153,27 @@ Boot the control plane and read which driver it came up with:
 ```bash
 pnpm --filter @manifest/control-plane dev 2>&1 | tee /tmp/mf-boot.log &
 sleep 5
-grep -q '"driver":"docker"' /tmp/mf-boot.log && echo WIRED
+grep -o '"driver":"[a-z]*"' /tmp/mf-boot.log
 ```
 
-Expected: `WIRED`.
+Expected: `"driver":"docker"`.
 
 Then the negative control, which is the point of the step: put `createFakeDriver()`
 back, restart, and re-run.
 
-Expected: **no match** — the log says `"driver":"fake"` and the control plane comes up
-perfectly happily, serving every route, passing every unit test. That state is
-indistinguishable from success at every level above this file, which is why it is
-asserted here rather than assumed from a working `make demo`.
+Expected: `"driver":"fake"` — and the control plane comes up perfectly happily,
+serving every route, passing every unit test. That state is indistinguishable from
+success at every level above this file, which is why it is asserted here rather than
+assumed from a working `make demo`.
+
+> **Corrected 2026-09-05.** This step used to be `grep -q '"driver":"docker"' && echo
+> WIRED`, expecting *no match* as its negative control. Two things were wrong with
+> it, and the second is the dangerous one. The line never printed at all, because it
+> went through `app.log.info` under `logger: false` (fixed in Step 6). And
+> **"expected: no match" cannot distinguish a fake driver from a missing log line** —
+> it would have passed whether or not the swap worked, on the single assertion this
+> plan's own self-review identified as its worst defect. Grepping for the *value*
+> and reading it back fails loudly in both directions.
 
 - [ ] **Step 8: Commit**
 
@@ -6055,8 +6191,9 @@ driver-contract.ts is imported byte-for-byte as P2 wrote it. Verified by breakin
 ensureInstance's idempotency and watching two named contract tests fail.
 
 The boot entry point now constructs it instead of the fake driver, verified by
-reading driver:docker back from /healthz — without that swap every later
-acceptance in this plan passes against an in-memory driver."
+reading driver:docker back from the boot line, and driver:fake after putting
+createFakeDriver() back — without that swap every later acceptance in this plan
+passes against an in-memory driver."
 ```
 
 ---
@@ -6069,12 +6206,30 @@ acceptance in this plan passes against an in-memory driver."
 - Test: `packages/control-plane/src/releases/promotion.test.ts`
 
 **Interfaces:**
-- Consumes: `Driver`, `ImageRef` from `runtime/`.
+- Consumes: `Driver`, `ImageRef` from `runtime/`; **`ReleaseError` from `releases/release.ts` (P2 Task 16)**.
 - Produces:
   - `LOCAL_NAMESPACE = 'local/'`
   - `isLocallyBuilt(image: ImageRef): boolean`
-  - `assertPromotable(driver: Driver, image: ImageRef): void` — throws `PromotionError`
-  - `class PromotionError` with `code = 'IMAGE_NOT_PROMOTABLE'`
+  - `assertPromotable(driver: Driver, image: ImageRef): void` — throws `ReleaseError`
+
+> **Corrected 2026-09-05, after P2 executed. This task must REPLACE a check, not add
+> one.** P2's `deployRelease` already refuses a `local/` image on a remote-target
+> driver, and `releases.test.ts` already asserts
+> `code: 'RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER'` against it. What P3 adds that is
+> genuinely new is `isLocallyBuilt` — P2 compares a prefix on the whole repository
+> string, which is wrong the moment the registry host is part of it, and the builder
+> and the daemon call that host different names.
+>
+> So: extract the check into `promotion.ts`, keep **P2's error class and P2's code**,
+> and have `deployRelease` call the extracted function instead of its inline
+> comparison. P2's existing test then still passes unchanged, which is the point.
+>
+> The original version of this task introduced a new `PromotionError` with
+> `code = 'IMAGE_NOT_PROMOTABLE'`. Two things would have gone wrong. Thrown *before*
+> P2's check it shadows it and P2's test fails on the code; thrown *after* it is
+> dead. And `toErrorResponse` has no branch for a `PromotionError`, so it would have
+> left the API as **500 INTERNAL** — the exact defect P2 Task 17 hit twice, once for
+> the dev-auth errors and once for `ZodError`.
 
 **S1 left this open: *"§21's honest divergence 4 says laptop images are never
 promoted, but nothing in the driver enforces that yet. A P3 decision."*** It is
@@ -6105,7 +6260,8 @@ is exercised on a laptop that has no UBC infrastructure and in milliseconds. Thi
 ```ts
 import { describe, expect, it } from 'vitest'
 import { createFakeDriver } from '../runtime/index.js'
-import { PromotionError, assertPromotable, isLocallyBuilt } from './promotion.js'
+import { ReleaseError } from './release.js'
+import { assertPromotable, isLocallyBuilt } from './promotion.js'
 
 const localImage = { repository: '127.0.0.1:7107/local/chem-labs', digest: `sha256:${'a'.repeat(64)}` }
 const ciImage = { repository: 'registry.ubc.ca/manifest/chem-labs', digest: `sha256:${'b'.repeat(64)}` }
@@ -6125,14 +6281,15 @@ describe('§13: images built on a laptop never reach UBC infrastructure', () => 
   // THE RULE. One flag, and the same image becomes unpromotable.
   it('REFUSES a local image on a driver that targets somewhere else', () => {
     const driver = createFakeDriver({ capabilities: { remoteTarget: true } })
-    expect(() => assertPromotable(driver, localImage)).toThrow(PromotionError)
+    expect(() => assertPromotable(driver, localImage)).toThrow(ReleaseError)
     try {
       assertPromotable(driver, localImage)
     } catch (error) {
-      expect((error as PromotionError).code).toBe('IMAGE_NOT_PROMOTABLE')
+      expect((error as ReleaseError).code).toBe('RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER')
       // The message has to explain the architecture problem, because the person
       // reading it will otherwise try to force it.
-      expect((error as PromotionError).hint).toMatch(/arm64|architecture|CI/i)
+      // ReleaseError has no separate `hint` field; the reasoning is in the message.
+      expect((error as ReleaseError).message).toMatch(/arm64|architecture|CI/i)
     }
   })
 
@@ -6169,16 +6326,14 @@ import type { Driver, ImageRef } from '../runtime/index.js'
 /** Everything the local Docker driver builds lands here (§13). */
 export const LOCAL_NAMESPACE = 'local/'
 
-export class PromotionError extends Error {
-  readonly code = 'IMAGE_NOT_PROMOTABLE'
-  constructor(
-    message: string,
-    readonly hint: string,
-  ) {
-    super(message)
-    this.name = 'PromotionError'
-  }
-}
+// promotion.ts imports ReleaseError from its sibling: `import { ReleaseError } from
+// './release.js'`. Same module, so §5's boundary rule is not in play.
+
+// No new error class. P2's ReleaseError already carries this refusal, its code is
+// already in the API's 409 family via toErrorResponse, and releases.test.ts already
+// asserts it. A second class here would either shadow P2's check or be dead code,
+// and would surface as 500 because toErrorResponse would not recognise it.
+export { ReleaseError } from './release.js'
 
 /** The registry host varies — the builder and the daemon call it different names — so
  *  the namespace is matched on the path, not on the whole repository string. */
@@ -6197,20 +6352,31 @@ export function isLocallyBuilt(image: ImageRef): boolean {
  * only image a laptop can produce."
  */
 export function assertPromotable(driver: Driver, image: ImageRef): void {
+  // ReleaseError, and P2's code. See the correction note at the top of this task:
+  // P2 already refuses this and already has a test naming that code.
   if (!driver.capabilities().remoteTarget) return
   if (!isLocallyBuilt(image)) return
-  throw new PromotionError(
+  throw new ReleaseError(
+    'RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER',
     `image ${image.repository}@${image.digest.slice(0, 19)}… was built locally and cannot be ` +
-      `deployed by the '${driver.name}' driver, which targets remote infrastructure`,
-    'Developer laptops are arm64 and UBC infrastructure is x86-64, and §13 promotes the exact ' +
+      `deployed by the '${driver.name}' driver, which targets remote infrastructure. ` +
+      'Developer laptops are arm64 and UBC infrastructure is x86-64, and §13 promotes the exact ' +
       'digest — so an architecture mismatch is unresolvable at deploy time. Everything that ' +
       'leaves a laptop is built by CI on the target architecture.',
   )
 }
 ```
 
-Call it from `deployRelease` in `releases/release.ts` (P2 Task 16), immediately before
-the driver is asked to do anything, and export it from `releases/index.ts`.
+**Replace** P2's inline check in `deployRelease` (`releases/release.ts`) with a call
+to `assertPromotable(driver, { digest, repository })`, immediately before the driver
+is asked to do anything, and export it from `releases/index.ts`. Delete the inline
+`if (driver.capabilities().remoteTarget && repository.startsWith('local/'))` block it
+supersedes — leaving both means two checks racing to throw different errors for the
+same condition.
+
+`releases.test.ts`'s *"refuses a local/ image on a driver that declares a remote
+target"* must still pass **unchanged**. If it does not, the extraction changed the
+error type or the code, and that is a defect in this task rather than in P2's test.
 
 - [ ] **Step 4: Run the tests**
 
@@ -6218,7 +6384,10 @@ the driver is asked to do anything, and export it from `releases/index.ts`.
 pnpm test
 ```
 
-Expected: PASS — 5 promotion tests, in milliseconds, with no Docker.
+Expected: PASS — 5 promotion tests, in milliseconds, with no Docker, **plus P2's
+existing `releases.test.ts` still green**, including the one that names
+`RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER`. That test passing after the extraction is
+the check that this task replaced P2's guard rather than shadowing it.
 
 - [ ] **Step 5: Prove the refusal is the flag**
 
@@ -6953,6 +7122,64 @@ matrix or named as P4's.
 **And what it could not check.** Every defect above was found by reading. P2's lesson
 is that executing four of twenty-one tasks found five more defects that *no* reading
 would have caught. Seven found on paper is not evidence the remaining rate is low.
+
+---
+
+## What the reconciliation against a running P2 found
+
+*2026-09-05. This plan was written 2026-08-31 against an imagined P2. P2 executed in
+full on 2026-09-05, so every **seam** was re-checked: each place this plan modifies a
+file P2 built, calls a P2 symbol, adds a sibling to a P2 error type, or asserts
+through P2's HTTP surface. **Seven defects.** Each is fixed inline at its task with
+the measurement that found it.*
+
+| # | Task | Defect | Why it mattered |
+|---|---|---|---|
+| 1 | **2** | The new `vitest.workspace.ts` dropped `setupFiles` and set `globalSetup: []` | Two of P2's fixes, silently undone. Losing `setupFiles` kills the **whole** suite at import — `db/client.ts` throws without `MANIFEST_DATABASE_URL`, which is P2 Task 8's recorded defect. Losing `globalSetup` removes the once-per-run truncate, putting three suites back to green-only-if-the-database-is-empty — five of P2's 27 defects. The second is silent |
+| 2 | **2** | Unaware of the new **root** `vitest.config.ts` | It carries `fileParallelism: false`, without which the suite fails a different number of tests on each run |
+| 3 | **9** | `POST /internal/registry/token` had no `idempotency: 'exempt'` | P2 applies D23.6 to every mutating route via a `preHandler`. BuildKit will never send an `Idempotency-Key`, so **the builder could not obtain a token at all** — a 400 from a route that reads as correctly implemented |
+| 4 | **9** | Two new routes, and nothing updated Task 20's `ROUTES` table | P2's completeness guard fails naming any route nobody authorized. That is the guard working — these endpoints mint **registry push credentials**, so their authorization is a decision. The plan needed to make it, and now does |
+| 5 | **15** | The boot check read `app.log.info` under `Fastify({ logger: false })` | Measured: the line vanishes. `console.log` instead |
+| 6 | **15** | Its negative control was *"expected: no match"* | **The worst of the seven.** It cannot distinguish a fake driver from a missing log line, so it passed either way — on the single assertion this plan's own self-review had already identified as its worst defect. It now greps for the *value* and reads it back, failing loudly in both directions |
+| 7a | **2** | The rewritten workspace roots its projects at the **repo root** | pnpm's strict `node_modules` means `pg` does not resolve from there. The run dies with `Failed to load url pg` and reports `no tests` — which reads like a glob mistake and is not one. Both projects must root inside the package |
+| 7b | **2** | Nothing scoped the root `test` script to `--project unit` | `vitest run` with no filter runs **every** project, so `pnpm test` would have run the Docker tier — the exact thing this task exists to prevent. Measured with a throwaway `.docker.test.ts`: 225 tests instead of 224 |
+| 8 | **16** | A new `PromotionError` duplicating a check P2 already ships | P2's `deployRelease` already refuses `local/` on a remote-target driver, and `releases.test.ts` asserts `RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER`. Thrown first the new error shadows it and P2's test fails; thrown second it is dead. And `toErrorResponse` has no branch for it, so it would have surfaced as **500** — the exact defect P2 Task 17 hit twice. Now an extraction that keeps P2's class and code |
+
+**Two defects in P2, found by trying to run this plan's fix rather than reasoning
+about it.** Neither is a seam; both were live in the committed P2 code:
+
+- **`api/testing.ts` leaked a temp directory per test and never removed one.**
+  `mkdtemp` straight into `TMPDIR`, no teardown: **944 directories** accumulated in
+  one afternoon. Fixed with a single root and a global teardown. It also violated
+  CLAUDE.md's *leave the machine exactly as you found it*.
+- **The lifecycle acceptance's 1000 ms budget measured `git`, not the control
+  plane.** Instrumented: `createProject` shells out seven times and costs
+  **462–655 ms of a 586–813 ms run — 79% of it, and all of the variance.** The
+  control plane's own work is a steady **71–74 ms**. On an idle machine the total was
+  ~300 ms; at load average 10.75 it was ~1150 ms and the assertion failed for reasons
+  unrelated to the code. Split into a tight bound on the control plane's work
+  (`< 400 ms`) and a loose one on the total (`< 5000 ms`) that still catches a hang.
+  Verified by injecting a 500 ms delay inside the measured window and watching
+  `expected 700 to be less than 400`.
+
+**The shape of them.** Six of eight are at the P2 boundary, and none is in this plan's
+Docker logic — which is the argument for having done a *bounded* pass rather than a
+re-review. Two (1 and 7) would have quietly reverted work P2 had already paid for in
+defects; two (4 and 6) were controls that could not fail.
+
+**What was deliberately not re-examined:** the Engine API client, §12's hardening
+baseline, the builder bounds, S6's probe matrix. Reading does not find what running
+finds — P2's self-review found 7 defects and executing it found **52**. Expect this
+plan's 19 tasks to yield defects at the rate the last two batches measured (2.9 and
+2.7 per task), and note that P3 is *entirely* infrastructure and controls, where a
+false green is worst.
+
+**Also confirmed correct, so nobody re-checks them:** Task 15 *does* wire the driver
+into the boot entry point (the self-review fix held, and `src/index.ts` now exists for
+it to modify); Tasks 9, 13 and 15 *do* extend `Config` with every field the boot block
+reads; `driver-contract.ts` is correctly treated as untouchable; `instanceName` and
+`serviceName` are called with P2's real signatures; and Task 3's `enforcesDiskQuota`
+addition to the fake driver is purely additive.
 
 ---
 

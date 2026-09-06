@@ -21,6 +21,11 @@ npm-debug.log*
 
 # Local platform state (see spec §21)
 .manifest-local/
+# MANIFEST_REPOS_ROOT's default in README's "Running the control plane": the bare
+# repositories the control plane provisions per project. Git does not currently
+# report them (a bare repo reads as a repository boundary), but that is an accident
+# of their shape, not a rule — a repos root holding anything else would show up.
+.manifest/
 
 # P1 local substrate: minted at seed time, never committed
 infra/ca/

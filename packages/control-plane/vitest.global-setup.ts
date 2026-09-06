@@ -1,5 +1,11 @@
+import { mkdir, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import pg from 'pg'
 import { ensureDatabaseUrl } from './vitest.env.js'
+
+/** Must match TEST_REPOS_ROOT in src/api/testing.ts — different process, same path. */
+const TEST_REPOS_ROOT = join(tmpdir(), 'manifest-test-repos')
 
 /**
  * Truncates the §6 tables once, before any test file runs.
@@ -26,13 +32,25 @@ const TABLES = [
   'users',
 ]
 
-export async function setup(): Promise<void> {
+export async function setup(): Promise<() => Promise<void>> {
+  // Start from an empty repository root as well as an empty database. The API
+  // tests create one directory per test and cannot clean up after themselves —
+  // they have no teardown hook — so it is removed here, both before and after.
+  await rm(TEST_REPOS_ROOT, { recursive: true, force: true })
+  await mkdir(TEST_REPOS_ROOT, { recursive: true })
+
   const connectionString = ensureDatabaseUrl()
-  if (!connectionString) return // db/client.ts raises the actionable error.
-  const pool = new pg.Pool({ connectionString })
-  try {
-    await pool.query(`TRUNCATE TABLE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`)
-  } finally {
-    await pool.end()
+  if (connectionString) {
+    const pool = new pg.Pool({ connectionString })
+    try {
+      await pool.query(`TRUNCATE TABLE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`)
+    } finally {
+      await pool.end()
+    }
+  }
+  // db/client.ts raises the actionable error if the URL was missing.
+
+  return async () => {
+    await rm(TEST_REPOS_ROOT, { recursive: true, force: true })
   }
 }
