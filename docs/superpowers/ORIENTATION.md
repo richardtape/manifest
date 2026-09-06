@@ -442,10 +442,21 @@ is `manifest.internal`. `make host-undo` has also never been run end to end.
 ### 7b. Execute P2 Tasks 2–8 and 12–21, then P3 *(start here)*
 
 [`plans/2026-08-29-p2-control-plane-spine.md`](plans/2026-08-29-p2-control-plane-spine.md).
-Tasks 1, 9, 10 and 11 are already executed and green. **Tasks 2–8** are the
-`manifest.yaml` schema, spec errors, policy validation, `isSensitiveDiff`, the
-blueprint descriptor, the `fixture-node` blueprint and the **database schema**;
-**Tasks 12–21** are configuration and the HTTP surface. Then P3 in full, whose
+**17 of P2's 21 tasks remain: 2–8 and 12–21.**
+
+**Why that gap, and why it is not a skip.** Tasks **1, 9, 10 and 11 were executed on
+2026-08-31** — commits `538251f`, `ac6e55e`, `262288c`, `e82711d`, still green in
+`pnpm test`. They are the *runtime island*: workspace scaffolding and the §5
+module-boundary rule, the §11 `Driver` interface, the fake driver, the contract
+suite P3 inherits, and the instance state machine. Those four are the **only** P2
+tasks that need no infrastructure whatsoever — no Docker, no Postgres, no HTTP —
+which is exactly why they could be built before P1 existed. Everything else was
+waiting on the substrate P1 has now delivered.
+
+So the remaining work is: **Tasks 2–8** — the `manifest.yaml` schema, machine-actionable
+spec errors, policy validation, `isSensitiveDiff`, the blueprint descriptor, the
+`fixture-node` blueprint, and the **database schema**, which is the first task that
+touches P1's Postgres — and **Tasks 12–21**, configuration and the HTTP surface. Then P3 in full, whose
 **Task 18 is S6** and whose demo is the fixture app healthy at a
 `manifest.internal` URL, from a clean checkout, offline.
 
