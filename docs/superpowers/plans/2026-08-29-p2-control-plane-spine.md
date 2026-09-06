@@ -14,8 +14,16 @@
 
 **Depends on:** P1 (for a running Postgres) to execute.
 
-**Status: complete — 21 tasks.** There are no pause banners left in this plan and no
-step in it stands in for a spike result. Execute it in order.
+**Status: EXECUTED — all 21 tasks, 2026-09-05.** Tasks 1, 9, 10 and 11 landed
+2026-08-31; Tasks 2–8 on 2026-09-05; **Tasks 12–21 on 2026-09-05.**
+`pnpm test` is **224 tests / 23 files**, and `pnpm lint`,
+`pnpm --filter @manifest/control-plane typecheck` and `pnpm format:check` are clean.
+The control plane serves HTTP on 7100 and has been booted and driven with `curl`.
+
+Executing Tasks 12–21 found **27 defects**, recorded inline at each task with what
+each fix was measured against. Every code block below has been corrected, so the plan
+now describes what actually works — see *What executing this plan found* at the end
+for the shape of them.
 
 ### How this plan came to be written in two passes
 
@@ -2913,7 +2921,33 @@ export async function withRollback(fn: (tx: Db) => Promise<void>): Promise<void>
     if (!(error instanceof Rollback)) throw error
   }
 }
+
+/**
+ * Every table, in one statement, for tests that CANNOT use `withRollback`.
+ *
+ * Task 17 onward drives a real Fastify server, so those tests commit. And
+ * `withRollback` isolates a test from its OWN writes only — a row somebody else
+ * committed still collides. Both halves are needed; see Task 18's defect note.
+ */
+const TABLES = [
+  'idempotency_keys',
+  'instances',
+  'service_instances',
+  'releases',
+  'builds',
+  'app_specs',
+  'environments',
+  'project_members',
+  'projects',
+  'users',
+]
+
+export async function resetDatabase(): Promise<void> {
+  await db.execute(sql.raw(`TRUNCATE TABLE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`))
+}
 ```
+
+(`resetDatabase` needs `import { sql } from 'drizzle-orm'` at the top of the file.)
 
 - [ ] **Step 6: Generate and apply the migration**
 
@@ -3250,7 +3284,10 @@ export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
       const id = `inst-${instances.size + 1}`
       instances.set(id, {
         spec,
-        state: options.failInstances ? 'failed' : 'starting',
+        // An in-memory driver has no container to probe, so nothing could move
+      // it out of `starting` later. Reporting the outcome directly is honest;
+      // `failInstances` asks for the other one. (Defect 1, Task 16.)
+      state: options.failInstances ? 'failed' : 'healthy',
         logs: [{ at: new Date(), stream: 'stdout', text: `starting ${spec.name}` }],
       })
       byName.set(`instance:${spec.name}`, id)
@@ -4031,6 +4068,14 @@ git commit -m "feat(config): typed configuration and the dev-auth kill switch (r
 The guard was verified by removing it and watching both guard tests fail."
 ```
 
+> **Executed 2026-09-05: no defects.** Six tests, as written. The kill switch was
+> verified by deleting the `if (devAuth && raw.MANIFEST_ENV !== 'development')`
+> block: *"refuses to start with dev auth enabled in production"* and *"…in
+> staging"* both failed, the other four stayed green. Task 21 later exercised the
+> same guard at the process level — `MANIFEST_ENV=production MANIFEST_DEV_AUTH=1
+> node dist/index.js` exits with `CONFIG_DEV_AUTH_OUTSIDE_DEVELOPMENT` and nothing
+> binds 7100.
+
 ---
 
 ## Task 13: Sessions and the dev-only auth shim
@@ -4385,6 +4430,16 @@ Expected: PASS — 5 session tests, 5 dev-auth tests.
 git add packages/control-plane/src/identity/
 git commit -m "feat(identity): signed session cookies and the dev-only auth shim (roadmap gap 3)"
 ```
+
+> **Executed 2026-09-05: no defects.** Ten tests, as written.
+>
+> **This task had no negative-control step and now has one.** Every other task in
+> Tasks 12–21 ends by breaking the thing it built; this one shipped the session
+> MAC without ever watching it refuse. Measured: replacing the
+> `timingSafeEqual` comparison with `void given; void want;` fails *"rejects a
+> tampered payload"* — whose forged payload claims `role: 'admin'` — and *"rejects
+> a token signed with a different secret"*. Both are privilege escalation, and
+> both were previously asserted only by a test that had never been seen red.
 
 ---
 
@@ -4918,6 +4973,14 @@ git add packages/control-plane/src/projects/
 git commit -m "feat(projects): §13 capability model, tenant-safe checks, and project provisioning"
 ```
 
+> **Executed 2026-09-05: no defects.** Twelve tests, as written. The tenant-isolation
+> control was verified by changing the stranger branch to throw `FORBIDDEN`:
+> **exactly one** test failed — *"hides the project from an unrelated user with
+> NOT_FOUND, not FORBIDDEN"* — and the other seven stayed green, which is the
+> demonstration the step exists for. A suite asserting only *"the request was
+> refused"* passes through that change while the server leaks project existence to
+> every authenticated user.
+
 ---
 
 ## Task 15: The source driver — local bare repositories
@@ -5274,6 +5337,19 @@ git add packages/control-plane/src/source/
 git commit -m "feat(source): D5 provider interface and the local bare-repo driver"
 ```
 
+> **Executed 2026-09-05: no defects in the code.** Seven tests, as written. The
+> traversal defence was verified by replacing `pathFor`'s body with
+> `return resolve(repoRoot, projectSlug + '.git')`: *"refuses a slug that would
+> escape the repository root"* failed, the other six stayed green.
+>
+> **One documentation slip:** the *Interfaces* list above omits `commitFiles`,
+> which the `SourceDriver` interface declares and the third test calls.
+>
+> **A number worth carrying to P3:** `createRepository` shells out to `git` seven
+> times and costs **~130 ms**. Task 21's lifecycle budget is 1000 ms and it runs
+> once, so there is headroom (~300 ms observed) — but a second call in the hot path
+> would consume a third of it.
+
 ---
 
 ## Task 16: Environment resolution, builds and immutable releases
@@ -5469,11 +5545,12 @@ import type { ManifestSpec } from './schema.js'
 
 export type EnvironmentKind = 'sandbox' | 'staging' | 'production'
 
-export interface ResolvedEnvVar {
-  name: string
-  value?: string
-  secret?: boolean
-}
+/**
+ * Derived from the schema, not restated. Under `exactOptionalPropertyTypes` a
+ * hand-written `value?: string` is NOT assignable from zod's inferred
+ * `value?: string | undefined`.
+ */
+export type ResolvedEnvVar = ManifestSpec['env'][number]
 
 /**
  * One environment's view of a spec: the base document with §7's `environments:`
@@ -5500,12 +5577,18 @@ export interface ResourceDefaults {
   disk: string
 }
 
-/** Drops absent keys so a spread can never overwrite a set value with undefined. */
-function defined<T extends object>(value: T | undefined): Partial<T> {
+/**
+ * Drops absent keys so a spread can never overwrite a set value with undefined.
+ * The return type has to say so too: `Partial<T>` re-admits `undefined` per key,
+ * which undoes at compile time exactly what this does at runtime.
+ */
+type Present<T> = { [K in keyof T]?: Exclude<T[K], undefined> }
+
+function defined<T extends object>(value: T | undefined): Present<T> {
   if (!value) return {}
   return Object.fromEntries(
     Object.entries(value).filter(([, v]) => v !== undefined),
-  ) as Partial<T>
+  ) as Present<T>
 }
 
 export function resolveConfig(
@@ -5558,8 +5641,8 @@ Run the tests again. Expected: PASS, 8 tests.
 
 ```ts
 import { describe, expect, it, vi } from 'vitest'
-import { eq } from 'drizzle-orm'
-import { withRollback } from '../db/testing.js'
+import { beforeAll } from 'vitest'
+import { resetDatabase, withRollback } from '../db/testing.js'
 import { appSpecs, builds, users } from '../db/index.js'
 import { createFakeDriver } from '../runtime/index.js'
 import { createProject } from '../projects/index.js'
@@ -5841,6 +5924,7 @@ import type { Driver } from '../runtime/index.js'
 import { instanceName } from '../runtime/index.js'
 import { nextState } from '../runtime/index.js'
 import type { ResolvedConfig } from '../spec/index.js'
+import { toMebibytes } from '../spec/index.js'
 import type { Config } from '../config.js'
 
 export type Release = typeof releases.$inferSelect
@@ -5911,11 +5995,20 @@ export interface DeployInput {
   environmentId: string
 }
 
+/** How long to wait for healthy before recording `failed`. */
+export interface HealthWait {
+  timeoutMs: number
+  intervalMs: number
+}
+
+export const DEFAULT_HEALTH_WAIT: HealthWait = { timeoutMs: 10_000, intervalMs: 50 }
+
 export async function deployRelease(
   db: Db,
   driver: Driver,
   config: Config,
   input: DeployInput,
+  healthWait: HealthWait = DEFAULT_HEALTH_WAIT,
 ): Promise<Instance> {
   const [release] = await db.select().from(releases).where(eq(releases.id, input.releaseId))
   if (!release) throw new ReleaseError('RELEASE_NOT_FOUND', `no release '${input.releaseId}'`)
@@ -5943,7 +6036,11 @@ export async function deployRelease(
   const digest = build?.imageDigest
   if (!digest) throw new ReleaseError('RELEASE_DIGEST_MISSING', `release '${release.id}' has no digest`)
 
-  const repository = `local/${environment.projectId}`
+  // §23 gives `<slug>.<zone>`, so the first label is the slug. It must be the
+  // repository buildImage actually pushed to (`local/<slug>`); the project UUID
+  // named one that has never existed.
+  const projectSlug = environment.hostname.split('.')[0]!
+  const repository = `local/${projectSlug}`
   // §13, scoped to the driver rather than the environment kind: a driver targeting
   // remote infrastructure refuses a laptop-built image, because the architectures
   // differ and "promote the exact digest" makes that unresolvable at deploy time.
@@ -5955,7 +6052,7 @@ export async function deployRelease(
   }
 
   const resolved = (release.resolvedConfig as ResolvedConfigSet)[environment.kind]
-  const name = instanceName(environment.hostname.split('.')[0]!, environment.kind, release.id)
+  const name = instanceName(projectSlug, environment.kind, release.id)
 
   const [row] = await db
     .insert(instances)
@@ -5970,7 +6067,7 @@ export async function deployRelease(
 
   const handle = await driver.ensureInstance({
     name,
-    projectSlug: environment.hostname.split('.')[0]!,
+    projectSlug,
     environmentKind: environment.kind,
     releaseId: release.id,
     image: { digest, repository },
@@ -5981,19 +6078,22 @@ export async function deployRelease(
     healthPath: resolved.health,
     resources: {
       cpu: resolved.resources.cpu,
-      memoryMi: Number.parseInt(resolved.resources.memory, 10),
+      // parseInt('1Gi') is 1. toMebibytes knows the §7 grammar.
+      memoryMi: toMebibytes(resolved.resources.memory),
       pids: resolved.resources.pids,
-      diskMi: Number.parseInt(resolved.resources.disk, 10) * 1024,
+      diskMi: toMebibytes(resolved.resources.disk),
     },
     services: [],
     egressAllow: resolved.egressAllow,
   })
 
-  // The fake driver reports healthy immediately; a real one goes through starting.
-  const status = await driver.status(handle.id)
-  const state = status.healthy
-    ? nextState(nextState('provisioning', 'services_bound'), 'health_passed')
-    : nextState('provisioning', 'services_bound')
+  // provisioning -> starting once services are bound and the container exists;
+  // then health decides between healthy and failed. A single status() call would
+  // record `starting` for any driver whose health check is asynchronous — a state
+  // nothing in P2 moves it out of.
+  const starting = nextState('provisioning', 'services_bound')
+  const healthy = await waitForHealth(driver, handle.id, healthWait)
+  const state = nextState(starting, healthy ? 'health_passed' : 'health_failed')
 
   const [updated] = await db
     .update(instances)
@@ -6001,6 +6101,22 @@ export async function deployRelease(
     .where(eq(instances.id, row!.id))
     .returning()
   return updated!
+}
+
+/** Polls until the driver reports healthy, or the deadline passes. */
+async function waitForHealth(
+  driver: Driver,
+  handleId: string,
+  wait: HealthWait,
+): Promise<boolean> {
+  const deadline = Date.now() + wait.timeoutMs
+  for (;;) {
+    const status = await driver.status(handleId)
+    if (status.healthy) return true
+    if (status.state === 'failed' || status.state === 'gone') return false
+    if (Date.now() >= deadline) return false
+    await new Promise((resolve) => setTimeout(resolve, wait.intervalMs))
+  }
 }
 ```
 
@@ -6042,6 +6158,68 @@ git commit -m "feat(releases): environment resolution, build records, and immuta
 Promotion-never-rebuilds is asserted with a spy on buildImage, verified by
 adding a rebuild and watching the test fail."
 ```
+
+> **Six defects found in execution (2026-09-05).** The first is the one the plan's
+> own test caught; the rest were invisible to every test this task wrote.
+>
+> **1. The fake driver never leaves `starting`, so the deploy test failed.** The
+> comment in `deployRelease` says *"The fake driver reports healthy immediately"*.
+> It does not: Task 9's `ensureInstance` sets `state: 'starting'` and only the
+> `markHealthy` test affordance — which nothing calls, and which is not on the
+> `Driver` interface — advances it. `expected 'starting' to be 'healthy'`.
+> **Fixed by** having the fake driver report its outcome directly: an in-memory
+> driver has no container to probe, so `starting` is a state it can never leave.
+> `failInstances` remains how a test asks for the other outcome. The driver
+> contract suite pins only *"not gone"* after `ensureInstance`, so it and all 11
+> fake-driver tests stayed green.
+>
+> **2. `deployRelease` recorded whatever the FIRST `status()` call said.** With a
+> real driver — P3's — health passes asynchronously, so the row is written as
+> `starting` and nothing in P2 ever moves it. That is a state the instance cannot
+> leave, dressed as a successful deploy. **Fixed by** a bounded poll
+> (`HealthWait`, default 10 s / 50 ms) that ends in `healthy` or `failed`.
+> **Measured against:** a stub driver that reports healthy on its 3rd `status()`
+> call, and one that never does. Reverting to the single call fails *"keeps polling
+> until the driver reports healthy"* with `expected 'failed' to be 'healthy'`.
+>
+> **3. The image repository was built from the project UUID.** `local/${environment.projectId}`
+> is not what `buildImage` pushes — ORIENTATION records per-app images at
+> `local/<slug>`, and the fake driver returns exactly that. So the string handed to
+> `ensureInstance` named a repository that has never existed, and the
+> `RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER` refusal below it was guarding a prefix
+> nothing pushes to. **Fixed by** deriving the slug from the hostname's first label
+> (§23) once, and reusing it for `instanceName` and `projectSlug` too.
+>
+> **4. Memory reached the driver through `parseInt`.** `Number.parseInt('1Gi', 10)`
+> is **1**, so a gibibyte request arrived as 1 MiB — and disk was multiplied by 1024
+> unconditionally, so `2Gi` and `2Mi` both became 2048. `spec/` already exports
+> `toMebibytes`, which knows the grammar. **Fixed by** using it.
+>
+> **Measured against, for 3 and 4:** a new test asserting the `InstanceSpec`
+> actually handed to `ensureInstance` — that `image.repository` equals the
+> `ImageRef.repository` the build returned, and that `1Gi` is 1024 MiB.
+> Reinstating each defect turns it into
+> `expected 'local/82f6d2fd-…' to be 'local/chem-labs'` and `expected 1 to be 1024`.
+> Every other test in the file is green either way, because none of them looked at
+> what the driver was given — only that the call returned.
+>
+> **5. `resolve.ts` passes every test and does not compile.** Under this repo's
+> `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`, `defined()`'s
+> `Partial<T>` return type re-admits `undefined` per key — so the spread produced
+> `cpu: number | undefined` and undid at compile time exactly what the function does
+> at runtime — and a hand-written `ResolvedEnvVar` is not assignable from zod's
+> inferred `value?: string | undefined`. Four `tsc` errors. **Vitest strips types
+> without checking them, so no test in this plan could ever have caught it**, which
+> is why `pnpm --filter @manifest/control-plane typecheck` is a separate gate.
+> **Fixed by** a `Present<T>` mapped type that excludes `undefined`, and by deriving
+> `ResolvedEnvVar` from `ManifestSpec['env'][number]` so it cannot drift.
+>
+> **6. Two unused imports in `releases.test.ts`** (`eq`, `ReleaseError`) fail
+> `pnpm lint`. `ReleaseError` being unused is the interesting half: every refusal in
+> the file is asserted with `rejects.toMatchObject({ code })`, which a plain `Error`
+> carrying a `code` property also satisfies — and the API error envelope maps that
+> to **500**, not 409. **Fixed by** asserting the type *and* the code on the first
+> refusal, and deleting `eq`.
 
 ---
 
@@ -6100,6 +6278,9 @@ where a real listening server is the point.
 ```bash
 pnpm --filter @manifest/control-plane add fastify @fastify/cookie
 ```
+
+Installed 2026-09-05: **fastify 5.12.3**, **@fastify/cookie 11.1.2**. This is the
+one step in Tasks 12–21 that needs the network.
 
 - [ ] **Step 2: Write the failing idempotency test**
 
@@ -6198,6 +6379,8 @@ import { AuthorizationError } from '../projects/index.js'
 import { ReleaseError } from '../releases/index.js'
 import { SourceError } from '../source/index.js'
 import { ConfigError } from '../config.js'
+import { DevAuthDisabledError, UnknownDevUserError } from '../identity/index.js'
+import { ZodError } from 'zod'
 import type { ManifestError } from '../errors/index.js'
 import { IdempotencyConflictError } from './idempotency.js'
 
@@ -6242,10 +6425,10 @@ export function toErrorResponse(error: unknown): { status: number; body: ErrorEn
         error: {
           code: error.code,
           message: error.code === 'NOT_FOUND' ? 'not found' : error.message,
-          hint:
-            error.code === 'FORBIDDEN'
-              ? 'Ask a project owner to grant you the role this action needs.'
-              : undefined,
+          // Conditional spread, not `: undefined` — exactOptionalPropertyTypes.
+          ...(error.code === 'FORBIDDEN'
+            ? { hint: 'Ask a project owner to grant you the role this action needs.' }
+            : {}),
         },
       },
     }
@@ -6279,10 +6462,44 @@ export function toErrorResponse(error: unknown): { status: number; body: ErrorEn
   }
 
   if (error instanceof BadRequestError) {
-    return { status: 400, body: { error: { code: error.code, message: error.message, hint: error.hint } } }
+    return {
+      status: 400,
+      body: {
+        error: {
+          code: error.code,
+          message: error.message,
+          ...(error.hint === undefined ? {} : { hint: error.hint }),
+        },
+      },
+    }
   }
 
-  if (error instanceof ReleaseError || error instanceof SourceError || error instanceof ConfigError) {
+  // A body of the wrong shape is the client's mistake. Without this branch every
+  // `schema.parse(request.body)` in this plan left as 500 INTERNAL.
+  if (error instanceof ZodError) {
+    return {
+      status: 400,
+      body: {
+        error: {
+          code: 'REQUEST_INVALID',
+          message: error.issues
+            .map((issue) => `${issue.path.join('.') || '(body)'}: ${issue.message}`)
+            .join('; '),
+          hint: 'Correct the listed fields and send the request again.',
+        },
+      },
+    }
+  }
+
+  // The state-conflict family. The two identity errors belong here: without them
+  // an unknown dev PUID surfaced as 500, and this task's own test caught it.
+  if (
+    error instanceof ReleaseError ||
+    error instanceof SourceError ||
+    error instanceof ConfigError ||
+    error instanceof DevAuthDisabledError ||
+    error instanceof UnknownDevUserError
+  ) {
     return { status: 409, body: { error: { code: error.code, message: error.message } } }
   }
 
@@ -6482,7 +6699,7 @@ export interface ServerDeps {
 
 declare module 'fastify' {
   interface FastifyRequest {
-    actor?: Actor & { puid: string }
+    actor?: (Actor & { puid: string }) | undefined
   }
   interface FastifyContextConfig {
     /** `/auth/*` opts out: logging in twice is not a domain mutation. */
@@ -6514,6 +6731,18 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
 
   app.decorateRequest('actor', undefined)
 
+  // Task 20's drift guard reads this. `onRoute` fires AS routes register, so the
+  // hook must be added before the register* calls below.
+  const registered: { method: string; url: string }[] = []
+  app.addHook('onRoute', (route) => {
+    const methods = Array.isArray(route.method) ? route.method : [route.method]
+    for (const method of methods) {
+      if (method === 'HEAD' || method === 'OPTIONS') continue
+      registered.push({ method, url: route.url })
+    }
+  })
+  app.decorate('registeredRoutes', registered)
+
   // One place turns a cookie into an actor. Routes never read the cookie.
   app.addHook('onRequest', async (request) => {
     const token = request.cookies[SESSION_COOKIE]
@@ -6526,6 +6755,11 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
   // D23.6, applied by the framework rather than remembered per route.
   app.addHook('preHandler', async (request) => {
     if (!MUTATING.has(request.method)) return
+    // Root-level hooks run for the not-found handler too, and an unmatched route
+    // has no config to opt out with — so without this line a missing route
+    // answered 400 IDEMPOTENCY_KEY_REQUIRED instead of 404, masking the very
+    // property the "the shim route is ABSENT" test checks.
+    if (request.routeOptions.url === undefined) return
     if (request.routeOptions.config?.idempotency === 'exempt') return
     const key = request.headers['idempotency-key']
     if (typeof key !== 'string' || key.length < 8) {
@@ -6592,7 +6826,12 @@ export async function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps)
   if (deps.config.devAuth) {
     app.post('/auth/dev-login', { config: { idempotency: 'exempt' } }, async (request, reply) => {
       const { puid } = loginBody.parse(request.body)
-      const { user, session } = await devLogin(deps.db, puid, { devAuthEnabled: true })
+      // Not a hardcoded `true`. With one, the registration guard above is the
+      // ONLY thing between this endpoint and an authentication bypass — measured:
+      // flipping that condition made it mint real sessions, answering 200.
+      const { user, session } = await devLogin(deps.db, puid, {
+        devAuthEnabled: deps.config.devAuth,
+      })
       reply.setCookie(SESSION_COOKIE, signSession(session, deps.config.sessionSecret), {
         httpOnly: true,
         sameSite: 'lax',
@@ -6629,8 +6868,16 @@ import { createLocalSourceDriver } from '../source/index.js'
 import { loadBlueprints } from '../blueprints/index.js'
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
+import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import type { ServerDeps } from './server.js'
+
+/**
+ * Resolved from THIS FILE, not the working directory. `pnpm --filter … test` runs
+ * with the package as cwd, but `pnpm test` from the repo root does not — and a
+ * cwd-relative path made every API test ENOENT there.
+ */
+const BLUEPRINTS_ROOT = fileURLToPath(new URL('../../../../blueprints', import.meta.url))
 
 export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> {
   const reposRoot = await mkdtemp(join(tmpdir(), 'manifest-api-repos-'))
@@ -6639,9 +6886,7 @@ export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> 
     MANIFEST_DATABASE_URL: process.env.MANIFEST_DATABASE_URL!,
     MANIFEST_SESSION_SECRET: 'k'.repeat(32),
     MANIFEST_DEV_AUTH: opts.devAuth ? '1' : '0',
-    // Blueprints live at the repo root (see File Structure); Vitest runs with the
-    // package directory as cwd, so this is two levels up, not 'blueprints'.
-    MANIFEST_BLUEPRINTS_ROOT: '../../blueprints',
+    MANIFEST_BLUEPRINTS_ROOT: BLUEPRINTS_ROOT,
     MANIFEST_REPOS_ROOT: reposRoot,
   })
   return {
@@ -6693,8 +6938,20 @@ export * from './idempotency.js'
 
 They depend on Task 18's `registerProjectRoutes` and Task 19's
 `registerDeliveryRoutes` existing as importable stubs. Create each as a
-one-line no-op now — `export async function registerProjectRoutes(): Promise<void> {}`
-— and fill them in in the next two tasks.
+no-op with the REAL signature — a bare `(): Promise<void> {}` does not typecheck
+against `server.ts`, which calls them with two arguments:
+
+```ts
+import type { FastifyInstance } from 'fastify'
+import type { ServerDeps } from '../server.js'
+
+export async function registerProjectRoutes(
+  _app: FastifyInstance,
+  _deps: ServerDeps,
+): Promise<void> {}
+```
+
+Fill them in in the next two tasks.
 
 ```bash
 pnpm --filter @manifest/control-plane test src/api/
@@ -6721,6 +6978,73 @@ git add packages/control-plane/src/api/ packages/control-plane/src/index.ts \
         packages/control-plane/package.json pnpm-lock.yaml
 git commit -m "feat(api): Fastify server, D23.6 idempotency, D23.7 error envelope, auth routes"
 ```
+
+> **Eight defects found in execution (2026-09-05).** Two were caught by this task's
+> own tests; six were not, and three of those are security-shaped.
+>
+> **1. `toErrorResponse` has no branch for the dev-auth errors.** `UnknownDevUserError`
+> fell through to the 500 default, so *"refuses a PUID that is not a seeded test
+> user"* failed with `expected 500 to be 409`. **Fixed by** adding
+> `DevAuthDisabledError` and `UnknownDevUserError` to the state-conflict family.
+>
+> **2. Nor for `ZodError`.** Every `schema.parse(request.body)` in the plan turned a
+> client's malformed body into `500 INTERNAL` — the opposite of D23.7's *"an agent
+> can correct itself rather than surfacing a wall of text"*. Not covered by any test
+> the plan wrote. **Fixed by** a 400 `REQUEST_INVALID` branch listing the offending
+> paths, with a test: `POST /auth/dev-login {"puid": 42}` was 500, is now 400.
+>
+> **3. The idempotency `preHandler` runs for the not-found handler too.** Fastify
+> executes root-level hooks for unmatched routes, and an unmatched route has no
+> `routeOptions.config` to opt out with — so `POST /auth/dev-login` with dev auth
+> **off** answered `400 IDEMPOTENCY_KEY_REQUIRED` instead of 404. The guard masked
+> the exact property the test exists to prove: that the shim route is *absent*,
+> not merely refusing. **Fixed by** returning early when
+> `request.routeOptions.url === undefined`. **Measured against:** removing that line
+> fails *"does not register the dev-login route when dev auth is off"* with
+> `expected 400 to be 404`.
+>
+> **4. `/auth/dev-login` called `devLogin(..., { devAuthEnabled: true })`.** Hardcoded.
+> The registration guard was therefore the *only* thing between that endpoint and a
+> total authentication bypass, and Task 12's config guard does nothing at request
+> time. Measured: with `if (deps.config.devAuth)` changed to `if (true)`, the route
+> answered **200 with a real session cookie** — not the 409 this task's Step 8
+> predicts. **Fixed by** passing `deps.config.devAuth`, after which the same break
+> produces the predicted 409. Two independent reads of one setting is the point.
+>
+> **5. `MANIFEST_BLUEPRINTS_ROOT: '../../blueprints'` is cwd-relative**, and the
+> comment justifying it — *"Vitest runs with the package directory as cwd"* — is
+> true only under `pnpm --filter`. Under `pnpm test` from the repo root, which is
+> the command CLAUDE.md requires before a commit, every API test fails with
+> `ENOENT: no such file or directory, scandir '../../blueprints'`. **Fixed by**
+> resolving it from `import.meta.url`.
+>
+> **6. The route stubs Step 7 dictates do not typecheck.**
+> `export async function registerProjectRoutes(): Promise<void> {}` against a call
+> site passing two arguments is `TS2554: Expected 0 arguments, but got 2`. **Fixed
+> by** giving the stubs the real signature with `_`-prefixed parameters.
+>
+> **7. Two more `exactOptionalPropertyTypes` failures** in the error envelope —
+> `hint: cond ? '…' : undefined` and `hint: error.hint` are not assignable to
+> `hint?: string`. **Fixed by** conditional spread. This is the same class as Task
+> 16's defect 5 and recurs again in Tasks 19 and 20: **the plan's code was never
+> typechecked against this repo's own `tsconfig.base.json`.**
+>
+> **8. The ESLint module-boundary rule cannot express §5, and is removed.** Not
+> worked around — removed, with the measurement recorded in `eslint.config.js`.
+> `no-restricted-imports` matches its `group` globs with gitignore semantics, and a
+> ban wide enough to catch `../db/schema.js` (`../*/*`) also matches the **directory**
+> `../../identity`. Gitignore cannot re-include a file whose parent directory is
+> excluded, so `!../../*/index.js` is unreachable and the entirely legitimate
+> `api/routes/auth.ts -> ../../identity/index.js` was reported as a violation, as
+> was `server.ts -> ./routes/auth.js`. Probed directly against the `ignore` package:
+> every arrangement of bans and negations has the same hole, because the two cases
+> are the same pattern at different depths. **This is the second defect this one
+> rule has produced** — the first was ESLint 9's globs having no extglob. `src/module-boundaries.test.ts`
+> resolves each import and compares modules, which is correct at any depth (self-review
+> defect 7 fixed it to do exactly that). **Measured against:** pointing that import at
+> `../../identity/session.js` makes the test name both violations by path.
+> A lint-time check would need a rule that understands paths, not globs —
+> `eslint-plugin-import`'s `no-restricted-paths` zones.
 
 ---
 
@@ -6765,10 +7089,16 @@ most expensive form.
 `packages/control-plane/src/api/projects.test.ts`:
 
 ```ts
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { randomUUID } from 'node:crypto'
+import { resetDatabase } from '../db/testing.js'
 import { buildServer } from './server.js'
 import { testDeps } from './testing.js'
+
+// These drive a real server and cannot roll back. Each test starts from an empty
+// database; five of them create the same unique slug.
+beforeEach(resetDatabase)
+afterAll(resetDatabase)
 
 async function loggedIn(puid = 'bio_prof') {
   const deps = await testDeps({ devAuth: true })
@@ -6978,6 +7308,65 @@ describe('POST /projects/:id/members', () => {
   })
 })
 ```
+
+- [ ] **Step 1b: Make the suite independent of the state it starts in**
+
+**Do this before running anything.** Without it the file is not merely flaky, it is
+wrong in three separate ways — see the defect note at the end of this task.
+
+Add a root `vitest.config.ts` (the repo root, beside `vitest.workspace.ts`).
+`fileParallelism` is a ROOT-level option; setting it in the package's config has no
+effect on a workspace run:
+
+```ts
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: { fileParallelism: false },
+})
+```
+
+Add `packages/control-plane/vitest.global-setup.ts`, which truncates once before any
+file runs, so a run does not inherit a previous one's rows:
+
+```ts
+import pg from 'pg'
+import { ensureDatabaseUrl } from './vitest.env.js'
+
+const TABLES = [
+  'idempotency_keys', 'instances', 'service_instances', 'releases', 'builds',
+  'app_specs', 'environments', 'project_members', 'projects', 'users',
+]
+
+export async function setup(): Promise<void> {
+  const connectionString = ensureDatabaseUrl()
+  if (!connectionString) return // db/client.ts raises the actionable error.
+  const pool = new pg.Pool({ connectionString })
+  try {
+    await pool.query(`TRUNCATE TABLE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`)
+  } finally {
+    await pool.end()
+  }
+}
+```
+
+Register it in `packages/control-plane/vitest.config.ts` with
+`globalSetup: ['./vitest.global-setup.ts']`. Move Task 8's `.env` derivation into
+`packages/control-plane/vitest.env.ts` as an exported `ensureDatabaseUrl()`, because
+the per-file setup and the global setup run in different processes; `vitest.setup.ts`
+becomes a two-line file that calls it.
+
+Then, in **every** test file that touches the database:
+
+```ts
+beforeEach(resetDatabase)   // API files: they commit between their own tests
+afterAll(resetDatabase)     // API files: leave nothing for the next file
+beforeAll(resetDatabase)    // withRollback files: assert your own precondition
+```
+
+The `beforeAll` in the `withRollback` suites is not belt-and-braces. Depending on
+every other file remembering an `afterAll` is what broke when Task 21 added a file
+that did not.
 
 - [ ] **Step 2: Run it to make sure it fails**
 
@@ -7221,6 +7610,41 @@ second call now tries a second insert on a unique slug. Restore and confirm gree
 git add packages/control-plane/src/api/routes/projects.ts packages/control-plane/src/api/projects.test.ts
 git commit -m "feat(api): project creation with repository provisioning and spec validation"
 ```
+
+> **Three defects found in execution (2026-09-05), and they are one defect
+> compounding.** The plan gives its API tests no isolation at all.
+>
+> **1. API tests share one real database and commit.** They drive a real Fastify
+> server, so `withRollback` is not available to them — and **five tests in this file
+> create the slug `chem-labs`**, which is unique. The second collided and answered
+> 500, cascading into `Target cannot be null or undefined` as later tests indexed an
+> error body. Worse, `pnpm test` was **not repeatable**: the first run left the row
+> behind for the second to trip over, so a green suite went red on re-run with no
+> code change. **Fixed by** `resetDatabase()` in `db/testing.ts` — one `TRUNCATE …
+> RESTART IDENTITY CASCADE` — called in `beforeEach` and `afterAll`.
+>
+> **2. `withRollback` does not isolate a test from rows somebody else committed.**
+> It isolates a test from its **own** writes. `projects/authz.test.ts`,
+> `projects/repository.test.ts` and `releases/releases.test.ts` all insert
+> `chem-labs` inside a transaction, and all three had only ever been green because
+> the database happened to be empty. **Measured against:** inserting a single
+> committed `chem-labs` row by hand turns **10 tests** red across those files.
+> **Fixed by** a once-per-run `globalSetup` truncate, so a run is independent of the
+> state it starts in, plus a `beforeAll(resetDatabase)` in each database suite so
+> every file asserts its own precondition rather than trusting its predecessors'
+> cleanup (Task 21 found the failure mode where one file forgets).
+>
+> **3. `fileParallelism` is a ROOT-level Vitest option.** Setting it in
+> `packages/control-plane/vitest.config.ts` has no effect on a workspace run, so the
+> truncating API tests raced the transactional ones. **Measured against:** with the
+> root `vitest.config.ts` removed, three consecutive `pnpm test` runs fail **3, 5 and
+> 3** tests — different each time, which is what a race looks like and what makes it
+> so easy to dismiss as flake. **Fixed by** a root `vitest.config.ts` carrying
+> `fileParallelism: false`. The whole suite is ~7 s serialized.
+>
+> **The replay guard itself was verified as Step 5 says:** calling the inner function
+> directly instead of through `app.idempotent` fails *"creates one project when the
+> same request is replayed"* — the second insert hits the unique slug.
 
 ---
 
@@ -7511,7 +7935,8 @@ export async function registerDeliveryRoutes(app: FastifyInstance, deps: ServerD
         buildId: parsed.data.buildId,
         appSpecId: spec.id,
         createdBy: actor.userId,
-        summary: parsed.data.summary,
+        // Conditional spread — exactOptionalPropertyTypes again.
+        ...(parsed.data.summary === undefined ? {} : { summary: parsed.data.summary }),
         // Resolved once, at release time, and frozen — all three environments
         // together, so promotion applies the exact numbers the approver saw.
         resolvedConfig: {
@@ -7612,6 +8037,26 @@ git add packages/control-plane/src/api/routes/delivery.ts packages/control-plane
 git commit -m "feat(api): build, release and deploy routes, with §13's production checklist"
 ```
 
+> **Two defects found in execution (2026-09-05).**
+>
+> **1. `summary: parsed.data.summary` does not typecheck** against
+> `CreateReleaseInput` under `exactOptionalPropertyTypes` — `string | undefined` is
+> not assignable to `summary?: string`. The fourth instance of this class in the
+> plan; see Task 17's defect 7. **Fixed by** conditional spread.
+>
+> **2. The IDOR test passes against a server with no route at all.** It asserts only
+> that another user gets 404 — and 404 is also what an unregistered route returns.
+> Measured: against the Task 17 stub it was **the one test of four that passed**,
+> proving nothing. **Fixed by** additionally asserting the owner gets 200 for the
+> same build, so the test can tell *hidden* from *absent*.
+>
+> **Step 5's control does work, and it is worth reading the number.** Making
+> `GET /builds/:buildId` honour a client-supplied `?projectId=` — falling back to the
+> build's own — let a second user read somebody else's build with **200**, by passing
+> the id of a project they legitimately own. That is §16's *"likeliest bug class in a
+> multi-tenant control plane"* in four characters of diff, and both lines read as
+> "check the project".
+
 ---
 
 ## Task 20: The authorization contract suite
@@ -7638,24 +8083,13 @@ appears in the table**. Adding a route without deciding its authorization now fa
 the build — which is the same shape as Task 11's state-machine drift test, applied to
 the API surface.
 
-- [ ] **Step 1: Record the routes the server registers**
+- [ ] **Step 1: Confirm the server records the routes it registers**
 
-The `FastifyInstance` augmentation already declares `registeredRoutes` (Task 17).
-Populate it in `packages/control-plane/src/api/server.ts`, **before** the
-`registerAuthRoutes` / `registerProjectRoutes` / `registerDeliveryRoutes` calls —
-`onRoute` fires as routes register, so a hook added afterwards records nothing:
-
-```ts
-const registered: { method: string; url: string }[] = []
-app.addHook('onRoute', (route) => {
-  const methods = Array.isArray(route.method) ? route.method : [route.method]
-  for (const method of methods) {
-    if (method === 'HEAD' || method === 'OPTIONS') continue
-    registered.push({ method, url: route.url })
-  }
-})
-app.decorate('registeredRoutes', registered)
-```
+`registeredRoutes` is populated in `packages/control-plane/src/api/server.ts`,
+**before** the `registerAuthRoutes` / `registerProjectRoutes` /
+`registerDeliveryRoutes` calls — `onRoute` fires as routes register, so a hook
+added afterwards records nothing. The block is written out in Task 17; nothing to
+add here, only to check it is above those three calls.
 
 - [ ] **Step 2: Write the contract suite**
 
@@ -7665,6 +8099,7 @@ app.decorate('registeredRoutes', registered)
 import { randomUUID } from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
+import { resetDatabase } from '../db/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
 
 type Actor = 'owner' | 'collaborator' | 'stranger' | 'admin' | 'anonymous'
@@ -7676,8 +8111,13 @@ interface RouteCase {
   method: string
   /** The registered Fastify URL, so the completeness check can match on it. */
   url: string
-  /** Fills path params and body from the fixture. */
-  request(fixture: Fixture): { url: string; payload?: unknown }
+  /**
+   * Fills path params and body from the fixture. `payload` is an object, not
+   * `unknown`: `unknown` is not assignable to Fastify's InjectPayload, and the
+   * failed overload makes `app.inject` resolve to its chainable form, at which
+   * point `response.statusCode` does not exist.
+   */
+  request(fixture: Fixture): { url: string; payload?: Record<string, unknown> }
   expect: Record<Actor, Expectation>
 }
 
@@ -7791,6 +8231,10 @@ export function describeAuthorizationContract(
     }
 
     beforeAll(async () => {
+      // The suite asserts the stranger is a member of nothing, which holds only
+      // from a clean slate. Reset here rather than in the caller: P3 imports this
+      // file unchanged and points it at a Docker-backed server.
+      await resetDatabase()
       app = await buildServer(await factory())
       // Four distinct identities for §16's four tiers. Reusing one for two tiers is
       // how a suite comes to assert nothing: a "collaborator" who is not a member
@@ -7859,12 +8303,15 @@ export function describeAuthorizationContract(
         const expected = route.expect[actor]
         it(`${route.method} ${route.url} as ${actor} → ${expected}`, async () => {
           const { url, payload } = route.request(fixture)
+          const actorCookies = actor === 'anonymous' ? undefined : cookies[actor]
+          // Built conditionally: an explicit `payload: undefined` is not
+          // assignable to InjectOptions under exactOptionalPropertyTypes.
           const response = await app.inject({
             method: route.method as 'GET',
             url,
-            payload,
-            cookies: actor === 'anonymous' ? undefined : cookies[actor],
             headers: { 'idempotency-key': randomUUID() },
+            ...(payload === undefined ? {} : { payload }),
+            ...(actorCookies === undefined ? {} : { cookies: actorCookies }),
           })
 
           if (expected === 'pass') {
@@ -7929,6 +8376,34 @@ git commit -m "test(api): the §16 authorization contract suite, with a route-co
 Verified by deleting a capability check and by adding an unlisted route:
 each broke a different test."
 ```
+
+> **Three defects found in execution (2026-09-05), in the file the whole plan leans
+> on.** All three are invisible to the suite itself, because a suite cannot test the
+> types it is written in.
+>
+> **1. `payload?: unknown` in `RouteCase` is not assignable to Fastify's
+> `InjectPayload`.** The failed overload made `app.inject(...)` resolve to its
+> chainable form, so `response.statusCode` did not exist — three `tsc` errors.
+> **Fixed by** `payload?: Record<string, unknown>`.
+>
+> **2. Passing `payload` and `cookies` as explicit `undefined`** to `InjectOptions`
+> fails `exactOptionalPropertyTypes`. **Fixed by** building the options object
+> conditionally.
+>
+> **3. The shared suite depended on test-file ordering.** It asserts
+> `expect(strangerView.json()).toEqual([])` — the stranger is a member of nothing —
+> which holds only from a clean slate, and nothing in the suite established one.
+> **P3 imports this file unchanged and points it at a Docker-backed server**, so an
+> artefact that is green because of the order Vitest happened to pick is one that
+> will mislead exactly once. **Fixed by** `await resetDatabase()` in the suite's own
+> `beforeAll`, and `afterAll` cleanup, so it is self-sufficient wherever it is used.
+>
+> **Step 4's two breaks both land, on different tests.** Deleting the
+> `assertCapability` from `GET /projects/:projectId` fails
+> *"GET /projects/:projectId as stranger → 404"* and nothing else. Adding
+> `app.get('/projects/:projectId/secrets', …)` fails *"covers every route the server
+> registers"* with `expected [ 'GET /projects/:projectId/secrets' ] to deeply equal []`
+> — it names the route. **66 tests**: 1 completeness + 13 routes × 5 actors.
 
 ---
 
@@ -8055,12 +8530,21 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
 - [ ] **Step 2: Run the whole suite**
 
 ```bash
-pnpm --filter @manifest/control-plane test
+pnpm test                                        # from the REPO ROOT
 pnpm --filter @manifest/control-plane typecheck
 pnpm lint
+pnpm format:check
 ```
 
-Expected: PASS across every task's tests, with no Docker running and the network off.
+**All four**, and from the repo root — `pnpm test` there is the command CLAUDE.md
+requires before a commit, and it is the one that exposed the cwd-relative blueprint
+path. `typecheck` and `format:check` are not optional extras: Vitest strips types
+without checking them, so `tsc` is the only thing that sees this plan's several
+`exactOptionalPropertyTypes` failures, and `format:check` was red on 29 files of
+this plan's own code.
+
+Expected: PASS. Run `pnpm test` **twice** — a suite that is not repeatable is a
+suite with a state leak, which is how Task 18's defects were found.
 
 **If the timing assertion fails**, look for a real `git` call in the hot path before
 assuming the budget is wrong: `createRepository` shells out three times, which is the
@@ -8079,23 +8563,60 @@ next reader over-reading §16's line. Restart Postgres and confirm green.
 
 Add to `README.md`, under a new *Running the control plane* heading:
 
+First add the scripts Task 17 never created — `src/index.ts` existed with no way
+to run it — to `packages/control-plane/package.json`:
+
+```json
+"dev": "pnpm run build && node dist/index.js",
+"build": "tsc",
+"start": "node dist/index.js"
+```
+
+**`node src/index.ts` does not work**, though Node 24 strips types natively: the
+source uses NodeNext `.js` specifiers and Node resolves them literally
+(`Cannot find module '…/src/api/index.js'`). Hence the build step.
+
+Then, in `README.md`:
+
 ```markdown
 ## Running the control plane
 
-Requires P1's substrate (`make up`) for Postgres on 7103.
+Requires P1's substrate (`make up`) for Postgres on 7103. Run these **from the repo
+root** — the two path variables are read as given, and `pnpm --filter` runs with the
+*package* directory as its working directory.
 
     set -a; . ./.env; set +a   # P1 creates .env; the password is NOT "manifest"
     export MANIFEST_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"
     export MANIFEST_SESSION_SECRET=$(openssl rand -hex 32)
     export MANIFEST_DEV_AUTH=1
-    export MANIFEST_BLUEPRINTS_ROOT=blueprints
-    export MANIFEST_REPOS_ROOT=.manifest/repos
+    export MANIFEST_BLUEPRINTS_ROOT="$PWD/blueprints"
+    export MANIFEST_REPOS_ROOT="$PWD/.manifest/repos"
     pnpm --filter @manifest/control-plane db:migrate
     pnpm --filter @manifest/control-plane dev
 
+It listens on http://127.0.0.1:7100.
+
 `MANIFEST_DEV_AUTH=1` enables the temporary login shim and is refused outside
-`MANIFEST_ENV=development`. P4 replaces it with CWL and deletes it.
+`MANIFEST_ENV=development` — the process exits with
+CONFIG_DEV_AUTH_OUTSIDE_DEVELOPMENT before anything binds the port. P4 replaces it
+with CWL and deletes it.
 ```
+
+Then **boot it and drive it with `curl`**, which is what proves the entry point
+works — no test imports `src/index.ts`, so until this step nothing had ever run it:
+
+```bash
+curl -s http://127.0.0.1:7100/auth/me                    # 401 UNAUTHENTICATED
+curl -s -c /tmp/jar -X POST -H 'content-type: application/json' \
+  -d '{"puid":"bio_prof"}' http://127.0.0.1:7100/auth/dev-login
+curl -s -b /tmp/jar -X POST -H 'content-type: application/json' \
+  -H "idempotency-key: $(uuidgen)" \
+  -d '{"slug":"boot-check","blueprint":"fixture-node@1"}' http://127.0.0.1:7100/projects
+```
+
+And exercise Task 12's kill switch where it actually protects something:
+`MANIFEST_ENV=production MANIFEST_DEV_AUTH=1 node dist/index.js` must exit with
+`CONFIG_DEV_AUTH_OUTSIDE_DEVELOPMENT` and leave 7100 unbound.
 
 - [ ] **Step 5: Commit**
 
@@ -8103,6 +8624,53 @@ Requires P1's substrate (`make up`) for Postgres on 7103.
 git add packages/control-plane/src/lifecycle.test.ts README.md
 git commit -m "test: P2 acceptance — the full lifecycle against the fake driver, under a second"
 ```
+
+> **Five defects found in execution (2026-09-05), four of them in a README section
+> nobody would have run before publishing it.**
+>
+> **1. `pnpm --filter @manifest/control-plane dev` — there is no `dev` script.**
+> Task 17 created `src/index.ts` and no way to run it. **Fixed by** adding `dev`,
+> `build` and `start`.
+>
+> **2. `node src/index.ts` does not work**, though Node 24 strips TypeScript types
+> natively. The source uses NodeNext `.js` specifiers, which Node resolves
+> **literally**: `Cannot find module '…/src/api/index.js'`. **Fixed by** making `dev`
+> compile first (`tsc`, then `node dist/index.js`).
+>
+> **This matters more than a broken command.** Until this task, **nothing had ever
+> executed the boot entry point** — no test imports `src/index.ts`. That is the same
+> gap P3's self-review caught in its own plan, where no task wired the Docker driver
+> into boot and `make demo` would have passed against the fake one.
+>
+> **3. The README's environment exports are cwd-relative** (`MANIFEST_BLUEPRINTS_ROOT=blueprints`,
+> `MANIFEST_REPOS_ROOT=.manifest/repos`) while the command beside them,
+> `pnpm --filter`, runs from the *package* directory. Same defect as Task 17's 5.
+> **Fixed by** documenting them `$PWD`-anchored and saying why.
+>
+> **4. `lifecycle.test.ts` commits and left `chem-labs` behind**, so whichever
+> `withRollback` suite ran next collided — 2 failures, dependent purely on file
+> order. **Fixed by** `afterAll(resetDatabase)` here, and by the `beforeAll` in each
+> database suite recorded under Task 18.
+>
+> **5. `pnpm format:check` — the fourth gate ORIENTATION names — was failing on 29
+> files**, essentially all of this plan's own transcribed code. Prettier is scoped
+> to `packages/` by Task 1's `.prettierignore`, verified again here:
+> `prettier --list-different .` reports nothing outside `packages/`, and
+> `git status docs/` is empty after formatting, so the approved spec is untouched.
+>
+> **The acceptance holds.** ~300 ms against the 1000 ms budget. **Step 3's negative
+> control:** with `manifest-postgres` stopped the run fails at
+> `ECONNREFUSED 127.0.0.1:7103` — in `globalSetup`, before any test body — so P2
+> needs no Docker **for the driver**, which is not the same claim as needing no
+> containers.
+>
+> **Verified beyond what this task asks.** The control plane was booted for real and
+> driven with `curl`: `GET /auth/me` → 401 `UNAUTHENTICATED`; `POST /auth/dev-login`
+> → a session for `bio_prof`; `POST /projects` → 201 with a `file://` repository, a
+> 40-character commit and `specValid: true`. And starting it with
+> `MANIFEST_ENV=production MANIFEST_DEV_AUTH=1` exits with
+> `CONFIG_DEV_AUTH_OUTSIDE_DEVELOPMENT` before anything binds 7100 — Task 12's guard,
+> exercised where it actually protects something.
 
 ---
 
@@ -8155,3 +8723,50 @@ tasks end by breaking the thing they just built and watching a **named** test fa
 Defect 7 is what happens when that step is skipped: Task 1's boundary test did have a
 "prove it fails" step, it did fail as promised — and it still exempted two thirds of
 the import graph, because the demonstration used the one shape the regex caught.
+
+
+---
+
+## What executing this plan found
+
+*Tasks 12–21, executed 2026-09-05. The per-task notes carry the detail and the
+measurements; this is the shape.* **27 defects across 10 tasks** — against 20 in
+Tasks 2–8 and 18 in P1's 13. Tasks 12, 13, 14 and 15 had **none**; every defect
+landed in the six tasks from `releases/` onward, which is also where the plan stopped
+being pure functions and started touching a framework, a database and a process.
+
+| Class | Count | What it looks like |
+|---|---|---|
+| **Never typechecked against this repo's own tsconfig** | 6 | `exactOptionalPropertyTypes` rejects `hint: cond ? x : undefined`, `summary: parsed.data.summary`, `Partial<T>` spreads, `payload?: unknown`. **Vitest strips types without checking them**, so no test in this plan could ever have caught any of them |
+| **Test isolation that was never there** | 5 | API tests share one real database and collide on a unique slug; `pnpm test` not repeatable; `withRollback` does not isolate from *committed* rows; `fileParallelism` set at the wrong level; a file that commits without cleaning up |
+| **A control that was green because it was not looking** | 5 | An IDOR test that also passes against a missing route; a "route is absent" test masked by a hook that answers 400 first; refusals asserted by `code` alone, which a plain `Error` satisfies and the envelope maps to 500 |
+| **A concrete value that was wrong on contact** | 4 | An image repository built from a UUID instead of the slug; `parseInt('1Gi')` = 1; two cwd-relative paths that only work under `pnpm --filter` |
+| **A stated property the code did not have** | 4 | *"The fake driver reports healthy immediately"* — it did not; a single `status()` call that parks a real driver in a state it can never leave; a `dev` script that did not exist; `node src/index.ts`, which cannot resolve NodeNext specifiers |
+| **A rule that cannot be expressed in its own dialect** | 1 | ESLint's `no-restricted-imports` globs cannot state §5; a ban that catches `../db/schema.js` also excludes the *directory* `../../identity`, and gitignore cannot re-include under an excluded directory |
+| **A gate not being run** | 2 | `pnpm format:check` red on 29 files of this plan's own code; `pnpm test` from the repo root, not `--filter`, is what CLAUDE.md requires |
+
+**Four are worth carrying forward.**
+
+**1. The plan's code had never been typechecked.** Six defects, in six different
+files, none visible to any test. `pnpm --filter @manifest/control-plane typecheck`
+is not a formality after `pnpm test` — it is the only gate that sees a whole class of
+error, and this plan's own instructions omitted it from Task 21's final check.
+
+**2. Two safety mechanisms were one edit from being live.** `/auth/dev-login` passed
+`devAuthEnabled: true` as a literal, so the route-registration guard was the *only*
+thing between that endpoint and an authentication bypass — removing that guard made
+it answer **200 with a real session**, not the refusal Step 8 predicted. And
+`GET /builds/:buildId` honouring a client-supplied `projectId` let one user read
+another's build with **200**. Both read, in review, as "check the thing".
+
+**3. A test can be green because of the order Vitest happened to pick.** Three
+`withRollback` suites had only ever passed because the database was empty. One
+hand-inserted row turned 10 tests red. The fix is not cleanup discipline — it is
+each file asserting its own precondition.
+
+**4. Nothing had ever run the boot entry point.** No test imports `src/index.ts`, so
+`dev` did not exist and would not have worked if it had. **This is the same gap P3's
+self-review found in its own plan**, where no task wired the Docker driver into boot
+and `make demo` would have passed against the fake one. P3 inherits both the
+`Driver` contract suite and `authz-contract.ts` unchanged; it should assume its
+entry point is untested until something has curled it.
