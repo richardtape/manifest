@@ -177,6 +177,143 @@ describe('GET /projects/:id', () => {
   })
 })
 
+/**
+ * §22 step 3, at a commit. Project creation was the ONLY thing that had ever
+ * validated a manifest.yaml, so a project's spec was fixed for its whole life —
+ * an agent could push a manifest declaring a database and the platform would
+ * never read it. `make demo` is what found that.
+ */
+describe('POST /projects/:id/spec', () => {
+  it('re-validates the manifest at HEAD after the repository changes', async () => {
+    const { app, deps, session } = await loggedIn()
+    const created = await app.inject({
+      ...create('chem-labs'),
+      cookies: { manifest_session: session },
+      headers: { 'idempotency-key': randomUUID() },
+    })
+    const projectId = created.json().id as string
+
+    // What an agent does: push a manifest declaring a database.
+    const repo = deps.source.repositoryFor('chem-labs')
+    const commitSha = await deps.source.commitFiles(
+      repo,
+      {
+        'manifest.yaml': [
+          'manifest: 1',
+          'name: chem-labs',
+          'blueprint: fixture-node@1',
+          'runtime:',
+          '  port: 3000',
+          '  health: /healthz',
+          'services:',
+          '  - name: db',
+          '    type: mongo',
+          '    version: "7"',
+          '',
+        ].join('\n'),
+      },
+      'feat: declare a database',
+    )
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/spec`,
+      payload: {},
+      cookies: { manifest_session: session },
+      headers: { 'idempotency-key': randomUUID() },
+    })
+    expect(response.statusCode).toBe(201)
+    const body = response.json()
+    expect(body.valid).toBe(true)
+    expect(body.commitSha).toBe(commitSha)
+    // THE POINT. Before this route existed, GET /spec still answered with the
+    // seeded manifest and its empty service list, whatever the repository said.
+    const latest = await app.inject({
+      url: `/projects/${projectId}/spec`,
+      cookies: { manifest_session: session },
+    })
+    expect(latest.json().spec.services).toEqual([
+      { name: 'db', type: 'mongo', version: '7' },
+    ])
+    await app.close()
+  })
+
+  it('REPORTS a sensitive diff (D9) rather than silently accepting it', async () => {
+    const { app, deps, session } = await loggedIn()
+    const created = await app.inject({
+      ...create('chem-labs'),
+      cookies: { manifest_session: session },
+      headers: { 'idempotency-key': randomUUID() },
+    })
+    const projectId = created.json().id as string
+
+    const repo = deps.source.repositoryFor('chem-labs')
+    await deps.source.commitFiles(
+      repo,
+      {
+        'manifest.yaml': [
+          'manifest: 1',
+          'name: chem-labs',
+          'blueprint: fixture-node@1',
+          'runtime:',
+          '  port: 3000',
+          '  health: /healthz',
+          'services:',
+          '  - name: db',
+          '    type: mongo',
+          '    version: "7"',
+          '',
+        ].join('\n'),
+      },
+      'feat: declare a database',
+    )
+    const response = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/spec`,
+      payload: {},
+      cookies: { manifest_session: session },
+      headers: { 'idempotency-key': randomUUID() },
+    })
+    // Adding a service is sensitive under D9. It is REPORTED and not enforced —
+    // the escalation and step-up re-auth it feeds are P6's — but `isSensitiveDiff`
+    // now has a call site outside its own unit test, which it did not before.
+    expect(response.json().sensitiveDiff).toEqual({
+      sensitive: true,
+      fields: ['services'],
+    })
+    await app.close()
+  })
+
+  it('records an INVALID manifest as a row rather than throwing it away', async () => {
+    const { app, deps, session } = await loggedIn()
+    const created = await app.inject({
+      ...create('chem-labs'),
+      cookies: { manifest_session: session },
+      headers: { 'idempotency-key': randomUUID() },
+    })
+    const projectId = created.json().id as string
+    const repo = deps.source.repositoryFor('chem-labs')
+    await deps.source.commitFiles(
+      repo,
+      { 'manifest.yaml': 'manifest: 1\nname: chem-labs\n' },
+      'break it',
+    )
+    const response = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/spec`,
+      payload: {},
+      cookies: { manifest_session: session },
+      headers: { 'idempotency-key': randomUUID() },
+    })
+    // 201: the validation RAN and its answer is "no". A build then refuses with
+    // SPEC_INVALID, which is where the failure belongs (P2's build route).
+    expect(response.statusCode).toBe(201)
+    expect(response.json().valid).toBe(false)
+    expect(response.json().errors.length).toBeGreaterThan(0)
+    await app.close()
+  })
+})
+
 describe('POST /projects/:id/members', () => {
   it('lets an owner add a collaborator, who can then read the project', async () => {
     const { app, session } = await loggedIn('bio_prof')

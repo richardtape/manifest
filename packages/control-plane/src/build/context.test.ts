@@ -56,6 +56,43 @@ describe('build context assembly (D13)', () => {
     expect(readFileSync(join(dir, 'src/index.js'), 'utf8')).toContain('console.log(1)')
   })
 
+  /**
+   * A FAILED EXPORT MUST BE AN ERROR, not an empty directory.
+   *
+   * The export used to be `git archive … | tar -x`, whose exit status is TAR's, so
+   * every way `git archive` can fail produced a context with nothing in it and
+   * reported success — `SOURCE_EXPORT_FAILED` could not fire. The failure then
+   * surfaced as whichever §12 gate noticed first: `make demo` reported
+   * "package-lock.json is missing" for a repository whose HEAD has one, which sent
+   * the reader to the app instead of to the export. Measured 2026-09-07:
+   * `git --git-dir=file://… archive HEAD` exits 128, the pipeline exits 0.
+   */
+  it('THROWS when the export fails, rather than yielding an empty context', async () => {
+    const { commitSha } = bareRepoWith({ 'src/index.js': 'console.log(1)\n' })
+    await expect(
+      assembleContext({
+        // A `file://` URL, which is what the delivery route used to hand it and
+        // what `git --git-dir=` rejects.
+        repoPath: 'file:///tmp/definitely-not-a-repo.git',
+        commitSha,
+        blueprintDir: BLUEPRINT_DIR,
+        workDir: workDir(),
+      }),
+    ).rejects.toMatchObject({ code: 'SOURCE_EXPORT_FAILED' })
+  })
+
+  it('THROWS for a commit that is not in the repository', async () => {
+    const { repoPath } = bareRepoWith({ 'src/index.js': 'console.log(1)\n' })
+    await expect(
+      assembleContext({
+        repoPath,
+        commitSha: 'f'.repeat(40),
+        blueprintDir: BLUEPRINT_DIR,
+        workDir: workDir(),
+      }),
+    ).rejects.toMatchObject({ code: 'SOURCE_EXPORT_FAILED' })
+  })
+
   // THE CONTROL. An app that commits its own Dockerfile or .npmrc must not be able
   // to change how it is built or where its dependencies come from.
   it("overwrites an app-supplied Dockerfile and .npmrc with the blueprint's", async () => {

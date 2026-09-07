@@ -130,7 +130,29 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
       })
     }
     const { status, body } = toErrorResponse(error)
-    if (status === 500) request.log.error({ err: error }, 'unhandled error')
+    if (status === 500) {
+      // `console.error`, NOT `request.log.error`. This server is built with
+      // `logger: false`, under which `request.log.error` EXISTS, accepts the call
+      // and writes nothing — the same trap the boot line hit with `app.log.info`
+      // (Session 4). So the only record of an unexpected failure vanished: a
+      // deploy answered 500 INTERNAL with nothing in the process output, nothing
+      // in the database and nothing on the wire. Measured by `make demo` on
+      // 2026-09-07, where the cause turned out to be three frames down a stack
+      // nobody could see.
+      //
+      // The envelope stays deliberately opaque to the CLIENT (D23.7) — that is a
+      // §20 decision and is not changed here. This is the OPERATOR's copy.
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          msg: 'unhandled error',
+          method: request.method,
+          url: request.url,
+          error: (error as Error).message,
+        }),
+      )
+      console.error((error as Error).stack ?? error)
+    }
     return reply.status(status).send(body)
   })
 

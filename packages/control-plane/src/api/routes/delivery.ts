@@ -112,7 +112,13 @@ export async function registerDeliveryRoutes(
         appSpecId: spec.id,
         commitSha: parsed.data.commitSha ?? spec.commitSha,
         blueprintRef: project.blueprintRef,
-        repoUrl: `file://${deps.config.reposRoot}/${project.slug}.git`,
+        // The PATH, from D5's driver, not a hand-built `file://` URL. The driver
+        // passes this straight to `git --git-dir=`, which does not accept a URL:
+        // `fatal: not a git repository`. Nothing caught it, because the export
+        // was a shell pipeline whose exit status came from `tar` — so the build
+        // proceeded with an EMPTY context and failed at the lockfile gate,
+        // naming a file the repository actually has. Both halves fixed 2026-09-07.
+        repoPath: deps.source.repositoryFor(project.slug).path,
       })
       return { status: 201, body: build }
     })

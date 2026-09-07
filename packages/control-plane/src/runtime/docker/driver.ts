@@ -9,7 +9,13 @@ import {
   scanImage,
   sourceDateEpoch,
 } from '../../build/index.js'
-import { applyRoute, removeRoute, type RoutingDeps } from '../../routing/index.js'
+import {
+  applyRoute,
+  edgeProbe,
+  removeRoute,
+  waitForReady,
+  type RoutingDeps,
+} from '../../routing/index.js'
 import type {
   Driver,
   DriverCapabilities,
@@ -73,7 +79,26 @@ export function dockerCapabilities(host: {
 export interface DockerDriverOptions {
   engine: EngineClient
   masterSecret: string
-  blueprintDir: string
+  /**
+   * Where a blueprint REFERENCE resolves to its directory — `fixture-node@1` ->
+   * `<root>/blueprints/fixture-node`. A function, not a path, for two reasons that
+   * were both live defects:
+   *
+   *  * `buildImage` takes `spec.blueprintRef` and used to IGNORE it, building
+   *    every project from one fixed directory. With one blueprint in the registry
+   *    that is invisible; the moment P4 adds `node-ts-mongo@1` it silently builds
+   *    every project with the wrong Dockerfile, base image and health path.
+   *  * The boot entry point passed `config.blueprintsRoot` — the directory
+   *    HOLDING the blueprints — so every build through the running control plane
+   *    died with `no blueprint.yaml in .../blueprints`. Measured by `make demo` on
+   *    2026-09-07; the Docker tier could not see it because its own driver is
+   *    constructed with a single blueprint's directory.
+   *
+   * P2's registry already exposes exactly this as `pathOf(ref)`, described there
+   * as "the builder needs it for the Dockerfile". Injecting it keeps §5 intact:
+   * `runtime/` does not learn to read `blueprints/`.
+   */
+  blueprintDirFor: (blueprintRef: string) => string
   /** dnsmasq-A's platform-network address. §12 makes the resolver per-container. */
   dnsServer: string
   /** What the BUILDER calls the registry. */
@@ -94,7 +119,21 @@ export interface DockerDriverOptions {
   hostnameFor: (kind: InstanceSpec['environmentKind'], slug: string) => string
   routing: RoutingDeps
   limits?: BuildLimits
+  /**
+   * The platform CA, for the readiness probe. `curlimages/curl` trusts no private
+   * root and the edge serves a certificate from this one, so without it every
+   * probe is `curl: (60)` and `http_code` 000 — measured 2026-09-06.
+   */
+  caCertPath: string
+  /** How long `ensureInstance` waits for the app to answer at its hostname. */
+  readinessTimeoutMs?: number
 }
+
+/**
+ * A deploy's patience with an app that is starting. Covers a cold Node runtime
+ * and a database connection as well as DNS, the route and the listener.
+ */
+const DEFAULT_READINESS_TIMEOUT_MS = 90_000
 
 /** Matches `registry:2`'s configured issuer and service (infra/compose.yaml). */
 const TOKEN_ISSUER = 'manifest-control-plane'
@@ -144,10 +183,11 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
       return queue.run(spec.projectSlug, async () => {
         const workDir = await mkdtemp(join(tmpdir(), 'mf-build-'))
         try {
+          const blueprintDir = options.blueprintDirFor(spec.blueprintRef)
           const contextDir = await assembleContext({
             repoPath: src.repoPath,
             commitSha: src.commitSha,
-            blueprintDir: options.blueprintDir,
+            blueprintDir,
             workDir,
           })
           // §12: platform-mandatory, before anything is built. A gate that runs
@@ -164,7 +204,7 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
           }
 
           const buildId = `${spec.projectSlug}-${src.commitSha.slice(0, 8)}-${Date.now().toString(36)}`
-          const descriptor = await loadBlueprintDescriptor(options.blueprintDir)
+          const descriptor = await loadBlueprintDescriptor(blueprintDir)
           const baseImageRef = asDaemonRef(descriptor.runtime.base_image)
           const baseRepository = repositoryOf(baseImageRef)
           const epoch = await sourceDateEpoch(src.repoPath, src.commitSha)
@@ -281,6 +321,42 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
         upstream: `${handle.name}:${spec.port}`,
         kind: spec.environmentKind,
       })
+
+      /**
+       * AND THEN WAIT UNTIL IT ANSWERS AT THAT HOSTNAME.
+       *
+       * Task 14 built `waitForReady`/`edgeProbe` for exactly this and nothing
+       * called them — the module was reachable only from its own tests, which is
+       * the defect P2 shipped with its boot entry point and P3's self-review found
+       * in P3. Measured 2026-09-07 by the Task 17 round trip: the wake path
+       * (`stopInstance` then `ensureInstance`) returned a handle while the app was
+       * still connecting to its database, and the very next request through the
+       * edge got Caddy's **502 with an empty body**.
+       *
+       * This asks a different question from `status().healthy`, which reads the
+       * container's own HEALTHCHECK and means "the process is up". This means
+       * "reachable at its hostname" — DNS, the Caddy route and the listener as
+       * well — which is what §11's `starting → healthy` is supposed to mean and
+       * what a faculty member will actually check.
+       */
+      const readiness = await waitForReady({
+        url: handle.url,
+        probe: edgeProbe(engine, hostname, spec.healthPath, options.caCertPath, {
+          dnsServer: options.dnsServer,
+        }),
+        timeoutMs: options.readinessTimeoutMs ?? DEFAULT_READINESS_TIMEOUT_MS,
+        intervalMs: 1000,
+      })
+      if (!readiness.ready) {
+        throw new EngineError(
+          'INSTANCE_NOT_REACHABLE',
+          `${handle.name} started but never answered 200 at ${handle.url}${spec.healthPath} — ` +
+            `${readiness.reason} (${readiness.attempts} attempts)`,
+          'The container can be up while DNS, the Caddy route or the listener is not — ' +
+            'this probe covers all four, unlike the container HEALTHCHECK. ' +
+            `\`docker logs ${handle.name}\` is the next thing to read.`,
+        )
+      }
       return handle
     },
 

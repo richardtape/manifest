@@ -18,3 +18,8 @@ drizzle/
 .env
 .env.example
 blueprints/*/skeleton/
+# An APP's own tree, standing in for something Manifest did not write. The same
+# reason the blueprint skeleton is excluded, and the same principle D13 enforces at
+# build time: the platform does not rewrite an application's files. It also keeps
+# `pnpm format` off an npm-generated package-lock.json.
+fixtures/

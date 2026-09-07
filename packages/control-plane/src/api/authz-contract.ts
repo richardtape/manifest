@@ -129,6 +129,22 @@ const ROUTES: RouteCase[] = [
     },
   },
   {
+    // Re-validates manifest.yaml at a commit. `project:write`, so a collaborator
+    // passes and a stranger is hidden — the same shape as every other write on a
+    // project. Idempotent for the suite's purposes: it appends an AppSpec row for
+    // the SAME commit with the same result, which no other case reads.
+    method: 'POST',
+    url: '/projects/:projectId/spec',
+    request: (f) => ({ url: `/projects/${f.projectId}/spec`, payload: {} }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
     // The only route requiring `members:manage`, and so the only place a
     // collaborator is refused while a stranger is hidden. 403 and 404 in one row.
     // The payload re-adds a member who is already a collaborator: addMember is

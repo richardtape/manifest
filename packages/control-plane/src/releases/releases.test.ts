@@ -85,7 +85,7 @@ describe('builds', () => {
         appSpecId: appSpec.id,
         commitSha: appSpec.commitSha,
         blueprintRef: project.blueprintRef,
-        repoUrl: 'file:///tmp/chem-labs.git',
+        repoPath: '/tmp/chem-labs.git',
       })
       expect(build.status).toBe('succeeded')
       expect(build.imageDigest).toMatch(/^sha256:[0-9a-f]{64}$/)
@@ -103,7 +103,7 @@ describe('builds', () => {
         appSpecId: appSpec.id,
         commitSha: appSpec.commitSha,
         blueprintRef: project.blueprintRef,
-        repoUrl: 'file:///tmp/chem-labs.git',
+        repoPath: '/tmp/chem-labs.git',
       })
       expect(build.status).toBe('failed')
       expect(build.imageDigest).toBeNull()
@@ -151,7 +151,7 @@ describe('releases (§13)', () => {
         appSpecId: appSpec.id,
         commitSha: appSpec.commitSha,
         blueprintRef: project.blueprintRef,
-        repoUrl: 'file:///tmp/chem-labs.git',
+        repoPath: '/tmp/chem-labs.git',
       })
       const release = await createRelease(db, {
         projectId: project.id,
@@ -193,7 +193,7 @@ describe('releases (§13)', () => {
         appSpecId: appSpec.id,
         commitSha: appSpec.commitSha,
         blueprintRef: project.blueprintRef,
-        repoUrl: 'file:///tmp/chem-labs.git',
+        repoPath: '/tmp/chem-labs.git',
       })
       const release = await createRelease(db, {
         projectId: project.id,
@@ -238,7 +238,7 @@ describe('releases (§13)', () => {
         appSpecId: appSpec.id,
         commitSha: appSpec.commitSha,
         blueprintRef: project.blueprintRef,
-        repoUrl: 'file:///tmp/chem-labs.git',
+        repoPath: '/tmp/chem-labs.git',
       })
       const hostile = {
         sandbox: {
@@ -266,6 +266,71 @@ describe('releases (§13)', () => {
     })
   })
 
+  /**
+   * THE PORT IS A PLATFORM BINDING, and nothing injected it.
+   *
+   * The platform picks the port — the container HEALTHCHECK probes it and the
+   * Caddy route uses it as the upstream — and the app was never told. An app that
+   * did not happen to hardcode the blueprint's `default_port` listened somewhere
+   * else and was permanently unreachable behind a 502. Measured by `make demo` on
+   * 2026-09-07 with a manifest declaring `runtime.port: 8080`: the app logged
+   * `"port":3000` and the deploy timed out.
+   */
+  it('injects PORT and the instance identity, and an app cannot shadow them', async () => {
+    await withRollback(async (db) => {
+      const { user, project, appSpec, byKind } = await fixture(db)
+      const driver = createFakeDriver()
+      const seen: InstanceSpec[] = []
+      const recording: Driver = {
+        ...driver,
+        ensureInstance: (spec) => {
+          seen.push(spec)
+          return driver.ensureInstance(spec)
+        },
+      }
+      const build = await startBuild(db, recording, {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoPath: '/tmp/chem-labs.git',
+      })
+      // The app declares its own PORT and MANIFEST_ENV. Neither may win: one
+      // breaks routing, the other lies about where the app is running.
+      const hostile = {
+        name: 'chem-labs',
+        env: [
+          { name: 'PORT', value: '1' },
+          { name: 'MANIFEST_ENV', value: 'production' },
+        ],
+      }
+      const release = await createRelease(db, {
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: {
+          sandbox: { ...RESOLVED.sandbox, ...hostile },
+          staging: { ...RESOLVED.staging, ...hostile },
+          production: { ...RESOLVED.production, ...hostile },
+        },
+      })
+      await deployRelease(db, recording, config, {
+        releaseId: release.id,
+        environmentId: byKind.staging!.id,
+      })
+      const spec = seen.at(-1)!
+      // The port the app is TOLD and the port the platform ROUTES to are the same
+      // number. That equality is the property; either alone proves nothing.
+      expect(spec.env.PORT).toBe(String(spec.port))
+      expect(spec.env.PORT).not.toBe('1')
+      expect(spec.env.MANIFEST_ENV).toBe('staging')
+      expect(spec.env.MANIFEST_PROJECT_SLUG).toBe('chem-labs')
+      expect(spec.env.MANIFEST_APP_URL).toBe(`https://${byKind.staging!.hostname}`)
+    })
+  })
+
   // §13: "Promotion never rebuilds. Production runs the exact digest that staging ran."
   it('never rebuilds when the same release is deployed a second time', async () => {
     await withRollback(async (db) => {
@@ -277,7 +342,7 @@ describe('releases (§13)', () => {
         appSpecId: appSpec.id,
         commitSha: appSpec.commitSha,
         blueprintRef: project.blueprintRef,
-        repoUrl: 'file:///tmp/chem-labs.git',
+        repoPath: '/tmp/chem-labs.git',
       })
       const release = await createRelease(db, {
         projectId: project.id,
@@ -310,7 +375,7 @@ describe('releases (§13)', () => {
         appSpecId: appSpec.id,
         commitSha: appSpec.commitSha,
         blueprintRef: project.blueprintRef,
-        repoUrl: 'file:///tmp/chem-labs.git',
+        repoPath: '/tmp/chem-labs.git',
       })
       const release = await createRelease(db, {
         projectId: project.id,
@@ -341,7 +406,7 @@ describe('releases (§13)', () => {
         appSpecId: appSpec.id,
         commitSha: appSpec.commitSha,
         blueprintRef: project.blueprintRef,
-        repoUrl: 'file:///tmp/chem-labs.git',
+        repoPath: '/tmp/chem-labs.git',
       })
       const release = await createRelease(db, {
         projectId: project.id,
@@ -391,7 +456,7 @@ describe('waiting for health', () => {
       appSpecId: appSpec.id,
       commitSha: appSpec.commitSha,
       blueprintRef: project.blueprintRef,
-      repoUrl: 'file:///tmp/chem-labs.git',
+      repoPath: '/tmp/chem-labs.git',
     })
     const release = await createRelease(db, {
       projectId: project.id,
@@ -450,7 +515,7 @@ describe('the InstanceSpec handed to the driver', () => {
         appSpecId: appSpec.id,
         commitSha: appSpec.commitSha,
         blueprintRef: project.blueprintRef,
-        repoUrl: 'file:///tmp/chem-labs.git',
+        repoPath: '/tmp/chem-labs.git',
       })
       const built = await driver.buildImage(
         { repoPath: 'file:///tmp/chem-labs.git', commitSha: appSpec.commitSha },

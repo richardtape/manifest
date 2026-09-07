@@ -1,0 +1,7 @@
+{
+  "name": "fixture-app",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.0.0" },
+  "dependencies": { "mongodb": "6.12.0" }
+}

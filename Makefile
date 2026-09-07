@@ -6,7 +6,7 @@ SHELL := /usr/bin/env bash
 # file's directory (infra/), not the repo root. See infra/lib/common.sh.
 COMPOSE := docker compose -f infra/compose.yaml -p manifest --env-file .env
 
-.PHONY: help seed up down reset doctor verify host-setup host-undo
+.PHONY: help seed up down reset doctor verify demo host-setup host-undo
 
 # Every compose target needs .env to exist — `--env-file` on a missing file is a
 # hard error, not a warning. `make seed` also writes it; this makes `make up` on
@@ -59,6 +59,9 @@ reset: .env  ## Destroy projects, volumes and registry contents. KEEPS the seed 
 	@echo "reset done. manifest-caddy-data was NOT removed — the trusted CA lives there,"
 	@echo "and the mirrored base images are back, so the machine is still offline-capable."
 	@echo "Run: make up"
+
+demo: up  ## P3's acceptance: the fixture app from a bare repo to a healthy URL.
+	@bash scripts/demo.sh
 
 host-setup:  ## The three privileged steps. Prompts for a password.
 	@sudo bash infra/host/host-setup.sh

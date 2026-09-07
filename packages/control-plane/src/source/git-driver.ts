@@ -25,6 +25,18 @@ export class SourceError extends Error {
 export interface SourceDriver {
   readonly name: string
   createRepository(projectSlug: string, seed: SeedFiles): Promise<RepoRef>
+  /**
+   * The reference for a repository this platform already provisioned.
+   *
+   * Without it a caller that did not create the repository has no way to name it,
+   * and the only alternative is to build a `file://` URL by hand — which is
+   * exactly the driver-specific knowledge D5 exists to keep out of the control
+   * plane, and which `POST /projects/:id/builds` was already doing.
+   *
+   * Synchronous and total: it derives a name, it does not check that the
+   * repository exists. Every other method already fails honestly if it does not.
+   */
+  repositoryFor(projectSlug: string): RepoRef
   commitFiles(repo: RepoRef, files: SeedFiles, message: string): Promise<string>
   headCommit(repo: RepoRef, ref?: string): Promise<string>
   /** The file's content at that commit, or null if the path is not in the tree. */

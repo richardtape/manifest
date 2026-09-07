@@ -82,6 +82,12 @@ export function testIssuer(): {
 // src/runtime/docker/ -> the repository root
 export const REPO_ROOT = fileURLToPath(new URL('../../../../../', import.meta.url))
 
+/** The platform CA `make seed` mints. Absolute, and root-relative for the reason
+ *  REPO_ROOT exists — `docker run -v` on a relative path that does not resolve
+ *  creates a DIRECTORY at that name instead of failing (verify.sh guards the same
+ *  way, and defect 27 paid for it once). */
+export const CA_CERT = join(REPO_ROOT, 'infra/ca/manifest-root.crt')
+
 /**
  * A Driver backed by the real daemon, for `driver-contract.ts`.
  *
@@ -99,7 +105,9 @@ export const REPO_ROOT = fileURLToPath(new URL('../../../../../', import.meta.ur
  * registry:2 validates against `token.crt`, so a self-signed test pair mints
  * tokens the running registry refuses.
  */
-export function dockerDriverForTests(): Promise<Driver> {
+export function dockerDriverForTests(
+  overrides: { readinessTimeoutMs?: number } = {},
+): Promise<Driver> {
   const keyPath = join(REPO_ROOT, 'infra/registry-auth/token.key')
   const certPath = join(REPO_ROOT, 'infra/registry-auth/token.crt')
   if (!existsSync(keyPath) || !existsSync(certPath)) {
@@ -113,7 +121,16 @@ export function dockerDriverForTests(): Promise<Driver> {
     // A fixed, non-secret value: these are throwaway containers on a laptop, and a
     // random one per run would orphan the previous run's service volumes.
     masterSecret: 'contract-suite-master-secret',
-    blueprintDir: join(REPO_ROOT, 'blueprints/fixture-node'),
+    // Resolves the REFERENCE, exactly as the control plane does, so this suite
+    // exercises the same seam rather than a fixed directory the boot path never
+    // uses. `fixture-node@1` is the only blueprint P3 has.
+    blueprintDirFor: (ref: string) => {
+      const dir = join(REPO_ROOT, 'blueprints', ref.split('@')[0]!)
+      if (!existsSync(join(dir, 'blueprint.yaml'))) {
+        throw new Error(`no blueprint '${ref}' — looked in ${dir}`)
+      }
+      return dir
+    },
     dnsServer: '10.89.0.53',
     registryHost: 'manifest-registry:5000',
     registryPublicHost: '127.0.0.1:7107',
@@ -127,6 +144,11 @@ export function dockerDriverForTests(): Promise<Driver> {
       caddy: createCaddyClient('http://127.0.0.1:7119'),
       servers: { internal: 'srv0', public: 'srv0' },
     },
+    caCertPath: CA_CERT,
+    // 90 s by default, which a test that WANTS the timeout cannot afford to wait.
+    ...(overrides.readinessTimeoutMs === undefined
+      ? {}
+      : { readinessTimeoutMs: overrides.readinessTimeoutMs }),
   })
 }
 
@@ -177,4 +199,68 @@ export function ensureContractRepo(repoPath = '/tmp/repo'): void {
   } finally {
     rmSync(work, { recursive: true, force: true })
   }
+}
+
+/**
+ * `fixtures/fixture-app` as a real bare repository at a real commit.
+ *
+ * Distinct from `ensureContractRepo`, which serves the contract suite's hardcoded
+ * `/tmp/repo` + `abc123` literals with the blueprint SKELETON. This one carries the
+ * fixture APP — a different tree, a real sha — because Task 17's claim is that an
+ * app the platform did not write builds and runs, and the skeleton is the
+ * blueprint's own file.
+ *
+ * Idempotent across runs: the bare repo is rebuilt whenever the source tree is
+ * newer, so editing the fixture app does not silently test the previous commit.
+ */
+export function fixtureBareRepo(repoPath = join(tmpdir(), 'mf-fixture-app.git')): {
+  repoPath: string
+  commitSha: string
+} {
+  const source = join(REPO_ROOT, 'fixtures/fixture-app')
+  const sourceStamp = execFileSync('sh', [
+    '-c',
+    `cat ${JSON.stringify(source)}/* | shasum -a 256 | cut -c1-16`,
+  ])
+    .toString()
+    .trim()
+  const stampFile = join(repoPath, 'manifest-fixture-stamp')
+  const current = existsSync(stampFile) ? readFileSync(stampFile, 'utf8').trim() : ''
+  if (current !== sourceStamp) {
+    rmSync(repoPath, { recursive: true, force: true })
+    const work = mkdtempSync(join(tmpdir(), 'mf-fixture-src-'))
+    try {
+      execFileSync('sh', [
+        '-c',
+        `cp -R ${JSON.stringify(source)}/. ${JSON.stringify(work)}/`,
+      ])
+      const git = (...args: string[]): void => {
+        execFileSync('git', args, {
+          cwd: work,
+          env: {
+            ...process.env,
+            GIT_AUTHOR_NAME: 'manifest',
+            GIT_AUTHOR_EMAIL: 'manifest@localhost',
+            GIT_COMMITTER_NAME: 'manifest',
+            GIT_COMMITTER_EMAIL: 'manifest@localhost',
+            // Fixed, so the same tree gives the same sha and — through
+            // SOURCE_DATE_EPOCH, which is the COMMIT's time — the same digest.
+            GIT_AUTHOR_DATE: '2026-01-01T00:00:00Z',
+            GIT_COMMITTER_DATE: '2026-01-01T00:00:00Z',
+          },
+        })
+      }
+      git('init', '-q', '-b', 'main')
+      git('add', '-A')
+      git('commit', '-q', '-m', 'fixture app')
+      execFileSync('git', ['clone', '--bare', '-q', work, repoPath])
+      writeFileSync(stampFile, `${sourceStamp}\n`)
+    } finally {
+      rmSync(work, { recursive: true, force: true })
+    }
+  }
+  const commitSha = execFileSync('git', [`--git-dir=${repoPath}`, 'rev-parse', 'HEAD'])
+    .toString()
+    .trim()
+  return { repoPath, commitSha }
 }

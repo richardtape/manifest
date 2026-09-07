@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { parse as parseYaml } from 'yaml'
@@ -183,17 +183,41 @@ export async function assembleContext(input: ContextInput): Promise<string> {
   await mkdir(dir, { recursive: true })
   // `git archive` reads a bare repository at a commit without a working tree, which
   // is what D5's local driver gives us.
-  await run('sh', [
-    '-c',
-    `git --git-dir=${JSON.stringify(input.repoPath)} archive ${JSON.stringify(input.commitSha)} | tar -x -C ${JSON.stringify(dir)}`,
+  //
+  // TWO PROCESSES, NOT A PIPE, and this is a correctness fix rather than a style
+  // one. `git archive … | tar -x` takes its exit status from TAR, so every way
+  // `git archive` can fail — a path that is not a repository, a commit that is not
+  // in it, a corrupt object — produced an EMPTY context and reported success.
+  // `SOURCE_EXPORT_FAILED` below could not fire, and the failure surfaced instead
+  // as whichever §12 gate noticed first: `make demo` on 2026-09-07 reported
+  // "package-lock.json is missing" for a repository whose HEAD plainly has one.
+  // Measured: `git --git-dir=file://… archive HEAD` exits 128 while
+  // `sh -c 'git … | tar …'` exits 0.
+  const tarball = join(input.workDir, 'source.tar')
+  await run('git', [
+    `--git-dir=${input.repoPath}`,
+    'archive',
+    '--format=tar',
+    '-o',
+    tarball,
+    input.commitSha,
   ]).catch((error: Error) => {
     throw new BuildContextError(
       'SOURCE_EXPORT_FAILED',
       `cannot export ${input.commitSha} from ${input.repoPath}: ${error.message}`,
-      "The commit must exist in the project's bare repository. `git --git-dir=<repo> " +
-        'cat-file -t <sha>` is the same question asked directly.',
+      "The commit must exist in the project's bare repository, and `repoPath` is a " +
+        'FILESYSTEM PATH, not the `file://` URL a builder is handed. ' +
+        '`git --git-dir=<repo> cat-file -t <sha>` is the same question asked directly.',
     )
   })
+  await run('tar', ['-x', '-f', tarball, '-C', dir]).catch((error: Error) => {
+    throw new BuildContextError(
+      'SOURCE_EXPORT_FAILED',
+      `cannot unpack the export of ${input.commitSha}: ${error.message}`,
+      'The archive git produced could not be read.',
+    )
+  })
+  await rm(tarball, { force: true })
 
   const descriptor = await loadDescriptor(input.blueprintDir)
   const template = await readFile(

@@ -15,7 +15,20 @@ export class BuildGateError extends Error {
     readonly findings: GateFinding[],
     readonly hint: string,
   ) {
-    super(`build blocked by ${findings.length} mandatory gate finding(s)`)
+    // NAME THEM. "blocked by 1 finding" tells the app's author nothing they can
+    // act on, and a build failure that does not say what to change is a failure
+    // they have to reproduce outside the platform to understand. The finding
+    // messages are already written for them and already redacted at construction
+    // — §14 redacts at capture, so the matched text is never in one.
+    super(
+      `build blocked by ${findings.length} mandatory gate finding(s): ` +
+        findings
+          .map(
+            (f) =>
+              `[${f.gate}] ${f.message}${f.path === undefined ? '' : ` (${f.path}${f.line === undefined ? '' : `:${f.line}`})`}`,
+          )
+          .join('; '),
+    )
     this.name = 'BuildGateError'
   }
 }

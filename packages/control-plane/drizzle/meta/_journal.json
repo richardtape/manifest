@@ -8,6 +8,20 @@
       "when": 1788659524555,
       "tag": "0000_white_unus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788808809336,
+      "tag": "0001_brave_lord_hawal",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788809346464,
+      "tag": "0002_cultured_the_spike",
+      "breakpoints": true
     }
   ]
 }

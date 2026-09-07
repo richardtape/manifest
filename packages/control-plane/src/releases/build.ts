@@ -11,7 +11,13 @@ export interface StartBuildInput {
   appSpecId: string
   commitSha: string
   blueprintRef: string
-  repoUrl: string
+  /**
+   * A FILESYSTEM PATH to the bare repository, not the `file://` URL a builder is
+   * handed. `buildImage` gives it to `git --git-dir=`, which rejects a URL with
+   * `fatal: not a git repository`. It was named `repoUrl` and the delivery route
+   * built one by hand — see the note at that call site.
+   */
+  repoPath: string
 }
 
 /**
@@ -37,7 +43,7 @@ export async function startBuild(
 
   try {
     const image = await driver.buildImage(
-      { repoPath: input.repoUrl, commitSha: input.commitSha },
+      { repoPath: input.repoPath, commitSha: input.commitSha },
       { blueprintRef: input.blueprintRef, projectSlug: input.projectSlug },
     )
     const [done] = await db
@@ -45,18 +51,35 @@ export async function startBuild(
       .set({
         status: 'succeeded',
         imageDigest: image.digest,
+        // BOTH HALVES. A digest with a re-derived repository is not the image
+        // that was built — see the column's own note.
+        imageRepository: image.repository,
         logsRef: `build:${created.id}`,
       })
       .where(eq(builds.id, created.id))
       .returning()
     return done!
   } catch (error) {
+    // THE REASON IS THE POINT. This used to be `void error` — the row said
+    // `failed` and carried nothing else, so the person who has to fix the build
+    // had no way to learn what went wrong short of re-running it outside the
+    // platform. §14 makes a failure a row so that it can be SEEN, and a row that
+    // says only "no" is not a failure anybody can act on.
+    //
+    // The message, not the stack: these errors are `BuildGateError`,
+    // `EngineError` and `BuildContextError`, whose messages are written for the
+    // app's author. `hint` is appended when the error carries one.
+    const e = error as { message?: string; hint?: string; code?: string }
+    const message = [
+      e.code === undefined ? '' : `${e.code}: `,
+      e.message ?? String(error),
+      e.hint === undefined ? '' : ` — ${e.hint}`,
+    ].join('')
     const [failed] = await db
       .update(builds)
-      .set({ status: 'failed', logsRef: `build:${created.id}` })
+      .set({ status: 'failed', logsRef: `build:${created.id}`, error: message })
       .where(eq(builds.id, created.id))
       .returning()
-    void error
     return failed!
   }
 }

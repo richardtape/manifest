@@ -92,7 +92,21 @@ export async function ensureInstanceContainer(
     Healthcheck: {
       Test: [
         'CMD-SHELL',
-        `wget -q -O /dev/null http://127.0.0.1:${spec.port}${spec.healthPath} || exit 1`,
+        // `-Y off` IS LOAD-BEARING. D18 forces egress through the per-app proxy by
+        // setting HTTP_PROXY/http_proxy in the container, and BusyBox wget honours
+        // `http_proxy` while supporting NO_PROXY NOT AT ALL — so the health check
+        // for the app's OWN loopback address was sent to tinyproxy, which denied
+        // it. Every instance sat in `health: starting` with a growing failing
+        // streak while the app served perfectly through the edge, and §11's state
+        // machine recorded the deploy as FAILED.
+        //
+        // Measured 2026-09-07 inside a running app container, BusyBox v1.37.0:
+        //   wget -q -O /dev/null http://127.0.0.1:8080/healthz  -> 403 Filtered, 1
+        //   wget -Y off -q -O /dev/null http://127.0.0.1:8080/healthz -> 0
+        //
+        // Loosening the proxy allowlist was rejected: the app reaching itself is
+        // not egress, and the fix belongs in the probe, not in the control.
+        `wget -Y off -q -O /dev/null http://127.0.0.1:${spec.port}${spec.healthPath} || exit 1`,
       ],
       Interval: 3_000_000_000,
       Timeout: 2_000_000_000,

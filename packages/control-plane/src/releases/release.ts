@@ -144,11 +144,22 @@ export async function deployRelease(
 
   // §23 gives the hostname as `<slug>.<zone>`, so the first label is the slug.
   const projectSlug = environment.hostname.split('.')[0]!
-  // Must be the repository buildImage actually produced — ORIENTATION records that
-  // per-app images live at `local/<slug>`. Deriving it from the project UUID named
-  // a repository that has never existed, and the remote-driver refusal below would
-  // then have been guarding a string nothing pushes to.
-  const repository = `local/${projectSlug}`
+  // THE REPOSITORY THE BUILD RECORDED, never one re-derived here. This was
+  // `local/${projectSlug}`, and an unqualified name is DOCKER HUB to the daemon:
+  // every deploy through the control plane died with `failed to resolve reference
+  // "docker.io/local/fixture-app@sha256:…": 401 Unauthorized`, while every test
+  // passed because tests pass the ImageRef `buildImage` returned. Third time in
+  // this repository that the tests constructed a value correctly and the
+  // production path rebuilt it wrongly.
+  const repository = build.imageRepository
+  if (!repository)
+    throw new ReleaseError(
+      'RELEASE_IMAGE_REPOSITORY_MISSING',
+      `build '${release.buildId}' recorded a digest but no repository, so the image it ` +
+        'produced cannot be named. Re-run the build: a build from before the repository ' +
+        'was recorded cannot be deployed, because guessing the registry host is what this ' +
+        'field exists to stop.',
+    )
   // §13, scoped to the driver rather than the environment kind: a driver targeting
   // remote infrastructure refuses a laptop-built image, because the architectures
   // differ and "promote the exact digest" makes that unresolvable at deploy time.
@@ -207,6 +218,25 @@ export async function deployRelease(
       ...Object.fromEntries(
         resolved.env.filter((e) => e.value !== undefined).map((e) => [e.name, e.value!]),
       ),
+      /**
+       * THE PLATFORM'S OWN BINDINGS, and `PORT` is not a convenience.
+       *
+       * The platform chooses the port: it is what the container HEALTHCHECK probes
+       * and what the Caddy route uses as its upstream. Nothing told the APP, so an
+       * app that did not happen to hardcode the blueprint's `default_port` listened
+       * somewhere else and was unreachable — the container ran, the route existed,
+       * and the edge answered 502 for ever. Measured by `make demo` on 2026-09-07
+       * with a manifest declaring `runtime.port: 8080`: the app logged
+       * `"port":3000` and the deploy timed out.
+       *
+       * §8's full injection contract, with its general mapping and its drift test,
+       * remains P4's. This is the subset without which a deploy cannot work at all,
+       * plus the three identity variables §11 gives every instance.
+       */
+      PORT: String(resolved.port),
+      MANIFEST_ENV: environment.kind,
+      MANIFEST_PROJECT_SLUG: projectSlug,
+      MANIFEST_APP_URL: `https://${environment.hostname}`,
       // AFTER the app's own, so a declared variable cannot shadow a binding the
       // platform made. An app that sets MONGODB_URI itself would otherwise be
       // pointed at a database of its choosing while appearing to be bound to its

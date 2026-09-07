@@ -111,8 +111,30 @@ export const builds = pgTable('builds', {
     .notNull()
     .references(() => appSpecs.id),
   imageDigest: text('image_digest'),
+  /**
+   * The repository half of the image reference, AS THE BUILD PRODUCED IT —
+   * `127.0.0.1:7107/local/chem-labs`, host and all.
+   *
+   * `deployRelease` used to re-derive it as `local/<slug>` from the environment
+   * hostname. An unqualified name is Docker Hub to the daemon, so every deploy
+   * through the control plane died with `failed to resolve reference
+   * "docker.io/local/fixture-app@sha256:…": 401 Unauthorized`. §13 binds an
+   * approval to a digest, and a digest is only half an image reference — the
+   * other half has to be recorded, not reconstructed. Measured by `make demo`,
+   * 2026-09-07.
+   */
+  imageRepository: text('image_repository'),
   status: buildStatus('status').notNull().default('pending'),
   logsRef: text('logs_ref'),
+  /**
+   * WHY a failed build failed. §14 makes a failure a recorded row rather than an
+   * exception precisely so a faculty member can see it — and until this column
+   * existed the row said `failed` and nothing else: `startBuild` caught the error
+   * and discarded it (`void error`), and `logsRef` names a log store that does not
+   * exist yet. Found by `make demo` on 2026-09-07, where the only way to learn why
+   * a build had failed was to re-run it by hand outside the platform.
+   */
+  error: text('error'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 

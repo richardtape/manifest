@@ -24,10 +24,31 @@ const readIssuerPem = (path: string, which: string): string => {
 
 // Hoisted rather than constructed inline: the boot line below reads `driver.name`
 // back, and this file is the only place the choice is made.
+// Loaded before the driver, which needs it to turn a blueprint REFERENCE into a
+// directory. One registry, so the server and the builder cannot disagree about
+// which blueprint `fixture-node@1` names.
+const blueprints = await loadBlueprints(config.blueprintsRoot)
+
 const driver = await createDockerDriver({
   engine: createEngineClient({ socketPath: config.dockerSocket }),
   masterSecret: config.masterSecret,
-  blueprintDir: config.blueprintsRoot,
+  // P2's registry, which already exposes `pathOf(ref)` for exactly this. Passing
+  // `config.blueprintsRoot` here — the directory HOLDING the blueprints — meant
+  // every build through this process died with `no blueprint.yaml in .../blueprints`,
+  // and `buildImage` ignored its own `blueprintRef` argument. Found by `make demo`.
+  blueprintDirFor: (ref: string) => {
+    const dir = blueprints.pathOf(ref)
+    if (dir === undefined) {
+      throw new Error(
+        `no blueprint '${ref}' in ${config.blueprintsRoot}. ` +
+          `Available: ${blueprints
+            .list()
+            .map((b) => `${b.blueprint}@${b.major_version}`)
+            .join(', ')}`,
+      )
+    }
+    return dir
+  },
   dnsServer: config.dnsServer,
   // These two are NOT interchangeable, and nothing fails loudly if they are
   // swapped: `registryHost` is what the BUILDER calls the registry (reachable on
@@ -48,6 +69,12 @@ const driver = await createDockerDriver({
     caddy: createCaddyClient(config.caddyAdminUrl),
     servers: config.caddyServers,
   },
+  // The readiness probe runs from a container and must VERIFY the edge's
+  // certificate — `curlimages/curl` trusts no private root, so without this the
+  // probe is `curl: (60)` and http_code 000 for ever, and every deploy times out
+  // reading "the app is slow to start" (measured 2026-09-06).
+  caCertPath: config.caCertPath,
+  readinessTimeoutMs: config.readinessTimeoutMs,
 })
 
 const app = await buildServer({
@@ -55,7 +82,7 @@ const app = await buildServer({
   config,
   driver,
   source: createLocalSourceDriver(config.reposRoot),
-  blueprints: await loadBlueprints(config.blueprintsRoot),
+  blueprints,
 })
 
 await app.listen({ port: config.port, host: '127.0.0.1' })

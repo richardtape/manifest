@@ -17,6 +17,27 @@ const SLUG = /^[a-z][a-z0-9-]{2,38}$/
 
 const ENVIRONMENT_KINDS = ['sandbox', 'staging', 'production'] as const
 
+/**
+ * A refusal this module owns, so the API can answer 409 instead of 500.
+ *
+ * A duplicate slug used to reach the client as `INTERNAL — the control plane
+ * failed to handle this request`, which tells a faculty member nothing and tells
+ * an operator nothing either, because `logger: false` swallowed the trace as well.
+ * Creating a project whose name is taken is an ordinary, expected answer.
+ */
+export class ProjectError extends Error {
+  constructor(
+    readonly code: string,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'ProjectError'
+  }
+}
+
+/** Postgres `unique_violation`. */
+const UNIQUE_VIOLATION = '23505'
+
 export interface CreateProjectInput {
   slug: string
   ownerId: string
@@ -29,7 +50,8 @@ export async function createProject(
   input: CreateProjectInput,
 ): Promise<{ project: Project; environments: Environment[] }> {
   if (!SLUG.test(input.slug)) {
-    throw new Error(
+    throw new ProjectError(
+      'PROJECT_INVALID_SLUG',
       `invalid project slug '${input.slug}' — must match ${SLUG.source} (§7)`,
     )
   }
@@ -42,6 +64,20 @@ export async function createProject(
       blueprintRef: input.blueprintRef,
     })
     .returning()
+    .catch((error: unknown) => {
+      // The slug is unique and it is also the first label of three hostnames
+      // (§23), so "that name is taken" is a normal answer, not a fault. Drizzle
+      // wraps the driver error; the pg code is on the `cause`.
+      const cause = (error as { cause?: { code?: string } }).cause
+      if (cause?.code === UNIQUE_VIOLATION) {
+        throw new ProjectError(
+          'PROJECT_SLUG_TAKEN',
+          `the name '${input.slug}' is already in use. Project names are unique across ` +
+            'the platform because each one becomes a hostname (§23).',
+        )
+      }
+      throw error
+    })
   if (!project) throw new Error('project insert returned no row')
 
   await db.insert(projectMembers).values({

@@ -1,4 +1,4 @@
-import { AuthorizationError } from '../projects/index.js'
+import { AuthorizationError, ProjectError } from '../projects/index.js'
 import { ReleaseError } from '../releases/index.js'
 import { SourceError } from '../source/index.js'
 import { ConfigError } from '../config.js'
@@ -118,6 +118,7 @@ export function toErrorResponse(error: unknown): { status: number; body: ErrorEn
   // missing: an unknown dev PUID surfaced as 500 INTERNAL, so the one test that
   // pinned the shim's refusal was asserting against the wrong door.
   if (
+    error instanceof ProjectError ||
     error instanceof ReleaseError ||
     error instanceof SourceError ||
     error instanceof ConfigError ||

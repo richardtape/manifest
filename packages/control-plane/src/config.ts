@@ -80,6 +80,20 @@ const envSchema = z.object({
   // §12 makes the resolver per-container: dnsmasq-A's address on the platform
   // network. P1 pins it at 10.89.0.53 (infra/lib/common.sh, DNS_C_IP).
   MANIFEST_DNS_SERVER: z.string().min(1).default('10.89.0.53'),
+  /**
+   * The platform CA `make seed` mints. `curlimages/curl` trusts no private root,
+   * so the readiness probe cannot verify the edge's certificate without it — and
+   * without verification the probe would need `-k`, which blinds readiness to a
+   * TLS fault §20 cares about. Repo-relative, resolved from the repository root
+   * for the reason `fromRepoRoot` records.
+   */
+  MANIFEST_CA_CERT: z.string().min(1).default('infra/ca/manifest-root.crt'),
+  /**
+   * How long a deploy waits for the app to answer 200 AT ITS HOSTNAME, through the
+   * edge. Generous, because it covers the app's own cold start (an `npm` runtime,
+   * a database connection) as well as DNS, the route and the listener.
+   */
+  MANIFEST_READINESS_TIMEOUT_MS: z.coerce.number().int().positive().default(90_000),
   // Every backing-service credential is derived from this by HMAC (Task 6), so it
   // is the single secret behind every app's database password. Optional here and
   // required outside development below, for the same two reasons the build
@@ -108,6 +122,9 @@ export interface Config {
   /** Listener -> Caddy server name. Both `srv0` locally (§21, divergence 2). */
   caddyServers: { internal: string; public: string }
   dnsServer: string
+  /** The platform CA, absolute. Mounted into the readiness probe container. */
+  caCertPath: string
+  readinessTimeoutMs: number
   /** Task 6 derives every service credential from this by HMAC. */
   masterSecret: string
   /**
@@ -209,6 +226,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       public: raw.MANIFEST_CADDY_SERVER_PUBLIC,
     },
     dnsServer: raw.MANIFEST_DNS_SERVER,
+    caCertPath: fromRepoRoot(raw.MANIFEST_CA_CERT),
+    readinessTimeoutMs: raw.MANIFEST_READINESS_TIMEOUT_MS,
     masterSecret,
     masterSecretGenerated,
     dockerSocket: raw.MANIFEST_DOCKER_SOCKET ?? resolveSocketPath(),

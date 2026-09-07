@@ -114,6 +114,11 @@ export function createLocalSourceDriver(root: string): SourceDriver {
   return {
     name: 'local',
 
+    repositoryFor(projectSlug: string): RepoRef {
+      const path = pathFor(projectSlug)
+      return { projectSlug, path, url: `file://${path}` }
+    },
+
     async createRepository(projectSlug: string, seed: SeedFiles): Promise<RepoRef> {
       const path = pathFor(projectSlug)
       await mkdir(repoRoot, { recursive: true })
