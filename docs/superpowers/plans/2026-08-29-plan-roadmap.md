@@ -57,13 +57,13 @@ which is superseded; the pointer moved on 2026-09-04.)
 | **S2** | ✅ **done** 2026-08-29 (~0.5 h of 2 days) | **Yes** — one `INSERT` registers a working SP, no reload, no restart, no cache TTL. Manifest writes no PHP. Attribute release needs `core:AttributeLimit` *and* registration-time validation, or it fails open. | **P4 (1b)**'s shape; P2's IdP metadata schema |
 | **S1** | ✅ **done** 2026-08-30 (~2 h of 3 days) | **Yes** — bare repo → routed healthy container with a bound database, and **§11's `Driver` interface needed no revision**. Rootless BuildKit works, but not via buildx's own driver. | **P3**; **P2 Tasks 9+** |
 | **S3** | ✅ **done** 2026-08-30 (~2 h of 2 days) | **Yes** — every mechanism §10 assumes works and `ubc-genai-toolkit` needs no change, but **three defaults are wrong**: keys need `allowed_routes` (one port serves admin *and* proxy, and an app key can mint a child that outlives it), `embed()` needs `encoding_format: 'float'` (192 zeros instead of 768 floats, silently), and the LiteLLM `user` must be namespaced per app (end-user budgets are global). | **P4 (1b)** |
-| **S6** | ⬜ deferred — **is P3 Task 18**, written 2026-08-31 | Container isolation; becomes §16's security regression tier. The probe matrix is written and each denial is paired with a positive control. | Phase 3 |
+| **S6** | ✅ **done** 2026-09-07 (as P3 Task 18) | **Every probe denied, every denial paired with a positive control, and one result better than the spec.** §21's divergence 8 no longer holds as written: the developer's machine is not merely policed but **unroutable** from an app network, because P3 Task 4 makes those networks `--internal`. Isolation measured as `container`; **whether that suffices for SANDBOXES is left to S5**, since these probes ran against a staging app. The matrix is a permanent test tier (`s6.docker.test.ts`), not a report. | Phase 3 |
 | **S4** | ⬜ deferred — before Phase 4 | Wake-on-request. | Phase 4 |
 | **S5** | ⬜ deferred — before Phase 3, after S6 | An agent inside a sandbox. | Phase 3 |
 
-**Every spike blocking Phase 1a is now done. P1, P2 and P3 can all be written.**
-The remaining three spikes are deliberately later: S6 runs as P3's acceptance
-exercise, S5 after S6, and S4 before Phase 4. **Nothing is waiting on a spike.**
+**Every spike blocking Phase 1a is now done, and S6 has since run as P3's acceptance
+exercise.** Five of seven have reported. The remaining two are deliberately later:
+**S5** after S6, and **S4** before Phase 4. **Nothing is waiting on a spike.**
 
 ### Controls probed outside a spike
 
