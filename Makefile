@@ -60,7 +60,15 @@ reset: .env  ## Destroy projects, volumes and registry contents. KEEPS the seed 
 # The filter is Docker's `name=^mf-`, not a `grep`, and `-I{}` gives ONE
 # invocation per resource so a single stubborn container does not abandon the
 # rest. NO `xargs -r`: it is GNU-only and BSD xargs already handles empty input.
-	@docker ps -aq --filter 'name=^mf-' | xargs -I{} docker rm -f {} 2>/dev/null || true
+# `-v` REMOVES THE CONTAINER'S ANONYMOUS VOLUMES with it. Without it this target
+# is itself a source of defect 24's leak, which the driver was fixed for in Task 6:
+# `mongodb/mongodb-community-server` declares BOTH `/data/db` and `/data/configdb`
+# as VOLUMEs and only the first is bound to a named one, so every service container
+# removed without `-v` orphans an anonymous volume. Measured 2026-09-07: six left
+# behind by this session's resets. The named `mf-…-data` volumes are removed
+# separately below, deliberately — that is D3's data and its removal is the
+# `reset` verb's whole point.
+	@docker ps -aq --filter 'name=^mf-' | xargs -I{} docker rm -f -v {} 2>/dev/null || true
 	@docker network ls -q --filter 'name=^mf-' | xargs -I{} docker network rm {} 2>/dev/null || true
 	@docker volume ls -q --filter 'name=^mf-' | xargs -I{} docker volume rm -f {} 2>/dev/null || true
 	@echo "  re-mirroring base images into the fresh registry (no network needed)"

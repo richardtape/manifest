@@ -8191,6 +8191,27 @@ deleted repository root and an emptied registry** back to a healthy app at its U
 **Baselines after Session 5:** `pnpm test` **381**, `pnpm test:docker` **89**,
 `make doctor` **16 / 0**, `make verify` **34 / 0**.
 
+**Machine state, snapshotted at both ends and diffed.**
+[`machine-baseline-2026-09-07.md`](../machine-baseline-2026-09-07.md). Everything this
+session created was removed: `mf-` containers, networks and volumes via `make reset`,
+the ten per-app images by id, and **six orphaned anonymous volumes, also by id** —
+listed and dated first, because a blind `docker volume prune -f` is not safe here.
+`docker volume ls -f dangling=true` includes **named** volumes that merely have no
+container attached, so it lists `manifest-caddy-data` — the trusted CA — and
+`saml-sso-pip-cache`, which belongs to somebody else entirely.
+
+Those six were `make reset`'s own doing and are now fixed: it removed containers with
+`docker rm -f` and no `-v`, so each service container orphaned an anonymous volume for
+`/data/configdb`, which `mongodb/mongodb-community-server` declares and the driver does
+not bind. That is **defect 24's leak arriving through the Makefile** after Task 6 had
+fixed it in the driver. `docker rm -f -v` now.
+
+Verified unchanged: the four containers that must survive, `manifest-caddy-data`,
+`manifest-verdaccio-storage`, `manifest-grype-db`, `infra/images.lock`, and
+**`node:22-alpine` still at `sha256:1ef15d33…`**, the digest the blueprint pins.
+`manifest-buildkit-cache` is absent, which is `make reset` working as documented — the
+next build recreates it.
+
 ---
 
 ---
