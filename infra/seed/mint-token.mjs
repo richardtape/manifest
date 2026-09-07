@@ -2,7 +2,14 @@
 // cannot use `docker login`: there is no password to type and the realm is the
 // control plane, which is not running during `make seed`. A pre-minted bearer token
 // in a throwaway docker config is the supported path.
-// Usage: node infra/seed/mint-token.mjs base/node [local/chem-labs ...]
+// Usage: node infra/seed/mint-token.mjs [--actions=pull,push,delete] base/node [...]
+//
+// The default actions are pull and push, which is what seeding needs. DELETE is a
+// separate registry action and a token without it answers 401 — which matters
+// because the offline control in P3 Task 17 removes a mirrored base image to prove
+// the build really resolves from the local registry. A 401 there would leave the
+// image in place, the build would still succeed, and the conclusion would be that
+// offline was proven. Measured 2026-09-07.
 //
 // Takes ONE OR MORE repositories. A build pulls its base image from `base/<repo>`
 // and pushes to `local/<slug>`, and a `registrytoken` in a docker config is
@@ -11,7 +18,10 @@
 import { createSign, randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 
-const repositories = process.argv.slice(2)
+const args = process.argv.slice(2)
+const actionsArg = args.find((a) => a.startsWith('--actions='))
+const actions = actionsArg ? actionsArg.slice('--actions='.length).split(',') : ['pull', 'push']
+const repositories = args.filter((a) => !a.startsWith('--'))
 if (repositories.length === 0) {
   console.error('usage: mint-token.mjs <repository> [repository ...]')
   process.exit(2)
@@ -29,7 +39,7 @@ const claims = {
   iss: 'manifest-control-plane', sub: 'make-seed', aud: 'manifest-registry',
   exp: now + 900, nbf: now - 10, iat: now, jti: randomUUID(),
   access: repositories.map((name) => ({
-    type: 'repository', name, actions: ['pull', 'push'],
+    type: 'repository', name, actions,
   })),
 }
 const signing = `${b64u(JSON.stringify(header))}.${b64u(JSON.stringify(claims))}`

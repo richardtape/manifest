@@ -40,6 +40,104 @@ make down      # stops everything, including the profiled builder
 Plus `make doctor` (*can this machine run the platform?* — works with nothing up) and
 `make verify` (*is the running platform correct?* — needs `make up` first).
 
+And `make demo` — P3's acceptance, described below.
+
+## `make demo` — an app, from a bare repository to a URL
+
+*Added by P3 Task 17. First run green 2026-09-07.*
+
+`make demo` drives the **real HTTP API** end to end, so it proves the platform
+rather than a test harness. The control plane must be running first — see
+*Running the control plane* in [`README.md`](../../README.md) — and its boot line
+must say `{"driver":"docker"}`. Against the fake driver every claim below is empty,
+which is why step 0 of the script checks and why the boot line exists at all.
+
+```bash
+make up
+# ... start the control plane in another terminal, per README ...
+make demo
+```
+
+Nine steps: log in with the dev shim · create the project (three environments and a
+provisioned bare repository) · push `fixtures/fixture-app` into that repository with
+a `manifest.yaml` declaring a Mongo · validate the manifest at that commit · build
+(blueprint Dockerfile, egress-free builder, npm mirror, SBOM and scan, digest) ·
+release · deploy to staging · **be refused production** with §13's checklist · then
+reach the app from a container, through the edge, with the platform CA verified and
+no `-k`.
+
+The last step prints the app's own body:
+
+```json
+{"app":"fixture-app","env":"staging","url":"https://fixture-app.staging.manifest.internal",
+ "uid":10001,"boots":1,"writes":1}
+```
+
+**Read `uid` and `boots`, not the 200.** `uid: 10001` is §12's non-root baseline
+observed from outside the container. `boots` is written once per *process start* and
+never by a request, so a rising value across a stop and start is evidence the bound
+database and its volume are real — where a 200 is evidence only that something
+answered. The Caddyfile wildcard returns 200 for **every** name in the zone whether a
+route exists or not, so "it answered" genuinely proves nothing here; the script
+checks the body for that reason.
+
+`make reset` removes every `mf-` container, network and volume the demo created and
+keeps `manifest-caddy-data`, so the CA you trusted stays trusted.
+
+### Proving it is really offline
+
+*Run 2026-09-07. This is the control, and without it a build that succeeded because
+the daemon had the image cached is indistinguishable from one that succeeded because
+the mirroring worked — which is the mistake S1 made once, in the other direction,
+with the npm registry.*
+
+Removing the mirrored base image must make the build **fail**:
+
+```bash
+# `delete` is a SEPARATE registry action. The default token has pull and push only,
+# and a DELETE without it answers 401 — leaving the image in place, the build
+# succeeding, and the wrong conclusion drawn.
+TOKEN=$(node infra/seed/mint-token.mjs --actions=pull,push,delete base/node)
+curl -sS -X DELETE -H "Authorization: Bearer $TOKEN" \
+  "http://127.0.0.1:7107/v2/base/node/manifests/sha256:1ef15d33…"   # -> 202
+docker exec manifest-registry registry garbage-collect \
+  --delete-untagged /etc/docker/registry/config.yml
+make demo                                                          # -> MUST FAIL
+```
+
+Observed, and it is the right failure for the right reason:
+
+```
+ERROR: failed to solve: manifest-registry:5000/base/node@sha256:1ef15d33…:
+failed to resolve source metadata … : not found
+```
+
+It does **not** fall back to Docker Hub, because §12 puts the builder on an
+`--internal` network with no route off it — which `make verify` asserts as a named
+negative control. Restore with no network at all, because the daemon still holds the
+image:
+
+```bash
+docker restart manifest-registry        # see the warning below
+bash infra/seed/mirror-images.sh
+```
+
+**Three things about this procedure, each of which silently does nothing if you get
+it wrong**, and a control that quietly does nothing is worse than no control:
+
+| | |
+|---|---|
+| The token needs `delete` | Without it the DELETE is **401** and the image is still there. |
+| `REGISTRY_STORAGE_DELETE_ENABLED` must be `true` | It is, in `infra/compose.yaml`. Without it the DELETE is **405**. |
+| `Accept` headers must be **separate `-H` flags** | This `registry:2` does not split a comma-joined list, and the mirrored base is an **OCI** manifest, so `-H 'Accept: application/vnd.oci.image.manifest.v1+json'` is the one that matters. Comma-joined, the registry answers **404** `OCI manifest found, but accept header does not support OCI manifests` — which reads exactly like "the image is missing". |
+
+**And `registry garbage-collect` on a RUNNING registry corrupts it.** Upstream
+requires the registry to be read-only or stopped during a GC; run live, it deletes
+the manifest blob while leaving the tag and revision links pointing at it, and every
+later `docker push` of the same content reports success with the right digest while
+the registry keeps answering 404. Measured 2026-09-07. A `docker restart
+manifest-registry` before re-mirroring is what clears it.
+
 ## If something is wrong
 
 `make doctor` first. Every check in it corresponds to something that actually went
