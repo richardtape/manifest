@@ -179,7 +179,15 @@ packages/control-plane/
     │   │                        refuses any request carrying an Origin header
     │   ├── routes.ts            applyRoute / removeRoute / reapplyAllRoutes
     │   └── readiness.ts         waitForReady + edgeProbe, which runs FROM a
-    │                            container, over HTTPS, with the platform CA
+    │                            container, over HTTPS, with the platform CA.
+    │                            CALLED BY DockerDriver.ensureInstance — it was
+    │                            called by nothing at all until Task 17
+    ├── build/                   P3. source+spec -> digest, with §12's gates
+    │   ├── context.ts           assembleContext. TWO processes, never a pipe:
+    │   │                        `git archive | tar` takes tar's exit status
+    │   ├── gates.ts             secret + lockfile, platform-mandatory
+    │   └── scan.ts              Syft SBOM, Grype, the staleness rule
+    ├── services/                P3. dedicated Mongo per app+environment (D3)
     └── api/
         ├── server.ts            Fastify, session hook, idempotency hook  (Task 17)
         ├── errors.ts            the D23.7 envelope — every failure exits here
@@ -187,12 +195,19 @@ packages/control-plane/
         ├── testing.ts           testDeps — blueprints resolved from import.meta.url
         ├── authz-contract.ts    THE SHARED SUITE P3 IMPORTS UNCHANGED    (Task 20)
         ├── routes/auth.ts       dev login, me, logout
-        ├── routes/projects.ts   projects, spec, members
+        ├── routes/projects.ts   projects, members, and POST .../spec — the ONLY
+        │                        way a project's manifest.yaml can change after
+        │                        creation, and isSensitiveDiff's one call site
         ├── routes/delivery.ts   builds, releases, deploy, environments   (Task 19)
         └── index.ts
 ```
 
-`pnpm test` → **224 tests across 23 files**, **run from the repo root** (`pnpm test`,
+Plus, from P3: `fixtures/fixture-app/` (the build target — `server.js` at the tree
+root, because the blueprint's `CMD` is not templated), `scripts/demo.sh`, and
+`src/runtime/docker/{roundtrip,s6}.docker.test.ts`, which are the two suites that
+exercise the whole thing rather than a part of it.
+
+`pnpm test` → **381 tests**, **run from the repo root** (`pnpm test`,
 not `pnpm --filter … test` — the two set a different working directory, and that
 difference was a defect). Everything that touches `src/db/` or `src/api/` needs
 `make up`; the rest needs no Docker, no Postgres and no network. The connection string

@@ -460,6 +460,20 @@ identifier is `hash(ubcEduCwlPuid ‖ project ‖ environment)`, never a bare PU
 Each has a §16 test attached. Read `spikes/S3-findings.md` §Evidence 8 and 11 before
 writing the AI module — the two failures they describe are both silent.
 
+**What P4 inherits, concretely.** These are the seams P4 touches, as they actually
+exist after P3 — the equivalent of the *What P2 leaves you* section P3 had, and the
+place to check before writing a task that assumes any of them.
+
+| | |
+|---|---|
+| `identity/` | The dev shim: `session.ts` (signed, expiring cookies, no sessions table) and `dev-auth.ts` (four named test users, never arbitrary text). **P4 deletes this module** and needs an explicit task for it. Two safeguards exist and must survive the replacement: the service refuses to start if `MANIFEST_DEV_AUTH` is set outside development, and a test asserts that. |
+| `POST /projects/:projectId/spec` | **New in P3 Task 17.** Re-validates `manifest.yaml` at a commit and is the ONLY thing that can change a project's spec after creation. It computes D9's `isSensitiveDiff` and **reports it without enforcing** — the escalation is P6's. P4 should not grow a half-gate there. |
+| Service bindings | `deployRelease` derives a `ServiceBinding` per `resolved.services` entry, calls `ensureService`, and injects the endpoint under the catalogue's variable name. Platform bindings — including `PORT`, `MANIFEST_ENV`, `MANIFEST_PROJECT_SLUG` and `MANIFEST_APP_URL` — are applied **after** the app's own `env`, so a declared variable cannot shadow one. **§8's general injection contract and its drift test are P4's**; this is the plumbing only, and the ordering rule has a test. |
+| Secrets today | `MANIFEST_MASTER_SECRET` derives every backing-service credential by HMAC (P3 Task 6). It must be STABLE — a regenerated one makes every existing database reject the process, and the failure reads as a Mongo fault, so boot warns when it generated one. `secrets/` envelope encryption is P4's and replaces this. |
+| Blueprints | `blueprints/fixture-node/` is P3's minimal one and its `Dockerfile.tmpl` carries two hard-won refusals — no `# syntax=` directive, and `.npmrc` copied WITH the lockfile rather than after it. **`node-ts-mongo@1` is P4's**, and it must keep both. The blueprint registry's `pathOf(ref)` is how a reference becomes a directory; the driver takes it as `blueprintDirFor`, so a second blueprint needs no driver change. |
+| The IdP | `infra/idp/` is ours, built from `php:8.3-apache` plus SimpleSAMLphp 2.x, on port **7122**, with its own `manifest_idp` database. It has **no dependency on `docker-simple-saml` running or existing**. S2 established that one `INSERT` into `saml20_sp_remote` registers an SP on the next request — no reload, no restart, no cache TTL — and that attribute release **fails open**. |
+| Fixtures | `fixtures/fixture-app/` is P3's build target and stays trivial. **`fixtures/proof-app/` is P4's** and is §16's proof app — the one that goes to UBC on the external track, which is why it should be honest rather than minimal. |
+
 **Demo:** §16's proof app — log in with CWL, write a note to its own Mongo, ask the
 LLM a question, display the answer — driven by `curl`.
 
