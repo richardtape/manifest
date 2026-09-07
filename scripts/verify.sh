@@ -255,56 +255,48 @@ egress_proxy_survives_denial() {
 check "the egress proxy survives denying a request"  egress_proxy_survives_denial
 
 echo
-echo "Builder (§12, S1) — only checked when the 'build' profile is up"
-if docker inspect manifest-buildkitd >/dev/null 2>&1; then
+echo "Builder (§12, S1)"
 
-  builder_not_privileged() {
-    local p u
-    p=$(docker inspect manifest-buildkitd --format '{{.HostConfig.Privileged}}')
-    u=$(docker inspect manifest-buildkitd --format '{{.Config.User}}')
-    echo "Privileged=$p User=$u (want false, and a non-root uid)"
-    [ "$p" = "false" ] && [ -n "$u" ] && [ "$u" != "root" ] && [ "$u" != "0:0" ]
-  }
-  check "the builder is rootless AND non-privileged"  builder_not_privileged
+# THESE FOUR CHECKS WERE DEAD, and had been since P3 Task 10. They were wrapped in
+# `if docker inspect manifest-buildkitd`, a compose service behind the `build`
+# profile that nothing ever starts — so `make verify` skipped them silently and
+# reported a clean run. That is the could-not-fail shape this project keeps paying
+# for, and it survived four sessions.
+#
+# The resolution is NOT to start that container. P3 replaced it with ephemeral
+# `mf-builder-*` containers created per build, and a second, permanently-running
+# definition of the builder is a thing that can drift from the real one while
+# verify happily asserts the wrong object's properties. `infra/compose.yaml`'s
+# `builder` service is deleted for that reason.
+#
+# So the split is: `make verify` asserts the TOPOLOGY the builder sits in, which is
+# infrastructure and is exactly what this script is for and what S1 left open.
+# The builder's OWN properties — rootless, non-privileged, rootlesskit supervising,
+# no egress, mirror reachable — are asserted in
+# `packages/control-plane/src/runtime/docker/builder.docker.test.ts`, against the
+# container the DRIVER creates, which is the only builder that runs in anger.
 
-  builder_runs_rootlesskit() {
-    local out; out=$(docker exec manifest-buildkitd ps -o user,comm 2>&1)
-    echo "$out" | tr '\n' ' '
-    echo "$out" | grep -q rootlesskit
-  }
-  check "rootlesskit is the process supervisor"  builder_runs_rootlesskit
+# S1 left this open: "Does --internal survive a Docker Desktop restart with the
+# same semantics? Not tested." Answering it once is worth very little — Docker
+# Desktop upgrades and the answer ages. Asserting it every run converts a
+# regression from "a builder that quietly has egress" into a failed check.
+internal_network_still_denies() {
+  local rc
+  docker run --rm --network "$NET_BUILD" curlimages/curl:8.11.1 \
+    -sS -m 6 -o /dev/null https://registry.npmjs.org/ >/dev/null 2>&1; rc=$?
+  echo "curl to npmjs from $NET_BUILD exited $rc (want non-zero)"
+  [ "$rc" -ne 0 ]
+}
+check "NEGATIVE CONTROL: --internal still denies egress after any Docker restart" \
+  internal_network_still_denies
 
-  # Judge by wget's EXIT CODE, not its output. With -q a SUCCESSFUL fetch prints
-  # the page body and a BLOCKED one prints "wget: bad address" on stderr, so an
-  # `[ -z "$out" ]` assertion is non-empty either way and can essentially never
-  # pass — it reported FAIL here while egress was correctly blocked. And as in
-  # Task 7, a failure of `docker exec` itself (125/126/127) means the command
-  # never ran, which tells us nothing about egress.
-  # The POSITIVE HALF is the very next check: the builder must still reach the
-  # mirror, or "blocked" would just mean the builder has no networking at all.
-  builder_egress_blocked() {
-    local out rc
-    out=$(docker exec manifest-buildkitd wget -q -T4 -O- https://registry.npmjs.org/ 2>&1); rc=$?
-    if [ "$rc" -eq 0 ]; then
-      echo "REACHED npmjs from the builder — egress is NOT restricted"; return 1
-    fi
-    if [ "$rc" -ge 125 ]; then
-      echo "docker exec itself failed (exit $rc), so egress was never exercised: ${out:0:80}"
-      return 1
-    fi
-    echo "wget exited $rc: ${out:0:60}"
-  }
-  check "NEGATIVE CONTROL: the builder cannot reach the public internet"  builder_egress_blocked
-
-  builder_reaches_mirror() {
-    docker exec manifest-buildkitd wget -q -T4 -O- http://manifest-verdaccio:4873/-/ping >/dev/null &&
-    echo "mirror reachable from the builder"
-  }
-  check "the builder can reach the package mirror"  builder_reaches_mirror
-
-else
-  report "builder" echo "not running — start with: docker compose --profile build up -d builder"
-fi
+# The positive half is already above ("registry and mirror are reachable from the
+# internal build network"). Without it, the denial would also pass on a network
+# with no connectivity at all.
+report "builder properties" echo \
+  "rootless, non-privileged, rootlesskit, no egress, mirror reachable: asserted in
+          builder.docker.test.ts against the container the driver creates
+          (pnpm test:docker). Not duplicated here — a second definition drifts."
 
 echo
 echo "AI (§10, S3)"
@@ -590,5 +582,49 @@ no_emulated_containers() {
   echo "EMULATED:$bad on a $host_arch host"; return 1
 }
 check "no platform container runs under emulation"  no_emulated_containers
+
+echo
+echo "Per-app resources (P3)"
+
+# S1 lost a live app's route by restarting Caddy. §12 gained a sentence for it and
+# P3 gained reapplyAllRoutes; this reports the property that made both necessary,
+# so a run after an edge restart shows plainly whether the runtime routes are back.
+runtime_routes_applied() {
+  local n
+  n=$(curl -sS -m 5 "http://127.0.0.1:$PORT_CADDY_ADMIN/config/apps/http/servers/srv0/routes" 2>/dev/null \
+      | tr ',' '\n' | grep -c '"@id":"mf-' || true)
+  echo "runtime routes currently applied: $n (the control plane re-applies these on edge start)"
+  true
+}
+report "routing" runtime_routes_applied
+
+# P1's ownership rule, reported rather than trusted. `mf-` is per-app and ours;
+# `manifest-` is the platform's; everything else on this machine is somebody
+# else's and is never touched. A non-zero count after `make reset` is a leak.
+mf_resources() {
+  local c n v
+  c=$(docker ps -a --format '{{.Names}}' | grep -c '^mf-' || true)
+  n=$(docker network ls --format '{{.Name}}' | grep -c '^mf-' || true)
+  v=$(docker volume ls --format '{{.Name}}' | grep -c '^mf-' || true)
+  echo "mf- containers=$c networks=$n volumes=$v (0/0/0 immediately after make reset)"
+  true
+}
+report "per-app resources" mf_resources
+
+# The four containers this project must never disturb, and the CA volume a reset
+# must never remove. Reported every run, because a `grep '^mf-'` typo in `make
+# reset` would take out somebody else's work silently and nothing else would notice.
+survivors() {
+  local missing="" c
+  for c in docker-simple-saml-saml-idp-1 qdrant-local-dev mongodb mongo-express; do
+    docker inspect "$c" >/dev/null 2>&1 || missing="$missing $c"
+  done
+  docker volume inspect manifest-caddy-data >/dev/null 2>&1 \
+    || missing="$missing manifest-caddy-data(volume)"
+  [ -z "$missing" ] && { echo "all four pre-existing containers and the CA volume are present"; return 0; }
+  echo "MISSING:$missing — these must survive every reset (CLAUDE.md, non-negotiable)"
+  return 1
+}
+check "nothing this platform owns has removed somebody else's containers or the CA"  survivors
 
 summary

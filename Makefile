@@ -35,8 +35,8 @@ up: .env  ## Boot the platform. Works offline after `make seed`.
 	@echo "  platform up. Next: make doctor && make verify"
 	@echo "  edge: https://console.manifest.internal/"
 
-down:  ## Stop everything, including the profiled builder. Data, seed cache and CA survive.
-	@$(COMPOSE) --profile build down
+down:  ## Stop everything. Data, seed cache and CA survive.
+	@$(COMPOSE) down
 
 # manifest-verdaccio-storage is deliberately NOT destroyed, for the same reason
 # manifest-caddy-data is not: it is seed output, not project state. Its config
@@ -48,11 +48,21 @@ reset: .env  ## Destroy projects, volumes and registry contents. KEEPS the seed 
 	@echo "This destroys all project data, the registry contents and the databases."
 	@echo "It KEEPS infra/images.lock, the Ollama models, the npm mirror cache and the Caddy CA."
 	@read -p "Type 'reset' to continue: " ans; [ "$$ans" = reset ] || exit 1
-	@$(COMPOSE) --profile build down
+	@$(COMPOSE) down
 	@docker volume rm -f manifest-pgdata manifest-registry-data manifest-buildkit-cache 2>/dev/null || true
-	@docker ps -aq --filter 'name=^mf-' | xargs docker rm -f 2>/dev/null || true
-	@docker network ls -q --filter 'name=^mf-' | xargs docker network rm 2>/dev/null || true
-	@docker volume ls -q --filter 'name=^mf-' | xargs docker volume rm 2>/dev/null || true
+# Per-app resources. `mf-` is ours and per-app; `manifest-` is the platform's;
+# everything else on this machine belongs to somebody else and is NEVER touched —
+# `docker-simple-saml-saml-idp-1`, `qdrant-local-dev`, `mongodb` and
+# `mongo-express` in particular. `make verify` asserts all four are still present
+# afterwards, because a typo in the filter below would remove somebody's work and
+# nothing else would notice.
+#
+# The filter is Docker's `name=^mf-`, not a `grep`, and `-I{}` gives ONE
+# invocation per resource so a single stubborn container does not abandon the
+# rest. NO `xargs -r`: it is GNU-only and BSD xargs already handles empty input.
+	@docker ps -aq --filter 'name=^mf-' | xargs -I{} docker rm -f {} 2>/dev/null || true
+	@docker network ls -q --filter 'name=^mf-' | xargs -I{} docker network rm {} 2>/dev/null || true
+	@docker volume ls -q --filter 'name=^mf-' | xargs -I{} docker volume rm -f {} 2>/dev/null || true
 	@echo "  re-mirroring base images into the fresh registry (no network needed)"
 	@$(COMPOSE) up -d --wait registry >/dev/null
 	@bash infra/seed/mirror-images.sh

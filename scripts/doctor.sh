@@ -44,9 +44,25 @@ manifest_own_ports() {
   docker ps --filter 'name=^manifest-' --format '{{.Ports}}' 2>/dev/null \
     | tr ',' '\n' | sed -n 's/.*:\([0-9][0-9]*\)->.*/\1/p' | sort -u
 }
+# §21 puts four things on the HOST rather than in a container, and the control
+# plane is one of them — it needs the Docker socket, which §12 forbids mounting
+# into a workload container. So `manifest_own_ports` above, which reads published
+# CONTAINER ports, cannot see it, and `make doctor` failed with "CLAIMED BY
+# SOMETHING ELSE: 7100" during the platform's own documented flow: `make up`,
+# start the control plane, `make demo`, `make doctor`. Found 2026-09-07, once
+# there was a control plane worth running.
+#
+# It is identified by ASKING IT, not by matching a process name: `node` on 7100 is
+# a guess, whereas the D23.7 error envelope on /auth/me is this application
+# answering. A different service on that port stays foreign, which is the point.
+control_plane_is_ours() {
+  curl -sS -m 2 "http://127.0.0.1:$PORT_CONTROL_PLANE/auth/me" 2>/dev/null \
+    | grep -q 'UNAUTHENTICATED'
+}
 check_block() {
   local p busy="" foreign="" ours
   ours=" $(manifest_own_ports | tr '\n' ' ')"
+  if control_plane_is_ours; then ours="$ours $PORT_CONTROL_PLANE "; fi
   for p in $(seq $PORT_BLOCK_START $PORT_BLOCK_END); do
     port_free "$p" && continue
     case "$ours" in
@@ -223,5 +239,20 @@ check_env_file() {
   echo ".env present"
 }
 check ".env exists"  check_env_file
+
+# A pinned API version nobody checks is a 400 arriving three tasks later. The
+# driver pins v1.44 deliberately (§21 records the daemon's window); this asserts
+# the pin is still inside it rather than trusting a number written months ago.
+docker_api_window() {
+  local api min
+  api=$(docker version --format '{{.Server.APIVersion}}' 2>/dev/null)
+  min=$(docker version --format '{{.Server.MinAPIVersion}}' 2>/dev/null)
+  [ -n "$api" ] && [ -n "$min" ] || { echo "cannot read the daemon API window"; return 1; }
+  echo "daemon serves API [$min, $api]; the driver pins v1.44"
+  # Integer compare on the minor, which is all that varies in practice. The major
+  # has been 1 since 2013 and a change there would need a driver rewrite anyway.
+  [ "${api#*.}" -ge 44 ] && [ "${min#*.}" -le 44 ]
+}
+check "the Docker API version the driver pins is inside the daemon's window"  docker_api_window
 
 summary
