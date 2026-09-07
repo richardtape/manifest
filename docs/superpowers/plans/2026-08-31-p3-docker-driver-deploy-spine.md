@@ -6423,6 +6423,32 @@ at the hostname is a different claim from the container's own healthcheck."
 
 ## Task 15: The `DockerDriver`, assembled — and P2's contract suite, unchanged
 
+> **AN UNASSIGNED SEAM, measured 2026-09-06: nothing binds a service to an app, and
+> without it this plan's own acceptance cannot pass.**
+>
+> `Driver.ensureService` is built (Task 6, a dedicated Mongo per app+environment,
+> whose `endpoint` is already a complete connectable URI with credentials), and
+> `InstanceSpec.services: ServiceHandle[]` exists. But **`deployRelease`
+> (`releases/release.ts:191`) passes `services: []` as a hardcoded literal**, and no
+> task in this plan modifies that file except Task 16's promotion check. So
+> `ensureService` is never called, `MONGODB_URI` is never set, and a deployed app
+> comes up with no database.
+>
+> Task 17's fixture app pings Mongo on its **health endpoint** and its demo asserts a
+> `boots` counter rising across a stop/start. Neither can pass. This is the same
+> shape as the defect this plan's own self-review called its worst: an acceptance
+> that cannot reach the thing it claims to prove.
+>
+> **Not the same thing as §8.** *What this plan does not build* correctly assigns the
+> §8 **injection contract** — the general declared-service-to-variable mapping, with
+> its drift test — to P4. What is missing here is far smaller: derive a
+> `ServiceBinding` from `(projectSlug, environment, service)` for each entry in
+> `resolved.services`, call `ensureService`, and pass the handles through. §8 then
+> replaces the variable naming rather than building the wire.
+>
+> **Where it lands is Rich's call — see ORIENTATION §8.** The recommendation is
+> here, in Task 15, where the driver is assembled and `ensureService` already exists.
+>
 > **Read *What Task 15 must carry forward* at the end of this document first.**
 > Executing Tasks 10-12 changed three things this task's code depends on: the
 > ephemeral builder takes the registry host as a fifth argument, `scanImage` needs a

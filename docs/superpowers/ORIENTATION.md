@@ -731,6 +731,25 @@ Surface these; do not decide them.
   positive controls to §16's security-regression tier. **The first should not be
   applied until P3's Task 18 has measured it** — the wording should follow the probe
   matrix, not precede it.
+- **Where does the service-binding wire land — P3 Task 15, or P3 Task 17?**
+  *Raised 2026-09-06, blocks nothing until Task 15, and it changes that task's
+  scope.* Measured: `Driver.ensureService` is built and its `endpoint` is already a
+  complete connectable URI, and `InstanceSpec.services` exists — but
+  **`deployRelease` (`releases/release.ts:191`) passes `services: []` as a hardcoded
+  literal**, and no task in P3 modifies that file except Task 16's promotion check.
+  So nothing calls `ensureService`, `MONGODB_URI` is never set, and a deployed app
+  comes up **with no database**. Task 17's fixture app pings Mongo on its *health*
+  endpoint and its demo asserts a `boots` counter across a restart, so **P3's own
+  acceptance cannot pass** as written — the same shape as the defect P3's
+  self-review called its worst.
+
+  **This is not §8.** P3 correctly defers the §8 *injection contract* — the general
+  declared-service-to-variable mapping and its drift test — to P4. The missing piece
+  is much smaller: derive a `ServiceBinding` per entry in `resolved.services`, call
+  `ensureService`, pass the handles through. **Recommendation: Task 15**, where the
+  driver is assembled and `ensureService` already exists. Recorded in full as a
+  blockquote on Task 15 in the plan.
+
 - **C4's actual turnaround time** for UBC IAM registration and the PIA is
   **unmeasured**, and §9 calls it the highest-risk dependency in the design. It has
   weeks of latency and no software dependency, so it *could* start today —
