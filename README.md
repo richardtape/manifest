@@ -42,7 +42,7 @@ not exist yet.
 **Three implementation plans are complete, two have run in full, and the third is
 more than half run** — P1, the local substrate (13 tasks, **all executed**), P2, the
 control-plane spine (21 tasks, **all executed**), and P3, the Docker driver and
-deploy spine (19 tasks, **1–12 executed and green as of 2026-09-06; 13–19 remain**). **P4 and P5 are unwritten, and that is deliberate: on 2026-09-04 the
+deploy spine (19 tasks, **1–15 executed and green as of 2026-09-06; 16–19 remain**). **P4 and P5 are unwritten, and that is deliberate: on 2026-09-04 the
 project stopped writing plans and started executing them.**
 
 Execution vindicated that decision three times over. P1's 13 tasks produced **18
@@ -53,11 +53,13 @@ P2's Tasks 12–21 produced **27 more** — six type errors **no test could catc
 because Vitest strips types without checking them; five test-isolation defects that
 made the suite pass or fail on the order Vitest happened to pick; and two safety
 mechanisms that turned out to be **one edit from a live authentication bypass and a
-live IDOR**, both of which answered `200` when broken. And P3's first twelve tasks
-produced **45 more — 3.7 per task**, the highest rate measured here, among them a
-vulnerability gate that could never have fired and a `.gitignore` rule that silently
-refused to commit an entire module. **Finishing P3, from Task 13, is the current
-work.**
+live IDOR**, both of which answered `200` when broken. And P3's first fifteen tasks
+produced **61 more — 4.1 per task**, the highest rate measured here, among them a
+vulnerability gate that could never have fired, a `.gitignore` rule that silently
+refused to commit an entire module, and — in Session 4, the first time the parts
+were made to work end to end — the discovery that **no build in this platform had
+ever succeeded** and that D13's npm-mirror control was completely inert.
+**Finishing P3, from Task 16, is the current work.**
 
 ## Where to start
 
@@ -68,7 +70,7 @@ this machine will do to you, and what to do next. Then:
 | If you are… | Read |
 |---|---|
 | Running the platform | [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md) — `make seed && make host-setup && make up` |
-| Finishing P3 (**the current job**) | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md`](docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md) — **start at Task 13**; 1–12 are done and green. Read its *What executing this plan found* first |
+| Finishing P3 (**the current job**) | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md`](docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md) — **start at Task 16**; 1–15 are done and green. Read its *What executing this plan found* first |
 | Running the control plane | [*Running the control plane*](#running-the-control-plane) below — `make up`, then `pnpm --filter @manifest/control-plane dev` |
 | Executing any plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan — fix it there |
 | Writing the next plan (**P4, and not yet**) | ORIENTATION §7d, then [`docs/superpowers/plans/2026-08-29-plan-roadmap.md`](docs/superpowers/plans/2026-08-29-plan-roadmap.md). It is held until P3 finishes |

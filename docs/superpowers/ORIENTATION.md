@@ -29,17 +29,17 @@ everything.
 
 **Four spikes are done. Four plans are written. P1 and P2 are both fully executed
 and green — the platform runs offline, and the control plane serves HTTP on 7100.
-P3 is the only written work left, and it is PART-EXECUTED: Tasks 1–12 are done and
-green as of 2026-09-06, Tasks 13–19 remain.**
+P3 is the only written work left, and it is PART-EXECUTED: Tasks 1–15 are done and
+green as of 2026-09-06, Tasks 16–19 remain.**
 
 | | State |
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. S6, S5 and S4 are deliberately later (S6 is P3's acceptance exercise, S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
-| **Plans** | **P1 and P2 are both EXECUTED, 2026-09-05** — P1's 13 tasks green and green offline, P2's 21 tasks green with **224 tests**. **P0** (spike briefs) is written; **P3** (Docker driver and deploy spine, 19 tasks) is **part-executed — Tasks 1–12 green as of 2026-09-06, 13–19 remain**, and it is the only plan with unrun tasks. P3 was written 2026-08-31 and self-reviewed 2026-09-04, which found seven defects — the worst being that **nothing wired the Docker driver into the boot entry point**, so its own `make demo` would have passed against the fake driver. P2's execution hit that same defect in P2. **Executing P3's first twelve tasks has since found 45 more, 3.7 per task** — the highest rate measured here. **P4 and P5 are unwritten, deliberately** — see §7. |
+| **Plans** | **P1 and P2 are both EXECUTED, 2026-09-05** — P1's 13 tasks green and green offline, P2's 21 tasks green with **224 tests**. **P0** (spike briefs) is written; **P3** (Docker driver and deploy spine, 19 tasks) is **part-executed — Tasks 1–15 green as of 2026-09-06, 16–19 remain**, and it is the only plan with unrun tasks. P3 was written 2026-08-31 and self-reviewed 2026-09-04, which found seven defects — the worst being that **nothing wired the Docker driver into the boot entry point**, so its own `make demo` would have passed against the fake driver. P2's execution hit that same defect in P2. **Executing P3's first fifteen tasks has since found 61 more, 4.1 per task** — the highest rate measured here. **P4 and P5 are unwritten, deliberately** — see §7. |
 | **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. **`make doctor` 14 checks / 0 failed, `make verify` 31 checks / 0 failed, both green offline.** P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite. **224 tests via `pnpm test`**, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`** — `pnpm test` **332** and a second tier, `pnpm test:docker`, **48**. |
 | **Spec** | Current. Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
-The immediate work is **the rest of P3 — Tasks 13–19** — see §7. Plan-writing
+The immediate work is **the rest of P3 — Tasks 16–19** — see §7. Plan-writing
 stays stopped until P3 has run in full. The reasoning is in the roadmap's
 *Order of operations*, and the short version is that the only time anyone measured the
 defect rate of an unexecuted plan, four of P2's tasks yielded five defects that no
@@ -55,9 +55,9 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 |---|---|
 | **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
 | **writing a plan** | §7 below, the roadmap's section for your plan, the findings notes it names, and `plans/2026-08-30-p1-local-substrate.md` **or** `2026-08-29-p2-control-plane-spine.md` as the house style. |
-| **executing a plan** | The plan itself — currently **P3, from Task 13**. It is self-contained by construction; if it is not, that is a defect in the plan, so fix it there as you go. **Read the plan's *What executing this plan found* first** — 45 defects across Tasks 1–12, and the *What Task 15 must carry forward* block at its end changes code Task 15 calls. |
+| **executing a plan** | The plan itself — currently **P3, from Task 16**. It is self-contained by construction; if it is not, that is a defect in the plan, so fix it there as you go. **Read the plan's *What executing this plan found* first** — 61 defects across Tasks 1–15, and *What Session 5 inherits* at the end of Session 4's entry names the three things still open. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
-| **writing code** | Ten modules exist: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else is built against them — then `api/server.ts` for how a request becomes an actor, and `projects/authz.ts` for the one function every route's security depends on. |
+| **writing code** | Thirteen modules exist: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/` (with `runtime/docker/`), `source/`, `identity/`, `projects/`, `releases/`, `api/`, and P3's `services/`, `build/` and `routing/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else is built against them — then `runtime/docker/driver.ts`, which is the one implementation of that interface and where every P3 module meets; then `api/server.ts` for how a request becomes an actor, and `projects/authz.ts` for the one function every route's security depends on. |
 | **changing the spec** | Don't, without asking. It is marked *Approved design*. Record the proposed change and Rich decides — that has been the pattern five times. |
 
 ```
@@ -77,9 +77,9 @@ docs/superpowers/
 │   ├── 2026-08-29-p2-control-plane-spine.md       P2. 21 tasks, ALL EXECUTED.
 │   ├── 2026-08-30-p1-local-substrate.md           P1. 13 tasks, ALL EXECUTED.
 │   └── 2026-08-31-p3-docker-driver-deploy-spine.md
-│                                                  P3. 19 tasks; 1-12 RUN AND GREEN
-│                                                  (2026-09-06), 13-19 REMAIN.
-│                                                  CONTINUE FROM TASK 13. Ends with
+│                                                  P3. 19 tasks; 1-15 RUN AND GREEN
+│                                                  (2026-09-06), 16-19 REMAIN.
+│                                                  CONTINUE FROM TASK 16. Ends with
 │                                                  S6 as Task 18. Proposes five spec
 │                                                  actions, applies none.
 └── spikes/
@@ -172,6 +172,13 @@ packages/control-plane/
     │   ├── build.ts             a failed build is a ROW, not an exception
     │   ├── release.ts           immutable releases; deploy waits for health
     │   └── index.ts
+    ├── routing/                 P3 Tasks 13-14. §23 hostnames -> Caddy routes
+    │   ├── hostnames.ts         listenerFor, routeIdFor
+    │   ├── caddy.ts             the admin client. node:http, NOT fetch — Caddy
+    │   │                        refuses any request carrying an Origin header
+    │   ├── routes.ts            applyRoute / removeRoute / reapplyAllRoutes
+    │   └── readiness.ts         waitForReady + edgeProbe, which runs FROM a
+    │                            container, over HTTPS, with the platform CA
     └── api/
         ├── server.ts            Fastify, session hook, idempotency hook  (Task 17)
         ├── errors.ts            the D23.7 envelope — every failure exits here
@@ -514,7 +521,7 @@ coherent. Follow them.
 
 ---
 
-## 7. What to do next — finish P3, from Task 13
+## 7. What to do next — finish P3, from Task 16
 
 **This section changed direction on 2026-09-04, and P1 has since executed.** The intent until then was to write
 every remaining plan before implementing any of them. It is now the opposite:
@@ -584,45 +591,59 @@ fail.* Every task above ends by breaking the thing it built and naming the test 
 goes red. Task 13 originally had no such step and was given one — the session MAC
 had never been observed refusing a forged `role: admin` token.
 
-### 7c. Finish P3 — the Docker driver and deploy spine *(start here, at Task 13)*
+### 7c. Finish P3 — the Docker driver and deploy spine *(start here, at Task 16)*
 
 [`plans/2026-08-31-p3-docker-driver-deploy-spine.md`](plans/2026-08-31-p3-docker-driver-deploy-spine.md)
-— **19 tasks. Tasks 1–12 are executed and green (2026-09-06); Tasks 13–19 remain.**
+— **19 tasks. Tasks 1–15 are executed and green (2026-09-06); Tasks 16–19 remain.**
 Finishing it is what unblocks writing P4.
 
-**Where to pick up.** The plan is being executed in sessions, and the remaining two
-are already scoped:
+**Where to pick up.** The plan is being executed in sessions:
 
-| Session | Tasks | What it is |
+| Session | Tasks | State |
 |---|---|---|
-| **4 — next** | 13, 14, 15 | `routing/` (§23 hostnames, listener assignment, Caddy's JSON admin API) · readiness polled **through the edge** · then `DockerDriver` assembled, run against P2's `driver-contract.ts` **unchanged**, and wired into `src/index.ts` |
-| **5** | 16–19 + close-out | promotion refusal · the fixture app and `make demo`, with the offline control that actually deletes the mirrored base image · S6's probe matrix and findings note · `doctor`/`verify`/`reset` learning about `mf-` · then the close-out sweep |
+| **4 — done, 2026-09-06** | 13, 14, 15 | `routing/` (§23 hostnames, listener assignment, Caddy's admin API) · readiness **through the edge** · `DockerDriver` assembled, passing P2's `driver-contract.ts`, wired into `src/index.ts`, with the service binding. **16 defects.** |
+| **5 — next** | 16–19 + close-out | promotion refusal · the fixture app and `make demo`, with the offline control that actually deletes the mirrored base image · S6's probe matrix and findings note · `doctor`/`verify`/`reset` learning about `mf-` · then the close-out sweep |
 
-**Before you write a line of Task 13, read two things in the plan:** *What executing
-this plan found* (45 defects across Tasks 1–12, per session, each with the
-measurement that found it) and *What Task 15 must carry forward* at its very end —
-three fixes in Tasks 10–12 changed code Task 15 calls, and Task 15's heading carries
-a pointer to it.
+**Session 4 is the one to read before starting Session 5.** It is the first time the
+parts built in Tasks 1–12 were made to do something end to end, and the headline is
+that **no build in this platform had ever succeeded**: the blueprint Dockerfile
+opened with a `# syntax=` directive, which makes BuildKit fetch a frontend from
+Docker Hub before reading line two, and §12's builder has no egress. Underneath it,
+**D13's mirror control was completely inert** — `.npmrc` arrived after `npm ci`, so
+the build used the public npm registry, which is S1's silently-wrong build by another
+route and would have *succeeded* with the network up. Builds are also now
+reproducible, which §13's digest binding rests on and which three separate causes
+were breaking.
 
-**The baselines Tasks 1–12 leave you.** A different number on a clean checkout is
+**Before you write a line of Task 16, read one thing in the plan:** *What executing
+this plan found* — 61 defects across Tasks 1–15, per session, each with the
+measurement that found it. **Session 4's entry ends with *What Session 5 inherits*,**
+which names the three things still open, including `make verify`'s four builder
+checks that are gated on a container nothing starts.
+
+**The baselines Tasks 1–15 leave you.** A different number on a clean checkout is
 signal, not noise:
 
 | | |
 |---|---|
-| `pnpm test` (repo root) | **332 tests**, and it must stay Docker-free |
-| `pnpm test:docker` | **48 tests**, ~65 s, needs `make up` |
+| `pnpm test` (repo root) | **364 tests**, and it must stay Docker-free |
+| `pnpm test:docker` | **70 tests**, ~3 min (it now runs real builds), needs `make up` |
 | `make doctor` | **15 checks / 0 failed** |
 | `make verify` | **32 checks / 0 failed** |
 
-**Two things Session 4 should treat as guilty until proven otherwise.** Task 15's
-boot wiring is the defect P3's own self-review called its worst — nothing wired the
-Docker driver into `src/index.ts`, so `make demo` would have passed against the fake
-one — and P2 shipped the identical defect. Make the boot check **fail on demand**
-before believing it. And `make verify`'s four builder checks are gated on
-`docker inspect manifest-buildkitd`, a compose service behind the `build` profile
-that P3 replaced with ephemeral `mf-builder-*` containers: **they are currently not
-running, so they are not part of the 32.** That is Task 19's to fix, and it is
-exactly the could-not-fail shape this plan keeps producing.
+**The boot wiring is closed.** `src/index.ts` constructs the Docker driver, and
+`src/boot.docker.test.ts` boots the compiled entry point and reads the value back.
+Verified to fail on demand: putting `createFakeDriver()` back prints
+`{"driver":"fake"}` while the control plane comes up and serves `401` on `/auth/me`
+exactly as before — indistinguishable at every level above that one file.
+
+**What Session 5 should still treat as guilty.** `make verify`'s four builder checks
+are gated on `docker inspect manifest-buildkitd`, a compose service behind the
+`build` profile that P3 replaced with ephemeral `mf-builder-*` containers: **they
+are not running, so they are not part of the 32.** That is Task 19's to fix, and it
+is exactly the could-not-fail shape this plan keeps producing. And Task 4's
+bridge-network positive control probes `https://registry.npmjs.org/`, so it needs
+the internet — while Task 17 runs the Docker tier **offline**.
 
 **What P2 leaves you.** Two shared artefacts P3 imports *unchanged*:
 `src/runtime/driver-contract.ts`, which the Docker driver must pass exactly as the
@@ -731,25 +752,14 @@ Surface these; do not decide them.
   positive controls to §16's security-regression tier. **The first should not be
   applied until P3's Task 18 has measured it** — the wording should follow the probe
   matrix, not precede it.
-- **Where does the service-binding wire land — P3 Task 15, or P3 Task 17?**
-  *Raised 2026-09-06, blocks nothing until Task 15, and it changes that task's
-  scope.* Measured: `Driver.ensureService` is built and its `endpoint` is already a
-  complete connectable URI, and `InstanceSpec.services` exists — but
-  **`deployRelease` (`releases/release.ts:191`) passes `services: []` as a hardcoded
-  literal**, and no task in P3 modifies that file except Task 16's promotion check.
-  So nothing calls `ensureService`, `MONGODB_URI` is never set, and a deployed app
-  comes up **with no database**. Task 17's fixture app pings Mongo on its *health*
-  endpoint and its demo asserts a `boots` counter across a restart, so **P3's own
-  acceptance cannot pass** as written — the same shape as the defect P3's
-  self-review called its worst.
-
-  **This is not §8.** P3 correctly defers the §8 *injection contract* — the general
-  declared-service-to-variable mapping and its drift test — to P4. The missing piece
-  is much smaller: derive a `ServiceBinding` per entry in `resolved.services`, call
-  `ensureService`, pass the handles through. **Recommendation: Task 15**, where the
-  driver is assembled and `ensureService` already exists. Recorded in full as a
-  blockquote on Task 15 in the plan.
-
+- **Where the service-binding wire lands — SETTLED 2026-09-06, Rich's call: P3 Task
+  15.** `deployRelease` now derives a `ServiceBinding` per entry in
+  `resolved.services`, calls `ensureService`, and passes the handles through with
+  the endpoint injected under the name the catalogue gives it. Platform bindings are
+  applied **after** the app's own `env`, so a declared `MONGODB_URI` cannot shadow
+  one — an app is untrusted input (§12), and that has its own test. §8's injection
+  contract, with its general mapping and drift test, remains P4's; this replaced the
+  plumbing only, not the naming. **Do not re-raise.**
 - **C4's actual turnaround time** for UBC IAM registration and the PIA is
   **unmeasured**, and §9 calls it the highest-risk dependency in the design. It has
   weeks of latency and no software dependency, so it *could* start today —

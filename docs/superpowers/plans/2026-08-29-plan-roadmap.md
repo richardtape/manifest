@@ -205,7 +205,7 @@ Recorded here because they are about *how to run this work*, and each was paid f
 ran in three sittings — 1 and 9–11 on 2026-08-31, **2–8** and then **12–21** on
 2026-09-05, finding **20** and **27** defects respectively.
 
-**P3 is part-executed: Tasks 1–12 are done and green as of 2026-09-06; Tasks 13–19
+**P3 is part-executed: Tasks 1–15 are done and green as of 2026-09-06; Tasks 16–19
 remain.** It is the whole of the remaining written work.
 **P4 and P5 are not written, deliberately** — see the
 2026-09-04 decision in *Order of operations*, which puts execution before any further
@@ -359,7 +359,7 @@ runs in under a second.
 
 ### P3 — 1a-iii · Docker driver & deploy spine
 
-**🟡 IN EXECUTION. Tasks 1–12 done and green, 2026-09-06. Tasks 13–19 remain.**
+**🟡 IN EXECUTION. Tasks 1–15 done and green, 2026-09-06. Tasks 16–19 remain.**
 
 | | |
 |---|---|
@@ -498,8 +498,8 @@ execution layer.** Each is written when its predecessor lands.
    (19 tasks, self-reviewed 2026-09-04).
 5. **Execute P1 → P2 → P3.** S6 is P3's acceptance exercise, as its Task 18.
    **P1 and P2 are both done — executed and green on 2026-09-05**, P1 green offline
-   too. ← the current work is **P3**, and it is part-executed: **Tasks 1–12 are done
-   and green (2026-09-06); 13–19 remain.** It is the last plan written, and
+   too. ← the current work is **P3**, and it is part-executed: **Tasks 1–15 are done
+   and green (2026-09-06); 16–19 remain.** It is the last plan written, and
    finishing it is what unblocks writing P4.
 6. **Start the external track once the local proof of concept works end to end.**
    **Changed 2026-09-05, Rich's call.** This step previously said *"start now, in
@@ -544,8 +544,8 @@ written (P2's Tasks 1, 9, 10 and 11 were executed and green). That is a stack
 carrying a defect rate measured exactly once, at five per four tasks. Writing P4
 would add to it rather than price it. *As of 2026-09-05 the stack is **19 unrun** —
 P3's tasks, and nothing else. P1's 13 and all of P2's 21 have run, and every batch
-raised the measured rate rather than lowering it. As of 2026-09-06 it is **7**:
-P3's Tasks 13–19, its first twelve having run at **3.7 defects per task**.*
+raised the measured rate rather than lowering it. As of 2026-09-06 it is **4**:
+P3's Tasks 16–19, its first fifteen having run at **4.1 defects per task**.*
 
 **Confirmed by P1's execution, 2026-09-05.** All 13 of P1's tasks ran; they yielded
 **18 defects** on top of the five its own self-review had already caught. The
@@ -564,13 +564,19 @@ run. The measured rate by batch:
 | P2 Tasks 2–8 | 7 | 20 | 2.9 |
 | **P2 Tasks 12–21** | **10** | **27** | **2.7** |
 | P2, found later while reconciling P3 | — | 2 | — |
-| **P3 Tasks 1–12** *(in progress)* | **12** | **45** | **3.7** |
+| P3 Tasks 1–12 | 12 | 45 | 3.7 |
+| **P3 Tasks 13–15** *(in progress)* | **3** | **16** | **5.3** |
 
-**7 tasks remain unrun — P3's 13–19, and nothing else.** The rate has not fallen with
-practice; it rose the moment the tasks stopped being pure functions, and P3's
-first twelve tasks are running at **3.7 per task**, above the 2.7–2.9 this section
-predicted. P3 is *entirely* infrastructure and controls, so budget for its
-remaining seven accordingly, and note that
+**4 tasks remain unrun — P3's 16–19, and nothing else.** The rate has not fallen
+with practice; it rose the moment the tasks stopped being pure functions, and it
+rose again — **P3's Tasks 13–15 produced 16 defects, 5.3 per task**, the highest
+measured here and roughly double the 2.7–2.9 this section predicted. The reason is
+worth carrying: **Task 15 was the first task that made the parts built in Tasks 1–12
+do anything end to end**, and it immediately established that *no build in this
+platform had ever succeeded* and that D13's npm-mirror control was completely inert.
+Integration is where the false greens were sitting, not the units. P3 is *entirely*
+infrastructure and controls, so budget for its remaining four accordingly, and note
+that
 **six of P2's last 27 were type errors no test could see** and **five were test
 isolation** — two classes that a plan self-review, however careful, cannot detect by
 reading.

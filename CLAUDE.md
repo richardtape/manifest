@@ -24,14 +24,24 @@ with `--filter`; the two differ and that difference found a defect. The database
 tests need `make up` and derive their connection from `.env` themselves. To run the
 server, see *Running the control plane* in `README.md`.
 
-**P3 is part-executed (2026-09-06). Tasks 1–12 are done and green; 13–19 remain —
-pick up at Task 13.** It has added `runtime/docker/`, `services/` and `build/`, plus
-a second test tier: `pnpm test` is **332** and `pnpm test:docker` is **48** (needs
-`make up`; it **fails rather than skips** when asked to run). `make doctor` is now 15
-checks. Executing those twelve tasks found **45 defects — 3.7 per task**, above the
-2.7–2.9 the roadmap predicted; they are recorded per session in the plan's *What
-executing this plan found*, and *What Task 15 must carry forward* at its end changes
-code Task 15 calls.
+**P3 is part-executed (2026-09-06). Tasks 1–15 are done and green; 16–19 remain —
+pick up at Task 16.** It has added `runtime/docker/` (including the assembled
+`DockerDriver`), `routing/`, `services/` and `build/`, plus a second test tier:
+`pnpm test` is **364** and `pnpm test:docker` is **70** (needs `make up`; it **fails
+rather than skips** when asked to run, and now runs real image builds, so it takes
+~3 minutes). `make doctor` is 15 checks, `make verify` 32. Executing those fifteen
+tasks found **61 defects — 4.1 per task**, above the 2.7–2.9 the roadmap predicted;
+they are recorded per session in the plan's *What executing this plan found*, and
+Session 4's entry ends with *What Session 5 inherits*.
+
+**Session 4 is the entry worth reading before touching a build.** It found that **no
+build in this platform had ever succeeded** — the blueprint Dockerfile's `# syntax=`
+directive made BuildKit fetch a frontend from Docker Hub, which §12's egress-free
+builder cannot reach — and that **D13's npm-mirror control was completely inert**,
+because `.npmrc` arrived after `npm ci`. The second is S1's silently-wrong build by
+another route: offline it fails loudly, with the network up it would have succeeded
+against the public registry. The control plane now boots the **Docker** driver, and
+`src/boot.docker.test.ts` reads that fact back from the compiled entry point.
 
 Executing P2 found **52 defects** across three sittings — 5, then 20, then **27 in
 Tasks 12–21**. Four from that last batch are worth carrying: the plan's code had
