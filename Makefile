@@ -74,7 +74,9 @@ reset: .env  ## Destroy projects, volumes and registry contents. KEEPS the seed 
 	@echo "  re-mirroring base images into the fresh registry (no network needed)"
 	@$(COMPOSE) up -d --wait registry >/dev/null
 	@bash infra/seed/mirror-images.sh
-	@echo "reset done. manifest-caddy-data was NOT removed — the trusted CA lives there,"
+	@echo "reset done. THE DATABASE IS EMPTY: re-apply migrations before \`pnpm test\`"
+	@echo "  or the control plane — README's 'Running the control plane' has the command."
+	@echo "manifest-caddy-data was NOT removed — the trusted CA lives there,"
 	@echo "and the mirrored base images are back, so the machine is still offline-capable."
 	@echo "Run: make up"
 

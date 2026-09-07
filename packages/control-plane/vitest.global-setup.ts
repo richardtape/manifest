@@ -44,6 +44,24 @@ export async function setup(): Promise<() => Promise<void>> {
     const pool = new pg.Pool({ connectionString })
     try {
       await pool.query(`TRUNCATE TABLE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`)
+    } catch (error) {
+      // `42P01 undefined_table` means the schema is not there — almost always
+      // because `make reset` has just dropped `manifest-pgdata`, which is what it
+      // is for. The raw pg error is `relation "idempotency_keys" does not exist`,
+      // which names neither the cause nor the remedy and stops the WHOLE run
+      // before a single test file loads, including the 30-odd files that need no
+      // database at all. Measured 2026-09-07, immediately after a reset.
+      if ((error as { code?: string }).code === '42P01') {
+        throw new Error(
+          'the control-plane database has no schema — migrations have not been ' +
+            'applied to it. `make reset` drops it deliberately. Run:\n\n' +
+            '  set -a; . ./.env; set +a\n' +
+            '  export MANIFEST_DATABASE_URL=' +
+            '"postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"\n' +
+            '  pnpm --filter @manifest/control-plane db:migrate\n',
+        )
+      }
+      throw error
     } finally {
       await pool.end()
     }

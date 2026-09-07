@@ -56,7 +56,7 @@ is *"failed to connect"*; the difference matters and is discussed below.
 | # | Probe | Result | Positive control |
 |---|---|---|---|
 | 1 | Docker socket inside the app container | `ABSENT` | the host's socket exists — this suite is driving it |
-| 2 | app → control plane, `host.docker.internal:7100` | **exit 6** | same URL from a `bridge` container: **exit 0** |
+| 2 | app → the platform on the host: control plane `:7100`, **Caddy's admin API `:7119`** | **exit 6** and **exit 6** | `:7119` from a `bridge` container: **exit 0** |
 | 3 | app → cloud metadata `169.254.169.254` | **exit 7** | *none exists locally* — stated, not faked |
 | 4 | app → another app's database by name | **exit 6** | same name from **that app's own** network: **exit 0** |
 | 5 | app → **its own** database | **exit 0** | this row IS the control for row 4 |
@@ -98,6 +98,14 @@ route"*. Row 8 is *"there is a route, to exactly one place, and it says no"* —
 forced egress proxy answering **403** rather than the connection failing. Both are
 needed: D18's default-deny is only meaningful if an app that declares a destination
 can reach it, which is what makes the 403 a decision and not an outage.
+
+**Row 2's positive control deliberately targets Caddy's admin API rather than the
+control plane.** Two reasons, and the second was measured. The admin API is the
+juicier target — anything that reaches it can rewrite the routing table for every app
+on the machine — and it is a platform container that is up whenever `make up` has run,
+whereas the control plane is a host process that may not be. Aimed at the control
+plane, this control failed honestly the moment that process was stopped, which is the
+control working but also makes the tier depend on something it does not require.
 
 **Row 10's control is the one that would have rotted quietly.** `CapEff: 0000…` is
 also what you would read if the field had moved, the probe had run in the wrong

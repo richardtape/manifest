@@ -178,18 +178,33 @@ describeDocker(
       expect((await inApp('command -v docker || echo NONE')).trim()).toBe('NONE')
     })
 
-    // 2 — the control plane. It holds every project's secrets and the issuer key.
-    it('2. cannot reach the control plane, while a bridge container reaches the host', async () => {
-      const denied = await exitCode(APP_NET, ['http://host.docker.internal:7100/auth/me'])
-      expect(denied).not.toBe(0)
-      // THE CONTROL, and it needs no internet: the same host, the same port, from an
-      // ordinary bridge network. If this were also unreachable the denial above would
-      // prove only that the control plane is down.
+    /**
+     * 2 — the platform's own control surfaces on the host. The control plane holds
+     * every project's secrets and the registry issuer key; **Caddy's admin API is
+     * arguably the juicier target**, because anything that reaches it can rewrite
+     * the routing table for every app on the machine.
+     *
+     * The POSITIVE CONTROL is the Caddy admin port, NOT the control plane's. The
+     * control plane is a dev process that may or may not be running, and aiming a
+     * control at it made this test fail for the honest reason that its target was
+     * down — the control working, but also making `pnpm test:docker` depend on
+     * something the tier does not require. The admin API is published by
+     * `infra/compose.yaml` and is up whenever `make up` has run, which the tier
+     * already requires. Measured 2026-09-07.
+     */
+    it('2. cannot reach the platform on the host, while a bridge container can', async () => {
+      const cp = await exitCode(APP_NET, ['http://host.docker.internal:7100/auth/me'])
+      const admin = await exitCode(APP_NET, ['http://host.docker.internal:7119/config/'])
+      expect(cp).not.toBe(0)
+      expect(admin).not.toBe(0)
+      // THE CONTROL, and it needs no internet: the same host, the same port, from
+      // an ordinary bridge network. Without it these denials prove only that
+      // nothing is listening.
       const control = await exitCode('bridge', [
-        'http://host.docker.internal:7100/auth/me',
+        'http://host.docker.internal:7119/config/',
       ])
       expect(control).toBe(0)
-      record('2', `curl exit ${denied}`, `bridge curl exit ${control}`)
+      record('2', `7100=${cp} 7119(caddy admin)=${admin}`, `bridge 7119=${control}`)
     })
 
     // 6 — §21 divergence 8, the one the spec calls "a real security weakening rather
