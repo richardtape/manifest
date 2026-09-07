@@ -196,7 +196,7 @@ Recorded here because they are about *how to run this work*, and each was paid f
 | **P0** | 0 | Seven spike briefs | a findings note per spike |
 | **P1** | 1a-i | Local substrate ✅ **EXECUTED 2026-09-05** | `make doctor` green offline; one name resolving correctly from host **and** container — **both demonstrated** |
 | **P2** | 1a-ii | Control-plane spine ✅ **EXECUTED 2026-09-05** — all 21 tasks | project → spec → release → staging deploy, against the fake driver, **~300 ms**, no Docker — **demonstrated** |
-| **P3** | 1a-iii | Docker driver & deploy spine 🟡 **IN EXECUTION — 12 of 19 tasks done, 2026-09-06** | fixture app healthy at a `manifest.internal` URL, clean checkout, offline |
+| **P3** | 1a-iii | Docker driver & deploy spine ✅ **EXECUTED 2026-09-07** — all 19 tasks | fixture app healthy at a `manifest.internal` URL, from a bare repo, offline — **demonstrated**, and again from a dropped database and an emptied registry |
 | **P4** | 1b | Identity, secrets & AI | the proof app — CWL login, Mongo write, LLM answer — via `curl` |
 | **P5** | 1c | Contract & clients | the §1 journey, clickable, driven twice over one contract |
 | **P6–P11** | 2 | six plans, listed below, **not written yet** | — |
@@ -205,11 +205,10 @@ Recorded here because they are about *how to run this work*, and each was paid f
 ran in three sittings — 1 and 9–11 on 2026-08-31, **2–8** and then **12–21** on
 2026-09-05, finding **20** and **27** defects respectively.
 
-**P3 is part-executed: Tasks 1–15 are done and green as of 2026-09-06; Tasks 16–19
-remain.** It is the whole of the remaining written work.
-**P4 and P5 are not written, deliberately** — see the
-2026-09-04 decision in *Order of operations*, which puts execution before any further
-plan-writing. Each of P1–P5 carries the required plan header, its own file-structure
+**P3 is EXECUTED and green — all 19 tasks, 2026-09-07.** Every written plan has now
+run. **P4 and P5 are still unwritten, and the 2026-09-04 decision that held them has
+now been discharged: P3 has executed, so writing P4 is the next work.** See
+*Order of operations*. Each of P1–P5 carries the required plan header, its own file-structure
 map, and bite-sized TDD steps with real content — no plan may contain a step
 standing in for a spike result.
 
@@ -359,15 +358,15 @@ runs in under a second.
 
 ### P3 — 1a-iii · Docker driver & deploy spine
 
-**🟡 IN EXECUTION. Tasks 1–15 done and green, 2026-09-06. Tasks 16–19 remain.**
+**✅ EXECUTED AND GREEN. All 19 tasks, finished 2026-09-07.**
 
 | | |
 |---|---|
-| **Done** | 1–4 (Engine client, Docker tier, §12 hardening, per-app networks) · 5–8 (egress proxy, `services/`, instance lifecycle, logs + exec) · 9 (scoped registry push tokens) · **10–12** (ephemeral builder, `build/` + its gates, SBOM and vulnerability scanning) |
-| **Next** | **Session 4 — Tasks 13–15**: `routing/`, readiness *through the edge*, then `DockerDriver` assembled, run against P2's `driver-contract.ts` unchanged, and wired into `src/index.ts`. **Then Session 5 — Tasks 16–19 + close-out.** |
-| **Gates, as they stood at the end of Task 12** | `pnpm test` **332** · `pnpm test:docker` **48** · `make doctor` **15 checks / 0 failed** · `make verify` **32 / 0**. A different number on a clean checkout is signal, not noise. |
-| **Defects so far** | **45 across 12 tasks — 3.7 per task**, the highest rate this project has measured. Recorded in full in the plan's *What executing this plan found*, per session. |
-| **Read before Task 15** | *What Task 15 must carry forward*, at the end of the plan. Three fixes in Tasks 10–12 changed code Task 15 calls, and Task 15's heading carries a pointer to it. |
+| **Executed in five sittings** | 1–4 (Engine client, Docker tier, §12 hardening, per-app networks) · 5–8 (egress proxy, `services/`, instance lifecycle, logs + exec) · 9 (scoped registry push tokens) · 10–12 (ephemeral builder, `build/` + its gates, SBOM and vulnerability scanning) · 13–15 (`routing/`, readiness through the edge, the `DockerDriver` assembled and wired into boot) · **16–19** (§13's promotion refusal, `make demo`, S6's probe matrix, and doctor/verify/reset) |
+| **Gates** | `pnpm test` **381** · `pnpm test:docker` **89** (~5 min, needs `make up`) · `make doctor` **16 / 0** · `make verify` **34 / 0**. A different number on a clean checkout is signal, not noise. |
+| **Defects** | **82 across 19 tasks — 4.3 per task**, the highest rate this project has measured and well above the 2.7–2.9 predicted. Recorded per session in the plan's *What executing this plan found*. |
+| **Read first** | **Sessions 4 and 5.** Between them they establish that **no build** and then **no deploy** in this platform had ever succeeded — and that both were invisible to a green test suite, because every test constructs its own inputs while the production path re-derives them. |
+| **The demo holds** | `make demo` drives the real HTTP API: log in, create the project, push the fixture app, validate its manifest at that commit, build, release, deploy to staging, be refused production, then reach the app from a container through the edge with the platform CA verified. It runs again from a **dropped database, a deleted repository root and an emptied registry**. |
 
 
 *Reconciled against a running P2 on 2026-09-05, before execution.* P3 was written
@@ -414,9 +413,30 @@ matrix showing what a hostile process in that container could reach.
 
 ### P4 — 1b · Identity, secrets & AI
 
-*Depends on: S2, S3, P3. Both spikes have reported and **P3 is written** — so
-nothing blocks writing this. It is **deliberately not written yet**: the 2026-09-04
-decision in *Order of operations* holds it until P3 has executed.*
+*Depends on: S2, S3, P3. **All three have landed** — both spikes reported, and P3
+executed in full on 2026-09-07. **The 2026-09-04 hold is discharged: writing P4 is
+the current work.***
+
+**What P4's author should take from executing P1–P3, beyond the module list below.**
+Three things, each paid for:
+
+1. **Schedule the end-to-end task early, and drive it through the real entry point.**
+   P3's two worst sessions were its last two, and both for the same reason: the first
+   time the parts were made to work together, and then the first time the *control
+   plane* drove them, each exposed a class of defect a green test suite had been
+   hiding. Seven of Session 5's twenty-one were one shape — **the test constructs the
+   value correctly and the production path re-derives it wrongly**. P4 has the same
+   exposure and more of it, because §8's injection contract is exactly a set of values
+   two paths must agree on.
+2. **A module with no call site is not built.** P3 shipped `waitForReady`/`edgeProbe`
+   in Task 14 and nothing called them until Task 17; P2 shipped `isSensitiveDiff` and
+   nothing has called it yet outside a test. Both had tests and both passed. **Give
+   every task a step naming the caller**, not just the module.
+3. **Diagnosability is a feature, and its absence hides other defects.** A failed
+   build recorded no reason and an unexpected 500 left no trace anywhere, because the
+   error handler used a logger the server was built without. Fixing those two took
+   minutes and immediately named four more defects. P4 adds events, WebSocket
+   streaming and redaction — so it owns this properly rather than by accident.
 
 As §17 has it, with gap 2's boundary applied: SP auto-provisioning against
 **whichever metadata mechanism S2 selects**, per-app keypairs, `secrets/` envelope
@@ -496,11 +516,9 @@ execution layer.** Each is written when its predecessor lands.
 4. **Write P1, P2 and P3** with real findings in them. **All three are written, and P1 and P2 are executed** —
    P1 on 2026-08-30 (13 tasks), P2 on 2026-08-31 (21 tasks), P3 on 2026-08-31
    (19 tasks, self-reviewed 2026-09-04).
-5. **Execute P1 → P2 → P3.** S6 is P3's acceptance exercise, as its Task 18.
-   **P1 and P2 are both done — executed and green on 2026-09-05**, P1 green offline
-   too. ← the current work is **P3**, and it is part-executed: **Tasks 1–15 are done
-   and green (2026-09-06); 16–19 remain.** It is the last plan written, and
-   finishing it is what unblocks writing P4.
+5. **Execute P1 → P2 → P3.** ✅ **All three are done.** P1 and P2 executed and green
+   on 2026-09-05, P1 green offline too; **P3 finished 2026-09-07, all 19 tasks**. S6
+   ran as its Task 18 and has reported. **There is no unexecuted written work left.**
 6. **Start the external track once the local proof of concept works end to end.**
    **Changed 2026-09-05, Rich's call.** This step previously said *"start now, in
    parallel"*, on the argument that C4 has the longest lead time and no software
@@ -510,8 +528,8 @@ execution layer.** Each is written when its predecessor lands.
    behind it than with a design document. **Not a rush; not forgotten.** The
    trigger is the local PoC running end to end — P4's proof app: CWL login, a Mongo
    write, an LLM answer. Until then, do not re-raise it.
-7. **Write P4 once P3 has executed**, and P5 when P4 lands. Not before — see the
-   decision immediately below.
+7. **Write P4 once P3 has executed**, and P5 when P4 lands. ← **THE CURRENT WORK.**
+   P3 executed on 2026-09-07, so the hold below is discharged and P4 is next.
 
 ### Decided 2026-09-04: execute before writing P4
 
@@ -565,21 +583,31 @@ run. The measured rate by batch:
 | **P2 Tasks 12–21** | **10** | **27** | **2.7** |
 | P2, found later while reconciling P3 | — | 2 | — |
 | P3 Tasks 1–12 | 12 | 45 | 3.7 |
-| **P3 Tasks 13–15** *(in progress)* | **3** | **16** | **5.3** |
+| P3 Tasks 13–15 | 3 | 16 | 5.3 |
+| **P3 Tasks 16–19** | **4** | **21** | **5.3** |
+| **P3, total** | **19** | **82** | **4.3** |
 
-**4 tasks remain unrun — P3's 16–19, and nothing else.** The rate has not fallen
-with practice; it rose the moment the tasks stopped being pure functions, and it
-rose again — **P3's Tasks 13–15 produced 16 defects, 5.3 per task**, the highest
-measured here and roughly double the 2.7–2.9 this section predicted. The reason is
-worth carrying: **Task 15 was the first task that made the parts built in Tasks 1–12
-do anything end to end**, and it immediately established that *no build in this
-platform had ever succeeded* and that D13's npm-mirror control was completely inert.
-Integration is where the false greens were sitting, not the units. P3 is *entirely*
-infrastructure and controls, so budget for its remaining four accordingly, and note
-that
-**six of P2's last 27 were type errors no test could see** and **five were test
-isolation** — two classes that a plan self-review, however careful, cannot detect by
-reading.
+**NOTHING WRITTEN REMAINS UNRUN.** The rate never fell with practice; it rose the
+moment the tasks stopped being pure functions, and it kept rising. **P3 finished at
+82 defects across 19 tasks — 4.3 per task**, well above the 2.7–2.9 this section
+predicted, with its two worst sessions at the end.
+
+The reason is the single most useful thing this project has measured about itself.
+**Task 15 was the first task that made the parts built in Tasks 1–12 do anything end
+to end**, and it immediately established that *no build in this platform had ever
+succeeded*. **Task 17 was the first task that made the CONTROL PLANE drive those
+parts**, and it established that *no deploy had ever succeeded either* — through
+seven separate defects of one shape: **the test constructed the value correctly and
+the running system re-derived it wrongly.** A blueprint directory, a repository path,
+an image repository, a port. Every one of those was green in a suite of 74 Docker
+tests, because a test hands the driver what it built while the control plane rebuilds
+it from a slug.
+
+**The lesson for P4, and it is a scheduling lesson rather than a coding one:
+integration is where the false greens sit, so schedule the end-to-end task EARLY and
+drive it through the real entry point, not through a harness.** Two further classes
+stay invisible to any amount of reading: **six of P2's last 27 were type errors no
+test could see**, and **five were test isolation**.
 
 *Rejected:* writing P4 and P5 first, on the argument that plan-writing and execution
 want different context and batching them is cheaper per plan. It is — and it is more
