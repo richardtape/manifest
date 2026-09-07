@@ -1,5 +1,5 @@
 Manifest machine snapshot
-taken: 2026-09-07 13:22:37 PDT
+taken: 2026-09-07 14:13:12 PDT
 host:  Mac.lan
 user:  rich
 
@@ -8,7 +8,7 @@ macOS       26.6.2 (build 25G83)
 arch        arm64
 cores       12
 RAM         36 GiB
-free disk   146Gi
+free disk   144Gi
 bash        3.2.57(1)-release
 
 === Host toolchain — things that genuinely live on this machine ===
@@ -43,15 +43,15 @@ credit-card-helper-app-1	credit-card-helper-app	Exited (0) 10 days ago
 credit-card-helper-frontend-1	node:20-alpine	Exited (0) 10 days ago
 docker-simple-saml-saml-idp-1	docker-simple-saml-saml-idp	Exited (0) 2 days ago
 fakeacademicapi-academic-api-fake-1	fakeacademicapi-academic-api-fake	Exited (143) 7 weeks ago
-manifest-caddy	manifest-caddy:local	Up 25 seconds (healthy)
-manifest-dns-containers	manifest-dnsmasq:local	Up 25 seconds
-manifest-dns-host	manifest-dnsmasq:local	Up 25 seconds
-manifest-egress	manifest-egress:local	Up 25 seconds
-manifest-idp	manifest-idp:local	Up 21 seconds
-manifest-litellm	ghcr.io/berriai/litellm:main-stable	Up 21 seconds (healthy)
-manifest-postgres	postgres:16-alpine	Up 25 seconds (healthy)
-manifest-registry	registry:2	Up About a minute (healthy)
-manifest-verdaccio	verdaccio/verdaccio:6	Up 25 seconds (healthy)
+manifest-caddy	manifest-caddy:local	Up 32 minutes (healthy)
+manifest-dns-containers	manifest-dnsmasq:local	Up 51 minutes
+manifest-dns-host	manifest-dnsmasq:local	Up 51 minutes
+manifest-egress	manifest-egress:local	Up 51 minutes
+manifest-idp	manifest-idp:local	Up 50 minutes
+manifest-litellm	ghcr.io/berriai/litellm:main-stable	Up 50 minutes (healthy)
+manifest-postgres	postgres:16-alpine	Up 51 minutes (healthy)
+manifest-registry	registry:2	Up 52 minutes (healthy)
+manifest-verdaccio	verdaccio/verdaccio:6	Up 51 minutes (healthy)
 mongo-express	mongo-express:latest	Up 2 days
 mongodb	mongodb/mongodb-community-server:7.0.28-ubi8	Up 2 days
 openwebui-openwebui-1	ghcr.io/open-webui/open-webui:main	Exited (137) 13 days ago
@@ -72,7 +72,7 @@ mongo-express                      running
 
 === Images (repo:tag @ digest) ===
 127.0.0.1:7107/alpine:3.22	<none>
-127.0.0.1:7107/base/alpine:3.22	<none>
+127.0.0.1:7107/base/alpine:3.22	sha256:2c9d26f410d032d5b1525aa8a873e238b05b90c4ae8618743d4311f0cc827e37
 127.0.0.1:7107/base/curl:8.11.1	<none>
 127.0.0.1:7107/base/grype:v0.118.0	<none>
 127.0.0.1:7107/base/mongodb-community-server:7.0.28-ubi8	<none>
@@ -191,7 +191,7 @@ nginx       764 nginx: master process /opt/homebrew/opt/nginx/bin/nginx -g daemo
 
 === Repository ===
 branch      main
-HEAD        3bab0ce docs: sweep the shared pages and the external track
-dirty       2 file(s)
+HEAD        645bbb1 fix: nothing removes an app network while the platform is up
+dirty       1 file(s)
 
 === end ===
