@@ -8044,6 +8044,82 @@ Task 4 probes `https://registry.npmjs.org/`, so it needs the internet. Task 17 r
 Docker tier **offline**; if `make verify` runs this suite with the network off, that
 control fails for the right reason but at the wrong moment. **Check it at Task 17.**
 
+### Session 4 — Tasks 13-15 (2026-09-06). 16 defects.
+
+*The heaviest batch so far, and the reason is Task 15: it is the first task that
+made the parts built in Tasks 1-12 do something end to end, and **no build in this
+platform had ever succeeded** before it ran. Four of the sixteen were controls that
+could not fail; two were security controls that were completely inert.*
+
+| # | Task | Defect | Measured against |
+|---|---|---|---|
+| 46 | 13 | **The admin client cannot use `fetch`, and this was never a test problem.** Caddy refuses every non-GET request that carries an `Origin` header; `admin 0.0.0.0:2019` binds a wildcard host, so its allowed-origin list is EMPTY and only a request with *no* Origin at all is served. Node's `fetch` appends one to every non-GET with no supported way to remove it. With `fetch`, `applyRoute` 403s **at runtime** and no app this driver deploys is ever reachable. | curl with no header → **200**; `curl -H 'Origin;'` → **403** `not allowed to access from origin ''`; node `fetch` → the identical 403; `Origin: http://127.0.0.1:7119` → **403**. Rewritten on `node:http`, which sends only the headers it is given — what curl and `verify.sh` already do. Loosening Caddy's `origins` was rejected: it weakens a CSRF control on the platform's highest-leverage component to work around a client library. A permanent test asserts no `origin` key is sent. |
+| 47 | 13 | **The Docker test probed `http://` and asserted on the STATUS CODE — wrong in both directions.** | The edge listens on **:443** only and answers **308** to `http://`, so all three positive assertions failed. And the Caddyfile wildcard answers **200** for every host in the zone whether or not a route exists (`manifest OK host=routetest.staging.manifest.internal`), so the two `not.toBe('200')` assertions could never pass and the positive ones proved nothing. Now HTTPS with the platform CA, asserting the **body** — `ok` from the app, `manifest OK host=` from the fallback — which discriminates. |
+| 48 | 13 | The admin `call` helper failed `tsc`: `body: undefined` against `RequestInit` under `exactOptionalPropertyTypes`. Ninth instance of the class. | **TS2769**. Conditional spread. `pnpm test` green either way. |
+| 49 | 13 | `config.ts` is named in the task's Files list and never shown — defect 25's shape exactly. | `caddyAdminUrl` and `caddyServers` designed here, the listener split as **two settings** so UBC enforces it by configuration. |
+| 50 | 13/14 | The Docker tests imported `describeDocker` by a deep path into `runtime/docker/`. | `module-boundaries.test.ts` is what `runtime/testing.ts` exists for (Session 3a). Corrected before running. |
+| 51 | 14 | **`edgeProbe` COULD NEVER SUCCEED.** It probed `https://` from `curlimages/curl`, which trusts no private root, while the edge serves a certificate from the platform CA. | `curl: (60) unable to get local issuer certificate`, `http_code` **000** — so `waitForReady` never sees 200 and **every deploy times out reading "the app is slow to start"**. The CA is now bind-mounted, as `verify.sh` already does it. `-k` was rejected: it would blind readiness to a TLS fault §20 cares about. |
+| 52 | 14 | It read the log stream raw and stripped non-digits out of the bytes. | The Engine API frames logs as `[type:u8][000][size:u32be][payload]`; that works only while no header byte is an ASCII digit. Uses `demux`, which Task 8 already wrote. |
+| 53 | 14 | `ReadinessResult.lastStatus` is optional, so the timeout return failed `tsc`. | **TS2375**. Conditional spread. Tenth instance. |
+| — | 14 | (gap, not a defect) The plan leaves `edgeProbe` unexercised until Task 17 — the shape of the defect P2 shipped. | Given a Docker-tier suite now. Its control points the same probe at a real but **wrong** certificate and reads **0** where the correct anchor reads **200**. |
+| 54 | 15 | **NO BUILD IN THIS PLATFORM HAD EVER SUCCEEDED.** `blueprints/fixture-node/Dockerfile.tmpl` opened with `# syntax=docker/dockerfile:1`, which makes BuildKit resolve a frontend image from Docker Hub **before it reads line two** — and §12 puts the builder on an internal network with no egress. | `failed to resolve source metadata for docker.io/docker/dockerfile:1 … dial tcp: lookup registry-1.docker.io … server misbehaving`. Fatal to C1 and to this plan's own `make demo`. Removed; nothing in the template needs a frontend newer than the one BuildKit ships. `renderDockerfile` now refuses the directive **by name**, because the build-time failure names DNS and Docker Hub and never mentions the blueprint. |
+| 55 | 15 | **D13's MIRROR CONTROL WAS COMPLETELY INERT.** The Dockerfile ran `COPY package.json package-lock.json ./` then `npm ci`, and `.npmrc` — the file that points the build at Verdaccio — arrived afterwards in `COPY . .`. | `npm error … request to https://registry.npmjs.org/whatwg-url/-/whatwg-url-14.2.0.tgz failed`. **This is S1's silently-wrong build arriving by a different route**, and the dangerous half is that offline it fails loudly while **with the network up it would succeed against the public registry**. `.npmrc` now travels with the lockfile; `renderDockerfile` refuses the ordering. Verified the way S1 says to — by inspecting the mirror's storage, not the exit code: `/verdaccio/storage/whatwg-url/whatwg-url-14.2.0.tgz` now exists. |
+| 56 | 15 | **A CREATE THAT COULD NOT FAIL.** `/containers/create` answers **404** for an image the daemon does not have, and Task 1 maps 404 to `undefined` by design — so `ensureInstanceContainer` created nothing, started nothing, and **returned a handle**. `ensureInstance` reported success and `status` said `gone`. | Probed directly: `CREATE RESULT: undefined`. Four contract tests were failing for a reason no message named. Now throws `INSTANCE_IMAGE_MISSING`. |
+| 57 | 15 | **`ensureInstance` never pulled the image.** buildx `--push` writes to the registry and does **not** load into the daemon's store, so every deploy not immediately preceded by a build in the same process failed — a promotion, a redeploy, anything after `make reset`. | It worked by accident only because `scanImage` pulls the image to export it. `ensureImagePulled` added, with **both** failure modes checked: the daemon answers a bare **404** (`{"message":"pull access denied …"}`) *and* can report a mid-pull failure inside a 200 ndjson body. Neither throws on its own. |
+| 58 | 15 | **BUILDS WERE NOT REPRODUCIBLE**, which is what §13's "promote the exact digest" and the contract's *"builds the same source to the same digest"* rest on. Three separate causes, each isolated by measurement. | (a) Two builds of identical source gave different digests. Pinning `SOURCE_DATE_EPOCH` to the **commit's own time** fixed the config timestamp but not the layers. (b) Exporting both images and diffing the listings showed one difference: `/tmp/node-compile-cache/v22.23.2-arm64-…/76a6db1e`, **3612 vs 3604 bytes** — Node 22's own V8 code cache, written by npm while it runs. npm's `_cacache` is the same class. Both removed in the install layer. (c) Listings then identical, digests still moving: the arm64 image manifest was **byte-identical** (`sha256:4c9606b8…` both times) and only the **provenance attestation** differed — buildx attaches one by default and it records build times. `--provenance=false`; nothing consumes it, because §12's supply-chain record is the Syft SBOM this driver retains. |
+| 59 | 15 | The plan passes `issueBuildCredential(...).password` to `runBuildxBuild`, which writes it into the docker config as a **`registrytoken`** — presented to the registry verbatim with no realm exchange (defect 34). An HMAC credential arrives as a malformed bearer token. | Every push would be **401**. The driver mints a scoped registry JWT instead, carrying the **base** repository as well, for the reason defect 34 records. The realm route stays: it serves a builder that cannot hold the issuer key. |
+| 60 | 15 | **The registry issuer paths were cwd-relative**, so the **documented** way to start the control plane could not find them. | `cannot read the registry token key at 'infra/registry-auth/token.key'` — `pnpm --filter … dev` runs with the *package* directory as its cwd. Every test passed, because `pnpm test` runs from the repo root. **Third time this class has appeared here.** Resolved from the repository root, derived from the module's own URL. |
+| 61 | 15 | **`MANIFEST_MASTER_SECRET` had no config entry at all**, though Task 6 derives every backing-service credential from it. Defect 25's shape, second occurrence. | Added with the same fail-closed guard the build credential has, plus a **boot warning when generated**: service passwords are derived from it, so a fresh one makes every existing database reject this process and the failure reads as a Mongo fault. `.env.example` carries a stable value so the documented path never reaches that branch. |
+| — | 15 | (fixture gap) The fixture app logged nothing on boot, so the contract's *"streams logs as an async iterable"* had nothing to stream. | An app that says nothing on boot is an app whose logs prove nothing. One structured line added to the skeleton. |
+
+**The contract suite, and the one change made to it.** `driver-contract.ts` hardcodes
+`image: { repository: 'local/chem-labs', digest: 'sha256:aaa…' }`. **No real driver
+can ever satisfy that** — a digest is content-addressed and cannot be invented.
+Measured: `failed to resolve reference "docker.io/local/chem-labs@sha256:aaa…" …
+401 Unauthorized`. So four of the eleven tests were passable only by an in-memory
+fake, which is the opposite of what §16 says the suite is for.
+
+It was given **one optional fixture hook**, `runnableImage`. No assertion was
+changed, removed or relaxed, and the fake driver's run is byte-for-byte what it was
+— it keeps the literal. The Docker run supplies an image it **built**, so the suite
+now additionally asserts that `ensureInstance` can run what `buildImage` produced,
+which is the seam between the two halves of the interface and which nothing tested
+before. Recorded here rather than decided quietly, because the plan's rule is that
+editing this file is a finding, not a licence.
+
+**The service wire landed in Task 15** — Rich's call, 2026-09-06, per ORIENTATION §8.
+`deployRelease` derives a `ServiceBinding` per entry in `resolved.services`, calls
+`ensureService`, and passes the handles through with the endpoint under the name the
+catalogue gives it. Platform bindings are applied **after** the app's own `env`, so a
+declared `MONGODB_URI` cannot shadow one — an app is untrusted input (§12), and the
+control has its own test. §8's injection contract remains P4's.
+
+**Controls watched failing, so nobody re-checks them.** `POST` instead of `PUT` on
+the admin API reddens four routing tests with `expected 'manifest OK host=…' to be
+'ok'` — the admin API answers 200 and the app is unreachable, which is the failure
+S7 and S1 both paid for. Reintroducing an `Origin` header reddens the header test.
+Accepting any sub-400 status reddens *"does not accept a redirect as ready"*.
+Removing `ensureInstanceContainer`'s `existing` branch reddens four contract tests
+with a **409 name conflict**. Deleting `enforcesDiskQuota` does not reach a test at
+all — it fails to **compile**, `TS2741`, which is Decision 4 working. Restoring
+`services: []` reddens both wire tests, one of them with `expected
+'mongodb://attacker/' not to contain 'attacker'`. And putting `createFakeDriver()`
+back in the boot entry point prints `"driver":"fake"` while the control plane comes
+up and serves `401` on `/auth/me` exactly as before — **indistinguishable at every
+level above that one file**, which is why `src/boot.docker.test.ts` reads the value
+rather than checking that a line exists.
+
+**Baselines after Session 4:** `pnpm test` **364**, `pnpm test:docker` **69**.
+
+**What Session 5 inherits.**
+
+- **`make verify`'s four builder checks are still gated on `docker inspect manifest-buildkitd`**, a compose service behind the `build` profile that this plan replaced with ephemeral `mf-builder-*` containers. They are not running, so they are not part of the 32. Task 19's, and still exactly the could-not-fail shape.
+- **Task 4's bridge-network positive control probes `https://registry.npmjs.org/`**, so it needs the internet. Task 17 runs the Docker tier **offline**. Still open; check it at Task 17.
+- **The offline acceptance is now testable for the first time**, because a build now works at all. Task 17's control — delete the mirrored base image and watch the build fail — has something real to act on.
+- **`.env` gained `MANIFEST_MASTER_SECRET`** and `.env.example` carries it. A clone that predates this has to re-copy `.env.example`, or the control plane comes up with a generated secret and a warning on the boot line.
+
+---
+
 ---
 
 ## Spec actions proposed by this plan

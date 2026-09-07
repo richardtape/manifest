@@ -9,7 +9,7 @@ import {
   scanImage,
   sourceDateEpoch,
 } from '../../build/index.js'
-import { applyRoute, type RoutingDeps } from '../../routing/index.js'
+import { applyRoute, removeRoute, type RoutingDeps } from '../../routing/index.js'
 import type {
   Driver,
   DriverCapabilities,
@@ -285,7 +285,32 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
     },
 
     stopInstance: (id) => stopInstanceContainer(engine, id),
-    destroyInstance: (id) => destroyInstanceContainer(engine, id),
+
+    async destroyInstance(id: string): Promise<void> {
+      // THE ROUTE GOES WITH THE CONTAINER. `ensureInstance` applies it, so
+      // `destroyInstance` has to remove it — otherwise the edge keeps a route
+      // pointing at a container that no longer exists (a permanent 502 on the
+      // app's own hostname), and the next instance to take that hostname inherits
+      // a stale upstream instead of getting a fresh one.
+      //
+      // The slug and kind come from the container's OWN labels rather than from
+      // parsing its name: `instanceName` joins them with `-` and a slug may
+      // contain `-`, so the name is not decomposable. Labels are written at
+      // create time by `ensureInstanceContainer`.
+      const inspect = await engine.get<{ Config: { Labels: Record<string, string> } }>(
+        `/containers/${id}/json`,
+      )
+      const labels = inspect?.Config.Labels
+      const slug = labels?.['manifest.slug']
+      const kind = labels?.['manifest.environment'] as InstanceSpec['environmentKind']
+      if (slug !== undefined && kind !== undefined) {
+        await removeRoute(options.routing, options.hostnameFor(kind, slug), kind).catch(
+          () => undefined,
+        )
+      }
+      await destroyInstanceContainer(engine, id)
+    },
+
     destroyService: (id, opts) => destroyServiceContainer(engine, id, opts),
     status: (id) => instanceStatus(engine, id),
     logs: (id, opts: LogOpts): AsyncIterable<LogLine> => containerLogs(engine, id, opts),
