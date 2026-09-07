@@ -35,7 +35,7 @@
   open in a browser and show to somebody</strong> &mdash; not a status report, an actual working
   thing.</p>
   <div class="meta">
-    <span><b>Now</b> stage 1a &mdash; the first plan is built and running</span>
+    <span><b>Now</b> stage 1a is complete &mdash; an app goes from repository to a working web address; next is CWL sign-in and the AI features</span>
     <span><b>Full detail</b> &sect;17 of the design document</span>
   </div>
 </header>
@@ -46,21 +46,33 @@
   <p class="claim">Seven small throwaway experiments answer questions that would be
   <strong>ruinously expensive to get wrong later</strong>. Each one takes days, not weeks, and
   every one is meant to be deleted afterwards.
-  <strong>Four have now run &mdash; S7, S2, S1 and S3 &mdash; and all four answered yes</strong>,
-  each well inside its time limit &mdash; the longest took about two hours against a three-day
-  budget. Every correction they produced has been applied to the design. The largest was moving
-  the local development web address after one experiment found the intended name was already
-  taken on developer machines; the rest were details, several of which fail silently and would
-  have been expensive to find later. The remaining three are
-  deliberately later, because each needs machinery that does not exist yet.</p>
+  <strong>Five have now run &mdash; S7, S2, S1, S3 and S6 &mdash; and all five answered
+  yes</strong>, each well inside its time limit &mdash; the longest took about two hours
+  against a three-day budget. Every correction they produced has been applied to the design.
+  The largest was moving the local development web address after one experiment found the
+  intended name was already taken on developer machines; the rest were details, several of
+  which fail silently and would have been expensive to find later.</p>
 
-  <p class="claim"><strong>The first two plans of stage 1a are now built, not just designed.</strong>
+  <p class="claim">The fifth, run on 7 September 2026, is the security one: <strong>what could
+  a hostile program inside a faculty member&rsquo;s app actually reach?</strong> Twelve
+  attempts &mdash; at the machine that manages everything, at another app&rsquo;s database, at
+  the developer&rsquo;s own computer, at the open internet, at the container&rsquo;s own
+  filesystem. All twelve were blocked. Crucially, <strong>each blocked attempt was paired with
+  the same attempt succeeding somewhere it legitimately should</strong>, because a list of
+  twelve failures looks exactly the same whether the defences work or the testing tool is
+  simply broken &mdash; and on the first run it was the <em>paired</em> checks that failed,
+  which is precisely why they exist. One result came out better than the design promised: the
+  developer&rsquo;s own machine turned out to be not merely blocked but <em>unreachable</em>,
+  which removes what the design itself called its one real local weakness. The two remaining
+  experiments are deliberately later, because each needs machinery that does not exist yet.</p>
+
+  <p class="claim"><strong>All three plans of stage 1a are now built, not just designed.</strong>
   As of 5 September 2026 the platform&rsquo;s foundations run on one laptop &mdash; local web
   addresses, the secure edge with its trusted certificates, the databases, the private package
   and image registries, the locked-down build service, the AI gateway and the practice sign-in
   service &mdash; and they start and pass their own checks <strong>with the internet switched
   off</strong>, which is what S7 above was asking. Two commands bring it up, and two more
-  check <strong>49 separate properties</strong> of it &mdash; not that it started, but that it
+  check <strong>50 separate properties</strong> of it &mdash; not that it started, but that it
   is correct.</p>
 
   <p class="claim">The <em>second</em> plan followed the same day: the service that actually
@@ -69,9 +81,28 @@
   rules, produces a fixed, unchangeable release, and puts that release live on a practice
   address &mdash; then correctly <em>refuses</em> to put it in front of real students,
   listing the university registrations and privacy review that have to happen first. The
-  whole sequence takes about a third of a second and is covered by <strong>224
-  automated checks</strong>. What is still missing is the part a person would look at:
-  <strong>there is still no user interface</strong>, and that is stage 1c.</p>
+  whole sequence takes about a third of a second when nothing real is being started.</p>
+
+  <p class="claim"><strong>And on 7 September the third plan finished, which is the one that
+  makes it real.</strong> Until then every step above was a rehearsal against a stand-in. Now
+  a genuine application &mdash; code the platform did not write, in its own repository &mdash;
+  is packaged inside a sealed workshop that has <em>no route to the internet at all</em>,
+  drawing its ingredients only from the university&rsquo;s own copies; every ingredient is
+  catalogued and scanned; the finished package is identified by a fingerprint that cannot be
+  swapped later; its database is created for it; it is started with the safety restrictions
+  in place; it is given a real web address with a certificate the browser trusts; and it is
+  <em>correctly refused</em> a place in front of real students until the university
+  registrations and privacy review are done. That whole journey now runs on one laptop, and
+  runs again from scratch after everything is deliberately deleted. It is covered by
+  <strong>470 automated checks</strong>.</p>
+
+  <p class="claim">Building it was not smooth, and the record is kept deliberately: the three
+  plans were carefully reviewed before anyone ran them, and running them still uncovered
+  <strong>152 faults</strong>. The most valuable ones only appeared the first time the pieces
+  were made to work <em>together</em> &mdash; including the discovery that no application had
+  ever really been packaged successfully, and later that none had ever really been deployed,
+  both while every automated check was passing. What is still missing is the part a person
+  would look at: <strong>there is still no user interface</strong>, and that is stage 1c.</p>
 
   <p class="claim">Building them was also a lesson about planning. Each plan had been written
   and reviewed before anyone ran it, and running the first still turned up <strong>18 things
