@@ -156,7 +156,8 @@ describeDocker(
         `mf-${SLUG}-${KIND}-egress`,
         `mf-${NEIGHBOUR}-${KIND}-egress`,
       ]) {
-        await run('docker', ['rm', '-f', name]).catch(() => undefined)
+        // `-v`, as `make reset` does: no anonymous volume outlives its container.
+        await run('docker', ['rm', '-f', '-v', name]).catch(() => undefined)
       }
       await run('docker', ['network', 'rm', NEIGHBOUR_NET]).catch(() => undefined)
     }, 300_000)

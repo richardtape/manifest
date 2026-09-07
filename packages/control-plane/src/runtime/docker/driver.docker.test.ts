@@ -24,10 +24,13 @@ describeDocker('Docker driver', () => {
   afterAll(async () => {
     await run('sh', [
       '-c',
-      'docker ps -aq --filter label=manifest.slug=chem-labs | xargs docker rm -f 2>/dev/null || true',
+      'docker ps -aq --filter label=manifest.slug=chem-labs | xargs docker rm -f -v 2>/dev/null || true',
     ]).catch(() => undefined)
     for (const name of ['mf-chem-labs-staging-db', 'mf-egress-chem-labs-staging']) {
-      await run('docker', ['rm', '-f', name]).catch(() => undefined)
+      // `-v`: remove the container's anonymous volumes with it. No image used
+      // here declares one today, but `make reset` leaked six this way before it
+      // was fixed, and the habit costs nothing.
+      await run('docker', ['rm', '-f', '-v', name]).catch(() => undefined)
     }
   })
 

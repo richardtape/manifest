@@ -69,6 +69,15 @@ reset: .env  ## Destroy projects, volumes and registry contents. KEEPS the seed 
 # separately below, deliberately — that is D3's data and its removal is the
 # `reset` verb's whole point.
 	@docker ps -aq --filter 'name=^mf-' | xargs -I{} docker rm -f -v {} 2>/dev/null || true
+# DISCONNECT THE PLATFORM NEIGHBOURS FIRST. `ensureAppNetwork` attaches
+# manifest-caddy and manifest-dns-containers to every app network by design (the
+# edge is the only thing that can reach an app, and an --internal network cannot
+# forward a DNS query off itself), so `docker network rm` fails with "has active
+# endpoints" while they are up. This target happens to work anyway because
+# `down` runs above and stops them — but that makes correctness an accident of
+# ordering, and the `|| true` below would hide the failure completely. Measured
+# 2026-09-07: five app networks survived a cleanup that reported success.
+	@for n in $$(docker network ls --format '{{.Name}}' | grep '^mf-'); do 	  for c in $$(docker network inspect $$n --format '{{range .Containers}}{{.Name}} {{end}}'); do 	    docker network disconnect -f $$n $$c 2>/dev/null || true; 	  done; 	done
 	@docker network ls -q --filter 'name=^mf-' | xargs -I{} docker network rm {} 2>/dev/null || true
 	@docker volume ls -q --filter 'name=^mf-' | xargs -I{} docker volume rm -f {} 2>/dev/null || true
 	@echo "  re-mirroring base images into the fresh registry (no network needed)"

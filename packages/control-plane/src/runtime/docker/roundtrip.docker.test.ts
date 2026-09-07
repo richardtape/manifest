@@ -116,7 +116,11 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
     await driver
       .destroyService(serviceContainer(SERVICE), { deleteData: true })
       .catch(() => undefined)
-    await run('docker', ['rm', '-f', `mf-${SLUG}-${KIND}-egress`]).catch(() => undefined)
+    // `-v`, for the reason `make reset` now carries: a container removed without
+    // it orphans any anonymous volume its image declared.
+    await run('docker', ['rm', '-f', '-v', `mf-${SLUG}-${KIND}-egress`]).catch(
+      () => undefined,
+    )
   }, 120_000)
 
   it('builds an app the platform did not write, from a bare repo at a commit', async () => {

@@ -403,6 +403,21 @@ which is why P1's **offline** acceptance can only run after a successful seed.
 - **An unqualified image name is DOCKER HUB to the daemon.** `local/chem-labs@sha…`
   resolves as `docker.io/local/chem-labs` and 401s. Record the repository the build
   produced; never re-derive it from a slug.
+- **`docker network rm` fails while ANY container is still attached**, and the app
+  networks always have two: `ensureAppNetwork` attaches `manifest-caddy` and
+  `manifest-dns-containers` to every one of them by design. `make reset` only worked
+  because `compose down` ran first and stopped them — correctness by accident of
+  ordering, with `|| true` hiding the failure. It now disconnects them explicitly.
+  Measured 2026-09-07: five app networks survived a cleanup that reported success.
+- **`docker rm` without `-v` orphans the container's anonymous volumes**, and
+  `mongodb/mongodb-community-server` declares **two** volumes while the driver binds
+  only `/data/db`. `moby/buildkit` likewise declares one the ephemeral builder does
+  not bind — harmless while the process lives, because the driver deletes with
+  `v=true` in a `finally`, but one empty volume per build leaks if the control plane
+  is killed mid-build. **`docker volume ls -f dangling=true` is NOT a safe prune
+  list**: it includes *named* volumes that merely have no container attached, so it
+  lists `manifest-caddy-data` — the trusted CA — and other people's volumes. List and
+  date them, then remove by id.
 - **`registry garbage-collect` on a RUNNING registry corrupts it.** It deletes the
   manifest blob and leaves the tag and revision links, after which every `docker
   push` of the same content reports success **with the correct digest** while the
