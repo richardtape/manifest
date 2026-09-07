@@ -145,6 +145,8 @@ describeDocker('the ephemeral rootless builder (§12, D13)', () => {
           imageRef: 'manifest-registry:5000/local/buildertest:probe',
           registryToken: token,
           registryHost: 'manifest-registry:5000',
+          // A fixed epoch: these builds assert push behaviour, not reproducibility.
+          sourceDateEpoch: 1_700_000_000,
           timeoutMs: DEFAULT_BUILD_LIMITS.timeoutMs,
         }),
     )
@@ -165,6 +167,8 @@ describeDocker('the ephemeral rootless builder (§12, D13)', () => {
           imageRef: 'manifest-registry:5000/local/not-mine:probe',
           registryToken: token,
           registryHost: 'manifest-registry:5000',
+          // A fixed epoch: these builds assert push behaviour, not reproducibility.
+          sourceDateEpoch: 1_700_000_000,
           timeoutMs: DEFAULT_BUILD_LIMITS.timeoutMs,
         }),
       ),

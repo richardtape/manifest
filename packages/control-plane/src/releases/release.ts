@@ -2,10 +2,11 @@ import { eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { builds, environments, instances, releases } from '../db/index.js'
 import type { Driver } from '../runtime/index.js'
-import { instanceName } from '../runtime/index.js'
+import { instanceName, serviceName } from '../runtime/index.js'
 import { nextState } from '../runtime/index.js'
 import type { ResolvedConfig } from '../spec/index.js'
 import { toMebibytes } from '../spec/index.js'
+import { resolveServiceImage } from '../services/index.js'
 import type { Config } from '../config.js'
 
 export type Release = typeof releases.$inferSelect
@@ -171,15 +172,48 @@ export async function deployRelease(
     })
     .returning()
 
+  /**
+   * THE SERVICE WIRE. Until this existed `services: []` was a hardcoded literal,
+   * so `Driver.ensureService` — built, tested, with a connectable endpoint — was
+   * never called, and every deployed app came up with no database.
+   *
+   * This is deliberately the SMALL half of §8. P4 owns the injection contract
+   * proper: the general declared-service-to-variable mapping, secret handling and
+   * the drift test. What happens here is only the wire — one `ensureService` per
+   * declared service, and the endpoint under the name the catalogue gives it.
+   * P4 replaces the naming, not the plumbing.
+   */
+  const serviceHandles = []
+  const serviceEnv: Record<string, string> = {}
+  for (const declared of resolved.services) {
+    const handle = await driver.ensureService({
+      name: serviceName(projectSlug, environment.kind, declared.name),
+      type: declared.type,
+      version: declared.version,
+      environmentId: environment.id,
+      projectSlug,
+    })
+    serviceHandles.push(handle)
+    serviceEnv[resolveServiceImage(declared.type, declared.version).envVar] =
+      handle.endpoint
+  }
+
   const handle = await driver.ensureInstance({
     name,
     projectSlug,
     environmentKind: environment.kind,
     releaseId: release.id,
     image: { digest, repository },
-    env: Object.fromEntries(
-      resolved.env.filter((e) => e.value !== undefined).map((e) => [e.name, e.value!]),
-    ),
+    env: {
+      ...Object.fromEntries(
+        resolved.env.filter((e) => e.value !== undefined).map((e) => [e.name, e.value!]),
+      ),
+      // AFTER the app's own, so a declared variable cannot shadow a binding the
+      // platform made. An app that sets MONGODB_URI itself would otherwise be
+      // pointed at a database of its choosing while appearing to be bound to its
+      // own — §12's "application code is untrusted" applied to the spec.
+      ...serviceEnv,
+    },
     port: resolved.port,
     healthPath: resolved.health,
     resources: {
@@ -188,7 +222,7 @@ export async function deployRelease(
       pids: resolved.resources.pids,
       diskMi: toMebibytes(resolved.resources.disk),
     },
-    services: [],
+    services: serviceHandles,
     egressAllow: resolved.egressAllow,
   })
 

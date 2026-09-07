@@ -17,6 +17,16 @@ export interface ServiceImage {
    */
   uriQuery: string
   /**
+   * The environment variable an app reads the endpoint from.
+   *
+   * This is the SMALL half of §8. P4 owns the injection contract proper — the
+   * general declared-service-to-variable mapping and its drift test — and replaces
+   * this field with it. What lives here is only the name, so that Task 15 can bind
+   * a service to an app at all: without it `ensureService` is never called and a
+   * deployed app comes up with no database.
+   */
+  envVar: string
+  /**
    * The container-side liveness probe, run by the DAEMON as a Docker healthcheck.
    * It cannot be a probe the control plane makes itself: the control plane is a
    * host process and §21 establishes it cannot reach container IPs, so it asks
@@ -50,6 +60,7 @@ export const SERVICE_CATALOGUE: Record<'mongo' | 'qdrant', ServiceImage> = {
     supportedVersions: ['7'],
     uriScheme: 'mongodb',
     uriQuery: 'authSource=admin',
+    envVar: 'MONGODB_URI',
     // `ping` is served before authentication, which makes it useless as a
     // SECURITY assertion and exactly right as a LIVENESS one.
     healthTest: ['CMD', 'mongosh', '--quiet', '--eval', 'db.adminCommand({ping:1}).ok'],
@@ -63,6 +74,7 @@ export const SERVICE_CATALOGUE: Record<'mongo' | 'qdrant', ServiceImage> = {
     supportedVersions: ['1'],
     uriScheme: 'http',
     uriQuery: '',
+    envVar: 'QDRANT_URL',
     healthTest: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:6333/readyz'],
   },
 }

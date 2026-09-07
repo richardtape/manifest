@@ -227,6 +227,12 @@ export interface BuildxInput {
   registryToken: string
   registryHost: string
   timeoutMs: number
+  /**
+   * Unix seconds every timestamp in the image is pinned to. The COMMIT's own time
+   * is the right value: it is a property of the source, so the same source is the
+   * same digest, and a rebuild months later still is.
+   */
+  sourceDateEpoch: number
 }
 
 /**
@@ -280,9 +286,33 @@ export async function runBuildxBuild(
           '--builder',
           input.builder,
           'build',
-          '--push',
-          '-t',
-          input.imageRef,
+          // REPRODUCIBILITY. §13 binds an approval to a digest and P2's driver
+          // contract asserts "the same source builds to the same digest" — and a
+          // default BuildKit build does not: the image config carries a `created`
+          // timestamp and every layer carries file mtimes, so two builds of
+          // identical source produced two digests (measured 2026-09-06,
+          // `sha256:a3bcc26…` vs `sha256:17b6691…`).
+          //
+          // SOURCE_DATE_EPOCH fixes the config timestamp and
+          // `rewrite-timestamp=true` rewrites the layers to match. Both are
+          // needed; either alone still moves the digest.
+          '--build-arg',
+          `SOURCE_DATE_EPOCH=${input.sourceDateEpoch}`,
+          // NO PROVENANCE ATTESTATION. buildx attaches one by default, it records
+          // build start and end times, and it is therefore never reproducible —
+          // which moves the INDEX digest even when the image itself is identical.
+          // Measured 2026-09-06: two builds produced the same arm64 image manifest
+          // (`sha256:4c9606b8…` both times) and two different attestation
+          // manifests, so `containerimage.digest` differed and §13's "promote the
+          // exact digest" had nothing stable to bind to.
+          //
+          // Nothing here consumes it: §12's supply-chain record is the Syft SBOM
+          // and the Grype scan this driver runs and retains with the Release. If
+          // attestations are ever wanted, the digest binding has to move to the
+          // per-platform image manifest first.
+          '--provenance=false',
+          '--output',
+          `type=image,name=${input.imageRef},push=true,rewrite-timestamp=true`,
           '--metadata-file',
           metadataFile,
           input.contextDir,

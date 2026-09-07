@@ -44,3 +44,12 @@ export {
 } from './docker/engine.js'
 export type { EngineClient } from './docker/engine.js'
 export { demux } from './docker/logs.js'
+
+// The Docker driver itself. `src/index.ts` constructs it through this entry point
+// rather than by a deep path, which §5's boundary test enforces.
+export {
+  createDockerDriver,
+  dockerCapabilities,
+  ensureImagePulled,
+} from './docker/driver.js'
+export type { DockerDriverOptions } from './docker/driver.js'

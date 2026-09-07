@@ -30,4 +30,16 @@ const server = createServer(async (req, res) => {
 })
 
 if (client) await client.connect()
-server.listen(PORT, '0.0.0.0')
+server.listen(PORT, '0.0.0.0', () => {
+  // An app that says nothing on boot is an app whose logs prove nothing. §11's
+  // `logs` is part of the Driver contract and D13 makes the blueprint responsible
+  // for the app being observable, so the skeleton emits one structured line.
+  console.log(
+    JSON.stringify({
+      msg: 'fixture-app listening',
+      port: PORT,
+      env: process.env.MANIFEST_ENV ?? 'unknown',
+      database: client ? 'bound' : 'none',
+    }),
+  )
+})

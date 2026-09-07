@@ -1,4 +1,9 @@
-# syntax=docker/dockerfile:1
+# NO `# syntax=` DIRECTIVE, deliberately. That line makes BuildKit resolve an
+# external frontend image from Docker Hub before it reads line two — and §12 puts
+# the builder on an internal network with no egress, so the build dies with
+# `failed to resolve source metadata for docker.io/docker/dockerfile:1 … dial tcp`.
+# Measured 2026-09-06; it is fatal to C1's offline requirement and to `make demo`.
+# Nothing below needs a frontend newer than the one BuildKit ships.
 FROM {{BASE_IMAGE}}
 
 # Non-root by construction (§12 hardening baseline). The base is Alpine, whose
@@ -10,10 +15,31 @@ RUN addgroup -g {{RUN_AS_UID}} app \
 WORKDIR /app
 
 # A committed lockfile is required; the build fails without one (§12 supply chain).
-COPY package.json package-lock.json ./
+#
+# `.npmrc` IS COPIED HERE, with the lockfile, and not by the `COPY . .` below.
+# D13 points the build at the platform's mirror through that file, and `npm ci`
+# reads it from the working directory — so arriving after the install makes the
+# control completely inert. Measured 2026-09-06: `npm error … request to
+# https://registry.npmjs.org/whatwg-url/-/whatwg-url-14.2.0.tgz failed`, which is
+# S1's silently-wrong build arriving by a different route. Offline it fails; with
+# the network up it would SUCCEED against the public registry.
+COPY package.json package-lock.json .npmrc ./
 # Install scripts are disabled: a malicious or hallucinated dependency does not get
 # to run arbitrary code at build time (§12).
-RUN npm ci --omit=dev --ignore-scripts
+# BOTH CACHES REMOVED IN THE SAME LAYER, and this is a correctness requirement,
+# not housekeeping. §13 binds an approval to a digest and P2's driver contract
+# asserts "the same source builds to the same digest" — and two builds of identical
+# source produced two digests until this line existed. Measured 2026-09-06 by
+# exporting both images and diffing the listings: every layer identical except the
+# install layer, and inside it only
+#
+#   /tmp/node-compile-cache/v22.23.2-arm64-.../76a6db1e   3612 vs 3604 bytes
+#
+# — Node 22's own V8 CODE CACHE, which npm writes while it runs and whose bytes are
+# not byte-stable between runs. npm's `_cacache` under /root/.npm is the same class.
+# Neither belongs in a shipped image either.
+RUN npm ci --omit=dev --ignore-scripts \
+ && rm -rf /root/.npm /tmp/node-compile-cache
 
 COPY . .
 

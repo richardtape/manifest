@@ -7,7 +7,13 @@
  * app", and a gate living in the module whose job is to serve an app's release
  * request is a gate somebody eventually adds a parameter to.
  */
-export { BuildContextError, assembleContext, renderDockerfile } from './context.js'
+export {
+  BuildContextError,
+  assembleContext,
+  loadBlueprintDescriptor,
+  renderDockerfile,
+  sourceDateEpoch,
+} from './context.js'
 export type { ContextInput } from './context.js'
 export {
   BuildGateError,

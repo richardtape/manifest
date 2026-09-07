@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import type { Driver, InstanceSpec, ServiceBinding } from './driver.js'
+import { beforeAll, describe, expect, it } from 'vitest'
+import type { Driver, ImageRef, InstanceSpec, ServiceBinding } from './driver.js'
 import { instanceName, serviceName } from './driver.js'
 
 const binding = (): ServiceBinding => ({
@@ -10,20 +10,33 @@ const binding = (): ServiceBinding => ({
   projectSlug: 'chem-labs',
 })
 
-const spec = (overrides: Partial<InstanceSpec> = {}): InstanceSpec => ({
-  name: instanceName('chem-labs', 'staging', 'release-abcdef12'),
-  projectSlug: 'chem-labs',
-  environmentKind: 'staging',
-  releaseId: 'release-abcdef12',
-  image: { repository: 'local/chem-labs', digest: 'sha256:' + 'a'.repeat(64) },
-  env: { MANIFEST_ENV: 'staging', PORT: '3000' },
-  port: 3000,
-  healthPath: '/healthz',
-  resources: { cpu: 0.5, memoryMi: 512, pids: 256, diskMi: 2048 },
-  services: [],
-  egressAllow: [],
-  ...overrides,
-})
+/**
+ * A reference no real registry holds. Fine for an in-memory driver, and impossible
+ * for any other kind: a digest is content-addressed, so this one cannot be made to
+ * exist. Measured 2026-09-06 against Docker — `failed to resolve reference
+ * "docker.io/local/chem-labs@sha256:aaa…" … 401 Unauthorized`.
+ */
+const FICTIONAL_IMAGE: ImageRef = {
+  repository: 'local/chem-labs',
+  digest: 'sha256:' + 'a'.repeat(64),
+}
+
+export interface DriverContractFixtures {
+  /**
+   * An image the driver can actually RUN, supplied by whoever knows how to make
+   * one. A driver backed by real infrastructure must be given this; an in-memory
+   * one leaves it out and keeps the literal above.
+   *
+   * This exists because without it four of the tests below are unsatisfiable by
+   * any implementation except a fake — which is the opposite of what §16 says this
+   * suite is for. NOTHING BELOW IS WEAKENED BY IT: every assertion is unchanged
+   * and the fake driver's run is byte-for-byte what it was. It also strengthens
+   * the contract, because the Docker driver supplies an image it BUILT, so
+   * "ensureInstance can run what buildImage produced" is now asserted — the seam
+   * between the two halves of the interface, which nothing tested before.
+   */
+  runnableImage?: (driver: Driver) => Promise<ImageRef>
+}
 
 /**
  * Every Driver implementation must pass this suite unchanged (§16).
@@ -32,8 +45,32 @@ const spec = (overrides: Partial<InstanceSpec> = {}): InstanceSpec => ({
 export function describeDriverContract(
   name: string,
   factory: () => Driver | Promise<Driver>,
+  fixtures: DriverContractFixtures = {},
 ): void {
   describe(`Driver contract: ${name}`, () => {
+    let image = FICTIONAL_IMAGE
+
+    beforeAll(async () => {
+      if (fixtures.runnableImage !== undefined) {
+        image = await fixtures.runnableImage(await factory())
+      }
+    }, 600_000)
+
+    const spec = (overrides: Partial<InstanceSpec> = {}): InstanceSpec => ({
+      name: instanceName('chem-labs', 'staging', 'release-abcdef12'),
+      projectSlug: 'chem-labs',
+      environmentKind: 'staging',
+      releaseId: 'release-abcdef12',
+      image,
+      env: { MANIFEST_ENV: 'staging', PORT: '3000' },
+      port: 3000,
+      healthPath: '/healthz',
+      resources: { cpu: 0.5, memoryMi: 512, pids: 256, diskMi: 2048 },
+      services: [],
+      egressAllow: [],
+      ...overrides,
+    })
+
     it('produces a digest-addressed image reference', async () => {
       const driver = await factory()
       const image = await driver.buildImage(

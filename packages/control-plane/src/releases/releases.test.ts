@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { resetDatabase, withRollback } from '../db/testing.js'
 import { appSpecs, builds, users } from '../db/index.js'
+import type { Driver, InstanceSpec } from '../runtime/index.js'
 import { createFakeDriver } from '../runtime/index.js'
 import { createProject } from '../projects/index.js'
 import { loadConfig } from '../config.js'
@@ -36,6 +37,17 @@ const RESOLVED = {
   sandbox: one('sandbox'),
   staging: one('staging'),
   production: one('production'),
+}
+
+/** The same, with a declared Mongo — the shape the service wire exists for. */
+const withService = (kind: 'sandbox' | 'staging' | 'production') => ({
+  ...one(kind),
+  services: [{ type: 'mongo', version: '7', name: 'db' }],
+})
+const RESOLVED_WITH_SERVICE = {
+  sandbox: withService('sandbox'),
+  staging: withService('staging'),
+  production: withService('production'),
 }
 
 async function fixture(db: Parameters<typeof createProject>[0]) {
@@ -154,6 +166,103 @@ describe('releases (§13)', () => {
       })
       expect(instance.state).toBe('healthy')
       expect(instance.handle).toBeTruthy()
+    })
+  })
+
+  /**
+   * THE SERVICE WIRE (measured 2026-09-06). `deployRelease` passed `services: []`
+   * as a hardcoded literal, so `ensureService` was never called and a deployed app
+   * came up with no database — while every test here stayed green, because none of
+   * them declared a service.
+   */
+  it('binds a declared service and injects its endpoint (§8, the wire only)', async () => {
+    await withRollback(async (db) => {
+      const { user, project, appSpec, byKind } = await fixture(db)
+      const driver = createFakeDriver()
+      const seen: InstanceSpec[] = []
+      const recording: Driver = {
+        ...driver,
+        ensureInstance: (spec) => {
+          seen.push(spec)
+          return driver.ensureInstance(spec)
+        },
+      }
+      const build = await startBuild(db, recording, {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoUrl: 'file:///tmp/chem-labs.git',
+      })
+      const release = await createRelease(db, {
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: RESOLVED_WITH_SERVICE,
+      })
+      await deployRelease(db, recording, config, {
+        releaseId: release.id,
+        environmentId: byKind.staging!.id,
+      })
+
+      const spec = seen.at(-1)!
+      // A handle reached the instance, not an empty array.
+      expect(spec.services).toHaveLength(1)
+      expect(spec.services[0]!.name).toBe('chem-labs-staging-db')
+      // And the app can actually find it. The variable name is the catalogue's;
+      // P4's §8 injection contract replaces the naming, not this wire.
+      expect(spec.env.MONGODB_URI).toBe(spec.services[0]!.endpoint)
+      expect(spec.env.MONGODB_URI).toContain('chem-labs-staging-db')
+    })
+  })
+
+  // An app is untrusted input (§12). A declared env var must not be able to point
+  // the app at a database of its own choosing while looking bound to the platform's.
+  it('does not let an app-declared variable shadow the platform binding', async () => {
+    await withRollback(async (db) => {
+      const { user, project, appSpec, byKind } = await fixture(db)
+      const driver = createFakeDriver()
+      const seen: InstanceSpec[] = []
+      const recording: Driver = {
+        ...driver,
+        ensureInstance: (spec) => {
+          seen.push(spec)
+          return driver.ensureInstance(spec)
+        },
+      }
+      const build = await startBuild(db, recording, {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoUrl: 'file:///tmp/chem-labs.git',
+      })
+      const hostile = {
+        sandbox: {
+          ...withService('sandbox'),
+          env: [{ name: 'MONGODB_URI', value: 'mongodb://attacker/' }],
+        },
+        staging: {
+          ...withService('staging'),
+          env: [{ name: 'MONGODB_URI', value: 'mongodb://attacker/' }],
+        },
+        production: withService('production'),
+      }
+      const release = await createRelease(db, {
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: hostile,
+      })
+      await deployRelease(db, recording, config, {
+        releaseId: release.id,
+        environmentId: byKind.staging!.id,
+      })
+      expect(seen.at(-1)!.env.MONGODB_URI).not.toContain('attacker')
     })
   })
 

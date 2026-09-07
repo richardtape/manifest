@@ -4,7 +4,7 @@ import type {
   InstanceState,
   InstanceStatus,
 } from '../driver.js'
-import type { EngineClient } from './engine.js'
+import { EngineError, type EngineClient } from './engine.js'
 import { hardenedHostConfig } from './hardening.js'
 import { appContainer } from './names.js'
 import { proxyEnvironment } from './egress.js'
@@ -78,7 +78,7 @@ export async function ensureInstanceContainer(
     return { id: name, name, url }
   }
 
-  await engine.post(`/containers/create?name=${name}`, {
+  const created = await engine.post<{ Id: string }>(`/containers/create?name=${name}`, {
     // §13: the digest, never the tag. An approval binds to this string.
     Image: `${spec.image.repository}@${spec.image.digest}`,
     Env: [
@@ -111,6 +111,22 @@ export async function ensureInstanceContainer(
       'manifest.release': spec.releaseId,
     },
   })
+  // A CREATE THAT COULD NOT FAIL. Task 1 maps 404 to `undefined` by design, and
+  // `/containers/create` answers **404** when the image is not in the daemon's
+  // store — measured 2026-09-06, `{"message":"No such image"}`. Without this
+  // check the deploy of an unpullable image creates nothing, starts nothing, and
+  // RETURNS A HANDLE: `ensureInstance` reports success, `status` says `gone`, and
+  // §11's state machine sees a healthy-looking provisioning step. Every contract
+  // test that needed a running container was passing or failing for the wrong
+  // reason because of this one line.
+  if (!created) {
+    throw new EngineError(
+      'INSTANCE_IMAGE_MISSING',
+      `the daemon has no image ${spec.image.repository}@${spec.image.digest}`,
+      'A build pushes to the registry without loading into the daemon, so the image ' +
+        'must be pulled before an instance is created. See ensureImagePulled.',
+    )
+  }
   await engine.del(`/volumes/${hibernationVolume(name)}?force=true`)
   await engine.post(`/containers/${name}/start`)
   return { id: name, name, url }

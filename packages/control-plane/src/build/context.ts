@@ -53,6 +53,50 @@ export function renderDockerfile(
     }
     return value
   })
+  /**
+   * A `# syntax=` directive makes BuildKit fetch an external frontend image from
+   * Docker Hub BEFORE it parses the rest of the file. §12 puts the builder on an
+   * internal network with no egress, so the build dies with `failed to resolve
+   * source metadata for docker.io/docker/dockerfile:1 … dial tcp` — measured
+   * 2026-09-06, and fatal to C1 and to this plan's own offline acceptance.
+   *
+   * Refused here rather than left to fail during the build, because the build-time
+   * failure names DNS and Docker Hub and never mentions the blueprint.
+   */
+  const syntax = /^[ \t]*#[ \t]*syntax[ \t]*=/im.exec(rendered)
+  if (syntax !== null) {
+    throw new BuildContextError(
+      'BLUEPRINT_EXTERNAL_FRONTEND',
+      'the blueprint Dockerfile declares an external BuildKit frontend with a ' +
+        '`# syntax=` directive',
+      'The builder has no egress (§12), so the frontend cannot be fetched and every ' +
+        "build fails offline. Remove the directive: BuildKit's built-in frontend " +
+        'handles everything a blueprint needs.',
+    )
+  }
+  /**
+   * D13: the build's package registry is the PLATFORM's, and `.npmrc` is how the
+   * builder is told. `npm ci` reads it from the working directory, so a Dockerfile
+   * that installs before copying it gets the PUBLIC registry — measured 2026-09-06,
+   * `npm error … request to https://registry.npmjs.org/whatwg-url/…`, which is S1's
+   * silently-wrong build arriving by a different route. Offline it fails loudly;
+   * with the network up it SUCCEEDS against the wrong registry, which is worse.
+   */
+  const install = /^\s*RUN\b[^\n]*\bnpm\s+(ci|install|i)\b/im.exec(rendered)
+  if (install !== null) {
+    const copiesNpmrc = /^\s*COPY\b[^\n]*(^|\s)\.npmrc(\s|$)/im.exec(
+      rendered.slice(0, install.index),
+    )
+    if (copiesNpmrc === null) {
+      throw new BuildContextError(
+        'BLUEPRINT_NPMRC_AFTER_INSTALL',
+        'the blueprint Dockerfile runs an npm install before it copies `.npmrc`',
+        'D13 points the build at the platform mirror through `.npmrc`, and npm reads ' +
+          'it from the working directory. Copy it alongside package.json and the ' +
+          'lockfile, above the install step.',
+      )
+    }
+  }
   if (unresolved.length > 0) {
     throw new BuildContextError(
       'BLUEPRINT_TEMPLATE_UNRESOLVED',
@@ -62,6 +106,17 @@ export function renderDockerfile(
     )
   }
   return rendered
+}
+
+/**
+ * Exported because the driver needs `runtime.base_image` to hand `scanImage` a
+ * `baseImageRef` — without it the scan attributes every base-image finding to the
+ * app and blocks every build on findings no app can fix (defect 45).
+ */
+export async function loadBlueprintDescriptor(
+  blueprintDir: string,
+): Promise<BlueprintDescriptor> {
+  return loadDescriptor(blueprintDir)
 }
 
 async function loadDescriptor(blueprintDir: string): Promise<BlueprintDescriptor> {
@@ -86,6 +141,43 @@ async function loadDescriptor(blueprintDir: string): Promise<BlueprintDescriptor
  * `npm install` meant the first build silently used the PUBLIC registry while
  * appearing to succeed, and only inspecting the mirror's storage caught it.
  */
+/**
+ * The commit's own author/commit time, in Unix seconds — BuildKit's
+ * `SOURCE_DATE_EPOCH`.
+ *
+ * A property of the source, so the same source builds to the same digest and a
+ * rebuild months later still does. `Date.now()` would satisfy nothing: §13 binds
+ * an approval to a digest, and P2's driver contract asserts the determinism
+ * directly.
+ */
+export async function sourceDateEpoch(
+  repoPath: string,
+  commitSha: string,
+): Promise<number> {
+  const { stdout } = await run('git', [
+    `--git-dir=${repoPath}`,
+    'show',
+    '-s',
+    '--format=%ct',
+    commitSha,
+  ]).catch((error: Error) => {
+    throw new BuildContextError(
+      'SOURCE_TIMESTAMP_UNREADABLE',
+      `cannot read the commit time of ${commitSha} in ${repoPath}: ${error.message}`,
+      "The commit must exist in the project's bare repository.",
+    )
+  })
+  const epoch = Number.parseInt(stdout.trim(), 10)
+  if (!Number.isFinite(epoch)) {
+    throw new BuildContextError(
+      'SOURCE_TIMESTAMP_UNREADABLE',
+      `git reported a non-numeric commit time for ${commitSha}: '${stdout.trim()}'`,
+      'This is `git show -s --format=%ct`, which returns Unix seconds.',
+    )
+  }
+  return epoch
+}
+
 export async function assembleContext(input: ContextInput): Promise<string> {
   const dir = join(input.workDir, 'context')
   await mkdir(dir, { recursive: true })

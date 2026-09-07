@@ -1,5 +1,30 @@
 import { randomBytes } from 'node:crypto'
+import { isAbsolute, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
+import { resolveSocketPath } from './runtime/index.js'
+
+/**
+ * The repository root, derived from THIS FILE rather than from `process.cwd()`.
+ *
+ * `src/config.ts` and `dist/config.js` are both three levels below it, so one
+ * expression covers the compiled and the source form.
+ *
+ * The registry issuer defaults are repo-relative paths, and resolving them against
+ * the working directory made the DOCUMENTED way to start the control plane fail:
+ * `pnpm --filter @manifest/control-plane dev` runs with the PACKAGE directory as
+ * its cwd, so `infra/registry-auth/token.key` pointed at
+ * `packages/control-plane/infra/...`, which does not exist. Measured 2026-09-06 —
+ * the process refused to boot. Every test passed, because `pnpm test` runs from the
+ * repo root. This is the third time a cwd-relative path in this repository has
+ * behaved differently under the two commands.
+ */
+const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
+
+/** Absolute already, or relative to the repository root — never to the cwd. */
+function fromRepoRoot(path: string): string {
+  return isAbsolute(path) ? path : resolve(REPO_ROOT, path)
+}
 
 export class ConfigError extends Error {
   constructor(
@@ -52,6 +77,16 @@ const envSchema = z.object({
   // (§21, honest divergence 2), so the distinction is modelled, not enforced here.
   MANIFEST_CADDY_SERVER_INTERNAL: z.string().min(1).default('srv0'),
   MANIFEST_CADDY_SERVER_PUBLIC: z.string().min(1).default('srv0'),
+  // §12 makes the resolver per-container: dnsmasq-A's address on the platform
+  // network. P1 pins it at 10.89.0.53 (infra/lib/common.sh, DNS_C_IP).
+  MANIFEST_DNS_SERVER: z.string().min(1).default('10.89.0.53'),
+  // Every backing-service credential is derived from this by HMAC (Task 6), so it
+  // is the single secret behind every app's database password. Optional here and
+  // required outside development below, for the same two reasons the build
+  // credential is: making it required outright breaks every existing loadConfig
+  // caller, and a literal default in the source tree is a published secret.
+  MANIFEST_MASTER_SECRET: z.string().min(32).optional(),
+  MANIFEST_DOCKER_SOCKET: z.string().min(1).optional(),
 })
 
 export interface Config {
@@ -72,6 +107,18 @@ export interface Config {
   caddyAdminUrl: string
   /** Listener -> Caddy server name. Both `srv0` locally (§21, divergence 2). */
   caddyServers: { internal: string; public: string }
+  dnsServer: string
+  /** Task 6 derives every service credential from this by HMAC. */
+  masterSecret: string
+  /**
+   * True when `masterSecret` was generated rather than supplied. Service
+   * credentials are derived from it, so a generated one means every existing
+   * service container holds a password this process can no longer reproduce —
+   * which surfaces as an authentication failure that looks like a Mongo bug. The
+   * boot line says so rather than leaving it to be discovered.
+   */
+  masterSecretGenerated: boolean
+  dockerSocket: string
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -124,6 +171,20 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const buildCredentialSecret =
     raw.MANIFEST_BUILD_CREDENTIAL_SECRET ?? randomBytes(32).toString('hex')
 
+  // The same two reads of one setting, for the secret every backing-service
+  // password is derived from. `.env.example` carries a value, so the documented
+  // path never reaches the generated branch.
+  if (raw.MANIFEST_MASTER_SECRET === undefined && raw.MANIFEST_ENV !== 'development') {
+    throw new ConfigError(
+      'CONFIG_MASTER_SECRET_REQUIRED',
+      `MANIFEST_MASTER_SECRET is required when MANIFEST_ENV is '${raw.MANIFEST_ENV}'. ` +
+        'Every backing-service credential is derived from it (§12); generating one per ' +
+        'process would make every existing database unreachable after a restart.',
+    )
+  }
+  const masterSecretGenerated = raw.MANIFEST_MASTER_SECRET === undefined
+  const masterSecret = raw.MANIFEST_MASTER_SECRET ?? randomBytes(32).toString('hex')
+
   return {
     env: raw.MANIFEST_ENV,
     databaseUrl: raw.MANIFEST_DATABASE_URL,
@@ -137,8 +198,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       staging: raw.MANIFEST_ZONE_STAGING,
       production: raw.MANIFEST_ZONE_PRODUCTION,
     },
-    registryTokenKeyPath: raw.MANIFEST_REGISTRY_TOKEN_KEY,
-    registryTokenCertPath: raw.MANIFEST_REGISTRY_TOKEN_CERT,
+    registryTokenKeyPath: fromRepoRoot(raw.MANIFEST_REGISTRY_TOKEN_KEY),
+    registryTokenCertPath: fromRepoRoot(raw.MANIFEST_REGISTRY_TOKEN_CERT),
     buildCredentialSecret,
     registryUrl: raw.MANIFEST_REGISTRY_URL,
     registryInternalUrl: raw.MANIFEST_REGISTRY_INTERNAL_URL,
@@ -147,6 +208,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       internal: raw.MANIFEST_CADDY_SERVER_INTERNAL,
       public: raw.MANIFEST_CADDY_SERVER_PUBLIC,
     },
+    dnsServer: raw.MANIFEST_DNS_SERVER,
+    masterSecret,
+    masterSecretGenerated,
+    dockerSocket: raw.MANIFEST_DOCKER_SOCKET ?? resolveSocketPath(),
   }
 }
 

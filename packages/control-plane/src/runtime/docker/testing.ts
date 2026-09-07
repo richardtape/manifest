@@ -1,6 +1,18 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import type { Driver } from '../driver.js'
+import { createCaddyClient } from '../../routing/index.js'
+import { createDockerDriver } from './driver.js'
+import { createEngineClient, resolveSocketPath } from './engine.js'
 import { fileURLToPath } from 'node:url'
 
 /**
@@ -69,3 +81,100 @@ export function testIssuer(): {
  */
 // src/runtime/docker/ -> the repository root
 export const REPO_ROOT = fileURLToPath(new URL('../../../../../', import.meta.url))
+
+/**
+ * A Driver backed by the real daemon, for `driver-contract.ts`.
+ *
+ * The contract suite hardcodes its own inputs — `repoPath: '/tmp/repo'`,
+ * `commitSha: 'abc123'` — because it was written against an in-memory fake. Both
+ * are satisfiable against real Docker without touching the suite:
+ *
+ *  * `/tmp/repo` is created here as a real BARE repository holding the fixture
+ *    blueprint's skeleton, and
+ *  * `abc123` is created as a real TAG on its one commit. `assembleContext` runs
+ *    `git archive <commitSha>`, which takes any tree-ish, so a tag by that name
+ *    resolves exactly as a sha would.
+ *
+ * The issuer is the REAL one from `infra/registry-auth/`, not `testIssuer()`:
+ * registry:2 validates against `token.crt`, so a self-signed test pair mints
+ * tokens the running registry refuses.
+ */
+export function dockerDriverForTests(): Promise<Driver> {
+  const keyPath = join(REPO_ROOT, 'infra/registry-auth/token.key')
+  const certPath = join(REPO_ROOT, 'infra/registry-auth/token.crt')
+  if (!existsSync(keyPath) || !existsSync(certPath)) {
+    throw new Error(
+      `no registry issuer at ${keyPath}. Run \`make up\`, which calls ` +
+        'infra/lib/ensure-registry-auth.sh.',
+    )
+  }
+  return createDockerDriver({
+    engine: createEngineClient({ socketPath: resolveSocketPath() }),
+    // A fixed, non-secret value: these are throwaway containers on a laptop, and a
+    // random one per run would orphan the previous run's service volumes.
+    masterSecret: 'contract-suite-master-secret',
+    blueprintDir: join(REPO_ROOT, 'blueprints/fixture-node'),
+    dnsServer: '10.89.0.53',
+    registryHost: 'manifest-registry:5000',
+    registryPublicHost: '127.0.0.1:7107',
+    registryTokenKeyPem: readFileSync(keyPath, 'utf8'),
+    registryTokenCertPem: readFileSync(certPath, 'utf8'),
+    hostnameFor: (kind, slug) =>
+      kind === 'production'
+        ? `${slug}.manifest.internal`
+        : `${slug}.${kind}.manifest.internal`,
+    routing: {
+      caddy: createCaddyClient('http://127.0.0.1:7119'),
+      servers: { internal: 'srv0', public: 'srv0' },
+    },
+  })
+}
+
+/**
+ * The bare repository the contract suite names. Idempotent, and it deliberately
+ * uses a TAG for the commit-ish so `git archive 'abc123'` resolves.
+ */
+export function ensureContractRepo(repoPath = '/tmp/repo'): void {
+  if (existsSync(join(repoPath, 'HEAD'))) return
+  const work = mkdtempSync(join(tmpdir(), 'mf-contract-src-'))
+  try {
+    const skeleton = join(REPO_ROOT, 'blueprints/fixture-node/skeleton')
+    execFileSync('sh', [
+      '-c',
+      `cp -R ${JSON.stringify(skeleton)}/. ${JSON.stringify(work)}/`,
+    ])
+    // §12's mandatory gates run before every build and BLOCK: the lockfile gate
+    // refuses a context without one. The skeleton is a template, not an installed
+    // tree, so the fixture supplies the lockfile the gate requires.
+    if (!existsSync(join(work, 'package-lock.json'))) {
+      writeFileSync(
+        join(work, 'package-lock.json'),
+        JSON.stringify(
+          { name: 'contract-fixture', lockfileVersion: 3, packages: {} },
+          null,
+          2,
+        ),
+      )
+    }
+    const git = (...args: string[]): void => {
+      execFileSync('git', args, {
+        cwd: work,
+        env: {
+          ...process.env,
+          GIT_AUTHOR_NAME: 'manifest',
+          GIT_AUTHOR_EMAIL: 'manifest@localhost',
+          GIT_COMMITTER_NAME: 'manifest',
+          GIT_COMMITTER_EMAIL: 'manifest@localhost',
+        },
+      })
+    }
+    git('init', '-q', '-b', 'main')
+    git('add', '-A')
+    git('commit', '-q', '-m', 'contract fixture')
+    // The suite's literal commit-ish. A tag, because a sha cannot be chosen.
+    git('tag', 'abc123')
+    execFileSync('git', ['clone', '--bare', '-q', work, repoPath])
+  } finally {
+    rmSync(work, { recursive: true, force: true })
+  }
+}

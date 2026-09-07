@@ -79,10 +79,17 @@ this machine will do to you, and what to do next. Then:
 
 ## Running the control plane
 
-Requires P1's substrate (`make up`) for Postgres on 7103. Run these **from the repo
-root** — `MANIFEST_BLUEPRINTS_ROOT` and `MANIFEST_REPOS_ROOT` are read as given, and
-`pnpm --filter` runs with the *package* directory as its working directory, so
-relative paths there point at the wrong place.
+Requires P1's substrate (`make up`) — Postgres on 7103, the registry, the edge and
+its admin API, and the registry issuer keypair `make up` generates. **The control
+plane now constructs the Docker driver** (P3 Task 15), so it needs the Docker socket
+and refuses to boot without the issuer.
+
+Run these **from the repo root** — `MANIFEST_BLUEPRINTS_ROOT` and
+`MANIFEST_REPOS_ROOT` are read as given, and `pnpm --filter` runs with the *package*
+directory as its working directory, so relative paths there point at the wrong
+place. The issuer paths are no longer among them: they resolve against the
+repository root, because the documented command below could not otherwise find
+them.
 
 ```bash
 set -a; . ./.env; set +a   # make seed writes .env; the password is NOT "manifest"
@@ -91,12 +98,22 @@ export MANIFEST_SESSION_SECRET=$(openssl rand -hex 32)
 export MANIFEST_DEV_AUTH=1
 export MANIFEST_BLUEPRINTS_ROOT="$PWD/blueprints"
 export MANIFEST_REPOS_ROOT="$PWD/.manifest/repos"
+# MANIFEST_MASTER_SECRET comes from .env. Every backing-service credential is
+# derived from it, so it must be STABLE — a value that changes between restarts
+# cannot reproduce the password an existing database container already holds.
 
 pnpm --filter @manifest/control-plane db:migrate
 pnpm --filter @manifest/control-plane dev      # tsc, then node dist/index.js
 ```
 
-It listens on `http://127.0.0.1:7100`. Verified end to end on 2026-09-05:
+It listens on `http://127.0.0.1:7100` and prints one line saying which driver it
+built. **Read it** — every acceptance in P3 is meaningless if it says `fake`:
+
+```
+{"driver":"docker","port":7100,"msg":"control plane ready"}
+```
+
+Verified end to end on 2026-09-05:
 
 ```bash
 curl -s http://127.0.0.1:7100/auth/me

@@ -111,3 +111,63 @@ describe('Dockerfile template rendering', () => {
     )
   })
 })
+
+describe('the external-frontend refusal', () => {
+  // Measured 2026-09-06: a `# syntax=` line makes BuildKit resolve
+  // docker.io/docker/dockerfile:1 before reading line two, and §12's builder has no
+  // egress — so every build dies with a DNS error that names Docker Hub and never
+  // mentions the blueprint. C1 says the platform works offline; this is the guard.
+  it('refuses a blueprint Dockerfile that declares an external frontend', () => {
+    expect(() =>
+      renderDockerfile('# syntax=docker/dockerfile:1\nFROM {{BASE_IMAGE}}\n', {
+        BASE_IMAGE: 'base/node@sha256:x',
+      }),
+    ).toThrow(/external BuildKit frontend/)
+  })
+
+  it('the shipped blueprint has none', () => {
+    const template = readFileSync(
+      new URL('../../../../blueprints/fixture-node/Dockerfile.tmpl', import.meta.url),
+      'utf8',
+    )
+    expect(() =>
+      renderDockerfile(template, {
+        BASE_IMAGE: 'base/node@sha256:x',
+        RUN_AS_UID: '10001',
+      }),
+    ).not.toThrow()
+  })
+})
+
+describe('the .npmrc ordering guard (D13)', () => {
+  const body = 'RUN npm ci --omit=dev\nCOPY . .\n'
+
+  // S1's defect, and it came back on 2026-09-06 by a different route: `.npmrc`
+  // arrived via `COPY . .` AFTER the install, so npm used the public registry.
+  // Offline that is a build failure; online it is a green build against the wrong
+  // registry, and only inspecting the mirror's storage would have caught it.
+  it('refuses a Dockerfile that installs before copying .npmrc', () => {
+    expect(() => renderDockerfile(`FROM x\nCOPY package.json ./\n${body}`, {})).toThrow(
+      /before it copies/,
+    )
+  })
+
+  it('accepts one that copies it first', () => {
+    expect(() =>
+      renderDockerfile(`FROM x\nCOPY package.json .npmrc ./\n${body}`, {}),
+    ).not.toThrow()
+  })
+
+  it('the shipped blueprint copies it first', () => {
+    const template = readFileSync(
+      new URL('../../../../blueprints/fixture-node/Dockerfile.tmpl', import.meta.url),
+      'utf8',
+    )
+    expect(() =>
+      renderDockerfile(template, {
+        BASE_IMAGE: 'base/node@sha256:x',
+        RUN_AS_UID: '10001',
+      }),
+    ).not.toThrow()
+  })
+})

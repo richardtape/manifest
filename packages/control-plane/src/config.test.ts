@@ -60,8 +60,62 @@ describe('configuration', () => {
         ...base,
         MANIFEST_ENV: 'production',
         MANIFEST_BUILD_CREDENTIAL_SECRET: 'b'.repeat(32),
+        MANIFEST_MASTER_SECRET: 'm'.repeat(32),
       }).buildCredentialSecret,
     ).toBe('b'.repeat(32))
+  })
+
+  // The same shape again, for the secret every backing-service password is derived
+  // from (P3 Task 6). Two independent guards on two independent settings, because
+  // the failure mode of a missing one is silent: a generated master secret cannot
+  // reproduce the password an existing database container already holds.
+  it('refuses to start outside development without a master secret', () => {
+    const env = {
+      ...base,
+      MANIFEST_ENV: 'production',
+      MANIFEST_BUILD_CREDENTIAL_SECRET: 'b'.repeat(32),
+    }
+    expect(() => loadConfig(env)).toThrow(ConfigError)
+    try {
+      loadConfig(env)
+    } catch (error) {
+      expect((error as ConfigError).code).toBe('CONFIG_MASTER_SECRET_REQUIRED')
+    }
+    const config = loadConfig({ ...env, MANIFEST_MASTER_SECRET: 'm'.repeat(32) })
+    expect(config.masterSecret).toBe('m'.repeat(32))
+    expect(config.masterSecretGenerated).toBe(false)
+  })
+
+  // Generated in development, and SAID SO — the flag is what lets the boot line
+  // warn, because otherwise the only symptom is an existing Mongo refusing a
+  // password this process derived differently.
+  it('flags a generated master secret rather than letting it pass silently', () => {
+    const config = loadConfig({ ...base, MANIFEST_ENV: 'development' })
+    expect(config.masterSecretGenerated).toBe(true)
+    expect(config.masterSecret).toHaveLength(64)
+  })
+
+  // `pnpm test` runs from the repo root and `pnpm --filter … dev` runs from the
+  // package directory; a cwd-relative default is therefore correct under one and
+  // broken under the other, which is exactly how the documented boot command was
+  // failing to find its own registry issuer. Absolute, from the repo root, always.
+  it('resolves the registry issuer paths against the repo root, not the cwd', () => {
+    const config = loadConfig({ ...base })
+    expect(config.registryTokenKeyPath).toMatch(
+      /^\/.*\/infra\/registry-auth\/token\.key$/,
+    )
+    expect(config.registryTokenCertPath.startsWith('/')).toBe(true)
+    // An absolute override is passed through untouched.
+    expect(
+      loadConfig({ ...base, MANIFEST_REGISTRY_TOKEN_KEY: '/etc/x.key' })
+        .registryTokenKeyPath,
+    ).toBe('/etc/x.key')
+  })
+
+  it('defaults the resolver and the docker socket', () => {
+    const config = loadConfig({ ...base })
+    expect(config.dnsServer).toBe('10.89.0.53')
+    expect(config.dockerSocket.length).toBeGreaterThan(0)
   })
 
   // In development it is generated rather than defaulted: a literal default in the
@@ -98,6 +152,9 @@ describe('configuration', () => {
       // Required outside development from P3 Task 9 onwards: it signs the
       // credential the registry token realm verifies (§13).
       MANIFEST_BUILD_CREDENTIAL_SECRET: 'b'.repeat(32),
+      // Required outside development from P3 Task 15 onwards: every backing-service
+      // credential is derived from it (§12, Task 6).
+      MANIFEST_MASTER_SECRET: 'm'.repeat(32),
     })
     expect(config.devAuth).toBe(false)
   })
