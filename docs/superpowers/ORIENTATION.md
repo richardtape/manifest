@@ -1,12 +1,12 @@
 # Orientation — read this first
 
-**You are picking up a project whose design is finished, whose first four plans are
-written, two of them executed, and whose third is more than half run.** This is the single entry
+**You are picking up a project whose design is finished and whose first four plans
+are written and EXECUTED. Nothing written remains unrun.** This is the single entry
 point: what Manifest is, what has been established, what the machine will do to
 you, and what to do next. It is written for someone with **no prior context** —
 a new agent with a fresh window, or a developer joining.
 
-*Last verified 2026-09-06.* Two things in this file state current status and will go
+*Last verified 2026-09-07.* Two things in this file state current status and will go
 stale: §2 and §7. **The roadmap's ledger outranks both** — it is the maintained
 record. Everything else here is durable.
 
@@ -27,23 +27,24 @@ everything.
 
 ## 2. Where things stand
 
-**Four spikes are done. Four plans are written. P1 and P2 are both fully executed
-and green — the platform runs offline, and the control plane serves HTTP on 7100.
-P3 is the only written work left, and it is PART-EXECUTED: Tasks 1–15 are done and
-green as of 2026-09-06, Tasks 16–19 remain.**
+**Five spikes are done. Four plans are written and ALL THREE IMPLEMENTATION PLANS
+ARE EXECUTED — P1, P2 and P3, the last of them on 2026-09-07.** The platform runs
+offline, the control plane serves HTTP on 7100 with the real Docker driver, and
+`make demo` takes an application from a bare git repository to a healthy
+`https://…manifest.internal` URL. **There is no unexecuted written work.** The next
+job is to WRITE P4 — see §7.
 
 | | State |
 |---|---|
-| **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. S6, S5 and S4 are deliberately later (S6 is P3's acceptance exercise, S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
-| **Plans** | **P1 and P2 are both EXECUTED, 2026-09-05** — P1's 13 tasks green and green offline, P2's 21 tasks green with **224 tests**. **P0** (spike briefs) is written; **P3** (Docker driver and deploy spine, 19 tasks) is **part-executed — Tasks 1–15 green as of 2026-09-06, 16–19 remain**, and it is the only plan with unrun tasks. P3 was written 2026-08-31 and self-reviewed 2026-09-04, which found seven defects — the worst being that **nothing wired the Docker driver into the boot entry point**, so its own `make demo` would have passed against the fake driver. P2's execution hit that same defect in P2. **Executing P3's first fifteen tasks has since found 61 more, 4.1 per task** — the highest rate measured here. **P4 and P5 are unwritten, deliberately** — see §7. |
+| **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. **S6 has since run too, as P3's Task 18, 2026-09-07: every probe denied, every denial paired with a positive control, and one result BETTER than the spec** — §21's divergence 8 no longer holds, because app networks are `--internal` and the developer's machine is unroutable rather than merely policed. S5 and S4 are deliberately later (S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
+| **Plans** | **ALL THREE IMPLEMENTATION PLANS ARE EXECUTED.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4 and P5 are unwritten, and writing P4 is now the current work** — see §7. |
 | **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. **`make doctor` 14 checks / 0 failed, `make verify` 31 checks / 0 failed, both green offline.** P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite. **224 tests via `pnpm test`**, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`** — `pnpm test` **332** and a second tier, `pnpm test:docker`, **48**. |
 | **Spec** | Current. Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
-The immediate work is **the rest of P3 — Tasks 16–19** — see §7. Plan-writing
-stays stopped until P3 has run in full. The reasoning is in the roadmap's
-*Order of operations*, and the short version is that the only time anyone measured the
-defect rate of an unexecuted plan, four of P2's tasks yielded five defects that no
-amount of reading would have found.
+The immediate work is **writing P4** — see §7d. The 2026-09-04 decision that held
+plan-writing until P3 executed has been discharged, and it was right: P3 went on to
+produce 82 defects, and its two worst sessions were its last two, when the parts were
+first made to work together and then first driven by the control plane.
 
 ---
 
@@ -54,10 +55,10 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | You are… | Read |
 |---|---|
 | **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
-| **writing a plan** | §7 below, the roadmap's section for your plan, the findings notes it names, and `plans/2026-08-30-p1-local-substrate.md` **or** `2026-08-29-p2-control-plane-spine.md` as the house style. |
-| **executing a plan** | The plan itself — currently **P3, from Task 16**. It is self-contained by construction; if it is not, that is a defect in the plan, so fix it there as you go. **Read the plan's *What executing this plan found* first** — 61 defects across Tasks 1–15, and *What Session 5 inherits* at the end of Session 4's entry names the three things still open. |
+| **writing a plan** | ← **this is the current job (P4).** §7d below, the roadmap's P4 section — which now carries three lessons from executing P1–P3 — the findings notes it names (`S2`, `S3`), and `plans/2026-08-30-p1-local-substrate.md` **or** `2026-08-29-p2-control-plane-spine.md` as the house style. |
+| **executing a plan** | Nothing written is unrun. When P4 exists: the plan itself, which is self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P3's *What executing this plan found* first anyway**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
-| **writing code** | Thirteen modules exist: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/` (with `runtime/docker/`), `source/`, `identity/`, `projects/`, `releases/`, `api/`, and P3's `services/`, `build/` and `routing/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else is built against them — then `runtime/docker/driver.ts`, which is the one implementation of that interface and where every P3 module meets; then `api/server.ts` for how a request becomes an actor, and `projects/authz.ts` for the one function every route's security depends on. |
+| **writing code** | Thirteen modules exist: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/` (with `runtime/docker/`), `source/`, `identity/`, `projects/`, `releases/`, `api/`, and P3's `services/`, `build/` and `routing/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else is built against them — then `runtime/docker/driver.ts`, which is the one implementation of that interface and where every P3 module meets; then `api/server.ts` for how a request becomes an actor, and `projects/authz.ts` for the one function every route's security depends on. **Then run `make demo` once**: it is the only thing that exercises all of it through the real HTTP surface, and it is where the last four sessions' worst defects were found. |
 | **changing the spec** | Don't, without asking. It is marked *Approved design*. Record the proposed change and Rich decides — that has been the pattern five times. |
 
 ```
@@ -371,6 +372,38 @@ which is why P1's **offline** acceptance can only run after a successful seed.
 - **`fileParallelism` is a ROOT-level Vitest option.** Setting it in a package's
   `vitest.config.ts` has no effect on a workspace run, and the symptom is a suite that
   fails a *different* number of tests on each run.
+- **A shell PIPELINE takes its exit status from the LAST command**, so
+  `git archive … | tar -x` reports success when `git` dies. Measured 2026-09-07:
+  `git --git-dir=file://… archive HEAD` exits **128** and the pipeline exits **0**,
+  which made every failed build-context export produce an empty directory and a
+  clean bill of health. `set -o pipefail` is not available in `execFile('sh', …)`
+  by default — run the two commands separately.
+- **BusyBox `wget` honours `http_proxy` and does not support `NO_PROXY` at all.**
+  On BusyBox v1.37.0 a container health check of its own `127.0.0.1` is sent to the
+  egress proxy and comes back `403 Filtered`. `wget -Y off` is the switch. This
+  silently marked every deployed app `unhealthy` while it was serving perfectly.
+- **`request.log.error` under `Fastify({ logger: false })` writes nothing** — it
+  exists and accepts the call. Same trap as `app.log.info` on the boot line. Use
+  `console.error` for anything an operator must be able to see.
+- **An unqualified image name is DOCKER HUB to the daemon.** `local/chem-labs@sha…`
+  resolves as `docker.io/local/chem-labs` and 401s. Record the repository the build
+  produced; never re-derive it from a slug.
+- **`registry garbage-collect` on a RUNNING registry corrupts it.** It deletes the
+  manifest blob and leaves the tag and revision links, after which every `docker
+  push` of the same content reports success **with the correct digest** while the
+  registry answers 404. Stop or restart the registry around a GC.
+- **This `registry:2` does not split a comma-joined `Accept` header**, and mirrored
+  base images are **OCI** manifests. Pass separate `-H 'Accept: …'` flags including
+  `application/vnd.oci.image.manifest.v1+json`, or you get a 404 that reads exactly
+  like a missing image: `OCI manifest found, but accept header does not support OCI
+  manifests`.
+- **npm's `replace-registry-host` defaults to `npmjs`**, so a mirror redirect only
+  applies to lockfiles whose `resolved` URLs name registry.npmjs.org. Any other host
+  is fetched directly, past the mirror. `replace-registry-host=always` is what D13
+  actually means.
+- **`pnpm test` TRUNCATES the control plane's §6 tables** — `vitest.global-setup.ts`
+  does it once per run, deliberately, so a run never inherits the last one's rows.
+  It also means running the suite wipes whatever `make demo` created.
 - **Fastify runs root-level hooks for the not-found handler too**, and an unmatched
   route has no `routeOptions.config` to opt out with. A `preHandler` that throws will
   turn every 404 into whatever it throws. Guard on
@@ -521,19 +554,25 @@ coherent. Follow them.
 
 ---
 
-## 7. What to do next — finish P3, from Task 16
+## 7. What to do next — write P4
 
-**This section changed direction on 2026-09-04, and P1 has since executed.** The intent until then was to write
-every remaining plan before implementing any of them. It is now the opposite:
-**execute what is written, and do not write P4 until P3 has run.** The full reasoning
-is the roadmap's *Order of operations*; the short version is that the defect rate of
-an unexecuted plan has been measured exactly once — four of P2's twenty-one tasks
-yielded **five** defects, and **none of the five was findable on paper.**
+**Everything written has now run.** P1, P2 and P3 are all executed and green; S6 has
+reported. The 2026-09-04 decision that stopped plan-writing until P3 executed is
+**discharged**, and it was the right call: P3 went on to produce **82 defects across
+19 tasks**, and its two worst sessions were its last two.
 
-**P1's execution then measured it again, at full scale: 13 tasks, 18 defects** — a
-third of them controls reporting green against something broken or absent. **P2 has
-since run in full: 21 tasks, 52 defects across three sittings.** **19 written tasks
-remain unrun — P3's, and only P3's.** Adding P4 to that stack prices nothing.
+**The measured plan-to-reality gap, in one table.** Every one of these plans was
+self-reviewed before anyone executed it.
+
+| Plan | Tasks | Defects found by READING | Defects found by RUNNING |
+|---|---|---|---|
+| P1 | 13 | 5 | **18** |
+| P2 | 21 | 7 | **52** |
+| P3 | 19 | 7 (+8 reconciling against a real P2) | **82** |
+
+The rate never fell with practice. It rose whenever the work stopped being pure
+functions, and it rose again whenever something was made to run end to end for the
+first time. **Budget accordingly, and read §7e before writing P4.**
 
 ### 7a. P1 is done *(executed 2026-09-05)*
 
@@ -541,193 +580,115 @@ remain unrun — P3's, and only P3's.** Adding P4 to that stack prices nothing.
 13 tasks, all executed and green. The platform runs; read
 [`RUNBOOK.md`](RUNBOOK.md) to start it, not the plan.
 
-`make doctor` is 14 checks / 0 failed, `make verify` is 31 checks / 0 failed, and
-**both are green with the network off** — the offline half no spike had ever tested.
-The C1 demo holds: `https://console.manifest.internal/` returns a byte-identical
-hostname and scheme from the host and from inside a container, no port, no `-k`.
+`make doctor` is **16 checks / 0 failed**, `make verify` is **34 / 0**, and both were
+green with the network off. The C1 demo holds:
+`https://console.manifest.internal/` returns a byte-identical hostname and scheme
+from the host and from inside a container, no port, no `-k`.
 
 **Executing it found 18 defects in an already-self-reviewed plan**, and the shape of
 them is the durable lesson: **six were checks that passed while the thing under test
-was broken or absent.** An egress negative control reported success because the
-network did not exist; a retention check passed with LiteLLM not running; an IdP
-metadata check passed against a SimpleSAMLphp **1.x** schema while every read threw.
-One was a real platform bug nothing on paper would find — tinyproxy exits after
-every denial without `DefaultErrorFile`, and `restart: unless-stopped` hid it.
-Every fix is written back into the plan with the measurement that found it.
-
-**The one thing P1 did not prove: the second-machine clean clone.** No second Mac
-was available. It is recorded as a gap in `RUNBOOK.md`, not quietly dropped — and
-the interesting case is a Mac **with Valet**, since that collision is why the zone
-is `manifest.internal`. `make host-undo` has also never been run end to end.
+was broken or absent.** **The one thing P1 did not prove: the second-machine clean
+clone.** No second Mac was available; it is recorded as a gap in `RUNBOOK.md`.
 
 ### 7b. P2 is done *(executed 2026-09-05)*
 
 [`plans/2026-08-29-p2-control-plane-spine.md`](plans/2026-08-29-p2-control-plane-spine.md)
-— **all 21 tasks executed and green.** `pnpm test` is **224 tests / 23 files**;
-`pnpm lint`, `pnpm --filter @manifest/control-plane typecheck` and
-`pnpm format:check` are all clean. **Run `pnpm test` from the repo root**, not with
-`--filter` — the two are not equivalent, and the difference found a defect.
+— **all 21 tasks executed and green.** The control plane boots, serves HTTP on 7100,
+and the whole lifecycle runs against the fake driver in ~300 ms.
 
-The demo holds: log in, create a project, provision a bare repository, validate the
-spec at that commit, build, release, deploy to staging and reach healthy, then be
-refused production with §13's checklist — **~300 ms** against the fake driver, no
-Docker for the driver itself. The control plane also boots and serves HTTP on 7100;
-`README.md`'s *Running the control plane* has the exact commands, verified with
-`curl`.
+**Executing it found 52 defects across three sittings.** The classes worth carrying:
+**six type errors no test could ever catch** (Vitest strips types without checking
+them); **five test-isolation defects** that made the suite pass or fail on the order
+Vitest happened to pick; **two controls one edit from being live** — `/auth/dev-login`
+one line from an authentication bypass, and an IDOR in `GET /builds/:id`, both
+answering **200** when broken; and **nothing had ever executed the boot entry point.**
 
-**Executing it found 52 defects across three sittings — 5, then 20, then 27.** The
-last batch is the one to read before starting P3, because it is the first time this
-project executed tasks that touch a *framework* rather than pure functions:
+**One rule earned that batch.** *Never accept a check you have not watched fail.*
 
-| | |
-|---|---|
-| **Six type errors no test could ever catch** | `exactOptionalPropertyTypes` rejects `hint: cond ? x : undefined`, `payload?: unknown`, a `Partial<T>` spread. **Vitest strips types without checking them**, so `pnpm test` is green while `tsc` has four errors. The typecheck is not a formality after the tests |
-| **Five test-isolation defects** | API tests commit (they drive a real server), collided on a unique slug, and left `pnpm test` **not repeatable**. And `withRollback` does not isolate a suite from rows somebody else *committed* — three suites were green only because the database happened to be empty. One hand-inserted row turned 10 tests red |
-| **Two controls one edit from being live** | `/auth/dev-login` passed `devAuthEnabled: true` as a literal, so the route-registration guard was the only thing between it and an authentication bypass — breaking that guard made it answer **200 with a real session**. And `GET /builds/:id` made to trust a client-supplied `projectId` let one user read another's build with **200** |
-| **Nothing had ever run the boot entry point** | No test imports `src/index.ts`. The `dev` script did not exist, and would not have worked — Node resolves NodeNext `.js` specifiers literally, so `node src/index.ts` cannot find its own imports. **This is the same defect P3's self-review found in P3** |
-
-**One rule earned the whole batch.** *Never accept a check you have not watched
-fail.* Every task above ends by breaking the thing it built and naming the test that
-goes red. Task 13 originally had no such step and was given one — the session MAC
-had never been observed refusing a forged `role: admin` token.
-
-### 7c. Finish P3 — the Docker driver and deploy spine *(start here, at Task 16)*
+### 7c. P3 is done *(executed 2026-09-07)*
 
 [`plans/2026-08-31-p3-docker-driver-deploy-spine.md`](plans/2026-08-31-p3-docker-driver-deploy-spine.md)
-— **19 tasks. Tasks 1–15 are executed and green (2026-09-06); Tasks 16–19 remain.**
-Finishing it is what unblocks writing P4.
-
-**Where to pick up.** The plan is being executed in sessions:
-
-| Session | Tasks | State |
-|---|---|---|
-| **4 — done, 2026-09-06** | 13, 14, 15 | `routing/` (§23 hostnames, listener assignment, Caddy's admin API) · readiness **through the edge** · `DockerDriver` assembled, passing P2's `driver-contract.ts`, wired into `src/index.ts`, with the service binding. **16 defects.** |
-| **5 — next** | 16–19 + close-out | promotion refusal · the fixture app and `make demo`, with the offline control that actually deletes the mirrored base image · S6's probe matrix and findings note · `doctor`/`verify`/`reset` learning about `mf-` · then the close-out sweep |
-
-**Session 4 is the one to read before starting Session 5.** It is the first time the
-parts built in Tasks 1–12 were made to do something end to end, and the headline is
-that **no build in this platform had ever succeeded**: the blueprint Dockerfile
-opened with a `# syntax=` directive, which makes BuildKit fetch a frontend from
-Docker Hub before reading line two, and §12's builder has no egress. Underneath it,
-**D13's mirror control was completely inert** — `.npmrc` arrived after `npm ci`, so
-the build used the public npm registry, which is S1's silently-wrong build by another
-route and would have *succeeded* with the network up. Builds are also now
-reproducible, which §13's digest binding rests on and which three separate causes
-were breaking.
-
-**Before you write a line of Task 16, read one thing in the plan:** *What executing
-this plan found* — 61 defects across Tasks 1–15, per session, each with the
-measurement that found it. **Session 4's entry ends with *What Session 5 inherits*,**
-which names the three things still open, including `make verify`'s four builder
-checks that are gated on a container nothing starts.
-
-**The baselines Tasks 1–15 leave you.** A different number on a clean checkout is
-signal, not noise:
+— **all 19 tasks executed and green.** The real Docker driver passes P2's
+`driver-contract.ts` unchanged, and `make demo` takes an application from a bare git
+repository to `https://fixture-app.staging.manifest.internal` — then does it again
+from a dropped database, a deleted repository root and an emptied registry.
 
 | | |
 |---|---|
-| `pnpm test` (repo root) | **364 tests**, and it must stay Docker-free |
-| `pnpm test:docker` | **70 tests**, ~3 min (it now runs real builds), needs `make up` |
-| `make doctor` | **15 checks / 0 failed** |
-| `make verify` | **32 checks / 0 failed** |
+| `pnpm test` (repo root) | **381 tests**, Docker-free |
+| `pnpm test:docker` | **89 tests**, ~5 min, needs `make up` |
+| `make doctor` | **16 checks / 0 failed** |
+| `make verify` | **34 checks / 0 failed** |
 
-**The boot wiring is closed.** `src/index.ts` constructs the Docker driver, and
-`src/boot.docker.test.ts` boots the compiled entry point and reads the value back.
-Verified to fail on demand: putting `createFakeDriver()` back prints
-`{"driver":"fake"}` while the control plane comes up and serves `401` on `/auth/me`
-exactly as before — indistinguishable at every level above that one file.
+**Read Sessions 4 and 5 of *What executing this plan found* before touching any of
+it.** They are the most useful pages in this repository, because between them they
+establish two things that were invisible behind a fully green test suite:
 
-**What Session 5 should still treat as guilty.** `make verify`'s four builder checks
-are gated on `docker inspect manifest-buildkitd`, a compose service behind the
-`build` profile that P3 replaced with ephemeral `mf-builder-*` containers: **they
-are not running, so they are not part of the 32.** That is Task 19's to fix, and it
-is exactly the could-not-fail shape this plan keeps producing. And Task 4's
-bridge-network positive control probes `https://registry.npmjs.org/`, so it needs
-the internet — while Task 17 runs the Docker tier **offline**.
+- **Session 4: no BUILD in this platform had ever succeeded.** The blueprint
+  Dockerfile opened with a `# syntax=` directive, which makes BuildKit fetch a
+  frontend from Docker Hub before it reads line two, and §12's builder has no egress.
+  Underneath it, **D13's npm-mirror control was completely inert** — `.npmrc` arrived
+  after `npm ci`, so the build used the public registry.
+- **Session 5: no DEPLOY had ever succeeded either.** Seven separate defects of one
+  shape: **the test constructs the value correctly and the running system re-derives
+  it wrongly.** A blueprint directory, a repository path, an image repository, a port.
+  Every one was green in 74 Docker tests, because a test hands the driver what it
+  built while the control plane rebuilds it from a slug. Plus a health check that
+  every app failed — BusyBox `wget` honours `http_proxy` and ignores `NO_PROXY`, so
+  D18's forced proxy denied each app's probe of its own loopback with `403 Filtered`,
+  and §11 recorded working deploys as `failed`.
 
-**What P2 leaves you.** Two shared artefacts P3 imports *unchanged*:
-`src/runtime/driver-contract.ts`, which the Docker driver must pass exactly as the
-fake one does, and `src/api/authz-contract.ts`, which P3 points at a server backed by
-the Docker driver. The second resets the database in its own `beforeAll` for that
-reason. Swapping the driver is meant to be one line in `src/index.ts`.
+**S6 ran as its Task 18** and is `docs/superpowers/spikes/S6-findings.md`: twelve
+probes, every denial paired with a positive control, and the app still serving at the
+end so the denials cannot be a dead container. Isolation is `container`; **whether
+that suffices for sandboxes is left to S5**, deliberately.
 
-**Budget for the defects — the prediction was too low.** The rate was expected to be
-2.7–2.9 per task, from P2's last two batches. **P3's first twelve tasks produced 45
-defects: 3.7 per task**, the highest measured here. **P3 is almost entirely
-infrastructure and controls**: the §12 hardening baseline, S6's probe matrix, the
-scanner and SBOM gate, registry-token scoping. A false green on a *security* control
-is the worst failure this project can ship — and of those 45, the recurring shape is
-still a check that could not fail, plus a new one worth naming: **a rule that was
-validated against the wrong image.** The scan gate was twice given a plausible
-"who owns this finding" rule, and both times it was proved wrong by measuring
-`node:22-alpine` — the image faculty apps actually run on — rather than `alpine`,
-which is only a probe.
+**P3 proposes five spec actions and applies none.** They are Rich's, listed at the end
+of the plan, and every one is measured rather than argued. The first — narrowing §21's
+divergence 8 — was deliberately deferred until Task 18 measured it, and **it now has.**
 
-**Check every concrete value against the running system before trusting it** — see
-the table at the end of this section. P2 hit that class three more times: an image
-repository derived from a project UUID rather than the slug, `parseInt('1Gi')`
-evaluating to 1, and two cwd-relative paths that work under `pnpm --filter` and
-nowhere else.
+### 7d. Write P4 — identity, secrets and AI (1b) ← **START HERE**
 
-P3 also **proposes five spec actions and applies none of them** — they are listed at
-the end of the plan and they are Rich's to approve. One is deliberately deferred
-until Task 18 has actually measured what it describes.
-
-**Two things P1 leaves you.** `make verify` is a regression net — keep it and
-`make doctor` green as you go, because they assert properties of the very
-infrastructure P3 builds on. And read [`RUNBOOK.md`](RUNBOOK.md) before touching the
-machine: its troubleshooting table is every failure this project has actually hit,
-including the one where *nothing* resolves because Valet's dnsmasq has hung.
-
-**Four facts that P2 and P3 originally got wrong about P1**, corrected 2026-09-05.
-They are fixed in both plans; they are repeated because the same class of mistake
-recurs wherever a plan names a concrete resource:
-
-| | |
-|---|---|
-| database | **`manifest_control`** — not `manifest_control_plane` |
-| password | from **`.env`** — not the literal `manifest` |
-| base images | **`alpine:3.22`**, and they live at **`base/<repo>`** in the registry (`base/node`, `base/alpine`); per-app images go to **`local/<slug>`** |
-| egress proxy | **`manifest-egress:local`** — not `vimagick/tinyproxy`, which is amd64-only and ran emulated |
-
-**To run anything against the control plane**, the platform must be up:
-
-```bash
-make up                       # Postgres on 7103; asks for sudo only after a reboot
-pnpm test                     # from the REPO ROOT — 224 tests, derives .env itself
-```
-
-`pnpm test` needs no exported variables: `vitest.setup.ts` derives
-`MANIFEST_DATABASE_URL` from `.env` itself, and a `globalSetup` truncates the §6
-tables once per run so a run never inherits the last one's rows. You still need the
-export by hand for `db:generate` and `db:migrate`, which are CLI tools —
-`README.md` has it. **There is no `psql` on the host**; reach the database from Node
-or through the container:
-
-```bash
-docker exec manifest-postgres psql -U manifest -d manifest_control -c '\dt'
-```
-
-> **Never accept a check you have not watched fail.** Remove the thing it
-> protects, confirm red, put it back. It costs seconds.
-
-
-### 7d. Write P4 — identity, secrets and AI (1b) *(held)*
-
-*Depends on S2 and S3, both done, and on P3 — which is written, so nothing blocks
-this except the 2026-09-04 decision above. **Write it once P3 has executed.***
+*Depends on S2 and S3, both reported, and on P3 — **executed 2026-09-07**. Nothing
+blocks this. Invoke `superpowers:writing-plans`; the house style is
+`plans/2026-08-30-p1-local-substrate.md` or `2026-08-29-p2-control-plane-spine.md`.*
 
 SP auto-provisioning against the SQL metadata mechanism S2 proved, per-app keypairs,
 `secrets/` envelope encryption, the §8 injection contract and its drift test, the
 `node-ts-mongo` blueprint content, the LiteLLM client with the classification-gated
-catalogue, events, WebSocket streaming, redaction at capture, incidents.
+catalogue, events, WebSocket streaming, redaction at capture, incidents. **It deletes
+the dev auth shim** (roadmap gap 3), which has a task of its own.
 
 **Three S3 findings are P4 tasks, not notes** — the three in §5 above. Each needs a
 §16 test attached, and each fails silently without one.
 
-**Demo:** the proof app — CWL login, a Mongo write, an LLM answer — driven by `curl`.
+**Four things P1–P3 paid for that should shape how P4 is written.** The roadmap's P4
+section carries the first three; the fourth is new to P3's last session.
 
-### 7e. Write P5 — contract and clients (1c)
+1. **Schedule the end-to-end task EARLY, and drive it through the real entry point.**
+   P3's two worst sessions were its last two, both because something ran together for
+   the first time. P4 has more of this exposure than P3, not less: §8's injection
+   contract is precisely a set of values two code paths must agree on, and its drift
+   test only checks the ones somebody thought to list.
+2. **A module with no call site is not built.** P3 shipped `waitForReady`/`edgeProbe`
+   and nothing called them for three tasks; P2 shipped `isSensitiveDiff` and nothing
+   called it for a whole plan. Both had passing tests. **Give every task a step that
+   names the caller**, not only the module.
+3. **Diagnosability is a feature, and its absence hides other defects.** A failed
+   build recorded no reason; an unexpected 500 left no trace anywhere, because the
+   handler logged through a logger the server was built without. Fixing both took
+   minutes and immediately named four more defects. P4 owns events, streaming and
+   redaction — so it should own this deliberately rather than inherit it.
+4. **`isSensitiveDiff` and `POST /projects/:id/spec` are now wired but not gated.**
+   D9's sensitive-diff is *computed and reported* by that route and deliberately
+   enforces nothing, because the approval flow it feeds is **P6's**. P4 should leave
+   it that way and not quietly grow a half-gate.
+
+**Demo:** the proof app — CWL login, a Mongo write, an LLM answer — driven by `curl`.
+`fixtures/fixture-app/` is P3's build target and stays trivial; §16's proof app is
+`fixtures/proof-app/`, and it is P4's.
+
+### 7e. Write P5 — contract and clients (1c) *(after P4)*
 
 *Depends on P4.* The published OpenAPI contract, `manifest-mock`, the generated
 client, and the reference console (D22) that imports **only** the generated client —
@@ -742,16 +703,19 @@ complete?" from an opinion into a build failure.
 
 Surface these; do not decide them.
 
-- **P3 proposes five spec actions and applies none of them.** They are listed at the
+- **P3 proposes SIX spec actions and applies none of them.** They are listed at the
   end of [`plans/2026-08-31-p3-docker-driver-deploy-spine.md`](plans/2026-08-31-p3-docker-driver-deploy-spine.md),
-  in the same form the four spikes used, and every one of them is **measured** rather
-  than argued: narrowing §21's divergence 8 now that app networks are `--internal`;
-  recording in §12 that `--storage-opt size=` does not enforce on Docker Desktop;
-  splitting §12's *"Bounded"* sentence into the four mechanisms it actually names;
-  adding the registry token realm's mechanics to §12's builder paragraph; and adding
-  positive controls to §16's security-regression tier. **The first should not be
-  applied until P3's Task 18 has measured it** — the wording should follow the probe
-  matrix, not precede it.
+  in the same form the four spikes used, and every one is **measured** rather than
+  argued: narrowing §21's divergence 8 now that app networks are `--internal`;
+  recording `isolationLevel: 'container'` in §12 as S6's measured answer for staging
+  and production apps, with the sandbox question left to S5; recording that
+  `--storage-opt size=` does not enforce on Docker Desktop; splitting §12's
+  *"Bounded"* sentence into the four mechanisms it actually names; adding the
+  registry token realm's mechanics to §12's builder paragraph; and adding positive
+  controls to §16's security-regression tier. **The deferral on the first is lifted:
+  Task 18 measured it on 2026-09-07** — from an app network the host fails at `curl`
+  exit 6, the name never resolving, while the same port answers exit 0 from a bridge
+  container. See [`spikes/S6-findings.md`](spikes/S6-findings.md).
 - **Where the service-binding wire lands — SETTLED 2026-09-06, Rich's call: P3 Task
   15.** `deployRelease` now derives a `ServiceBinding` per entry in
   `resolved.services`, calls `ensureService`, and passes the handles through with
@@ -830,6 +794,25 @@ not remove.
 These are about *how to work here*, and they are in the roadmap too, which is the
 maintained copy.
 
+- **Integration is where the false greens sit, and units cannot reveal them.** Two of
+  the three worst discoveries in this project arrived the first time something ran end
+  to end: P3's Task 15 found that **no build had ever succeeded**, and its Task 17
+  found that **no deploy had ever succeeded either** — through seven defects of one
+  shape, *the test constructs the value correctly and the running system re-derives it
+  wrongly*. Both were invisible behind a fully green suite of 74 Docker tests, because
+  a test hands the driver what it built while the control plane rebuilds it from a
+  slug. **Schedule the end-to-end task early and drive it through the real entry
+  point**, not through a harness.
+- **A module with no call site is not built.** `waitForReady` and `edgeProbe` shipped
+  in P3 Task 14 with passing tests and nothing called them until Task 17;
+  `isSensitiveDiff` shipped in P2 and nothing called it for a whole plan. This is the
+  same defect as the unwired boot entry point, and it has now happened three times.
+  Every task should name its caller, not just its module.
+- **Diagnosability is a feature, and its absence hides other defects.** A failed build
+  recorded no reason at all (`void error`), and an unexpected 500 left no trace
+  anywhere because the handler logged through a logger the server was built without.
+  Fixing both took minutes and immediately named four further defects that had been
+  invisible.
 - **A plan is not verified until it runs, and the gap is not small.** P2's written
   self-review found seven defects. Then executing just **four of its twenty-one
   tasks** found **five more**, and not one was findable on paper: a package manager
