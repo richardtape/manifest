@@ -9,8 +9,8 @@ plan queue, and the conventions below in full. Everything here is the short vers
 
 **P1 is executed and green (2026-09-05). The platform runs.**
 `make seed && make host-setup && make up` brings up the whole §21 inventory;
-`make doctor` is 14 checks / 0 failed and `make verify` is 31 checks / 0 failed,
-**both green offline**. Start from [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md),
+`make doctor` is now **16 checks / 0 failed** and `make verify` **34 / 0**,
+and both were green offline when P1 was executed. Start from [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md),
 not the plan. The three host changes are in place and all reverse with
 `make host-undo`. **Untested: the second-machine clean clone** — no second Mac was
 available; it is recorded in the runbook's *Known gaps*, not quietly dropped.
@@ -19,29 +19,36 @@ available; it is recorded in the runbook's *Known gaps*, not quietly dropped.
 It serves HTTP on **7100**: `spec/`, `blueprints/`, `db/`, `runtime/` (the §11
 `Driver`, the fake driver, the contract suite P3 inherits), `source/`, `identity/`,
 `projects/`, `releases/` and a Fastify `api/` with D23.6 idempotency and the D23.7
-error envelope. **224 tests** via `pnpm test` — **run it from the repo root**, not
+error envelope. Run `pnpm test` **from the repo root**, not
 with `--filter`; the two differ and that difference found a defect. The database
 tests need `make up` and derive their connection from `.env` themselves. To run the
 server, see *Running the control plane* in `README.md`.
 
-**P3 is part-executed (2026-09-06). Tasks 1–15 are done and green; 16–19 remain —
-pick up at Task 16.** It has added `runtime/docker/` (including the assembled
-`DockerDriver`), `routing/`, `services/` and `build/`, plus a second test tier:
-`pnpm test` is **364** and `pnpm test:docker` is **70** (needs `make up`; it **fails
-rather than skips** when asked to run, and now runs real image builds, so it takes
-~3 minutes). `make doctor` is 15 checks, `make verify` 32. Executing those fifteen
-tasks found **61 defects — 4.1 per task**, above the 2.7–2.9 the roadmap predicted;
-they are recorded per session in the plan's *What executing this plan found*, and
-Session 4's entry ends with *What Session 5 inherits*.
+**P3 is EXECUTED and green (2026-09-07) — all 19 tasks. The platform deploys.**
+It added `runtime/docker/` (including the assembled `DockerDriver`), `routing/`,
+`services/` and `build/`, plus a second test tier: `pnpm test` is **381** and
+`pnpm test:docker` is **89** (needs `make up`; it **fails rather than skips** when
+asked to run, runs real image builds, and takes ~5 minutes). `make doctor` is 16
+checks, `make verify` 34. **`make demo` is the acceptance**: an app from a bare git
+repository to `https://fixture-app.staging.manifest.internal`, and again from a
+dropped database, a deleted repository root and an emptied registry. Executing the
+nineteen tasks found **82 defects — 4.3 per task**, the highest rate measured here;
+they are recorded per session in the plan's *What executing this plan found*.
 
-**Session 4 is the entry worth reading before touching a build.** It found that **no
-build in this platform had ever succeeded** — the blueprint Dockerfile's `# syntax=`
-directive made BuildKit fetch a frontend from Docker Hub, which §12's egress-free
-builder cannot reach — and that **D13's npm-mirror control was completely inert**,
-because `.npmrc` arrived after `npm ci`. The second is S1's silently-wrong build by
-another route: offline it fails loudly, with the network up it would have succeeded
-against the public registry. The control plane now boots the **Docker** driver, and
-`src/boot.docker.test.ts` reads that fact back from the compiled entry point.
+**Sessions 4 and 5 are the entries worth reading before touching anything.** Each was
+the first time something ran end to end, and each found that a whole half of the
+platform had never worked. **Session 4: no build had ever succeeded** — the blueprint
+Dockerfile's `# syntax=` directive made BuildKit fetch a frontend from Docker Hub,
+which §12's egress-free builder cannot reach — and **D13's npm-mirror control was
+completely inert**, because `.npmrc` arrived after `npm ci`. **Session 5: no deploy
+had ever succeeded either**, through seven defects of one shape — *the test constructs
+the value correctly and the running system re-derives it wrongly* (a blueprint
+directory, a repository path, an image repository, a port) — plus a container health
+check that every app failed, because BusyBox `wget` honours `http_proxy` and ignores
+`NO_PROXY`, so D18's forced proxy denied each app's probe of its own loopback. **All
+of it was green in a suite of 74 passing Docker tests.**
+
+**P4 and P5 are unwritten. Writing P4 is the current work** — ORIENTATION §7d.
 
 Executing P2 found **52 defects** across three sittings — 5, then 20, then **27 in
 Tasks 12–21**. Four from that last batch are worth carrying: the plan's code had
@@ -65,12 +72,13 @@ on 29 files until 2026-09-05. Run `pnpm test` **twice**: a suite that is not
 repeatable has a state leak. For the platform itself it is `make doctor` and
 `make verify`.
 
-Four spikes are done (S7, S2, S1, S3 — all answered yes). P0, P1, P2 and P3 are
-written; **P1 and P2 are fully executed and P3 is part-executed**. **P4 and P5 are unwritten,
-deliberately.** Plan-writing stopped on 2026-09-04 in favour of
-execution — a decision P1 then confirmed, producing **18 defects across 13 tasks** in
-an already-self-reviewed plan, a third of them checks that passed while the thing
-under test was broken or absent. The maintained status record is the *Spike status*
+**Five spikes are done** (S7, S2, S1, S3 — all answered yes — and **S6**, which ran
+as P3's Task 18 on 2026-09-07 and found every probe denied with every denial paired
+with a positive control). P0, P1, P2 and P3 are written and **all three
+implementation plans are executed**. **P4 and P5 are unwritten, and writing P4 is the
+current work.** Plan-writing stopped on 2026-09-04 in favour of execution; that hold
+is now discharged, and it was right — the three plans produced **152 defects between
+them** after all three had been self-reviewed. The maintained status record is the *Spike status*
 ledger in `docs/superpowers/plans/2026-08-29-plan-roadmap.md`; if any document
 disagrees with it, the ledger wins.
 

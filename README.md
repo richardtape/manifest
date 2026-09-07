@@ -15,9 +15,9 @@ console that proves the API can carry the whole journey.
 make up` brings up the whole §21 inventory — split-horizon DNS, a custom `xcaddy`
 edge with rate-limiting and Coraza, Postgres with three databases, a private
 registry and npm mirror, a default-deny egress proxy, a rootless non-privileged
-BuildKit, LiteLLM against host Ollama, and the Manifest IdP. `make doctor` is 14
-checks / 0 failed and `make verify` is 31 checks / 0 failed, **both green with the
-network off**. `https://console.manifest.internal/` returns the same hostname and
+BuildKit, LiteLLM against host Ollama, and the Manifest IdP. `make doctor` is now
+**16 checks / 0 failed** and `make verify` **34 / 0**, and both were green **with the
+network off** when P1 was executed. `https://console.manifest.internal/` returns the same hostname and
 scheme from the host browser and from inside a container — no port, no certificate
 warning. See [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md).
 
@@ -28,9 +28,10 @@ fake and the contract suite P3 inherits unchanged, the instance state machine, t
 Drizzle schema against P1's Postgres, signed session cookies with a dev-only auth
 shim, the §13 capability model, a local bare-repo source driver, immutable releases,
 and a Fastify surface with D23.6 idempotency keys and the D23.7 error envelope on
-every failure. **224 tests.** The whole faculty lifecycle — project, spec, build,
-release, staging deploy to healthy, production correctly refused with its §13
-checklist — runs against the fake driver in **~300 ms**. See
+every failure. The whole faculty lifecycle — project, spec, build, release, staging
+deploy to healthy, production correctly refused with its §13 checklist — runs against
+the fake driver in **~300 ms**, and against **real Docker** through `make demo`.
+**381 tests with no Docker, and 89 more that need a daemon.** See
 [*Running the control plane*](#running-the-control-plane) below.
 
 The design is approved and complete.
@@ -39,11 +40,14 @@ answered yes**, each far inside its timebox, with every spec change they implied
 already applied. The remaining three are scheduled later, against machinery that does
 not exist yet.
 
-**Three implementation plans are complete, two have run in full, and the third is
-more than half run** — P1, the local substrate (13 tasks, **all executed**), P2, the
-control-plane spine (21 tasks, **all executed**), and P3, the Docker driver and
-deploy spine (19 tasks, **1–15 executed and green as of 2026-09-06; 16–19 remain**). **P4 and P5 are unwritten, and that is deliberate: on 2026-09-04 the
-project stopped writing plans and started executing them.**
+**Three implementation plans are complete and ALL THREE HAVE RUN IN FULL** — P1, the
+local substrate (13 tasks), P2, the control-plane spine (21 tasks), and P3, the
+Docker driver and deploy spine (19 tasks, **finished 2026-09-07**). `make demo` takes
+an application from a bare git repository to a healthy
+`https://fixture-app.staging.manifest.internal` — and does it again from a dropped
+database, a deleted repository root and an emptied registry. **P4 and P5 are
+unwritten; writing P4 is the current work.** On 2026-09-04 the project stopped
+writing plans and started executing them, and that hold is now discharged.
 
 Execution vindicated that decision three times over. P1's 13 tasks produced **18
 defects** in a plan that had already been self-reviewed, a third of them *checks that
@@ -53,13 +57,16 @@ P2's Tasks 12–21 produced **27 more** — six type errors **no test could catc
 because Vitest strips types without checking them; five test-isolation defects that
 made the suite pass or fail on the order Vitest happened to pick; and two safety
 mechanisms that turned out to be **one edit from a live authentication bypass and a
-live IDOR**, both of which answered `200` when broken. And P3's first fifteen tasks
-produced **61 more — 4.1 per task**, the highest rate measured here, among them a
-vulnerability gate that could never have fired, a `.gitignore` rule that silently
-refused to commit an entire module, and — in Session 4, the first time the parts
-were made to work end to end — the discovery that **no build in this platform had
-ever succeeded** and that D13's npm-mirror control was completely inert.
-**Finishing P3, from Task 16, is the current work.**
+live IDOR**, both of which answered `200` when broken. And P3 produced **82 across 19
+tasks — 4.3 per task**, the highest rate measured here.
+
+**P3's last two sessions are the ones worth reading**, because each was the first time
+something ran end to end. Session 4 found that **no build in this platform had ever
+succeeded** and that D13's npm-mirror control was completely inert. Session 5 found
+that **no deploy had ever succeeded either** — seven separate defects of a single
+shape, *the test constructs the value correctly and the running system re-derives it
+wrongly* — every one of them green behind a suite of 74 passing Docker tests.
+**Writing P4 is the current work.**
 
 ## Where to start
 
@@ -70,10 +77,11 @@ this machine will do to you, and what to do next. Then:
 | If you are… | Read |
 |---|---|
 | Running the platform | [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md) — `make seed && make host-setup && make up` |
-| Finishing P3 (**the current job**) | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md`](docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md) — **start at Task 16**; 1–15 are done and green. Read its *What executing this plan found* first |
+| Understanding what the Docker half does | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md`](docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md) — all 19 tasks executed. Read its *What executing this plan found*, Sessions 4 and 5 |
 | Running the control plane | [*Running the control plane*](#running-the-control-plane) below — `make up`, then `pnpm --filter @manifest/control-plane dev` |
 | Executing any plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan — fix it there |
-| Writing the next plan (**P4, and not yet**) | ORIENTATION §7d, then [`docs/superpowers/plans/2026-08-29-plan-roadmap.md`](docs/superpowers/plans/2026-08-29-plan-roadmap.md). It is held until P3 finishes |
+| **Writing the next plan (P4) — the current job** | ORIENTATION §7d, then [`docs/superpowers/plans/2026-08-29-plan-roadmap.md`](docs/superpowers/plans/2026-08-29-plan-roadmap.md). Nothing blocks it any more |
+| Seeing the platform actually work | `make demo`, after `make up` and starting the control plane. [`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) has the nine steps it runs and the offline control |
 | Looking for what a spike proved | `docs/superpowers/spikes/S{7,2,1,3}-findings.md` — the answer is the first sentence of each |
 | Looking for the architecture | [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](docs/superpowers/specs/2026-08-29-manifest-platform-design.md) — authoritative, ~2,340 lines. ORIENTATION §3 tells you which sections you actually need |
 | Explaining this to someone non-technical | [`manifest-schematic.html`](docs/superpowers/specs/manifest-schematic.html) and its companions — the same design in plain language, plus six worked faculty stories |
