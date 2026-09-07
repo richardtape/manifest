@@ -41,6 +41,17 @@ const envSchema = z.object({
   // internal build network reaches it by service name (P1 dual-homes it for this).
   MANIFEST_REGISTRY_URL: z.string().min(1).default('127.0.0.1:7107'),
   MANIFEST_REGISTRY_INTERNAL_URL: z.string().min(1).default('manifest-registry:5000'),
+  // The edge's admin API, published to the loopback only by P1's compose file.
+  // This is how a route for a name allocated at runtime reaches Caddy (§12, S1).
+  MANIFEST_CADDY_ADMIN_URL: z.string().min(1).default('http://127.0.0.1:7119'),
+  // §12 meets "staging is UBC-only" by LISTENER ASSIGNMENT, not IP allowlisting:
+  // a misconfigured allowlist leaks quietly, a route on the wrong listener is
+  // simply unreachable. Two settings rather than a derivation, so UBC
+  // infrastructure enforces the split by configuration and not by a code change.
+  // On the laptop both listeners are loopback and Caddy names them both `srv0`
+  // (§21, honest divergence 2), so the distinction is modelled, not enforced here.
+  MANIFEST_CADDY_SERVER_INTERNAL: z.string().min(1).default('srv0'),
+  MANIFEST_CADDY_SERVER_PUBLIC: z.string().min(1).default('srv0'),
 })
 
 export interface Config {
@@ -58,6 +69,9 @@ export interface Config {
   buildCredentialSecret: string
   registryUrl: string
   registryInternalUrl: string
+  caddyAdminUrl: string
+  /** Listener -> Caddy server name. Both `srv0` locally (§21, divergence 2). */
+  caddyServers: { internal: string; public: string }
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -128,6 +142,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     buildCredentialSecret,
     registryUrl: raw.MANIFEST_REGISTRY_URL,
     registryInternalUrl: raw.MANIFEST_REGISTRY_INTERNAL_URL,
+    caddyAdminUrl: raw.MANIFEST_CADDY_ADMIN_URL,
+    caddyServers: {
+      internal: raw.MANIFEST_CADDY_SERVER_INTERNAL,
+      public: raw.MANIFEST_CADDY_SERVER_PUBLIC,
+    },
   }
 }
 

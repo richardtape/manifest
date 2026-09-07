@@ -12,6 +12,25 @@ const base = {
 }
 
 describe('configuration', () => {
+  // The listener split is TWO settings rather than a derivation from the
+  // environment kind, so UBC infrastructure can bind staging to an internal-only
+  // listener by configuration. Locally Caddy names both listeners `srv0` (§21,
+  // divergence 2) — modelled, not enforced here, and this test says which.
+  it('defaults the edge admin URL and names both listeners srv0 locally', () => {
+    const config = loadConfig({ ...base })
+    expect(config.caddyAdminUrl).toBe('http://127.0.0.1:7119')
+    expect(config.caddyServers).toEqual({ internal: 'srv0', public: 'srv0' })
+  })
+
+  it('lets an operator split the two listeners without a code change', () => {
+    const config = loadConfig({
+      ...base,
+      MANIFEST_CADDY_SERVER_INTERNAL: 'ubc-only',
+      MANIFEST_CADDY_SERVER_PUBLIC: 'world',
+    })
+    expect(config.caddyServers).toEqual({ internal: 'ubc-only', public: 'world' })
+  })
+
   it('parses a development environment and defaults the port to 7100', () => {
     const config = loadConfig({
       ...base,

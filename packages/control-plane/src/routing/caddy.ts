@@ -1,0 +1,177 @@
+import { request as httpRequest } from 'node:http'
+import { request as httpsRequest } from 'node:https'
+
+export interface CaddyRoute {
+  '@id': string
+  match: { host: string[] }[]
+  handle: unknown[]
+  terminal: boolean
+}
+
+/**
+ * §20: "Application code is untrusted, so baseline protections live where an app
+ * cannot remove them. Caddy applies, ON EVERY ROUTE: security headers, per-app and
+ * per-IP rate limits, request body size caps."
+ *
+ * A Caddyfile's site block does NOT apply to a route inserted through the admin
+ * API, so a route whose handler chain is `reverse_proxy` alone gets none of them —
+ * and every app this driver deploys arrives that way. The protections are part of
+ * the chain, ahead of the proxy, for exactly that reason.
+ */
+export function buildRoute(input: {
+  hostname: string
+  upstream: string
+  routeId: string
+  /** Requests per minute, per client IP. §20's "per-app and per-IP rate limits". */
+  rateLimit?: number
+  /** §20's "request body size caps". */
+  maxBodyBytes?: number
+}): CaddyRoute {
+  return {
+    '@id': input.routeId,
+    match: [{ host: [input.hostname] }],
+    handle: [
+      { handler: 'request_body', max_size: input.maxBodyBytes ?? 10_485_760 },
+      {
+        handler: 'rate_limit',
+        rate_limits: {
+          [input.routeId]: {
+            match: [{ remote_ip: { ranges: ['0.0.0.0/0', '::/0'] } }],
+            key: '{http.request.remote.host}',
+            window: '1m',
+            max_events: input.rateLimit ?? 600,
+          },
+        },
+      },
+      {
+        handler: 'headers',
+        response: {
+          set: {
+            'Strict-Transport-Security': ['max-age=31536000; includeSubDomains'],
+            'X-Content-Type-Options': ['nosniff'],
+            'Referrer-Policy': ['strict-origin-when-cross-origin'],
+            'Content-Security-Policy': ["frame-ancestors 'self'"],
+          },
+        },
+      },
+      { handler: 'reverse_proxy', upstreams: [{ dial: input.upstream }] },
+    ],
+    // terminal:true stops the wildcard behind this route from also matching.
+    terminal: true,
+  }
+}
+
+export interface CaddyClient {
+  listServers(): Promise<Record<string, unknown>>
+  getRoutes(server: string): Promise<CaddyRoute[]>
+  putRoute(server: string, route: CaddyRoute): Promise<void>
+  deleteRoute(server: string, routeId: string): Promise<void>
+}
+
+interface AdminResponse {
+  status: number
+  body: string
+}
+
+/**
+ * `node:http`, NOT `fetch`, and this is not a style preference.
+ *
+ * Caddy's admin API runs a CSRF check on every non-GET request: a client that
+ * sends an `Origin` header must send one the admin listener allows. `admin
+ * 0.0.0.0:2019` binds a wildcard host, for which Caddy's allowed-origin list is
+ * EMPTY — so a request with an Origin header of any value is refused, and only a
+ * request with **no Origin header at all** is served.
+ *
+ * Node's `fetch` (undici) appends `Origin` to every non-GET request per the Fetch
+ * spec, and outside a browser its value is the empty string. There is no supported
+ * way to remove it. Measured 2026-09-06 against this platform's Caddy 2.11.4:
+ *
+ *   curl -X PUT (no Origin)            -> 200
+ *   curl -X PUT -H 'Origin;'           -> 403 "not allowed to access from origin ''"
+ *   node fetch PUT                     -> 403 "not allowed to access from origin ''"
+ *   curl -X PUT -H 'Origin: http://127.0.0.1:7119' -> 403
+ *
+ * So this is not a test-only problem: with `fetch`, `applyRoute` 403s at runtime
+ * and NO app this driver deploys is ever reachable. `node:http` sends exactly the
+ * headers it is given, which is what curl and `scripts/verify.sh` already do.
+ * Loosening Caddy's `origins` instead would weaken a CSRF control on the platform's
+ * highest-leverage component to work around a client library.
+ */
+function adminRequest(
+  adminUrl: string,
+  method: string,
+  path: string,
+  body?: string,
+): Promise<AdminResponse> {
+  const target = new URL(path, adminUrl)
+  const transport = target.protocol === 'https:' ? httpsRequest : httpRequest
+  return new Promise((resolve, reject) => {
+    const req = transport(
+      target,
+      {
+        method,
+        // No `Origin`. See the note above — adding one makes every write 403.
+        ...(body === undefined
+          ? {}
+          : { headers: { 'content-type': 'application/json' } }),
+      },
+      (res) => {
+        let text = ''
+        res.setEncoding('utf8')
+        res.on('data', (chunk: string) => (text += chunk))
+        res.on('end', () => resolve({ status: res.statusCode ?? 0, body: text }))
+      },
+    )
+    req.on('error', reject)
+    if (body !== undefined) req.write(body)
+    req.end()
+  })
+}
+
+export function createCaddyClient(adminUrl: string): CaddyClient {
+  const call = async (
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<AdminResponse> => {
+    const response = await adminRequest(
+      adminUrl,
+      method,
+      path,
+      body === undefined ? undefined : JSON.stringify(body),
+    )
+    // 404 is not a failure here: Caddy answers it for `DELETE /id/<unknown>`
+    // (measured: `{"error":"unknown object ID ..."}`), and removing a route that
+    // is already gone is the desired end state, not an error.
+    if ((response.status < 200 || response.status >= 300) && response.status !== 404) {
+      throw new Error(
+        `caddy admin ${method} ${path} failed (${response.status}): ${response.body}`,
+      )
+    }
+    return response
+  }
+
+  return {
+    async listServers() {
+      const response = await call('GET', '/config/apps/http/servers')
+      return JSON.parse(response.body) as Record<string, unknown>
+    },
+    async getRoutes(server) {
+      const response = await call('GET', `/config/apps/http/servers/${server}/routes`)
+      if (response.status === 404) return []
+      return (JSON.parse(response.body) as CaddyRoute[] | null) ?? []
+    },
+    async putRoute(server, route) {
+      // PUT INSERTS at index 0. POST APPENDS, and an appended route lands behind
+      // the wildcard whose terminal:true swallows it — success from the API, an
+      // unreachable app in the browser. This is the single most expensive
+      // one-character mistake available in this file.
+      await call('PUT', `/config/apps/http/servers/${server}/routes/0`, route)
+    },
+    async deleteRoute(_server, routeId) {
+      // By @id. Index-based removal is correct exactly once, and two concurrent
+      // removals race on an array that shifted underneath them.
+      await call('DELETE', `/id/${routeId}`)
+    },
+  }
+}
