@@ -8,6 +8,7 @@ import type { ResolvedConfig } from '../spec/index.js'
 import { toMebibytes } from '../spec/index.js'
 import { resolveServiceImage } from '../services/index.js'
 import type { Config } from '../config.js'
+import { assertPromotable } from './promotion.js'
 
 export type Release = typeof releases.$inferSelect
 export type Instance = typeof instances.$inferSelect
@@ -151,12 +152,10 @@ export async function deployRelease(
   // §13, scoped to the driver rather than the environment kind: a driver targeting
   // remote infrastructure refuses a laptop-built image, because the architectures
   // differ and "promote the exact digest" makes that unresolvable at deploy time.
-  if (driver.capabilities().remoteTarget && repository.startsWith('local/')) {
-    throw new ReleaseError(
-      'RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER',
-      `driver '${driver.name}' declares a remote target and will not run a local/ image`,
-    )
-  }
+  // Extracted to promotion.ts (P3 Task 16) so the namespace test survives a
+  // registry host appearing in the repository; the error class and code are P2's,
+  // unchanged, which is why P2's own test still passes.
+  assertPromotable(driver, { repository, digest })
 
   const resolved = (release.resolvedConfig as ResolvedConfigSet)[environment.kind]
   const name = instanceName(projectSlug, environment.kind, release.id)
