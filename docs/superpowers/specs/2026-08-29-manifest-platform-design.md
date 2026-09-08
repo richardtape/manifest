@@ -909,7 +909,9 @@ silently pretending. The Docker driver reports
 is why default-deny egress is in Phase 1's non-negotiable baseline (§17).
 `isolationLevel` (`container` | `gvisor` | `vm`) matters most for sandboxes, where a
 plain container is a weak boundary around unreviewed code; the hardening baseline is
-in §12 and spike S6 tests it. `remoteTarget` drives the image-promotion rule (§13). The control plane surfaces declared-but-unenforced policy as a warning
+in §12, where S6's measured answer is recorded — `container` is adequate for staging
+and production apps, and the **sandbox** question stays open until S5.
+`remoteTarget` drives the image-promotion rule (§13). The control plane surfaces declared-but-unenforced policy as a warning
 on the app, not as a silent gap.
 
 ### Lifetime policies
@@ -1119,12 +1121,28 @@ Applies to every app, service and sandbox container, on every driver:
   the one baseline item the local Docker driver cannot deliver. It is reported through
   `capabilities()` rather than assumed, and it matters most for S6's sandbox
   judgement.
-- resource ceilings including `pids` and disk, not only CPU and memory
+- resource ceilings including `pids` and disk, not only CPU and memory. **`pids`
+  enforces; disk does not on Docker Desktop.** `--storage-opt size=` is accepted by
+  the daemon and recorded in `HostConfig`, and a 128 MB write into a 64 MB quota
+  succeeds — the containerd `overlayfs` snapshotter has no project-quota backing.
+  Disk is therefore reported through `capabilities().enforcesDiskQuota` rather than
+  assumed, exactly as user-namespace remapping is above; without that,
+  `InstanceSpec.resources.diskMi` reads as a ceiling and is not one.
 
 `DriverCapabilities.isolationLevel` (`container` | `gvisor` | `vm`) records the
 strength of the boundary a driver actually provides. A plain container is a weak
 boundary for a sandbox running unreviewed code; recording that honestly is what
 lets us upgrade sandboxes to a stronger runtime later without redesign.
+
+**The measured answer, for what was measured.** S6 ran on 2026-09-07 against a
+**staging** app with this baseline applied: twelve probes, every denial paired with a
+positive control, and the app still serving at the end. For **staging and production
+apps the level is `container`** — shared kernel, no gVisor, no Kata — and that is
+recorded as adequate. **The sandbox question stays open until S5.** Those probes did
+not exercise a sandbox, and §11 gives a sandbox `exec`, a wider egress baseline and a
+session-scoped AI key, none of which existed when S6 ran. Answering the sandbox
+question on the strength of a staging app would be the class of claim this design has
+twice been wrong about.
 
 ### The builder
 
@@ -1134,7 +1152,16 @@ specified component, not an implied one:
 - **Ephemeral per build**, created and destroyed by the driver.
 - **Holds no control-plane credential** — no database access, no driver access, no
   secrets. It receives a source tree, a blueprint-generated Dockerfile and a
-  registry push token scoped to one repository path.
+  registry push token scoped to one repository path. **That token is implemented
+  with `registry:2`'s bearer-token auth against an issuer the control plane runs.**
+  Three details are load-bearing and only the first is obvious: the **client**
+  performs the token exchange, so the realm does not need to be reachable from the
+  builder's internal network; the token carries the **base** repository as well as
+  the scoped path; and the token endpoint must implement the **OAuth2 POST form
+  grant**, because that is what Docker 29 and BuildKit send. Missing the last one
+  costs a morning: `request.body` is `undefined`, every grant comes back empty, and
+  the symptom is a scope refusal on a correct credential — indistinguishable from
+  the policy working.
 - **Network-restricted to the package mirror and the registry.** Nothing else,
   including the control plane. This is what makes "network-restricted builder" in
   §20's control map a real control rather than an aspiration. Implemented as a Docker
@@ -1153,8 +1180,15 @@ specified component, not an implied one:
   makes the `docker-container://` transport time out), and `buildkitd.toml` needs
   `[dns] nameservers = ["127.0.0.11"]`, because BuildKit generates its own
   `resolv.conf` for `RUN` steps and Docker service names otherwise do not resolve.
-- **Bounded**: build timeout, disk quota, and a concurrency cap per project and
-  globally.
+- **Bounded — by four separate mechanisms, not one.** The sentence this replaces
+  read as a single setting and is nothing of the kind:
+  - **steps in flight** — BuildKit's `max-parallelism`
+  - **cache size** — `maxUsedSpace`, which is applied to the cache **after** a
+    build rather than as a ceiling during one
+  - **concurrency per project and globally** — the **control plane** counts builds;
+    BuildKit has no notion of a project
+  - **the build timeout** — **destroying the ephemeral builder**. BuildKit has no
+    timeout setting at all, so the bound is the driver killing the container.
 
 It appears in §21's local inventory as a transient container, not a long-running
 service.
@@ -1368,7 +1402,7 @@ the system becomes ordinary test-first development.
 | **Injection-contract drift** | The §8 table is asserted against the blueprint: every variable the blueprint reads is injected, and `SAML_ENVIRONMENT` is never absent. This is what keeps §8 honest — it was wrong once, from being written against memory of the libraries rather than against them. |
 | **AI-path regression** | An embedding through the blueprint asserts its **dimension**, not merely that a vector came back — without `encoding_format: 'float'` the toolkit silently returns 192 near-zero values in place of 768 (§21, S3), and every other assertion still passes. A *streamed* completion through `default-chat` asserts non-empty content, which a thinking model fails silently. LiteLLM's over-budget, revoked-key, expired-key and route-denied responses are pinned to the mapping in §20, against the LiteLLM version in §21's inventory. |
 | **Identity-path regression** | A production release whose `auth.attributes` exceed `IamRegistration.registered_attributes` fails at build; a production environment never resolves to the Manifest IdP; a sandbox or staging environment never resolves to real UBC Shibboleth; certificate expiry within 90 days raises an alert. |
-| **Security regression** | Secrets never appear in captured logs, incidents or events; a sandbox cannot reach the control plane or a metadata endpoint; **a sandbox's LiteLLM key is refused on `/key/generate` and every other admin route** (there is no admin *port* to block — §10, §12 — so this asserts the `allowed_routes` confinement, and a key minted without it is the negative control); a spec with a `runtime.build` block or a non-path `auth.callback` is rejected; a `confidential` app cannot resolve an off-premise model. |
+| **Security regression** | Secrets never appear in captured logs, incidents or events; a sandbox cannot reach the control plane or a metadata endpoint; **a sandbox's LiteLLM key is refused on `/key/generate` and every other admin route** (there is no admin *port* to block — §10, §12 — so this asserts the `allowed_routes` confinement, and a key minted without it is the negative control); a spec with a `runtime.build` block or a non-path `auth.callback` is rejected; a `confidential` app cannot resolve an off-premise model. **Every denial in this tier is paired with a positive control** — the same probe succeeding from a bridge network — **and a control that cannot be paired is reported as unpaired rather than omitted.** A matrix of denials with no positive control is indistinguishable from a matrix where the probe tool is missing or the address never resolved, and S6's first run produced exactly that. One probe's control needs the internet, which the rest of the tier does not, so the tier says out loud when a pairing could not be made. |
 | **Contract** | The OpenAPI document is generated from the routes and checked in; drift fails CI. `manifest-mock` is validated against the same document, so a front-end built against the mock cannot compile against a contract the real API does not serve. |
 | **Integration** | Real Postgres, real Docker driver, one tiny fixture app; Supertest per route. |
 | **Acceptance** | The §1 journey, driven twice against the same published API: by a human in the reference console, and headlessly in CI by a script using the same generated client. Two independent clients over one contract. |
@@ -1807,7 +1841,8 @@ Stated so nobody discovers them at the wrong moment:
    images are never promoted (§13); CI builds everything that leaves the laptop.
 5. The Manifest IdP serves test users only; no real Shibboleth is involved (D6).
 6. `Driver.capabilities().isolationLevel` is `container`, the weakest level (§12).
-   Spike S6 determines whether that is acceptable for sandboxes.
+   S6 measured that as **adequate for staging and production apps** on 2026-09-07;
+   whether it is adequate for **sandboxes** is left to S5 (§12).
 7. **Embeddings through LiteLLM's Ollama path ignore `encoding_format`.** The
    OpenAI Node SDK (≥ 4.75) defaults the format to base64 and then decodes the
    reply unconditionally, so an `embed()` call that does **not** pass
@@ -1817,19 +1852,27 @@ Stated so nobody discovers them at the wrong moment:
    silent-corruption divergence rather than a convenience one: a RAG index built
    without the option is garbage that reads as poor retrieval quality. Whether a
    commercial provider behind LiteLLM behaves the same way is unmeasured (S3).
-8. **Workload containers can reach the developer's own machine.** **S7 narrowed
-   this, but did not close it.** The zone now resolves, for containers, to Caddy's
-   address on the platform network rather than to the host gateway, so
-   `*.manifest.internal` no longer hands every container a route to the host — the
-   original wording of this divergence overstated it. Docker still provides
-   `host.docker.internal` and `gateway.docker.internal` independently of our DNS,
-   and a developer machine listens on far more than Manifest's ports (MongoDB,
-   MySQL, other projects' databases; all three are live on the author's machine
-   now). §12's east-west denials cover app-to-app, the control plane and metadata
-   endpoints, but the host remains reachable. Egress policy must deny the host
-   gateway except for the ports an app actually needs, and **S6 must test it** —
-   this is the one local divergence that is a real security weakening rather than a
-   convenience.
+8. **Platform and builder containers can reach the developer's own machine — app
+   containers cannot.** **S7 narrowed this and S6 closed it for apps.** The zone
+   resolves, for containers, to Caddy's address on the platform network rather than
+   to the host gateway, so `*.manifest.internal` hands no container a route to the
+   host. Beyond that, every **app** network is created `--internal`: it has no
+   gateway at all, so the developer's machine is **unroutable rather than merely
+   policed**. Measured 2026-09-07 (`docs/superpowers/spikes/S6-findings.md`): from an
+   app network both `host.docker.internal:27017` and `:6333` fail at `curl` exit
+   **6** — the name never resolves — while `:6333` answers exit **0** from a bridge
+   container, so the ports are genuinely open and it is the app network that has no
+   route.
+
+   What remains is narrower and is what this divergence now covers: **platform
+   containers and the builder** run on routable networks and Docker provides
+   `host.docker.internal` and `gateway.docker.internal` there independently of our
+   DNS, while a developer machine listens on far more than Manifest's ports
+   (MongoDB, MySQL, other projects' databases; all three are live on the author's
+   machine now). LiteLLM depends on that route by design — Ollama is a host
+   application (§21). So this is a property of the platform's own containers, not a
+   hole in tenant isolation, and §12's east-west denials are topology rather than
+   policy for everything an app runs.
 
 
 ---
