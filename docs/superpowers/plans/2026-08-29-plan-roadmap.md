@@ -223,7 +223,7 @@ Recorded here because they are about *how to run this work*, and each was paid f
 | **P2** | 1a-ii | Control-plane spine ✅ **EXECUTED 2026-09-05** — all 21 tasks | project → spec → release → staging deploy, against the fake driver, **~300 ms**, no Docker — **demonstrated** |
 | **P3** | 1a-iii | Docker driver & deploy spine ✅ **EXECUTED 2026-09-07** — all 19 tasks | fixture app healthy at a `manifest.internal` URL, from a bare repo, offline — **demonstrated**, and again from a dropped database and an emptied registry |
 | **P4a** | 1b-i | Identity, secrets & the §8 contract — **WRITTEN 2026-09-07**, 15 tasks, not yet executed | the proof app signing in with CWL and writing a note, via `curl` |
-| **P4b** | 1b-ii | AI, events, streaming, incidents — **deliberately unwritten until P4a executes** | the proof app's LLM answer |
+| **P4b** | 1b-ii | AI, events, streaming, incidents — **WRITTEN 2026-09-07**, 16 tasks, not yet executed. Written *before* P4a ran, on Rich's instruction, against the prior decision below; **its Task 1 is a reconciliation pass** against the executed P4a | the proof app's LLM answer |
 | **P5** | 1c | Contract & clients | the §1 journey, clickable, driven twice over one contract |
 | **P6–P11** | 2 | six plans, listed below, **not written yet** | — |
 
@@ -233,7 +233,10 @@ ran in three sittings — 1 and 9–11 on 2026-08-31, **2–8** and then **12–
 
 **P3 is EXECUTED and green — all 19 tasks, 2026-09-07.** The 2026-09-04 hold was
 then discharged and **P4 was split into P4a and P4b (Rich's call, 2026-09-07). P4a is
-WRITTEN — 15 tasks, unrun — and executing it is the current work.** P4b stays
+WRITTEN — 15 tasks, unrun — and executing it is the current work.** **P4b is now
+written too — 16 tasks, 2026-09-07, on Rich's instruction and ahead of P4a's
+execution**; the decision it departs from, and how that departure is answered, are
+in *Order of operations* step 7. P4b previously stayed
 unwritten until P4a has run, for the reason *Order of operations* gives. See
 *Order of operations*. Each of P1–P5 carries the required plan header, its own file-structure
 map, and bite-sized TDD steps with real content — no plan may contain a step
@@ -451,7 +454,7 @@ testable software. Both halves do.
 | | Scope | Demo | State |
 |---|---|---|---|
 | **P4a** | The IdP finished, `secrets/` envelope encryption, `sso/` SP auto-provisioning, per-app keypairs, §8's injection contract and its drift test, `node-ts-mongo@1`'s auth half, Manifest's own CWL login (deleting the dev shim), the proof app's sign-in | the proof app: CWL sign-in and a per-user note, by `curl` — and the instructor cannot see the student's note | **WRITTEN 2026-09-07**, 15 tasks. [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md) |
-| **P4b** | The LiteLLM client with `allowed_routes` and TTLs, the classification-gated catalogue (D17), key lifecycle, the blueprint's AI wiring, `WS /projects/:id/events`, heuristic redaction, incidents | the proof app's LLM answer | **deliberately unwritten** until P4a executes |
+| **P4b** | The LiteLLM client with `allowed_routes`, the classification-gated catalogue (D17), key lifecycle, the blueprint's AI wiring, `WS /projects/:id/events`, heuristic redaction, incidents | the proof app's LLM answer | **WRITTEN 2026-09-07**, 16 tasks, unrun. [`2026-09-07-p4b-ai-events-streaming-incidents.md`](./2026-09-07-p4b-ai-events-streaming-incidents.md). Writing it measured **ten more facts**, one of which is a §10 requirement that **cannot be implemented at LiteLLM 1.98.0** |
 
 **Six facts were measured on 2026-09-07 before P4a was written**, because no plan may
 contain a step standing in for a spike result. Four were live defects nothing could
@@ -597,11 +600,17 @@ execution layer.** Each is written when its predecessor lands.
    and P4b on 2026-09-07 (Rich's call), and P4a is WRITTEN** —
    [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md),
    15 tasks. ← **EXECUTING P4a IS THE CURRENT WORK.**
-   **P4b is deliberately not written yet**, for the reason this section already
-   gives: writing it now would bank a second unexecuted plan and would write it
-   against an imagined P4a, which is what cost P3 eight defects in reconciliation.
-   Its scope and every seam it inherits are recorded in P4a's *What this plan does
-   not build*.
+   **P4b was then written on 2026-09-07 as well, at Rich's request** —
+   [`2026-09-07-p4b-ai-events-streaming-incidents.md`](./2026-09-07-p4b-ai-events-streaming-incidents.md),
+   16 tasks. **This departs from the decision recorded immediately below**, which
+   said P4b stays unwritten until P4a runs, on the evidence that P3 cost eight
+   defects reconciling against an imagined P2. That reason has not gone away, so
+   the plan answers it rather than ignoring it: **P4b's Task 1 is a reconciliation
+   pass** against the executed P4a, with a named checklist of every P4a symbol,
+   file and table it consumes, and three places where P4a's own text is ambiguous
+   are named at the point of use rather than resolved silently. **The unexecuted
+   stack is now 31 tasks** — P4a's 15 and P4b's 16 — which is the cost this
+   decision was made to avoid, and it is recorded here rather than left implicit.
 
 ### Decided 2026-09-04: execute before writing P4
 
@@ -659,7 +668,8 @@ run. The measured rate by batch:
 | **P3 Tasks 16–19** | **4** | **21** | **5.3** |
 | **P3, total** | **19** | **82** | **4.3** |
 
-**NOTHING WRITTEN REMAINS UNRUN.** The rate never fell with practice; it rose the
+***That was true on 2026-09-06. As of 2026-09-07 the unrun stack is 31 tasks:
+P4a's 15 and P4b's 16.*** The rate never fell with practice; it rose the
 moment the tasks stopped being pure functions, and it kept rising. **P3 finished at
 82 defects across 19 tasks — 4.3 per task**, well above the 2.7–2.9 this section
 predicted, with its two worst sessions at the end.

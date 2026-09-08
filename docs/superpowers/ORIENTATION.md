@@ -33,16 +33,19 @@ everything.
 real Docker driver, and `make demo` takes an application from a bare git repository to
 a healthy `https://…manifest.internal` URL.
 
-**P4 was split into P4a and P4b on 2026-09-07 (Rich's call), and P4a is WRITTEN —
-15 tasks, not yet executed. EXECUTING P4a IS THE NEXT JOB.** See §7d. P4b is
-deliberately unwritten until P4a has run. **P3's six proposed spec actions were all
+**P4 was split into P4a and P4b on 2026-09-07 (Rich's call). BOTH ARE NOW WRITTEN
+AND NEITHER HAS RUN — P4a 15 tasks, P4b 16. EXECUTING P4a IS STILL THE NEXT JOB**,
+and P4b's own Task 1 is a reconciliation pass that assumes P4a ran first. See §7d
+and §7e. P4b was written ahead of P4a's execution on Rich's instruction, which
+departs from the roadmap's *Order of operations* step 7; that step now records the
+departure and how the plan answers it. **P3's six proposed spec actions were all
 applied on 2026-09-07**, with Rich's approval, so §8's list of things awaiting him is
 shorter than it was.
 
 | | State |
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. **S6 has since run too, as P3's Task 18, 2026-09-07: every probe denied, every denial paired with a positive control, and one result BETTER than the spec** — §21's divergence 8 no longer holds, because app networks are `--internal` and the developer's machine is unroutable rather than merely policed. S5 and S4 are deliberately later (S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
-| **Plans** | **P1, P2 AND P3 ARE EXECUTED; P4a IS WRITTEN AND UNRUN.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a is WRITTEN (2026-09-07, 15 tasks) and is the next thing to execute**; P4b and P5 are unwritten — see §7. |
+| **Plans** | **P1, P2 AND P3 ARE EXECUTED; P4a IS WRITTEN AND UNRUN.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a is WRITTEN (2026-09-07, 15 tasks) and is the next thing to execute; P4b is WRITTEN TOO (2026-09-07, 16 tasks) and must not be executed before P4a.** P5 is unwritten — see §7. **The unrun stack is 31 tasks**, which is exactly what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
 | **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. **`make doctor` 14 checks / 0 failed, `make verify` 31 checks / 0 failed, both green offline.** P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite. **224 tests via `pnpm test`**, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`** — `pnpm test` **332** and a second tier, `pnpm test:docker`, **48**. |
 | **Spec** | Current. Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
@@ -63,7 +66,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 |---|---|
 | **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
 | **executing a plan** | ← **this is the current job (P4a).** [`plans/2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md), 15 tasks, self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P3's *What executing this plan found* first anyway**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
-| **writing a plan** | P4b is next, **after P4a executes**. Its scope and every seam it inherits are already recorded in P4a's *What this plan does not build*. House style: `plans/2026-08-30-p1-local-substrate.md`, `2026-08-29-p2-control-plane-spine.md`, or P4a itself. |
+| **writing a plan** | **P5 is next, after P4a and P4b execute.** House style: `plans/2026-08-30-p1-local-substrate.md`, `2026-08-29-p2-control-plane-spine.md`, or either half of P4. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
 | **writing code** | Thirteen modules exist: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/` (with `runtime/docker/`), `source/`, `identity/`, `projects/`, `releases/`, `api/`, and P3's `services/`, `build/` and `routing/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else is built against them — then `runtime/docker/driver.ts`, which is the one implementation of that interface and where every P3 module meets; then `api/server.ts` for how a request becomes an actor, and `projects/authz.ts` for the one function every route's security depends on. **Then run `make demo` once**: it is the only thing that exercises all of it through the real HTTP surface, and it is where the last four sessions' worst defects were found. |
 | **changing the spec** | Don't, without asking. It is marked *Approved design*. Record the proposed change and Rich decides — that has been the pattern five times. |
@@ -94,6 +97,14 @@ docs/superpowers/
 │                                                  ← EXECUTE THIS NEXT. Records the
 │                                                  four live defects found while
 │                                                  writing it, and P4b's whole scope.
+│   └── 2026-09-07-p4b-ai-events-streaming-incidents.md
+│                                                  P4b. 16 tasks, WRITTEN AND UNRUN.
+│                                                  EXECUTE AFTER P4a — its Task 1
+│                                                  reconciles against the executed
+│                                                  P4a. Records ten more measured
+│                                                  facts, one of them a §10
+│                                                  requirement LiteLLM 1.98.0
+│                                                  cannot satisfy.
 └── spikes/
     ├── S7-findings.md  DNS, the edge, TLS       ← P1's content
     ├── S2-findings.md  SimpleSAMLphp metadata   ← P4's shape
@@ -731,13 +742,10 @@ They are in §4 above and are what Tasks 1, 2 and 11 exist to fix. Do not assume
 platform's identity half works because the gates are green; it does not work at all
 yet.
 
-**P4b — AI, streaming, incidents — is deliberately unwritten** until P4a has run.
-Writing it now would bank a second unexecuted plan and would write it against an
-imagined P4a, which is exactly what cost P3 eight defects in reconciliation. Its full
-scope, and every seam it inherits, is recorded in P4a's *What this plan does not
-build* — including two facts already measured for it: `ubc-genai-toolkit-llm@0.7.0`
-reproduces all three S3 findings, and **the toolkit cannot be forced through the
-egress proxy**.
+**P4b is written too — see §7e.** It was written on 2026-09-07 at Rich's request,
+ahead of P4a's execution, which departs from the roadmap's *Order of operations*
+step 7. **Execute P4a first regardless**: P4b's Task 1 is a reconciliation pass
+against the *executed* P4a and cannot be done against an unrun one.
 
 **Three S3 findings are P4b tasks, not notes** — the three in §5 above. Each needs a
 §16 test attached, and each fails silently without one.
@@ -767,6 +775,36 @@ section carries the first three; the fourth is new to P3's last session.
 **Demo:** the proof app — CWL login, a Mongo write, an LLM answer — driven by `curl`.
 `fixtures/fixture-app/` is P3's build target and stays trivial; §16's proof app is
 `fixtures/proof-app/`, and it is P4's.
+
+### 7d-2. Then execute P4b — AI, events, streaming, incidents (1b-ii)
+
+*[`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md)
+— **16 tasks, written 2026-09-07, none executed.***
+
+The LiteLLM admin client with `allowed_routes` as a constant rather than a
+parameter, S3's error table as one mapper, D17's catalogue read from `/model/info`,
+app-key rotation with the budget on the LiteLLM user, the gateway joining an app
+network **only** for an app that declares models, §8's AI rows, the blueprint's AI
+component, build-log capture, redaction's heuristic half, §14's `Incident` shaped as
+a repair prompt, and `WS /projects/:id/events` — **authorized before it upgrades**,
+so §16's authorization contract suite can cover it like any other route.
+**Demo:** the proof app answers a question, attributed to
+`sha256(puid ‖ project ‖ environment)`.
+
+**It was written before P4a ran, on Rich's instruction.** That is a departure from
+the 2026-09-04 decision, and the plan answers it rather than ignoring it: **Task 1
+is a reconciliation pass** against the executed P4a with a named checklist, and
+three places where P4a's own text is ambiguous are flagged at the point of use.
+**Do not execute P4b before P4a.**
+
+**Writing it measured ten more facts.** The load-bearing ones: `/model/info` returns
+`mode: null` for a chat model — not `"chat"` — so a catalogue filtered on `'chat'`
+comes back **empty** and every spec then fails with a message blaming the faculty
+member; `ghcr.io/berriai/litellm:main-stable` is a **moving tag absent from
+`infra/images.lock`** while §16 pins the error mapping to a version; and
+**`ai.budget.per_user_monthly_usd` cannot be enforced at LiteLLM 1.98.0 at all** —
+customer rows auto-create with no budget, and `max_end_user_budget` does not exist
+in its admin API. **P4b proposes six spec actions and applies none.**
 
 ### 7e. Write P5 — contract and clients (1c) *(after P4a and P4b)*
 
