@@ -75,15 +75,40 @@ they were probed before P3 was written rather than discovered inside it.
 |---|---|---|---|
 | **S1's two open controls** | ✅ **done** 2026-08-31 (~1 h 25 m of a 2 h timebox) | **Both work, and `registry:2` needs no design change.** A push token scoped to one repository path is enforceable with a JWT the control plane signs, and the negative control holds through `docker push` **and** rootless BuildKit. The builder's bounds are three mechanisms rather than one: **BuildKit has no build timeout at all**, and **`--storage-opt size=` is accepted, recorded in `HostConfig`, and silently does nothing** on Docker Desktop. | **P3** Tasks 9 and 10 |
 
+| **P4's six** | ✅ **done 2026-09-07** (~1 h, before P4a was written) | **Four live defects and two version facts.** The Manifest IdP **could not issue an assertion at all** — no `saml20-idp-hosted.php`, empty `cert/`, metadata **500** — with `make verify` 34/0 throughout. `core:AttributeLimit` was unconfigured, so attribute release **failed open**. `authsources.php` used an OID `passport-ubcshib` does not map, so `ubcEduCwlPuid` was unreadable. **`MONGODB_DB_NAME` was never injected**, so every app wrote to a database called `app` while two Docker tests set it themselves and passed. Then: `ubc-genai-toolkit-llm@0.7.0` reproduces all three S3 findings, and **the toolkit cannot be forced through the egress proxy** — `http_proxy`, undici's global dispatcher and a patched `http.globalAgent` all bypassed, because the OpenAI SDK supplies its own `agentkeepalive` agent. | **P4a** Tasks 1, 2, 10, 11; **P4b**'s AI wiring and its LiteLLM route |
+
 [`../spikes/S1-controls-settled.md`](../spikes/S1-controls-settled.md). The disk-quota
 finding is a second `enforcesUserNamespaceRemapping`-shaped gap, and P3 reports it
 through `capabilities()` for the same reason: declare it, do not imply it.
+
+**P4's six are written up in P4a itself**, in its *Findings this plan is built from*,
+rather than in a findings note — they were measurements against the running platform
+rather than a spike, and the four defects are fixed by the tasks they motivated. The
+pattern is the same one this section exists for: **probe first, then write the task**.
 
 Findings notes live in `docs/superpowers/spikes/`. All spec changes each spike
 implied have already been applied to
 [`2026-08-29-manifest-platform-design.md`](../specs/2026-08-29-manifest-platform-design.md),
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
+
+### Spec actions raised by P3 — ✅ all six applied 2026-09-07
+
+Proposed at the end of P3's plan and left unapplied, as the pattern requires; **Rich
+approved applying them on 2026-09-07**, before P4a was written. Every one was measured
+rather than argued. §21's divergence 8 narrows to platform and builder containers,
+because app networks are `--internal` and the developer's machine is **unroutable
+rather than policed**; §12 records S6's `isolationLevel` answer for staging and
+production apps and states that the **sandbox** question stays open until S5; §12
+records that `--storage-opt size=` does not enforce on Docker Desktop; §12's
+*"Bounded"* sentence is split into the four mechanisms it actually names; §12's builder
+gains the registry token realm's mechanics including the OAuth2 POST form grant; and
+§16's security-regression tier now requires a positive control per denial and says an
+unpairable control is **reported as unpaired rather than omitted**.
+
+Two consistency edits went with them, because leaving either would have made the spec
+disagree with itself: §11's `isolationLevel` sentence and §21's divergence 6 both
+still said S6 was yet to run. One commit, `53ecb1d`.
 
 ### Spec action raised by P2 — ✅ applied 2026-08-31
 
@@ -197,7 +222,8 @@ Recorded here because they are about *how to run this work*, and each was paid f
 | **P1** | 1a-i | Local substrate ✅ **EXECUTED 2026-09-05** | `make doctor` green offline; one name resolving correctly from host **and** container — **both demonstrated** |
 | **P2** | 1a-ii | Control-plane spine ✅ **EXECUTED 2026-09-05** — all 21 tasks | project → spec → release → staging deploy, against the fake driver, **~300 ms**, no Docker — **demonstrated** |
 | **P3** | 1a-iii | Docker driver & deploy spine ✅ **EXECUTED 2026-09-07** — all 19 tasks | fixture app healthy at a `manifest.internal` URL, from a bare repo, offline — **demonstrated**, and again from a dropped database and an emptied registry |
-| **P4** | 1b | Identity, secrets & AI | the proof app — CWL login, Mongo write, LLM answer — via `curl` |
+| **P4a** | 1b-i | Identity, secrets & the §8 contract — **WRITTEN 2026-09-07**, 15 tasks, not yet executed | the proof app signing in with CWL and writing a note, via `curl` |
+| **P4b** | 1b-ii | AI, events, streaming, incidents — **deliberately unwritten until P4a executes** | the proof app's LLM answer |
 | **P5** | 1c | Contract & clients | the §1 journey, clickable, driven twice over one contract |
 | **P6–P11** | 2 | six plans, listed below, **not written yet** | — |
 
@@ -205,9 +231,10 @@ Recorded here because they are about *how to run this work*, and each was paid f
 ran in three sittings — 1 and 9–11 on 2026-08-31, **2–8** and then **12–21** on
 2026-09-05, finding **20** and **27** defects respectively.
 
-**P3 is EXECUTED and green — all 19 tasks, 2026-09-07.** Every written plan has now
-run. **P4 and P5 are still unwritten, and the 2026-09-04 decision that held them has
-now been discharged: P3 has executed, so writing P4 is the next work.** See
+**P3 is EXECUTED and green — all 19 tasks, 2026-09-07.** The 2026-09-04 hold was
+then discharged and **P4 was split into P4a and P4b (Rich's call, 2026-09-07). P4a is
+WRITTEN — 15 tasks, unrun — and executing it is the current work.** P4b stays
+unwritten until P4a has run, for the reason *Order of operations* gives. See
 *Order of operations*. Each of P1–P5 carries the required plan header, its own file-structure
 map, and bite-sized TDD steps with real content — no plan may contain a step
 standing in for a spike result.
@@ -411,11 +438,34 @@ everything that only exists once containers do:
 `manifest.internal` URL, from a clean checkout, with the network off — plus S6's probe
 matrix showing what a hostile process in that container could reach.
 
-### P4 — 1b · Identity, secrets & AI
+### P4 — 1b · Identity, secrets & AI — **SPLIT INTO P4a AND P4b, 2026-09-07**
 
 *Depends on: S2, S3, P3. **All three have landed** — both spikes reported, and P3
-executed in full on 2026-09-07. **The 2026-09-04 hold is discharged: writing P4 is
-the current work.***
+executed in full on 2026-09-07.*
+
+**Rich's call, 2026-09-07: P4 is two plans.** The scope below spans four subsystems
+and would have been ~23 tasks against P3's 19-at-82-defects, and the writing-plans
+scope check asks for one plan per subsystem where each still produces working,
+testable software. Both halves do.
+
+| | Scope | Demo | State |
+|---|---|---|---|
+| **P4a** | The IdP finished, `secrets/` envelope encryption, `sso/` SP auto-provisioning, per-app keypairs, §8's injection contract and its drift test, `node-ts-mongo@1`'s auth half, Manifest's own CWL login (deleting the dev shim), the proof app's sign-in | the proof app: CWL sign-in and a per-user note, by `curl` — and the instructor cannot see the student's note | **WRITTEN 2026-09-07**, 15 tasks. [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md) |
+| **P4b** | The LiteLLM client with `allowed_routes` and TTLs, the classification-gated catalogue (D17), key lifecycle, the blueprint's AI wiring, `WS /projects/:id/events`, heuristic redaction, incidents | the proof app's LLM answer | **deliberately unwritten** until P4a executes |
+
+**Six facts were measured on 2026-09-07 before P4a was written**, because no plan may
+contain a step standing in for a spike result. Four were live defects nothing could
+have noticed: **the Manifest IdP could not issue an assertion at all** (no
+`saml20-idp-hosted.php`, empty `cert/`, metadata 500 — with `make verify` 34/0
+throughout); `core:AttributeLimit` was not configured, so attribute release **failed
+open**; `authsources.php` released `ubcEduCwlPuid` under an OID `passport-ubcshib`
+does not map, so no app could read its own user identifier; and **`MONGODB_DB_NAME`
+was never injected**, so every deployed app wrote to a database called `app` while
+two Docker tests set the variable themselves and passed. The other two settle P4b's
+inputs: `ubc-genai-toolkit-llm@0.7.0` reproduces all three of S3's findings, and
+**the toolkit cannot be forced through §12's egress proxy** — measured against three
+separate mechanisms. All six are written up in P4a's *Findings this plan is built
+from*.
 
 **What P4's author should take from executing P1–P3, beyond the module list below.**
 Three things, each paid for:
@@ -532,7 +582,8 @@ execution layer.** Each is written when its predecessor lands.
    (19 tasks, self-reviewed 2026-09-04).
 5. **Execute P1 → P2 → P3.** ✅ **All three are done.** P1 and P2 executed and green
    on 2026-09-05, P1 green offline too; **P3 finished 2026-09-07, all 19 tasks**. S6
-   ran as its Task 18 and has reported. **There is no unexecuted written work left.**
+   ran as its Task 18 and has reported. **P4a is now written and is the one piece of
+   unexecuted written work.**
 6. **Start the external track once the local proof of concept works end to end.**
    **Changed 2026-09-05, Rich's call.** This step previously said *"start now, in
    parallel"*, on the argument that C4 has the longest lead time and no software
@@ -542,8 +593,15 @@ execution layer.** Each is written when its predecessor lands.
    behind it than with a design document. **Not a rush; not forgotten.** The
    trigger is the local PoC running end to end — P4's proof app: CWL login, a Mongo
    write, an LLM answer. Until then, do not re-raise it.
-7. **Write P4 once P3 has executed**, and P5 when P4 lands. ← **THE CURRENT WORK.**
-   P3 executed on 2026-09-07, so the hold below is discharged and P4 is next.
+7. **Write P4 once P3 has executed**, and P5 when P4 lands. **P4 was split into P4a
+   and P4b on 2026-09-07 (Rich's call), and P4a is WRITTEN** —
+   [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md),
+   15 tasks. ← **EXECUTING P4a IS THE CURRENT WORK.**
+   **P4b is deliberately not written yet**, for the reason this section already
+   gives: writing it now would bank a second unexecuted plan and would write it
+   against an imagined P4a, which is what cost P3 eight defects in reconciliation.
+   Its scope and every seam it inherits are recorded in P4a's *What this plan does
+   not build*.
 
 ### Decided 2026-09-04: execute before writing P4
 
@@ -931,8 +989,12 @@ import rule (D22, D31) is then expressible as the cleanest possible statement �
   on it.
 - **Wake-on-request's mechanism** (§11, S4). Genuinely open, and nothing before
   Phase 4 needs it.
-- **Whether sandboxes need gVisor or Kata** (§12, S6). Recorded as
-  `isolationLevel`, answered by S6, acted on in Phase 3.
+- **Whether sandboxes need gVisor or Kata** (§12). Recorded as `isolationLevel`.
+  **S6 answered it for staging and production apps — `container` — on 2026-09-07,
+  and deliberately did not answer it for SANDBOXES**, because its probes ran
+  against a staging app and §11 gives a sandbox `exec`, a wider egress baseline
+  and a session-scoped AI key. **S5 owns the sandbox half.** Both halves are now
+  recorded in §12 (spec action applied 2026-09-07).
 - **Quarantine-on-first-use for dependencies** (§12). v1 picks the allowlist,
   because two mechanisms would be built and neither finished.
 - **Anything in §15's hook table.** The hooks are built now because they are cheap

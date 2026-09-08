@@ -45,9 +45,16 @@ local substrate (13 tasks), P2, the control-plane spine (21 tasks), and P3, the
 Docker driver and deploy spine (19 tasks, **finished 2026-09-07**). `make demo` takes
 an application from a bare git repository to a healthy
 `https://fixture-app.staging.manifest.internal` — and does it again from a dropped
-database, a deleted repository root and an emptied registry. **P4 and P5 are
-unwritten; writing P4 is the current work.** On 2026-09-04 the project stopped
+database, a deleted repository root and an emptied registry. **P4a is written and unrun — executing it is
+the current work; P4b and P5 are unwritten.** On 2026-09-04 the project stopped
 writing plans and started executing them, and that hold is now discharged.
+
+P4 was split in two on 2026-09-07. **P4a** — identity, secrets and the §8 injection
+contract, 15 tasks — takes the proof app from a bare repository to a real CWL sign-in.
+**P4b** — AI, events, streaming and incidents — stays unwritten until P4a has run,
+because banking a second unexecuted plan is the thing this project has measured the
+cost of. Writing P4a found **four live defects the green gates could not see**,
+including that the Manifest IdP could not issue a SAML assertion at all.
 
 Execution vindicated that decision three times over. P1's 13 tasks produced **18
 defects** in a plan that had already been self-reviewed, a third of them *checks that

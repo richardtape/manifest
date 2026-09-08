@@ -84,7 +84,7 @@ any good. A generator whose output a reviewer rejects is worse than useless, and
 would rather learn that in month two than in month ten.
 
 Dependency: these need `fixtures/proof-app/`'s `manifest.yaml` to exist, which is
-P4. Raise the *conversation* before then; submit when there is a real spec to
+P4b (see the log below — P4a's demo will look like the trigger and is not it). Raise the *conversation* before then; submit when there is a real spec to
 submit.
 
 ### 5 — UBC staging IdP access
@@ -114,4 +114,5 @@ Nothing else depends on it, so it fails quietly by never being requested. Ask ea
 |---|---|---|
 | 2026-08-29 | — | Page opened. All eight items unassigned. |
 | 2026-09-05 | — | **Deliberately still unstarted, and that is a decision rather than a slip.** Rich's call: the external track begins once the local proof of concept works end to end — P4's proof app, CWL login through to an LLM answer. The reasoning is that the goal is to get this right rather than to get it started, and a registration conversation goes better with a working demonstration behind it than with a design document. C4 keeps its weeks of latency and its §9 risk rating; nothing about the assessment changed, only the timing. Recorded so the next reader does not mistake it for an oversight and re-raise it. |
+| 2026-09-07 | — | **Still unstarted; the trigger is now explicitly P4b, not P4a.** P4 was split in two on 2026-09-07 (Rich's call): **P4a** is identity, secrets and the §8 injection contract, and its acceptance is the proof app signing a real person in with CWL and writing a note; **P4b** adds the LLM answer. ORIENTATION §8's trigger is the **full** proof app — CWL login *through to* an LLM answer — so it is **P4b's acceptance that fires this**, not P4a's. Recorded because P4a's demo will look like the trigger and is not it. Nothing about C4's assessment has changed. |
 | 2026-09-07 | — | **Still unstarted, and the trigger has moved measurably closer.** P3 executed in full: an application now goes from a bare git repository to a healthy, routed, TLS-terminated URL on one laptop, offline. That is not yet the trigger — the trigger is **P4's proof app**, CWL login through to an LLM answer — but P4 is now the work in hand rather than a plan waiting on another plan. Nothing about C4's assessment has changed; recorded so the next reader can see the distance shrinking rather than re-raise the decision. |

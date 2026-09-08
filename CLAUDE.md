@@ -48,7 +48,14 @@ check that every app failed, because BusyBox `wget` honours `http_proxy` and ign
 `NO_PROXY`, so D18's forced proxy denied each app's probe of its own loopback. **All
 of it was green in a suite of 74 passing Docker tests.**
 
-**P4 and P5 are unwritten. Writing P4 is the current work** — ORIENTATION §7d.
+**P4a is WRITTEN and UNRUN (2026-09-07, 15 tasks) — executing it is the current
+work** — ORIENTATION §7d. P4 was split into P4a (identity, secrets, the §8 injection
+contract) and P4b (AI, events, streaming, incidents) on Rich's call; **P4b stays
+unwritten until P4a has run.** Writing P4a found **four live defects that `make
+verify` 34/0 could not see**: the Manifest IdP could not issue an assertion at all,
+attribute release failed open, the `ubcEduCwlPuid` OID matched nothing
+`passport-ubcshib` maps, and `MONGODB_DB_NAME` was never injected. **P3's six spec
+actions were all applied on 2026-09-07**, with Rich's approval.
 
 Executing P2 found **52 defects** across three sittings — 5, then 20, then **27 in
 Tasks 12–21**. Four from that last batch are worth carrying: the plan's code had
@@ -75,8 +82,8 @@ repeatable has a state leak. For the platform itself it is `make doctor` and
 **Five spikes are done** (S7, S2, S1, S3 — all answered yes — and **S6**, which ran
 as P3's Task 18 on 2026-09-07 and found every probe denied with every denial paired
 with a positive control). P0, P1, P2 and P3 are written and **all three
-implementation plans are executed**. **P4 and P5 are unwritten, and writing P4 is the
-current work.** Plan-writing stopped on 2026-09-04 in favour of execution; that hold
+implementation plans are executed**. **P4a is written and unrun; P4b and P5 are
+unwritten.** Plan-writing stopped on 2026-09-04 in favour of execution; that hold
 is now discharged, and it was right — the three plans produced **152 defects between
 them** after all three had been self-reviewed. The maintained status record is the *Spike status*
 ledger in `docs/superpowers/plans/2026-08-29-plan-roadmap.md`; if any document
