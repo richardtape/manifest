@@ -1,9 +1,10 @@
 # Orientation — read this first
 
 **You are picking up a project whose design is finished, whose first three
-implementation plans are written and EXECUTED, and whose fourth — P4a — is written
-and waiting to be run.** This is the single entry
-point: what Manifest is, what has been established, what the machine will do to
+implementation plans are written and EXECUTED, and whose fourth and fifth — P4a and
+P4b — are written and waiting to be run. Execute P4a. Do not start P4b: its own
+first task reconciles it against a P4a that has already run.** This is the single
+entry point: what Manifest is, what has been established, what the machine will do to
 you, and what to do next. It is written for someone with **no prior context** —
 a new agent with a fresh window, or a developer joining.
 
@@ -45,9 +46,23 @@ shorter than it was.
 | | State |
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. **S6 has since run too, as P3's Task 18, 2026-09-07: every probe denied, every denial paired with a positive control, and one result BETTER than the spec** — §21's divergence 8 no longer holds, because app networks are `--internal` and the developer's machine is unroutable rather than merely policed. S5 and S4 are deliberately later (S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
-| **Plans** | **P1, P2 AND P3 ARE EXECUTED; P4a IS WRITTEN AND UNRUN.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a is WRITTEN (2026-09-07, 15 tasks) and is the next thing to execute; P4b is WRITTEN TOO (2026-09-07, 16 tasks) and must not be executed before P4a.** P5 is unwritten — see §7. **The unrun stack is 31 tasks**, which is exactly what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
-| **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. **`make doctor` 14 checks / 0 failed, `make verify` 31 checks / 0 failed, both green offline.** P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite. **224 tests via `pnpm test`**, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`** — `pnpm test` **332** and a second tier, `pnpm test:docker`, **48**. |
+| **Plans** | **P1, P2 AND P3 ARE EXECUTED; P4a AND P4b ARE WRITTEN AND UNRUN — EXECUTE P4a.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a is WRITTEN (2026-09-07, 15 tasks) and is the next thing to execute; P4b is WRITTEN TOO (2026-09-07, 16 tasks) and must not be executed before P4a.** P5 is unwritten — see §7. **The unrun stack is 31 tasks**, which is exactly what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
+| **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`.** **The numbers are in the box below** — this row used to restate them and drifted by four releases. |
 | **Spec** | Current. Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
+
+**The four numbers you will check first, measured 2026-09-07 on this machine:**
+
+| | |
+|---|---|
+| `pnpm test` (from the **repo root**) | **381 passed, 42 files**, ~15 s, no Docker needed except Postgres for the `db/` and `api/` suites |
+| `pnpm test:docker` | **89 passed**, **298 s** — needs `make up`, and **fails rather than skips** when asked to run |
+| `make doctor` | **16 checks, 0 failed, 0 warnings** |
+| `make verify` | **34 checks, 0 failed, 0 warnings** |
+
+**A different number on a clean checkout is signal, not noise** — it means something
+moved, and finding out what is cheaper before you start than after. §7c states the
+same four as P3's completion record; if the two ever disagree, this box is the one
+that was measured most recently.
 
 The immediate work is **executing P4a** — see §7d. Writing it found **four live
 defects in the running platform** before a line of it was executed, every one of them
@@ -614,7 +629,7 @@ coherent. Follow them.
    | Document | What in it goes stale |
    |---|---|
    | `plans/2026-08-29-plan-roadmap.md` | **The ledger — update this first, it outranks the rest.** Spike status, the plan set table, *Order of operations* |
-   | `ORIENTATION.md` | §2 and §7 by design; §4 whenever the machine changes; §8 when something becomes or stops being Rich's call |
+   | `ORIENTATION.md` | §2 and §7 by design — **including §2's numbers box, which is the one place this file states the four gate counts**; §4 whenever the machine changes; §8 when something becomes or stops being Rich's call |
    | `README.md` | The status section, and the *Where to start* table's "current job" row |
    | `CLAUDE.md` | The *State* paragraph |
    | `specs/manifest-schematic.html` | **Shared outside the team.** The `Status` line in the header, the footer, and the "no user interface has been built yet" disclaimers |
@@ -635,7 +650,8 @@ coherent. Follow them.
 
 P1, P2 and P3 are all executed and green; S6 has reported; **P3's six spec actions
 were applied on 2026-09-07**. P4 was then split into **P4a** and **P4b** (Rich's
-call), and **P4a is written and unrun — executing it is the next job.**
+call). **Both are now written and neither has run. Execute P4a; P4b's own Task 1
+reconciles it against a P4a that has already run, so it cannot go first.**
 
 **The measured plan-to-reality gap, in one table.** Every one of these plans was
 self-reviewed before anyone executed it.
@@ -741,6 +757,36 @@ proves the app knows *who*.
 They are in §4 above and are what Tasks 1, 2 and 11 exist to fix. Do not assume the
 platform's identity half works because the gates are green; it does not work at all
 yet.
+
+**Your first ten minutes, in this order.** Establish a baseline before you change
+anything — every session that skipped this spent longer working out whether a red
+result was theirs.
+
+```bash
+./scripts/snapshot-machine.sh > /tmp/before.txt   # read-only, no sudo, no network
+make up                                            # ~1 min; re-adds the loopback alias
+make doctor && make verify                         # expect 16/0 and 34/0
+pnpm test                                          # expect 381 passed, 42 files
+pnpm lint && pnpm --filter @manifest/control-plane typecheck && pnpm format:check
+```
+
+**Then run this one command, because it is the plan's whole premise:**
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:7122/module.php/saml/idp/metadata
+```
+
+**Expect `500`.** The Manifest IdP cannot issue a SAML assertion — it has no hosted
+entity and an empty `cert/` — while `make verify` you just ran said 34 / 0. Seeing
+those two facts together is the fastest way to understand what this project keeps
+learning: **a check that does not complete the operation only proves the operation
+can start.** P4a Task 1 fixes it, and Task 1 Step 2 tells you to watch its new checks
+fail first — including one that will pass for the wrong reason until Step 5.
+
+Do **not** run `pnpm test:docker` yet; it takes ~5 minutes and Task 1 is shell. Run it
+before the first commit that touches `runtime/docker/`, `services/`, `sso/` or
+`secrets/`. And **do not start P4b** — it is written, and its first task reconciles it
+against a P4a that has already run.
 
 **P4b is written too — see §7e.** It was written on 2026-09-07 at Rich's request,
 ahead of P4a's execution, which departs from the roadmap's *Order of operations*
@@ -969,6 +1015,13 @@ maintained copy.
 - **Treat a briefing document as evidence, not fact.** `START-HERE.md` stated that
   `/etc/resolver/test` pointed at a dead nameserver. It did not, and that one wrong
   premise forced the zone change.
+- **A document that restates a number drifts from it.** ORIENTATION §2's *Code* row
+  carried `make doctor` 14, `make verify` 31, `pnpm test` 224 and then 332, and
+  `pnpm test:docker` 48 — **five stale figures at once**, four releases behind, while
+  §3 and §7c of the same file had them right. A new agent's first act is to run the
+  gates and compare, so the cost lands on exactly the person with the least context.
+  Fixed structurally on 2026-09-07 rather than by correcting the numbers: **§2 now has
+  one box, measured and dated, and every other mention points at it.**
 - **Briefings go stale in days.** A handoff was sending its reader to a finished spike
   one day after it was written, and three of twelve "already pulled" images vanished
   between sessions. Anything stating current status needs an owner and a date — which

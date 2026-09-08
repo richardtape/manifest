@@ -174,6 +174,12 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` �
 
 ## C1's acceptance — what was actually run
 
+**These are dated measurements, not current counts.** The check totals below are
+what those commands reported *on 2026-09-05*; P3 has since added checks and the
+current numbers are **`make doctor` 16 / 0 and `make verify` 34 / 0** (re-measured
+2026-09-07). The evidence is left exactly as recorded — a run is a run — and this
+note exists so nobody reads it as today's baseline.
+
 **Offline: PASSED, 2026-09-05.** Wi-Fi disabled on `en0` (the machine's only
 route), then `make down && make up && make doctor && MANIFEST_VERIFY_OFFLINE=1
 make verify` via `scripts/offline-acceptance.sh`:

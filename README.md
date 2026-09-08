@@ -35,10 +35,12 @@ the fake driver in **~300 ms**, and against **real Docker** through `make demo`.
 [*Running the control plane*](#running-the-control-plane) below.
 
 The design is approved and complete.
-Seven throwaway spikes de-risk it; **four are done — S7, S2, S1 and S3 — and all four
-answered yes**, each far inside its timebox, with every spec change they implied
-already applied. The remaining three are scheduled later, against machinery that does
-not exist yet.
+Seven throwaway spikes de-risk it; **five are done — S7, S2, S1, S3 and S6 — and all
+five answered yes**, each far inside its timebox, with every spec change they implied
+already applied. S6 ran as P3's Task 18 on 2026-09-07: every probe denied, every
+denial paired with a positive control. The remaining two — S5 (an agent in a sandbox)
+and S4 (wake-on-request) — are scheduled later, against machinery that does not exist
+yet. **Nothing is waiting on a spike.**
 
 **Three implementation plans are complete and ALL THREE HAVE RUN IN FULL** — P1, the
 local substrate (13 tasks), P2, the control-plane spine (21 tasks), and P3, the
@@ -77,7 +79,7 @@ succeeded** and that D13's npm-mirror control was completely inert. Session 5 fo
 that **no deploy had ever succeeded either** — seven separate defects of a single
 shape, *the test constructs the value correctly and the running system re-derives it
 wrongly* — every one of them green behind a suite of 74 passing Docker tests.
-**Writing P4 is the current work.**
+**Executing P4a is the current work.**
 
 ## Where to start
 
@@ -91,9 +93,9 @@ this machine will do to you, and what to do next. Then:
 | Understanding what the Docker half does | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md`](docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md) — all 19 tasks executed. Read its *What executing this plan found*, Sessions 4 and 5 |
 | Running the control plane | [*Running the control plane*](#running-the-control-plane) below — `make up`, then `pnpm --filter @manifest/control-plane dev` |
 | Executing any plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan — fix it there |
-| **Writing the next plan (P4) — the current job** | ORIENTATION §7d, then [`docs/superpowers/plans/2026-08-29-plan-roadmap.md`](docs/superpowers/plans/2026-08-29-plan-roadmap.md). Nothing blocks it any more |
+| **Executing P4a — the current job** | ORIENTATION §7d, then [`docs/superpowers/plans/2026-09-07-p4a-identity-secrets-injection.md`](docs/superpowers/plans/2026-09-07-p4a-identity-secrets-injection.md), 15 tasks. Read P3's *What executing this plan found* — Sessions 4 and 5 — first anyway. **Do not start P4b**: it is written, and its own first task reconciles it against a P4a that has already run |
 | Seeing the platform actually work | `make demo`, after `make up` and starting the control plane. [`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) has the nine steps it runs and the offline control |
-| Looking for what a spike proved | `docs/superpowers/spikes/S{7,2,1,3}-findings.md` — the answer is the first sentence of each |
+| Looking for what a spike proved | `docs/superpowers/spikes/S{7,2,1,3,6}-findings.md` — the answer is the first sentence of each |
 | Looking for the architecture | [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](docs/superpowers/specs/2026-08-29-manifest-platform-design.md) — authoritative, ~2,340 lines. ORIENTATION §3 tells you which sections you actually need |
 | Explaining this to someone non-technical | [`manifest-schematic.html`](docs/superpowers/specs/manifest-schematic.html) and its companions — the same design in plain language, plus six worked faculty stories |
 | Tracking the UBC reviews | [`docs/external-track.md`](docs/external-track.md) — the items decided by people outside this team, which carry the longest lead times in the project |

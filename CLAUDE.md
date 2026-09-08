@@ -2,7 +2,7 @@
 
 **Read [`docs/superpowers/ORIENTATION.md`](docs/superpowers/ORIENTATION.md) before
 doing anything else.** It is written for zero context and is the single entry point:
-what Manifest is, what four spikes established, what this machine will do to you, the
+what Manifest is, what five spikes established, what this machine will do to you, the
 plan queue, and the conventions below in full. Everything here is the short version.
 
 ## State
@@ -101,7 +101,7 @@ disagrees with it, the ledger wins.
   `sudo: a terminal is required to read the password`. Bundle privileged steps into
   one script and ask Rich to run `! sudo bash <path>` in his terminal.
 - **Leave the machine exactly as you found it.** Snapshot before changing anything.
-  Four spikes have met this bar.
+  Every spike so far has met this bar, and so has every plan-writing session.
 - **Never touch Laravel Valet.** It owns the `.test` TLD, port 53 and ports 80/443 on
   this machine and on other UBC developers' machines. This is why the platform zone
   is `*.manifest.internal` and why the edge binds the `127.0.0.2` loopback alias.

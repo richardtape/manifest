@@ -289,13 +289,16 @@ Each row is one `grep`. Record the actual signature next to the expected one; wh
 | `scripts/demo-identity.sh` and `make demo-identity` | `grep -n 'demo-identity' Makefile` | Task 16 |
 | `POST /auth/dev-login` is **gone** | `grep -rn 'dev-login' packages/control-plane/src` | Task 13's authz entries |
 
-- [ ] **Step 3: Settle the three places P4a is ambiguous**
+- [ ] **Step 3: Verify the three places P4a WAS ambiguous, which were fixed in P4a on 2026-09-07**
 
-Read the code, not the plan, and write the answer into this plan at the task named.
+All three were found while writing this plan and settled in P4a itself rather than
+left for its executor — which is what ORIENTATION means by *"self-contained by
+construction; if it is not, that is a defect in the plan, so fix it there."* **Read
+the code and confirm the executor kept them**, because a task may have moved one:
 
-1. **Does `renderInjection` read `spec.ai` or `resolved.ai`?** P4a's Task 10 test builds a spec (`withModels([…])`) and its Task 11 call site passes `spec: parsedSpec`. **Decision 6 changes this to `resolved.ai`**, and Task 8 carries the change. If P4a's `InjectionContext` has no `spec` field at all, Task 8 gets simpler, not harder — note which.
-2. **Where does `parsedSpec` come from in `deployRelease`?** P4a's Task 11 uses the name without showing the load. If it re-parses the AppSpec, Decision 6 replaces that read; if it does not exist, Task 8 adds `resolved.ai` and nothing else. **Either way, `deployRelease` must not parse a spec at deploy time after Task 8.**
-3. **Is `recordEvent`'s redactor a parameter or a bound dependency?** P4a's signature says parameter; its Task 8 Step 5 call sites pass a bare `redact`. Tasks 10, 12 and 14 add three more call sites, and if every one has to build a redactor first, the redactor is the thing to bind. Record which, then keep it consistent.
+1. **`InjectionContext` is fully typed** in P4a's Task 10 Interfaces, including `spec: ManifestSpec` and `resolved: ResolvedConfig`. **Decision 6 adds `resolved.ai` and moves the AI read to it**, so Task 9 changes which of the two the AI rows come from — and nothing else about the shape.
+2. **`parsedSpec` is the release's own AppSpec row**, loaded in `deployRelease` via `release.appSpecId`, never re-parsed from the repository. P4a's Task 11 Step 3 now shows the load and says why (§13: a Release is immutable). Task 9 depends on that being true.
+3. **`recordEvent`'s redactor is a parameter**, built per call from `makeRedactor(await secretValuesFor(db, { projectId, environmentKind }, keys))`. P4a's Task 8 Step 5 now states it. **Task 15's `publishEvent` keeps it a parameter** — a bound redactor is a `recordEvent` that can write an unredacted row when the binding is wrong.
 
 - [ ] **Step 4: Write down what moved**
 

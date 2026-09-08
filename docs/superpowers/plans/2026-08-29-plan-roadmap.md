@@ -585,8 +585,8 @@ execution layer.** Each is written when its predecessor lands.
    (19 tasks, self-reviewed 2026-09-04).
 5. **Execute P1 → P2 → P3.** ✅ **All three are done.** P1 and P2 executed and green
    on 2026-09-05, P1 green offline too; **P3 finished 2026-09-07, all 19 tasks**. S6
-   ran as its Task 18 and has reported. **P4a is now written and is the one piece of
-   unexecuted written work.**
+   ran as its Task 18 and has reported. **P4a and P4b are both written and neither
+   has run — 31 tasks of unexecuted written work. Execute P4a.**
 6. **Start the external track once the local proof of concept works end to end.**
    **Changed 2026-09-05, Rich's call.** This step previously said *"start now, in
    parallel"*, on the argument that C4 has the longest lead time and no software
@@ -607,10 +607,13 @@ execution layer.** Each is written when its predecessor lands.
    defects reconciling against an imagined P2. That reason has not gone away, so
    the plan answers it rather than ignoring it: **P4b's Task 1 is a reconciliation
    pass** against the executed P4a, with a named checklist of every P4a symbol,
-   file and table it consumes, and three places where P4a's own text is ambiguous
-   are named at the point of use rather than resolved silently. **The unexecuted
-   stack is now 31 tasks** — P4a's 15 and P4b's 16 — which is the cost this
-   decision was made to avoid, and it is recorded here rather than left implicit.
+   file and table it consumes. Writing P4b also found **three ambiguities in P4a**
+   — an untyped `InjectionContext`, a `parsedSpec` with no stated provenance, and a
+   redactor with no stated source — and **those were fixed in P4a itself** rather
+   than worked around in P4b, which is the one unambiguous benefit of having written
+   the second plan early. **The unexecuted stack is now 31 tasks** — P4a's 15 and
+   P4b's 16 — which is the cost this decision was made to avoid, and it is recorded
+   here rather than left implicit.
 
 ### Decided 2026-09-04: execute before writing P4
 

@@ -121,7 +121,7 @@ The mechanism: the OpenAI SDK v4 bundles `node-fetch` and supplies its own `agen
 
 Thirteen questions were open when this plan was written. Each is settled here, because a plan that defers one is a plan that cannot be executed.
 
-**1. P4 is two plans, and only P4a is written.** *Rich's call, 2026-09-07.* P4a is identity, secrets, the §8 contract, the blueprint's auth half and the proof app's login. **P4b** is the LiteLLM client, the classification-gated catalogue, key lifecycle, the blueprint's AI wiring, event streaming, incidents and heuristic redaction. Each produces working, testable software on its own, which is what the writing-plans scope check asks for. **P4b is deliberately not written yet**: banking a second unexecuted plan is what the 2026-09-04 decision forbids, and writing P4b against an imagined P4a is what cost P3 eight defects in reconciliation. Its scope and its seams are recorded in *What this plan does not build*, so nothing is lost. **Cost of changing course:** none — P4b's inputs are all in hand.
+**1. P4 is two plans, and only P4a is written.** *Rich's call, 2026-09-07.* P4a is identity, secrets, the §8 contract, the blueprint's auth half and the proof app's login. **P4b** is the LiteLLM client, the classification-gated catalogue, key lifecycle, the blueprint's AI wiring, event streaming, incidents and heuristic redaction. Each produces working, testable software on its own, which is what the writing-plans scope check asks for. **P4b was subsequently written on 2026-09-07 too, at Rich's request** — [`2026-09-07-p4b-ai-events-streaming-incidents.md`](./2026-09-07-p4b-ai-events-streaming-incidents.md), 16 tasks, also unrun. **That changes nothing about executing P4a, but you should know two things.** First, P4b's Task 1 is a reconciliation pass against *this* plan as you actually execute it — so **when you change a seam here you are not obliged to chase it into P4b**; that pass exists to catch it. Record what you changed in *What executing this plan found*, which is where it looks. Second, three ambiguities in this plan were found while writing P4b and have been **fixed here**: Task 10's `InjectionContext` is now fully typed, Task 11 shows where `parsedSpec` comes from, and Task 8 states where its redactor comes from. Do not be surprised to find those three more specific than their neighbours.
 
 **2. P4a finishes the IdP, and that is infrastructure work.** P1's decision 2 said *"P1 ships the containers; P4 writes the clients"*. That does not survive contact: the container P1 shipped cannot issue an assertion (finding 1). Tasks 1 and 2 are P1-shaped work — Compose, shell, a Caddyfile block — inside a TypeScript plan. The alternative, a P1 amendment, was rejected: P1 is executed and closed, and splitting one deliverable across two plans is how a seam gets forgotten.
 
@@ -137,7 +137,7 @@ Thirteen questions were open when this plan was written. Each is settled here, b
 
 **8. Service credentials migrate from derivation to storage without breaking a running service.** P3's `services/credentials.ts` derives every backing-service password by HMAC from `MANIFEST_MASTER_SECRET`, and `config.ts` already warns at boot that a regenerated secret makes every existing database reject the process — *"the failure reads as a Mongo fault"*. So `ensureService` after P4a does this: **if a stored secret exists, use it; if not, derive the P3 value, store it, and use that.** New services generate a random secret and store it. A developer's existing containers keep working, and the derivation is dead within one deploy. Deleting `deriveCredentials` outright was rejected for exactly the failure `config.ts` describes.
 
-**9. The dev shim's HTTP route dies; the test suite mints sessions directly.** 28 call sites use `POST /auth/dev-login`. The authentication bypass is the *route*, not a test's ability to construct a session — and `issueSession`/`signSession` are already exported from `identity/session.ts` and need no HTTP surface. So `identity/dev-auth.ts`, the route, `MANIFEST_DEV_AUTH` and its two safeguards all go, and `identity/testing.ts` gains `testSessionCookie(user, secret)`. `scripts/demo.sh` moves to the real SAML flow, which is P4a's acceptance anyway.
+**9. The dev shim's HTTP route dies; the test suite mints sessions directly.** **Measured 2026-09-07: 19 references to `POST /auth/dev-login` across 8 files** — `api/auth.test.ts` 6, `api/projects.test.ts` 4, `api/authz-contract.ts` 3, `api/delivery.test.ts` 2, and one each in `lifecycle.test.ts`, `api/server.ts`, `api/routes/auth.ts` and `scripts/demo.sh`. (An earlier draft of this plan said "28"; that was an estimate and this is a count. Re-run the `grep` in Task 14 Step 1 before starting — it is the list you actually work through.) The authentication bypass is the *route*, not a test's ability to construct a session — and `issueSession`/`signSession` are already exported from `identity/session.ts` and need no HTTP surface. So `identity/dev-auth.ts`, the route, `MANIFEST_DEV_AUTH` and its two safeguards all go, and `identity/testing.ts` gains `testSessionCookie(user, secret)`. `scripts/demo.sh` moves to the real SAML flow, which is P4a's acceptance anyway.
 
 **10. Events land in P4a, minimally.** §9 requires *"every registration and change is an append-only audit Event, with alerting specifically on ACS URL changes"*, so P4a cannot ship `sso/` without them. It ships the `events` table, §20's append-only **grant** (not convention), and exactly two call sites. **P4b** ships `WS /projects/:id/events`, incidents, and the faculty-legible message catalogue. This keeps every task's output consumed — an events table with no writer would be the third instance of the defect this project has now hit three times.
 
@@ -2037,7 +2037,15 @@ GRANT SELECT, INSERT ON events TO manifest;
 
 - [ ] **Step 5: Name the callers**
 
-Two, both in `sso/registration.ts`, added here rather than left for later:
+Two, both in `sso/registration.ts`, added here rather than left for later.
+
+**Where `redact` comes from**, stated because three call sites need it and an
+invented answer at each is three answers: `registerServiceProvider` builds one per
+call from the app's own secret set —
+`const redact = makeRedactor(await secretValuesFor(db, { projectId, environmentKind }, keys))`.
+That is what Task 4 means by *"the input to Task 8's redactor"*. It stays a
+**parameter** of `recordEvent` rather than a bound dependency, so `recordEvent` has
+no way to write an unredacted row even by accident.
 
 ```ts
 // §9: "Every registration and change is an append-only audit Event, with
@@ -2170,7 +2178,33 @@ Expected: at least one line in `releases/release.ts` per function. **An empty re
 - Consumes: `ResolvedConfig` from `spec/resolve.ts`; nothing else — it is a pure function, which is what puts it in §16's unit tier.
 - Produces:
   - `INJECTION_CONTRACT_VERSION = 'v1'` — the value `blueprint.yaml`'s `injection.contract` must equal
-  - `interface InjectionContext { spec; resolved; environmentKind; hostname; projectSlug; idp; spEntity?; secrets; services }`
+  - `InjectionContext`, fully typed — **this shape is consumed by Task 11's call site, Task 13's drift test and P4b, so it is written out here rather than left to the implementer:**
+
+    ```ts
+    export interface InjectionContext {
+      /** The parsed manifest. Task 11 loads it from the release's AppSpec row. */
+      spec: ManifestSpec
+      /** That environment's view of it, from `resolveConfig`. */
+      resolved: ResolvedConfig
+      environmentKind: 'sandbox' | 'staging' | 'production'
+      /** The app's own hostname, e.g. `chem-labs.staging.manifest.internal`. */
+      hostname: string
+      projectSlug: string
+      /** From `config.idp` — see the New configuration table above. */
+      idp: { entityId: string; baseUrl: string; spEntityBase: string }
+      /** Absent when `auth.provider` is `none`; Task 7's derivation when it is `cwl`. */
+      spEntity?: SpEntity
+      /** Container-side PATHS and the session secret, never the key material. */
+      secrets: {
+        sessionSecret: string
+        /** Mounted by the driver; absent in sandbox, where the SP key is optional. */
+        spPrivateKeyPath?: string
+        idpCertPath: string
+      }
+      /** What `ensureService` returned, in declaration order. */
+      services: ServiceHandle[]
+    }
+    ```
   - `renderInjection(ctx: InjectionContext): Record<string, string>`
   - `INJECTION_VARIABLES: readonly InjectionVariable[]` — the table as **data**, which is what Task 13's drift test reads
   - `assertNoReservedEnvNames(resolved: ResolvedConfig): void` — throws `SPEC_ENV_NAME_RESERVED`.
@@ -2429,6 +2463,14 @@ Expected: FAIL — `MONGODB_DB_NAME` is `undefined` and the write lands in `app`
 In `deployRelease`, the whole `env: { ...Object.fromEntries(...), PORT, MANIFEST_ENV, ... , ...serviceEnv }` expression becomes one call:
 
 ```ts
+// `parsedSpec` is the release's OWN AppSpec, read here rather than re-parsed
+// from the repository: a Release is Build + AppSpec + resolved config (§13) and
+// is immutable, so a redeploy must inject what the release fixed and not what
+// manifest.yaml says today. `release.appSpecId` is the join.
+const [appSpec] = await db.select().from(appSpecs).where(eq(appSpecs.id, release.appSpecId))
+if (!appSpec) throw new ReleaseError('RELEASE_APPSPEC_MISSING', `release '${release.id}' has no AppSpec`)
+const parsedSpec = appSpec.parsed as ManifestSpec
+
 env: renderInjection({
   spec: parsedSpec,
   resolved,
@@ -2748,9 +2790,9 @@ describe('injection-contract drift (§16)', () => {
 
 **§9's first sentence, and the one that is easy to forget:** *"The first is easy to forget: **Manifest itself is an SP.** Its own users log in with CWL… Locally it uses the Manifest IdP like everything else."* Roadmap gap 3 closes here.
 
-**Decision 9 in practice.** The bypass is the *route*, not a test's ability to construct a session. 28 files call `POST /auth/dev-login`; they move to `testSessionCookie`, which signs a session with the same `issueSession`/`signSession` the real callback uses. `MANIFEST_DEV_AUTH`, its config guard and its test go with the route.
+**Decision 9 in practice.** The bypass is the *route*, not a test's ability to construct a session. **19 references across 8 files** (counted 2026-09-07; see Decision 9 for the per-file breakdown) move to `testSessionCookie`, which signs a session with the same `issueSession`/`signSession` the real callback uses. `MANIFEST_DEV_AUTH`, its config guard and its test go with the route.
 
-**Do this task last but one, and read this before starting:** deleting the shim reddens most of the API suite at once, which is a bad state to debug in. Add `testSessionCookie` and migrate every call site **first**, with the shim still present and the suite green; delete the shim only when `grep -rn 'dev-login' packages/control-plane/src` returns nothing but the route itself.
+**Do this task last but one, and read this before starting:** deleting the shim reddens most of the API suite at once — `authz-contract.ts` alone drives 81 of the 381 tests — which is a bad state to debug in. Add `testSessionCookie` and migrate every call site **first**, with the shim still present and the suite green; delete the shim only when `grep -rn 'dev-login' packages/control-plane/src` returns nothing but the route itself.
 
 - [ ] **Step 1: Add `testSessionCookie` and migrate the call sites, shim still in place**
 
@@ -3017,7 +3059,7 @@ who signed in."
 
 ## What this plan does not build
 
-**P4b — AI, streaming and incidents.** Written after P4a has executed, deliberately: see Decision 1. Its scope, and the seams it inherits, so nothing is re-derived:
+**P4b — AI, streaming and incidents.** ***Now written*** ([`2026-09-07-p4b-ai-events-streaming-incidents.md`](./2026-09-07-p4b-ai-events-streaming-incidents.md), 16 tasks, unrun). The table below was its brief and is kept as written, because it records what P4a deliberately stops short of. **Two rows have since changed on measurement, and P4b says so at length:** the `duration` TTL is Phase 3's, because nothing mints an agent key before sandboxes exist; and `ai.budget.per_user_monthly_usd` **cannot be enforced at LiteLLM 1.98.0 at all.** Its scope, and the seams it inherits:
 
 | | |
 |---|---|
