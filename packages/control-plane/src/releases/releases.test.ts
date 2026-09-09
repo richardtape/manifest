@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { resetDatabase, withRollback } from '../db/testing.js'
 import { appSpecs, builds, users } from '../db/index.js'
@@ -5,10 +6,16 @@ import { createFakeDriver } from '../runtime/index.js'
 import { createProject } from '../projects/index.js'
 import { loadConfig } from '../config.js'
 import type { Driver, InstanceSpec, ServiceBinding } from '../runtime/index.js'
-import { generateMasterKeypair, getSecret } from '../secrets/index.js'
+import { createAppSecrets, generateMasterKeypair, getSecret } from '../secrets/index.js'
 import { createServiceCredentials } from '../services/index.js'
+import { loadBlueprints } from '../blueprints/index.js'
 import { ReleaseError, createRelease, deployRelease, startBuild } from './index.js'
-import type { SpRegistrationInput, SsoRegistrar } from '../sso/index.js'
+import type { DeployDeps } from './index.js'
+import type { SpRegistrationInput } from '../sso/index.js'
+
+/** The repository's own blueprints, resolved from THIS FILE — `pnpm test` and
+ *  `pnpm --filter … test` have different working directories. */
+const BLUEPRINTS_ROOT = fileURLToPath(new URL('../../../../blueprints', import.meta.url))
 
 // Each database file starts from a known slate rather than trusting whatever ran
 // before it to have cleaned up. `withRollback` isolates a test from its OWN writes
@@ -23,13 +30,16 @@ beforeAll(resetDatabase)
  * outlives them, and the one test that cares about the stored value builds its
  * own resolver so it can read the row back.
  */
-let deployDeps: {
-  secrets: ReturnType<typeof createServiceCredentials>
-  sso: SsoRegistrar
-}
+let deployDeps: DeployDeps
 beforeAll(async () => {
+  const keys = await generateMasterKeypair()
   deployDeps = {
-    secrets: createServiceCredentials(await generateMasterKeypair(), config.masterSecret),
+    secrets: createServiceCredentials(keys, config.masterSecret),
+    appSecrets: createAppSecrets(keys),
+    // The real registry, read off the repository's own `blueprints/`, because
+    // `run_as_uid` is a value this task threads into a file mode and a stub
+    // would make the one thing under test a constant.
+    blueprints: await loadBlueprints(BLUEPRINTS_ROOT),
     // The default for every test in this file EXCEPT the Task 9 block, which
     // passes its own recorder. Throwing rather than returning a stub: the fixture
     // declares `auth.provider: none`, so a registration here would mean the
@@ -38,6 +48,9 @@ beforeAll(async () => {
     sso: {
       registerServiceProvider: () => {
         throw new Error('no test in this file should register an SP by default')
+      },
+      idpSigningCertificate: () => {
+        throw new Error('no test in this file should need the IdP certificate')
       },
     },
   }
@@ -71,6 +84,13 @@ const one = (kind: 'sandbox' | 'staging' | 'production') => ({
     callback: '/auth/ubcshib/callback',
     logout: '/auth/logout',
   },
+  // Task 10 put `ai` on ResolvedConfig for the reason Task 9 put `auth` there:
+  // §13 freezes it, so `renderInjection` reads the frozen config and never
+  // `app_specs.parsed`.
+  ai: {
+    models: [] as string[],
+    budget: { project_monthly_usd: 0, per_user_monthly_usd: 0 },
+  },
 })
 
 /** The same, for an app that actually uses CWL. */
@@ -95,9 +115,13 @@ const RESOLVED = {
   production: one('production'),
 }
 
-/** The same, with a declared Mongo — the shape the service wire exists for. */
+/** The same, with a declared Mongo — the shape the service wire exists for.
+ *  Port 8080, deliberately NOT the blueprint's default_port of 3000: a test
+ *  whose expected value equals the default cannot tell an injected value from a
+ *  hardcoded one. */
 const withService = (kind: 'sandbox' | 'staging' | 'production') => ({
   ...one(kind),
+  port: 8080,
   services: [{ type: 'mongo', version: '7', name: 'db' }],
 })
 const RESOLVED_WITH_SERVICE = {
@@ -267,10 +291,109 @@ describe('releases (§13)', () => {
       // A handle reached the instance, not an empty array.
       expect(spec.services).toHaveLength(1)
       expect(spec.services[0]!.name).toBe('chem-labs-staging-db')
-      // And the app can actually find it. The variable name is the catalogue's;
-      // P4's §8 injection contract replaces the naming, not this wire.
+      // And the app can actually find it. The variable name is §8's, rendered by
+      // `spec/injection.ts` — the one producer of every name in `spec.env`.
       expect(spec.env.MONGODB_URI).toBe(spec.services[0]!.endpoint)
       expect(spec.env.MONGODB_URI).toContain('chem-labs-staging-db')
+    })
+  })
+
+  /**
+   * §8's contract, from a DEPLOY (Task 11).
+   *
+   * `deployRelease` injected `SERVICE_CATALOGUE[type].envVar` and nothing else,
+   * so `MONGODB_DB_NAME` had never been injected at all: every deployed app fell
+   * back to a database called `app`, while two Docker tests set the variable
+   * themselves and passed. Measured 2026-09-07. This asserts what the DRIVER was
+   * handed, which is the only question that has ever mattered here.
+   */
+  it('gives the app the database its credentials were derived for', async () => {
+    await withRollback(async (db) => {
+      const { user, project, appSpec, byKind } = await fixture(db)
+      const driver = createFakeDriver()
+      const seen: InstanceSpec[] = []
+      const recording: Driver = {
+        ...driver,
+        ensureInstance: (spec) => {
+          seen.push(spec)
+          return driver.ensureInstance(spec)
+        },
+      }
+      const build = await startBuild(db, recording, {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoPath: '/tmp/chem-labs.git',
+      })
+      const release = await createRelease(db, {
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: RESOLVED_WITH_SERVICE,
+      })
+      await deployRelease(db, recording, config, deployDeps, {
+        releaseId: release.id,
+        environmentId: byKind.staging!.id,
+      })
+
+      const env = seen.at(-1)!.env
+      // The RESOLVED port, not the blueprint's default. P3's ad-hoc block was
+      // the second producer of this value, and a second producer is what Task 11
+      // deleted — so this is the assertion that goes red if one comes back.
+      expect(env.PORT).toBe('8080')
+      expect(env.MONGODB_DB_NAME).toBe('chem_labs')
+      expect(env.MONGODB_URI).toContain('/chem_labs')
+      // The one that is generated rather than derived, and must be STABLE: a
+      // session secret that changed per deploy would log every user out.
+      expect(env.SESSION_SECRET).toMatch(/^[0-9a-f]{64}$/)
+    })
+  })
+
+  it('keeps SESSION_SECRET stable across two deploys of one environment', async () => {
+    await withRollback(async (db) => {
+      const { user, project, appSpec, byKind } = await fixture(db)
+      const driver = createFakeDriver()
+      const seen: InstanceSpec[] = []
+      const recording: Driver = {
+        ...driver,
+        ensureInstance: (spec) => {
+          seen.push(spec)
+          return driver.ensureInstance(spec)
+        },
+      }
+      const build = await startBuild(db, recording, {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoPath: '/tmp/chem-labs.git',
+      })
+      const release = await createRelease(db, {
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: RESOLVED,
+      })
+      const deploy = () =>
+        deployRelease(db, recording, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: byKind.staging!.id,
+        })
+      await deploy()
+      await deploy()
+      expect(seen).toHaveLength(2)
+      expect(seen[0]!.env.SESSION_SECRET).toBe(seen[1]!.env.SESSION_SECRET)
+      // and sandbox is a different app as far as secrets are concerned (§11)
+      await deployRelease(db, recording, config, deployDeps, {
+        releaseId: release.id,
+        environmentId: byKind.sandbox!.id,
+      })
+      expect(seen[2]!.env.SESSION_SECRET).not.toBe(seen[0]!.env.SESSION_SECRET)
     })
   })
 
@@ -706,6 +829,13 @@ describe('deployRelease sets up sign-on before the app starts (§9, Task 9)', ()
         changed: true,
       }
     },
+    // A recognisable PEM rather than an empty string: `deployRelease` places
+    // this in the container at §8's SAML_IDP_CERT_PATH, and a test that let ''
+    // through would prove the file was written and not that anything was in it.
+    idpSigningCertificate: async () => {
+      order.push('idp-cert')
+      return '-----BEGIN CERTIFICATE-----\nRECORDER\n-----END CERTIFICATE-----\n'
+    },
   })
 
   it('registers the SP BEFORE the instance starts', async () => {
@@ -749,7 +879,7 @@ describe('deployRelease sets up sign-on before the app starts (§9, Task 9)', ()
       // Not "both happened" — the ORDER. An app that redirects to the IdP before
       // the row exists gets "Metadata not found" on its first login, which is a
       // race nobody reproduces on demand.
-      expect(order).toEqual(['sp', 'instance'])
+      expect(order).toEqual(['sp', 'idp-cert', 'instance'])
       expect(spy).toHaveBeenCalledOnce()
     })
   })

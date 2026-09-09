@@ -54,6 +54,35 @@ const envSchema = z.object({
    * value with a path or a trailing slash, which is the second read of this rule.
    */
   MANIFEST_SP_ENTITY_BASE: z.string().min(1).default('https://manifest.internal'),
+  /**
+   * The Manifest IdP's entityID, which is CONFIGURATION and is never derived
+   * from the request host (Decision 3). It mirrors UBC's own shape
+   * (`https://authentication.ubc.ca/idp/shibboleth`) so the production cutover
+   * is a value change rather than a code change, and S2 recorded the trap it
+   * avoids: the shipped `saml20-idp-hosted.php` keys on `'host'` and bakes a
+   * PORT into the entityID, so an IdP on 7122 issued assertions from
+   * `http://localhost:6122/...`.
+   */
+  MANIFEST_IDP_ENTITY_ID: z
+    .string()
+    .min(1)
+    .default('https://idp.manifest.internal/idp/shibboleth'),
+  /**
+   * What §8's `SAML_ENTRY_POINT`, `SAML_LOGOUT_URL` and `SAML_IDP_METADATA_URL`
+   * are built from in sandbox and staging. ONE URL that resolves identically
+   * from the host, from a container and from `curl` — SAML is browser-mediated,
+   * so anything else makes the entry point environment-specific in a way
+   * production is not.
+   */
+  MANIFEST_IDP_BASE_URL: z.string().min(1).default('https://idp.manifest.internal'),
+  /**
+   * The IdP's PUBLIC signing certificate, which §8's `SAML_IDP_CERT_PATH` means
+   * by "Manifest mounts it; the blueprint never fetches it at runtime". Minted
+   * by `infra/lib/ensure-idp-keypair.sh` on `make up`, gitignored, and NOT
+   * removed by `make reset` — the same rule as the master key and the Caddy CA.
+   * Repo-relative for the reason `fromRepoRoot` records.
+   */
+  MANIFEST_IDP_SIGNING_CERT: z.string().min(1).default('infra/idp/cert/server.crt'),
   MANIFEST_PORT: z.coerce.number().int().min(1).max(65535).default(7100),
   // 32 chars is the HMAC-SHA256 block floor we are willing to accept for a
   // session secret; shorter is a configuration mistake, not a preference.
@@ -129,8 +158,18 @@ export interface Config {
   databaseUrl: string
   /** The IdP's metadata database (Decision 13). Never derived from the above. */
   idpDatabaseUrl: string
-  /** §9's `{platform-domain}`, the origin every SP entityID is built from. */
-  spEntityBase: string
+  /**
+   * Everything §8's SAML rows are built from, in one place, so the injection
+   * contract takes one field rather than four loose strings. `spEntityBase` is
+   * §9's `{platform-domain}` — the origin every SP entityID is built from.
+   */
+  idp: {
+    entityId: string
+    baseUrl: string
+    spEntityBase: string
+    /** Absolute. Placed in every CWL app's container at SAML_IDP_CERT_PATH. */
+    signingCertPath: string
+  }
   port: number
   sessionSecret: string
   devAuth: boolean
@@ -233,7 +272,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     env: raw.MANIFEST_ENV,
     databaseUrl: raw.MANIFEST_DATABASE_URL,
     idpDatabaseUrl: raw.MANIFEST_IDP_DATABASE_URL,
-    spEntityBase: raw.MANIFEST_SP_ENTITY_BASE,
+    idp: {
+      entityId: raw.MANIFEST_IDP_ENTITY_ID,
+      baseUrl: raw.MANIFEST_IDP_BASE_URL,
+      spEntityBase: raw.MANIFEST_SP_ENTITY_BASE,
+      signingCertPath: fromRepoRoot(raw.MANIFEST_IDP_SIGNING_CERT),
+    },
     port: raw.MANIFEST_PORT,
     sessionSecret: raw.MANIFEST_SESSION_SECRET,
     devAuth,

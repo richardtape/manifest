@@ -6,7 +6,7 @@ import { db } from './db/index.js'
 import { createCaddyClient } from './routing/index.js'
 import { createDockerDriver, createEngineClient } from './runtime/index.js'
 import { createLocalSourceDriver } from './source/index.js'
-import { loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
+import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
 import { createServiceCredentials } from './services/index.js'
 import { createIdpPool, createSsoRegistrar } from './sso/index.js'
 
@@ -100,6 +100,7 @@ const driver = await createDockerDriver({
 // other.
 const masterKeypair = await loadMasterKeypair(config.secretsMasterKeyPath)
 const secrets = createServiceCredentials(masterKeypair, config.masterSecret)
+const appSecrets = createAppSecrets(masterKeypair)
 
 // §9's SP registrar. The IdP metadata database is a SECOND connection to a
 // DIFFERENT database, constructed ONCE here — `sso/` writes SimpleSAMLphp's own
@@ -113,7 +114,10 @@ const secrets = createServiceCredentials(masterKeypair, config.masterSecret)
 const sso = createSsoRegistrar(
   createIdpPool(config.idpDatabaseUrl),
   masterKeypair,
-  config.spEntityBase,
+  config.idp.spEntityBase,
+  // Read per deploy, not here: `make up` mints it, so a re-minted IdP keypair is
+  // picked up without restarting the control plane.
+  config.idp.signingCertPath,
 )
 
 const app = await buildServer({
@@ -123,6 +127,7 @@ const app = await buildServer({
   source: createLocalSourceDriver(config.reposRoot),
   blueprints,
   secrets,
+  appSecrets,
   sso,
 })
 

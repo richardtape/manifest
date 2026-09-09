@@ -5,6 +5,7 @@ import type { Driver, ImageRef, ServiceHandle } from '../driver.js'
 import { instanceName, serviceName } from '../driver.js'
 import { appContainer, serviceContainer } from './names.js'
 import { describeDocker } from './docker-tier.js'
+import { renderInjection } from '../../spec/index.js'
 import { CA_CERT, dockerDriverForTests, fixtureBareRepo } from './testing.js'
 
 const run = promisify(execFile)
@@ -95,18 +96,50 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
     environmentKind: KIND,
     releaseId: RELEASE,
     image,
-    env: {
-      MANIFEST_ENV: KIND,
-      MANIFEST_PROJECT_SLUG: SLUG,
-      MANIFEST_APP_URL: `https://${HOST}`,
-      // Deliberately NOT the blueprint's default_port of 3000. If PORT were not
-      // really injected the app would listen on 3000 while the health check and
-      // the Caddy upstream both point at 8080, and this deploy would fail rather
-      // than pass by coincidence.
-      PORT: '8080',
-      MONGODB_URI: service.endpoint,
-      MONGODB_DB_NAME: 'app',
-    },
+    /**
+     * §8's variables through the PLATFORM's renderer, not a block written here.
+     *
+     * This test used to set `MONGODB_DB_NAME: 'app'` itself, and that is exactly
+     * why nobody could see that `deployRelease` never injected it: the app read
+     * the value the test supplied, while every real deploy fell back to a
+     * database called `app` whose credentials had been minted for another one.
+     * Removing the hand-built block is the point of Task 11 — the name now comes
+     * out of the endpoint, so this asserts the contract instead of restating it.
+     *
+     * `port: 8080` is deliberately NOT the blueprint's default_port of 3000. If
+     * PORT were not really injected the app would listen on 3000 while the health
+     * check and the Caddy upstream both point at 8080, and this deploy would fail
+     * rather than pass by coincidence.
+     */
+    env: renderInjection({
+      resolved: {
+        environmentKind: KIND,
+        port: 8080,
+        health: '/healthz',
+        resources: { cpu: 0.5, memory: '256Mi', pids: 128, disk: '1Gi' },
+        env: [],
+        services: [{ type: 'mongo', version: '7', name: 'db' }],
+        egressAllow: [],
+        classification: 'internal',
+        auth: {
+          provider: 'none',
+          attributes: [],
+          callback: '/auth/ubcshib/callback',
+          logout: '/auth/logout',
+        },
+        ai: { models: [], budget: { project_monthly_usd: 0, per_user_monthly_usd: 0 } },
+      },
+      environmentKind: KIND,
+      hostname: HOST,
+      projectSlug: SLUG,
+      idp: {
+        entityId: 'https://idp.manifest.internal/idp/shibboleth',
+        baseUrl: 'https://idp.manifest.internal',
+        spEntityBase: 'https://manifest.internal',
+      },
+      secrets: { sessionSecret: 'roundtrip-session-secret' },
+      services: [{ type: 'mongo', endpoint: service.endpoint }],
+    }),
     port: 8080,
     healthPath: '/healthz',
     resources: { cpu: 0.5, memoryMi: 256, pids: 128, diskMi: 1024 },

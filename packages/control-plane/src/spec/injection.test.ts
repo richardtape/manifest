@@ -57,7 +57,6 @@ function ctx(
   const hostname = hostnameFor(kind)
   const resolved = over.resolved ?? resolveConfig(spec, kind, DEFAULTS)
   return {
-    spec,
     resolved,
     environmentKind: kind,
     hostname,

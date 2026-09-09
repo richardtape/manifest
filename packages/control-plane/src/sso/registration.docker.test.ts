@@ -9,7 +9,7 @@ import { withSecretScope } from '../secrets/testing.js'
 import { createIdpPool, deleteSpRow, readSpRow } from './metadata-store.js'
 import { createSsoRegistrar, registerServiceProvider } from './registration.js'
 import { SpEntityError } from './entity.js'
-import { idpDatabaseUrl } from './testing.js'
+import { idpDatabaseUrl, idpSigningCertPath } from './testing.js'
 
 /**
  * `registerServiceProvider`, against the real metadata database.
@@ -254,7 +254,12 @@ describeDocker('registerServiceProvider (§9)', () => {
     await withSecretScope(async (db, { projectId, keys }) => {
       const entityId = 'https://manifest.internal/sp/reg-bound/staging'
       entityIds.push(entityId)
-      const registrar = createSsoRegistrar(pool, keys, 'https://manifest.internal')
+      const registrar = createSsoRegistrar(
+        pool,
+        keys,
+        'https://manifest.internal',
+        idpSigningCertPath(),
+      )
       const { entityBase: _bound, ...unbound } = input('reg-bound')
 
       const result = await registrar.registerServiceProvider(db, {

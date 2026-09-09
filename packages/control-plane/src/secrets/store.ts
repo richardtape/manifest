@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { and, eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
@@ -128,6 +129,53 @@ export async function secretValuesFor(
   return new Map(
     rows.map((row) => [row.name, openSecret(row.ciphertext as SecretEnvelope, keys)]),
   )
+}
+
+/** §8's `SESSION_SECRET`, under one name so nothing has to agree about it. */
+const SESSION_SECRET_NAME = 'app:sessionSecret'
+
+/**
+ * §8: `SESSION_SECRET` — "generated per app+environment".
+ *
+ * Get-or-create, because the value must be STABLE: a secret regenerated on each
+ * deploy invalidates every signed cookie the app issued, so every user of a
+ * redeployed app is silently logged out. That is the same failure mode
+ * `config.ts` describes for a regenerated `MANIFEST_MASTER_SECRET`, and the same
+ * reason `ensureServiceCredentials` adopts rather than replaces.
+ *
+ * 32 bytes of `randomBytes`, hex — not derived from anything. There is no
+ * existing value to stay compatible with (nothing injected this before), so the
+ * migration `services/credentials.ts` needs does not apply here.
+ */
+export async function ensureSessionSecret(
+  db: Db,
+  scope: { projectId: string; environmentKind: EnvironmentKind },
+  keys: MasterKeypair,
+): Promise<string> {
+  const name = SESSION_SECRET_NAME
+  const existing = await getSecret(db, { ...scope, name }, keys)
+  if (existing !== undefined) return existing
+  const value = randomBytes(32).toString('hex')
+  await putSecret(db, { ...scope, name, value }, keys)
+  return value
+}
+
+/**
+ * `ensureSessionSecret` with the master keypair already bound.
+ *
+ * `releases/` holds a resolver rather than key material, exactly as it does for
+ * service credentials and for the SP registrar — three bound objects, none of
+ * which lets the module that deploys read the secret store directly.
+ */
+export interface AppSecretResolver {
+  sessionSecret(
+    db: Db,
+    scope: { projectId: string; environmentKind: EnvironmentKind },
+  ): Promise<string>
+}
+
+export function createAppSecrets(keys: MasterKeypair): AppSecretResolver {
+  return { sessionSecret: (db, scope) => ensureSessionSecret(db, scope, keys) }
 }
 
 interface MasterKeyFile {

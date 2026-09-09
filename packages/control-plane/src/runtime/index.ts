@@ -3,6 +3,7 @@ export type {
   DriverCapabilities,
   ImageRef,
   InstanceHandle,
+  InstanceFile,
   InstanceSpec,
   InstanceState,
   InstanceStatus,

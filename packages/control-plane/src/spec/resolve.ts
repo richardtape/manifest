@@ -37,6 +37,21 @@ export interface ResolvedConfig {
    * session. Task 10's injection contract is the second reader.
    */
   auth: ManifestSpec['auth']
+  /**
+   * §7's `ai:` block, carried through unchanged — §7 permits no override of it
+   * either, so every environment sees the same one.
+   *
+   * Added by P4a Task 10 for the same reason Task 9 added `auth`, and rejecting
+   * the same alternative: `renderInjection` needs to know whether an app
+   * declares models, and reading that back out of `app_specs.parsed` would put a
+   * second source of truth beside the config §13 FROZE at release time. It also
+   * removes the last reason for the injection contract to hold a `ManifestSpec`
+   * at all — the frozen config is now the whole of its input.
+   *
+   * P4b reads `budget` from here for the same reason: a budget is part of what
+   * an approver approved, not part of what `manifest.yaml` says today.
+   */
+  ai: ManifestSpec['ai']
 }
 
 /** Blueprint-supplied resource floor. §7: "defaults inherited from blueprint". */
@@ -97,5 +112,6 @@ export function resolveConfig(
     egressAllow: [...spec.egress.allow],
     classification: spec.data.classification,
     auth: { ...spec.auth, attributes: [...spec.auth.attributes] },
+    ai: { models: [...spec.ai.models], budget: { ...spec.ai.budget } },
   }
 }

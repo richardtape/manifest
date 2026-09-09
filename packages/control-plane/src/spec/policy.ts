@@ -1,5 +1,6 @@
 import type { ManifestError } from '../errors/index.js'
 import { CLASSIFICATION_RANK, type Classification, type ManifestSpec } from './schema.js'
+import { RESERVED_ENV_NAMES } from './injection.js'
 
 export interface ValidationContext {
   projectSlug: string
@@ -17,6 +18,7 @@ export interface ValidationContext {
 }
 
 export const POLICY_CODES = {
+  ENV_NAME_RESERVED: 'SPEC_ENV_NAME_RESERVED',
   NAME_SLUG_MISMATCH: 'SPEC_NAME_SLUG_MISMATCH',
   SERVICE_TYPE_UNKNOWN: 'SPEC_SERVICE_TYPE_UNKNOWN',
   ATTRIBUTE_NOT_WHITELISTED: 'SPEC_ATTRIBUTE_NOT_WHITELISTED',
@@ -44,6 +46,42 @@ export function checkPolicy(spec: ManifestSpec, ctx: ValidationContext): Manifes
       message: `name "${spec.name}" does not match the project slug "${ctx.projectSlug}"`,
       hint: 'The name in manifest.yaml must equal the project slug. Rename the project, or correct the file.',
     })
+  }
+
+  /**
+   * §8's names are the PLATFORM's, and an app that sets one has written a
+   * variable that does nothing.
+   *
+   * `renderInjection` applies the platform's bindings after the app's own and
+   * therefore wins, which is the right SECURITY answer — §12 makes application
+   * code untrusted input, so a declared `MONGODB_URI` must not be able to point
+   * an app at a database of its choosing. It is the wrong answer for the faculty
+   * member, who set `PORT` and cannot work out why their app still listens on
+   * 3000. This is the read that tells them, at validation, long before a build.
+   *
+   * Two independent reads of one list, which is the shape the roadmap's lesson
+   * asks for — and both read `INJECTION_VARIABLES`, so neither can drift.
+   */
+  const reserved = (entries: ManifestSpec['env'], path: string) => {
+    entries.forEach((entry, i) => {
+      if (!RESERVED_ENV_NAMES.has(entry.name)) return
+      errors.push({
+        code: POLICY_CODES.ENV_NAME_RESERVED,
+        path: `${path}.${i}.name`,
+        message: `${entry.name} is set by the platform and cannot be declared here`,
+        hint:
+          `Manifest injects ${entry.name} itself (§8's environment injection contract), ` +
+          'and the platform value wins — so this line has no effect. Remove it, or ' +
+          'choose another name. The full list is in the blueprint knowledge pack.',
+      })
+    })
+  }
+  reserved(spec.env, 'env')
+  // The overrides too: §7 lets staging and production add variables, and a
+  // reserved name introduced there would be just as inert and just as silent.
+  for (const kind of ['staging', 'production'] as const) {
+    const override = spec.environments[kind]?.env
+    if (override) reserved(override, `environments.${kind}.env`)
   }
 
   spec.services.forEach((service, i) => {

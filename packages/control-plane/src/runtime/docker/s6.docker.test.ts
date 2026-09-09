@@ -144,7 +144,7 @@ describeDocker(
         environmentKind: KIND,
         releaseId: RELEASE,
         image,
-        env: { PORT: '8080', MONGODB_URI: service.endpoint, MONGODB_DB_NAME: 'app' },
+        env: { PORT: '8080', MONGODB_URI: service.endpoint },
         port: 8080,
         healthPath: '/healthz',
         resources: { cpu: 0.5, memoryMi: 256, pids: 64, diskMi: 1024 },

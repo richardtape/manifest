@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import pg from 'pg'
 import type { Driver, ImageRef } from '../runtime/index.js'
+import { INJECTED_FILE_PATHS, renderInjection } from '../spec/index.js'
 import type { SpKeypair } from './keypair.js'
 import {
   createIdpPool,
@@ -48,6 +49,17 @@ export function idpDatabaseUrl(): string {
     )
   }
   return url
+}
+
+/**
+ * The IdP's signing certificate, where `make up` mints it.
+ *
+ * Resolved from THIS FILE rather than from the working directory: `pnpm test`
+ * and `pnpm --filter … test` have different ones, and that difference has been a
+ * defect three times in this repository.
+ */
+export function idpSigningCertPath(): string {
+  return join(REPO_ROOT, 'infra/idp/cert/server.crt')
 }
 
 /** The `entity_data` document S2 recorded. Task 7 derives this from an AppSpec;
@@ -153,12 +165,74 @@ export interface SamlSpHandle {
 }
 
 const IDP_BASE_URL = 'https://idp.manifest.internal'
-/** Measured off the running container's own routes.yml, not inferred from 1.x
- *  documentation — passport-ubcshib hardcodes SimpleSAMLphp 1.x's paths, which
- *  404 against 2.x, and that is exactly why §8 makes SAML_ENTRY_POINT mandatory. */
-const IDP_SSO = `${IDP_BASE_URL}/module.php/saml/idp/singleSignOnService`
-const IDP_SLO = `${IDP_BASE_URL}/module.php/saml/idp/singleLogout`
-const IDP_METADATA = `${IDP_BASE_URL}/module.php/saml/idp/metadata`
+
+/**
+ * §8's variables for the fixture SP, through the PLATFORM's renderer.
+ *
+ * The endpoint paths are no longer restated here: `spec/injection.ts` builds
+ * them from the IdP base URL, off the running container's own `routes.yml`
+ * (passport-ubcshib hardcodes SimpleSAMLphp 1.x's paths, which 404 against 2.x —
+ * exactly why §8 makes SAML_ENTRY_POINT mandatory). A copy here is a copy that
+ * can be right while the platform is wrong.
+ */
+function samlSpEnv(input: {
+  slug: string
+  kind: 'sandbox' | 'staging' | 'production'
+  hostname: string
+  row: SpRow
+  signing: boolean
+}): Record<string, string> {
+  const auth = {
+    provider: 'cwl' as const,
+    attributes: [...input.row.attributes],
+    callback: '/auth/ubcshib/callback',
+    logout: '/auth/logout',
+  }
+  const env = renderInjection({
+    resolved: {
+      environmentKind: input.kind,
+      // 8080, deliberately not the blueprint's default_port of 3000: if PORT
+      // were not really injected the app would listen on 3000 and this fixture
+      // would fail rather than pass by coincidence.
+      port: 8080,
+      health: '/healthz',
+      resources: { cpu: 0.5, memory: '256Mi', pids: 128, disk: '1Gi' },
+      env: [],
+      services: [],
+      egressAllow: [],
+      classification: 'internal',
+      auth,
+      ai: { models: [], budget: { project_monthly_usd: 0, per_user_monthly_usd: 0 } },
+    },
+    environmentKind: input.kind,
+    hostname: input.hostname,
+    projectSlug: input.slug,
+    idp: {
+      entityId: `${IDP_BASE_URL}/idp/shibboleth`,
+      baseUrl: IDP_BASE_URL,
+      spEntityBase: 'https://manifest.internal',
+    },
+    spEntity: {
+      entityId: input.row.entityId,
+      acsUrl: input.row.acsUrl,
+      sloUrl: `https://${input.hostname}${auth.logout}`,
+      attributes: [...input.row.attributes],
+    },
+    secrets: { sessionSecret: 'saml-fixture-session-secret' },
+    services: [],
+  })
+  /**
+   * The ONE deliberate subtraction, and it is a negative control rather than a
+   * convenience: an SP that does not sign its AuthnRequest is the only thing
+   * that can show `validate.authnrequest` doing anything (SimpleSAMLphp
+   * validates any signature that is PRESENT, whatever the row says). The
+   * platform never deploys a staging app this way — `renderInjection` always
+   * renders the path outside sandbox — so the fixture removes it explicitly
+   * instead of the platform having a mode that produces it.
+   */
+  if (!input.signing) delete env.SAML_PRIVATE_KEY_PATH
+  return env
+}
 
 /**
  * Builds and deploys `fixtures/saml-sp` through the REAL driver, and returns the
@@ -221,23 +295,19 @@ export async function startSamlSp(input: {
     environmentKind: kind,
     releaseId: 'r1',
     image,
-    env: {
-      MANIFEST_ENV: kind,
-      MANIFEST_PROJECT_SLUG: slug,
-      MANIFEST_APP_URL: appUrl,
-      PORT: '8080',
-      SESSION_SECRET: 'saml-fixture-session-secret',
-      // LOCAL, and never left unset: the library defaults to 'STAGING' at both
-      // read sites, which points a deployed app at real UBC infrastructure (§8).
-      SAML_ENVIRONMENT: 'LOCAL',
-      SAML_ISSUER: row.entityId,
-      SAML_CALLBACK_URL: row.acsUrl,
-      SAML_ENTRY_POINT: IDP_SSO,
-      SAML_LOGOUT_URL: IDP_SLO,
-      SAML_IDP_METADATA_URL: IDP_METADATA,
-      SAML_IDP_CERT_PATH: '/manifest/idp-signing.crt',
-      ...(input.signing ? { SAML_PRIVATE_KEY_PATH: '/manifest/sp-private-key.pem' } : {}),
-    },
+    /**
+     * THE PLATFORM'S OWN RENDERER, not a hand-built block (Task 11).
+     *
+     * This fixture used to construct §8's variables itself, which made §16's
+     * identity-path regression tier prove that a login works against an
+     * environment the platform does not produce — so `renderInjection` could
+     * have had any SAML row wrong and this suite would still have passed. It is
+     * the second producer Task 11's grep exists to find.
+     *
+     * The one deliberate subtraction is below: this fixture also models an SP
+     * that does NOT sign, which the platform never deploys in staging.
+     */
+    env: samlSpEnv({ slug, kind, hostname, row, signing: input.signing !== undefined }),
     port: 8080,
     healthPath: '/healthz',
     resources: { cpu: 0.5, memoryMi: 256, pids: 128, diskMi: 1024 },
@@ -245,11 +315,11 @@ export async function startSamlSp(input: {
     egressAllow: [],
     // §8: "Manifest mounts it; the blueprint never fetches it at runtime."
     files: [
-      { path: '/manifest/idp-signing.crt', contents: idpCert },
+      { path: INJECTED_FILE_PATHS.idpCertificate, contents: idpCert },
       ...(input.signing
         ? [
             {
-              path: '/manifest/sp-private-key.pem',
+              path: INJECTED_FILE_PATHS.spPrivateKey,
               contents: input.signing.privateKeyPem,
               mode: 0o440,
               // The blueprint's run_as_uid group. fixture-node@1 creates both at

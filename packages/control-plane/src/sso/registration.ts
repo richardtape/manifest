@@ -1,6 +1,8 @@
+import { readFile } from 'node:fs/promises'
 import type pg from 'pg'
 import type { Db } from '../db/index.js'
 import { makeRedactor, recordEvent } from '../observability/index.js'
+import { SsoError } from './errors.js'
 import { secretValuesFor } from '../secrets/index.js'
 import type { EnvironmentKind, MasterKeypair } from '../secrets/index.js'
 import { deriveSpEntity, type SpEntity, type SpEntityInput } from './entity.js'
@@ -153,16 +155,54 @@ export interface SsoRegistrar {
     db: Db,
     input: Omit<SpRegistrationInput, 'entityBase'>,
   ): Promise<SpRegistration>
+  /**
+   * The IdP's PUBLIC signing certificate, as PEM — what §8's
+   * `SAML_IDP_CERT_PATH` points at, and what the strategy throws at
+   * construction without (`cert` is an IIFE, so `_fetchCertificate()` is
+   * unreachable).
+   *
+   * On the registrar because everything a CWL deploy needs from the IdP arrives
+   * through one dependency, and read PER DEPLOY rather than once at boot: the
+   * keypair is minted by `make up` into a gitignored directory, so a re-minted
+   * one is picked up without restarting the control plane. A deploy is not a
+   * hot path.
+   */
+  idpSigningCertificate(): Promise<string>
 }
 
 export function createSsoRegistrar(
   pool: pg.Pool,
   keys: MasterKeypair,
   entityBase: string,
+  idpSigningCertPath: string,
 ): SsoRegistrar {
   return {
     registerServiceProvider: (db, input) =>
       registerServiceProvider(db, pool, keys, { ...input, entityBase }),
+    idpSigningCertificate: async () => {
+      let pem: string
+      try {
+        pem = await readFile(idpSigningCertPath, 'utf8')
+      } catch {
+        throw new SsoError(
+          'SSO_IDP_CERT_UNREADABLE',
+          `cannot read the IdP signing certificate at '${idpSigningCertPath}'. Run ` +
+            '`make up`, which calls infra/lib/ensure-idp-keypair.sh. Without it an app ' +
+            'that declares CWL cannot be given SAML_IDP_CERT_PATH, and passport-ubcshib ' +
+            'throws at construction rather than starting.',
+        )
+      }
+      // The shape, not that a read returned. An empty or truncated file is what
+      // an interrupted mint leaves, and it fails inside the SP's XML parser with
+      // a message about the assertion rather than about the certificate.
+      if (!pem.includes('BEGIN CERTIFICATE')) {
+        throw new SsoError(
+          'SSO_IDP_CERT_INVALID',
+          `the file at '${idpSigningCertPath}' is not a PEM certificate`,
+        )
+      }
+      return pem
+    },
   }
 }
 

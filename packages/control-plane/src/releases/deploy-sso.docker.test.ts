@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import type pg from 'pg'
 import { asc, eq } from 'drizzle-orm'
@@ -5,9 +6,11 @@ import { appSpecs, events, users } from '../db/index.js'
 import { withRollback } from '../db/testing.js'
 import { loadConfig } from '../config.js'
 import { createProject } from '../projects/index.js'
+import { loadBlueprints } from '../blueprints/index.js'
 import { createFakeDriver } from '../runtime/index.js'
+import type { Driver, InstanceSpec } from '../runtime/index.js'
 import { describeDocker } from '../runtime/testing.js'
-import { generateMasterKeypair } from '../secrets/index.js'
+import { createAppSecrets, generateMasterKeypair } from '../secrets/index.js'
 import { createServiceCredentials } from '../services/index.js'
 import {
   createIdpPool,
@@ -33,6 +36,8 @@ import { createRelease, deployRelease, startBuild } from './index.js'
  * system re-derived it wrongly. Docker tier because the metadata table is the IdP
  * container's artefact.
  */
+const BLUEPRINTS_ROOT = fileURLToPath(new URL('../../../../blueprints', import.meta.url))
+
 describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
   let pool: pg.Pool
   const entityIds: string[] = []
@@ -55,6 +60,10 @@ describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
     services: [],
     egressAllow: [],
     classification: 'internal' as const,
+    ai: {
+      models: [] as string[],
+      budget: { project_monthly_usd: 0, per_user_monthly_usd: 0 },
+    },
     auth: {
       provider: 'cwl' as const,
       attributes: ['ubcEduCwlPuid', 'mail'],
@@ -129,14 +138,31 @@ describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
       })
 
       const keys = await generateMasterKeypair()
+      const seen: InstanceSpec[] = []
+      const recording: Driver = {
+        ...driver,
+        ensureInstance: (spec) => {
+          seen.push(spec)
+          return driver.ensureInstance(spec)
+        },
+      }
       const instance = await deployRelease(
         db,
-        driver,
+        recording,
         config,
         {
           secrets: createServiceCredentials(keys, config.masterSecret),
-          // The real one, bound exactly as `src/index.ts` binds it at boot.
-          sso: createSsoRegistrar(pool, keys, 'https://manifest.internal'),
+          appSecrets: createAppSecrets(keys),
+          blueprints: await loadBlueprints(BLUEPRINTS_ROOT),
+          // The real one, bound exactly as `src/index.ts` binds it at boot —
+          // including the IdP signing certificate `make up` mints, which
+          // `deployRelease` now places in the container at SAML_IDP_CERT_PATH.
+          sso: createSsoRegistrar(
+            pool,
+            keys,
+            'https://manifest.internal',
+            config.idp.signingCertPath,
+          ),
         },
         { releaseId: release.id, environmentId: staging.id },
       )
@@ -164,6 +190,50 @@ describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
       expect(rows.map((r) => r.type)).toEqual(['sso.registered'])
       expect(rows[0]!.subject).toBe(`sp:${slug}:staging`)
       expect(rows[0]!.machineDetail).toMatchObject({ entityId })
+
+      /**
+       * TASK 11: what the app is actually told, from the REAL registration.
+       *
+       * §8's SAML rows are only correct if they agree with the row the IdP will
+       * read — and the value that has to agree byte for byte is the ACS URL,
+       * because an assertion is POSTed to whatever the row says. Asserting it
+       * against `row!.AssertionConsumerService[0]` rather than against a string
+       * built here is the whole point: a test that rebuilds the value cannot see
+       * the two producers disagree, which is how this repository lost a day in
+       * P3's Session 5.
+       */
+      const spec = seen.at(-1)!
+      expect(spec.env.SAML_ISSUER).toBe(entityId)
+      expect(spec.env.SAML_CALLBACK_URL).toBe(row!.AssertionConsumerService[0]?.Location)
+      expect(spec.env.SAML_ENVIRONMENT).toBe('LOCAL')
+      expect(spec.env.SAML_ENTRY_POINT).toBe(
+        'https://idp.manifest.internal/module.php/saml/idp/singleSignOnService',
+      )
+      expect(spec.env.SESSION_SECRET).toMatch(/^[0-9a-f]{64}$/)
+
+      /**
+       * §8's two files, placed by the platform — the rows that named paths
+       * nothing created until `InstanceSpec.files` existed.
+       *
+       * The certificate is the REAL one `make up` minted, read through the
+       * registrar, so this fails if the file is missing or empty rather than
+       * asserting that a write happened. The key is root-owned and 0440 with the
+       * blueprint's gid: §12's `CapDrop: ALL` removes CAP_DAC_OVERRIDE, so
+       * ownership is the only thing that can grant the app a read, and
+       * root-owned means it cannot rewrite its own key.
+       */
+      const files = spec.files ?? []
+      const cert = files.find((f) => f.path === spec.env.SAML_IDP_CERT_PATH)
+      expect(cert, 'no file at the path SAML_IDP_CERT_PATH names').toBeDefined()
+      expect(cert!.contents).toContain('BEGIN CERTIFICATE')
+      const key = files.find((f) => f.path === spec.env.SAML_PRIVATE_KEY_PATH)
+      expect(key, 'no file at the path SAML_PRIVATE_KEY_PATH names').toBeDefined()
+      expect(key!.contents).toContain('BEGIN PRIVATE KEY')
+      expect(key!.mode).toBe(0o440)
+      expect(key!.uid).toBe(0)
+      // fixture-node@1's run_as_uid, read from the descriptor rather than typed
+      // here — the group is created with the same number by its Dockerfile.
+      expect(key!.gid).toBe(10001)
     })
 
     // The control-plane rows rolled back; the IdP row did not, because it went

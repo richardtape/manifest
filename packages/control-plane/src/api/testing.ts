@@ -5,7 +5,7 @@ import { createFakeDriver } from '../runtime/index.js'
 import { createLocalSourceDriver } from '../source/index.js'
 import { loadBlueprints } from '../blueprints/index.js'
 import { createServiceCredentials } from '../services/index.js'
-import { generateMasterKeypair } from '../secrets/index.js'
+import { createAppSecrets, generateMasterKeypair } from '../secrets/index.js'
 import { mkdir, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -55,6 +55,7 @@ export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> 
     MANIFEST_REGISTRY_TOKEN_CERT: issuer.certPath,
     MANIFEST_BUILD_CREDENTIAL_SECRET: 'c'.repeat(32),
   })
+  const masterKeypair = await generateMasterKeypair()
   return {
     db,
     config,
@@ -64,7 +65,8 @@ export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> 
     // A keypair per call, not a shared one: two tests sharing a master key can
     // read each other's secrets, and that is the test-isolation shape that made
     // P2's suite depend on the order Vitest happened to pick.
-    secrets: createServiceCredentials(await generateMasterKeypair(), config.masterSecret),
+    secrets: createServiceCredentials(masterKeypair, config.masterSecret),
+    appSecrets: createAppSecrets(masterKeypair),
     // THROWS RATHER THAN RETURNING A STUB. Every app the API suite deploys is
     // `fixture-node`, which declares `auth.provider: none`, so nothing here should
     // ever register an SP — and if that changes, this says so loudly instead of
@@ -78,6 +80,11 @@ export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> 
             'Provider, which means its spec declares auth.provider: cwl. Move that ' +
             'test to the Docker tier, or use a fixture with no sign-on.',
         )
+      },
+      // Same reason. A harness that quietly returns a certificate would let a
+      // CWL deploy get all the way to `ensureInstance` with no IdP behind it.
+      idpSigningCertificate: () => {
+        throw new Error('the API test harness has no IdP signing certificate')
       },
     },
   }

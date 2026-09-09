@@ -137,6 +137,37 @@ describe('policy validation (§7)', () => {
     expect(codes).toContain('SPEC_ATTRIBUTE_NOT_REGISTERED')
   })
 
+  /**
+   * §8's names are the platform's. `renderInjection` applies them AFTER the
+   * app's own, so a declared one is silently inert — right for security (§12
+   * makes application code untrusted input) and wrong for the person who wrote
+   * it. This is where they are told.
+   */
+  it('rejects an env variable whose name collides with a platform one', () => {
+    const text = yaml(`env:\n  - { name: PORT, value: '9000' }`)
+    expect(errorCodes(text)).toContain('SPEC_ENV_NAME_RESERVED')
+    expect(errorPaths(text)).toContain('env.0.name')
+    const r = validateSpec(text, ctx)
+    expect(r.valid).toBe(false)
+    if (r.valid) return
+    // The MESSAGE names the variable: "a reserved name" sends the reader back to
+    // count list entries.
+    expect(r.errors[0]?.message).toContain('PORT is set by the platform')
+  })
+
+  it('rejects a reserved name introduced by an environment override too', () => {
+    const text = yaml(
+      `environments:\n  staging:\n    env: [{ name: MONGODB_DB_NAME, value: mine }]`,
+    )
+    expect(errorCodes(text)).toContain('SPEC_ENV_NAME_RESERVED')
+    expect(errorPaths(text)).toContain('environments.staging.env.0.name')
+  })
+
+  it('leaves an app’s own variables alone', () => {
+    const text = yaml(`env:\n  - { name: COURSE_CODE, value: CHEM_121 }`)
+    expect(errorCodes(text)).not.toContain('SPEC_ENV_NAME_RESERVED')
+  })
+
   it('reports malformed YAML as an error rather than throwing', () => {
     const r = validateSpec('name: [unclosed', ctx)
     expect(r.valid).toBe(false)

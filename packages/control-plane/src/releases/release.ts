@@ -1,14 +1,15 @@
 import { eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
-import { builds, environments, instances, releases } from '../db/index.js'
-import type { Driver } from '../runtime/index.js'
+import { builds, environments, instances, projects, releases } from '../db/index.js'
+import type { BlueprintRegistry } from '../blueprints/index.js'
+import type { Driver, InstanceFile } from '../runtime/index.js'
 import { instanceName, serviceName } from '../runtime/index.js'
 import { nextState } from '../runtime/index.js'
-import type { ResolvedConfig } from '../spec/index.js'
-import { toMebibytes } from '../spec/index.js'
-import { resolveServiceImage } from '../services/index.js'
+import type { InjectedService, ResolvedConfig } from '../spec/index.js'
+import { INJECTED_FILE_PATHS, renderInjection, toMebibytes } from '../spec/index.js'
+import type { AppSecretResolver } from '../secrets/index.js'
 import type { ServiceCredentialResolver } from '../services/index.js'
-import type { SsoRegistrar } from '../sso/index.js'
+import type { SpRegistration, SsoRegistrar } from '../sso/index.js'
 import type { Config } from '../config.js'
 import { assertPromotable } from './promotion.js'
 
@@ -17,11 +18,25 @@ import { assertPromotable } from './promotion.js'
  *
  * Threaded through arguments rather than imported, so `releases/` stays testable
  * with no key material and no IdP — which is what makes §16's fake-driver tier
- * worth having. P4a Task 9 adds `sso` here.
+ * worth having. P4a Task 9 adds `sso`; Task 11 adds `appSecrets` and
+ * `blueprints`.
+ *
+ * Four bound objects rather than a `MasterKeypair` and a pool: the module that
+ * deploys holds no key material and opens no second connection.
  */
 export interface DeployDeps {
   secrets: ServiceCredentialResolver
+  /** §8's `SESSION_SECRET`, generated once per app+environment and then stable. */
+  appSecrets: AppSecretResolver
   sso: SsoRegistrar
+  /**
+   * Read for ONE value: `runtime.run_as_uid`, which is the uid the app runs as
+   * and — by the blueprint's own Dockerfile, `addgroup -g {{RUN_AS_UID}}` — the
+   * gid of its group. §8's `SAML_PRIVATE_KEY_PATH` needs it: §12's `CapDrop: ALL`
+   * takes `CAP_DAC_OVERRIDE` with it, so a file the app must read is reachable by
+   * ownership or not at all.
+   */
+  blueprints: BlueprintRegistry
 }
 
 export type Release = typeof releases.$inferSelect
@@ -186,6 +201,22 @@ export async function deployRelease(
   const resolved = (release.resolvedConfig as ResolvedConfigSet)[environment.kind]
   const name = instanceName(projectSlug, environment.kind, release.id)
 
+  // The PROJECT's blueprint reference, which is what the build was made against
+  // (`startBuild` takes `project.blueprintRef`). Read here rather than from the
+  // manifest's `blueprint:` field, so the descriptor consulted for `run_as_uid`
+  // is the one the image was actually built from.
+  const [project] = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.id, environment.projectId))
+  if (!project) {
+    throw new ReleaseError(
+      'RELEASE_PROJECT_NOT_FOUND',
+      `environment '${environment.id}' names project '${environment.projectId}', which does not exist`,
+    )
+  }
+  const blueprintRef = project.blueprintRef
+
   const [row] = await db
     .insert(instances)
     .values({
@@ -202,14 +233,14 @@ export async function deployRelease(
    * so `Driver.ensureService` — built, tested, with a connectable endpoint — was
    * never called, and every deployed app came up with no database.
    *
-   * This is deliberately the SMALL half of §8. P4 owns the injection contract
-   * proper: the general declared-service-to-variable mapping, secret handling and
-   * the drift test. What happens here is only the wire — one `ensureService` per
-   * declared service, and the endpoint under the name the catalogue gives it.
-   * P4 replaces the naming, not the plumbing.
+   * The NAMING is no longer here: Task 11 moved it to `renderInjection`, which is
+   * the single producer of every §8 variable. This loop produces two things —
+   * the handles the driver needs, and the (type, endpoint) pairs the renderer
+   * needs — and pairs them where both are known, in one iteration, rather than
+   * leaving two arrays to agree by index.
    */
   const serviceHandles = []
-  const serviceEnv: Record<string, string> = {}
+  const boundServices: InjectedService[] = []
   for (const declared of resolved.services) {
     const bindingName = serviceName(projectSlug, environment.kind, declared.name)
     // §12: the credentials are STORED, and the driver cannot read the store —
@@ -230,8 +261,7 @@ export async function deployRelease(
       credentials,
     })
     serviceHandles.push(handle)
-    serviceEnv[resolveServiceImage(declared.type, declared.version).envVar] =
-      handle.endpoint
+    boundServices.push({ type: declared.type, endpoint: handle.endpoint })
   }
 
   /**
@@ -252,9 +282,25 @@ export async function deployRelease(
    * time and releases created before `ResolvedConfig.auth` existed do not have it.
    * Those apps were deployed with no sign-on, so that is what they keep.
    */
+  /**
+   * §8's `SESSION_SECRET` — "generated per app+environment", and stable across
+   * deploys, or every user of a redeployed app is silently signed out.
+   *
+   * Resolved BEFORE the registration below, deliberately: that call builds its
+   * audit redactor from the app's own secret set, so storing this first means
+   * §14's redaction covers it too. The same reason the registration itself runs
+   * after the service loop.
+   */
+  const sessionSecret = await deps.appSecrets.sessionSecret(db, {
+    projectId: environment.projectId,
+    environmentKind: environment.kind,
+  })
+
   const auth = resolved.auth as ResolvedConfig['auth'] | undefined
+  let registration: SpRegistration | undefined
+  let idpCertificatePem: string | undefined
   if (auth?.provider === 'cwl') {
-    await deps.sso.registerServiceProvider(db, {
+    registration = await deps.sso.registerServiceProvider(db, {
       projectId: environment.projectId,
       slug: projectSlug,
       environmentKind: environment.kind,
@@ -263,6 +309,40 @@ export async function deployRelease(
       hostname: environment.hostname,
       auth,
     })
+    idpCertificatePem = await deps.sso.idpSigningCertificate()
+  }
+
+  /**
+   * §8's two file rows, placed by the platform: "Manifest mounts it; the
+   * blueprint never fetches it at runtime."
+   *
+   * The paths are `spec/injection.ts`'s constants, the same ones the variables
+   * carry — so the path an app is told and the path a file is written to are one
+   * value, not two that agree. The modes are what §12's hardening leaves
+   * possible: `CapDrop: ALL` takes `CAP_DAC_OVERRIDE`, so root inside the
+   * container cannot read past permission bits (measured 2026-09-08, a 0400 file
+   * owned by uid 10001 was unreadable by root). The key is therefore ROOT-owned,
+   * group-readable at 0440 with the blueprint's gid — the app can read it and
+   * cannot rewrite it — and the certificate is world-readable at 0444 because it
+   * is public.
+   */
+  const files: InstanceFile[] = []
+  if (registration !== undefined && idpCertificatePem !== undefined) {
+    const runAsUid = blueprintRunAsUid(deps.blueprints, blueprintRef)
+    files.push({
+      path: INJECTED_FILE_PATHS.idpCertificate,
+      contents: idpCertificatePem,
+      mode: 0o444,
+    })
+    if (environment.kind !== 'sandbox') {
+      files.push({
+        path: INJECTED_FILE_PATHS.spPrivateKey,
+        contents: registration.keypair.privateKeyPem,
+        mode: 0o440,
+        uid: 0,
+        gid: runAsUid,
+      })
+    }
   }
 
   const handle = await driver.ensureInstance({
@@ -271,35 +351,30 @@ export async function deployRelease(
     environmentKind: environment.kind,
     releaseId: release.id,
     image: { digest, repository },
-    env: {
-      ...Object.fromEntries(
-        resolved.env.filter((e) => e.value !== undefined).map((e) => [e.name, e.value!]),
-      ),
-      /**
-       * THE PLATFORM'S OWN BINDINGS, and `PORT` is not a convenience.
-       *
-       * The platform chooses the port: it is what the container HEALTHCHECK probes
-       * and what the Caddy route uses as its upstream. Nothing told the APP, so an
-       * app that did not happen to hardcode the blueprint's `default_port` listened
-       * somewhere else and was unreachable — the container ran, the route existed,
-       * and the edge answered 502 for ever. Measured by `make demo` on 2026-09-07
-       * with a manifest declaring `runtime.port: 8080`: the app logged
-       * `"port":3000` and the deploy timed out.
-       *
-       * §8's full injection contract, with its general mapping and its drift test,
-       * remains P4's. This is the subset without which a deploy cannot work at all,
-       * plus the three identity variables §11 gives every instance.
-       */
-      PORT: String(resolved.port),
-      MANIFEST_ENV: environment.kind,
-      MANIFEST_PROJECT_SLUG: projectSlug,
-      MANIFEST_APP_URL: `https://${environment.hostname}`,
-      // AFTER the app's own, so a declared variable cannot shadow a binding the
-      // platform made. An app that sets MONGODB_URI itself would otherwise be
-      // pointed at a database of its choosing while appearing to be bound to its
-      // own — §12's "application code is untrusted" applied to the spec.
-      ...serviceEnv,
-    },
+    /**
+     * §8's ENTIRE contract, from one function. Nothing is added here.
+     *
+     * P3 built an ad-hoc block in this position — the app's own env, then PORT,
+     * MANIFEST_ENV, MANIFEST_PROJECT_SLUG, MANIFEST_APP_URL, then the service
+     * endpoints — and it was the platform's second producer of these names.
+     * `MONGODB_DB_NAME` is what that cost: §8 requires it, the block injected
+     * only the catalogue's `envVar`, and every deployed app wrote to a database
+     * called `app` while two Docker tests set the variable themselves and
+     * passed. The block is deleted rather than extended, and
+     * `grep -rn MANIFEST_APP_URL src --include='*.ts'` outside the tests now
+     * finds `spec/injection.ts` alone.
+     */
+    env: renderInjection({
+      resolved,
+      environmentKind: environment.kind,
+      hostname: environment.hostname,
+      projectSlug,
+      idp: config.idp,
+      ...(registration !== undefined ? { spEntity: registration.entity } : {}),
+      secrets: { sessionSecret },
+      services: boundServices,
+    }),
+    ...(files.length > 0 ? { files } : {}),
     port: resolved.port,
     healthPath: resolved.health,
     resources: {
@@ -324,6 +399,30 @@ export async function deployRelease(
     .where(eq(instances.id, row!.id))
     .returning()
   return updated!
+}
+
+/**
+ * The uid the app runs as, and therefore the gid of its group.
+ *
+ * `blueprint.yaml` states `run_as_uid`; the blueprint's own Dockerfile creates
+ * the group with `addgroup -g {{RUN_AS_UID}}`, so one number names both. Read
+ * from the descriptor rather than defaulted, because a wrong gid on the SP
+ * private key is silent: §12's `CapDrop: ALL` removes `CAP_DAC_OVERRIDE`, so the
+ * app simply cannot open the file, and `passport-ubcshib` reports a failure to
+ * load a key rather than a permission problem.
+ */
+function blueprintRunAsUid(blueprints: BlueprintRegistry, ref: string): number {
+  const descriptor = blueprints.resolve(ref)
+  if (!descriptor) {
+    throw new ReleaseError(
+      'RELEASE_BLUEPRINT_NOT_FOUND',
+      `no blueprint '${ref}'. Available: ${blueprints
+        .list()
+        .map((b) => `${b.blueprint}@${b.major_version}`)
+        .join(', ')}`,
+    )
+  }
+  return descriptor.runtime.run_as_uid
 }
 
 /** Polls until the driver reports healthy, or the deadline passes. */

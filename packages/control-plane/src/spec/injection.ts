@@ -1,4 +1,3 @@
-import type { ManifestSpec } from './schema.js'
 import type { EnvironmentKind, ResolvedConfig } from './resolve.js'
 
 /**
@@ -190,9 +189,16 @@ export interface InjectedService {
 }
 
 export interface InjectionContext {
-  /** The parsed manifest. Task 11 loads it from the release's AppSpec row. */
-  spec: ManifestSpec
-  /** That environment's view of it, from `resolveConfig`. */
+  /**
+   * The §13-FROZEN config for this environment, and the whole of what this
+   * function knows about the app.
+   *
+   * The plan's context carried a `ManifestSpec` beside this. It is gone, and so
+   * is the second source of truth it was: a release is immutable, so a redeploy
+   * must inject what the release froze and not what `manifest.yaml` says today —
+   * which is why Task 9 put `auth` on `ResolvedConfig`, and why Task 10 put `ai`
+   * there rather than reading `app_specs.parsed` back out.
+   */
   resolved: ResolvedConfig
   /** The ENVIRONMENT ROW's kind. Checked against `resolved.environmentKind`. */
   environmentKind: EnvironmentKind
@@ -219,7 +225,7 @@ export interface InjectionContext {
  * than extending it, and `grep` is what proves there is one.
  */
 export function renderInjection(ctx: InjectionContext): Record<string, string> {
-  const { resolved, spec } = ctx
+  const { resolved } = ctx
 
   // Two independent reads of one setting, which is the shape the roadmap's
   // lesson asks for. `deployRelease` picks `release.resolvedConfig[kind]`, so
@@ -249,10 +255,13 @@ export function renderInjection(ctx: InjectionContext): Record<string, string> {
   // here rather than start with LLM_API_KEY unset: an app that runs and cannot
   // reach a model is a support ticket, and a variable rendered empty is worse
   // than a refusal.
-  if (spec.ai.models.length > 0) {
+  // `ai` is optional at runtime for the same reason `auth` is: §13 froze these
+  // configs and the ones frozen before this field existed do not carry it.
+  const models = resolved.ai?.models ?? []
+  if (models.length > 0) {
     throw new InjectionError(
       'INJECTION_AI_UNSUPPORTED',
-      `this app declares ai.models (${spec.ai.models.join(', ')}) and P4a injects no ` +
+      `this app declares ai.models (${models.join(', ')}) and P4a injects no ` +
         'AI variables. The LiteLLM client, the virtual key and the model catalogue are ' +
         'P4b; until it lands, remove ai.models or deploy without it.',
     )

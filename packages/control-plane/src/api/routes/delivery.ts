@@ -225,7 +225,12 @@ export async function registerDeliveryRoutes(
         deps.db,
         deps.driver,
         deps.config,
-        { secrets: deps.secrets, sso: deps.sso },
+        {
+          secrets: deps.secrets,
+          appSecrets: deps.appSecrets,
+          sso: deps.sso,
+          blueprints: deps.blueprints,
+        },
         {
           releaseId: parsed.data.releaseId,
           environmentId,

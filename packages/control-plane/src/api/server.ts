@@ -7,6 +7,7 @@ import type { Driver } from '../runtime/index.js'
 import type { SourceDriver } from '../source/index.js'
 import type { BlueprintRegistry } from '../blueprints/index.js'
 import type { ServiceCredentialResolver } from '../services/index.js'
+import type { AppSecretResolver } from '../secrets/index.js'
 import { SESSION_COOKIE, verifySession } from '../identity/index.js'
 import type { Actor } from '../projects/index.js'
 import { BadRequestError, toErrorResponse } from './errors.js'
@@ -25,6 +26,8 @@ export interface ServerDeps {
   blueprints: BlueprintRegistry
   /** §12's stored service credentials, with the master key already bound. */
   secrets: ServiceCredentialResolver
+  /** §8's SESSION_SECRET, same shape and same reason as `secrets`. */
+  appSecrets: AppSecretResolver
   /**
    * §9's SP registrar, with the IdP pool, the master key and the platform's
    * entity base already bound — so `api/` and `releases/` hold no key material
