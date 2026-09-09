@@ -8,6 +8,7 @@ import type { Driver, InstanceSpec, ServiceBinding } from '../runtime/index.js'
 import { generateMasterKeypair, getSecret } from '../secrets/index.js'
 import { createServiceCredentials } from '../services/index.js'
 import { ReleaseError, createRelease, deployRelease, startBuild } from './index.js'
+import type { SpRegistrationInput, SsoRegistrar } from '../sso/index.js'
 
 // Each database file starts from a known slate rather than trusting whatever ran
 // before it to have cleaned up. `withRollback` isolates a test from its OWN writes
@@ -22,10 +23,23 @@ beforeAll(resetDatabase)
  * outlives them, and the one test that cares about the stored value builds its
  * own resolver so it can read the row back.
  */
-let deployDeps: { secrets: ReturnType<typeof createServiceCredentials> }
+let deployDeps: {
+  secrets: ReturnType<typeof createServiceCredentials>
+  sso: SsoRegistrar
+}
 beforeAll(async () => {
   deployDeps = {
     secrets: createServiceCredentials(await generateMasterKeypair(), config.masterSecret),
+    // The default for every test in this file EXCEPT the Task 9 block, which
+    // passes its own recorder. Throwing rather than returning a stub: the fixture
+    // declares `auth.provider: none`, so a registration here would mean the
+    // condition guarding it has stopped working — and a silent stub would hide
+    // exactly that.
+    sso: {
+      registerServiceProvider: () => {
+        throw new Error('no test in this file should register an SP by default')
+      },
+    },
   }
 })
 
@@ -47,7 +61,33 @@ const one = (kind: 'sandbox' | 'staging' | 'production') => ({
   services: [],
   egressAllow: [],
   classification: 'internal' as const,
+  // `none` is the schema's default and it is what `fixture-node` declares, so
+  // every existing test in this file describes an app with NO single sign-on.
+  // That is the right default here: it means the SP tests below have to opt in,
+  // rather than every other test quietly registering one.
+  auth: {
+    provider: 'none' as const,
+    attributes: [] as string[],
+    callback: '/auth/ubcshib/callback',
+    logout: '/auth/logout',
+  },
 })
+
+/** The same, for an app that actually uses CWL. */
+const withCwl = (kind: 'sandbox' | 'staging' | 'production') => ({
+  ...one(kind),
+  auth: {
+    provider: 'cwl' as const,
+    attributes: ['ubcEduCwlPuid', 'mail'],
+    callback: '/auth/ubcshib/callback',
+    logout: '/auth/logout',
+  },
+})
+const RESOLVED_WITH_CWL = {
+  sandbox: withCwl('sandbox'),
+  staging: withCwl('staging'),
+  production: withCwl('production'),
+}
 
 const RESOLVED = {
   sandbox: one('sandbox'),
@@ -272,7 +312,10 @@ describe('releases (§13)', () => {
         createdBy: user.id,
         resolvedConfig: RESOLVED_WITH_SERVICE,
       })
-      const deps = { secrets: createServiceCredentials(keys, config.masterSecret) }
+      const deps = {
+        ...deployDeps,
+        secrets: createServiceCredentials(keys, config.masterSecret),
+      }
       await deployRelease(db, recording, config, deps, {
         releaseId: release.id,
         environmentId: byKind.staging!.id,
@@ -627,6 +670,220 @@ describe('the InstanceSpec handed to the driver', () => {
       // 1Gi is 1024Mi. parseInt('1Gi') is 1.
       expect(spec.resources.memoryMi).toBe(1024)
       expect(spec.resources.diskMi).toBe(2048)
+    })
+  })
+})
+
+/**
+ * P4a Task 9. `registerServiceProvider` shipped in Task 7 with tests and NO
+ * PRODUCTION CALLER, which is the shape this project has now shipped four times —
+ * `isSensitiveDiff` waited a whole plan, `waitForReady` and `edgeProbe` shipped in
+ * P3 Task 14 and nothing called them until Task 17, and the Docker driver itself
+ * was never wired into boot. This block is the caller, and the ordering assertion
+ * is the part that cannot be replaced by a grep.
+ */
+describe('deployRelease sets up sign-on before the app starts (§9, Task 9)', () => {
+  /** A recording SsoRegistrar. Returns the shape `registerServiceProvider` returns. */
+  const recordingSso = (order: string[], seen: SpRegistrationInput[] = []) => ({
+    seen,
+    registerServiceProvider: async (_db: unknown, input: SpRegistrationInput) => {
+      order.push('sp')
+      seen.push(input)
+      return {
+        entity: {
+          entityId: `https://manifest.internal/sp/${input.slug}/${input.environmentKind}`,
+          acsUrl: `https://${input.hostname}${input.auth.callback}`,
+          sloUrl: `https://${input.hostname}${input.auth.logout}`,
+          attributes: [...input.auth.attributes],
+        },
+        keypair: {
+          privateKeyPem: '',
+          certificatePem: '',
+          certData: '',
+          fingerprint: '',
+          expiresAt: new Date(),
+        },
+        changed: true,
+      }
+    },
+  })
+
+  it('registers the SP BEFORE the instance starts', async () => {
+    await withRollback(async (db) => {
+      const { user, project, appSpec, byKind } = await fixture(db)
+      const order: string[] = []
+      const driver = createFakeDriver()
+      const spy = vi
+        .spyOn(driver, 'ensureInstance')
+        .mockImplementation(async (...args) => {
+          order.push('instance')
+          return (
+            createFakeDriver().ensureInstance as unknown as typeof driver.ensureInstance
+          )(...args)
+        })
+      const sso = recordingSso(order)
+      const build = await startBuild(db, driver, {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoPath: '/tmp/chem-labs.git',
+      })
+      const release = await createRelease(db, {
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: RESOLVED_WITH_CWL,
+      })
+
+      await deployRelease(
+        db,
+        driver,
+        config,
+        { ...deployDeps, sso },
+        { releaseId: release.id, environmentId: byKind.staging!.id },
+      )
+
+      // Not "both happened" — the ORDER. An app that redirects to the IdP before
+      // the row exists gets "Metadata not found" on its first login, which is a
+      // race nobody reproduces on demand.
+      expect(order).toEqual(['sp', 'instance'])
+      expect(spy).toHaveBeenCalledOnce()
+    })
+  })
+
+  it('hands the registrar the values the PLATFORM owns, not the app', async () => {
+    // §9: "Origins are never accepted as input." The hostname comes from the
+    // environment row and the slug from it — never from the manifest — so this
+    // asserts the shape of what was passed as well as that it was passed.
+    await withRollback(async (db) => {
+      const { user, project, appSpec, byKind } = await fixture(db)
+      const order: string[] = []
+      const sso = recordingSso(order)
+      const driver = createFakeDriver()
+      const build = await startBuild(db, driver, {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoPath: '/tmp/chem-labs.git',
+      })
+      const release = await createRelease(db, {
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: RESOLVED_WITH_CWL,
+      })
+
+      await deployRelease(
+        db,
+        driver,
+        config,
+        { ...deployDeps, sso },
+        { releaseId: release.id, environmentId: byKind.staging!.id },
+      )
+
+      expect(sso.seen).toHaveLength(1)
+      expect(sso.seen[0]).toMatchObject({
+        projectId: project.id,
+        slug: 'chem-labs',
+        environmentKind: 'staging',
+        hostname: byKind.staging!.hostname,
+        auth: {
+          provider: 'cwl',
+          callback: '/auth/ubcshib/callback',
+          attributes: ['ubcEduCwlPuid', 'mail'],
+        },
+      })
+    })
+  })
+
+  it('does not register an SP for an app that declares auth.provider: none', async () => {
+    // fixture-node is such an app, and P3's whole Docker tier deploys it. An
+    // unconditional registration would put a useless row in the IdP for every app
+    // on the platform — and would make Task 7's empty-attributes refusal fire on a
+    // spec that is perfectly valid, because `auth.attributes` defaults to [] when
+    // the provider is `none` (spec/schema.ts).
+    await withRollback(async (db) => {
+      const { user, project, appSpec, byKind } = await fixture(db)
+      const order: string[] = []
+      const sso = recordingSso(order)
+      const driver = createFakeDriver()
+      const build = await startBuild(db, driver, {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoPath: '/tmp/chem-labs.git',
+      })
+      const release = await createRelease(db, {
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: RESOLVED,
+      })
+
+      const instance = await deployRelease(
+        db,
+        driver,
+        config,
+        { ...deployDeps, sso },
+        { releaseId: release.id, environmentId: byKind.staging!.id },
+      )
+
+      expect(sso.seen).toEqual([])
+      expect(order).toEqual([])
+      // And it still DEPLOYED. "No SP was registered" would also be true of a
+      // deploy that threw on the line before, so the outcome is asserted too.
+      expect(instance.state).toBe('healthy')
+    })
+  })
+
+  it('does not register an SP for a release frozen before auth was resolved', async () => {
+    // §13 freezes the resolved config at release time, so a release created before
+    // `ResolvedConfig.auth` existed has no `auth` key at all. Reading `.provider`
+    // off undefined would throw and take an existing developer's deploy with it;
+    // treating it as "no SSO" is what those releases were actually deployed with.
+    await withRollback(async (db) => {
+      const { user, project, appSpec, byKind } = await fixture(db)
+      const order: string[] = []
+      const sso = recordingSso(order)
+      const driver = createFakeDriver()
+      const build = await startBuild(db, driver, {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoPath: '/tmp/chem-labs.git',
+      })
+      const legacy = {
+        sandbox: { ...one('sandbox'), auth: undefined },
+        staging: { ...one('staging'), auth: undefined },
+        production: { ...one('production'), auth: undefined },
+      } as unknown as typeof RESOLVED
+      const release = await createRelease(db, {
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: legacy,
+      })
+
+      await deployRelease(
+        db,
+        driver,
+        config,
+        { ...deployDeps, sso },
+        { releaseId: release.id, environmentId: byKind.staging!.id },
+      )
+      expect(sso.seen).toEqual([])
     })
   })
 })

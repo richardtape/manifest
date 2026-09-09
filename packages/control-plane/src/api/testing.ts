@@ -65,5 +65,20 @@ export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> 
     // read each other's secrets, and that is the test-isolation shape that made
     // P2's suite depend on the order Vitest happened to pick.
     secrets: createServiceCredentials(await generateMasterKeypair(), config.masterSecret),
+    // THROWS RATHER THAN RETURNING A STUB. Every app the API suite deploys is
+    // `fixture-node`, which declares `auth.provider: none`, so nothing here should
+    // ever register an SP — and if that changes, this says so loudly instead of
+    // letting a silent no-op stand in for a registration that never happened.
+    // Registering for real would need the IdP container, which the unit tier
+    // deliberately does not have.
+    sso: {
+      registerServiceProvider: () => {
+        throw new Error(
+          'the API test harness has no IdP: an app in this tier registered a Service ' +
+            'Provider, which means its spec declares auth.provider: cwl. Move that ' +
+            'test to the Docker tier, or use a fixture with no sign-on.',
+        )
+      },
+    },
   }
 }

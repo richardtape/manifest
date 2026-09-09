@@ -8,6 +8,7 @@ import { createDockerDriver, createEngineClient } from './runtime/index.js'
 import { createLocalSourceDriver } from './source/index.js'
 import { loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
 import { createServiceCredentials } from './services/index.js'
+import { createIdpPool, createSsoRegistrar } from './sso/index.js'
 
 // loadConfig throws before anything listens if MANIFEST_DEV_AUTH is set outside
 // development. That is the point: the process must not come up in that state.
@@ -97,9 +98,22 @@ const driver = await createDockerDriver({
 // FILE in every failure, because "the key is wrong" and "the row is wrong" are
 // different problems and this project has lost mornings to reading one as the
 // other.
-const secrets = createServiceCredentials(
-  await loadMasterKeypair(config.secretsMasterKeyPath),
-  config.masterSecret,
+const masterKeypair = await loadMasterKeypair(config.secretsMasterKeyPath)
+const secrets = createServiceCredentials(masterKeypair, config.masterSecret)
+
+// §9's SP registrar. The IdP metadata database is a SECOND connection to a
+// DIFFERENT database, constructed ONCE here — `sso/` writes SimpleSAMLphp's own
+// table, which is why it does not go through `db`. The pool is built at boot
+// rather than per request for the same reason `db` is: a pool per registration
+// would open a connection per deploy and never close it.
+//
+// `config.idpDatabaseUrl` is required and is never derived from the control
+// plane's URL by swapping the database name (P4a Decision 13) — they are two
+// independent settings, and the running system keeps them that way.
+const sso = createSsoRegistrar(
+  createIdpPool(config.idpDatabaseUrl),
+  masterKeypair,
+  config.spEntityBase,
 )
 
 const app = await buildServer({
@@ -109,6 +123,7 @@ const app = await buildServer({
   source: createLocalSourceDriver(config.reposRoot),
   blueprints,
   secrets,
+  sso,
 })
 
 await app.listen({ port: config.port, host: '127.0.0.1' })

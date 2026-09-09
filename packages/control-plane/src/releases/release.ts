@@ -8,6 +8,7 @@ import type { ResolvedConfig } from '../spec/index.js'
 import { toMebibytes } from '../spec/index.js'
 import { resolveServiceImage } from '../services/index.js'
 import type { ServiceCredentialResolver } from '../services/index.js'
+import type { SsoRegistrar } from '../sso/index.js'
 import type { Config } from '../config.js'
 import { assertPromotable } from './promotion.js'
 
@@ -20,6 +21,7 @@ import { assertPromotable } from './promotion.js'
  */
 export interface DeployDeps {
   secrets: ServiceCredentialResolver
+  sso: SsoRegistrar
 }
 
 export type Release = typeof releases.$inferSelect
@@ -230,6 +232,37 @@ export async function deployRelease(
     serviceHandles.push(handle)
     serviceEnv[resolveServiceImage(declared.type, declared.version).envVar] =
       handle.endpoint
+  }
+
+  /**
+   * §9's Service Provider, registered BEFORE the container starts.
+   *
+   * The ordering is the whole point and it is asserted, not commented: an app that
+   * comes up and redirects a user to the IdP before its metadata row exists gets
+   * "Metadata not found" on its first login — a real user-visible failure, for a
+   * race nobody would reproduce on demand.
+   *
+   * After the service loop rather than before it, deliberately: the registration
+   * writes two audit Events, and `registerServiceProvider` builds their redactor
+   * from the app's own secret set. Running it last means that set already holds the
+   * service credentials this deploy just stored, so §14's redaction covers them
+   * too. Both positions satisfy "before ensureInstance"; this one covers more.
+   *
+   * `auth` is optional at runtime because §13 FROZE the resolved config at release
+   * time and releases created before `ResolvedConfig.auth` existed do not have it.
+   * Those apps were deployed with no sign-on, so that is what they keep.
+   */
+  const auth = resolved.auth as ResolvedConfig['auth'] | undefined
+  if (auth?.provider === 'cwl') {
+    await deps.sso.registerServiceProvider(db, {
+      projectId: environment.projectId,
+      slug: projectSlug,
+      environmentKind: environment.kind,
+      // §9: "Origins are never accepted as input." The hostname is the
+      // environment row's, which the platform assigned — never the manifest's.
+      hostname: environment.hostname,
+      auth,
+    })
   }
 
   const handle = await driver.ensureInstance({

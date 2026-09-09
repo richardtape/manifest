@@ -12,6 +12,7 @@ import type { Actor } from '../projects/index.js'
 import { BadRequestError, toErrorResponse } from './errors.js'
 import { replayOrStore } from './idempotency.js'
 import { registerAuthRoutes } from './routes/auth.js'
+import type { SsoRegistrar } from '../sso/index.js'
 import { registerProjectRoutes } from './routes/projects.js'
 import { registerDeliveryRoutes } from './routes/delivery.js'
 import { registryTokenRoutes } from './routes/registry-token.js'
@@ -24,6 +25,12 @@ export interface ServerDeps {
   blueprints: BlueprintRegistry
   /** §12's stored service credentials, with the master key already bound. */
   secrets: ServiceCredentialResolver
+  /**
+   * §9's SP registrar, with the IdP pool, the master key and the platform's
+   * entity base already bound — so `api/` and `releases/` hold no key material
+   * and no second connection. Same shape as `secrets` above, for the same reason.
+   */
+  sso: SsoRegistrar
 }
 
 declare module 'fastify' {

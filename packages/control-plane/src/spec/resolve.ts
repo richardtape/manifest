@@ -25,6 +25,18 @@ export interface ResolvedConfig {
   services: ManifestSpec['services']
   egressAllow: string[]
   classification: ManifestSpec['data']['classification']
+  /**
+   * §7's `auth:` block, carried through unchanged — §7 permits no override of it,
+   * so every environment sees the same one.
+   *
+   * Added by P4a Task 9, which is where the first reader appeared: `deployRelease`
+   * registers a Service Provider for an app whose provider is `cwl`, and the
+   * resolved config is the only thing it has. Reading the raw spec back out of
+   * `app_specs` instead would put a second source of truth next to the one §13
+   * FROZE at release time, which is the defect shape P3 paid for seven times in a
+   * session. Task 10's injection contract is the second reader.
+   */
+  auth: ManifestSpec['auth']
 }
 
 /** Blueprint-supplied resource floor. §7: "defaults inherited from blueprint". */
@@ -84,5 +96,6 @@ export function resolveConfig(
     services: spec.services.map((service) => ({ ...service })),
     egressAllow: [...spec.egress.allow],
     classification: spec.data.classification,
+    auth: { ...spec.auth, attributes: [...spec.auth.attributes] },
   }
 }
