@@ -36,6 +36,20 @@ export function serviceVolume(service: string): string {
   return `${serviceContainer(service)}-data`
 }
 
+/**
+ * The volume holding §8's placed files, mounted at /manifest.
+ *
+ * A VOLUME rather than the container's own filesystem, because §12's hardening
+ * sets `ReadonlyRootfs` and the daemon refuses to write into a read-only rootfs
+ * — measured 2026-09-08: `container rootfs is marked read-only`. A volume path
+ * on the same container is accepted, and the contents survive into the next
+ * container that mounts it, which matters because the app reads its certificate
+ * at STARTUP and so the file has to exist before the process does.
+ */
+export function filesVolume(instance: string): string {
+  return `${appContainer(instance)}-files`
+}
+
 export function appNetwork(slug: string, kind: EnvironmentKind): string {
   return `${MF_PREFIX}${slug}-${kind}-net`
 }

@@ -23,7 +23,16 @@ export async function applyRoute(deps: RoutingDeps, spec: RouteSpec): Promise<vo
   const routeId = routeIdFor(spec.hostname)
   // Idempotent: replacing means removing first, because a second PUT at index 0
   // would leave two routes matching the same host and the older one shadowed.
-  await deps.caddy.deleteRoute(server, routeId).catch(() => undefined)
+  //
+  // THE FAILURE IS NOT SWALLOWED. `putRoute` inserts at index 0 unconditionally,
+  // so idempotence rests entirely on this delete having happened. A 404 is already
+  // tolerated inside the client — removing a route that is not there is the
+  // desired end state, not an error — so anything still throwing here is a real
+  // failure, and turning it into a silent duplicate is how "applying twice leaves
+  // ONE route" becomes two. Measured 2026-09-08: that assertion failed once in
+  // five Docker-tier runs and passed on the retry, which is exactly the shape a
+  // swallowed error produces.
+  await deps.caddy.deleteRoute(server, routeId)
   await deps.caddy.putRoute(server, buildRoute({ ...spec, routeId }))
 }
 

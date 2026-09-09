@@ -119,14 +119,12 @@ const IDP_METADATA = `${IDP_BASE_URL}/module.php/saml/idp/metadata`
  * Builds and deploys `fixtures/saml-sp` through the REAL driver, and returns the
  * row that would register it.
  *
- * The IdP's public signing certificate is committed into the fixture's repo
- * rather than mounted, and that is a deliberate stand-in: §8 specifies
- * `SAML_IDP_CERT_PATH` as a path Manifest MOUNTS, and `InstanceSpec` has no way
- * to place a file in a container — no `files`, no `binds`. Nothing in P4a adds
- * one, so Task 11 will inject a path that does not exist. Recorded as a defect;
- * the certificate is public (the IdP publishes it in its metadata), so baking it
- * into a throwaway fixture image tests the variable without pretending the
- * mounting mechanism exists.
+ * The IdP's public signing certificate is placed in the container by the
+ * platform, through `InstanceSpec.files` — which is what §8's
+ * `SAML_IDP_CERT_PATH` means by "Manifest mounts it". Until 2026-09-08 there was
+ * no way to put a file in a container at all and this fixture committed the
+ * certificate into its own repository as a stand-in; that is now the real
+ * mechanism, so this suite exercises the path Task 11 will use.
  */
 export async function startSamlSp(input: {
   slug: string
@@ -143,7 +141,6 @@ export async function startSamlSp(input: {
   const driver = await dockerDriverForTests()
   const repo = fixtureBareRepo(join(tmpdir(), `mf-${slug}.git`), {
     source: join(REPO_ROOT, 'fixtures/saml-sp'),
-    extraFiles: { 'idp-signing.crt': idpCert },
   })
   const image: ImageRef = await driver.buildImage(repo, {
     blueprintRef: 'fixture-node@1',
@@ -179,13 +176,15 @@ export async function startSamlSp(input: {
       SAML_ENTRY_POINT: IDP_SSO,
       SAML_LOGOUT_URL: IDP_SLO,
       SAML_IDP_METADATA_URL: IDP_METADATA,
-      SAML_IDP_CERT_PATH: '/app/idp-signing.crt',
+      SAML_IDP_CERT_PATH: '/manifest/idp-signing.crt',
     },
     port: 8080,
     healthPath: '/healthz',
     resources: { cpu: 0.5, memoryMi: 256, pids: 128, diskMi: 1024 },
     services: [],
     egressAllow: [],
+    // §8: "Manifest mounts it; the blueprint never fetches it at runtime."
+    files: [{ path: '/manifest/idp-signing.crt', contents: idpCert }],
   })
 
   return {

@@ -58,6 +58,13 @@ export interface EngineClient {
   ): Promise<T | undefined>
   del<T>(path: string): Promise<T | undefined>
   /**
+   * `PUT /containers/{id}/archive` — the one endpoint that takes a raw tar body
+   * rather than JSON. It is what `docker cp` uses, and it is how §8's
+   * SAML_IDP_CERT_PATH and SAML_PRIVATE_KEY_PATH get files into a container
+   * without those bytes ever touching a host path.
+   */
+  putArchive(path: string, tar: Buffer): Promise<void>
+  /**
    * For endpoints that answer with a raw byte stream: logs, exec, attach — and for
    * `/images/create`, which answers with newline-delimited JSON progress rather
    * than one document, so `post` cannot parse it.
@@ -104,7 +111,15 @@ export function createEngineClient(opts: {
     headers: Record<string, string> = {},
   ): Promise<IncomingMessage> =>
     new Promise((resolve, reject) => {
-      const payload = body === undefined ? undefined : JSON.stringify(body)
+      // A Buffer is sent AS IS. `PUT /containers/{id}/archive` takes a raw tar
+      // stream, and JSON.stringify of a Buffer produces `{"type":"Buffer",...}`,
+      // which the daemon accepts with a 200 and extracts nothing.
+      const payload =
+        body === undefined
+          ? undefined
+          : Buffer.isBuffer(body)
+            ? body
+            : JSON.stringify(body)
       const req = httpRequest(
         {
           socketPath: opts.socketPath,
@@ -115,7 +130,9 @@ export function createEngineClient(opts: {
               ? headers
               : {
                   ...headers,
-                  'content-type': 'application/json',
+                  'content-type': Buffer.isBuffer(payload)
+                    ? 'application/x-tar'
+                    : 'application/json',
                   'content-length': Buffer.byteLength(payload),
                 },
         },
@@ -173,6 +190,25 @@ export function createEngineClient(opts: {
   return {
     get: (path) => json('GET', path),
     post: (path, body, headers) => json('POST', path, body, headers),
+    putArchive: async (path, tar) => {
+      const res = await send('PUT', path, tar)
+      if (
+        res.statusCode !== undefined &&
+        (res.statusCode < 200 || res.statusCode >= 300)
+      ) {
+        // The body carries the daemon's reason, and the commonest one is a
+        // parent directory that does not exist — which reads as nothing at all
+        // if the status is discarded.
+        let text = ''
+        for await (const chunk of res) text += chunk
+        throw new EngineError(
+          'ARCHIVE_UPLOAD_FAILED',
+          `PUT ${path} failed (${res.statusCode}): ${text}`,
+          'The parent directory must already exist in the image; this writer emits no directory entries.',
+        )
+      }
+      res.resume()
+    },
     del: (path) => json('DELETE', path),
     stream: (path, method = 'GET', body, headers) => send(method, path, body, headers),
   }

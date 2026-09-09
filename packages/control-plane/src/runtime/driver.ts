@@ -35,6 +35,32 @@ export interface InstanceSpec {
   services: ServiceHandle[]
   /** Default-deny egress: the allowlist, never a flag to disable it (D18). */
   egressAllow: string[]
+  /**
+   * Files the platform places INSIDE the container before it starts.
+   *
+   * §8 names two variables as paths to files Manifest MOUNTS —
+   * `SAML_IDP_CERT_PATH` and `SAML_PRIVATE_KEY_PATH` — and until 2026-09-08
+   * there was no way to put a file in a container at all, so those rows named
+   * paths nothing created and the blueprint's `readFileSync` would have thrown
+   * ENOENT at startup. Same shape as `MONGODB_DB_NAME`: a contract row with no
+   * producer.
+   *
+   * Optional because the fake driver and every P2/P3 caller predate it.
+   */
+  files?: InstanceFile[]
+}
+
+export interface InstanceFile {
+  /** Absolute path inside the container. Its parent must already exist. */
+  path: string
+  contents: string
+  /** Octal; default 0o444. A private key wants 0o400 and an explicit `uid`. */
+  mode?: number
+  /** Owner uid inside the container; default 0 (root). */
+  uid?: number
+  /** Owner gid inside the container; default 0. A key the app must read but must
+   *  not be able to rewrite is root-owned, group-readable, mode 0440. */
+  gid?: number
 }
 export interface InstanceHandle {
   id: string

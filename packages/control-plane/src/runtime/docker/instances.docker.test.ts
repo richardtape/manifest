@@ -118,4 +118,81 @@ describeDocker('instance lifecycle (§11)', () => {
     await expect(destroyInstanceContainer(engine, id)).resolves.toBeUndefined()
     expect((await instanceStatus(engine, id)).state).toBe('gone')
   })
+
+  /**
+   * §8's two mounted paths, end to end. `SAML_IDP_CERT_PATH` and
+   * `SAML_PRIVATE_KEY_PATH` are specified as files Manifest PLACES in the
+   * container, and until 2026-09-08 nothing could place one — the rows named
+   * paths that did not exist, and the blueprint's readFileSync would have
+   * thrown ENOENT at startup.
+   *
+   * The MODE is asserted, not just the content: a private key at the default
+   * 0444 would be readable by every process in the container, and §20 calls
+   * production SP private keys the highest-value identity secrets.
+   */
+  it('places files inside the container, with the mode and owner asked for', async () => {
+    // ITS OWN INSTANCE NAME. `ensureInstanceContainer` is idempotent by name, so
+    // sharing one with the tests above takes the existing-container branch and
+    // silently reuses a container created with no files volume — which is the
+    // same trap that let a stale container serve four runs of the SAML suite.
+    const withFiles = {
+      ...spec(),
+      name: instanceName(SLUG, 'staging', 'a1b2c3d4-0000-4000-8000-000000000001'),
+      files: [
+        {
+          path: '/manifest/idp-signing.crt',
+          contents: '-----BEGIN CERTIFICATE-----\npublic\n',
+        },
+        {
+          path: '/manifest/sp-private-key.pem',
+          contents: 'secret-key',
+          // Root-owned, group-readable by the blueprint's gid. NOT app-owned:
+          // the files volume must be mounted read-write (the daemon refuses to
+          // write into a :ro mount), so ownership is what stops the app
+          // rewriting its own key.
+          //
+          // AND NOT ROOT-ONLY. §12's hardening drops ALL capabilities, which
+          // takes CAP_DAC_OVERRIDE with it — so root inside the container can
+          // no longer read past permission bits. Measured 2026-09-08: a 0400
+          // file owned by uid 10001 was unreadable by root, `stat` fine and
+          // `cat` silent. §8's key has to be reachable by ownership or group,
+          // never by privilege.
+          mode: 0o440,
+          uid: 0,
+          gid: 10001,
+        },
+      ],
+    }
+    const name = appContainer(withFiles.name)
+    await destroyInstanceContainer(engine, name).catch(() => undefined)
+    await ensureInstanceContainer(engine, withFiles, deps)
+
+    const read = async (path: string): Promise<string> => {
+      const exec = await engine.post<{ Id: string }>(`/containers/${name}/exec`, {
+        AttachStdout: true,
+        Cmd: ['sh', '-c', `cat ${path}; echo; stat -c '%a %u %g' ${path}`],
+      })
+      const stream = await engine.stream(`/exec/${exec!.Id}/start`, 'POST', {
+        Detach: false,
+        Tty: true,
+      })
+      let out = ''
+      for await (const chunk of stream as unknown as AsyncIterable<Buffer>)
+        out += chunk.toString()
+      return out
+    }
+
+    expect(await read('/manifest/idp-signing.crt')).toContain('BEGIN CERTIFICATE')
+    const key = await read('/manifest/sp-private-key.pem')
+    expect(key).toContain('secret-key')
+    // Root-owned, group-readable by the blueprint's gid, and not world-readable.
+    // The app can read it and cannot rewrite it — which is the posture a
+    // read-write mount forces, since the daemon will not write into a :ro one.
+    expect(key).toContain('440 0 10001')
+
+    // The volume holds a copy of an SP private key, so it is removed with the
+    // container rather than left for `make reset`.
+    await destroyInstanceContainer(engine, name)
+    expect(await engine.get(`/volumes/${name}-files`)).toBeUndefined()
+  })
 })

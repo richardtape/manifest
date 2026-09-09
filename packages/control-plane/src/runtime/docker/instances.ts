@@ -6,8 +6,9 @@ import type {
 } from '../driver.js'
 import { EngineError, type EngineClient } from './engine.js'
 import { hardenedHostConfig } from './hardening.js'
-import { appContainer } from './names.js'
+import { appContainer, filesVolume } from './names.js'
 import { proxyEnvironment } from './egress.js'
+import { tarArchive } from './archive.js'
 
 export interface DockerState {
   Status: string
@@ -60,6 +61,54 @@ export interface InstanceDeps {
   command?: string[]
 }
 
+/** Where `InstanceSpec.files` are mounted. §8's SAML_IDP_CERT_PATH and
+ *  SAML_PRIVATE_KEY_PATH point inside here. */
+export const FILES_MOUNT = '/manifest'
+
+/**
+ * §8's two mounted paths, materialised.
+ *
+ * Through the ARCHIVE ENDPOINT rather than a bind mount: the SP's private key
+ * never touches a host path, which is the whole point of `secrets/`, and §20
+ * calls production SP private keys the highest-value identity secrets.
+ *
+ * Into a VOLUME rather than the container's filesystem, because §12's hardening
+ * sets `ReadonlyRootfs` and the daemon refuses outright — measured 2026-09-08:
+ *
+ *   docker cp … container:/tmp/x        -> container rootfs is marked read-only
+ *   docker cp … container:/manifest/x   -> accepted (a volume mount)
+ *   …with the volume mounted :ro        -> mounted volume is marked read-only
+ *
+ * The third line is why the mount is read-write and why FILE OWNERSHIP carries
+ * the protection instead: a root-owned, group-readable 0440 key can be read by
+ * the app and rewritten by nobody, and the volume's own root-owned directory
+ * stops the app creating or deleting entries.
+ *
+ * Called before every start, so waking a hibernated instance re-asserts the
+ * files rather than trusting what the volume still holds.
+ */
+async function placeFiles(
+  engine: EngineClient,
+  name: string,
+  files: InstanceSpec['files'],
+): Promise<void> {
+  if (files === undefined || files.length === 0) return
+  await engine.putArchive(
+    `/containers/${name}/archive?path=${encodeURIComponent(FILES_MOUNT)}`,
+    // Paths are absolute and the archive is extracted AT the mount point, so the
+    // leading directory is stripped here: `/manifest/idp-signing.crt` becomes
+    // `idp-signing.crt` inside `/manifest`.
+    tarArchive(
+      files.map((file) => ({
+        ...file,
+        path: file.path.startsWith(`${FILES_MOUNT}/`)
+          ? `/${file.path.slice(FILES_MOUNT.length + 1)}`
+          : file.path,
+      })),
+    ),
+  )
+}
+
 export async function ensureInstanceContainer(
   engine: EngineClient,
   spec: InstanceSpec,
@@ -71,11 +120,16 @@ export async function ensureInstanceContainer(
     `/containers/${name}/json`,
   )
   if (existing) {
+    await placeFiles(engine, name, spec.files)
     if (!existing.State.Running) await engine.post(`/containers/${name}/start`)
     // Waking: the marker goes as soon as we intend it to run again, so a crash
     // one second later is reported as a crash rather than as hibernation.
     await engine.del(`/volumes/${hibernationVolume(name)}?force=true`)
     return { id: name, name, url }
+  }
+
+  if (spec.files !== undefined && spec.files.length > 0) {
+    await engine.post('/volumes/create', { Name: filesVolume(spec.name) })
   }
 
   const created = await engine.post<{ Id: string }>(`/containers/create?name=${name}`, {
@@ -113,12 +167,19 @@ export async function ensureInstanceContainer(
       Retries: 20,
       StartPeriod: 2_000_000_000,
     },
-    HostConfig: hardenedHostConfig({
-      resources: spec.resources,
-      networkName: deps.networkName,
-      dnsServer: deps.dnsServer,
-      diskQuotaEnforceable: deps.diskQuotaEnforceable,
-    }),
+    HostConfig: {
+      ...hardenedHostConfig({
+        resources: spec.resources,
+        networkName: deps.networkName,
+        dnsServer: deps.dnsServer,
+        diskQuotaEnforceable: deps.diskQuotaEnforceable,
+      }),
+      // READ-WRITE, and not by preference: the daemon refuses to write into a
+      // `:ro` mount, so a read-only one could never be populated. See placeFiles.
+      ...(spec.files === undefined || spec.files.length === 0
+        ? {}
+        : { Binds: [`${filesVolume(spec.name)}:${FILES_MOUNT}`] }),
+    },
     Labels: {
       'manifest.slug': spec.projectSlug,
       'manifest.environment': spec.environmentKind,
@@ -141,6 +202,7 @@ export async function ensureInstanceContainer(
         'must be pulled before an instance is created. See ensureImagePulled.',
     )
   }
+  await placeFiles(engine, name, spec.files)
   await engine.del(`/volumes/${hibernationVolume(name)}?force=true`)
   await engine.post(`/containers/${name}/start`)
   return { id: name, name, url }
@@ -166,6 +228,11 @@ export async function destroyInstanceContainer(
   // are removed by destroyService, which is the call that carries `deleteData`.
   await engine.del(`/containers/${id}?force=true&v=true`)
   await engine.del(`/volumes/${hibernationVolume(id)}?force=true`)
+  // `v=true` removes ANONYMOUS volumes only, so the named files volume needs its
+  // own removal — the same omission that leaked 42 volumes as P3's defect 24.
+  // It holds a copy of the app's SP private key, so leaving it behind is not
+  // merely untidy.
+  await engine.del(`/volumes/${id}-files?force=true`)
 }
 
 export async function instanceStatus(
