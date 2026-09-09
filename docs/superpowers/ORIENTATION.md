@@ -47,8 +47,8 @@ OID, and `passport-ubcshib` maps them back so the app reads `ubcEduCwlPuid`. Whe
 session began the IdP could not issue an assertion **and** could not authenticate
 anybody, with `make verify` reporting 34/0 throughout.
 
-**Executing those three tasks found 18 defects**, and two of them were bigger than the
-plan:
+**Executing the five found 26 defects.** Three were bigger than the plan — the first
+two came out of Tasks 1–3, the third out of Task 5:
 
 - **§12's dependency-scan gate blocked every CWL application.** `passport-ubcshib`
   depends on a deprecated `passport-saml` carrying a critical signature-verification
@@ -58,6 +58,11 @@ plan:
 - **§8's `SAML_IDP_CERT_PATH` named a file nothing could create.** `InstanceSpec` had
   no way to put a file in a container, so Task 11 would have injected a path that does
   not exist. `InstanceSpec.files` now exists — see §4.
+- **`ServiceBinding.credentials` was required by Task 5 and filled by nobody until
+  Task 9.** `deployRelease` builds that binding today, so following the plan literally
+  breaks every deploy for four tasks — a contract field with no producer, which is
+  `MONGODB_DB_NAME`'s shape exactly. Task 9's `deps` parameter was pulled forward
+  carrying `{ secrets }`; **Task 9 is now smaller, not larger.**
 
 | | State |
 |---|---|
@@ -851,14 +856,22 @@ divergence 8 — was deliberately deferred until Task 18 measured it, and **it n
 Invoke `superpowers:executing-plans` or `superpowers:subagent-driven-development`.*
 
 **The remaining ten tasks run in SEVEN AGREED PHASES**, settled with Rich on
-2026-09-08 so a session limit can never land mid-task (the plan commits after every
-task, so a stop *between* tasks is recoverable; a stop *inside* one is not):
-**1: Tasks 4–5 ✅ · 2: 6–7 · 3: 8–9 · 4: 10–11 · 5: 12–13 · 6: 14 · 7: 15.**
+2026-09-08 so a session limit can never land mid-task. The plan commits after every
+task, so a stop *between* tasks is recoverable; a stop *inside* one is not. **Do one
+phase per session, and check in with Rich at the end of each.**
+
+| Phase | Tasks | What it delivers |
+|---|---|---|
+| 1 ✅ | 4–5 | `secrets/` — envelope encryption, the store, the boot scrub — and its first call site: service credentials move from derivation to storage |
+| **2 ← NEXT** | **6–7** | **Per-app SP keypairs, then `sso/`: the D15 entity derivation (Manifest supplies every origin) and the one `saml20_sp_remote` row.** Task 7 is the heavy half — a second database connection to `manifest_idp`, a new **required** `MANIFEST_IDP_DATABASE_URL`, and a Docker test against the real IdP. Ends with `registerServiceProvider` built but uncalled; Phase 3 gives it its caller |
+| 3 | 8–9 | The `events` table (append-only **by grant**, not convention), redaction at capture, its two call sites inside `sso/registration.ts` — then `deployRelease` registering the SP **before** `ensureInstance`. **Task 8 must create its OWN migration**, not edit `0003` |
+| 4 | 10–11 | §8's frozen table as one function (`spec/injection.ts`) and then its call site, deleting P3's ad-hoc env block so there is exactly one producer. Fixes `MONGODB_DB_NAME` and threads `run_as_uid` + `InstanceSpec.files` so the SAML cert and key paths point at files that exist |
+| 5 | 12–13 | `node-ts-mongo@1` — the blueprint faculty actually use — plus the drift test that reads its source. **The one phase that needs the network on**, to warm Verdaccio from the new lockfile |
+| 6 | 14 | Manifest's own CWL login, and the end of the dev shim. **Alone on purpose**: deleting the shim reddens most of the API suite at once — `authz-contract.ts` drives 81 tests — so migrate all 19 call sites to `testSessionCookie` with the shim still in place and green, and delete only then |
+| 7 | 15 | The proof app and P4a's acceptance. **Alone on purpose**: the first end-to-end run is where this project's worst defects have always been (P3's Sessions 4 and 5 found that no build, and then no deploy, had ever succeeded) |
+
 Each phase ends with the four gates, the Docker tier where it applies, a session
-record in the plan, and the §6 close-out sweep. **Phase 2 is next.** Tasks 14 and 15
-have a phase each on purpose — 14 reddens most of the API suite while the dev shim
-comes out, and 15 is the first end-to-end run, which is where this project's worst
-defects have always been.
+record in the plan's *What executing this plan found*, and the §6 close-out sweep.
 
 **Read the plan's *What executing this plan found* before anything else.** Sessions 1,
 2, 2b and 3 are there, with all 26 defects and what each was measured against. It is

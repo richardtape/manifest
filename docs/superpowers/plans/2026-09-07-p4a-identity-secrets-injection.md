@@ -16,6 +16,34 @@
 
 ---
 
+## How this plan is being executed — SEVEN PHASES, one per session
+
+**Tasks 1–5 are DONE (2026-09-08). Phase 2 — Tasks 6 and 7 — is next.**
+
+Agreed with Rich on 2026-09-08: the remaining tasks run one phase per session, with a
+check-in at each boundary, so a session limit can never land in the middle of a task.
+This plan commits after every task, so a stop *between* tasks is recoverable; a stop
+*inside* one is not.
+
+| Phase | Tasks | Status |
+|---|---|---|
+| 1 | 4–5 — `secrets/` and its first call site | ✅ done 2026-09-08, 8 defects |
+| **2** | **6–7 — per-app SP keypairs, then `sso/` and the one row** | ← **next** |
+| 3 | 8–9 — events and the registration call site | |
+| 4 | 10–11 — §8's injection contract and its call site | |
+| 5 | 12–13 — `node-ts-mongo@1` and the drift test (**needs the network**) | |
+| 6 | 14 — Manifest's own login, and the end of the dev shim | alone: it reddens most of the API suite |
+| 7 | 15 — the proof app and P4a's acceptance | alone: the first end-to-end run |
+
+**Every phase ends the same way:** the four gates from *Global Constraints*,
+`pnpm test:docker` where the phase touched `infra/`, `runtime/`, `services/`, `sso/`
+or `secrets/`, a dated entry in *What executing this plan found* below, and the
+close-out sweep in ORIENTATION §6. **Read the most recent session entry before
+starting** — Tasks 4–15's text was written before Tasks 1–5 ran, and several of its
+assumptions have since been corrected there rather than in the task text.
+
+---
+
 ## Findings this plan is built from
 
 P4a has no research left in it. Every value below was measured, and the measurements are dated. Read these before starting, not while stuck.
