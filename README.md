@@ -16,7 +16,7 @@ make up` brings up the whole §21 inventory — split-horizon DNS, a custom `xca
 edge with rate-limiting and Coraza, Postgres with three databases, a private
 registry and npm mirror, a default-deny egress proxy, a rootless non-privileged
 BuildKit, LiteLLM against host Ollama, and the Manifest IdP. `make doctor` is now
-**16 checks / 0 failed** and `make verify` **44 / 0**, and both were green **with the
+**17 checks / 0 failed** and `make verify` **44 / 0**, and both were green **with the
 network off** when P1 was executed. `https://console.manifest.internal/` returns the same hostname and
 scheme from the host browser and from inside a container — no port, no certificate
 warning. See [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md).

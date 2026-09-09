@@ -82,7 +82,7 @@ two came out of Tasks 1–3, the third out of Task 5:
 |---|---|
 | `pnpm test` (from the **repo root**) | **439 passed, 50 files**, ~20 s, no Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/` and `releases/` suites |
 | `pnpm test:docker` | **108 passed, 19 files**, ~334 s — needs `make up`, and **fails rather than skips** when asked to run |
-| `make doctor` | **16 checks, 0 failed, 0 warnings** |
+| `make doctor` | **17 checks, 0 failed, 0 warnings** — 17 since 2026-09-09, when the host-tool check landed |
 | `make verify` | **44 checks, 0 failed, 0 warnings** — ten more than P3 left, all identity |
 
 **A different number on a clean checkout is signal, not noise** — it means something
@@ -938,8 +938,10 @@ the difference between repeating this work and continuing it.
   and are unrecoverable after the write. `createSsoRegistrar(pool, keys, entityBase)`
   is the bound form for `DeployDeps`. **Task 9's whole job is to give it a caller.**
 - **Certificates come from `openssl`, spawned.** `node:crypto` has no API that issues
-  one. `openssl` and `git` are now both hard host-tool requirements that `make doctor`
-  does **not** check — see §8.
+  one. `make doctor` **now checks the host tools the control plane spawns** — `git`,
+  `tar`, `openssl` and the `docker buildx` plugin — by running each one's real
+  invocation, which is why doctor is 17 checks rather than 16 (2026-09-09, Rich's
+  call; §8).
 - **`MANIFEST_IDP_DATABASE_URL` is required and never derived** from the control
   plane's URL (Decision 13); `MANIFEST_SP_ENTITY_BASE` defaults to
   `https://manifest.internal`. `vitest.env.ts` derives both for tests from `.env`,
@@ -956,7 +958,7 @@ result was theirs.
 ```bash
 ./scripts/snapshot-machine.sh > /tmp/before.txt   # read-only, no sudo, no network
 make up                                            # ~1 min; re-adds the loopback alias
-make doctor && make verify                         # expect 16/0 and 44/0
+make doctor && make verify                         # expect 17/0 and 44/0
 pnpm test                                          # expect 439 passed, 50 files
 pnpm lint && pnpm --filter @manifest/control-plane typecheck && pnpm format:check
 ```
@@ -1076,17 +1078,6 @@ Surface these; do not decide them.
   `@xmldom/xmldom` blocked **every CWL application**, which is every application the
   platform exists to deploy. Implemented in `build/scan.ts`; **the change to §12's own
   words is still owed**, and it is the sixth spec action in P4a's list.
-- **Should `make doctor` assert the host tools the control plane spawns?** *Raised
-  2026-09-09, not decided.* The control plane shells out to `git` (since P2) and, since
-  P4a Task 6, to `openssl` — it mints each app's SAML keypair with `openssl req -x509`,
-  because `node:crypto` has no API that issues a certificate. **Neither is checked by
-  `make doctor`**, which checks 16 other prerequisites. Not fixed inside Task 6, because
-  a check for one and not the other would be worse than neither, and because the failure
-  is already legible (the spawn error is wrapped in a message naming the app it could not
-  mint a keypair for). It is one check that would have to *run* both tools rather than
-  look for them on `PATH`, and it changes the 16/0 that four documents state. Cheap
-  either way; Rich's call because it moves a number everything else quotes.
-
 - **The long-term fix for `passport-ubcshib` is UBC's, not Manifest's.**
   `@node-saml/passport-saml@5.1.0` audits clean, and moving to it is exactly the
   "strictly safer for every consumer" change C6 permits. It is **not** blocking
@@ -1157,6 +1148,18 @@ Surface these; do not decide them.
   rebuild their remedy in Phase 4+ — but they are recorded on every Release, and
   "ship on day one with four Criticals in the base image" is a decision rather than
   an accident.
+
+**Closed 2026-09-09, Rich's call: `make doctor` now asserts the host tools the
+control plane spawns.** It was raised the same day and settled immediately —
+`make doctor` is **17 checks** from here on. The check found a **third and a fourth**
+undeclared dependency beyond the `git` and `openssl` that prompted it: `tar`, which
+`build/context.ts` unpacks every source export with, and the **`docker buildx` CLI
+plugin at `~/.docker/cli-plugins`**, which `runtime/docker/builder.ts` symlinks into a
+throwaway `DOCKER_CONFIG` — buildx installed anywhere else passes `docker buildx
+version` and still fails every build. It **runs** each tool with the control plane's own
+invocation rather than looking on `PATH`, because presence was never the failure that
+costs anything here: macOS ships LibreSSL, Homebrew puts OpenSSL ahead of it, and
+`-addext` — which `mintSpKeypair` depends on — is the flag that differs.
 
 **Closed 2026-09-07: P3's six spec actions are all applied**, with Rich's approval,
 in one commit (`53ecb1d`) so they are one `git revert` away. Two consistency edits went

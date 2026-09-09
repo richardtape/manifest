@@ -3427,6 +3427,65 @@ need — `changed`, and `previousAcsUrl` when the ACS moved, read before the wri
 it is unrecoverable after it. **Task 8 must still create its OWN migration**; `0003` is
 applied and drizzle-kit never re-runs an applied migration.
 
+### Session 5 — sitting 3: the doctor addendum, then Tasks 8 and 9 (2026-09-09).
+
+**Baseline first, and it matched the handover exactly**: `make doctor` 16/0, `make verify`
+44/0, `pnpm test` 439 in 50 files.
+
+**Addendum, at Rich's request and decided by him: `make doctor` now asserts the host
+tools the control plane spawns.** Session 4 raised it (defect 30) and left it; this
+closes it. `make doctor` is **17 checks** from here on, and the sweep moved the four
+documents that quote the number.
+
+**It found two more undeclared host dependencies than the two that prompted it.** The
+question was about `git` and `openssl`. Writing the check meant listing every `execFile`
+in `src/` that is not `docker`, and the list is four:
+
+| Tool | Call site | What the check runs |
+|---|---|---|
+| `git` | `source/local-driver.ts`, `build/context.ts` | `init` · `commit` · `show -s --format=%ct` · `archive --format=tar` — `sourceDateEpoch`'s and `assembleContext`'s own calls, in a scratch repo |
+| `tar` | `build/context.ts` | `tar -x -f` of what git just archived, asserting the file comes back with its contents. **Two processes, not a pipe** — the same composition, for the reason P3 Session 4 paid for |
+| `openssl` | `sso/keypair.ts` | `mintSpKeypair`'s exact invocation, `-keyout /dev/stdout` included, then `x509 -noout -text` asserting **4096 bits and the `subjectAltName` URI** |
+| `docker buildx` | `runtime/docker/builder.ts` | a throwaway `DOCKER_CONFIG` with `~/.docker/cli-plugins` symlinked into it, exactly as `runBuildxBuild` builds one, then `buildx version` through it |
+
+**Two things are load-bearing about how it is written.**
+
+- **It RUNS each tool rather than looking on `PATH`**, and this is not ceremony.
+  Presence has never been the failure that costs anything here: macOS ships LibreSSL at
+  `/usr/bin/openssl`, Homebrew puts OpenSSL ahead of it, and `-addext` — which
+  `mintSpKeypair` depends on — is a flag older LibreSSL does not have. `command -v
+  openssl` passes on a machine where no app can be registered for sign-on.
+- **The buildx probe asserts the SYMLINKED path, not the command.** `runBuildxBuild`
+  sets `DOCKER_CONFIG`, which moves CLI-plugin discovery with it, so the requirement is
+  `~/.docker/cli-plugins/docker-buildx` specifically. Buildx installed anywhere else
+  passes a plain `docker buildx version` and then fails every build with `unknown flag:
+  --builder`, which reads as a version problem and is not one. That symptom is now a
+  RUNBOOK row.
+
+Each probe asserts the **shape** of what came back — 4096 bits, the SAN URI, the
+extracted file's contents — rather than that a command exited 0, which is S3's lesson.
+The check is one check, not four, for the reason Session 4 gave for adding none: the
+output names whichever tool failed. It costs ~0.9 s (RSA-4096 is 0.45 s of it) and
+needs no daemon, so doctor still runs with nothing up.
+
+**The negative controls, each watched red and reverted.**
+
+| Control | Result |
+|---|---|
+| (a) a shim `git` on `PATH` that exits 127 | RED, `CANNOT DO WHAT THE CONTROL PLANE ASKS: git/tar` |
+| (b) a shim `tar` | RED, same line — the archive is written and cannot be unpacked |
+| (c) a shim `openssl` | RED, naming openssl |
+| (d) `HOME` pointed at a directory with no `.docker/cli-plugins` | RED, naming `docker-buildx`. `ln -s` to a missing target SUCCEEDS on POSIX, which is why the probe uses the plugin rather than testing for the directory |
+| (e) `rsa:2048` in the probe | RED — the 4096-bit assertion does something |
+| (f) `-addext` deleted from the probe | RED — the SAN assertion does something |
+
+Controls (e) and (f) were applied by `sed` **with a `diff` asserting the file changed**
+before the run, because a mutation that matches nothing reports success and proves
+nothing — §4's Prettier trap, in its other clothes. The real
+`~/.docker/cli-plugins/docker-buildx` was verified untouched after (d).
+
+---
+
 ---
 
 ## Spec actions proposed by this plan

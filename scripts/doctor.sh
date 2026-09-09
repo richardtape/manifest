@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # make doctor — CAN THIS MACHINE RUN THE PLATFORM? Runs with nothing up.
-# Every check here failed or nearly failed during S7, S1 or S3. None is hypothetical.
+# Every check here failed or nearly failed during S7, S1 or S3 — except the host-tool
+# check, which comes from P4a Task 6 finding that the control plane had acquired two
+# undeclared host dependencies (`openssl`, and `git` since P2) that nothing asserted.
+# None is hypothetical.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 . scripts/lib/check.sh
@@ -31,6 +34,113 @@ check_disk() {
   [ "$gb" -ge "$DISK_FLOOR_GB" ]
 }
 check "disk >= 40 GB free"  check_disk
+
+echo
+echo "Host tools the control plane spawns"
+
+# The control plane is a HOST process (§21) and it shells out to four things that
+# nothing here declared until 2026-09-09: `git` and `tar` (build/context.ts
+# exports a commit and unpacks it; source/local-driver.ts reads bare repos),
+# `openssl` (sso/keypair.ts mints each app's SAML keypair — node:crypto has no
+# API that ISSUES a certificate) and the `docker buildx` CLI PLUGIN
+# (runtime/docker/builder.ts). `docker info` above proves the daemon and the CLI;
+# it says nothing about the plugin.
+#
+# WHY THIS RUNS THEM RATHER THAN LOOKING ON `PATH`. Presence is not the failure
+# mode that costs anything here. macOS ships LibreSSL at /usr/bin/openssl and
+# Homebrew puts OpenSSL earlier on PATH; `-addext` is the flag mintSpKeypair
+# depends on and older LibreSSL does not have it, so `command -v openssl` passes
+# on a machine where the keypair cannot be minted. Each probe below is the
+# control plane's OWN invocation, and each asserts the SHAPE of what came back —
+# 4096 bits, the subjectAltName URI, the extracted file's contents — because S3
+# ran six checks that all passed while one returned 192 numbers where 768
+# belonged.
+#
+# One check, not four: ORIENTATION §8 recorded that checking one host tool and
+# not the others would be worse than checking none, and the output names whichever
+# one failed.
+probe_git_tar() {
+  local d="$1/repo" out="$1/out" epoch got
+  mkdir -p "$d" "$out" || return 1
+  printf 'doctor probe\n' > "$d/probe.txt"
+  # Identity and signing are forced rather than inherited: a machine with no
+  # user.email, or with commit.gpgsign on and no key, would fail this probe for a
+  # reason that has nothing to do with whether git works.
+  git -c init.defaultBranch=main init -q "$d" >/dev/null 2>&1 || return 1
+  git -C "$d" add probe.txt >/dev/null 2>&1 || return 1
+  git -C "$d" -c user.email=doctor@manifest.internal -c user.name=doctor \
+      -c commit.gpgsign=false commit -q -m probe >/dev/null 2>&1 || return 1
+
+  # sourceDateEpoch()'s exact call. Its answer is the image's SOURCE_DATE_EPOCH,
+  # which §13 binds an approval to, so a non-numeric answer is a real failure.
+  epoch=$(git "--git-dir=$d/.git" show -s --format=%ct HEAD 2>/dev/null) || return 1
+  case "$epoch" in ''|*[!0-9]*) return 1 ;; esac
+
+  # assembleContext()'s exact composition — TWO PROCESSES, NOT A PIPE. P3 lost a
+  # morning to `git archive | tar -x` taking its exit status from tar, which made
+  # every way git can fail produce an empty context and report success.
+  git "--git-dir=$d/.git" archive --format=tar -o "$1/probe.tar" HEAD >/dev/null 2>&1 || return 1
+  tar -x -f "$1/probe.tar" -C "$out" >/dev/null 2>&1 || return 1
+  got=$(cat "$out/probe.txt" 2>/dev/null)
+  [ "$got" = "doctor probe" ]
+}
+
+probe_openssl() {
+  # mintSpKeypair()'s exact invocation, including `-keyout /dev/stdout`, so the
+  # private key never touches a file here either.
+  local pem
+  pem=$(openssl req -x509 -newkey rsa:4096 -nodes -sha256 -days 730 \
+          -keyout /dev/stdout -out /dev/stdout \
+          -subj '/CN=doctor-probe-staging/O=Manifest' \
+          -addext 'subjectAltName=URI:https://manifest.internal/sp/doctor-probe/staging' \
+        2>/dev/null) || return 1
+  echo "$pem" | grep -q -- '-----BEGIN PRIVATE KEY-----' || return 1
+  echo "$pem" | grep -q -- '-----BEGIN CERTIFICATE-----' || return 1
+  # The shape, not the arrival. `-addext` is silently useless on an openssl that
+  # predates it in some builds, and a 2048-bit default would satisfy "a
+  # certificate came back" while breaking §9's key size.
+  local text
+  text=$(echo "$pem" | openssl x509 -noout -text 2>/dev/null) || return 1
+  echo "$text" | grep -q '(4096 bit)' || return 1
+  echo "$text" | grep -q 'URI:https://manifest.internal/sp/doctor-probe/staging'
+}
+
+probe_buildx() {
+  # NOT `docker buildx version` on the default config. runBuildxBuild() builds a
+  # throwaway DOCKER_CONFIG and SYMLINKS ~/.docker/cli-plugins into it, because
+  # setting DOCKER_CONFIG moves plugin discovery with it. So the requirement is
+  # that path specifically — buildx installed anywhere else passes a plain
+  # `docker buildx version` and still fails the build with `unknown flag:
+  # --builder`, which reads as a version problem and is not one. This is that
+  # symlink, made and used the same way.
+  local cfg="$1/dockercfg"
+  mkdir -p "$cfg" || return 1
+  ln -s "$HOME/.docker/cli-plugins" "$cfg/cli-plugins" || return 1
+  DOCKER_CONFIG="$cfg" docker buildx version 2>/dev/null | grep -q buildx
+}
+
+check_host_tools() {
+  local scratch missing="" rc=0
+  scratch=$(mktemp -d "${TMPDIR:-/tmp}/manifest-doctor.XXXXXX") || {
+    echo "cannot create a scratch directory"; return 1; }
+
+  probe_git_tar "$scratch"  || missing="$missing git/tar"
+  probe_openssl             || missing="$missing openssl"
+  probe_buildx "$scratch"   || missing="$missing docker-buildx"
+  rm -rf "$scratch"
+
+  if [ -n "$missing" ]; then
+    echo "CANNOT DO WHAT THE CONTROL PLANE ASKS:$missing"
+    echo "          git+tar export a commit (build/context.ts), openssl mints each app's"
+    echo "          SAML keypair (sso/keypair.ts), buildx builds every image"
+    echo "          (runtime/docker/builder.ts) via ~/.docker/cli-plugins"
+    rc=1
+  else
+    echo "$(git --version) · $(tar --version 2>&1 | head -1 | cut -d' ' -f1-2) · $(openssl version | cut -d' ' -f1-2) at $(command -v openssl) · $(docker buildx version | cut -d' ' -f1-2)"
+  fi
+  return $rc
+}
+check "git, tar, openssl and buildx do what the control plane asks of them"  check_host_tools
 
 echo
 echo "Ports"

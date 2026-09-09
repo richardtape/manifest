@@ -141,7 +141,8 @@ manifest-registry` before re-mirroring is what clears it.
 ## If something is wrong
 
 `make doctor` first. Every check in it corresponds to something that actually went
-wrong during a spike or during P1's execution; none is hypothetical.
+wrong during a spike, during P1's execution, or — the host-tool check — during P4a's;
+none is hypothetical.
 
 | Symptom | Cause |
 |---|---|
@@ -155,6 +156,7 @@ wrong during a spike or during P1's execution; none is hypothetical.
 | An embedding "works" but retrieval is nonsense | The caller omitted `encoding_format: 'float'` and got 192 zeros instead of 768 floats. LiteLLM's Ollama path ignores the parameter, so a client's base64 default decodes to rubbish. |
 | The egress proxy 403s correctly but requests near it fail with `Empty reply from server` | tinyproxy exits after serving a denial unless `DefaultErrorFile` is set, and `restart: unless-stopped` hides it. `make verify` checks the restart count across a denial. |
 | **Nothing** resolves — not `.test`, not `manifest.internal`, not `google.com` — while `nc -z 127.0.0.1 53` succeeds | Valet's dnsmasq is hung in `sendto` to an upstream nameserver. It is single-threaded, so one stuck send freezes everything it serves. `sudo launchctl kickstart -k system/homebrew.mxcl.dnsmasq`, then `sudo killall -HUP mDNSResponder`. Nothing to do with Manifest, which uses port 7153. |
+| A build fails with `unknown flag: --builder` | Not a buildx version problem. `runBuildxBuild` builds a throwaway `DOCKER_CONFIG`, and setting that moves CLI-plugin discovery with it, so buildx must be at `~/.docker/cli-plugins/docker-buildx` specifically. Installed anywhere else it passes `docker buildx version` and fails every build. `make doctor` asserts the symlinked path, not the command. |
 | A service shows `unhealthy` while plainly working | Its healthcheck uses a binary the image does not ship. The LiteLLM image has no `curl`, `wget` or `nc` — only `python3`. |
 
 ## What this does to your machine
@@ -176,7 +178,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` �
 
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a's first three tasks have
-since added checks, and the current numbers are **`make doctor` 16 / 0 and
+since added checks, and the current numbers are **`make doctor` 17 / 0 and
 `make verify` 44 / 0** (re-measured 2026-09-08). **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. The evidence is left exactly as recorded — a run is a run — and this
