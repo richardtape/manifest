@@ -3153,6 +3153,60 @@ than Step 4 asked — friendly names throughout, not only the corrected PUID OID
 
 ---
 
+### Session 2 — Task 3, the end-to-end CWL login (2026-09-08). 6 defects, one of them a spec conflict.
+
+**A real CWL login now works**, driven by `curl` from a container: the SP redirects to
+the IdP, the IdP authenticates a test user, releases exactly the attributes the row
+declares named by OID, and `passport-ubcshib` maps them back so the app reads
+`ubcEduCwlPuid`. §16's identity-path regression tier exists, and S2's handed-forward
+question — *"a known-good row still produces a known-good assertion"* — is finally
+owned by a file.
+
+| # | Task | Defect | Measured against |
+|---|---|---|---|
+| 10 | 3 | **The IdP could not authenticate anybody, and `make verify` was 43/0.** SimpleSAMLphp 2.x enables only `core`, `admin` and `saml`; every D6 test user is defined with `exampleauth:UserPass`. Every SSO request answered **500** — *"The module 'exampleauth' is not enabled"*. Task 1's finding one level deeper: the IdP served metadata, held a correct signing key, and no login could ever have completed. | Apache's log, on the exact `SAMLRequest` the fixture SP generated. `module.enable` is merged INTO the dist's list (replacing it would disable `core`, `admin` and `saml` and turn one broken thing into four), and `verify.sh` now instantiates the auth source — watched red with the module disabled. |
+| 11 | 3 | **§12's scan gate blocked every CWL application.** `passport-ubcshib@0.1.6` → `passport-saml` (npm-**deprecated**, critical signature-verification advisory GHSA-4mxg-3p6v-xgq3 at range `*`) → `@xmldom/xmldom@0.7.13` (five highs). §12 makes dependency scanning platform-mandatory and unwaivable by an app; **C6 forbids a library change being a prerequisite**. Both could not hold: the platform could not build the thing it exists to build. | The gate's own output, then `npm audit` on the closure, then `@node-saml/passport-saml@5.1.0` measured **clean, 0 advisories**. **Rich's call, 2026-09-08:** block on a Critical/High **with a published fix**; record the rest on the Release. See the spec action below. The gate keeps its teeth — the five xmldom highs **did** block until an npm `override` took the fixture to 0.8.15. |
+| 12 | 3 | The plan's fixture wrote `import { UBCStrategy } from 'passport-ubcshib'`. The library ends `module.exports = { Strategy: UBCStrategy, … }` — there is no such named export, so that is `new undefined(...)`. | `grep -n 'module.exports' index.js`. Default import, then destructure `Strategy`. |
+| 13 | 3 | **`AuthState` arrives HTML-escaped.** It carries a query string, so the raw attribute value ends `…singleSignOnService?spentityid=…**&amp;**cookieTime=…`; posting it undecoded means SimpleSAMLphp cannot match the pending authentication and the flow loops. | Printed from hop 1. All three extractions now decode entities. |
+| 14 | 3 | **The plan's seed warm loop would have left the mirror empty of tarballs.** `--package-lock-only` resolves metadata and downloads nothing, and Verdaccio caches a tarball when it is DOWNLOADED — so the mirror would hold package documents and no `.tgz`, which is indistinguishable from a warm mirror until the network goes away. | `find /verdaccio/storage -name '*.tgz'` — 13 present, all from the one full install the old loop did. Now a full install per lockfile, into a **temp directory** so `node_modules` never lands in a build context. |
+| 15 | 3 | **Mine, and it made a negative control lie.** `stop()` passed `destroyInstance` the *instance* name where the **container** name belongs, and swallowed the error. `ensureInstance` is idempotent by name, so a stale `mf-saml-probe-staging-r1-app` survived **sixteen minutes and four runs**, and every one of those runs redeployed nothing and tested the first image ever built. Control (c) passed against an app it had already edited. | `docker ps -a` — "Up 16 minutes". The failure is now reported rather than swallowed, and the egress container is removed too. **This is the third swallowed-error defect this session.** |
+
+**The four negative controls, each red for its own reason.** (a) authproc priorities
+swapped → **nothing** released; (b) the PUID OID reverted to `…60.1.1.1` → `mail`
+still arrives and `ubcEduCwlPuid` **vanishes**, which is precisely the live defect
+Task 2 fixed, reproduced through a real login; (c) `attributeConfig` removed → raw
+`urn:oid:` keys, S2's Evidence 11; (d) the row deleted → the IdP refuses.
+
+**Deviations from the plan's text.** The fixture pins `express@4.22.2` and
+`express-session@1.19.0` and carries an npm `override` for `@xmldom/xmldom@0.8.15` —
+all three needed to get the blocking set down to what genuinely has no fix.
+`runtime/testing.ts` gained `CA_CERT`, `dockerDriverForTests`, `fixtureBareRepo`,
+`appContainer` and `egressContainer`, because §5's boundary rule forbids `sso/`
+reaching into `runtime/docker/` and the task's instruction is to compose that
+machinery rather than reimplement it. `fixtureBareRepo` is now parameterised by
+source and by `extraFiles`.
+
+**One thing left open, deliberately.** `routes.docker.test.ts`'s idempotence
+assertion failed **once in five tier runs** and passed on the retry. The mechanism is
+visible and matches the symptom exactly: `applyRoute` does
+`deleteRoute(...).catch(() => undefined)` before its `PUT` at index 0, so a delete
+that fails silently leaves **two** routes for one host. It is P3 code and was recorded
+rather than changed inside this task. `fileParallelism: false` is set at the root, so
+cross-file racing is ruled out.
+
+**`SAML_IDP_CERT_PATH` names a file nothing creates.** §8 specifies it as a path
+Manifest **mounts**, and `InstanceSpec` has no `files` or `binds` field — nothing in
+P4a adds one. Task 11 will therefore inject a path that does not exist, and the
+blueprint's `readFileSync` will `ENOENT` at startup. The fixture commits the
+certificate into its own repository as a deliberate stand-in (it is public — the IdP
+publishes it in its metadata). **Tasks 10-12 must resolve this properly**, and it is
+the same shape as `MONGODB_DB_NAME`: a contract row with no producer.
+
+**State at the end of the session:** `make doctor` 16/0, `make verify` **44/0**,
+`pnpm test` **384**, `pnpm test:docker` **92**, lint/typecheck/format clean.
+
+---
+
 ## Spec actions proposed by this plan
 
 **Not applied.** The spec is approved design and changing it is Rich's call; this is the record, in the same form the spikes and P3 used. P3's own six were applied on 2026-09-07 with his approval, before this plan was written.
@@ -3164,5 +3218,7 @@ than Step 4 asked — friendly names throughout, not only the corrected PUID OID
 | §8, `SAML_ENTRY_POINT` row | *"the IdP SSO endpoint. Required because `UBC_CONFIG.LOCAL` hardcodes `http://localhost:8080/simplesaml/...`"* | Add the measured 2.x paths: SSO `/module.php/saml/idp/singleSignOnService`, SLO `/module.php/saml/idp/singleLogout`, metadata `/module.php/saml/idp/metadata`. The library's hardcoded values are SimpleSAMLphp **1.x** paths and 404 against 2.x. | The row explains *why* the variable is required and not *what to put in it*. The 1.x/2.x difference is the part that costs an afternoon, because a 404 from the IdP reads as "the IdP is down". |
 | §8, injection table | *(the `MONGODB_URI, MONGODB_DB_NAME` row)* | No wording change — but record that as of 2026-09-07 only `MONGODB_URI` was injected, that the two Docker tests set `MONGODB_DB_NAME` themselves, and that every deployed app therefore wrote to a database called `app`. | §8 was right and the implementation was not, which is exactly what the drift tier exists to catch and did not, because no drift test existed. Worth recording next to the row so the next reader knows the test earned its keep. |
 | §21, *Platform inventory* | *(the Postgres row, already amended by S2)* | Add: the IdP metadata database needs **two roles** and P1 shipped one — `ssp_ro` for the metadata source and `manifest` for the control plane's writes. Until 2026-09-07 SimpleSAMLphp connected as the read-write owner. | S2 raised this and it was recorded as a spec action against §21; the role was never created. Naming the gap alongside the requirement stops it being missed a second time. |
+
+| §12, *Supply chain* | *"dependency and secret scanning run as **platform-mandatory build gates** on every build — they are not app-declared and cannot be waived by an app"* | Add: "A Critical or High finding blocks **only when a fix is published**. One with no available fix is recorded on the Release and reported to the owner for §20's fleet-wide rebuild, exactly as a base-image finding is — a gate that blocks on what nobody can fix stops deployments without making anything safer." | **Rich approved this change on 2026-09-08; the spec text is not edited here, per the standing rule.** Measured: `passport-ubcshib` → `passport-saml` (deprecated, critical, range `*`) → `@xmldom/xmldom` (five highs) blocked **every** CWL application, which is every application the platform exists to deploy. §12 as written and C6 could not both hold. Implemented in `build/scan.ts`; the teeth are preserved — the xmldom highs still blocked until an npm override cleared them. |
 
 **And one thing deliberately NOT proposed.** Attaching `manifest-litellm` to every app network (P4b) looks like it needs a §12 change and does not: §12's east-west list already reads *"app or sandbox → LiteLLM's admin **routes**. **Not a port rule.**"*, which the S3 action put there. The topology change is consistent with the text as it stands. It does, however, change what S6 measured, so P4b re-runs that tier rather than assuming it still holds.
