@@ -11,6 +11,20 @@ export { toMebibytes, POLICY_CODES } from './policy.js'
 export { SPEC_CODES } from './errors.js'
 export { isSensitiveDiff, SENSITIVE_FIELDS } from './diff.js'
 export { resolveConfig } from './resolve.js'
+export {
+  INJECTED_FILE_PATHS,
+  INJECTION_CONTRACT_VERSION,
+  INJECTION_VARIABLES,
+  InjectionError,
+  RESERVED_ENV_NAMES,
+  renderInjection,
+} from './injection.js'
+export type {
+  InjectedService,
+  InjectedSpEntity,
+  InjectionContext,
+  InjectionVariable,
+} from './injection.js'
 export type {
   ResolvedConfig,
   ResolvedEnvVar,
