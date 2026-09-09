@@ -3252,6 +3252,83 @@ injection call site rather than with the mechanism.
 
 ---
 
+### Session 3 — Phase 1: Tasks 4 and 5 (2026-09-08). 8 defects.
+
+**The remaining twelve tasks were split into seven phases before any code was written**,
+at Rich's request and with his approval, so a session limit can never land mid-task:
+**1: Tasks 4–5 · 2: 6–7 · 3: 8–9 · 4: 10–11 · 5: 12–13 · 6: 14 · 7: 15.** Each phase
+ends with the four gates, the Docker tier where it applies, a record here, and the
+close-out sweep. This is Phase 1.
+
+**Baseline first, and it matched the handover exactly**: `make doctor` 16/0, `make verify`
+44/0, `pnpm test` 391 twice, lint/typecheck/format clean.
+
+**`secrets/` exists and has a call site.** Envelope encryption over libsodium, a
+Postgres store, the `process.env` scrub wired into the real boot entry point, and
+service credentials migrated from derivation to storage without breaking a running
+Mongo — proved against one, including the outage the migration exists to prevent.
+
+| # | Task | Defect | Measured against |
+|---|---|---|---|
+| 19 | 4 | **The plan's own test code does not typecheck.** `flipped[0] ^= 0xff` is TS2532 under this repo's `noUncheckedIndexedAccess` — indexing a Buffer yields `number \| undefined`. Every test passed; Vitest strips types without checking them, so only `tsc` saw it. Same class as P2's six. | `pnpm --filter @manifest/control-plane typecheck`. `flipped.writeUInt8(flipped.readUInt8(0) ^ 0xff, 0)`. |
+| 20 | 4 | **"uses a fresh data key per secret" COULD NOT FAIL.** Hoisting the data key out of `sealSecret` so every secret shares one leaves both its assertions green: `ciphertext` differs because the nonce is random, and `wrappedKey` differs because `crypto_box_seal` draws an ephemeral keypair per call. Two seals of one value differ either way. | The control run: mutation applied, 413 passed. A second test asserts the observable consequence of reuse — one envelope's wrapped key opening another's ciphertext — and goes red under the same mutation. |
+| 21 | 4 | **The migration number the plan names is taken, and Task 8 must not reuse the file.** P3 shipped `0001` and `0002`; drizzle-kit generates the name, so this is `0003_steep_pepper_potts.sql`. The journal means an APPLIED migration is never re-run, so Task 8's "modify `0001_secrets_and_events.sql`" would write SQL that never executes on any existing database. | `drizzle/meta/_journal.json`, and `db:migrate` applying 0003. **Task 8 needs its own migration.** |
+| 22 | 4, 5 | **`withRollback` has no context to destructure.** Both tasks' tests read `(db, { projectId, keys, masterSecret })`; the real helper takes `(tx) => Promise<void>` and creates no rows, and `secrets.project_id` is a real foreign key. | `db/testing.ts`. Added `withProject` there (a unique slug per call — `projects_slug_key` is unique and P2 paid for two tests reaching for `chem-labs`) and `withSecretScope` in `secrets/testing.ts`, which composes it with a per-call keypair. |
+| 23 | 4 | **`secrets` was missing from `resetDatabase`'s TRUNCATE list**, which is the thing that makes `pnpm test` repeatable. Found by reading rather than by failing — the API tests commit, so a row would have outlived its test and surfaced later as an order-dependent failure. | `db/testing.ts`'s TABLES list, which the plan does not mention. |
+| 24 | 5 | **`ServiceBinding.credentials` had no producer until Task 9.** Step 4 makes the field required and says "`deployRelease` (Task 9) fills it" — but `deployRelease` builds that binding today, so between Task 5 and Task 9 every deploy is broken. **A contract field with no producer, the same shape as `MONGODB_DB_NAME` and `SAML_IDP_CERT_PATH`.** | `tsc` naming `releases/release.ts` the moment the field became required. Task 9's `deps` parameter was pulled forward carrying `{ secrets }` only; Task 9 adds `sso` to the same object. Rejected: an OPTIONAL `credentials` with the driver deriving a fallback — that is two producers of one value, which is what cost P3 seven defects in one session. |
+| 25 | 5 | **Decision 8's prose and its own code disagree.** The prose says "New services generate a random secret and store it"; the code adopts the derived value unconditionally on first call. Nothing at this layer can tell a new service from an existing one — the container is the driver's knowledge, and §5 keeps the driver away from `db/`. | Implemented as the code does, and the reason is now in the function. Adopting the derived value for a new service is exactly what P3 already did, so nothing is weaker than today; randomness arrives for free when `deriveCredentials` is deleted. |
+| 26 | 5 | **The fake driver's endpoint carried no credentials**, so `driver-contract.ts` — the suite both drivers share — could not distinguish a driver that uses `binding.credentials` from one that ignores them entirely. The Docker driver builds its URI from them; the fake built `mongo://<name>.fake:27017`. | A new contract assertion that the endpoint carries the username, password and database it was handed. Watched RED against the fake, then the fake was made to honour it. |
+
+**The negative controls, each watched red and reverted.**
+
+| Control | Result |
+|---|---|
+| (a) hoist the data key out of `sealSecret` | the new reuse test RED — **the plan's own test stayed green**, which is defect 20 |
+| (b) `rewrapSecret` re-seals the payload too | "re-wraps … WITHOUT touching the ciphertext" RED — §20's rotation argument |
+| (c) `env[name] = undefined` instead of `delete env[name]` | the scrub test RED, showing the key still present: a child process receives the literal text `undefined` |
+| (d) a SECOND master key, minted by the real `ensure-master-key.sh` | `could not unwrap the data key — this envelope was sealed for a different master key`. Also proves the script's file and `loadMasterKeypair` agree on format |
+| (e) `putSecret` treats every put as a rotation | the `rotatedAt` test RED |
+| (f) `secretValuesFor` drops the environment-kind filter | the scoping test RED, returning sandbox's value under staging's name |
+
+**One thing was verified by hand rather than by a test, because no test could:** the
+master keypair `openssl` mints is a *curve25519* keypair libsodium accepts. `tail -c 32`
+off the DER encoding gives 32 bytes for each half whether or not the extraction is
+right, so length proves nothing. Sealing and opening with the file's own two halves
+round-trips, and a different private key cannot open it.
+
+**Deviations from the plan's text, all deliberate.** The store's `rotatedAt` is set only
+when the plaintext changed, which means `putSecret` opens the stored envelope to compare
+— comparing ciphertext would report a rotation on every deploy, since a fresh data key
+per seal makes the same plaintext encrypt differently every time. `deployRelease` takes
+a bound `ServiceCredentialResolver` rather than a `MasterKeypair`, so `releases/` never
+holds key material and `ServerDeps` grew by one field; that is the shape Task 7 already
+specifies for `SsoRegistrar`. `services.docker.test.ts` gained a test that runs the whole
+migration against a real Mongo — the plan asked for the authentication error to be
+*recorded*, and it is a permanent assertion instead.
+
+**State at the end of the phase:** `make doctor` 16/0, `make verify` 44/0,
+`pnpm test` **420** twice, `pnpm test:docker` **95** (17 files, 0 failed, 318 s),
+lint/typecheck/format clean. Two commits.
+
+**One check deliberately NOT added, with the reason.** `make doctor` does not assert
+the secrets master key exists. The failure it would catch is already loud and already
+names the file: `loadMasterKeypair` refuses to boot the control plane and says *"cannot
+read the secrets master key at '<path>'. Run `make up`, which calls
+infra/lib/ensure-master-key.sh."* A doctor check would restate that in a second place
+without completing any operation the boot does not already complete — which is the
+shape this project keeps recording as worthless.
+
+**What Phase 2 inherits.** Task 6's `ensureSpKeypair` and Task 7's `registerServiceProvider`
+both take `(db, keys, …)`, and `withSecretScope` in `secrets/testing.ts` is what their
+tests should use — it hands over a rolled-back transaction with a project row, a
+per-call master keypair and a master secret. Task 7's `createSsoRegistrar(pool, keys)`
+should be bound and added to `DeployDeps` in `releases/release.ts`, which now exists and
+carries `{ secrets }`; Task 9 then has only its ordering assertion left to do.
+**Task 8 must create its OWN migration** rather than modifying `0003` — drizzle-kit
+keeps a journal and an applied migration is never re-run.
+
+---
+
 ## Spec actions proposed by this plan
 
 **Not applied.** The spec is approved design and changing it is Rich's call; this is the record, in the same form the spikes and P3 used. P3's own six were applied on 2026-09-07 with his approval, before this plan was written.

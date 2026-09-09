@@ -2,8 +2,8 @@
 
 **You are picking up a project whose design is finished, whose first three
 implementation plans are executed, and whose fourth — P4a — is PART-EXECUTED:
-Tasks 1, 2 and 3 of its 15 are done and green as of 2026-09-08. Continue P4a at
-Task 4. Do not start P4b: its own first task reconciles it against a P4a that has
+Tasks 1–5 of its 15 are done and green as of 2026-09-08. Continue P4a at
+Task 6. Do not start P4b: its own first task reconciles it against a P4a that has
 already run.** This is the single
 entry point: what Manifest is, what has been established, what the machine will do to
 you, and what to do next. It is written for someone with **no prior context** —
@@ -34,8 +34,9 @@ everything.
 control plane serves HTTP on 7100 with the real Docker driver, and `make demo` takes an
 application from a bare git repository to a healthy `https://…manifest.internal` URL.
 
-**P4a IS PART-EXECUTED. Tasks 1, 2 and 3 of 15 are done and green (2026-09-08);
-Tasks 4–15 remain. START AT TASK 4** — §7d tells you exactly where. P4b (16 tasks) is
+**P4a IS PART-EXECUTED. Tasks 1–5 of 15 are done and green (2026-09-08);
+Tasks 6–15 remain. START AT TASK 6** — §7d tells you exactly where. The remaining
+work is split into **seven agreed phases**, and Phase 1 (Tasks 4–5) is done. P4b (16 tasks) is
 written and unrun and **must not go first**: its Task 1 is a reconciliation pass that
 assumes P4a has run.
 
@@ -61,7 +62,7 @@ plan:
 | | State |
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. **S6 has since run too, as P3's Task 18, 2026-09-07: every probe denied, every denial paired with a positive control, and one result BETTER than the spec** — §21's divergence 8 no longer holds, because app networks are `--internal` and the developer's machine is unroutable rather than merely policed. S5 and S4 are deliberately later (S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
-| **Plans** | **P1, P2 AND P3 ARE EXECUTED. P4a IS PART-EXECUTED — TASKS 1–3 OF 15, 2026-09-08. CONTINUE AT TASK 4. P4b IS WRITTEN AND UNRUN.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a's first three tasks found 18 defects — 6 per task, the highest rate yet, in the plan that had the most research behind it.** Two were spec-level and are in §8. **P4b (16 tasks) must not be executed before P4a finishes.** P5 is unwritten — see §7. **The unrun stack is 28 tasks**, which is exactly what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
+| **Plans** | **P1, P2 AND P3 ARE EXECUTED. P4a IS PART-EXECUTED — TASKS 1–5 OF 15, 2026-09-08. CONTINUE AT TASK 6. P4b IS WRITTEN AND UNRUN.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a's first five tasks found 26 defects — 5.2 per task, the highest rate yet, in the plan that had the most research behind it.** Two were spec-level and are in §8. **P4b (16 tasks) must not be executed before P4a finishes.** P5 is unwritten — see §7. **The unrun stack is 26 tasks**, which is exactly what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
 | **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`.** **The numbers are in the box below** — this row used to restate them and drifted by four releases.  **P4a Tasks 1–3 then added `sso/` (`testing.ts` and the login suite — the module's production code is still Tasks 6–9's), `runtime/docker/archive.ts`, `infra/idp/metadata/saml20-idp-hosted.php`, `infra/idp/attributemap/ubcoid.php`, three new `infra/lib/ensure-*.sh` scripts wired into `make up`, and `fixtures/saml-sp/`.** |
 | **Spec** | Current, with **one approved change not yet written into it**: §12's scan gate blocks only on findings that have a published fix (Rich, 2026-09-08 — §8). Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
@@ -69,8 +70,8 @@ plan:
 
 | | |
 |---|---|
-| `pnpm test` (from the **repo root**) | **391 passed, 44 files**, ~15 s, no Docker needed except Postgres for the `db/` and `api/` suites |
-| `pnpm test:docker` | **93 passed**, ~300 s — needs `make up`, and **fails rather than skips** when asked to run |
+| `pnpm test` (from the **repo root**) | **420 passed, 48 files**, ~17 s, no Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/` and `releases/` suites |
+| `pnpm test:docker` | **95 passed, 17 files**, ~320 s — needs `make up`, and **fails rather than skips** when asked to run |
 | `make doctor` | **16 checks, 0 failed, 0 warnings** |
 | `make verify` | **44 checks, 0 failed, 0 warnings** — ten more than P3 left, all identity |
 
@@ -573,6 +574,29 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   underneath it. `@node-saml/passport-saml@5.1.0` audits clean. §12's scan gate now
   blocks only on findings that **have a published fix** (Rich, 2026-09-08) — and it
   still has teeth: the xmldom highs blocked until an npm `override` to 0.8.15.
+- **Two libsodium seals of one value differ even when the data key is SHARED**, so
+  "the ciphertext differs" proves nothing about per-secret keys. The nonce is random
+  and `crypto_box_seal` draws an ephemeral keypair per call, so both `ciphertext` and
+  `wrappedKey` change either way. Measured 2026-09-08 by hoisting the data key out of
+  `sealSecret`: the test written to catch exactly that stayed green. The observable
+  consequence of reuse is that one envelope's wrapped key opens **another's**
+  ciphertext — assert that instead.
+- **An APPLIED drizzle migration is never re-run**, because `drizzle/meta/_journal.json`
+  records it by tag. Editing a migration file that has already run changes nothing on
+  any existing database and everything on a fresh one, so the two diverge silently.
+  New SQL needs a new migration. `drizzle-kit generate` also names the file itself, so
+  a plan naming `0001_something.sql` is naming a file that will not exist.
+- **`drizzle-kit migrate` needs `MANIFEST_DATABASE_URL` exported**, which `.env` does
+  NOT contain — `.env` carries `POSTGRES_PASSWORD` and the URL is derived from it
+  (`vitest.env.ts` does this for tests). README's *Running the control plane* has the
+  two-line export; without it the failure is `Please provide required params for
+  Postgres driver: [x] url: undefined`, which reads like a broken config file.
+- **macOS `openssl` cannot emit a raw X25519 key**, and libsodium wants the bare 32
+  bytes. `openssl pkey -outform DER | tail -c 32` works for both halves because RFC 8410
+  fixes the prefix lengths (48 DER bytes private, 44 public). **Length proves nothing
+  about correctness** — a wrong extraction still yields 32 bytes — so seal and open with
+  the file's own two halves before trusting it. `infra/lib/ensure-master-key.sh` does it
+  this way and it was verified against libsodium on 2026-09-08.
 - **Verdaccio caches a tarball when it is DOWNLOADED.** `npm install
   --package-lock-only` resolves metadata and downloads nothing, so a warm step that
   uses it leaves the mirror holding package documents and **no `.tgz`** —
@@ -820,17 +844,27 @@ that suffices for sandboxes is left to S5**, deliberately.
 of the plan, and every one is measured rather than argued. The first — narrowing §21's
 divergence 8 — was deliberately deferred until Task 18 measured it, and **it now has.**
 
-### 7d. Continue P4a at Task 4 — identity, secrets and the §8 contract (1b-i) ← **START HERE**
+### 7d. Continue P4a at Task 6 — identity, secrets and the §8 contract (1b-i) ← **START HERE**
 
 *[`plans/2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md)
-— **15 tasks. Tasks 1, 2 and 3 are EXECUTED and green (2026-09-08). Start at Task 4.**
+— **15 tasks. Tasks 1–5 are EXECUTED and green (2026-09-08). Start at Task 6.**
 Invoke `superpowers:executing-plans` or `superpowers:subagent-driven-development`.*
 
-**Read the plan's *What executing this plan found* before anything else.** Sessions 1,
-2 and 2b are there, with all 18 defects and what each was measured against. It is the
-difference between repeating this work and continuing it.
+**The remaining ten tasks run in SEVEN AGREED PHASES**, settled with Rich on
+2026-09-08 so a session limit can never land mid-task (the plan commits after every
+task, so a stop *between* tasks is recoverable; a stop *inside* one is not):
+**1: Tasks 4–5 ✅ · 2: 6–7 · 3: 8–9 · 4: 10–11 · 5: 12–13 · 6: 14 · 7: 15.**
+Each phase ends with the four gates, the Docker tier where it applies, a session
+record in the plan, and the §6 close-out sweep. **Phase 2 is next.** Tasks 14 and 15
+have a phase each on purpose — 14 reddens most of the API suite while the dev shim
+comes out, and 15 is the first end-to-end run, which is where this project's worst
+defects have always been.
 
-**What Tasks 1–3 established, so you do not re-derive it.**
+**Read the plan's *What executing this plan found* before anything else.** Sessions 1,
+2, 2b and 3 are there, with all 26 defects and what each was measured against. It is
+the difference between repeating this work and continuing it.
+
+**What Tasks 1–5 established, so you do not re-derive it.**
 
 - **The Manifest IdP is a working IdP.** It has a hosted entity, an RSA-4096 signing
   keypair (`infra/idp/cert/`, gitignored, minted by `make up`, **not** removed by
@@ -849,6 +883,19 @@ difference between repeating this work and continuing it.
   regression tier and it is the thing to run first if you break something.
 - **The platform can place files inside a container** — `InstanceSpec.files`, which
   §8's `SAML_IDP_CERT_PATH` and `SAML_PRIVATE_KEY_PATH` need and which did not exist.
+- **`secrets/` exists and is used.** libsodium envelope encryption — a per-secret data
+  key wrapped with `crypto_box_seal`, payload under `crypto_secretbox_easy` — over a
+  Postgres `secrets` table, with the master keypair in `infra/secrets/master.key`
+  (gitignored, minted by `make up`, **not** removed by `make reset`, same rule as the
+  IdP key and the Caddy CA). `process.env` is scrubbed at boot and
+  `boot.docker.test.ts` asserts it, because `runtime/docker/builder.ts` spawns
+  `docker` with `{ ...process.env }`.
+- **Service credentials are STORED, not derived**, and `ServiceBinding.credentials` is
+  filled by `deployRelease` — the driver derives nothing. The migration adopts P3's
+  derived value on first call, so a developer's existing Mongo keeps working;
+  `services.docker.test.ts` proves that against a real one, including the outage a
+  cut-over would have caused. **`releases/` now takes a `DeployDeps` object** —
+  Task 9 adds `sso` to it rather than inventing it.
 
 **Your first ten minutes, in this order.** Establish a baseline before you change
 anything — every session that skipped this spent longer working out whether a red
@@ -858,7 +905,7 @@ result was theirs.
 ./scripts/snapshot-machine.sh > /tmp/before.txt   # read-only, no sudo, no network
 make up                                            # ~1 min; re-adds the loopback alias
 make doctor && make verify                         # expect 16/0 and 44/0
-pnpm test                                          # expect 391 passed, 44 files
+pnpm test                                          # expect 420 passed, 48 files
 pnpm lint && pnpm --filter @manifest/control-plane typecheck && pnpm format:check
 ```
 
@@ -872,17 +919,25 @@ curl -s --cacert infra/ca/manifest-root.crt \
 **Expect signed SAML metadata** carrying `entityID="https://idp.manifest.internal/idp/shibboleth"`
 and an `<ds:X509Certificate>`. It answered **500** until 2026-09-08.
 
-`pnpm test:docker` is ~5 minutes and **93 tests**; run it before the first commit that
+`pnpm test:docker` is ~5 minutes and **95 tests**; run it before the first commit that
 touches `infra/`, `runtime/`, `services/`, `sso/` or `secrets/`. A faster loop for one
 file: `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker sso/login`.
 
-**Task 4 is `secrets/` — envelope encryption and the `process.env` scrub.** It is pure
-functions plus a Postgres store, so it needs no Docker beyond `make up`. Then Task 5
-migrates service credentials from derivation to storage **without breaking a running
-database** (read Decision 8 first — deleting `deriveCredentials` outright is the trap),
-and Task 6 is per-app SP keypairs.
+**Task 6 is per-app SP keypairs** and Task 7 is `sso/` — the derived registration and
+the one `saml20_sp_remote` row. Both take `(db, keys, …)`, and their tests should use
+**`withSecretScope` from `secrets/testing.ts`**, which hands over a rolled-back
+transaction with a project row, a per-call master keypair and a master secret. Task 7's
+`createSsoRegistrar(pool, keys)` is bound the same way `createServiceCredentials` now is,
+and goes into the `DeployDeps` object that already exists. **Task 8 must create its own
+migration** rather than modifying `0003` — drizzle-kit keeps a journal and an applied
+migration is never re-run.
 
-**Four things Tasks 1–3 learned that Tasks 4–15 will need.**
+*(The plan's own text still describes Tasks 4 and 5 as upcoming — they are done.
+`deriveCredentials` survives on purpose and deleting it is still the trap Decision 8
+describes; it can go once every existing service has been deployed once, and not
+before.)*
+
+**Four things Tasks 1–3 learned that Tasks 6–15 will need.**
 
 1. **Three defects this session were a swallowed error.** `applyRoute` hid a failed
    delete; `stop()` hid a failed `destroyInstance` and a stale container then served

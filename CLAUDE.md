@@ -48,16 +48,19 @@ check that every app failed, because BusyBox `wget` honours `http_proxy` and ign
 `NO_PROXY`, so D18's forced proxy denied each app's probe of its own loopback. **All
 of it was green in a suite of 74 passing Docker tests.**
 
-**P4a is PART-EXECUTED (2026-09-08): Tasks 1, 2 and 3 of 15 are green; Tasks 4–15
-remain, and continuing at Task 4 is the current work** — ORIENTATION §7d.
+**P4a is PART-EXECUTED (2026-09-08): Tasks 1–5 of 15 are green; Tasks 6–15
+remain, and continuing at Task 6 is the current work** — ORIENTATION §7d. The rest
+runs in **seven agreed phases** so a session limit cannot land mid-task.
 **A real CWL login now works end to end**, which it could not before: the IdP could
 neither issue an assertion nor authenticate anybody, with `make verify` green
-throughout. `make verify` is now **44 / 0**, `pnpm test` **391**, `pnpm test:docker`
-**93**. Those three tasks found **18 defects**, two of them spec-level: **§12's
+throughout. `make verify` is now **44 / 0**, `pnpm test` **420**, `pnpm test:docker`
+**95**. `secrets/` now holds every service credential — libsodium envelope
+encryption in Postgres, replacing P3's HMAC derivation, migrated without breaking a
+running database. Those five tasks found **26 defects**, two of them spec-level: **§12's
 dependency-scan gate blocked every CWL application** (settled by Rich on 2026-09-08 —
 it now blocks only on findings that have a published fix), and **§8's
 `SAML_IDP_CERT_PATH` named a file nothing could create**, so `InstanceSpec` gained
-`files`. **Three of the eighteen were a swallowed `.catch(() => undefined)`**, which
+`files`. **Three of the first eighteen were a swallowed `.catch(() => undefined)`**, which
 is this codebase's most productive defect — including one that let a stale container
 serve four runs of a suite and made a negative control pass against an app it had
 already edited. P4 was split into P4a (identity, secrets, the §8 injection
