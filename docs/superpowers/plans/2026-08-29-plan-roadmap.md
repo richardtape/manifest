@@ -649,7 +649,7 @@ execution layer.** Each is written when its predecessor lands.
    — an untyped `InjectionContext`, a `parsedSpec` with no stated provenance, and a
    redactor with no stated source — and **those were fixed in P4a itself** rather
    than worked around in P4b, which is the one unambiguous benefit of having written
-   the second plan early. **The unexecuted stack is now 20 tasks** — P4a's remaining 4 and
+   the second plan early. **The unexecuted stack is now 18 tasks** — P4a's remaining 2 and
    P4b's 16 — which is the cost this decision was made to avoid, and it is recorded
    here rather than left implicit.
 

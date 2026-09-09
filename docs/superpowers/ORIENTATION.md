@@ -53,7 +53,7 @@ through a row `sso/` itself renders**, with the AuthnRequest signed by a per-app
 RSA-4096 key the platform minted and stored — and it is refused when the row pins a
 different certificate, and refused again when the app does not sign at all.
 
-**Executing the eleven found 53 defects.** Four were bigger than the plan — the first
+**Executing the thirteen found 62 defects.** Four were bigger than the plan — the first
 two came out of Tasks 1–3, the third out of Task 5, the fourth out of Task 8:
 
 - **§12's dependency-scan gate blocked every CWL application.** `passport-ubcshib`
@@ -824,6 +824,7 @@ coherent. Follow them.
    | `plans/2026-08-29-plan-roadmap.md` | **The ledger — update this first, it outranks the rest.** Spike status, the plan set table, *Order of operations* |
    | `ORIENTATION.md` | §2 and §7 by design — **including §2's numbers box, which is the one place this file states the four gate counts**; §4 whenever the machine changes; §8 when something becomes or stops being Rich's call |
    | `README.md` | The status section, and the *Where to start* table's "current job" row |
+   | `RUNBOOK.md` | **Added to this list 2026-09-09, having been missed once.** Its *C1's acceptance* preamble restates the CURRENT `make doctor` / `make verify` totals beside the dated 2026-09-05 ones, so it drifts every time a check lands — and it is the document a new agent opens to run the platform |
    | `CLAUDE.md` | The *State* paragraph |
    | `specs/manifest-schematic.html` | **Shared outside the team.** The `Status` line in the header, the footer, and the "no user interface has been built yet" disclaimers |
    | `specs/manifest-phases.html` | **Shared outside the team.** The spike section — how many have run, what they answered, where the remaining ones sit |
@@ -839,7 +840,7 @@ coherent. Follow them.
 
 ---
 
-## 7. What to do next — continue P4a at Task 12
+## 7. What to do next — continue P4a at Task 14
 
 P1, P2 and P3 are all executed and green; S6 has reported; **P3's six spec actions
 were applied on 2026-09-07**. P4 was then split into **P4a** and **P4b** (Rich's
@@ -1082,6 +1083,21 @@ nothing.
   row says — so `certData` is mandatory for any app that signs, and
   `validate.authnrequest` can only be proved by an SP that does *not* sign. Both are
   measured, and both have a test.
+- **`node-ts-mongo@1` EXISTS AND HAS BEEN RUN** — `blueprints/node-ts-mongo/`, the
+  blueprint faculty applications are generated from, and §20's "security multiplier":
+  whatever is in it is replicated into every application. Its skeleton is its own
+  build target, so `runtime/docker/node-ts-mongo.docker.test.ts` proves the real thing
+  builds through §12's gates, deploys, reads the injected `MONGODB_DB_NAME` with **no
+  fallback**, and issues a real AuthnRequest. Every app-side library is pinned to the
+  set `fixtures/saml-sp` measured, with an `@xmldom/xmldom` override the scan gate
+  needs. `provides.ai` is `false` (Decision 12); **P4b flips it.**
+- **§16's drift tier reads the blueprint's SOURCE**, in `spec/injection-drift.test.ts`,
+  both directions, against `renderInjection`'s OUTPUT rather than against the table's
+  `requiredIn` column — a comparison whose expected side is a hand-maintained list
+  gets *smaller* when somebody edits the list. It strips comments before scanning,
+  because a **commented-out** read otherwise counts as a read and the direction that
+  catches a dead §8 row passes silently. `ALLOWED_UNSET` and `PLATFORM_ONLY` are both
+  deliberately **empty**: every name added to either is an exemption.
 
 **Your first ten minutes, in this order.** Establish a baseline before you change
 anything — every session that skipped this spent longer working out whether a red
@@ -1106,7 +1122,9 @@ curl -s --cacert infra/ca/manifest-root.crt \
 and an `<ds:X509Certificate>`. It answered **500** until 2026-09-08.
 
 `pnpm test:docker` is ~6 minutes and **114 tests**; run it before the first commit that
-touches `infra/`, `runtime/`, `services/`, `sso/`, `secrets/` or `releases/`. A faster
+touches `infra/`, `runtime/`, `services/`, `sso/`, `secrets/`, `releases/` or
+**`blueprints/`** — the last since Task 12, because `node-ts-mongo@1`'s own skeleton is
+a build target and nothing in the unit tier builds it. A faster
 loop for one file: `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker sso/login`.
 
 **`make demo` is worth one run before you start.** It is the only thing that exercises

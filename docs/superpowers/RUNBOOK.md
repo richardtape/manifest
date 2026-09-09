@@ -177,9 +177,10 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` �
 ## C1's acceptance — what was actually run
 
 **These are dated measurements, not current counts.** The check totals below are
-what those commands reported *on 2026-09-05*; P3 and then P4a's first three tasks have
-since added checks, and the current numbers are **`make doctor` 17 / 0 and
-`make verify` 45 / 0** (re-measured 2026-09-09). **The offline acceptance has not been
+what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
+and the current numbers are **`make doctor` 17 / 0 and `make verify` 46 / 0**
+(re-measured 2026-09-09). ORIENTATION §2's box is the maintained copy of those; if this
+line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. The evidence is left exactly as recorded — a run is a run — and this
 note exists so nobody reads it as today's baseline.
