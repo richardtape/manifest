@@ -86,9 +86,10 @@ two came out of Tasks 1–3, the third out of Task 5, the fourth out of Task 8:
 | `make verify` | **45 checks, 0 failed, 0 warnings** — eleven more than P3 left; the newest asserts §20's append-only grant by attempting four writes |
 
 **A different number on a clean checkout is signal, not noise** — it means something
-moved, and finding out what is cheaper before you start than after. §7c states the
-same four as P3's completion record; if the two ever disagree, this box is the one
-that was measured most recently.
+moved, and finding out what is cheaper before you start than after. **This box is the
+only current one.** §7a and §7c carry the same four numbers as P1's and P3's completion
+records, and they are DATED measurements that deliberately do not move — if any of them
+disagrees with this box, this box wins.
 
 The immediate work is **P4a, from Task 10** — see §7d. Its Tasks 1–9 are done: the IdP
 works, `secrets/` holds every credential, `sso/` generates the registration a CWL login
@@ -285,11 +286,13 @@ root, because the blueprint's `CMD` is not templated), `scripts/demo.sh`, and
 `src/runtime/docker/{roundtrip,s6}.docker.test.ts`, which are the two suites that
 exercise the whole thing rather than a part of it.
 
-`pnpm test` → **381 tests**, **run from the repo root** (`pnpm test`,
+`pnpm test` → the count in §2's box, **run from the repo root** (`pnpm test`,
 not `pnpm --filter … test` — the two set a different working directory, and that
-difference was a defect). Everything that touches `src/db/` or `src/api/` needs
-`make up`; the rest needs no Docker, no Postgres and no network. The connection string
-is derived from `.env` automatically.
+difference was a defect). Everything that touches `src/db/`, `src/api/`, `src/secrets/`,
+`src/sso/`, `src/observability/`, `src/services/` or `src/releases/` needs `make up`;
+the rest needs no Docker, no Postgres and no network. **All three connection strings are
+derived from `.env` automatically** by `vitest.env.ts`, and the suite connects as
+`manifest_app` — the least-privilege role — not as `manifest`.
 
 Also `pnpm lint`, `pnpm --filter @manifest/control-plane typecheck` and
 `pnpm format:check`. **All four must be clean before you commit, and the last two are
@@ -826,8 +829,9 @@ it. Twelve tasks remain and there is no reason to expect the rate to fall.
 13 tasks, all executed and green. The platform runs; read
 [`RUNBOOK.md`](RUNBOOK.md) to start it, not the plan.
 
-`make doctor` is **16 checks / 0 failed**, `make verify` is **34 / 0**, and both were
-green with the network off. The C1 demo holds:
+`make doctor` was **16 checks / 0 failed** and `make verify` **34 / 0** *on the day P1
+finished*, and both were green with the network off — a dated record, not today's
+baseline; §2's box is the current one. The C1 demo holds:
 `https://console.manifest.internal/` returns a byte-identical hostname and scheme
 from the host and from inside a container, no port, no `-k`.
 
@@ -859,7 +863,10 @@ answering **200** when broken; and **nothing had ever executed the boot entry po
 repository to `https://fixture-app.staging.manifest.internal` — then does it again
 from a dropped database, a deleted repository root and an emptied registry.
 
-| | |
+**Measured on 2026-09-07, the day P3 finished. These are a record, not today's
+baseline** — P4a has since added tests and checks, and §2's box is the current one.
+
+| | *as P3 left it* |
 |---|---|
 | `pnpm test` (repo root) | **381 tests**, Docker-free |
 | `pnpm test:docker` | **89 tests**, ~5 min, needs `make up` |
@@ -995,10 +1002,13 @@ nothing.
   `tar`, `openssl` and the `docker buildx` plugin — by running each one's real
   invocation, which is why doctor is 17 checks rather than 16 (2026-09-09, Rich's
   call; §8).
-- **`MANIFEST_IDP_DATABASE_URL` is required and never derived** from the control
-  plane's URL (Decision 13); `MANIFEST_SP_ENTITY_BASE` defaults to
-  `https://manifest.internal`. `vitest.env.ts` derives both for tests from `.env`,
-  side by side, from one password.
+- **There are now THREE database URLs, and none is derived from another.**
+  `MANIFEST_DATABASE_URL` connects as `manifest_app`; `MANIFEST_ADMIN_DATABASE_URL`
+  connects as `manifest` and is used only by `db:migrate` and the test harness's
+  `TRUNCATE` (`src/` never reads it); `MANIFEST_IDP_DATABASE_URL` is the IdP's
+  (Decision 13). `MANIFEST_SP_ENTITY_BASE` defaults to `https://manifest.internal`.
+  `vitest.env.ts` derives all three from `.env`. **The README's *Running the control
+  plane* export block is the copy to use** — it changed on 2026-09-09.
 - **A signature that is PRESENT is always validated by SimpleSAMLphp**, whatever the
   row says — so `certData` is mandatory for any app that signs, and
   `validate.authnrequest` can only be proved by an SP that does *not* sign. Both are
@@ -1027,8 +1037,13 @@ curl -s --cacert infra/ca/manifest-root.crt \
 and an `<ds:X509Certificate>`. It answered **500** until 2026-09-08.
 
 `pnpm test:docker` is ~6 minutes and **111 tests**; run it before the first commit that
-touches `infra/`, `runtime/`, `services/`, `sso/` or `secrets/`. A faster loop for one
-file: `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker sso/login`.
+touches `infra/`, `runtime/`, `services/`, `sso/`, `secrets/` or `releases/`. A faster
+loop for one file: `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker sso/login`.
+
+**`make demo` is worth one run before you start.** It is the only thing that exercises
+boot, build, release, deploy and the edge through the real HTTP surface, and it is where
+the last five sessions' worst defects were found. It needs the control plane already
+running — README's *Running the control plane*, then `make demo`.
 
 **Task 10 is `spec/injection.ts`** — §8's frozen table as one function — **and Task 11
 is its call site**, which deletes P3's ad-hoc env block so there is exactly one producer,
@@ -1040,10 +1055,14 @@ from `app_specs`. Tests of anything secret-scoped use **`withSecretScope` from
 because the table is the IdP container's artefact. **Any new migration must be its own
 file** — drizzle-kit keeps a journal and an applied migration is never re-run.
 
-*(The plan's own text still describes Tasks 4–7 as upcoming — they are done.
-`deriveCredentials` survives on purpose and deleting it is still the trap Decision 8
-describes; it can go once every existing service has been deployed once, and not
-before.)*
+*(The plan's own text still describes Tasks 4–9 as upcoming — they are done, and the
+plan's *What executing this plan found* is the corrected record. Two places where its
+Tasks 8–9 text is now wrong on purpose: there is no `manifest_audit_owner` role and no
+`REVOKE`, because `events` is in an `audit` schema no blanket grant reaches; and
+`ResolvedConfig.auth`, which Task 10's own context object assumes, did not exist until
+Task 9 added it. `deriveCredentials` survives on purpose and deleting it is still the
+trap Decision 8 describes; it can go once every existing service has been deployed
+once, and not before.)*
 
 **Four things Tasks 1–3 learned that Tasks 6–15 will need.**
 

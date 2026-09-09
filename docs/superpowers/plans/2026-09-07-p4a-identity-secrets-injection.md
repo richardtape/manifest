@@ -3555,6 +3555,13 @@ simply becomes editable — and that is exactly the kind this project keeps find
 0 failed, 350 s), lint/typecheck/format clean, and **`make demo` green end to end**
 against the new boot path and the least-privilege role. Three commits.
 
+**Two places the plan's own Task 8–9 text is now wrong, on purpose.** There is no
+`manifest_audit_owner` role and no `REVOKE`: that role exists in the plan only because
+the plan assumed the application connects as the table's owner, and the `audit` schema
+means there is nothing to revoke. And Task 9's condition needed `ResolvedConfig.auth`,
+which did not exist — **Task 10's own context object already assumes it does**, so this
+would have been found there instead.
+
 **What sitting 4 inherits.** Tasks 10–11: `spec/injection.ts` as §8's frozen table, then
 its call site. `ResolvedConfig.auth` now exists and Task 10 is its second reader, so the
 injection function does not need to reach for the raw spec. `run_as_uid` is still in the

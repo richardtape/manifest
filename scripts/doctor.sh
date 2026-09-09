@@ -344,11 +344,33 @@ scanner_db_age() {
 }
 check_warn "the vulnerability database is fresh"  scanner_db_age
 
+# NOT just "the file is there". `make seed` and the Makefile's `.env` target both
+# copy .env.example ONLY when .env is absent — an existing developer's .env never
+# gains a key added later. That is silent: MANIFEST_APP_PASSWORD arrived on
+# 2026-09-09, and the README's export block interpolates it, so a .env written
+# before that date produces `postgres://manifest_app:@127.0.0.1…` and a login
+# failure that names the role rather than the missing variable.
+#
+# Comparing against .env.example generalises: the NEXT key somebody adds is covered
+# without anyone remembering to add a check for it.
 check_env_file() {
   [ -f .env ] || { echo ".env missing — run: make seed"; return 1; }
-  echo ".env present"
+  local keys missing="" key
+  keys=$(sed -n 's/^\([A-Z_][A-Z0-9_]*\)=.*/\1/p' .env.example)
+  for key in $keys; do
+    grep -q "^${key}=" .env || missing="$missing $key"
+  done
+  if [ -n "$missing" ]; then
+    echo ".env is MISSING keys .env.example declares:$missing"
+    echo "          'make seed' leaves an existing .env alone, so add them by hand:"
+    for key in $missing; do
+      echo "            $(grep "^${key}=" .env.example)"
+    done
+    return 1
+  fi
+  echo ".env present, with every key .env.example declares ($(echo "$keys" | wc -l | tr -d ' '))"
 }
-check ".env exists"  check_env_file
+check ".env exists and carries every key .env.example declares"  check_env_file
 
 # A pinned API version nobody checks is a 400 arriving three tasks later. The
 # driver pins v1.44 deliberately (§21 records the daemon's window); this asserts
