@@ -244,11 +244,19 @@ services:
       # so the spike's IdP issued assertions from localhost:6122 while running
       # on 7122). An SP that pins idp.entityID survives a port move.
       MANIFEST_IDP_ENTITY_ID: ${MANIFEST_IDP_ENTITY_ID:-https://idp.manifest.internal/idp/shibboleth}
+      # The METADATA SOURCE's credential, and only that (§9). The entrypoint
+      # still initialises the tables as `manifest`, and store.sql.* below is a
+      # different subsystem that genuinely writes. If this value ever disagrees
+      # with the one ensure-idp-sql.sh sets, every metadata read fails and
+      # verify's "one INSERT registers an SP" check goes red — which is the
+      # control that keeps the two literals honest.
+      SSP_RO_PASSWORD: ${SSP_RO_PASSWORD:-change-me-locally}
     volumes:
       - ./idp/config/config.php:/var/simplesamlphp/config/config.php:ro
       - ./idp/config/authsources.php:/var/simplesamlphp/config/authsources.php:ro
       - ./idp/metadata/saml20-idp-hosted.php:/var/simplesamlphp/metadata/saml20-idp-hosted.php:ro
       - ./idp/cert:/var/simplesamlphp/cert:ro
+      - ./idp/attributemap/ubcoid.php:/var/simplesamlphp/attributemap/ubcoid.php:ro
     ports:
       # 7122, deliberately NOT 6122 — that is the standalone docker-simple-saml
       # on this machine (§21).

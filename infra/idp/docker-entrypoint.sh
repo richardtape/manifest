@@ -19,6 +19,10 @@ for i in $(seq 1 60); do
   sleep 1
 done
 
-php /var/simplesamlphp/bin/initMDSPdo.php
+# SSP_DB_INIT switches config.php's `database.*` to the OWNING role for this one
+# command. Everything after it — every request the server serves — reads metadata
+# as the SELECT-only ssp_ro (§9). initMDSPdo.php issues CREATE TABLE, so it
+# cannot run as the read-only role.
+SSP_DB_INIT=1 php /var/simplesamlphp/bin/initMDSPdo.php
 
 exec docker-php-entrypoint "$@"

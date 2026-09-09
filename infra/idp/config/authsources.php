@@ -6,20 +6,33 @@ $config = [
     'admin' => ['core:AdminPassword'],
     'manifest-test-users' => [
         'exampleauth:UserPass',
-        // UBC sends OID, confirmed against staging and production (S2).
+        // FRIENDLY NAMES HERE, OIDs ON THE WIRE. This is not a preference; it is
+        // what makes §9's "an app cannot receive an attribute it did not declare"
+        // true. MEASURED 2026-09-08 against this exact SimpleSAMLphp:
+        //
+        //   auth source OID keys   + row declares friendly  -> releases NOTHING
+        //   auth source friendly   + row declares friendly  -> releases the two
+        //   auth source friendly   + row declares []        -> releases ALL
+        //
+        // core:AttributeLimit compares the row's `attributes` list against the
+        // attribute KEYS as they stand at priority 50, and a manifest.yaml's
+        // `auth.attributes` are friendly names. So the auth source speaks
+        // friendly, AttributeLimit matches it, and core:AttributeMap at 60
+        // converts to the OIDs real UBC Shibboleth sends (S2) — which is how a
+        // sandbox exercises production's attribute vocabulary.
         'student:student' => [
-            'urn:oid:1.3.6.1.4.1.60.1.1.1'  => ['stu000001'],   // ubcEduCwlPuid
-            'urn:oid:0.9.2342.19200300.100.1.3' => ['student@student.ubc.ca'], // mail
-            'urn:oid:2.5.4.42' => ['Test'],                     // givenName
-            'urn:oid:2.5.4.4'  => ['Student'],                  // sn
-            'urn:oid:1.3.6.1.4.1.5923.1.1.1.1' => ['student'],  // eduPersonAffiliation
+            'ubcEduCwlPuid'        => ['stu000001'],
+            'mail'                 => ['student@student.ubc.ca'],
+            'givenName'            => ['Test'],
+            'sn'                   => ['Student'],
+            'eduPersonAffiliation' => ['student'],
         ],
         'instructor:instructor' => [
-            'urn:oid:1.3.6.1.4.1.60.1.1.1'  => ['ins000001'],
-            'urn:oid:0.9.2342.19200300.100.1.3' => ['instructor@ubc.ca'],
-            'urn:oid:2.5.4.42' => ['Test'],
-            'urn:oid:2.5.4.4'  => ['Instructor'],
-            'urn:oid:1.3.6.1.4.1.5923.1.1.1.1' => ['faculty'],
+            'ubcEduCwlPuid'        => ['ins000001'],
+            'mail'                 => ['instructor@ubc.ca'],
+            'givenName'            => ['Test'],
+            'sn'                   => ['Instructor'],
+            'eduPersonAffiliation' => ['faculty'],
         ],
     ],
 ];

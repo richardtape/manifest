@@ -429,7 +429,7 @@ check "the IdP image has pdo_pgsql"  idp_has_pdo_pgsql
 idp_reads_metadata_from_sql() {
   local eid='https://verify-probe.manifest.internal/sp' out rc
   docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
-    "INSERT INTO saml20_sp_remote (entity_id, entity_data) VALUES ('$eid', '{\"entityid\":\"$eid\",\"AssertionConsumerService\":[{\"Binding\":\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\",\"Location\":\"https://verify-probe.manifest.internal/acs\",\"index\":0}]}') ON CONFLICT (entity_id) DO NOTHING" >/dev/null 2>&1 \
+    "INSERT INTO saml20_sp_remote (entity_id, entity_data) VALUES ('$eid', '{\"entityid\":\"$eid\",\"AssertionConsumerService\":[{\"Binding\":\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\",\"Location\":\"https://verify-probe.manifest.internal/acs\",\"index\":0}],\"attributes\":[\"ubcEduCwlPuid\"]}') ON CONFLICT (entity_id) DO NOTHING" >/dev/null 2>&1 \
     || { echo "could not insert a probe SP row"; return 1; }
 
   out=$(docker exec -e PROBE_EID="$eid" manifest-idp php -r '
@@ -517,6 +517,113 @@ idp_through_the_edge() {
     || { echo "200, but not from the IdP — the wildcard answered: $(echo "$body" | head -1)"; return 1; }
 }
 check "the IdP is reachable through the edge over trusted TLS"  idp_through_the_edge
+
+# The row declares TWO attributes. Anything else released is a §9 violation, and
+# S2 measured the default as releasing all THIRTEEN the auth source produces.
+idp_enforces_attribute_release() {
+  local eid='https://manifest.internal/sp/verify-attr-probe/staging'
+  docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
+    "INSERT INTO saml20_sp_remote (entity_id, entity_data) VALUES ('$eid',
+     '{\"AssertionConsumerService\":[{\"index\":0,\"Binding\":\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\",\"Location\":\"https://verify-attr-probe.staging.manifest.internal/acs\"}],
+       \"attributes\":[\"ubcEduCwlPuid\",\"mail\"]}')
+     ON CONFLICT (entity_id) DO UPDATE SET entity_data = EXCLUDED.entity_data" >/dev/null
+  # Ask SimpleSAMLphp itself what it would release, rather than completing a
+  # login here — Task 3 owns the full flow. This asserts the FILTER is loaded.
+  local out
+  out=$(docker exec manifest-idp php -r '
+    require "/var/simplesamlphp/vendor/autoload.php";
+    $c = \SimpleSAML\Configuration::getInstance();
+    $ap = $c->getOptionalArray("authproc.idp", []);
+    $classes = [];
+    foreach ($ap as $p) { $classes[] = is_array($p) ? ($p["class"] ?? "?") : $p; }
+    echo implode(",", $classes);
+  ' 2>&1)
+  docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
+    "DELETE FROM saml20_sp_remote WHERE entity_id='$eid'" >/dev/null
+  echo "authproc.idp = [$out]"
+  echo "$out" | grep -q 'core:AttributeLimit'
+}
+check "the IdP loads core:AttributeLimit (without it release fails OPEN)"  idp_enforces_attribute_release
+
+idp_refuses_an_empty_attribute_list() {
+  local eid='https://manifest.internal/sp/verify-empty-probe/staging'
+  local rc=0
+  docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
+    "INSERT INTO saml20_sp_remote (entity_id, entity_data)
+     VALUES ('$eid', '{\"attributes\":[]}')" >/dev/null 2>&1 || rc=$?
+  docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
+    "DELETE FROM saml20_sp_remote WHERE entity_id='$eid'" >/dev/null 2>&1
+  echo "INSERT of a row with attributes:[] exited $rc (want non-zero)"
+  [ "$rc" -ne 0 ]
+}
+check "the database refuses a row whose attributes list is empty"  idp_refuses_an_empty_attribute_list
+
+# The SAME rule from the other side. core:AttributeLimit treats a MISSING
+# `attributes` key exactly as it treats an empty one — no limit, everything
+# released — so a constraint that only rejects `[]` leaves the fail-open row
+# perfectly representable. `jsonb_array_length(NULL)` is NULL and `NULL > 0` is
+# NULL, which a CHECK accepts, so this is one COALESCE away from being useless.
+idp_refuses_a_missing_attribute_list() {
+  local eid='https://manifest.internal/sp/verify-missing-probe/staging'
+  local rc=0
+  docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
+    "INSERT INTO saml20_sp_remote (entity_id, entity_data)
+     VALUES ('$eid', '{\"entityid\":\"$eid\"}')" >/dev/null 2>&1 || rc=$?
+  docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
+    "DELETE FROM saml20_sp_remote WHERE entity_id='$eid'" >/dev/null 2>&1
+  echo "INSERT of a row with NO attributes key exited $rc (want non-zero)"
+  [ "$rc" -ne 0 ]
+}
+check "the database refuses a row with no attributes key at all"  idp_refuses_a_missing_attribute_list
+
+idp_metadata_user_is_read_only() {
+  local rc=0
+  docker exec manifest-postgres psql -U ssp_ro -d manifest_idp -tAc \
+    "INSERT INTO saml20_sp_remote VALUES ('verify-ro-probe','{}')" >/dev/null 2>&1 || rc=$?
+  # CLEAN UP EVEN THOUGH THE INSERT IS MEANT TO FAIL. When this check does its
+  # job the DELETE is a no-op; when it fails, the row it just proved should not
+  # exist stays in the table for ever. Measured 2026-09-08: a run with INSERT
+  # granted left `('x','{}')` behind, and the next `make up` then died because
+  # that row violates the attributes CHECK — a failing check that breaks the
+  # platform for the next person is worse than no check.
+  docker exec manifest-postgres psql -U manifest -d manifest_idp -tAc \
+    "DELETE FROM saml20_sp_remote WHERE entity_id='verify-ro-probe'" >/dev/null 2>&1
+  echo "ssp_ro INSERT exited $rc (want non-zero)"
+  [ "$rc" -ne 0 ] && docker exec manifest-postgres psql -U ssp_ro -d manifest_idp \
+    -tAc "SELECT 1 FROM saml20_sp_remote LIMIT 1" >/dev/null 2>&1
+}
+check "the SimpleSAMLphp metadata user can read and cannot write (§9)"  idp_metadata_user_is_read_only
+
+# NOT a grep for the OID in a config file. This runs the CONFIGURED chain, in
+# priority order, over five attributes with a row declaring two — so it fails if
+# the limit is missing, if the map is missing, if the map lacks the UBC entry,
+# and (unlike a "the filter is loaded" assertion) if the two priorities are
+# SWAPPED, which releases everything while looking identical to working.
+idp_releases_exactly_what_the_row_declares_named_by_oid() {
+  local want='urn:oid:0.9.2342.19200300.100.1.3,urn:oid:1.3.6.1.4.1.60.6.1.6'
+  local got
+  got=$(docker exec -i manifest-idp php < scripts/lib/idp-attribute-chain.php 2>&1 | tail -1)
+  echo "5 attributes in, row declares 2, released: ${got:-<nothing>}"
+  echo "                                   wanted: $want"
+  [ "$got" = "$want" ]
+}
+check "a login releases exactly the declared attributes, named by OID (§9)"  idp_releases_exactly_what_the_row_declares_named_by_oid
+
+idp_ships_no_flatfile_sp_metadata() {
+  # §9: "The deployed IdP ships no saml20-sp-remote.php." S2 measured why —
+  # when the same entityID exists in a flatfile AND the SQL store, the FIRST
+  # matching metadata.sources entry wins, so a stale file silently shadows a
+  # control-plane-written row and nothing reports it. docker-simple-saml's own
+  # file defines 15 SPs.
+  #
+  # True today only by accident: the image ships .dist files and nothing else.
+  # An accident is not a control, so it is asserted.
+  if docker exec manifest-idp test -f /var/simplesamlphp/metadata/saml20-sp-remote.php; then
+    echo "saml20-sp-remote.php EXISTS — it will shadow SQL rows silently"; return 1
+  fi
+  echo "no flatfile saml20-sp-remote.php; the SQL store is the only place an SP is defined"
+}
+check "the IdP ships no flatfile SP metadata (§9)"  idp_ships_no_flatfile_sp_metadata
 
 echo
 echo "C1 — host/container parity (S7 §Evidence 4, 5)"

@@ -27,8 +27,42 @@ $config = array_merge($config, [
     // connection details of its own — the handler ignores any it is given and
     // reads THIS (S2). Getting that backwards is a wasted afternoon.
     'database.dsn'      => 'pgsql:host=postgres;port=5432;dbname=manifest_idp',
-    'database.username' => 'manifest',
-    'database.password' => getenv('POSTGRES_PASSWORD'),
+    // §9: the metadata source's user is READ-ONLY. Note the scope — this is
+    // `database.*`. `store.sql.*` below is a different subsystem with its own
+    // credentials and it DOES write (S2); reading this as "SimpleSAMLphp never
+    // writes to Postgres" would mis-provision §21's shared server.
+    // SSP_DB_INIT is set by the entrypoint for ONE command and nothing else.
+    // SimpleSAMLphp's own initialiser, bin/initMDSPdo.php, issues CREATE TABLE
+    // through `database.*` — the same credentials the request path reads
+    // metadata with — so a plain read-only role makes the container die at boot
+    // with `permission denied for schema public` and restart-loop (measured
+    // 2026-09-08). Scoping the write credential to the init step keeps §9's
+    // "the metadata source's user is read-only" true of every request.
+    //
+    // Deliberately NOT `php_sapi_name() === 'cli'`: that would silently give
+    // every CLI probe more privilege than the server has, which is the exact
+    // shape — the test constructs it correctly and the running system derives
+    // it differently — that has cost this project seven defects in one session.
+    'database.username' => getenv('SSP_DB_INIT') ? 'manifest' : 'ssp_ro',
+    'database.password' => getenv('SSP_DB_INIT')
+        ? getenv('POSTGRES_PASSWORD')
+        : (getenv('SSP_RO_PASSWORD') ?: 'change-me-locally'),
+
+    // WITHOUT AN EXPLICIT CHAIN THE ORDERING IS INHERITED AND INVISIBLE. The
+    // 2.4.x dist DOES ship `50 => core:AttributeLimit` (measured 2026-09-08 —
+    // the plan's finding 2 assumed an empty chain and was wrong about that),
+    // but it ships no name2oid map, so nothing converted friendly names to the
+    // OIDs real UBC Shibboleth sends.
+    //
+    // THE PRIORITIES ARE LOAD-BEARING. AttributeLimit at 50 matches the
+    // FRIENDLY vocabulary the auth source and a manifest.yaml's
+    // `auth.attributes` both use; AttributeMap at 60 converts to OIDs
+    // afterwards. Reverse them and the limit matches nothing and releases
+    // everything — which looks identical to it working.
+    'authproc.idp' => [
+        50 => ['class' => 'core:AttributeLimit'],
+        60 => ['class' => 'core:AttributeMap', 'name2oid', 'ubcoid'],
+    ],
 
     // DIFFERENT SUBSYSTEM from database.* above: this is the session/data store.
     // Proving one works proves nothing about the other (S2).
