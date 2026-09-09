@@ -18,8 +18,7 @@
 
 ## How this plan is being executed — SEVEN SITTINGS, one per session
 
-**Tasks 1–11 are DONE (Tasks 10–11 on 2026-09-09). Sitting 5 — Tasks 12 and 13 — is next,
-and it is the one that needs the network on.**
+**Tasks 1–13 are DONE (Tasks 12–13 on 2026-09-09). Sitting 6 — Task 14, alone — is next.**
 
 Agreed with Rich on 2026-09-08: the remaining tasks run one sitting per session, with
 a check-in at each boundary, so a session limit can never land in the middle of a task.
@@ -33,8 +32,8 @@ the §17 product roadmap, and confusing the two sends a reader to the wrong docu
 | 2 | 6–7 — per-app SP keypairs, then `sso/` and the one row | ✅ done 2026-09-09, 9 defects |
 | 3 | 8–9 — events and the registration call site | ✅ done 2026-09-09, 8 defects |
 | 4 | 10–11 — §8's injection contract and its call site | ✅ done 2026-09-09, 10 defects |
-| **5** | **12–13 — `node-ts-mongo@1` and the drift test (needs the network)** | ← **next** |
-| 6 | 14 — Manifest's own login, and the end of the dev shim | alone: it reddens most of the API suite |
+| 5 | 12–13 — `node-ts-mongo@1` and the drift test | ✅ done 2026-09-09, 9 defects |
+| **6** | **14 — Manifest's own login, and the end of the dev shim** | ← **next.** Alone: it reddens most of the API suite |
 | 7 | 15 — the proof app and P4a's acceptance | alone: the first end-to-end run |
 
 **Every sitting ends the same way:** the four gates from *Global Constraints*,
@@ -3664,6 +3663,95 @@ take — reading only one of the two lists asserts nothing about the other. Note
 `DeployDeps` now carries **four** fields (`secrets`, `appSecrets`, `sso`,
 `blueprints`), and that `renderInjection` refuses an app declaring `ai.models` by
 design, so `node-ts-mongo@1` must ship `provides.ai: false` exactly as Decision 12 says.
+
+---
+
+### Session 7 — sitting 5: Tasks 12 and 13 (2026-09-09). 9 defects.
+
+**Baseline first, and it matched the handover exactly**: `make doctor` 17/0, `make
+verify` 45/0, `pnpm test` 491 in 53 files, lint/typecheck/format clean, the IdP
+serving signed metadata, and the network on — which this sitting needed.
+
+**`node-ts-mongo@1` exists, and it was built and deployed for real.** Not a fixture:
+the blueprint's own skeleton is the build target, so a skeleton that does not build is
+a blueprint nobody can use, and no other test would have noticed. The deployed
+container answered `/healthz` `{status:'ok',mongo:true}` through the edge, reported
+`database: "ntm_blueprint"` at `/` — the injected `MONGODB_DB_NAME`, which the skeleton
+has no fallback for — and issued a real AuthnRequest to
+`https://idp.manifest.internal/module.php/saml/idp/singleSignOnService` from the
+injected SAML block. `passport-ubcshib`'s whole dependency tree went through §12's scan
+gate, which behaved exactly as Rich settled it on 2026-09-08: the deprecated
+`passport-saml` advisory has no published fix, so it was **recorded and not blocked**,
+and the `@xmldom/xmldom` highs never appeared because the blueprint carries the
+override.
+
+**The pinned set is measured, not chosen.** The plan named `express 4.21.2` and
+`express-session 1.18.1`; both predate `fixtures/saml-sp`, whose exact set —
+express 4.22.2, express-session 1.19.0, passport 0.7.0, passport-ubcshib 0.1.6, with
+`@xmldom/xmldom` pinned to 0.8.15 by an npm `override` — completed a real CWL login on
+this platform on 2026-09-08. The plan's own step-1 test left express as a regex, which
+is why. `mongodb 6.12.0` is what `fixture-node@1` already pins and mirrors.
+
+**Three deviations from the plan's text, all deliberate.**
+
+| Deviation | Why |
+|---|---|
+| The skeleton reads §8 through one literal `process.env.NAME` block per module, not through a `required(name)` helper that does `process.env[name]` | Task 13's drift test reads the blueprint's SOURCE. A computed read hides every name from it, and the test would then compare two hand-maintained lists — the failure it exists to prevent. `required()` reads that block instead |
+| `SAML_IDP_METADATA_URL` is injected into the strategy's `metadataUrl`, though `cert` makes the fetch unreachable | It is §8's one required-in-all row with no obvious consumer, and the alternative was to exempt it. The library's `UBC_CONFIG.LOCAL.metadataUrl` is `http://localhost:8080/simplesaml/…` — a 1.x path on the CONTAINER'S OWN loopback, the failure §21 spends a paragraph on. Leaving that default in place is the same class of thing as leaving `SAML_ENVIRONMENT` unset, so `PLATFORM_ONLY` is **empty** and the blueprint genuinely reads all twelve |
+| Mongo is REQUIRED by this blueprint, not optional | The name is the contract, and a fallback is what `MONGODB_DB_NAME` already cost. An app declaring no mongo service fails its FIRST boot with a message naming the fix, rather than running and storing nothing |
+
+**Tasks 12 and 13 found 9 defects. Two of them are the plan's own negative controls.**
+
+| # | Task | Defect | Measured against |
+|---|---|---|---|
+| 54 | 12 | **Both Dockerfile refusals were aimed at `fixture-node` by name.** `context.test.ts` read `blueprints/fixture-node/Dockerfile.tmpl` explicitly in two tests, so a second blueprint could carry a `# syntax=` directive or a `.npmrc` copied after `npm ci` with the suite fully green — and each of those cost a session in P3. | Read, then proved: with the guards enumerating every blueprint on disk, adding `# syntax=` to the new one is RED and names it; `fixture-node`'s own tests stay green, which is what the suite would have shown before |
+| 55 | 12 | **`fixtureBareRepo`'s stamp was `cat <source>/*` — a top-level glob.** Every file under a subdirectory was invisible to it, and `node-ts-mongo@1` is the first source tree with one. A build would have reused the previous bare repo and tested the code before the edit. | Measured both ways on 2026-09-09: editing `skeleton/auth/ubcshib.js` left the old command's hash at `70178b93e492063d` before and after, while the new recursive one moved `62730aa5…` → `ddde4ebe…` and back on revert. Same shape as the stale container that served four runs of a suite |
+| 56 | 13 | **The drift regex counts COMMENTS, and the dangerous half is silent.** The visible half is how it surfaced — the blueprint's own doc comments say "read as a literal `process.env.NAME`", so the first run reported `NAME` and `X` as variables nothing injects. The half that matters: a read that has been COMMENTED OUT still matches, so "the blueprint reads every injected variable" passes against a variable the running app never reads. | Both watched. With the scanner: commenting out `MANIFEST_APP_URL`'s read is RED. Without it: **GREEN** on that direction, with only the phantom `NAME` failing for an unrelated reason. Comments and string bodies are now stripped by a scanner, not a regex — `'//'` inside a string is not a comment |
+| 57 | 13 | **The plan's negative control (b) aims at a test that cannot see it.** Deleting the `SESSION_SECRET` row from `INJECTION_VARIABLES` makes direction 2's *expected* set SMALLER, so a deletion can only weaken the test, never fail it; and direction 1 compares against the renderer's OUTPUT, which the table does not gate. This is defect 46's shape in its sibling form. | Applied and watched **GREEN** in the drift file. It is RED in `injection.test.ts` — Task 10's two-way table/renderer comparison, which defect 46 produced — so the control has a home, just not the one the plan named. Direction 2 now compares against what `renderInjection` EMITS, which cannot be shrunk by editing the table |
+| 58 | 12/13 | **`make verify`'s offline npm check installs `zod@3.24.1`.** It proves the mirror serves *a* package, not that any blueprint's closure is warm — and Verdaccio proxies whatever it does not hold, so a cold mirror and a warm one behave identically until C1 actually matters. Task 12's step 6 says to check the storage by hand; nothing made that standing. | A new check asserts every blueprint and fixture lockfile's TARBALLS are in `/verdaccio/storage` — 210 of them, 0 missing. Watched fail: repinning express to an unmirrored 4.21.1 gives `MISSING express/express-4.21.1.tgz`, naming the lockfile. `make verify` is **46 checks** from here |
+| 59 | 12 | **A shell fragment inside a TypeScript template literal has its escapes eaten by TypeScript.** `tr '\n' '\0'` in the new stamp command became a real NUL byte in the argv, and `execFileSync` refused it: *"args[1] must be a string without null bytes"*. | The Docker tier, immediately. Same family as §4's Prettier trap: the edit applied cleanly and the thing it produced was not what it read like |
+| 60 | 12 | **Importing the blueprint's own JS from a `src/` test is a `tsc` error no test can see.** TS7016 — the skeleton is app-side JavaScript outside this package's `rootDir`, and `tsc` neither can nor should typecheck it. | `pnpm --filter @manifest/control-plane typecheck`, after `pnpm test` was green. **Twelfth instance** of this class. Loaded through a computed specifier with one explicit cast, which is the single place the module's shape is asserted |
+| 61 | 12 | **`noUncheckedIndexedAccess` turns `OID.mail` into `string \| undefined`, and a computed key of that type would have been the literal string `"undefined"`.** A test asserting against a key that cannot exist — the shape this project has paid for repeatedly. | `tsc` again, three sites. The cast names the seven §9 attributes as a finite key union rather than an index signature |
+| 62 | 12 | **The plan's `pinned_dependencies` named versions with nothing behind them.** `express 4.21.2` and `express-session 1.18.1` were written on 2026-09-07, before `fixtures/saml-sp` existed and measured a set that completes a CWL login. | Read, then replaced with the measured set. Both versions of each are mirrored, so this was a choice about evidence and not about availability |
+
+**The negative controls, each watched red and reverted.**
+
+| Control | Result |
+|---|---|
+| (12a) `# syntax=docker/dockerfile:1` at the top of the new `Dockerfile.tmpl` | RED, in both generalized guards, naming `node-ts-mongo` — and green before the generalization, which is defect 54 |
+| (12b) `.npmrc` moved out of the lockfile `COPY` | RED at RENDER time, in the unit tier *and* in the real build, which never reaches BuildKit. Stronger than the plan expected: it asked for a build failure offline and a silently-wrong build online, and neither is now reachable |
+| (12c) `attributeConfig` removed from `ubcshib.js` | **NOT RUN — the plan's own text names Task 15's acceptance as the thing that goes red, and it does not exist yet.** The testable half is covered: `attribute-bridge.test.ts` loads the blueprint's real `attributes.js` and asserts both profile shapes, and removing the OID read reddens five of its six tests. **Task 15 must run the full control** |
+| (12d) the OID read removed from `bridge()` | RED in 5 of 6 — this is the half of (12c) that can be proved without a login |
+| (13a) `process.env.COURSE_TERM` added to `server.js` | RED, naming `COURSE_TERM` **and the file** |
+| (13b) the `SESSION_SECRET` row deleted from `INJECTION_VARIABLES` | **GREEN in the drift file** — that is defect 57. RED in `injection.test.ts` |
+| (13c) a read of `MANIFEST_APP_URL` deleted from the skeleton | RED, direction 2 |
+| (13d) the same read COMMENTED OUT rather than deleted | RED with the comment scanner, **GREEN without it** — defect 56's silent half |
+| (verify) express repinned to an unmirrored 4.21.1 | RED, `MISSING express/express-4.21.1.tgz`, naming the lockfile |
+
+Every control was applied by `python3 .replace()` with an **assertion that the pattern
+matched** before the file was written — §4's Prettier trap, which has now caught this
+project four times.
+
+**State at the end of the sitting:** `make doctor` **17/0**, `make verify` **46/0**,
+`pnpm test` **508** twice (55 files), `pnpm test:docker` **114** (21 files, ~378 s),
+lint/typecheck/format clean. Two commits.
+
+**One thing worth knowing about the mirror.** `make seed`'s warm loop globs
+`blueprints/*/skeleton/package.json`, so it picked the new blueprint up with no edit —
+and defect 58's check now proves it did rather than assuming it. The warm was run by
+hand this session (network on) and left 99 unique tarballs for this closure, every one
+of them present.
+
+**What sitting 6 inherits.** Task 14 alone: Manifest's own CWL login and the end of the
+dev shim. Re-run the plan's own `grep` for `/auth/dev-login` before starting — the
+count was 19 across 8 files on 2026-09-07 and `authz-contract.ts` drives 81 tests, so
+migrate every call site to `testSessionCookie` with the shim still in place and green,
+and delete only then. Two things this sitting leaves ready: `node-ts-mongo@1` is a
+blueprint with `auth_providers: [cwl, none]` that has been deployed and has issued an
+AuthnRequest, so Task 15's proof app has a working base to start from rather than a
+descriptor nobody has run; and `attribute-bridge.test.ts` shows the shape for testing
+blueprint-side JavaScript from this suite — a computed specifier and one cast, because
+`tsc` will not follow a relative import outside `rootDir`.
 
 ---
 
