@@ -31,6 +31,7 @@ up: .env  ## Boot the platform. Works offline after `make seed`.
 	@bash infra/lib/ensure-alias.sh
 	@bash infra/lib/ensure-registry-auth.sh
 	@bash infra/lib/ensure-idp-keypair.sh
+	@bash infra/lib/ensure-master-key.sh
 	@$(COMPOSE) up -d --wait
 	@bash infra/lib/ensure-caddy-config.sh
 	@bash infra/lib/ensure-idp-sql.sh
@@ -88,6 +89,8 @@ reset: .env  ## Destroy projects, volumes and registry contents. KEEPS the seed 
 	@bash infra/seed/mirror-images.sh
 	@echo "reset done. THE DATABASE IS EMPTY: re-apply migrations before \`pnpm test\`"
 	@echo "  or the control plane — README's 'Running the control plane' has the command."
+	@echo "infra/secrets/master.key was NOT removed — every stored secret is sealed"
+	@echo "to it, so destroying it is not a reset (§20, separate custody)."
 	@echo "manifest-caddy-data was NOT removed — the trusted CA lives there,"
 	@echo "and the mirrored base images are back, so the machine is still offline-capable."
 	@echo "Run: make up"

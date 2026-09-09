@@ -89,6 +89,12 @@ const envSchema = z.object({
    */
   MANIFEST_CA_CERT: z.string().min(1).default('infra/ca/manifest-root.crt'),
   /**
+   * §12's envelope-encryption master keypair, in SEPARATE CUSTODY from the
+   * database it opens (§20) — a stolen dump is not a stolen secret set.
+   * Repo-relative for the reason `fromRepoRoot` records.
+   */
+  MANIFEST_SECRETS_MASTER_KEY: z.string().min(1).default('infra/secrets/master.key'),
+  /**
    * How long a deploy waits for the app to answer 200 AT ITS HOSTNAME, through the
    * edge. Generous, because it covers the app's own cold start (an `npm` runtime,
    * a database connection) as well as DNS, the route and the listener.
@@ -124,6 +130,8 @@ export interface Config {
   dnsServer: string
   /** The platform CA, absolute. Mounted into the readiness probe container. */
   caCertPath: string
+  /** Absolute. `infra/lib/ensure-master-key.sh` mints the file `make up` puts here. */
+  secretsMasterKeyPath: string
   readinessTimeoutMs: number
   /** Task 6 derives every service credential from this by HMAC. */
   masterSecret: string
@@ -227,6 +235,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     },
     dnsServer: raw.MANIFEST_DNS_SERVER,
     caCertPath: fromRepoRoot(raw.MANIFEST_CA_CERT),
+    secretsMasterKeyPath: fromRepoRoot(raw.MANIFEST_SECRETS_MASTER_KEY),
     readinessTimeoutMs: raw.MANIFEST_READINESS_TIMEOUT_MS,
     masterSecret,
     masterSecretGenerated,

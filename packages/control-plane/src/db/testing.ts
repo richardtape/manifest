@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto'
 import { sql } from 'drizzle-orm'
 import { db } from './client.js'
 import type { Db } from './client.js'
+import { projects, users } from './schema.js'
 
 class Rollback extends Error {}
 
@@ -13,6 +15,41 @@ export async function withRollback(fn: (tx: Db) => Promise<void>): Promise<void>
   } catch (error) {
     if (!(error instanceof Rollback)) throw error
   }
+}
+
+/**
+ * A rolled-back transaction that already holds an owner and a project.
+ *
+ * Everything scoped to a project — a Secret, and from P4a Task 8 an Event —
+ * needs a real `projects.id` because the foreign key is real. Building those two
+ * rows by hand in each test file is how the rows drift apart, and a unique slug
+ * per call is what keeps the fixture usable twice in one file: `projects_slug_key`
+ * is unique, and two tests reaching for `chem-labs` is a 500 that reads as a bug
+ * in the code under test (P2 paid for that one).
+ */
+export async function withProject(
+  fn: (tx: Db, ctx: { projectId: string; ownerId: string }) => Promise<void>,
+): Promise<void> {
+  await withRollback(async (tx) => {
+    const unique = randomUUID().slice(0, 8)
+    const [owner] = await tx
+      .insert(users)
+      .values({
+        ubcCwlPuid: `puid-${unique}`,
+        email: `owner-${unique}@example.ubc.ca`,
+        displayName: 'Test Owner',
+      })
+      .returning()
+    const [project] = await tx
+      .insert(projects)
+      .values({
+        slug: `fixture-${unique}`,
+        ownerId: owner!.id,
+        blueprintRef: 'fixture-node@1',
+      })
+      .returning()
+    await fn(tx, { projectId: project!.id, ownerId: owner!.id })
+  })
 }
 
 /**
@@ -29,6 +66,7 @@ export async function withRollback(fn: (tx: Db) => Promise<void>): Promise<void>
  * so this cannot run while another file holds a transaction open.
  */
 const TABLES = [
+  'secrets',
   'idempotency_keys',
   'instances',
   'service_instances',

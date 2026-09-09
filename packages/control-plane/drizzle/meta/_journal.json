@@ -22,6 +22,13 @@
       "when": 1788809346464,
       "tag": "0002_cultured_the_spike",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788933577145,
+      "tag": "0003_steep_pepper_potts",
+      "breakpoints": true
     }
   ]
 }

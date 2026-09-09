@@ -222,3 +222,32 @@ export const idempotencyKeys = pgTable(
   },
   (t) => [primaryKey({ columns: [t.key, t.userId, t.route] })],
 )
+
+/**
+ * §6's Secret. `ciphertext` holds the whole SecretEnvelope as JSON — the
+ * wrapped data key travels with the payload, because a wrapped key in a
+ * separate column is a wrapped key that can be restored from a different
+ * backup than its ciphertext.
+ *
+ * `environment_kind` is a column rather than a reference to `environments`
+ * deliberately: §11's "a sandbox never receives staging or production secrets"
+ * is a property of the KIND, and a secret must be storable for an environment
+ * kind before that environment row exists.
+ */
+export const secrets = pgTable(
+  'secrets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    environmentKind: environmentKind('environment_kind').notNull(),
+    name: text('name').notNull(),
+    ciphertext: jsonb('ciphertext').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    rotatedAt: timestamp('rotated_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('secrets_scope_name_key').on(t.projectId, t.environmentKind, t.name),
+  ],
+)

@@ -12,6 +12,25 @@ const base = {
 }
 
 describe('configuration', () => {
+  // §12's envelope encryption reads its master keypair from a FILE, in separate
+  // custody from the database it opens (§20). The path is repo-relative for the
+  // same reason MANIFEST_CA_CERT is: `pnpm test` and `node dist/index.js` run
+  // from different working directories and a relative path means two different
+  // files.
+  it('resolves the secrets master key against the repo root, not the cwd', () => {
+    const config = loadConfig({ ...base })
+    expect(config.secretsMasterKeyPath).toMatch(/\/infra\/secrets\/master\.key$/)
+    expect(config.secretsMasterKeyPath.startsWith('/')).toBe(true)
+  })
+
+  it('lets an operator hold the master key outside the repository', () => {
+    const config = loadConfig({
+      ...base,
+      MANIFEST_SECRETS_MASTER_KEY: '/etc/manifest/master.key',
+    })
+    expect(config.secretsMasterKeyPath).toBe('/etc/manifest/master.key')
+  })
+
   // The listener split is TWO settings rather than a derivation from the
   // environment kind, so UBC infrastructure can bind staging to an internal-only
   // listener by configuration. Locally Caddy names both listeners `srv0` (§21,

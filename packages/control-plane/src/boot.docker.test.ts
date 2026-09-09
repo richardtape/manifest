@@ -67,7 +67,15 @@ describeDocker('the boot entry point', () => {
           reject(new Error(`the control plane exited with ${code}:\n${out}`))
         })
       })
-      expect(JSON.parse(line).driver).toBe('docker')
+      const boot = JSON.parse(line)
+      expect(boot.driver).toBe('docker')
+      // §12's scrub, asserted at the ONLY place it can be: the real process.
+      // `runtime/docker/builder.ts` spawns `docker` with `{ ...process.env }`,
+      // so anything still in the environment at that moment reaches the build —
+      // and a build log is a place secrets end up. This spawn sets
+      // MANIFEST_SESSION_SECRET and MANIFEST_MASTER_SECRET explicitly, so a
+      // scrub that ran removed at least those two.
+      expect(boot.secretsScrubbed).toBeGreaterThanOrEqual(2)
     } finally {
       child.kill('SIGTERM')
     }

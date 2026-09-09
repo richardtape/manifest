@@ -45,6 +45,7 @@ infra/registry-auth/
 # custody from application secrets (§20) and never committed: regenerating it
 # invalidates every SP that pinned the certificate.
 infra/idp/cert/
+infra/secrets/
 
 # Generated test issuer keypair (runtime/docker/testing.ts). Never committed:
 # the blanket *.key rule above is deliberate and stays absolute.

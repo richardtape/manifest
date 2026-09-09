@@ -6,10 +6,23 @@ import { db } from './db/index.js'
 import { createCaddyClient } from './routing/index.js'
 import { createDockerDriver, createEngineClient } from './runtime/index.js'
 import { createLocalSourceDriver } from './source/index.js'
+import { scrubSecretEnv } from './secrets/index.js'
 
 // loadConfig throws before anything listens if MANIFEST_DEV_AUTH is set outside
 // development. That is the point: the process must not come up in that state.
 const config = loadConfig()
+
+// §12: "scrubbed from the control plane's own `process.env` at boot so that any
+// child process it spawns cannot read them."
+//
+// AFTER loadConfig, which has now read everything it needs, and after the module
+// imports above — `db/client.ts` reads MANIFEST_DATABASE_URL at import time, and
+// ESM evaluates every import before the first statement here, so it already has
+// it. From this line on, nothing may read a secret from the environment again.
+//
+// This is not theoretical: `runtime/docker/builder.ts` spawns `docker` with
+// `{ ...process.env }` twice, and an app's build log is a place secrets end up.
+const secretsScrubbed = scrubSecretEnv()
 
 const readIssuerPem = (path: string, which: string): string => {
   try {
@@ -101,6 +114,9 @@ console.log(
     driver: driver.name,
     port: config.port,
     msg: 'control plane ready',
+    // The COUNT, never the names' values. A zero here means the scrub did not
+    // run, which is indistinguishable from a clean environment without it.
+    secretsScrubbed: secretsScrubbed.length,
     // Service credentials are DERIVED from the master secret. A generated one
     // cannot reproduce the password an existing Mongo container already holds, and
     // the resulting failure looks like a database problem rather than a
