@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -14,6 +14,27 @@ import { assembleContext, renderDockerfile } from './context.js'
 const BLUEPRINT_DIR = fileURLToPath(
   new URL('../../../../blueprints/fixture-node/', import.meta.url),
 )
+
+const BLUEPRINTS_ROOT = fileURLToPath(new URL('../../../../blueprints/', import.meta.url))
+
+/**
+ * Every blueprint on disk, as `[name, Dockerfile template]`.
+ *
+ * ENUMERATED, never listed. The two guards below assert refusals that each cost
+ * a session — a `# syntax=` directive and a `.npmrc` copied after `npm ci` — and
+ * both named `fixture-node` explicitly until `node-ts-mongo@1` arrived, so a
+ * second blueprint could have carried either defect with the suite green. A
+ * check aimed at one of two possible targets is the shape this project has paid
+ * for repeatedly.
+ */
+function shippedBlueprints(): [string, string][] {
+  return readdirSync(BLUEPRINTS_ROOT, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => [
+      entry.name,
+      readFileSync(join(BLUEPRINTS_ROOT, entry.name, 'Dockerfile.tmpl'), 'utf8'),
+    ])
+}
 
 function bareRepoWith(files: Record<string, string>): {
   repoPath: string
@@ -162,11 +183,11 @@ describe('the external-frontend refusal', () => {
     ).toThrow(/external BuildKit frontend/)
   })
 
-  it('the shipped blueprint has none', () => {
-    const template = readFileSync(
-      new URL('../../../../blueprints/fixture-node/Dockerfile.tmpl', import.meta.url),
-      'utf8',
-    )
+  // EVERY shipped blueprint, enumerated from disk. It named `fixture-node`
+  // alone until 2026-09-09, so adding a `# syntax=` directive to any other
+  // blueprint reddened nothing — a guard aimed at one of two targets, which is
+  // this project's most-repeated defect shape.
+  it.each(shippedBlueprints())('%s has none', (_name, template) => {
     expect(() =>
       renderDockerfile(template, {
         BASE_IMAGE: 'base/node@sha256:x',
@@ -195,11 +216,10 @@ describe('the .npmrc ordering guard (D13)', () => {
     ).not.toThrow()
   })
 
-  it('the shipped blueprint copies it first', () => {
-    const template = readFileSync(
-      new URL('../../../../blueprints/fixture-node/Dockerfile.tmpl', import.meta.url),
-      'utf8',
-    )
+  // Every shipped blueprint again, for the same reason: D13's control is inert
+  // in a blueprint whose Dockerfile installs first, and only that blueprint's
+  // apps are affected.
+  it.each(shippedBlueprints())('%s copies it first', (_name, template) => {
     expect(() =>
       renderDockerfile(template, {
         BASE_IMAGE: 'base/node@sha256:x',

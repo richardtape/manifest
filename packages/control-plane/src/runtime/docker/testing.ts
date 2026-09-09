@@ -232,9 +232,25 @@ export function fixtureBareRepo(
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([name, contents]) => `${name}:${contents}`)
     .join('\n')
+  /**
+   * RECURSIVE, and over NAMES as well as contents.
+   *
+   * It was `cat <source>/*` until 2026-09-09, which is a top-level glob: every
+   * file under a subdirectory was invisible to the stamp, so editing
+   * `skeleton/auth/ubcshib.js` reused the previous bare repo and the build
+   * tested the code before the edit. Nothing had a subdirectory until
+   * `node-ts-mongo@1` arrived, so it had never mattered — and it is the same
+   * shape as the stale container that served four runs of a suite and made a
+   * negative control pass against an app it had already edited.
+   *
+   * BSD userland: no `sort -z`, no `xargs -r`. The file list is emitted first so
+   * a rename with identical contents also moves the stamp.
+   */
   const sourceStamp = execFileSync('sh', [
     '-c',
-    `cat ${JSON.stringify(source)}/* | shasum -a 256 | cut -c1-16`,
+    `cd ${JSON.stringify(source)} && { find . -type f | LC_ALL=C sort; ` +
+      `find . -type f | LC_ALL=C sort | tr '\\n' '\\0' | xargs -0 cat; } ` +
+      `| shasum -a 256 | cut -c1-16`,
   ])
     .toString()
     .trim()

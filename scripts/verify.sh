@@ -799,6 +799,52 @@ if [ "${MANIFEST_VERIFY_OFFLINE:-0}" = "1" ]; then
   check "npm install works against the mirror offline"  offline_npm_install
 fi
 
+# THE MIRROR HOLDS EVERY BLUEPRINT'S CLOSURE, as TARBALLS.
+#
+# Not conditional on being offline, because the failure it catches is invisible
+# WHILE the network is up: Verdaccio proxies whatever it does not hold, so a cold
+# mirror and a warm one behave identically until the moment C1 actually matters.
+# `make seed` warms from these same lockfiles, and P4a Task 12 checked one by
+# hand; this is that check, standing.
+#
+# TARBALLS, never package documents. Verdaccio caches a `.tgz` when it is
+# DOWNLOADED, and `npm install --package-lock-only` downloads nothing — so a warm
+# step written that way leaves metadata and no tarballs, which is
+# indistinguishable from success (measured 2026-09-08).
+mirror_holds_blueprint_closures() {
+  local missing=0 total=0 lock name ver base want
+  # bash 3.2: no associative arrays, no mapfile. A plain sorted file of what the
+  # mirror holds, and one grep per package.
+  local have; have=$(mktemp)
+  docker exec manifest-verdaccio sh -c \
+    'cd /verdaccio/storage && find . -name "*.tgz" | sed "s|^\./||"' \
+    2>/dev/null | LC_ALL=C sort -u > "$have"
+  for lock in blueprints/*/skeleton/package-lock.json fixtures/*/package-lock.json; do
+    [ -f "$lock" ] || continue
+    while IFS='	' read -r name ver; do
+      [ -n "$name" ] || continue
+      base=${name##*/}
+      want="$name/$base-$ver.tgz"
+      total=$((total + 1))
+      grep -qxF "$want" "$have" || { echo "  MISSING $want  ($lock)"; missing=$((missing + 1)); }
+    done <<EOF
+$(node -e '
+const lock = require("path").resolve(process.argv[1])
+const seen = new Set()
+for (const [key, value] of Object.entries(require(lock).packages ?? {})) {
+  if (!key.startsWith("node_modules/") || !value.version) continue
+  const name = key.slice(key.lastIndexOf("node_modules/") + "node_modules/".length)
+  const line = name + "\t" + value.version
+  if (!seen.has(line)) { seen.add(line); console.log(line) }
+}' "$lock")
+EOF
+  done
+  rm -f "$have"
+  echo "$total pinned tarballs across every blueprint and fixture lockfile; $missing missing from the mirror"
+  [ "$missing" -eq 0 ]
+}
+check "the package mirror holds every blueprint's closure as tarballs"  mirror_holds_blueprint_closures
+
 # No platform container should run under emulation. vimagick/tinyproxy was
 # amd64-only, so the egress proxy ran x86_64 on an arm64 host — `make up` warned
 # about it once and nothing else would ever have noticed. Measured 2026-09-05.

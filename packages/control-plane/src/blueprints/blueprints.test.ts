@@ -1,6 +1,11 @@
 import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { manifestSchema, type ManifestSpec } from '../spec/index.js'
+import {
+  INJECTION_CONTRACT_VERSION,
+  manifestSchema,
+  type ManifestSpec,
+} from '../spec/index.js'
 import { descriptorSchema, checkBlueprintCompatibility, loadBlueprints } from './index.js'
 
 const descriptor = descriptorSchema.parse({
@@ -143,5 +148,50 @@ describe('blueprint registry', () => {
       ),
     ) as { dependencies?: Record<string, string> }
     expect(pkg.dependencies).toEqual(pinned)
+  })
+})
+
+/**
+ * §25's real blueprint — the one faculty applications are generated from. §20
+ * calls a blueprint "a security multiplier": whatever is in it is replicated
+ * into every application, so a defect here is a defect in all of them.
+ */
+describe('node-ts-mongo@1 (P4a Task 12)', () => {
+  const load = () =>
+    loadBlueprints(new URL('../../../../blueprints/', import.meta.url).pathname)
+  const dirOf = (ref: string) => async () => (await load()).pathOf(ref)!
+
+  it('resolves node-ts-mongo@1 and it supports cwl', async () => {
+    const d = (await load()).resolve('node-ts-mongo@1')
+    expect(d?.provides.auth_providers).toContain('cwl')
+    expect(d?.provides.services).toContain('mongo')
+    // Decision 12: false until P4b's AI wiring exists, so a spec declaring
+    // ai.models is refused with §25's clear message rather than deployed with
+    // no key. renderInjection refuses the same declaration from the other side.
+    expect(d?.provides.ai).toBe(false)
+    expect(d?.injection.contract).toBe(INJECTION_CONTRACT_VERSION)
+  })
+
+  it('pins every app-side library exactly (C6, D30)', async () => {
+    const d = (await load()).resolve('node-ts-mongo@1')!
+    expect(d.pinned_dependencies).toMatchObject({
+      'passport-ubcshib': '0.1.6',
+      passport: '0.7.0',
+      express: expect.stringMatching(/^\d+\.\d+\.\d+$/) as unknown as string,
+      mongodb: expect.stringMatching(/^\d+\.\d+\.\d+$/) as unknown as string,
+    })
+  })
+
+  it('agrees with its own skeleton package.json', async () => {
+    // The descriptor and the lockfile drifting apart is how §16's drift test
+    // ends up asserting against a version nothing installs.
+    const d = (await load()).resolve('node-ts-mongo@1')!
+    const pkg = JSON.parse(
+      await readFile(
+        join(await dirOf('node-ts-mongo@1')(), 'skeleton/package.json'),
+        'utf8',
+      ),
+    ) as { dependencies?: Record<string, string> }
+    expect(pkg.dependencies).toEqual(d.pinned_dependencies)
   })
 })

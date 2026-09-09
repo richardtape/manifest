@@ -1,0 +1,55 @@
+# NO `# syntax=` DIRECTIVE, deliberately. That line makes BuildKit resolve an
+# external frontend image from Docker Hub before it reads line two — and §12 puts
+# the builder on an internal network with no egress, so the build dies with
+# `failed to resolve source metadata for docker.io/docker/dockerfile:1 … dial tcp`.
+# Measured 2026-09-06; it is fatal to C1's offline requirement and to `make demo`.
+# `renderDockerfile` refuses the directive by name, so this is enforced as well as
+# documented — and since Task 12 it is enforced against EVERY shipped blueprint,
+# not only fixture-node.
+FROM {{BASE_IMAGE}}
+
+# Non-root by construction (§12 hardening baseline). The base is Alpine, whose
+# BusyBox userland has addgroup/adduser and NEITHER groupadd NOR useradd — the
+# shadow package is not installed. Using the GNU names here would fail the build.
+#
+# The GROUP matters as much as the user: §8's SP private key is placed 0440,
+# root-owned, with this gid, because §12's `CapDrop: ALL` removes
+# CAP_DAC_OVERRIDE and ownership is then the only thing that can grant a read
+# (measured 2026-09-08: root could stat a 0400 file owned by 10001 and not read
+# it). blueprint.yaml's `run_as_uid` is the one source of both numbers.
+RUN addgroup -g {{RUN_AS_UID}} app \
+ && adduser -u {{RUN_AS_UID}} -G app -D -h /home/app app
+
+WORKDIR /app
+
+# A committed lockfile is required; the build fails without one (§12 supply chain).
+#
+# `.npmrc` IS COPIED HERE, with the lockfile, and not by the `COPY . .` below.
+# D13 points the build at the platform's mirror through that file, and `npm ci`
+# reads it from the working directory — so arriving after the install makes the
+# control completely inert. Measured 2026-09-06: `npm error … request to
+# https://registry.npmjs.org/whatwg-url/-/whatwg-url-14.2.0.tgz failed`, which is
+# S1's silently-wrong build arriving by a different route. Offline it fails; with
+# the network up it would SUCCEED against the public registry, which is worse.
+COPY package.json package-lock.json .npmrc ./
+# Install scripts are disabled: a malicious or hallucinated dependency does not get
+# to run arbitrary code at build time (§12).
+# BOTH CACHES REMOVED IN THE SAME LAYER, and this is a correctness requirement,
+# not housekeeping. §13 binds an approval to a digest and P2's driver contract
+# asserts "the same source builds to the same digest" — and two builds of identical
+# source produced two digests until this line existed, differing only inside Node's
+# own V8 code cache under /tmp/node-compile-cache. npm's `_cacache` under
+# /root/.npm is the same class, and neither belongs in a shipped image anyway.
+RUN npm ci --omit=dev --ignore-scripts \
+ && rm -rf /root/.npm /tmp/node-compile-cache
+
+COPY . .
+
+USER app
+EXPOSE 3000
+# The port the app LISTENS on is §8's PORT, injected by the platform and read in
+# server.js. EXPOSE is documentation: the driver publishes nothing and the edge
+# routes to `runtime.port`, so a mismatch here changes no behaviour — but an app
+# that hardcodes 3000 instead of reading PORT is unreachable behind a 502 for
+# ever, which is what P3 Session 5 spent a day on.
+CMD ["node", "server.js"]
