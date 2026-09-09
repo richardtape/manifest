@@ -179,7 +179,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` �
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a's first three tasks have
 since added checks, and the current numbers are **`make doctor` 17 / 0 and
-`make verify` 44 / 0** (re-measured 2026-09-08). **The offline acceptance has not been
+`make verify` 45 / 0** (re-measured 2026-09-09). **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. The evidence is left exactly as recorded — a run is a run — and this
 note exists so nobody reads it as today's baseline.

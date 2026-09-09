@@ -9,7 +9,7 @@ plan queue, and the conventions below in full. Everything here is the short vers
 
 **P1 is executed and green (2026-09-05). The platform runs.**
 `make seed && make host-setup && make up` brings up the whole §21 inventory;
-`make doctor` is now **17 checks / 0 failed** and `make verify` **44 / 0**,
+`make doctor` is now **17 checks / 0 failed** and `make verify` **45 / 0**,
 and both were green offline when P1 was executed. Start from [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md),
 not the plan. The three host changes are in place and all reverse with
 `make host-undo`. **Untested: the second-machine clean clone** — no second Mac was
@@ -48,20 +48,25 @@ check that every app failed, because BusyBox `wget` honours `http_proxy` and ign
 `NO_PROXY`, so D18's forced proxy denied each app's probe of its own loopback. **All
 of it was green in a suite of 74 passing Docker tests.**
 
-**P4a is PART-EXECUTED: Tasks 1–7 of 15 are green (6–7 on 2026-09-09); Tasks 8–15
-remain, and continuing at Task 8 is the current work** — ORIENTATION §7d, which
+**P4a is PART-EXECUTED: Tasks 1–9 of 15 are green (8–9 on 2026-09-09); Tasks 10–15
+remain, and continuing at Task 10 is the current work** — ORIENTATION §7d, which
 carries the table. The rest runs in **seven agreed SITTINGS, one per session with a
-check-in at each boundary**, so a session limit cannot land mid-task: sittings 1 and 2
-are done, so **sitting 3 is Tasks 8–9** (the `events` table, then the registration call
-site `sso/` is waiting for), then 10–11, 12–13, 14 alone and 15 alone. *Sittings pace the work; they are not §17's product Phases.*
+check-in at each boundary**, so a session limit cannot land mid-task: sittings 1, 2 and
+3 are done, so **sitting 4 is Tasks 10–11** (`spec/injection.ts`, then its call site),
+then 12–13, 14 alone and 15 alone. *Sittings pace the work; they are not §17's product Phases.*
 **A real CWL login now works end to end**, which it could not before: the IdP could
 neither issue an assertion nor authenticate anybody, with `make verify` green
 throughout — and since Task 7 that login runs through a Service Provider registration
 the control plane **derives and writes itself**, signed with a per-app RSA-4096 key it
-minted and stored. `make verify` is **44 / 0**, `pnpm test` **439**, `pnpm test:docker`
-**108**. `secrets/` now holds every service credential — libsodium envelope
+minted and stored; since Task 9 `deployRelease` writes that registration for any app
+that declares CWL. `make verify` is **45 / 0**, `pnpm test` **458**, `pnpm test:docker`
+**111**. `secrets/` now holds every service credential — libsodium envelope
 encryption in Postgres, replacing P3's HMAC derivation, migrated without breaking a
-running database. Those seven tasks found **35 defects**, two of them spec-level: **§12's
+running database — and §20's `audit.events` is append-only **by grant**, which needed
+the control plane to stop connecting as a superuser before it could mean anything:
+`REVOKE UPDATE, DELETE` followed by `UPDATE 1` was the measured starting point. It now
+connects as **`manifest_app`**, and so does the whole test suite. Those nine tasks
+found **43 defects**, two of them spec-level: **§12's
 dependency-scan gate blocked every CWL application** (settled by Rich on 2026-09-08 —
 it now blocks only on findings that have a published fix), and **§8's
 `SAML_IDP_CERT_PATH` named a file nothing could create**, so `InstanceSpec` gained

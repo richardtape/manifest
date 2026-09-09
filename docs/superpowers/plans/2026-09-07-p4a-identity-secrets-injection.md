@@ -3432,6 +3432,10 @@ applied and drizzle-kit never re-runs an applied migration.
 **Baseline first, and it matched the handover exactly**: `make doctor` 16/0, `make verify`
 44/0, `pnpm test` 439 in 50 files.
 
+**`events` exists, is append-only against a role that can actually be constrained, and
+`registerServiceProvider` has a caller.** Tasks 8 and 9 are done. The sitting also
+carried an addendum Rich asked for.
+
 **Addendum, at Rich's request and decided by him: `make doctor` now asserts the host
 tools the control plane spawns.** Session 4 raised it (defect 30) and left it; this
 closes it. `make doctor` is **17 checks** from here on, and the sweep moved the four
@@ -3483,6 +3487,82 @@ Controls (e) and (f) were applied by `sed` **with a `diff` asserting the file ch
 before the run, because a mutation that matches nothing reports success and proves
 nothing — §4's Prettier trap, in its other clothes. The real
 `~/.docker/cli-plugins/docker-buildx` was verified untouched after (d).
+
+---
+
+**Tasks 8 and 9 found 8 defects. The first one is the sitting.**
+
+| # | Task | Defect | Measured against |
+|---|---|---|---|
+| 36 | 8 | **§20's control was not merely missing, it was UNIMPLEMENTABLE.** The plan's migration creates an owner role and REVOKEs from `manifest` — but `manifest` is `POSTGRES_USER` and therefore a **superuser**, and a superuser bypasses every privilege check in Postgres. The plan spotted the ownership trap and not the superuser one, and its own negative control (a) would have shown nothing. | Measured before writing a line: `REVOKE UPDATE, DELETE ON ctl_probe FROM manifest` → `REVOKE`, then `UPDATE 1`, `DELETE 1`. The fix is `infra/lib/ensure-app-role.sh` and a real application role — see the decision below. |
+| 37 | 8 | **The foreign key was a hole straight through the grant.** With `UPDATE`, `DELETE` and `TRUNCATE` on `audit.events` all correctly refused, `manifest_app` deleted the project and the audit rows went with it: a referential action runs with the REFERENCED table's privileges, not the caller's. | `events_after_project_delete = 0`, as `manifest_app`, against a working grant. `ON DELETE restrict`; nothing in the control plane deletes a project, so it costs nothing today and makes the first code that wants to decide. |
+| 38 | 8 | **`rejects.toThrow(/permission denied/i)` — the plan's own assertion — matches nothing.** drizzle wraps every driver error in its own, whose message is `Failed query: UPDATE audit.events …`; the real one is on `.cause`. The query WAS being refused and the test was red for the wrong reason, and would have gone green against a broken control the moment somebody relaxed it to a bare `.rejects.toThrow()`. | The failure output. `expectSqlState` walks the cause chain for `42501` / `23503` — the SQLSTATE, which a message match cannot fake. |
+| 39 | 8 | **`ResolvedConfig` has no `auth` field, so Task 9's condition could not be read at all.** The plan says "every environment whose resolved spec has `auth.provider === 'cwl'`"; `resolve.ts` drops the whole `auth:` block. | `tsc`. `auth` is carried through now — §7 permits no override of it. Reading the raw spec back out of `app_specs` was rejected: §13 FROZE the resolved config at release time, and a second source of truth beside it is P3 Session 5's shape exactly. Task 10 is the second reader. |
+| 40 | 8 | **My own redaction test at the call site could not fail.** "Never writes the SP private key into an event" passes because nothing ever puts it there — the control (identity redactor at the call site) left the whole suite green. Same shape as defects 20 and 29: three sittings running. | The control run. Rewritten with a canary where app-supplied text genuinely reaches `machine_detail` — `auth.callback` lands in `acsUrl` verbatim — plus a secret of that value. Goes red under the same mutation, showing the canary in the persisted row. |
+| 41 | 8 | **Releases frozen before `ResolvedConfig.auth` existed have no `auth` key**, so `resolved.auth.provider` would throw and take an existing developer's next deploy with it. | Read, not failed — the shape `MONGODB_DB_NAME` and `ServiceBinding.credentials` already taught. Treated as no sign-on, which is what those releases were deployed with, and it has its own test. |
+| 42 | 9 | **`api/testing.ts` and `releases.test.ts` needed an `sso` dependency, and a STUB would have been wrong.** Every app either harness deploys declares `auth.provider: none`, so a stub returning a plausible registration would silently absorb a registration that should never happen. | Both throw with a message naming the cause. If the guard in `deployRelease` ever stops working, the suite says so rather than passing. |
+| 43 | 9 | **The plan's Task 9 has no test that runs the REAL registrar.** Its recorder proves the ORDER, which is the right tool for an ordering question and accepts whatever it is handed for everything else — entityID derivation, the origin refusal, the keypair, the metadata row and the events were all unreached from `deployRelease`. | `releases/deploy-sso.docker.test.ts`, added beyond the plan. It asserts the row at the entityID D15 derives, its ACS built from the ENVIRONMENT's hostname, its `certData`, and the audit event. Watched red with the call deleted. |
+
+**One decision this sitting made, and it is bigger than a task.** **The control plane
+now connects as `manifest_app`, a least-privilege role, and so does the whole test
+suite.** `manifest` keeps its superuser attributes and remains what migrations and the
+harness's `TRUNCATE` use, through a new `MANIFEST_ADMIN_DATABASE_URL` that `src/` never
+reads. Three things were rejected: leaving §20 unimplemented and recording it (shipping
+a control that reads as one and is not is worse than shipping none, and this project has
+paid for that twice); demoting `manifest` itself (nothing could then truncate the audit
+table between tests, and granting the application `TRUNCATE` is the same loophole in a
+different hat); and running the suite as the superuser while only production used the
+role (every test would then exercise privileges the running system does not have, which
+is the false green this whole change exists to remove). **Running the suite as the
+application role cost nothing and found nothing** — 439 tests passed unchanged on the
+first run, which is itself the evidence that the grants are complete.
+
+**`events` lives in an `audit` SCHEMA rather than in `public`**, and that is the control
+rather than a filing decision. Every blanket grant in this repository is scoped
+`IN SCHEMA public` — `GRANT … ON ALL TABLES`, `ALTER DEFAULT PRIVILEGES` — so none of
+them can reach it, now or in a year. The alternative was to grant everything on `public`
+and revoke on one table by name, which converges only as long as every future author
+remembers the exception. Granting exactly two verbs is stronger than granting four and
+taking two back.
+
+**The negative controls, each watched red and reverted.**
+
+| Control | Result |
+|---|---|
+| (a) `GRANT UPDATE, DELETE, TRUNCATE ON audit.events TO manifest_app` | both append-only tests RED |
+| (b) the suite connected as the superuser `manifest` | three tests RED, and the UPDATE, DELETE and TRUNCATE all **succeeded** — this is defect 36, reproduced as a control |
+| (c) the six-character floor removed from `makeRedactor` | the short-secret test RED |
+| (d) the longest-first sort removed | the nested-secret test RED, leaving `[REDACTED]xyz` |
+| (e) the foreign key restored to `ON DELETE CASCADE` | the cascade test RED — the project delete succeeded and took the event |
+| (f) the identity function as the call site's redactor | the canary test RED, showing `CANARY-…` in the persisted `machine_detail`. **Green before the test was rewritten** — that is defect 40 |
+| (g) the verbs granted back, against `make verify` | the new check RED, naming `UPDATE DELETE TRUNCATE CASCADE`, with zero rows left behind |
+| (h) `registerServiceProvider` moved after `ensureInstance` | the ordering test RED with `['instance','sp']` |
+| (i) the call deleted | the ordering test RED with `['instance']`, and the values test RED. Both, because "called late" and "not called" are different defects |
+| (j) the `auth.provider === 'cwl'` condition removed | six unrelated deploy tests RED — every app on the platform would register an SP |
+| (k) the call deleted, against the REAL-registrar Docker test | RED, no metadata row. Zero IdP rows left behind |
+
+**Deviations from the plan's text, all deliberate.** The migration creates no
+`manifest_audit_owner` role: that role exists in the plan only because the plan assumed
+the application connects as the table's owner, and with `manifest_app` there is nothing
+to own around. There is no `REVOKE` either — the `audit` schema means there is nothing
+to revoke. `EVENT_TYPES` is enforced at runtime as well as in the type, because a type
+is not there for a JSON body. `make verify` gained a check (45), which the plan does not
+ask for: this control is SILENT when it breaks — no failure, no log line, the audit log
+simply becomes editable — and that is exactly the kind this project keeps finding green.
+
+**State at the end of the sitting:** `make doctor` **17/0** (16 before the addendum),
+`make verify` **45/0**, `pnpm test` **458** twice, `pnpm test:docker` **111** (20 files,
+0 failed, 350 s), lint/typecheck/format clean, and **`make demo` green end to end**
+against the new boot path and the least-privilege role. Three commits.
+
+**What sitting 4 inherits.** Tasks 10–11: `spec/injection.ts` as §8's frozen table, then
+its call site. `ResolvedConfig.auth` now exists and Task 10 is its second reader, so the
+injection function does not need to reach for the raw spec. `run_as_uid` is still in the
+blueprint descriptor and still not on `InstanceSpec` — Task 11 has to thread it, along
+with `InstanceSpec.files` for `SAML_IDP_CERT_PATH` and `SAML_PRIVATE_KEY_PATH`. Note
+that `deployRelease` now takes `deps = { secrets, sso }`, and that the test suite runs as
+`manifest_app`: a new table needs no action (`ALTER DEFAULT PRIVILEGES` covers it), but
+anything that needs DDL at runtime will be refused, which is the point.
 
 ---
 
