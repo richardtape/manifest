@@ -20,6 +20,7 @@ const TEST_REPOS_ROOT = join(tmpdir(), 'manifest-test-repos')
  * commit for real, additionally reset between their own tests.
  */
 const TABLES = [
+  'audit.events',
   'secrets',
   'idempotency_keys',
   'instances',
@@ -40,7 +41,10 @@ export async function setup(): Promise<() => Promise<void>> {
   await rm(TEST_REPOS_ROOT, { recursive: true, force: true })
   await mkdir(TEST_REPOS_ROOT, { recursive: true })
 
-  const connectionString = ensureDatabaseUrls()
+  // ensureDatabaseUrls() returns the APPLICATION url; this needs the admin one.
+  // manifest_app holds no TRUNCATE on audit.events (§20), which is the control,
+  // so the harness's own reset cannot go through the connection under test.
+  const connectionString = ensureDatabaseUrls() && process.env.MANIFEST_ADMIN_DATABASE_URL
   if (connectionString) {
     const pool = new pg.Pool({ connectionString })
     try {
@@ -57,7 +61,7 @@ export async function setup(): Promise<() => Promise<void>> {
           'the control-plane database has no schema — migrations have not been ' +
             'applied to it. `make reset` drops it deliberately. Run:\n\n' +
             '  set -a; . ./.env; set +a\n' +
-            '  export MANIFEST_DATABASE_URL=' +
+            '  export MANIFEST_ADMIN_DATABASE_URL=' +
             '"postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"\n' +
             '  pnpm --filter @manifest/control-plane db:migrate\n',
         )

@@ -35,6 +35,7 @@ up: .env  ## Boot the platform. Works offline after `make seed`.
 	@$(COMPOSE) up -d --wait
 	@bash infra/lib/ensure-caddy-config.sh
 	@bash infra/lib/ensure-idp-sql.sh
+	@bash infra/lib/ensure-app-role.sh
 	@echo
 	@echo "  platform up. Next: make doctor && make verify"
 	@echo "  edge: https://console.manifest.internal/"

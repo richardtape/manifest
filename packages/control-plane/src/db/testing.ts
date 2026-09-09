@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { sql } from 'drizzle-orm'
+import pg from 'pg'
 import { db } from './client.js'
 import type { Db } from './client.js'
 import { projects, users } from './schema.js'
@@ -66,6 +66,7 @@ export async function withProject(
  * so this cannot run while another file holds a transaction open.
  */
 const TABLES = [
+  'audit.events',
   'secrets',
   'idempotency_keys',
   'instances',
@@ -79,8 +80,34 @@ const TABLES = [
   'users',
 ]
 
+/**
+ * The harness's own connection, which is NOT the one the code under test uses.
+ *
+ * `db` connects as `manifest_app`, which by §20 holds no `TRUNCATE` on
+ * `audit.events` — that is the control, and a reset performed through it would
+ * fail. It is also why `audit.events` is first in the list above: `projects` now
+ * refuses a delete while an event references it (`ON DELETE restrict`, which
+ * closes the cascade route around the grant), so the audit rows have to go in the
+ * same statement. `TRUNCATE` takes them all at once, which is why this is one
+ * statement and not eleven.
+ *
+ * Lazily created: the pure test files never call `resetDatabase`, and opening a
+ * pool at import time would make every one of them need a database.
+ */
+let adminPool: pg.Pool | undefined
+function admin(): pg.Pool {
+  const connectionString = process.env.MANIFEST_ADMIN_DATABASE_URL
+  if (!connectionString) {
+    throw new Error(
+      'MANIFEST_ADMIN_DATABASE_URL is not set. The test harness needs a connection ' +
+        'that CAN truncate — `db` connects as manifest_app, which by §20 cannot ' +
+        'touch audit.events. vitest.env.ts derives it from `.env`.',
+    )
+  }
+  adminPool ??= new pg.Pool({ connectionString })
+  return adminPool
+}
+
 export async function resetDatabase(): Promise<void> {
-  await db.execute(
-    sql.raw(`TRUNCATE TABLE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`),
-  )
+  await admin().query(`TRUNCATE TABLE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`)
 }

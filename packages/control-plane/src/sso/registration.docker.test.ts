@@ -1,7 +1,10 @@
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import type pg from 'pg'
 import { X509Certificate } from 'node:crypto'
+import { asc, eq } from 'drizzle-orm'
+import { events, type Db } from '../db/index.js'
 import { describeDocker } from '../runtime/testing.js'
+import { putSecret } from '../secrets/index.js'
 import { withSecretScope } from '../secrets/testing.js'
 import { createIdpPool, deleteSpRow, readSpRow } from './metadata-store.js'
 import { createSsoRegistrar, registerServiceProvider } from './registration.js'
@@ -36,6 +39,14 @@ describeDocker('registerServiceProvider (§9)', () => {
     },
     ...overrides,
   })
+
+  /** Every audit row this project wrote, oldest first. */
+  const eventsFor = (db: Db, projectId: string) =>
+    db
+      .select()
+      .from(events)
+      .where(eq(events.projectId, projectId))
+      .orderBy(asc(events.createdAt))
 
   beforeAll(() => {
     pool = createIdpPool(idpDatabaseUrl())
@@ -126,6 +137,93 @@ describeDocker('registerServiceProvider (§9)', () => {
       expect(
         (await readSpRow(pool, entityId))?.AssertionConsumerService[0]?.Location,
       ).toBe('https://reg-moved.staging.manifest.internal/auth/somewhere-else')
+
+      // §9: "Every registration and change is an append-only audit Event, with
+      // alerting specifically on ACS URL changes." Three rows, not two: both
+      // registrations, plus the ACS change the second one caused. The `from` and
+      // `to` are asserted because they are the whole content of the alert, and
+      // they are unrecoverable one statement after the upsert.
+      const rows = await eventsFor(db, projectId)
+      expect(rows.map((r) => r.type)).toEqual([
+        'sso.registered',
+        'sso.registered',
+        'sso.acs_changed',
+      ])
+      expect(rows[2]!.machineDetail).toEqual({
+        from: 'https://reg-moved.staging.manifest.internal/auth/ubcshib/callback',
+        to: 'https://reg-moved.staging.manifest.internal/auth/somewhere-else',
+      })
+      expect(rows[2]!.subject).toBe('sp:reg-moved:staging')
+    })
+  })
+
+  it('records ONE registration event, with no ACS change, on a first registration', async () => {
+    // The negative half of the test above, and the one that catches an
+    // `sso.acs_changed` fired unconditionally: §9's alert is worth nothing if it
+    // arrives on every deploy of every app.
+    await withSecretScope(async (db, { projectId, keys }) => {
+      const entityId = 'https://manifest.internal/sp/reg-events/staging'
+      entityIds.push(entityId)
+      await registerServiceProvider(db, pool, keys, { ...input('reg-events'), projectId })
+
+      const rows = await eventsFor(db, projectId)
+      expect(rows.map((r) => r.type)).toEqual(['sso.registered'])
+      expect(rows[0]!.humanMessage).toBe(
+        'Single sign-on was set up for reg-events in staging.',
+      )
+      expect(rows[0]!.machineDetail).toMatchObject({ entityId, changed: true })
+    })
+  })
+
+  it("redacts the project's own secrets out of the event it writes", async () => {
+    // §14: "the unredacted form is never persisted."
+    //
+    // THE FIRST VERSION OF THIS TEST COULD NOT FAIL. It asserted that the SP
+    // private key is absent from the event — which it is, because nothing here
+    // ever puts it there. Passing an identity redactor at the call site left the
+    // whole suite green: a test of the redactor's absence, not of its presence.
+    //
+    // This one puts a canary where app-supplied text genuinely reaches
+    // `machine_detail`: `auth.callback` is the app's own string and it lands in
+    // `acsUrl` verbatim. With a secret of that value in the project's set, a real
+    // redactor replaces it and an absent one does not — which is the difference
+    // the test exists to see. §12 already treats an app as untrusted input.
+    const canary = 'CANARY-3f9a2b7c1d'
+    await withSecretScope(async (db, { projectId, keys }) => {
+      const entityId = 'https://manifest.internal/sp/reg-redact/staging'
+      entityIds.push(entityId)
+      await putSecret(
+        db,
+        {
+          projectId,
+          environmentKind: 'staging',
+          name: 'mongo:staging:password',
+          value: canary,
+        },
+        keys,
+      )
+
+      await registerServiceProvider(db, pool, keys, {
+        ...input('reg-redact', {
+          auth: {
+            provider: 'cwl',
+            callback: `/auth/${canary}/callback`,
+            logout: '/auth/logout',
+            attributes: ['ubcEduCwlPuid', 'mail'],
+          },
+        }),
+        projectId,
+      })
+
+      const rows = await eventsFor(db, projectId)
+      const serialised = JSON.stringify(rows)
+      expect(serialised).not.toContain(canary)
+      expect(serialised).toContain('[REDACTED]')
+      // The row itself still pins the REAL url — redaction is at capture, in the
+      // audit trail, and must not reach through into the registration.
+      expect(
+        (await readSpRow(pool, entityId))?.AssertionConsumerService[0]?.Location,
+      ).toBe(`https://reg-redact.staging.manifest.internal/auth/${canary}/callback`)
     })
   })
 

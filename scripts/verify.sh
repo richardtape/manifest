@@ -594,6 +594,58 @@ idp_metadata_user_is_read_only() {
 }
 check "the SimpleSAMLphp metadata user can read and cannot write (§9)"  idp_metadata_user_is_read_only
 
+# §20: "The events table is append-only BY GRANT, not by convention: the
+# application role holds no UPDATE or DELETE privilege on it."
+#
+# This is a silent control. When it breaks nothing fails, no log line appears and
+# no test outside `observability/` notices — the audit log simply becomes
+# editable. That is exactly the kind this project keeps finding green, so it is
+# asserted here by ATTEMPTING the write rather than by reading a catalogue.
+#
+# The fourth probe is not decoration. A referential action runs with the
+# REFERENCED table's privileges rather than the caller's, so an ON DELETE CASCADE
+# on `events.project_id` is a hole straight through the other three: measured
+# 2026-09-09 with the grant working exactly as intended, `DELETE FROM projects`
+# removed the audit rows and left `events_after_project_delete = 0`.
+events_are_append_only_by_grant() {
+  local user=manifest_app db=manifest_control probe='verify-append-only-probe'
+  local pw="${MANIFEST_APP_PASSWORD:-change-me-locally}" refused=0 verbs=""
+
+  # A project and one event to attempt the writes against, created as the owner.
+  docker exec -i manifest-postgres psql -U manifest -d "$db" -q >/dev/null 2>&1 <<SQL || { echo "could not seed the probe row"; return 1; }
+INSERT INTO users (ubc_cwl_puid, email, display_name) VALUES ('$probe','$probe@example.ubc.ca','probe')
+  ON CONFLICT (ubc_cwl_puid) DO NOTHING;
+INSERT INTO projects (slug, owner_id, blueprint_ref)
+  SELECT '$probe', id, 'fixture-node@1' FROM users WHERE ubc_cwl_puid='$probe'
+  ON CONFLICT (slug) DO NOTHING;
+INSERT INTO audit.events (project_id, subject, type, machine_detail, human_message)
+  SELECT id, 's', 'sso.registered', '{}', 'probe' FROM projects WHERE slug='$probe';
+SQL
+
+  as_app() {
+    docker exec -i -e PGPASSWORD="$pw" manifest-postgres       psql -U "$user" -h 127.0.0.1 -d "$db" -tAc "$1" >/dev/null 2>&1
+  }
+  as_app "SELECT 1 FROM audit.events LIMIT 1" || { verbs="$verbs SELECT-denied"; }
+  as_app "UPDATE audit.events SET human_message='x'"       && verbs="$verbs UPDATE"   || refused=$((refused+1))
+  as_app "DELETE FROM audit.events"                        && verbs="$verbs DELETE"   || refused=$((refused+1))
+  as_app "TRUNCATE audit.events"                           && verbs="$verbs TRUNCATE" || refused=$((refused+1))
+  as_app "DELETE FROM projects WHERE slug='$probe'"        && verbs="$verbs CASCADE"  || refused=$((refused+1))
+
+  # Clean up whatever survived, as the owner, whether or not the check passed —
+  # ensure-idp-sql.sh's lesson: a failing check that leaves rows behind breaks the
+  # platform for the next person.
+  docker exec -i manifest-postgres psql -U manifest -d "$db" -q >/dev/null 2>&1 <<SQL
+DELETE FROM audit.events WHERE project_id IN (SELECT id FROM projects WHERE slug='$probe');
+DELETE FROM projects WHERE slug='$probe';
+DELETE FROM users WHERE ubc_cwl_puid='$probe';
+SQL
+
+  echo "$user: 4 write paths attempted, $refused refused; readable = $(as_app 'SELECT 1' && echo yes || echo no)"
+  [ -z "$verbs" ] || { echo "NOT REFUSED:$verbs — the audit log is editable by the application"; return 1; }
+  [ "$refused" -eq 4 ]
+}
+check "the events table is append-only by GRANT, and unreachable through the FK (§20)"  events_are_append_only_by_grant
+
 # NOT a grep for the OID in a config file. This runs the CONFIGURED chain, in
 # priority order, over five attributes with a row declaring two — so it fails if
 # the limit is missing, if the map is missing, if the map lacks the UBC entry,

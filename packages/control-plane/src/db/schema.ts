@@ -4,6 +4,7 @@ import {
   integer,
   jsonb,
   pgEnum,
+  pgSchema,
   pgTable,
   primaryKey,
   text,
@@ -251,3 +252,62 @@ export const secrets = pgTable(
     uniqueIndex('secrets_scope_name_key').on(t.projectId, t.environmentKind, t.name),
   ],
 )
+
+/**
+ * §20's audit log lives in its own SCHEMA, and that is the control rather than a
+ * filing decision.
+ *
+ * §20: *"The `events` table is append-only **by grant**, not by convention: the
+ * application role holds no `UPDATE` or `DELETE` privilege on it."* The
+ * application role — `manifest_app`, created by `infra/lib/ensure-app-role.sh`
+ * — is granted `SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public`,
+ * with `ALTER DEFAULT PRIVILEGES` so future migrations are covered too. A table
+ * sitting in `public` would therefore be writable the moment it was created, and
+ * the only way to keep it append-only would be to revoke it again by name — in
+ * every script that grants, for ever, by memory.
+ *
+ * Nothing in this repository grants anything on `audit`. The migration that
+ * creates the table grants exactly SELECT and INSERT, and `make verify` proves
+ * an UPDATE is refused by attempting one.
+ */
+export const audit = pgSchema('audit')
+
+/**
+ * §5's Event, with §5's columns: `id`, `project_id`, `subject`, `type`,
+ * `machine_detail`, `human_message`, `created_at`.
+ *
+ * `subject` is what the event is ABOUT — `sp:chem-labs:staging`, `instance:abc`
+ * — as an opaque string rather than a foreign key, because an Event outlives the
+ * thing it describes. §14's whole argument is that the audit trail is most
+ * valuable exactly when the instance is gone.
+ *
+ * There is no `actor` column. §5's Event row does not have one and P4a writes no
+ * event with a human actor; §23's audit screen wants to filter by actor, so P4b
+ * or P5 will add one. Adding it now would mean shipping a column every writer
+ * leaves null, which reads as "we do not know who did this" rather than "nobody
+ * did".
+ */
+export const events = audit.table('events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  /**
+   * RESTRICT, and every other table here cascades — measured, not stylistic.
+   *
+   * A referential action runs with the REFERENCED table's privileges, not the
+   * caller's, so `ON DELETE CASCADE` here is a hole straight through §20: with
+   * the grant working exactly as intended — `UPDATE`, `DELETE` and `TRUNCATE` on
+   * `audit.events` all refused — `manifest_app` deleted the project and took its
+   * audit rows with it. `events_after_project_delete` came back 0.
+   *
+   * Nothing in the control plane deletes a project, so RESTRICT costs nothing
+   * today. It makes the first code that wants to decide what happens to the audit
+   * trail, rather than inherit an answer silently.
+   */
+  projectId: uuid('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'restrict' }),
+  subject: text('subject').notNull(),
+  type: text('type').notNull(),
+  machineDetail: jsonb('machine_detail').notNull(),
+  humanMessage: text('human_message').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})

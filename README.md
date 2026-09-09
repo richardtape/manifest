@@ -125,9 +125,17 @@ them.
 
 ```bash
 set -a; . ./.env; set +a   # make seed writes .env; the password is NOT "manifest"
-export MANIFEST_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"
-# The IdP metadata database is a SECOND, required setting — never derived from
-# the line above by swapping the name (P4a Decision 13).
+# The control plane connects as `manifest_app`, NOT as `manifest`. `manifest` is
+# POSTGRES_USER and therefore a SUPERUSER, and a superuser bypasses every
+# privilege check — which makes §20's append-only `audit.events` grant
+# unimplementable. `make up` creates the role (infra/lib/ensure-app-role.sh).
+export MANIFEST_DATABASE_URL="postgres://manifest_app:${MANIFEST_APP_PASSWORD}@127.0.0.1:7103/manifest_control"
+# Admin, for DDL only: `db:migrate` below, and the test harness's TRUNCATE. Never
+# read by src/ — the control plane has no code path that needs it.
+export MANIFEST_ADMIN_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"
+# The IdP metadata database is a THIRD, required setting — never derived from
+# either line above by swapping the name (P4a Decision 13). It has its own roles:
+# `ssp_ro` reads, `manifest` writes, and there is no `manifest_app` in it.
 export MANIFEST_IDP_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_idp"
 export MANIFEST_SESSION_SECRET=$(openssl rand -hex 32)
 export MANIFEST_DEV_AUTH=1
