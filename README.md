@@ -31,7 +31,7 @@ and a Fastify surface with D23.6 idempotency keys and the D23.7 error envelope o
 every failure. The whole faculty lifecycle — project, spec, build, release, staging
 deploy to healthy, production correctly refused with its §13 checklist — runs against
 the fake driver in **~300 ms**, and against **real Docker** through `make demo`.
-**458 tests with no Docker, and 111 more that need a daemon.** See
+**491 tests with no Docker, and 111 more that need a daemon.** See
 [*Running the control plane*](#running-the-control-plane) below.
 
 The design is approved and complete.
@@ -48,11 +48,13 @@ Docker driver and deploy spine (19 tasks, **finished 2026-09-07**). `make demo` 
 an application from a bare git repository to a healthy
 `https://fixture-app.staging.manifest.internal` — and does it again from a dropped
 database, a deleted repository root and an emptied registry. **P4a is part-executed —
-Tasks 1–9 of 15 are done and green (8–9 on 2026-09-09): a real CWL login works end to
+Tasks 1–11 of 15 are done and green (10–11 on 2026-09-09): a real CWL login works end to
 end — through a Service Provider registration the control plane derives, writes and now
 calls from `deployRelease` — every service credential is envelope-encrypted in Postgres
-rather than derived, and §20's audit log is append-only by grant against a
-least-privilege role. Continuing P4a at Task 10 is the current work**, in seven agreed sittings of one session each. P4b is written and unrun;
+rather than derived, §20's audit log is append-only by grant against a
+least-privilege role, and §8's environment injection contract is one function with one
+producer, so a deployed app is finally told the name of the database its credentials
+were minted for. Continuing P4a at Task 12 is the current work**, in seven agreed sittings of one session each, four of them done. P4b is written and unrun;
 P5 is unwritten. On
 2026-09-04 the project stopped writing plans and started executing them, and that
 hold is now discharged.
@@ -64,7 +66,7 @@ answer from a language model. **Execute P4a first**: P4b was written ahead of P4
 execution and its own Task 1 is a reconciliation pass against the executed P4a.
 Writing P4a found **four live defects the green gates could not see**, including that
 the Manifest IdP could not issue a SAML assertion at all — and **executing its first
-three tasks found fourteen more**, including that the IdP could not authenticate
+eleven tasks found 53 more**, including that the IdP could not authenticate
 anybody either, and that §12's dependency-scan gate blocked **every** CWL application
 because `passport-ubcshib` depends on a deprecated library with an unfixable critical
 advisory. Rich settled that on 2026-09-08: the gate blocks on findings that have a
@@ -89,7 +91,7 @@ succeeded** and that D13's npm-mirror control was completely inert. Session 5 fo
 that **no deploy had ever succeeded either** — seven separate defects of a single
 shape, *the test constructs the value correctly and the running system re-derives it
 wrongly* — every one of them green behind a suite of 74 passing Docker tests.
-**Continuing P4a at Task 10 is the current work.**
+**Continuing P4a at Task 12 is the current work.**
 
 ## Where to start
 
@@ -103,7 +105,7 @@ this machine will do to you, and what to do next. Then:
 | Understanding what the Docker half does | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md`](docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md) — all 19 tasks executed. Read its *What executing this plan found*, Sessions 4 and 5 |
 | Running the control plane | [*Running the control plane*](#running-the-control-plane) below — `make up`, then `pnpm --filter @manifest/control-plane dev` |
 | Executing any plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan — fix it there |
-| **Continuing P4a at Task 10 — the current job** | ORIENTATION §7d, then [`docs/superpowers/plans/2026-09-07-p4a-identity-secrets-injection.md`](docs/superpowers/plans/2026-09-07-p4a-identity-secrets-injection.md), 15 tasks, **1–9 executed, 8–9 on 2026-09-09**, the rest in seven agreed sittings. Read P4a's own *What executing this plan found* first — Sessions 1 to 5, 43 defects — then P3's Sessions 4 and 5. **Do not start P4b**: it is written, and its own first task reconciles it against a P4a that has already run |
+| **Continuing P4a at Task 12 — the current job** | ORIENTATION §7d, then [`docs/superpowers/plans/2026-09-07-p4a-identity-secrets-injection.md`](docs/superpowers/plans/2026-09-07-p4a-identity-secrets-injection.md), 15 tasks, **1–11 executed, 10–11 on 2026-09-09**, the rest in seven agreed sittings. Read P4a's own *What executing this plan found* first — Sessions 1 to 6, 53 defects — then P3's Sessions 4 and 5. **Do not start P4b**: it is written, and its own first task reconciles it against a P4a that has already run |
 | Seeing the platform actually work | `make demo`, after `make up` and starting the control plane. [`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) has the nine steps it runs and the offline control |
 | Looking for what a spike proved | `docs/superpowers/spikes/S{7,2,1,3,6}-findings.md` — the answer is the first sentence of each |
 | Looking for the architecture | [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](docs/superpowers/specs/2026-08-29-manifest-platform-design.md) — authoritative, ~2,340 lines. ORIENTATION §3 tells you which sections you actually need |

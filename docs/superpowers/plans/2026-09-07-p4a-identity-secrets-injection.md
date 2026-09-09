@@ -18,7 +18,8 @@
 
 ## How this plan is being executed — SEVEN SITTINGS, one per session
 
-**Tasks 1–7 are DONE (Tasks 6–7 on 2026-09-09). Sitting 3 — Tasks 8 and 9 — is next.**
+**Tasks 1–11 are DONE (Tasks 10–11 on 2026-09-09). Sitting 5 — Tasks 12 and 13 — is next,
+and it is the one that needs the network on.**
 
 Agreed with Rich on 2026-09-08: the remaining tasks run one sitting per session, with
 a check-in at each boundary, so a session limit can never land in the middle of a task.
@@ -30,9 +31,9 @@ the §17 product roadmap, and confusing the two sends a reader to the wrong docu
 |---|---|---|
 | 1 | 4–5 — `secrets/` and its first call site | ✅ done 2026-09-08, 8 defects |
 | 2 | 6–7 — per-app SP keypairs, then `sso/` and the one row | ✅ done 2026-09-09, 9 defects |
-| **3** | **8–9 — events and the registration call site** | ← **next** |
-| 4 | 10–11 — §8's injection contract and its call site | |
-| 5 | 12–13 — `node-ts-mongo@1` and the drift test (**needs the network**) | |
+| 3 | 8–9 — events and the registration call site | ✅ done 2026-09-09, 8 defects |
+| 4 | 10–11 — §8's injection contract and its call site | ✅ done 2026-09-09, 10 defects |
+| **5** | **12–13 — `node-ts-mongo@1` and the drift test (needs the network)** | ← **next** |
 | 6 | 14 — Manifest's own login, and the end of the dev shim | alone: it reddens most of the API suite |
 | 7 | 15 — the proof app and P4a's acceptance | alone: the first end-to-end run |
 
@@ -3570,6 +3571,99 @@ with `InstanceSpec.files` for `SAML_IDP_CERT_PATH` and `SAML_PRIVATE_KEY_PATH`. 
 that `deployRelease` now takes `deps = { secrets, sso }`, and that the test suite runs as
 `manifest_app`: a new table needs no action (`ALTER DEFAULT PRIVILEGES` covers it), but
 anything that needs DDL at runtime will be refused, which is the point.
+
+---
+
+### Session 6 — sitting 4: Tasks 10 and 11 (2026-09-09). 10 defects.
+
+**Baseline first, and it matched the handover exactly**: `make doctor` 17/0, `make
+verify` 45/0, `pnpm test` 458 in 52 files, lint/typecheck/format clean, and the IdP
+serving signed metadata.
+
+**§8's injection contract exists, and it is the only producer of those names.** Tasks
+10 and 11 are done. `MONGODB_DB_NAME` is injected — measured on the running platform,
+not only in a test: the deployed container carries `MONGODB_DB_NAME=fixture_app`
+against `MONGODB_URI=…/fixture_app`, and this run's boot and write landed in
+`fixture_app`. The Mongo volume still holds an `app` database with one boot and one
+write in it, which is the record of every deploy this platform made before today.
+
+**The grep the plan asks for now returns `spec/injection.ts` and comments.** It
+returned one more thing first, and that is defect 49.
+
+**Five deviations from the plan's text, all deliberate.**
+
+| Deviation | Why |
+|---|---|
+| `InjectionContext` has **no `spec`**; `ResolvedConfig` gains `ai` | Task 9 put `auth` on the frozen config because reading `app_specs.parsed` back out is a second source of truth beside what §13 froze. `ai.models` was the last reason to hold a `ManifestSpec`, so it went the same way — and `deployRelease` no longer loads the AppSpec row at all, which deletes the plan's `RELEASE_APPSPEC_MISSING` along with it |
+| `services` are **paired** `{ type, endpoint }`, not two arrays in declaration order | The caller knows both facts in one loop iteration. A positional zip across `resolved.services` and the handles is one insertion away from binding an app to another app's database |
+| The container **paths are `spec/injection.ts`'s own constants** (`INJECTED_FILE_PATHS`), not context fields | The variable that names a file and the `InstanceSpec.files` entry that writes it are then one constant rather than two values that agree by inspection |
+| `SAML_CALLBACK_URL` is the **registered ACS URL**, read from the registration | Defect 53 below |
+| `assertNoReservedEnvNames` is not a throwing function | Defect 50 below |
+
+**Two guards the plan does not ask for, both two independent reads of one setting.**
+`renderInjection` refuses a `ResolvedConfig` frozen for a different environment
+(`deployRelease` picks `resolvedConfig[environment.kind]`, so they agree by
+construction — the day they stop, an app is deployed with another environment's
+resources under this environment's URL), and a hostname whose first label is not the
+project slug (§23). Both cost two lines and both document an invariant that is
+currently a tautology.
+
+---
+
+**Tasks 10 and 11 found 10 defects. Two of them are the plan's own negative controls.**
+
+| # | Task | Defect | Measured against |
+|---|---|---|---|
+| 44 | 10 | **`config.idp` did not exist.** The plan's `InjectionContext` reads `config.idp`, and the *New configuration* table declares `MANIFEST_IDP_ENTITY_ID` and `MANIFEST_IDP_BASE_URL` — Task 1 added neither, and only `MANIFEST_SP_ENTITY_BASE` was there. Every SAML URL in §8's table would have had no source. | `grep`, then `tsc`. Both settings added, with `MANIFEST_IDP_SIGNING_CERT`, grouped as `config.idp` so the contract takes one field rather than four loose strings |
+| 45 | 10 | **`new URL('mf-svc-db:27017')` PARSES**, with `mf-svc-db:` as the scheme and `27017` as the path. A host-less endpoint reached the mongo branch and would have told the app its database was called `27017`. | The test written to prove the parse *failure*, which went green. `parseEndpoint` now checks `url.host` — a `try/catch` around `new URL` is not the check it looks like |
+| 46 | 10 | **The plan's negative control (a) could not fail.** Deleting the `MONGODB_DB_NAME` row from `INJECTION_VARIABLES` reddens nothing: the table is data for Task 13's drift test and the renderer has its own `switch`, so no test read both. | Applied and watched GREEN. A two-way comparison — every name the renderer emits is in the table, every applicable row is emitted — was added FIRST, and that is what goes red (in two tests) |
+| 47 | 11 | **The plan's Step 1 test and its negative control both aim at a test that cannot see them.** `roundtrip.docker.test.ts` calls `driver.ensureInstance` directly and never `deployRelease`, so a second producer with `PORT` hardcoded to 3000 changes nothing there. | Applied and watched GREEN, for 51 s of Docker time. The assertion that sees it is in `releases.test.ts`, against a resolved port of **8080** — a fixture whose expected value equals the blueprint default cannot tell an injected value from a hardcoded one |
+| 48 | 10 | **`ResolvedConfig` has no `ai`**, so Decision 12's refusal would have had to read `app_specs.parsed` — the second source of truth Task 9 rejected. Worse: every test fixture in this repository stores `parsed: {}`, so `spec.ai.models` would have thrown on the first deploy in the suite. | `tsc`, then the fixtures. `ai` is carried through `resolveConfig` now, optional at runtime for the same reason `auth` is |
+| 49 | 11 | **§16's identity-path login suite was a SECOND PRODUCER.** `sso/testing.ts` built §8's variables by hand, so `renderInjection` could have had any SAML row wrong and `login.docker.test.ts` would still have passed — the one test that proves a real CWL login end to end was proving it against an environment the platform does not produce. | The Task 11 grep, which the plan puts at Step 5. The fixture now renders through the platform, with ONE explicit subtraction: the SP that deliberately does not sign, which is the only thing that can show `validate.authnrequest` doing anything |
+| 50 | 10 | **`assertNoReservedEnvNames` would have had no caller.** The plan defines it as throwing and calls it from `spec/policy.ts` — but `checkPolicy` COLLECTS errors so a faculty member sees all of them at once, so a throwing variant is either uncalled (the defect this plan names three times) or turns validation into `try`/`catch` control flow. | Read, not failed. `RESERVED_ENV_NAMES` is exported instead and `checkPolicy` pushes a `ManifestError` per collision — in `env:` **and** in §7's overrides, where a reserved name would be just as inert and just as silent |
+| 51 | 11 | **`InstanceFile` was never exported from `runtime/index.ts`.** The type existed on `InstanceSpec` since Task 3 and no module outside `runtime/` could name it, so nothing could build the array §8's two file rows need. §5's boundary rule forbids the deep import that would have worked. | `tsc` |
+| 52 | 10 | **Two `exactOptionalPropertyTypes` errors in the new test** — `spEntity: undefined` is not assignable to an optional `spEntity`. Both spots passed every one of their assertions. | `pnpm --filter @manifest/control-plane typecheck`. Eleventh instance of this class in the project, and Vitest still cannot see one |
+| 53 | 11 | **`SAML_CALLBACK_URL` built from `MANIFEST_APP_URL` + `auth.callback` is a SECOND DERIVATION of the ACS URL.** The plan specifies exactly that. The IdP POSTs an assertion to whatever its row says, so an app listening anywhere else sees a login that never completes and reports nothing — and D15 already made the registration the one place a Manifest origin is joined to an app-supplied path. | Read, and then given a test: moving `spEntity.acsUrl` moves the variable. The Docker test asserts it against `row.AssertionConsumerService[0].Location` — the row read back out of the IdP's own database, never a string rebuilt in the test |
+
+**The negative controls, each watched red and reverted.**
+
+| Control | Result |
+|---|---|
+| (a) the `MONGODB_DB_NAME` row deleted from `INJECTION_VARIABLES` | **GREEN first** — that is defect 46. RED in two tests once the two-way comparison existed |
+| (b) `SAML_ENVIRONMENT` made conditional on the kind being `staging` | RED, sandbox |
+| (c) the platform's bindings applied BEFORE the app's own env | RED in two tests, with `mongodb://attacker/` and `PORT=9000` |
+| (d) `renderInjection` emitting `LLM_*` with an empty API key | RED in two tests, including the one that reads the error's CODE rather than its message |
+| (e) a second producer after `renderInjection`, with `PORT: '3000'` | **GREEN against `roundtrip`** — that is defect 47. RED in `releases.test.ts` against a resolved port of 8080 |
+| (f) the `files` block deleted from `deployRelease` | RED — `no file at the path SAML_IDP_CERT_PATH names` |
+| (g) the SP key placed with `gid: 0` | RED — `expected +0 to be 10001`. §12's `CapDrop: ALL` removes `CAP_DAC_OVERRIDE`, so the app could not have read its own key |
+| (h) the reserved-name check removed from `checkPolicy` | RED |
+| (i) the session secret generated per call instead of stored | RED — the stability test, which is what stops every user of a redeployed app being signed out |
+
+Controls (a), (b), (c), (d), (e) and (i) were applied by `python3 .replace()` with an
+**assertion that the pattern matched** before the file was written, and a `git diff
+--stat` after — §4's Prettier trap, which has now caught this project four times.
+
+**State at the end of the sitting:** `make doctor` **17/0**, `make verify` **45/0**,
+`pnpm test` **491** twice, `pnpm test:docker` **111** (20 files, ~350 s),
+lint/typecheck/format clean, and **`make demo` green end to end** against the real
+Docker driver, with the container's own environment read back afterwards. Two commits.
+
+**One thing left deliberately.** `deriveCredentials` still exists and Decision 8's trap
+still applies. `SESSION_SECRET` is new and stored from the first call, so it needed no
+migration — the get-or-create is there for stability across deploys, not for
+compatibility with a value P3 derived.
+
+**What sitting 5 inherits.** Tasks 12–13: `node-ts-mongo@1`, the blueprint faculty
+actually use, and then the drift test that reads its source. **It is the sitting that
+needs the network on**, to warm Verdaccio from the new lockfile. Three things are
+already in place for it: `INJECTION_CONTRACT_VERSION` is exported and is what
+`blueprint.yaml`'s `injection.contract` must equal; `INJECTION_VARIABLES` is exported
+as DATA, which is the list Task 13's drift test compares against the blueprint's own
+source; and the two-way comparison defect 46 produced is the shape that test should
+take — reading only one of the two lists asserts nothing about the other. Note that
+`DeployDeps` now carries **four** fields (`secrets`, `appSecrets`, `sso`,
+`blueprints`), and that `renderInjection` refuses an app declaring `ai.models` by
+design, so `node-ts-mongo@1` must ship `provides.ai: false` exactly as Decision 12 says.
 
 ---
 

@@ -48,25 +48,28 @@ check that every app failed, because BusyBox `wget` honours `http_proxy` and ign
 `NO_PROXY`, so D18's forced proxy denied each app's probe of its own loopback. **All
 of it was green in a suite of 74 passing Docker tests.**
 
-**P4a is PART-EXECUTED: Tasks 1–9 of 15 are green (8–9 on 2026-09-09); Tasks 10–15
-remain, and continuing at Task 10 is the current work** — ORIENTATION §7d, which
+**P4a is PART-EXECUTED: Tasks 1–11 of 15 are green (10–11 on 2026-09-09); Tasks 12–15
+remain, and continuing at Task 12 is the current work** — ORIENTATION §7d, which
 carries the table. The rest runs in **seven agreed SITTINGS, one per session with a
-check-in at each boundary**, so a session limit cannot land mid-task: sittings 1, 2 and
-3 are done, so **sitting 4 is Tasks 10–11** (`spec/injection.ts`, then its call site),
-then 12–13, 14 alone and 15 alone. *Sittings pace the work; they are not §17's product Phases.*
+check-in at each boundary**, so a session limit cannot land mid-task: sittings 1 to 4
+are done, so **sitting 5 is Tasks 12–13** (`node-ts-mongo@1`, then the drift test that
+reads its source — **the one sitting that needs the network on**), then 14 alone and
+15 alone. *Sittings pace the work; they are not §17's product Phases.*
 **A real CWL login now works end to end**, which it could not before: the IdP could
 neither issue an assertion nor authenticate anybody, with `make verify` green
 throughout — and since Task 7 that login runs through a Service Provider registration
 the control plane **derives and writes itself**, signed with a per-app RSA-4096 key it
 minted and stored; since Task 9 `deployRelease` writes that registration for any app
-that declares CWL. `make verify` is **45 / 0**, `pnpm test` **458**, `pnpm test:docker`
-**111**. `secrets/` now holds every service credential — libsodium envelope
+that declares CWL. **Since Task 11 §8's injection contract is ONE function with one
+producer** — `spec/injection.ts` — and `MONGODB_DB_NAME` reaches a deployed container
+for the first time, measured on the running platform. `make verify` is **45 / 0**,
+`pnpm test` **491**, `pnpm test:docker` **111**. `secrets/` now holds every service credential — libsodium envelope
 encryption in Postgres, replacing P3's HMAC derivation, migrated without breaking a
 running database — and §20's `audit.events` is append-only **by grant**, which needed
 the control plane to stop connecting as a superuser before it could mean anything:
 `REVOKE UPDATE, DELETE` followed by `UPDATE 1` was the measured starting point. It now
-connects as **`manifest_app`**, and so does the whole test suite. Those nine tasks
-found **43 defects**, two of them spec-level: **§12's
+connects as **`manifest_app`**, and so does the whole test suite. Those eleven tasks
+found **53 defects**, two of them spec-level: **§12's
 dependency-scan gate blocked every CWL application** (settled by Rich on 2026-09-08 —
 it now blocks only on findings that have a published fix), and **§8's
 `SAML_IDP_CERT_PATH` named a file nothing could create**, so `InstanceSpec` gained
@@ -111,11 +114,12 @@ repeatable has a state leak. For the platform itself it is `make doctor` and
 **Five spikes are done** (S7, S2, S1, S3 — all answered yes — and **S6**, which ran
 as P3's Task 18 on 2026-09-07 and found every probe denied with every denial paired
 with a positive control). P0, P1, P2 and P3 are written and **all three
-implementation plans are executed**. **P4a and P4b are both written and unrun — 31
+implementation plans are executed**. **P4a is part-executed and P4b is unrun — 20
 tasks between them; P5 is unwritten.** Plan-writing stopped on 2026-09-04 in favour
 of execution; that hold is now discharged, and it was right — the three plans
-produced **152 defects between them** after all three had been self-reviewed. That
-is also why a 31-task unrun stack is worth naming out loud rather than glossing. The maintained status record is the *Spike status*
+produced **152 defects between them** after all three had been self-reviewed, and
+P4a's first eleven tasks have since produced **53 more**. That
+is also why a 20-task unrun stack is worth naming out loud rather than glossing. The maintained status record is the *Spike status*
 ledger in `docs/superpowers/plans/2026-08-29-plan-roadmap.md`; if any document
 disagrees with it, the ledger wins.
 
