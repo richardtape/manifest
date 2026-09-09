@@ -743,7 +743,9 @@ self-reviewed before anyone executed it.
 
 The rate never fell with practice. It rose whenever the work stopped being pure
 functions, and it rose again whenever something was made to run end to end for the
-first time. **Budget accordingly.** P4a is written and unrun; that table is what to expect from it.
+first time. **Budget accordingly.** P4a's first three tasks came in at **6 defects per
+task** — above every plan in that table, in the plan that had the most research behind
+it. Twelve tasks remain and there is no reason to expect the rate to fall.
 
 ### 7a. P1 is done *(executed 2026-09-05)*
 
