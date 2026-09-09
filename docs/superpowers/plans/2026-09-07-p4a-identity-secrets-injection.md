@@ -18,7 +18,7 @@
 
 ## How this plan is being executed — SEVEN SITTINGS, one per session
 
-**Tasks 1–5 are DONE (2026-09-08). Sitting 2 — Tasks 6 and 7 — is next.**
+**Tasks 1–7 are DONE (Tasks 6–7 on 2026-09-09). Sitting 3 — Tasks 8 and 9 — is next.**
 
 Agreed with Rich on 2026-09-08: the remaining tasks run one sitting per session, with
 a check-in at each boundary, so a session limit can never land in the middle of a task.
@@ -29,8 +29,8 @@ the §17 product roadmap, and confusing the two sends a reader to the wrong docu
 | Sitting | Tasks | Status |
 |---|---|---|
 | 1 | 4–5 — `secrets/` and its first call site | ✅ done 2026-09-08, 8 defects |
-| **2** | **6–7 — per-app SP keypairs, then `sso/` and the one row** | ← **next** |
-| 3 | 8–9 — events and the registration call site | |
+| 2 | 6–7 — per-app SP keypairs, then `sso/` and the one row | ✅ done 2026-09-09, 9 defects |
+| **3** | **8–9 — events and the registration call site** | ← **next** |
 | 4 | 10–11 — §8's injection contract and its call site | |
 | 5 | 12–13 — `node-ts-mongo@1` and the drift test (**needs the network**) | |
 | 6 | 14 — Manifest's own login, and the end of the dev shim | alone: it reddens most of the API suite |
@@ -3355,6 +3355,77 @@ should be bound and added to `DeployDeps` in `releases/release.ts`, which now ex
 carries `{ secrets }`; Task 9 then has only its ordering assertion left to do.
 **Task 8 must create its OWN migration** rather than modifying `0003` — drizzle-kit
 keeps a journal and an applied migration is never re-run.
+
+---
+
+### Session 4 — sitting 2: Tasks 6 and 7 (2026-09-09). 9 defects.
+
+**Baseline first, and it matched the handover exactly**: `make doctor` 16/0, `make verify`
+44/0, `pnpm test` 420 twice, lint/typecheck/format clean, and the IdP serving signed
+metadata with the right entityID.
+
+**`sso/` exists and produces a working registration.** A per-app RSA-4096 keypair
+stored as two Secrets, §9's D15 derivation, S2's worked `entity_data` as one renderer,
+the `manifest_idp` metadata store, and `registerServiceProvider` composing the three.
+**A real CWL login now completes through a row `sso/` itself rendered**, with the
+AuthnRequest signed by the per-app key — and is refused when the row pins a different
+certificate, and refused again when the SP does not sign at all.
+
+| # | Task | Defect | Measured against |
+|---|---|---|---|
+| 27 | 6 | **Step 3 names an implementation that cannot exist.** `node:crypto` generates keypairs and *parses* X.509; it has no API that ISSUES a certificate, at any Node version. A new dependency needs the network and a Verdaccio warm-up in a plan whose builds must work offline, and hand-rolling ASN.1 is what Decision 7 rejected in principle. | `openssl` is spawned instead, the way `source/` spawns `git`. Verified identical on both flavours present here — LibreSSL 3.3.6 at `/usr/bin/openssl` and OpenSSL 3.6.3 from Homebrew — with `-keyout /dev/stdout`, so the private key never touches a file. |
+| 28 | 6 | **`ensureSpKeypair`'s scope carries no slug, and the task's own test asserts the certificate subject names the app.** Parsing the slug back out of a URL Manifest itself derived is the re-derivation shape that cost P3 seven defects in one session. The entityID cannot be the common name either. | Measured: `-subj "/CN=https://…"` is refused outright — `req: Missing '=' after RDN type string`, because `/` is openssl's RDN separator — and at §7's 39-character slug limit the entityID is **76 bytes against X.509's 64**. The scope gained `slug`; the entityID is carried verbatim in a `subjectAltName` URI, where length is unbounded, and the test asserts it. |
+| 29 | 6 | **My own first control could not fail.** "Transpose the two secret names" is symmetric — storage and retrieval swap together — so the pairing test stayed green. The test as written could only have failed if one openssl invocation had returned a mismatched pair, which it cannot. | The control run. The test now reads both halves back through `getSecret` and signs with one against the other, and goes red under the transposition that matters: the two VALUES stored under each other's names. |
+| 30 | 6 | **The control plane has two undeclared host-tool dependencies and `make doctor` asserts neither.** `openssl` joins `git`, which has been a hard requirement since P2 and is not checked. A first draft of the comment claimed doctor checked it. | `grep -n openssl scripts/doctor.sh` — nothing. Not fixed here: a check for one and not the other would be worse, and the failure is legible (the spawn error is wrapped in a message naming the entityID). **Raised for Rich** rather than decided. |
+| 31 | 7 | **"Three callers must be updated in the same commit or the whole suite goes red" was nine.** `MANIFEST_IDP_DATABASE_URL` is required, so every `loadConfig` caller had to move: five test env literals, `api/testing.ts`, `vitest.env.ts`, the README export block, and the global setup. | `tsc`, then the suite. `ensureDatabaseUrl` became `ensureDatabaseUrls` and derives both URLs **side by side from one password**, never one from the other — the running system keeps them as two independent settings and a helper that derived one from the other would test a shape the platform does not have. |
+| 32 | 7 | **`vitest.global-setup.ts`'s TRUNCATE list still lacked `secrets`.** It is a SECOND copy of the list Session 3 fixed in `db/testing.ts`, in a different process for a reason the file documents. No behaviour changed — `TRUNCATE … CASCADE` reaches `secrets` through its foreign key — but the two lists had already drifted once. | Read, not failed. Both lists now name every table. |
+| 33 | 7 | **SimpleSAMLphp validates any signature that is PRESENT, whether or not the row asks it to.** Making the fixture SP sign broke two of Task 3's tests, whose hand-written rows carry no `certData`: *"Missing certificate in metadata for 'https://manifest.internal/sp/saml-probe/staging'"* — which reads as a missing registration rather than a missing key. | The IdP's own Apache log, on the exact request. `SpRow` gained an optional `certData` and the fixture puts in the certificate it signs with. **The consequence for the platform: `certData` is not optional for any app that signs, which is every app `renderSpMetadata` registers.** |
+| 34 | 7 | **The plan's control (b) cannot prove what it is for.** It asks for a login test that signs with the WRONG key — but by defect 33 that is refused whether or not `validate.authnrequest` is set, so the flag can be deleted and nothing goes red. Only an SP that does **not** sign can show the flag doing anything. | A second deployment that does not sign, registered with a rendered row: refused. Watched red with `'validate.authnrequest': false`, where the unsigned login **succeeded with a 200**. That is S2 Evidence 8's first control, which nothing in this repository had ever run. |
+| 35 | 7 | **The login probe truncated every body at 400 characters, and the IdP's error page does not carry the reason anyway.** `showerrors` is off, as it must be on a deployed IdP, so the page says only "Unhandled exception" — the earlier assertions passed because SimpleSAMLphp puts a *titled* error's title in `<title>`, and an uncaught exception has no such title. | Raised to 4000 characters (which did not help, and is kept because it is the only record when a hop fails), and the unsigned-SP assertion moved to the IdP's **log**, read through the Engine API and **counted before and after** — a line left by an earlier run must not stand in for a refusal that did not happen. |
+
+**The negative controls, each watched red and reverted.**
+
+| Control | Result |
+|---|---|
+| (a) `rsa:2048` | the modulus assertion RED, naming 2048 |
+| (b) `ensureSpKeypair` always regenerates | the idempotence test RED |
+| (c) armoured PEM as `certData` | the row-encoding assertion RED |
+| (d) the two keypair halves stored under each other's names | the new pairing test RED, and idempotence RED with `PEM routines::no start line` |
+| (e) the `subjectAltName` dropped | the entityID assertion RED |
+| (f) the expiry computed from `VALIDITY_DAYS` instead of read off the certificate | RED by 44 ms — the certificate's own seconds-resolution date is the one that will be enforced |
+| (g) the ACS built with `new URL(callback, origin)` | six refusal tests RED. Recorded, because it is the point: `https://evil.example/acs` and `//evil.example/acs` **both** produced an ACS at the attacker's origin — §9's assertion-phishing primitive, from the obvious implementation |
+| (h) the previous row read AFTER the upsert | `previousAcsUrl` RED and `changed` RED — §9's ACS alert is unrecoverable one statement later |
+| (i) `changed: true` unconditionally | the re-registration test RED |
+| (j) the CHECK constraint dropped from the live IdP database | both refusal tests RED. Restored with `infra/lib/ensure-idp-sql.sh`, constraint verified present, zero rows left behind |
+| (k) `'validate.authnrequest': false` | the unsigned-SP test RED with a **200** |
+
+**Deviations from the plan's text, all deliberate.** `registration.test.ts` and the
+metadata-store suite are **Docker tier**: the table is the IdP container's artefact and
+the constraint is `make up`'s, and the alternative was a stub pool — a second
+implementation of the store, which is the shape that cost P3 seven defects.
+`mintSpKeypair` is exported so the login suite and `ensureSpKeypair` share one
+implementation rather than two. `deriveSpEntity` refuses three things beyond the plan:
+a provider that is not `cwl` (which would otherwise be refused with a message about
+attributes, sending the reader to the wrong line), an entity base that is not a bare
+https origin, and a hostname that is not a bare hostname. `createSsoRegistrar` takes
+`entityBase` as a third bound argument — the plan's two-argument form has no source for
+§9's platform domain — and `MANIFEST_SP_ENTITY_BASE` is the new setting behind it, whose
+only consumer is Task 9. **`.env.example` was NOT changed**, though the plan lists it:
+nothing loads `.env` into the control plane, so the variable belongs in README's export
+block, which is the documented path.
+
+**State at the end of the sitting:** `make doctor` 16/0, `make verify` 44/0,
+`pnpm test` **439** twice, `pnpm test:docker` **108** (19 files, 0 failed, 334 s),
+lint/typecheck/format clean. Two commits. Zero rows left in `saml20_sp_remote`.
+
+**What sitting 3 inherits.** `SsoRegistrar` is built and **has no caller** — Task 9's
+whole job is to give it one: construct `createIdpPool(config.idpDatabaseUrl)` and
+`createSsoRegistrar(pool, keys, config.spEntityBase)` at boot, add `sso` to the
+`DeployDeps` object that already carries `{ secrets }`, and register **before**
+`ensureInstance`. `registerServiceProvider` already returns exactly what Task 8's events
+need — `changed`, and `previousAcsUrl` when the ACS moved, read before the write because
+it is unrecoverable after it. **Task 8 must still create its OWN migration**; `0003` is
+applied and drizzle-kit never re-runs an applied migration.
 
 ---
 

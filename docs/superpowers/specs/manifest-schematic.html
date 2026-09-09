@@ -1103,7 +1103,7 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
 
   <p class="foot">Plain-language summary of
   <code>docs/superpowers/specs/2026-08-29-manifest-platform-design.md</code> &mdash; approved
-  design. Building started in August 2026. As of 7 September 2026 the underlying platform
+  design. Building started in August 2026. As of 9 September 2026 the underlying platform
   &mdash; networking, the secure edge, the databases, the private package and image
   registries, the AI gateway and the test login service &mdash; boots on one laptop with the
   network switched off, and <strong>a real application now runs on it end to end</strong>:
@@ -1111,8 +1111,14 @@ _manifest-challenge.labs.chem.ubc.ca.  TXT    "manifest-domain-verification=8f3a
   builds it in a sealed workshop with no route to the internet, records exactly what went
   into it, provisions its database, starts it, gives it a proper web address with a
   certificate the browser trusts, and refuses to put it in front of real students until a
-  formal checklist is complete. What is still to come is the identity work &mdash; signing in
-  with a UBC CWL account &mdash; the AI features, and the screens people will actually use.
+  formal checklist is complete. <strong>Signing in works too</strong>: a person can sign in
+  to such an application with a practice CWL account, the login service releases only the
+  personal details that application was registered for, and the platform now performs that
+  registration itself &mdash; giving each application its own signing key, and accepting
+  only the web address it issued rather than any the application asks for. Every password
+  an application&rsquo;s database uses is encrypted in the platform&rsquo;s own store. What
+  is still to come is the AI features, the first blueprint faculty will actually use, and
+  the screens people will work in.
   Section numbers on the companion pages match that document&rsquo;s own.<br>
   All screens on this page are mock-ups drawn to illustrate the design: <strong>no user interface
   has been built yet</strong>, and the faculty in the stories are invented.</p>

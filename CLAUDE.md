@@ -48,18 +48,20 @@ check that every app failed, because BusyBox `wget` honours `http_proxy` and ign
 `NO_PROXY`, so D18's forced proxy denied each app's probe of its own loopback. **All
 of it was green in a suite of 74 passing Docker tests.**
 
-**P4a is PART-EXECUTED (2026-09-08): Tasks 1–5 of 15 are green; Tasks 6–15
-remain, and continuing at Task 6 is the current work** — ORIENTATION §7d, which
+**P4a is PART-EXECUTED: Tasks 1–7 of 15 are green (6–7 on 2026-09-09); Tasks 8–15
+remain, and continuing at Task 8 is the current work** — ORIENTATION §7d, which
 carries the table. The rest runs in **seven agreed SITTINGS, one per session with a
-check-in at each boundary**, so a session limit cannot land mid-task: **sitting 2 is
-Tasks 6–7** (per-app SP keypairs, then `sso/`), then 8–9, 10–11, 12–13, 14 alone and
-15 alone. *Sittings pace the work; they are not §17's product Phases.*
+check-in at each boundary**, so a session limit cannot land mid-task: sittings 1 and 2
+are done, so **sitting 3 is Tasks 8–9** (the `events` table, then the registration call
+site `sso/` is waiting for), then 10–11, 12–13, 14 alone and 15 alone. *Sittings pace the work; they are not §17's product Phases.*
 **A real CWL login now works end to end**, which it could not before: the IdP could
 neither issue an assertion nor authenticate anybody, with `make verify` green
-throughout. `make verify` is now **44 / 0**, `pnpm test` **420**, `pnpm test:docker`
-**95**. `secrets/` now holds every service credential — libsodium envelope
+throughout — and since Task 7 that login runs through a Service Provider registration
+the control plane **derives and writes itself**, signed with a per-app RSA-4096 key it
+minted and stored. `make verify` is **44 / 0**, `pnpm test` **439**, `pnpm test:docker`
+**108**. `secrets/` now holds every service credential — libsodium envelope
 encryption in Postgres, replacing P3's HMAC derivation, migrated without breaking a
-running database. Those five tasks found **26 defects**, two of them spec-level: **§12's
+running database. Those seven tasks found **35 defects**, two of them spec-level: **§12's
 dependency-scan gate blocked every CWL application** (settled by Rich on 2026-09-08 —
 it now blocks only on findings that have a published fix), and **§8's
 `SAML_IDP_CERT_PATH` named a file nothing could create**, so `InstanceSpec` gained
