@@ -3107,6 +3107,52 @@ Run after the plan was complete, reading the spec with fresh eyes. Recorded so t
 
 ---
 
+## What executing this plan found
+
+*Appended per session. P1 found 18 defects, P2 52, P3 82 — 4.3 per task, in plans that
+had all been self-reviewed first. Finding them is the expected outcome, not a sign the
+plan was bad.*
+
+### Session 1 — baseline and Tasks 1–2 (2026-09-08). 9 defects.
+
+**Baseline first, and it matched the handover exactly**: `make doctor` 16/0, `make verify`
+34/0, `pnpm test` 381 twice, lint/typecheck/format clean, and the plan's premise
+reproduced — `/module.php/saml/idp/metadata` answered **500** with an empty `cert/`.
+
+| # | Task | Defect | Measured against |
+|---|---|---|---|
+| 1 | 1 | **The plan's own entityID check could not fail.** `grep -qE 'entityID="[^"]*:(7122\|6122\|8080)'` matches nothing when there is no `entityID` at all, so it passed against the Caddy wildcard page and would have passed had metadata never been served. | Green against `manifest OK host=idp.manifest.internal`. Now extracts the entityID, fails if absent, then checks for a port. Watched red under control (c). |
+| 2 | 1 | **The edge check could not fail either.** It asserted only a 200, and the Caddyfile wildcard returns 200 for **every** path under the zone. The plan predicted it would "pass for the wrong reason until Step 5"; it would have kept passing for ever after. | With the site block removed the check stayed green while the IdP was unreachable. It now asserts *who answered* — `SimpleSAMLphp` in the body — and goes red under control (c). |
+| 3 | 1 | **`make up` had no way to apply a Caddyfile change.** The file is bind-mounted and read once at container start; compose sees no service change when only content changed, so Task 1's new site block did nothing and `make up` reported success. | `infra/lib/ensure-caddy-config.sh` reloads the edge, **conditional** on a hash kept in the edge's own volume — `caddy reload` replaces the whole config and would otherwise drop the driver's runtime routes on every `make up`. |
+| 4 | 1 | Control (b) as written cannot run. `make up` calls `ensure-idp-keypair.sh`, which **re-mints the keypair it just removed**; and `mv`-ing a bind-mounted *directory* leaves the running container on the old inode, so the container must be force-recreated. Also, the plan expected "the certificate half only" to redden — SimpleSAMLphp refuses to serve metadata **at all** without a private key. | Control run properly: `docker compose up -d --force-recreate idp` with an emptied `cert/` → `Error: METADATA`. |
+| 5 | 2 | **Finding 2 was wrong, in the platform's favour.** `config.php.dist` ships `50 => 'core:AttributeLimit'` and our `config.php` merges *over* the dist, so the filter was live all along. `authproc.idp` read `[core:LanguageAdaptor, core:AttributeLimit, core:LanguageAdaptor]` before any change. What was actually missing was the OID map. | `grep -A25 "'authproc.idp'" config.php.dist`, and the plan's own first check passing on a stock IdP. |
+| 6 | 2 | **The naming halves disagreed, and the plan's Step 4 would have left them disagreeing.** `core:AttributeLimit` compares the SP row's `attributes` list against the attribute **keys** at priority 50. The auth source emitted OIDs; a row declares friendly names. Following the plan literally releases **nothing**, and `passport-ubcshib` throws `Missing ubcEduCwlPuid`. | All four combinations measured against this SimpleSAMLphp: OID keys + friendly row → `[]`; friendly + friendly → the two declared; OID + OID → the two declared; friendly + `[]` → **all five** (S2's fail-open). Auth source now speaks friendly; `AttributeMap` at 60 converts to OIDs. `name2oid` knows four of the five — `ubcEduCwlPuid` is UBC's own and needs `attributemap/ubcoid.php`. |
+| 7 | 2 | **The CHECK constraint accepted the row it exists to forbid.** `(entity_data::jsonb)->'attributes'` is SQL NULL when the key is absent, `jsonb_array_length(NULL)` is NULL, and `NULL > 0` is NULL — which a CHECK **accepts**. So `"attributes": []` was rejected and a row with no `attributes` key went straight in, and `core:AttributeLimit` treats the two identically. | `COALESCE(..., 0) > 0`, plus a sixth check asserting exactly that row is refused. Both watched red under control (c). |
+| 8 | 2 | **Making the metadata user read-only made the IdP restart-loop.** `bin/initMDSPdo.php` issues `CREATE TABLE` through `database.*` — the same credentials the request path reads metadata with — so the entrypoint died with `permission denied for schema public` and the container looped on exit 255. | `SSP_DB_INIT=1` scopes the owning role to that one command in the entrypoint. Deliberately **not** a `php_sapi_name() === 'cli'` split, which would silently give every CLI probe more privilege than the server has — the exact shape that cost P3 seven defects in one session. |
+| 9 | 2 | **A failing check broke the platform for the next person.** `idp_metadata_user_is_read_only` INSERTs a row it expects to be denied and never deleted it, so control (d) left `('x','{}')` behind — and the next `make up` died, because that row violates the new constraint, with three lines of PL/pgSQL context naming no row. | The probe now deletes unconditionally; `ensure-idp-sql.sh` lists the offending `entity_id`s and the SQL to remove them, and refuses to delete them itself — §9 calls such a row fail-open, and silently removing it would take a deployed app's sign-on away without saying so. |
+
+**Two checks were added beyond the plan**, both because a control could not fail without
+them: `idp_refuses_a_missing_attribute_list` (defect 7) and
+`idp_releases_exactly_what_the_row_declares_named_by_oid`, which runs the configured
+chain in priority order rather than grepping a config file. The second **catches the
+priority swap the plan expected only Task 3's login to catch** — its self-review item 3
+says asserting the filter is *loaded* passes just as happily when the order is reversed,
+and control (b) confirms it: `authproc.idp = [core:AttributeMap, core:AttributeLimit]`
+keeps the "loaded" check green while releasing nothing.
+
+**Deviations from the plan's text, all deliberate:** `IDP_HOST` moved from Task 1 Step 3
+to Step 1, so Step 2's failures are honest rather than `unbound variable`; the
+`X-Forwarded-*` headers were dropped from the Caddy block (Caddy sets all three by
+default and **warns** on the explicit `X-Forwarded-Host`, and `baseurlpath` is absolute
+so SimpleSAMLphp does not read them); Task 2's flatfile check went to `verify.sh` rather
+than `doctor.sh`, since it needs a running container; and `authsources.php` changed more
+than Step 4 asked — friendly names throughout, not only the corrected PUID OID.
+
+**State at the end of the session:** `make doctor` 16/0, `make verify` **43/0**,
+`pnpm test` 381, `pnpm test:docker` 89, lint/typecheck/format clean. Two commits.
+
+---
+
 ## Spec actions proposed by this plan
 
 **Not applied.** The spec is approved design and changing it is Rich's call; this is the record, in the same form the spikes and P3 used. P3's own six were applied on 2026-09-07 with his approval, before this plan was written.
