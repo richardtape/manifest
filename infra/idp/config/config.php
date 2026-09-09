@@ -15,7 +15,10 @@
 require '/var/simplesamlphp/config/config.php.dist';
 
 $config = array_merge($config, [
-    'baseurlpath' => '/',
+    // Caddy terminates TLS; without this SimpleSAMLphp builds `http://` URLs
+    // into the SAML flow and the browser is redirected off the trusted origin.
+    'baseurlpath' => 'https://idp.manifest.internal/',
+    'trusted.url.domains' => ['idp.manifest.internal'],
     'technicalcontact_email' => 'noreply@manifest.internal',
     'secretsalt' => getenv('SSP_SECRET_SALT') ?: 'change-me-locally',
     'auth.adminpassword' => getenv('SSP_ADMIN_PASSWORD') ?: 'change-me-locally',

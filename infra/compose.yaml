@@ -239,9 +239,16 @@ services:
       SSP_DSN: pgsql:host=postgres;port=5432;dbname=manifest_idp
       SSP_DB_USER: manifest
       SSP_DB_PASS: ${POSTGRES_PASSWORD}
+      # Configuration, never derived from the request host (S2's trap: the
+      # shipped hosted-entity template keys on 'host' and hard-codes the port,
+      # so the spike's IdP issued assertions from localhost:6122 while running
+      # on 7122). An SP that pins idp.entityID survives a port move.
+      MANIFEST_IDP_ENTITY_ID: ${MANIFEST_IDP_ENTITY_ID:-https://idp.manifest.internal/idp/shibboleth}
     volumes:
       - ./idp/config/config.php:/var/simplesamlphp/config/config.php:ro
       - ./idp/config/authsources.php:/var/simplesamlphp/config/authsources.php:ro
+      - ./idp/metadata/saml20-idp-hosted.php:/var/simplesamlphp/metadata/saml20-idp-hosted.php:ro
+      - ./idp/cert:/var/simplesamlphp/cert:ro
     ports:
       # 7122, deliberately NOT 6122 — that is the standalone docker-simple-saml
       # on this machine (§21).

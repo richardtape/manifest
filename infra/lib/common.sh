@@ -11,6 +11,10 @@ DNS_C_IP="10.89.0.53"     # dnsmasq answering CONTAINERS
 DNS_H_IP="10.89.0.54"     # dnsmasq answering the HOST
 EDGE_IP="127.0.0.2"       # the lo0 alias Caddy binds, so Valet keeps 127.0.0.1
 
+# The Manifest IdP's ONE name. SAML is browser-mediated, so the IdP needs a URL
+# that is identical from the host, from a container and from `curl` — C1's bar.
+IDP_HOST="idp.${ZONE}"
+
 PORT_CONTROL_PLANE=7100
 PORT_POSTGRES=7103
 PORT_LITELLM=7106

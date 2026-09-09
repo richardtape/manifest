@@ -465,6 +465,59 @@ idp_sql_session_store_works() {
 }
 check "the SQL session store is a DIFFERENT subsystem, and also works (S2)"  idp_sql_session_store_works
 
+idp_serves_metadata() {
+  local body
+  body=$(curl -sS --cacert "$CA_FILE" "https://$IDP_HOST/module.php/saml/idp/metadata" 2>&1)
+  # Assert the SHAPE of the answer, not that an answer arrived: a 500 error page
+  # is also a 200-shaped string, and the whole point of this check is that the
+  # IdP could not previously produce metadata at all.
+  echo "$body" | grep -q 'entityID="https://idp.manifest.internal/idp/shibboleth"' \
+    && echo "$body" | grep -q '<ds:X509Certificate>' \
+    && echo "metadata carries the configured entityID and a signing certificate" \
+    || { echo "metadata missing entityID or X509Certificate:"; echo "$body" | head -5; return 1; }
+}
+check "the IdP serves SAML metadata with our entityID and a certificate"  idp_serves_metadata
+
+idp_entity_id_is_not_host_derived() {
+  # S2's trap. The entityID must not carry a port or a bare host, whatever port
+  # the container happens to be published on.
+  local body eid
+  body=$(curl -sS --cacert "$CA_FILE" "https://$IDP_HOST/module.php/saml/idp/metadata")
+  # ASSERT THE ENTITY ID IS THERE FIRST. Without this line the port match below
+  # finds nothing whenever no metadata is served AT ALL — the wildcard page, a
+  # 500, an empty body — and the check passes vacuously. Measured 2026-09-08:
+  # it passed against `manifest OK host=idp.manifest.internal`, which is the
+  # Caddyfile fallback. A control that cannot fail is not a control.
+  eid=$(echo "$body" | grep -o 'entityID="[^"]*"' | head -1 | sed 's/^entityID="//; s/"$//')
+  [ -n "$eid" ] || { echo "no entityID in the response at all:"; echo "$body" | head -3; return 1; }
+  case "$eid" in
+    *:7122*|*:6122*|*:8080*)
+      echo "entityID carries a PORT — it is being derived from the request host: $eid"
+      return 1 ;;
+  esac
+  echo "entityID carries no port: $eid"
+}
+check "the IdP entityID is configured, not derived from the request host"  idp_entity_id_is_not_host_derived
+
+idp_through_the_edge() {
+  # Not `-k`. A demo that skips verification is a demo that would pass against
+  # the wrong certificate (P3 Task 14 paid for this one).
+  local body code
+  body=$(curl -sS --cacert "$CA_FILE" -w '\n%{http_code}' \
+           "https://$IDP_HOST/module.php/core/welcome")
+  code=${body##*$'\n'}
+  # ASSERT WHO ANSWERED. The Caddyfile wildcard returns 200 for EVERY path under
+  # the zone, so a status-only check stays green with no IdP route at all —
+  # measured 2026-09-08 by removing the site block and watching this check pass.
+  # The body is what separates "the edge routed this to the IdP" from "the edge
+  # answered it itself".
+  echo "https://$IDP_HOST/module.php/core/welcome -> $code (want 200, from SimpleSAMLphp)"
+  [ "$code" = "200" ] || return 1
+  echo "$body" | grep -q 'SimpleSAMLphp' \
+    || { echo "200, but not from the IdP — the wildcard answered: $(echo "$body" | head -1)"; return 1; }
+}
+check "the IdP is reachable through the edge over trusted TLS"  idp_through_the_edge
+
 echo
 echo "C1 — host/container parity (S7 §Evidence 4, 5)"
 

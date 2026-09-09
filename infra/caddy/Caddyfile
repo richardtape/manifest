@@ -8,6 +8,30 @@
 	skip_install_trust
 }
 
+# The Manifest IdP, served at ONE name over trusted TLS.
+#
+# SAML is browser-mediated: the app redirects the BROWSER to the IdP, so the IdP
+# needs a URL that is identical from the host, from a container and from `curl`
+# — C1's bar. `http://127.0.0.1:7122` satisfies none of that. Caddy reaches the
+# container by service name on the platform network (measured 2026-09-07: a
+# 303 from `manifest-idp:80`), and `idp.manifest.internal` already resolves to
+# 127.0.0.2 on the host and to Caddy inside a container.
+#
+# ABOVE the wildcard, and a separate block rather than a matcher inside it:
+# Caddy prefers the more specific site, but the wildcard's `respond` is terminal
+# and reviewing that ordering is cheaper than debugging it.
+idp.manifest.internal {
+	tls internal
+	# No `header_up` block. Caddy already sets X-Forwarded-For, -Proto and -Host
+	# by default, and setting X-Forwarded-Host explicitly makes it WARN on every
+	# reload (measured 2026-09-08: "Unnecessary header_up X-Forwarded-Host").
+	# SimpleSAMLphp does not depend on them here in any case: config.php sets an
+	# absolute `baseurlpath`, so it builds https://idp.manifest.internal/... from
+	# configuration rather than from the request — which is the same reason the
+	# entityID is configured rather than derived.
+	reverse_proxy manifest-idp:80
+}
+
 # §23's three platform zones, local equivalents. One wildcard certificate each,
 # because every platform hostname is exactly one label deep.
 *.manifest.internal, *.sandbox.manifest.internal, *.staging.manifest.internal {
