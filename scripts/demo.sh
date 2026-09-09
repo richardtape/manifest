@@ -53,9 +53,60 @@ exact commands — and check the boot line says {\"driver\":\"docker\"}, because
 every claim this demo makes is meaningless against the fake one."
 echo "  $API answered"
 
-say "1. Log in (the dev shim — P4 replaces this with CWL)"
-api POST /auth/dev-login '{"puid":"bio_prof"}' >/dev/null
-echo "  session for bio_prof"
+say "1. Log in with CWL, against the Manifest IdP"
+# THE REAL THING. `POST /auth/dev-login` used to be here — an unauthenticated
+# endpoint that minted a session for a named test user with no credential at all.
+# It is gone (§9: Manifest is its own SP), and so is the shim's setting.
+#
+# Three hops, because that is what a browser does and curl cannot auto-submit an
+# HTML form. Extracting the fields with sed is regex-over-HTML, acceptable here
+# for the reason `sso/testing.ts` gives: this is a fixture IdP whose
+# SimpleSAMLphp version we pin, and a markup change SHOULD fail loudly.
+IDP_JAR="$(mktemp -t manifest-demo-idp-jar)"
+trap 'rm -f "$JAR" "$IDP_JAR"' EXIT
+CA="$ROOT/infra/ca/manifest-root.crt"
+
+# HTML-DECODE. These come out of HTML attributes, so '&' arrives as '&amp;' —
+# and AuthState carries a query string, so posting it undecoded means
+# SimpleSAMLphp cannot match the pending authentication and the flow LOOPS
+# rather than failing. Measured 2026-09-08.
+unescape() { sed 's/&amp;/\&/g; s/&quot;/"/g; s/&#0*39;/'"'"'/g; s/&lt;/</g; s/&gt;/>/g'; }
+
+# Hop 1: the control plane answers 302 with a signed AuthnRequest.
+AUTHN="$(curl -sS -c "$JAR" -b "$JAR" -o /dev/null -w '%{redirect_url}' "$API/auth/login")"
+case "$AUTHN" in
+  https://idp.manifest.internal/*) : ;;
+  *) fail "GET /auth/login did not redirect to the Manifest IdP (got '$AUTHN')" ;;
+esac
+
+# Hop 2: the IdP serves its login form — which it only does once it has ACCEPTED
+# the request, so a form here means the row and the signature both check out.
+# `--cacert`, never `-k`: a probe that skips verification passes against the
+# wrong certificate.
+FORM="$(curl -sS --cacert "$CA" -c "$IDP_JAR" -b "$IDP_JAR" -L "$AUTHN")"
+echo "$FORM" | grep -q 'name="username"' || fail "the IdP served no login form. It
+refuses an SP it cannot find, so check the control plane registered itself at
+boot: the row is 'https://manifest.internal/sp/manifest-control-plane/platform'
+in the manifest_idp database."
+
+# Hop 3: post the credentials, then post the assertion the IdP returns to the
+# control plane's own ACS.
+STATE="$(echo "$FORM" | sed -n 's/.*name="AuthState"[^>]*value="\([^"]*\)".*/\1/p' | head -1 | unescape)"
+ACTION="$(echo "$FORM" | sed -n 's/.*<form[^>]*action="\([^"]*\)".*/\1/p' | head -1 | unescape)"
+case "$ACTION" in http*) POST="$ACTION" ;; *) POST="https://idp.manifest.internal$ACTION" ;; esac
+ASSERTION="$(curl -sS --cacert "$CA" -c "$IDP_JAR" -b "$IDP_JAR" -L \
+  --data-urlencode "username=instructor" --data-urlencode "password=instructor" \
+  --data-urlencode "AuthState=$STATE" "$POST")"
+SAML="$(echo "$ASSERTION" | sed -n 's/.*name="SAMLResponse"[^>]*value="\([^"]*\)".*/\1/p' | head -1 | unescape)"
+[ -n "$SAML" ] || fail "the IdP returned no SAMLResponse"
+curl -sS -c "$JAR" -b "$JAR" -o /dev/null \
+  --data-urlencode "SAMLResponse=$SAML" "$API/auth/saml/callback"
+
+# The SHAPE of the answer, not that a request succeeded: a session cookie that
+# authenticates nobody would carry this demo three steps further before failing.
+WHO="$(api GET /auth/me | field puid)"
+[ "$WHO" = ins000001 ] || fail "logged in as '$WHO', expected ins000001"
+echo "  session for $WHO (a real CWL login, not a shim)"
 
 say "2. Create the project — three environments and a provisioned bare repository"
 PROJECT="$(api POST /projects "{\"slug\":\"$SLUG\",\"blueprint\":\"fixture-node@1\"}")"
@@ -82,7 +133,10 @@ say "3. Push the fixture app into that repository"
 # .npmrc — D13 makes both the blueprint's, and `assembleContext` writes them over
 # anything the app committed.
 WORK="$(mktemp -d -t manifest-demo-src)"
-trap 'rm -f "$JAR"; rm -rf "$WORK"' EXIT
+# Replaces the trap above, so it must re-list EVERY file already registered —
+# $IDP_JAR included. A trap that drops one leaks a temp file per demo run, which
+# is the litter CLAUDE.md's non-negotiable is about.
+trap 'rm -f "$JAR" "$IDP_JAR"; rm -rf "$WORK"' EXIT
 git clone -q "$BARE" "$WORK"
 cp fixtures/fixture-app/package.json fixtures/fixture-app/package-lock.json \
    fixtures/fixture-app/server.js "$WORK/"

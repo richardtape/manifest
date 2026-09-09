@@ -1,7 +1,10 @@
 import { execFile, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
+import pg from 'pg'
 import { expect, it } from 'vitest'
 import { describeDocker, REPO_ROOT } from './runtime/testing.js'
+import { deleteSpRow, readSpRow } from './sso/index.js'
+import { idpDatabaseUrl } from './sso/testing.js'
 
 const run = promisify(execFile)
 
@@ -34,9 +37,12 @@ describeDocker('the boot entry point', () => {
       env: {
         ...process.env,
         MANIFEST_ENV: 'development',
-        MANIFEST_DEV_AUTH: '1',
         // A port of its own: the developer's own control plane may be on 7100.
+        // The SP origin moves with it — `loadConfig` refuses a loopback origin
+        // whose port is not the one the process listens on, which is the second
+        // read of one setting and is exactly what would bite here.
         MANIFEST_PORT: '7188',
+        MANIFEST_CONTROL_PLANE_ORIGIN: 'http://127.0.0.1:7188',
         MANIFEST_SESSION_SECRET: 'x'.repeat(32),
         MANIFEST_MASTER_SECRET: 'm'.repeat(32),
         MANIFEST_BLUEPRINTS_ROOT: `${REPO_ROOT}blueprints`,
@@ -76,8 +82,47 @@ describeDocker('the boot entry point', () => {
       // MANIFEST_SESSION_SECRET and MANIFEST_MASTER_SECRET explicitly, so a
       // scrub that ran removed at least those two.
       expect(boot.secretsScrubbed).toBeGreaterThanOrEqual(2)
+
+      // §9's registration, asserted where it is actually written: THE REAL BOOT.
+      // `registerControlPlaneSp` is called from `index.ts` and nowhere else, and
+      // "a module with no call site is not built" has been this project's defect
+      // three times — twice with passing unit tests. The row is read back out of
+      // the IdP's own database, and the ACS is checked against the port THIS
+      // process was started on, so a boot that registered a stale origin fails
+      // here rather than at somebody's first login.
+      const pool = new pg.Pool({ connectionString: idpDatabaseUrl() })
+      try {
+        const row = await readSpRow(
+          pool,
+          'https://manifest.internal/sp/manifest-control-plane/platform',
+        )
+        expect(row?.AssertionConsumerService[0]?.Location).toBe(
+          'http://127.0.0.1:7188/auth/saml/callback',
+        )
+        // §9's fail-open rule: a row with no attribute list releases everything.
+        // `eduPersonAffiliation` is deliberately NOT among them — a platform
+        // role is Manifest's to decide, so the IdP is never asked for one.
+        expect(row?.attributes).toEqual(['ubcEduCwlPuid', 'mail', 'givenName', 'sn'])
+        expect(row?.certData).toBeTruthy()
+        expect(row?.['validate.authnrequest']).toBe(true)
+      } finally {
+        await pool.end()
+      }
     } finally {
       child.kill('SIGTERM')
+      // Same reason `identity/saml.docker.test.ts` does it: this booted on a
+      // port of its own, so the row it registered names an ACS nothing will
+      // answer once the process is gone. Absent fails loudly at the next login;
+      // wrong fails silently. The next real boot writes it back.
+      const pool = new pg.Pool({ connectionString: idpDatabaseUrl() })
+      try {
+        await deleteSpRow(
+          pool,
+          'https://manifest.internal/sp/manifest-control-plane/platform',
+        )
+      } finally {
+        await pool.end()
+      }
     }
   }, 120_000)
 })

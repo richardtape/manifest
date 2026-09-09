@@ -499,6 +499,42 @@ idp_entity_id_is_not_host_derived() {
 }
 check "the IdP entityID is configured, not derived from the request host"  idp_entity_id_is_not_host_derived
 
+control_plane_sp_keypair() {
+  # §9: Manifest is its own SP. `make up` mints the keypair it signs its own
+  # AuthnRequests with, and the control plane REFUSES TO BOOT without it — so a
+  # half-minted pair is a platform that does not start, which is worth catching
+  # here rather than in somebody's terminal.
+  local key="infra/sp/control-plane.key" crt="infra/sp/control-plane.crt"
+  [ -s "$key" ] || { echo "no SP private key at $key — run \`make up\`"; return 1; }
+  [ -s "$crt" ] || { echo "no SP certificate at $crt — run \`make up\`"; return 1; }
+
+  # COMPLETE THE OPERATION, do not look for a file. An interrupted mint leaves a
+  # file that exists and is non-empty and is not a certificate, and the failure
+  # then lands inside node-saml's XML signer with a message about the assertion
+  # rather than about the key. This project's most-repeated lesson.
+  local san
+  san=$(openssl x509 -in "$crt" -noout -ext subjectAltName 2>/dev/null) \
+    || { echo "$crt is not a parseable certificate"; return 1; }
+  echo "$san" | grep -q 'URI:https://manifest.internal/sp/manifest-control-plane/platform' \
+    || { echo "the certificate's SAN does not carry the control plane's entityID:"; echo "$san"; return 1; }
+
+  # And that the two halves are ONE PAIR. Two valid PEMs that do not match is
+  # what a re-mint of one half leaves, and the IdP then refuses every login with
+  # "Invalid certificate signature" (S2 Evidence 8) — a failure that reads as a
+  # missing registration. Compare the public keys, which is the only thing that
+  # answers it.
+  local from_key from_crt
+  from_key=$(openssl pkey -in "$key" -pubout 2>/dev/null)
+  from_crt=$(openssl x509 -in "$crt" -noout -pubkey 2>/dev/null)
+  [ -n "$from_key" ] && [ "$from_key" = "$from_crt" ] \
+    || { echo "$key and $crt are not the same keypair"; return 1; }
+
+  local bits
+  bits=$(openssl x509 -in "$crt" -noout -text | grep -o 'Public-Key: ([0-9]* bit)' | head -1)
+  echo "one RSA pair, $bits, SAN carries the control plane entityID"
+}
+check "the control plane's own SP keypair is a usable pair (§9)"  control_plane_sp_keypair
+
 idp_through_the_edge() {
   # Not `-k`. A demo that skips verification is a demo that would pass against
   # the wrong certificate (P3 Task 14 paid for this one).

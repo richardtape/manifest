@@ -52,14 +52,13 @@ describe('configuration', () => {
   })
 
   it('parses a development environment and defaults the port to 7100', () => {
-    const config = loadConfig({
-      ...base,
-      MANIFEST_ENV: 'development',
-      MANIFEST_DEV_AUTH: '1',
-    })
+    const config = loadConfig({ ...base, MANIFEST_ENV: 'development' })
     expect(config.env).toBe('development')
-    expect(config.devAuth).toBe(true)
     expect(config.port).toBe(7100)
+    // The platform's own SP origin, which every URL the IdP posts back to is
+    // built from. Loopback and 7100 by default (§21 puts the control plane on
+    // the host, not behind the edge).
+    expect(config.sp.origin).toBe('http://127.0.0.1:7100')
   })
 
   // §13's gate integrity rests on this secret, and it is optional in the schema so
@@ -147,36 +146,64 @@ describe('configuration', () => {
     expect(a).not.toBe(b)
   })
 
-  it('refuses to start with dev auth enabled in production', () => {
-    expect(() =>
-      loadConfig({ ...base, MANIFEST_ENV: 'production', MANIFEST_DEV_AUTH: '1' }),
-    ).toThrow(ConfigError)
-    try {
-      loadConfig({ ...base, MANIFEST_ENV: 'production', MANIFEST_DEV_AUTH: '1' })
-    } catch (error) {
-      expect((error as ConfigError).code).toBe('CONFIG_DEV_AUTH_OUTSIDE_DEVELOPMENT')
-    }
-  })
-
-  it('refuses to start with dev auth enabled in staging', () => {
-    expect(() =>
-      loadConfig({ ...base, MANIFEST_ENV: 'staging', MANIFEST_DEV_AUTH: '1' }),
-    ).toThrow(ConfigError)
-  })
-
-  it('starts in production when dev auth is off', () => {
+  /**
+   * ROADMAP GAP 3 IS CLOSED, and this is what replaced three tests.
+   *
+   * `MANIFEST_DEV_AUTH` used to be here with two guards over it, because
+   * `POST /auth/dev-login` minted a real session for a named test user with no
+   * credential of any kind and P2 measured that it was one line from live. The
+   * setting, the guards and the route are gone; Manifest logs its own users in
+   * with CWL (§9). A test asserting the guard would now be asserting against a
+   * setting `envSchema` does not have — which zod ignores — so the honest
+   * replacement is this one: nothing anywhere still reads it.
+   */
+  it('has no dev-auth setting left to enable', () => {
     const config = loadConfig({
       ...base,
       MANIFEST_ENV: 'production',
-      MANIFEST_DEV_AUTH: '0',
-      // Required outside development from P3 Task 9 onwards: it signs the
-      // credential the registry token realm verifies (§13).
+      MANIFEST_DEV_AUTH: '1',
       MANIFEST_BUILD_CREDENTIAL_SECRET: 'b'.repeat(32),
-      // Required outside development from P3 Task 15 onwards: every backing-service
-      // credential is derived from it (§12, Task 6).
       MANIFEST_MASTER_SECRET: 'm'.repeat(32),
     })
-    expect(config.devAuth).toBe(false)
+    expect(Object.keys(config)).not.toContain('devAuth')
+    expect(JSON.stringify(config)).not.toContain('DEV_AUTH')
+  })
+
+  /**
+   * Two independent reads of one setting, which is the shape this project's own
+   * lesson asks for. The origin is what the IdP posts a person's assertion back
+   * to, so a loopback origin naming a port nothing listens on registers a
+   * callback that cannot answer — and the login then completes at the IdP and
+   * dies on the redirect, which reads as an IdP fault.
+   */
+  it('refuses a loopback SP origin whose port is not the one it listens on', () => {
+    expect(() =>
+      loadConfig({
+        ...base,
+        MANIFEST_PORT: '7100',
+        MANIFEST_CONTROL_PLANE_ORIGIN: 'http://127.0.0.1:7101',
+      }),
+    ).toThrow(ConfigError)
+    try {
+      loadConfig({
+        ...base,
+        MANIFEST_PORT: '7100',
+        MANIFEST_CONTROL_PLANE_ORIGIN: 'http://127.0.0.1:7101',
+      })
+    } catch (error) {
+      expect((error as ConfigError).code).toBe(
+        'CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH',
+      )
+    }
+  })
+
+  it('accepts a non-loopback SP origin on any port — behind a proxy it is not ours', () => {
+    const config = loadConfig({
+      ...base,
+      MANIFEST_PORT: '7100',
+      MANIFEST_CONTROL_PLANE_ORIGIN: 'https://manifest.ubc.ca',
+    })
+    expect(config.sp.origin).toBe('https://manifest.ubc.ca')
   })
 
   it('refuses a session secret shorter than 32 characters', () => {

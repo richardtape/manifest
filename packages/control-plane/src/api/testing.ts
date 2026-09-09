@@ -6,6 +6,20 @@ import { createLocalSourceDriver } from '../source/index.js'
 import { loadBlueprints } from '../blueprints/index.js'
 import { createServiceCredentials } from '../services/index.js'
 import { createAppSecrets, generateMasterKeypair } from '../secrets/index.js'
+import { SESSION_COOKIE, createSamlSp } from '../identity/index.js'
+import {
+  ensureTestUser,
+  testSamlIdp,
+  testSessionCookies,
+  type TestIdp,
+  type TestUserPuid,
+} from '../identity/testing.js'
+import {
+  controlPlaneSpEntity,
+  describeKeypair,
+  mintSpKeypair,
+  type SpKeypair,
+} from '../sso/index.js'
 import { mkdir, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -36,7 +50,50 @@ const BLUEPRINTS_ROOT = fileURLToPath(new URL('../../../../blueprints', import.m
  */
 export const TEST_REPOS_ROOT = join(tmpdir(), 'manifest-test-repos')
 
-export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> {
+/**
+ * A session for one of §16's four identities, in the shape `app.inject` wants.
+ *
+ * What every API test used `POST /auth/dev-login` for. Two steps, both of which
+ * that route also did: the §6 `User` row has to exist, because a session carries
+ * a `userId` and every authorization check resolves it; and the cookie has to be
+ * signed with the secret THIS server was built with, which is why it takes
+ * `deps` rather than a bare string.
+ */
+export async function loginAs(
+  deps: ServerDeps,
+  puid: TestUserPuid,
+): Promise<Record<typeof SESSION_COOKIE, string>> {
+  const user = await ensureTestUser(deps.db, puid)
+  return testSessionCookies(user, deps.config.sessionSecret)
+}
+
+/**
+ * The control plane's own SP, and the in-process IdP that can sign for it.
+ *
+ * Minted ONCE per test process for the same reason `testSamlIdp` is: two
+ * RSA-4096 keypairs per test would dominate the unit tier's runtime. Sharing
+ * them across tests is safe here in a way sharing a MASTER key is not — these
+ * are the platform's own identity rather than an app's secrets, so there is no
+ * isolation property to lose, and every test still gets its own `SamlSp`
+ * instance and therefore its own in-memory request-ID cache.
+ */
+let testSp: Promise<{ idp: TestIdp; keypair: SpKeypair }> | undefined
+
+async function testSamlMaterial(): Promise<{ idp: TestIdp; keypair: SpKeypair }> {
+  testSp ??= (async () => {
+    const idp = await testSamlIdp()
+    const minted = await mintSpKeypair({
+      projectId: '00000000-0000-0000-0000-000000000000',
+      environmentKind: 'staging',
+      slug: 'test-control-plane',
+      entityId: 'https://manifest.internal/sp/manifest-control-plane/platform',
+    })
+    return { idp, keypair: describeKeypair(minted.privateKeyPem, minted.certificatePem) }
+  })()
+  return testSp
+}
+
+export async function testDeps(): Promise<ServerDeps> {
   await mkdir(TEST_REPOS_ROOT, { recursive: true })
   const reposRoot = await mkdtemp(join(TEST_REPOS_ROOT, 'run-'))
   const issuer = testIssuer()
@@ -45,7 +102,6 @@ export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> 
     MANIFEST_DATABASE_URL: process.env.MANIFEST_DATABASE_URL!,
     MANIFEST_IDP_DATABASE_URL: process.env.MANIFEST_IDP_DATABASE_URL!,
     MANIFEST_SESSION_SECRET: 'k'.repeat(32),
-    MANIFEST_DEV_AUTH: opts.devAuth ? '1' : '0',
     MANIFEST_BLUEPRINTS_ROOT: BLUEPRINTS_ROOT,
     MANIFEST_REPOS_ROOT: reposRoot,
     // The GENERATED test issuer, not infra/registry-auth/ — the suite must not
@@ -56,6 +112,7 @@ export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> 
     MANIFEST_BUILD_CREDENTIAL_SECRET: 'c'.repeat(32),
   })
   const masterKeypair = await generateMasterKeypair()
+  const { idp, keypair } = await testSamlMaterial()
   return {
     db,
     config,
@@ -87,5 +144,26 @@ export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> 
         throw new Error('the API test harness has no IdP signing certificate')
       },
     },
+    /**
+     * The REAL `createSamlSp`, pointed at an IdP this process holds the key to.
+     *
+     * Not a stub. A stub `validate()` would make the callback route's refusals —
+     * a wrong signature, a wrong audience — properties of the harness rather than
+     * of the platform, and those two refusals are the whole reason the route can
+     * be trusted to mint a session at all. The entity is `controlPlaneSpEntity`'s
+     * too, so the audience the SP checks is the one `registerControlPlaneSp`
+     * would have written into the IdP's row.
+     */
+    samlSp: createSamlSp({
+      entity: controlPlaneSpEntity({
+        entityBase: 'https://manifest.internal',
+        origin: `http://127.0.0.1:${config.port}`,
+      }),
+      idpBaseUrl: 'https://idp.test.manifest.internal',
+      idpEntityId: idp.entityId,
+      idpCertificatePem: idp.certificatePem,
+      privateKeyPem: keypair.privateKeyPem,
+      certificatePem: keypair.certificatePem,
+    }),
   }
 }

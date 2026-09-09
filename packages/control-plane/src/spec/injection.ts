@@ -134,7 +134,7 @@ export const INJECTED_FILE_PATHS = {
  * `modules/saml/routing/routes/routes.yml` (2026-09-07) rather than inferred
  * from 1.x documentation. Module routes are served under `/module.php/saml`.
  */
-const MANIFEST_IDP_PATHS = {
+export const MANIFEST_IDP_PATHS = {
   sso: '/module.php/saml/idp/singleSignOnService',
   slo: '/module.php/saml/idp/singleLogout',
   metadata: '/module.php/saml/idp/metadata',

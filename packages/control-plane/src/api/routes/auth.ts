@@ -3,50 +3,84 @@ import { z } from 'zod'
 import {
   SESSION_COOKIE,
   SESSION_TTL_MS,
-  devLogin,
+  issueSession,
   signSession,
+  upsertUserFromAssertion,
 } from '../../identity/index.js'
 import { requireActor, type ServerDeps } from '../server.js'
 
-const loginBody = z.object({ puid: z.string().min(1).max(64) })
+/**
+ * The SAML POST binding. The IdP auto-submits a form to the ACS, so the body is
+ * `application/x-www-form-urlencoded` — `server.ts` registers that parser for the
+ * registry token realm and it serves here too.
+ */
+const callbackBody = z.object({ SAMLResponse: z.string().min(1) })
 
 export async function registerAuthRoutes(
   app: FastifyInstance,
   deps: ServerDeps,
 ): Promise<void> {
-  // Not registered at all outside development. Task 12 refuses to boot in that
-  // state anyway; this makes the route surface match the configuration.
-  if (deps.config.devAuth) {
-    app.post(
-      '/auth/dev-login',
-      { config: { idempotency: 'exempt' } },
-      async (request, reply) => {
-        const { puid } = loginBody.parse(request.body)
-        // Not a hardcoded `true`. The route is only registered when devAuth is on,
-        // so this is belt-and-braces — but with `true` here the registration guard
-        // was the ONLY thing between this endpoint and an authentication bypass:
-        // flipping that one condition made it mint real sessions (measured — it
-        // answered 200, not the refusal the plan expected). Two independent reads of
-        // the same setting is the point.
-        const { user, session } = await devLogin(deps.db, puid, {
-          devAuthEnabled: deps.config.devAuth,
-        })
-        reply.setCookie(SESSION_COOKIE, signSession(session, deps.config.sessionSecret), {
+  /**
+   * §9: *"Manifest itself is an SP."* This is where a person starts.
+   *
+   * There is no configuration switch and no development variant. The route that
+   * used to sit beside this one — `POST /auth/dev-login` — minted a real session
+   * for a named test user with no credential of any kind, and P2 measured that
+   * its ONLY protection was a registration guard: removing that one condition
+   * made it answer 200 with a live session. It is gone, along with
+   * `MANIFEST_DEV_AUTH` and the two safeguards that existed to contain it. Tests
+   * sign their own sessions in-process (`identity/testing.ts`), which needs no
+   * HTTP surface for anyone to find.
+   */
+  app.get('/auth/login', async (_request, reply) => {
+    return reply.redirect(await deps.samlSp.loginUrl(), 302)
+  })
+
+  app.post(
+    '/auth/saml/callback',
+    // Logging in twice is not a domain mutation, and the IdP does not send an
+    // Idempotency-Key. Same exemption `/auth/logout` carries.
+    { config: { idempotency: 'exempt' } },
+    async (request, reply) => {
+      const { SAMLResponse } = callbackBody.parse(request.body)
+      // Throws SamlError on any refusal — bad signature, wrong audience,
+      // expired, unsolicited — which `toErrorResponse` maps to 401 with an
+      // envelope that names no detail. The detail goes to the operator here,
+      // through `console.error` and not `request.log.error`: this server is
+      // built with `logger: false`, under which the logger exists, accepts the
+      // call and writes nothing (measured — Session 4).
+      let identity
+      try {
+        identity = await deps.samlSp.validate(SAMLResponse)
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            level: 'error',
+            msg: 'SAML assertion refused',
+            error: (error as Error).message,
+          }),
+        )
+        throw error
+      }
+
+      const user = await upsertUserFromAssertion(deps.db, identity)
+      reply.setCookie(
+        SESSION_COOKIE,
+        signSession(issueSession(user), deps.config.sessionSecret),
+        {
           httpOnly: true,
           sameSite: 'lax',
           secure: deps.config.env !== 'development',
           path: '/',
           maxAge: SESSION_TTL_MS / 1000,
-        })
-        return reply.status(200).send({
-          id: user.id,
-          puid: user.ubcCwlPuid,
-          displayName: user.displayName,
-          role: user.role,
-        })
-      },
-    )
-  }
+        },
+      )
+      // 302 to the console, not 200 with a body: the browser arrives here from
+      // the IdP's auto-submitting form, so whatever this returns is what the
+      // person sees.
+      return reply.redirect('/', 302)
+    },
+  )
 
   app.get('/auth/me', async (request) => {
     const actor = requireActor(request)

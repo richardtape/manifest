@@ -14,6 +14,7 @@ export {
   type SpEntityInput,
 } from './entity.js'
 export {
+  describeKeypair,
   ensureSpKeypair,
   mintSpKeypair,
   type SpKeypair,
@@ -25,8 +26,17 @@ export {
   readSpRow,
   renderSpMetadata,
   upsertSpRow,
+  SP_NAME_ID_FORMAT,
   type SpMetadataRow,
 } from './metadata-store.js'
+export {
+  controlPlaneSpEntity,
+  registerControlPlaneSp,
+  CONTROL_PLANE_ATTRIBUTES,
+  CONTROL_PLANE_ENVIRONMENT,
+  CONTROL_PLANE_SLUG,
+  type ControlPlaneSpInput,
+} from './platform.js'
 export {
   createSsoRegistrar,
   registerServiceProvider,

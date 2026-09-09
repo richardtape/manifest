@@ -3,11 +3,21 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { resetDatabase } from '../db/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
+import { loginAs } from './testing.js'
 
 type Actor = 'owner' | 'collaborator' | 'stranger' | 'admin' | 'anonymous'
 
-/** What each actor should get. `pass` means "not an authorization failure". */
-type Expectation = 'pass' | 403 | 404 | 401
+/**
+ * What each actor should get. `pass` means "not an authorization failure".
+ *
+ * `400` was added for `/auth/saml/callback`, and it is a claim rather than a
+ * convenience: the route refuses a malformed body IDENTICALLY for all five
+ * actors, which is the authorization statement about a route whose credential
+ * is a signed assertion rather than a session. Expecting `pass` there would have
+ * meant sending a valid assertion, which this suite cannot mint — and expecting
+ * 401 would have made a body error indistinguishable from a refused login.
+ */
+type Expectation = 'pass' | 400 | 403 | 404 | 401
 
 interface RouteCase {
   method: string
@@ -66,15 +76,34 @@ const ROUTES: RouteCase[] = [
     },
   },
   {
-    method: 'POST',
-    url: '/auth/dev-login',
-    request: () => ({ url: '/auth/dev-login', payload: { puid: 'bio_prof' } }),
+    method: 'GET',
+    url: '/auth/login',
+    request: () => ({ url: '/auth/login' }),
+    // Unauthenticated by definition: this is where a person with no session
+    // goes. `pass` means "not an authorization failure" — the 302 to the IdP.
     expect: {
       owner: 'pass',
       collaborator: 'pass',
       stranger: 'pass',
       admin: 'pass',
       anonymous: 'pass',
+    },
+  },
+  {
+    method: 'POST',
+    url: '/auth/saml/callback',
+    // No SAMLResponse, so every actor gets 400 REQUEST_INVALID — and that
+    // SAMENESS is the point. This route has no authorization: its credential is
+    // a signed assertion, not a session, so a session must make no difference to
+    // its answer. Signature, audience and replay validation are proved in
+    // `auth.test.ts`, against assertions this suite has no key to mint.
+    request: () => ({ url: '/auth/saml/callback', payload: {} }),
+    expect: {
+      owner: 400,
+      collaborator: 400,
+      stranger: 400,
+      admin: 400,
+      anonymous: 400,
     },
   },
   {
@@ -282,18 +311,6 @@ export function describeAuthorizationContract(
     let fixture: Fixture
     const cookies: Partial<Record<Actor, Record<string, string>>> = {}
 
-    async function login(puid: string): Promise<Record<string, string>> {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/auth/dev-login',
-        payload: { puid },
-      })
-      return {
-        manifest_session: response.cookies.find((c) => c.name === 'manifest_session')!
-          .value,
-      }
-    }
-
     beforeAll(async () => {
       // The suite asserts the stranger is a member of nothing, and that only holds
       // from a clean slate. Reset here rather than in the caller: P3 imports this
@@ -301,14 +318,15 @@ export function describeAuthorizationContract(
       // artefact that silently depends on test-file ordering is one that will be
       // green for the wrong reason exactly once.
       await resetDatabase()
-      app = await buildServer(await factory())
+      const deps = await factory()
+      app = await buildServer(deps)
       // Four distinct identities for §16's four tiers. Reusing one for two tiers is
       // how a suite comes to assert nothing: a "collaborator" who is not a member
       // makes every collaborator expectation indistinguishable from the stranger's.
-      cookies.owner = await login('bio_prof')
-      cookies.collaborator = await login('bio_student')
-      cookies.stranger = await login('unrelated_user')
-      cookies.admin = await login('platform_admin')
+      cookies.owner = await loginAs(deps, 'bio_prof')
+      cookies.collaborator = await loginAs(deps, 'bio_student')
+      cookies.stranger = await loginAs(deps, 'unrelated_user')
+      cookies.admin = await loginAs(deps, 'platform_admin')
 
       const project = await app.inject({
         method: 'POST',

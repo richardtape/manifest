@@ -144,7 +144,6 @@ export MANIFEST_ADMIN_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127
 # `ssp_ro` reads, `manifest` writes, and there is no `manifest_app` in it.
 export MANIFEST_IDP_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_idp"
 export MANIFEST_SESSION_SECRET=$(openssl rand -hex 32)
-export MANIFEST_DEV_AUTH=1
 export MANIFEST_BLUEPRINTS_ROOT="$PWD/blueprints"
 export MANIFEST_REPOS_ROOT="$PWD/.manifest/repos"
 # MANIFEST_MASTER_SECRET comes from .env. Every backing-service credential is
@@ -168,8 +167,12 @@ Verified end to end on 2026-09-05:
 curl -s http://127.0.0.1:7100/auth/me
 # {"error":{"code":"UNAUTHENTICATED","message":"a session is required","hint":"Log in first."}}
 
-curl -s -c /tmp/jar -X POST -H 'content-type: application/json' \
-  -d '{"puid":"bio_prof"}' http://127.0.0.1:7100/auth/dev-login
+# §9: Manifest is its own SP, so logging in is a real CWL round trip against the
+# Manifest IdP. `scripts/demo.sh` step 1 drives all three hops with curl; in a
+# browser, just open http://127.0.0.1:7100/auth/login and sign in as
+# `instructor` / `instructor` (D6 — the IdP serves TEST USERS ONLY).
+curl -s -o /dev/null -w '%{redirect_url}\n' http://127.0.0.1:7100/auth/login
+# https://idp.manifest.internal/module.php/saml/idp/singleSignOnService?SAMLRequest=…&Signature=…
 
 curl -s -b /tmp/jar -X POST -H 'content-type: application/json' \
   -H "idempotency-key: $(uuidgen)" \
@@ -180,11 +183,24 @@ curl -s -b /tmp/jar -X POST -H 'content-type: application/json' \
 source uses NodeNext `.js` specifiers, which Node resolves literally rather than
 mapping back to `.ts`. Hence the build step.
 
-**`MANIFEST_DEV_AUTH=1` enables the temporary login shim** and is refused outside
-`MANIFEST_ENV=development` — the process exits with
-`CONFIG_DEV_AUTH_OUTSIDE_DEVELOPMENT` before anything binds the port. Verified by
-starting it with `MANIFEST_ENV=production`. P4 replaces the shim with CWL and deletes
-it.
+**There is no login shim any more.** `POST /auth/dev-login` and `MANIFEST_DEV_AUTH`
+were deleted in P4a Task 14: the route minted a real session for a named test user
+with no credential of any kind, and P2 measured that its only protection was a
+registration guard — removing that one condition made it answer 200 with a live
+session. Manifest logs its own users in with CWL (§9), and the test suite signs its
+own sessions in-process (`identity/testing.ts`), which needs no HTTP surface.
+
+**The control plane registers its own Service Provider at boot**, through the same
+`renderSpMetadata` every deployed app's row goes through — entityID
+`https://manifest.internal/sp/manifest-control-plane/platform`, ACS
+`http://127.0.0.1:7100/auth/saml/callback`. That ACS is the one Manifest ACS that is
+not an `https://….manifest.internal` URL, because §21 puts the control plane on the
+host rather than behind the edge. It is built from `MANIFEST_CONTROL_PLANE_ORIGIN`,
+which defaults to `http://127.0.0.1:7100` and becomes `https://manifest.ubc.ca` at
+UBC; `loadConfig` refuses a loopback origin whose port is not `MANIFEST_PORT`. The
+keypair it signs with is `infra/sp/control-plane.{key,crt}`, minted by `make up`,
+gitignored, and — like the IdP keypair and the envelope master key — **not removed by
+`make reset`**.
 
 ## The three things that shape every decision
 

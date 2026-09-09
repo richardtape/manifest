@@ -2,7 +2,7 @@ import { AuthorizationError, ProjectError } from '../projects/index.js'
 import { ReleaseError } from '../releases/index.js'
 import { SourceError } from '../source/index.js'
 import { ConfigError } from '../config.js'
-import { DevAuthDisabledError, UnknownDevUserError } from '../identity/index.js'
+import { SamlError } from '../identity/index.js'
 import { ZodError } from 'zod'
 import type { ManifestError } from '../errors/index.js'
 import { IdempotencyConflictError } from './idempotency.js'
@@ -114,16 +114,38 @@ export function toErrorResponse(error: unknown): { status: number; body: ErrorEn
     }
   }
 
-  // The state-conflict family. The two identity errors belong here and were
-  // missing: an unknown dev PUID surfaced as 500 INTERNAL, so the one test that
-  // pinned the shim's refusal was asserting against the wrong door.
+  /**
+   * A refused assertion is 401, and the envelope says nothing about WHY.
+   *
+   * D23.7 keeps the client's copy opaque and §20 means it: the detail — which
+   * signature failed, which audience was asserted — is a probing oracle for
+   * anyone who can POST XML at the ACS. The route logs the reason for the
+   * operator before rethrowing, so the information exists exactly once and on
+   * the side that is entitled to it.
+   *
+   * It is mapped here rather than only in the route so that a SamlError raised
+   * anywhere else still FAILS CLOSED at 401 rather than reaching the 500 branch,
+   * where a stack trace would be printed for what is a routine refusal.
+   */
+  if (error instanceof SamlError) {
+    return {
+      status: 401,
+      body: {
+        error: {
+          code: error.code,
+          message: 'sign-in could not be completed',
+          hint: 'Start again at /auth/login. If it keeps failing, the control plane’s log has the reason.',
+        },
+      },
+    }
+  }
+
+  // The state-conflict family.
   if (
     error instanceof ProjectError ||
     error instanceof ReleaseError ||
     error instanceof SourceError ||
-    error instanceof ConfigError ||
-    error instanceof DevAuthDisabledError ||
-    error instanceof UnknownDevUserError
+    error instanceof ConfigError
   ) {
     return { status: 409, body: { error: { code: error.code, message: error.message } } }
   }

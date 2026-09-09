@@ -87,7 +87,35 @@ const envSchema = z.object({
   // 32 chars is the HMAC-SHA256 block floor we are willing to accept for a
   // session secret; shorter is a configuration mistake, not a preference.
   MANIFEST_SESSION_SECRET: z.string().min(32),
-  MANIFEST_DEV_AUTH: z.enum(['0', '1']).default('0'),
+  /**
+   * Where the control plane actually answers, as a bare origin. Every URL the
+   * IdP is told to send a person back to is built from it (§9's D15 rule: the
+   * app supplies a path, MANIFEST supplies the origin), so it is the one place
+   * that decides the ACS URL in the platform's own SP registration.
+   *
+   * The default is loopback because §21 puts the control plane on the host on
+   * 7100, NOT behind the edge — which makes its ACS the only Manifest ACS that
+   * is not an `https://….manifest.internal` URL. At UBC it becomes
+   * `https://manifest.ubc.ca`, and that is a value change rather than a code
+   * change. `loadConfig` below checks a loopback origin's port against
+   * MANIFEST_PORT: two independent reads of one setting, because an origin that
+   * names a port nothing listens on produces a login that completes at the IdP
+   * and then hangs, which reads as an IdP fault.
+   */
+  MANIFEST_CONTROL_PLANE_ORIGIN: z.string().min(1).default('http://127.0.0.1:7100'),
+  /**
+   * The control plane's OWN Service Provider keypair — the one that signs its
+   * AuthnRequests and whose certificate its `saml20_sp_remote` row pins.
+   *
+   * On disk rather than in the `secrets` table, because that table's rows are
+   * scoped to a `projects` row by a foreign key and the platform is not a
+   * project. That puts it in the same custody as the IdP's signing keypair and
+   * the envelope master key (§20): minted by `make up`
+   * (`infra/lib/ensure-cp-sp-keypair.sh`), gitignored, and NOT removed by
+   * `make reset` — regenerating it invalidates the registration that pins it.
+   */
+  MANIFEST_SP_PRIVATE_KEY: z.string().min(1).default('infra/sp/control-plane.key'),
+  MANIFEST_SP_CERTIFICATE: z.string().min(1).default('infra/sp/control-plane.crt'),
   MANIFEST_BLUEPRINTS_ROOT: z.string().min(1),
   MANIFEST_REPOS_ROOT: z.string().min(1),
   // §23: one zone setting per environment kind. Laptop defaults, verified in S7.
@@ -172,7 +200,15 @@ export interface Config {
   }
   port: number
   sessionSecret: string
-  devAuth: boolean
+  /** §9: Manifest is its own SP. Everything that registration is built from. */
+  sp: {
+    /** A bare origin — the one thing the platform's own ACS URL is derived from. */
+    origin: string
+    /** Absolute. */
+    privateKeyPath: string
+    /** Absolute. */
+    certificatePath: string
+  }
   blueprintsRoot: string
   reposRoot: string
   zones: { sandbox: string; staging: string; production: string }
@@ -214,17 +250,32 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
 
   const raw = parsed.data
-  const devAuth = raw.MANIFEST_DEV_AUTH === '1'
 
-  // Roadmap gap 3, safeguard 1. The shim mints a session for a named test user
-  // with no credential of any kind; outside development that is a total
-  // authentication bypass. Fail closed on anything that is not `development`.
-  if (devAuth && raw.MANIFEST_ENV !== 'development') {
+  /**
+   * Roadmap gap 3 is CLOSED. `MANIFEST_DEV_AUTH` and its two safeguards used to
+   * live here, guarding a route that minted a session for a named test user with
+   * no credential of any kind. Both the setting and the route are gone; Manifest
+   * logs its own users in with CWL (§9), and there is no development variant to
+   * guard. What replaced the guard is the absence of the thing it guarded.
+   *
+   * The check below is a different one, and it is here for the reason the
+   * setting's own doc gives: an origin whose port disagrees with the port this
+   * process listens on registers an ACS URL nothing answers, and a login then
+   * completes at the IdP and dies on the redirect back — which reads as an IdP
+   * fault rather than as a one-character configuration mistake. Only loopback is
+   * checked: behind a reverse proxy the public port is legitimately not ours.
+   */
+  const spOrigin = raw.MANIFEST_CONTROL_PLANE_ORIGIN
+  const loopback = /^https?:\/\/(127\.0\.0\.1|\[::1\]|localhost)(?::(\d+))?$/.exec(
+    spOrigin,
+  )
+  if (loopback && Number(loopback[2] ?? '80') !== raw.MANIFEST_PORT) {
     throw new ConfigError(
-      'CONFIG_DEV_AUTH_OUTSIDE_DEVELOPMENT',
-      `MANIFEST_DEV_AUTH is enabled while MANIFEST_ENV is '${raw.MANIFEST_ENV}'. ` +
-        'The dev auth shim is an authentication bypass and may only run in development. ' +
-        'P4 replaces it with real CWL and deletes it.',
+      'CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH',
+      `MANIFEST_CONTROL_PLANE_ORIGIN is '${spOrigin}' but MANIFEST_PORT is ` +
+        `${raw.MANIFEST_PORT}. The origin is what the IdP posts a person's assertion ` +
+        'back to, so a loopback origin naming a different port registers a callback ' +
+        'nothing is listening on.',
     )
   }
 
@@ -280,7 +331,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     },
     port: raw.MANIFEST_PORT,
     sessionSecret: raw.MANIFEST_SESSION_SECRET,
-    devAuth,
+    sp: {
+      origin: spOrigin,
+      privateKeyPath: fromRepoRoot(raw.MANIFEST_SP_PRIVATE_KEY),
+      certificatePath: fromRepoRoot(raw.MANIFEST_SP_CERTIFICATE),
+    },
     blueprintsRoot: raw.MANIFEST_BLUEPRINTS_ROOT,
     reposRoot: raw.MANIFEST_REPOS_ROOT,
     zones: {

@@ -160,7 +160,8 @@ export async function deployRelease(
       'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
       'production deployment requires the §13 LaunchReadiness checklist — IamRegistration ' +
         'active, PrivacyAssessment approved, rehearsal passed, scans clean, admin approval. ' +
-        'None of those entities exists before P4, and P2 authenticates with a dev shim.',
+        'None of those entities exists yet: they are P6’s, and this gate stays closed ' +
+        'until they do.',
     )
   }
 

@@ -2,7 +2,8 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import { resetDatabase } from '../db/testing.js'
 import { buildServer } from './server.js'
-import { testDeps } from './testing.js'
+import { loginAs, testDeps } from './testing.js'
+import type { TestUserPuid } from '../identity/testing.js'
 
 // These drive a real server, so they cannot use withRollback. Each test starts
 // from an empty database; without this they collide on the unique project slug.
@@ -11,15 +12,10 @@ beforeEach(resetDatabase)
 // `chem-labs` that three withRollback suites insert inside their transactions.
 afterAll(resetDatabase)
 
-async function loggedIn(puid = 'bio_prof') {
-  const deps = await testDeps({ devAuth: true })
+async function loggedIn(puid: TestUserPuid = 'bio_prof') {
+  const deps = await testDeps()
   const app = await buildServer(deps)
-  const login = await app.inject({
-    method: 'POST',
-    url: '/auth/dev-login',
-    payload: { puid },
-  })
-  const session = login.cookies.find((c) => c.name === 'manifest_session')!.value
+  const { manifest_session: session } = await loginAs(deps, puid)
   return { app, deps, session }
 }
 
@@ -154,18 +150,13 @@ describe('GET /projects/:id', () => {
   })
 
   it('hides another user’s project behind 404, not 403', async () => {
-    const { app, session } = await loggedIn('bio_prof')
+    const { app, deps, session } = await loggedIn('bio_prof')
     const created = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
       headers: { 'idempotency-key': randomUUID() },
     })
-    const other = await app.inject({
-      method: 'POST',
-      url: '/auth/dev-login',
-      payload: { puid: 'bio_student' },
-    })
-    const otherSession = other.cookies.find((c) => c.name === 'manifest_session')!.value
+    const { manifest_session: otherSession } = await loginAs(deps, 'bio_student')
 
     const response = await app.inject({
       method: 'GET',
@@ -316,7 +307,7 @@ describe('POST /projects/:id/spec', () => {
 
 describe('POST /projects/:id/members', () => {
   it('lets an owner add a collaborator, who can then read the project', async () => {
-    const { app, session } = await loggedIn('bio_prof')
+    const { app, deps, session } = await loggedIn('bio_prof')
     const created = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
@@ -324,15 +315,9 @@ describe('POST /projects/:id/members', () => {
     })
     const id = created.json().id
 
-    // The invitee must have logged in once — there is no user row otherwise.
-    const invitee = await app.inject({
-      method: 'POST',
-      url: '/auth/dev-login',
-      payload: { puid: 'bio_student' },
-    })
-    const inviteeSession = invitee.cookies.find(
-      (c) => c.name === 'manifest_session',
-    )!.value
+    // The invitee needs a §6 User row — a session names a userId, and a member
+    // row references it. `loginAs` creates it, exactly as the shim's login did.
+    const { manifest_session: inviteeSession } = await loginAs(deps, 'bio_student')
 
     const added = await app.inject({
       method: 'POST',
@@ -353,7 +338,7 @@ describe('POST /projects/:id/members', () => {
   })
 
   it('refuses a collaborator with 403 — they are a member, so nothing is hidden', async () => {
-    const { app, session } = await loggedIn('bio_prof')
+    const { app, deps, session } = await loggedIn('bio_prof')
     const created = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
@@ -361,14 +346,7 @@ describe('POST /projects/:id/members', () => {
     })
     const id = created.json().id
 
-    const invitee = await app.inject({
-      method: 'POST',
-      url: '/auth/dev-login',
-      payload: { puid: 'bio_student' },
-    })
-    const inviteeSession = invitee.cookies.find(
-      (c) => c.name === 'manifest_session',
-    )!.value
+    const { manifest_session: inviteeSession } = await loginAs(deps, 'bio_student')
     await app.inject({
       method: 'POST',
       url: `/projects/${id}/members`,

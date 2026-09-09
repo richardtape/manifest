@@ -14,6 +14,7 @@ export { resolveConfig } from './resolve.js'
 export {
   INJECTED_FILE_PATHS,
   INJECTION_CONTRACT_VERSION,
+  MANIFEST_IDP_PATHS,
   INJECTION_VARIABLES,
   InjectionError,
   RESERVED_ENV_NAMES,

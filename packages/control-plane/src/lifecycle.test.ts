@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import { resetDatabase } from './db/testing.js'
 import { buildServer } from './api/index.js'
-import { testDeps } from './api/testing.js'
+import { loginAs, testDeps } from './api/testing.js'
 
 beforeEach(resetDatabase)
 // This file commits for real, so it clears up behind itself too.
@@ -12,20 +12,25 @@ const key = () => ({ 'idempotency-key': randomUUID() })
 
 describe('P2 acceptance: the full lifecycle against the fake driver', () => {
   it('goes from no project to a healthy staging instance, in under a second', async () => {
+    // The harness's own setup is OUTSIDE the measured window, and that line
+    // moved here deliberately. `testDeps()` mints two RSA-4096 keypairs for the
+    // control plane's SAML fixtures (§9 — Manifest is its own SP), which is
+    // ~500 ms of openssl that belongs to the test rather than to the platform:
+    // measured 2026-09-09, it took `controlPlaneWork` from ~300 ms to 891 ms and
+    // failed a budget about a lifecycle that had not changed. What the budget
+    // holds is still every line of platform code this test runs — buildServer
+    // and the whole §22 journey below.
+    const deps = await testDeps()
     const started = performance.now()
-    const app = await buildServer(await testDeps({ devAuth: true }))
+    const app = await buildServer(deps)
     const afterBoot = performance.now()
 
-    // 1. Log in (§22 step 1 — the dev shim stands in for CWL until P4).
-    const login = await app.inject({
-      method: 'POST',
-      url: '/auth/dev-login',
-      payload: { puid: 'bio_prof' },
-    })
-    expect(login.statusCode).toBe(200)
-    const cookies = {
-      manifest_session: login.cookies.find((c) => c.name === 'manifest_session')!.value,
-    }
+    // 1. A session for §22 step 1. The real thing is a browser-mediated SAML
+    //    round trip against the Manifest IdP, which needs a container and
+    //    belongs to the Docker tier; what this file measures is the LIFECYCLE
+    //    after login, so it signs the session directly rather than driving
+    //    three HTTP hops it is not testing.
+    const cookies = await loginAs(deps, 'bio_prof')
 
     // 2. Create a project (§22 step 2) — and 3, provisioning: repository created,
     //    manifest.yaml validated.

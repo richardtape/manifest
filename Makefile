@@ -31,6 +31,7 @@ up: .env  ## Boot the platform. Works offline after `make seed`.
 	@bash infra/lib/ensure-alias.sh
 	@bash infra/lib/ensure-registry-auth.sh
 	@bash infra/lib/ensure-idp-keypair.sh
+	@bash infra/lib/ensure-cp-sp-keypair.sh
 	@bash infra/lib/ensure-master-key.sh
 	@$(COMPOSE) up -d --wait
 	@bash infra/lib/ensure-caddy-config.sh

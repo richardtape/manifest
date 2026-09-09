@@ -2,22 +2,18 @@ import { beforeEach, afterAll, describe, expect, it } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import { resetDatabase } from '../db/testing.js'
 import { buildServer } from './server.js'
-import { testDeps } from './testing.js'
+import { loginAs, testDeps } from './testing.js'
+import type { TestUserPuid } from '../identity/testing.js'
 
 beforeEach(resetDatabase)
 afterAll(resetDatabase)
 
 const key = () => ({ 'idempotency-key': randomUUID() })
 
-async function projectFor(puid: string) {
-  const app = await buildServer(await testDeps({ devAuth: true }))
-  const login = await app.inject({
-    method: 'POST',
-    url: '/auth/dev-login',
-    payload: { puid },
-  })
-  const session = login.cookies.find((c) => c.name === 'manifest_session')!.value
-  const cookies = { manifest_session: session }
+async function projectFor(puid: TestUserPuid) {
+  const deps = await testDeps()
+  const app = await buildServer(deps)
+  const cookies = await loginAs(deps, puid)
   const created = await app.inject({
     method: 'POST',
     url: '/projects',
@@ -25,7 +21,7 @@ async function projectFor(puid: string) {
     cookies,
     headers: key(),
   })
-  return { app, cookies, project: created.json() }
+  return { app, deps, cookies, project: created.json() }
 }
 
 describe('the delivery routes', () => {
@@ -129,7 +125,7 @@ describe('the delivery routes', () => {
 
   // The IDOR shape: a valid build id belonging to somebody else.
   it('hides another user’s build behind 404', async () => {
-    const { app, cookies, project } = await projectFor('bio_prof')
+    const { app, deps, cookies, project } = await projectFor('bio_prof')
     const build = await app.inject({
       method: 'POST',
       url: `/projects/${project.id}/builds`,
@@ -138,14 +134,7 @@ describe('the delivery routes', () => {
       headers: key(),
     })
 
-    const other = await app.inject({
-      method: 'POST',
-      url: '/auth/dev-login',
-      payload: { puid: 'bio_student' },
-    })
-    const otherCookies = {
-      manifest_session: other.cookies.find((c) => c.name === 'manifest_session')!.value,
-    }
+    const otherCookies = await loginAs(deps, 'bio_student')
     const response = await app.inject({
       method: 'GET',
       url: `/builds/${build.json().id}`,

@@ -63,8 +63,20 @@ const NAMES = (kind: EnvironmentKind) => ({
 
 const PEM_BODY = /-----(BEGIN|END) CERTIFICATE-----|\s/g
 
-/** Everything derivable from the pair, derived in ONE place. */
-function describe(privateKeyPem: string, certificatePem: string): SpKeypair {
+/**
+ * Everything derivable from the pair, derived in ONE place.
+ *
+ * Exported because the CONTROL PLANE's own keypair is a file on disk rather than
+ * two `secrets` rows (its scope has no `projects` row to hang off), so `index.ts`
+ * reads two PEMs and needs the same `certData`, fingerprint and expiry this
+ * derives for an app's. Deriving them at the call site instead would be a second
+ * producer of `certData`, whose armour-stripping is the exact detail S2 Evidence
+ * 8 measured a failure on.
+ */
+export function describeKeypair(
+  privateKeyPem: string,
+  certificatePem: string,
+): SpKeypair {
   const cert = new X509Certificate(certificatePem)
   return {
     privateKeyPem,
@@ -157,7 +169,7 @@ export async function mintSpKeypair(scope: SpKeypairScope): Promise<SpKeypair> {
         `for '${scope.entityId}'`,
     )
   }
-  return describe(privateKeyPem, certificatePem)
+  return describeKeypair(privateKeyPem, certificatePem)
 }
 
 /**
@@ -193,7 +205,7 @@ export async function ensureSpKeypair(
     getSecret(db, at(names.certificate), keys),
   ])
   if (privateKeyPem !== undefined && certificatePem !== undefined) {
-    return describe(privateKeyPem, certificatePem)
+    return describeKeypair(privateKeyPem, certificatePem)
   }
 
   const minted = await mintSpKeypair(scope)

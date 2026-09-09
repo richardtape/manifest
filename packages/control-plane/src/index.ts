@@ -8,10 +8,15 @@ import { createDockerDriver, createEngineClient } from './runtime/index.js'
 import { createLocalSourceDriver } from './source/index.js'
 import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
 import { createServiceCredentials } from './services/index.js'
-import { createIdpPool, createSsoRegistrar } from './sso/index.js'
+import { createSamlSp } from './identity/index.js'
+import {
+  controlPlaneSpEntity,
+  createIdpPool,
+  createSsoRegistrar,
+  describeKeypair,
+  registerControlPlaneSp,
+} from './sso/index.js'
 
-// loadConfig throws before anything listens if MANIFEST_DEV_AUTH is set outside
-// development. That is the point: the process must not come up in that state.
 const config = loadConfig()
 
 // §12: "scrubbed from the control plane's own `process.env` at boot so that any
@@ -25,6 +30,33 @@ const config = loadConfig()
 // This is not theoretical: `runtime/docker/builder.ts` spawns `docker` with
 // `{ ...process.env }` twice, and an app's build log is a place secrets end up.
 const secretsScrubbed = scrubSecretEnv()
+
+/**
+ * The control plane's own SP keypair, minted by `make up`.
+ *
+ * A missing file is a hard failure naming the command that creates it, for the
+ * reason the registry issuer's reader gives one line down: the alternative —
+ * constructing a SAML client with an empty key — produces a login route that
+ * exists, answers, and signs AuthnRequests no IdP will accept.
+ */
+const readKeypairPem = (path: string, which: string): string => {
+  let pem: string
+  try {
+    pem = readFileSync(path, 'utf8')
+  } catch {
+    throw new Error(
+      `cannot read the control plane's SP ${which} at '${path}'. ` +
+        'Run `make up`, which calls infra/lib/ensure-cp-sp-keypair.sh.',
+    )
+  }
+  // The shape, not that the read returned. An interrupted mint leaves a file
+  // that exists and is not a PEM, and the failure then lands inside the XML
+  // signer with a message about the assertion.
+  if (!pem.includes('-----BEGIN')) {
+    throw new Error(`the file at '${path}' is not a PEM ${which}`)
+  }
+  return pem
+}
 
 const readIssuerPem = (path: string, which: string): string => {
   try {
@@ -111,14 +143,47 @@ const appSecrets = createAppSecrets(masterKeypair)
 // `config.idpDatabaseUrl` is required and is never derived from the control
 // plane's URL by swapping the database name (P4a Decision 13) — they are two
 // independent settings, and the running system keeps them that way.
+const idpPool = createIdpPool(config.idpDatabaseUrl)
 const sso = createSsoRegistrar(
-  createIdpPool(config.idpDatabaseUrl),
+  idpPool,
   masterKeypair,
   config.idp.spEntityBase,
   // Read per deploy, not here: `make up` mints it, so a re-minted IdP keypair is
   // picked up without restarting the control plane.
   config.idp.signingCertPath,
 )
+
+/**
+ * §9's first sentence: MANIFEST ITSELF IS AN SP. Roadmap gap 3 closes here.
+ *
+ * The registration is written on every boot, not once by `make up`, and through
+ * `renderSpMetadata` — the same renderer every deployed app's row goes through.
+ * Two reasons, both of which this project has paid for:
+ *
+ *  * A row built anywhere else would be a SECOND PRODUCER of the `entity_data`
+ *    document. That is the most expensive defect shape measured here, most
+ *    recently as defect 49.
+ *  * The row's ACS URL and certificate come from THIS process's configuration
+ *    and keypair. A boot that did not refresh it is a boot after which the IdP
+ *    may still be posting assertions at an origin nothing listens on — and §9
+ *    audits an ACS change for exactly that reason.
+ *
+ * It makes the IdP's metadata database a hard boot dependency. That is the
+ * honest failure: an IdP whose store is unreachable is one nobody can log in
+ * through, and this says so at boot rather than at the first login.
+ */
+const spEntity = controlPlaneSpEntity({
+  entityBase: config.idp.spEntityBase,
+  origin: config.sp.origin,
+})
+// `describeKeypair`, not two fields and a hand-stripped certData: the armour
+// stripping is the detail S2 Evidence 8 measured a failure on, and the
+// fingerprint and expiry D20 alerts from come off the certificate itself.
+const spKeypair = describeKeypair(
+  readKeypairPem(config.sp.privateKeyPath, 'private key'),
+  readKeypairPem(config.sp.certificatePath, 'certificate'),
+)
+await registerControlPlaneSp(idpPool, spEntity, spKeypair)
 
 const app = await buildServer({
   db,
@@ -129,6 +194,17 @@ const app = await buildServer({
   secrets,
   appSecrets,
   sso,
+  samlSp: createSamlSp({
+    entity: spEntity,
+    idpBaseUrl: config.idp.baseUrl,
+    idpEntityId: config.idp.entityId,
+    // Read here rather than per request: unlike `sso`'s per-deploy read, this
+    // one is bound into a SAML client at construction, so a re-minted IdP
+    // keypair needs a restart. Deploys are not a hot path; logins are.
+    idpCertificatePem: await sso.idpSigningCertificate(),
+    privateKeyPem: spKeypair.privateKeyPem,
+    certificatePem: spKeypair.certificatePem,
+  }),
 })
 
 await app.listen({ port: config.port, host: '127.0.0.1' })

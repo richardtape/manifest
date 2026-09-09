@@ -30,6 +30,19 @@ export interface SpMetadataRow {
 }
 
 /**
+ * The NameID format every Manifest SP registration declares, and the one an
+ * AuthnRequest must therefore ask for.
+ *
+ * Exported because the control plane is itself an SP (§9) and its SAML client
+ * has to send the same value the row declares — `@node-saml/node-saml` defaults
+ * its `identifierFormat` to `…1.1:nameid-format:emailAddress`, which is not this,
+ * and the two disagreeing is a login that fails at the IdP rather than at the
+ * line that got it wrong. Transient because Manifest keys a user on
+ * `ubcEduCwlPuid` (§9), never on the NameID.
+ */
+export const SP_NAME_ID_FORMAT = 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient'
+
+/**
  * The `entity_data` value. Every key here is from S2's worked registration —
  * the one row that produced a complete login with enforced attribute release,
  * a per-app keypair, signed AuthnRequests and OID attribute naming.
@@ -55,7 +68,7 @@ export function renderSpMetadata(entity: SpEntity, keypair: SpKeypair): SpMetada
         Location: entity.sloUrl,
       },
     ],
-    NameIDFormat: 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient',
+    NameIDFormat: SP_NAME_ID_FORMAT,
     'simplesaml.attributes': true,
     attributes: entity.attributes,
     'attributes.NameFormat': 'urn:oasis:names:tc:SAML:2.0:attrname-format:uri',

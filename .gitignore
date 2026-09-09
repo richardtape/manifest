@@ -46,6 +46,11 @@ infra/registry-auth/
 # invalidates every SP that pinned the certificate.
 infra/idp/cert/
 infra/secrets/
+# The CONTROL PLANE's own SP keypair (§9 — Manifest is an SP too), minted by
+# `make up`. Listed explicitly rather than relying on the blanket `*.key` above,
+# because the CERTIFICATE beside it is not covered by that rule and a committed
+# half-pair is worse than neither.
+infra/sp/
 
 # Generated test issuer keypair (runtime/docker/testing.ts). Never committed:
 # the blanket *.key rule above is deliberate and stays absolute.

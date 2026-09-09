@@ -14,6 +14,7 @@ import { BadRequestError, toErrorResponse } from './errors.js'
 import { replayOrStore } from './idempotency.js'
 import { registerAuthRoutes } from './routes/auth.js'
 import type { SsoRegistrar } from '../sso/index.js'
+import type { SamlSp } from '../identity/index.js'
 import { registerProjectRoutes } from './routes/projects.js'
 import { registerDeliveryRoutes } from './routes/delivery.js'
 import { registryTokenRoutes } from './routes/registry-token.js'
@@ -34,6 +35,12 @@ export interface ServerDeps {
    * and no second connection. Same shape as `secrets` above, for the same reason.
    */
   sso: SsoRegistrar
+  /**
+   * §9's other half: Manifest's own Service Provider, with its entity, its
+   * keypair and the IdP's certificate already bound. `/auth/login` and
+   * `/auth/saml/callback` hold no key material and build no URLs.
+   */
+  samlSp: SamlSp
 }
 
 declare module 'fastify' {
