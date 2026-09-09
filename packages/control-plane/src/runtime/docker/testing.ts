@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import {
   existsSync,
   mkdirSync,
@@ -213,20 +214,37 @@ export function ensureContractRepo(repoPath = '/tmp/repo'): void {
  * Idempotent across runs: the bare repo is rebuilt whenever the source tree is
  * newer, so editing the fixture app does not silently test the previous commit.
  */
-export function fixtureBareRepo(repoPath = join(tmpdir(), 'mf-fixture-app.git')): {
+export function fixtureBareRepo(
+  repoPath = join(tmpdir(), 'mf-fixture-app.git'),
+  options: { source?: string; extraFiles?: Record<string, string> } = {},
+): {
   repoPath: string
   commitSha: string
 } {
-  const source = join(REPO_ROOT, 'fixtures/fixture-app')
+  const source = options.source ?? join(REPO_ROOT, 'fixtures/fixture-app')
+  // `extraFiles` are files the platform would MOUNT rather than commit — the
+  // IdP's public signing certificate, for the SAML fixture. They are part of the
+  // stamp because a certificate that changes must produce a new image; leaving
+  // them out would reuse a stale one and the login would fail signature
+  // validation against a certificate nobody had changed.
+  const extra = options.extraFiles ?? {}
+  const extraStamp = Object.entries(extra)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, contents]) => `${name}:${contents}`)
+    .join('\n')
   const sourceStamp = execFileSync('sh', [
     '-c',
     `cat ${JSON.stringify(source)}/* | shasum -a 256 | cut -c1-16`,
   ])
     .toString()
     .trim()
+  const stamp =
+    extraStamp === ''
+      ? sourceStamp
+      : `${sourceStamp}-${createHash('sha256').update(extraStamp).digest('hex').slice(0, 16)}`
   const stampFile = join(repoPath, 'manifest-fixture-stamp')
   const current = existsSync(stampFile) ? readFileSync(stampFile, 'utf8').trim() : ''
-  if (current !== sourceStamp) {
+  if (current !== stamp) {
     rmSync(repoPath, { recursive: true, force: true })
     const work = mkdtempSync(join(tmpdir(), 'mf-fixture-src-'))
     try {
@@ -234,6 +252,9 @@ export function fixtureBareRepo(repoPath = join(tmpdir(), 'mf-fixture-app.git'))
         '-c',
         `cp -R ${JSON.stringify(source)}/. ${JSON.stringify(work)}/`,
       ])
+      for (const [name, contents] of Object.entries(extra)) {
+        writeFileSync(join(work, name), contents)
+      }
       const git = (...args: string[]): void => {
         execFileSync('git', args, {
           cwd: work,
@@ -254,7 +275,7 @@ export function fixtureBareRepo(repoPath = join(tmpdir(), 'mf-fixture-app.git'))
       git('add', '-A')
       git('commit', '-q', '-m', 'fixture app')
       execFileSync('git', ['clone', '--bare', '-q', work, repoPath])
-      writeFileSync(stampFile, `${sourceStamp}\n`)
+      writeFileSync(stampFile, `${stamp}\n`)
     } finally {
       rmSync(work, { recursive: true, force: true })
     }

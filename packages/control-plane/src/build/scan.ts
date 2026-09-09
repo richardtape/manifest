@@ -16,15 +16,20 @@ export interface Vulnerability {
   packageType: string
   /** The image layers the evidence was found in. Grype reports RootFS diff ids. */
   layerIds: string[]
-  /** Recorded for the owner report (§20), deliberately NOT part of the block rule. */
+  /** Grype's `fix.state === 'fixed'`. THIS IS PART OF THE BLOCK RULE — see
+   *  `assessScan` part 4. A finding nobody can fix does not block. */
   fixAvailable: boolean
 }
 
 export interface ScanResult {
   sbom: string
   vulnerabilities: Vulnerability[]
-  /** Findings this build introduced. The only ones a rebuild of this app can clear. */
+  /** Findings this build introduced AND could fix. The blocking set. */
   appFindings: Vulnerability[]
+  /** Findings this build introduced that have NO published fix. Recorded on the
+   *  Release and reported to the owner (§20); never blocked on, because no action
+   *  available to the person deploying would clear them. */
+  unfixableFindings: Vulnerability[]
   /** Findings the base image already carried — §20's fleet-wide rebuild, Phase 4+. */
   baseImageFindings: Vulnerability[]
   baseImageKnown: boolean
@@ -61,6 +66,28 @@ const isBaseOwned = (v: Vulnerability, baseLayerIds: ReadonlySet<string>): boole
  * 3. **Not knowing fails CLOSED.** With no base image to compare against, every
  *    finding is treated as the app's. A scan that cannot tell what this build added
  *    must not answer "nothing to worry about"; `baseImageKnown` says which happened.
+ *
+ * 4. **Only a finding with a published FIX blocks.** The same principle as part 2,
+ *    one level down: the gate blocks on what a rebuild can CLEAR. A Critical with no
+ *    fix cannot be cleared by anything the person deploying can do, so blocking on
+ *    it does not make the app safer — it makes the app undeployable.
+ *
+ *    MEASURED 2026-09-08, and it is why this rule exists rather than being a
+ *    softening. `passport-ubcshib@0.1.6` — the library §9 builds the entire
+ *    platform's identity on — depends on `passport-saml`, which npm has DEPRECATED
+ *    ("use @node-saml/passport-saml") and which carries a CRITICAL signature
+ *    verification advisory, GHSA-4mxg-3p6v-xgq3, at range `*`; and on
+ *    `@xmldom/xmldom@0.7.13`, five HIGHs. Not one has a fix in that line. Under the
+ *    old rule the gate blocked EVERY CWL application — which is every application
+ *    this platform exists to deploy. C6 forbids a library change being a
+ *    prerequisite; §12 forbids an app waiving the gate; the two could not both hold.
+ *    Rich's call, 2026-09-08: block on fixable, record the rest.
+ *
+ *    The gate keeps its teeth for what §12 built it for — a hallucinated or
+ *    malicious dependency — and for every finding somebody can actually act on.
+ *    Unfixable findings are NOT dropped: they are named in `reason`, returned in
+ *    `unfixableFindings`, and are §20's fleet-wide-rebuild input, exactly as
+ *    base-image findings already are.
  */
 export function assessScan(input: {
   databaseAgeDays: number
@@ -72,6 +99,7 @@ export function assessScan(input: {
   blocked: boolean
   reason: string
   appFindings: Vulnerability[]
+  unfixableFindings: Vulnerability[]
   baseImageFindings: Vulnerability[]
   baseImageKnown: boolean
 } {
@@ -79,10 +107,15 @@ export function assessScan(input: {
   const serious = input.vulnerabilities.filter((v) => BLOCKING_SEVERITIES.has(v.severity))
   const baseImageFindings =
     baseLayerIds === undefined ? [] : serious.filter((v) => isBaseOwned(v, baseLayerIds))
-  const appFindings =
+  const introduced =
     baseLayerIds === undefined
       ? serious
       : serious.filter((v) => !isBaseOwned(v, baseLayerIds))
+  // The two rules are independent and compose: base-owned first (part 2), then
+  // fixable (part 4). A base-image finding with no fix belongs to the base and is
+  // never counted as the app's, so it appears in neither set below.
+  const appFindings = introduced.filter((v) => v.fixAvailable)
+  const unfixableFindings = introduced.filter((v) => !v.fixAvailable)
   const stale = input.databaseAgeDays > STALENESS_THRESHOLD_DAYS
 
   const baseNote =
@@ -90,6 +123,13 @@ export function assessScan(input: {
       ? ` ${baseImageFindings.length} more were already in the platform's base image ` +
         `(${[...new Set(baseImageFindings.map((v) => v.package))].slice(0, 6).join(', ')}), which no ` +
         'rebuild of this app can clear — recorded for §20 fleet-wide rebuild, not blocked on.'
+      : ''
+  const unfixableNote =
+    unfixableFindings.length > 0
+      ? ` ${unfixableFindings.length} further finding(s) this build introduced have NO published fix ` +
+        `(${[...new Set(unfixableFindings.map((v) => v.package))].slice(0, 6).join(', ')}) — ` +
+        'recorded on the Release and reported to the owner (§20). A gate that blocks on ' +
+        'what nobody can fix stops deployments without making anything safer.'
       : ''
   const unknownNote =
     baseLayerIds === undefined
@@ -99,6 +139,7 @@ export function assessScan(input: {
 
   const common = {
     appFindings,
+    unfixableFindings,
     baseImageFindings,
     baseImageKnown: baseLayerIds !== undefined,
   }
@@ -112,6 +153,7 @@ export function assessScan(input: {
         `(threshold ${STALENESS_THRESHOLD_DAYS}); this scan is STALE and warns rather than blocks. ` +
         `${serious.length} high or critical finding(s) were reported by a database that may not be current.` +
         baseNote +
+        unfixableNote +
         unknownNote,
     }
   }
@@ -126,8 +168,9 @@ export function assessScan(input: {
             .slice(0, 10)
             .map((v) => `${v.id} (${v.package})`)
             .join(', ')
-        : 'no high or critical findings in what this build added') +
+        : 'no fixable high or critical findings in what this build added') +
       baseNote +
+      unfixableNote +
       unknownNote,
   }
 }

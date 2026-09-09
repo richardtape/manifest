@@ -19,6 +19,82 @@ const finding = (
 const critical = [finding('Critical')]
 
 describe('scan assessment (§12)', () => {
+  /**
+   * §12's gate blocks on what a rebuild can CLEAR, which is the same principle the
+   * base-image split already applies one level up. A Critical with no published fix
+   * cannot be cleared by any action the person deploying can take, so blocking on it
+   * does not make the app safer — it makes the app undeployable.
+   *
+   * MEASURED, and this is why the rule changed: `passport-ubcshib@0.1.6` — the
+   * library §9 builds the whole platform's identity on — depends on `passport-saml`,
+   * which is npm-deprecated with a CRITICAL signature-verification advisory
+   * (GHSA-4mxg-3p6v-xgq3) at range `*`, and on `@xmldom/xmldom@0.7.13` with five
+   * HIGHs. None has a fix. The old rule blocked EVERY CWL application, which is
+   * every application this platform exists to deploy. Rich's call, 2026-09-08.
+   *
+   * The gate keeps its teeth for what it was built for: a hallucinated or malicious
+   * dependency, and any finding somebody could actually act on.
+   */
+  it('blocks a critical the app can fix, and only that one', () => {
+    const result = assessScan({
+      databaseAgeDays: 1,
+      vulnerabilities: [
+        finding('Critical', { id: 'CVE-FIXABLE', fixAvailable: true }),
+        finding('Critical', { id: 'CVE-NO-FIX', fixAvailable: false }),
+      ],
+      baseLayerIds: BASE,
+    })
+    expect(result.blocked).toBe(true)
+    expect(result.appFindings.map((v) => v.id)).toEqual(['CVE-FIXABLE'])
+    expect(result.unfixableFindings.map((v) => v.id)).toEqual(['CVE-NO-FIX'])
+  })
+
+  it('does not block on a critical with no fix, and says so', () => {
+    const result = assessScan({
+      databaseAgeDays: 1,
+      vulnerabilities: [
+        finding('Critical', {
+          id: 'GHSA-4mxg-3p6v-xgq3',
+          package: 'passport-saml',
+          fixAvailable: false,
+        }),
+        finding('High', {
+          id: 'GHSA-2v35-w6hq-6mfw',
+          package: '@xmldom/xmldom',
+          fixAvailable: false,
+        }),
+      ],
+      baseLayerIds: BASE,
+    })
+    expect(result.blocked).toBe(false)
+    expect(result.appFindings).toEqual([])
+    expect(result.unfixableFindings).toHaveLength(2)
+    // Recorded on the Release and named in the reason — never silently dropped.
+    // "not blocked" and "not reported" are different things and §20's fleet-wide
+    // rebuild is what consumes the difference.
+    expect(result.reason).toMatch(/no published fix/i)
+    expect(result.reason).toContain('passport-saml')
+  })
+
+  it('still attributes an unfixable BASE-image finding to the base, not the app', () => {
+    // The two rules are independent and both apply. A finding can be the base's
+    // AND unfixable; it must not be counted twice or reported as the app's.
+    const result = assessScan({
+      databaseAgeDays: 1,
+      vulnerabilities: [
+        finding('Critical', {
+          id: 'CVE-BASE',
+          layerIds: ['sha256:base1'],
+          fixAvailable: false,
+        }),
+      ],
+      baseLayerIds: BASE,
+    })
+    expect(result.blocked).toBe(false)
+    expect(result.baseImageFindings.map((v) => v.id)).toEqual(['CVE-BASE'])
+    expect(result.unfixableFindings).toEqual([])
+  })
+
   it('blocks on a critical finding with a fresh database', () => {
     const result = assessScan({
       databaseAgeDays: 1,

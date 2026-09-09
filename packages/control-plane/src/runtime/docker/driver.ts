@@ -279,6 +279,20 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
               'Update the dependency and rebuild.',
             )
           }
+          /**
+           * NOT BLOCKING IS NOT THE SAME AS NOT REPORTING. Since 2026-09-08 a
+           * Critical or High with no published fix does not block (scan.ts part 4),
+           * and this build path DISCARDS the scan result otherwise — so without
+           * this line a critical advisory in an app's dependency tree would pass in
+           * complete silence, which is a worse outcome than the gate we replaced.
+           *
+           * `console.error`, not a logger: `request.log.error` writes nothing under
+           * `Fastify({ logger: false })` and this runs outside a request anyway.
+           * Persisting these on the Release row is owed and is `releases/`'s to do.
+           */
+          if (scan.unfixableFindings.length > 0) {
+            console.error(`[build] ${repository}@${digest}: ${scan.reason}`)
+          }
           return { repository: `${options.registryPublicHost}/${repository}`, digest }
         } finally {
           // Defect 35's class: one temp tree per build, never removed.

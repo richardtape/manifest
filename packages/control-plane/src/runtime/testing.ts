@@ -13,8 +13,25 @@ export {
   dockerTierRequested,
   assertDockerAvailable,
 } from './docker/docker-tier.js'
-export { testIssuer, REPO_ROOT } from './docker/testing.js'
+export {
+  testIssuer,
+  REPO_ROOT,
+  // `sso/`'s Docker-tier suite deploys a real Service Provider through the real
+  // driver rather than reimplementing build, network, egress and routing. The
+  // boundary test forbids reaching into `runtime/docker/`, so they surface here.
+  CA_CERT,
+  dockerDriverForTests,
+  fixtureBareRepo,
+} from './docker/testing.js'
 
 // `build/`'s Docker-tier suite drives the real engine (Task 12). It reaches the
 // client through this module's public test surface, not by a deep path.
 export { createEngineClient, resolveSocketPath } from './docker/engine.js'
+
+// `destroyInstance` takes the CONTAINER name, not the instance name, and an
+// afterAll that passes the wrong one destroys nothing — silently, if it also
+// swallows the error. Measured 2026-09-08: a stale `mf-saml-probe-staging-r1-app`
+// survived sixteen minutes and four runs, and `ensureInstance` is idempotent by
+// name, so every one of those runs redeployed nothing and tested the FIRST
+// image. A negative control that edits the app then passes is the symptom.
+export { appContainer, egressContainer } from './docker/names.js'

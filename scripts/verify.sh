@@ -609,6 +609,25 @@ idp_releases_exactly_what_the_row_declares_named_by_oid() {
 }
 check "a login releases exactly the declared attributes, named by OID (§9)"  idp_releases_exactly_what_the_row_declares_named_by_oid
 
+# THE CHECK THAT WOULD HAVE CAUGHT IT. Serving metadata and being able to
+# authenticate somebody are different claims: SimpleSAMLphp 2.x enables only
+# core, admin and saml by default, so `exampleauth:UserPass` — which every D6
+# test user is defined with — threw "The module 'exampleauth' is not enabled"
+# on every SSO request while metadata, the signing certificate and all 43 checks
+# stayed green. Measured 2026-09-08. Instantiating the auth source is the
+# cheapest thing that completes the operation rather than starting it.
+idp_can_instantiate_its_auth_source() {
+  local out
+  out=$(docker exec manifest-idp php -r '
+    require "/var/simplesamlphp/vendor/autoload.php";
+    $s = \SimpleSAML\Auth\Source::getById("manifest-test-users");
+    echo $s === null ? "NULL" : get_class($s);
+  ' 2>&1)
+  echo "manifest-test-users resolves to: ${out##*$'\n'}"
+  echo "$out" | grep -q 'UserPass'
+}
+check "the IdP can instantiate the auth source its test users are defined with"  idp_can_instantiate_its_auth_source
+
 idp_ships_no_flatfile_sp_metadata() {
   # §9: "The deployed IdP ships no saml20-sp-remote.php." S2 measured why —
   # when the same entityID exists in a flatfile AND the SQL store, the FIRST

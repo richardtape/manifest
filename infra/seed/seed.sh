@@ -28,18 +28,38 @@ until curl -sf "http://127.0.0.1:$PORT_VERDACCIO/-/ping" >/dev/null; do sleep 1;
 echo "4/6  mirroring base images into the local registry"
 bash infra/seed/mirror-images.sh
 
-echo "4b/6 warming the package mirror"
-# What makes an offline `npm install` possible. The blueprint's dependency
-# closure is fetched once, through Verdaccio, so it is cached in its storage.
-tmp=$(mktemp -d)
-cat > "$tmp/package.json" <<'JSON'
-{ "name": "seed-warm", "private": true,
-  "dependencies": { "fastify": "5.2.0", "mongodb": "6.12.0", "zod": "3.24.1" } }
-JSON
-(cd "$tmp" && npm install \
-   --registry "http://127.0.0.1:$PORT_VERDACCIO" \
-   --no-audit --no-fund --silent) || echo "     WARN: mirror warm failed"
-rm -rf "$tmp"
+echo "4b/6 warming the package mirror from the blueprint and fixture lockfiles"
+# What makes an offline `npm install` possible. Every dependency closure is
+# fetched once, through Verdaccio, so its TARBALLS are cached in its storage.
+#
+# DERIVED FROM THE LOCKFILES, not restated. The list here was `fastify`,
+# `mongodb`, `zod` — hardcoded — so the moment a blueprint or fixture gained a
+# dependency the offline build failed, and the symptom was an `npm ci` error
+# deep inside the builder with the network already off. `node-ts-mongo` and the
+# SAML fixture both need `passport-ubcshib`, which was not in that list.
+#
+# A FULL INSTALL, never `--package-lock-only`. Verdaccio caches a tarball when
+# it is DOWNLOADED, and `--package-lock-only` resolves metadata without
+# downloading anything — so it would leave the mirror holding package documents
+# and no tarballs, which is indistinguishable from a warm mirror until the
+# network goes away. Measured 2026-09-08: `find /verdaccio/storage -name '*.tgz'`
+# is what tells the two apart.
+#
+# Into a TEMP DIRECTORY, never the source tree: a full install writes
+# node_modules, and under `blueprints/*/skeleton/` or `fixtures/*/` that tree
+# becomes part of the next build context.
+for manifest in blueprints/*/skeleton/package.json fixtures/*/package.json; do
+  [ -f "$manifest" ] || continue
+  d=$(dirname "$manifest")
+  echo "     $d"
+  tmp=$(mktemp -d)
+  cp "$manifest" "$tmp/package.json"
+  [ -f "$d/package-lock.json" ] && cp "$d/package-lock.json" "$tmp/package-lock.json"
+  (cd "$tmp" && npm install \
+     --registry "http://127.0.0.1:$PORT_VERDACCIO" \
+     --no-audit --no-fund --silent) || echo "     WARN: mirror warm failed for $d"
+  rm -rf "$tmp"
+done
 
 echo "4c/6 pulling the vulnerability database"
 # §12: `make seed` pulls the scanner database. This is the ONLY part of a scan that

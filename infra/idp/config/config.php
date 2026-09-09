@@ -79,4 +79,18 @@ $config = array_merge($config, [
     ],
 
     'enable.saml20-idp' => true,
+
+    // WITHOUT THIS THE IdP CANNOT AUTHENTICATE ANYONE. SimpleSAMLphp 2.x enables
+    // only `core`, `admin` and `saml` by default, and `authsources.php` uses
+    // `exampleauth:UserPass` for the D6 test users — so every SSO request died
+    // with a 500 and "The module 'exampleauth' is not enabled." Measured
+    // 2026-09-08, with `make verify` reporting 43/0 at the time: metadata served,
+    // the certificate was right, and no login could ever have completed.
+    //
+    // array_merge INTO the dist's list, not over it: `$config` here is still the
+    // dist's value, and replacing the key outright would disable `core`, `admin`
+    // and `saml` — which turns one broken thing into four.
+    'module.enable' => array_merge($config['module.enable'] ?? [], [
+        'exampleauth' => true,
+    ]),
 ]);
