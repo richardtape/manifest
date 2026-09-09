@@ -1,5 +1,5 @@
 import type { ServiceBinding, ServiceHandle } from '../driver.js'
-import { deriveCredentials, resolveServiceImage } from '../../services/index.js'
+import { resolveServiceImage } from '../../services/index.js'
 import { EngineError, type EngineClient } from './engine.js'
 import {
   appNetwork,
@@ -13,10 +13,9 @@ export async function ensureServiceContainer(
   engine: EngineClient,
   binding: ServiceBinding,
   kind: EnvironmentKind,
-  masterSecret: string,
 ): Promise<ServiceHandle> {
   const image = resolveServiceImage(binding.type, binding.version)
-  const creds = deriveCredentials(masterSecret, binding)
+  const creds = binding.credentials
   // `binding.name` is P2's serviceName(project, environment, declared); the Docker
   // name is that with our prefix. One derivation, not two.
   const name = serviceContainer(binding.name)

@@ -97,6 +97,15 @@ function record(probe: string, denied: string, control: string): void {
   console.log(`[S6] ${probe.padEnd(5)} denied=${denied.padEnd(24)} control=${control}`)
 }
 
+// §12 stores service credentials, so the CALLER resolves them. In production
+// that is `deployRelease`; here it is this constant. The driver uses what it is
+// handed and derives nothing — driver-contract.ts asserts that for both drivers.
+const CREDENTIALS = {
+  username: 'app_docker_tier',
+  password: 'd'.repeat(32),
+  database: 'docker_tier',
+}
+
 describeDocker(
   'S6 probe matrix — what a hostile process in an app container reaches',
   () => {
@@ -117,6 +126,7 @@ describeDocker(
         version: '7',
         environmentId: 'env-s6',
         projectSlug: SLUG,
+        credentials: CREDENTIALS,
       })
       // A SECOND app with its own database, so probes 4 and 5 have a real neighbour
       // to fail to reach — and a real network from which reaching it must succeed.
@@ -126,6 +136,7 @@ describeDocker(
         version: '7',
         environmentId: 'env-s6nb',
         projectSlug: NEIGHBOUR,
+        credentials: { ...CREDENTIALS, database: 'neighbour' },
       })
       await driver.ensureInstance({
         name: instanceName(SLUG, KIND, RELEASE),

@@ -1,10 +1,12 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { resetDatabase, withRollback } from '../db/testing.js'
 import { appSpecs, builds, users } from '../db/index.js'
-import type { Driver, InstanceSpec } from '../runtime/index.js'
 import { createFakeDriver } from '../runtime/index.js'
 import { createProject } from '../projects/index.js'
 import { loadConfig } from '../config.js'
+import type { Driver, InstanceSpec, ServiceBinding } from '../runtime/index.js'
+import { generateMasterKeypair, getSecret } from '../secrets/index.js'
+import { createServiceCredentials } from '../services/index.js'
 import { ReleaseError, createRelease, deployRelease, startBuild } from './index.js'
 
 // Each database file starts from a known slate rather than trusting whatever ran
@@ -13,6 +15,19 @@ import { ReleaseError, createRelease, deployRelease, startBuild } from './index.
 // with the `chem-labs` these suites insert. Asserting the precondition beats
 // depending on every other file remembering an afterAll.
 beforeAll(resetDatabase)
+
+/**
+ * §12's credential resolver, which `deployRelease` now requires. A keypair per
+ * RUN rather than per test: these tests roll back, so nothing they store
+ * outlives them, and the one test that cares about the stored value builds its
+ * own resolver so it can read the row back.
+ */
+let deployDeps: { secrets: ReturnType<typeof createServiceCredentials> }
+beforeAll(async () => {
+  deployDeps = {
+    secrets: createServiceCredentials(await generateMasterKeypair(), config.masterSecret),
+  }
+})
 
 const config = loadConfig({
   MANIFEST_ENV: 'development',
@@ -160,7 +175,7 @@ describe('releases (§13)', () => {
         createdBy: user.id,
         resolvedConfig: RESOLVED,
       })
-      const instance = await deployRelease(db, driver, config, {
+      const instance = await deployRelease(db, driver, config, deployDeps, {
         releaseId: release.id,
         environmentId: byKind.staging!.id,
       })
@@ -202,7 +217,7 @@ describe('releases (§13)', () => {
         createdBy: user.id,
         resolvedConfig: RESOLVED_WITH_SERVICE,
       })
-      await deployRelease(db, recording, config, {
+      await deployRelease(db, recording, config, deployDeps, {
         releaseId: release.id,
         environmentId: byKind.staging!.id,
       })
@@ -215,6 +230,65 @@ describe('releases (§13)', () => {
       // P4's §8 injection contract replaces the naming, not this wire.
       expect(spec.env.MONGODB_URI).toBe(spec.services[0]!.endpoint)
       expect(spec.env.MONGODB_URI).toContain('chem-labs-staging-db')
+    })
+  })
+
+  /**
+   * §12 STORES service credentials; P3 derived them by HMAC in the driver.
+   *
+   * The driver cannot read them — §5 keeps `runtime/` free of `db/` — so
+   * `deployRelease` resolves them and puts them on the binding. This asserts
+   * that the value the driver receives is the value the STORE holds, not one
+   * re-derived on the way past: "the test constructs the value correctly and
+   * the running system re-derives it wrongly" is the single most expensive
+   * defect shape measured in this repository.
+   */
+  it('passes the STORED service credentials to the driver', async () => {
+    await withRollback(async (db) => {
+      const { user, project, appSpec, byKind } = await fixture(db)
+      const keys = await generateMasterKeypair()
+      const driver = createFakeDriver()
+      const bindings: ServiceBinding[] = []
+      const recording: Driver = {
+        ...driver,
+        ensureService: (binding) => {
+          bindings.push(binding)
+          return driver.ensureService(binding)
+        },
+      }
+      const build = await startBuild(db, recording, {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoPath: '/tmp/chem-labs.git',
+      })
+      const release = await createRelease(db, {
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: RESOLVED_WITH_SERVICE,
+      })
+      const deps = { secrets: createServiceCredentials(keys, config.masterSecret) }
+      await deployRelease(db, recording, config, deps, {
+        releaseId: release.id,
+        environmentId: byKind.staging!.id,
+      })
+
+      expect(bindings).toHaveLength(1)
+      const stored = await getSecret(
+        db,
+        {
+          projectId: project.id,
+          environmentKind: 'staging',
+          name: 'service:chem-labs-staging-db:password',
+        },
+        keys,
+      )
+      expect(stored).toBeDefined()
+      expect(bindings[0]!.credentials.password).toBe(stored)
     })
   })
 
@@ -258,7 +332,7 @@ describe('releases (§13)', () => {
         createdBy: user.id,
         resolvedConfig: hostile,
       })
-      await deployRelease(db, recording, config, {
+      await deployRelease(db, recording, config, deployDeps, {
         releaseId: release.id,
         environmentId: byKind.staging!.id,
       })
@@ -316,7 +390,7 @@ describe('releases (§13)', () => {
           production: { ...RESOLVED.production, ...hostile },
         },
       })
-      await deployRelease(db, recording, config, {
+      await deployRelease(db, recording, config, deployDeps, {
         releaseId: release.id,
         environmentId: byKind.staging!.id,
       })
@@ -353,11 +427,11 @@ describe('releases (§13)', () => {
       })
 
       const buildSpy = vi.spyOn(driver, 'buildImage')
-      await deployRelease(db, driver, config, {
+      await deployRelease(db, driver, config, deployDeps, {
         releaseId: release.id,
         environmentId: byKind.staging!.id,
       })
-      await deployRelease(db, driver, config, {
+      await deployRelease(db, driver, config, deployDeps, {
         releaseId: release.id,
         environmentId: byKind.sandbox!.id,
       })
@@ -385,7 +459,7 @@ describe('releases (§13)', () => {
         resolvedConfig: RESOLVED,
       })
       await expect(
-        deployRelease(db, driver, config, {
+        deployRelease(db, driver, config, deployDeps, {
           releaseId: release.id,
           environmentId: byKind.production!.id,
         }),
@@ -416,7 +490,7 @@ describe('releases (§13)', () => {
         resolvedConfig: RESOLVED,
       })
       await expect(
-        deployRelease(db, driver, config, {
+        deployRelease(db, driver, config, deployDeps, {
           releaseId: release.id,
           environmentId: byKind.staging!.id,
         }),
@@ -476,6 +550,7 @@ describe('waiting for health', () => {
         db,
         driver,
         config,
+        deployDeps,
         { releaseId: release.id, environmentId: byKind.staging!.id },
         { timeoutMs: 2000, intervalMs: 1 },
       )
@@ -492,6 +567,7 @@ describe('waiting for health', () => {
         db,
         driver,
         config,
+        deployDeps,
         { releaseId: release.id, environmentId: byKind.staging!.id },
         { timeoutMs: 20, intervalMs: 1 },
       )
@@ -537,7 +613,7 @@ describe('the InstanceSpec handed to the driver', () => {
       })
 
       const spy = vi.spyOn(driver, 'ensureInstance')
-      await deployRelease(db, driver, config, {
+      await deployRelease(db, driver, config, deployDeps, {
         releaseId: release.id,
         environmentId: byKind.staging!.id,
       })

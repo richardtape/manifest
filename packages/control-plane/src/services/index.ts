@@ -4,4 +4,10 @@ export {
   resolveServiceImage,
 } from './catalogue.js'
 export type { ServiceImage } from './catalogue.js'
-export { deriveCredentials } from './credentials.js'
+export {
+  createServiceCredentials,
+  deriveCredentials,
+  ensureServiceCredentials,
+  type ServiceCredentialResolver,
+  type ServiceCredentials,
+} from './credentials.js'

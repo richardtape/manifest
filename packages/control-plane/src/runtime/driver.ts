@@ -14,6 +14,17 @@ export interface ServiceBinding {
   version: string
   environmentId: string
   projectSlug: string
+  /**
+   * Resolved by the CALLER, never by the driver.
+   *
+   * §12 stores service credentials in `secrets/`, which lives over Postgres —
+   * and §5 keeps `runtime/` free of `db/`, deliberately, so the driver cannot
+   * read them. `deployRelease` resolves them through `ensureServiceCredentials`
+   * and passes them in. Required rather than optional: an optional field here
+   * would mean two producers of one value, which is the exact shape that
+   * produced seven defects in one session of P3.
+   */
+  credentials: { username: string; password: string; database: string }
 }
 export interface ServiceHandle {
   id: string

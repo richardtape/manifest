@@ -74,6 +74,15 @@ async function healthWithin(timeoutMs: number) {
 
 let driverRef: Driver | undefined
 
+// §12 stores service credentials, so the CALLER resolves them. In production
+// that is `deployRelease`; here it is this constant. The driver uses what it is
+// handed and derives nothing — driver-contract.ts asserts that for both drivers.
+const CREDENTIALS = {
+  username: 'app_docker_tier',
+  password: 'd'.repeat(32),
+  database: 'docker_tier',
+}
+
 describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', () => {
   let driver: Driver
   let repo: { repoPath: string; commitSha: string }
@@ -139,6 +148,7 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
       version: '7',
       environmentId: 'env-1',
       projectSlug: SLUG,
+      credentials: CREDENTIALS,
     })
     const handle = await driver.ensureInstance(specFor())
     expect(handle.url).toBe(`https://${HOST}`)

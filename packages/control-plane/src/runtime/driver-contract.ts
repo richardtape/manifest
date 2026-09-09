@@ -8,6 +8,15 @@ const binding = (): ServiceBinding => ({
   version: '7',
   environmentId: 'env-1',
   projectSlug: 'chem-labs',
+  // Resolved by the caller in production (§12 stores them; §5 keeps the driver
+  // away from `db/`). The contract asserts the driver USES what it is handed —
+  // a driver that derived its own would pass every test here and hand the app a
+  // password its container has never accepted.
+  credentials: {
+    username: 'app_contract',
+    password: 'contract-suite-password',
+    database: 'chem_labs',
+  },
 })
 
 /**
@@ -97,6 +106,21 @@ export function describeDriverContract(
       const first = await driver.ensureService(binding())
       const second = await driver.ensureService(binding())
       expect(second.id).toBe(first.id)
+    })
+
+    it('reaches the service with the credentials it was HANDED (§12)', async () => {
+      // §12 stores service credentials and §5 keeps the driver away from `db/`,
+      // so the caller resolves them and the driver's only job is to use them.
+      // A driver that derived its own instead would pass every other test in
+      // this suite and hand the app a password its container never accepted —
+      // which is P3's "the test constructs the value correctly and the running
+      // system re-derives it wrongly", the most expensive shape measured here.
+      const driver = await factory()
+      const b = binding()
+      const handle = await driver.ensureService(b)
+      expect(handle.endpoint).toContain(b.credentials.username)
+      expect(handle.endpoint).toContain(b.credentials.password)
+      expect(handle.endpoint).toContain(b.credentials.database)
     })
 
     it('ensureInstance is idempotent — the second call does not create a second instance', async () => {

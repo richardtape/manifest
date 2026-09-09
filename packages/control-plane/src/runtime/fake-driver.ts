@@ -62,7 +62,12 @@ export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
       const handle: ServiceHandle = {
         id,
         name: binding.name,
-        endpoint: `${binding.type}://${binding.name}.fake:27017`,
+        // The credentials the caller resolved, in the endpoint — because the
+        // real driver puts them there and a fake that omitted them would let a
+        // driver ignoring `binding.credentials` pass the shared contract suite.
+        endpoint:
+          `${binding.type}://${binding.credentials.username}:${binding.credentials.password}` +
+          `@${binding.name}.fake:27017/${binding.credentials.database}`,
       }
       services.set(id, { binding, handle, dataDeleted: false })
       byName.set(`service:${binding.name}`, id)

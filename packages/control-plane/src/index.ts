@@ -6,7 +6,8 @@ import { db } from './db/index.js'
 import { createCaddyClient } from './routing/index.js'
 import { createDockerDriver, createEngineClient } from './runtime/index.js'
 import { createLocalSourceDriver } from './source/index.js'
-import { scrubSecretEnv } from './secrets/index.js'
+import { loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
+import { createServiceCredentials } from './services/index.js'
 
 // loadConfig throws before anything listens if MANIFEST_DEV_AUTH is set outside
 // development. That is the point: the process must not come up in that state.
@@ -90,12 +91,24 @@ const driver = await createDockerDriver({
   readinessTimeoutMs: config.readinessTimeoutMs,
 })
 
+// §12's stored service credentials. The keypair is read ONCE, here, and bound
+// into a resolver — `releases/` and `api/` then hold a resolver rather than key
+// material, and no request path touches the file. loadMasterKeypair names the
+// FILE in every failure, because "the key is wrong" and "the row is wrong" are
+// different problems and this project has lost mornings to reading one as the
+// other.
+const secrets = createServiceCredentials(
+  await loadMasterKeypair(config.secretsMasterKeyPath),
+  config.masterSecret,
+)
+
 const app = await buildServer({
   db,
   config,
   driver,
   source: createLocalSourceDriver(config.reposRoot),
   blueprints,
+  secrets,
 })
 
 await app.listen({ port: config.port, host: '127.0.0.1' })

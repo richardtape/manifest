@@ -7,8 +7,20 @@ import { nextState } from '../runtime/index.js'
 import type { ResolvedConfig } from '../spec/index.js'
 import { toMebibytes } from '../spec/index.js'
 import { resolveServiceImage } from '../services/index.js'
+import type { ServiceCredentialResolver } from '../services/index.js'
 import type { Config } from '../config.js'
 import { assertPromotable } from './promotion.js'
+
+/**
+ * What `deployRelease` needs that is neither the database nor the driver.
+ *
+ * Threaded through arguments rather than imported, so `releases/` stays testable
+ * with no key material and no IdP — which is what makes §16's fake-driver tier
+ * worth having. P4a Task 9 adds `sso` here.
+ */
+export interface DeployDeps {
+  secrets: ServiceCredentialResolver
+}
 
 export type Release = typeof releases.$inferSelect
 export type Instance = typeof instances.$inferSelect
@@ -102,6 +114,7 @@ export async function deployRelease(
   db: Db,
   driver: Driver,
   config: Config,
+  deps: DeployDeps,
   input: DeployInput,
   healthWait: HealthWait = DEFAULT_HEALTH_WAIT,
 ): Promise<Instance> {
@@ -196,12 +209,23 @@ export async function deployRelease(
   const serviceHandles = []
   const serviceEnv: Record<string, string> = {}
   for (const declared of resolved.services) {
+    const bindingName = serviceName(projectSlug, environment.kind, declared.name)
+    // §12: the credentials are STORED, and the driver cannot read the store —
+    // §5 keeps `runtime/` free of `db/`. So they are resolved here, once, and
+    // handed over. One producer: the value the container was created with is
+    // the value the app is given, by construction rather than by agreement.
+    const credentials = await deps.secrets.forService(db, {
+      projectId: environment.projectId,
+      environmentKind: environment.kind,
+      binding: { name: bindingName, type: declared.type, projectSlug },
+    })
     const handle = await driver.ensureService({
-      name: serviceName(projectSlug, environment.kind, declared.name),
+      name: bindingName,
       type: declared.type,
       version: declared.version,
       environmentId: environment.id,
       projectSlug,
+      credentials,
     })
     serviceHandles.push(handle)
     serviceEnv[resolveServiceImage(declared.type, declared.version).envVar] =

@@ -6,6 +6,7 @@ import type { Config } from '../config.js'
 import type { Driver } from '../runtime/index.js'
 import type { SourceDriver } from '../source/index.js'
 import type { BlueprintRegistry } from '../blueprints/index.js'
+import type { ServiceCredentialResolver } from '../services/index.js'
 import { SESSION_COOKIE, verifySession } from '../identity/index.js'
 import type { Actor } from '../projects/index.js'
 import { BadRequestError, toErrorResponse } from './errors.js'
@@ -21,6 +22,8 @@ export interface ServerDeps {
   driver: Driver
   source: SourceDriver
   blueprints: BlueprintRegistry
+  /** §12's stored service credentials, with the master key already bound. */
+  secrets: ServiceCredentialResolver
 }
 
 declare module 'fastify' {

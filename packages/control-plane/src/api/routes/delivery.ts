@@ -221,10 +221,16 @@ export async function registerDeliveryRoutes(
     }
 
     const { status, body } = await app.idempotent(request, async () => {
-      const instance = await deployRelease(deps.db, deps.driver, deps.config, {
-        releaseId: parsed.data.releaseId,
-        environmentId,
-      })
+      const instance = await deployRelease(
+        deps.db,
+        deps.driver,
+        deps.config,
+        { secrets: deps.secrets },
+        {
+          releaseId: parsed.data.releaseId,
+          environmentId,
+        },
+      )
       return { status: 200, body: instance }
     })
     return reply.status(status).send(body)

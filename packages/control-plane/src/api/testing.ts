@@ -4,6 +4,8 @@ import { testIssuer } from '../runtime/testing.js'
 import { createFakeDriver } from '../runtime/index.js'
 import { createLocalSourceDriver } from '../source/index.js'
 import { loadBlueprints } from '../blueprints/index.js'
+import { createServiceCredentials } from '../services/index.js'
+import { generateMasterKeypair } from '../secrets/index.js'
 import { mkdir, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -58,5 +60,9 @@ export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> 
     driver: createFakeDriver(),
     source: createLocalSourceDriver(reposRoot),
     blueprints: await loadBlueprints(config.blueprintsRoot),
+    // A keypair per call, not a shared one: two tests sharing a master key can
+    // read each other's secrets, and that is the test-isolation shape that made
+    // P2's suite depend on the order Vitest happened to pick.
+    secrets: createServiceCredentials(await generateMasterKeypair(), config.masterSecret),
   }
 }

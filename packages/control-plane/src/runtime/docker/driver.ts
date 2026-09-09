@@ -304,7 +304,7 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
     async ensureService(binding: ServiceBinding): Promise<ServiceHandle> {
       const kind = kindFromServiceName(binding.name)
       await ensureAppNetwork(engine, binding.projectSlug, kind)
-      return ensureServiceContainer(engine, binding, kind, options.masterSecret)
+      return ensureServiceContainer(engine, binding, kind)
     },
 
     async ensureInstance(spec: InstanceSpec): Promise<InstanceHandle> {
