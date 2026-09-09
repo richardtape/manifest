@@ -50,7 +50,7 @@ an application from a bare git repository to a healthy
 database, a deleted repository root and an emptied registry. **P4a is part-executed —
 Tasks 1–5 of 15 are done and green as of 2026-09-08: a real CWL login works end to
 end, and every service credential is envelope-encrypted in Postgres rather than
-derived. Continuing P4a at Task 6 is the current work**, in seven agreed phases. P4b is written and unrun;
+derived. Continuing P4a at Task 6 is the current work**, in seven agreed sittings of one session each. P4b is written and unrun;
 P5 is unwritten. On
 2026-09-04 the project stopped writing plans and started executing them, and that
 hold is now discharged.
@@ -101,7 +101,7 @@ this machine will do to you, and what to do next. Then:
 | Understanding what the Docker half does | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md`](docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md) — all 19 tasks executed. Read its *What executing this plan found*, Sessions 4 and 5 |
 | Running the control plane | [*Running the control plane*](#running-the-control-plane) below — `make up`, then `pnpm --filter @manifest/control-plane dev` |
 | Executing any plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan — fix it there |
-| **Continuing P4a at Task 6 — the current job** | ORIENTATION §7d, then [`docs/superpowers/plans/2026-09-07-p4a-identity-secrets-injection.md`](docs/superpowers/plans/2026-09-07-p4a-identity-secrets-injection.md), 15 tasks, **1–5 executed 2026-09-08**, the rest in seven agreed phases. Read P4a's own *What executing this plan found* first — Sessions 1, 2, 2b and 3, 26 defects — then P3's Sessions 4 and 5. **Do not start P4b**: it is written, and its own first task reconciles it against a P4a that has already run |
+| **Continuing P4a at Task 6 — the current job** | ORIENTATION §7d, then [`docs/superpowers/plans/2026-09-07-p4a-identity-secrets-injection.md`](docs/superpowers/plans/2026-09-07-p4a-identity-secrets-injection.md), 15 tasks, **1–5 executed 2026-09-08**, the rest in seven agreed sittings. Read P4a's own *What executing this plan found* first — Sessions 1, 2, 2b and 3, 26 defects — then P3's Sessions 4 and 5. **Do not start P4b**: it is written, and its own first task reconciles it against a P4a that has already run |
 | Seeing the platform actually work | `make demo`, after `make up` and starting the control plane. [`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) has the nine steps it runs and the offline control |
 | Looking for what a spike proved | `docs/superpowers/spikes/S{7,2,1,3,6}-findings.md` — the answer is the first sentence of each |
 | Looking for the architecture | [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](docs/superpowers/specs/2026-08-29-manifest-platform-design.md) — authoritative, ~2,340 lines. ORIENTATION §3 tells you which sections you actually need |

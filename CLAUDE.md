@@ -50,10 +50,10 @@ of it was green in a suite of 74 passing Docker tests.**
 
 **P4a is PART-EXECUTED (2026-09-08): Tasks 1–5 of 15 are green; Tasks 6–15
 remain, and continuing at Task 6 is the current work** — ORIENTATION §7d, which
-carries the phase table. The rest runs in **seven agreed phases, one per session with
-a check-in at each boundary**, so a session limit cannot land mid-task: **Phase 2 is
+carries the table. The rest runs in **seven agreed SITTINGS, one per session with a
+check-in at each boundary**, so a session limit cannot land mid-task: **sitting 2 is
 Tasks 6–7** (per-app SP keypairs, then `sso/`), then 8–9, 10–11, 12–13, 14 alone and
-15 alone.
+15 alone. *Sittings pace the work; they are not §17's product Phases.*
 **A real CWL login now works end to end**, which it could not before: the IdP could
 neither issue an assertion nor authenticate anybody, with `make verify` green
 throughout. `make verify` is now **44 / 0**, `pnpm test` **420**, `pnpm test:docker`

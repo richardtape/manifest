@@ -16,16 +16,17 @@
 
 ---
 
-## How this plan is being executed — SEVEN PHASES, one per session
+## How this plan is being executed — SEVEN SITTINGS, one per session
 
-**Tasks 1–5 are DONE (2026-09-08). Phase 2 — Tasks 6 and 7 — is next.**
+**Tasks 1–5 are DONE (2026-09-08). Sitting 2 — Tasks 6 and 7 — is next.**
 
-Agreed with Rich on 2026-09-08: the remaining tasks run one phase per session, with a
-check-in at each boundary, so a session limit can never land in the middle of a task.
+Agreed with Rich on 2026-09-08: the remaining tasks run one sitting per session, with
+a check-in at each boundary, so a session limit can never land in the middle of a task.
 This plan commits after every task, so a stop *between* tasks is recoverable; a stop
-*inside* one is not.
+*inside* one is not. **"Sitting", not "phase"** — this project uses *Phase 1/2/4+* for
+the §17 product roadmap, and confusing the two sends a reader to the wrong document.
 
-| Phase | Tasks | Status |
+| Sitting | Tasks | Status |
 |---|---|---|
 | 1 | 4–5 — `secrets/` and its first call site | ✅ done 2026-09-08, 8 defects |
 | **2** | **6–7 — per-app SP keypairs, then `sso/` and the one row** | ← **next** |
@@ -35,7 +36,7 @@ This plan commits after every task, so a stop *between* tasks is recoverable; a 
 | 6 | 14 — Manifest's own login, and the end of the dev shim | alone: it reddens most of the API suite |
 | 7 | 15 — the proof app and P4a's acceptance | alone: the first end-to-end run |
 
-**Every phase ends the same way:** the four gates from *Global Constraints*,
+**Every sitting ends the same way:** the four gates from *Global Constraints*,
 `pnpm test:docker` where the phase touched `infra/`, `runtime/`, `services/`, `sso/`
 or `secrets/`, a dated entry in *What executing this plan found* below, and the
 close-out sweep in ORIENTATION §6. **Read the most recent session entry before
@@ -3280,13 +3281,13 @@ injection call site rather than with the mechanism.
 
 ---
 
-### Session 3 — Phase 1: Tasks 4 and 5 (2026-09-08). 8 defects.
+### Session 3 — sitting 1: Tasks 4 and 5 (2026-09-08). 8 defects.
 
-**The remaining twelve tasks were split into seven phases before any code was written**,
+**The remaining twelve tasks were split into seven sittings before any code was written**,
 at Rich's request and with his approval, so a session limit can never land mid-task:
-**1: Tasks 4–5 · 2: 6–7 · 3: 8–9 · 4: 10–11 · 5: 12–13 · 6: 14 · 7: 15.** Each phase
+**1: Tasks 4–5 · 2: 6–7 · 3: 8–9 · 4: 10–11 · 5: 12–13 · 6: 14 · 7: 15.** Each sitting
 ends with the four gates, the Docker tier where it applies, a record here, and the
-close-out sweep. This is Phase 1.
+close-out sweep. This is sitting 1.
 
 **Baseline first, and it matched the handover exactly**: `make doctor` 16/0, `make verify`
 44/0, `pnpm test` 391 twice, lint/typecheck/format clean.
@@ -3334,7 +3335,7 @@ specifies for `SsoRegistrar`. `services.docker.test.ts` gained a test that runs 
 migration against a real Mongo — the plan asked for the authentication error to be
 *recorded*, and it is a permanent assertion instead.
 
-**State at the end of the phase:** `make doctor` 16/0, `make verify` 44/0,
+**State at the end of the sitting:** `make doctor` 16/0, `make verify` 44/0,
 `pnpm test` **420** twice, `pnpm test:docker` **95** (17 files, 0 failed, 318 s),
 lint/typecheck/format clean. Two commits.
 
@@ -3346,7 +3347,7 @@ infra/lib/ensure-master-key.sh."* A doctor check would restate that in a second 
 without completing any operation the boot does not already complete — which is the
 shape this project keeps recording as worthless.
 
-**What Phase 2 inherits.** Task 6's `ensureSpKeypair` and Task 7's `registerServiceProvider`
+**What sitting 2 inherits.** Task 6's `ensureSpKeypair` and Task 7's `registerServiceProvider`
 both take `(db, keys, …)`, and `withSecretScope` in `secrets/testing.ts` is what their
 tests should use — it hands over a rolled-back transaction with a project row, a
 per-call master keypair and a master secret. Task 7's `createSsoRegistrar(pool, keys)`

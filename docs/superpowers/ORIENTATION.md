@@ -36,7 +36,9 @@ application from a bare git repository to a healthy `https://…manifest.interna
 
 **P4a IS PART-EXECUTED. Tasks 1–5 of 15 are done and green (2026-09-08);
 Tasks 6–15 remain. START AT TASK 6** — §7d tells you exactly where. The remaining
-work is split into **seven agreed phases**, and Phase 1 (Tasks 4–5) is done. P4b (16 tasks) is
+work is split into **seven agreed SITTINGS, one per session**, and sitting 1
+(Tasks 4–5) is done. *(Sittings are how the remaining tasks are paced. They are
+**not** §17's product Phases — the roadmap's "Phase 2" is six unwritten plans.)* P4b (16 tasks) is
 written and unrun and **must not go first**: its Task 1 is a reconciliation pass that
 assumes P4a has run.
 
@@ -855,22 +857,26 @@ divergence 8 — was deliberately deferred until Task 18 measured it, and **it n
 — **15 tasks. Tasks 1–5 are EXECUTED and green (2026-09-08). Start at Task 6.**
 Invoke `superpowers:executing-plans` or `superpowers:subagent-driven-development`.*
 
-**The remaining ten tasks run in SEVEN AGREED PHASES**, settled with Rich on
+**The remaining ten tasks run in SEVEN AGREED SITTINGS**, settled with Rich on
 2026-09-08 so a session limit can never land mid-task. The plan commits after every
 task, so a stop *between* tasks is recoverable; a stop *inside* one is not. **Do one
-phase per session, and check in with Rich at the end of each.**
+sitting per session, and check in with Rich at the end of each.**
 
-| Phase | Tasks | What it delivers |
+**"Sitting", not "phase", deliberately:** this project already uses *Phase 1/2/4+* for
+the §17 product roadmap — the roadmap's "Phase 2" is six plans nobody has written.
+These are units of execution, and P2's record already calls them sittings.
+
+| Sitting | Tasks | What it delivers |
 |---|---|---|
 | 1 ✅ | 4–5 | `secrets/` — envelope encryption, the store, the boot scrub — and its first call site: service credentials move from derivation to storage |
-| **2 ← NEXT** | **6–7** | **Per-app SP keypairs, then `sso/`: the D15 entity derivation (Manifest supplies every origin) and the one `saml20_sp_remote` row.** Task 7 is the heavy half — a second database connection to `manifest_idp`, a new **required** `MANIFEST_IDP_DATABASE_URL`, and a Docker test against the real IdP. Ends with `registerServiceProvider` built but uncalled; Phase 3 gives it its caller |
+| **2 ← NEXT** | **6–7** | **Per-app SP keypairs, then `sso/`: the D15 entity derivation (Manifest supplies every origin) and the one `saml20_sp_remote` row.** Task 7 is the heavy half — a second database connection to `manifest_idp`, a new **required** `MANIFEST_IDP_DATABASE_URL`, and a Docker test against the real IdP. Ends with `registerServiceProvider` built but uncalled; sitting 3 gives it its caller |
 | 3 | 8–9 | The `events` table (append-only **by grant**, not convention), redaction at capture, its two call sites inside `sso/registration.ts` — then `deployRelease` registering the SP **before** `ensureInstance`. **Task 8 must create its OWN migration**, not edit `0003` |
 | 4 | 10–11 | §8's frozen table as one function (`spec/injection.ts`) and then its call site, deleting P3's ad-hoc env block so there is exactly one producer. Fixes `MONGODB_DB_NAME` and threads `run_as_uid` + `InstanceSpec.files` so the SAML cert and key paths point at files that exist |
-| 5 | 12–13 | `node-ts-mongo@1` — the blueprint faculty actually use — plus the drift test that reads its source. **The one phase that needs the network on**, to warm Verdaccio from the new lockfile |
+| 5 | 12–13 | `node-ts-mongo@1` — the blueprint faculty actually use — plus the drift test that reads its source. **The one sitting that needs the network on**, to warm Verdaccio from the new lockfile |
 | 6 | 14 | Manifest's own CWL login, and the end of the dev shim. **Alone on purpose**: deleting the shim reddens most of the API suite at once — `authz-contract.ts` drives 81 tests — so migrate all 19 call sites to `testSessionCookie` with the shim still in place and green, and delete only then |
 | 7 | 15 | The proof app and P4a's acceptance. **Alone on purpose**: the first end-to-end run is where this project's worst defects have always been (P3's Sessions 4 and 5 found that no build, and then no deploy, had ever succeeded) |
 
-Each phase ends with the four gates, the Docker tier where it applies, a session
+Each sitting ends with the four gates, the Docker tier where it applies, a session
 record in the plan's *What executing this plan found*, and the §6 close-out sweep.
 
 **Read the plan's *What executing this plan found* before anything else.** Sessions 1,

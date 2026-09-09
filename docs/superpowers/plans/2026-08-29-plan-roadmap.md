@@ -257,9 +257,10 @@ then discharged and **P4 was split into P4a and P4b (Rich's call, 2026-09-07).**
 
 **P4a IS PART-EXECUTED: Tasks 1–5 are done and green (2026-09-08), and Tasks 6–15
 remain. Continuing P4a at Task 6 is the current work.** The remaining twelve tasks were
-split into **seven phases** on 2026-09-08 with Rich's approval, so a session limit
-cannot land mid-task — **1: 4–5 · 2: 6–7 · 3: 8–9 · 4: 10–11 · 5: 12–13 · 6: 14 ·
-7: 15** — and Phase 1 is done. Tasks 1–3 found
+split into **seven sittings of one session each** on 2026-09-08 with Rich's approval,
+so a session limit cannot land mid-task — **1: 4–5 · 2: 6–7 · 3: 8–9 · 4: 10–11 ·
+5: 12–13 · 6: 14 · 7: 15** — and sitting 1 is done. *Sittings pace execution; they are
+not this document's product Phases.* Tasks 1–3 found
 **18 defects**, and the identity half of the platform now works for the first time: a
 real CWL login completes end to end, against an IdP that could not issue an assertion
 — or authenticate anybody — when the session started. Two findings went beyond the
@@ -488,7 +489,7 @@ testable software. Both halves do.
 
 | | Scope | Demo | State |
 |---|---|---|---|
-| **P4a** | The IdP finished, `secrets/` envelope encryption, `sso/` SP auto-provisioning, per-app keypairs, §8's injection contract and its drift test, `node-ts-mongo@1`'s auth half, Manifest's own CWL login (deleting the dev shim), the proof app's sign-in | the proof app: CWL sign-in and a per-user note, by `curl` — and the instructor cannot see the student's note | **PART-EXECUTED 2026-09-08 — Tasks 1–5 of 15 done and green; Tasks 6–15 remain**, in seven agreed phases. 26 defects so far, recorded per session in the plan's *What executing this plan found*. [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md) |
+| **P4a** | The IdP finished, `secrets/` envelope encryption, `sso/` SP auto-provisioning, per-app keypairs, §8's injection contract and its drift test, `node-ts-mongo@1`'s auth half, Manifest's own CWL login (deleting the dev shim), the proof app's sign-in | the proof app: CWL sign-in and a per-user note, by `curl` — and the instructor cannot see the student's note | **PART-EXECUTED 2026-09-08 — Tasks 1–5 of 15 done and green; Tasks 6–15 remain**, in seven agreed sittings. 26 defects so far, recorded per session in the plan's *What executing this plan found*. [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md) |
 | **P4b** | The LiteLLM client with `allowed_routes`, the classification-gated catalogue (D17), key lifecycle, the blueprint's AI wiring, `WS /projects/:id/events`, heuristic redaction, incidents | the proof app's LLM answer | **WRITTEN 2026-09-07**, 16 tasks, unrun. [`2026-09-07-p4b-ai-events-streaming-incidents.md`](./2026-09-07-p4b-ai-events-streaming-incidents.md). Writing it measured **ten more facts**, one of which is a §10 requirement that **cannot be implemented at LiteLLM 1.98.0** |
 
 **Six facts were measured on 2026-09-07 before P4a was written**, because no plan may
