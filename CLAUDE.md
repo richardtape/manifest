@@ -9,7 +9,7 @@ plan queue, and the conventions below in full. Everything here is the short vers
 
 **P1 is executed and green (2026-09-05). The platform runs.**
 `make seed && make host-setup && make up` brings up the whole §21 inventory;
-`make doctor` is now **16 checks / 0 failed** and `make verify` **34 / 0**,
+`make doctor` is now **16 checks / 0 failed** and `make verify` **44 / 0**,
 and both were green offline when P1 was executed. Start from [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md),
 not the plan. The three host changes are in place and all reverse with
 `make host-undo`. **Untested: the second-machine clean clone** — no second Mac was
@@ -26,10 +26,10 @@ server, see *Running the control plane* in `README.md`.
 
 **P3 is EXECUTED and green (2026-09-07) — all 19 tasks. The platform deploys.**
 It added `runtime/docker/` (including the assembled `DockerDriver`), `routing/`,
-`services/` and `build/`, plus a second test tier: `pnpm test` is **381** and
-`pnpm test:docker` is **89** (needs `make up`; it **fails rather than skips** when
-asked to run, runs real image builds, and takes ~5 minutes). `make doctor` is 16
-checks, `make verify` 34. **`make demo` is the acceptance**: an app from a bare git
+`services/` and `build/`, plus a second test tier. **It left** `pnpm test` at 381 and
+`pnpm test:docker` at 89, with `make verify` at 34 checks; the CURRENT numbers are in
+the P4a paragraph below. `pnpm test:docker` needs `make up`, **fails rather than
+skips** when asked to run, runs real image builds, and takes ~5 minutes. **`make demo` is the acceptance**: an app from a bare git
 repository to `https://fixture-app.staging.manifest.internal`, and again from a
 dropped database, a deleted repository root and an emptied registry. Executing the
 nineteen tasks found **82 defects — 4.3 per task**, the highest rate measured here;
@@ -48,8 +48,19 @@ check that every app failed, because BusyBox `wget` honours `http_proxy` and ign
 `NO_PROXY`, so D18's forced proxy denied each app's probe of its own loopback. **All
 of it was green in a suite of 74 passing Docker tests.**
 
-**P4a is WRITTEN and UNRUN (2026-09-07, 15 tasks) — executing it is the current
-work** — ORIENTATION §7d. P4 was split into P4a (identity, secrets, the §8 injection
+**P4a is PART-EXECUTED (2026-09-08): Tasks 1, 2 and 3 of 15 are green; Tasks 4–15
+remain, and continuing at Task 4 is the current work** — ORIENTATION §7d.
+**A real CWL login now works end to end**, which it could not before: the IdP could
+neither issue an assertion nor authenticate anybody, with `make verify` green
+throughout. `make verify` is now **44 / 0**, `pnpm test` **391**, `pnpm test:docker`
+**93**. Those three tasks found **18 defects**, two of them spec-level: **§12's
+dependency-scan gate blocked every CWL application** (settled by Rich on 2026-09-08 —
+it now blocks only on findings that have a published fix), and **§8's
+`SAML_IDP_CERT_PATH` named a file nothing could create**, so `InstanceSpec` gained
+`files`. **Three of the eighteen were a swallowed `.catch(() => undefined)`**, which
+is this codebase's most productive defect — including one that let a stale container
+serve four runs of a suite and made a negative control pass against an app it had
+already edited. P4 was split into P4a (identity, secrets, the §8 injection
 contract) and P4b (AI, events, streaming, incidents) on Rich's call. **P4b is now
 written too (2026-09-07, 16 tasks) and must not be executed first**: it was written
 ahead of P4a's execution at Rich's request, and its Task 1 is a reconciliation pass

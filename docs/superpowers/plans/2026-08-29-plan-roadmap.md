@@ -92,6 +92,27 @@ implied have already been applied to
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
 
+### Spec action raised by executing P4a — ✅ approved 2026-09-08, spec text not yet edited
+
+**§12, *Supply chain*.** The gate blocks on a Critical or High **that has a published
+fix**; one with no fix is recorded on the Release and reported to the owner for §20's
+fleet-wide rebuild, exactly as a base-image finding already is.
+
+**Why it had to be settled rather than worked around.** `passport-ubcshib@0.1.6` →
+`passport-saml` (npm-**deprecated**, GHSA-4mxg-3p6v-xgq3, critical, range `*`, no fix)
+→ `@xmldom/xmldom@0.7.13` (five highs). §12 says dependency scanning is
+platform-mandatory and *"cannot be waived by an app"*; C6 says a library change may
+**never** be a prerequisite. Under the old rule the platform could not build the thing
+it exists to build. Measured alongside: `@node-saml/passport-saml@5.1.0` audits
+**clean**, so the long-term fix for UBC is a `passport-ubcshib` release — which is
+exactly the "strictly safer for every consumer" change C6 permits, and is **not**
+blocking Manifest.
+
+**The gate kept its teeth**, and that was checked rather than assumed: the five xmldom
+highs still blocked after the change, and only an npm `override` to 0.8.15 cleared
+them. Implemented in `build/scan.ts`; **the spec's own text is unchanged**, per the
+standing rule that only Rich edits the spec.
+
 ### Spec actions raised by P3 — ✅ all six applied 2026-09-07
 
 Proposed at the end of P3's plan and left unapplied, as the pattern requires; **Rich
@@ -222,7 +243,7 @@ Recorded here because they are about *how to run this work*, and each was paid f
 | **P1** | 1a-i | Local substrate ✅ **EXECUTED 2026-09-05** | `make doctor` green offline; one name resolving correctly from host **and** container — **both demonstrated** |
 | **P2** | 1a-ii | Control-plane spine ✅ **EXECUTED 2026-09-05** — all 21 tasks | project → spec → release → staging deploy, against the fake driver, **~300 ms**, no Docker — **demonstrated** |
 | **P3** | 1a-iii | Docker driver & deploy spine ✅ **EXECUTED 2026-09-07** — all 19 tasks | fixture app healthy at a `manifest.internal` URL, from a bare repo, offline — **demonstrated**, and again from a dropped database and an emptied registry |
-| **P4a** | 1b-i | Identity, secrets & the §8 contract — **WRITTEN 2026-09-07**, 15 tasks, not yet executed | the proof app signing in with CWL and writing a note, via `curl` |
+| **P4a** | 1b-i | Identity, secrets & the §8 contract — **PART-EXECUTED 2026-09-08: Tasks 1–3 of 15 are done and green. Tasks 4–15 remain.** A real CWL login works end to end | the proof app signing in with CWL and writing a note, via `curl` |
 | **P4b** | 1b-ii | AI, events, streaming, incidents — **WRITTEN 2026-09-07**, 16 tasks, not yet executed. Written *before* P4a ran, on Rich's instruction, against the prior decision below; **its Task 1 is a reconciliation pass** against the executed P4a | the proof app's LLM answer |
 | **P5** | 1c | Contract & clients | the §1 journey, clickable, driven twice over one contract |
 | **P6–P11** | 2 | six plans, listed below, **not written yet** | — |
@@ -232,8 +253,19 @@ ran in three sittings — 1 and 9–11 on 2026-08-31, **2–8** and then **12–
 2026-09-05, finding **20** and **27** defects respectively.
 
 **P3 is EXECUTED and green — all 19 tasks, 2026-09-07.** The 2026-09-04 hold was
-then discharged and **P4 was split into P4a and P4b (Rich's call, 2026-09-07). P4a is
-WRITTEN — 15 tasks, unrun — and executing it is the current work.** **P4b is now
+then discharged and **P4 was split into P4a and P4b (Rich's call, 2026-09-07).**
+
+**P4a IS PART-EXECUTED: Tasks 1, 2 and 3 are done and green (2026-09-08), and Tasks
+4–15 remain. Continuing P4a at Task 4 is the current work.** Those three tasks found
+**18 defects**, and the identity half of the platform now works for the first time: a
+real CWL login completes end to end, against an IdP that could not issue an assertion
+— or authenticate anybody — when the session started. Two findings went beyond the
+plan. **§12's dependency-scan gate blocked every CWL application**, because
+`passport-ubcshib` depends on a deprecated `passport-saml` carrying a critical
+signature-verification advisory with no fix; §12's unwaivable gate and C6's rule that
+a library change may never be a prerequisite could not both hold, and **Rich settled
+it on 2026-09-08** — see *Spec action raised by P4a*. And **§8's `SAML_IDP_CERT_PATH`
+named a file nothing could create**, so `InstanceSpec` gained `files`. **P4b is now
 written too — 16 tasks, 2026-09-07, on Rich's instruction and ahead of P4a's
 execution**; the decision it departs from, and how that departure is answered, are
 in *Order of operations* step 7. P4b previously stayed
@@ -453,7 +485,7 @@ testable software. Both halves do.
 
 | | Scope | Demo | State |
 |---|---|---|---|
-| **P4a** | The IdP finished, `secrets/` envelope encryption, `sso/` SP auto-provisioning, per-app keypairs, §8's injection contract and its drift test, `node-ts-mongo@1`'s auth half, Manifest's own CWL login (deleting the dev shim), the proof app's sign-in | the proof app: CWL sign-in and a per-user note, by `curl` — and the instructor cannot see the student's note | **WRITTEN 2026-09-07**, 15 tasks. [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md) |
+| **P4a** | The IdP finished, `secrets/` envelope encryption, `sso/` SP auto-provisioning, per-app keypairs, §8's injection contract and its drift test, `node-ts-mongo@1`'s auth half, Manifest's own CWL login (deleting the dev shim), the proof app's sign-in | the proof app: CWL sign-in and a per-user note, by `curl` — and the instructor cannot see the student's note | **PART-EXECUTED 2026-09-08 — Tasks 1–3 of 15 done and green; Tasks 4–15 remain.** 18 defects so far, recorded per session in the plan's *What executing this plan found*. [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md) |
 | **P4b** | The LiteLLM client with `allowed_routes`, the classification-gated catalogue (D17), key lifecycle, the blueprint's AI wiring, `WS /projects/:id/events`, heuristic redaction, incidents | the proof app's LLM answer | **WRITTEN 2026-09-07**, 16 tasks, unrun. [`2026-09-07-p4b-ai-events-streaming-incidents.md`](./2026-09-07-p4b-ai-events-streaming-incidents.md). Writing it measured **ten more facts**, one of which is a §10 requirement that **cannot be implemented at LiteLLM 1.98.0** |
 
 **Six facts were measured on 2026-09-07 before P4a was written**, because no plan may
@@ -585,8 +617,9 @@ execution layer.** Each is written when its predecessor lands.
    (19 tasks, self-reviewed 2026-09-04).
 5. **Execute P1 → P2 → P3.** ✅ **All three are done.** P1 and P2 executed and green
    on 2026-09-05, P1 green offline too; **P3 finished 2026-09-07, all 19 tasks**. S6
-   ran as its Task 18 and has reported. **P4a and P4b are both written and neither
-   has run — 31 tasks of unexecuted written work. Execute P4a.**
+   ran as its Task 18 and has reported. **P4a is part-executed — Tasks 1–3 of 15
+   done 2026-09-08 — and P4b is written and unrun. 28 tasks of written work remain.
+   Continue P4a at Task 4.**
 6. **Start the external track once the local proof of concept works end to end.**
    **Changed 2026-09-05, Rich's call.** This step previously said *"start now, in
    parallel"*, on the argument that C4 has the longest lead time and no software
@@ -599,7 +632,8 @@ execution layer.** Each is written when its predecessor lands.
 7. **Write P4 once P3 has executed**, and P5 when P4 lands. **P4 was split into P4a
    and P4b on 2026-09-07 (Rich's call), and P4a is WRITTEN** —
    [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md),
-   15 tasks. ← **EXECUTING P4a IS THE CURRENT WORK.**
+   15 tasks. **Tasks 1–3 were executed on 2026-09-08 and are green; Tasks 4–15
+   remain.** ← **CONTINUING P4a AT TASK 4 IS THE CURRENT WORK.**
    **P4b was then written on 2026-09-07 as well, at Rich's request** —
    [`2026-09-07-p4b-ai-events-streaming-incidents.md`](./2026-09-07-p4b-ai-events-streaming-incidents.md),
    16 tasks. **This departs from the decision recorded immediately below**, which
