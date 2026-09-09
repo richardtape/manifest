@@ -7,4 +7,30 @@
  * ACS URL is an assertion-phishing primitive."*
  */
 export { SsoError } from './errors.js'
-export { ensureSpKeypair, type SpKeypair, type SpKeypairScope } from './keypair.js'
+export {
+  deriveSpEntity,
+  SpEntityError,
+  type SpEntity,
+  type SpEntityInput,
+} from './entity.js'
+export {
+  ensureSpKeypair,
+  mintSpKeypair,
+  type SpKeypair,
+  type SpKeypairScope,
+} from './keypair.js'
+export {
+  createIdpPool,
+  deleteSpRow,
+  readSpRow,
+  renderSpMetadata,
+  upsertSpRow,
+  type SpMetadataRow,
+} from './metadata-store.js'
+export {
+  createSsoRegistrar,
+  registerServiceProvider,
+  type SpRegistration,
+  type SpRegistrationInput,
+  type SsoRegistrar,
+} from './registration.js'

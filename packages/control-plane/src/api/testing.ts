@@ -43,6 +43,7 @@ export async function testDeps(opts: { devAuth: boolean }): Promise<ServerDeps> 
   const config = loadConfig({
     MANIFEST_ENV: 'development',
     MANIFEST_DATABASE_URL: process.env.MANIFEST_DATABASE_URL!,
+    MANIFEST_IDP_DATABASE_URL: process.env.MANIFEST_IDP_DATABASE_URL!,
     MANIFEST_SESSION_SECRET: 'k'.repeat(32),
     MANIFEST_DEV_AUTH: opts.devAuth ? '1' : '0',
     MANIFEST_BLUEPRINTS_ROOT: BLUEPRINTS_ROOT,

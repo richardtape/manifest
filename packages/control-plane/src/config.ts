@@ -39,6 +39,21 @@ export class ConfigError extends Error {
 const envSchema = z.object({
   MANIFEST_ENV: z.enum(['development', 'staging', 'production']).default('development'),
   MANIFEST_DATABASE_URL: z.string().min(1),
+  /**
+   * SimpleSAMLphp's metadata database — a DIFFERENT database from the control
+   * plane's own, and required rather than derived from the line above by
+   * swapping the name. Decision 13: *the test constructs the value correctly and
+   * the running system re-derives it wrongly* is the most expensive defect shape
+   * measured in this project, and a derived connection string is that shape
+   * waiting to happen.
+   */
+  MANIFEST_IDP_DATABASE_URL: z.string().min(1),
+  /**
+   * §9's `{platform-domain}`: every SP entityID is `{base}/sp/{slug}/{env}`.
+   * `manifest.ubc.ca` at UBC. A bare https origin — `sso/entity.ts` refuses a
+   * value with a path or a trailing slash, which is the second read of this rule.
+   */
+  MANIFEST_SP_ENTITY_BASE: z.string().min(1).default('https://manifest.internal'),
   MANIFEST_PORT: z.coerce.number().int().min(1).max(65535).default(7100),
   // 32 chars is the HMAC-SHA256 block floor we are willing to accept for a
   // session secret; shorter is a configuration mistake, not a preference.
@@ -112,6 +127,10 @@ const envSchema = z.object({
 export interface Config {
   env: 'development' | 'staging' | 'production'
   databaseUrl: string
+  /** The IdP's metadata database (Decision 13). Never derived from the above. */
+  idpDatabaseUrl: string
+  /** §9's `{platform-domain}`, the origin every SP entityID is built from. */
+  spEntityBase: string
   port: number
   sessionSecret: string
   devAuth: boolean
@@ -213,6 +232,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   return {
     env: raw.MANIFEST_ENV,
     databaseUrl: raw.MANIFEST_DATABASE_URL,
+    idpDatabaseUrl: raw.MANIFEST_IDP_DATABASE_URL,
+    spEntityBase: raw.MANIFEST_SP_ENTITY_BASE,
     port: raw.MANIFEST_PORT,
     sessionSecret: raw.MANIFEST_SESSION_SECRET,
     devAuth,

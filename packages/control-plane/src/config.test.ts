@@ -6,6 +6,7 @@ const base = {
   // matches the real one (manifest_control, which P1 built) so nobody copies
   // the wrong name out of a test.
   MANIFEST_DATABASE_URL: 'postgres://manifest:manifest@127.0.0.1:7103/manifest_control',
+  MANIFEST_IDP_DATABASE_URL: 'postgres://manifest:manifest@127.0.0.1:7103/manifest_idp',
   MANIFEST_SESSION_SECRET: 'x'.repeat(32),
   MANIFEST_BLUEPRINTS_ROOT: '/tmp/blueprints',
   MANIFEST_REPOS_ROOT: '/tmp/repos',

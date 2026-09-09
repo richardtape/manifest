@@ -3,6 +3,13 @@ import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import pg from 'pg'
 import type { Driver, ImageRef } from '../runtime/index.js'
+import type { SpKeypair } from './keypair.js'
+import {
+  createIdpPool,
+  deleteSpRow,
+  upsertSpRow,
+  type SpMetadataRow,
+} from './metadata-store.js'
 import { demux, instanceName } from '../runtime/index.js'
 import {
   CA_CERT,
@@ -23,23 +30,24 @@ import {
  * would test itself rather than the platform.
  */
 
-/** The IdP's metadata database. Task 7 promotes this to config as
- *  MANIFEST_IDP_DATABASE_URL; until then it is derived the same way
- *  `vitest.env.ts` derives the control-plane URL, from `.env`. */
-function idpDatabaseUrl(): string {
-  if (process.env.MANIFEST_IDP_DATABASE_URL) return process.env.MANIFEST_IDP_DATABASE_URL
-  const password = readFileSync(join(REPO_ROOT, '.env'), 'utf8')
-    .split('\n')
-    .find((line) => line.startsWith('POSTGRES_PASSWORD='))
-    ?.slice('POSTGRES_PASSWORD='.length)
-    .trim()
-  if (!password) {
+/**
+ * The IdP's metadata database, from the setting the control plane itself reads.
+ *
+ * Task 7 promoted this to `MANIFEST_IDP_DATABASE_URL`, which `vitest.env.ts`
+ * derives from `.env` for every test process. Deriving it a second time here
+ * would be a second producer of one value — the shape that cost P3 seven defects
+ * in one session — so this reads the variable and refuses without it.
+ */
+export function idpDatabaseUrl(): string {
+  const url = process.env.MANIFEST_IDP_DATABASE_URL
+  if (!url) {
     throw new Error(
-      'no POSTGRES_PASSWORD in .env — `make seed` writes it, and the IdP metadata ' +
-        'database cannot be reached without it',
+      'MANIFEST_IDP_DATABASE_URL is not set. vitest.env.ts derives it from the repo ' +
+        '`.env`, which `make seed` writes; outside the test runner, export it the way ' +
+        'README does.',
     )
   }
-  return `postgres://manifest:${password}@127.0.0.1:7103/manifest_idp`
+  return url
 }
 
 /** The `entity_data` document S2 recorded. Task 7 derives this from an AppSpec;
@@ -48,6 +56,15 @@ export interface SpRow {
   entityId: string
   acsUrl: string
   attributes: string[]
+  /**
+   * The SP's certificate, base64 body — required as soon as the SP SIGNS.
+   *
+   * Measured 2026-09-09: SimpleSAMLphp validates any signature that is PRESENT,
+   * whether or not the row asks it to. A signing SP registered with a row that
+   * carries no `certData` is refused with *"Missing certificate in metadata"*,
+   * which reads as a missing registration rather than a missing key.
+   */
+  certData?: string
 }
 
 function entityData(row: SpRow): Record<string, unknown> {
@@ -67,6 +84,7 @@ function entityData(row: SpRow): Record<string, unknown> {
     // OID naming on the wire, matching what core:AttributeMap produces at
     // priority 60 and what passport-ubcshib's reverse map reads.
     'attributes.NameFormat': 'urn:oasis:names:tc:SAML:2.0:attrname-format:uri',
+    ...(row.certData === undefined ? {} : { certData: row.certData }),
   }
 }
 
@@ -93,6 +111,33 @@ export async function withRegisteredSp<T>(row: SpRow, fn: () => Promise<T>): Pro
       await pool.query('DELETE FROM saml20_sp_remote WHERE entity_id = $1', [
         row.entityId,
       ])
+    }
+  } finally {
+    await pool.end()
+  }
+}
+
+/**
+ * Registers a FULLY RENDERED row — what `renderSpMetadata` produces — runs the
+ * callback, and removes it, always.
+ *
+ * `withRegisteredSp` above writes a hand-built document, which is what Task 3
+ * needed before `sso/` existed. This one writes the real thing through the real
+ * store, so a login driven under it exercises the row the platform will actually
+ * write: signing flags, per-app certData, OID naming and all.
+ */
+export async function withRegisteredMetadata<T>(
+  entityId: string,
+  row: SpMetadataRow,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const pool = createIdpPool(idpDatabaseUrl())
+  try {
+    await upsertSpRow(pool, entityId, row)
+    try {
+      return await fn()
+    } finally {
+      await deleteSpRow(pool, entityId)
     }
   } finally {
     await pool.end()
@@ -129,6 +174,19 @@ const IDP_METADATA = `${IDP_BASE_URL}/module.php/saml/idp/metadata`
 export async function startSamlSp(input: {
   slug: string
   kind: 'sandbox' | 'staging' | 'production'
+  /**
+   * The SP's own keypair. Given one, its private key is placed at §8's
+   * `SAML_PRIVATE_KEY_PATH` and the fixture SIGNS its AuthnRequest — which is
+   * what a row carrying `validate.authnrequest: true` requires, and what
+   * `renderSpMetadata` always writes. The certificate goes into the returned
+   * row, because a signature the IdP cannot check is worse than none.
+   *
+   * Mode 0440 owned by root with the blueprint's gid, not 0400 owned by the app:
+   * §12's `CapDrop: ALL` takes CAP_DAC_OVERRIDE with it, so ownership and group
+   * are the only things that can grant a read, and root-owned means the app
+   * cannot rewrite its own key (measured 2026-09-08).
+   */
+  signing?: SpKeypair
 }): Promise<SamlSpHandle> {
   const { slug, kind } = input
   const hostname =
@@ -154,6 +212,7 @@ export async function startSamlSp(input: {
     entityId: `https://manifest.internal/sp/${slug}/${kind}`,
     acsUrl: `${appUrl}/auth/ubcshib/callback`,
     attributes: ['ubcEduCwlPuid', 'mail', 'givenName', 'sn', 'eduPersonAffiliation'],
+    ...(input.signing === undefined ? {} : { certData: input.signing.certData }),
   }
 
   await driver.ensureInstance({
@@ -177,6 +236,7 @@ export async function startSamlSp(input: {
       SAML_LOGOUT_URL: IDP_SLO,
       SAML_IDP_METADATA_URL: IDP_METADATA,
       SAML_IDP_CERT_PATH: '/manifest/idp-signing.crt',
+      ...(input.signing ? { SAML_PRIVATE_KEY_PATH: '/manifest/sp-private-key.pem' } : {}),
     },
     port: 8080,
     healthPath: '/healthz',
@@ -184,7 +244,21 @@ export async function startSamlSp(input: {
     services: [],
     egressAllow: [],
     // §8: "Manifest mounts it; the blueprint never fetches it at runtime."
-    files: [{ path: '/manifest/idp-signing.crt', contents: idpCert }],
+    files: [
+      { path: '/manifest/idp-signing.crt', contents: idpCert },
+      ...(input.signing
+        ? [
+            {
+              path: '/manifest/sp-private-key.pem',
+              contents: input.signing.privateKeyPem,
+              mode: 0o440,
+              // The blueprint's run_as_uid group. fixture-node@1 creates both at
+              // 10001; Task 11 threads this from the descriptor instead.
+              gid: 10001,
+            },
+          ]
+        : []),
+    ],
   })
 
   return {
@@ -213,6 +287,32 @@ export async function startSamlSp(input: {
         .del(`/containers/${egressContainer(slug, kind)}?force=true&v=true`)
         .catch(() => undefined)
     },
+  }
+}
+
+/**
+ * The IdP's own log, most recent lines first read.
+ *
+ * SimpleSAMLphp's error page deliberately says only "Unhandled exception" — the
+ * REASON is in the server log and nowhere else, and turning `showerrors` on to
+ * make a test easier would leak stack traces from a deployed IdP. So a test that
+ * wants to know WHY the IdP refused reads the log, and counts occurrences before
+ * and after rather than matching once: a message left by an earlier run would
+ * otherwise let the assertion pass without the IdP having refused anything.
+ */
+export async function idpLogTail(lines = 500): Promise<string> {
+  const engine = createEngineClient({ socketPath: resolveSocketPath() })
+  const res = await engine.stream(
+    `/containers/manifest-idp/logs?stdout=true&stderr=true&tail=${lines}`,
+  )
+  try {
+    const out: string[] = []
+    for await (const line of demux(res as unknown as AsyncIterable<Buffer>)) {
+      out.push(line.text)
+    }
+    return out.join('\n')
+  } finally {
+    res.destroy()
   }
 }
 
@@ -276,7 +376,7 @@ json_escape() {
   # One argument, printed as a JSON string. sed cannot see a newline inside its
   # own pattern space, so the newlines are removed FIRST with tr, and the
   # backslash is escaped BEFORE the quote or the escaping escapes itself.
-  printf '%s' "$1" | head -c 400 | tr '\n\r' '  ' \
+  printf '%s' "$1" | head -c 4000 | tr '\n\r' '  ' \
     | sed 's/\\/\\\\/g; s/"/\\"/g; s/^/"/; s/$/"/'
 }
 

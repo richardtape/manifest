@@ -15,6 +15,7 @@ beforeAll(resetDatabase)
 const config = loadConfig({
   MANIFEST_ENV: 'development',
   MANIFEST_DATABASE_URL: 'postgres://unused',
+  MANIFEST_IDP_DATABASE_URL: 'postgres://unused-idp',
   MANIFEST_SESSION_SECRET: 'k'.repeat(32),
   MANIFEST_BLUEPRINTS_ROOT: '/tmp/blueprints',
   MANIFEST_REPOS_ROOT: '/tmp/repos',

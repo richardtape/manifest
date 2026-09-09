@@ -5,6 +5,7 @@ import { hostnameFor, loadConfig } from '../config.js'
 const config = loadConfig({
   MANIFEST_ENV: 'development',
   MANIFEST_DATABASE_URL: 'postgres://m:m@127.0.0.1:7103/m',
+  MANIFEST_IDP_DATABASE_URL: 'postgres://m:m@127.0.0.1:7103/idp',
   MANIFEST_SESSION_SECRET: 'x'.repeat(32),
   MANIFEST_BLUEPRINTS_ROOT: '/tmp/b',
   MANIFEST_REPOS_ROOT: '/tmp/r',

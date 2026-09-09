@@ -42,6 +42,15 @@ passport.use(
       // an IIFE evaluated at construction, so it throws unless a certificate is
       // supplied and the library's _fetchCertificate() fallback is unreachable.
       cert: readFileSync(process.env.SAML_IDP_CERT_PATH, 'utf8'),
+      // §8's SAML_PRIVATE_KEY_PATH. Set only when the platform placed a key: the
+      // library turns it into passport-saml's `privateKey`, which makes it SIGN
+      // the AuthnRequest, and an SP whose row says `validate.authnrequest: true`
+      // and does not sign is refused with "no signature found on message"
+      // (S2 Evidence 8). Conditional rather than always-on so the same fixture
+      // covers both halves of that control.
+      ...(process.env.SAML_PRIVATE_KEY_PATH
+        ? { privateKeyPath: process.env.SAML_PRIVATE_KEY_PATH }
+        : {}),
       // NON-EMPTY, or mapAttributes never runs and the app sees raw OID keys
       // (S2 Evidence 11). This list is what §9's attribute bridge is for.
       attributeConfig: ['ubcEduCwlPuid', 'mail', 'givenName', 'sn', 'eduPersonAffiliation'],

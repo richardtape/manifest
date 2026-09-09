@@ -107,7 +107,7 @@ function describe(privateKeyPem: string, certificatePem: string): SpKeypair {
  * §7's 39-character slug limit the entityID is 76 bytes against X.509's 64-byte
  * limit for a common name.
  */
-async function generate(scope: SpKeypairScope): Promise<SpKeypair> {
+export async function mintSpKeypair(scope: SpKeypairScope): Promise<SpKeypair> {
   if (!SLUG.test(scope.slug)) {
     throw new SsoError(
       'SSO_INVALID_SLUG',
@@ -196,7 +196,7 @@ export async function ensureSpKeypair(
     return describe(privateKeyPem, certificatePem)
   }
 
-  const minted = await generate(scope)
+  const minted = await mintSpKeypair(scope)
   // Sequential, not Promise.all: two writes to one table through one transaction
   // handle, and drizzle's transaction is a single connection.
   await putSecret(db, { ...at(names.privateKey), value: minted.privateKeyPem }, keys)

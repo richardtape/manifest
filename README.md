@@ -125,6 +125,9 @@ them.
 ```bash
 set -a; . ./.env; set +a   # make seed writes .env; the password is NOT "manifest"
 export MANIFEST_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"
+# The IdP metadata database is a SECOND, required setting — never derived from
+# the line above by swapping the name (P4a Decision 13).
+export MANIFEST_IDP_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_idp"
 export MANIFEST_SESSION_SECRET=$(openssl rand -hex 32)
 export MANIFEST_DEV_AUTH=1
 export MANIFEST_BLUEPRINTS_ROOT="$PWD/blueprints"

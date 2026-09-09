@@ -2,7 +2,7 @@ import { mkdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import pg from 'pg'
-import { ensureDatabaseUrl } from './vitest.env.js'
+import { ensureDatabaseUrls } from './vitest.env.js'
 
 /** Must match TEST_REPOS_ROOT in src/api/testing.ts — different process, same path. */
 const TEST_REPOS_ROOT = join(tmpdir(), 'manifest-test-repos')
@@ -20,6 +20,7 @@ const TEST_REPOS_ROOT = join(tmpdir(), 'manifest-test-repos')
  * commit for real, additionally reset between their own tests.
  */
 const TABLES = [
+  'secrets',
   'idempotency_keys',
   'instances',
   'service_instances',
@@ -39,7 +40,7 @@ export async function setup(): Promise<() => Promise<void>> {
   await rm(TEST_REPOS_ROOT, { recursive: true, force: true })
   await mkdir(TEST_REPOS_ROOT, { recursive: true })
 
-  const connectionString = ensureDatabaseUrl()
+  const connectionString = ensureDatabaseUrls()
   if (connectionString) {
     const pool = new pg.Pool({ connectionString })
     try {
