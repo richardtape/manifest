@@ -3207,6 +3207,51 @@ the same shape as `MONGODB_DB_NAME`: a contract row with no producer.
 
 ---
 
+### Session 2b — the two things Rich asked for before Phase 3 (2026-09-08). 3 defects.
+
+**Both were findings Session 2 recorded rather than fixed**, and he called them before
+moving on. Neither is in the plan's text; both are now closed.
+
+| # | Task | Defect | Measured against |
+|---|---|---|---|
+| 16 | — | **`applyRoute` swallowed a failed delete.** `putRoute` inserts at index 0 unconditionally, so idempotence rests entirely on the delete having happened; a 404 is already tolerated inside the client, so anything still throwing is a real failure being turned into a silent duplicate. | A unit test with a client whose `deleteRoute` rejects: `applyRoute` now rejects and puts nothing. Watched red first. |
+| 17 | 3, 10-12 | **§8's `SAML_IDP_CERT_PATH` and `SAML_PRIVATE_KEY_PATH` named files nothing could create.** `InstanceSpec` had no `files` and no `binds`, and nothing in P4a adds one — so Task 11 would inject a path that does not exist and the blueprint's `readFileSync` throws ENOENT at startup. **A contract row with no producer, exactly like `MONGODB_DB_NAME`.** | `InstanceSpec.files`, materialised through the Engine API's archive endpoint. Negative control: remove `files` and the app never becomes reachable — 502 through the edge, 75 attempts, the readiness gate fires. |
+| 18 | — | **I hit ORIENTATION's Prettier trap three times in one change.** A `python .replace()` matched **nothing** after Prettier had reformatted its target across lines, and reported success. Twice it left the test asserting values the spec did not ask for. | ORIENTATION §4 documents this exact failure and says *"assert the pattern matched before writing the file."* Every edit in that change now does. |
+
+**Three measurements shaped the file-placement design, and each ruled out the obvious answer.**
+
+| Probe | Result |
+|---|---|
+| `docker cp` into the container's rootfs | **refused** — `container rootfs is marked read-only` (§12 hardening sets `ReadonlyRootfs`) |
+| `docker cp` into a **volume** path on the same container | **accepted**, and the content survives into the next container that mounts it |
+| the same, with the volume mounted `:ro` | **refused** — `mounted volume is marked read-only` |
+
+So the files live in a per-instance volume at `/manifest`, mounted **read-write**, and
+**ownership carries the protection** instead of the mount flag. They are placed before
+the container starts, which is not a detail: the app reads its certificate at
+*construction*, so anything written after start is too late.
+
+**And the finding that decides the file mode.** §12's `CapDrop: ALL` takes
+**`CAP_DAC_OVERRIDE`** with it, so **root inside the container cannot read past
+permission bits** — measured 2026-09-08, a `0400` file owned by uid 10001 was
+unreadable by root, with `stat` fine and `cat` silent. §8's private key must therefore
+be reachable by **ownership or group, never by privilege**: root-owned, group-readable
+`0440` with the blueprint's gid. The app reads it and cannot rewrite it.
+
+**What Tasks 10-12 inherit.** `renderInjection` should emit
+`SAML_IDP_CERT_PATH=/manifest/idp-signing.crt` and
+`SAML_PRIVATE_KEY_PATH=/manifest/sp-private-key.pem`, and `deployRelease` should pass
+both through `InstanceSpec.files` — the certificate as `0444`, the key as `0440` with
+`gid` set to the blueprint's `run_as_uid` group. **`run_as_uid` is in the blueprint
+descriptor and is not on `InstanceSpec`**, so Task 11 has to thread it through; that is
+the one piece this change deliberately did not do, because it belongs with the
+injection call site rather than with the mechanism.
+
+**State:** `make doctor` 16/0, `make verify` 44/0, `pnpm test` **391**,
+`pnpm test:docker` **93** (twice, same count), lint/typecheck/format clean.
+
+---
+
 ## Spec actions proposed by this plan
 
 **Not applied.** The spec is approved design and changing it is Rich's call; this is the record, in the same form the spikes and P3 used. P3's own six were applied on 2026-09-07 with his approval, before this plan was written.
