@@ -125,7 +125,14 @@ if (CWL_ENABLED) {
   app.get('/login/failed', (_req, res) =>
     res.status(401).json({ error: 'sign-in did not complete' }),
   )
-  app.get('/logout', (req, res) => {
+  // `/auth/logout`, because that is `auth.logout`'s DEFAULT in §7's schema and
+  // therefore the `SingleLogoutService` location the platform writes into this
+  // app's `saml20_sp_remote` row. It served `/logout` until 2026-09-09, so every
+  // app generated from this blueprint that took the default advertised a logout
+  // endpoint it did not answer — invisible today because nothing initiates
+  // IdP-side single logout, and a 404 in front of a real person the moment
+  // anything does. Change it in manifest.yaml (`auth.logout`), never here.
+  app.get('/auth/logout', (req, res) => {
     req.logout(() => {
       // Ends the IdP's session too, and comes back to this app's own base URL —
       // §8 injects both, so neither origin is written down here.

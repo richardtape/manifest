@@ -15,6 +15,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 # shellcheck source=../infra/lib/common.sh
 . infra/lib/common.sh
+# THE three-hop CWL login, shared with `scripts/demo-identity.sh`. It used to be
+# written out here; a second copy of the walk is how two scripts drift into
+# proving different things.
+# shellcheck source=../infra/lib/idp-login.sh
+. infra/lib/idp-login.sh
 
 API="${MANIFEST_API:-http://127.0.0.1:7100}"
 SLUG="${DEMO_SLUG:-fixture-app}"
@@ -58,49 +63,13 @@ say "1. Log in with CWL, against the Manifest IdP"
 # endpoint that minted a session for a named test user with no credential at all.
 # It is gone (§9: Manifest is its own SP), and so is the shim's setting.
 #
-# Three hops, because that is what a browser does and curl cannot auto-submit an
-# HTML form. Extracting the fields with sed is regex-over-HTML, acceptable here
-# for the reason `sso/testing.ts` gives: this is a fixture IdP whose
-# SimpleSAMLphp version we pin, and a markup change SHOULD fail loudly.
+# The three hops live in `infra/lib/idp-login.sh`, which explains each one.
 IDP_JAR="$(mktemp -t manifest-demo-idp-jar)"
 trap 'rm -f "$JAR" "$IDP_JAR"' EXIT
-CA="$ROOT/infra/ca/manifest-root.crt"
+CA="$ROOT/$CA_FILE"
 
-# HTML-DECODE. These come out of HTML attributes, so '&' arrives as '&amp;' —
-# and AuthState carries a query string, so posting it undecoded means
-# SimpleSAMLphp cannot match the pending authentication and the flow LOOPS
-# rather than failing. Measured 2026-09-08.
-unescape() { sed 's/&amp;/\&/g; s/&quot;/"/g; s/&#0*39;/'"'"'/g; s/&lt;/</g; s/&gt;/>/g'; }
-
-# Hop 1: the control plane answers 302 with a signed AuthnRequest.
-AUTHN="$(curl -sS -c "$JAR" -b "$JAR" -o /dev/null -w '%{redirect_url}' "$API/auth/login")"
-case "$AUTHN" in
-  https://idp.manifest.internal/*) : ;;
-  *) fail "GET /auth/login did not redirect to the Manifest IdP (got '$AUTHN')" ;;
-esac
-
-# Hop 2: the IdP serves its login form — which it only does once it has ACCEPTED
-# the request, so a form here means the row and the signature both check out.
-# `--cacert`, never `-k`: a probe that skips verification passes against the
-# wrong certificate.
-FORM="$(curl -sS --cacert "$CA" -c "$IDP_JAR" -b "$IDP_JAR" -L "$AUTHN")"
-echo "$FORM" | grep -q 'name="username"' || fail "the IdP served no login form. It
-refuses an SP it cannot find, so check the control plane registered itself at
-boot: the row is 'https://manifest.internal/sp/manifest-control-plane/platform'
-in the manifest_idp database."
-
-# Hop 3: post the credentials, then post the assertion the IdP returns to the
-# control plane's own ACS.
-STATE="$(echo "$FORM" | sed -n 's/.*name="AuthState"[^>]*value="\([^"]*\)".*/\1/p' | head -1 | unescape)"
-ACTION="$(echo "$FORM" | sed -n 's/.*<form[^>]*action="\([^"]*\)".*/\1/p' | head -1 | unescape)"
-case "$ACTION" in http*) POST="$ACTION" ;; *) POST="https://idp.manifest.internal$ACTION" ;; esac
-ASSERTION="$(curl -sS --cacert "$CA" -c "$IDP_JAR" -b "$IDP_JAR" -L \
-  --data-urlencode "username=instructor" --data-urlencode "password=instructor" \
-  --data-urlencode "AuthState=$STATE" "$POST")"
-SAML="$(echo "$ASSERTION" | sed -n 's/.*name="SAMLResponse"[^>]*value="\([^"]*\)".*/\1/p' | head -1 | unescape)"
-[ -n "$SAML" ] || fail "the IdP returned no SAMLResponse"
-curl -sS -c "$JAR" -b "$JAR" -o /dev/null \
-  --data-urlencode "SAMLResponse=$SAML" "$API/auth/saml/callback"
+idp_login "$JAR" "$IDP_JAR" "$API/auth/login" instructor instructor \
+  "$API/auth/saml/callback" "$CA"
 
 # The SHAPE of the answer, not that a request succeeded: a session cookie that
 # authenticates nobody would carry this demo three steps further before failing.

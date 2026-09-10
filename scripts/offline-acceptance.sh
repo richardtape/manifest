@@ -45,4 +45,24 @@ docker run --rm --network manifest-platform --dns 10.89.0.53 \
   --cacert /ca.crt -sS https://console.manifest.internal/ ; echo
 
 echo
+echo "=== 6. P4a's acceptance: a real CWL login, offline ==="
+# THE HALF THAT MOST PLAUSIBLY NEEDS THE NETWORK. This one builds an image from
+# `node-ts-mongo@1`, whose five app-side dependencies come from Verdaccio, and
+# then completes a full SAML round trip against the Manifest IdP — so it
+# exercises the mirror, the egress-free builder and the whole identity path in
+# one run. `make seed` warms the mirror from the lockfiles; if this is the step
+# that needs a route out, that IS the finding.
+#
+# It needs the control plane RUNNING, which `make up` does not start — see
+# README's "Running the control plane". If it is not up, this reports that and
+# the rest of the run still stands.
+if curl -sS -m 5 -o /dev/null http://127.0.0.1:7100/auth/me 2>/dev/null; then
+  make demo-identity; echo "demo-identity exit=$?"
+else
+  echo "  SKIPPED: no control plane on 7100. Start it (README: Running the"
+  echo "  control plane) and re-run this step — a skipped acceptance is not a"
+  echo "  passed one, and it is the step most likely to need the network."
+fi
+
+echo
 echo "=== done. Turn the network back on. ==="

@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Manifest proof app</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 16px/1.5 system-ui, sans-serif; max-width: 34rem; margin: 3rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.3rem; }
+  code { background: rgba(127,127,127,.18); padding: .1em .35em; border-radius: 3px; }
+  li { margin: .3rem 0; }
+</style>
+<h1>Manifest proof application</h1>
+<p>
+  This app exists to prove one thing: it knows <em>who</em> signed in, and one
+  person cannot see another person's notes.
+</p>
+<ul>
+  <li><a href="/login">Sign in with CWL</a></li>
+  <li><a href="/api/me">/api/me</a> — what the IdP released about you</li>
+  <li><a href="/api/notes">/api/notes</a> — your notes, and nobody else's</li>
+  <li><a href="/api/ai">/api/ai</a> — 501 until P4b</li>
+  <li><a href="/auth/logout">Sign out</a></li>
+</ul>
+<p>
+  A note is stored under <code>sha256(puid ‖ project ‖ environment)</code> and
+  never under a UBC identifier, so this database holds nothing that identifies
+  a person on its own.
+</p>
+<p><code>make demo-identity</code> drives all of it with <code>curl</code>.</p>

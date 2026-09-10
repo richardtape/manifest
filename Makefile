@@ -6,7 +6,7 @@ SHELL := /usr/bin/env bash
 # file's directory (infra/), not the repo root. See infra/lib/common.sh.
 COMPOSE := docker compose -f infra/compose.yaml -p manifest --env-file .env
 
-.PHONY: help seed up down reset doctor verify demo host-setup host-undo
+.PHONY: help seed up down reset doctor verify demo demo-identity host-setup host-undo
 
 # Every compose target needs .env to exist — `--env-file` on a missing file is a
 # hard error, not a warning. `make seed` also writes it; this makes `make up` on
@@ -99,6 +99,9 @@ reset: .env  ## Destroy projects, volumes and registry contents. KEEPS the seed 
 
 demo: up  ## P3's acceptance: the fixture app from a bare repo to a healthy URL.
 	@bash scripts/demo.sh
+
+demo-identity: up  ## P4a's acceptance: a real CWL login, and a note one person cannot see.
+	@bash scripts/demo-identity.sh
 
 host-setup:  ## The three privileged steps. Prompts for a password.
 	@sudo bash infra/host/host-setup.sh

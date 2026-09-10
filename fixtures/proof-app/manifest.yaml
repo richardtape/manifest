@@ -1,0 +1,40 @@
+# §16's proof application, written the way a faculty member's agent writes one.
+#
+# This file is the first real input to P8's UBC IAM registration package and to
+# the PIA draft, which is why it is honest rather than minimal: every attribute
+# it asks for has a reason, and the reason is written down. §9 says IAM asks for
+# exactly that, and that a faculty member cannot write it unaided.
+manifest: 1
+name: proof-app
+blueprint: node-ts-mongo@1
+description: The Manifest proof application — CWL sign-in and a per-user note.
+
+runtime:
+  port: 3000
+  health: /healthz
+
+services:
+  - { type: mongo, version: "7", name: db }
+
+auth:
+  provider: cwl
+  # Only ubcEduCwlPuid, mail and eduPersonAffiliation are pre-authorized by UBC
+  # IAM; anything else needs a justification in the registration request (§7).
+  # givenName and sn are here because the app greets people by name, and that
+  # sentence is the justification P8's package will carry.
+  #
+  # §9 enforces release AT THE IdP against this list, so shortening it is not a
+  # documentation change: the attribute stops being sent at all. README.md says
+  # what each one is for, in the words the registration request needs.
+  attributes: [ubcEduCwlPuid, mail, eduPersonAffiliation, givenName, sn]
+  callback: /auth/ubcshib/callback
+  logout: /auth/logout
+
+env:
+  - { name: COURSE_CODE, value: CHEM_121 }
+
+data:
+  # The notes are course work, not personal records, and the app stores no UBC
+  # identifier at all — a note is keyed on sha256(puid ‖ project ‖ environment).
+  classification: internal
+  retention_days: 365

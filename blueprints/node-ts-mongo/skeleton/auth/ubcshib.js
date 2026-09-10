@@ -98,11 +98,28 @@ export function configureCwl() {
         ...(RAW.SAML_PRIVATE_KEY_PATH
           ? { privateKeyPath: RAW.SAML_PRIVATE_KEY_PATH }
           : {}),
-        // NON-EMPTY, or mapAttributes never runs and the app sees raw OID keys
-        // (S2 Evidence 11). Every name here must also be in the app's
-        // `auth.attributes`: §9 enforces release AT THE IdP, so an attribute
-        // this list requests and the registration does not declare is never
-        // sent, and `bridge()` reports it as absent rather than empty.
+        // NON-EMPTY, or `mapAttributes` never runs and the profile keeps raw
+        // OID keys (S2 Evidence 11 — the library does
+        // `attributeConfig: options.attributeConfig || []` and then
+        // `if (length > 0)`, so an absent list means no mapping at all).
+        //
+        // AND YET REMOVING IT REDDENS NOTHING, measured 2026-09-09 by deleting
+        // it and running the full acceptance: `bridge()` reads the OID key
+        // FIRST and falls back to the profile itself when `profile.attributes`
+        // is unset, so it finds all seven names in the raw profile and the app
+        // is unaffected. That is the bridge doing exactly what S2 built it for,
+        // not a hole — but it means THIS OPTION IS NOT THE CONTROL IT LOOKS
+        // LIKE, and a reader who assumes otherwise is assuming a flag whose
+        // removal no test can see. Same shape as `validate.authnrequest` and
+        // node-saml's `wantAssertionsSigned` (ORIENTATION §4); the third in
+        // this plan. It stays because the library documents it, it costs
+        // nothing, and it is what a name OUTSIDE the bridge's seven would need.
+        //
+        // Every name here must also be in the app's `auth.attributes`: §9
+        // enforces release AT THE IdP, so an attribute this list requests and
+        // the registration does not declare is never sent, and `bridge()`
+        // reports it as absent rather than empty. THAT is the control, and
+        // negative control (c) on the acceptance watches it work.
         attributeConfig: [
           'ubcEduCwlPuid',
           'mail',
