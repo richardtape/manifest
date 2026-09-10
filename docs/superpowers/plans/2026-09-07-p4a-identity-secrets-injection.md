@@ -3841,6 +3841,39 @@ things a real IdP will never issue. And **the plan owes Task 15 one control**: T
 acceptance go red with raw `urn:oid:` keys. It was not run in sitting 5 because it names
 an acceptance that did not exist yet.
 
+### Session 8b — two defects found while writing the handoff (2026-09-09). 2 defects.
+
+Sitting 6 was committed (`17f0f78`) before these were found. **Writing the handoff is
+what found them**, which is the second time on this plan that describing the work has
+been worth more than running it — the first was Task 12's control (c), which named an
+acceptance that did not exist.
+
+| # | Defect | Measured against |
+|---|---|---|
+| 71 | **A SUCCESSFUL login finished on a 404.** `POST /auth/saml/callback` redirected to `/`, and the control plane does not serve `/` — its GET routes are `/auth/login`, `/auth/me`, `/projects…`, `/builds/:id`, `/environments/:id` and `/internal/registry/token`. So the browser's last hop of a login that worked perfectly was indistinguishable from one that failed. **Every test passed**, because every one of them stopped at the status code. | Found by opening it in a browser — nothing else in this repository looks at where a redirect points. Measured on the running control plane: callback → `302 http://127.0.0.1:7100/auth/me` → `200 {"puid":"ins000001","role":"member"}`, and `GET /` → **404**, which is what it did before. Both tests now assert the LOCATION and not only the 302. D22's console is P5's; when it exists this is one line |
+| 72 | **Defect 68's fix replaced a silent failure with a loud one.** Deleting the shared SP row in `afterAll` stopped the tier leaving a registration that named a dead port — and logged the developer out of their own control plane until they restarted it. The row is a boot artefact keyed on ONE entityID, so the answer is a different entityID, not a delete. | Both Docker tests now set `MANIFEST_SP_ENTITY_BASE=https://test-suite.manifest.internal` and delete only their own row. Measured after running both files: the shared row is still present and a full three-hop login still completes. Nothing is weakened — the entityID is opaque to SAML, the row still goes through `renderSpMetadata`, the IdP still reads it, and the login still proves that what the platform WRITES and what it SENDS describe one Service Provider |
+
+**The gap that fix opened, closed in the same change.** Overriding the entity base left
+nothing asserting that the DEFAULT base produces the entityID the README, the runbook
+and `scripts/demo.sh`'s failure message all name — the quiet cost of a test-isolation
+fix, and the kind of thing that is noticed a release later. `src/sso/platform.test.ts`
+closes it as a pure function (5 tests): §9's entityID shape from the platform domain,
+every URL built from the origin and only from the origin, the entityID **not** moving
+when the origin does, the four attributes with `eduPersonAffiliation` deliberately
+absent, and the row going through the same renderer every app's row goes through.
+
+**One consequence recorded so nobody "fixes" it.** The control plane's SP certificate
+carries the entityID in a `subjectAltName` URI, minted by `make up` from the DEFAULT
+base — so under the test override the SAN and the row's entityID differ. That is
+harmless and deliberate: SimpleSAMLphp pins `certData`, never the SAN, and `make verify`
+checks the real certificate against the real entityID. Minting a second keypair per test
+run would trade a cosmetic mismatch for two more RSA-4096 keys per suite.
+
+**State after the fixes:** `make doctor` **17/0**, `make verify` **47/0**, `pnpm test`
+**521** twice (55 files), the two changed Docker files green, lint/typecheck/format
+clean, and a three-hop CWL login against the running control plane landing on a page
+that answers 200. One commit.
+
 ---
 
 ---

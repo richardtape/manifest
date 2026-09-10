@@ -70,13 +70,13 @@ is deleted along with `MANIFEST_DEV_AUTH`; the control plane's SAML client is
 `@node-saml/node-saml`, **not** the `passport-saml` the blueprint pins, because that
 one carries an unfixable critical signature-verification advisory and nothing in this
 platform scans the control plane's own dependency tree. `make verify` is
-**47 / 0**, `pnpm test` **516**, `pnpm test:docker` **116**. `secrets/` now holds every service credential — libsodium envelope
+**47 / 0**, `pnpm test` **521**, `pnpm test:docker` **116**. `secrets/` now holds every service credential — libsodium envelope
 encryption in Postgres, replacing P3's HMAC derivation, migrated without breaking a
 running database — and §20's `audit.events` is append-only **by grant**, which needed
 the control plane to stop connecting as a superuser before it could mean anything:
 `REVOKE UPDATE, DELETE` followed by `UPDATE 1` was the measured starting point. It now
 connects as **`manifest_app`**, and so does the whole test suite. Those fourteen tasks
-found **70 defects**, two of them spec-level: **§12's
+found **72 defects**, two of them spec-level: **§12's
 dependency-scan gate blocked every CWL application** (settled by Rich on 2026-09-08 —
 it now blocks only on findings that have a published fix), and **§8's
 `SAML_IDP_CERT_PATH` named a file nothing could create**, so `InstanceSpec` gained
@@ -125,7 +125,7 @@ implementation plans are executed**. **P4a is part-executed and P4b is unrun —
 tasks between them; P5 is unwritten.** Plan-writing stopped on 2026-09-04 in favour
 of execution; that hold is now discharged, and it was right — the three plans
 produced **152 defects between them** after all three had been self-reviewed, and
-P4a's first fourteen tasks have since produced **70 more**. That
+P4a's first fourteen tasks have since produced **72 more**. That
 is also why a 17-task unrun stack is worth naming out loud rather than glossing. The maintained status record is the *Spike status*
 ledger in `docs/superpowers/plans/2026-08-29-plan-roadmap.md`; if any document
 disagrees with it, the ledger wins.

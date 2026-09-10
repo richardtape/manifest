@@ -147,6 +147,11 @@ describe('Manifest is its own SP (§9)', () => {
 
     const res = await post(app, assertion(idp, requestId))
     expect(res.statusCode).toBe(302)
+    // THE TARGET, not just that it redirected. This said `/` first, which the
+    // control plane does not serve — so a SUCCESSFUL login ended on a 404 that
+    // reads exactly like a failed one, and every test still passed because they
+    // all stopped at the status code. Found by opening it in a browser.
+    expect(res.headers.location).toBe('/auth/me')
     const cookie = res.cookies.find((c) => c.name === 'manifest_session')
     expect(cookie?.httpOnly).toBe(true)
     expect(cookie?.sameSite?.toLowerCase()).toBe('lax')

@@ -6,6 +6,10 @@ import { describeDocker, REPO_ROOT } from './runtime/testing.js'
 import { deleteSpRow, readSpRow } from './sso/index.js'
 import { idpDatabaseUrl } from './sso/testing.js'
 
+/** Its own SP scope. `identity/saml.docker.test.ts` records why at length. */
+const TEST_ENTITY_BASE = 'https://test-suite.manifest.internal'
+const TEST_ENTITY_ID = `${TEST_ENTITY_BASE}/sp/manifest-control-plane/platform`
+
 const run = promisify(execFile)
 
 /**
@@ -43,6 +47,7 @@ describeDocker('the boot entry point', () => {
         // read of one setting and is exactly what would bite here.
         MANIFEST_PORT: '7188',
         MANIFEST_CONTROL_PLANE_ORIGIN: 'http://127.0.0.1:7188',
+        MANIFEST_SP_ENTITY_BASE: TEST_ENTITY_BASE,
         MANIFEST_SESSION_SECRET: 'x'.repeat(32),
         MANIFEST_MASTER_SECRET: 'm'.repeat(32),
         MANIFEST_BLUEPRINTS_ROOT: `${REPO_ROOT}blueprints`,
@@ -92,10 +97,7 @@ describeDocker('the boot entry point', () => {
       // here rather than at somebody's first login.
       const pool = new pg.Pool({ connectionString: idpDatabaseUrl() })
       try {
-        const row = await readSpRow(
-          pool,
-          'https://manifest.internal/sp/manifest-control-plane/platform',
-        )
+        const row = await readSpRow(pool, TEST_ENTITY_ID)
         expect(row?.AssertionConsumerService[0]?.Location).toBe(
           'http://127.0.0.1:7188/auth/saml/callback',
         )
@@ -110,16 +112,11 @@ describeDocker('the boot entry point', () => {
       }
     } finally {
       child.kill('SIGTERM')
-      // Same reason `identity/saml.docker.test.ts` does it: this booted on a
-      // port of its own, so the row it registered names an ACS nothing will
-      // answer once the process is gone. Absent fails loudly at the next login;
-      // wrong fails silently. The next real boot writes it back.
+      // Its OWN row, removed. The shared one is never written — see
+      // `identity/saml.docker.test.ts`'s TEST_ENTITY_BASE.
       const pool = new pg.Pool({ connectionString: idpDatabaseUrl() })
       try {
-        await deleteSpRow(
-          pool,
-          'https://manifest.internal/sp/manifest-control-plane/platform',
-        )
+        await deleteSpRow(pool, TEST_ENTITY_ID)
       } finally {
         await pool.end()
       }

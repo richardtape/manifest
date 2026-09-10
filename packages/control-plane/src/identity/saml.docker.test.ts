@@ -29,25 +29,30 @@ const run = promisify(execFile)
 const CA = readFileSync(join(REPO_ROOT, 'infra/ca/manifest-root.crt'))
 
 /**
- * The platform's SP row is a BOOT artefact, and this test booted on a port of
- * its own — so leaving the row behind would leave it pointing at a port nothing
- * listens on once this process exits. A developer's next login would then
- * complete at the IdP and die on the redirect back, which is the failure that
- * reads as an IdP fault.
+ * THIS TEST REGISTERS ITS OWN SERVICE PROVIDER, NOT THE PLATFORM'S.
  *
- * So it is REMOVED rather than restored: this test cannot know which port the
- * developer's control plane runs on, and an absent row fails loudly at the next
- * login — the IdP answers "Metadata not found" and `scripts/demo.sh` names the
- * fix — while a wrong one fails silently. The next boot of the control plane
- * writes it back, which is the whole point of registering at boot.
+ * `MANIFEST_SP_ENTITY_BASE` is what §9's entityID is built from, so overriding
+ * it gives this run an entityID of its own and the shared row is never touched.
+ * That matters because the row is a BOOT artefact keyed on one entityID and
+ * this test boots on a port of its own: writing the shared row would leave a
+ * developer's running control plane registered at a port nothing listens on —
+ * a login that completes at the IdP and dies on the redirect back, which reads
+ * as an IdP fault. Deleting it afterwards was the first answer and is worse in
+ * its own way: it takes the developer's login away until they restart.
+ *
+ * Nothing is weakened by the override. The entityID is opaque to SAML, the row
+ * still goes through `renderSpMetadata`, the IdP still reads it, and the login
+ * still proves that what the platform WRITES and what it SENDS describe one
+ * Service Provider. That the DEFAULT base produces the documented entityID is a
+ * pure function, asserted in `sso/platform.test.ts`.
  */
-async function removePlatformSpRow(): Promise<void> {
+const TEST_ENTITY_BASE = 'https://test-suite.manifest.internal'
+const TEST_ENTITY_ID = `${TEST_ENTITY_BASE}/sp/manifest-control-plane/platform`
+
+async function removeOwnSpRow(): Promise<void> {
   const pool = new pg.Pool({ connectionString: idpDatabaseUrl() })
   try {
-    await deleteSpRow(
-      pool,
-      'https://manifest.internal/sp/manifest-control-plane/platform',
-    )
+    await deleteSpRow(pool, TEST_ENTITY_ID)
   } finally {
     await pool.end()
   }
@@ -217,6 +222,9 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
         // port is not the one it listens on, and the ACS this registers is what
         // the IdP will POST the assertion to.
         MANIFEST_CONTROL_PLANE_ORIGIN: ORIGIN,
+        // Its own SP scope — see TEST_ENTITY_BASE. Without it this run rewrites
+        // the row a developer's control plane on 7100 is using.
+        MANIFEST_SP_ENTITY_BASE: TEST_ENTITY_BASE,
         MANIFEST_SESSION_SECRET: 'x'.repeat(32),
         MANIFEST_MASTER_SECRET: 'm'.repeat(32),
         MANIFEST_BLUEPRINTS_ROOT: `${REPO_ROOT}blueprints`,
@@ -251,7 +259,7 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
 
   afterAll(async () => {
     child?.kill('SIGTERM')
-    await removePlatformSpRow()
+    await removeOwnSpRow()
   }, 30_000)
 
   it('logs a real test user in, end to end, through the row it registered itself', async () => {
@@ -297,6 +305,9 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
       form: { SAMLResponse: samlResponse },
     })
     expect(callback.status, callback.body).toBe(302)
+    // Where a browser actually lands. `/` was the first answer and is a route
+    // this server does not have, so a successful login finished on a 404.
+    expect(callback.location).toBe('/auth/me')
     appJar.take(callback)
     expect(appJar.get('manifest_session')).toBeTruthy()
 
