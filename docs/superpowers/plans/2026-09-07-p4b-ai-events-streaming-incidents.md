@@ -18,7 +18,9 @@
 
 ## How this plan is to be executed — TEN SITTINGS, one per session
 
-**Nothing is done. Sitting 1 — Tasks 1 and 2 — is next.**
+**Task 1 is DONE (2026-09-09) — it found six divergences, two of them fatal to a
+migration and one a live hole in §20. Sitting 1 is half done: TASK 2 IS NEXT.** Read the
+reconciliation record in *What executing this plan found* before starting it.
 
 Agreed with Rich on 2026-09-09, after the same pattern carried P4a's last twelve tasks
 through seven sittings without a session limit ever landing mid-task. One sitting per
@@ -32,7 +34,7 @@ Three tasks are deliberately alone, and each has a reason that is not its size:
 
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
-| **1** | **1–2** | The reconciliation pass against the executed P4a, then LiteLLM pinned by digest with S3's error table re-measured against the pinned version. **Nothing ships and everything depends on both.** Task 1's size is unbounded by design — P3's equivalent found eight defects — so it is paired only with the other task that has no dependencies | ← **next** |
+| **1 ← half done** | **1 ✅ · 2 ← next** | The reconciliation pass against the executed P4a (**done 2026-09-09 — six divergences**), then LiteLLM pinned by digest with S3's error table re-measured against the pinned version. **Nothing ships and everything depends on both.** Task 1's size is unbounded by design — P3's equivalent found eight defects — so it is paired only with the other task that has no dependencies | ← **Task 2** |
 | 2 | 3 | §16's AI-path regression tier, **before any `ai/` module exists**. **Alone**: it is the largest task in the plan and it builds `mintProbeKey`/`deleteProbeKey`, the harness every later sitting is measured against. A tier written after the module tests the module's own assumptions | |
 | 3 | 4–5 | `ai/errors.ts`, then `ai/client.ts` — S3's error table as one mapper, then the transport that uses it. 5 consumes 4 and nothing else does yet | |
 | 4 | 6–7 | `ai/catalogue.ts` and `ai/keys.ts` — D17's catalogue read from `/model/info`, and the one place that mints a key with `allowed_routes` as a constant. Siblings: both consume Task 5's client and neither consumes the other | |
