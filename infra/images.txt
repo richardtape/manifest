@@ -12,3 +12,20 @@ curlimages/curl:8.11.1
 # `make reset` + re-seed that still has them.
 anchore/syft:v1.51.1
 anchore/grype:v0.118.0
+
+# LiteLLM, AND IT IS PINNED BY DIGEST RATHER THAN BY TAG — the only line here
+# that is. `ghcr.io/berriai/litellm:main-stable` is a MOVING tag: measured
+# 2026-09-07 it resolved to sha256:20b5044b (litellm 1.98.0, built 08-22), and
+# on 2026-09-09 a rebuild moved it to sha256:a3715fa7. Two days.
+#
+# §16 pins the AI error mapping to a LiteLLM version, and S3's error table —
+# the `detail` shape of a route denial, and the message substring that
+# separates a key budget from an end-user budget — was measured against 1.98.0.
+# So the digest is the reference, and moving to a newer LiteLLM is a deliberate
+# act with those mapping tests in hand, not something `make seed` does quietly.
+# Rich's call, 2026-09-09.
+#
+# It is NOT mirrored into the local registry (mirror-images.sh skips it):
+# nothing does `FROM` this image, so pushing ~2 GB there buys nothing. It is in
+# this list for one thing — a digest in infra/images.lock.
+ghcr.io/berriai/litellm@sha256:20b5044b619055374061a6d5b7b08754cad75aeabbf82ddf4f69cc0cf80ddaf4

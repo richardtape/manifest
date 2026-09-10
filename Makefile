@@ -4,7 +4,17 @@ SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 # --env-file is required: Compose resolves a bare `.env` against the compose
 # file's directory (infra/), not the repo root. See infra/lib/common.sh.
-COMPOSE := docker compose -f infra/compose.yaml -p manifest --env-file .env
+#
+# LITELLM_DIGEST is read from infra/images.lock and passed in the ENVIRONMENT,
+# which Compose resolves ahead of --env-file. Deliberately not written into
+# .env: images.lock is already the one place digests live (`make seed` writes
+# it), and a copy in .env would be a second source that drifts the first time
+# somebody re-seeds without re-running this. Empty until `make seed` has run,
+# and compose.yaml's `:?` then says so by name.
+LITELLM_DIGEST := $(shell awk '$$1 ~ /berriai\/litellm/ {print $$2}' infra/images.lock 2>/dev/null || true)
+# See infra/lib/common.sh for why the fallback is a digest that cannot exist.
+LITELLM_DIGEST := $(or $(LITELLM_DIGEST),sha256:0000000000000000000000000000000000000000000000000000000000000000)
+COMPOSE := LITELLM_DIGEST=$(LITELLM_DIGEST) docker compose -f infra/compose.yaml -p manifest --env-file .env
 
 .PHONY: help seed up down reset doctor verify demo demo-identity host-setup host-undo
 

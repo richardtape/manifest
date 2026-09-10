@@ -29,6 +29,14 @@ while read -r tag; do
   digest=$(docker image inspect "$tag" --format '{{index .RepoDigests 0}}' | cut -d@ -f2)
   printf '%s\t%s\n' "$tag" "$digest" >> "$LOCK"
 
+  # PINNED BUT NOT MIRRORED. The registry holds images something does `FROM`;
+  # LiteLLM is a running service, so pushing ~2 GB into it is a slow no-op. The
+  # digest above is the entire reason this line is in images.txt. The skip is
+  # here, AFTER the lock write, so the pin still happens.
+  case "$tag" in
+    *berriai/litellm*) echo "  $tag pinned only, not mirrored"; continue ;;
+  esac
+
   # Strip any registry prefix so the local path is stable and short.
   repo=$(echo "$tag" | sed 's#.*/##' | cut -d: -f1)
   ver=$(echo "$tag" | sed 's#.*:##')

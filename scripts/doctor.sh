@@ -296,6 +296,33 @@ check_lockfile() {
 }
 check "infra/images.lock exists and pins every base image"  check_lockfile
 
+litellm_is_pinned() {
+  # §16 pins the AI error mapping to "the LiteLLM version in §21's inventory",
+  # and `main-stable` is a MOVING TAG. Measured 2026-09-07 it was absent from
+  # images.txt and images.lock entirely, so a second machine's `make seed`
+  # installed whatever the tag pointed at that day — and P4b Task 4's mapping,
+  # which reads `detail` for a route denial and matches a MESSAGE SUBSTRING to
+  # tell a key budget from an end-user budget, would be asserted against a
+  # version nobody chose.
+  #
+  # It moved on 2026-09-09, two days later: a rebuild retagged `main-stable`
+  # from sha256:20b5044b (litellm 1.98.0, built 08-22 — S3's) to sha256:a3715fa7
+  # (built that morning). That is this check's whole reason for existing, and it
+  # happened before the check was written.
+  grep -q 'berriai/litellm' infra/images.lock \
+    || { echo "litellm is not in infra/images.lock — run make seed"; return 1; }
+  local want have
+  want=$(awk '$1 ~ /berriai\/litellm/ {print $2}' infra/images.lock)
+  # The DAEMON, not the file. A check that reads only the file it was written
+  # from cannot fail; this one asks what is actually running, which is why it
+  # can — and it is what catches a `make up` that recreated the container onto
+  # a moved tag.
+  have=$(docker inspect manifest-litellm --format '{{.Image}}' 2>/dev/null || echo none)
+  echo "litellm lock=$want running=$have"
+  [ "$want" = "$have" ]
+}
+check "the running LiteLLM is the digest infra/images.lock pins"  litellm_is_pinned
+
 check_registry_has_bases() {
   local missing="" repo token
   # The registry requires a scoped token from P3 Task 9 onwards, so an
@@ -306,7 +333,12 @@ check_registry_has_bases() {
     echo "infra/registry-auth/token.key is missing -- cannot query the registry. Run: make seed"
     return 1
   fi
-  for repo in $(grep -v '^#\|^$' infra/images.txt | cut -d: -f1 | sed 's#.*/##'); do
+  # `berriai/litellm` is excluded, and it is the only line in images.txt that is:
+  # it is pinned by digest for §16's error mapping and deliberately NOT mirrored
+  # (mirror-images.sh skips it), because nothing does `FROM` a running service.
+  # Without this exclusion the pin makes THIS check fail — which is exactly what
+  # it did, once.
+  for repo in $(grep -v '^#\|^$\|berriai/litellm' infra/images.txt | cut -d: -f1 | sed 's#.*/##'); do
     token=$(node infra/seed/mint-token.mjs "base/$repo" 2>/dev/null)
     curl -sf -H "Authorization: Bearer $token" \
       "http://127.0.0.1:$PORT_REGISTRY/v2/base/$repo/tags/list" >/dev/null 2>&1 \

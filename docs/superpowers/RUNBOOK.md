@@ -182,7 +182,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` โ€
 
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
-and the current numbers are **`make doctor` 17 / 0 and `make verify` 47 / 0**
+and the current numbers are **`make doctor` 18 / 0 and `make verify` 47 / 0**
 (re-measured 2026-09-09). ORIENTATION ยง2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because

@@ -9,7 +9,7 @@ plan queue, and the conventions below in full. Everything here is the short vers
 
 **P1 is executed and green (2026-09-05). The platform runs.**
 `make seed && make host-setup && make up` brings up the whole §21 inventory;
-`make doctor` is now **17 checks / 0 failed** and `make verify` **47 / 0**,
+`make doctor` is now **18 checks / 0 failed** and `make verify` **47 / 0**,
 and both were green offline when P1 was executed. Start from [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md),
 not the plan. The three host changes are in place and all reverse with
 `make host-undo`. **Untested: the second-machine clean clone** — no second Mac was

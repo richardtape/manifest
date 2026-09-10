@@ -18,9 +18,11 @@
 
 ## How this plan is to be executed — TEN SITTINGS, one per session
 
-**Task 1 is DONE (2026-09-09) — it found six divergences, two of them fatal to a
-migration and one a live hole in §20. Sitting 1 is half done: TASK 2 IS NEXT.** Read the
-reconciliation record in *What executing this plan found* before starting it.
+**SITTING 1 IS COMPLETE (2026-09-09). Tasks 1 and 2 are done — 10 findings between
+them. SITTING 2 — TASK 3, ALONE — IS NEXT.** Read *What executing this plan found*
+before starting it: Task 1's reconciliation corrected two migrations that would have
+failed on their first statement, and Task 2 pinned LiteLLM to the version S3 measured
+**hours after upstream moved the tag**.
 
 Agreed with Rich on 2026-09-09, after the same pattern carried P4a's last twelve tasks
 through seven sittings without a session limit ever landing mid-task. One sitting per
@@ -34,8 +36,8 @@ Three tasks are deliberately alone, and each has a reason that is not its size:
 
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
-| **1 ← half done** | **1 ✅ · 2 ← next** | The reconciliation pass against the executed P4a (**done 2026-09-09 — six divergences**), then LiteLLM pinned by digest with S3's error table re-measured against the pinned version. **Nothing ships and everything depends on both.** Task 1's size is unbounded by design — P3's equivalent found eight defects — so it is paired only with the other task that has no dependencies | ← **Task 2** |
-| 2 | 3 | §16's AI-path regression tier, **before any `ai/` module exists**. **Alone**: it is the largest task in the plan and it builds `mintProbeKey`/`deleteProbeKey`, the harness every later sitting is measured against. A tier written after the module tests the module's own assumptions | |
+| 1 ✅ | 1–2 | The reconciliation pass against the executed P4a (**six divergences**), then LiteLLM pinned by digest with S3's error table re-measured against the pinned version. **Nothing ships and everything depends on both.** Task 1's size is unbounded by design — P3's equivalent found eight defects — so it is paired only with the other task that has no dependencies | ✅ **done 2026-09-09, 10 findings** |
+| **2 ← next** | **3** | §16's AI-path regression tier, **before any `ai/` module exists**. **Alone**: it is the largest task in the plan and it builds `mintProbeKey`/`deleteProbeKey`, the harness every later sitting is measured against. A tier written after the module tests the module's own assumptions | |
 | 3 | 4–5 | `ai/errors.ts`, then `ai/client.ts` — S3's error table as one mapper, then the transport that uses it. 5 consumes 4 and nothing else does yet | |
 | 4 | 6–7 | `ai/catalogue.ts` and `ai/keys.ts` — D17's catalogue read from `/model/info`, and the one place that mints a key with `allowed_routes` as a constant. Siblings: both consume Task 5's client and neither consumes the other | |
 | 5 | 8–9 | LiteLLM joins an app network, then §8's AI rows render. **This is the sitting where Tasks 6, 7 and 8 get a caller** — the plan says so in Task 9's own title. *A module with no call site is not built*: P3 built `waitForReady` and `edgeProbe` in its Task 14 and nothing called them until Task 17, and P4a hit the same shape with `ServiceBinding.credentials` | |
@@ -3238,6 +3240,43 @@ in `fixtures/proof-app/identity.js`, `idp_login` is one shared function in
 (22 files), lint / typecheck / `format:check` clean, and both acceptances green —
 `make demo` and `make demo-identity`, the latter also from a `make reset` machine.
 P4a is executed and green, so Task 1's stop condition did not fire.
+
+### Sitting 1, Task 2 — pinning LiteLLM (2026-09-09). 4 defects, and the tag moved while we watched.
+
+**M5 proved itself before the check that proves it was written.** The plan says
+`ghcr.io/berriai/litellm:main-stable` is a moving tag that nothing pins. Measured
+2026-09-07 it was `sha256:20b5044b` — litellm **1.98.0**, image built 08-22, and S3's
+error table was measured against it. Measured again on **2026-09-09, two days later**,
+it was `sha256:a3715fa7`, built that morning. **The upstream rebuild landed roughly two
+hours before this task started.**
+
+**Rich's call: pin `20b5044b`, the version S3 measured.** §16 pins the AI error mapping
+to a version, and Tasks 4 and 15 assert against 1.98.0's envelopes — the `detail` shape
+of a route denial, and the message substring that separates a key budget from an
+end-user budget. Adopting an unmeasured build would have made all of that a hypothesis
+again, with no Task 4 yet to re-measure it. Moving to a current LiteLLM is now a
+deliberate act with those tests in hand.
+
+**The reference in `images.txt` is a DIGEST, not a tag** — the only line in that file
+that is. A tag cannot pin a version whose tag has already moved.
+
+| # | Defect | Measured against |
+|---|---|---|
+| 7 | **The pin made `make seed` depend on its own output.** `compose.yaml` used `${LITELLM_DIGEST:?…}` and the digest is written by `mirror-images.sh`, which is seed's step 4 — but seed's step 2 is `$COMPOSE build`, and Compose interpolates the whole file before it builds anything. `make seed` died at step 2/6 with *"required variable LITELLM_DIGEST is missing a value"*, **on a clean clone as well as here**. | Running it. The fallback is an all-zero digest, set in `infra/lib/common.sh` and the Makefile from the same one source: it lets the build interpolate, and it cannot be pulled, so `up` still fails loudly if the lock is genuinely absent. What proves the RUNNING container matches the lock is `make doctor`, which asks the daemon rather than the file |
+| 8 | **Pinning it broke a sibling check.** `check_registry_has_bases` iterates every line of `images.txt` and asserts each is in the local registry. LiteLLM is deliberately **not** mirrored — nothing does `FROM` a running service, and pushing ~2 GB there is a slow no-op — so adding the line turned that check red. | `make doctor`: 18 checks, **1 failed**, immediately after the new check first passed. Excluded by name, with the reason at the exclusion. A pin that reddens an unrelated gate is how a gate gets weakened later |
+| 9 | **THE NEGATIVE CONTROL CAME OUT GREEN, and it was the control that was wrong.** Corrupting one character of the lock's digest left the check passing. Because `images.txt` now holds a digest reference, the lock line carries the digest **twice** — field 1 is `ghcr.io/berriai/litellm@sha256:…` and field 2 is `sha256:…` — and the edit hit field 1 while the check reads field 2. | Caught by reading the printed values rather than the exit status: the check reported `lock=…ddaf4` when the file said `…ddaf5`, which is the tell. Re-applied to field 2: **RED, printing both digests.** Second time in two sittings that a control was falsely green — P4a's defect 77 was the first |
+| 10 | **Task 2's own text contradicts itself about `LITELLM_DIGEST`.** Its *Interfaces* block says the constant is **not** introduced, *"`images.lock` is already the one place digests live"*; Step 3 says to *"have `make seed` export `LITELLM_DIGEST` … into `.env`"*. | Read while implementing. Resolved toward the Interfaces block's intent: the variable is **derived at use** from `images.lock` by `common.sh` and the Makefile, and **never written into `.env`** — a copy there is a second source that drifts the first time somebody re-seeds without re-running whatever wrote it. One file remains the source of truth |
+
+**The negative control, watched red and reverted.**
+
+| Control | Result |
+|---|---|
+| one character changed in `images.lock`'s digest **field 2** | **RED**, printing `lock=…ddaf5 running=…ddaf4`. Applied to field 1 first, where it was **GREEN** — defect 9 |
+
+**State at the end of the task:** `make doctor` **18/0** — the new check is doctor's
+eighteenth — `make verify` **47/0**, `make seed` green, `make up` green, LiteLLM running
+`sha256:20b5044b` and answering `{"status":"healthy","db":"connected"}`. Sitting 1 is
+complete. **Sitting 2 is Task 3, alone: §16's AI-path regression tier.**
 
 Then one section per sitting, in P3's format: the tasks executed, the defects found with the measurement that found each, and the gate numbers at the end. The measured rate across P1, P2 and P3 is 1.4 → 2.7 → 4.3 defects per task and it never fell with practice.
 

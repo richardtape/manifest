@@ -15,6 +15,24 @@ EDGE_IP="127.0.0.2"       # the lo0 alias Caddy binds, so Valet keeps 127.0.0.1
 # that is identical from the host, from a container and from `curl` — C1's bar.
 IDP_HOST="idp.${ZONE}"
 
+# The LiteLLM digest, read from infra/images.lock — the one place digests live.
+#
+# It is pinned by DIGEST rather than by tag because `ghcr.io/berriai/litellm:
+# main-stable` moves: 2026-09-07 it was sha256:20b5044b (litellm 1.98.0), and on
+# 2026-09-09 a rebuild moved it to sha256:a3715fa7. §16 pins the AI error
+# mapping to a version, so the version is chosen deliberately (Rich, 2026-09-09).
+#
+# THE FALLBACK IS A DIGEST THAT CANNOT EXIST, and that is deliberate. `make seed`
+# has to interpolate compose.yaml to BUILD, at a point before its own step 4 has
+# written the lock — so a `:?` here makes seeding depend on its own output and
+# `make seed` fails on a clean clone. An all-zero digest lets the build proceed
+# and makes `up` fail loudly with `manifest unknown` if the lock is genuinely
+# missing. What proves the RUNNING container matches the lock is `make doctor`,
+# which asks the daemon rather than the file.
+LITELLM_DIGEST="$(awk '$1 ~ /berriai\/litellm/ {print $2}' "$(dirname "${BASH_SOURCE[0]}")/../images.lock" 2>/dev/null)"
+: "${LITELLM_DIGEST:=sha256:0000000000000000000000000000000000000000000000000000000000000000}"
+export LITELLM_DIGEST
+
 PORT_CONTROL_PLANE=7100
 PORT_POSTGRES=7103
 PORT_LITELLM=7106

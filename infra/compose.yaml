@@ -187,7 +187,10 @@ services:
   # survives between builds.
 
   litellm:
-    image: ghcr.io/berriai/litellm:main-stable
+    # BY DIGEST, from infra/images.lock via the Makefile. The tag it used to
+    # carry — `main-stable` — moves, and this line is what stopped a `make up`
+    # silently recreating the container onto whatever it pointed at that day.
+    image: ghcr.io/berriai/litellm@${LITELLM_DIGEST}
     container_name: manifest-litellm
     restart: unless-stopped
     depends_on:

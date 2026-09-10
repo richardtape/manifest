@@ -94,7 +94,7 @@ two came out of Tasks 1–3, the third out of Task 5, the fourth out of Task 8:
 |---|---|
 | `pnpm test` (from the **repo root**) | **525 passed, 56 files**, ~26 s, no Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites — plus **`spec/injection-drift`**, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` — see §7d |
 | `pnpm test:docker` | **116 passed, 22 files**, ~370 s — needs `make up`, and **fails rather than skips** when asked to run |
-| `make doctor` | **17 checks, 0 failed, 0 warnings** — 17 since 2026-09-09, when the host-tool check landed |
+| `make doctor` | **18 checks, 0 failed, 0 warnings** — 18 since 2026-09-09, when the LiteLLM digest pin landed |
 | `make verify` | **47 checks, 0 failed, 0 warnings** — thirteen more than P3 left; the newest asserts the control plane's OWN SP keypair is a usable pair, because it is a `make up` artefact the process refuses to boot without and a half-minted one is a platform that does not start |
 
 **A different number on a clean checkout is signal, not noise** — it means something
@@ -1339,8 +1339,8 @@ table is at the top of the plan**, which is the maintained copy; this is the sha
 
 | Sitting | Tasks | |
 |---|---|---|
-| **1 ← half done** | **1 ✅ · 2 ← next** | the reconciliation pass (**done 2026-09-09 — six divergences, two fatal to a migration**), and LiteLLM pinned by digest |
-| 2 | 3 | §16's AI-path regression tier, before any `ai/` module exists |
+| 1 ✅ | 1–2 | the reconciliation pass (**six divergences, two fatal to a migration**), and LiteLLM pinned by digest — **done 2026-09-09, 10 findings** |
+| **2 ← next** | **3** | §16's AI-path regression tier, before any `ai/` module exists |
 | 3 | 4–5 | `ai/errors.ts`, then the transport that uses it |
 | 4 | 6–7 | the catalogue and the key minter |
 | 5 | 8–9 | **the sitting where Tasks 6, 7 and 8 get a caller** |
@@ -1367,7 +1367,17 @@ a whole session.
 it, so both migrations would have failed on their first statement) and that both new
 audit tables used **`ON DELETE CASCADE`**, which bypasses §20's append-only grant
 because a referential action runs with the referenced table's privileges. Both are
-corrected in the plan. **Task 2 is next.**
+corrected in the plan.
+
+**Task 2 is done too, and the tag moved while we were looking at it.**
+`ghcr.io/berriai/litellm:main-stable` resolved to `sha256:20b5044b` (litellm 1.98.0) on
+2026-09-07 and to `sha256:a3715fa7` on 2026-09-09 — a rebuild about two hours before the
+task started. **Rich pinned 20b5044b, the version S3 measured**, because §16 pins the AI
+error mapping to a version and Tasks 4 and 15 assert against 1.98.0's envelopes. It is
+pinned **by digest in `infra/images.txt`** — the only line there that is — derived at use
+from `images.lock` by `infra/lib/common.sh` and the Makefile, never copied into `.env`.
+`make doctor` is **18 checks** from here: the new one asks the DAEMON what is running,
+not the file it was written from. **Sitting 2 — Task 3, alone — is next.**
 
 The four items it also confirmed, which the plan could not know because P4a's
 Task 15 ran two days after P4b was written, are under *What sitting 1 must reconcile*: `fixtures/proof-app/package.json` and `package-lock.json`
