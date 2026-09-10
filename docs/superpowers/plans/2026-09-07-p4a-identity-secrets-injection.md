@@ -3874,6 +3874,78 @@ run would trade a cosmetic mismatch for two more RSA-4096 keys per suite.
 clean, and a three-hop CWL login against the running control plane landing on a page
 that answers 200. One commit.
 
+### Session 9 — sitting 7: Task 15, and P4a is finished (2026-09-09). 8 defects.
+
+**The proof app signs a real person in with CWL, and the instructor cannot see the
+student's note.** `make demo-identity` drives all nine steps by `curl` against the
+running platform: Manifest's own CWL login, a project, a push, validation, a build, a
+release, a deploy, a student sign-in through the edge over TLS, a note written and read
+back, and an instructor sign-in that sees their own note and not the student's.
+
+**It passed on the first run, which has never happened here before** — and that is the
+reason the rest of this session was spent trying to disprove it rather than moving on.
+P3's Sessions 4 and 5 both found that a whole half of the platform had never worked
+behind a green suite. Everything below came out of not believing the first green.
+
+**What the first green was checked against.** The `saml20_sp_remote` row the deploy
+wrote (real, `validate.authnrequest` true, five attributes, ACS on the app's own
+hostname); the container's image digest against the build's; `MONGODB_DB_NAME` as the
+container actually received it (`proof_app`); and the two stored documents, whose
+`owner` hashes were **recomputed independently** and matched
+`sha256(puid ‖ slug ‖ env)` exactly. The database holds no PUID.
+
+**Three deviations from the plan's text, each a decision.**
+
+| Deviation | Why |
+|---|---|
+| `fixtures/proof-app/` carries **no `package.json`, `package-lock.json` or `auth/`** — the demo copies `node-ts-mongo@1`'s skeleton first and lays the app over it | That is what an agent generating an application actually does, and §20 calls a blueprint a security multiplier: a forked copy of the SAML wiring drifts from the blueprint's silently, and a vulnerability fixed in one lives on in the other. The proof app adds no dependency, so a second copy of §12's pinned set would be a second producer of the list the scan gate and the drift test both key on |
+| The three-hop login moved to **`infra/lib/idp-login.sh`**, shared by `demo.sh`, `demo-identity.sh` and the control harness | There were about to be two copies of the walk. `demo.sh` now sources it too, and `make demo` was re-run green to prove the extraction. A control that drives a *copy* of the code proves nothing about the code — which is precisely how defect 76 below was found |
+| `endUserId` lives in its own `identity.js`, not in `server.js` | `server.js` has a top-level `await client.connect()` and starts listening on import, so a test that imported it to check the hash would start an application. `blueprints/proof-app-identity.test.ts` (4 tests) holds it to P4b's exact formula |
+
+---
+
+**Task 15 found 8 defects. The first two are in the acceptance itself.**
+
+| # | Defect | Measured against |
+|---|---|---|
+| 73 | **The acceptance was not repeatable.** Step 8 asserted the instructor's note list was `[]`, which is true only against a virgin database — so the second run failed on a note the FIRST run had written. An acceptance that works once and then reports a defect that is not there is worse than no acceptance. | The second run, which is why this project's rule is to run everything twice. Both notes are now unique per run, and the isolation is checked in **both directions**: the instructor must not see the student's note, the student must not see the instructor's, and each must read back their own — because "the note is absent" is also true of an app that returns nothing to anybody |
+| 74 | **Step 7 printed the OLDEST note, not the one just written.** `field notes.0.text` reads the first element of a list sorted ascending, so every run after the first reported success while displaying a previous run's note. The assertion was right and the evidence on screen was wrong, which is the shape that makes a real failure unreadable. | Read in the output of the second run, beside defect 73 |
+| 75 | **`node-ts-mongo@1`'s skeleton served `/logout` while `auth.logout` defaults to `/auth/logout`.** The default is what the platform writes into the app's `SingleLogoutService`, so **every application generated from this blueprint that took the default advertised a logout endpoint it did not answer.** Invisible today because nothing initiates IdP-side single logout, and a 404 in front of a real person the moment anything does. | The row the deploy wrote, read out of `manifest_idp` and compared against the skeleton's routes. Fixed in the skeleton, so the DEFAULT is correct for every generated app rather than each app having to override it. The proof app's own `manifest.yaml` declares `/auth/logout` and serves it |
+| 76 | **`attributeConfig` reads as a control and is not one.** Task 12's owed control (c) — remove it and watch the acceptance go red with raw `urn:oid:` keys — came out **GREEN**, with the full nine steps passing and every attribute still arriving under its friendly name. | Measured, not assumed: the library does `attributeConfig: options.attributeConfig \|\| []` then `if (length > 0)`, so an absent list means `mapAttributes` never runs and `profile.attributes` is never set — and `bridge()` reads the OID key FIRST and falls back to `profile` itself, so it finds all seven names in the raw profile. That is the bridge doing exactly what S2 built it for. **Third instance of this shape in P4a**, after `validate.authnrequest` and node-saml's `wantAssertionsSigned`. The option stays (the library documents it; it is what a name outside the bridge's seven would need) and its comment now says at length that its removal reddens nothing. **§9's release enforcement is the real control, and negative control (c) watches that work** |
+| 77 | **A negative control came out falsely GREEN because the harness stopped one call short.** Control (b) — the wrong IdP certificate — reported the login "completed", because `idp_login` ends by POSTing the assertion with `-o /dev/null` and never inspects the result: a redirect to `/login/failed` is still a 302. | Caught by disbelieving a green control. The harness now makes the same `/api/me` check step 6 makes, and control (b) is **RED**: 401, `Error: Invalid signature` in the app's log. **`idp_login` proves the row and the signature; only the caller's identity check proves a session authenticates somebody**, and that is now written on the function |
+| 78 | **Shortening `auth.attributes` killed the script with a raw JSON dump instead of the sentence naming the cause.** `field` exits non-zero on a missing key, and under `set -e` inside a command substitution that kills the script before the explaining `fail` ever runs. | Negative control (c), whose whole purpose is to be read by somebody who does not know why the app has no display name. The two keys an attribute change makes ABSENT are now read tolerantly, so the explanation is what prints |
+| 79 | **Every redeploy leaves the previous release's container running.** Eleven deploys during this session produced **eleven `mf-proof-app-staging-*-app` containers, all Up and healthy**, each holding its full cpu/memory/pids allocation; only one carries the route. `deployRelease` calls `ensureInstance` and never destroys what the last release left. | Read out of `docker ps` while snapshotting before the reset. **NOT FIXED, and not Task 15's to fix** — reaping belongs to §11's reconciliation loop, which is Phase 4 (D10) — but it is undocumented, unbounded, and an operator hits it before Phase 4 does. Recorded in `RUNBOOK.md`'s *Known gaps* with the measurement and the workaround |
+| 80 | **The three-hop CWL login was about to exist twice.** `scripts/demo.sh` carried one copy and `demo-identity.sh` was written with a second. | Noticed while writing the negative-control harness, which needed a third. One producer now — `infra/lib/idp-login.sh` — and `make demo` was re-run green to prove the extraction did not change P3's acceptance |
+
+**The negative controls, each watched red and reverted.** These are the acceptance.
+
+| Control | Result |
+|---|---|
+| (a) the app's `saml20_sp_remote` row deleted between deploy and login | **RED** — the IdP serves no login form and answers `<title>Metadata not found</title>`, and the script's message names the row and who writes it |
+| (b) `SAML_IDP_CERT_PATH` pointed at a valid certificate that is not the IdP's | **RED** — `/api/me` 401, `Error: Invalid signature` in the container log. Not a hang and not a 500, which is what the plan asked to see. Green on the first attempt, which is defect 77 |
+| (c) `auth.attributes` cut to `[ubcEduCwlPuid]` and redeployed | **RED** on the display name, with the app seeing `{"attributes":{"ubcEduCwlPuid":"stu000001"}}` and no `displayName` key at all — §9's enforcement visible from outside the platform. **Step 7 still passed**, exactly as the plan predicted |
+| (d) `endUserId` returning a fixed hash instead of the real one | **RED twice** — on the earlier canary (two people, one identifier) *and*, checked separately because the canary fired first, on the acceptance assertion itself: `THE INSTRUCTOR CAN SEE THE STUDENT'S NOTE` |
+| (owed) Task 12's (c): `attributeConfig` removed from the blueprint | **GREEN** — that is defect 76 |
+
+**Run from nothing, with Rich's authorisation.** `make reset` (Postgres volume, registry
+contents, every `mf-` container and volume), then `make up`, migrations, the control
+plane restarted — boot line `{"driver":"docker","port":7100}`, not the fake one — then
+`make demo-identity` **green end to end at the first attempt**, and green again on a
+second run. `make demo` was then re-run to restore `fixture-app`, so the machine ends as
+it started. The three preserved containers are untouched.
+
+**Offline is OUTSTANDING and is Rich's to run** — turning the network off from a tool
+call cuts the agent off too. `scripts/offline-acceptance.sh` gained a step 6 that runs
+`make demo-identity`; it is the step most likely to need a route out, because it builds
+from `node-ts-mongo@1`'s five app-side dependencies through Verdaccio *and* completes a
+SAML round trip. It reports SKIPPED rather than failing when the control plane is not
+running, and a skipped acceptance is not a passed one.
+
+**State at the end of the sitting:** `make doctor` **17/0**, `make verify` **47/0**,
+`pnpm test` **525** twice (56 files), `pnpm test:docker` **116** (22 files, ~400 s),
+lint/typecheck/format clean, `make demo` green, `make demo-identity` green — including
+from a reset machine. One commit.
+
 ---
 
 ---

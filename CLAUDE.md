@@ -48,11 +48,16 @@ check that every app failed, because BusyBox `wget` honours `http_proxy` and ign
 `NO_PROXY`, so D18's forced proxy denied each app's probe of its own loopback. **All
 of it was green in a suite of 74 passing Docker tests.**
 
-**P4a is PART-EXECUTED: Tasks 1–14 of 15 are green (14 on 2026-09-09); Task 15
-remains, and continuing at Task 15 is the current work** — ORIENTATION §7d, which
-carries the table. The rest runs in **seven agreed SITTINGS, one per session with a
-check-in at each boundary**, so a session limit cannot land mid-task: sittings 1 to 6
-are done, so **sitting 7 is Task 15 alone** (the proof app and P4a's acceptance). *Sittings pace the work; they are not §17's product Phases.*
+**P4a is EXECUTED AND GREEN: all 15 tasks (2026-09-09). Executing P4b — 16 tasks,
+written and unrun — is the current work**, starting at its own Task 1, which
+reconciles it against the P4a that has now run — ORIENTATION §7d-2. P4a's last twelve
+tasks ran in **seven agreed SITTINGS, one per session with a check-in at each
+boundary**, so a session limit could not land mid-task; all seven are done, and **P4b
+should use the same pattern.** *Sittings pace the work; they are not §17's product Phases.*
+**`make demo-identity` is P4a's acceptance and it passes**: §16's proof app from a bare
+repository to a real CWL sign-in in which the instructor cannot see the student's note
+— including from a `make reset` machine. **The offline run is outstanding and is
+Rich's**, because turning the network off from a tool call cuts the agent off too.
 **A real CWL login now works end to end**, which it could not before: the IdP could
 neither issue an assertion nor authenticate anybody, with `make verify` green
 throughout — and since Task 7 that login runs through a Service Provider registration
@@ -70,13 +75,13 @@ is deleted along with `MANIFEST_DEV_AUTH`; the control plane's SAML client is
 `@node-saml/node-saml`, **not** the `passport-saml` the blueprint pins, because that
 one carries an unfixable critical signature-verification advisory and nothing in this
 platform scans the control plane's own dependency tree. `make verify` is
-**47 / 0**, `pnpm test` **521**, `pnpm test:docker` **116**. `secrets/` now holds every service credential — libsodium envelope
+**47 / 0**, `pnpm test` **525**, `pnpm test:docker` **116**. `secrets/` now holds every service credential — libsodium envelope
 encryption in Postgres, replacing P3's HMAC derivation, migrated without breaking a
 running database — and §20's `audit.events` is append-only **by grant**, which needed
 the control plane to stop connecting as a superuser before it could mean anything:
 `REVOKE UPDATE, DELETE` followed by `UPDATE 1` was the measured starting point. It now
-connects as **`manifest_app`**, and so does the whole test suite. Those fourteen tasks
-found **72 defects**, two of them spec-level: **§12's
+connects as **`manifest_app`**, and so does the whole test suite. Those fifteen tasks
+found **80 defects — 5.3 per task**, two of them spec-level: **§12's
 dependency-scan gate blocked every CWL application** (settled by Rich on 2026-09-08 —
 it now blocks only on findings that have a published fix), and **§8's
 `SAML_IDP_CERT_PATH` named a file nothing could create**, so `InstanceSpec` gained
@@ -121,12 +126,12 @@ repeatable has a state leak. For the platform itself it is `make doctor` and
 **Five spikes are done** (S7, S2, S1, S3 — all answered yes — and **S6**, which ran
 as P3's Task 18 on 2026-09-07 and found every probe denied with every denial paired
 with a positive control). P0, P1, P2 and P3 are written and **all three
-implementation plans are executed**. **P4a is part-executed and P4b is unrun — 17
-tasks between them; P5 is unwritten.** Plan-writing stopped on 2026-09-04 in favour
+implementation plans are executed**. **P4a is executed in full; P4b is unrun — 16
+tasks; P5 is unwritten.** Plan-writing stopped on 2026-09-04 in favour
 of execution; that hold is now discharged, and it was right — the three plans
 produced **152 defects between them** after all three had been self-reviewed, and
-P4a's first fourteen tasks have since produced **72 more**. That
-is also why a 17-task unrun stack is worth naming out loud rather than glossing. The maintained status record is the *Spike status*
+P4a's fifteen tasks have since produced **80 more**. That
+is also why a 16-task unrun stack is worth naming out loud rather than glossing. The maintained status record is the *Spike status*
 ledger in `docs/superpowers/plans/2026-08-29-plan-roadmap.md`; if any document
 disagrees with it, the ledger wins.
 

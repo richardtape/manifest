@@ -142,10 +142,12 @@
     </tbody>
   </table>
   </div>
-  <p class="tnote">The first four are done. S6 is no longer a separate exercise &mdash; it runs
-  as the acceptance test for the deployment work itself, so its findings shape that work rather
-  than arriving after it, and the security probes it produces become a permanent part of the test
-  suite. S5 follows S6, and S4 comes before stage 4.</p>
+  <p class="tnote">Five are done, and all five answered yes. S6 was not run as a separate
+  exercise &mdash; it ran as the acceptance test for the deployment work itself, so its findings
+  shaped that work rather than arriving after it, and the security probes it produced are now a
+  permanent part of the test suite: every one of them was refused, and every refusal was paired
+  with a check proving the probe would have worked had it been allowed. S5 follows S6, and S4
+  comes before stage 4.</p>
 </section>
 
 <section id="build">
@@ -188,7 +190,12 @@
         the temporary shortcut the early versions used &mdash; which could create a
         session for anyone, with no password &mdash; has been removed. Every database
         password an app uses is now encrypted in the platform's own store rather than
-        worked out from a formula. The AI half is what remains.</p>
+        worked out from a formula. <strong>And the proof application now exists</strong>: a
+        student signs in with a practice CWL account, writes a private note, and an instructor
+        signing in to the very same application cannot see it. That last sentence is the one
+        that matters &mdash; signing in only proves a login happened, and it is the note the
+        instructor cannot see that proves the application knows <em>who</em>. The AI half is
+        what remains.</p>
         <p class="q">Is the loop genuinely real, end to end?</p>
       </div>
     </div>

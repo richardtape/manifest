@@ -243,7 +243,7 @@ Recorded here because they are about *how to run this work*, and each was paid f
 | **P1** | 1a-i | Local substrate ✅ **EXECUTED 2026-09-05** | `make doctor` green offline; one name resolving correctly from host **and** container — **both demonstrated** |
 | **P2** | 1a-ii | Control-plane spine ✅ **EXECUTED 2026-09-05** — all 21 tasks | project → spec → release → staging deploy, against the fake driver, **~300 ms**, no Docker — **demonstrated** |
 | **P3** | 1a-iii | Docker driver & deploy spine ✅ **EXECUTED 2026-09-07** — all 19 tasks | fixture app healthy at a `manifest.internal` URL, from a bare repo, offline — **demonstrated**, and again from a dropped database and an emptied registry |
-| **P4a** | 1b-i | Identity, secrets & the §8 contract — **PART-EXECUTED: Tasks 1–14 of 15 are done and green (14 on 2026-09-09). Task 15 remains.** A real CWL login works end to end — through a row `sso/` renders and `deployRelease` now writes — `secrets/` holds every service credential, §20's audit log is append-only against a least-privilege role, §8's injection contract is ONE function with one producer, **`node-ts-mongo@1` — the blueprint faculty use — builds, deploys and issues a real AuthnRequest**, and **Manifest now logs its OWN users in with CWL: the dev shim is deleted** and `make demo` step 1 is a real three-hop SAML round trip | the proof app signing in with CWL and writing a note, via `curl` |
+| **P4a** | 1b-i | Identity, secrets & the §8 contract — **EXECUTED AND GREEN: all 15 tasks, 2026-09-09.** A real CWL login works end to end — through a row `sso/` renders and `deployRelease` writes — `secrets/` holds every service credential, §20's audit log is append-only against a least-privilege role, §8's injection contract is ONE function with one producer, **`node-ts-mongo@1` — the blueprint faculty use — builds, deploys and issues a real AuthnRequest**, **Manifest logs its OWN users in with CWL: the dev shim is deleted**, and **`make demo-identity` takes §16's proof app from a bare repository to a CWL sign-in in which the instructor cannot see the student's note** — including from a reset machine. **The offline run is outstanding and is Rich's** | ✅ the proof app signing in with CWL and writing a note, via `curl` |
 | **P4b** | 1b-ii | AI, events, streaming, incidents — **WRITTEN 2026-09-07**, 16 tasks, not yet executed. Written *before* P4a ran, on Rich's instruction, against the prior decision below; **its Task 1 is a reconciliation pass** against the executed P4a | the proof app's LLM answer |
 | **P5** | 1c | Contract & clients | the §1 journey, clickable, driven twice over one contract |
 | **P6–P11** | 2 | six plans, listed below, **not written yet** | — |
@@ -255,11 +255,12 @@ ran in three sittings — 1 and 9–11 on 2026-08-31, **2–8** and then **12–
 **P3 is EXECUTED and green — all 19 tasks, 2026-09-07.** The 2026-09-04 hold was
 then discharged and **P4 was split into P4a and P4b (Rich's call, 2026-09-07).**
 
-**P4a IS PART-EXECUTED: Tasks 1–14 are done and green (Task 14 on 2026-09-09), and
-Task 15 remains. Continuing P4a at Task 15 is the current work.** The remaining twelve
+**P4a IS EXECUTED AND GREEN: all 15 tasks, finished 2026-09-09. P4b — 16 tasks,
+written and unrun — is the current work, and its own Task 1 is a reconciliation pass
+against the executed P4a.** P4a's last twelve
 tasks were split into **seven sittings of one session each** on 2026-09-08 with Rich's
-approval, so a session limit cannot land mid-task — **1: 4–5 · 2: 6–7 · 3: 8–9 ·
-4: 10–11 · 5: 12–13 · 6: 14 · 7: 15** — and sittings 1 to 5 are done. *Sittings pace execution; they are
+approval, so a session limit could not land mid-task — **1: 4–5 · 2: 6–7 · 3: 8–9 ·
+4: 10–11 · 5: 12–13 · 6: 14 · 7: 15** — and all seven are done. *Sittings pace execution; they are
 not this document's product Phases.* Tasks 1–3 found
 **18 defects**, and the identity half of the platform now works for the first time: a
 real CWL login completes end to end, against an IdP that could not issue an assertion
@@ -489,7 +490,7 @@ testable software. Both halves do.
 
 | | Scope | Demo | State |
 |---|---|---|---|
-| **P4a** | The IdP finished, `secrets/` envelope encryption, `sso/` SP auto-provisioning, per-app keypairs, §8's injection contract and its drift test, `node-ts-mongo@1`'s auth half, Manifest's own CWL login (deleting the dev shim), the proof app's sign-in | the proof app: CWL sign-in and a per-user note, by `curl` — and the instructor cannot see the student's note | **PART-EXECUTED — Tasks 1–14 of 15 done and green (14 on 2026-09-09); Task 15 remains**, in seven agreed sittings, of which six are done. 72 defects so far, recorded per session in the plan's *What executing this plan found*. [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md) |
+| **P4a** | The IdP finished, `secrets/` envelope encryption, `sso/` SP auto-provisioning, per-app keypairs, §8's injection contract and its drift test, `node-ts-mongo@1`'s auth half, Manifest's own CWL login (deleting the dev shim), the proof app's sign-in | the proof app: CWL sign-in and a per-user note, by `curl` — and the instructor cannot see the student's note | ✅ **EXECUTED — all 15 tasks, green, 2026-09-09**, in seven agreed sittings. **80 defects**, recorded per session in the plan's *What executing this plan found*. The offline acceptance is outstanding and is Rich's to run. [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md) |
 | **P4b** | The LiteLLM client with `allowed_routes`, the classification-gated catalogue (D17), key lifecycle, the blueprint's AI wiring, `WS /projects/:id/events`, heuristic redaction, incidents | the proof app's LLM answer | **WRITTEN 2026-09-07**, 16 tasks, unrun. [`2026-09-07-p4b-ai-events-streaming-incidents.md`](./2026-09-07-p4b-ai-events-streaming-incidents.md). Writing it measured **ten more facts**, one of which is a §10 requirement that **cannot be implemented at LiteLLM 1.98.0** |
 
 **Six facts were measured on 2026-09-07 before P4a was written**, because no plan may
@@ -621,9 +622,9 @@ execution layer.** Each is written when its predecessor lands.
    (19 tasks, self-reviewed 2026-09-04).
 5. **Execute P1 → P2 → P3.** ✅ **All three are done.** P1 and P2 executed and green
    on 2026-09-05, P1 green offline too; **P3 finished 2026-09-07, all 19 tasks**. S6
-   ran as its Task 18 and has reported. **P4a is part-executed — Tasks 1–14 of 15
-   done, 14 on 2026-09-09 — and P4b is written and unrun. 17 tasks of written work
-   remain. Continue P4a at Task 15.**
+   ran as its Task 18 and has reported. **P4a is EXECUTED IN FULL — all 15 tasks,
+   2026-09-09 — and P4b is written and unrun. 16 tasks of written work remain.
+   Execute P4b next, starting with its own Task 1.**
 6. **Start the external track once the local proof of concept works end to end.**
    **Changed 2026-09-05, Rich's call.** This step previously said *"start now, in
    parallel"*, on the argument that C4 has the longest lead time and no software
@@ -632,12 +633,16 @@ execution layer.** Each is written when its predecessor lands.
    conversation with UBC IAM goes better with a working end-to-end demonstration
    behind it than with a design document. **Not a rush; not forgotten.** The
    trigger is the local PoC running end to end — P4's proof app: CWL login, a Mongo
-   write, an LLM answer. Until then, do not re-raise it.
+   write, an LLM answer. **Two of those three landed on 2026-09-09**, with P4a's
+   Task 15: `make demo-identity` signs a real person in with CWL and stores a
+   per-user note. The LLM answer is P4b's, so **the trigger is P4b's Task 16 and
+   not this one** — recorded here so a reader does not mistake a half-met trigger
+   for a missed one. Until then, do not re-raise it.
 7. **Write P4 once P3 has executed**, and P5 when P4 lands. **P4 was split into P4a
    and P4b on 2026-09-07 (Rich's call), and P4a is WRITTEN** —
    [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md),
-   15 tasks. **Tasks 1–14 are executed and green — 1–5 on 2026-09-08, 6–14 on
-   2026-09-09; Task 15 remains.** ← **CONTINUING P4a AT TASK 15 IS THE CURRENT WORK.**
+   15 tasks. **ALL 15 ARE EXECUTED AND GREEN — 1–5 on 2026-09-08, 6–15 on
+   2026-09-09.** ← **EXECUTING P4b IS NOW THE CURRENT WORK.**
    **P4b was then written on 2026-09-07 as well, at Rich's request** —
    [`2026-09-07-p4b-ai-events-streaming-incidents.md`](./2026-09-07-p4b-ai-events-streaming-incidents.md),
    16 tasks. **This departs from the decision recorded immediately below**, which

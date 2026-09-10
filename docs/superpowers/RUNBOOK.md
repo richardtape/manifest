@@ -40,7 +40,9 @@ make down      # stops everything, including the profiled builder
 Plus `make doctor` (*can this machine run the platform?* — works with nothing up) and
 `make verify` (*is the running platform correct?* — needs `make up` first).
 
-And `make demo` — P3's acceptance, described below.
+And two acceptances: `make demo` (P3's — an app, from a bare repository to a URL) and
+`make demo-identity` (P4a's — a real person, signed in with CWL, whose note nobody
+else can see). Both are described below, and both need the control plane running.
 
 ## `make demo` — an app, from a bare repository to a URL
 
@@ -207,6 +209,41 @@ make verify` via `scripts/offline-acceptance.sh`:
 Machine: macOS 26.6.2 (arm64), Docker Engine 29.7.2, Docker Compose v5.4.0,
 Node 24.12.0, Ollama 0.33.3.
 
+## `make demo-identity` — a real person, and data that stays theirs
+
+*Added by P4a Task 15. First run green 2026-09-09, including from a `make reset`
+machine.*
+
+P3's `make demo` proves the platform can deploy an application. This one proves the
+application knows **who** is using it. Same requirements: `make up`, the control plane
+running, and a boot line saying `{"driver":"docker"}`.
+
+```bash
+make up
+# ... start the control plane in another terminal, per README ...
+make demo-identity
+```
+
+Nine steps: log in to **Manifest itself** with CWL (§9 — Manifest is its own Service
+Provider) · create the project · push `fixtures/proof-app` **over `node-ts-mongo@1`'s
+skeleton**, the way an agent generates an application · validate · build, release,
+deploy to staging · **sign in to the deployed app as `student`**, through the edge,
+over TLS with the platform CA · write a note and read it back · **sign in as
+`instructor` and do not show them the student's note** · and confirm `GET /api/ai`
+answers 501, because the LLM half is P4b's.
+
+**Step 8 is the whole point.** Steps 6 and 7 prove a login happened; only step 8 proves
+the app can tell two people apart. It is checked in both directions — neither person
+sees the other's note, and each reads back their own — because "the note is absent" is
+also true of an application that returns nothing to anybody.
+
+It is **re-runnable**: it reuses its project and makes each run's notes unique. Run it
+twice. A first run that passes and a second that fails is a state leak, and that is
+exactly what its own first version had.
+
+`fixtures/proof-app/README.md` carries the attribute justifications UBC IAM will ask
+for — `givenName` and `sn` are the two that are not pre-authorized.
+
 ## Known gaps
 
 **The second-machine test has NOT been run.** *Recorded 2026-09-05.* No second
@@ -219,7 +256,36 @@ Valet owns `.test`, port 53 and ports 80/443, and that collision is why the zone
 `manifest.internal` and why the edge binds `127.0.0.2`. A machine without Valet
 would only test the easy path.
 
-Two smaller things this execution did not settle:
+**Two things P4a Task 15 left open, both named rather than glossed.**
+
+- **THE OFFLINE ACCEPTANCE OF `make demo-identity` HAS NOT BEEN RUN.** *Recorded
+  2026-09-09.* It is Rich's to run, because turning the network off from an agent's
+  tool call cuts the agent off too. `scripts/offline-acceptance.sh` gained a step 6
+  that runs it, and it is **the step most likely to need a route out**: it builds an
+  image from `node-ts-mongo@1`'s five app-side dependencies through Verdaccio *and*
+  completes a full SAML round trip. It needs the control plane running and reports
+  SKIPPED rather than failing when it is not — **and a skipped acceptance is not a
+  passed one.** Everything else about Task 15 is evidenced, including a run from a
+  `make reset` machine.
+- **Every redeploy leaves the PREVIOUS release's container running.** *Measured
+  2026-09-09:* eleven deploys of one app in one session produced eleven
+  `mf-proof-app-staging-*-app` containers, all `Up` and healthy, each holding its full
+  cpu/memory/pids allocation, with only one carrying the route. `deployRelease` calls
+  `ensureInstance` and nothing destroys what the last release left. **Reaping belongs
+  to §11's reconciliation loop, which is Phase 4 (D10)**, so this is a gap rather than
+  a regression — but nothing bounds it, and a long session of redeploys will eat the
+  Docker VM's 8 GB. **Workaround**, and it removes anonymous volumes with the
+  containers:
+
+  ```bash
+  # Every mf- app container EXCEPT the one the route points at. Check first:
+  docker ps --format '{{.Names}}' | grep -- '-app$'
+  docker rm -f -v <the older ones>
+  ```
+
+  `make reset` clears them all, at the cost of every project's data.
+
+Two smaller things P1's execution did not settle:
 
 - ~~`make host-undo` has never been run end to end.~~ **Run and verified
   2026-09-05.** All three changes reversed cleanly — `/etc/resolver/manifest.internal`

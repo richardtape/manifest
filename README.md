@@ -31,7 +31,7 @@ and a Fastify surface with D23.6 idempotency keys and the D23.7 error envelope o
 every failure. The whole faculty lifecycle — project, spec, build, release, staging
 deploy to healthy, production correctly refused with its §13 checklist — runs against
 the fake driver in **~300 ms**, and against **real Docker** through `make demo`.
-**521 tests with no Docker, and 116 more that need a daemon.** See
+**525 tests with no Docker, and 116 more that need a daemon.** See
 [*Running the control plane*](#running-the-control-plane) below.
 
 The design is approved and complete.
@@ -47,8 +47,8 @@ local substrate (13 tasks), P2, the control-plane spine (21 tasks), and P3, the
 Docker driver and deploy spine (19 tasks, **finished 2026-09-07**). `make demo` takes
 an application from a bare git repository to a healthy
 `https://fixture-app.staging.manifest.internal` — and does it again from a dropped
-database, a deleted repository root and an emptied registry. **P4a is part-executed —
-Tasks 1–14 of 15 are done and green (14 on 2026-09-09): a real CWL login works end to
+database, a deleted repository root and an emptied registry. **P4a IS EXECUTED IN FULL —
+all 15 tasks, green, 2026-09-09: a real CWL login works end to
 end — through a Service Provider registration the control plane derives, writes and now
 calls from `deployRelease` — every service credential is envelope-encrypted in Postgres
 rather than derived, §20's audit log is append-only by grant against a
@@ -60,8 +60,12 @@ tier asserting §8's table against the blueprint's own source. **Since Task 14 M
 logs its OWN users in with CWL too** — §9's first sentence is that Manifest is itself an
 SP — through a registration the control plane writes at its own boot, and
 `POST /auth/dev-login`, an unauthenticated route that minted real sessions, is deleted.
-Continuing P4a at Task 15 is the current work**, in seven agreed sittings of one session each, six of them done. P4b is written and unrun;
-P5 is unwritten. On
+And since Task 15, **`make demo-identity` takes §16's proof app from a bare repository
+to a real CWL sign-in in which the instructor cannot see the student's note** — the
+acceptance is not that a login happened, it is that the application knows who. It ran
+green from a `make reset` machine; the offline run is outstanding and is Rich's.
+Executing P4b is the current work**, starting at its own Task 1, which reconciles it
+against the P4a that has now run. P5 is unwritten. On
 2026-09-04 the project stopped writing plans and started executing them, and that
 hold is now discharged.
 
@@ -71,9 +75,9 @@ contract, 15 tasks — takes the proof app from a bare repository to a real CWL 
 answer from a language model. **Execute P4a first**: P4b was written ahead of P4a's
 execution and its own Task 1 is a reconciliation pass against the executed P4a.
 Writing P4a found **four live defects the green gates could not see**, including that
-the Manifest IdP could not issue a SAML assertion at all — and **executing its first
-eleven tasks found 53 more**, including that the IdP could not authenticate
-anybody either, and that §12's dependency-scan gate blocked **every** CWL application
+the Manifest IdP could not issue a SAML assertion at all — and **executing all
+fifteen found 80 more — 5.3 per task, the highest rate measured here**, including that
+the IdP could not authenticate anybody either, and that §12's dependency-scan gate blocked **every** CWL application
 because `passport-ubcshib` depends on a deprecated library with an unfixable critical
 advisory. Rich settled that on 2026-09-08: the gate blocks on findings that have a
 published fix. Writing P4b found that
@@ -97,7 +101,7 @@ succeeded** and that D13's npm-mirror control was completely inert. Session 5 fo
 that **no deploy had ever succeeded either** — seven separate defects of a single
 shape, *the test constructs the value correctly and the running system re-derives it
 wrongly* — every one of them green behind a suite of 74 passing Docker tests.
-**Continuing P4a at Task 15 is the current work.**
+**P4a is finished — all 15 tasks, 2026-09-09. Executing P4b is the current work.**
 
 ## Where to start
 
@@ -111,8 +115,8 @@ this machine will do to you, and what to do next. Then:
 | Understanding what the Docker half does | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md`](docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md) — all 19 tasks executed. Read its *What executing this plan found*, Sessions 4 and 5 |
 | Running the control plane | [*Running the control plane*](#running-the-control-plane) below — `make up`, then `pnpm --filter @manifest/control-plane dev` |
 | Executing any plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan — fix it there |
-| **Continuing P4a at Task 15 — the current job** | ORIENTATION §7d, then [`docs/superpowers/plans/2026-09-07-p4a-identity-secrets-injection.md`](docs/superpowers/plans/2026-09-07-p4a-identity-secrets-injection.md), 15 tasks, **1–14 executed, 14 on 2026-09-09**, the rest in seven agreed sittings. Read P4a's own *What executing this plan found* first — Sessions 1 to 8b, 72 defects — then P3's Sessions 4 and 5. **Do not start P4b**: it is written, and its own first task reconciles it against a P4a that has already run |
-| Seeing the platform actually work | `make demo`, after `make up` and starting the control plane. [`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) has the nine steps it runs and the offline control |
+| **Executing P4b — the current job** | ORIENTATION §7d-2, then [`docs/superpowers/plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](docs/superpowers/plans/2026-09-07-p4b-ai-events-streaming-incidents.md), 16 tasks, none executed. **Start at its Task 1**, which reconciles it against the P4a that has now run. Read P4a's own *What executing this plan found* first — Sessions 1 to 9, **80 defects** — then P3's Sessions 4 and 5 |
+| Seeing the platform actually work | `make demo` (an app, from a bare repository to a URL) and **`make demo-identity`** (a real CWL sign-in whose note nobody else can see), after `make up` and starting the control plane. [`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) has both, step by step |
 | Looking for what a spike proved | `docs/superpowers/spikes/S{7,2,1,3,6}-findings.md` — the answer is the first sentence of each |
 | Looking for the architecture | [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](docs/superpowers/specs/2026-08-29-manifest-platform-design.md) — authoritative, ~2,340 lines. ORIENTATION §3 tells you which sections you actually need |
 | Explaining this to someone non-technical | [`manifest-schematic.html`](docs/superpowers/specs/manifest-schematic.html) and its companions — the same design in plain language, plus six worked faculty stories |
