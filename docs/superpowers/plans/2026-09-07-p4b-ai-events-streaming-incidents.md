@@ -355,7 +355,7 @@ Each row is one `grep`. Record the actual signature next to the expected one; wh
 | `InjectionContext` — does it take `spec`, `resolved`, or both? | `grep -n -A 12 'interface InjectionContext' packages/control-plane/src/spec/injection.ts` | **Ambiguity 1**, below |
 | `recordEvent(db, input, redactor)` and `EVENT_TYPES` in `src/observability/events.ts` | `grep -n 'export function recordEvent\|EVENT_TYPES' packages/control-plane/src/observability/events.ts` | Tasks 10, 12, 14 |
 | `makeRedactor(secretValues)` in `src/observability/redact.ts` | `grep -n 'export function makeRedactor' packages/control-plane/src/observability/redact.ts` | Task 11 |
-| The `events` table and its `manifest_audit_owner` grant | `docker exec manifest-postgres psql -U manifest -d manifest_control -c '\dp events'` — **not a host `psql`**, which this machine may not have | Tasks 11, 13, 15 |
+| **`audit.events`** — its own SCHEMA, granted `SELECT, INSERT` to **`manifest_app`**. There is no `manifest_audit_owner` role and no `REVOKE` | `docker exec manifest-postgres psql -U manifest -d manifest_control -c '\dp audit.events'` — **not a host `psql`**, which this machine may not have, and **not `\dp events`**, which searches `public`, finds nothing and reads as "the table is missing" | Tasks 11, 13, 15 — **all three were wrong and are now corrected** |
 | `putSecret` / `getSecret` / `secretValuesFor` in `src/secrets/store.ts` | `grep -n 'export async function putSecret\|secretValuesFor' packages/control-plane/src/secrets/store.ts` | Tasks 6, 11 |
 | `deployRelease(db, driver, config, deps, input, healthWait?)` — the **deps** parameter | `grep -n -A 8 'export async function deployRelease' packages/control-plane/src/releases/release.ts` | Tasks 6, 8, 13 |
 | `ServerDeps` — which fields P4a added | `grep -n -A 12 'export interface ServerDeps' packages/control-plane/src/api/server.ts` | Tasks 5, 13 |
@@ -374,9 +374,9 @@ left for its executor — which is what ORIENTATION means by *"self-contained by
 construction; if it is not, that is a defect in the plan, so fix it there."* **Read
 the code and confirm the executor kept them**, because a task may have moved one:
 
-1. **`InjectionContext` is fully typed** in P4a's Task 10 Interfaces, including `spec: ManifestSpec` and `resolved: ResolvedConfig`. **Decision 6 adds `resolved.ai` and moves the AI read to it**, so Task 9 changes which of the two the AI rows come from — and nothing else about the shape.
-2. **`parsedSpec` is the release's own AppSpec row**, loaded in `deployRelease` via `release.appSpecId`, never re-parsed from the repository. P4a's Task 11 Step 3 now shows the load and says why (§13: a Release is immutable). Task 9 depends on that being true.
-3. **`recordEvent`'s redactor is a parameter**, built per call from `makeRedactor(await secretValuesFor(db, { projectId, environmentKind }, keys))`. P4a's Task 8 Step 5 now states it. **Task 15's `publishEvent` keeps it a parameter** — a bound redactor is a `recordEvent` that can write an unredacted row when the binding is wrong.
+1. ~~**`InjectionContext` is fully typed**, including `spec: ManifestSpec` and `resolved: ResolvedConfig`.~~ **CORRECTED 2026-09-09: `InjectionContext` HAS NO `spec` FIELD.** Its eight fields are `resolved`, `environmentKind`, `hostname`, `projectSlug`, `idp`, `spEntity?`, `secrets`, `services`. P4a went further than Decision 6 anticipated: rather than adding `resolved.ai` *beside* a `spec`, it removed the `spec` entirely, because §13 freezes the config at release time and reading `app_specs.parsed` back out is a second source of truth — the defect shape P3 paid for seven times (P4a Session 6, defect 48). **Task 9's code is already right** — it reads `resolved.ai` throughout — so this corrects the prose, not the task.
+2. ~~**`parsedSpec` is the release's own AppSpec row**, loaded in `deployRelease` via `release.appSpecId`.~~ **CORRECTED 2026-09-09: `deployRelease` NEVER LOADS THE AppSpec ROW.** `appSpecs` is not queried anywhere in `releases/release.ts`; `appSpecId` is written when a Release is created and never read back. Same root cause as item 1 — the renderer reads only the frozen config. **A P4b task that adds a `parsedSpec` load would be reintroducing the second producer P4a deleted.**
+3. **`recordEvent`'s redactor is a parameter** — confirmed: `recordEvent(db: Db, input: EventInput, redact: Redactor)`. **One correction to the line below it:** `secretValuesFor` returns `Promise<Map<string, string>>` and `makeRedactor` takes `Iterable<string>`, so the call is `makeRedactor((await secretValuesFor(db, { projectId, environmentKind }, keys)).values())` — **`.values()` is not optional.** A `Map` is iterable, but it yields `[key, value]` pairs, so omitting it builds a redactor over arrays rather than secrets. `sso/registration.ts:97` is the working call site to copy. **Task 15's `publishEvent` keeps it a parameter** — a bound redactor is a `recordEvent` that can write an unredacted row when the binding is wrong.
 
 - [ ] **Step 4: Write down what moved**
 
@@ -2124,10 +2124,12 @@ describe('build logs', () => {
   })
 
   it('is append-only by GRANT, like events', async () => {
-    // Section 20's rule applied to the other thing a faculty member is shown.
-    // The table is owned by manifest_audit_owner, which P4a created, and the
-    // application role is granted SELECT and INSERT only. A REVOKE against an
-    // owner is a no-op that reads exactly like a control.
+    // §20's rule applied to the other thing a faculty member is shown.
+    // The table is in the `audit` SCHEMA and `manifest_app` — the least-
+    // privilege role the control plane and this suite both connect as — is
+    // granted SELECT and INSERT only. There is no owner transfer and no
+    // REVOKE: a REVOKE against a SUPERUSER is a no-op that reads exactly like
+    // a control, which P4a measured before rebuilding the role model.
     await withRollback(async (db, { buildId }) => {
       await appendBuildLog(db, buildId, [{ at: new Date(), stream: 'stdout', text: 'x' }], (v) => v)
       await expect(db.execute(sql`UPDATE build_logs SET text = 'y'`)).rejects.toThrow(/permission denied/i)
@@ -2169,8 +2171,15 @@ it('reports build progress through onLog BEFORE it resolves', async () => {
 - [ ] **Step 3: The migration**
 
 ```sql
-CREATE TABLE build_logs (
-  build_id uuid NOT NULL REFERENCES builds(id) ON DELETE CASCADE,
+CREATE TABLE "audit"."build_logs" (
+  -- ON DELETE RESTRICT, not CASCADE. CORRECTED 2026-09-09 by Task 1: a
+  -- referential action runs with the REFERENCED table's privileges, so a
+  -- cascade here lets the application delete rows from a table it holds only
+  -- SELECT and INSERT on, simply by deleting the build. That is the
+  -- append-only grant bypassed through the front door, and it is the hole P4a
+  -- closed on `audit.events` for exactly this reason (its FK is `restrict`,
+  -- measured live: `confdeltype = 'r'`).
+  build_id uuid NOT NULL REFERENCES builds(id) ON DELETE RESTRICT,
   seq      integer NOT NULL,
   at       timestamptz NOT NULL DEFAULT now(),
   stream   text NOT NULL CHECK (stream IN ('stdout','stderr')),
@@ -2178,17 +2187,27 @@ CREATE TABLE build_logs (
   PRIMARY KEY (build_id, seq)
 );
 
--- Section 20's append-only rule, and the same trap P4a's self-review caught on
--- `events`: REVOKE against the OWNER of a table does nothing, because an owner's
--- privileges cannot be revoked from itself. Ownership moves first, and
--- manifest_audit_owner already exists from P4a's 0001 migration.
-ALTER TABLE build_logs OWNER TO manifest_audit_owner;
-REVOKE ALL ON build_logs FROM manifest;
-GRANT SELECT, INSERT ON build_logs TO manifest;
+-- §20's append-only rule. CORRECTED 2026-09-09 by Task 1: this said
+-- `ALTER TABLE build_logs OWNER TO manifest_audit_owner; REVOKE ALL ... FROM
+-- manifest; GRANT SELECT, INSERT ... TO manifest`, and every line of it was
+-- wrong. **There is no `manifest_audit_owner` role** — P4a did not create one,
+-- so the migration would have failed on its first statement. And the grants
+-- named `manifest`, which is POSTGRES_USER and therefore a SUPERUSER: a
+-- superuser bypasses every privilege check, so that REVOKE is the no-op that
+-- reads exactly like a control and does nothing. P4a MEASURED it — `REVOKE
+-- UPDATE, DELETE` followed by `UPDATE 1`, `DELETE 1` — and rebuilt the role
+-- model rather than ship it.
+--
+-- What P4a actually shipped (migration 0004) is what this follows: the table
+-- lives in the `audit` SCHEMA, no ownership moves, there is nothing to revoke,
+-- and the application role is granted exactly two verbs. Every blanket grant in
+-- this database is scoped `IN SCHEMA public`, so nothing reaches `audit` by
+-- accident. `GRANT USAGE ON SCHEMA audit TO manifest_app` is already in place.
+GRANT SELECT, INSERT ON "audit"."build_logs" TO manifest_app;
 
 -- The tail query is `ORDER BY seq DESC LIMIT n`, and it runs while a build is
 -- still writing. Without this the plan is a sort of the whole build.
-CREATE INDEX build_logs_tail_idx ON build_logs (build_id, seq DESC);
+CREATE INDEX build_logs_tail_idx ON "audit"."build_logs" (build_id, seq DESC);
 ```
 
 - [ ] **Step 4: Make the builder stream**
@@ -2486,9 +2505,11 @@ describe('describeDiff', () => {
 - [ ] **Step 3: The migration and the table**
 
 ```sql
-CREATE TABLE incidents (
+CREATE TABLE "audit"."incidents" (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  instance_id         uuid NOT NULL REFERENCES instances(id) ON DELETE CASCADE,
+  -- RESTRICT, for the reason `audit.build_logs` records: a cascade runs with
+  -- the referenced table's privileges and erases an append-only table.
+  instance_id         uuid NOT NULL REFERENCES instances(id) ON DELETE RESTRICT,
   exit_reason         text NOT NULL,
   log_tail            text NOT NULL,
   failed_check        text NOT NULL,
@@ -2496,12 +2517,15 @@ CREATE TABLE incidents (
   created_at          timestamptz NOT NULL DEFAULT now()
 );
 
--- Append-only, like events and build_logs, and for the same reason: an incident
--- is what an app's owner is shown about a failure, and a record that can be
--- edited after the fact is not a record (section 20).
-ALTER TABLE incidents OWNER TO manifest_audit_owner;
-REVOKE ALL ON incidents FROM manifest;
-GRANT SELECT, INSERT ON incidents TO manifest;
+-- Append-only, like `audit.events` and `audit.build_logs`, and for the same
+-- reason: an incident is what an app's owner is shown about a failure, and a
+-- record that can be edited after the fact is not a record (§20).
+--
+-- CORRECTED 2026-09-09 by Task 1, for the reason Task 11's migration records at
+-- length: `manifest_audit_owner` does not exist, and a grant naming `manifest`
+-- constrains a superuser, which constrains nothing. The table goes in the
+-- `audit` schema, like `audit.events` and `audit.build_logs`.
+GRANT SELECT, INSERT ON "audit"."incidents" TO manifest_app;
 ```
 
 **Every column is `NOT NULL`.** `diff_since_healthy` carries the sentence about there never having been a healthy release rather than a null; a nullable column here becomes an empty panel in a UI and reads as "nothing changed".
@@ -3154,7 +3178,64 @@ every other Manifest app."
 ---
 ## What executing this plan found
 
-*Empty until it runs.* Task 1 Step 4 writes the reconciliation record here first — one line per P4a divergence, in the form *"P4a's X is actually Y; Task N edited."* **An empty reconciliation list is a valid answer and is itself worth recording**: it would be the first time in this project a plan reconciled clean.
+### Sitting 1, Task 1 — the reconciliation pass (2026-09-09). 6 divergences, 2 of them fatal and 1 a live hole in §20.
+
+**It did not reconcile clean.** Eighteen checklist rows, plus the three places P4a was
+ambiguous. Thirteen rows landed exactly as promised; six things did not — **two would
+have failed a migration on its first statement, and one would have shipped a working
+migration with §20's append-only control quietly bypassable.**
+
+**The one to read is divergence 2.** P4b was written against a §20 design that P4a
+*measured and rejected during execution*, and it carried that design into two real
+`CREATE TABLE` blocks. Nothing about it looks wrong on the page — it is P4a's own
+self-review reasoning, quoted almost verbatim — which is exactly why the checklist is a
+`grep` against the running database rather than a re-read of the plan.
+
+| # | P4a's X is actually Y | Edited |
+|---|---|---|
+| 1 | **`InjectionContext` has NO `spec` field.** Step 3 said it was "fully typed… including `spec: ManifestSpec` and `resolved: ResolvedConfig`", and Decision 6 assumed the AI read would move *between the two*. P4a went further: it removed `spec` outright, because §13 freezes the config at release time and reading `app_specs.parsed` back out is a second source of truth — P3's most expensive shape, seven times over. Its eight fields are `resolved`, `environmentKind`, `hostname`, `projectSlug`, `idp`, `spEntity?`, `secrets`, `services`. **Task 9's code was already right** (it reads `resolved.ai` throughout); only the prose was stale | Task 1 Step 3 |
+| 2 | **THERE IS NO `manifest_audit_owner` ROLE, and §20's control is a SCHEMA.** `grep -rn manifest_audit_owner packages/ infra/` returns nothing. P4a's migration 0004 creates an `audit` schema, puts `events` in it, transfers no ownership and issues **no `REVOKE`** — because there is nothing to revoke: every blanket grant in this database is scoped `IN SCHEMA public`, so nothing reaches `audit` by accident. The whole control is `GRANT USAGE ON SCHEMA audit` + `GRANT SELECT, INSERT ON audit.events`, to **`manifest_app`**. **P4b's Tasks 11 and 13 each did `ALTER TABLE … OWNER TO manifest_audit_owner; REVOKE ALL … FROM manifest; GRANT … TO manifest`** — which fails on statement one for a role that does not exist, and whose grants name `manifest`, a SUPERUSER whose privileges cannot be constrained at all. **That is the exact no-op P4a measured** (`REVOKE UPDATE, DELETE`, then `UPDATE 1`, `DELETE 1`) before rebuilding the role model to make §20 implementable. Both migrations are rewritten to 0004's pattern | Tasks 11, 13 |
+| 3 | **The checklist's own command was wrong.** `\dp events` searches `public`, so it returns nothing against a table that is in `audit` — **a check that reads as "the table is missing" when the table is fine.** Now `\dp audit.events`. Measured: `manifest=arwdDxt/manifest`, `manifest_app=ar/manifest` — `ar` is SELECT and INSERT, and that is §20 | Task 1 Step 2 |
+| 4 | **`deployRelease` NEVER LOADS THE AppSpec ROW.** Step 3 said `parsedSpec` was "loaded in `deployRelease` via `release.appSpecId`". `appSpecs` is not queried anywhere in `releases/release.ts`; `appSpecId` is written when a Release is created and never read back. Same root cause as divergence 1 — and **a P4b task that adds such a load would be reintroducing the producer P4a deleted** | Task 1 Step 3 |
+| 6 | **Both new audit tables used `ON DELETE CASCADE`, which bypasses the append-only grant.** A referential action runs with the **referenced** table's privileges, so `DELETE FROM builds` would have deleted rows from `audit.build_logs` — a table the application holds only `SELECT, INSERT` on — and `DELETE FROM instances` the same for `audit.incidents`. **§20's control, defeated through the front door.** P4a closed exactly this on `audit.events`, whose FK is `restrict`; measured live, `confdeltype = 'r'`. Both are now `ON DELETE RESTRICT` | Tasks 11, 13 |
+| 5 | **`makeRedactor(await secretValuesFor(…))` is missing `.values()`.** `secretValuesFor` returns `Promise<Map<string, string>>`; `makeRedactor` takes `Iterable<string>`. A `Map` *is* iterable — it yields `[key, value]` pairs — so the line as written builds a redactor over arrays rather than secrets, and every needle silently stops matching. `sso/registration.ts:97` is the working call site | Task 1 Step 3 |
+
+**Thirteen rows landed exactly as promised**, and they are worth naming so the next
+reader does not re-check them: `renderInjection` / `INJECTION_VARIABLES`;
+`INJECTION_AI_UNSUPPORTED` (present at `injection.ts:263`, Task 8 deletes it); the six
+AI rows with `requiredIn: 'if-ai'`; `recordEvent(db, input, redact)` and `EVENT_TYPES`;
+`makeRedactor(secretValues: Iterable<string>)`; `putSecret` / `getSecret` /
+`secretValuesFor`; `deployRelease(db, driver, config, deps, input, healthWait?)`;
+`testSessionCookie(user, secret)`; `provides.ai: false`; the drift test's `fullContext()`
+with `ALLOWED_UNSET` and `PLATFORM_ONLY` both **empty**; the seed warming from
+`blueprints/*/skeleton/package.json` and `fixtures/*/package.json`; the proof app's 501
+AI stub; and `make demo-identity`. **`POST /auth/dev-login` is gone** — the only
+surviving mention is `api/auth.test.ts:329`, which is the negative control asserting its
+absence.
+
+**Two shapes recorded rather than edited**, because they are additions P4b makes rather
+than assumptions it got wrong:
+
+- **`DeployDeps` has four fields** — `secrets`, `appSecrets`, `sso`, `blueprints` — and
+  **`ServerDeps` has nine**, including `samlSp`, which P4a's Task 14 added. Tasks 5, 6,
+  8 and 13 add to both; neither is the three-field object the plan was drafted against.
+- **Any new migration must be its own file.** drizzle-kit keeps a journal and an applied
+  migration is never re-run, so Tasks 11 and 13 write `0005_*.sql` and `0006_*.sql`
+  rather than extending 0004. Not a divergence — a platform fact P4b never states, and
+  it is cheap here.
+
+**The four items in *What sitting 1 must reconcile* are confirmed**, having been found
+while agreeing the sitting split: `fixtures/proof-app/` has no `package.json` or
+`package-lock.json` (the seed's `[ -f "$manifest" ] || continue` skips it cleanly, and
+its dependencies are warmed through the blueprint skeleton instead), `endUserId` exists
+in `fixtures/proof-app/identity.js`, `idp_login` is one shared function in
+`infra/lib/idp-login.sh`, and `scripts/offline-acceptance.sh` already has a step 6.
+
+**Gates at the start of the sitting**, which is Step 1's answer: `make doctor` **17/0**,
+`make verify` **47/0**, `pnpm test` **525** (56 files), `pnpm test:docker` **116**
+(22 files), lint / typecheck / `format:check` clean, and both acceptances green —
+`make demo` and `make demo-identity`, the latter also from a `make reset` machine.
+P4a is executed and green, so Task 1's stop condition did not fire.
 
 Then one section per sitting, in P3's format: the tasks executed, the defects found with the measurement that found each, and the gate numbers at the end. The measured rate across P1, P2 and P3 is 1.4 → 2.7 → 4.3 defects per task and it never fell with practice.
 
