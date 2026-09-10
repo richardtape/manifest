@@ -1339,7 +1339,7 @@ table is at the top of the plan**, which is the maintained copy; this is the sha
 
 | Sitting | Tasks | |
 |---|---|---|
-| **1 ← next** | **1–2** | the reconciliation pass, and LiteLLM pinned by digest |
+| **1 ← half done** | **1 ✅ · 2 ← next** | the reconciliation pass (**done 2026-09-09 — six divergences, two fatal to a migration**), and LiteLLM pinned by digest |
 | 2 | 3 | §16's AI-path regression tier, before any `ai/` module exists |
 | 3 | 4–5 | `ai/errors.ts`, then the transport that uses it |
 | 4 | 6–7 | the catalogue and the key minter |
@@ -1361,9 +1361,16 @@ re-cut — **Task 16 stays alone, and Tasks 14 and 15 stay together**, because T
 is what makes the stream carry anything and a stream with no publisher sits green for
 a whole session.
 
-**Sitting 1 has four things to reconcile that the plan could not know**, because P4a's
-Task 15 ran two days after P4b was written. They are listed in the plan under *What
-sitting 1 must reconcile*: `fixtures/proof-app/package.json` and `package-lock.json`
+**Task 1 has run (2026-09-09) and found SIX divergences** — the record is in P4b's
+*What executing this plan found*, and the two worth knowing before Task 11 are that
+**`manifest_audit_owner` does not exist** (P4b's Tasks 11 and 13 both did DDL against
+it, so both migrations would have failed on their first statement) and that both new
+audit tables used **`ON DELETE CASCADE`**, which bypasses §20's append-only grant
+because a referential action runs with the referenced table's privileges. Both are
+corrected in the plan. **Task 2 is next.**
+
+The four items it also confirmed, which the plan could not know because P4a's
+Task 15 ran two days after P4b was written, are under *What sitting 1 must reconcile*: `fixtures/proof-app/package.json` and `package-lock.json`
 **do not exist** (Task 16's *Files* block modifies both), `endUserId` already exists in
 `fixtures/proof-app/identity.js` and must be passed through rather than recomputed, the
 three-hop login is one shared function in `infra/lib/idp-login.sh` that `demo-ai.sh`
