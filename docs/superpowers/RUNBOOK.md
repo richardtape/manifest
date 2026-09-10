@@ -58,7 +58,9 @@ make up
 make demo
 ```
 
-Nine steps: log in with the dev shim · create the project (three environments and a
+Nine steps: **log in with CWL — a real three-hop SAML round trip against the Manifest
+IdP, as `instructor`/`instructor`** (the dev shim it used to call is deleted) · create
+the project (three environments and a
 provisioned bare repository) · push `fixtures/fixture-app` into that repository with
 a `manifest.yaml` declaring a Mongo · validate the manifest at that commit · build
 (blueprint Dockerfile, egress-free builder, npm mirror, SBOM and scan, digest) ·
@@ -178,7 +180,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` �
 
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
-and the current numbers are **`make doctor` 17 / 0 and `make verify` 46 / 0**
+and the current numbers are **`make doctor` 17 / 0 and `make verify` 47 / 0**
 (re-measured 2026-09-09). ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because

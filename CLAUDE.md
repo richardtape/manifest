@@ -9,7 +9,7 @@ plan queue, and the conventions below in full. Everything here is the short vers
 
 **P1 is executed and green (2026-09-05). The platform runs.**
 `make seed && make host-setup && make up` brings up the whole §21 inventory;
-`make doctor` is now **17 checks / 0 failed** and `make verify` **46 / 0**,
+`make doctor` is now **17 checks / 0 failed** and `make verify` **47 / 0**,
 and both were green offline when P1 was executed. Start from [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md),
 not the plan. The three host changes are in place and all reverse with
 `make host-undo`. **Untested: the second-machine clean clone** — no second Mac was
@@ -48,13 +48,11 @@ check that every app failed, because BusyBox `wget` honours `http_proxy` and ign
 `NO_PROXY`, so D18's forced proxy denied each app's probe of its own loopback. **All
 of it was green in a suite of 74 passing Docker tests.**
 
-**P4a is PART-EXECUTED: Tasks 1–13 of 15 are green (12–13 on 2026-09-09); Tasks 14–15
-remain, and continuing at Task 14 is the current work** — ORIENTATION §7d, which
+**P4a is PART-EXECUTED: Tasks 1–14 of 15 are green (14 on 2026-09-09); Task 15
+remains, and continuing at Task 15 is the current work** — ORIENTATION §7d, which
 carries the table. The rest runs in **seven agreed SITTINGS, one per session with a
-check-in at each boundary**, so a session limit cannot land mid-task: sittings 1 to 5
-are done, so **sitting 6 is Task 14 alone** (Manifest's own CWL login and the end of
-the dev shim — it reddens most of the API suite at once), then **sitting 7 is Task 15
-alone** (the proof app and P4a's acceptance). *Sittings pace the work; they are not §17's product Phases.*
+check-in at each boundary**, so a session limit cannot land mid-task: sittings 1 to 6
+are done, so **sitting 7 is Task 15 alone** (the proof app and P4a's acceptance). *Sittings pace the work; they are not §17's product Phases.*
 **A real CWL login now works end to end**, which it could not before: the IdP could
 neither issue an assertion nor authenticate anybody, with `make verify` green
 throughout — and since Task 7 that login runs through a Service Provider registration
@@ -65,14 +63,20 @@ producer** — `spec/injection.ts` — and `MONGODB_DB_NAME` reaches a deployed 
 for the first time, measured on the running platform. **Since Task 12
 `node-ts-mongo@1` exists** — the blueprint faculty applications are generated from —
 built, deployed and made to issue a real AuthnRequest, with **Task 13's drift tier
-reading its source** rather than a second hand-maintained list. `make verify` is
-**46 / 0**, `pnpm test` **508**, `pnpm test:docker` **114**. `secrets/` now holds every service credential — libsodium envelope
+reading its source** rather than a second hand-maintained list. **Since Task 14 Manifest logs its OWN users in with CWL** — §9's first sentence is that
+Manifest is itself an SP — through a registration the control plane writes at its own
+boot, and `POST /auth/dev-login`, an unauthenticated route that minted real sessions,
+is deleted along with `MANIFEST_DEV_AUTH`; the control plane's SAML client is
+`@node-saml/node-saml`, **not** the `passport-saml` the blueprint pins, because that
+one carries an unfixable critical signature-verification advisory and nothing in this
+platform scans the control plane's own dependency tree. `make verify` is
+**47 / 0**, `pnpm test` **516**, `pnpm test:docker` **116**. `secrets/` now holds every service credential — libsodium envelope
 encryption in Postgres, replacing P3's HMAC derivation, migrated without breaking a
 running database — and §20's `audit.events` is append-only **by grant**, which needed
 the control plane to stop connecting as a superuser before it could mean anything:
 `REVOKE UPDATE, DELETE` followed by `UPDATE 1` was the measured starting point. It now
-connects as **`manifest_app`**, and so does the whole test suite. Those thirteen tasks
-found **62 defects**, two of them spec-level: **§12's
+connects as **`manifest_app`**, and so does the whole test suite. Those fourteen tasks
+found **70 defects**, two of them spec-level: **§12's
 dependency-scan gate blocked every CWL application** (settled by Rich on 2026-09-08 —
 it now blocks only on findings that have a published fix), and **§8's
 `SAML_IDP_CERT_PATH` named a file nothing could create**, so `InstanceSpec` gained
@@ -117,12 +121,12 @@ repeatable has a state leak. For the platform itself it is `make doctor` and
 **Five spikes are done** (S7, S2, S1, S3 — all answered yes — and **S6**, which ran
 as P3's Task 18 on 2026-09-07 and found every probe denied with every denial paired
 with a positive control). P0, P1, P2 and P3 are written and **all three
-implementation plans are executed**. **P4a is part-executed and P4b is unrun — 18
+implementation plans are executed**. **P4a is part-executed and P4b is unrun — 17
 tasks between them; P5 is unwritten.** Plan-writing stopped on 2026-09-04 in favour
 of execution; that hold is now discharged, and it was right — the three plans
 produced **152 defects between them** after all three had been self-reviewed, and
-P4a's first thirteen tasks have since produced **62 more**. That
-is also why an 18-task unrun stack is worth naming out loud rather than glossing. The maintained status record is the *Spike status*
+P4a's first fourteen tasks have since produced **70 more**. That
+is also why a 17-task unrun stack is worth naming out loud rather than glossing. The maintained status record is the *Spike status*
 ledger in `docs/superpowers/plans/2026-08-29-plan-roadmap.md`; if any document
 disagrees with it, the ledger wins.
 

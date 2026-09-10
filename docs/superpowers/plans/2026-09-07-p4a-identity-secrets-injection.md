@@ -18,7 +18,7 @@
 
 ## How this plan is being executed — SEVEN SITTINGS, one per session
 
-**Tasks 1–13 are DONE (Tasks 12–13 on 2026-09-09). Sitting 6 — Task 14, alone — is next.**
+**Tasks 1–14 are DONE (Task 14 on 2026-09-09). Sitting 7 — Task 15, alone — is next.**
 
 Agreed with Rich on 2026-09-08: the remaining tasks run one sitting per session, with
 a check-in at each boundary, so a session limit can never land in the middle of a task.
@@ -33,8 +33,8 @@ the §17 product roadmap, and confusing the two sends a reader to the wrong docu
 | 3 | 8–9 — events and the registration call site | ✅ done 2026-09-09, 8 defects |
 | 4 | 10–11 — §8's injection contract and its call site | ✅ done 2026-09-09, 10 defects |
 | 5 | 12–13 — `node-ts-mongo@1` and the drift test | ✅ done 2026-09-09, 9 defects |
-| **6** | **14 — Manifest's own login, and the end of the dev shim** | ← **next.** Alone: it reddens most of the API suite |
-| 7 | 15 — the proof app and P4a's acceptance | alone: the first end-to-end run |
+| 6 | 14 — Manifest's own login, and the end of the dev shim | ✅ done 2026-09-09, 8 defects |
+| **7** | **15 — the proof app and P4a's acceptance** | ← **next.** Alone: the first end-to-end run |
 
 **Every sitting ends the same way:** the four gates from *Global Constraints*,
 `pnpm test:docker` where the phase touched `infra/`, `runtime/`, `services/`, `sso/`
@@ -3752,6 +3752,94 @@ AuthnRequest, so Task 15's proof app has a working base to start from rather tha
 descriptor nobody has run; and `attribute-bridge.test.ts` shows the shape for testing
 blueprint-side JavaScript from this suite — a computed specifier and one cast, because
 `tsc` will not follow a relative import outside `rootDir`.
+
+---
+
+### Session 8 — sitting 6: Task 14 (2026-09-09). 8 defects.
+
+**Baseline first, and it matched the handover exactly**: `make doctor` 17/0, `make
+verify` 46/0, `pnpm test` 508 in 55 files, lint/typecheck/format clean, and the IdP
+serving signed metadata.
+
+**Manifest logs its own users in with CWL, and the dev shim is gone.** `GET
+/auth/login` issues a signed AuthnRequest, `POST /auth/saml/callback` validates the
+assertion and mints the §13 session, and the control plane registers its own Service
+Provider at boot through the same `renderSpMetadata` every deployed app's row goes
+through. `POST /auth/dev-login`, `MANIFEST_DEV_AUTH`, its config guard and its two
+tests are deleted. **`make demo` step 1 is now a real three-hop CWL login**, and it
+completed end to end against the running platform.
+
+**Two deviations from the plan's text, both measured rather than argued.**
+
+| Deviation | Why |
+|---|---|
+| The SAML library is **`@node-saml/node-saml@5.1.0`**, not the `passport-saml` the blueprint pins (Step 4) | Measured on this machine 2026-09-09: `passport-saml@3.2.4` audits **1 critical** — *Node-SAML SAML Signature Verification Vulnerability*, `fixAvailable: false` — plus 1 high and 3 moderate; `@node-saml/node-saml@5.1.0` audits **0**. The plan's rationale ("one library to reason about, one CVE surface") was written 2026-09-07, before 2026-09-08 established the advisory. Three things settle it: **C6 binds the APP side**, not Manifest's own code; **§12's scan gate scans app IMAGES**, so nothing in this platform scans the control plane's own dependency tree and a critical there would be invisible to every gate we have; and the control plane holds the Docker socket and mints registry push tokens (§20), so importing an app's unfixable critical adds a surface rather than sharing one. The two SPs share no code path — different key, different audience, different framework — and the app side is already covered by §16's identity-path tier |
+| The platform's SP row is written **by the control plane at boot**, not by `ensure-idp-sql.sh` (Step 3) | A row hand-built in shell would be a SECOND PRODUCER of the `entity_data` document `renderSpMetadata` already produces — defect 49's shape exactly. Writing it at boot also means the row's ACS and certificate come from the process's own configuration and keypair, so they cannot drift; §9 audits an ACS change for that reason. It makes the IdP metadata database a hard boot dependency, which is the honest failure: an IdP whose store is unreachable is one nobody can log in through |
+
+**Three things this task decided and wrote down.** The control plane's SP keypair is a
+**file** (`infra/sp/control-plane.{key,crt}`, minted by `make up`, gitignored, not
+removed by `make reset`) rather than two `secrets` rows, because that table's rows are
+scoped to a `projects` row by a foreign key and the platform is not a project — the
+same separate custody §20 gives the IdP keypair and the envelope master key. Its ACS
+origin is one setting, `MANIFEST_CONTROL_PLANE_ORIGIN`, defaulting to
+`http://127.0.0.1:7100` and becoming `https://manifest.ubc.ca` at UBC, with
+`loadConfig` refusing a loopback origin whose port is not `MANIFEST_PORT` — two
+independent reads of one setting. And its SP declares **four** attributes, not five:
+`eduPersonAffiliation` is deliberately not requested, because a platform role is
+Manifest's to decide and an attribute nothing may act on is one that eventually gets
+acted on.
+
+---
+
+**Task 14 found 8 defects. Two are the plan's own negative controls.**
+
+| # | Defect | Measured against |
+|---|---|---|
+| 63 | **A `Record<string, string>` return type produced 26 `tsc` errors across four files, and `pnpm test` was GREEN.** `testSessionCookies` returned an index signature, which `noUncheckedIndexedAccess` makes `string \| undefined`; that fails `InjectOptions`' `cookies` overload, and a **failed overload silently resolves `app.inject` to its chainable form**, so `response.statusCode` stops existing. | `pnpm --filter @manifest/control-plane typecheck`, after 508 tests passed. **Thirteenth instance** of this class. Fixed by naming the cookie in the return type (`Record<typeof SESSION_COOKIE, string>`) rather than by 26 local casts — the same trap `authz-contract.ts` already records at its own `payload` |
+| 64 | **`node-saml`'s `signatureAlgorithm` and `digestAlgorithm` both default to `sha1`**, and its `validateInResponseTo` defaults to **`never`** — which accepts an assertion answering no request this process made. `identifierFormat` also defaults to `emailAddress` while every row `renderSpMetadata` writes declares **transient**. | Read out of `node-saml@5.1.0`'s own `initialize()` and `algorithms.js`, not its README. All four are now set explicitly, and `SP_NAME_ID_FORMAT` is exported from the module that WRITES the row so the request and the row cannot disagree |
+| 65 | **`wantAssertionsSigned` and `wantAuthnResponseSigned` do nothing, and read as the control.** Setting BOTH to `false` reddens no test in this repository — including one written specifically to see them. node-saml refuses an unsigned document with *"Invalid document signature"* regardless, and a wrongly-signed one is refused by `idpCert`. | The plan's negative control (a), applied and watched **GREEN**. Then applied again against a new unsigned-assertion test, and watched green a second time. The certificate is the whole control; the comment now says so. **Same shape as SimpleSAMLphp's `validate.authnrequest`** (ORIENTATION §4) — a flag that reads as load-bearing and whose removal no test can see |
+| 66 | **The plan's negative control (c) could not be applied as written.** It says to re-register `/auth/dev-login` behind `if (config.env === 'development')` — but the route, the handler and the setting are all deleted, so there is nothing to re-register. | Replaced with the control that actually exists: a bare `/auth/dev-login` route put back. **RED in two places** — the "no route at all" test with 200, and `authz-contract.ts`'s route-completeness drift guard. Two independent reads, which is what the deletion needs |
+| 67 | **The lifecycle acceptance's 400 ms budget failed on work that is the HARNESS's.** `testDeps()` now mints two RSA-4096 keypairs for the control plane's SAML fixtures, and the measured window started before it: `controlPlaneWork` went from ~300 ms to **891 ms** for a lifecycle that had not changed. | `pnpm test`. The harness setup moved outside the window; `buildServer` and the whole §22 journey stay inside it. A budget that fails for reasons outside the code it guards is a budget that gets deleted rather than read |
+| 68 | **A Docker test that boots the control plane on its own port leaves the shared SP row pointing THERE.** Both new Docker tests boot on 7188/7189 and the row is keyed on one entityID, so after the tier ran, a developer's control plane on 7100 had a registration naming a port nothing listens on — a login that completes at the IdP and dies on the redirect back, which reads as an IdP fault. | Found by reading the row after the tier. Both tests now DELETE the row in `afterAll` rather than restoring it: they cannot know the developer's port, and an absent row fails loudly (`Metadata not found`, with `demo.sh` naming the fix) while a wrong one fails silently. The next real boot writes it back |
+| 69 | **`make verify` asserted nothing about the keypair the control plane refuses to boot without.** `infra/sp/control-plane.{key,crt}` is a `make up` artefact in the same custody as the IdP keypair, and a half-minted pair is a platform that does not start. | Added, and **watched fail twice**: a non-PEM certificate gives *"is not a parseable certificate"*, and a valid but MISMATCHED certificate gives *"are not the same keypair"* — the case that produces the IdP's *"Invalid certificate signature"* on a login that worked yesterday. `make verify` is **47 checks** from here |
+| 70 | **`scripts/demo.sh`'s second `trap` would have leaked a temp file per run.** The new login needs its own cookie jar for the IdP origin, and the existing `trap ... EXIT` at step 3 REPLACES rather than appends — so `$IDP_JAR` was registered and then unregistered four lines later. | Read while writing it. Both files are listed in every trap now, with a comment saying why. Same family as the anonymous volumes `docker rm` orphans |
+
+**The negative controls, each watched red and reverted.**
+
+| Control | Result |
+|---|---|
+| (a-i) `wantAssertionsSigned` and `wantAuthnResponseSigned` both `false` | **GREEN** — that is defect 65. Green again against a test written specifically to see them |
+| (a-ii) `idpCert` pointed at a certificate that is not the IdP's | RED — the *success* test, which is the sharper statement: the certificate is what gates every assertion |
+| (b) the audience check dropped (`audience: false`) | RED — the replay test, an assertion minted for `…/sp/chem-labs/staging` |
+| (c) a `/auth/dev-login` route put back | RED in two tests — "no route at all" with 200, and the contract's route-completeness guard |
+| (d) `validateInResponseTo` back to node-saml's `never` default | RED — "refuses an assertion that answers no request it made" |
+| (e) the login allowed to write `role` on conflict | RED — "never lets a login change an existing user's platform role" |
+| (f) the platform's SP row deleted between boot and login | RED — the IdP answers 500 with `<title>Metadata not found</title>`, and the test's own message names the row |
+| (g) `registerControlPlaneSp` removed from boot | RED in BOTH Docker tests — `expected undefined` for the ACS location, and `Metadata not found` for the login |
+| (verify) a non-PEM certificate, then a mismatched one | RED, with two different messages |
+
+Every control was applied by a `python3 .replace()` that **asserts the pattern matched
+exactly once before writing** — §4's Prettier trap, which has now caught this project
+four times. Note that `git diff --stat` proves nothing for a file git does not track
+yet: three of these live in `identity/saml.ts`, which was new, so the match assertion
+was the only guard and it earned its keep.
+
+**State at the end of the sitting:** `make doctor` **17/0**, `make verify` **47/0**,
+`pnpm test` **516** twice (54 files), `pnpm test:docker` **116** (22 files, ~370 s),
+lint/typecheck/format clean, and **`make demo` green end to end with a real CWL login
+at step 1** — `session for ins000001 (a real CWL login, not a shim)`. One commit.
+
+**What sitting 7 inherits.** Task 15 alone: the proof app and P4a's acceptance. Four
+things are ready for it. `identity/saml.docker.test.ts` shows how to drive a full SAML
+flow **from the host** with an explicit CA — `NODE_EXTRA_CA_CERTS` cannot work from a
+test, because Node reads it once at process start, and S7's finding is why it is needed
+at all. `scripts/demo.sh` step 1 is the same flow in bash and is the shape Task 15's
+acceptance script wants. `identity/testing.ts` carries an in-process SAML IdP that can
+sign an assertion with a chosen key, a chosen audience, expired, or unsigned — the four
+things a real IdP will never issue. And **the plan owes Task 15 one control**: Task 12's
+(c), removing `attributeConfig` from `skeleton/auth/ubcshib.js` and watching the
+acceptance go red with raw `urn:oid:` keys. It was not run in sitting 5 because it names
+an acceptance that did not exist yet.
 
 ---
 

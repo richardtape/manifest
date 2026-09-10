@@ -35,7 +35,7 @@
   open in a browser and show to somebody</strong> &mdash; not a status report, an actual working
   thing.</p>
   <div class="meta">
-    <span><b>Now</b> stage 1a is complete and 1b is under way &mdash; an app goes from repository to a working web address, practice CWL sign-in works end to end, the platform registers each app with the login service itself, every database password is encrypted in its own store, and each app is now handed every setting it needs from one place rather than several; next are the first real blueprint and the AI features</span>
+    <span><b>Now</b> stage 1a is complete and 1b is nearly done &mdash; an app goes from repository to a working web address, practice CWL sign-in works end to end for apps <em>and</em> for the platform's own staff, the platform registers each app with the login service itself, every database password is encrypted in its own store, each app is handed every setting it needs from one place, and the first real blueprint is built and deployed; the AI features are what remain</span>
     <span><b>Full detail</b> &sect;17 of the design document</span>
   </div>
 </header>
@@ -180,11 +180,15 @@
         description of itself that lets later blueprints be added without a rewrite.</p>
         <p><b>You can show:</b> a real app where you sign in, save something to your own
         database and ask an AI a question.</p>
-        <p><b>Where this has got to:</b> the sign-in half works. An app hands you to the
-        practice sign-in service, you log in, and the app is told exactly the facts about
-        you it was declared to receive &mdash; no more, and named the way the university's
-        real service names them. Secrets, the first real blueprint and the AI half are
-        still to come.</p>
+        <p><b>Where this has got to:</b> the sign-in half works, and so does the
+        first real blueprint. An app hands you to the practice sign-in service, you log
+        in, and the app is told exactly the facts about you it was declared to receive
+        &mdash; no more, and named the way the university's real service names them.
+        <strong>The platform itself now signs its own staff in the same way</strong>, and
+        the temporary shortcut the early versions used &mdash; which could create a
+        session for anyone, with no password &mdash; has been removed. Every database
+        password an app uses is now encrypted in the platform's own store rather than
+        worked out from a formula. The AI half is what remains.</p>
         <p class="q">Is the loop genuinely real, end to end?</p>
       </div>
     </div>
