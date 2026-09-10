@@ -1,10 +1,10 @@
 # Orientation — read this first
 
-**You are picking up a project whose design is finished and whose first FOUR
-implementation plans are executed — P1, P2, P3 and, since 2026-09-09, all 15 tasks
-of P4a. §16's proof app signs a real person in with CWL and keeps their data theirs.
-The next work is P4b — 16 tasks, written and unrun — starting with its own Task 1,
-which is a reconciliation pass against the executed P4a.** This is the single
+**You are picking up a project whose design is finished, whose first four
+implementation plans are executed — P1, P2, P3 and, since 2026-09-09, all 15 tasks of
+P4a — and whose fifth, P4b, is PART-EXECUTED: sitting 1 of its ten is done. §16's proof
+app signs a real person in with CWL and keeps their data theirs. CONTINUE P4b AT TASK 3
+(sitting 2, which is that task alone).** This is the single
 entry point: what Manifest is, what has been established, what the machine will do to
 you, and what to do next. It is written for someone with **no prior context** —
 a new agent with a fresh window, or a developer joining.
@@ -37,10 +37,10 @@ and **`make demo-identity` takes §16's proof app from a bare repository to a re
 sign-in in which the instructor cannot see the student's note.**
 
 **P4a IS EXECUTED AND GREEN — all 15 tasks, finished 2026-09-09**, in seven agreed
-sittings of one session each. **START P4b, AT ITS TASK 1** — §7d-2 tells you where.
-Its Task 1 is a reconciliation pass against the P4a that has now run, and **P4b is
-split into TEN agreed sittings** (Rich, 2026-09-09), the same one-per-session pattern
-with a check-in at each boundary. *(Sittings pace execution. They are **not** §17's
+sittings of one session each. **P4b IS PART-EXECUTED — sitting 1 (Tasks 1–2) is done,
+2026-09-09, and 10 findings came out of it. CONTINUE AT TASK 3** — §7d-2 tells you
+where. **P4b is split into TEN agreed sittings** (Rich, 2026-09-09), the same
+one-per-session pattern with a check-in at each boundary. *(Sittings pace execution. They are **not** §17's
 product Phases — the roadmap's "Phase 2" is six unwritten plans.)*
 
 **One thing is outstanding and it is RICH'S to run: the offline acceptance.** Turning
@@ -84,7 +84,7 @@ two came out of Tasks 1–3, the third out of Task 5, the fourth out of Task 8:
 | | State |
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. **S6 has since run too, as P3's Task 18, 2026-09-07: every probe denied, every denial paired with a positive control, and one result BETTER than the spec** — §21's divergence 8 no longer holds, because app networks are `--internal` and the developer's machine is unroutable rather than merely policed. S5 and S4 are deliberately later (S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
-| **Plans** | **P1, P2, P3 AND P4a ARE ALL EXECUTED — P4a IN FULL ON 2026-09-09. P4b IS WRITTEN AND UNRUN, AND IS NEXT.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a's fifteen tasks found 80 defects — 5.3 per task, the highest rate measured here, in the plan that had the most research behind it.** Two were spec-level and are in §8. **P4b (16 tasks) is now the current work.** P5 is unwritten — see §7. **The unrun stack is 16 tasks**, which is what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
+| **Plans** | **P1, P2, P3 AND P4a ARE ALL EXECUTED — P4a IN FULL ON 2026-09-09. P4b IS PART-EXECUTED: SITTING 1 OF TEN (TASKS 1–2) IS DONE; CONTINUE AT TASK 3.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a's fifteen tasks found 80 defects — 5.3 per task, the highest rate measured here, in the plan that had the most research behind it.** Two were spec-level and are in §8. **P4b (16 tasks) is now the current work.** P5 is unwritten — see §7. **The unrun stack is 16 tasks**, which is what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
 | **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`.** **The numbers are in the box below** — this row used to restate them and drifted by four releases.  **P4a Tasks 1–3 then added `sso/`'s test surface and login suite, `runtime/docker/archive.ts`, `infra/idp/metadata/saml20-idp-hosted.php`, `infra/idp/attributemap/ubcoid.php`, three new `infra/lib/ensure-*.sh` scripts wired into `make up`, and `fixtures/saml-sp/`; Tasks 4–5 added `secrets/`; Tasks 6–7 added `sso/`'s production half — `keypair.ts`, `entity.ts`, `metadata-store.ts`, `registration.ts` — plus `MANIFEST_IDP_DATABASE_URL` and `MANIFEST_SP_ENTITY_BASE` in `config.ts`; and Tasks 8–9 added `observability/` (`events.ts`, `redact.ts`), the `audit` schema and its migration, `infra/lib/ensure-app-role.sh` and the `manifest_app` role the control plane now connects as, and `sso`'s wire into `DeployDeps`, `ServerDeps` and boot. **Tasks 10–11 added `spec/injection.ts` — §8's table as data and the one renderer of every variable an app receives — plus `config.idp`, `secrets/`'s `ensureSessionSecret`, `SsoRegistrar.idpSigningCertificate()`, `ai` on `ResolvedConfig`, and the reserved-name check in `spec/policy.ts`. `deployRelease`'s ad-hoc env block is gone. Tasks 12–13 added `blueprints/node-ts-mongo/` — the descriptor, the Dockerfile, the skeleton with its auth component and §9's attribute bridge, and the D25 knowledge pack — plus `spec/injection-drift.test.ts` (§16's drift tier, reading the blueprint's source), `runtime/docker/node-ts-mongo.docker.test.ts` and `blueprints/attribute-bridge.test.ts`. Task 14 added `identity/saml.ts` — the control plane's own SAML SP, on `@node-saml/node-saml` rather than the `passport-saml` the blueprint pins — `identity/testing.ts` (an in-process SAML IdP and `testSessionCookie`), `identity/saml.docker.test.ts`, `sso/platform.ts` and `infra/lib/ensure-cp-sp-keypair.sh`, and DELETED `identity/dev-auth.ts` and its test.**|
 | **Spec** | Current, with **one approved change not yet written into it**: §12's scan gate blocks only on findings that have a published fix (Rich, 2026-09-08 — §8). Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
@@ -125,7 +125,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | You are… | Read |
 |---|---|
 | **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
-| **executing a plan** | ← **this is the current job: P4b, FROM TASK 1.** [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) — 16 tasks, **none executed**, in **ten agreed sittings, one per session**; its Task 1 reconciles it against the P4a that has now run. P4a itself is [`2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md) — 15 tasks, **all executed, 2026-09-09**, self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P4a's own *What executing this plan found* first — Sessions 1 to 9, 80 defects — and then P3's**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
+| **executing a plan** | ← **this is the current job: P4b, FROM TASK 3.** [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) — 16 tasks in **ten agreed sittings, one per session**; **sitting 1 (Tasks 1–2) is done, 2026-09-09**, and its 10 findings are in the plan's *What executing this plan found*. P4a itself is [`2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md) — 15 tasks, **all executed, 2026-09-09**, self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P4a's own *What executing this plan found* first — Sessions 1 to 9, 80 defects — and then P3's**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
 | **writing a plan** | **P5 is next, after P4a and P4b execute.** House style: `plans/2026-08-30-p1-local-substrate.md`, `2026-08-29-p2-control-plane-spine.md`, or either half of P4. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
 | **writing code** | Sixteen modules exist: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/` (with `runtime/docker/`), `source/`, `identity/`, `projects/`, `releases/`, `api/`, P3's `services/`, `build/` and `routing/`, and P4a's `secrets/`, `sso/` and `observability/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else is built against them — then `runtime/docker/driver.ts`, which is the one implementation of that interface and where every P3 module meets; then `api/server.ts` for how a request becomes an actor, and `projects/authz.ts` for the one function every route's security depends on. **Then run `make demo` once**: it is the only thing that exercises all of it through the real HTTP surface, and it is where the last four sessions' worst defects were found. |
@@ -159,12 +159,11 @@ docs/superpowers/
 │                                                  defects across nine sessions —
 │                                                  read it before P4b.
 │   └── 2026-09-07-p4b-ai-events-streaming-incidents.md
-│                                                  P4b. 16 tasks, WRITTEN AND UNRUN,
-│                                                  in TEN AGREED SITTINGS (table at
-│                                                  the top of the plan).
-│                                                  ← START HERE, AT TASK 1, which
-│                                                  reconciles against the executed
-│                                                  P4a. Records ten more measured
+│                                                  P4b. 16 tasks in TEN AGREED
+│                                                  SITTINGS (table at the top of the
+│                                                  plan). SITTING 1 (Tasks 1-2) IS
+│                                                  DONE, 2026-09-09, 10 findings.
+│                                                  ← CONTINUE HERE, AT TASK 3. Records ten more measured
 │                                                  facts, one of them a §10
 │                                                  requirement LiteLLM 1.98.0
 │                                                  cannot satisfy.
@@ -828,17 +827,34 @@ coherent. Follow them.
    it is correctly failing when I remove the thing that makes it work."
 7. **Write for a reader who was not there.** Every one of these documents will be
    read cold by someone with no context. That is the normal case, not the exception.
-8. **Close out properly.** Update the roadmap ledger, sweep every document that
-   states status, and leave the machine as you found it. **The sweep is the step that
-   gets forgotten**, and forgetting it is how four documents once spent a day lying
-   about the state of the project — and how the four HTML pages spent five days
-   telling outsiders the project was "designed, not yet built" after it was neither.
+8. **Close out properly — AT THE END OF EVERY SITTING, not at the end of the plan.**
+   Update the roadmap ledger, sweep every document that states status, and leave the
+   machine as you found it. **The sweep is the step that gets forgotten**, and
+   forgetting it is how four documents once spent a day lying about the state of the
+   project — and how the four HTML pages spent five days telling outsiders the project
+   was "designed, not yet built" after it was neither.
+
+   **WHY EVERY SITTING, AND NOT JUST AT THE END.** A sitting is one session, and the
+   next one is a different agent with an empty window that will believe whatever these
+   documents say. If a sitting ends without the sweep, the next agent starts by
+   executing a task that is already done, or re-deriving a decision that is already
+   made, or trusting a gate count that moved — and it will not know to doubt any of it,
+   because everything here is written to be trusted. **The plan's own sittings table is
+   the single most important line**: it is what says which task is next, and it is
+   wrong the moment a sitting ends.
+
+   This is also the step a session limit eats. **Budget for it**: leave enough room to
+   sweep before you run out, and if you are close, stop a task early and sweep rather
+   than finishing the task and leaving the documents lying. A finished task nobody can
+   find is worth less than an unfinished one that is accurately described.
 
    Sweeping by memory is what fails, so here is the list. Check each one every time:
 
    | Document | What in it goes stale |
    |---|---|
    | `plans/2026-08-29-plan-roadmap.md` | **The ledger — update this first, it outranks the rest.** Spike status, the plan set table, *Order of operations* |
+   | **The plan's own SITTINGS TABLE** | **Added 2026-09-09. The first thing to change and the easiest to forget** — it is at the top of the plan, it says which sitting is next, and a stale one sends the next agent at a task that is already committed. Mark the sitting done, move the `← next` marker, and say how many findings it produced |
+   | **The plan's *What executing this plan found*** | One dated section per sitting: the tasks, every defect with the measurement that found it, the negative controls, and the gate numbers at the end. **This is the record that stops the next agent repeating the work rather than continuing it** — and it is where a defect that is not worth fixing yet gets named instead of lost |
    | `ORIENTATION.md` | §2 and §7 by design — **including §2's numbers box, which is the one place this file states the four gate counts**; §4 whenever the machine changes; §8 when something becomes or stops being Rich's call |
    | `README.md` | The status section, and the *Where to start* table's "current job" row |
    | `RUNBOOK.md` | **Added to this list 2026-09-09, having been missed once.** Its *C1's acceptance* preamble restates the CURRENT `make doctor` / `make verify` totals beside the dated 2026-09-05 ones, so it drifts every time a check lands — and it is the document a new agent opens to run the platform |
@@ -850,10 +866,26 @@ coherent. Follow them.
    | `docs/external-track.md` | Owners and states of the UBC items |
    | `machine-baseline-*.md` | **Do not edit these.** They are dated evidence. Re-run `scripts/snapshot-machine.sh` and add a new one |
 
+   **THE FOUR GATE NUMBERS LIVE IN FOUR DOCUMENTS**, and they move whenever a check
+   or a test file lands — which is most sittings. `make doctor`, `make verify`,
+   `pnpm test` and `pnpm test:docker` are stated in **ORIENTATION §2's numbers box**,
+   **`README.md`**, **`CLAUDE.md`** and **`RUNBOOK.md`**. One `grep` catches all four:
+
+   ```bash
+   grep -rn "make doctor\|pnpm test\` \|checks / 0 failed\|passed, .* files" \
+     ORIENTATION.md README.md CLAUDE.md RUNBOOK.md   # from docs/superpowers and the root
+   ```
+
+   Update them together or not at all. A half-swept set is worse than a stale one,
+   because the disagreement makes every number suspect — which is exactly why §2's box
+   says in its own text that it is the only current one and wins any disagreement.
+
    **The four HTML pages are the easiest to forget and the most expensive to get
    wrong**, because Rich shares them with people outside the team and nothing in the
    build checks them. They are also the slowest to drift: their architecture stays
-   right for months while their *status* is wrong within days.
+   right for months while their *status* is wrong within days. Most sittings do not
+   touch them — a pinned digest or a reconciliation pass is invisible to an outsider —
+   but **check rather than assume**, and say in the session record that you checked.
 
 ---
 
@@ -1193,7 +1225,7 @@ result was theirs.
 ```bash
 ./scripts/snapshot-machine.sh > /tmp/before.txt   # read-only, no sudo, no network
 make up                                            # ~1 min; re-adds the loopback alias
-make doctor && make verify                         # expect 17/0 and 47/0
+make doctor && make verify                         # expect 18/0 and 47/0
 pnpm test                                          # expect 525 passed, 56 files
 pnpm lint && pnpm --filter @manifest/control-plane typecheck && pnpm format:check
 ```

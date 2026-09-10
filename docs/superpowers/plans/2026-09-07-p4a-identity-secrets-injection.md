@@ -37,10 +37,12 @@ the §17 product roadmap, and confusing the two sends a reader to the wrong docu
 | 6 | 14 — Manifest's own login, and the end of the dev shim | ✅ done 2026-09-09, 8 defects |
 | 7 | 15 — the proof app and P4a's acceptance | ✅ done 2026-09-09, 8 defects. Alone: the first end-to-end run, and it **passed at the first attempt** — all eight came out of disbelieving that |
 
-**Every sitting ends the same way:** the four gates from *Global Constraints*,
-`pnpm test:docker` where the phase touched `infra/`, `runtime/`, `services/`, `sso/`
-or `secrets/`, a dated entry in *What executing this plan found* below, and the
-close-out sweep in ORIENTATION §6. **Read the most recent session entry before
+**Every sitting ended the same way:** the four gates from *Global Constraints*,
+`pnpm test:docker` where the sitting touched `infra/`, `runtime/`, `services/`, `sso/`
+or `secrets/`, a dated entry in *What executing this plan found* below, **the sittings
+table above updated**, and the close-out sweep in ORIENTATION §6. **All four, at the
+end of every sitting** — the next one is a different agent with an empty window who
+will believe whatever these documents say. **Read the most recent session entry before
 starting** — Tasks 4–15's text was written before Tasks 1–5 ran, and several of its
 assumptions have since been corrected there rather than in the task text.
 

@@ -48,13 +48,20 @@ check that every app failed, because BusyBox `wget` honours `http_proxy` and ign
 `NO_PROXY`, so D18's forced proxy denied each app's probe of its own loopback. **All
 of it was green in a suite of 74 passing Docker tests.**
 
-**P4a is EXECUTED AND GREEN: all 15 tasks (2026-09-09). Executing P4b — 16 tasks,
-written and unrun — is the current work**, starting at its own Task 1, which
-reconciles it against the P4a that has now run — ORIENTATION §7d-2. P4a's last twelve
+**P4a is EXECUTED AND GREEN: all 15 tasks (2026-09-09). P4b is PART-EXECUTED —
+sitting 1 of ten (Tasks 1–2) is done, 2026-09-09; CONTINUE AT TASK 3** —
+ORIENTATION §7d-2. P4a's last twelve
 tasks ran in **seven agreed SITTINGS, one per session with a check-in at each
 boundary**, so a session limit could not land mid-task; all seven are done, and **P4b
 is split the same way into TEN sittings** (Rich, 2026-09-09) — the table is at the top
-of P4b, and **sitting 1 is Tasks 1–2**: the reconciliation pass and the LiteLLM pin. *Sittings pace the work; they are not §17's product Phases.*
+of P4b and is the maintained copy. **Sitting 1 produced 10 findings.** Its
+reconciliation pass did not come back clean: `manifest_audit_owner` **does not exist**,
+so two of P4b's migrations would have failed on their first statement, and both new
+audit tables used `ON DELETE CASCADE`, which bypasses §20's append-only grant because a
+referential action runs with the referenced table's privileges. Then LiteLLM was pinned
+by digest to **`sha256:20b5044b` / 1.98.0, the version S3 measured** — Rich's call,
+taken because the `main-stable` tag moved to a fresh build two hours before the task
+started. `make doctor` is **18 checks** from there. *Sittings pace the work; they are not §17's product Phases.*
 **`make demo-identity` is P4a's acceptance and it passes**: §16's proof app from a bare
 repository to a real CWL sign-in in which the instructor cannot see the student's note
 — including from a `make reset` machine. **The offline run is outstanding and is
@@ -180,6 +187,13 @@ disagrees with it, the ledger wins.
   is the current house style.
 - Ports: the platform uses **7100–7199**. macOS ships **bash 3.2 and a BSD
   userland** — no `xargs -r`, no `mapfile`, no GNU-only flags.
-- **Close out properly:** update the roadmap ledger, sweep for documents that state
-  status, and leave the machine as you found it. The sweep is the step that gets
-  forgotten.
+- **Close out properly, AT THE END OF EVERY SITTING** — not at the end of the plan.
+  Update the roadmap ledger, sweep every document that states status, and leave the
+  machine as you found it. **The sweep is the step that gets forgotten.** The next
+  sitting is a different agent with an empty window who will believe whatever these
+  documents say, so a sitting that ends unswept sends them at a task that is already
+  committed. **The plan's own sittings table is the first thing to change and the
+  easiest to miss.** ORIENTATION §6 carries the full checklist — including the fact
+  that the four gate numbers are stated in four separate documents and must move
+  together. Budget session capacity for the sweep; if it is tight, stop a task early
+  and sweep rather than finishing the task and leaving the documents lying.

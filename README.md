@@ -64,8 +64,8 @@ And since Task 15, **`make demo-identity` takes §16's proof app from a bare rep
 to a real CWL sign-in in which the instructor cannot see the student's note** — the
 acceptance is not that a login happened, it is that the application knows who. It ran
 green from a `make reset` machine; the offline run is outstanding and is Rich's.
-Executing P4b is the current work**, starting at its own Task 1, which reconciles it
-against the P4a that has now run. P5 is unwritten. On
+P4b is now PART-EXECUTED — sitting 1 of ten is done (2026-09-09), and the current
+work is its Task 3.** P5 is unwritten. On
 2026-09-04 the project stopped writing plans and started executing them, and that
 hold is now discharged.
 
@@ -115,7 +115,7 @@ this machine will do to you, and what to do next. Then:
 | Understanding what the Docker half does | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md`](docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md) — all 19 tasks executed. Read its *What executing this plan found*, Sessions 4 and 5 |
 | Running the control plane | [*Running the control plane*](#running-the-control-plane) below — `make up`, then `pnpm --filter @manifest/control-plane dev` |
 | Executing any plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan — fix it there |
-| **Executing P4b — the current job** | ORIENTATION §7d-2, then [`docs/superpowers/plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](docs/superpowers/plans/2026-09-07-p4b-ai-events-streaming-incidents.md), 16 tasks, none executed, in **ten agreed sittings of one session each**. **Start at its Task 1**, which reconciles it against the P4a that has now run. Read P4a's own *What executing this plan found* first — Sessions 1 to 9, **80 defects** — then P3's Sessions 4 and 5 |
+| **Executing P4b — the current job** | ORIENTATION §7d-2, then [`docs/superpowers/plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](docs/superpowers/plans/2026-09-07-p4b-ai-events-streaming-incidents.md), 16 tasks in **ten agreed sittings of one session each**; **sitting 1 (Tasks 1–2) is done, 2026-09-09 — continue at Task 3**. Read the plan's *What executing this plan found* first: sitting 1's reconciliation corrected two migrations that would have failed outright. Read P4a's own *What executing this plan found* first — Sessions 1 to 9, **80 defects** — then P3's Sessions 4 and 5 |
 | Seeing the platform actually work | `make demo` (an app, from a bare repository to a URL) and **`make demo-identity`** (a real CWL sign-in whose note nobody else can see), after `make up` and starting the control plane. [`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) has both, step by step |
 | Looking for what a spike proved | `docs/superpowers/spikes/S{7,2,1,3,6}-findings.md` — the answer is the first sentence of each |
 | Looking for the architecture | [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](docs/superpowers/specs/2026-08-29-manifest-platform-design.md) — authoritative, ~2,340 lines. ORIENTATION §3 tells you which sections you actually need |

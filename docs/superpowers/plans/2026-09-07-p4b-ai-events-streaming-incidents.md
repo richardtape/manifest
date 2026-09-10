@@ -47,10 +47,25 @@ Three tasks are deliberately alone, and each has a reason that is not its size:
 | 9 | 14–15 | `WS /projects/:projectId/events`, then the call sites that make it carry anything. **Never split these.** Task 15's own title is *"the task that makes the stream carry anything"* — a stream with no publisher is the call-site defect again, and it would sit green for a whole session | |
 | 10 | 16 | P4b's acceptance: the proof app answers a question, and §16's proof app is complete. **Alone, for the reason P4a's Task 15 was alone** — the first end-to-end run is where this project's worst defects have always been. P4a's passed at the first attempt and still produced eight defects, every one of them from refusing to believe it. **It also fires the external-track trigger, which is Rich's to act on** | |
 
-**Every sitting ends the same way:** the four gates from *Global Constraints*,
-`pnpm test:docker` where the sitting touched `infra/`, `runtime/`, `services/`, `sso/`,
-`secrets/`, `observability/`, `ai/` or `blueprints/`, a dated entry in *What executing
-this plan found* below, and the close-out sweep in ORIENTATION §6. **Run `pnpm test`
+**EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
+
+1. the four gates from *Global Constraints*, plus `pnpm test:docker` where the sitting
+   touched `infra/`, `runtime/`, `services/`, `sso/`, `secrets/`, `observability/`,
+   `ai/` or `blueprints/`;
+2. a dated entry in *What executing this plan found* below — the tasks, every defect
+   with the measurement that found it, the negative controls, and the gate numbers;
+3. **the sittings table above, updated** — mark the sitting done, move the `← next`
+   marker, and record how many findings it produced. This is the line that tells the
+   next agent which task to start, and it is wrong the moment a sitting ends;
+4. **the close-out sweep in ORIENTATION §6**, which is a checklist of every document
+   that states status — the ledger first, and note that the four gate numbers are
+   stated in four separate documents and have to move together.
+
+**The next sitting is a different agent with an empty window.** Everything here is
+written to be trusted, so a sitting that ends unswept does not produce a confused
+agent — it produces a confident one working from a false premise. **Budget session
+capacity for the sweep**, and if it is tight, stop a task early and sweep rather than
+finishing the task and leaving the documents lying. **Run `pnpm test`
 twice** — a suite that is not repeatable has a state leak — and run the acceptance
 scripts twice too, which is a P4a Task 15 lesson: `make demo-identity` passed on its
 first run and failed on its second.
