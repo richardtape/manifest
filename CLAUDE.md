@@ -53,7 +53,8 @@ written and unrun — is the current work**, starting at its own Task 1, which
 reconciles it against the P4a that has now run — ORIENTATION §7d-2. P4a's last twelve
 tasks ran in **seven agreed SITTINGS, one per session with a check-in at each
 boundary**, so a session limit could not land mid-task; all seven are done, and **P4b
-should use the same pattern.** *Sittings pace the work; they are not §17's product Phases.*
+is split the same way into TEN sittings** (Rich, 2026-09-09) — the table is at the top
+of P4b, and **sitting 1 is Tasks 1–2**: the reconciliation pass and the LiteLLM pin. *Sittings pace the work; they are not §17's product Phases.*
 **`make demo-identity` is P4a's acceptance and it passes**: §16's proof app from a bare
 repository to a real CWL sign-in in which the instructor cannot see the student's note
 — including from a `make reset` machine. **The offline run is outstanding and is

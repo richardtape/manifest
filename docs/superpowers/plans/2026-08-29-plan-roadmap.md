@@ -244,7 +244,7 @@ Recorded here because they are about *how to run this work*, and each was paid f
 | **P2** | 1a-ii | Control-plane spine ✅ **EXECUTED 2026-09-05** — all 21 tasks | project → spec → release → staging deploy, against the fake driver, **~300 ms**, no Docker — **demonstrated** |
 | **P3** | 1a-iii | Docker driver & deploy spine ✅ **EXECUTED 2026-09-07** — all 19 tasks | fixture app healthy at a `manifest.internal` URL, from a bare repo, offline — **demonstrated**, and again from a dropped database and an emptied registry |
 | **P4a** | 1b-i | Identity, secrets & the §8 contract — **EXECUTED AND GREEN: all 15 tasks, 2026-09-09.** A real CWL login works end to end — through a row `sso/` renders and `deployRelease` writes — `secrets/` holds every service credential, §20's audit log is append-only against a least-privilege role, §8's injection contract is ONE function with one producer, **`node-ts-mongo@1` — the blueprint faculty use — builds, deploys and issues a real AuthnRequest**, **Manifest logs its OWN users in with CWL: the dev shim is deleted**, and **`make demo-identity` takes §16's proof app from a bare repository to a CWL sign-in in which the instructor cannot see the student's note** — including from a reset machine. **The offline run is outstanding and is Rich's** | ✅ the proof app signing in with CWL and writing a note, via `curl` |
-| **P4b** | 1b-ii | AI, events, streaming, incidents — **WRITTEN 2026-09-07**, 16 tasks, not yet executed. Written *before* P4a ran, on Rich's instruction, against the prior decision below; **its Task 1 is a reconciliation pass** against the executed P4a | the proof app's LLM answer |
+| **P4b** | 1b-ii | AI, events, streaming, incidents — **WRITTEN 2026-09-07**, 16 tasks, not yet executed, **split into TEN AGREED SITTINGS of one session each (Rich, 2026-09-09)** — the table is at the top of the plan. Written *before* P4a ran, on Rich's instruction, against the prior decision below; **its Task 1 is a reconciliation pass** against the executed P4a, and P4a's Task 15 changed four things P4b names | the proof app's LLM answer |
 | **P5** | 1c | Contract & clients | the §1 journey, clickable, driven twice over one contract |
 | **P6–P11** | 2 | six plans, listed below, **not written yet** | — |
 
@@ -257,7 +257,8 @@ then discharged and **P4 was split into P4a and P4b (Rich's call, 2026-09-07).**
 
 **P4a IS EXECUTED AND GREEN: all 15 tasks, finished 2026-09-09. P4b — 16 tasks,
 written and unrun — is the current work, and its own Task 1 is a reconciliation pass
-against the executed P4a.** P4a's last twelve
+against the executed P4a. P4b runs in TEN AGREED SITTINGS of one session each
+(Rich, 2026-09-09), the same pattern P4a used; the table is at the top of that plan.** P4a's last twelve
 tasks were split into **seven sittings of one session each** on 2026-09-08 with Rich's
 approval, so a session limit could not land mid-task — **1: 4–5 · 2: 6–7 · 3: 8–9 ·
 4: 10–11 · 5: 12–13 · 6: 14 · 7: 15** — and all seven are done. *Sittings pace execution; they are

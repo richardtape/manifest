@@ -16,11 +16,12 @@
 
 ---
 
-## How this plan is being executed — SEVEN SITTINGS, one per session
+## How this plan was executed — SEVEN SITTINGS, one per session
 
-**Tasks 1–14 are DONE (Task 14 on 2026-09-09). Sitting 7 — Task 15, alone — is next.**
+**ALL 15 TASKS ARE DONE. Sitting 7 — Task 15, alone — finished 2026-09-09, and P4a is
+closed.** P4b uses the same pattern; its own table is at the top of that plan.
 
-Agreed with Rich on 2026-09-08: the remaining tasks run one sitting per session, with
+Agreed with Rich on 2026-09-08: the remaining tasks ran one sitting per session, with
 a check-in at each boundary, so a session limit can never land in the middle of a task.
 This plan commits after every task, so a stop *between* tasks is recoverable; a stop
 *inside* one is not. **"Sitting", not "phase"** — this project uses *Phase 1/2/4+* for
@@ -34,7 +35,7 @@ the §17 product roadmap, and confusing the two sends a reader to the wrong docu
 | 4 | 10–11 — §8's injection contract and its call site | ✅ done 2026-09-09, 10 defects |
 | 5 | 12–13 — `node-ts-mongo@1` and the drift test | ✅ done 2026-09-09, 9 defects |
 | 6 | 14 — Manifest's own login, and the end of the dev shim | ✅ done 2026-09-09, 8 defects |
-| **7** | **15 — the proof app and P4a's acceptance** | ← **next.** Alone: the first end-to-end run |
+| 7 | 15 — the proof app and P4a's acceptance | ✅ done 2026-09-09, 8 defects. Alone: the first end-to-end run, and it **passed at the first attempt** — all eight came out of disbelieving that |
 
 **Every sitting ends the same way:** the four gates from *Global Constraints*,
 `pnpm test:docker` where the phase touched `infra/`, `runtime/`, `services/`, `sso/`

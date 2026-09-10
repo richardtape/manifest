@@ -16,6 +16,84 @@
 
 ---
 
+## How this plan is to be executed — TEN SITTINGS, one per session
+
+**Nothing is done. Sitting 1 — Tasks 1 and 2 — is next.**
+
+Agreed with Rich on 2026-09-09, after the same pattern carried P4a's last twelve tasks
+through seven sittings without a session limit ever landing mid-task. One sitting per
+session, with a check-in at each boundary. This plan commits after every task, so a
+stop *between* tasks is recoverable; a stop *inside* one is not. **"Sitting", not
+"phase"** — this project uses *Phase 1/2/4+* for the §17 product roadmap, and confusing
+the two sends a reader to the wrong document.
+
+**Ten rather than eight**, which is what sixteen tasks at P4a's average would give.
+Three tasks are deliberately alone, and each has a reason that is not its size:
+
+| Sitting | Tasks | What it delivers | Status |
+|---|---|---|---|
+| **1** | **1–2** | The reconciliation pass against the executed P4a, then LiteLLM pinned by digest with S3's error table re-measured against the pinned version. **Nothing ships and everything depends on both.** Task 1's size is unbounded by design — P3's equivalent found eight defects — so it is paired only with the other task that has no dependencies | ← **next** |
+| 2 | 3 | §16's AI-path regression tier, **before any `ai/` module exists**. **Alone**: it is the largest task in the plan and it builds `mintProbeKey`/`deleteProbeKey`, the harness every later sitting is measured against. A tier written after the module tests the module's own assumptions | |
+| 3 | 4–5 | `ai/errors.ts`, then `ai/client.ts` — S3's error table as one mapper, then the transport that uses it. 5 consumes 4 and nothing else does yet | |
+| 4 | 6–7 | `ai/catalogue.ts` and `ai/keys.ts` — D17's catalogue read from `/model/info`, and the one place that mints a key with `allowed_routes` as a constant. Siblings: both consume Task 5's client and neither consumes the other | |
+| 5 | 8–9 | LiteLLM joins an app network, then §8's AI rows render. **This is the sitting where Tasks 6, 7 and 8 get a caller** — the plan says so in Task 9's own title. *A module with no call site is not built*: P3 built `waitForReady` and `edgeProbe` in its Task 14 and nothing called them until Task 17, and P4a hit the same shape with `ServiceBinding.credentials` | |
+| 6 | 10 | `node-ts-mongo@1` grows its AI half — `provides.ai: true`, `ubc-genai-toolkit-llm` pinned, `ask`/`askStreaming`/`embed`/`endUserId`. **Alone, and it is the one sitting that NEEDS THE NETWORK ON**: it adds a dependency, regenerates the lockfile and needs `make seed` to warm Verdaccio from it. P4a's sitting 5 was alone for exactly this reason. Step 6 checks Verdaccio's storage rather than `npm ci`'s exit code, because a build against the public registry looks identical to a correct one | |
+| 7 | 11–12 | Build logs captured, streamed line by line and stored — and then the heuristic half of redaction, which is what has to cover them. Paired because the logs are the thing redaction exists to protect, and building either alone invites proving it against the other's absence | |
+| 8 | 13 | §14's `Incident` — the failure shaped as a repair prompt. **Alone**: it consumes Task 12's redactor plus `Driver.logs` and `Driver.status`, and it can only be proved against containers that have really failed, which is slow Docker-tier work | |
+| 9 | 14–15 | `WS /projects/:projectId/events`, then the call sites that make it carry anything. **Never split these.** Task 15's own title is *"the task that makes the stream carry anything"* — a stream with no publisher is the call-site defect again, and it would sit green for a whole session | |
+| 10 | 16 | P4b's acceptance: the proof app answers a question, and §16's proof app is complete. **Alone, for the reason P4a's Task 15 was alone** — the first end-to-end run is where this project's worst defects have always been. P4a's passed at the first attempt and still produced eight defects, every one of them from refusing to believe it. **It also fires the external-track trigger, which is Rich's to act on** | |
+
+**Every sitting ends the same way:** the four gates from *Global Constraints*,
+`pnpm test:docker` where the sitting touched `infra/`, `runtime/`, `services/`, `sso/`,
+`secrets/`, `observability/`, `ai/` or `blueprints/`, a dated entry in *What executing
+this plan found* below, and the close-out sweep in ORIENTATION §6. **Run `pnpm test`
+twice** — a suite that is not repeatable has a state leak — and run the acceptance
+scripts twice too, which is a P4a Task 15 lesson: `make demo-identity` passed on its
+first run and failed on its second.
+
+**THIS TABLE IS A SCHEDULE, NOT A CONTRACT.** Task 1 may move task boundaries — that is
+its job — and if it does, re-cut the sittings before starting sitting 2 and say so in
+the session record. The one rule that survives any re-cut: **Task 16 stays alone, and
+Tasks 14 and 15 stay together.**
+
+### What sitting 1 must reconcile that this plan could not know
+
+P4b was written on 2026-09-07. **P4a's Task 15 ran on 2026-09-09 and changed four
+things this plan names**, so they are listed here rather than left for Tasks 10 and 16
+to discover:
+
+1. **`fixtures/proof-app/package.json` and `package-lock.json` DO NOT EXIST.** Task 16's
+   *Files* block modifies both. The proof app deliberately carries no dependency
+   manifest of its own: `scripts/demo-identity.sh` copies `node-ts-mongo@1`'s skeleton
+   first and lays the app over it, so the pinned set stays the blueprint's single copy.
+   Adding `ubc-genai-toolkit-llm` is therefore a **blueprint** change (Task 10), and
+   Task 16 must not reintroduce a second copy of §12's pinned list.
+2. **`endUserId` already exists, in `fixtures/proof-app/identity.js`.** Task 10 puts
+   `endUserId` in `skeleton/ai/llm.js`. Those are two producers of one string unless
+   Task 16 makes the proof app import the blueprint's — and
+   `packages/control-plane/src/blueprints/proof-app-identity.test.ts` pins the formula
+   from the platform side. **`sha256(puid + ' ' + MANIFEST_PROJECT_SLUG + ' ' + MANIFEST_ENV)`,
+   space-separated, in that order.** P4b passes it through; it does not recompute it.
+3. **The three-hop CWL login is one function, `idp_login` in `infra/lib/idp-login.sh`.**
+   `scripts/demo-ai.sh` must source it, not carry a second copy of the walk —
+   `demo.sh` and `demo-identity.sh` both source it already. Note what
+   it does *not* do: it discards the ACS response, so it proves the SP row and the
+   signature and **not** that a session authenticates anybody — the caller's identity
+   check is the assertion. A control that stopped at `idp_login` came out falsely green
+   (P4a defect 77).
+4. **`scripts/offline-acceptance.sh` already has a step 6** that runs
+   `make demo-identity`. Task 16 adds `make demo-ai`; it must **append** rather than
+   replace, and `RUNBOOK.md` already documents `make demo-identity` beside `make demo`.
+   *(P4a defect 70 was a second `trap` that replaced the first and unregistered a file
+   four lines after registering it. The same shape.)*
+
+One more, not from Task 15 but worth carrying into sitting 1: **every redeploy leaves
+the previous release's container running** — eleven deploys produced eleven healthy
+containers. Reaping is Phase 4's, and P4b redeploys a lot. `RUNBOOK.md`'s *Known gaps*
+has the workaround.
+
+---
+
 ## Read this first: this plan was written before P4a ran
 
 **The roadmap's *Order of operations* step 7 says P4b stays unwritten until P4a has executed**, and gives the reason: banking a second unexecuted plan is what the 2026-09-04 decision forbids, and writing P4b against an *imagined* P4a is what cost P3 eight defects when it was reconciled against a real P2.

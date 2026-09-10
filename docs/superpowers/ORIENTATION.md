@@ -37,10 +37,11 @@ and **`make demo-identity` takes §16's proof app from a bare repository to a re
 sign-in in which the instructor cannot see the student's note.**
 
 **P4a IS EXECUTED AND GREEN — all 15 tasks, finished 2026-09-09**, in seven agreed
-sittings of one session each. **START P4b** — §7d-2 tells you where, and its own Task 1
-is a reconciliation pass against the P4a that has now run. *(Sittings were how P4a's
-last twelve tasks were paced. They are **not** §17's product Phases — the roadmap's
-"Phase 2" is six unwritten plans.)*
+sittings of one session each. **START P4b, AT ITS TASK 1** — §7d-2 tells you where.
+Its Task 1 is a reconciliation pass against the P4a that has now run, and **P4b is
+split into TEN agreed sittings** (Rich, 2026-09-09), the same one-per-session pattern
+with a check-in at each boundary. *(Sittings pace execution. They are **not** §17's
+product Phases — the roadmap's "Phase 2" is six unwritten plans.)*
 
 **One thing is outstanding and it is RICH'S to run: the offline acceptance.** Turning
 the network off from a tool call cuts the agent off too, so
@@ -124,7 +125,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | You are… | Read |
 |---|---|
 | **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
-| **executing a plan** | ← **this is the current job: P4b, FROM TASK 1.** [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) — 16 tasks, **none executed**; its Task 1 reconciles it against the P4a that has now run. P4a itself is [`2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md) — 15 tasks, **all executed, 2026-09-09**, self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P4a's own *What executing this plan found* first — Sessions 1 to 9, 80 defects — and then P3's**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
+| **executing a plan** | ← **this is the current job: P4b, FROM TASK 1.** [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) — 16 tasks, **none executed**, in **ten agreed sittings, one per session**; its Task 1 reconciles it against the P4a that has now run. P4a itself is [`2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md) — 15 tasks, **all executed, 2026-09-09**, self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P4a's own *What executing this plan found* first — Sessions 1 to 9, 80 defects — and then P3's**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
 | **writing a plan** | **P5 is next, after P4a and P4b execute.** House style: `plans/2026-08-30-p1-local-substrate.md`, `2026-08-29-p2-control-plane-spine.md`, or either half of P4. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
 | **writing code** | Sixteen modules exist: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/` (with `runtime/docker/`), `source/`, `identity/`, `projects/`, `releases/`, `api/`, P3's `services/`, `build/` and `routing/`, and P4a's `secrets/`, `sso/` and `observability/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else is built against them — then `runtime/docker/driver.ts`, which is the one implementation of that interface and where every P3 module meets; then `api/server.ts` for how a request becomes an actor, and `projects/authz.ts` for the one function every route's security depends on. **Then run `make demo` once**: it is the only thing that exercises all of it through the real HTTP surface, and it is where the last four sessions' worst defects were found. |
@@ -158,7 +159,9 @@ docs/superpowers/
 │                                                  defects across nine sessions —
 │                                                  read it before P4b.
 │   └── 2026-09-07-p4b-ai-events-streaming-incidents.md
-│                                                  P4b. 16 tasks, WRITTEN AND UNRUN.
+│                                                  P4b. 16 tasks, WRITTEN AND UNRUN,
+│                                                  in TEN AGREED SITTINGS (table at
+│                                                  the top of the plan).
 │                                                  ← START HERE, AT TASK 1, which
 │                                                  reconciles against the executed
 │                                                  P4a. Records ten more measured
@@ -860,7 +863,8 @@ P1, P2, P3 and P4a are all executed and green; S6 has reported; **P3's six spec 
 were applied on 2026-09-07**. P4 was split into **P4a** and **P4b** (Rich's
 call). **P4a is finished — all 15 tasks, 1–5 on 2026-09-08 and 6–15 on 2026-09-09.
 P4b is next, and its own Task 1 is a reconciliation pass against the P4a that has now
-run**, so start there rather than at its Task 2.
+run**, so start there rather than at its Task 2. **P4b runs in ten agreed sittings**,
+one per session — the table is at the top of the plan and summarised in §7d-2.
 
 **The measured plan-to-reality gap, in one table.** Every one of these plans was
 self-reviewed before anyone executed it.
@@ -1325,7 +1329,46 @@ track's C4 trigger is P4b's and not this one (roadmap, *Order of operations* ste
 ### 7d-2. Execute P4b — AI, events, streaming, incidents (1b-ii) ← **START HERE**
 
 *[`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md)
-— **16 tasks, written 2026-09-07, none executed.***
+— **16 tasks, written 2026-09-07, none executed. Start at Task 1.**
+Invoke `superpowers:executing-plans` or `superpowers:subagent-driven-development`.*
+
+**IT RUNS IN TEN AGREED SITTINGS, one per session with a check-in at each boundary**
+— settled with Rich on 2026-09-09, the same pattern that carried P4a's last twelve
+tasks through seven sittings without a session limit ever landing mid-task. **The
+table is at the top of the plan**, which is the maintained copy; this is the shape:
+
+| Sitting | Tasks | |
+|---|---|---|
+| **1 ← next** | **1–2** | the reconciliation pass, and LiteLLM pinned by digest |
+| 2 | 3 | §16's AI-path regression tier, before any `ai/` module exists |
+| 3 | 4–5 | `ai/errors.ts`, then the transport that uses it |
+| 4 | 6–7 | the catalogue and the key minter |
+| 5 | 8–9 | **the sitting where Tasks 6, 7 and 8 get a caller** |
+| 6 | 10 | the blueprint's AI half — **the one sitting that needs the network ON** |
+| 7 | 11–12 | build logs, and the redaction that covers them |
+| 8 | 13 | §14's `Incident` |
+| 9 | 14–15 | the stream, and the call sites that make it carry anything |
+| 10 | 16 | P4b's acceptance, alone |
+
+**Ten rather than eight** — which is what sixteen tasks at P4a's average would give —
+because three tasks are alone for reasons that are not their size: Task 3 builds the
+probe harness every later sitting is measured against, Task 10 needs `make seed` with
+the network on to warm Verdaccio from a new lockfile (P4a's sitting 5 was alone for
+exactly this), and Task 16 is the first end-to-end run, which is where this project's
+worst defects have always been. **The table is a schedule, not a contract**: Task 1's
+job is to move task boundaries, so re-cut it if that happens. Two rules survive any
+re-cut — **Task 16 stays alone, and Tasks 14 and 15 stay together**, because Task 15
+is what makes the stream carry anything and a stream with no publisher sits green for
+a whole session.
+
+**Sitting 1 has four things to reconcile that the plan could not know**, because P4a's
+Task 15 ran two days after P4b was written. They are listed in the plan under *What
+sitting 1 must reconcile*: `fixtures/proof-app/package.json` and `package-lock.json`
+**do not exist** (Task 16's *Files* block modifies both), `endUserId` already exists in
+`fixtures/proof-app/identity.js` and must be passed through rather than recomputed, the
+three-hop login is one shared function in `infra/lib/idp-login.sh` that `demo-ai.sh`
+must source, and `scripts/offline-acceptance.sh` already has a step 6 that a new one
+must append to rather than replace.
 
 The LiteLLM admin client with `allowed_routes` as a constant rather than a
 parameter, S3's error table as one mapper, D17's catalogue read from `/model/info`,
@@ -1341,7 +1384,7 @@ so §16's authorization contract suite can cover it like any other route.
 the 2026-09-04 decision, and the plan answers it rather than ignoring it: **Task 1
 is a reconciliation pass** against the executed P4a with a named checklist, and
 three places where P4a's own text is ambiguous are flagged at the point of use.
-**Do not execute P4b before P4a.**
+**P4a has now executed in full (2026-09-09), so that reconciliation is sitting 1's first job rather than a hypothetical.**
 
 **Writing it measured ten more facts.** The load-bearing ones: `/model/info` returns
 `mode: null` for a chat model — not `"chat"` — so a catalogue filtered on `'chat'`
