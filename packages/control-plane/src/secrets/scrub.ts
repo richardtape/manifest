@@ -12,6 +12,9 @@ export const SECRET_ENV_NAMES = [
   'MANIFEST_IDP_DATABASE_URL',
   'POSTGRES_PASSWORD',
   'LITELLM_MASTER_KEY',
+  // The same secret under the control plane's name (P4b Task 5), set by README's
+  // export block. Two names for one secret are two things to scrub.
+  'MANIFEST_LITELLM_MASTER_KEY',
   'LITELLM_SALT_KEY',
   'SSP_RO_PASSWORD',
   'SSP_ADMIN_PASSWORD',

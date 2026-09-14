@@ -41,6 +41,10 @@ describe('the process.env scrub (§12)', () => {
       'MANIFEST_MASTER_SECRET',
       'MANIFEST_SESSION_SECRET',
       'LITELLM_MASTER_KEY',
+      // Not in .env: README's export block names the key this way for the control
+      // plane (P4b Task 5), exactly as it builds MANIFEST_DATABASE_URL. A second name
+      // for one secret is a second thing to scrub.
+      'MANIFEST_LITELLM_MASTER_KEY',
       'SSP_RO_PASSWORD',
     ]) {
       expect(SECRET_ENV_NAMES).toContain(name)

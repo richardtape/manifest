@@ -179,6 +179,44 @@ const envSchema = z.object({
   // caller, and a literal default in the source tree is a published secret.
   MANIFEST_MASTER_SECRET: z.string().min(32).optional(),
   MANIFEST_DOCKER_SOCKET: z.string().min(1).optional(),
+  /**
+   * P4b Task 5. What the CONTROL PLANE calls LiteLLM: a host process, on the port
+   * `infra/compose.yaml` publishes (127.0.0.1:7106 → 4000).
+   */
+  MANIFEST_LITELLM_URL: z.string().min(1).default('http://127.0.0.1:7106'),
+  // NOT derived from the one above. `registryUrl`/`registryInternalUrl` is the same
+  // pair and carries the same warning: these two are what the CONTROL PLANE and what
+  // an APP call the same service, they are not interchangeable, and nothing fails
+  // loudly if they are swapped — an app handed the loopback URL gets ECONNREFUSED
+  // from inside its own network. It carries `/v1` because §8's LLM_ENDPOINT does.
+  MANIFEST_LITELLM_INTERNAL_URL: z
+    .string()
+    .min(1)
+    .default('http://manifest-litellm:4000/v1'),
+  /**
+   * Mints and revokes every app's LiteLLM key (§10). Optional here and required
+   * outside development below, for the build credential's two reasons — and never
+   * generated, because a generated key is one LiteLLM refuses on every call.
+   *
+   * NOT in `.env.example`. LiteLLM itself reads `LITELLM_MASTER_KEY` from `.env`, and
+   * README's export block names that one stored secret again here, at the point of
+   * use, the way it builds MANIFEST_DATABASE_URL from MANIFEST_APP_PASSWORD. A second
+   * stored copy would drift from the first the first time either changed, and a new
+   * `.env.example` key turns `make doctor` red on every existing machine.
+   *
+   * EMPTY IS ABSENT: `"${LITELLM_MASTER_KEY}"` expands to '' when `.env` lacks the
+   * line, and '' must get the named refusal below rather than CONFIG_INVALID's
+   * "String must contain at least 1 character(s)" — or, in development, a boot
+   * failure for a setting development does not need.
+   */
+  MANIFEST_LITELLM_MASTER_KEY: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().min(1).optional(),
+  ),
+  // Lets the non-Docker tier run with no LiteLLM. NOT a kill switch for the
+  // confinement: it gates whether the catalogue is fetched (Task 6), never whether a
+  // key carries allowed_routes (Task 7). '0' or '1' only — `false` is a truthy string.
+  MANIFEST_AI_ENABLED: z.enum(['0', '1']).default('1'),
 })
 
 export interface Config {
@@ -238,6 +276,17 @@ export interface Config {
    */
   masterSecretGenerated: boolean
   dockerSocket: string
+  /** LiteLLM (§10, P4b Task 5). Two URLs, never one derived from the other. */
+  litellm: {
+    /** What the control plane calls — the published port. */
+    url: string
+    /** What an APP calls, by service name on its own network. Ends in `/v1`. */
+    internalUrl: string
+    /** Absent only in development; `loadConfig` refuses its absence anywhere else. */
+    masterKey?: string
+    /** Whether the catalogue is fetched. Never whether a key is confined. */
+    enabled: boolean
+  }
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -319,6 +368,23 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const masterSecretGenerated = raw.MANIFEST_MASTER_SECRET === undefined
   const masterSecret = raw.MANIFEST_MASTER_SECRET ?? randomBytes(32).toString('hex')
 
+  // The same two reads of one setting, for the key that mints and revokes every app's
+  // LiteLLM key (P4b Task 5). Checked LAST, so each earlier guard still reports its
+  // own setting first. Never generated: LiteLLM refuses a key it was not started
+  // with, so a generated one would fail every AI deploy as an authentication error
+  // naming the gateway rather than the setting.
+  if (
+    raw.MANIFEST_LITELLM_MASTER_KEY === undefined &&
+    raw.MANIFEST_ENV !== 'development'
+  ) {
+    throw new ConfigError(
+      'CONFIG_LITELLM_MASTER_KEY_REQUIRED',
+      `MANIFEST_LITELLM_MASTER_KEY is required when MANIFEST_ENV is '${raw.MANIFEST_ENV}'. ` +
+        "It mints and revokes every app's LiteLLM key (§10); README's export block sets " +
+        'it from LITELLM_MASTER_KEY in .env.',
+    )
+  }
+
   return {
     env: raw.MANIFEST_ENV,
     databaseUrl: raw.MANIFEST_DATABASE_URL,
@@ -360,6 +426,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     masterSecret,
     masterSecretGenerated,
     dockerSocket: raw.MANIFEST_DOCKER_SOCKET ?? resolveSocketPath(),
+    litellm: {
+      url: raw.MANIFEST_LITELLM_URL,
+      internalUrl: raw.MANIFEST_LITELLM_INTERNAL_URL,
+      ...(raw.MANIFEST_LITELLM_MASTER_KEY === undefined
+        ? {}
+        : { masterKey: raw.MANIFEST_LITELLM_MASTER_KEY }),
+      enabled: raw.MANIFEST_AI_ENABLED === '1',
+    },
   }
 }
 

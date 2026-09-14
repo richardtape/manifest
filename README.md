@@ -153,6 +153,10 @@ export MANIFEST_IDP_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0
 export MANIFEST_SESSION_SECRET=$(openssl rand -hex 32)
 export MANIFEST_BLUEPRINTS_ROOT="$PWD/blueprints"
 export MANIFEST_REPOS_ROOT="$PWD/.manifest/repos"
+# The key that mints and revokes every app's LiteLLM key (§10). ONE stored secret:
+# LiteLLM reads LITELLM_MASTER_KEY from .env, and this names the same value for the
+# control plane. Required outside development; never add a second copy to .env.
+export MANIFEST_LITELLM_MASTER_KEY="${LITELLM_MASTER_KEY}"
 # MANIFEST_MASTER_SECRET comes from .env. Every backing-service credential is
 # derived from it, so it must be STABLE — a value that changes between restarts
 # cannot reproduce the password an existing database container already holds.

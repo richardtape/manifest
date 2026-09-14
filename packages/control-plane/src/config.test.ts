@@ -80,6 +80,7 @@ describe('configuration', () => {
         MANIFEST_ENV: 'production',
         MANIFEST_BUILD_CREDENTIAL_SECRET: 'b'.repeat(32),
         MANIFEST_MASTER_SECRET: 'm'.repeat(32),
+        MANIFEST_LITELLM_MASTER_KEY: 'sk-litellm',
       }).buildCredentialSecret,
     ).toBe('b'.repeat(32))
   })
@@ -93,6 +94,7 @@ describe('configuration', () => {
       ...base,
       MANIFEST_ENV: 'production',
       MANIFEST_BUILD_CREDENTIAL_SECRET: 'b'.repeat(32),
+      MANIFEST_LITELLM_MASTER_KEY: 'sk-litellm',
     }
     expect(() => loadConfig(env)).toThrow(ConfigError)
     try {
@@ -103,6 +105,76 @@ describe('configuration', () => {
     const config = loadConfig({ ...env, MANIFEST_MASTER_SECRET: 'm'.repeat(32) })
     expect(config.masterSecret).toBe('m'.repeat(32))
     expect(config.masterSecretGenerated).toBe(false)
+  })
+
+  // P4b Task 5. What the CONTROL PLANE and what an APP call LiteLLM are two settings,
+  // never one derived from the other — `registryUrl`/`registryInternalUrl` is the
+  // same pair. Swapped, an app handed the loopback URL gets ECONNREFUSED from inside
+  // its own network and nothing names the cause.
+  it('defaults the LiteLLM settings, and leaves the master key unset in development', () => {
+    const config = loadConfig({ ...base, MANIFEST_ENV: 'development' })
+    expect(config.litellm).toEqual({
+      url: 'http://127.0.0.1:7106',
+      internalUrl: 'http://manifest-litellm:4000/v1',
+      enabled: true,
+    })
+    expect(config.litellm.masterKey).toBeUndefined()
+  })
+
+  it('keeps the host URL and the in-network URL independent', () => {
+    const config = loadConfig({ ...base, MANIFEST_LITELLM_URL: 'http://10.0.0.9:4000' })
+    expect(config.litellm.url).toBe('http://10.0.0.9:4000')
+    expect(config.litellm.internalUrl).toBe('http://manifest-litellm:4000/v1')
+  })
+
+  it('reads MANIFEST_AI_ENABLED as 0 or 1 and nothing else', () => {
+    expect(loadConfig({ ...base, MANIFEST_AI_ENABLED: '0' }).litellm.enabled).toBe(false)
+    // `false` is the typo that matters: read loosely, it is a truthy string.
+    expect(() => loadConfig({ ...base, MANIFEST_AI_ENABLED: 'false' })).toThrow(
+      ConfigError,
+    )
+  })
+
+  // The same two reads of one setting as the build credential and the master secret.
+  // The master key mints and revokes every app's key (§10), so a control plane
+  // outside development without one would fail every AI deploy with an
+  // authentication error that names LiteLLM rather than the missing setting.
+  it('refuses to start outside development without a LiteLLM master key', () => {
+    const codeOf = (env: Record<string, string>) => {
+      try {
+        loadConfig(env)
+        return 'loaded'
+      } catch (error) {
+        return (error as ConfigError).code
+      }
+    }
+    const env = {
+      ...base,
+      MANIFEST_ENV: 'staging',
+      MANIFEST_BUILD_CREDENTIAL_SECRET: 'b'.repeat(32),
+      MANIFEST_MASTER_SECRET: 'm'.repeat(32),
+    }
+    expect(codeOf(env)).toBe('CONFIG_LITELLM_MASTER_KEY_REQUIRED')
+    // EMPTY is absent, and gets the same named refusal — not CONFIG_INVALID's
+    // "String must contain at least 1 character(s)", which names no remedy.
+    expect(codeOf({ ...env, MANIFEST_LITELLM_MASTER_KEY: '' })).toBe(
+      'CONFIG_LITELLM_MASTER_KEY_REQUIRED',
+    )
+    expect(
+      loadConfig({ ...env, MANIFEST_LITELLM_MASTER_KEY: 'sk-real' }).litellm.masterKey,
+    ).toBe('sk-real')
+  })
+
+  it('treats an empty master key as absent in development too', () => {
+    // README's export block builds it as "${LITELLM_MASTER_KEY}", which an .env
+    // without that line expands to ''. That must not stop a development boot that
+    // never calls LiteLLM.
+    const config = loadConfig({
+      ...base,
+      MANIFEST_ENV: 'development',
+      MANIFEST_LITELLM_MASTER_KEY: '',
+    })
+    expect(config.litellm.masterKey).toBeUndefined()
   })
 
   // Generated in development, and SAID SO — the flag is what lets the boot line
@@ -164,6 +236,7 @@ describe('configuration', () => {
       MANIFEST_DEV_AUTH: '1',
       MANIFEST_BUILD_CREDENTIAL_SECRET: 'b'.repeat(32),
       MANIFEST_MASTER_SECRET: 'm'.repeat(32),
+      MANIFEST_LITELLM_MASTER_KEY: 'sk-litellm',
     })
     expect(Object.keys(config)).not.toContain('devAuth')
     expect(JSON.stringify(config)).not.toContain('DEV_AUTH')
