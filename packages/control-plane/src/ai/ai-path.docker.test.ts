@@ -2,7 +2,38 @@ import { readFile } from 'node:fs/promises'
 import { LLMModule } from 'ubc-genai-toolkit-llm'
 import { expect, it } from 'vitest'
 import { describeDocker } from '../runtime/testing.js'
-import { litellmMasterKey, litellmUrl } from './testing.js'
+import { AI_CODES, mapLiteLlmError } from './errors.js'
+import {
+  deleteProbeKey,
+  ensureProbeUser,
+  litellmMasterKey,
+  litellmUrl,
+  mintProbeKey,
+} from './testing.js'
+
+/** The user probe 14 in `s6.docker.test.ts` mints under. Created with no key of its own. */
+const PROBE_USER = 'p4b-probe-user'
+
+/**
+ * One request, answered RAW. Defined here rather than reused from `ai/client.ts`,
+ * deliberately: the client MAPS errors, and these tests need the status and body
+ * the mapping is computed from.
+ */
+const call = (key: string, method: 'GET' | 'POST', route: string, body?: unknown) =>
+  fetch(`${litellmUrl()}${route}`, {
+    method,
+    headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  })
+
+/** What drifted, readable in a failure — the status and LiteLLM's `type`, never the body. */
+async function mapped(res: Response): Promise<{ code: string; seen: string }> {
+  const body = (await res.json()) as { error?: { type?: unknown } }
+  return {
+    code: mapLiteLlmError(res.status, body).code,
+    seen: `${res.status} type=${String(body.error?.type ?? '(no error object)')}`,
+  }
+}
 
 /**
  * §16's AI-path regression tier. Every assertion here is a finding that PASSED
@@ -73,5 +104,84 @@ describeDocker('AI-path regression (§16, S3 Evidence 8 and 9)', () => {
       'zero content frames — is default-chat a thinking model?',
     ).toBeGreaterThan(0)
     expect(response.content.trim()).not.toBe('')
+  })
+
+  it('every mapped condition an APP key can provoke is still the shape 1.98.0 produces', async () => {
+    // What makes Task 4's recorded bodies evidence rather than folklore, and what
+    // re-measures them when the digest pin moves. The two budget rows are NOT
+    // provoked: reaching a budget needs S3's synthetic-cost setup and a stream of
+    // requests, so they are asserted against S3's recorded bodies in errors.test.ts.
+    await ensureProbeUser(PROBE_USER)
+    const confined = await mintProbeKey({ userId: PROBE_USER, confined: true })
+    const unknownModel = {
+      model: 'no-such-model',
+      messages: [{ role: 'user', content: 'x' }],
+    }
+    let deleted = false
+    try {
+      const cases: [string, () => Promise<Response>][] = [
+        [AI_CODES.ROUTE_NOT_PERMITTED, () => call(confined, 'POST', '/key/generate', {})],
+        // A key that carries a `models` list — and every app key does (Task 7) — is
+        // refused a model OFF that list before LiteLLM asks whether the model exists.
+        // Measured 2026-09-14: `no-such-model` on this key is 403
+        // `key_model_access_denied`, not S3's 400. So an app never sees MODEL_UNKNOWN.
+        [
+          AI_CODES.MODEL_NOT_PERMITTED,
+          () => call(confined, 'POST', '/v1/chat/completions', unknownModel),
+        ],
+        // ...which is reachable only from a key with NO model list. The master key is
+        // the one such key this tier holds; nothing is created by the refusal.
+        [
+          AI_CODES.MODEL_UNKNOWN,
+          () => call(litellmMasterKey(), 'POST', '/v1/chat/completions', unknownModel),
+        ],
+        [
+          AI_CODES.KEY_REVOKED,
+          async () => {
+            await deleteProbeKey(confined)
+            deleted = true
+            return call(confined, 'GET', '/v1/models')
+          },
+        ],
+      ]
+      for (const [expected, run] of cases) {
+        const { code, seen } = await mapped(await run())
+        expect(code, `${expected} drifted: LiteLLM answered ${seen}`).toBe(expected)
+      }
+    } finally {
+      // Not a swallowed catch: if the revoke case never ran, the key is live and
+      // this delete must succeed or say why.
+      if (!deleted) await deleteProbeKey(confined)
+    }
+  })
+
+  it('the ADMIN envelopes the mapper must NOT mistake for an app fault are unchanged', async () => {
+    // Task 5's client maps the admin API's failures through the same function, and
+    // FastAPI's own errors share a route denial's `{"detail": …}` envelope. These
+    // three were measured on 2026-09-14 and are what the 403 and `"None"` guards in
+    // mapLiteLlmError rest on. None of them creates anything: the route does not
+    // exist, the body is refused before a user is made, and the user already exists
+    // (with `auto_create_key: false`, so a regression cannot mint a key either).
+    const master = litellmMasterKey()
+    const notFound = await call(master, 'GET', '/no/such/admin/route')
+    const invalid = await call(master, 'POST', '/user/new', {
+      max_budget: 'not-a-number',
+    })
+    await ensureProbeUser(PROBE_USER)
+    const exists = await call(master, 'POST', '/user/new', {
+      user_id: PROBE_USER,
+      auto_create_key: false,
+    })
+    for (const [res, status] of [
+      [notFound, 404],
+      [invalid, 422],
+      [exists, 409],
+    ] as const) {
+      const { code, seen } = await mapped(res)
+      expect(res.status, seen).toBe(status)
+      expect(code, `an admin ${status} mapped to an app fault: ${seen}`).toBe(
+        AI_CODES.UNMAPPED,
+      )
+    }
   })
 })
