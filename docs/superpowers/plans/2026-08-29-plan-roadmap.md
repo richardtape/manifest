@@ -126,7 +126,7 @@ LiteLLM row records the digest pin Task 2 made. One consistency edit went with t
 §1's existing-assets row still said `docker-simple-saml` "becomes the Manifest IdP".
 
 **Not applied:** P4a's `MONGODB_DB_NAME` note, which is history rather than design, and
-P4b's other five, **held until Tasks 6, 7, 9 and 14 have run**. Two of those — the
+P4b's other five, **held until Tasks 6, 7, 9 and 14 have run** — **6 and 7 ran on 2026-09-14, so two are now measured and ready for Rich's call**: §7's D17 mechanics, confirmed with one addition (one unclassified entry refuses the whole catalogue), and §7's zero-budget refusal, now `SPEC_AI_BUDGET_REQUIRED`. Two of those — the
 per-user AI budget §10 cannot enforce at LiteLLM 1.98.0, and what streams over
 WebSocket (§14 against D23.2) — are Rich's product decisions at that point.
 
@@ -261,7 +261,7 @@ Recorded here because they are about *how to run this work*, and each was paid f
 | **P2** | 1a-ii | Control-plane spine ✅ **EXECUTED 2026-09-05** — all 21 tasks | project → spec → release → staging deploy, against the fake driver, **~300 ms**, no Docker — **demonstrated** |
 | **P3** | 1a-iii | Docker driver & deploy spine ✅ **EXECUTED 2026-09-07** — all 19 tasks | fixture app healthy at a `manifest.internal` URL, from a bare repo, offline — **demonstrated**, and again from a dropped database and an emptied registry |
 | **P4a** | 1b-i | Identity, secrets & the §8 contract — **EXECUTED AND GREEN: all 15 tasks, 2026-09-09.** A real CWL login works end to end — through a row `sso/` renders and `deployRelease` writes — `secrets/` holds every service credential, §20's audit log is append-only against a least-privilege role, §8's injection contract is ONE function with one producer, **`node-ts-mongo@1` — the blueprint faculty use — builds, deploys and issues a real AuthnRequest**, **Manifest logs its OWN users in with CWL: the dev shim is deleted**, and **`make demo-identity` takes §16's proof app from a bare repository to a CWL sign-in in which the instructor cannot see the student's note** — including from a reset machine. **The offline run is outstanding and is Rich's** | ✅ the proof app signing in with CWL and writing a note, via `curl` |
-| **P4b** | 1b-ii | AI, events, streaming, incidents — **WRITTEN 2026-09-07; PART-EXECUTED: SITTINGS 1–3 (Tasks 1–5) ARE DONE, 2026-09-14. SITTING 4 — TASKS 6 AND 7 — IS NEXT, and a pre-flight read has written eight corrections at the top of those two tasks.** 16 tasks in **TEN AGREED SITTINGS of one session each (Rich, 2026-09-09)** — the table is at the top of the plan and is the maintained copy. Sitting 1 produced **10 findings**: the reconciliation pass corrected two migrations that would have failed on their first statement (`manifest_audit_owner` does not exist) and one `ON DELETE CASCADE` that bypassed §20's append-only grant; then LiteLLM was pinned by digest to **`sha256:20b5044b` / 1.98.0, the version S3 measured** — Rich's call, taken because the `main-stable` tag moved to a new build two hours before the task started. Sitting 2 produced **6**, one a correction to Task 7's code; **sitting 3 produced 11**, including a second correction to Task 7 — as written it throws on every redeploy of an AI app — and one to Task 9 | the proof app's LLM answer |
+| **P4b** | 1b-ii | AI, events, streaming, incidents — **WRITTEN 2026-09-07; PART-EXECUTED: SITTINGS 1–4 (Tasks 1–7) ARE DONE, 2026-09-14. SITTING 5 — TASKS 8 AND 9 — IS NEXT, and it is the sitting that gives Tasks 6, 7 and 8 their caller.** 16 tasks in **TEN AGREED SITTINGS of one session each (Rich, 2026-09-09)** — the table is at the top of the plan and is the maintained copy. Sitting 1 produced **10 findings**: the reconciliation pass corrected two migrations that would have failed on their first statement (`manifest_audit_owner` does not exist) and one `ON DELETE CASCADE` that bypassed §20's append-only grant; then LiteLLM was pinned by digest to **`sha256:20b5044b` / 1.98.0, the version S3 measured** — Rich's call, taken because the `main-stable` tag moved to a new build two hours before the task started. Sitting 2 produced **6**, one a correction to Task 7's code; **sitting 3 produced 11**, including a second correction to Task 7 — as written it throws on every redeploy of an AI app — and one to Task 9; **sitting 4 produced 12** — it decided that AI is on unless `MANIFEST_AI_ENABLED=0` and that on means a boot with no LiteLLM master key is refused, and measured that a key minted with an empty `models` list reaches every model | the proof app's LLM answer |
 | **P5** | 1c | Contract & clients | the §1 journey, clickable, driven twice over one contract |
 | **P6–P11** | 2 | six plans, listed below, **not written yet** | — |
 
@@ -273,7 +273,7 @@ ran in three sittings — 1 and 9–11 on 2026-08-31, **2–8** and then **12–
 then discharged and **P4 was split into P4a and P4b (Rich's call, 2026-09-07).**
 
 **P4a IS EXECUTED AND GREEN: all 15 tasks, finished 2026-09-09. P4b IS PART-EXECUTED:
-sittings 1 to 3 — Tasks 1 to 5 — are done, and SITTING 4 (Tasks 6 and 7) IS THE CURRENT WORK.**
+sittings 1 to 4 — Tasks 1 to 7 — are done, and SITTING 5 (Tasks 8 and 9) IS THE CURRENT WORK.**
 P4b runs in TEN AGREED SITTINGS of one session each (Rich, 2026-09-09), the same pattern
 P4a used; the table is at the top of that plan. **Its Task 1 reconciliation did not come
 back clean** — six divergences from the executed P4a, two of which would have failed a
@@ -511,7 +511,7 @@ testable software. Both halves do.
 | | Scope | Demo | State |
 |---|---|---|---|
 | **P4a** | The IdP finished, `secrets/` envelope encryption, `sso/` SP auto-provisioning, per-app keypairs, §8's injection contract and its drift test, `node-ts-mongo@1`'s auth half, Manifest's own CWL login (deleting the dev shim), the proof app's sign-in | the proof app: CWL sign-in and a per-user note, by `curl` — and the instructor cannot see the student's note | ✅ **EXECUTED — all 15 tasks, green, 2026-09-09**, in seven agreed sittings. **80 defects**, recorded per session in the plan's *What executing this plan found*. The offline acceptance is outstanding and is Rich's to run. [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md) |
-| **P4b** | The LiteLLM client with `allowed_routes`, the classification-gated catalogue (D17), key lifecycle, the blueprint's AI wiring, `WS /projects/:id/events`, heuristic redaction, incidents | the proof app's LLM answer | **WRITTEN 2026-09-07**, 16 tasks, unrun. [`2026-09-07-p4b-ai-events-streaming-incidents.md`](./2026-09-07-p4b-ai-events-streaming-incidents.md). Writing it measured **ten more facts**, one of which is a §10 requirement that **cannot be implemented at LiteLLM 1.98.0** |
+| **P4b** | The LiteLLM client with `allowed_routes`, the classification-gated catalogue (D17), key lifecycle, the blueprint's AI wiring, `WS /projects/:id/events`, heuristic redaction, incidents | the proof app's LLM answer | **WRITTEN 2026-09-07**, 16 tasks; **7 executed by 2026-09-14** (sittings 1–4 of ten). [`2026-09-07-p4b-ai-events-streaming-incidents.md`](./2026-09-07-p4b-ai-events-streaming-incidents.md). Writing it measured **ten more facts**, one of which is a §10 requirement that **cannot be implemented at LiteLLM 1.98.0** |
 
 **Six facts were measured on 2026-09-07 before P4a was written**, because no plan may
 contain a step standing in for a spike result. Four were live defects nothing could
@@ -643,8 +643,8 @@ execution layer.** Each is written when its predecessor lands.
 5. **Execute P1 → P2 → P3.** ✅ **All three are done.** P1 and P2 executed and green
    on 2026-09-05, P1 green offline too; **P3 finished 2026-09-07, all 19 tasks**. S6
    ran as its Task 18 and has reported. **P4a is EXECUTED IN FULL — all 15 tasks,
-   2026-09-09 — and P4b is PART-EXECUTED: sittings 1–3 (Tasks 1–5) done by 2026-09-14,
-   11 tasks remaining. Continue P4b at Task 6.**
+   2026-09-09 — and P4b is PART-EXECUTED: sittings 1–4 (Tasks 1–7) done by 2026-09-14,
+   9 tasks remaining. Continue P4b at Task 8.**
 6. **Start the external track once the local proof of concept works end to end.**
    **Changed 2026-09-05, Rich's call.** This step previously said *"start now, in
    parallel"*, on the argument that C4 has the longest lead time and no software
@@ -662,7 +662,7 @@ execution layer.** Each is written when its predecessor lands.
    and P4b on 2026-09-07 (Rich's call), and P4a is WRITTEN** —
    [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md),
    15 tasks. **ALL 15 ARE EXECUTED AND GREEN — 1–5 on 2026-09-08, 6–15 on
-   2026-09-09.** ← **P4b IS NOW THE CURRENT WORK, AT TASK 6** (sittings 1–3
+   2026-09-09.** ← **P4b IS NOW THE CURRENT WORK, AT TASK 8** (sittings 1–4
    done, 2026-09-14).
    **P4b was then written on 2026-09-07 as well, at Rich's request** —
    [`2026-09-07-p4b-ai-events-streaming-incidents.md`](./2026-09-07-p4b-ai-events-streaming-incidents.md),
@@ -741,6 +741,8 @@ run. The measured rate by batch:
 | **P4a Task 14** | **1** | **8** | **8.0** |
 | **P4a so far** | **14** | **70** | **5.0** |
 | P4b Tasks 1–5 (sittings 1–3) | 5 | 27 | 5.4 |
+| P4b Tasks 6–7 (sitting 4) | 2 | 12 | 6.0 |
+| **P4b so far** | **7** | **39** | **5.6** |
 
 ***That was true on 2026-09-06. As of 2026-09-09 the unrun stack is 17 tasks:
 P4a's remaining 1 and P4b's 16.*** Task 14 came in at **8 defects in one task**, the
