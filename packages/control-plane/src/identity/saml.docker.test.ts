@@ -229,6 +229,10 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
         MANIFEST_MASTER_SECRET: 'm'.repeat(32),
         MANIFEST_BLUEPRINTS_ROOT: `${REPO_ROOT}blueprints`,
         MANIFEST_REPOS_ROOT: `${REPO_ROOT}.manifest/repos`,
+        // AI OFF. Sign-on is this suite's subject, and a development boot with AI on
+        // needs MANIFEST_LITELLM_MASTER_KEY (P4b sitting 4, finding 38) — so this is
+        // also the one place the switched-off boot runs for real.
+        MANIFEST_AI_ENABLED: '0',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     })

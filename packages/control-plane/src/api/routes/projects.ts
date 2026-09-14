@@ -10,8 +10,9 @@ import {
   listEnvironments,
   listProjectsFor,
 } from '../../projects/index.js'
+import type { ModelCatalogue } from '../../ai/index.js'
 import { isSensitiveDiff, validateSpec } from '../../spec/index.js'
-import type { ManifestSpec } from '../../spec/index.js'
+import type { ManifestSpec, ValidationContext } from '../../spec/index.js'
 import { BadRequestError, SpecInvalidError } from '../errors.js'
 import { requireActor, type ServerDeps } from '../server.js'
 
@@ -29,8 +30,30 @@ const memberBody = z.object({
   role: z.enum(['owner', 'collaborator']),
 })
 
+type ModelPolicy = Pick<ValidationContext, 'aiEnabled' | 'modelCatalogue'>
+
+/**
+ * D17's half of the validation context — LiteLLM's catalogue (`ai/catalogue.ts`, P4b
+ * Task 6). This route used to carry its own copy of that list, which was a second
+ * source of truth for the check that stops "a privacy incident at runtime" (§7).
+ *
+ * AWAITED BEFORE ANYTHING IS WRITTEN. Project creation inserts the project row and
+ * creates the repository before it validates, so a read that failed after them left
+ * a project with no spec whose retry collided with its own slug (sitting 4,
+ * finding 45). A failed read is a 503 and nothing else.
+ */
+async function modelPolicy(catalogue: ModelCatalogue): Promise<ModelPolicy> {
+  // A disabled catalogue is never READ: there is no client behind it (finding 38).
+  if (!catalogue.enabled) return { aiEnabled: false, modelCatalogue: [] }
+  return { aiEnabled: true, modelCatalogue: await catalogue.get() }
+}
+
 /** The validation context §7 needs but manifest.yaml cannot contain (Task 4). */
-function validationContext(projectSlug: string, quota: Record<string, unknown>) {
+function validationContext(
+  projectSlug: string,
+  quota: Record<string, unknown>,
+  models: ModelPolicy,
+): ValidationContext {
   return {
     projectSlug,
     attributeWhitelist: [
@@ -41,11 +64,7 @@ function validationContext(projectSlug: string, quota: Record<string, unknown>) 
       'eduPersonAffiliation',
     ],
     serviceCatalogue: ['mongo', 'qdrant'],
-    modelCatalogue: [
-      { name: 'default-chat-onprem', maxClassification: 'confidential' as const },
-      { name: 'default-chat', maxClassification: 'internal' as const },
-      { name: 'default-embed', maxClassification: 'internal' as const },
-    ],
+    ...models,
     quota: {
       maxCpu: Number(quota.max_cpu ?? 2),
       maxMemoryMi: 2048,
@@ -84,6 +103,8 @@ export async function registerProjectRoutes(
     }
 
     const { status, body } = await app.idempotent(request, async () => {
+      // FIRST — before the project row and the repository exist. See modelPolicy.
+      const models = await modelPolicy(deps.catalogue)
       const { project, environments } = await createProject(deps.db, deps.config, {
         slug,
         ownerId: actor.userId,
@@ -109,7 +130,7 @@ export async function registerProjectRoutes(
 
       const result = validateSpec(
         yamlText,
-        validationContext(slug, project.quota as Record<string, unknown>),
+        validationContext(slug, project.quota as Record<string, unknown>, models),
       )
       const [appSpec] = await deps.db
         .insert(appSpecs)
@@ -221,13 +242,14 @@ export async function registerProjectRoutes(
       .limit(1)
 
     const { status, body } = await app.idempotent(request, async () => {
+      const models = await modelPolicy(deps.catalogue)
       const repo = deps.source.repositoryFor(project.slug)
       const commitSha = parsedBody.data.commitSha ?? (await deps.source.headCommit(repo))
       const yamlText =
         (await deps.source.readFile(repo, commitSha, 'manifest.yaml')) ?? ''
       const result = validateSpec(
         yamlText,
-        validationContext(project.slug, project.quota as Record<string, unknown>),
+        validationContext(project.slug, project.quota as Record<string, unknown>, models),
       )
       const [appSpec] = await deps.db
         .insert(appSpecs)

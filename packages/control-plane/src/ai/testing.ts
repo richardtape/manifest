@@ -1,3 +1,9 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { parse } from 'yaml'
+import { createCatalogueCache, type ModelCatalogue } from './catalogue.js'
+import type { LiteLlmClient } from './client.js'
+
 /**
  * Probe keys for §16's AI-path tier (P4b Task 3). NOT `ai/keys.ts` — that is Task 7,
  * and this tier exists to establish what Task 7 must produce before it produces it.
@@ -5,6 +11,41 @@
  * Minted through `fetch` from the host, against LiteLLM's published port, with the
  * master key `vitest.env.ts` derives from `.env`.
  */
+
+/** The bootstrap catalogue P1 ships. Resolved from this file, never from the cwd. */
+export const LITELLM_CONFIG = fileURLToPath(
+  new URL('../../../../infra/litellm/config.yaml', import.meta.url),
+)
+
+/**
+ * D17's catalogue for the unit tier, with no LiteLLM behind it — what `testDeps`
+ * hands every API test (P4b Task 6).
+ *
+ * READ FROM `infra/litellm/config.yaml`, not written out here, and passed through the
+ * REAL projection: a hand-written list in a harness is a second copy of the
+ * catalogue, which is the defect Task 6 deletes from the route, and a fixture that
+ * skipped `loadModelCatalogue` would let the API tier pass on entries the platform
+ * would have refused. The config file carries no `mode` on a chat entry where the
+ * live proxy answers `null`; the projection treats both as chat.
+ */
+export function declaredCatalogue(): ModelCatalogue {
+  const declared = parse(readFileSync(LITELLM_CONFIG, 'utf8')) as {
+    model_list: { model_name: string; model_info?: Record<string, unknown> }[]
+  }
+  const body = {
+    data: declared.model_list.map((m) => ({
+      model_name: m.model_name,
+      model_info: m.model_info ?? {},
+    })),
+  }
+  const client = {
+    get: async () => body,
+    post: async () => {
+      throw new Error('declaredCatalogue() is read-only: it has no LiteLLM to write to')
+    },
+  } as unknown as LiteLlmClient
+  return createCatalogueCache(client)
+}
 
 /** LiteLLM's published port: `infra/compose.yaml` maps 127.0.0.1:7106 to 4000. */
 export function litellmUrl(): string {

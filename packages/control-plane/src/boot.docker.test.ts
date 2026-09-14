@@ -3,6 +3,7 @@ import { promisify } from 'node:util'
 import pg from 'pg'
 import { expect, it } from 'vitest'
 import { describeDocker, REPO_ROOT } from './runtime/testing.js'
+import { litellmMasterKey } from './ai/testing.js'
 import { deleteSpRow, readSpRow } from './sso/index.js'
 import { idpDatabaseUrl } from './sso/testing.js'
 
@@ -52,6 +53,9 @@ describeDocker('the boot entry point', () => {
         MANIFEST_MASTER_SECRET: 'm'.repeat(32),
         MANIFEST_BLUEPRINTS_ROOT: `${REPO_ROOT}blueprints`,
         MANIFEST_REPOS_ROOT: `${REPO_ROOT}.manifest/repos`,
+        // AI ON, with its key: the production shape of boot (P4b sitting 4). The
+        // switched-off boot is `identity/saml.docker.test.ts`'s.
+        MANIFEST_LITELLM_MASTER_KEY: litellmMasterKey(),
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
@@ -80,13 +84,16 @@ describeDocker('the boot entry point', () => {
       })
       const boot = JSON.parse(line)
       expect(boot.driver).toBe('docker')
+      // The second fact this file decides (P4b sitting 4, finding 38).
+      expect(boot.ai).toBe('enabled')
       // §12's scrub, asserted at the ONLY place it can be: the real process.
       // `runtime/docker/builder.ts` spawns `docker` with `{ ...process.env }`,
       // so anything still in the environment at that moment reaches the build —
       // and a build log is a place secrets end up. This spawn sets
-      // MANIFEST_SESSION_SECRET and MANIFEST_MASTER_SECRET explicitly, so a
-      // scrub that ran removed at least those two.
-      expect(boot.secretsScrubbed).toBeGreaterThanOrEqual(2)
+      // MANIFEST_SESSION_SECRET, MANIFEST_MASTER_SECRET and
+      // MANIFEST_LITELLM_MASTER_KEY explicitly, so a scrub that ran removed at
+      // least those three.
+      expect(boot.secretsScrubbed).toBeGreaterThanOrEqual(3)
 
       // §9's registration, asserted where it is actually written: THE REAL BOOT.
       // `registerControlPlaneSp` is called from `index.ts` and nowhere else, and

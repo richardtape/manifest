@@ -10,6 +10,11 @@ import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/i
 import { createServiceCredentials } from './services/index.js'
 import { createSamlSp } from './identity/index.js'
 import {
+  createCatalogueCache,
+  createLiteLlmClient,
+  disabledCatalogue,
+} from './ai/index.js'
+import {
   controlPlaneSpEntity,
   createIdpPool,
   createSsoRegistrar,
@@ -30,6 +35,34 @@ const config = loadConfig()
 // This is not theoretical: `runtime/docker/builder.ts` spawns `docker` with
 // `{ ...process.env }` twice, and an app's build log is a place secrets end up.
 const secretsScrubbed = scrubSecretEnv()
+
+/**
+ * §10's gateway, and the one boot-time decision P4b makes about it (sitting 4,
+ * finding 38). AI is ON unless `MANIFEST_AI_ENABLED=0` says otherwise, and ON means
+ * the admin client is built HERE — so a missing master key refuses the boot, in
+ * development too, naming the setting and the switch, instead of surfacing at a
+ * faculty member's first spec push as an authentication failure from the gateway.
+ *
+ * OFF builds no client. The catalogue is then never read, and a spec that declares
+ * `ai.models` is refused with SPEC_AI_DISABLED, which names the setting.
+ *
+ * Rejected: "no key in development means AI off". That is a second, silent way to
+ * switch AI off, and it overrides a developer who left the flag at 1 expecting AI.
+ *
+ * Early, before the driver touches Docker, so a refused boot changes nothing. And
+ * nothing is FETCHED: the catalogue reads `/model/info` on first use, so boot does
+ * not depend on LiteLLM answering.
+ */
+const litellm = config.litellm.enabled
+  ? createLiteLlmClient({
+      baseUrl: config.litellm.url,
+      // '' reaches the client's own refusal, which names both remedies. `loadConfig`
+      // has already refused an absent key outside development.
+      masterKey: config.litellm.masterKey ?? '',
+    })
+  : undefined
+const catalogue =
+  litellm === undefined ? disabledCatalogue() : createCatalogueCache(litellm)
 
 /**
  * The control plane's own SP keypair, minted by `make up`.
@@ -194,6 +227,7 @@ const app = await buildServer({
   secrets,
   appSecrets,
   sso,
+  catalogue,
   samlSp: createSamlSp({
     entity: spEntity,
     idpBaseUrl: config.idp.baseUrl,
@@ -222,6 +256,8 @@ console.log(
   JSON.stringify({
     driver: driver.name,
     port: config.port,
+    // The other fact this file decides. Read back by boot.docker.test.ts.
+    ai: catalogue.enabled ? 'enabled' : 'disabled',
     msg: 'control plane ready',
     // The COUNT, never the names' values. A zero here means the scrub did not
     // run, which is indistinguishable from a clean environment without it.

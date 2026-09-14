@@ -1,9 +1,11 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import { resetDatabase } from '../db/testing.js'
 import { buildServer } from './server.js'
 import { loginAs, testDeps } from './testing.js'
 import type { TestUserPuid } from '../identity/testing.js'
+import { AI_CODES, AiError, disabledCatalogue, type ModelCatalogue } from '../ai/index.js'
+import { declaredCatalogue } from '../ai/testing.js'
 
 // These drive a real server, so they cannot use withRollback. Each test starts
 // from an empty database; without this they collide on the unique project slug.
@@ -365,6 +367,149 @@ describe('POST /projects/:id/members', () => {
     // 403, not 404: a collaborator already knows this project exists.
     expect(response.statusCode).toBe(403)
     expect(response.json().error.code).toBe('FORBIDDEN')
+    await app.close()
+  })
+})
+
+/**
+ * D17 at the route (P4b Task 6). The route used to restate the model catalogue as an
+ * array; these prove it reads `deps.catalogue` instead, and pin what it does when
+ * that catalogue is switched off or cannot be read.
+ */
+describe('the model catalogue a spec is validated against', () => {
+  async function withCatalogue(catalogue: ModelCatalogue) {
+    const deps = { ...(await testDeps()), catalogue }
+    const app = await buildServer(deps)
+    const { manifest_session: session } = await loginAs(deps, 'bio_prof')
+    return { app, deps, session }
+  }
+
+  /** A manifest for `slug` declaring one model, with a budget so nothing else fires. */
+  const aiManifest = (slug: string, classification: string) =>
+    [
+      'manifest: 1',
+      `name: ${slug}`,
+      'blueprint: fixture-node@1',
+      'runtime:',
+      '  port: 3000',
+      '  health: /healthz',
+      'data:',
+      `  classification: ${classification}`,
+      'ai:',
+      '  models: [default-chat]',
+      '  budget:',
+      '    project_monthly_usd: 10',
+      '',
+    ].join('\n')
+
+  async function createAndPush(
+    { app, deps, session }: Awaited<ReturnType<typeof withCatalogue>>,
+    slug: string,
+    manifest: string,
+  ) {
+    const created = await app.inject({
+      ...create(slug),
+      cookies: { manifest_session: session },
+      headers: { 'idempotency-key': randomUUID() },
+    })
+    expect(created.statusCode).toBe(201)
+    await deps.source.commitFiles(
+      deps.source.repositoryFor(slug),
+      { 'manifest.yaml': manifest },
+      'feat: ask a model',
+    )
+    return app.inject({
+      method: 'POST',
+      url: `/projects/${created.json().id as string}/spec`,
+      payload: {},
+      cookies: { manifest_session: session },
+      headers: { 'idempotency-key': randomUUID() },
+    })
+  }
+
+  const codes = (body: { errors: { code: string }[] }) => body.errors.map((e) => e.code)
+
+  it('reads deps.catalogue: one manifest, two catalogues, two answers', async () => {
+    // infra/litellm/config.yaml approves default-chat up to `internal`, so a
+    // confidential app is refused it (D17)...
+    const declared = await withCatalogue(declaredCatalogue())
+    const refused = await createAndPush(
+      declared,
+      'chem-labs',
+      aiManifest('chem-labs', 'confidential'),
+    )
+    expect(refused.json().valid).toBe(false)
+    expect(codes(refused.json())).toEqual(['SPEC_MODEL_CLASSIFICATION_TOO_LOW'])
+    await declared.app.close()
+
+    // ...and a catalogue approving it for confidential data accepts the same file. A
+    // list restated in the route would give the same answer both times.
+    const approving = await withCatalogue({
+      enabled: true,
+      get: async () => [
+        { name: 'default-chat', maxClassification: 'confidential', kind: 'chat' },
+      ],
+    })
+    const accepted = await createAndPush(
+      approving,
+      'bio-labs',
+      aiManifest('bio-labs', 'confidential'),
+    )
+    expect(accepted.json()).toMatchObject({ valid: true, errors: [] })
+    await approving.app.close()
+  })
+
+  it('with AI switched off: SPEC_AI_DISABLED, and the catalogue is never read', async () => {
+    // Sitting 4's decision (finding 38). Not SPEC_MODEL_UNKNOWN, which is what an
+    // empty catalogue gives and which blames the manifest for a platform setting.
+    const catalogue = disabledCatalogue()
+    const get = vi.spyOn(catalogue, 'get')
+    const ctx = await withCatalogue(catalogue)
+    const response = await createAndPush(
+      ctx,
+      'chem-labs',
+      aiManifest('chem-labs', 'internal'),
+    )
+    expect(response.statusCode).toBe(201)
+    expect(codes(response.json())).toEqual(['SPEC_AI_DISABLED'])
+    // Neither validation — the seeded manifest's nor the pushed one's — read it.
+    expect(get).not.toHaveBeenCalled()
+    await ctx.app.close()
+  })
+
+  it('a catalogue that cannot be read is a 503, and project creation leaves NOTHING', async () => {
+    const declared = declaredCatalogue()
+    const get = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new AiError(AI_CODES.BACKEND_UNAVAILABLE, 0, {
+          status: 0,
+          reason: 'unreachable',
+        }),
+      )
+      .mockImplementation(() => declared.get())
+    const { app, session } = await withCatalogue({ enabled: true, get })
+    const cookies = { manifest_session: session }
+
+    const refused = await app.inject({
+      ...create('chem-labs'),
+      cookies,
+      headers: { 'idempotency-key': randomUUID() },
+    })
+    // Not `500 INTERNAL`: the code and hint say the gateway is not answering.
+    expect(refused.statusCode).toBe(503)
+    expect(refused.json().error.code).toBe('AI_BACKEND_UNAVAILABLE')
+    const list = await app.inject({ method: 'GET', url: '/projects', cookies })
+    expect(list.json()).toHaveLength(0)
+
+    // The gateway is back, and the SAME slug is creatable — which it is not if the
+    // refusal left a project row or a repository behind (finding 45).
+    const retried = await app.inject({
+      ...create('chem-labs'),
+      cookies,
+      headers: { 'idempotency-key': randomUUID() },
+    })
+    expect(retried.statusCode).toBe(201)
     await app.close()
   })
 })

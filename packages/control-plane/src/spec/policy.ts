@@ -7,6 +7,14 @@ export interface ValidationContext {
   attributeWhitelist: readonly string[]
   serviceCatalogue: readonly string[]
   modelCatalogue: readonly { name: string; maxClassification: Classification }[]
+  /**
+   * False when the control plane runs with `MANIFEST_AI_ENABLED=0` (P4b sitting 4,
+   * finding 38). REQUIRED rather than defaulted: with AI off the catalogue is not
+   * EMPTY, it is ABSENT, and an empty `modelCatalogue` alone would refuse every
+   * declared model as SPEC_MODEL_UNKNOWN — a platform setting reported as a mistake
+   * in the faculty member's manifest.
+   */
+  aiEnabled: boolean
   quota: {
     maxCpu: number
     maxMemoryMi: number
@@ -25,6 +33,7 @@ export const POLICY_CODES = {
   ATTRIBUTE_NOT_REGISTERED: 'SPEC_ATTRIBUTE_NOT_REGISTERED',
   MODEL_UNKNOWN: 'SPEC_MODEL_UNKNOWN',
   MODEL_CLASSIFICATION_TOO_LOW: 'SPEC_MODEL_CLASSIFICATION_TOO_LOW',
+  AI_DISABLED: 'SPEC_AI_DISABLED',
   QUOTA_EXCEEDED: 'SPEC_QUOTA_EXCEEDED',
 } as const
 
@@ -120,7 +129,24 @@ export function checkPolicy(spec: ManifestSpec, ctx: ValidationContext): Manifes
   })
 
   const appRank = CLASSIFICATION_RANK[spec.data.classification]
-  spec.ai.models.forEach((model, i) => {
+  if (!ctx.aiEnabled && spec.ai.models.length > 0) {
+    // ONE error, at the list, and no per-model check: with no catalogue there is
+    // nothing to check a model against, and "unknown model" for each would be false.
+    errors.push({
+      code: POLICY_CODES.AI_DISABLED,
+      path: 'ai.models',
+      message:
+        'this Manifest platform is not offering AI models, so ai.models cannot be honoured',
+      hint:
+        'AI is switched off on this control plane (MANIFEST_AI_ENABLED=0). That is a ' +
+        'platform setting, not a mistake in manifest.yaml: remove ai.models to deploy ' +
+        'without AI, or ask an administrator to switch it on.',
+    })
+  }
+  // With AI off there is no catalogue to check a model against; the error above
+  // says so once, at the list.
+  const checkedModels = ctx.aiEnabled ? spec.ai.models : []
+  checkedModels.forEach((model, i) => {
     const entry = ctx.modelCatalogue.find((m) => m.name === model)
     if (!entry) {
       errors.push({

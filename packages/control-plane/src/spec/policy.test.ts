@@ -16,6 +16,7 @@ const ctx: ValidationContext = {
     { name: 'default-chat', maxClassification: 'internal' },
     { name: 'default-embed', maxClassification: 'internal' },
   ],
+  aiEnabled: true,
   quota: { maxCpu: 2, maxMemoryMi: 2048, maxServices: 3, aiMonthlyUsd: 100 },
 }
 
@@ -173,5 +174,28 @@ describe('policy validation (§7)', () => {
     expect(r.valid).toBe(false)
     if (r.valid) return
     expect(r.errors[0]?.code).toBe('SPEC_YAML_PARSE_FAILED')
+  })
+})
+
+describe('a control plane with AI switched off (P4b sitting 4, finding 38)', () => {
+  const off: ValidationContext = { ...ctx, aiEnabled: false, modelCatalogue: [] }
+
+  it('refuses declared models with SPEC_AI_DISABLED, and NOT as unknown models', () => {
+    // The failure this code exists to replace: an empty catalogue reports each model
+    // as SPEC_MODEL_UNKNOWN with "Available models: " — blaming the manifest for a
+    // platform setting.
+    const text = yaml(`ai:\n  models: [default-chat, default-embed]`)
+    expect(errorCodes(text, off)).toEqual(['SPEC_AI_DISABLED'])
+    expect(errorPaths(text, off)).toEqual(['ai.models'])
+  })
+
+  it('names the platform setting in its hint', () => {
+    const r = validateSpec(yaml(`ai:\n  models: [default-chat]`), off)
+    expect(r.valid).toBe(false)
+    if (!r.valid) expect(r.errors[0]!.hint).toMatch(/MANIFEST_AI_ENABLED=0/)
+  })
+
+  it('leaves a spec with no models alone', () => {
+    expect(validateSpec(yaml(), off).valid).toBe(true)
   })
 })

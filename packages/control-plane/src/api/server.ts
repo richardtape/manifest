@@ -15,6 +15,7 @@ import { replayOrStore } from './idempotency.js'
 import { registerAuthRoutes } from './routes/auth.js'
 import type { SsoRegistrar } from '../sso/index.js'
 import type { SamlSp } from '../identity/index.js'
+import type { ModelCatalogue } from '../ai/index.js'
 import { registerProjectRoutes } from './routes/projects.js'
 import { registerDeliveryRoutes } from './routes/delivery.js'
 import { registryTokenRoutes } from './routes/registry-token.js'
@@ -41,6 +42,11 @@ export interface ServerDeps {
    * `/auth/saml/callback` hold no key material and build no URLs.
    */
   samlSp: SamlSp
+  /**
+   * D17's catalogue, read from LiteLLM and cached (P4b Task 6). `enabled` is false
+   * under `MANIFEST_AI_ENABLED=0`, and then it is never read — see `src/index.ts`.
+   */
+  catalogue: ModelCatalogue
 }
 
 declare module 'fastify' {

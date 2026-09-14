@@ -42,7 +42,8 @@ export function createLiteLlmClient(opts: {
   if (!opts.masterKey) {
     throw new AiConfigError(
       'the LiteLLM admin client needs a master key. Set MANIFEST_LITELLM_MASTER_KEY — ' +
-        "README's export block derives it from LITELLM_MASTER_KEY in .env.",
+        "README's export block derives it from LITELLM_MASTER_KEY in .env. In " +
+        'development, MANIFEST_AI_ENABLED=0 runs the control plane without AI instead.',
     )
   }
   const base = opts.baseUrl.replace(/\/+$/, '')

@@ -2,8 +2,12 @@ import { readFile } from 'node:fs/promises'
 import { LLMModule } from 'ubc-genai-toolkit-llm'
 import { expect, it } from 'vitest'
 import { describeDocker } from '../runtime/testing.js'
+import { parse } from 'yaml'
+import { loadModelCatalogue } from './catalogue.js'
+import { createLiteLlmClient } from './client.js'
 import { AI_CODES, mapLiteLlmError } from './errors.js'
 import {
+  LITELLM_CONFIG,
   deleteProbeKey,
   ensureProbeUser,
   litellmMasterKey,
@@ -181,6 +185,38 @@ describeDocker('AI-path regression (§16, S3 Evidence 8 and 9)', () => {
       expect(res.status, seen).toBe(status)
       expect(code, `an admin ${status} mapped to an app fault: ${seen}`).toBe(
         AI_CODES.UNMAPPED,
+      )
+    }
+  })
+})
+
+describeDocker('D17 model catalogue (P4b Task 6)', () => {
+  it('the running catalogue matches infra/litellm/config.yaml', async () => {
+    // Reads BOTH SIDES rather than a hand-written expectation: the file P1 ships, and
+    // the answer the running proxy gives through the one projection. It is also what
+    // keeps `declaredCatalogue()` — the unit tier's stand-in, read from the same
+    // file — honest about the proxy it stands in for.
+    const declared = parse(await readFile(LITELLM_CONFIG, 'utf8')) as {
+      model_list: {
+        model_name: string
+        model_info?: { max_classification?: string; mode?: string }
+      }[]
+    }
+    const live = await loadModelCatalogue(
+      createLiteLlmClient({ baseUrl: litellmUrl(), masterKey: litellmMasterKey() }),
+    )
+    expect(live.map((m) => m.name).sort()).toEqual(
+      declared.model_list.map((m) => m.model_name).sort(),
+    )
+    for (const entry of live) {
+      const from = declared.model_list.find((m) => m.model_name === entry.name)!
+      expect(entry.maxClassification, entry.name).toBe(
+        from.model_info?.max_classification,
+      )
+      // The file names `mode` on the embedding entry only; the proxy answers `null`
+      // for the others (M2). Both mean chat.
+      expect(entry.kind, entry.name).toBe(
+        from.model_info?.mode === 'embedding' ? 'embedding' : 'chat',
       )
     }
   })

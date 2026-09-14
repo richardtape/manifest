@@ -6,6 +6,7 @@ import { SamlError } from '../identity/index.js'
 import { ZodError } from 'zod'
 import type { ManifestError } from '../errors/index.js'
 import { IdempotencyConflictError } from './idempotency.js'
+import { AiError, CatalogueError } from '../ai/index.js'
 
 export interface ErrorEnvelope {
   error: {
@@ -137,6 +138,21 @@ export function toErrorResponse(error: unknown): { status: number; body: ErrorEn
           hint: 'Start again at /auth/login. If it keeps failing, the control plane’s log has the reason.',
         },
       },
+    }
+  }
+
+  /**
+   * The AI gateway could not answer, or answered with a catalogue the platform
+   * refuses (P4b Task 6). 503, carrying the code and hint the failure already has —
+   * both are built to be shown: an AiError never carries LiteLLM's body (§14), and a
+   * CatalogueError names the setting to fix. Without this branch a gateway outage
+   * during a spec push was `500 INTERNAL`, which tells an agent nothing it can
+   * correct itself with (D23.7).
+   */
+  if (error instanceof AiError || error instanceof CatalogueError) {
+    return {
+      status: 503,
+      body: { error: { code: error.code, message: error.message, hint: error.hint } },
     }
   }
 
