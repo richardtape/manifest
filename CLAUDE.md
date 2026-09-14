@@ -61,7 +61,7 @@ audit tables used `ON DELETE CASCADE`, which bypasses §20's append-only grant b
 referential action runs with the referenced table's privileges. Then LiteLLM was pinned
 by digest to **`sha256:20b5044b` / 1.98.0, the version S3 measured** — Rich's call,
 taken because the `main-stable` tag moved to a fresh build two hours before the task
-started. `make doctor` is **18 checks** from there. **Sitting 2 (Task 3, 2026-09-14) built §16's AI-path tier and found that LiteLLM's `/user/new` mints an unconfined key unless `auto_create_key: false` is passed — Task 7's code would have done that for every app; the correction is at the top of Task 7.** **Sitting 3 (Tasks 4–5, the same day) built `ai/errors.ts` and `ai/client.ts` and found that Task 7's `ensureAiUser` would throw on every redeploy of an AI app — it matches LiteLLM text the client exists to strip — and that Task 9's client wiring cannot typecheck; both corrections are at the top of those tasks.** *Sittings pace the work; they are not §17's product Phases.*
+started. `make doctor` is **18 checks** from there. **Sitting 2 (Task 3, 2026-09-14) built §16's AI-path tier and found that LiteLLM's `/user/new` mints an unconfined key unless `auto_create_key: false` is passed — Task 7's code would have done that for every app; the correction is at the top of Task 7.** **Sitting 3 (Tasks 4–5, the same day) built `ai/errors.ts` and `ai/client.ts` and found that Task 7's `ensureAiUser` would throw on every redeploy of an AI app — it matches LiteLLM text the client exists to strip — and that Task 9's client wiring cannot typecheck; both corrections are at the top of those tasks.** **A pre-flight read of Tasks 6 and 7 then wrote eight more corrections at the top of those two tasks, and ORIENTATION §7d-2 has a sitting-4 hand-off naming the one decision that sitting must make — read both before starting.** *Sittings pace the work; they are not §17's product Phases.*
 **`make demo-identity` is P4a's acceptance and it passes**: §16's proof app from a bare
 repository to a real CWL sign-in in which the instructor cannot see the student's note
 — including from a `make reset` machine. **The offline run is outstanding and is
@@ -139,7 +139,7 @@ tasks; P5 is unwritten.** Plan-writing stopped on 2026-09-04 in favour
 of execution; that hold is now discharged, and it was right — the three plans
 produced **152 defects between them** after all three had been self-reviewed, and
 P4a's fifteen tasks have since produced **80 more**. That
-is also why a 16-task unrun stack is worth naming out loud rather than glossing. The maintained status record is the *Spike status*
+is also why P4b's unrun stack — 11 of its 16 tasks — is worth naming out loud rather than glossing. The maintained status record is the *Spike status*
 ledger in `docs/superpowers/plans/2026-08-29-plan-roadmap.md`; if any document
 disagrees with it, the ledger wins.
 
