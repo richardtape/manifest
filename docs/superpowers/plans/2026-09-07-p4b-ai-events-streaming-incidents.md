@@ -18,9 +18,10 @@
 
 ## How this plan is to be executed — TEN SITTINGS, one per session
 
-**SITTING 1 IS COMPLETE (2026-09-09). Tasks 1 and 2 are done — 10 findings between
-them. SITTING 2 — TASK 3, ALONE — IS NEXT.** **A restore session on 2026-09-14 came first** — it
-fixed §12's scan and wrote five corrections into the top of Task 3; its entry is below. Read *What executing this plan found*
+**SITTINGS 1 AND 2 ARE COMPLETE. SITTING 3 — TASKS 4 AND 5 — IS NEXT.** Sitting 1 (Tasks 1–2,
+2026-09-09) produced 10 findings; a restore session on 2026-09-14 fixed §12's scan and wrote
+five corrections into Task 3; sitting 2 (Task 3, 2026-09-14) resolved those five and produced
+six more — **one of them a correction to Task 7's own code**. Read *What executing this plan found*
 before starting it: Task 1's reconciliation corrected two migrations that would have
 failed on their first statement, and Task 2 pinned LiteLLM to the version S3 measured
 **hours after upstream moved the tag**.
@@ -38,8 +39,8 @@ Three tasks are deliberately alone, and each has a reason that is not its size:
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
 | 1 ✅ | 1–2 | The reconciliation pass against the executed P4a (**six divergences**), then LiteLLM pinned by digest with S3's error table re-measured against the pinned version. **Nothing ships and everything depends on both.** Task 1's size is unbounded by design — P3's equivalent found eight defects — so it is paired only with the other task that has no dependencies | ✅ **done 2026-09-09, 10 findings** |
-| **2 ← next** | **3** | §16's AI-path regression tier, **before any `ai/` module exists**. **Alone**: it is the largest task in the plan and it builds `mintProbeKey`/`deleteProbeKey`, the harness every later sitting is measured against. A tier written after the module tests the module's own assumptions | **Pre-flight read 2026-09-14: 5 findings, listed at the top of Task 3** |
-| 3 | 4–5 | `ai/errors.ts`, then `ai/client.ts` — S3's error table as one mapper, then the transport that uses it. 5 consumes 4 and nothing else does yet | |
+| 2 ✅ | 3 | §16's AI-path regression tier, **before any `ai/` module exists**. **Alone**: it is the largest task in the plan and it builds `mintProbeKey`/`deleteProbeKey`, the harness every later sitting is measured against. A tier written after the module tests the module's own assumptions | ✅ **done 2026-09-14, 6 findings** — plus the 5 pre-flight corrections, all resolved |
+| **3 ← next** | **4–5** | `ai/errors.ts`, then `ai/client.ts` — S3's error table as one mapper, then the transport that uses it. 5 consumes 4 and nothing else does yet | |
 | 4 | 6–7 | `ai/catalogue.ts` and `ai/keys.ts` — D17's catalogue read from `/model/info`, and the one place that mints a key with `allowed_routes` as a constant. Siblings: both consume Task 5's client and neither consumes the other | |
 | 5 | 8–9 | LiteLLM joins an app network, then §8's AI rows render. **This is the sitting where Tasks 6, 7 and 8 get a caller** — the plan says so in Task 9's own title. *A module with no call site is not built*: P3 built `waitForReady` and `edgeProbe` in its Task 14 and nothing called them until Task 17, and P4a hit the same shape with `ServiceBinding.credentials` | |
 | 6 | 10 | `node-ts-mongo@1` grows its AI half — `provides.ai: true`, `ubc-genai-toolkit-llm` pinned, `ask`/`askStreaming`/`embed`/`endUserId`. **Alone, and it is the one sitting that NEEDS THE NETWORK ON**: it adds a dependency, regenerates the lockfile and needs `make seed` to warm Verdaccio from it. P4a's sitting 5 was alone for exactly this reason. Step 6 checks Verdaccio's storage rather than `npm ci`'s exit code, because a build against the public registry looks identical to a correct one | |
@@ -507,7 +508,7 @@ Expected: PASS, and the digest printed is `sha256:20b5044b619055374061a6d5b7b087
 - Consumes: `attachPlatformNeighbours`, `appNetwork` and `EngineClient` — all exported by P3 already; `describeDocker` from `docker-tier.js`.
 - Produces: `mintProbeKey(opts)` and `deleteProbeKey(key)` in `ai/testing.ts`, and §16's **AI-path regression** tier as a permanent Docker suite.
 
-**PRE-FLIGHT, 2026-09-14 — five things this task's text gets wrong, found by reading the repo before sitting 2.** Sitting 1 reconciled P4b against P4a; this task's seams are P3's and the test harness's, and nothing had checked them. Fix each as you reach it and record it in *What executing this plan found*:
+**PRE-FLIGHT, 2026-09-14 — five things this task's text gets wrong, found by reading the repo before sitting 2.** **All five were resolved in sitting 2 (2026-09-14)** — see *What executing this plan found*. Sitting 1 reconciled P4b against P4a; this task's seams are P3's and the test harness's, and nothing had checked them. Fix each as you reach it and record it in *What executing this plan found*:
 
 1. **`LITELLM_MASTER_KEY` does not reach a test process.** `packages/control-plane/vitest.env.ts` derives only the three database URLs from `.env`, so Step 1's `process.env.LITELLM_MASTER_KEY ?? ''` is an empty bearer and `beforeAll` dies on `/user/new -> 401`. Loud, not silent. **Derive it in `vitest.env.ts`** beside the database URLs, so one file reads `.env` for tests rather than a second reader in `ai/testing.ts`. Watch `secrets/scrub.ts`: it deletes that name from `process.env` at boot, so a test that boots the server in the same worker removes it.
 2. **`s6.docker.test.ts` imports neither `createEngineClient` nor `attachPlatformNeighbours`.** Self-review item 3 says the first is already imported; it is not — the file imports only `resolveSocketPath` from `./engine.js`. Both exist, in `runtime/docker/engine.ts` and `runtime/docker/networks.ts`, and `attachPlatformNeighbours(engine, network, names)` matches Step 2's call.
@@ -1402,6 +1403,8 @@ it('the running catalogue matches infra/litellm/config.yaml', async () => {
 **Files:**
 - Create: `packages/control-plane/src/ai/keys.ts`, `keys.test.ts`
 - Modify: `packages/control-plane/src/ai/index.ts`, `src/spec/policy.ts`, `src/spec/policy.test.ts`
+
+**CORRECTION FROM SITTING 2 (2026-09-14) — `/user/new` mints a key unless told not to.** LiteLLM 1.98.0's `NewUserRequest.auto_create_key` **defaults to `true`** (its own `/openapi.json`), and measured: `/user/new` for `p4b-probe-user` answered with a key whose `allowed_routes` was `[]` and `models` `[]` — unconfined, every model. `ensureAiUser` below posts `{ user_id: userId, ...budget }`, so as written **every app's LiteLLM user would hold an unconfined key beside the confined one this task mints** — the §12 escalation `allowed_routes` exists to close, created by the call that sets up the budget. Pass `auto_create_key: false`, and assert in `keys.test.ts` that the `/user/new` body carries it. `ai/testing.ts`'s `ensureProbeUser` already does.
 
 **Interfaces:**
 - Consumes: `LiteLlmClient` (Task 5); `putSecret` / `getSecret` from P4a's `secrets/`.
@@ -3318,6 +3321,37 @@ complete. **Sitting 2 is Task 3, alone: §16's AI-path regression tier.**
 **Five corrections to Task 3's text (13–17)** are written at the top of Task 3 rather than here, where the agent executing it will meet them: `LITELLM_MASTER_KEY` never reaches a test process; `s6.docker.test.ts` imports neither `createEngineClient` nor `attachPlatformNeighbours`; probe 14 leaks a LiteLLM key per run; the toolkit is in no lockfile; and probe 13's comment names Task 7 for Task 8's work.
 
 **Gates at the end:** `make doctor` **18/0/0**, `make verify` **47/0/0**, `pnpm test` **525** (56 files — twice before the fix, once after), `pnpm test:docker` **117** (22 files; the new one is the 117th), lint / typecheck / `format:check` clean. **Sitting 2 is still Task 3, alone.**
+
+### Sitting 2, Task 3 — §16's AI-path regression tier (2026-09-14). 6 findings, one of them in Task 7's code.
+
+**Task 3 is done, and the tier exists before any `ai/` module does.** `ai/testing.ts` mints probe keys through LiteLLM's admin API; `s6.docker.test.ts` gains the two probes its own header deferred to P4; `ai/ai-path.docker.test.ts` runs the toolkit from the host; `ubc-genai-toolkit-llm` is pinned at exactly 0.7.0. Versions: LiteLLM 1.98.0 (`sha256:20b5044b`), `curlimages/curl:8.11.1`, pnpm 11.24.0, Docker Engine 29.7.2, macOS 26.6.2.
+
+**What it measured.** Probe 13: from `fixture-s6`'s network, `GET /v1/models` → `000` with LiteLLM unattached, and `200` from the same container once `attachPlatformNeighbours` put `manifest-litellm` on it. Probe 14: a confined key gets `200` on `/v1/models`, `/v1/chat/completions` and `/v1/embeddings`, and `403` on `/key/generate`, `/model/info`, `/spend/logs` and `/key/info`; the matched unconfined key — same user, same models — mints a child key, `200`. The toolkit tier: 768 dimensions with `encoding_format: 'float'`, 192 near-zero values without, and non-empty streamed content from `default-chat`.
+
+**The five pre-flight corrections (13–17) are all resolved.** 13: `vitest.env.ts`'s `ensureLitellmMasterKey()` derives the key from `.env` — assigning only when there is a value, because `process.env.X = undefined` stores the string `"undefined"` — and `ai/testing.ts` reads it when it mints, not at import. 14: both imports added. 15: probe 14's child key carries a known alias and `afterAll` deletes it by `key_aliases`; `p4b-probe-user` held **0 keys** after every run, the full tier included. 16: installed with `-E`, and pnpm reported *"Lockfile passes supply-chain policies"*. 17: the comment names Task 8.
+
+| # | Finding | Measured against |
+|---|---|---|
+| 18 | **Step 2's `statusFromNetwork` threw on exactly the value probe 13 asserts.** curl prints `000` **and** exits non-zero when nothing answers, and `execFile` rejects on a non-zero exit, so `const { stdout } = await run(…)` could never return `000`. It now reads stdout on rejection too, and throws if that is not three digits — a harness failure, not a denial | Reading `s6.docker.test.ts`'s `run`; then the RED run, where probe 13's first line passed at `0` |
+| 19 | **LiteLLM's `/user/new` mints an UNCONFINED key unless told not to — and Task 7's code calls it that way.** `NewUserRequest.auto_create_key` defaults to `true`. Task 7's `ensureAiUser` posts `{ user_id, ...budget }`, so every app's LiteLLM user would hold an unconfined key beside the confined one: the escalation `allowed_routes` exists to close. `ensureProbeUser` passes `auto_create_key: false`, **the correction is written at the top of Task 7**, and the stray key this measurement created was deleted | `/openapi.json`; `/user/info?user_id=p4b-probe-user` → 1 key, `allowed_routes: []`, `models: []`; 0 after `/key/delete` |
+| 20 | **Step 5's test used `MASTER` and `LITELLM`, which Step 1 defines as module-private constants** — a `ReferenceError` at the first test. `ai/testing.ts` exports `litellmUrl()` and `litellmMasterKey()` instead | Reading the two code blocks against each other |
+| 21 | **Negative control (c) cannot produce its stated result.** Reading curl's exit code into `expect(status).toBe(403)` fails on every route, confined or not — it never "passes on a broken confinement". The claim underneath it is right, so it was measured directly | A confined key from the platform network: `/v1/models` → http 200, **curl exit 0**; `/key/info` → http 403, **curl exit 0** |
+| 22 | **Negative control (d)'s expectation is wrong: without `--dns 10.89.0.53` both probes stay GREEN.** Docker's embedded resolver finds `manifest-litellm` once it is attached, so the resolver is not what gives `000` its meaning — the before/after pairing is. `--dns` stays, because probes 2–8 resolve that way | The control run: probe 13 `0` → `200`; probe 14's eight assertions as with the flag |
+| 23 | **S6's teardown leaves both app networks behind.** `mf-fixture-s6-staging-net` (created 2026-09-10) and `mf-fixture-s6nb-staging-net` survive every run with `manifest-caddy` and `manifest-dns-containers` still attached: `docker network rm` fails while a neighbour is attached, and `.catch(() => undefined)` swallows it. P3's, not this task's — named, not fixed. ORIENTATION §4's *"five app networks survived a cleanup that reported success"* is the same shape | `docker network inspect` after the runs |
+
+**Negative controls, each on a copy of the file restored byte-for-byte after its run:**
+
+| Control | Result |
+|---|---|
+| the attach removed (Step 4's RED run) | **RED** — probe 13 `expected +0 to be 200`; probe 14 the same on its first line |
+| (a) the "confined" key minted without `allowed_routes` | **RED** — `/key/generate was not refused: expected 200 to be 403` |
+| (b) no `/user/new`, so the open key's user does not exist | **RED** — the child mint answered **401**: without the user row the negative control silently becomes a second positive. It left no user row behind (`/user/info` → 404) |
+| (c) exit code instead of status | measured directly — finding 21 |
+| (d) no `--dns 10.89.0.53` | **GREEN** — finding 22 |
+
+**One mistake of this session's own.** Control (c)'s first attempt used `path` as a shell loop variable. The Bash tool's shell is zsh, where `path` is tied to `$PATH`, so `docker`, `curl` and `python3` vanished mid-command and a key minted before the loop leaked. It was deleted, and ORIENTATION §4 now carries the trap.
+
+**Gates at the end:** `pnpm test` **525** (56 files, twice), `pnpm test:docker` **122** (23 files, ~415 s), lint / typecheck / `format:check` clean. `make doctor` 18/0 and `make verify` 47/0, from the `make up` at the start of the session — nothing in `infra/` changed. **Sitting 3 — Tasks 4 and 5 — is next.**
 
 Then one section per sitting, in P3's format: the tasks executed, the defects found with the measurement that found each, and the gate numbers at the end. The measured rate across P1, P2 and P3 is 1.4 → 2.7 → 4.3 defects per task and it never fell with practice.
 

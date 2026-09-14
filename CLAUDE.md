@@ -49,7 +49,7 @@ check that every app failed, because BusyBox `wget` honours `http_proxy` and ign
 of it was green in a suite of 74 passing Docker tests.**
 
 **P4a is EXECUTED AND GREEN: all 15 tasks (2026-09-09). P4b is PART-EXECUTED —
-sitting 1 of ten (Tasks 1–2) is done, 2026-09-09; CONTINUE AT TASK 3** —
+sittings 1 and 2 of ten (Tasks 1–3) are done, 2026-09-14; CONTINUE AT TASK 4** —
 ORIENTATION §7d-2. P4a's last twelve
 tasks ran in **seven agreed SITTINGS, one per session with a check-in at each
 boundary**, so a session limit could not land mid-task; all seven are done, and **P4b
@@ -61,7 +61,7 @@ audit tables used `ON DELETE CASCADE`, which bypasses §20's append-only grant b
 referential action runs with the referenced table's privileges. Then LiteLLM was pinned
 by digest to **`sha256:20b5044b` / 1.98.0, the version S3 measured** — Rich's call,
 taken because the `main-stable` tag moved to a fresh build two hours before the task
-started. `make doctor` is **18 checks** from there. *Sittings pace the work; they are not §17's product Phases.*
+started. `make doctor` is **18 checks** from there. **Sitting 2 (Task 3, 2026-09-14) built §16's AI-path tier and found that LiteLLM's `/user/new` mints an unconfined key unless `auto_create_key: false` is passed — Task 7's code would have done that for every app; the correction is at the top of Task 7.** *Sittings pace the work; they are not §17's product Phases.*
 **`make demo-identity` is P4a's acceptance and it passes**: §16's proof app from a bare
 repository to a real CWL sign-in in which the instructor cannot see the student's note
 — including from a `make reset` machine. **The offline run is outstanding and is
@@ -83,7 +83,7 @@ is deleted along with `MANIFEST_DEV_AUTH`; the control plane's SAML client is
 `@node-saml/node-saml`, **not** the `passport-saml` the blueprint pins, because that
 one carries an unfixable critical signature-verification advisory and nothing in this
 platform scans the control plane's own dependency tree. `make verify` is
-**47 / 0**, `pnpm test` **525**, `pnpm test:docker` **117** — the 117th added 2026-09-14, when §12's scan turned out to refuse any vulnerability database more than five days old (fixed in `build/scan.ts`). `secrets/` now holds every service credential — libsodium envelope
+**47 / 0**, `pnpm test` **525**, `pnpm test:docker` **122** — one added 2026-09-14 when §12's scan turned out to refuse any vulnerability database more than five days old (fixed in `build/scan.ts`), and five in sitting 2 (§16's AI-path tier). `secrets/` now holds every service credential — libsodium envelope
 encryption in Postgres, replacing P3's HMAC derivation, migrated without breaking a
 running database — and §20's `audit.events` is append-only **by grant**, which needed
 the control plane to stop connecting as a superuser before it could mean anything:
@@ -134,7 +134,7 @@ repeatable has a state leak. For the platform itself it is `make doctor` and
 **Five spikes are done** (S7, S2, S1, S3 — all answered yes — and **S6**, which ran
 as P3's Task 18 on 2026-09-07 and found every probe denied with every denial paired
 with a positive control). P0, P1, P2 and P3 are written and **all three
-implementation plans are executed**. **P4a is executed in full; P4b is unrun — 16
+implementation plans are executed**. **P4a is executed in full; P4b is part-executed — 3 of 16
 tasks; P5 is unwritten.** Plan-writing stopped on 2026-09-04 in favour
 of execution; that hold is now discharged, and it was right — the three plans
 produced **152 defects between them** after all three had been self-reviewed, and

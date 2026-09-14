@@ -261,7 +261,7 @@ Recorded here because they are about *how to run this work*, and each was paid f
 | **P2** | 1a-ii | Control-plane spine ✅ **EXECUTED 2026-09-05** — all 21 tasks | project → spec → release → staging deploy, against the fake driver, **~300 ms**, no Docker — **demonstrated** |
 | **P3** | 1a-iii | Docker driver & deploy spine ✅ **EXECUTED 2026-09-07** — all 19 tasks | fixture app healthy at a `manifest.internal` URL, from a bare repo, offline — **demonstrated**, and again from a dropped database and an emptied registry |
 | **P4a** | 1b-i | Identity, secrets & the §8 contract — **EXECUTED AND GREEN: all 15 tasks, 2026-09-09.** A real CWL login works end to end — through a row `sso/` renders and `deployRelease` writes — `secrets/` holds every service credential, §20's audit log is append-only against a least-privilege role, §8's injection contract is ONE function with one producer, **`node-ts-mongo@1` — the blueprint faculty use — builds, deploys and issues a real AuthnRequest**, **Manifest logs its OWN users in with CWL: the dev shim is deleted**, and **`make demo-identity` takes §16's proof app from a bare repository to a CWL sign-in in which the instructor cannot see the student's note** — including from a reset machine. **The offline run is outstanding and is Rich's** | ✅ the proof app signing in with CWL and writing a note, via `curl` |
-| **P4b** | 1b-ii | AI, events, streaming, incidents — **WRITTEN 2026-09-07; PART-EXECUTED: SITTING 1 (Tasks 1–2) IS DONE, 2026-09-09. SITTING 2 — TASK 3, ALONE — IS NEXT.** 16 tasks in **TEN AGREED SITTINGS of one session each (Rich, 2026-09-09)** — the table is at the top of the plan and is the maintained copy. Sitting 1 produced **10 findings**: the reconciliation pass corrected two migrations that would have failed on their first statement (`manifest_audit_owner` does not exist) and one `ON DELETE CASCADE` that bypassed §20's append-only grant; then LiteLLM was pinned by digest to **`sha256:20b5044b` / 1.98.0, the version S3 measured** — Rich's call, taken because the `main-stable` tag moved to a new build two hours before the task started | the proof app's LLM answer |
+| **P4b** | 1b-ii | AI, events, streaming, incidents — **WRITTEN 2026-09-07; PART-EXECUTED: SITTINGS 1 AND 2 (Tasks 1–3) ARE DONE, 2026-09-14. SITTING 3 — TASKS 4 AND 5 — IS NEXT.** 16 tasks in **TEN AGREED SITTINGS of one session each (Rich, 2026-09-09)** — the table is at the top of the plan and is the maintained copy. Sitting 1 produced **10 findings**: the reconciliation pass corrected two migrations that would have failed on their first statement (`manifest_audit_owner` does not exist) and one `ON DELETE CASCADE` that bypassed §20's append-only grant; then LiteLLM was pinned by digest to **`sha256:20b5044b` / 1.98.0, the version S3 measured** — Rich's call, taken because the `main-stable` tag moved to a new build two hours before the task started | the proof app's LLM answer |
 | **P5** | 1c | Contract & clients | the §1 journey, clickable, driven twice over one contract |
 | **P6–P11** | 2 | six plans, listed below, **not written yet** | — |
 
@@ -273,7 +273,7 @@ ran in three sittings — 1 and 9–11 on 2026-08-31, **2–8** and then **12–
 then discharged and **P4 was split into P4a and P4b (Rich's call, 2026-09-07).**
 
 **P4a IS EXECUTED AND GREEN: all 15 tasks, finished 2026-09-09. P4b IS PART-EXECUTED:
-sitting 1 — Tasks 1 and 2 — is done, and SITTING 2 (Task 3, alone) IS THE CURRENT WORK.**
+sittings 1 and 2 — Tasks 1 to 3 — are done, and SITTING 3 (Tasks 4 and 5) IS THE CURRENT WORK.**
 P4b runs in TEN AGREED SITTINGS of one session each (Rich, 2026-09-09), the same pattern
 P4a used; the table is at the top of that plan. **Its Task 1 reconciliation did not come
 back clean** — six divergences from the executed P4a, two of which would have failed a
@@ -643,8 +643,8 @@ execution layer.** Each is written when its predecessor lands.
 5. **Execute P1 → P2 → P3.** ✅ **All three are done.** P1 and P2 executed and green
    on 2026-09-05, P1 green offline too; **P3 finished 2026-09-07, all 19 tasks**. S6
    ran as its Task 18 and has reported. **P4a is EXECUTED IN FULL — all 15 tasks,
-   2026-09-09 — and P4b is PART-EXECUTED: sitting 1 (Tasks 1–2) done 2026-09-09,
-   14 tasks remaining. Continue P4b at Task 3.**
+   2026-09-09 — and P4b is PART-EXECUTED: sittings 1 and 2 (Tasks 1–3) done by 2026-09-14,
+   13 tasks remaining. Continue P4b at Task 4.**
 6. **Start the external track once the local proof of concept works end to end.**
    **Changed 2026-09-05, Rich's call.** This step previously said *"start now, in
    parallel"*, on the argument that C4 has the longest lead time and no software
@@ -662,8 +662,8 @@ execution layer.** Each is written when its predecessor lands.
    and P4b on 2026-09-07 (Rich's call), and P4a is WRITTEN** —
    [`2026-09-07-p4a-identity-secrets-injection.md`](./2026-09-07-p4a-identity-secrets-injection.md),
    15 tasks. **ALL 15 ARE EXECUTED AND GREEN — 1–5 on 2026-09-08, 6–15 on
-   2026-09-09.** ← **P4b IS NOW THE CURRENT WORK, AT TASK 3** (sitting 1 done
-   2026-09-09).
+   2026-09-09.** ← **P4b IS NOW THE CURRENT WORK, AT TASK 4** (sittings 1 and 2
+   done, 2026-09-14).
    **P4b was then written on 2026-09-07 as well, at Rich's request** —
    [`2026-09-07-p4b-ai-events-streaming-incidents.md`](./2026-09-07-p4b-ai-events-streaming-incidents.md),
    16 tasks. **This departs from the decision recorded immediately below**, which

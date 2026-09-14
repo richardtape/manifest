@@ -2,9 +2,9 @@
 
 **You are picking up a project whose design is finished, whose first four
 implementation plans are executed — P1, P2, P3 and, since 2026-09-09, all 15 tasks of
-P4a — and whose fifth, P4b, is PART-EXECUTED: sitting 1 of its ten is done. §16's proof
-app signs a real person in with CWL and keeps their data theirs. CONTINUE P4b AT TASK 3
-(sitting 2, which is that task alone).** This is the single
+P4a — and whose fifth, P4b, is PART-EXECUTED: sittings 1 and 2 of its ten are done. §16's proof
+app signs a real person in with CWL and keeps their data theirs. CONTINUE P4b AT TASK 4
+(sitting 3: Tasks 4 and 5).** This is the single
 entry point: what Manifest is, what has been established, what the machine will do to
 you, and what to do next. It is written for someone with **no prior context** —
 a new agent with a fresh window, or a developer joining.
@@ -38,8 +38,8 @@ sign-in in which the instructor cannot see the student's note.**
 
 **P4a IS EXECUTED AND GREEN — all 15 tasks, finished 2026-09-09**, in seven agreed
 sittings of one session each. **P4b IS PART-EXECUTED — sitting 1 (Tasks 1–2) is done,
-2026-09-09, and 10 findings came out of it. CONTINUE AT TASK 3** — §7d-2 tells you
-where. **P4b is split into TEN agreed sittings** (Rich, 2026-09-09), the same
+2026-09-09, with 10 findings, and sitting 2 (Task 3) on 2026-09-14, with 6. CONTINUE AT TASK 4**
+— §7d-2 tells you where. **P4b is split into TEN agreed sittings** (Rich, 2026-09-09), the same
 one-per-session pattern with a check-in at each boundary. *(Sittings pace execution. They are **not** §17's
 product Phases — the roadmap's "Phase 2" is six unwritten plans.)*
 
@@ -50,6 +50,11 @@ refused any vulnerability database more than five days old, failing every build 
 `make doctor` called the database fresh — **fixed** in `build/scan.ts`, with a test that
 fails on a database of any age. The record is in P4b's *What executing this plan found*,
 and five corrections to Task 3's own text are at the top of Task 3.
+
+**Sitting 2 then ran Task 3, the same day.** §16's AI-path tier exists before any `ai/`
+module does, and it found that **LiteLLM's `/user/new` mints an unconfined key unless
+`auto_create_key: false` is passed — which Task 7's code does not pass**, so every app
+would have held one. The correction is at the top of Task 7.
 
 **One thing is outstanding and it is RICH'S to run: the offline acceptance.** Turning
 the network off from a tool call cuts the agent off too, so
@@ -92,8 +97,8 @@ two came out of Tasks 1–3, the third out of Task 5, the fourth out of Task 8:
 | | State |
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. **S6 has since run too, as P3's Task 18, 2026-09-07: every probe denied, every denial paired with a positive control, and one result BETTER than the spec** — §21's divergence 8 no longer holds, because app networks are `--internal` and the developer's machine is unroutable rather than merely policed. S5 and S4 are deliberately later (S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
-| **Plans** | **P1, P2, P3 AND P4a ARE ALL EXECUTED — P4a IN FULL ON 2026-09-09. P4b IS PART-EXECUTED: SITTING 1 OF TEN (TASKS 1–2) IS DONE; CONTINUE AT TASK 3.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a's fifteen tasks found 80 defects — 5.3 per task, the highest rate measured here, in the plan that had the most research behind it.** Two were spec-level and are in §8. **P4b (16 tasks) is now the current work.** P5 is unwritten — see §7. **The unrun stack is 16 tasks**, which is what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
-| **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`.** **The numbers are in the box below** — this row used to restate them and drifted by four releases.  **P4a Tasks 1–3 then added `sso/`'s test surface and login suite, `runtime/docker/archive.ts`, `infra/idp/metadata/saml20-idp-hosted.php`, `infra/idp/attributemap/ubcoid.php`, three new `infra/lib/ensure-*.sh` scripts wired into `make up`, and `fixtures/saml-sp/`; Tasks 4–5 added `secrets/`; Tasks 6–7 added `sso/`'s production half — `keypair.ts`, `entity.ts`, `metadata-store.ts`, `registration.ts` — plus `MANIFEST_IDP_DATABASE_URL` and `MANIFEST_SP_ENTITY_BASE` in `config.ts`; and Tasks 8–9 added `observability/` (`events.ts`, `redact.ts`), the `audit` schema and its migration, `infra/lib/ensure-app-role.sh` and the `manifest_app` role the control plane now connects as, and `sso`'s wire into `DeployDeps`, `ServerDeps` and boot. **Tasks 10–11 added `spec/injection.ts` — §8's table as data and the one renderer of every variable an app receives — plus `config.idp`, `secrets/`'s `ensureSessionSecret`, `SsoRegistrar.idpSigningCertificate()`, `ai` on `ResolvedConfig`, and the reserved-name check in `spec/policy.ts`. `deployRelease`'s ad-hoc env block is gone. Tasks 12–13 added `blueprints/node-ts-mongo/` — the descriptor, the Dockerfile, the skeleton with its auth component and §9's attribute bridge, and the D25 knowledge pack — plus `spec/injection-drift.test.ts` (§16's drift tier, reading the blueprint's source), `runtime/docker/node-ts-mongo.docker.test.ts` and `blueprints/attribute-bridge.test.ts`. Task 14 added `identity/saml.ts` — the control plane's own SAML SP, on `@node-saml/node-saml` rather than the `passport-saml` the blueprint pins — `identity/testing.ts` (an in-process SAML IdP and `testSessionCookie`), `identity/saml.docker.test.ts`, `sso/platform.ts` and `infra/lib/ensure-cp-sp-keypair.sh`, and DELETED `identity/dev-auth.ts` and its test.**|
+| **Plans** | **P1, P2, P3 AND P4a ARE ALL EXECUTED — P4a IN FULL ON 2026-09-09. P4b IS PART-EXECUTED: SITTINGS 1 AND 2 OF TEN (TASKS 1–3) ARE DONE; CONTINUE AT TASK 4.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a's fifteen tasks found 80 defects — 5.3 per task, the highest rate measured here, in the plan that had the most research behind it.** Two were spec-level and are in §8. **P4b (16 tasks) is now the current work.** P5 is unwritten — see §7. **The unrun stack is 16 tasks**, which is what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
+| **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`.** **The numbers are in the box below** — this row used to restate them and drifted by four releases.  **P4a Tasks 1–3 then added `sso/`'s test surface and login suite, `runtime/docker/archive.ts`, `infra/idp/metadata/saml20-idp-hosted.php`, `infra/idp/attributemap/ubcoid.php`, three new `infra/lib/ensure-*.sh` scripts wired into `make up`, and `fixtures/saml-sp/`; Tasks 4–5 added `secrets/`; Tasks 6–7 added `sso/`'s production half — `keypair.ts`, `entity.ts`, `metadata-store.ts`, `registration.ts` — plus `MANIFEST_IDP_DATABASE_URL` and `MANIFEST_SP_ENTITY_BASE` in `config.ts`; and Tasks 8–9 added `observability/` (`events.ts`, `redact.ts`), the `audit` schema and its migration, `infra/lib/ensure-app-role.sh` and the `manifest_app` role the control plane now connects as, and `sso`'s wire into `DeployDeps`, `ServerDeps` and boot. **Tasks 10–11 added `spec/injection.ts` — §8's table as data and the one renderer of every variable an app receives — plus `config.idp`, `secrets/`'s `ensureSessionSecret`, `SsoRegistrar.idpSigningCertificate()`, `ai` on `ResolvedConfig`, and the reserved-name check in `spec/policy.ts`. `deployRelease`'s ad-hoc env block is gone. Tasks 12–13 added `blueprints/node-ts-mongo/` — the descriptor, the Dockerfile, the skeleton with its auth component and §9's attribute bridge, and the D25 knowledge pack — plus `spec/injection-drift.test.ts` (§16's drift tier, reading the blueprint's source), `runtime/docker/node-ts-mongo.docker.test.ts` and `blueprints/attribute-bridge.test.ts`. Task 14 added `identity/saml.ts` — the control plane's own SAML SP, on `@node-saml/node-saml` rather than the `passport-saml` the blueprint pins — `identity/testing.ts` (an in-process SAML IdP and `testSessionCookie`), `identity/saml.docker.test.ts`, `sso/platform.ts` and `infra/lib/ensure-cp-sp-keypair.sh`, and DELETED `identity/dev-auth.ts` and its test.** **P4b's Task 3 (2026-09-14) added `ai/testing.ts` — probe keys through LiteLLM's admin API — and `ai/ai-path.docker.test.ts`, probes 13 and 14 in `runtime/docker/s6.docker.test.ts`, `ensureLitellmMasterKey()` in `vitest.env.ts`, and `ubc-genai-toolkit-llm@0.7.0` as an exact devDependency.**|
 | **Spec** | Current. **Six more spec actions were applied on 2026-09-14** with Rich's approval — §12's scan-gate wording, four of P4a's and P4b's LiteLLM digest row; P4b's other five wait for the tasks that implement them (§8). Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
 **The four numbers you will check first, measured 2026-09-14 on this machine:**
@@ -101,7 +106,7 @@ two came out of Tasks 1–3, the third out of Task 5, the fourth out of Task 8:
 | | |
 |---|---|
 | `pnpm test` (from the **repo root**) | **525 passed, 56 files**, ~26 s, no Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites — plus **`spec/injection-drift`**, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` — see §7d |
-| `pnpm test:docker` | **117 passed, 22 files**, ~380 s — needs `make up`, and **fails rather than skips** when asked to run |
+| `pnpm test:docker` | **122 passed, 23 files**, ~415 s — needs `make up`, and **fails rather than skips** when asked to run |
 | `make doctor` | **18 checks, 0 failed, 0 warnings** — 18 since 2026-09-09, when the LiteLLM digest pin landed |
 | `make verify` | **47 checks, 0 failed, 0 warnings** — thirteen more than P3 left; the newest asserts the control plane's OWN SP keypair is a usable pair, because it is a `make up` artefact the process refuses to boot without and a half-minted one is a platform that does not start |
 
@@ -111,7 +116,7 @@ only current one.** §7a and §7c carry the same four numbers as P1's and P3's c
 records, and they are DATED measurements that deliberately do not move — if any of them
 disagrees with this box, this box wins.
 
-The immediate work is **P4b, sitting 2 — Task 3** — see §7d-2. P4a's fifteen tasks are done: the IdP
+The immediate work is **P4b, sitting 3 — Tasks 4 and 5** — see §7d-2. P4a's fifteen tasks are done: the IdP
 works, `secrets/` holds every credential, `sso/` generates the registration a CWL login
 runs through and `deployRelease` calls it, §20's audit log is append-only against a
 role that can actually be constrained, §8's injection contract is one function with
@@ -133,7 +138,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | You are… | Read |
 |---|---|
 | **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
-| **executing a plan** | ← **this is the current job: P4b, FROM TASK 3.** [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) — 16 tasks in **ten agreed sittings, one per session**; **sitting 1 (Tasks 1–2) is done, 2026-09-09**, and its 10 findings are in the plan's *What executing this plan found*. P4a itself is [`2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md) — 15 tasks, **all executed, 2026-09-09**, self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P4a's own *What executing this plan found* first — Sessions 1 to 9, 80 defects — and then P3's**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
+| **executing a plan** | ← **this is the current job: P4b, FROM TASK 4.** [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) — 16 tasks in **ten agreed sittings, one per session**; **sitting 1 (Tasks 1–2) is done, 2026-09-09**, and its 10 findings are in the plan's *What executing this plan found*. P4a itself is [`2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md) — 15 tasks, **all executed, 2026-09-09**, self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P4a's own *What executing this plan found* first — Sessions 1 to 9, 80 defects — and then P3's**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
 | **writing a plan** | **P5 is next, after P4a and P4b execute.** House style: `plans/2026-08-30-p1-local-substrate.md`, `2026-08-29-p2-control-plane-spine.md`, or either half of P4. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
 | **writing code** | Sixteen modules exist: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/` (with `runtime/docker/`), `source/`, `identity/`, `projects/`, `releases/`, `api/`, P3's `services/`, `build/` and `routing/`, and P4a's `secrets/`, `sso/` and `observability/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else is built against them — then `runtime/docker/driver.ts`, which is the one implementation of that interface and where every P3 module meets; then `api/server.ts` for how a request becomes an actor, and `projects/authz.ts` for the one function every route's security depends on. **Then run `make demo` once**: it is the only thing that exercises all of it through the real HTTP surface, and it is where the last four sessions' worst defects were found. |
@@ -171,7 +176,7 @@ docs/superpowers/
 │                                                  SITTINGS (table at the top of the
 │                                                  plan). SITTING 1 (Tasks 1-2) IS
 │                                                  DONE, 2026-09-09, 10 findings.
-│                                                  ← CONTINUE HERE, AT TASK 3. Records ten more measured
+│                                                  ← CONTINUE HERE, AT TASK 4. Records ten more measured
 │                                                  facts, one of them a §10
 │                                                  requirement LiteLLM 1.98.0
 │                                                  cannot satisfy.
@@ -434,6 +439,11 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   anything. Every spike has met this bar and Rich has confirmed each teardown.
 - **Pre-existing containers that must survive**: `docker-simple-saml-saml-idp-1`,
   `qdrant-local-dev`, `mongodb`, `mongo-express`.
+- **The Bash tool's shell is zsh, and zsh ties `path` to `$PATH`.** A loop written
+  `for path in /v1/models /key/info` empties `$PATH` for the rest of the command, so
+  `docker`, `curl` and `python3` all become *command not found* partway through —
+  measured 2026-09-14, when it leaked a LiteLLM key minted before the loop. Name loop
+  variables anything else.
 - **Work on a copy.** `docker-simple-saml` and `ubc-genai-toolkit` are read-only to
   you unless told otherwise; both are currently clean and must stay that way.
 
@@ -903,13 +913,13 @@ coherent. Follow them.
 
 ---
 
-## 7. What to do next — continue P4b, at Task 3
+## 7. What to do next — continue P4b, at Task 4
 
 P1, P2, P3 and P4a are all executed and green; S6 has reported; **P3's six spec actions
 were applied on 2026-09-07**. P4 was split into **P4a** and **P4b** (Rich's
 call). **P4a is finished — all 15 tasks, 1–5 on 2026-09-08 and 6–15 on 2026-09-09.
 P4b is part-executed: sitting 1 ran Task 1's reconciliation pass and Task 2's LiteLLM
-pin on 2026-09-09**, so continue at Task 3. **P4b runs in ten agreed sittings**,
+pin on 2026-09-09, and sitting 2 ran Task 3 on 2026-09-14**, so continue at Task 4. **P4b runs in ten agreed sittings**,
 one per session — the table is at the top of the plan and summarised in §7d-2.
 
 **The measured plan-to-reality gap, in one table.** Every one of these plans was
@@ -1254,7 +1264,7 @@ curl -s --cacert infra/ca/manifest-root.crt \
 **Expect signed SAML metadata** carrying `entityID="https://idp.manifest.internal/idp/shibboleth"`
 and an `<ds:X509Certificate>`. It answered **500** until 2026-09-08.
 
-`pnpm test:docker` is ~6 minutes and **117 tests**; run it before the first commit that
+`pnpm test:docker` is ~7 minutes and **122 tests**; run it before the first commit that
 touches `infra/`, `runtime/`, `services/`, `sso/`, `secrets/`, `releases/`, `build/` or
 **`blueprints/`** — the last since Task 12, because `node-ts-mongo@1`'s own skeleton is
 a build target and nothing in the unit tier builds it. A faster
@@ -1375,7 +1385,7 @@ track's C4 trigger is P4b's and not this one (roadmap, *Order of operations* ste
 ### 7d-2. Execute P4b — AI, events, streaming, incidents (1b-ii) ← **START HERE**
 
 *[`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md)
-— **16 tasks, written 2026-09-07. Tasks 1–2 executed 2026-09-09; continue at Task 3.**
+— **16 tasks, written 2026-09-07. Tasks 1–2 executed 2026-09-09 and Task 3 on 2026-09-14; continue at Task 4.**
 Invoke `superpowers:executing-plans` or `superpowers:subagent-driven-development`.*
 
 **IT RUNS IN TEN AGREED SITTINGS, one per session with a check-in at each boundary**
@@ -1386,8 +1396,8 @@ table is at the top of the plan**, which is the maintained copy; this is the sha
 | Sitting | Tasks | |
 |---|---|---|
 | 1 ✅ | 1–2 | the reconciliation pass (**six divergences, two fatal to a migration**), and LiteLLM pinned by digest — **done 2026-09-09, 10 findings** |
-| **2 ← next** | **3** | §16's AI-path regression tier, before any `ai/` module exists |
-| 3 | 4–5 | `ai/errors.ts`, then the transport that uses it |
+| 2 ✅ | 3 | §16's AI-path regression tier, before any `ai/` module exists — **done 2026-09-14, 6 findings** |
+| **3 ← next** | **4–5** | `ai/errors.ts`, then the transport that uses it |
 | 4 | 6–7 | the catalogue and the key minter |
 | 5 | 8–9 | **the sitting where Tasks 6, 7 and 8 get a caller** |
 | 6 | 10 | the blueprint's AI half — **the one sitting that needs the network ON** |
@@ -1423,8 +1433,14 @@ error mapping to a version and Tasks 4 and 15 assert against 1.98.0's envelopes.
 pinned **by digest in `infra/images.txt`** — the only line there that is — derived at use
 from `images.lock` by `infra/lib/common.sh` and the Makefile, never copied into `.env`.
 `make doctor` is **18 checks** from here: the new one asks the DAEMON what is running,
-not the file it was written from. **Sitting 2 — Task 3, alone — is next**, and five
-pre-flight corrections to its text are at the top of the task (2026-09-14).
+not the file it was written from.
+
+**Sitting 2 — Task 3 — is done too (2026-09-14), with 6 findings.** §16's AI-path tier
+exists before any `ai/` module: probes 13 and 14 in `s6.docker.test.ts` and
+`ai/ai-path.docker.test.ts`, with `ai/testing.ts` minting the probe keys. The finding to
+carry forward: **LiteLLM's `/user/new` mints an unconfined key unless
+`auto_create_key: false` is passed, and Task 7's code does not pass it** — the correction
+is at the top of Task 7. **Sitting 3 — Tasks 4 and 5 — is next.**
 
 The four items it also confirmed, which the plan could not know because P4a's
 Task 15 ran two days after P4b was written, are under *What sitting 1 must reconcile*: `fixtures/proof-app/package.json` and `package-lock.json`
