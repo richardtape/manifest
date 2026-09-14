@@ -6,8 +6,15 @@ import type { Driver, ImageRef, ServiceHandle } from '../driver.js'
 import { instanceName, serviceName } from '../driver.js'
 import { describeDocker } from './docker-tier.js'
 import { appContainer, appNetwork, serviceContainer } from './names.js'
-import { resolveSocketPath } from './engine.js'
+import { attachPlatformNeighbours } from './networks.js'
+import { createEngineClient, resolveSocketPath } from './engine.js'
 import { CA_CERT, dockerDriverForTests, fixtureBareRepo } from './testing.js'
+import {
+  deleteProbeKey,
+  deleteProbeKeyByAlias,
+  ensureProbeUser,
+  mintProbeKey,
+} from '../../ai/testing.js'
 
 const run = promisify(execFile)
 
@@ -97,6 +104,70 @@ function record(probe: string, denied: string, control: string): void {
   console.log(`[S6] ${probe.padEnd(5)} denied=${denied.padEnd(24)} control=${control}`)
 }
 
+/**
+ * Probes 13 and 14 read the HTTP STATUS, not the exit code. `allowed_routes` denies at
+ * the application layer: the connection succeeds and `curl` exits 0 whether the answer
+ * is 200 or 403, so `exitCode()` above — right for every network denial — would pass
+ * on both. This is the inverse of the trap recorded beside `exitCode`.
+ *
+ * And curl prints `000` AND exits non-zero when nothing answered, which makes
+ * `execFile` reject — so a bare `await` throws on exactly the result probe 13
+ * asserts. The code is read from stdout either way; anything that is not three digits
+ * is a harness failure, and says so rather than reading as a denial.
+ */
+async function statusFromNetwork(
+  network: string,
+  key: string,
+  method: 'GET' | 'POST',
+  path: string,
+  body?: string,
+): Promise<number> {
+  const stdout = await run('docker', [
+    'run',
+    '--rm',
+    '--network',
+    network,
+    '--dns',
+    '10.89.0.53',
+    PROBE,
+    '-sS',
+    '-m',
+    '15',
+    '-o',
+    '/dev/null',
+    '-w',
+    '%{http_code}',
+    '-X',
+    method,
+    '-H',
+    `Authorization: Bearer ${key}`,
+    '-H',
+    'Content-Type: application/json',
+    ...(body ? ['-d', body] : []),
+    `http://manifest-litellm:4000${path}`,
+  ]).then(
+    (r) => r.stdout,
+    (error: { stdout?: string; stderr?: string }) => {
+      if (/^\d{3}$/.test((error.stdout ?? '').trim())) return error.stdout ?? ''
+      throw new Error(
+        `the probe reported no HTTP status: ${(error.stderr ?? '').slice(0, 300)}`,
+      )
+    },
+  )
+  return Number(stdout.trim())
+}
+
+const CHAT = JSON.stringify({
+  model: 'default-chat',
+  messages: [{ role: 'user', content: 'Say OK' }],
+  max_tokens: 5,
+})
+const EMBED = JSON.stringify({
+  model: 'default-embed',
+  input: 'manifest',
+  encoding_format: 'float',
+})
+
 // §12 stores service credentials, so the CALLER resolves them. In production
 // that is `deployRelease`; here it is this constant. The driver uses what it is
 // handed and derives nothing — driver-contract.ts asserts that for both drivers.
@@ -112,6 +183,24 @@ describeDocker(
     let driver: Driver
     let image: ImageRef
     let service: ServiceHandle
+    /**
+     * Built directly rather than reached through the Driver, which deliberately
+     * exposes no engine.
+     */
+    const engine = createEngineClient({ socketPath: resolveSocketPath() })
+    const PROBE_USER = 'p4b-probe-user'
+    let confinedKey = ''
+    let openKey = ''
+    /** The child probe 14 mints with the OPEN key, deleted by alias in afterAll. */
+    const orphanAlias = `p4b-probe-orphan-${Date.now()}`
+    let orphanMinted = false
+
+    async function attachedToAppNet(): Promise<string[]> {
+      const net = await engine.get<{ Containers?: Record<string, { Name: string }> }>(
+        `/networks/${APP_NET}`,
+      )
+      return Object.values(net?.Containers ?? {}).map((c) => c.Name)
+    }
 
     beforeAll(async () => {
       driver = await dockerDriverForTests()
@@ -155,9 +244,27 @@ describeDocker(
       })
       internetReachable =
         (await exitCode('bridge', ['https://registry.npmjs.org/'])) === 0
+      await ensureProbeUser(PROBE_USER)
+      confinedKey = await mintProbeKey({ userId: PROBE_USER, confined: true })
+      openKey = await mintProbeKey({ userId: PROBE_USER, confined: false })
     }, 900_000)
 
     afterAll(async () => {
+      // S6's measured matrix ran WITHOUT LiteLLM on this network, and probe 13's first
+      // assertion depends on that being the starting state. Left attached, it would
+      // also make the app network undeletable: destroying it disconnects only
+      // PLATFORM_NEIGHBOURS. Read back, because a disconnect that did nothing looks
+      // exactly like one that worked.
+      if ((await attachedToAppNet()).includes('manifest-litellm')) {
+        await engine.post(`/networks/${APP_NET}/disconnect`, {
+          Container: 'manifest-litellm',
+          Force: true,
+        })
+      }
+      expect(await attachedToAppNet()).not.toContain('manifest-litellm')
+      if (confinedKey) await deleteProbeKey(confinedKey)
+      if (openKey) await deleteProbeKey(openKey)
+      if (orphanMinted) await deleteProbeKeyByAlias(orphanAlias)
       await driver.destroyInstance(APP).catch(() => undefined)
       await driver.destroyService(APP_DB, { deleteData: true }).catch(() => undefined)
       await driver
@@ -382,6 +489,78 @@ describeDocker(
         'the limit is the assertion',
       )
     }, 120_000)
+
+    it('13. an app that declares no ai.models cannot reach LiteLLM at all', async () => {
+      // Decision 5's whole justification, asserted rather than argued. fixture-s6
+      // declares no models, so nothing attaches `manifest-litellm` to its network.
+      // 000 is curl's "nothing answered" — it never got a status.
+      const before = await statusFromNetwork(
+        APP_NET,
+        'sk-irrelevant',
+        'GET',
+        '/v1/models',
+      )
+      expect(before).toBe(0)
+
+      // THE POSITIVE CONTROL, and it is the same probe from the same container: attach
+      // the neighbour Task 8 attaches for a declaring app, and the identical request
+      // answers. Without this pair, `000` is indistinguishable from "curl is missing",
+      // "LiteLLM is down" and "the timeout is too short" — S6's first run produced
+      // exactly that, and it is why the tier requires pairing.
+      await attachPlatformNeighbours(engine, APP_NET, ['manifest-litellm'])
+      const after = await statusFromNetwork(APP_NET, confinedKey, 'GET', '/v1/models')
+      expect(after).toBe(200)
+      record('13', `no route without ai.models (${before})`, `attached -> ${after}`)
+    })
+
+    it('14. a confined key reaches the three proxy routes and NO admin route', async () => {
+      // Runs after 13, which attached the neighbour; vitest runs `it`s in file order.
+      expect(await statusFromNetwork(APP_NET, confinedKey, 'GET', '/v1/models')).toBe(200)
+      expect(
+        await statusFromNetwork(
+          APP_NET,
+          confinedKey,
+          'POST',
+          '/v1/chat/completions',
+          CHAT,
+        ),
+      ).toBe(200)
+      expect(
+        await statusFromNetwork(APP_NET, confinedKey, 'POST', '/v1/embeddings', EMBED),
+      ).toBe(200)
+
+      for (const path of ['/key/generate', '/model/info', '/spend/logs', '/key/info']) {
+        const post = path === '/key/generate'
+        const status = await statusFromNetwork(
+          APP_NET,
+          confinedKey,
+          post ? 'POST' : 'GET',
+          path,
+          post ? '{}' : undefined,
+        )
+        expect(status, `${path} was not refused`).toBe(403)
+      }
+
+      // THE MATCHED PAIR S3 NAMES, and the reason `allowed_routes` is not optional: the
+      // same user, the same models, the same everything, minus the confinement.
+      const openStatus = await statusFromNetwork(
+        APP_NET,
+        openKey,
+        'POST',
+        '/key/generate',
+        JSON.stringify({ key_alias: orphanAlias }),
+      )
+      orphanMinted = openStatus === 200
+      expect(
+        openStatus,
+        'the unconfined key did NOT mint — the pair proves nothing',
+      ).toBe(200)
+      record(
+        '14',
+        'confined: 4 admin routes 403',
+        `unconfined mints a child: ${openStatus}`,
+      )
+    })
 
     // The app is nonetheless SERVING, through the edge, with the platform CA. Every
     // denial above is worthless if the container is simply broken.

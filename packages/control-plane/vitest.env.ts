@@ -42,6 +42,22 @@ function envValue(name: string): string | undefined {
 }
 
 /**
+ * LiteLLM's master key, for the AI-path tier's probe keys (P4b Task 3). It is the
+ * `.env` value `infra/compose.yaml` hands LiteLLM, so the tier mints with the key the
+ * running proxy actually holds rather than with a second copy of it.
+ *
+ * Assigned only when `.env` has a value: `process.env.X = undefined` stores the
+ * STRING "undefined", which would reach LiteLLM as a bearer token and fail as a 401
+ * that names the key rather than the missing file. Read only by `ai/testing.ts`,
+ * which reads it at mint time — `secrets/scrub.ts` deletes this name from
+ * `process.env` whenever the control plane boots in-process.
+ */
+export function ensureLitellmMasterKey(): void {
+  const key = envValue('LITELLM_MASTER_KEY')
+  if (key && !process.env.LITELLM_MASTER_KEY) process.env.LITELLM_MASTER_KEY = key
+}
+
+/**
  * Sets all three database URLs, and returns the control plane's.
  *
  * THE SUITE RUNS AS `manifest_app`, NOT AS `manifest`, and that is the point
