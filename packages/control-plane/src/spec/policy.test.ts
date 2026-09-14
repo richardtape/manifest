@@ -79,7 +79,7 @@ describe('policy validation (§7)', () => {
 
   it('accepts an on-premise model for confidential data (D17)', () => {
     const text = yaml(
-      `ai:\n  models: [default-chat-onprem]\ndata:\n  classification: confidential`,
+      `ai:\n  models: [default-chat-onprem]\n  budget:\n    project_monthly_usd: 10\ndata:\n  classification: confidential`,
     )
     expect(errorCodes(text)).toEqual([])
   })
@@ -184,18 +184,60 @@ describe('a control plane with AI switched off (P4b sitting 4, finding 38)', () 
     // The failure this code exists to replace: an empty catalogue reports each model
     // as SPEC_MODEL_UNKNOWN with "Available models: " — blaming the manifest for a
     // platform setting.
-    const text = yaml(`ai:\n  models: [default-chat, default-embed]`)
+    const text = yaml(
+      `ai:\n  models: [default-chat, default-embed]\n  budget:\n    project_monthly_usd: 10`,
+    )
     expect(errorCodes(text, off)).toEqual(['SPEC_AI_DISABLED'])
     expect(errorPaths(text, off)).toEqual(['ai.models'])
   })
 
   it('names the platform setting in its hint', () => {
-    const r = validateSpec(yaml(`ai:\n  models: [default-chat]`), off)
+    const r = validateSpec(
+      yaml(`ai:\n  models: [default-chat]\n  budget:\n    project_monthly_usd: 10`),
+      off,
+    )
     expect(r.valid).toBe(false)
     if (!r.valid) expect(r.errors[0]!.hint).toMatch(/MANIFEST_AI_ENABLED=0/)
   })
 
   it('leaves a spec with no models alone', () => {
     expect(validateSpec(yaml(), off).valid).toBe(true)
+  })
+})
+
+describe('an AI budget is required with a model (P4b Task 7)', () => {
+  it('refuses declared models with the schema default of a zero project budget', () => {
+    // LiteLLM refuses every request against a max_budget of 0, so an app that declared
+    // a model would deploy healthy and be told on its first question that its budget
+    // was exhausted.
+    const text = yaml(`ai:\n  models: [default-chat]`)
+    expect(errorCodes(text)).toEqual(['SPEC_AI_BUDGET_REQUIRED'])
+    expect(errorPaths(text)).toEqual(['ai.budget.project_monthly_usd'])
+  })
+
+  it('refuses a zero that is written out, too', () => {
+    const text = yaml(
+      `ai:\n  models: [default-chat]\n  budget:\n    project_monthly_usd: 0\n    per_user_monthly_usd: 0`,
+    )
+    expect(errorCodes(text)).toEqual(['SPEC_AI_BUDGET_REQUIRED'])
+  })
+
+  it('accepts a declared model with a budget', () => {
+    const text = yaml(
+      `ai:\n  models: [default-chat]\n  budget:\n    project_monthly_usd: 10`,
+    )
+    expect(errorCodes(text)).toEqual([])
+  })
+
+  it('asks nothing of an app that declares no model', () => {
+    expect(validateSpec(yaml(), ctx).valid).toBe(true)
+  })
+
+  it('reports it with AI switched off as well — the manifest is wrong either way', () => {
+    const off: ValidationContext = { ...ctx, aiEnabled: false, modelCatalogue: [] }
+    expect(errorCodes(yaml(`ai:\n  models: [default-chat]`), off)).toEqual([
+      'SPEC_AI_DISABLED',
+      'SPEC_AI_BUDGET_REQUIRED',
+    ])
   })
 })

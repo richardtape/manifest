@@ -34,6 +34,7 @@ export const POLICY_CODES = {
   MODEL_UNKNOWN: 'SPEC_MODEL_UNKNOWN',
   MODEL_CLASSIFICATION_TOO_LOW: 'SPEC_MODEL_CLASSIFICATION_TOO_LOW',
   AI_DISABLED: 'SPEC_AI_DISABLED',
+  AI_BUDGET_REQUIRED: 'SPEC_AI_BUDGET_REQUIRED',
   QUOTA_EXCEEDED: 'SPEC_QUOTA_EXCEEDED',
 } as const
 
@@ -169,6 +170,23 @@ export function checkPolicy(spec: ManifestSpec, ctx: ValidationContext): Manifes
       })
     }
   })
+
+  // `ai.budget.project_monthly_usd` DEFAULTS TO 0 in §7's schema, and LiteLLM refuses
+  // every request from a user whose max_budget is 0 (P4b Task 7). Without this, an app
+  // that declared a model deploys healthy and its first question is refused as over
+  // budget — telling a faculty member they spent money they never spent. Checked with
+  // AI switched off too: the manifest is wrong either way.
+  if (spec.ai.models.length > 0 && spec.ai.budget.project_monthly_usd <= 0) {
+    errors.push({
+      code: POLICY_CODES.AI_BUDGET_REQUIRED,
+      path: 'ai.budget.project_monthly_usd',
+      message: 'ai.models declares a model and ai.budget.project_monthly_usd is 0',
+      hint:
+        'Set ai.budget.project_monthly_usd to the most this app may spend on AI in a ' +
+        'month, within the project quota. A budget of 0 refuses every request, so the ' +
+        'app would start healthy and fail its first question.',
+    })
+  }
 
   const cpu = spec.resources.cpu
   if (cpu !== undefined && cpu > ctx.quota.maxCpu) {

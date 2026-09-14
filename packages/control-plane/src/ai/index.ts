@@ -9,3 +9,11 @@ export {
   loadModelCatalogue,
 } from './catalogue.js'
 export type { ModelCatalogue, ModelEntry } from './catalogue.js'
+export {
+  AI_ALLOWED_ROUTES,
+  aiUserId,
+  createAiKeyService,
+  ensureAiUser,
+  rotateAppKey,
+} from './keys.js'
+export type { AiKeyService, RotateAppKeyInput } from './keys.js'
