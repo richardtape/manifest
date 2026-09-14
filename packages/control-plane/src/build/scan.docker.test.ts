@@ -1,4 +1,7 @@
 import { execFile } from 'node:child_process'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { expect, it } from 'vitest'
 import {
@@ -7,7 +10,7 @@ import {
   REPO_ROOT,
   resolveSocketPath,
 } from '../runtime/testing.js'
-import { scanImage } from './scan.js'
+import { GRYPE, SCANNER_ENV, scanImage } from './scan.js'
 
 const run = promisify(execFile)
 const engine = createEngineClient({ socketPath: resolveSocketPath() })
@@ -87,5 +90,56 @@ describeDocker('SBOM and vulnerability scanning (§12)', () => {
       registryToken: token,
     })
     expect(JSON.parse(result.sbom).spdxVersion).toMatch(/^SPDX-/)
+  })
+
+  /**
+   * §12: a stale database "warns rather than blocks". Grype has its own opinion —
+   * `validate-age: true` and `max-allowed-built-age: 120h` by default — and on
+   * 2026-09-14 it refused a 5.5-day-old database, failing every build on this
+   * machine while `make doctor` called the database fresh: doctor asks `db status`,
+   * which does not validate age. `assessScan`'s 7-day staleness record could never
+   * be reached, because nothing older than five days ever loaded.
+   *
+   * The limit is forced to one second so this fails on a database of ANY age, not
+   * only on a machine that has gone five days without `make seed`. It SCANS an
+   * empty directory because loading the database is the claim under test.
+   */
+  it('scans with a database past grype’s own age limit, because §12 warns rather than blocks', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'mf-scan-age-'))
+    try {
+      const { stdout } = await run('docker', [
+        'run',
+        '--rm',
+        '--network',
+        'none',
+        '-v',
+        'manifest-grype-db:/db:ro',
+        '-v',
+        `${dir}:/scan:ro`,
+        ...SCANNER_ENV.flatMap((entry) => ['-e', entry]),
+        '-e',
+        'GRYPE_DB_MAX_ALLOWED_BUILT_AGE=1s',
+        GRYPE,
+        'dir:/scan',
+        '-o',
+        'json',
+      ]).catch((error: { stderr?: string }) => {
+        throw new Error(
+          `grype refused the database: ${
+            (error.stderr ?? '')
+              .split('\n')
+              .filter((line) => line.includes('ERROR'))
+              .join(' ') || error.stderr?.slice(-400)
+          }`,
+        )
+      })
+      // The shape, not the exit code: a database that LOADED reports when it was built.
+      const report = JSON.parse(stdout) as {
+        descriptor?: { db?: { status?: { built?: string } } }
+      }
+      expect(report.descriptor?.db?.status?.built).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
   })
 })

@@ -176,7 +176,7 @@ export function assessScan(input: {
 }
 
 const SYFT = 'anchore/syft:v1.51.1'
-const GRYPE = 'anchore/grype:v0.118.0'
+export const GRYPE = 'anchore/grype:v0.118.0'
 
 export interface ScanOptions {
   /** A scoped pull token, when the image still has to come out of the registry. */
@@ -385,6 +385,28 @@ async function ensureImagePresent(
 }
 
 /**
+ * The scanners' environment. Exported so the Docker tier runs Grype under EXACTLY
+ * this configuration, rather than under a copy of it that drifts.
+ */
+export const SCANNER_ENV = [
+  // Both tools check for a newer release of THEMSELVES on startup. With no
+  // network that is an ERROR line on stderr and a wasted DNS timeout per scan.
+  'SYFT_CHECK_FOR_APP_UPDATE=false',
+  'GRYPE_CHECK_FOR_APP_UPDATE=false',
+  // Load-bearing: without it Grype fetches a database on every run, which turns
+  // an OFFLINE build into a slow failure rather than the stale-but-recorded
+  // success §12 spends a paragraph requiring.
+  'GRYPE_DB_AUTO_UPDATE=false',
+  'GRYPE_DB_CACHE_DIR=/db',
+  // §12 WARNS on a stale database and never blocks: `assessScan` records staleness
+  // past STALENESS_THRESHOLD_DAYS. Grype independently REFUSES a database built
+  // more than 120h ago by default — measured 2026-09-14, every build on this machine
+  // failed SCAN_FAILED at 5.5 days — so without this the 7-day rule is unreachable
+  // and a machine that has been offline for five days cannot build at all.
+  'GRYPE_DB_VALIDATE_AGE=false',
+] as const
+
+/**
  * §21's inventory: "Scanner + SBOM — transient, per build". No Docker socket, and
  * `NetworkMode: 'none'` — a scanner that cannot reach anything cannot phone home
  * with what it found, and it makes the offline behaviour §12 specifies structural
@@ -399,17 +421,7 @@ async function runScanner(
   const created = await engine.post<{ Id: string }>('/containers/create', {
     Image: image,
     Cmd: args,
-    Env: [
-      // Both tools check for a newer release of THEMSELVES on startup. With no
-      // network that is an ERROR line on stderr and a wasted DNS timeout per scan.
-      'SYFT_CHECK_FOR_APP_UPDATE=false',
-      'GRYPE_CHECK_FOR_APP_UPDATE=false',
-      // Load-bearing: without it Grype fetches a database on every run, which turns
-      // an OFFLINE build into a slow failure rather than the stale-but-recorded
-      // success §12 spends a paragraph requiring.
-      'GRYPE_DB_AUTO_UPDATE=false',
-      'GRYPE_DB_CACHE_DIR=/db',
-    ],
+    Env: [...SCANNER_ENV],
     HostConfig: {
       NetworkMode: 'none',
       Binds: [`${scanDir}:/scan:ro`, 'manifest-grype-db:/db:ro'],

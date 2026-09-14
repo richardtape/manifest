@@ -64,8 +64,10 @@ done
 echo "4c/6 pulling the vulnerability database"
 # §12: `make seed` pulls the scanner database. This is the ONLY part of a scan that
 # needs the network, and from here on `make doctor` reports its age. Grype is then
-# run with GRYPE_DB_AUTO_UPDATE=false, so an offline build gets a stale-but-recorded
-# result rather than a slow failure -- the behaviour §12 spends a paragraph on.
+# run with GRYPE_DB_AUTO_UPDATE=false and GRYPE_DB_VALIDATE_AGE=false (build/scan.ts),
+# so an offline build gets a stale-but-recorded result rather than a failure -- the
+# behaviour §12 spends a paragraph on. Without the second, Grype refuses a database
+# more than five days old outright (measured 2026-09-14).
 docker volume create manifest-grype-db >/dev/null
 docker run --rm -v manifest-grype-db:/db \
   -e GRYPE_DB_CACHE_DIR=/db anchore/grype:v0.118.0 db update
