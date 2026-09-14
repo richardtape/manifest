@@ -83,7 +83,7 @@ is deleted along with `MANIFEST_DEV_AUTH`; the control plane's SAML client is
 `@node-saml/node-saml`, **not** the `passport-saml` the blueprint pins, because that
 one carries an unfixable critical signature-verification advisory and nothing in this
 platform scans the control plane's own dependency tree. `make verify` is
-**47 / 0**, `pnpm test` **525**, `pnpm test:docker` **116**. `secrets/` now holds every service credential — libsodium envelope
+**47 / 0**, `pnpm test` **525**, `pnpm test:docker` **117** — the 117th added 2026-09-14, when §12's scan turned out to refuse any vulnerability database more than five days old (fixed in `build/scan.ts`). `secrets/` now holds every service credential — libsodium envelope
 encryption in Postgres, replacing P3's HMAC derivation, migrated without breaking a
 running database — and §20's `audit.events` is append-only **by grant**, which needed
 the control plane to stop connecting as a superuser before it could mean anything:

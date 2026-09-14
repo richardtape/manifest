@@ -19,7 +19,8 @@
 ## How this plan is to be executed — TEN SITTINGS, one per session
 
 **SITTING 1 IS COMPLETE (2026-09-09). Tasks 1 and 2 are done — 10 findings between
-them. SITTING 2 — TASK 3, ALONE — IS NEXT.** Read *What executing this plan found*
+them. SITTING 2 — TASK 3, ALONE — IS NEXT.** **A restore session on 2026-09-14 came first** — it
+fixed §12's scan and wrote five corrections into the top of Task 3; its entry is below. Read *What executing this plan found*
 before starting it: Task 1's reconciliation corrected two migrations that would have
 failed on their first statement, and Task 2 pinned LiteLLM to the version S3 measured
 **hours after upstream moved the tag**.
@@ -37,7 +38,7 @@ Three tasks are deliberately alone, and each has a reason that is not its size:
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
 | 1 ✅ | 1–2 | The reconciliation pass against the executed P4a (**six divergences**), then LiteLLM pinned by digest with S3's error table re-measured against the pinned version. **Nothing ships and everything depends on both.** Task 1's size is unbounded by design — P3's equivalent found eight defects — so it is paired only with the other task that has no dependencies | ✅ **done 2026-09-09, 10 findings** |
-| **2 ← next** | **3** | §16's AI-path regression tier, **before any `ai/` module exists**. **Alone**: it is the largest task in the plan and it builds `mintProbeKey`/`deleteProbeKey`, the harness every later sitting is measured against. A tier written after the module tests the module's own assumptions | |
+| **2 ← next** | **3** | §16's AI-path regression tier, **before any `ai/` module exists**. **Alone**: it is the largest task in the plan and it builds `mintProbeKey`/`deleteProbeKey`, the harness every later sitting is measured against. A tier written after the module tests the module's own assumptions | **Pre-flight read 2026-09-14: 5 findings, listed at the top of Task 3** |
 | 3 | 4–5 | `ai/errors.ts`, then `ai/client.ts` — S3's error table as one mapper, then the transport that uses it. 5 consumes 4 and nothing else does yet | |
 | 4 | 6–7 | `ai/catalogue.ts` and `ai/keys.ts` — D17's catalogue read from `/model/info`, and the one place that mints a key with `allowed_routes` as a constant. Siblings: both consume Task 5's client and neither consumes the other | |
 | 5 | 8–9 | LiteLLM joins an app network, then §8's AI rows render. **This is the sitting where Tasks 6, 7 and 8 get a caller** — the plan says so in Task 9's own title. *A module with no call site is not built*: P3 built `waitForReady` and `edgeProbe` in its Task 14 and nothing called them until Task 17, and P4a hit the same shape with `ServiceBinding.credentials` | |
@@ -505,6 +506,14 @@ Expected: PASS, and the digest printed is `sha256:20b5044b619055374061a6d5b7b087
 **Interfaces:**
 - Consumes: `attachPlatformNeighbours`, `appNetwork` and `EngineClient` — all exported by P3 already; `describeDocker` from `docker-tier.js`.
 - Produces: `mintProbeKey(opts)` and `deleteProbeKey(key)` in `ai/testing.ts`, and §16's **AI-path regression** tier as a permanent Docker suite.
+
+**PRE-FLIGHT, 2026-09-14 — five things this task's text gets wrong, found by reading the repo before sitting 2.** Sitting 1 reconciled P4b against P4a; this task's seams are P3's and the test harness's, and nothing had checked them. Fix each as you reach it and record it in *What executing this plan found*:
+
+1. **`LITELLM_MASTER_KEY` does not reach a test process.** `packages/control-plane/vitest.env.ts` derives only the three database URLs from `.env`, so Step 1's `process.env.LITELLM_MASTER_KEY ?? ''` is an empty bearer and `beforeAll` dies on `/user/new -> 401`. Loud, not silent. **Derive it in `vitest.env.ts`** beside the database URLs, so one file reads `.env` for tests rather than a second reader in `ai/testing.ts`. Watch `secrets/scrub.ts`: it deletes that name from `process.env` at boot, so a test that boots the server in the same worker removes it.
+2. **`s6.docker.test.ts` imports neither `createEngineClient` nor `attachPlatformNeighbours`.** Self-review item 3 says the first is already imported; it is not — the file imports only `resolveSocketPath` from `./engine.js`. Both exist, in `runtime/docker/engine.ts` and `runtime/docker/networks.ts`, and `attachPlatformNeighbours(engine, network, names)` matches Step 2's call.
+3. **Probe 14 leaks a LiteLLM key on every run.** The unconfined key mints `orphan-<timestamp>` to prove the escalation, `-o /dev/null` discards the response, and Step 3 deletes only the two probe keys. Clean it up in `afterAll`, or the tier accumulates live keys under `p4b-probe-user` — and negative control (a) mints more.
+4. **`ubc-genai-toolkit-llm` is in no lockfile anywhere.** Step 5's `pnpm add` resolves from public npm (there is no `.npmrc`), so the network must be on for that step.
+5. **Probe 13's comment says Task 7 attaches the neighbour; it is Task 8.**
 
 **This is the end-to-end task, and it is third on purpose.** P3's two worst sessions were its last two, both because something ran together for the first time. P4a put a complete SAML login at Task 3 for the same reason. For P4b the unknown is not the toolkit — P4a measured that from the host on 2026-09-07 — it is **whether an application container on an `--internal` network can reach LiteLLM at all, and whether the confinement holds from there.** Everything Tasks 5–9 build is a way of producing that key and that route automatically. If they do not work by hand, nothing downstream can.
 
@@ -3292,6 +3301,23 @@ that is. A tag cannot pin a version whose tag has already moved.
 eighteenth — `make verify` **47/0**, `make seed` green, `make up` green, LiteLLM running
 `sha256:20b5044b` and answering `{"status":"healthy","db":"connected"}`. Sitting 1 is
 complete. **Sitting 2 is Task 3, alone: §16's AI-path regression tier.**
+
+### Before sitting 2 — restoring the platform after a reboot (2026-09-14). 2 defects, 1 fixed, and 5 corrections to Task 3's text.
+
+**No task ran.** Five days after sitting 1 the machine had rebooted (up since about 2026-09-10), Docker Desktop was stopped and the `127.0.0.2` alias was gone. This session brought the platform back and measured it against ORIENTATION §2's box before starting Task 3 — and the box did not hold. macOS 26.6.2, Docker Engine 29.7.2, Ollama 0.34.0, Grype v0.118.0.
+
+| # | Defect | Measured against |
+|---|---|---|
+| 11 | **`make up` does not recover the edge when Docker Desktop starts first.** Starting Docker Desktop restarted `manifest-caddy` itself (`restart: unless-stopped`) 2.6 s after its engine came up, before the alias existed. The port forward failed with `bind: can't assign requested address` and Docker Desktop never retried it, so all three of Caddy's host ports stayed unpublished — including `127.0.0.1:7119`, whose address was never missing. `make up` then added the alias, left the running container alone and printed `platform up`; `make doctor` said 18/0 with one warning that blamed CA trust for an `ECONNREFUSED`. **Not fixed:** the fix belongs in `make up`, and its negative control needs the alias removed, which is `sudo` | `make verify`: **9 failed**, every one host→edge, while every container→edge check passed. `docker port manifest-caddy` printed nothing, and `com.docker.backend.log` carried the bind error. `docker restart manifest-caddy` → three ports published, host `200`, doctor 18/0/0, verify 47/0. RUNBOOK *Known gaps* has the entry |
+| 12 | **§12's scan refused any vulnerability database more than five days old, so every build failed.** Grype validates the database's age itself — `validate-age: true`, `max-allowed-built-age: 120h` by default — and the scanner's environment set only `GRYPE_DB_AUTO_UPDATE=false`. §12 says a stale database *"warns rather than blocks"*, and `assessScan` records staleness past 7 days; that path was unreachable. `make doctor` called the database fresh, because `grype db status` does not validate age. **Fixed:** `SCANNER_ENV` in `build/scan.ts` carries `GRYPE_DB_VALIDATE_AGE=false` | `pnpm test:docker`: **13 failed, 33 skipped, 70 passed**, every failure `SCAN_FAILED … built 5 days ago (max allowed age is 5 days)` or a cascade of it, on a database built 2026-09-09T06:31Z |
+
+**The negative control, and the proof on the real condition.** The new test in `scan.docker.test.ts` forces `GRYPE_DB_MAX_ALLOWED_BUILT_AGE=1s`, so it fails on a database of any age rather than only on a stale machine. Without the line it was **RED**, `max allowed age is 1 second` — though its first run was RED for an unreadable reason, because the message printed stderr's first 400 characters and a Syft warning filled them; it now prints Grype's `ERROR` lines. With the line, GREEN. Then, **before refreshing**, all 47 tests in the six failing files passed on the same 5.5-day-old database. Only after that was the database refreshed — schema v6.1.9, built 2026-09-14T06:38:38Z — and the full tier re-run on it, which also shows the newer data blocks nothing.
+
+**One false green of this session's own:** the first background run of the gates printed the Docker tier's result through a summary loop, so the command exited 0 on 13 failures. Caught by reading the count rather than the status.
+
+**Five corrections to Task 3's text (13–17)** are written at the top of Task 3 rather than here, where the agent executing it will meet them: `LITELLM_MASTER_KEY` never reaches a test process; `s6.docker.test.ts` imports neither `createEngineClient` nor `attachPlatformNeighbours`; probe 14 leaks a LiteLLM key per run; the toolkit is in no lockfile; and probe 13's comment names Task 7 for Task 8's work.
+
+**Gates at the end:** `make doctor` **18/0/0**, `make verify` **47/0/0**, `pnpm test` **525** (56 files — twice before the fix, once after), `pnpm test:docker` **117** (22 files; the new one is the 117th), lint / typecheck / `format:check` clean. **Sitting 2 is still Task 3, alone.**
 
 Then one section per sitting, in P3's format: the tasks executed, the defects found with the measurement that found each, and the gate numbers at the end. The measured rate across P1, P2 and P3 is 1.4 → 2.7 → 4.3 defects per task and it never fell with practice.
 

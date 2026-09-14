@@ -151,7 +151,7 @@ none is hypothetical.
 | Symptom | Cause |
 |---|---|
 | `curl: (6) Could not resolve host` **while `dig +short` returns the right address** | dnsmasq is missing `--local=/manifest.internal/`, so AAAA is answered with a hard error instead of NODATA and both musl and glibc fail the whole dual-stack lookup. Measured on dnsmasq 2.91: the status is `REFUSED` (S7 recorded `SERVFAIL`; the code varies, the symptom does not). |
-| `bind: can't assign requested address` | The `127.0.0.2` alias is gone — a reboot removes it. `make up` re-adds it. |
+| `bind: can't assign requested address` — **or, after a reboot, every host request to `*.manifest.internal` fails with `Failed to connect … port 443` while containers reach the edge** | The `127.0.0.2` alias is gone — a reboot removes it. `make up` re-adds it, **but if Docker Desktop started first it has already restarted Caddy without the alias, and it never retries that port forward**: `docker port manifest-caddy` prints nothing. Run `docker restart manifest-caddy`. See *Known gaps*. |
 | A container cannot resolve `manifest-postgres` | dnsmasq is missing `--server=127.0.0.11`, so `--no-resolv` made it authoritative for everything. |
 | Node reaches the edge but `curl` does not, or vice versa | Trust is needed in **three** places, not two: the macOS keychain, container trust stores, and `NODE_EXTRA_CA_CERTS` for host Node processes. Without it Node gives `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` while `curl` on the same URL is fine. |
 | A build fails on `failed to resolve source metadata` | The base image is not in the local registry. `make seed`. Pulling alone is not enough — BuildKit cannot see the daemon's cache. |
@@ -255,6 +255,31 @@ The interesting case remains a second Mac **with Laravel Valet installed**, beca
 Valet owns `.test`, port 53 and ports 80/443, and that collision is why the zone is
 `manifest.internal` and why the edge binds `127.0.0.2`. A machine without Valet
 would only test the easy path.
+
+**`make up` does not recover the edge after a reboot.** *Measured 2026-09-14, Docker
+Engine 29.7.2, macOS 26.6.2.* Starting Docker Desktop restarted `manifest-caddy` itself
+(`restart: unless-stopped`) **2.6 s after its engine came up**, before `make up` had
+re-added the alias. The port forward failed — `listen tcp4 127.0.0.2:443: bind: can't
+assign requested address`, in
+`~/Library/Containers/com.docker.docker/Data/log/host/com.docker.backend.log` — and
+Docker Desktop never retries one, so **all three** of Caddy's host ports stayed
+unpublished, including `127.0.0.1:7119`, whose address was never missing. `make up`
+then added the alias, found Caddy running and unchanged, left it alone and printed
+`platform up`: Caddy's health check runs inside the container, so `--wait` saw it
+healthy. `make doctor` reported 18/0 with one warning that blamed CA trust for what was
+an `ECONNREFUSED`. **`make verify` was the only gate that saw it** — 9 failed, every one
+a host→edge check, while every container→edge check passed.
+
+**Workaround:** `docker restart manifest-caddy`. It is safe: Caddy reads its Caddyfile at
+start, and the control plane re-applies runtime routes. Measured: all three ports
+published, `https://console.manifest.internal/` → 200 from the host, doctor 18/0 with
+no warnings, verify 47/0.
+
+**Not fixed yet.** The fix belongs in `make up`, and it should read state rather than
+infer it: after `compose up`, assert the host can connect to `127.0.0.2:443` and
+`127.0.0.1:7119`, restart Caddy once if not, and fail loudly if still not. Restarting
+Caddy only when `ensure-alias.sh` itself added the alias would miss an alias added by
+`make seed` or by hand. Its negative control needs the alias removed, which is `sudo`.
 
 **Two things P4a Task 15 left open, both named rather than glossed.**
 
