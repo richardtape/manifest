@@ -71,7 +71,7 @@ supersedes:
 |---|---|
 | `tlef-starter` | Source of the first **blueprint**. Already a TS client/server app wired to Mongo, Qdrant, `passport-ubcshib` and the GenAI toolkit, with per-component `AGENTS.md` written for coding agents. |
 | `passport-ubcshib` | **Ours, changed only with discipline (C6).** Used as-is by manifested apps; its `LOCAL`/`STAGING`/`PRODUCTION` presets and env var names constrain Manifest's injection contract (§7). Manifest pins an exact version. |
-| `docker-simple-saml` | **Ours, freely editable.** Becomes the **Manifest IdP**, deployed as its own instance separate from the standalone one (§21). Its file-based `saml20-sp-remote.php` is replaced by a programmatic metadata source — SimpleSAMLphp's SQL source if S2 confirms it, a metadata module we write if not (§9). |
+| `docker-simple-saml` | **Read-only reference, not part of the platform.** The **Manifest IdP** is a separate image Manifest builds (`infra/idp/`, §9, §21); S2 measured its SQL metadata source against this repository, and nothing depends on this repository running or existing. |
 | `ubc-genai-toolkit` | **Ours, changed only with discipline (C6).** Used as-is by manifested apps; its `openai-compat` provider points at LiteLLM. Manifest pins an exact version. |
 | `tlef-ansible` | Describes how UBC deploys today (RHEL 9 VMs, nginx, Let's Encrypt, GitHub webhooks). Informs the eventual VM driver; not a dependency of the MVP. |
 | `saml-metadata-generator` | **Absorbed as a library.** Already generates RSA-4096 certificates and UBC-standard SP metadata as a downloadable package — exactly the artifact a UBC IAM registration request requires (§9). Not rebuilt. |
@@ -538,7 +538,7 @@ wrong:
 | **`SAML_ENVIRONMENT`** | `LOCAL` for sandbox and staging (Manifest IdP), `PRODUCTION` for production. **Never left unset** — see above. | all |
 | `SAML_ISSUER` | sandbox/staging: `https://manifest.ubc.ca/sp/{slug}/{env}`; production: the entityID registered with UBC IAM (§9) | all |
 | `SAML_CALLBACK_URL` | `{MANIFEST_APP_URL}{auth.callback}`, derived (D15) | all |
-| **`SAML_ENTRY_POINT`** | the IdP SSO endpoint. Required because `UBC_CONFIG.LOCAL` hardcodes `http://localhost:8080/simplesaml/...` and the Manifest IdP is elsewhere (§21). | all |
+| **`SAML_ENTRY_POINT`** | the IdP SSO endpoint. Required because `UBC_CONFIG.LOCAL` hardcodes `http://localhost:8080/simplesaml/...` and the Manifest IdP is elsewhere (§21). Those are SimpleSAMLphp **1.x** paths and 404 against 2.x, which serves SSO at `/module.php/saml/idp/singleSignOnService`, SLO at `/module.php/saml/idp/singleLogout` and metadata at `/module.php/saml/idp/metadata` (measured 2026-09-07). | all |
 | `SAML_LOGOUT_URL` | IdP logout endpoint. The library's `logout()` helper reads this from **env, not options** — so it must be injected even though the entry point is passed in code. | all |
 | `SAML_IDP_METADATA_URL` | sandbox/staging: the Manifest IdP; production: `https://authentication.ubc.ca/idp/shibboleth` | all |
 | **`SAML_IDP_CERT_PATH`** | mounted path to the IdP's public signing certificate. **Mandatory:** the strategy builds `cert: options.cert \|\| (() => { throw ... })()`, an IIFE that evaluates at construction — so it throws unless a certificate is supplied, and the library's `_fetchCertificate()` fallback is unreachable. Manifest mounts it; the blueprint never fetches it at runtime. | all |
@@ -585,8 +585,10 @@ The other two are the app-facing paths (D6):
 
 ### Sandbox and staging: SP auto-provisioning
 
-`docker-simple-saml` keeps its IdP role here. Its file-based
-`saml20-sp-remote.php` is replaced by SimpleSAMLphp's **SQL metadata source**
+The **Manifest IdP** (`infra/idp/`) keeps the IdP role here — an image Manifest
+builds from `php:8.3-apache` plus SimpleSAMLphp 2.x, with **no dependency on
+`docker-simple-saml` running or existing**. Instead of a file-based
+`saml20-sp-remote.php` it uses SimpleSAMLphp's **SQL metadata source**
 (`metadata.sources` with a `pdo` entry). Manifest registers a Service Provider by
 inserting a row — no file writes, no container reload, no restart.
 
@@ -724,6 +726,12 @@ to SQL-backed metadata widens it. Controls:
   `validate.authnrequest => false` and `validate.logout => false`. Both must be
   `true` in staging and production; Manifest mints a per-app keypair anyway, so
   requiring signed AuthnRequests costs nothing.
+- **The IdP's hosted entity and signing keypair are deployment artefacts, not
+  defaults.** SimpleSAMLphp ships only `saml20-idp-hosted.php.dist` and an empty
+  `cert/`, so an IdP deployed without both **serves, answers health checks, and
+  cannot issue an assertion** — measured 2026-09-07, with `make verify` green
+  throughout. The entityID is configuration and is never derived from the request
+  host.
 
 ### Attribute changes are gated in every environment (D16)
 
@@ -1216,7 +1224,11 @@ when its database is older than 7 days, and the staleness is recorded on the Rel
 — a local developer is not stopped, and a stale scan can never be mistaken for a
 clean one.
 - dependency and secret scanning run as **platform-mandatory build gates** on
-  every build — they are not app-declared and cannot be waived by an app
+  every build — they are not app-declared and cannot be waived by an app. A
+  Critical or High finding blocks **only when a fix is published**. One with no
+  available fix is recorded on the Release and reported to the owner for §20's
+  fleet-wide rebuild, exactly as a base-image finding is — a gate that blocks on
+  what nobody can fix stops deployments without making anything safer.
 
 ### Backups
 
@@ -1718,9 +1730,9 @@ created per build and destroyed:
 | Builder | — | Transient, per build; rootless BuildKit (§12) |
 | Scanner + SBOM | — | Transient, per build; database age reported by `make doctor` (§12) |
 | dnsmasq | 7153 | Serves `*.manifest.internal`; see §12. **Two processes** — one answering containers, one answering the host — because `--address` is global to a dnsmasq process (S7) |
-| Postgres | 7103 | **One server, three databases**: control plane, LiteLLM, IdP metadata — consistent with D11 and worth ~400 MB on a 16 GB machine |
+| Postgres | 7103 | **One server, three databases**: control plane, LiteLLM, IdP metadata — consistent with D11 and worth ~400 MB on a 16 GB machine. The IdP metadata database needs **two roles**: a read-only one for SimpleSAMLphp's metadata source (`CONNECT`, schema `USAGE` and `SELECT` only — §9) and a separate one the control plane writes SP rows with. SimpleSAMLphp's session store is a further client, and it writes (§9) |
 | Manifest IdP (SimpleSAMLphp) | 7122 | Deliberately *not* 6122 — that is already taken by the standalone `docker-simple-saml` on this machine |
-| LiteLLM | 7106 | Virtual keys and budgets against the shared Postgres. Reaches Ollama on the host via `extra_hosts: host.docker.internal:host-gateway` and `api_base: http://host.docker.internal:11434` (S7, S3). Runs with **`STORE_MODEL_IN_DB`** — the model catalogue must be DB-held, not file-held (§7) — and **without `--detailed_debug`**, which would write student prompts into the log pipeline (§7). One port serves both admin and proxy traffic, so key confinement is `allowed_routes` (§10) |
+| LiteLLM | 7106 | Virtual keys and budgets against the shared Postgres. Reaches Ollama on the host via `extra_hosts: host.docker.internal:host-gateway` and `api_base: http://host.docker.internal:11434` (S7, S3). Runs with **`STORE_MODEL_IN_DB`** — the model catalogue must be DB-held, not file-held (§7) — and **without `--detailed_debug`**, which would write student prompts into the log pipeline (§7). One port serves both admin and proxy traffic, so key confinement is `allowed_routes` (§10). Deployed **by digest**, recorded in `infra/images.lock` — litellm 1.98.0, `sha256:20b5044b…` — because `ghcr.io/berriai/litellm:main-stable` is a moving tag (it moved between 2026-09-07 and 2026-09-09). This is the version §16 pins the AI error mapping to |
 | Registry (`registry:2`) | 7107 | Required: §13 binds approval to a digest and restricts pushes |
 | Verdaccio | 7108 | The private package mirror §12 mandates; also what makes offline installs possible |
 | Egress proxy | 7109 | Default-deny must exist locally, or an app works here and fails in staging |
