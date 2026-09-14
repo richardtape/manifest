@@ -18,11 +18,12 @@
 
 ## How this plan is to be executed — TEN SITTINGS, one per session
 
-**SITTINGS 1 AND 2 ARE COMPLETE. SITTING 3 — TASKS 4 AND 5 — IS NEXT.** Sitting 1 (Tasks 1–2,
+**SITTINGS 1, 2 AND 3 ARE COMPLETE. SITTING 4 — TASKS 6 AND 7 — IS NEXT.** Sitting 1 (Tasks 1–2,
 2026-09-09) produced 10 findings; a restore session on 2026-09-14 fixed §12's scan and wrote
 five corrections into Task 3; sitting 2 (Task 3, 2026-09-14) resolved those five and produced
-six more — **one of them a correction to Task 7's own code**. Read *What executing this plan found*
-before starting it: Task 1's reconciliation corrected two migrations that would have
+six more — **one of them a correction to Task 7's own code**; sitting 3 (Tasks 4–5, 2026-09-14)
+produced eleven — **a second correction to Task 7, which as written throws on every redeploy of
+an AI app, and one to Task 9**. Read *What executing this plan found* before starting it: Task 1's reconciliation corrected two migrations that would have
 failed on their first statement, and Task 2 pinned LiteLLM to the version S3 measured
 **hours after upstream moved the tag**.
 
@@ -40,8 +41,8 @@ Three tasks are deliberately alone, and each has a reason that is not its size:
 |---|---|---|---|
 | 1 ✅ | 1–2 | The reconciliation pass against the executed P4a (**six divergences**), then LiteLLM pinned by digest with S3's error table re-measured against the pinned version. **Nothing ships and everything depends on both.** Task 1's size is unbounded by design — P3's equivalent found eight defects — so it is paired only with the other task that has no dependencies | ✅ **done 2026-09-09, 10 findings** |
 | 2 ✅ | 3 | §16's AI-path regression tier, **before any `ai/` module exists**. **Alone**: it is the largest task in the plan and it builds `mintProbeKey`/`deleteProbeKey`, the harness every later sitting is measured against. A tier written after the module tests the module's own assumptions | ✅ **done 2026-09-14, 6 findings** — plus the 5 pre-flight corrections, all resolved |
-| **3 ← next** | **4–5** | `ai/errors.ts`, then `ai/client.ts` — S3's error table as one mapper, then the transport that uses it. 5 consumes 4 and nothing else does yet | **Pre-flight read 2026-09-14: 3 corrections, at the top of Task 5** |
-| 4 | 6–7 | `ai/catalogue.ts` and `ai/keys.ts` — D17's catalogue read from `/model/info`, and the one place that mints a key with `allowed_routes` as a constant. Siblings: both consume Task 5's client and neither consumes the other | |
+| 3 ✅ | 4–5 | `ai/errors.ts`, then `ai/client.ts` — S3's error table as one mapper, then the transport that uses it. 5 consumes 4 and nothing else does yet | ✅ **done 2026-09-14, 11 findings** — the 3 pre-flight corrections resolved, and corrections written into **Tasks 7 and 9** |
+| **4 ← next** | **6–7** | `ai/catalogue.ts` and `ai/keys.ts` — D17's catalogue read from `/model/info`, and the one place that mints a key with `allowed_routes` as a constant. Siblings: both consume Task 5's client and neither consumes the other | |
 | 5 | 8–9 | LiteLLM joins an app network, then §8's AI rows render. **This is the sitting where Tasks 6, 7 and 8 get a caller** — the plan says so in Task 9's own title. *A module with no call site is not built*: P3 built `waitForReady` and `edgeProbe` in its Task 14 and nothing called them until Task 17, and P4a hit the same shape with `ServiceBinding.credentials` | |
 | 6 | 10 | `node-ts-mongo@1` grows its AI half — `provides.ai: true`, `ubc-genai-toolkit-llm` pinned, `ask`/`askStreaming`/`embed`/`endUserId`. **Alone, and it is the one sitting that NEEDS THE NETWORK ON**: it adds a dependency, regenerates the lockfile and needs `make seed` to warm Verdaccio from it. P4a's sitting 5 was alone for exactly this reason. Step 6 checks Verdaccio's storage rather than `npm ci`'s exit code, because a build against the public registry looks identical to a correct one | |
 | 7 | 11–12 | Build logs captured, streamed line by line and stored — and then the heuristic half of redaction, which is what has to cover them. Paired because the logs are the thing redaction exists to protect, and building either alone invites proving it against the other's absence | |
@@ -818,6 +819,8 @@ pnpm test && pnpm test && make up && pnpm test:docker
 ---
 ## Task 4: `ai/errors.ts` — S3's error table as one mapper, and the body that must never escape
 
+**EXECUTED 2026-09-14, sitting 3. The code below is the plan's original, kept as the record.** The committed `ai/errors.ts` has two guards this text lacks — a `detail` body is a route denial only on a **403**, and a 400 is an unknown model only when its `type` is `"None"` — and Step 4 provokes **four** rows, one of them with the master key, because an app key never sees `AI_MODEL_UNKNOWN`. *What executing this plan found*, sitting 3, has the measurements.
+
 **Files:**
 - Create: `packages/control-plane/src/ai/errors.ts`, `errors.test.ts`
 - Modify: `packages/control-plane/src/ai/ai-path.docker.test.ts` (provoke each row against the running proxy)
@@ -1087,7 +1090,7 @@ The budget rows are **deliberately not provoked here**: reaching a budget takes 
 - Create: `packages/control-plane/src/ai/client.ts`, `client.test.ts`, `index.ts`
 - Modify: `packages/control-plane/src/config.ts`, `config.test.ts`, `.env.example`, `packages/control-plane/vitest.env.ts`
 
-**PRE-FLIGHT, 2026-09-14 — three things this task's text gets wrong, found by reading the repo after sitting 2.** Task 5 was written before sitting 2 put a LiteLLM master key into the test harness, and its *Files* block touches `.env.example` and `vitest.env.ts` without knowing what they now hold. Fix each as you reach it and record it in *What executing this plan found*:
+**PRE-FLIGHT, 2026-09-14 — three things this task's text gets wrong, found by reading the repo after sitting 2.** **All three were resolved in sitting 3 (2026-09-14)** — see *What executing this plan found*. The code below is the plan's original; the committed client also refuses a non-JSON *success* body without quoting it, and `loadConfig` treats an empty key as absent. Task 5 was written before sitting 2 put a LiteLLM master key into the test harness, and its *Files* block touches `.env.example` and `vitest.env.ts` without knowing what they now hold. Fix each as you reach it and record it in *What executing this plan found*:
 
 1. **The boot scrub would leave the new secret in the environment.** `secrets/scrub.ts`'s `SECRET_ENV_NAMES` lists `LITELLM_MASTER_KEY` but not `MANIFEST_LITELLM_MASTER_KEY`, and this task never mentions the scrub — so the control plane would boot with the master key still in `process.env`, where every child process it spawns (`git` in `build/context.ts` among them) inherits it. Add the name to `SECRET_ENV_NAMES` and to the list `scrub.test.ts` asserts, whose own comment warns about exactly this.
 2. **Adding the key to `.env.example` turns `make doctor` red on every existing machine.** `check_env_file` fails when `.env` lacks any key `.env.example` declares, and `make seed` never rewrites an existing `.env` — so this machine's `.env` would be missing it the moment the task lands.
@@ -1414,6 +1417,8 @@ it('the running catalogue matches infra/litellm/config.yaml', async () => {
 
 **CORRECTION FROM SITTING 2 (2026-09-14) — `/user/new` mints a key unless told not to.** LiteLLM 1.98.0's `NewUserRequest.auto_create_key` **defaults to `true`** (its own `/openapi.json`), and measured: `/user/new` for `p4b-probe-user` answered with a key whose `allowed_routes` was `[]` and `models` `[]` — unconfined, every model. `ensureAiUser` below posts `{ user_id: userId, ...budget }`, so as written **every app's LiteLLM user would hold an unconfined key beside the confined one this task mints** — the §12 escalation `allowed_routes` exists to close, created by the call that sets up the budget. Pass `auto_create_key: false`, and assert in `keys.test.ts` that the `/user/new` body carries it. `ai/testing.ts`'s `ensureProbeUser` already does.
 
+**SECOND CORRECTION, FROM SITTING 3 (2026-09-14) — `ensureAiUser` cannot see "already exists", so every redeploy throws.** Step 3 catches the duplicate with `/already exists/i.test(String(error))`. Task 5's client turns every non-2xx into an `AiError` built from a code and the status and nothing else — that is its whole point (§14) — so `String(error)` is `AiError: The AI service refused this request for a reason the platform does not recognise.` and the test never matches: **the first deploy of an AI app creates the LiteLLM user and every later deploy throws.** Measured against LiteLLM 1.98.0: a duplicate `/user/new` answers **409** with `type: internal_server_error`, and `AiError.status` carries it (`errors.test.ts` asserts that the status of an unmapped failure survives). Catch on `error instanceof AiError && error.status === 409`. **Add the test this task's list does not have:** `fakeClient` returns `{}` for `/user/new` and never rejects, which is exactly why the defect is invisible to it — give one case a client whose `/user/new` rejects with `mapLiteLlmError(409, …)` and assert that `/user/update` follows.
+
 **Interfaces:**
 - Consumes: `LiteLlmClient` (Task 5); `putSecret` / `getSecret` from P4a's `secrets/`.
 - Produces:
@@ -1709,6 +1714,8 @@ make up && pnpm test:docker -- s6
   - `InjectionContext.ai?: { endpoint: string; apiKey: string; defaultChatModel?: string; embeddingModel?: string }`
   - `renderInjection` emitting the six AI rows; **`INJECTION_AI_UNSUPPORTED` is deleted**
   - `deployRelease` rotating the app key and passing `needsAiGateway`
+
+**CORRECTION FROM SITTING 3 (2026-09-14) — `createLiteLlmClient(config.litellm)` does not typecheck.** Task 5 fixed both shapes: `config.litellm` is `{ url, internalUrl, masterKey?, enabled }`, and `createLiteLlmClient` takes `{ baseUrl, masterKey: string, timeoutMs? }` and **throws `AiConfigError` at construction when the key is empty**. So Step 4 must map the fields — `createLiteLlmClient({ baseUrl: config.litellm.url, masterKey: config.litellm.masterKey ?? '' })` — and it must decide what a development boot with no key does, because as written that line throws at boot. `loadConfig` already refuses a missing key outside development; README's export block supplies it for a developer; `MANIFEST_AI_ENABLED=0` is the obvious condition for not building the client at all. **Whichever you choose, check the Docker tests that construct a development config with no key** — `boot.docker.test.ts`, `identity/saml.docker.test.ts` and `releases/deploy-sso.docker.test.ts`. `MANIFEST_LITELLM_MASTER_KEY` is deliberately **not** in `.env.example` (sitting 3).
 
 **This is the caller task, exactly as P4a's Task 9 was.** Tasks 6, 7 and 8 ship modules whose only callers are tests. `waitForReady` and `edgeProbe` shipped in P3 Task 14 and nothing called them until Task 17; `isSensitiveDiff` shipped in P2 and waited a whole plan. **Its acceptance is a `grep`**, not a test.
 
@@ -3360,6 +3367,50 @@ complete. **Sitting 2 is Task 3, alone: §16's AI-path regression tier.**
 **One mistake of this session's own.** Control (c)'s first attempt used `path` as a shell loop variable. The Bash tool's shell is zsh, where `path` is tied to `$PATH`, so `docker`, `curl` and `python3` vanished mid-command and a key minted before the loop leaked. It was deleted, and ORIENTATION §4 now carries the trap.
 
 **Gates at the end:** `pnpm test` **525** (56 files, twice), `pnpm test:docker` **122** (23 files, ~415 s), lint / typecheck / `format:check` clean. `make doctor` 18/0 and `make verify` 47/0, from the `make up` at the start of the session — nothing in `infra/` changed. **Sitting 3 — Tasks 4 and 5 — is next.**
+
+### Sitting 3, Tasks 4 and 5 — the error mapper and the admin transport (2026-09-14). 11 findings, two of them corrections to later tasks.
+
+**Both tasks are done.** `ai/errors.ts` maps LiteLLM's failures to nine Manifest codes and carries nothing but the status; `ai/client.ts` is the one place the control plane calls LiteLLM's admin API; `config.litellm` exists; the boot scrub removes the new name. Commits `146db98` and `534fd8a`. Versions: LiteLLM 1.98.0 (`sha256:20b5044b`), Node 24.12.0, pnpm 11.24.0, Docker Engine 29.7.2, macOS 26.6.2.
+
+**The finding to read is 28.** Task 7's code cannot work through Task 5's client, and as written it fails every redeploy of an AI app. Nothing in Task 7's own test list could see it, because its fake client never rejects.
+
+| # | Finding | Measured against |
+|---|---|---|
+| 24 | **The mapper called every `{"detail": …}` body a route denial.** FastAPI raises its own errors in that envelope, and Task 5 points the mapper at the ADMIN API: an unknown route is `404 {"detail":"Not Found"}` and a refused body `422 {"detail":[…]}` — which also echoes the refused `input` back. Mapped as written, an operator's typo reaches a faculty member as *"this app tried to do something apps are not allowed to do"*, with a hint calling it a bug in their app. A route denial is now a `detail` body **on a 403** | `curl` with the master key against the running proxy; then the plan's verbatim mapper against the new test — **RED**, `expected 'AI_ROUTE_NOT_PERMITTED' to be 'AI_UNMAPPED'`. The Docker tier re-provokes all three admin envelopes |
+| 25 | **The mapper called every 400 an unknown model.** It is now a 400 whose `type` is the string `"None"` — which is also what negative control (d) presupposed and the plan's code never checked | Reading; the verbatim mapper **RED** on a plain-text 400. The `"None"` row is re-provoked live |
+| 26 | **An app key never sees `AI_MODEL_UNKNOWN`.** Step 4 provoked it with a confined key limited to `default-chat` and `default-embed`, and LiteLLM refuses a model off a key's list before it asks whether the model exists — `403 key_model_access_denied`, not S3's 400. Every app key carries a `models` list (Task 7), so a misspelt model reaches an app as `AI_MODEL_NOT_PERMITTED`. The tier now provokes that row with the confined key and `AI_MODEL_UNKNOWN` with the master key, the one key it holds that has no list — **four rows provoked, not three** | `ai-path.docker.test.ts`: `AI_MODEL_UNKNOWN drifted: LiteLLM answered 403 type=key_model_access_denied` |
+| 27 | **Step 4's snippet used `LITELLM` and `PROBE_USER`, which `ai-path.docker.test.ts` does not define** — finding 20 again — never called `ensureProbeUser`, and deleted its key only when every case passed. It uses sitting 2's exported helpers and deletes in a `finally` | Reading; then `p4b-probe-user` held **0 keys** after the RED run above, which failed mid-loop |
+| 28 | **Task 7's `ensureAiUser` cannot recognise an existing user.** It matches `/already exists/` against `String(error)`, and Task 5's client exists so that no LiteLLM text reaches an error: `String(error)` is `AiError: The AI service refused this request for a reason the platform does not recognise.` So the first deploy of an AI app creates the user and **every later deploy throws**. The duplicate answers **409** with `type: internal_server_error`, and the status survives the mapper by design. **The correction is at the top of Task 7** | `POST /user/new` for the existing `p4b-probe-user` with `auto_create_key: false` → `409 {"error":{"message":"{'error': 'User with id p4b-probe-user already exists'}","type":"internal_server_error",…}}`; 0 keys and `max_budget` 5.0 afterwards, so nothing was created |
+| 29 | **Negative control (a) as worded cannot fail.** Moving the `detail` branch after the type reads leaves the suite GREEN, because no earlier branch catches a 403 with no `error` object. Deleting the branch is the control that works | Both run — see the controls table |
+| 30 | **Task 5 contradicts itself about when a missing key fails.** Step 3 says *"at the first call"*; its own test says at construction. The test wins. **So Task 9's `createLiteLlmClient(config.litellm)` cannot typecheck** — the config carries `url` and an optional `masterKey`, the client takes `baseUrl` and a required one. **The correction is at the top of Task 9** | Reading, against the committed `config.ts` and `client.ts` |
+| 31 | **An empty master key failed a DEVELOPMENT boot.** Pre-flight correction 2's recommended route is README's `export MANIFEST_LITELLM_MASTER_KEY="${LITELLM_MASTER_KEY}"`, which expands to `''` when `.env` lacks the line — and the plan's `z.string().min(1).optional()` refuses `''` as `CONFIG_INVALID` in every environment, including the one that does not need the key. Empty is now absent: development boots, staging gets `CONFIG_LITELLM_MASTER_KEY_REQUIRED`, which is what the plan's own control (c) expected | Control (c2): `invalid configuration — MANIFEST_LITELLM_MASTER_KEY: String must contain at least 1 character(s)` |
+| 32 | **A non-JSON SUCCESS body was a second way for a third-party body to escape.** The plan covered a non-JSON error body. Node's `JSON.parse` quotes the text it could not parse, so a 200 carrying a proxy's page throws a `SyntaxError` containing that page. It is now `AI_UNMAPPED` with the status | Control (a): both non-JSON tests **RED** |
+| 33 | **Step 4 named the wrong three files.** `vitest.env.ts`, `api/testing.ts` and `.env.example` needed nothing, because every new setting defaults or is optional in development. What broke was **three tests in `config.test.ts` that load a production config** — RED on the new guard's own message, which is the guard watched working. They now supply the key | The focused run after implementing: 3 failed, each `MANIFEST_LITELLM_MASTER_KEY is required when MANIFEST_ENV is 'production'` |
+| 34 | **`pnpm test -- ai/errors` does not filter** — it ran all 57 files. The one-file loop is `pnpm exec vitest run --project unit src/ai/errors` | Step 2's first run |
+
+**The three pre-flight corrections are resolved.** 1: `MANIFEST_LITELLM_MASTER_KEY` is in `SECRET_ENV_NAMES` and in the list `scrub.test.ts` asserts, watched RED first. 2 and 3: it is not in `.env.example`, and README's export block derives it from `LITELLM_MASTER_KEY`. **One departure from the recommendation, deliberately:** `vitest.env.ts` does not set `MANIFEST_LITELLM_MASTER_KEY` as well. Nothing in the suite reads that name — `ai/testing.ts` reads `LITELLM_MASTER_KEY`, the name LiteLLM itself holds — and a second name with no reader is the drift correction 3 warns about. Task 9 is the first thing that would read it in a test, and it is the place to add it if it needs it.
+
+**Decisions made here, so nobody re-derives them.** `timeoutMs` defaults to 10 s. A request that gets no response is `AI_BACKEND_UNAVAILABLE` with status 0 and `reason: 'timeout' | 'unreachable'` — two fixed words, because undici's error carries an address and nothing from outside the module reaches an `AiError`'s fields. The master key is required outside development **unconditionally**, not only when `MANIFEST_AI_ENABLED=1`: the flag gates the catalogue read and must not become a second condition on a guard. The new guard runs **last**, so every earlier guard still names its own setting first.
+
+**Negative controls.** Each was applied by a script that refused to run unless its pattern matched exactly once, and restored the file byte-for-byte afterwards — both scripts reported `True`.
+
+| Control | Result |
+|---|---|
+| **Task 4** — the plan's verbatim mapper, against the new tests | **RED** on exactly the two new cases (24, 25); the other 7 green |
+| (a1) the `detail` branch moved after the type reads — the plan's wording | **GREEN** — finding 29 |
+| (a2) the `detail` branch deleted | **RED** — `expected 'AI_UNMAPPED' to be 'AI_ROUTE_NOT_PERMITTED'` |
+| (b) the budget case without `/End User=/` | **RED** — `expected 'AI_PROJECT_BUDGET_EXCEEDED' to be 'AI_USER_BUDGET_EXCEEDED'` |
+| (c) `message` added to `AiError.detail` | **RED** — the serialised error contains the key hash |
+| (d) any non-empty `type` treated as mapped | **RED** — `expected 'AI_UNMAPPED' to be 'AI_MODEL_UNKNOWN'` |
+| (e) the 403 guard removed, run against the LIVE proxy | **RED** — `an admin 404 mapped to an app fault` |
+| **Task 5** (a) no `try` around `JSON.parse` | **RED** — both non-JSON tests |
+| (b) no `AbortSignal` | **RED** — `Test timed out in 5000ms`. Vitest's default timeout ends the hang the plan said to kill by hand after 30 s |
+| (c1) no `CONFIG_LITELLM_MASTER_KEY_REQUIRED` guard | **RED** — a staging config without the key loads |
+| (c2) `''` not treated as absent | **RED** — finding 31 |
+| (d) no construction-time key check | **RED** — `expected function to throw an error, but it didn't` |
+| (f) a non-2xx thrown as the raw response text | **RED** — the key-hash test and the non-JSON error test |
+
+**Gates at the end:** `pnpm test` **547** (58 files, twice), `pnpm test:docker` **124** (23 files, ~412 s), lint / typecheck / `format:check` clean. `make doctor` 18/0/0 and `make verify` 47/0/0, measured at the start of the sitting — nothing in `infra/` changed. `p4b-probe-user` held **0 keys** at the end. The before/after machine snapshot differs only in `manifest-caddy`'s uptime — `routes.docker.test.ts:144` restarts it by design — and after the tier its three ports were published and `make verify` was **47/0/0** again. **Sitting 4 — Tasks 6 and 7 — is next**, and Task 7 now carries two corrections at its top; Task 9 carries one.
 
 Then one section per sitting, in P3's format: the tasks executed, the defects found with the measurement that found each, and the gate numbers at the end. The measured rate across P1, P2 and P3 is 1.4 → 2.7 → 4.3 defects per task and it never fell with practice.
 
