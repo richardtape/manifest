@@ -113,6 +113,23 @@ highs still blocked after the change, and only an npm `override` to 0.8.15 clear
 them. Implemented in `build/scan.ts`; **the spec's own text is unchanged**, per the
 standing rule that only Rich edits the spec.
 
+### Spec actions raised by P4a and P4b — 6 of 12 applied 2026-09-14
+
+**Rich approved six on 2026-09-14**, applied in one commit so they are one `git revert`
+away. From P4a: §12's scan gate blocks only on a Critical or High **with a published
+fix** (settled 2026-09-08, its wording owed until now); §9 names the **Manifest IdP**
+rather than `docker-simple-saml`; §9's registration hardening gains the IdP's hosted
+entity and signing keypair as deployment artefacts; §8's `SAML_ENTRY_POINT` row gains
+the SimpleSAMLphp 2.x paths; and §21's Postgres row states the IdP metadata database's
+two roles, reworded as a requirement because `ssp_ro` now exists. From P4b: §21's
+LiteLLM row records the digest pin Task 2 made. One consistency edit went with them:
+§1's existing-assets row still said `docker-simple-saml` "becomes the Manifest IdP".
+
+**Not applied:** P4a's `MONGODB_DB_NAME` note, which is history rather than design, and
+P4b's other five, **held until Tasks 6, 7, 9 and 14 have run**. Two of those — the
+per-user AI budget §10 cannot enforce at LiteLLM 1.98.0, and what streams over
+WebSocket (§14 against D23.2) — are Rich's product decisions at that point.
+
 ### Spec actions raised by P3 — ✅ all six applied 2026-09-07
 
 Proposed at the end of P3's plan and left unapplied, as the pattern requires; **Rich

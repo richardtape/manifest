@@ -94,7 +94,7 @@ two came out of Tasks 1–3, the third out of Task 5, the fourth out of Task 8:
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. **S6 has since run too, as P3's Task 18, 2026-09-07: every probe denied, every denial paired with a positive control, and one result BETTER than the spec** — §21's divergence 8 no longer holds, because app networks are `--internal` and the developer's machine is unroutable rather than merely policed. S5 and S4 are deliberately later (S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
 | **Plans** | **P1, P2, P3 AND P4a ARE ALL EXECUTED — P4a IN FULL ON 2026-09-09. P4b IS PART-EXECUTED: SITTING 1 OF TEN (TASKS 1–2) IS DONE; CONTINUE AT TASK 3.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a's fifteen tasks found 80 defects — 5.3 per task, the highest rate measured here, in the plan that had the most research behind it.** Two were spec-level and are in §8. **P4b (16 tasks) is now the current work.** P5 is unwritten — see §7. **The unrun stack is 16 tasks**, which is what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
 | **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`.** **The numbers are in the box below** — this row used to restate them and drifted by four releases.  **P4a Tasks 1–3 then added `sso/`'s test surface and login suite, `runtime/docker/archive.ts`, `infra/idp/metadata/saml20-idp-hosted.php`, `infra/idp/attributemap/ubcoid.php`, three new `infra/lib/ensure-*.sh` scripts wired into `make up`, and `fixtures/saml-sp/`; Tasks 4–5 added `secrets/`; Tasks 6–7 added `sso/`'s production half — `keypair.ts`, `entity.ts`, `metadata-store.ts`, `registration.ts` — plus `MANIFEST_IDP_DATABASE_URL` and `MANIFEST_SP_ENTITY_BASE` in `config.ts`; and Tasks 8–9 added `observability/` (`events.ts`, `redact.ts`), the `audit` schema and its migration, `infra/lib/ensure-app-role.sh` and the `manifest_app` role the control plane now connects as, and `sso`'s wire into `DeployDeps`, `ServerDeps` and boot. **Tasks 10–11 added `spec/injection.ts` — §8's table as data and the one renderer of every variable an app receives — plus `config.idp`, `secrets/`'s `ensureSessionSecret`, `SsoRegistrar.idpSigningCertificate()`, `ai` on `ResolvedConfig`, and the reserved-name check in `spec/policy.ts`. `deployRelease`'s ad-hoc env block is gone. Tasks 12–13 added `blueprints/node-ts-mongo/` — the descriptor, the Dockerfile, the skeleton with its auth component and §9's attribute bridge, and the D25 knowledge pack — plus `spec/injection-drift.test.ts` (§16's drift tier, reading the blueprint's source), `runtime/docker/node-ts-mongo.docker.test.ts` and `blueprints/attribute-bridge.test.ts`. Task 14 added `identity/saml.ts` — the control plane's own SAML SP, on `@node-saml/node-saml` rather than the `passport-saml` the blueprint pins — `identity/testing.ts` (an in-process SAML IdP and `testSessionCookie`), `identity/saml.docker.test.ts`, `sso/platform.ts` and `infra/lib/ensure-cp-sp-keypair.sh`, and DELETED `identity/dev-auth.ts` and its test.**|
-| **Spec** | Current, with **one approved change not yet written into it**: §12's scan gate blocks only on findings that have a published fix (Rich, 2026-09-08 — §8). Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
+| **Spec** | Current. **Six more spec actions were applied on 2026-09-14** with Rich's approval — §12's scan-gate wording, four of P4a's and P4b's LiteLLM digest row; P4b's other five wait for the tasks that implement them (§8). Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
 **The four numbers you will check first, measured 2026-09-14 on this machine:**
 
@@ -1457,7 +1457,7 @@ member; `ghcr.io/berriai/litellm:main-stable` is a **moving tag absent from
 `infra/images.lock`** while §16 pins the error mapping to a version; and
 **`ai.budget.per_user_monthly_usd` cannot be enforced at LiteLLM 1.98.0 at all** —
 customer rows auto-create with no budget, and `max_end_user_budget` does not exist
-in its admin API. **P4b proposes six spec actions and applies none.**
+in its admin API. **P4b proposes six spec actions; one — §21's LiteLLM digest row — was applied on 2026-09-14, and the other five wait for the tasks that implement them.**
 
 ### 7e. Write P5 — contract and clients (1c) *(after P4a and P4b)*
 
@@ -1474,31 +1474,36 @@ complete?" from an opinion into a build failure.
 
 Surface these; do not decide them.
 
-- **§12's scan gate — SETTLED 2026-09-08, Rich's call, and the spec text is NOT yet
-  edited.** The gate blocks on a Critical or High **that has a published fix**;
+- **§12's scan gate — SETTLED 2026-09-08, Rich's call, and written into §12 on
+  2026-09-14.** The gate blocks on a Critical or High **that has a published fix**;
   findings with no fix are recorded on the Release and reported for §20's fleet-wide
   rebuild, exactly as base-image findings already are. It had to be settled because
   §12's unwaivable gate and C6's "a library change is never a prerequisite" could not
   both hold: `passport-ubcshib` → deprecated `passport-saml` (critical, no fix) →
   `@xmldom/xmldom` blocked **every CWL application**, which is every application the
-  platform exists to deploy. Implemented in `build/scan.ts`; **the change to §12's own
-  words is still owed**, and it is the sixth spec action in P4a's list.
+  platform exists to deploy. Implemented in `build/scan.ts`, and §12's own words now say
+  so.
 - **The long-term fix for `passport-ubcshib` is UBC's, not Manifest's.**
   `@node-saml/passport-saml@5.1.0` audits clean, and moving to it is exactly the
   "strictly safer for every consumer" change C6 permits. It is **not** blocking
   Manifest and should not be treated as though it were — but somebody should be told
   that six UBC applications depend on a library with a critical signature-verification
   advisory.
-- **P4a proposes five spec actions and applies none.** They are at the end of
-  [`plans/2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md).
-  The load-bearing one: **§9 still says *"`docker-simple-saml` keeps its IdP role
-  here"***, naming a repository that is read-only to this project and is not part of
-  the platform — P1 built a separate IdP deliberately. The others record that the
-  IdP's hosted entity and signing keypair are deployment artefacts rather than
-  defaults (an IdP without them serves, answers health checks and cannot sign), the
-  measured SimpleSAMLphp 2.x endpoint paths for §8's `SAML_ENTRY_POINT` row, that
-  `MONGODB_DB_NAME` was specified and never injected, and that §21's IdP database
-  needs the two roles S2 asked for and P1 shipped one of.
+- **P4a's spec actions — applied 2026-09-14, all but one.** Rich approved §9 naming the
+  **Manifest IdP** instead of `docker-simple-saml`, the IdP's hosted entity and signing
+  keypair as deployment artefacts, §8's SimpleSAMLphp 2.x paths and §21's two IdP
+  database roles, plus §12's wording above; the `MONGODB_DB_NAME` note was not applied.
+  The record is at the end of
+  [`plans/2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md)
+  and in the roadmap. **P4b's other five are held until Tasks 6, 7, 9 and 14 have
+  run**; two of them — the per-user AI budget §10 cannot enforce, and what streams over
+  WebSocket — are Rich's product calls at that point.
+- **SimpleSAMLphp's session store connects as the superuser `manifest`.** *Found
+  2026-09-14, while wording the §21 change.* §9 says that store is a separate subsystem
+  "with its own credentials"; `infra/idp/config/config.php` gives it `manifest`, the
+  same superuser the control plane writes SP rows with. The metadata source is
+  correctly `ssp_ro`. Not fixed, and not a spec action — the spec is right and the
+  implementation is not.
 - **Where the service-binding wire lands — SETTLED 2026-09-06, Rich's call: P3 Task
   15.** `deployRelease` now derives a `ServiceBinding` per entry in
   `resolved.services`, calls `ensureService`, and passes the handles through with

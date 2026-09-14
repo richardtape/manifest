@@ -3378,7 +3378,7 @@ Run after the plan was complete, reading the spec and the running platform with 
 
 ## Spec actions proposed by this plan
 
-**Not applied.** The spec is approved design and changing it is Rich's call; this is the record, in the same form the spikes, P3 and P4a used.
+**One applied 2026-09-14, with Rich's approval: the §21 LiteLLM row**, because Task 2 had already pinned the digest. **The other five are held until the tasks that implement them have run** — Tasks 6, 7, 9 and 14 — because plan-time findings have moved during execution before. Two of them are product decisions for Rich at that point: the per-user budget §10 cannot enforce, and what streams over WebSocket. The table is the original proposal, kept as the record.
 
 | Section | Current text | Proposed change | Why |
 |---|---|---|---|
