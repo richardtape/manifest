@@ -382,7 +382,7 @@ auth:
 ai:
   models: [default-chat, default-embed]   # logical names only
   budget:
-    project_monthly_usd: 50
+    project_monthly_usd: 50       # omitted, with models declared: the project's AI quota
     per_user_monthly_usd: 2
 
 env:
@@ -421,6 +421,14 @@ carries its `max_classification` in LiteLLM's `model_info`, which survives
 round-trip, so the D17 catalogue below has one source of truth rather than a copy
 inside Manifest.
 
+**The control plane reads the catalogue; an app never can.** Manifest reads each entry's
+`max_classification` from LiteLLM's `/model/info` with the master key. `/v1/models` — the
+only model route an app's key may call (§10) — carries no classification, so an app cannot
+check its own, and the gate has to be at validation. Measured on LiteLLM 1.98.0 (2026-09-07):
+a chat entry reports `mode: null`, not `"chat"`, so Manifest treats every entry not marked
+`embedding` as a chat model — a reader that selected on `"chat"` would find an empty
+catalogue.
+
 ### Sensitive fields
 
 These seven fields, and only these, trigger re-escalation to approval (D9):
@@ -456,11 +464,22 @@ Rejected at parse time, before any build:
 - `auth.callback` / `auth.logout` that are not paths matching `^/[A-Za-z0-9/_-]{1,64}$` (D15)
 - `ai.models` outside the platform's logical catalogue
 - `ai.models` whose catalogue `max_classification` is lower than `data.classification` (D17)
+- `ai.models` naming a catalogue entry that has no valid `max_classification` — refused as a
+  platform configuration error, never as the manifest's (D17)
+- `ai.models` with `ai.budget.project_monthly_usd` set explicitly to `0`: a budget of 0 refuses
+  every AI request, so the app would deploy healthy and fail its first question
 - resource requests above the project's quota
 - `name` differing from the project slug
 - for a production release: `auth.attributes` not a subset of the app's
   `IamRegistration.registered_attributes` (§9). Failing here, at build time, turns
   a launch-day login outage into a change request.
+
+**One default is applied by validation rather than by the schema.** When `ai.models` is
+non-empty and `ai.budget.project_monthly_usd` is omitted, validation sets it to the project's
+`quota.ai_monthly_usd` (§6). The spec Manifest stores — and so every release frozen from it
+(§13) — carries that concrete number: an approver sees an amount rather than an absence, and a
+later quota change does not silently alter a validated spec. An explicit `0` is refused rather
+than defaulted (above).
 
 Schema validation is then followed by a **blueprint compatibility check** against
 the pinned blueprint's descriptor — services it cannot bind, auth providers it does
@@ -479,6 +498,15 @@ default-embed          max_classification: internal
 An app declaring `data.classification: confidential` may therefore resolve only to
 on-premise model groups. This is checked at spec validation, so the failure is a
 clear message at build time rather than a privacy incident at runtime.
+
+**An entry with no valid `max_classification` is never defaulted and never resolvable.**
+It is left out of the catalogue, and a spec that declares it is refused with an error
+naming the platform's configuration — not the manifest — as the cause. Nothing else is
+affected: an app that does not declare that model, including every app that declares no
+model at all, validates and deploys as normal. A guessed classification could send
+personal information off-premise, and refusing the whole catalogue instead stops every
+project on the platform over one entry — measured 2026-09-14, when one deleted line made
+every project creation fail.
 
 LiteLLM's own request/response logging is a related exposure: those logs contain
 prompt content, which is student data. Retention and destination for LiteLLM logs
