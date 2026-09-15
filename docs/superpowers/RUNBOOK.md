@@ -313,6 +313,10 @@ second and `docker buildx imagetools inspect php:8.3-apache` in 1 s, and the pla
 `make doctor` 18/0, `make verify` 47/0 and all four pre-existing containers present. A restart
 restarts every container on the machine, so it is a person's call rather than a script's.
 
+**A Mongo service can be reported ready before it accepts the app's credentials.** *Measured 2026-09-14, `mongodb/mongodb-community-server:7.0.28-ubi8`.* The service catalogue's health test is a loopback `ping`, and the image first runs an init `mongod` on `127.0.0.1` with no authentication while it creates the user, then restarts it with `--auth --bind_ip_all`. The ping passes during init, so Docker reports the service healthy — measured at 9.6 s — while an authenticated write from another container is refused until 33.8 s. `deployRelease` waits for exactly that health status, so an app deployed onto a fresh database can find its first write refused, and `services.docker.test.ts` fails when the machine is busy and passes when it is not. **The window widens under load, and every idle Mongo service adds load**: its health test starts `mongosh` every second at about a core a run.
+
+**Workaround:** redeploy, or restart the app once its database has been up for a minute; and read a lone `services.docker.test.ts` failure as this before reading it as anything else. **Not fixed yet** — P4b's sitting 8 settles it before Task 13, with a deterministic test (P4b finding 133).
+
 **Two things P4a Task 15 left open, both named rather than glossed.**
 
 - **THE OFFLINE ACCEPTANCE OF `make demo-identity` HAS NOT BEEN RUN.** *Recorded
