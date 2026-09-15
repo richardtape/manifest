@@ -2,9 +2,9 @@
 
 **You are picking up a project whose design is finished, whose first four
 implementation plans are executed — P1, P2, P3 and, since 2026-09-09, all 15 tasks of
-P4a — and whose fifth, P4b, is PART-EXECUTED: sittings 1 to 5 of its ten are done. §16's proof
-app signs a real person in with CWL and keeps their data theirs. CONTINUE P4b AT TASK 10
-(sitting 6: the blueprint's AI half — the one sitting that needs the network on).** This is the single
+P4a — and whose fifth, P4b, is PART-EXECUTED: sittings 1 to 6 of its ten are done. §16's proof
+app signs a real person in with CWL and keeps their data theirs. CONTINUE P4b AT TASK 11
+(sitting 7: build logs, and the redaction that covers them — no network needed).** This is the single
 entry point: what Manifest is, what has been established, what the machine will do to
 you, and what to do next. It is written for someone with **no prior context** —
 a new agent with a fresh window, or a developer joining.
@@ -38,7 +38,7 @@ sign-in in which the instructor cannot see the student's note.**
 
 **P4a IS EXECUTED AND GREEN — all 15 tasks, finished 2026-09-09**, in seven agreed
 sittings of one session each. **P4b IS PART-EXECUTED — sitting 1 (Tasks 1–2) is done,
-2026-09-09, with 10 findings, sitting 2 (Task 3) on 2026-09-14, with 6, sitting 3 (Tasks 4–5) the same day, with 11, sitting 4 (Tasks 6–7) the same day, with 12, and sitting 5 (Tasks 8–9) the same day, with 11. CONTINUE AT TASK 10**
+2026-09-09, with 10 findings, sitting 2 (Task 3) on 2026-09-14, with 6, sitting 3 (Tasks 4–5) the same day, with 11, sitting 4 (Tasks 6–7) the same day, with 12, sitting 5 (Tasks 8–9) the same day, with 11, and sitting 6 (Task 10) the same day, with 14. CONTINUE AT TASK 11**
 — §7d-2 tells you where. **P4b is split into TEN agreed sittings** (Rich, 2026-09-09), the same
 one-per-session pattern with a check-in at each boundary. *(Sittings pace execution. They are **not** §17's
 product Phases — the roadmap's "Phase 2" is six unwritten plans.)*
@@ -79,6 +79,8 @@ decision its hand-off named: **a release that declares models, deployed with AI 
 refused with `RELEASE_AI_DISABLED`**. It built both §7 amendments, and measured two facts now in §4:
 **a network removed under a stopped container leaves that container unable to start**, and **an
 empty `model_info:` stops LiteLLM starting, for every app**. Task 10 carries four corrections from it.
+
+**Sitting 6 then ran Task 10, also 2026-09-14 — the blueprint's AI half, with the network on.** `node-ts-mongo@1` provides AI: `skeleton/ai/llm.js` closes S3's two silent failures once, in code, and **`blueprints/ai-component.test.ts` proves it on the wire** — the real toolkit in a child `node` process against a fake gateway that reproduces S3's 192-dimension embedding when the option is missing. `node-ts-mongo.docker.test.ts` built it through §12's gates and booted it. It found that **`make seed`'s npm warm had never warmed a package already in the developer's npm cache** — 135 of 135 cache hits, zero fetches, no `WARN`, exit 0 — fixed with an empty cache and caught only by `make verify`; and that **Docker Desktop's credential helper can hang and stop `make seed` at step 2** — named, not fixed; RUNBOOK's *Known gaps* has the workaround.
 
 **One thing is outstanding and it is RICH'S to run: the offline acceptance.** Turning
 the network off from a tool call cuts the agent off too, so
@@ -122,15 +124,15 @@ two came out of Tasks 1–3, the third out of Task 5, the fourth out of Task 8:
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. **S6 has since run too, as P3's Task 18, 2026-09-07: every probe denied, every denial paired with a positive control, and one result BETTER than the spec** — §21's divergence 8 no longer holds, because app networks are `--internal` and the developer's machine is unroutable rather than merely policed. S5 and S4 are deliberately later (S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
 | **Plans** | **P1, P2, P3 AND P4a ARE ALL EXECUTED — P4a IN FULL ON 2026-09-09. P4b IS PART-EXECUTED: SITTINGS 1–5 OF TEN (TASKS 1–9) ARE DONE; CONTINUE AT TASK 10.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a's fifteen tasks found 80 defects — 5.3 per task, the highest rate measured here, in the plan that had the most research behind it.** Two were spec-level and are in §8. **P4b (16 tasks) is now the current work, and 7 of its tasks are unrun.** P4c (zero-downtime redeploys, placed after P4b by Rich on 2026-09-14) and P5 are unwritten — see §7. **The unrun stack was 16 tasks when P4b was written**, which is what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
-| **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`.** **The numbers are in the box below** — this row used to restate them and drifted by four releases.  **P4a Tasks 1–3 then added `sso/`'s test surface and login suite, `runtime/docker/archive.ts`, `infra/idp/metadata/saml20-idp-hosted.php`, `infra/idp/attributemap/ubcoid.php`, three new `infra/lib/ensure-*.sh` scripts wired into `make up`, and `fixtures/saml-sp/`; Tasks 4–5 added `secrets/`; Tasks 6–7 added `sso/`'s production half — `keypair.ts`, `entity.ts`, `metadata-store.ts`, `registration.ts` — plus `MANIFEST_IDP_DATABASE_URL` and `MANIFEST_SP_ENTITY_BASE` in `config.ts`; and Tasks 8–9 added `observability/` (`events.ts`, `redact.ts`), the `audit` schema and its migration, `infra/lib/ensure-app-role.sh` and the `manifest_app` role the control plane now connects as, and `sso`'s wire into `DeployDeps`, `ServerDeps` and boot. **Tasks 10–11 added `spec/injection.ts` — §8's table as data and the one renderer of every variable an app receives — plus `config.idp`, `secrets/`'s `ensureSessionSecret`, `SsoRegistrar.idpSigningCertificate()`, `ai` on `ResolvedConfig`, and the reserved-name check in `spec/policy.ts`. `deployRelease`'s ad-hoc env block is gone. Tasks 12–13 added `blueprints/node-ts-mongo/` — the descriptor, the Dockerfile, the skeleton with its auth component and §9's attribute bridge, and the D25 knowledge pack — plus `spec/injection-drift.test.ts` (§16's drift tier, reading the blueprint's source), `runtime/docker/node-ts-mongo.docker.test.ts` and `blueprints/attribute-bridge.test.ts`. Task 14 added `identity/saml.ts` — the control plane's own SAML SP, on `@node-saml/node-saml` rather than the `passport-saml` the blueprint pins — `identity/testing.ts` (an in-process SAML IdP and `testSessionCookie`), `identity/saml.docker.test.ts`, `sso/platform.ts` and `infra/lib/ensure-cp-sp-keypair.sh`, and DELETED `identity/dev-auth.ts` and its test.** **P4b's Task 3 (2026-09-14) added `ai/testing.ts` — probe keys through LiteLLM's admin API — and `ai/ai-path.docker.test.ts`, probes 13 and 14 in `runtime/docker/s6.docker.test.ts`, `ensureLitellmMasterKey()` in `vitest.env.ts`, and `ubc-genai-toolkit-llm@0.7.0` as an exact devDependency. Its Tasks 4–5 (sitting 3) added `ai/errors.ts` — S3's error table as one mapper — `ai/client.ts`, the LiteLLM admin transport, `ai/index.ts`, and `config.litellm`. Its Tasks 6–7 (sitting 4) added `ai/catalogue.ts` — D17's catalogue from `/model/info`, with `disabledCatalogue()` for `MANIFEST_AI_ENABLED=0` — `ai/keys.ts` (`AI_ALLOWED_ROUTES`, `ensureAiUser`, `rotateAppKey`, `createAiKeyService`), `ai/keys.docker.test.ts`, `declaredCatalogue()` in `ai/testing.ts`, `ServerDeps.catalogue`, a 503 in `api/errors.ts` for a gateway failure, and `SPEC_AI_DISABLED` and `SPEC_AI_BUDGET_REQUIRED` in `spec/policy.ts`; the model array in `api/routes/projects.ts` is deleted. Its Tasks 8–9 (sitting 5) added `runtime/docker/networks.test.ts`, `AI_GATEWAY_NEIGHBOUR` and the neighbour sweep in `destroyAppNetwork`, `InstanceSpec.needsAiGateway`, the `manifest.env-sha256` container label, `mintAppKey`/`commitAppKey`/`discardAppKey` and `disabledAiKeyService()` in place of `rotateAppKey`, `CatalogueSnapshot`, `declaresModels` and `SPEC_MODEL_UNCLASSIFIED`, `InjectionContext.ai` with §8's six AI rows, and `ai` and `catalogue` on `DeployDeps` and `ServerDeps`.**|
+| **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`.** **The numbers are in the box below** — this row used to restate them and drifted by four releases.  **P4a Tasks 1–3 then added `sso/`'s test surface and login suite, `runtime/docker/archive.ts`, `infra/idp/metadata/saml20-idp-hosted.php`, `infra/idp/attributemap/ubcoid.php`, three new `infra/lib/ensure-*.sh` scripts wired into `make up`, and `fixtures/saml-sp/`; Tasks 4–5 added `secrets/`; Tasks 6–7 added `sso/`'s production half — `keypair.ts`, `entity.ts`, `metadata-store.ts`, `registration.ts` — plus `MANIFEST_IDP_DATABASE_URL` and `MANIFEST_SP_ENTITY_BASE` in `config.ts`; and Tasks 8–9 added `observability/` (`events.ts`, `redact.ts`), the `audit` schema and its migration, `infra/lib/ensure-app-role.sh` and the `manifest_app` role the control plane now connects as, and `sso`'s wire into `DeployDeps`, `ServerDeps` and boot. **Tasks 10–11 added `spec/injection.ts` — §8's table as data and the one renderer of every variable an app receives — plus `config.idp`, `secrets/`'s `ensureSessionSecret`, `SsoRegistrar.idpSigningCertificate()`, `ai` on `ResolvedConfig`, and the reserved-name check in `spec/policy.ts`. `deployRelease`'s ad-hoc env block is gone. Tasks 12–13 added `blueprints/node-ts-mongo/` — the descriptor, the Dockerfile, the skeleton with its auth component and §9's attribute bridge, and the D25 knowledge pack — plus `spec/injection-drift.test.ts` (§16's drift tier, reading the blueprint's source), `runtime/docker/node-ts-mongo.docker.test.ts` and `blueprints/attribute-bridge.test.ts`. Task 14 added `identity/saml.ts` — the control plane's own SAML SP, on `@node-saml/node-saml` rather than the `passport-saml` the blueprint pins — `identity/testing.ts` (an in-process SAML IdP and `testSessionCookie`), `identity/saml.docker.test.ts`, `sso/platform.ts` and `infra/lib/ensure-cp-sp-keypair.sh`, and DELETED `identity/dev-auth.ts` and its test.** **P4b's Task 3 (2026-09-14) added `ai/testing.ts` — probe keys through LiteLLM's admin API — and `ai/ai-path.docker.test.ts`, probes 13 and 14 in `runtime/docker/s6.docker.test.ts`, `ensureLitellmMasterKey()` in `vitest.env.ts`, and `ubc-genai-toolkit-llm@0.7.0` as an exact devDependency. Its Tasks 4–5 (sitting 3) added `ai/errors.ts` — S3's error table as one mapper — `ai/client.ts`, the LiteLLM admin transport, `ai/index.ts`, and `config.litellm`. Its Tasks 6–7 (sitting 4) added `ai/catalogue.ts` — D17's catalogue from `/model/info`, with `disabledCatalogue()` for `MANIFEST_AI_ENABLED=0` — `ai/keys.ts` (`AI_ALLOWED_ROUTES`, `ensureAiUser`, `rotateAppKey`, `createAiKeyService`), `ai/keys.docker.test.ts`, `declaredCatalogue()` in `ai/testing.ts`, `ServerDeps.catalogue`, a 503 in `api/errors.ts` for a gateway failure, and `SPEC_AI_DISABLED` and `SPEC_AI_BUDGET_REQUIRED` in `spec/policy.ts`; the model array in `api/routes/projects.ts` is deleted. Its Tasks 8–9 (sitting 5) added `runtime/docker/networks.test.ts`, `AI_GATEWAY_NEIGHBOUR` and the neighbour sweep in `destroyAppNetwork`, `InstanceSpec.needsAiGateway`, the `manifest.env-sha256` container label, `mintAppKey`/`commitAppKey`/`discardAppKey` and `disabledAiKeyService()` in place of `rotateAppKey`, `CatalogueSnapshot`, `declaresModels` and `SPEC_MODEL_UNCLASSIFIED`, `InjectionContext.ai` with §8's six AI rows, and `ai` and `catalogue` on `DeployDeps` and `ServerDeps`. Its Task 10 (sitting 6) added `blueprints/node-ts-mongo/skeleton/ai/` — `llm.js` and `end-user.js` — with `provides.ai: true` and the toolkit pin, `blueprints/ai-component.test.ts` (the wire tier), and an empty npm cache in `infra/seed/seed.sh`'s warm step.**|
 | **Spec** | Current. **Eight more spec actions were applied on 2026-09-14** with Rich's approval — §12's scan-gate wording, four of P4a's, P4b's LiteLLM digest row, and two §7 rows he settled once Tasks 6 and 7 had run, which change committed code that P4b's Task 9 now carries; P4b's other three wait for the tasks that implement them, and zero-downtime redeploys wait for P4c (§8). Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
 **The four numbers you will check first, measured 2026-09-14 on this machine:**
 
 | | |
 |---|---|
-| `pnpm test` (from the **repo root**) | **619 passed, 61 files**, ~33 s, no Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites — plus **`spec/injection-drift`**, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` — see §7d |
-| `pnpm test:docker` | **128 passed, 24 files**, ~407 s — needs `make up`, and **fails rather than skips** when asked to run |
+| `pnpm test` (from the **repo root**) | **632 passed, 62 files**, ~35 s, no Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites — plus **`spec/injection-drift`**, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` — see §7d |
+| `pnpm test:docker` | **128 passed, 24 files**, ~415 s — needs `make up`, and **fails rather than skips** when asked to run |
 | `make doctor` | **18 checks, 0 failed, 0 warnings** — 18 since 2026-09-09, when the LiteLLM digest pin landed |
 | `make verify` | **47 checks, 0 failed, 0 warnings** — thirteen more than P3 left; the newest asserts the control plane's OWN SP keypair is a usable pair, because it is a `make up` artefact the process refuses to boot without and a half-minted one is a platform that does not start |
 
@@ -140,7 +142,7 @@ only current one.** §7a and §7c carry the same four numbers as P1's and P3's c
 records, and they are DATED measurements that deliberately do not move — if any of them
 disagrees with this box, this box wins.
 
-The immediate work is **P4b, sitting 6 — Task 10, with the network on** — see §7d-2's *Sitting 6 — what you are walking into*, and read the four corrections at the top of Task 10 first. P4a's fifteen tasks are done: the IdP
+The immediate work is **P4b, sitting 7 — Tasks 11 and 12, no network needed** — see §7d-2's *Sitting 7 — what you are walking into*. P4a's fifteen tasks are done: the IdP
 works, `secrets/` holds every credential, `sso/` generates the registration a CWL login
 runs through and `deployRelease` calls it, §20's audit log is append-only against a
 role that can actually be constrained, §8's injection contract is one function with
@@ -162,7 +164,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | You are… | Read |
 |---|---|
 | **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
-| **executing a plan** | ← **this is the current job: P4b, FROM TASK 10. Start at §7d-2's sitting-6 hand-off.** [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) — 16 tasks in **ten agreed sittings, one per session**; **sittings 1–5 (Tasks 1–9) are done, 2026-09-14**, and their findings — numbered 1 to 86 — are in the plan's *What executing this plan found*. P4a itself is [`2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md) — 15 tasks, **all executed, 2026-09-09**, self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P4a's own *What executing this plan found* first — Sessions 1 to 9, 80 defects — and then P3's**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
+| **executing a plan** | ← **this is the current job: P4b, FROM TASK 11. Start at §7d-2's sitting-7 hand-off.** [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) — 16 tasks in **ten agreed sittings, one per session**; **sittings 1–6 (Tasks 1–10) are done, 2026-09-14**, and their findings — numbered 1 to 100 — are in the plan's *What executing this plan found*. P4a itself is [`2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md) — 15 tasks, **all executed, 2026-09-09**, self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P4a's own *What executing this plan found* first — Sessions 1 to 9, 80 defects — and then P3's**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
 | **writing a plan** | **P4c — zero-downtime redeploys — is next, once P4b has executed (Rich placed it there, 2026-09-14); then P5.** The roadmap's P4c row is its brief. House style: `plans/2026-08-30-p1-local-substrate.md`, `2026-08-29-p2-control-plane-spine.md`, or either half of P4. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
 | **writing code** | Seventeen modules exist: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/` (with `runtime/docker/`), `source/`, `identity/`, `projects/`, `releases/`, `api/`, P3's `services/`, `build/` and `routing/`, P4a's `secrets/`, `sso/` and `observability/`, and P4b's `ai/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else is built against them — then `runtime/docker/driver.ts`, which is the one implementation of that interface and where every P3 module meets; then `api/server.ts` for how a request becomes an actor, and `projects/authz.ts` for the one function every route's security depends on. **Then run `make demo` once**: it is the only thing that exercises all of it through the real HTTP surface, and it is where the last four sessions' worst defects were found. |
@@ -198,9 +200,9 @@ docs/superpowers/
 │   └── 2026-09-07-p4b-ai-events-streaming-incidents.md
 │                                                  P4b. 16 tasks in TEN AGREED
 │                                                  SITTINGS (table at the top of the
-│                                                  plan). SITTINGS 1-5 (Tasks 1-9)
+│                                                  plan). SITTINGS 1-6 (Tasks 1-10)
 │                                                  ARE DONE, 2026-09-14.
-│                                                  ← CONTINUE HERE, AT TASK 10. Records ten more measured
+│                                                  ← CONTINUE HERE, AT TASK 11. Records ten more measured
 │                                                  facts, one of them a §10
 │                                                  requirement LiteLLM 1.98.0
 │                                                  cannot satisfy.
@@ -811,6 +813,41 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   (`local/fixture-s6` and `local/fixture-rt`), `docker image rm <id>` then answers
   `referenced in multiple repositories`, and untagging one name only moves the diff to the
   other. Measured 2026-09-14, when four were left behind.
+- **`npm install` warms NOTHING a developer's npm cache already holds.** npm takes a tarball
+  out of `~/.npm` by its integrity hash and never asks the registry, so a package this machine
+  has installed anywhere before is never downloaded through Verdaccio and never lands in its
+  storage. Measured 2026-09-14: seed's warm printed no `WARN` and exited 0 while
+  `npm --loglevel http` showed 135 of 135 packages `(cache hit)` and zero fetches, and
+  `make verify` listed every new tarball MISSING. A clean second machine warms correctly;
+  the developer's own never did. Seed's warm now passes an empty `--cache` per lockfile.
+  **`make verify`'s mirror check is what caught it** — the storage `ls` a plan tells you to
+  run shows the same emptiness and suggests re-seeding, which cannot help.
+- **`docker-credential-desktop get` can hang, and then every BuildKit lookup of a Docker Hub
+  tag dies with `DeadlineExceeded`.** Measured 2026-09-14: `make seed` failed twice at step 2
+  (`load metadata for docker.io/library/php:8.3-apache … context deadline exceeded`) while
+  `curl` reached Docker Hub in 0.3 s from the host and from the VM with 100 of 100 anonymous
+  pulls left — curl never asks the credential helper. `docker buildx imagetools inspect`
+  hung the same way. Diagnose with
+  `echo https://index.docker.io/v1/ | gtimeout 20 docker-credential-desktop get >/dev/null`
+  (exit 124 is the hang). **Each hung call leaves a `docker-credential-desktop get` process
+  parented to launchd** — list and kill the ones your commands started. Not fixed:
+  restarting Docker Desktop is the likely remedy, unverified. It stops seed before step 4b's
+  npm warm, which does not need Docker Hub at all.
+- **zsh expands a word beginning with `=`**, so `echo =====` fails with `==== not found` and
+  **abandons the rest of the command**. Quote separators: `echo '-----'`. Measured 2026-09-14.
+- **A background command reports its LAST command's exit status.** `make seed > log;
+  echo "exit=$?" >> log` told the harness *completed, exit 0* while the log said `exit=2`.
+  End such a wrapper with `exit $rc`. Measured 2026-09-14.
+- **`ls` is aliased to a long listing here**, so `$(ls -d path/*)` captures whole listing
+  lines rather than paths. Use a glob or `find`.
+- **`grep` in the agent's Bash tool is a shell FUNCTION backed by `ugrep`**, which reads a `$`
+  inside a pattern as an anchor. `grep -c -- '--cache "$tmp/.npm-cache"'` counted 0 against a
+  file containing that exact line, and the `&&` guard built on it silently skipped the step it
+  was guarding (2026-09-14). Use `grep -F` for any pattern with a `$` in it.
+- **Vitest cannot mock a CommonJS package imported by app-side ESM outside the package.**
+  Measured 2026-09-14 with `ubc-genai-toolkit-llm`: `vi.mock` was not applied and the package
+  loaded under the wrong path (`Cannot find module './types'`). `blueprints/ai-component.test.ts`
+  runs such code in a child `node` process instead, against a fake gateway.
 
 ### Images already pulled
 
@@ -992,13 +1029,13 @@ coherent. Follow them.
 
 ---
 
-## 7. What to do next — continue P4b, at Task 10
+## 7. What to do next — continue P4b, at Task 11
 
 P1, P2, P3 and P4a are all executed and green; S6 has reported; **P3's six spec actions
 were applied on 2026-09-07**. P4 was split into **P4a** and **P4b** (Rich's
 call). **P4a is finished — all 15 tasks, 1–5 on 2026-09-08 and 6–15 on 2026-09-09.
 P4b is part-executed: sitting 1 ran Task 1's reconciliation pass and Task 2's LiteLLM
-pin on 2026-09-09, sitting 2 ran Task 3, sitting 3 ran Tasks 4–5, sitting 4 ran Tasks 6–7 and sitting 5 ran Tasks 8–9, all on 2026-09-14**, so continue at Task 10 — with the network on. **P4b runs in ten agreed sittings**,
+pin on 2026-09-09, sitting 2 ran Task 3, sitting 3 ran Tasks 4–5, sitting 4 ran Tasks 6–7, sitting 5 ran Tasks 8–9 and sitting 6 ran Task 10, all on 2026-09-14**, so continue at Task 11. **P4b runs in ten agreed sittings**,
 one per session — the table is at the top of the plan and summarised in §7d-2.
 
 **The measured plan-to-reality gap, in one table.** Every one of these plans was
@@ -1464,7 +1501,7 @@ track's C4 trigger is P4b's and not this one (roadmap, *Order of operations* ste
 ### 7d-2. Execute P4b — AI, events, streaming, incidents (1b-ii) ← **START HERE**
 
 *[`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md)
-— **16 tasks, written 2026-09-07. Tasks 1–2 executed 2026-09-09 and Tasks 3–9 on 2026-09-14; continue at Task 10.**
+— **16 tasks, written 2026-09-07. Tasks 1–2 executed 2026-09-09 and Tasks 3–10 on 2026-09-14; continue at Task 11.**
 Invoke `superpowers:executing-plans` or `superpowers:subagent-driven-development`.*
 
 **IT RUNS IN TEN AGREED SITTINGS, one per session with a check-in at each boundary**
@@ -1479,8 +1516,8 @@ table is at the top of the plan**, which is the maintained copy; this is the sha
 | 3 ✅ | 4–5 | `ai/errors.ts`, then the transport that uses it — **done 2026-09-14, 11 findings** |
 | 4 ✅ | 6–7 | the catalogue and the key minter — **done 2026-09-14, 12 findings; the boot decision made** |
 | 5 ✅ | 8–9 | the sitting where Tasks 6, 7 and 8 got a caller — **done 2026-09-14, 11 findings; the AI-off decision made** |
-| **6 ← next** | **10** | the blueprint's AI half — **the one sitting that needs the network ON; four corrections from sitting 5 at the top of Task 10; hand-off below** |
-| 7 | 11–12 | build logs, and the redaction that covers them |
+| 6 ✅ | 10 | the blueprint's AI half — **done 2026-09-14, 14 findings; seed's npm warm fixed** |
+| **7 ← next** | **11–12** | build logs, and the redaction that covers them — **no network; hand-off below** |
 | 8 | 13 | §14's `Incident` |
 | 9 | 14–15 | the stream, and the call sites that make it carry anything |
 | 10 | 16 | P4b's acceptance, alone |
@@ -1519,35 +1556,34 @@ exists before any `ai/` module: probes 13 and 14 in `s6.docker.test.ts` and
 `ai/ai-path.docker.test.ts`, with `ai/testing.ts` minting the probe keys. The finding to
 carry forward: **LiteLLM's `/user/new` mints an unconfined key unless
 `auto_create_key: false` is passed, and Task 7's code does not pass it** — the correction
-is at the top of Task 7. **Sitting 3 — Tasks 4 and 5 — is done too (2026-09-14), with 11 findings.** The two to carry forward: **Task 7's `ensureAiUser` recognises an existing LiteLLM user by text Task 5's client exists to strip, so as written every redeploy of an AI app throws** — catch on status 409 — and **Task 9's `createLiteLlmClient(config.litellm)` cannot typecheck** against the shapes Task 5 fixed. Both corrections are at the top of those tasks. **Sitting 4 — Tasks 6 and 7 — is done too (2026-09-14), with 12 findings**, and it made the boot decision its hand-off named: AI is on unless `MANIFEST_AI_ENABLED=0`. **Sitting 5 — Tasks 8 and 9 — is done too (2026-09-14), with 11 findings**: the gateway joins only an AI app's network, `deployRelease` mints before the instance starts and commits after health, and an AI release deployed with AI switched off is refused with `RELEASE_AI_DISABLED`. **Sitting 6 — Task 10 — is next, and its hand-off is immediately below.**
+is at the top of Task 7. **Sitting 3 — Tasks 4 and 5 — is done too (2026-09-14), with 11 findings.** The two to carry forward: **Task 7's `ensureAiUser` recognises an existing LiteLLM user by text Task 5's client exists to strip, so as written every redeploy of an AI app throws** — catch on status 409 — and **Task 9's `createLiteLlmClient(config.litellm)` cannot typecheck** against the shapes Task 5 fixed. Both corrections are at the top of those tasks. **Sitting 4 — Tasks 6 and 7 — is done too (2026-09-14), with 12 findings**, and it made the boot decision its hand-off named: AI is on unless `MANIFEST_AI_ENABLED=0`. **Sitting 5 — Tasks 8 and 9 — is done too (2026-09-14), with 11 findings**: the gateway joins only an AI app's network, `deployRelease` mints before the instance starts and commits after health, and an AI release deployed with AI switched off is refused with `RELEASE_AI_DISABLED`. **Sitting 6 — Task 10 — is done too (2026-09-14), with 14 findings**: `node-ts-mongo@1` provides AI and its component is proved on the wire, and seed's npm warm — inert on any machine whose npm cache already held a package — is fixed. **Sitting 7 — Tasks 11 and 12 — is next, and its hand-off is immediately below.**
 
-#### Sitting 6 — Task 10 — what you are walking into
+#### Sitting 7 — Tasks 11 and 12 — what you are walking into
 
-**The state it was handed over in, 2026-09-14.** `main`, tree clean; last code commit `c489da5` (the test pinning `resolveConfig`'s frozen `ai` shape, added after the close-out; the last feature commit is `88906bf`). `pnpm test` **619** (61 files), `pnpm test:docker` **128** (24 files), `make doctor` **18/0**, `make verify` **47/0**. LiteLLM 1.98.0 (`sha256:20b5044b`) running, `p4b-probe-user` holding **0 keys**, and **no `mf-` users** in LiteLLM. If your first measurements differ, find out why before you start.
+**The state it was handed over in, 2026-09-14.** `main`, tree clean; last code commit `db9c6a1` (Task 10; the seed fix before it is `229345b`). `pnpm test` **632** (62 files), `pnpm test:docker` **128** (24 files — one full run timed out a `fixture-node@1` digest build that stalled for eight minutes and passed on two re-runs; the plan's sitting-6 record has it, and if it recurs it is not new), `make doctor` **18/0**, `make verify` **47/0** — 245 pinned tarballs, 0 missing. LiteLLM 1.98.0 (`sha256:20b5044b`) running, `p4b-probe-user` holding **0 keys**, and **no `mf-` users**. If your first measurements differ, find out why before you start. `docker ps` names the two DNS containers by image ID rather than `manifest-dnsmasq:local`: sitting 6's failed `make seed` rebuilt that tag, the old image is gone from the store, and `compose up --dry-run` recreates nothing.
 
-**THIS IS THE ONE SITTING THAT NEEDS THE NETWORK ON.** Task 10 adds `ubc-genai-toolkit-llm@0.7.0` to `node-ts-mongo@1`, regenerates the skeleton's lockfile and needs `make seed` to warm Verdaccio from it. Seed's step 4b derives the warm list from every `blueprints/*/skeleton/package.json` and its lockfile (checked 2026-09-14, `infra/seed/seed.sh`), so regenerating the lockfile is the whole of the input — but **a failed warm prints only `WARN: mirror warm failed` and `make seed` still exits 0**, so read its output. Then check Verdaccio's STORAGE for the toolkit's tarballs, never `npm ci`'s exit code — a build against the public registry looks identical to a correct one (S1; §4's `find /verdaccio/storage -name '*.tgz'`).
+**No network needed.** Tasks 11 and 12 are control-plane code and one migration. **The sitting ends with `pnpm test:docker`**: Task 11 changes `runtime/docker/builder.ts`, the driver interface and the contract suite.
 
-**What sitting 5 built for you** (Tasks 8 and 9):
+**What sitting 6 built** (Task 10): `node-ts-mongo@1` says `provides.ai: true`, so the build route now accepts `ai.models` for it; `skeleton/ai/llm.js` (`ask`, `askStreaming`, `embed`, `configureAi`, `AI_ENABLED`) and `skeleton/ai/end-user.js`; `server.js` imports the component for every app and reports `ai` on `/`; `blueprints/ai-component.test.ts`, which runs it in a child `node` process against a fake gateway; and an empty npm cache in seed's warm step.
 
-- `renderInjection` renders §8's six AI rows from `InjectionContext.ai`, and `LLM_DEFAULT_MODEL` / `EMBEDDINGS_*` are ABSENT — never empty — when no model of that kind is declared. It refuses a context that declares models with no key (`INJECTION_AI_KEY_MISSING`), a key for an app with none (`INJECTION_AI_UNEXPECTED`), and a model name the release did not declare (`INJECTION_AI_MODEL_UNDECLARED`).
-- `deployRelease` mints the app key before the instance starts, commits it only after health, and discards it if the instance fails; it refuses an AI release with AI switched off (`RELEASE_AI_DISABLED`), with no positive budget, or whose models the catalogue no longer offers, classifies or approves for the app's data. `InstanceSpec.needsAiGateway` puts `manifest-litellm` on the app network only for such an app.
-- `ModelCatalogue.get()` returns `{ models, unclassified }`; an unclassified model refuses only itself (`SPEC_MODEL_UNCLASSIFIED`); the catalogue is read only for a manifest that declares a model; and an omitted project budget is filled with the project's AI quota.
+**Two things from sitting 6 that touch Task 11:**
 
-**Still not proved end to end, and not Task 10's to prove:** no app that declares models has been deployed through the real driver — both blueprints still say `provides.ai: false` until Task 10 flips `node-ts-mongo@1`, and the first real AI call is Task 16's.
+1. **Keep the builder's throwaway `DOCKER_CONFIG` when `execFile` becomes `spawn`.** `runBuildxBuild` passes `{ ...process.env, DOCKER_CONFIG: configDir }`, and that config holds the scoped registry token the build pushes with and no `credsStore`. Task 11's Step 3 writes `spawn(command, args, { env })` without saying what `env` is; passing `process.env` drops the token and brings in the developer's `credsStore: desktop` — the credential helper that hung here and stopped `make seed` at step 2 (§4). The note is at the top of Task 11.
+2. **This agent's shell misleads in three measured ways** (§4): `grep` is a `ugrep` function that reads `$` as an anchor, zsh expands a word beginning with `=`, and a background command reports its LAST command's exit status. Each one silently skipped or misreported a step in sitting 6.
 
-**Read these before writing a line:**
+**No pre-flight read of Tasks 11 and 12 has been done.** Sittings 2 to 5 each found corrections that way before they started; sitting 6 spent that capacity on the seed defect.
 
-1. **The *CORRECTIONS FROM SITTING 5* block at the top of Task 10** — four, the first of which (`LLM_DEFAULT_MODEL` is absent for an embeddings-only app) changes Step 4's code.
-2. The plan's *What executing this plan found*, sitting 5.
+**Still not proved end to end, and not Tasks 11–12's to prove:** no app that declares models has been deployed and asked a question. That is Task 16's.
+
+**Read these before writing a line:** the plan's *What executing this plan found*, sitting 6 — and sitting 1's reconciliation, which corrected Task 11's migration: `manifest_audit_owner` does not exist, and a referential action is `ON DELETE RESTRICT`, never `CASCADE`.
 
 ```bash
 make up && make doctor && make verify                   # expect 18/0 and 47/0
-pnpm test                                               # expect 619 passed, 61 files
-make seed                                               # NETWORK ON — after the lockfile changes
-MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/runtime/docker/roundtrip
+pnpm test                                               # expect 632 passed, 62 files
+MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/runtime/docker/builder
 ```
 
-**Task 10 touches `blueprints/`, so it ends with `pnpm test:docker` as well as the four gates** — then the record, the sittings table, and §6's sweep.
+**Tasks 11 and 12 touch `runtime/docker/` and `observability/`, so the sitting ends with `pnpm test:docker` as well as the four gates** — then the record, the sittings table, and §6's sweep.
 
 **Background, from sitting 1.** Its reconciliation pass also confirmed four items the plan could
 not know, because P4a's Task 15 ran two days after P4b was written; they are under *What sitting 1
@@ -1662,6 +1698,12 @@ Surface these; do not decide them.
   same superuser the control plane writes SP rows with. The metadata source is
   correctly `ssp_ro`. Not fixed, and not a spec action — the spec is right and the
   implementation is not.
+- **Restart Docker Desktop to clear a hung credential helper?** *Found 2026-09-14.*
+  `docker-credential-desktop get` hangs on this machine, and that stops `make seed` at step 2
+  (§4; RUNBOOK's *Known gaps*). Restarting Docker Desktop is the likely cure and is
+  unverified — and it restarts every container here, including the four that must survive.
+  **Nothing in P4b's remaining tasks needs it**: the ephemeral builder does not use the helper,
+  and seed's npm warm ran on its own. So it waits until he chooses to.
 - **Where the service-binding wire lands — SETTLED 2026-09-06, Rich's call: P3 Task
   15.** `deployRelease` now derives a `ServiceBinding` per entry in
   `resolved.services`, calls `ensureService`, and passes the handles through with

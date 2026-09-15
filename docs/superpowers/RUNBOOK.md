@@ -281,6 +281,37 @@ infer it: after `compose up`, assert the host can connect to `127.0.0.2:443` and
 Caddy only when `ensure-alias.sh` itself added the alias would miss an alias added by
 `make seed` or by hand. Its negative control needs the alias removed, which is `sudo`.
 
+**`make seed` can die at step 2 when Docker Desktop's credential helper hangs.** *Measured
+2026-09-14, Docker Engine 29.7.2.* Twice in a row, step 2 (`$COMPOSE build`) failed with
+`load metadata for docker.io/library/php:8.3-apache … DeadlineExceeded: context deadline
+exceeded` — `caddy:2.11.4` and `composer:2` the same — while `curl` reached Docker Hub in 0.3 s
+from the host and from inside the Docker VM, with 100 of 100 anonymous pulls left. BuildKit asks
+`docker-credential-desktop` for Docker Hub credentials and curl does not, and that helper was
+hanging:
+
+```bash
+echo https://index.docker.io/v1/ | gtimeout 20 docker-credential-desktop get >/dev/null
+echo $?    # 124 is the hang; 0 or a quick non-zero is a working helper
+```
+
+Seed stops there, **before step 4b's npm warm, which needs no Docker Hub at all**, and every
+hung call leaves a `docker-credential-desktop get` process behind, parented to launchd —
+`pgrep -fl 'docker-credential-desktop get'`, and kill the ones you started.
+
+**Workaround, when the platform images already exist:** run the warm step on its own, taken
+verbatim out of `seed.sh` so it is the real mechanism rather than a copy, and let `make verify`
+say whether it worked — seed's own output cannot (see *C1's acceptance*'s note on the mirror):
+
+```bash
+sed -n '/^echo "4b\/6/,/^done$/p' infra/seed/seed.sh > /tmp/warm.sh
+bash -c 'set -euo pipefail; . infra/lib/common.sh; set -a; . ./.env; set +a; . /tmp/warm.sh'
+make verify    # "… pinned tarballs across every blueprint and fixture lockfile; 0 missing"
+```
+
+**Not fixed.** Restarting Docker Desktop is the likely cure and is unverified. It restarts every
+container on the machine, including the four this project must never remove, so it is Rich's
+call rather than a script's.
+
 **Two things P4a Task 15 left open, both named rather than glossed.**
 
 - **THE OFFLINE ACCEPTANCE OF `make demo-identity` HAS NOT BEEN RUN.** *Recorded
