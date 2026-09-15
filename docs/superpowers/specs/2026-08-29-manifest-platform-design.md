@@ -875,7 +875,7 @@ single port.
 
 | Key | Scope | Lifetime | Budget source |
 |---|---|---|---|
-| **App key** | app + environment | rotated every deploy, revoked on archive | `ai.budget.project_monthly_usd`, held on the LiteLLM *user* rather than the key, so it survives key rotation |
+| **App key** | app + environment | one key per instance: minted before the instance starts; revoked when that instance is retired, after its drain (§11), or discarded if it never became ready; revoked on archive | `ai.budget.project_monthly_usd`, held on the LiteLLM *user* rather than the key, so it survives key rotation |
 | **Agent key** | one `AgentSession` | dies with the sandbox — and carries a `duration` TTL, so it expires even if the control plane never calls `/key/delete`. **Binds from Phase 3:** an `AgentSession` has nothing to attach to before sandboxes exist (§15), so no agent key is minted in Phase 1 | hard session cap, independent of the app budget |
 | **End user** | app passes `hash(ubcEduCwlPuid ‖ project ‖ environment)` as LiteLLM `user` | per request | `ai.budget.per_user_monthly_usd` — **validated, not enforced, in Phase 1** (below) |
 
@@ -927,7 +927,11 @@ Everything the control plane may ask of infrastructure, and nothing more:
 interface Driver {
   buildImage(src: SourceRef, spec: AppSpec): Promise<ImageRef>
   ensureService(b: ServiceBinding): Promise<ServiceHandle>   // idempotent
-  ensureInstance(d: InstanceSpec): Promise<InstanceHandle>   // idempotent
+  ensureInstance(d: InstanceSpec): Promise<InstanceHandle>   // idempotent — see Redeploys
+  retireInstance(id: string, opts: { drainMs: number }): Promise<void>  // never the serving instance
+  servingInstance(hostname: string): Promise<string | undefined>
+  listInstances(hostname: string): Promise<string[]>
+  restoreRoute(id: string): Promise<void>        // re-point a hostname at a running instance
   stopInstance(id: string): Promise<void>       // hibernate — volumes survive
   destroyInstance(id: string): Promise<void>
   destroyService(id: string, opts: { deleteData: boolean }): Promise<void>
@@ -940,8 +944,9 @@ interface Driver {
 ```
 
 Every call is idempotent and keyed by a deterministic name derived from
-`(project, environment, release)`. That property is the entire reason
-reconciliation is safe to retry.
+`(project, environment, release, instance)`. That property is the entire reason
+reconciliation is safe to retry. A redeploy of the same release is a new instance
+beside the one serving, never a replacement of it.
 
 **S1 exercised this interface against real Docker and it needed no revision.**
 `buildImage`, `ensureService`, `ensureInstance`, `stopInstance`, `destroyInstance`,
@@ -1007,6 +1012,29 @@ silent retry.
 Per D10, Phase 1 implements these transitions as a straight-line function driven
 by API calls. Phase 4 wraps that same function in the loop.
 
+### Redeploys
+
+**A redeploy does not interrupt the app.** `ensureInstance` starts the new instance
+beside the one serving and makes it ready without touching the route; the route then
+moves in one in-place change, and the call resolves only once the hostname is shown to
+reach the new instance **by its identity, never by a status** — the edge's wildcard
+answers `200` for a hostname it holds no route to. An instance that never becomes ready
+leaves the previous one serving, untouched, and is removed once its Incident is
+captured (§14). Every other instance of the environment is then retired in the
+background: it drains until nothing is in flight to it, for at most a platform-wide
+120 s, and only then are its container, its files and its AI key (§10) removed. A
+retire never changes what a hostname reaches, and a driver refuses to retire the
+instance that is serving. Both releases share the database during the drain; the
+blueprint's knowledge pack teaches expand, migrate, contract (§25), and nothing in
+Phase 1 checks it. What remains is the connection reset an edge configuration reload
+causes — about one request in 300 per change, on any app, measured 2026-09-15 — which a
+browser retries for an idempotent request and not for a `POST`.
+
+Decided by Rich on 2026-09-14 (the requirement, and that it lives in this contract so
+every driver inherits it) and 2026-09-15 (what "not interrupted" means, the drain bound,
+a failed release keeping the previous one serving, and retiring every instance that is
+not serving). The measurements are in `plans/2026-09-15-p4c-brief.md`.
+
 ### Hibernation and wake-on-request
 
 The edge holds the incoming request, asks the control plane to wake the instance,
@@ -1036,8 +1064,15 @@ the wrong listener is simply unreachable.
 
 **Routes added at runtime live only in the running Caddy config**, so restarting the
 edge discards every one of them (S1 lost a live app's route by restarting Caddy). The
-control plane re-applies all routes on edge start. Route changes themselves are safe
-under load: S1 measured **0 failures in 400 requests across 12 add/remove cycles**.
+control plane re-applies every route **at its own boot**, from its Route records (§6);
+an edge restarted while the control plane runs keeps no routes until the next boot or
+redeploy, which Phase 4's reconciler closes. **A route is changed in place** — `PATCH`
+by `@id` — **never removed and re-added**: delete-then-insert leaves a gap the edge's
+wildcard answers with a `200` (4 of 320 requests across 20 moves, measured 2026-09-15;
+S1's earlier 400 of 400 predates classifying responses by body), and every admin change
+reloads the configuration, which resets about one request in 300. Every route sets
+`X-Manifest-Instance`, which is how a deploy proves the edge reaches the instance it
+started (§11).
 Use `PUT` on `…/routes/0` to insert — `POST` appends, which lands the route *behind*
 the wildcard whose `terminal: true` then swallows it.
 
@@ -1297,6 +1332,10 @@ A **Release** is immutable: `Build` (image digest) + `AppSpec` + resolved config
 **Promotion never rebuilds.** Production runs the exact digest that staging ran.
 This eliminates dependency drift between what was tested and what is public.
 
+**Deploying a release never takes down the one it replaces.** If the new release does
+not become ready, the previous release keeps serving and the failure is an Incident
+(§11, §14).
+
 ### First production launch is a checklist, not a button (D19)
 
 Because every production app needs its own IAM registration and PIA (C4), the
@@ -1456,7 +1495,7 @@ the system becomes ordinary test-first development.
 | Tier | Covers |
 |---|---|
 | **Unit** | spec parse/validate/diff/sensitivity, state-machine transitions, policy decisions, injection-contract rendering. Pure functions, no I/O. |
-| **Driver contract suite** | One suite every driver must pass. The k8s driver later proves itself against the exact tests the Docker driver passes — this is what keeps the abstraction honest rather than aspirational. |
+| **Driver contract suite** | One suite every driver must pass. The k8s driver later proves itself against the exact tests the Docker driver passes — this is what keeps the abstraction honest rather than aspirational. It covers **continuity** as well as lifecycle: which instance a hostname reaches before and after a redeploy, that a never-ready instance leaves the previous one serving, and that a retire waits for a request in flight — never longer than its bound — and refuses the serving instance (§11). |
 | **Authorization contract suite** | Every API route, exercised as owner, collaborator, unrelated user, and admin. IDOR is the likeliest bug class in a multi-tenant control plane, so tenant isolation is a test tier rather than a code-review hope. |
 | **Injection-contract drift** | The §8 table is asserted against the blueprint: every variable the blueprint reads is injected, and `SAML_ENVIRONMENT` is never absent. This is what keeps §8 honest — it was wrong once, from being written against memory of the libraries rather than against them. |
 | **AI-path regression** | An embedding through the blueprint asserts its **dimension**, not merely that a vector came back — without `encoding_format: 'float'` the toolkit silently returns 192 near-zero values in place of 768 (§21, S3), and every other assertion still passes. A *streamed* completion through `default-chat` asserts non-empty content, which a thinking model fails silently. LiteLLM's over-budget, revoked-key, expired-key and route-denied responses are pinned to the mapping in §20, against the LiteLLM version in §21's inventory. |
@@ -1507,12 +1546,14 @@ the seventeen modules in §5 plus the whole of §21 — a platform, not an incre
 also could not be sequenced honestly, because D22's "the console proves the API is
 complete" is a *retrospective* check that wants the API to exist, while §1's "the
 journey must be clickable" wants the console to co-evolve with it. Splitting resolves
-both.
+both. A fourth increment, **1b+**, was placed between 1b and 1c on 2026-09-14, so that
+the contract and the console describe redeploys as they will be.
 
 | Phase | Deliverable | Question answered |
 |---|---|---|
 | **1a — Baseline & deploy spine** | S1–S3 + S7 applied. §21's local stack (dnsmasq/`manifest.internal`, custom Caddy + trusted CA, Postgres, registry, Verdaccio, egress proxy, builder), `make seed/up/reset/doctor`. Driver interface + Docker driver + fake Driver + driver contract suite. Spec parse/validate, local git driver, service provisioning, staging deploy, routing. **The blueprint *machinery*** — the §25 registry, descriptor parsing, `checkBlueprintCompatibility()` and major-version pinning — plus **one minimal blueprint**, because under D13 the builder needs a Dockerfile from somewhere and D30's argument applies to the builder, health check, service catalogue and injection contract that all live here. **All cross-cutting security lands here**: container hardening, per-app networks, default-deny egress, authorization contract suite. **Demo:** a fixture app routed and healthy at a `manifest.internal` URL, from a clean checkout, offline. | Does C1 hold, and is the containment real? |
 | **1b — Identity, secrets & AI** | SP auto-provisioning against the metadata mechanism S2 selects, per-app keypairs, `secrets/` envelope encryption, the §8 injection contract, the **`node-ts-mongo` blueprint *content*** against 1a's machinery — auth component, attribute bridge, AI wiring, knowledge pack — LiteLLM client with the classification-gated model catalogue, events, WS streaming, redaction at capture, incidents. **Demo:** the proof app — CWL login, writes to its own Mongo, asks the LLM — driven by `curl`. | Is the loop real? |
+| **1b+ — Redeploys that do not interrupt** | §11's redeploy guarantee in the `Driver` contract and both drivers; in-place route moves verified by identity; background drain and retire of every instance that is not serving; Route records, re-applied at boot; a shared session store in `node-ts-mongo@1`. **Demo:** the proof app redeployed twice and failed once, under a request loop and a signed-in student asking questions, with no failed request. | Can an app change while people are using it? |
 | **1c — Contract & clients** | OpenAPI generation, versioned TS client, `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API (D25), `console/` with its import boundary, a read-only `LaunchReadiness` view, **the audience question at project creation (§24) and a read-only fleet list**, the CI acceptance script. **Demo:** the §1 journey, clickable, run twice over one contract. | Is the API complete, and can a second developer reproduce all of it? |
 | **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, **custom domains end to end (§23), the audience tiers' production effects (§24), and the showcase with forking (§27)**, the admin console built around its queue (§26), IAM registration package + PIA draft generation | Is it safe, and can we get an app legitimately launched? |
 | **3 — Sandboxes** | agent `exec`, per-session keys, preview routes; a chat pane added to the reference console against the same API; the **MCP server** (§22), making "bring your own agent" real. **The separate front-end project can now begin against a real, exercised API.** | Can an AI build here? |
