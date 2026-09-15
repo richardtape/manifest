@@ -11,10 +11,11 @@ import { createHash } from 'node:crypto'
  * Manifest application — an ordinary day's use turning into a cross-app outage.
  *
  * `sha256(puid + ' ' + MANIFEST_PROJECT_SLUG + ' ' + MANIFEST_ENV)`, space-separated,
- * in that order. It is BYTE-IDENTICAL to `fixtures/proof-app/identity.js`, which
- * computed it a plan early so that apps store this string from day one;
- * `blueprints/proof-app-identity.test.ts` holds the two to each other until the proof
- * app imports this one.
+ * in that order. THIS IS ITS ONLY PRODUCER: an app that keys stored data on the same
+ * string — the proof app keys every note on it — imports it from here. The proof app
+ * computed its own copy a plan early, so its notes were keyed on this string from day
+ * one, until P4b Task 16 deleted it; `blueprints/proof-app-identity.test.ts` pins the
+ * formula and keeps the copy gone.
  */
 export function endUserId(ubcEduCwlPuid) {
   // Read at call time, not at import: §8 injects both, and a module-level read would

@@ -107,8 +107,9 @@ try {
       result.chunks = chunks
       result.content = response.content
     }
+    if (op === 'embed-for-nobody') await ai.embed(['hello'])
     if (op === 'embed') {
-      const vectors = await ai.embed(['hello'])
+      const vectors = await ai.embed(['hello'], '${PUID}')
       result.count = vectors.length
       result.dims = vectors[0].length
       result.first = vectors[0].slice(0, 3)
@@ -272,8 +273,24 @@ describe("node-ts-mongo@1's AI component, on the wire (§10, S3)", () => {
     expect(recorded[0]).toMatchObject({
       path: '/v1/embeddings',
       authorization: `Bearer ${KEY}`,
-      body: { model: 'default-embed', encoding_format: 'float', input: ['hello'] },
+      body: {
+        model: 'default-embed',
+        encoding_format: 'float',
+        input: ['hello'],
+        // CHARGED TO THE PERSON, like an answer. Until P4b sitting 10 `embed(texts)`
+        // sent no `user`, and LiteLLM recorded every embedding the proof app made for
+        // a student with an EMPTY end_user — measured on the running platform.
+        user: EXPECTED_USER,
+      },
     })
+  }, 30_000)
+
+  it('embed() for nobody is REFUSED, before anything is sent', async () => {
+    // A default that charges to no one is §10's attribution failing open, silently:
+    // nothing errors and the spend simply has no person on it.
+    const result = await runApp('embed-for-nobody', both())
+    expect(result.error).toMatch(/PUID/)
+    expect(recorded).toHaveLength(0)
   }, 30_000)
 
   it('ask() sends the injected key and model, attributed to the NAMESPACED end user', async () => {

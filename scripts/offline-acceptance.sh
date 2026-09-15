@@ -65,4 +65,18 @@ else
 fi
 
 echo
+echo "=== 7. P4b's acceptance: the proof app answers a question, offline ==="
+# APPENDED, never a replacement for step 6 (P4a defect 70 was a second `trap` that
+# replaced the first). THE QUESTION OFFLINE IS OLLAMA: it is a HOST application,
+# not a container, so `make up` does not start it, and LiteLLM reaches it at
+# host.docker.internal:11434. If this is the step that fails, check `ollama list`
+# holds ministral-3 and nomic-embed-text before blaming the platform. It also
+# reads LiteLLM's spend log, which needs no network.
+if curl -sS -m 5 -o /dev/null http://127.0.0.1:7100/auth/me 2>/dev/null; then
+  make demo-ai; echo "demo-ai exit=$?"
+else
+  echo "  SKIPPED: no control plane on 7100 — the same rule as step 6."
+fi
+
+echo
 echo "=== done. Turn the network back on. ==="

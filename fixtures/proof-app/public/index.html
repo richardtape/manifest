@@ -8,22 +8,35 @@
   h1 { font-size: 1.3rem; }
   code { background: rgba(127,127,127,.18); padding: .1em .35em; border-radius: 3px; }
   li { margin: .3rem 0; }
+  form { display: flex; gap: .5rem; margin: .5rem 0 0; }
+  input { flex: 1; font: inherit; padding: .25rem .4rem; }
 </style>
 <h1>Manifest proof application</h1>
 <p>
-  This app exists to prove one thing: it knows <em>who</em> signed in, and one
-  person cannot see another person's notes.
+  This app exists to prove three things: it knows <em>who</em> signed in, one
+  person cannot see another person's notes, and a question is answered from
+  <em>your</em> notes and charged to you.
 </p>
 <ul>
   <li><a href="/login">Sign in with CWL</a></li>
   <li><a href="/api/me">/api/me</a> — what the IdP released about you</li>
   <li><a href="/api/notes">/api/notes</a> — your notes, and nobody else's</li>
-  <li><a href="/api/ai">/api/ai</a> — 501 until P4b</li>
+  <li>
+    <code>POST /api/ask</code> — a question, answered with one of your own notes as context
+    <form method="post" action="/api/ask">
+      <input name="question" placeholder="What did I write about…?" required />
+      <button>Ask</button>
+    </form>
+  </li>
   <li><a href="/auth/logout">Sign out</a></li>
 </ul>
 <p>
   A note is stored under <code>sha256(puid ‖ project ‖ environment)</code> and
   never under a UBC identifier, so this database holds nothing that identifies
-  a person on its own.
+  a person on its own. The same string is what the AI service charges a question
+  to, so one application's spending can never lock you out of another's.
 </p>
-<p><code>make demo-identity</code> drives all of it with <code>curl</code>.</p>
+<p>
+  <code>make demo-identity</code> drives the sign-in and the notes with
+  <code>curl</code>; <code>make demo-ai</code> drives the question.
+</p>

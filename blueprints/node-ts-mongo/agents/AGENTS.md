@@ -161,9 +161,12 @@ ai:
 ```
 
 Then call the blueprint's functions from `ai/llm.js`: `ask(question, puid)`,
-`askStreaming(question, puid, onChunk)` and `embed(texts)`. `server.js` already
-calls `configureAi()` at startup for an app with models, so a missing variable fails
-the first boot rather than a person's first question.
+`askStreaming(question, puid, onChunk)` and `embed(texts, puid)`. Every one takes the
+signed-in person's PUID **from the session** and charges the request to them — an
+embedding made for somebody is spend on their behalf like an answer is, and the
+PUID is required, so a call that names nobody is refused rather than charged to
+nobody. `server.js` already calls `configureAi()` at startup for an app with models,
+so a missing variable fails the first boot rather than a person's first question.
 
 **Three things never to do. Each one fails silently.**
 

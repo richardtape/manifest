@@ -156,10 +156,19 @@ export async function askStreaming(question, ubcEduCwlPuid, onChunk) {
  * list, so 768 floats are read as 768 BYTES and come back as 192 float32s, almost all
  * zero — with no error (S3 Evidence 8).
  *
+ * ATTRIBUTED TO ONE PERSON, like `ask`: an embedding made for somebody is spend on their
+ * behalf. Until P4b sitting 10 this took no PUID and sent no `user`, and LiteLLM recorded
+ * every embedding the proof app made for a student with an EMPTY end_user — charged to
+ * the app and to nobody in it. The PUID is REQUIRED, so a call that names nobody throws
+ * here, before anything is sent, rather than failing open.
+ *
  * Resolves to the vectors: the toolkit's `embed` resolves to an object carrying
  * `embeddings`, `model` and `usage`, not to a bare array.
  */
-export async function embed(texts) {
-  const response = await embeddingClient().embed(texts, { encoding_format: 'float' })
+export async function embed(texts, ubcEduCwlPuid) {
+  const response = await embeddingClient().embed(texts, {
+    encoding_format: 'float',
+    user: endUserId(ubcEduCwlPuid),
+  })
   return response.embeddings
 }

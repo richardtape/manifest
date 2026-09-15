@@ -7,7 +7,7 @@
 manifest: 1
 name: proof-app
 blueprint: node-ts-mongo@1
-description: The Manifest proof application — CWL sign-in and a per-user note.
+description: The Manifest proof application — CWL sign-in, a per-user note, and a question answered from your own notes.
 
 runtime:
   port: 3000
@@ -30,11 +30,36 @@ auth:
   callback: /auth/ubcshib/callback
   logout: /auth/logout
 
+ai:
+  # Both models are USED, and a reviewer should be able to check that: POST /api/ask
+  # embeds the question beside the asker's own notes to choose one as context
+  # (default-embed), then streams an answer (default-chat). A model declared and not
+  # used is access nobody needs, and the key the platform mints reaches exactly
+  # these two.
+  models: [default-chat, default-embed]
+  budget:
+    # Declared, and non-zero: LiteLLM refuses every request against a budget of 0,
+    # which is why §7 refuses one at validation rather than at the first question.
+    project_monthly_usd: 10
+    # Declared because §7 has the field and a reviewer will ask. VALIDATED, NOT
+    # ENFORCED, in Phase 1 (§10, Rich's decision of 2026-09-15): LiteLLM 1.98.0 has
+    # no per-key or proxy-level end-user budget, and an end-user row auto-creates
+    # with no budget at request time. What IS enforced is the namespaced identifier,
+    # which is what stops one app's exhausted allowance locking a student out of
+    # every other.
+    per_user_monthly_usd: 1
+
 env:
   - { name: COURSE_CODE, value: CHEM_121 }
 
 data:
   # The notes are course work, not personal records, and the app stores no UBC
   # identifier at all — a note is keyed on sha256(puid ‖ project ‖ environment).
+  #
+  # `internal` and not `confidential`, and it bounds the models as well as the
+  # data: D17 approves `default-chat` to `internal`, so a `confidential`
+  # declaration REFUSES it at validation (SPEC_MODEL_CLASSIFICATION_TOO_LOW) —
+  # which is the gate working, and `make demo-ai`'s negative control (b) shows it.
+  # A question and the one note chosen as its context are what reach the model.
   classification: internal
   retention_days: 365

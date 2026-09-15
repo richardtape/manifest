@@ -224,13 +224,16 @@ make up
 make demo-identity
 ```
 
-Nine steps: log in to **Manifest itself** with CWL (§9 — Manifest is its own Service
+Eight steps: log in to **Manifest itself** with CWL (§9 — Manifest is its own Service
 Provider) · create the project · push `fixtures/proof-app` **over `node-ts-mongo@1`'s
 skeleton**, the way an agent generates an application · validate · build, release,
 deploy to staging · **sign in to the deployed app as `student`**, through the edge,
 over TLS with the platform CA · write a note and read it back · **sign in as
-`instructor` and do not show them the student's note** · and confirm `GET /api/ai`
-answers 501, because the LLM half is P4b's.
+`instructor` and do not show them the student's note**. The proof app's third half —
+a question answered — is `make demo-ai`'s, below. Both scripts assemble and deploy the
+proof app through one shared `scripts/lib/proof-app.sh`, so they cannot disagree about
+what the proof app is. The proof app declares `ai.models` and needs its AI half to
+start, so this demo also needs LiteLLM up and the control plane's AI switched on.
 
 **Step 8 is the whole point.** Steps 6 and 7 prove a login happened; only step 8 proves
 the app can tell two people apart. It is checked in both directions — neither person
@@ -243,6 +246,50 @@ exactly what its own first version had.
 
 `fixtures/proof-app/README.md` carries the attribute justifications UBC IAM will ask
 for — `givenName` and `sn` are the two that are not pre-authorized.
+
+## `make demo-ai` — the proof app answers a question, charged to one person
+
+*Added by P4b Task 16, 2026-09-15. §16's proof app is complete with it.*
+
+Same requirements as `make demo-identity`, plus **Ollama running on the host** with
+`ministral-3` and `nomic-embed-text` — it is a host application, not a container, so
+`make up` does not start it, and LiteLLM reaches it at `host.docker.internal:11434`.
+
+```bash
+make up
+# ... the control plane running, per README; its boot line must say "ai":"enabled" ...
+make demo-ai
+```
+
+Nine steps, and every assertion is on the shape of the answer rather than its arrival:
+
+1. log in to Manifest with CWL, and create or reuse the `proof-app` project;
+2. **subscribe to `WS /projects/:projectId/events` before anything is built** — with
+   `scripts/lib/event-stream.mjs`, a dependency-free Node program, because a shell
+   cannot speak WebSocket;
+3. push, validate, build, release and deploy;
+4. **the stream carried this deploy in order** — `build.started`, `build.succeeded`,
+   `sso.registered`, `instance.healthy`, `ai.key_rotated` — and every build-log line
+   it streamed is exactly a line the build stored, in order;
+5. a student and an instructor sign in and each write a note — the instructor's
+   written to be the *closer* match for the question;
+6. **the student asks a question**: a non-empty answer, from a streamed completion,
+   using a 768-dimension embedding to choose context, and the context is one of the
+   student's own notes and **never the instructor's**;
+7. the instructor asks the same question, the other way round;
+8. **LiteLLM's own spend log** holds a chat row and an embedding row for each person,
+   each charged to `sha256(puid ‖ project ‖ environment)` through this app's LiteLLM
+   user — and nothing charged to a bare PUID hash or a raw PUID. It reads the log with
+   `LITELLM_MASTER_KEY` from `.env`, which is why it is an operator's check.
+
+**If it fails at step 6 with `AI_BACKEND_UNAVAILABLE`**, the app cannot reach
+`manifest-litellm` on its own network — check `docker network inspect
+mf-proof-app-staging-net` lists it. **`AI_EMPTY_ANSWER`** is S3's thinking-model failure:
+the model streamed no text. **A dimension of 192** is S3's silent embedding failure, an
+`embed()` without `encoding_format: 'float'`.
+
+It is re-runnable and every run redeploys — so every run leaves the previous release's
+container behind (*Known gaps*).
 
 ## Watching a project's event stream
 
@@ -337,7 +384,9 @@ restarts every container on the machine, so it is a person's call rather than a 
   completes a full SAML round trip. It needs the control plane running and reports
   SKIPPED rather than failing when it is not — **and a skipped acceptance is not a
   passed one.** Everything else about Task 15 is evidenced, including a run from a
-  `make reset` machine.
+  `make reset` machine. **P4b's Task 16 appended a step 7, `make demo-ai`** (2026-09-15),
+  equally unrun offline; its open question is whether **Ollama** — a host application,
+  not a container — answers with the network off.
 - **A redeploy is not zero-downtime — every request to the app fails for a while.** *Read from
   the driver 2026-09-14, not yet measured under load:* `DockerDriver.ensureInstance` moves the
   edge route to the new container and only then waits for it to answer, so the app's hostname
@@ -364,6 +413,28 @@ restarts every container on the machine, so it is a person's call rather than a 
   ```
 
   `make reset` clears them all, at the cost of every project's data.
+- **An AI app whose gateway disappears from its network waits ten minutes for an answer.**
+  *Measured 2026-09-15 (P4b sitting 10), `ubc-genai-toolkit-llm` 0.7.0:* with
+  `manifest-litellm` detached from the proof app's network, a question hung **611 s** and
+  then answered `502`. The OpenAI SDK under the toolkit reuses a kept-alive socket, which
+  retransmits to an address nobody holds until the SDK's own 600 s timeout, and the toolkit
+  offers no way to shorten it. With no pooled socket the same failure answers
+  `503 AI_BACKEND_UNAVAILABLE` in 16 s. **Anything that removes the gateway from app
+  networks** — recreating the `manifest-litellm` container is the likely one — cuts every AI
+  app off until it is redeployed. **Workaround:** redeploy the app, which re-attaches the
+  gateway; or `docker network connect mf-<slug>-<env>-net manifest-litellm`.
+- **`pnpm test` leaves live AI keys behind.** *Measured 2026-09-15.* Its setup empties the
+  control plane's tables and touches nothing in LiteLLM, so every project it removes keeps
+  its LiteLLM user and its confined, budgeted key — and any container still running keeps
+  using it. `make reset` does clear them, because LiteLLM's database is in the Postgres
+  volume it destroys. **Check:** the `/user/list` call in `make demo-ai`'s section above
+  lists `mf-` users; one whose project UUID is no longer in `projects` is an orphan.
+- **After `pnpm test` or `make reset`, the first `POST /projects` for a demo's slug fails
+  and still creates the project.** *Measured 2026-09-15.* Neither removes the bare source
+  repositories in `.manifest/repos`, so creating the project again finds the slug's old
+  repository and answers `SOURCE_GIT_FAILED` — with git's raw output — after the project row
+  is committed. Both demos print `reusing project` and carry on, correctly. To run a demo
+  from genuinely nothing, move `.manifest/repos/<slug>.git` aside first.
 
 Two smaller things P1's execution did not settle:
 

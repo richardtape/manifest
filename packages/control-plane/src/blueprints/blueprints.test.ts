@@ -290,7 +290,7 @@ describe("node-ts-mongo@1's AI half (P4b Task 10)", () => {
     ).toEqual(['BLUEPRINT_AI_UNSUPPORTED'])
   })
 
-  it('every toolkit call in the skeleton carries its obligation: floats on embed, the namespaced user on chat', async () => {
+  it('every toolkit call in the skeleton carries its obligation: floats and the namespaced user on embed, the namespaced user on chat', async () => {
     /**
      * Read as SOURCE, parsed rather than grepped. S3's finding is that the WRONG call
      * SUCCEEDS — 192 near-zero values instead of 768, no error — so a behavioural test
@@ -304,7 +304,7 @@ describe("node-ts-mongo@1's AI half (P4b Task 10)", () => {
      * and an option on the wrong call does not count.
      *
      * A property call only — `.embed(`, `.sendMessage(` — which is how the toolkit is
-     * reached. The blueprint's own `embed(texts)` is a plain call and is not the SDK.
+     * reached. The blueprint's own `embed(texts, puid)` is a plain call and is not the SDK.
      */
     const skeleton = join(BLUEPRINTS, 'node-ts-mongo/skeleton')
     const embeds: string[] = []
@@ -323,6 +323,12 @@ describe("node-ts-mongo@1's AI half (P4b Task 10)", () => {
           const method = node.expression.name.text
           const line = source.getLineAndCharacterOfPosition(node.getStart()).line + 1
           const where = `${relative(skeleton, file)}:${line} .${method}()`
+          // S3 Evidence 6: the `user` must be §10's namespaced id, never a PUID or a bare
+          // hash of one — so the value must be a call to `endUserId`, written in place.
+          const attributed = (v: ts.Expression): boolean =>
+            ts.isCallExpression(v) &&
+            ts.isIdentifier(v.expression) &&
+            v.expression.text === 'endUserId'
           if (method === 'embed') {
             embeds.push(where)
             if (
@@ -334,21 +340,16 @@ describe("node-ts-mongo@1's AI half (P4b Task 10)", () => {
             ) {
               broken.push(`${where} without encoding_format: 'float'`)
             }
+            // An embedding made for a person is spend on their behalf. `embed(texts)`
+            // sent no `user` until P4b sitting 10, and LiteLLM recorded each one with
+            // an empty end_user.
+            if (!hasOption(node, 'user', attributed)) {
+              broken.push(`${where} without user: endUserId(…)`)
+            }
           }
           if (CHAT_METHODS.has(method)) {
             chats.push(where)
-            // S3 Evidence 6: the `user` must be §10's namespaced id, never a PUID or
-            // a bare hash of one — so the value must be a call to `endUserId`.
-            if (
-              !hasOption(
-                node,
-                'user',
-                (v) =>
-                  ts.isCallExpression(v) &&
-                  ts.isIdentifier(v.expression) &&
-                  v.expression.text === 'endUserId',
-              )
-            ) {
+            if (!hasOption(node, 'user', attributed)) {
               broken.push(`${where} without user: endUserId(…)`)
             }
           }
