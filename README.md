@@ -101,7 +101,7 @@ succeeded** and that D13's npm-mirror control was completely inert. Session 5 fo
 that **no deploy had ever succeeded either** — seven separate defects of a single
 shape, *the test constructs the value correctly and the running system re-derives it
 wrongly* — every one of them green behind a suite of 74 passing Docker tests.
-**P4a and P4b are finished — 2026-09-09 and 2026-09-15. Writing P4c is the current work.**
+**P4a and P4b are finished — 2026-09-09 and 2026-09-15. P4c is written (2026-09-15) and executing it is the current work.**
 
 ## Where to start
 
@@ -116,7 +116,7 @@ this machine will do to you, and what to do next. Then:
 | Understanding what the Docker half does | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md`](docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md) — all 19 tasks executed. Read its *What executing this plan found*, Sessions 4 and 5 |
 | Running the control plane | [*Running the control plane*](#running-the-control-plane) below — `make up`, then `pnpm --filter @manifest/control-plane dev` |
 | Executing any plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan — fix it there |
-| **Writing P4c — the current job** | [`docs/superpowers/plans/2026-09-15-p4c-brief.md`](docs/superpowers/plans/2026-09-15-p4c-brief.md) — the measured redeploy baseline, the code as it stands and the decisions that are Rich's — then ORIENTATION §7d-3 and the roadmap's P4c row. Start with `superpowers:brainstorming`: it changes the §11 `Driver` contract, whose wording is Rich's. Read [P4b](docs/superpowers/plans/2026-09-07-p4b-ai-events-streaming-incidents.md)'s *What executing this plan found* first — **all ten sittings are done, 2026-09-15, 140 findings** — and sitting 10 especially: findings 181 and 189 are two of P4c's inputs |
+| **Executing P4c — the current job** | [`docs/superpowers/plans/2026-09-15-p4c-zero-downtime-redeploys.md`](docs/superpowers/plans/2026-09-15-p4c-zero-downtime-redeploys.md) — zero-downtime redeploys, 11 tasks in **eight agreed sittings**, sitting 1 first: it builds `make demo-redeploy` and watches it fail. Its brief, with the measurements behind it, is [`2026-09-15-p4c-brief.md`](docs/superpowers/plans/2026-09-15-p4c-brief.md). Read [P4b](docs/superpowers/plans/2026-09-07-p4b-ai-events-streaming-incidents.md)'s *What executing this plan found* first — **all ten sittings are done, 2026-09-15, 140 findings** — and sitting 10 especially: findings 181 and 189 are two of P4c's inputs |
 | Seeing the platform actually work | `make demo` (an app, from a bare repository to a URL), **`make demo-identity`** (a real CWL sign-in whose note nobody else can see) and **`make demo-ai`** (the same app answering a question from the asker's own notes, charged to them), after `make up` and starting the control plane. [`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) has all three, step by step |
 | Looking for what a spike proved | `docs/superpowers/spikes/S{7,2,1,3,6}-findings.md` — the answer is the first sentence of each |
 | Looking for the architecture | [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](docs/superpowers/specs/2026-08-29-manifest-platform-design.md) — authoritative, ~2,340 lines. ORIENTATION §3 tells you which sections you actually need |
