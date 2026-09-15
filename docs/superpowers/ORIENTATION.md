@@ -130,7 +130,7 @@ only current one.** §7a and §7c carry the same four numbers as P1's and P3's c
 records, and they are DATED measurements that deliberately do not move — if any of them
 disagrees with this box, this box wins.
 
-The immediate work is **P4b, sitting 5 — Tasks 8 and 9** — see §7d-2's *Sitting 5 — what you are walking into*, and read the corrections at the top of Task 9 first. P4a's fifteen tasks are done: the IdP
+The immediate work is **P4b, sitting 5 — Tasks 8 and 9** — see §7d-2's *Sitting 5 — what you are walking into*, and read the pre-flight corrections at the top of Tasks 8 and 9 first. P4a's fifteen tasks are done: the IdP
 works, `secrets/` holds every credential, `sso/` generates the registration a CWL login
 runs through and `deployRelease` calls it, §20's audit log is append-only against a
 role that can actually be constrained, §8's injection contract is one function with
@@ -1439,7 +1439,7 @@ table is at the top of the plan**, which is the maintained copy; this is the sha
 | 2 ✅ | 3 | §16's AI-path regression tier, before any `ai/` module exists — **done 2026-09-14, 6 findings** |
 | 3 ✅ | 4–5 | `ai/errors.ts`, then the transport that uses it — **done 2026-09-14, 11 findings** |
 | 4 ✅ | 6–7 | the catalogue and the key minter — **done 2026-09-14, 12 findings; the boot decision made** |
-| **5 ← next** | **8–9** | **the sitting where Tasks 6, 7 and 8 get a caller — hand-off below** |
+| **5 ← next** | **8–9** | **the sitting where Tasks 6, 7 and 8 get a caller — pre-flight read 2026-09-14: corrections at the top of BOTH tasks; hand-off below** |
 | 6 | 10 | the blueprint's AI half — **the one sitting that needs the network ON** |
 | 7 | 11–12 | build logs, and the redaction that covers them |
 | 8 | 13 | §14's `Incident` |
@@ -1480,7 +1480,7 @@ exists before any `ai/` module: probes 13 and 14 in `s6.docker.test.ts` and
 `ai/ai-path.docker.test.ts`, with `ai/testing.ts` minting the probe keys. The finding to
 carry forward: **LiteLLM's `/user/new` mints an unconfined key unless
 `auto_create_key: false` is passed, and Task 7's code does not pass it** — the correction
-is at the top of Task 7. **Sitting 3 — Tasks 4 and 5 — is done too (2026-09-14), with 11 findings.** The two to carry forward: **Task 7's `ensureAiUser` recognises an existing LiteLLM user by text Task 5's client exists to strip, so as written every redeploy of an AI app throws** — catch on status 409 — and **Task 9's `createLiteLlmClient(config.litellm)` cannot typecheck** against the shapes Task 5 fixed. Both corrections are at the top of those tasks. **Sitting 4 — Tasks 6 and 7 — is done too (2026-09-14), with 12 findings**, and it made the boot decision its hand-off named: AI is on unless `MANIFEST_AI_ENABLED=0`. **Sitting 5 — Tasks 8 and 9 — is next; its hand-off is immediately below.**
+is at the top of Task 7. **Sitting 3 — Tasks 4 and 5 — is done too (2026-09-14), with 11 findings.** The two to carry forward: **Task 7's `ensureAiUser` recognises an existing LiteLLM user by text Task 5's client exists to strip, so as written every redeploy of an AI app throws** — catch on status 409 — and **Task 9's `createLiteLlmClient(config.litellm)` cannot typecheck** against the shapes Task 5 fixed. Both corrections are at the top of those tasks. **Sitting 4 — Tasks 6 and 7 — is done too (2026-09-14), with 12 findings**, and it made the boot decision its hand-off named: AI is on unless `MANIFEST_AI_ENABLED=0`. **Sitting 5 — Tasks 8 and 9 — is next; a pre-flight read wrote fifteen corrections and a note at the top of those two tasks, and its hand-off is immediately below.**
 
 #### Sitting 5 — Tasks 8 and 9 — what you are walking into
 
@@ -1512,20 +1512,32 @@ LiteLLM. If your first measurements differ, find out why before you start — §
 
 **What the two tasks deliver.** Task 8: `manifest-litellm` joins an app network only when the
 app declares models (`InstanceSpec.needsAiGateway`), and `destroyAppNetwork` disconnects whatever
-is attached. Task 9: `ResolvedConfig.ai`, §8's six AI rows, and `deployRelease` minting the key
-before the instance starts — **the caller for Tasks 6, 7 and 8, and its acceptance is a `grep`.**
+is attached. Task 9: §8's six AI rows, and `deployRelease` minting the key before the instance
+starts — **the caller for Tasks 6, 7 and 8, and its acceptance is a `grep`.** (`ResolvedConfig.ai`,
+which Task 9's text says it adds, already exists — pre-flight 63.) **Neither task can be proved
+end to end with an AI app yet:** both blueprints still declare `provides.ai: false`, so the build
+route refuses `ai.models` until Task 10. Sitting 5's Docker tier proves Task 8's flag at the
+driver; Task 9's key is proved at the unit tier; Task 16 proves the whole path.
 
 **Read these before writing a line, in this order:**
 
-1. **The two corrections at the top of Task 9** — sitting 3's, and sitting 4's, which replaces
-   half of Step 4's wiring and names the decision below.
-2. The plan's *What executing this plan found*: sitting 4.
+1. **The pre-flight block at the top of Task 8** — seven corrections, including a probe whose
+   positive control cannot fail and a negative control that cannot run as written.
+2. **The three blocks at the top of Task 9** — sitting 3's; sitting 4's, which says half of
+   Step 4's wiring already exists and names the decision below; and the pre-flight's eight
+   corrections and a note — among them that `ResolvedConfig.ai` already exists with snake_case
+   fields, and that `deployRelease` is handed `DeployDeps`, never `ServerDeps`.
+3. The plan's *What executing this plan found*: sitting 4, then *Before sitting 5*.
 
 **THE ONE DECISION SITTING 5 HAS TO MAKE, AND RECORD: what `deployRelease` does with a release
 that declares models when AI is switched off.** Validation refuses such a spec from now on, but a
 release validated before the switch still exists and can be redeployed, and there is no client
 behind `deps.ai`. It must fail with a code that names the setting — never a `TypeError` on
 `undefined`, and never a render with an empty `LLM_API_KEY`.
+
+**And one thing to accept or change — and record which** (pre-flight 71): `rotateAppKey` revokes
+the previous key before the new container exists, so the live app's AI calls fail from the mint
+until the edge route moves to the new instance.
 
 ```bash
 make up && make doctor && make verify                   # expect 18/0 and 47/0
