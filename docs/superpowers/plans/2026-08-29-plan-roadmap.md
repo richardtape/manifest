@@ -113,7 +113,7 @@ highs still blocked after the change, and only an npm `override` to 0.8.15 clear
 them. Implemented in `build/scan.ts`; **the spec's own text is unchanged**, per the
 standing rule that only Rich edits the spec.
 
-### Spec actions raised by P4a and P4b — 8 of 13 applied 2026-09-14
+### Spec actions raised by P4a and P4b — 11 of 13 applied, 2026-09-14 and 2026-09-15
 
 **Rich approved six on 2026-09-14**, applied in one commit so they are one `git revert`
 away. From P4a: §12's scan gate blocks only on a Critical or High **with a published
@@ -133,12 +133,20 @@ declared model with an **omitted** project budget gets the project's AI quota in
 refusal, while an explicit `0` is still refused. Both behaviours change committed code, which
 P4b's Task 9 now carries.
 
-**Not applied:** P4a's `MONGODB_DB_NAME` note, which is history rather than design; **zero-downtime
-redeploys**, already Rich's decision (2026-09-14) — a §11 row whose wording waits for its own
-plan, P4c, placed straight after P4b (see the plan table); and P4b's other three, held until the
-tasks that implement them have run. Two of those — the per-user AI budget §10 cannot enforce at
-LiteLLM 1.98.0, and what streams over WebSocket (§14 against D23.2) — are Rich's product
-decisions at that point.
+**The last three applied 2026-09-15, once Task 14 had run — Rich decided them as three questions
+and chose the proposal each time.** §10's end-user row now says `ai.budget.per_user_monthly_usd`
+is **validated, not enforced, in Phase 1**, with the measured reason beside it — enforcing it needs
+a reconciler, so Phase 4 — while the project budget and the namespaced end-user identifier bind
+from Phase 1. §10's agent-key row **binds from Phase 3**, when sandboxes exist. And §14's streaming
+bullet describes the stream as built — build logs, instance state transitions, incidents, approval
+decisions and every other audit `Event` — with **live tailing of an application's own output not
+in v1**. Rejected: refusing the budget field, or enforcing it with a poller before P4b's acceptance;
+streaming application output, or narrowing the stream to D23.2's list; leaving the agent-key row as
+it was, or building a TTL with no caller. None of the three changes committed code or P4b's Task 16.
+
+**Not applied:** P4a's `MONGODB_DB_NAME` note, which is history rather than design; and
+**zero-downtime redeploys**, already Rich's decision (2026-09-14) — a §11 row whose wording waits
+for its own plan, P4c, placed straight after P4b (see the plan table).
 
 ### Spec actions raised by P3 — ✅ all six applied 2026-09-07
 
