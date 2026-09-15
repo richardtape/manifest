@@ -11,7 +11,7 @@ import {
   listProjectsFor,
 } from '../../projects/index.js'
 import type { ModelCatalogue } from '../../ai/index.js'
-import { isSensitiveDiff, validateSpec } from '../../spec/index.js'
+import { declaresModels, isSensitiveDiff, validateSpec } from '../../spec/index.js'
 import type { ManifestSpec, ValidationContext } from '../../spec/index.js'
 import { BadRequestError, SpecInvalidError } from '../errors.js'
 import { requireActor, type ServerDeps } from '../server.js'
@@ -30,22 +30,40 @@ const memberBody = z.object({
   role: z.enum(['owner', 'collaborator']),
 })
 
-type ModelPolicy = Pick<ValidationContext, 'aiEnabled' | 'modelCatalogue'>
+type ModelPolicy = Pick<
+  ValidationContext,
+  'aiEnabled' | 'modelCatalogue' | 'unclassifiedModels'
+>
 
 /**
  * D17's half of the validation context — LiteLLM's catalogue (`ai/catalogue.ts`, P4b
  * Task 6). This route used to carry its own copy of that list, which was a second
  * source of truth for the check that stops "a privacy incident at runtime" (§7).
  *
+ * READ ONLY FOR A MANIFEST THAT DECLARES A MODEL. §7 as amended on 2026-09-14 promises
+ * that an app declaring none validates and deploys as normal, and this used to await
+ * the catalogue for every validation — so a gateway outage refused every project
+ * creation, whose seeded manifest declares no model at all (P4b Task 9, sitting 4's
+ * call).
+ *
  * AWAITED BEFORE ANYTHING IS WRITTEN. Project creation inserts the project row and
  * creates the repository before it validates, so a read that failed after them left
  * a project with no spec whose retry collided with its own slug (sitting 4,
  * finding 45). A failed read is a 503 and nothing else.
  */
-async function modelPolicy(catalogue: ModelCatalogue): Promise<ModelPolicy> {
+async function modelPolicy(
+  catalogue: ModelCatalogue,
+  yamlText: string,
+): Promise<ModelPolicy> {
   // A disabled catalogue is never READ: there is no client behind it (finding 38).
-  if (!catalogue.enabled) return { aiEnabled: false, modelCatalogue: [] }
-  return { aiEnabled: true, modelCatalogue: await catalogue.get() }
+  if (!catalogue.enabled) {
+    return { aiEnabled: false, modelCatalogue: [], unclassifiedModels: [] }
+  }
+  if (!declaresModels(yamlText)) {
+    return { aiEnabled: true, modelCatalogue: [], unclassifiedModels: [] }
+  }
+  const { models, unclassified } = await catalogue.get()
+  return { aiEnabled: true, modelCatalogue: models, unclassifiedModels: unclassified }
 }
 
 /** The validation context §7 needs but manifest.yaml cannot contain (Task 4). */
@@ -103,8 +121,18 @@ export async function registerProjectRoutes(
     }
 
     const { status, body } = await app.idempotent(request, async () => {
-      // FIRST — before the project row and the repository exist. See modelPolicy.
-      const models = await modelPolicy(deps.catalogue)
+      const seeded = [
+        'manifest: 1',
+        `name: ${slug}`,
+        `blueprint: ${blueprint}`,
+        'runtime:',
+        `  port: ${descriptor.runtime.default_port}`,
+        `  health: ${descriptor.runtime.health_path}`,
+        '',
+      ].join('\n')
+      // FIRST — before the project row and the repository exist. See modelPolicy. The
+      // seeded manifest declares no model, so the catalogue is not read here at all.
+      const models = await modelPolicy(deps.catalogue, seeded)
       const { project, environments } = await createProject(deps.db, deps.config, {
         slug,
         ownerId: actor.userId,
@@ -113,15 +141,7 @@ export async function registerProjectRoutes(
 
       // §22 step 3: "repository created, manifest.yaml validated".
       const repo = await deps.source.createRepository(slug, {
-        'manifest.yaml': [
-          'manifest: 1',
-          `name: ${slug}`,
-          `blueprint: ${blueprint}`,
-          'runtime:',
-          `  port: ${descriptor.runtime.default_port}`,
-          `  health: ${descriptor.runtime.health_path}`,
-          '',
-        ].join('\n'),
+        'manifest.yaml': seeded,
         'src/index.js': "import http from 'node:http'\n",
       })
       const commitSha = await deps.source.headCommit(repo)
@@ -242,11 +262,13 @@ export async function registerProjectRoutes(
       .limit(1)
 
     const { status, body } = await app.idempotent(request, async () => {
-      const models = await modelPolicy(deps.catalogue)
       const repo = deps.source.repositoryFor(project.slug)
       const commitSha = parsedBody.data.commitSha ?? (await deps.source.headCommit(repo))
       const yamlText =
         (await deps.source.readFile(repo, commitSha, 'manifest.yaml')) ?? ''
+      // Still before the spec row is written, and now after the manifest is read: the
+      // catalogue is consulted only if this manifest declares a model.
+      const models = await modelPolicy(deps.catalogue, yamlText)
       const result = validateSpec(
         yamlText,
         validationContext(project.slug, project.quota as Record<string, unknown>, models),

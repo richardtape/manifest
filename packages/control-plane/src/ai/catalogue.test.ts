@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LiteLlmClient } from './client.js'
 import {
   CatalogueError,
@@ -47,8 +47,15 @@ const RESPONSE = {
 const clientReturning = (body: unknown) =>
   ({ get: vi.fn(async () => body), post: vi.fn() }) as unknown as LiteLlmClient
 
+// An unclassified entry is reported to the operator on stderr. Captured, so the
+// report is ASSERTED where it matters and silent everywhere else.
+let operatorLog: ReturnType<typeof vi.spyOn>
+beforeEach(() => {
+  operatorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+})
 afterEach(() => {
   vi.useRealTimers()
+  operatorLog.mockRestore()
 })
 
 describe('D17 model catalogue', () => {
@@ -56,47 +63,58 @@ describe('D17 model catalogue', () => {
     // Measured 2026-09-07: both chat entries return mode: null. `mode === 'chat'`
     // yields an EMPTY catalogue, every spec then fails SPEC_MODEL_UNKNOWN, and the
     // symptom reads as a LiteLLM outage rather than a filter bug.
-    const entries = await loadModelCatalogue(clientReturning(RESPONSE))
-    expect(entries).toEqual([
+    const snapshot = await loadModelCatalogue(clientReturning(RESPONSE))
+    expect(snapshot.models).toEqual([
       { name: 'default-chat', maxClassification: 'internal', kind: 'chat' },
       { name: 'default-chat-onprem', maxClassification: 'confidential', kind: 'chat' },
       { name: 'default-embed', maxClassification: 'internal', kind: 'embedding' },
     ])
+    expect(snapshot.unclassified).toEqual([])
+    expect(operatorLog).not.toHaveBeenCalled()
   })
 
   it('projects THREE fields and carries nothing else', async () => {
     // The real response holds every api_base and every per-token cost. Handing
     // that object to checkPolicy would put the provider topology inside a
     // validation context, and from there into an error hint.
-    const [entry] = await loadModelCatalogue(clientReturning(RESPONSE))
+    const [entry] = (await loadModelCatalogue(clientReturning(RESPONSE))).models
     expect(Object.keys(entry!).sort()).toEqual(['kind', 'maxClassification', 'name'])
   })
 
-  it('REFUSES an entry with no max_classification rather than defaulting one', async () => {
-    // Fail closed. P4a spent a task on `core:AttributeLimit` failing open; a
-    // defaulted classification here lets a `confidential` app resolve an
-    // off-premise model, which §7 calls "a privacy incident at runtime".
-    const body = { data: [{ model_name: 'rogue', model_info: { mode: null } }] }
-    // The CODE, not a regex over the message: the plan's `toThrow(/AI_CATALOGUE_…/)`
-    // was RED against its own CatalogueError, whose message carries no code (sitting
-    // 4, finding 44) — and the message reaches a client's error envelope, beside the
-    // code rather than prefixed with it.
-    await expect(loadModelCatalogue(clientReturning(body))).rejects.toMatchObject({
-      code: 'AI_CATALOGUE_UNCLASSIFIED',
-    })
-  })
-
-  it('refuses a classification that is not one of §7’s three', async () => {
-    // A typo in config.yaml — `confidental` — is as unclassified as no value at all.
+  it('EXCLUDES an entry with no max_classification — and names it, rather than defaulting one', async () => {
+    // §7 as amended 2026-09-14: refused on its own, not with the whole catalogue. Still
+    // fail closed for that model: a defaulted classification lets a `confidential` app
+    // resolve an off-premise model, which §7 calls "a privacy incident at runtime".
     const body = {
-      data: [{ model_name: 'typo', model_info: { max_classification: 'confidental' } }],
+      data: [...RESPONSE.data, { model_name: 'rogue', model_info: { mode: null } }],
     }
-    await expect(loadModelCatalogue(clientReturning(body))).rejects.toMatchObject({
-      code: 'AI_CATALOGUE_UNCLASSIFIED',
+    const snapshot = await loadModelCatalogue(clientReturning(body))
+    expect(snapshot.models.map((m) => m.name)).toEqual([
+      'default-chat',
+      'default-chat-onprem',
+      'default-embed',
+    ])
+    expect(snapshot.unclassified).toEqual(['rogue'])
+    // And the operator is told which, because nothing fails any more.
+    expect(String(operatorLog.mock.calls[0]?.[0])).toContain('rogue')
+  })
+
+  it('excludes a classification that is not one of §7’s three, and one inherited from the prototype', async () => {
+    // A typo in config.yaml — `confidental` — is as unclassified as no value at all,
+    // and `toString` is a key `in` would find.
+    const body = {
+      data: [
+        { model_name: 'typo', model_info: { max_classification: 'confidental' } },
+        { model_name: 'proto', model_info: { max_classification: 'toString' } },
+      ],
+    }
+    await expect(loadModelCatalogue(clientReturning(body))).resolves.toEqual({
+      models: [],
+      unclassified: ['typo', 'proto'],
     })
   })
 
-  it('refuses an empty catalogue rather than returning one', async () => {
+  it('refuses a gateway that returns no rows at all', async () => {
     // An empty catalogue is indistinguishable from "no models are permitted" and
     // makes every spec fail with a message blaming the faculty member.
     await expect(loadModelCatalogue(clientReturning({ data: [] }))).rejects.toMatchObject(
@@ -123,7 +141,7 @@ describe('D17 model catalogue', () => {
     }
     const second = createCatalogueCache(flaky as never, 60_000)
     await expect(second.get()).rejects.toThrow()
-    await expect(second.get()).resolves.toHaveLength(3)
+    expect((await second.get()).models).toHaveLength(3)
   })
 
   it('reads again once the TTL has passed', async () => {
@@ -147,11 +165,11 @@ describe('D17 model catalogue', () => {
 
 describe('a control plane with AI switched off (MANIFEST_AI_ENABLED=0)', () => {
   it('says so, and REFUSES to be read rather than answering with no models', async () => {
-    // Sitting 4's decision (finding 38). A disabled catalogue that resolved to []
-    // would reach checkPolicy as "no model is permitted" and fail every spec
-    // declaring one with SPEC_MODEL_UNKNOWN and "Available models: " — blaming the
-    // faculty member for a platform setting. The caller checks `enabled`; one that
-    // forgets fails loudly here instead.
+    // Sitting 4's decision (finding 38). A disabled catalogue that resolved to an
+    // empty one would reach checkPolicy as "no model is permitted" and fail every
+    // spec declaring one with SPEC_MODEL_UNKNOWN and "Available models: " — blaming
+    // the faculty member for a platform setting. The caller checks `enabled`; one
+    // that forgets fails loudly here instead.
     const catalogue = disabledCatalogue()
     expect(catalogue.enabled).toBe(false)
     await expect(catalogue.get()).rejects.toBeInstanceOf(CatalogueError)

@@ -15,6 +15,14 @@ export interface ValidationContext {
    * in the faculty member's manifest.
    */
   aiEnabled: boolean
+  /**
+   * Catalogue entries with no valid `max_classification` (`CatalogueSnapshot`). §7 as
+   * amended on 2026-09-14: a declared model on this list is refused ON ITS OWN, with
+   * SPEC_MODEL_UNCLASSIFIED, and nothing else is. Required for the reason `aiEnabled`
+   * is: without it the model would be reported as SPEC_MODEL_UNKNOWN, blaming the
+   * manifest for an administrator's configuration.
+   */
+  unclassifiedModels: readonly string[]
   quota: {
     maxCpu: number
     maxMemoryMi: number
@@ -32,6 +40,7 @@ export const POLICY_CODES = {
   ATTRIBUTE_NOT_WHITELISTED: 'SPEC_ATTRIBUTE_NOT_WHITELISTED',
   ATTRIBUTE_NOT_REGISTERED: 'SPEC_ATTRIBUTE_NOT_REGISTERED',
   MODEL_UNKNOWN: 'SPEC_MODEL_UNKNOWN',
+  MODEL_UNCLASSIFIED: 'SPEC_MODEL_UNCLASSIFIED',
   MODEL_CLASSIFICATION_TOO_LOW: 'SPEC_MODEL_CLASSIFICATION_TOO_LOW',
   AI_DISABLED: 'SPEC_AI_DISABLED',
   AI_BUDGET_REQUIRED: 'SPEC_AI_BUDGET_REQUIRED',
@@ -148,6 +157,21 @@ export function checkPolicy(spec: ManifestSpec, ctx: ValidationContext): Manifes
   // says so once, at the list.
   const checkedModels = ctx.aiEnabled ? spec.ai.models : []
   checkedModels.forEach((model, i) => {
+    // BEFORE the lookup: an unclassified entry is not in `modelCatalogue` at all, and
+    // would otherwise read as unknown — an operator's typo reported as the faculty
+    // member's mistake.
+    if (ctx.unclassifiedModels.includes(model)) {
+      errors.push({
+        code: POLICY_CODES.MODEL_UNCLASSIFIED,
+        path: `ai.models.${i}`,
+        message: `"${model}" has no data classification on this platform, so no app may use it`,
+        hint:
+          'This is the platform’s configuration, not a mistake in manifest.yaml: every ' +
+          'model must be approved for a data classification before any app may use it ' +
+          '(D17). Ask an administrator to classify it, or choose another model.',
+      })
+      return
+    }
     const entry = ctx.modelCatalogue.find((m) => m.name === model)
     if (!entry) {
       errors.push({
@@ -171,20 +195,23 @@ export function checkPolicy(spec: ManifestSpec, ctx: ValidationContext): Manifes
     }
   })
 
-  // `ai.budget.project_monthly_usd` DEFAULTS TO 0 in §7's schema, and LiteLLM refuses
-  // every request from a user whose max_budget is 0 (P4b Task 7). Without this, an app
-  // that declared a model deploys healthy and its first question is refused as over
-  // budget — telling a faculty member they spent money they never spent. Checked with
+  // LiteLLM refuses every request from a user whose max_budget is 0 (P4b Task 7), so an
+  // app that declared a model with a $0 budget would deploy healthy and have its first
+  // question refused as over budget. §7 as amended on 2026-09-14: an OMITTED budget is
+  // not that — `validateSpec` fills it with the project's AI quota before this runs —
+  // so what reaches here as 0 was written as 0, or the quota itself is 0. Checked with
   // AI switched off too: the manifest is wrong either way.
-  if (spec.ai.models.length > 0 && spec.ai.budget.project_monthly_usd <= 0) {
+  const projectBudget = spec.ai.budget.project_monthly_usd
+  if (spec.ai.models.length > 0 && (projectBudget === undefined || projectBudget <= 0)) {
     errors.push({
       code: POLICY_CODES.AI_BUDGET_REQUIRED,
       path: 'ai.budget.project_monthly_usd',
-      message: 'ai.models declares a model and ai.budget.project_monthly_usd is 0',
+      message: 'ai.models declares a model and the project AI budget is $0',
       hint:
-        'Set ai.budget.project_monthly_usd to the most this app may spend on AI in a ' +
-        'month, within the project quota. A budget of 0 refuses every request, so the ' +
-        'app would start healthy and fail its first question.',
+        'A budget of 0 refuses every request, so the app would start healthy and fail ' +
+        'its first question. Set ai.budget.project_monthly_usd to the most this app may ' +
+        'spend on AI in a month, or leave it out to use the project’s AI quota — and if ' +
+        'that quota is $0, ask an administrator to raise it.',
     })
   }
 
@@ -217,7 +244,7 @@ export function checkPolicy(spec: ManifestSpec, ctx: ValidationContext): Manifes
     })
   }
 
-  if (spec.ai.budget.project_monthly_usd > ctx.quota.aiMonthlyUsd) {
+  if ((projectBudget ?? 0) > ctx.quota.aiMonthlyUsd) {
     errors.push({
       code: POLICY_CODES.QUOTA_EXCEEDED,
       path: 'ai.budget.project_monthly_usd',

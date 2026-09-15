@@ -202,9 +202,12 @@ describeDocker('D17 model catalogue (P4b Task 6)', () => {
         model_info?: { max_classification?: string; mode?: string }
       }[]
     }
-    const live = await loadModelCatalogue(
+    const { models: live, unclassified } = await loadModelCatalogue(
       createLiteLlmClient({ baseUrl: litellmUrl(), masterKey: litellmMasterKey() }),
     )
+    // Every entry P1 ships is classified. One that is not is refused to every app that
+    // declares it (§7 as amended 2026-09-14), so it is a regression here.
+    expect(unclassified).toEqual([])
     expect(live.map((m) => m.name).sort()).toEqual(
       declared.model_list.map((m) => m.model_name).sort(),
     )

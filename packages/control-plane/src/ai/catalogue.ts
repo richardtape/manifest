@@ -17,17 +17,35 @@ export interface ModelEntry {
 }
 
 /**
+ * One read of the catalogue: the entries D17 can gate on, and the NAMES of the ones
+ * it cannot.
+ *
+ * §7 as amended on 2026-09-14 (Rich): an entry with no valid `max_classification` is
+ * refused ON ITS OWN. A manifest declaring it gets SPEC_MODEL_UNCLASSIFIED; every
+ * other model, and every app that declares none, validates as normal. This module
+ * used to throw at the first such entry, which made one typo in `config.yaml` a 503
+ * for every validation on the platform (P4b finding 50).
+ *
+ * The names are CARRIED rather than dropped: a dropped entry would reach a faculty
+ * member as SPEC_MODEL_UNKNOWN, reporting an operator's typo as their mistake — which
+ * Decision 3 exists to prevent.
+ */
+export interface CatalogueSnapshot {
+  models: ModelEntry[]
+  unclassified: string[]
+}
+
+/**
  * What `ServerDeps` holds. `enabled` is false only under `MANIFEST_AI_ENABLED=0`
  * (sitting 4's decision, finding 38), and a caller reads it BEFORE `get()`: the
  * disabled catalogue refuses to be read rather than answering with no models.
  */
 export interface ModelCatalogue {
   readonly enabled: boolean
-  get(): Promise<ModelEntry[]>
+  get(): Promise<CatalogueSnapshot>
 }
 
 export const CATALOGUE_CODES = {
-  UNCLASSIFIED: 'AI_CATALOGUE_UNCLASSIFIED',
   EMPTY: 'AI_CATALOGUE_EMPTY',
   DISABLED: 'AI_CATALOGUE_DISABLED',
 } as const
@@ -55,34 +73,15 @@ interface ModelInfoResponse {
   }[]
 }
 
-export async function loadModelCatalogue(client: LiteLlmClient): Promise<ModelEntry[]> {
+export async function loadModelCatalogue(
+  client: LiteLlmClient,
+): Promise<CatalogueSnapshot> {
   const body = await client.get<ModelInfoResponse>('/model/info')
-  const entries = (body.data ?? []).map((row): ModelEntry => {
-    const classification = row.model_info?.max_classification
-    // An OWN key of the rank table — not a truthiness test, and not `in`, which finds
-    // `toString` on the prototype. A typo in config.yaml is as unclassified as no
-    // value at all, and defaulting either is failing open.
-    if (
-      typeof classification !== 'string' ||
-      !Object.hasOwn(CLASSIFICATION_RANK, classification)
-    ) {
-      throw new CatalogueError(
-        CATALOGUE_CODES.UNCLASSIFIED,
-        `the model '${row.model_name}' carries no max_classification`,
-        'Every catalogue entry needs `model_info.max_classification` (D17). Add it in ' +
-          'infra/litellm/config.yaml, or on the model in the admin API. The platform ' +
-          'refuses to guess: a wrong guess sends personal information off-premise.',
-      )
-    }
-    return {
-      name: row.model_name,
-      maxClassification: classification as Classification,
-      // NOT `mode === 'chat'`. Measured 2026-09-07: LiteLLM 1.98.0 returns
-      // `mode: null` for a chat entry; only `default-embed` names its mode.
-      kind: row.model_info?.mode === 'embedding' ? 'embedding' : 'chat',
-    }
-  })
-  if (entries.length === 0) {
+  const rows = body.data ?? []
+  // NO ROWS AT ALL is still refused. It is indistinguishable from "no models are
+  // permitted", and returning it fails every spec that declares a model with a
+  // message that blames the faculty member.
+  if (rows.length === 0) {
     throw new CatalogueError(
       CATALOGUE_CODES.EMPTY,
       'the model catalogue is empty',
@@ -92,7 +91,46 @@ export async function loadModelCatalogue(client: LiteLlmClient): Promise<ModelEn
         'fails every spec with a message that blames the faculty member.',
     )
   }
-  return entries
+
+  const models: ModelEntry[] = []
+  const unclassified: string[] = []
+  for (const row of rows) {
+    const classification = row.model_info?.max_classification
+    // An OWN key of the rank table — not a truthiness test, and not `in`, which finds
+    // `toString` on the prototype. A typo in config.yaml is as unclassified as no
+    // value at all. EXCLUDED, never defaulted: a default is failing open, and the fail-
+    // open default is the top rank, which lets a confidential app resolve an
+    // off-premise model (finding 47).
+    if (
+      typeof classification !== 'string' ||
+      !Object.hasOwn(CLASSIFICATION_RANK, classification)
+    ) {
+      unclassified.push(row.model_name)
+      continue
+    }
+    models.push({
+      name: row.model_name,
+      maxClassification: classification as Classification,
+      // NOT `mode === 'chat'`. Measured 2026-09-07: LiteLLM 1.98.0 returns
+      // `mode: null` for a chat entry; only `default-embed` names its mode.
+      kind: row.model_info?.mode === 'embedding' ? 'embedding' : 'chat',
+    })
+  }
+
+  if (unclassified.length > 0) {
+    // The OPERATOR's copy. Nothing fails any more, so without this an administrator's
+    // typo is visible only to the faculty member whose manifest declares that model.
+    // `console.error`, not a logger: this server runs `logger: false`.
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        msg: 'catalogue entries with no valid max_classification are refused to every app',
+        models: unclassified,
+        fix: 'set model_info.max_classification in infra/litellm/config.yaml (D17)',
+      }),
+    )
+  }
+  return { models, unclassified }
 }
 
 /**
@@ -105,24 +143,27 @@ export function createCatalogueCache(
   client: LiteLlmClient,
   ttlMs: number = DEFAULT_TTL_MS,
 ): ModelCatalogue {
-  let cached: { entries: ModelEntry[]; at: number } | undefined
-  let inFlight: Promise<ModelEntry[]> | undefined
+  let cached: { snapshot: CatalogueSnapshot; at: number } | undefined
+  let inFlight: Promise<CatalogueSnapshot> | undefined
 
   return {
     enabled: true,
-    get(): Promise<ModelEntry[]> {
+    get(): Promise<CatalogueSnapshot> {
       if (cached !== undefined && Date.now() - cached.at < ttlMs) {
-        return Promise.resolve(cached.entries)
+        return Promise.resolve(cached.snapshot)
       }
       // A FAILURE IS NEVER CACHED: only a resolved read is stored, and the in-flight
       // promise is cleared either way, so the next caller after an outage reads again.
       inFlight ??= loadModelCatalogue(client)
-        .then((entries) => {
-          // Frozen: every validation shares this array, and one caller sorting it in
-          // place would reorder the catalogue for all of them.
-          const frozen = Object.freeze(entries.map((entry) => Object.freeze(entry)))
-          cached = { entries: frozen as ModelEntry[], at: Date.now() }
-          return cached.entries
+        .then((snapshot) => {
+          // Frozen: every validation shares this object, and one caller sorting an
+          // array in place would reorder the catalogue for all of them.
+          const frozen = Object.freeze({
+            models: Object.freeze(snapshot.models.map((entry) => Object.freeze(entry))),
+            unclassified: Object.freeze([...snapshot.unclassified]),
+          })
+          cached = { snapshot: frozen as unknown as CatalogueSnapshot, at: Date.now() }
+          return cached.snapshot
         })
         .finally(() => {
           inFlight = undefined

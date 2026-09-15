@@ -16,6 +16,7 @@ const ctx: ValidationContext = {
     { name: 'default-chat', maxClassification: 'internal' },
     { name: 'default-embed', maxClassification: 'internal' },
   ],
+  unclassifiedModels: [],
   aiEnabled: true,
   quota: { maxCpu: 2, maxMemoryMi: 2048, maxServices: 3, aiMonthlyUsd: 100 },
 }
@@ -41,6 +42,14 @@ function errorCodes(text: string, c: ValidationContext = ctx) {
 function errorPaths(text: string, c: ValidationContext = ctx) {
   const r = validateSpec(text, c)
   return r.valid ? [] : r.errors.map((e) => e.path)
+}
+
+/** The validated spec's project AI budget, or a failure naming the codes. */
+function validatedBudget(text: string, c: ValidationContext = ctx) {
+  const r = validateSpec(text, c)
+  if (!r.valid)
+    throw new Error(`expected a valid spec, got ${r.errors.map((e) => e.code)}`)
+  return r.spec.ai.budget.project_monthly_usd
 }
 
 describe('policy validation (§7)', () => {
@@ -205,39 +214,89 @@ describe('a control plane with AI switched off (P4b sitting 4, finding 38)', () 
   })
 })
 
-describe('an AI budget is required with a model (P4b Task 7)', () => {
-  it('refuses declared models with the schema default of a zero project budget', () => {
+describe('the project AI budget (P4b Task 7; §7 as amended 2026-09-14)', () => {
+  it('fills an OMITTED budget with the project’s AI quota, on a manifest that declares a model', () => {
+    // Rich's call. It was refused — SPEC_AI_BUDGET_REQUIRED — because `.default(0)`
+    // made an omitted budget parse exactly like a written 0. The filled number is in
+    // the VALIDATED spec, so the stored spec and every release frozen from it carry it.
+    expect(validatedBudget(yaml(`ai:\n  models: [default-chat]`))).toBe(100)
+  })
+
+  it('still refuses a zero that is WRITTEN OUT — which LiteLLM reads as no budget at all', () => {
     // LiteLLM refuses every request against a max_budget of 0, so an app that declared
     // a model would deploy healthy and be told on its first question that its budget
     // was exhausted.
-    const text = yaml(`ai:\n  models: [default-chat]`)
-    expect(errorCodes(text)).toEqual(['SPEC_AI_BUDGET_REQUIRED'])
-    expect(errorPaths(text)).toEqual(['ai.budget.project_monthly_usd'])
-  })
-
-  it('refuses a zero that is written out, too', () => {
     const text = yaml(
       `ai:\n  models: [default-chat]\n  budget:\n    project_monthly_usd: 0\n    per_user_monthly_usd: 0`,
     )
     expect(errorCodes(text)).toEqual(['SPEC_AI_BUDGET_REQUIRED'])
+    expect(errorPaths(text)).toEqual(['ai.budget.project_monthly_usd'])
   })
 
-  it('accepts a declared model with a budget', () => {
-    const text = yaml(
-      `ai:\n  models: [default-chat]\n  budget:\n    project_monthly_usd: 10`,
-    )
-    expect(errorCodes(text)).toEqual([])
+  it('refuses an omitted budget when the quota it defaults to is itself $0, and says to ask for one', () => {
+    const noQuota: ValidationContext = {
+      ...ctx,
+      quota: { ...ctx.quota, aiMonthlyUsd: 0 },
+    }
+    const r = validateSpec(yaml(`ai:\n  models: [default-chat]`), noQuota)
+    expect(r.valid).toBe(false)
+    if (r.valid) return
+    expect(r.errors.map((e) => e.code)).toEqual(['SPEC_AI_BUDGET_REQUIRED'])
+    expect(r.errors[0]!.hint).toMatch(/administrator/)
   })
 
-  it('asks nothing of an app that declares no model', () => {
-    expect(validateSpec(yaml(), ctx).valid).toBe(true)
+  it('keeps a written budget as written', () => {
+    expect(
+      validatedBudget(
+        yaml(`ai:\n  models: [default-chat]\n  budget:\n    project_monthly_usd: 10`),
+      ),
+    ).toBe(10)
   })
 
-  it('reports it with AI switched off as well — the manifest is wrong either way', () => {
+  it('invents no budget for an app that declares no model', () => {
+    // §7 defaults a budget for a manifest that DECLARES a model. An app with none is
+    // never minted a key, so there is nothing for a number to mean.
+    expect(validatedBudget(yaml())).toBeUndefined()
+  })
+
+  it('with AI switched off, an omitted budget is filled and only SPEC_AI_DISABLED fires', () => {
     const off: ValidationContext = { ...ctx, aiEnabled: false, modelCatalogue: [] }
     expect(errorCodes(yaml(`ai:\n  models: [default-chat]`), off)).toEqual([
       'SPEC_AI_DISABLED',
-      'SPEC_AI_BUDGET_REQUIRED',
     ])
+    // A written 0 is wrong either way, and both are reported.
+    expect(
+      errorCodes(
+        yaml(`ai:\n  models: [default-chat]\n  budget:\n    project_monthly_usd: 0`),
+        off,
+      ),
+    ).toEqual(['SPEC_AI_DISABLED', 'SPEC_AI_BUDGET_REQUIRED'])
+  })
+})
+
+describe('an unclassified catalogue entry refuses only itself (§7 as amended 2026-09-14)', () => {
+  // The catalogue as `ai/catalogue.ts` now reports it with `default-chat`'s
+  // classification missing: excluded from the entries, and named.
+  const withUnclassified: ValidationContext = {
+    ...ctx,
+    modelCatalogue: ctx.modelCatalogue.filter((m) => m.name !== 'default-chat'),
+    unclassifiedModels: ['default-chat'],
+  }
+  const budgeted = (models: string) =>
+    yaml(`ai:\n  models: [${models}]\n  budget:\n    project_monthly_usd: 10`)
+
+  it('refuses a manifest that declares it with SPEC_MODEL_UNCLASSIFIED — not as an unknown model', () => {
+    // Reported as unknown, an administrator's typo would read as the faculty member's.
+    const r = validateSpec(budgeted('default-embed, default-chat'), withUnclassified)
+    expect(r.valid).toBe(false)
+    if (r.valid) return
+    expect(r.errors.map((e) => e.code)).toEqual(['SPEC_MODEL_UNCLASSIFIED'])
+    expect(r.errors[0]!.path).toBe('ai.models.1')
+    expect(r.errors[0]!.hint).toMatch(/administrator/)
+  })
+
+  it('validates a manifest that declares another model, and one that declares none', () => {
+    expect(errorCodes(budgeted('default-embed'), withUnclassified)).toEqual([])
+    expect(validateSpec(yaml(), withUnclassified).valid).toBe(true)
   })
 })

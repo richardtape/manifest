@@ -446,9 +446,12 @@ describe('the model catalogue a spec is validated against', () => {
     // list restated in the route would give the same answer both times.
     const approving = await withCatalogue({
       enabled: true,
-      get: async () => [
-        { name: 'default-chat', maxClassification: 'confidential', kind: 'chat' },
-      ],
+      get: async () => ({
+        models: [
+          { name: 'default-chat', maxClassification: 'confidential', kind: 'chat' },
+        ],
+        unclassified: [],
+      }),
     })
     const accepted = await createAndPush(
       approving,
@@ -477,39 +480,131 @@ describe('the model catalogue a spec is validated against', () => {
     await ctx.app.close()
   })
 
-  it('a catalogue that cannot be read is a 503, and project creation leaves NOTHING', async () => {
-    const declared = declaredCatalogue()
-    const get = vi
-      .fn()
-      .mockRejectedValueOnce(
-        new AiError(AI_CODES.BACKEND_UNAVAILABLE, 0, {
-          status: 0,
-          reason: 'unreachable',
-        }),
-      )
-      .mockImplementation(() => declared.get())
+  it('a gateway outage refuses NO app that declares no model — the catalogue is never read', async () => {
+    // §7 as amended on 2026-09-14: an app that declares no model validates and deploys
+    // as normal. Every project is created from a seeded manifest that declares none, so
+    // until this a gateway outage was a 503 for every new project on the platform.
+    const get = vi.fn().mockRejectedValue(
+      new AiError(AI_CODES.BACKEND_UNAVAILABLE, 0, {
+        status: 0,
+        reason: 'unreachable',
+      }),
+    )
     const { app, session } = await withCatalogue({ enabled: true, get })
-    const cookies = { manifest_session: session }
-
-    const refused = await app.inject({
+    const created = await app.inject({
       ...create('chem-labs'),
-      cookies,
+      cookies: { manifest_session: session },
       headers: { 'idempotency-key': randomUUID() },
     })
+    expect(created.statusCode).toBe(201)
+    expect(created.json().specValid).toBe(true)
+    expect(get).not.toHaveBeenCalled()
+    await app.close()
+  })
+
+  it('a spec push DECLARING a model during an outage is a 503, and stores no spec', async () => {
+    const declared = declaredCatalogue()
+    const get = vi.fn().mockImplementation(() => declared.get())
+    const ctx = await withCatalogue({ enabled: true, get })
+    const cookies = { manifest_session: ctx.session }
+    // The gateway is down for exactly one read — the push's, since creation reads none.
+    get.mockRejectedValueOnce(
+      new AiError(AI_CODES.BACKEND_UNAVAILABLE, 0, { status: 0, reason: 'unreachable' }),
+    )
+    const refused = await createAndPush(
+      ctx,
+      'chem-labs',
+      aiManifest('chem-labs', 'internal'),
+    )
     // Not `500 INTERNAL`: the code and hint say the gateway is not answering.
     expect(refused.statusCode).toBe(503)
     expect(refused.json().error.code).toBe('AI_BACKEND_UNAVAILABLE')
-    const list = await app.inject({ method: 'GET', url: '/projects', cookies })
-    expect(list.json()).toHaveLength(0)
 
-    // The gateway is back, and the SAME slug is creatable — which it is not if the
-    // refusal left a project row or a repository behind (finding 45).
-    const retried = await app.inject({
-      ...create('chem-labs'),
+    // NOTHING stored: the project's spec is still the one creation seeded.
+    const [project] = (
+      await ctx.app.inject({ method: 'GET', url: '/projects', cookies })
+    ).json()
+    const spec = await ctx.app.inject({
+      method: 'GET',
+      url: `/projects/${project.id as string}/spec`,
+      cookies,
+    })
+    expect(spec.json().spec.ai.models).toEqual([])
+
+    // The gateway is back, and the same push validates — and the budget it omitted is
+    // STORED as the project's quota (§7 as amended 2026-09-14), not left for a reader
+    // to interpret.
+    const retried = await ctx.app.inject({
+      method: 'POST',
+      url: `/projects/${project.id as string}/spec`,
+      payload: {},
       cookies,
       headers: { 'idempotency-key': randomUUID() },
     })
-    expect(retried.statusCode).toBe(201)
-    await app.close()
+    expect(retried.json()).toMatchObject({ valid: true, errors: [] })
+    await ctx.app.close()
+  })
+
+  it('an omitted AI budget is stored as the project quota', async () => {
+    const ctx = await withCatalogue(declaredCatalogue())
+    const cookies = { manifest_session: ctx.session }
+    const noBudget = aiManifest('chem-labs', 'internal')
+      .split('\n')
+      .filter((line) => !/budget|project_monthly_usd/.test(line))
+      .join('\n')
+    expect(noBudget).not.toContain('project_monthly_usd')
+    const pushed = await createAndPush(ctx, 'chem-labs', noBudget)
+    expect(pushed.json()).toMatchObject({ valid: true, errors: [] })
+
+    const [listed] = (
+      await ctx.app.inject({ method: 'GET', url: '/projects', cookies })
+    ).json()
+    const project = (
+      await ctx.app.inject({
+        method: 'GET',
+        url: `/projects/${listed.id as string}`,
+        cookies,
+      })
+    ).json()
+    const spec = (
+      await ctx.app.inject({
+        method: 'GET',
+        url: `/projects/${listed.id as string}/spec`,
+        cookies,
+      })
+    ).json()
+    // The route's own default is $50 when the project row carries no quota.
+    const quota = Number(project.quota?.ai_monthly_usd ?? 50)
+    expect(quota).toBeGreaterThan(0)
+    expect(spec.spec.ai.budget.project_monthly_usd).toBe(quota)
+    await ctx.app.close()
+  })
+
+  it('an unclassified catalogue entry refuses only the manifest that declares it', async () => {
+    // §7 as amended on 2026-09-14. Before it, one unclassified entry made every
+    // validation on the platform a 503 (finding 50).
+    const { models } = await declaredCatalogue().get()
+    const ctx = await withCatalogue({
+      enabled: true,
+      get: async () => ({
+        models: models.filter((m) => m.name !== 'default-chat'),
+        unclassified: ['default-chat'],
+      }),
+    })
+    const refused = await createAndPush(
+      ctx,
+      'chem-labs',
+      aiManifest('chem-labs', 'internal'),
+    )
+    expect(refused.statusCode).toBe(201)
+    expect(codes(refused.json())).toEqual(['SPEC_MODEL_UNCLASSIFIED'])
+
+    const accepted = await createAndPush(
+      ctx,
+      'bio-labs',
+      aiManifest('bio-labs', 'internal').replace('[default-chat]', '[default-embed]'),
+    )
+    expect(accepted.json()).toMatchObject({ valid: true, errors: [] })
+    await ctx.app.close()
   })
 })

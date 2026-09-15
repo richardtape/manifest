@@ -8,7 +8,7 @@ export {
   disabledCatalogue,
   loadModelCatalogue,
 } from './catalogue.js'
-export type { ModelCatalogue, ModelEntry } from './catalogue.js'
+export type { CatalogueSnapshot, ModelCatalogue, ModelEntry } from './catalogue.js'
 export {
   AI_ALLOWED_ROUTES,
   aiUserId,

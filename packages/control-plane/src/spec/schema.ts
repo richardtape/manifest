@@ -88,7 +88,11 @@ export const manifestSchema = z
         models: z.array(z.string().min(1)).default([]),
         budget: z
           .object({
-            project_monthly_usd: z.number().nonnegative().default(0),
+            // NO DEFAULT, so an omitted budget is visible (§7 as amended on
+            // 2026-09-14). `validateSpec` fills an omitted one with the project's AI
+            // quota when the manifest declares a model; with `.default(0)` it parsed
+            // exactly like a written 0, which is still refused.
+            project_monthly_usd: z.number().nonnegative().optional(),
             per_user_monthly_usd: z.number().nonnegative().default(0),
           })
           .strict()
