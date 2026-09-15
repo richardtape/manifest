@@ -30,6 +30,13 @@ applied to ourselves.
 moves until a named person on both sides owns it. Fill them in before anything else
 on this page matters.
 
+**The start condition has been met (2026-09-15).** Rich decided on 2026-09-05 that this
+track starts once the local proof of concept works end to end — CWL sign-in, a Mongo
+write, an LLM answer. P4b's Task 16 completed the third: `make demo-ai` runs green,
+including from a `make reset` machine, and the proof app's `manifest.yaml` and README now
+declare its data classification, its models and what reaches them — the inputs items 3
+and 4 need. **Starting the track is Rich's call. Nothing below has been raised.**
+
 ---
 
 ## Open items

@@ -403,13 +403,17 @@ restarts every container on the machine, so it is a person's call rather than a 
   `ensureInstance` and nothing destroys what the last release left. **Reaping belongs
   to §11's reconciliation loop, which is Phase 4 (D10)**, so this is a gap rather than
   a regression — but nothing bounds it, and a long session of redeploys will eat the
-  Docker VM's 8 GB. **Workaround**, and it removes anonymous volumes with the
-  containers:
+  Docker VM's 8 GB. **Workaround** — and `-v` removes a container's ANONYMOUS volumes
+  only, so each instance's named `-files` volume has to go by name:
 
   ```bash
-  # Every mf- app container EXCEPT the one the route points at. Check first:
+  # Every mf- app container EXCEPT the one the route points at. Check first, and name
+  # each one explicitly — repeated `docker ps --filter name=` flags are OR'd, not AND'd:
   docker ps --format '{{.Names}}' | grep -- '-app$'
-  docker rm -f -v <the older ones>
+  docker rm -f -v <each older one, by name>
+  # AND its files volume. It is NAMED, so `-v` leaves it — and it holds that instance's
+  # copy of the app's SAML private key (P4b finding 194, measured 2026-09-15):
+  docker volume rm <each older one>-files
   ```
 
   `make reset` clears them all, at the cost of every project's data.
@@ -435,6 +439,12 @@ restarts every container on the machine, so it is a person's call rather than a 
   repository and answers `SOURCE_GIT_FAILED` — with git's raw output — after the project row
   is committed. Both demos print `reusing project` and carry on, correctly. To run a demo
   from genuinely nothing, move `.manifest/repos/<slug>.git` aside first.
+- **After `pnpm test:docker`, a demo that was deployed is no longer reachable.** *Measured
+  2026-09-15.* `routes.docker.test.ts` restarts `manifest-caddy`, which drops every runtime
+  route, and the tier empties the tables the control plane would re-apply them from — so each
+  demo hostname answers the edge's wildcard page, `manifest OK host=…`, **with status 200**,
+  while the app's containers stay up and healthy. **Read the body, not the status.** Re-run
+  `make demo`, `make demo-identity` or `make demo-ai` to deploy it again.
 
 Two smaller things P1's execution did not settle:
 
