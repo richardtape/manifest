@@ -20,7 +20,7 @@
 
 ## How this plan is to be executed — EIGHT SITTINGS, one per session
 
-Agreed with Rich on 2026-09-15, the pattern that carried P4a's last twelve tasks and all of P4b: **one sitting per session, with a check-in at each boundary**, so a session limit can never land mid-task. This plan commits after every task; a stop *between* tasks is recoverable, a stop *inside* one is not. **"Sitting", not "phase"** — this project uses *Phase 1/2/4+* for §17's product roadmap.
+Agreed with Rich on 2026-09-15, the pattern that carried P4a's last twelve tasks and all of P4b: **one sitting per session, with a check-in at each boundary**, so a session limit can never land mid-task. **Executing two sittings in one session is not a shortcut** — it is how a limit lands inside a task, and this plan's tasks change the deploy path every app runs through. This plan commits after every task; a stop *between* tasks is recoverable, a stop *inside* one is not. **"Sitting", not "phase"** — this project uses *Phase 1/2/4+* for §17's product roadmap.
 
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|

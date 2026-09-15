@@ -157,7 +157,7 @@ only current one.** §7a and §7c carry the same four numbers as P1's and P3's c
 records, and they are DATED measurements that deliberately do not move — if any of them
 disagrees with this box, this box wins.
 
-The immediate work is **executing P4c — zero-downtime redeploys, sitting 1** — see §7d-3. P4b is finished; its sitting-10 record, the last entry in its *What executing this plan found*, is the one to read first. P4a's fifteen tasks are done: the IdP
+The immediate work is **executing P4c — zero-downtime redeploys — SITTING 1, WHICH IS TASK 1 ALONE** (§7d-3). **Not the whole plan in one session:** eight agreed sittings, one per session, with a check-in at each boundary. P4b is finished; its sitting-10 record, the last entry in its *What executing this plan found*, is the one to read first. P4a's fifteen tasks are done: the IdP
 works, `secrets/` holds every credential, `sso/` generates the registration a CWL login
 runs through and `deployRelease` calls it, §20's audit log is append-only against a
 role that can actually be constrained, §8's injection contract is one function with
@@ -179,7 +179,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | You are… | Read |
 |---|---|
 | **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
-| **executing a plan** | ← **this is the current job: P4c, [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md) — 11 tasks in EIGHT AGREED SITTINGS, one per session, and SITTING 1 IS NEXT. Read its *Read this first* and *Decisions Rich made* before anything else, and the brief beside it.** [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) — 16 tasks in **ten agreed sittings, one per session**; **all ten are done, 2026-09-15**, and their findings — numbered 1 to 194, the pre-flight reads' corrections among them — are in the plan's *What executing this plan found*. P4a itself is [`2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md) — 15 tasks, **all executed, 2026-09-09**, self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P4a's own *What executing this plan found* first — Sessions 1 to 9, 80 defects — and then P3's**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
+| **executing a plan** | ← **this is the current job: P4c, [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md) — 11 tasks in EIGHT AGREED SITTINGS, ONE PER SESSION — sitting 1 is Task 1 alone, and executing more than one sitting in a session is how a limit lands mid-task. Read its *Read this first* and *Decisions Rich made* before anything else, and the brief beside it.** [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) — 16 tasks in **ten agreed sittings, one per session**; **all ten are done, 2026-09-15**, and their findings — numbered 1 to 194, the pre-flight reads' corrections among them — are in the plan's *What executing this plan found*. P4a itself is [`2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md) — 15 tasks, **all executed, 2026-09-09**, self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P4a's own *What executing this plan found* first — Sessions 1 to 9, 80 defects — and then P3's**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
 | **writing a plan** | **P4c is written (2026-09-15). The next plan to write is P5** — §7e. House style: `plans/2026-08-30-p1-local-substrate.md`, `2026-08-29-p2-control-plane-spine.md`, or either half of P4. |
 | **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. The short version of RUNBOOK. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
@@ -1074,13 +1074,13 @@ coherent. Follow them.
 
 ---
 
-## 7. What to do next — write P4c
+## 7. What to do next — execute P4c, ONE SITTING AT A TIME
 
 P1, P2, P3 and P4a are all executed and green; S6 has reported; **P3's six spec actions
 were applied on 2026-09-07**. P4 was split into **P4a** and **P4b** (Rich's
 call). **P4a is finished — all 15 tasks, 1–5 on 2026-09-08 and 6–15 on 2026-09-09.
 P4b is executed in full: sitting 1 ran Task 1's reconciliation pass and Task 2's LiteLLM
-pin on 2026-09-09, sitting 2 ran Task 3, sitting 3 ran Tasks 4–5, sitting 4 ran Tasks 6–7, sitting 5 ran Tasks 8–9, sitting 6 ran Task 10 and sitting 7 ran Tasks 11–12, all on 2026-09-14, sitting 8 ran Task 13, sitting 9 ran Tasks 14–15 and sitting 10 ran Task 16, all on 2026-09-15**, so P4b is finished and P4c — §7d-3 — is next. **P4b ran in ten agreed sittings**,
+pin on 2026-09-09, sitting 2 ran Task 3, sitting 3 ran Tasks 4–5, sitting 4 ran Tasks 6–7, sitting 5 ran Tasks 8–9, sitting 6 ran Task 10 and sitting 7 ran Tasks 11–12, all on 2026-09-14, sitting 8 ran Task 13, sitting 9 ran Tasks 14–15 and sitting 10 ran Task 16, all on 2026-09-15**, so P4b is finished and P4c — §7d-3 — is WRITTEN (2026-09-15) and waiting to be executed: **sitting 1, which is Task 1 alone, is next, and the plan runs one sitting per session** exactly as P4a's seven and P4b's ten did. **P4b ran in ten agreed sittings**,
 one per session — the table is at the top of the plan and summarised in §7d-2.
 
 **The measured plan-to-reality gap, in one table.** Every one of these plans was
@@ -1667,37 +1667,42 @@ in its admin API. **P4b proposed six spec actions, and all six are applied** —
 
 ### 7d-3. Execute P4c — zero-downtime redeploys ← **START HERE**
 
-**Required and placed by Rich, 2026-09-14. WRITTEN 2026-09-15 — [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md), 11 tasks in EIGHT AGREED SITTINGS, sitting 1 next — and NOT YET EXECUTED.** Its eight spec actions were applied before it was written (Rich's call), so §11 already carries the contract it builds. A redeploy must not interrupt the
-app: the new instance ready before the edge route moves, an atomic move, a drain, and only then
-the old instance's AI key revoked and its container retired. Today every redeploy 502s the whole
-app while the new container starts (P4b finding 74), and retiring an old instance through
-`destroyInstance` would remove the live route (75).
+**WRITTEN 2026-09-15 AND NOT YET EXECUTED: [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md) — 11 tasks in EIGHT AGREED SITTINGS, ONE PER SESSION. SITTING 1 IS NEXT, AND IT IS TASK 1 ALONE.**
 
-**P4b has executed (2026-09-15), so it can be written now.** It waited because P4b's Tasks 8–15
-were changing `releases/release.ts`, the driver interface and the contract suite — the path it
-replaces — and it comes **before P5**, so the generated contract and the console describe redeploys as they will be. The
-roadmap's P4c row is its brief, with five things it must settle: a measured baseline first; the
-guarantee in the §11 `Driver` contract, so Phase 5's driver inherits it; what two releases sharing
-one database during the overlap means for faculty apps; how the edge treats in-flight requests and
-long streams across a route change; and retiring old instances. Write it with
-`superpowers:brainstorming` first — it changes an interface the spec defines, and the §11 wording
-is Rich's to approve.
+**DO NOT EXECUTE THE WHOLE PLAN IN ONE SESSION.** The sittings are why no session limit has
+landed mid-task since 2026-09-08: one sitting per session, Rich checks in at each boundary, and
+every sitting ends with the four gates, `pnpm test:docker`, a dated record in the plan's *What
+executing this plan found*, the plan's own sittings table updated, and §6's close-out sweep. **The
+plan's sittings table is the maintained copy** — read it before you start and move its `← next`
+marker before you stop.
 
-**READ [`plans/2026-09-15-p4c-brief.md`](plans/2026-09-15-p4c-brief.md) FIRST.** Written at the end
-of P4b for whoever writes P4c: the redeploy baseline measured under load (every redeploy is about a
-second of empty 502s and signs every user out), three ways of moving an edge route measured (only an
-in-place `PATCH` has no gap), a request in flight shown to survive a route move, the redeploy path traced
-through the code with file:line references, one option-shape, and the seven decisions that are Rich's.
+**What sitting 1 is.** Task 1, alone: build `make demo-redeploy` — P4c's acceptance — run it
+against the platform as P4b left it and **watch it fail**, recording the numbers the final sitting
+is measured against; then measure the five edge and Docker facts the rest of the design rests on,
+and write any correction they produce into the task that needs it. It ships no production code, on
+purpose: every worst defect in this project arrived the first time something ran end to end.
 
-**Three more inputs from P4b's sitting 10**, measured on 2026-09-15 and recorded in its *What
-executing this plan found*: an AI app whose gateway vanishes from its network under a pooled
-connection makes a person wait **611 s**, because the toolkit gives the OpenAI SDK no timeout —
-so a step that detaches or recreates `manifest-litellm` needs the drain to cover it (finding
-181); every redeploy's container stays running and attached, **seven** of them after one
-sitting's controls (189); and `pnpm test` leaves the LiteLLM users and keys of every project it
-removes live (183), which a retire step that revokes by the stored key will not see.
-`make demo-ai`'s streamed answer and its event-stream subscriber are the two long-lived
-connections a route change has to carry.
+**Invoke `superpowers:subagent-driven-development` or `superpowers:executing-plans` — NOT
+`brainstorming`.** The design conversation is finished; its results are the plan's *Read this
+first*, *Decisions Rich made, 2026-09-15* and *Decisions this plan makes*. **The eight spec actions
+P4c needed were applied before it was written** (Rich's call, commit `888d9d1`), so §11 already
+carries the `Driver` contract the plan builds — the spec is the target here, not a proposal.
+
+**Read, in this order:** the plan's *Read this first* — twelve facts the brief did not know, four
+of which changed the design, including that **nothing re-applies routes at all** — then *Decisions
+Rich made*, *Global Constraints*, and sitting 1's task. The brief,
+[`plans/2026-09-15-p4c-brief.md`](plans/2026-09-15-p4c-brief.md), holds the measurements behind all
+of it and is still worth reading: the redeploy baseline under load, three ways of moving an edge
+route measured, and a request in flight shown to survive a move.
+
+**Three things from P4b's sitting 10 that the plan carries or deliberately does not.** An AI app
+whose gateway vanishes under a pooled connection makes a person wait **611 s** (finding 181) —
+named in *What this plan does not build*, because the deadline belongs in the blueprint and needs a
+decision about what a half-streamed answer means. Every redeploy before P4c left its container
+running and attached, seven of them after one sitting's controls (189) — that backlog is reaped by
+the first P4c redeploy of each app, and Task 11 closes RUNBOOK's leaked-container gap. And
+`pnpm test` leaves the LiteLLM users and keys of every project it removes live (183): P4c revokes
+each instance's own stored key, so those orphans stay the Phase 4 reconciler's.
 
 ### 7e. Write P5 — contract and clients (1c) *(after P4b and P4c)*
 

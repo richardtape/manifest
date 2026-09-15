@@ -391,12 +391,16 @@ restarts every container on the machine, so it is a person's call rather than a 
   `make reset` machine. **P4b's Task 16 appended a step 7, `make demo-ai`** (2026-09-15),
   equally unrun offline; its open question is whether **Ollama** — a host application,
   not a container — answers with the network off.
-- **A redeploy is not zero-downtime — every request to the app fails for a while.** *Read from
-  the driver 2026-09-14, not yet measured under load:* `DockerDriver.ensureInstance` moves the
-  edge route to the new container and only then waits for it to answer, so the app's hostname
-  answers 502 until the new container is up; and `applyRoute` deletes the route before re-adding
-  it. **Rich requires zero-downtime redeploys for the whole app — a plan of its own, P4c, placed straight
-  after P4b and not yet written** (the roadmap's plan table). Until then, redeploy when nobody is using the app. **Do
+- **A redeploy is not zero-downtime — the app answers 502 for about as long as it takes to boot,
+  and every signed-in person is signed out.** *Measured 2026-09-15 under a request loop classified
+  by body:* a same-release redeploy produced **7 empty 502s between +428 ms and +1,634 ms**, a
+  new-release redeploy 6 between +411 ms and +1,417 ms, and in both the first request to the new
+  container answered **401** — the blueprint keeps sessions in the container's memory, so a new
+  container has none. `DockerDriver.ensureInstance` moves the edge route to the new container and
+  only then waits for it to answer, and `applyRoute` deletes the route before re-adding it.
+  **P4c fixes all of it — WRITTEN 2026-09-15, 11 tasks in eight sittings, NOT YET EXECUTED**
+  ([`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md)).
+  Until it runs, redeploy when nobody is using the app. **Do
   not "clean up" an old instance through the driver's `destroyInstance`:** it removes the route by
   hostname, which the live instance shares. The workaround in the next item uses `docker rm`
   for exactly that reason.

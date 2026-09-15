@@ -29,7 +29,7 @@ to staging; sign a person in with practice CWL; keep each person's data theirs; 
 questions through a per-app AI key charged to the person who asked; stream build logs and
 events; record a failed deploy as an Incident. **What does not exist yet:** a web console
 (P5) — everything is JSON; production deploys (refused, with a checklist); redeploys that
-do not interrupt the app (P4c).
+do not interrupt the app (P4c — written 2026-09-15, not yet executed).
 
 ---
 
@@ -171,8 +171,8 @@ ORIENTATION §6 and any plan's negative controls.
   every demo URL answers this way until you run the demo again. **Read the body, not the status.**
 - **`pnpm test` and `pnpm test:docker` empty the control plane's tables.** Demo projects vanish
   (their containers keep running), and the next demo prints `reusing project` — correctly.
-- **Every redeploy leaves the previous container running**, and briefly interrupts the app
-  (P4c's job). To clean up, RUNBOOK's *Known gaps* — and remove each container's `-files`
+- **Every redeploy leaves the previous container running**, interrupts the app for about a second
+  and signs every user out (measured 2026-09-15 — **P4c's job: written, not yet executed**). To clean up, RUNBOOK's *Known gaps* — and remove each container's `-files`
   volume too: it holds a private key.
 - **An AI app whose gateway drops off its network can make a person wait ten minutes** before an
   error. Redeploying the app re-attaches it. RUNBOOK's *Known gaps*.

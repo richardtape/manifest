@@ -51,7 +51,7 @@ of it was green in a suite of 74 passing Docker tests.**
 
 **P4a is EXECUTED AND GREEN: all 15 tasks (2026-09-09). P4b is EXECUTED AND GREEN —
 all 16 tasks, in ten sittings, finished 2026-09-15; P4C — zero-downtime redeploys — IS
-WRITTEN (2026-09-15): 11 tasks in EIGHT AGREED SITTINGS, and sitting 1 is next** — ORIENTATION §7d-3, the plan `docs/superpowers/plans/2026-09-15-p4c-zero-downtime-redeploys.md`, and its brief,
+WRITTEN (2026-09-15): 11 tasks in EIGHT AGREED SITTINGS, ONE PER SESSION, and sitting 1 — Task 1 alone — is next; executing the whole plan in one session is exactly what the sittings exist to prevent** — ORIENTATION §7d-3, the plan `docs/superpowers/plans/2026-09-15-p4c-zero-downtime-redeploys.md`, and its brief,
 `docs/superpowers/plans/2026-09-15-p4c-brief.md`, which measured the redeploy baseline. P4a's last twelve
 tasks ran in **seven agreed SITTINGS, one per session with a check-in at each
 boundary**, so a session limit could not land mid-task; all seven are done, and **P4b
