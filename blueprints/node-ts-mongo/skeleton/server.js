@@ -14,6 +14,7 @@ import session from 'express-session'
 import passport from 'passport'
 import { MongoClient } from 'mongodb'
 import { configureCwl, logoutUrl } from './auth/ubcshib.js'
+import { AI_ENABLED, configureAi } from './ai/llm.js'
 
 /**
  * §8's platform rows, each read as a literal `process.env.NAME`.
@@ -70,6 +71,13 @@ const client = new MongoClient(
   ),
 )
 const db = () => client.db(required('MONGODB_DB_NAME'))
+
+// §8's AI rows, for an app that declared models. Configured HERE, at startup, for
+// configureCwl()'s reason: a missing or partial block fails the container's first
+// boot rather than a person's first question. The import above is harmless for an
+// app with no models; ai/llm.js's `ask`, `askStreaming` and `embed` are what an
+// app's own routes call.
+if (AI_ENABLED) configureAi()
 
 const app = express()
 app.use(express.urlencoded({ extended: false }))
@@ -153,6 +161,7 @@ app.get('/', async (_req, res) => {
     env: required('MANIFEST_ENV'),
     url: required('MANIFEST_APP_URL'),
     auth: CWL_ENABLED ? 'cwl' : 'none',
+    ai: AI_ENABLED,
     database: required('MONGODB_DB_NAME'),
   })
 })

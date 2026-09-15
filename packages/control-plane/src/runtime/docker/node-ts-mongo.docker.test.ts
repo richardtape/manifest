@@ -242,6 +242,11 @@ describeDocker('node-ts-mongo@1 builds, deploys and authenticates (Task 12)', ()
       url: `https://${HOST}`,
       auth: 'cwl',
       database: CREDENTIALS.database,
+      // P4b Task 10: `server.js` imports the AI component for EVERY app, so a boot
+      // at all is the evidence that the toolkit links on the image's Node from the
+      // mirror's closure. `false`, because this deploy declared no models and was
+      // injected no AI rows — the platform's signal, not a manifest read.
+      ai: false,
     })
   }, 300_000)
 

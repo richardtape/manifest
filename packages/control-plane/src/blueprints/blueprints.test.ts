@@ -1,5 +1,6 @@
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { readdir, readFile } from 'node:fs/promises'
+import { join, relative } from 'node:path'
+import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import {
   INJECTION_CONTRACT_VERSION,
@@ -165,10 +166,6 @@ describe('node-ts-mongo@1 (P4a Task 12)', () => {
     const d = (await load()).resolve('node-ts-mongo@1')
     expect(d?.provides.auth_providers).toContain('cwl')
     expect(d?.provides.services).toContain('mongo')
-    // Decision 12: false until P4b's AI wiring exists, so a spec declaring
-    // ai.models is refused with §25's clear message rather than deployed with
-    // no key. renderInjection refuses the same declaration from the other side.
-    expect(d?.provides.ai).toBe(false)
     expect(d?.injection.contract).toBe(INJECTION_CONTRACT_VERSION)
   })
 
@@ -193,5 +190,176 @@ describe('node-ts-mongo@1 (P4a Task 12)', () => {
       ),
     ) as { dependencies?: Record<string, string> }
     expect(pkg.dependencies).toEqual(d.pinned_dependencies)
+  })
+})
+
+/** Every `.js` file under a directory, recursively — `ai/` and `auth/` included. */
+async function sourcesUnder(dir: string): Promise<string[]> {
+  const out: string[] = []
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) out.push(...(await sourcesUnder(full)))
+    else if (entry.name.endsWith('.js')) out.push(full)
+  }
+  return out
+}
+
+/** The toolkit's chat entry points: every one of them sends a `user` to LiteLLM. */
+const CHAT_METHODS = new Set([
+  'sendMessage',
+  'sendConversation',
+  'sendStructuredConversation',
+  'streamConversation',
+])
+
+/** Whether any object-literal argument of `call` has `key` set to a value `ok` accepts. */
+function hasOption(
+  call: ts.CallExpression,
+  key: string,
+  ok: (value: ts.Expression) => boolean,
+): boolean {
+  return call.arguments.some(
+    (arg) =>
+      ts.isObjectLiteralExpression(arg) &&
+      arg.properties.some(
+        (property) =>
+          ts.isPropertyAssignment(property) &&
+          (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) &&
+          property.name.text === key &&
+          ok(property.initializer),
+      ),
+  )
+}
+
+/**
+ * P4b Task 10: the AI half. §20's security multiplier again — S3's two AI findings
+ * are both SILENT, so they are closed once, in the blueprint's code, rather than left
+ * as knowledge-pack advice. `ai-component.test.ts` runs that code against a gateway;
+ * this file holds the descriptor and the SOURCE to it.
+ */
+describe("node-ts-mongo@1's AI half (P4b Task 10)", () => {
+  const BLUEPRINTS = new URL('../../../../blueprints/', import.meta.url).pathname
+
+  it('supports ai, and pins the toolkit to the version §16’s AI-path tier runs', async () => {
+    const d = (await loadBlueprints(BLUEPRINTS)).resolve('node-ts-mongo@1')!
+    // Flipped from false by P4b. ADDITIVE (P4a Decision 12): it permits more, so no
+    // app breaks and it is not a major-version bump.
+    expect(d.provides.ai).toBe(true)
+    // C6/D30: exact, never a range — a caret would let the contract drift under the
+    // test that exists to catch drift. `descriptorSchema` refuses ranges already.
+    expect(d.pinned_dependencies).toMatchObject({ 'ubc-genai-toolkit-llm': '0.7.0' })
+
+    // THE OTHER SIDE of a comparison Task 3 could only make one-sidedly, because the
+    // blueprint had no AI half then. §16's AI-path tier and `ai-component.test.ts`
+    // both run the control plane's devDependency; if it and the blueprint's pin
+    // diverge, both assert the behaviour of a version no application installs.
+    const installed = JSON.parse(
+      await readFile(new URL('../../package.json', import.meta.url), 'utf8'),
+    ) as { devDependencies: Record<string, string> }
+    expect(installed.devDependencies['ubc-genai-toolkit-llm']).toBe(
+      d.pinned_dependencies?.['ubc-genai-toolkit-llm'],
+    )
+  })
+
+  it('accepts a manifest that declares models — the check the build route runs', async () => {
+    // `checkBlueprintCompatibility` is called from `api/routes/delivery.ts`, and until
+    // this task it refused `ai.models` for BOTH blueprints (P4b pre-flight 69): no app
+    // declaring a model could be built through the route at all.
+    const registry = await loadBlueprints(BLUEPRINTS)
+    const declaring = (blueprint: string) =>
+      manifestSchema.parse({
+        manifest: 1,
+        name: 'chem-labs',
+        blueprint,
+        runtime: { port: 3000 },
+        services: [{ type: 'mongo', version: '7', name: 'db' }],
+        ai: { models: ['default-chat', 'default-embed'] },
+      })
+    expect(
+      checkBlueprintCompatibility(
+        declaring('node-ts-mongo@1'),
+        registry.resolve('node-ts-mongo@1')!,
+      ),
+    ).toEqual([])
+    // And the flip is per blueprint: P2's fixture still has no AI half.
+    expect(
+      checkBlueprintCompatibility(
+        declaring('fixture-node@1'),
+        registry.resolve('fixture-node@1')!,
+      ).map((e) => e.code),
+    ).toEqual(['BLUEPRINT_AI_UNSUPPORTED'])
+  })
+
+  it('every toolkit call in the skeleton carries its obligation: floats on embed, the namespaced user on chat', async () => {
+    /**
+     * Read as SOURCE, parsed rather than grepped. S3's finding is that the WRONG call
+     * SUCCEEDS — 192 near-zero values instead of 768, no error — so a behavioural test
+     * catches the call it happens to make, and this catches the one somebody adds next
+     * year, in any file.
+     *
+     * PARSED, because the plan's regex form (count `.embed(`, count
+     * `encoding_format: 'float'`, compare) is satisfied by a COMMENT: one call without
+     * the option plus a comment quoting it gives two and two. Measured while writing
+     * this. The parse looks at each call's own arguments, so a comment is not a call
+     * and an option on the wrong call does not count.
+     *
+     * A property call only — `.embed(`, `.sendMessage(` — which is how the toolkit is
+     * reached. The blueprint's own `embed(texts)` is a plain call and is not the SDK.
+     */
+    const skeleton = join(BLUEPRINTS, 'node-ts-mongo/skeleton')
+    const embeds: string[] = []
+    const chats: string[] = []
+    const broken: string[] = []
+    for (const file of await sourcesUnder(skeleton)) {
+      const source = ts.createSourceFile(
+        file,
+        await readFile(file, 'utf8'),
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.JS,
+      )
+      const visit = (node: ts.Node): void => {
+        if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
+          const method = node.expression.name.text
+          const line = source.getLineAndCharacterOfPosition(node.getStart()).line + 1
+          const where = `${relative(skeleton, file)}:${line} .${method}()`
+          if (method === 'embed') {
+            embeds.push(where)
+            if (
+              !hasOption(
+                node,
+                'encoding_format',
+                (v) => ts.isStringLiteral(v) && v.text === 'float',
+              )
+            ) {
+              broken.push(`${where} without encoding_format: 'float'`)
+            }
+          }
+          if (CHAT_METHODS.has(method)) {
+            chats.push(where)
+            // S3 Evidence 6: the `user` must be §10's namespaced id, never a PUID or
+            // a bare hash of one — so the value must be a call to `endUserId`.
+            if (
+              !hasOption(
+                node,
+                'user',
+                (v) =>
+                  ts.isCallExpression(v) &&
+                  ts.isIdentifier(v.expression) &&
+                  v.expression.text === 'endUserId',
+              )
+            ) {
+              broken.push(`${where} without user: endUserId(…)`)
+            }
+          }
+        }
+        ts.forEachChild(node, visit)
+      }
+      visit(source)
+    }
+    // Both lists non-empty, or a skeleton with no AI component would pass vacuously.
+    expect(embeds.length, 'the skeleton makes no embed() call').toBeGreaterThan(0)
+    expect(chats.length, 'the skeleton makes no chat call').toBeGreaterThan(0)
+    expect(broken).toEqual([])
   })
 })

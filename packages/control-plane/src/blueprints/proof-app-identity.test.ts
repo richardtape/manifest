@@ -11,17 +11,31 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
  * fixture is app-side JavaScript that runs on Node 22 inside a container and is
  * deliberately outside this package's `rootDir`.
  *
- * WHY IT IS TESTED HERE AT ALL. P4b's `skeleton/ai/llm.js` will pass this exact
- * string to LiteLLM as the `user`, and S3 measured that LiteLLM keys an end-user
- * budget on it GLOBALLY rather than per key. If the two implementations disagree
- * by one byte, P4b either migrates every note this app has stored or locks a
- * student out of every Manifest application. The formula is fixed HERE, a plan
- * ahead of the code that consumes it, which is the point of computing it early.
+ * WHY IT IS TESTED HERE AT ALL. Since P4b Task 10, `node-ts-mongo@1`'s
+ * `skeleton/ai/end-user.js` passes this exact string to LiteLLM as the `user`, and
+ * S3 measured that LiteLLM keys an end-user budget on it GLOBALLY rather than per
+ * key. If the two implementations disagree by one byte, P4b either migrates every
+ * note this app has stored or locks a student out of every Manifest application.
+ * The formula was fixed HERE, a plan ahead of the code that consumes it.
  */
 const IDENTITY = new URL('../../../../fixtures/proof-app/identity.js', import.meta.url)
   .href
 
 const { endUserId } = (await import(IDENTITY)) as {
+  endUserId: (ubcEduCwlPuid: string) => string
+}
+
+/**
+ * The BLUEPRINT'S copy — the one LiteLLM receives. Two producers of one string until
+ * P4b Task 16 makes the proof app import the blueprint's (sitting 1's reconciliation,
+ * item 2), so until then they are held to each other, over every input that varies.
+ */
+const BLUEPRINT_END_USER = new URL(
+  '../../../../blueprints/node-ts-mongo/skeleton/ai/end-user.js',
+  import.meta.url,
+).href
+
+const blueprint = (await import(BLUEPRINT_END_USER)) as {
   endUserId: (ubcEduCwlPuid: string) => string
 }
 
@@ -85,5 +99,41 @@ describe('the proof app’s end-user identifier (§10)', () => {
     expect(() => endUserId('stu000001')).toThrow(/MANIFEST_PROJECT_SLUG/)
     process.env.MANIFEST_PROJECT_SLUG = SLUG
     expect(() => endUserId('')).toThrow(/PUID/)
+  })
+})
+
+describe("node-ts-mongo@1's end-user identifier is the proof app's, byte for byte (§10)", () => {
+  afterEach(() => {
+    delete process.env.MANIFEST_PROJECT_SLUG
+    delete process.env.MANIFEST_ENV
+  })
+
+  it('agrees for every person, project and environment', () => {
+    for (const slug of ['proof-app', 'other-app']) {
+      for (const env of ['sandbox', 'staging', 'production']) {
+        for (const puid of ['stu000001', 'ins000001']) {
+          process.env.MANIFEST_PROJECT_SLUG = slug
+          process.env.MANIFEST_ENV = env
+          expect(blueprint.endUserId(puid), `${puid} ${slug} ${env}`).toBe(
+            endUserId(puid),
+          )
+          // And against the formula written out, so two copies that drifted TOGETHER
+          // are still caught.
+          expect(blueprint.endUserId(puid)).toBe(
+            createHash('sha256').update(`${puid} ${slug} ${env}`).digest('hex'),
+          )
+        }
+      }
+    }
+  })
+
+  it('refuses a partial identifier exactly as the proof app does', () => {
+    process.env.MANIFEST_PROJECT_SLUG = SLUG
+    expect(() => blueprint.endUserId('stu000001')).toThrow(/MANIFEST_ENV/)
+    process.env.MANIFEST_ENV = ENV
+    delete process.env.MANIFEST_PROJECT_SLUG
+    expect(() => blueprint.endUserId('stu000001')).toThrow(/MANIFEST_PROJECT_SLUG/)
+    process.env.MANIFEST_PROJECT_SLUG = SLUG
+    expect(() => blueprint.endUserId('')).toThrow(/PUID/)
   })
 })

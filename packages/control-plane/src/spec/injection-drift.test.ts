@@ -146,14 +146,24 @@ services:
 auth:
   provider: cwl
   attributes: [ubcEduCwlPuid, mail]
+ai:
+  models: [default-chat, default-embed]
 `
 
 /**
- * A CWL app with a mongo service, in STAGING.
+ * A CWL app with a mongo service AND a model of each kind, in STAGING.
  *
  * Staging deliberately: it is the kind where every row §8 marks required is
  * present. Sandbox omits `SAML_PRIVATE_KEY_PATH`, which §8 itself marks optional
  * there, so rendering sandbox would report that row as drift.
+ *
+ * Both model kinds, for the same reason (P4b Task 10). `LLM_DEFAULT_MODEL` is
+ * rendered only for a chat model and the two `EMBEDDINGS_*` rows only for an
+ * embedding model, so a context with one kind would report the other's reads as
+ * variables nothing injects — and a context with NO models would report all six.
+ * That redness is the tier working: fix the context, never the expectation. The
+ * key, endpoint and names are what `deployRelease` resolves; `ai-component.test.ts`
+ * proves the blueprint copes when one kind is absent.
  */
 function fullContext(kind: EnvironmentKind = 'staging'): InjectionContext {
   const spec = manifestSchema.parse(parse(yaml))
@@ -181,6 +191,12 @@ function fullContext(kind: EnvironmentKind = 'staging'): InjectionContext {
     services: [
       { type: 'mongo', endpoint: 'mongodb://app:pw@mf-svc-db:27017/chem_labs_staging' },
     ],
+    ai: {
+      endpoint: 'http://manifest-litellm:4000/v1',
+      apiKey: 'sk-minted-for-this-deploy',
+      defaultChatModel: 'default-chat',
+      embeddingModel: 'default-embed',
+    },
   }
 }
 

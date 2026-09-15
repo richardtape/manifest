@@ -5,7 +5,8 @@ what you need to know about the platform; it is served over the Manifest API
 (D25) alongside the blueprint itself.
 
 **The stack is fixed.** Node 22 on Alpine, Express 4, `express-session`,
-Passport with `passport-ubcshib`, and MongoDB. Every version is pinned exactly in
+Passport with `passport-ubcshib`, MongoDB, and `ubc-genai-toolkit-llm` for model
+access. Every version is pinned exactly in
 `blueprint.yaml`'s `pinned_dependencies` and in `skeleton/package.json`, and the
 two must agree — a test asserts it. Adding a dependency means adding it to
 `package.json` **and** committing the regenerated `package-lock.json`: the build
@@ -102,6 +103,9 @@ Manifest injects these; you read them and never default them. The full table is
 | `MONGODB_URI`, `MONGODB_DB_NAME` | when you declare a `mongo` service |
 | `SAML_ENVIRONMENT`, `SAML_ISSUER`, `SAML_CALLBACK_URL`, `SAML_ENTRY_POINT`, `SAML_LOGOUT_URL`, `SAML_IDP_METADATA_URL`, `SAML_IDP_CERT_PATH` | when `auth.provider: cwl` |
 | `SAML_PRIVATE_KEY_PATH` | `cwl`, in staging and production only |
+| `LLM_PROVIDER`, `LLM_ENDPOINT`, `LLM_API_KEY` | when you declare `ai.models` |
+| `LLM_DEFAULT_MODEL` | when `ai.models` includes a chat model |
+| `EMBEDDINGS_PROVIDER`, `EMBEDDINGS_MODEL` | when `ai.models` includes an embedding model |
 
 **`PORT` is the platform's, not yours.** Listen on it. An app that hardcodes 3000
 is unreachable behind a 502 while its container reports healthy.
@@ -140,11 +144,51 @@ env:
 database, and an app that declares none fails its first boot with a message
 saying so.
 
-**`ai:` is not available on this blueprint yet.** `provides.ai` is `false`, so a
-spec declaring `ai.models` is refused at validation with a message naming the
-blueprint. That is deliberate — the platform has no model access to give you
-until it does, and an application that starts without a key is a support ticket
-rather than an error.
+`ai:` is optional — see *AI* below.
+
+---
+
+## AI: call `skeleton/ai/llm.js`, never the toolkit directly
+
+Declare the models you need by **logical name**. The platform mints each deployment
+a key confined to exactly those models and injects §8's AI rows:
+
+```yaml
+ai:
+  models: [default-chat, default-embed]
+  budget:
+    project_monthly_usd: 20
+```
+
+Then call the blueprint's functions from `ai/llm.js`: `ask(question, puid)`,
+`askStreaming(question, puid, onChunk)` and `embed(texts)`. `server.js` already
+calls `configureAi()` at startup for an app with models, so a missing variable fails
+the first boot rather than a person's first question.
+
+**Three things never to do. Each one fails silently.**
+
+1. **Never call the toolkit's `embed()` yourself.** Without `encoding_format:
+   'float'` it returns 192 near-zero numbers where 768 belong — no error, and every
+   other check you write still passes. The blueprint's `embed()` sets it, and a test
+   parses every toolkit call in the skeleton and refuses one that does not.
+2. **Never pass a PUID, or your own hash of one, as the `user`.** Use `endUserId()`,
+   which namespaces it with the project and the environment. LiteLLM keys a person's
+   budget on that string across *every* application, so a bare hash lets one course
+   tool's spent allowance refuse the same student everywhere else.
+3. **Never put a vendor model id in `ai.models`** — logical names only. A model
+   approved below your app's `data.classification` is refused when the manifest is
+   validated, not while a student is using the app.
+
+**The budget.** Set `ai.budget.project_monthly_usd`, or leave it out and the
+project's AI quota is used. **Never write `0`**: a zero budget refuses every request,
+so it is refused at validation.
+
+**Declare only the kinds you use.** An app with only an embedding model has no chat
+model, and `ask()` refuses — naming `ai.models` — rather than sending a request that
+is certain to be denied. The same holds the other way round for `embed()`.
+
+**A thinking model streams no text at all.** `onChunk` is never called and the
+answer is empty, with no error. Treat an empty answer as a failure.
 
 ---
 

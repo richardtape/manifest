@@ -8,7 +8,8 @@
     "express-session": "1.19.0",
     "mongodb": "6.12.0",
     "passport": "0.7.0",
-    "passport-ubcshib": "0.1.6"
+    "passport-ubcshib": "0.1.6",
+    "ubc-genai-toolkit-llm": "0.7.0"
   },
   "overrides": {
     "@xmldom/xmldom": "0.8.15"

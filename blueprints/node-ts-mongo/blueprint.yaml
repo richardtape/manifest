@@ -42,13 +42,11 @@ provides:
   # lesser path: the skeleton starts, serves and reaches Mongo with no SAML
   # variables injected at all.
   auth_providers: [cwl, none]
-  # FALSE until P4b's AI wiring exists (Decision 12). A spec declaring ai.models
-  # is then refused by checkBlueprintCompatibility with §25's clear message
-  # rather than deployed with no key — and renderInjection refuses the same
-  # declaration from the other side, so flipping this without doing the work
-  # fails immediately instead of injecting nothing. P4b flips it, and that is
+  # TRUE since P4b Task 10, which wrote skeleton/ai/llm.js. It was false until
+  # then (P4a Decision 12), so a spec declaring ai.models was refused by
+  # checkBlueprintCompatibility rather than deployed with no key. The flip is
   # ADDITIVE: it permits more, so no app breaks and it is not a major bump.
-  ai: false
+  ai: true
 
 defaults:
   resources:
@@ -82,3 +80,10 @@ pinned_dependencies:
   passport: 0.7.0
   passport-ubcshib: 0.1.6
   mongodb: 6.12.0
+  # P4b Task 10. The SAME version the control plane's devDependency pins, which
+  # §16's AI-path tier and ai-component.test.ts run — a test holds the two equal.
+  # Its closure carries @anthropic-ai/sdk, ollama and openai, two provider SDKs
+  # this platform never uses, into every app's image and the mirror's warm set.
+  # Accepted (measured 2026-09-07): C6 says Manifest adapts to the toolkit rather
+  # than reshaping it.
+  ubc-genai-toolkit-llm: 0.7.0
