@@ -543,14 +543,14 @@ export async function deployRelease(
    * handle, the release and the failing check in hand.
    *
    * AFTER the row records `failed` and its handle, because the Incident reads both from
-   * the row. Redacted with the app's OWN secret set, read after every secret this deploy
-   * stored — service credentials, SESSION_SECRET, the SP key — so an app that prints
-   * its environment as it dies has none of them persisted.
+   * the row. Redacted with `redact`, built from the app's OWN secret set before the mint —
+   * by which point this deploy has stored every secret it stores, service credentials,
+   * SESSION_SECRET and the SP key — so an app that prints its environment as it dies has
+   * none of them persisted.
    *
    * A capture that fails reaches the caller. The row already says `failed`, so the
    * instance is recorded as what it is; a missing Incident is not swallowed.
-   */
-  /**
+   *
    * D23.2's instance state transition, recorded and streamed (P4b Task 15) — carrying
    * the STATE, because a deploy is a `200` whether it worked or not (sitting 8, finding
    * 146) and a client must never read "the call returned" as "the app is up".
