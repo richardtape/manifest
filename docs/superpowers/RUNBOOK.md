@@ -292,6 +292,15 @@ Caddy only when `ensure-alias.sh` itself added the alias would miss an alias add
   SKIPPED rather than failing when it is not — **and a skipped acceptance is not a
   passed one.** Everything else about Task 15 is evidenced, including a run from a
   `make reset` machine.
+- **A redeploy is not zero-downtime — every request to the app fails for a while.** *Read from
+  the driver 2026-09-14, not yet measured under load:* `DockerDriver.ensureInstance` moves the
+  edge route to the new container and only then waits for it to answer, so the app's hostname
+  answers 502 until the new container is up; and `applyRoute` deletes the route before re-adding
+  it. **Rich requires zero-downtime redeploys for the whole app — a plan of its own, not yet
+  written** (the roadmap's plan table). Until then, redeploy when nobody is using the app. **Do
+  not "clean up" an old instance through the driver's `destroyInstance`:** it removes the route by
+  hostname, which the live instance shares. The workaround in the next item uses `docker rm`
+  for exactly that reason.
 - **Every redeploy leaves the PREVIOUS release's container running.** *Measured
   2026-09-09:* eleven deploys of one app in one session produced eleven
   `mf-proof-app-staging-*-app` containers, all `Up` and healthy, each holding its full

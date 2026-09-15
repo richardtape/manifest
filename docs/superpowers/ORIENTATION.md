@@ -522,6 +522,10 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   the Caddyfile had. `docker restart manifest-litellm` applies it, in ~10 s. Measured 2026-09-14.
 - **`/key/delete` accepts the hashed `token` that `/user/info` reports**, so a key nobody saw —
   one `/user/new` auto-created — can still be removed. Measured 2026-09-14.
+- **LiteLLM checks a key when a request STARTS.** A streaming completion whose key was deleted 7 s
+  in ran on to a normal finish — 961 of its 1,003 characters after the delete — while a new request
+  with that key got 401. Measured 2026-09-14 on 1.98.0. Revoking a key cannot cut off a stream
+  already under way; it only refuses the next request.
 - **Most Ollama models on this machine are *thinking* models**, and that breaks
   streaming silently: zero content frames, no error, at any token budget.
 - **`node src/index.ts` does not work here**, even though Node 24 strips TypeScript
@@ -1523,10 +1527,11 @@ driver; Task 9's key is proved at the unit tier; Task 16 proves the whole path.
 
 1. **The pre-flight block at the top of Task 8** — seven corrections, including a probe whose
    positive control cannot fail and a negative control that cannot run as written.
-2. **The three blocks at the top of Task 9** — sitting 3's; sitting 4's, which says half of
-   Step 4's wiring already exists and names the decision below; and the pre-flight's eight
+2. **The four blocks at the top of Task 9** — sitting 3's; sitting 4's, which says half of
+   Step 4's wiring already exists and names the decision below; the pre-flight's eight
    corrections and a note — among them that `ResolvedConfig.ai` already exists with snake_case
-   fields, and that `deployRelease` is handed `DeployDeps`, never `ServerDeps`.
+   fields, and that `deployRelease` is handed `DeployDeps`, never `ServerDeps`; and Rich's
+   *DECIDED* block, which changes Task 7's committed key code and the Docker driver.
 3. The plan's *What executing this plan found*: sitting 4, then *Before sitting 5*.
 
 **THE ONE DECISION SITTING 5 HAS TO MAKE, AND RECORD: what `deployRelease` does with a release
@@ -1535,9 +1540,13 @@ release validated before the switch still exists and can be redeployed, and ther
 behind `deps.ai`. It must fail with a code that names the setting — never a `TypeError` on
 `undefined`, and never a render with an empty `LLM_API_KEY`.
 
-**And one thing to accept or change — and record which** (pre-flight 71): `rotateAppKey` revokes
-the previous key before the new container exists, so the live app's AI calls fail from the mint
-until the edge route moves to the new instance.
+**And one thing already decided, by Rich (2026-09-14): no live AI call may fail because a deploy
+revoked its key.** So Task 9 splits `rotateAppKey` into mint, commit and discard, commits the new
+key only after the instance is healthy, and makes the Docker driver replace a container whose
+environment changed — the block headed *DECIDED 2026-09-14* at the top of Task 9. **That is more
+work than sitting 5's table shows; if it will not fit one session, say so at the check-in and
+re-cut.** Making redeploys zero-downtime for the whole app is Rich's requirement too, but it is a
+plan of its own, later — §8.
 
 ```bash
 make up && make doctor && make verify                   # expect 18/0 and 47/0
@@ -1625,6 +1634,15 @@ Surface these; do not decide them.
   as proposed, with one fact added by execution, that a single unclassified catalogue
   entry refuses every project creation — and §7's zero-budget refusal, now
   `SPEC_AI_BUDGET_REQUIRED`. The wording is in P4b's *Spec actions proposed by this plan*.
+- **Zero-downtime redeploys — DECIDED 2026-09-14, Rich's call: required for the whole app, in a
+  plan of its own, later.** Measured the same day: every redeploy 502s the whole app while the new
+  container starts, because the driver moves the edge route before the container answers and
+  `applyRoute` deletes the route before it re-adds it; retiring an old instance through
+  `destroyInstance` would remove the live route; and LiteLLM checks a key only when a request
+  starts. **Still his to settle: where that plan goes in the order**, and the §11 wording it needs
+  (a spec action is recorded in P4b). Meanwhile P4b's Task 9 commits a new app key only after the
+  instance is healthy — also his call, the same day — so no live AI call fails because a deploy
+  revoked its key.
 - **SimpleSAMLphp's session store connects as the superuser `manifest`.** *Found
   2026-09-14, while wording the §21 change.* §9 says that store is a separate subsystem
   "with its own credentials"; `infra/idp/config/config.php` gives it `manifest`, the
