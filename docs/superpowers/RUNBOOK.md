@@ -308,9 +308,10 @@ bash -c 'set -euo pipefail; . infra/lib/common.sh; set -a; . ./.env; set +a; . /
 make verify    # "… pinned tarballs across every blueprint and fixture lockfile; 0 missing"
 ```
 
-**Not fixed.** Restarting Docker Desktop is the likely cure and is unverified. It restarts every
-container on the machine, including the four this project must never remove, so it is Rich's
-call rather than a script's.
+**Restarting Docker Desktop cleared it** (2026-09-14): afterwards the helper answered in under a
+second and `docker buildx imagetools inspect php:8.3-apache` in 1 s, and the platform came back with
+`make doctor` 18/0, `make verify` 47/0 and all four pre-existing containers present. A restart
+restarts every container on the machine, so it is a person's call rather than a script's.
 
 **Two things P4a Task 15 left open, both named rather than glossed.**
 

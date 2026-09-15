@@ -830,9 +830,10 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   hung the same way. Diagnose with
   `echo https://index.docker.io/v1/ | gtimeout 20 docker-credential-desktop get >/dev/null`
   (exit 124 is the hang). **Each hung call leaves a `docker-credential-desktop get` process
-  parented to launchd** — list and kill the ones your commands started. Not fixed:
-  restarting Docker Desktop is the likely remedy, unverified. It stops seed before step 4b's
-  npm warm, which does not need Docker Hub at all.
+  parented to launchd** — list and kill the ones your commands started. It stops seed before step 4b's npm warm,
+  which does not need Docker Hub at all. **Restarting Docker Desktop cleared it** (Rich,
+  2026-09-14): afterwards the helper answered in under a second, `docker buildx imagetools
+  inspect php:8.3-apache` in 1 s, and `make doctor` and `make verify` were 18/0 and 47/0.
 - **zsh expands a word beginning with `=`**, so `echo =====` fails with `==== not found` and
   **abandons the rest of the command**. Quote separators: `echo '-----'`. Measured 2026-09-14.
 - **A background command reports its LAST command's exit status.** `make seed > log;
@@ -1698,12 +1699,12 @@ Surface these; do not decide them.
   same superuser the control plane writes SP rows with. The metadata source is
   correctly `ssp_ro`. Not fixed, and not a spec action — the spec is right and the
   implementation is not.
-- **Restart Docker Desktop to clear a hung credential helper?** *Found 2026-09-14.*
-  `docker-credential-desktop get` hangs on this machine, and that stops `make seed` at step 2
-  (§4; RUNBOOK's *Known gaps*). Restarting Docker Desktop is the likely cure and is
-  unverified — and it restarts every container here, including the four that must survive.
-  **Nothing in P4b's remaining tasks needs it**: the ephemeral builder does not use the helper,
-  and seed's npm warm ran on its own. So it waits until he chooses to.
+- **The hung Docker credential helper — CLEARED 2026-09-14, by Rich restarting Docker Desktop.**
+  `docker-credential-desktop get` had hung and stopped `make seed` at step 2 (§4). Measured after
+  the restart: the helper answered in under a second, a Docker Hub metadata lookup in 1 s, all four
+  pre-existing containers were present, Caddy's host ports were published, and `make doctor` and
+  `make verify` were 18/0 and 47/0. `make seed` itself was not re-run, because it rebuilds the
+  platform images. **Do not re-raise.**
 - **Where the service-binding wire lands — SETTLED 2026-09-06, Rich's call: P3 Task
   15.** `deployRelease` now derives a `ServiceBinding` per entry in
   `resolved.services`, calls `ensureService`, and passes the handles through with
