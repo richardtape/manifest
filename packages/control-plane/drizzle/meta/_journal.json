@@ -50,6 +50,13 @@
       "when": 1789489136017,
       "tag": "0006_abandoned_morbius",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789492508451,
+      "tag": "0007_stormy_demogoblin",
+      "breakpoints": true
     }
   ]
 }

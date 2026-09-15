@@ -17,7 +17,7 @@ type Actor = 'owner' | 'collaborator' | 'stranger' | 'admin' | 'anonymous'
  * meant sending a valid assertion, which this suite cannot mint — and expecting
  * 401 would have made a body error indistinguishable from a refused login.
  */
-type Expectation = 'pass' | 400 | 403 | 404 | 401
+type Expectation = 'pass' | 400 | 403 | 404 | 401 | 426
 
 interface RouteCase {
   method: string
@@ -288,6 +288,26 @@ const ROUTES: RouteCase[] = [
       collaborator: 'pass',
       stranger: 404,
       admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  /**
+   * D23.2's event stream (P4b Task 14). A plain GET is what this suite can send, and the
+   * route answers it with the SAME authorization hook the upgrade goes through — so 426
+   * is the pass here, and it is spelled out rather than folded into `pass`: `pass` means
+   * below 400, and a 200 from an upgrade endpoint would mean the guard ran and the
+   * stream did not. That the upgrade itself is refused is `api/events.test.ts`'s, which
+   * needs a listening server.
+   */
+  {
+    method: 'GET',
+    url: '/projects/:projectId/events',
+    request: (f) => ({ url: `/projects/${f.projectId}/events` }),
+    expect: {
+      owner: 426,
+      collaborator: 426,
+      stranger: 404,
+      admin: 426,
       anonymous: 401,
     },
   },

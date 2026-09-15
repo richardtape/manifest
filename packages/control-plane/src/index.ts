@@ -9,6 +9,7 @@ import { createLocalSourceDriver } from './source/index.js'
 import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
 import { createServiceCredentials } from './services/index.js'
 import { createSamlSp } from './identity/index.js'
+import { createEventBus } from './observability/index.js'
 import {
   createAiKeyService,
   createCatalogueCache,
@@ -239,6 +240,10 @@ const app = await buildServer({
   sso,
   catalogue,
   ai,
+  // D23.2's fan-out: one bus for this process, which is every publisher and every
+  // socket there is. In-process by design — a second control-plane process would need
+  // Postgres LISTEN/NOTIFY, and `createEventBus` is the seam.
+  bus: createEventBus(),
   samlSp: createSamlSp({
     entity: spEntity,
     idpBaseUrl: config.idp.baseUrl,

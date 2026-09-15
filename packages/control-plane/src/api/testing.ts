@@ -21,6 +21,7 @@ import {
   type SpKeypair,
 } from '../sso/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
+import { createEventBus } from '../observability/index.js'
 import { mkdir, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -125,6 +126,8 @@ export async function testDeps(): Promise<ServerDeps> {
     // from the route. The unit tier has no LiteLLM; the Docker tier compares this
     // file with the live proxy's answer.
     catalogue: declaredCatalogue(),
+    // The REAL bus, one per server: a test subscribes to exactly what its routes publish.
+    bus: createEventBus(),
     // THROWS RATHER THAN MINTING, for the reason `sso` below does. Every app the API
     // suite deploys declares no model, so nothing here should ever reach the gateway —
     // and this tier has no LiteLLM to reach. `enabled: true` to match the catalogue

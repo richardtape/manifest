@@ -1,5 +1,8 @@
 import { readFileSync } from 'node:fs'
 import cookie from '@fastify/cookie'
+import websocket from '@fastify/websocket'
+import type { EventBus } from '../observability/index.js'
+import { registerEventRoutes } from './routes/events.js'
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify'
 import type { Db } from '../db/index.js'
 import type { Config } from '../config.js'
@@ -53,6 +56,12 @@ export interface ServerDeps {
    * `MANIFEST_AI_ENABLED=0`, and then every step refuses, naming the setting.
    */
   ai: AiKeyService
+  /**
+   * D23.2's per-project fan-out (P4b Task 14): `WS /projects/:projectId/events`
+   * subscribes to it. ONE bus per process, built at boot, so every publisher and every
+   * socket meet on the same instance.
+   */
+  bus: EventBus
 }
 
 declare module 'fastify' {
@@ -86,6 +95,9 @@ export function requireActor(request: FastifyRequest): Actor & { puid: string } 
 export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: false })
   await app.register(cookie)
+  // Before any route: its `onRoute` hook is what turns a route with a `wsHandler` into
+  // one that can upgrade, and a hook added after a route never sees that route.
+  await app.register(websocket)
 
   /**
    * Fastify does not parse `application/x-www-form-urlencoded` by default, and the
@@ -238,6 +250,7 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
   await registerAuthRoutes(app, deps)
   await registerProjectRoutes(app, deps)
   await registerDeliveryRoutes(app, deps)
+  await registerEventRoutes(app, deps)
 
   return app
 }

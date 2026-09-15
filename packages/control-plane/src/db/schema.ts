@@ -311,7 +311,15 @@ export const events = audit.table('events', {
   type: text('type').notNull(),
   machineDetail: jsonb('machine_detail').notNull(),
   humanMessage: text('human_message').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  /**
+   * `clock_timestamp()`, NOT `now()` (P4b Task 14, migration 0007). `now()` is the
+   * TRANSACTION's start time, so every event one transaction writes carried the same
+   * instant — and the stream's replay, ordered by this column, returned them in
+   * whatever order the index held. `clock_timestamp()` is the moment of the insert.
+   */
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .default(sql`clock_timestamp()`),
 })
 
 /**

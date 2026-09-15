@@ -8,6 +8,18 @@ export {
 } from './events.js'
 export { makeRedactor, REDACTED, type Redactor } from './redact.js'
 export {
+  MAX_BUFFERED_BYTES,
+  REPLAY_LIMIT,
+  STREAM_READY,
+  createEventBus,
+  eventFrame,
+  logFrame,
+  readyFrame,
+  recentFramesFor,
+  type EventBus,
+  type StreamFrame,
+} from './bus.js'
+export {
   appendBuildLog,
   createBuildLogWriter,
   readBuildLog,
