@@ -4,6 +4,10 @@ Everything here is verified. If a step does not behave as described, that is a b
 in the platform, not in your machine — `make doctor` first, then open an issue with
 its output.
 
+**Just want to see it working?** [`WALKTHROUGH.md`](WALKTHROUGH.md) is the one-page version:
+start it, deploy the demos, what to open in a browser and with which test users, and how
+to check it. This file is the full operator's manual behind it.
+
 ## First time
 
 ```bash

@@ -180,7 +180,8 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 |---|---|
 | **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
 | **executing a plan** | **No plan is waiting to be executed: P4b finished on 2026-09-15.** [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) — 16 tasks in **ten agreed sittings, one per session**; **all ten are done, 2026-09-15**, and their findings — numbered 1 to 194, the pre-flight reads' corrections among them — are in the plan's *What executing this plan found*. P4a itself is [`2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md) — 15 tasks, **all executed, 2026-09-09**, self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P4a's own *What executing this plan found* first — Sessions 1 to 9, 80 defects — and then P3's**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
-| **writing a plan** | ← **this is the current job: P4c — zero-downtime redeploys (Rich placed it straight after P4b, 2026-09-14) — starting at §7d-3; then P5.** The roadmap's P4c row is its brief. House style: `plans/2026-08-30-p1-local-substrate.md`, `2026-08-29-p2-control-plane-spine.md`, or either half of P4. |
+| **writing a plan** | ← **this is the current job: P4c — zero-downtime redeploys (Rich placed it straight after P4b, 2026-09-14) — starting from its brief, [`plans/2026-09-15-p4c-brief.md`](plans/2026-09-15-p4c-brief.md), and §7d-3; then P5.** The roadmap's P4c row is its brief. House style: `plans/2026-08-30-p1-local-substrate.md`, `2026-08-29-p2-control-plane-spine.md`, or either half of P4. |
+| **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. The short version of RUNBOOK. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
 | **writing code** | Seventeen modules exist: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/` (with `runtime/docker/`), `source/`, `identity/`, `projects/`, `releases/`, `api/`, P3's `services/`, `build/` and `routing/`, P4a's `secrets/`, `sso/` and `observability/`, and P4b's `ai/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else is built against them — then `runtime/docker/driver.ts`, which is the one implementation of that interface and where every P3 module meets; then `api/server.ts` for how a request becomes an actor, and `projects/authz.ts` for the one function every route's security depends on. **Then run `make demo` once**: it is the only thing that exercises all of it through the real HTTP surface, and it is where the last four sessions' worst defects were found. |
 | **changing the spec** | Don't, without asking. It is marked *Approved design*. Record the proposed change and Rich decides — that has been the pattern five times. |
@@ -191,6 +192,7 @@ docs/
 │                           (NOTE: docs/, not docs/superpowers/)
 docs/superpowers/
 ├── ORIENTATION.md          ← you are here
+├── WALKTHROUGH.md          RUN IT, SEE IT, CHECK IT — one page, browser included.
 ├── RUNBOOK.md              HOW TO RUN THE PLATFORM. Start here to use it.
 ├── specs/
 │   ├── 2026-08-29-manifest-platform-design.md    AUTHORITATIVE. 27 sections.
@@ -1034,6 +1036,7 @@ coherent. Follow them.
    | `ORIENTATION.md` | §2 and §7 by design — **including §2's numbers box, which is the one place this file states the four gate counts**; §4 whenever the machine changes; §8 when something becomes or stops being Rich's call |
    | `README.md` | The status section, and the *Where to start* table's "current job" row |
    | `RUNBOOK.md` | **Added to this list 2026-09-09, having been missed once.** Its *C1's acceptance* preamble restates the CURRENT `make doctor` / `make verify` totals beside the dated 2026-09-05 ones, so it drifts every time a check lands — and it is the document a new agent opens to run the platform |
+   | `WALKTHROUGH.md` | **Added 2026-09-15.** Its *What is built* status lines, and any URL, command, test user or demo that changes. It deliberately states no counts — keep it that way |
    | `CLAUDE.md` | The *State* paragraph |
    | `specs/manifest-schematic.html` | **Shared outside the team.** The `Status` line in the header, the footer, and the "no user interface has been built yet" disclaimers |
    | `specs/manifest-phases.html` | **Shared outside the team.** The spike section — how many have run, what they answered, where the remaining ones sit |
@@ -1673,6 +1676,12 @@ one database during the overlap means for faculty apps; how the edge treats in-f
 long streams across a route change; and retiring old instances. Write it with
 `superpowers:brainstorming` first — it changes an interface the spec defines, and the §11 wording
 is Rich's to approve.
+
+**READ [`plans/2026-09-15-p4c-brief.md`](plans/2026-09-15-p4c-brief.md) FIRST.** Written at the end
+of P4b for whoever writes P4c: the redeploy baseline measured under load (every redeploy is about a
+second of empty 502s and signs every user out), three ways of moving an edge route measured (only an
+in-place `PATCH` has no gap), a request in flight shown to survive a route move, the redeploy path traced
+through the code with file:line references, one option-shape, and the seven decisions that are Rich's.
 
 **Three more inputs from P4b's sitting 10**, measured on 2026-09-15 and recorded in its *What
 executing this plan found*: an AI app whose gateway vanishes from its network under a pooled

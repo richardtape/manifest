@@ -1,0 +1,107 @@
+===== p4c-caddy.sh — three route-move mechanisms, 20 moves each, a request every 25 ms (keep-alive client)
+create probe route: 200
+delete-then-put: admin calls not 200: 0
+patch whole route: admin calls not 200: 0
+patch dial only: admin calls not 200: 0
+remove probe route: 200; GET it now: 404
+delete-then-put: action took 7281 ms; 320 requests in [start, end+1000 ms]: {"app":309,"error-UND_ERR_SOCKET":7,"wildcard":4}; non-app: first at +36 ms, last ended +6567 ms; slowest 25 ms
+patch-route: action took 6837 ms; 302 requests in [start, end+1000 ms]: {"app":300,"error-UND_ERR_SOCKET":2}; non-app: first at +1390 ms, last ended +2415 ms; slowest 38 ms
+patch-dial: action took 6804 ms; 301 requests in [start, end+1000 ms]: {"app":298,"error-UND_ERR_SOCKET":3}; non-app: first at +700 ms, last ended +3756 ms; slowest 21 ms
+
+===== CADDY CONTROLS
+create probe route: 200
+patch dial: admin calls not 200: 0
+remove probe route: 200; GET it now: 404
+--- keep-alive client (fetch):
+idle-no-config-change: action took 7060 ms; 312 requests in [start, end+1000 ms]: {"app":312}; non-app: none; slowest 8 ms
+patch-dial: action took 6748 ms; 299 requests in [start, end+1000 ms]: {"app":298,"error-UND_ERR_SOCKET":1}; non-app: first at +693 ms, last ended +695 ms; slowest 12 ms
+--- a new connection per request:
+idle-no-config-change: action took 7060 ms; 311 requests in [start, end+1000 ms]: {"app":311}; non-app: none; slowest 21 ms
+patch-dial: action took 6748 ms; 298 requests in [start, end+1000 ms]: {"app":297,"error-ECONNRESET":1}; non-app: first at +2690 ms, last ended +2698 ms; slowest 24 ms
+
+===== REDEPLOY BASELINE
+same-release deploy: healthy
+  pushed ebbf6be1934a386beebb881b6b65fb6d52e6f00e
+  valid; sensitive diff: {"sensitive":true,"fields":["services"]}
+new release 23fb8892-747c-4128-8a07-a677872524eb
+new-release deploy: healthy
+--- /healthz, by body (window tail 5 s):
+same-release-deploy: action took 5723 ms; 54 requests in [start, end+5000 ms]: {"app":47,"502-empty":7}; non-app: first at +428 ms, last ended +1634 ms; slowest 12 ms
+new-release-deploy: action took 5473 ms; 52 requests in [start, end+5000 ms]: {"app":46,"502-empty":6}; non-app: first at +411 ms, last ended +1417 ms; slowest 312 ms
+--- markers:
+{"name":"same-release-deploy-start","t":1789502771140}
+{"name":"same-release-deploy-end","t":1789502776863}
+{"name":"new-release-deploy-start","t":1789502818147}
+{"name":"new-release-deploy-end","t":1789502823620}
+--- asks (start end status code):
+1789502761116 1789502771358 status=200 code=- wildcard=0
+1789502771408 1789502771462 status=502 code=- wildcard=0
+1789502771493 1789502771573 status=502 code=- wildcard=0
+1789502771611 1789502771671 status=502 code=- wildcard=0
+1789502771708 1789502771763 status=502 code=- wildcard=0
+1789502771804 1789502771855 status=502 code=- wildcard=0
+1789502771895 1789502771947 status=502 code=- wildcard=0
+1789502771991 1789502772055 status=502 code=- wildcard=0
+1789502772097 1789502772147 status=502 code=- wildcard=0
+1789502772186 1789502772236 status=502 code=- wildcard=0
+1789502772277 1789502772321 status=502 code=- wildcard=0
+1789502772363 1789502772407 status=502 code=- wildcard=0
+1789502772440 1789502772496 status=502 code=- wildcard=0
+1789502772529 1789502772575 status=502 code=- wildcard=0
+1789502772608 1789502772649 status=502 code=- wildcard=0
+1789502772681 1789502772724 status=502 code=- wildcard=0
+1789502772756 1789502772799 status=502 code=- wildcard=0
+1789502772830 1789502772881 status=401 code=- wildcard=0
+1789502772911 the session was gone: signing in again
+1789502773201 1789502777032 status=200 code=- wildcard=0
+1789502777075 1789502780656 status=200 code=- wildcard=0
+1789502780702 1789502783939 status=200 code=- wildcard=0
+1789502783978 1789502787883 status=200 code=- wildcard=0
+1789502787928 1789502791163 status=200 code=- wildcard=0
+1789502791204 1789502794272 status=200 code=- wildcard=0
+1789502794305 1789502797533 status=200 code=- wildcard=0
+1789502797582 1789502800130 status=200 code=- wildcard=0
+1789502800166 1789502803506 status=200 code=- wildcard=0
+1789502803541 1789502807142 status=200 code=- wildcard=0
+1789502807181 1789502811629 status=200 code=- wildcard=0
+1789502811661 1789502814402 status=200 code=- wildcard=0
+1789502814449 1789502818666 status=200 code=- wildcard=0
+1789502818710 1789502818777 status=502 code=- wildcard=0
+1789502818824 1789502818881 status=502 code=- wildcard=0
+1789502818924 1789502818984 status=502 code=- wildcard=0
+1789502819025 1789502819095 status=502 code=- wildcard=0
+1789502819132 1789502819181 status=502 code=- wildcard=0
+1789502819233 1789502819284 status=502 code=- wildcard=0
+1789502819318 1789502819364 status=502 code=- wildcard=0
+1789502819398 1789502819453 status=502 code=- wildcard=0
+1789502819487 1789502819531 status=502 code=- wildcard=0
+1789502819565 1789502819605 status=502 code=- wildcard=0
+1789502819636 1789502819678 status=502 code=- wildcard=0
+1789502819711 1789502819757 status=502 code=- wildcard=0
+1789502819788 1789502819838 status=401 code=- wildcard=0
+1789502819880 the session was gone: signing in again
+1789502820501 1789502823630 status=200 code=- wildcard=0
+1789502823682 1789502826804 status=200 code=- wildcard=0
+1789502826840 1789502830052 status=200 code=- wildcard=0
+1789502830096 1789502833588 status=200 code=- wildcard=0
+1789502833634 1789502837239 status=200 code=- wildcard=0
+1789502837282 1789502840962 status=200 code=- wildcard=0
+--- proof-app containers now:
+mf-proof-app-staging-23fb8892-app	Up 22 seconds (healthy)
+mf-proof-app-staging-392ff4ae-app	Up About a minute (healthy)
+mf-proof-app-staging-4b26692f-app	Up 44 minutes (healthy)
+mf-proof-app-staging-egress	Up 45 minutes
+mf-proof-app-staging-db	Up 45 minutes (healthy)
+
+===== p4c-inflight.sh — a signed-in question in flight while the route moves (moved 1 s in)
+A (holds the session) = mf-proof-app-staging-23fb8892-app:3000   B = mf-proof-app-staging-392ff4ae-app:3000
+control, no move [no move]: 200 3.014349s
+patch 1 [PATCH dial -> B: 200]: 200 3.251399s
+   a NEW request now, on B, with the same session cookie: 401
+patch 2 [PATCH dial -> B: 200]: 200 4.192928s
+   a NEW request now, on B, with the same session cookie: 401
+patch 3 [PATCH dial -> B: 200]: 200 4.251180s
+   a NEW request now, on B, with the same session cookie: 401
+delete-then-put [DELETE 200, PUT -> B 200]: 200 4.140342s
+   a NEW request now, on B, with the same session cookie: 401
+remove probe route: 200; GET it now: 404

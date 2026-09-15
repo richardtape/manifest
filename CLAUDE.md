@@ -10,8 +10,9 @@ plan queue, and the conventions below in full. Everything here is the short vers
 **P1 is executed and green (2026-09-05). The platform runs.**
 `make seed && make host-setup && make up` brings up the whole §21 inventory;
 `make doctor` is now **18 checks / 0 failed** and `make verify` **47 / 0**,
-and both were green offline when P1 was executed. Start from [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md),
-not the plan. The three host changes are in place and all reverse with
+and both were green offline when P1 was executed. To see it run end to end, start from
+[`docs/superpowers/WALKTHROUGH.md`](docs/superpowers/WALKTHROUGH.md); to operate it,
+[`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md) — not the plan. The three host changes are in place and all reverse with
 `make host-undo`. **Untested: the second-machine clean clone** — no second Mac was
 available; it is recorded in the runbook's *Known gaps*, not quietly dropped.
 
@@ -50,7 +51,8 @@ of it was green in a suite of 74 passing Docker tests.**
 
 **P4a is EXECUTED AND GREEN: all 15 tasks (2026-09-09). P4b is EXECUTED AND GREEN —
 all 16 tasks, in ten sittings, finished 2026-09-15; P4C — zero-downtime redeploys — IS
-NEXT AND UNWRITTEN** — ORIENTATION §7d-3. P4a's last twelve
+NEXT AND UNWRITTEN** — ORIENTATION §7d-3, and its brief,
+`docs/superpowers/plans/2026-09-15-p4c-brief.md`, which measured the redeploy baseline. P4a's last twelve
 tasks ran in **seven agreed SITTINGS, one per session with a check-in at each
 boundary**, so a session limit could not land mid-task; all seven are done, and **P4b
 is split the same way into TEN sittings** (Rich, 2026-09-09) — the table is at the top
