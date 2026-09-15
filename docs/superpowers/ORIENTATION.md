@@ -1572,7 +1572,7 @@ is at the top of Task 7. **Sitting 3 — Tasks 4 and 5 — is done too (2026-09-
 1. **Keep the builder's throwaway `DOCKER_CONFIG` when `execFile` becomes `spawn`.** `runBuildxBuild` passes `{ ...process.env, DOCKER_CONFIG: configDir }`, and that config holds the scoped registry token the build pushes with and no `credsStore`. Task 11's Step 3 writes `spawn(command, args, { env })` without saying what `env` is; passing `process.env` drops the token and brings in the developer's `credsStore: desktop` — the credential helper that hung here and stopped `make seed` at step 2 (§4). The note is at the top of Task 11.
 2. **This agent's shell misleads in three measured ways** (§4): `grep` is a `ugrep` function that reads `$` as an anchor, zsh expands a word beginning with `=`, and a background command reports its LAST command's exit status. Each one silently skipped or misreported a step in sitting 6.
 
-**A pre-flight read of Tasks 11 and 12 has been done (2026-09-14): 18 corrections, at the top of each task.** The four that change the most: **Task 12's rules as printed fail two of its own tests and redact every image digest, commit SHA and module path in a real BuildKit log** (114, 115); **they would also redact the entity IDs and ACS URLs SSO registration persists**, which two Docker tests catch and a unit-only run does not (116); **Task 11's migration names an applied migration** — it is a new 0005 (101); and **`startBuild` holds no secret to redact with** — the registry JWT lives inside the Docker driver, which must redact its own token (105). **The decision sitting 7 must make** is 115: what Task 12's entropy rule may treat as a candidate, or whether it ships.
+**A pre-flight read of Tasks 11 and 12 has been done (2026-09-14): 18 corrections, at the top of each task.** The four that change the most: **Task 12's rules as printed fail two of its own tests and redact every image digest, commit SHA and module path in a real BuildKit log** (114, 115); **they would also redact the entity IDs and ACS URLs SSO registration persists**, which two Docker tests catch and a unit-only run does not (116); **Task 11's migration names an applied migration** — it is a new 0005 (101); and **`startBuild` holds no secret to redact with** — the registry JWT lives inside the Docker driver, which must redact its own token (105). **Rich settled 115 the same evening: the recommended entropy rule, refined by measurement** — the exact rule, what it gives up and what it keeps are at the top of Task 12, so sitting 7 has no decision left to make.
 
 **Still not proved end to end, and not Tasks 11–12's to prove:** no app that declares models has been deployed and asked a question. That is Task 16's.
 
@@ -1705,6 +1705,14 @@ Surface these; do not decide them.
   pre-existing containers were present, Caddy's host ports were published, and `make doctor` and
   `make verify` were 18/0 and 47/0. `make seed` itself was not re-run, because it rebuilds the
   platform images. **Do not re-raise.**
+- **What Task 12's entropy rule may redact — SETTLED 2026-09-14, Rich's call: the pre-flight's
+  recommendation, refined by measurement.** A digest or integrity value is one token and is never
+  redacted; `/`, `.`, `:` and an interior `=` end a token; a candidate needs 24+ characters, upper
+  case, lower case and a digit, is neither hex nor a UUID, and has entropy above 3.0. Measured: it
+  redacts 88–100% of random base64, base64url and base62 secrets and no hex — the platform's own
+  secrets are hex and exact-matched from each app's secret set — and alters nothing in real build
+  logs, ORIENTATION, RUNBOOK or the spec. The rule is at the top of P4b's Task 12. **Do not
+  re-raise.**
 - **Where the service-binding wire lands — SETTLED 2026-09-06, Rich's call: P3 Task
   15.** `deployRelease` now derives a `ServiceBinding` per entry in
   `resolved.services`, calls `ensureService`, and passes the handles through with

@@ -2411,7 +2411,41 @@ Expected: `releases/build.ts` and `api/routes/delivery.ts`.
 **CORRECTIONS FROM A PRE-FLIGHT READ (2026-09-14) — five, four of them measured by running Step 3's rules exactly as printed (numbers 114–118). Step 3 cannot ship as written. Read them before Step 1.**
 
 - **114 — Step 3's rules fail two of Step 1's seven tests.** The ordinary failing build log comes back as `node:[REDACTED]:1364:14` — `internal/modules/cjs/loader` is 27 characters with entropy above 3.0, because `/` is in `CANDIDATE`'s class — and the control word `antidisestablishmentarianism` (28 characters, entropy 3.34) is redacted. The fix is a redesign of what counts as a candidate, not a threshold nudged until these two samples pass.
-- **115 — Against REAL output the entropy rule eats what makes a log diagnosable. THIS IS THE DECISION SITTING 7 MUST MAKE.** It altered 21 of 138 lines of a real BuildKit run (sitting 6's `make seed` log): every `sha256:` layer, manifest and config digest. On constructed samples it also redacts an image reference's `@sha256:` digest — what §13 binds an approval to — a 40-hex commit SHA, a UUID, a container name (`mf-proof-app-staging-1b83e8f0-app`), an npm `sha512-` integrity value, and a module path (`app/node_modules/ubc-genai-toolkit-llm/dist/index`). Step 1's "ordinary failing build log" contains none of those shapes, which is why it looked safe. Recommended: put real BuildKit and npm lines into that test; exclude runs containing `/`, pure-hex runs (digests and commit SHAs are identifiers, and an app's hex secrets are exact-matched from its secret set), UUIDs, and `sha256:`/`sha512-`-prefixed values. *Alternative:* ship the patterns alone and record against §14 that the entropy clause is unimplemented.
+- **115 — Against REAL output the entropy rule eats what makes a log diagnosable.** It altered 21 of 138 lines of a real BuildKit run (sitting 6's `make seed` log): every `sha256:` layer, manifest and config digest. On constructed samples it also redacts an image reference's `@sha256:` digest — what §13 binds an approval to — a 40-hex commit SHA, a UUID, a container name (`mf-proof-app-staging-1b83e8f0-app`), an npm `sha512-` integrity value, and a module path (`app/node_modules/ubc-genai-toolkit-llm/dist/index`). Step 1's "ordinary failing build log" contains none of those shapes, which is why it looked safe.
+
+  **DECIDED — Rich, 2026-09-14: the pre-flight's recommendation, refined by measurement. It REPLACES Step 3's `CANDIDATE` and entropy rule; the five patterns stay as printed and run first.** The recommendation as first written — exclude `/`-runs, pure hex, UUIDs and digest prefixes — was measured before it was adopted, and it still failed Step 1's word control, redacted a container name, `ERR_PNPM_OUTDATED_LOCKFILE` and `SOURCE_DATE_EPOCH=…`, and altered 130 lines of this repository's own documents. Two refinements closed every one, measured in Node so the regex semantics are JavaScript's:
+
+  ```ts
+  /**
+   * A digest or integrity value is ONE token, slashes included, and is never a
+   * secret: it is an identifier, and §13 binds approvals to it. Otherwise a token is
+   * a run of [A-Za-z0-9+_-] with at most two trailing '=' (base64 padding) — so '/',
+   * '.', ':' and an INTERIOR '=' all end a token. That keeps a path, a hostname and
+   * the NAME in NAME=value out of the candidate set, and leaves only the value to judge.
+   */
+  const TOKEN = /sha(?:1|256|384|512)[:-][A-Za-z0-9+/=]+|[A-Za-z0-9+_-]+={0,2}/g
+
+  /**
+   * Secret-shaped: 24+ characters without padding; upper case AND lower case AND a
+   * digit — random base64 and base62 have all three, while words, paths, container
+   * names, SCREAMING_SNAKE codes and hex do not; not hex and not a UUID; and Shannon
+   * entropy above 3.0 bits per character. `[REDACTED]` is 10 characters and can never
+   * be a candidate, which is what makes a second pass a no-op.
+   */
+  function secretShaped(token: string): boolean {
+    if (/^sha(?:1|256|384|512)[:-]/.test(token)) return false
+    const run = token.replace(/=+$/, '')
+    if (run.length < 24) return false
+    if (!(/[A-Z]/.test(run) && /[a-z]/.test(run) && /[0-9]/.test(run))) return false
+    if (/^[0-9a-f]+$/i.test(run) || UUID.test(run)) return false
+    return shannonEntropy(run) > 3.0
+  }
+  // after the patterns: text.replace(TOKEN, (t) => (secretShaped(t) ? REDACTED : t))
+  ```
+
+  **What it gives up**, on 1,000 random values of each shape: it redacts 88% of 44-character base64 (32 random bytes), 67% of 24-character base64, 99.7% of 40-character base62 and 100% of base64url — **and 0% of hex, by design.** Every secret the platform generates is hex (`secrets/store.ts`, `config.ts`) and sits in its app's secret set, so the exact-match half redacts it; §14 already says heuristics miss things. **What it keeps**: 0 lines altered across sitting 6's two seed logs, both Docker-tier logs, ORIENTATION, RUNBOOK and the spec; 0 of 16 constructed samples — digests, both slashed `sha512-` values, a commit SHA, upper- and lower-case UUIDs, a container name, module and mixed-case paths, SSO's entity ID and ACS URL, three `NAME=value` assignments and a GHSA id; and in P4a's and P4b's plans only the example credentials their own tests quote (`hunter2`, `s3cr3tP4ss`, the `sk-`, bearer, JWT, PEM and canary samples), every one through the five patterns. Step 1's seven tests pass, and a second pass is a no-op.
+
+  **Step 1 changes with it.** The high-entropy positive must be mixed-case base64 — `token Zq8Lr2Vx9Tn4Wm7Ks1Hd6Pg3Jb5Yc0Fe` is redacted, while the pure hex Step 1 prints is now correctly KEPT; add that `API_TOKEN=Zq8Lr2Vx9Tn4Wm7Ks1Hd6Pg3Jb5Yc0Fe` becomes `API_TOKEN=[REDACTED]`; and put real lines into the diagnosability test — a BuildKit `exporting manifest sha256:…` line, a `FROM …@sha256:…` line, an npm `"integrity": "sha512-…/…=="` line, `SOURCE_DATE_EPOCH=…`, a container name and SSO's entity ID and ACS URL — so the property is held against the shapes real logs carry, not only the five lines Step 1 prints. 118's controls are then re-predicted against this rule.
 - **116 — It changes what SSO registration persists, and two DOCKER tests catch it.** `sso/registration.ts` is `makeRedactor`'s only production caller. Under Step 3's rules `https://manifest.internal/sp/chem-labs/staging` becomes `https://manifest.[REDACTED]`, and an ACS URL loses everything after `manifest.` — so `sso.acs_changed`'s `from` and `to`, which §9 alerts on, both read `[REDACTED]`. `registration.docker.test.ts:152` and `deploy-sso.docker.test.ts:199` go RED, and only in the Docker tier, which this task's *Files* block does not name: **Task 12 ends with `pnpm test:docker`.** The certificate fingerprint is safe — Node's `fingerprint256` is colon-separated.
 - **117 — `makeRedactor([])` never reaches a heuristic.** `if (needles.length === 0) return (value) => value` returns before anything else, and every test in Step 1 builds its redactor that way. Remove the early return and run the heuristics inside `walk`'s string branch, so they apply at every depth of `machine_detail`. The existing *is a no-op when the app has no secrets yet* still passes on its input; its name stops being true.
 - **118 — Three of Step 5's four controls predict the wrong failure.** (a) A floor of 8 does not redact `ELIFECYCLE` (entropy 2.45) or `loader:1364:14` (`:` splits it); what goes RED is the URL host and `Authorization`. (b) Entropy before the URL rule does not eat the host — `:` and `@` break the run; what goes RED is the `sk-` key. (c) Deleting the PEM rule leaves the block entirely intact, not "the body with the armour gone". Re-predict each against the rules that ship, and run `pnpm exec vitest run --project unit src/observability/redact` for Step 2 rather than `pnpm test --` (finding 34).
@@ -3807,12 +3841,12 @@ complete. **Sitting 2 is Task 3, alone: §16's AI-path regression tier.**
 | 112 | Step 2's `pnpm test --` filter runs every file | Finding 34 |
 | 113 | The harness's two `TABLES` lists should name the new audit table | `vitest.global-setup.ts`, `db/testing.ts`; no production delete of a project or build |
 | 114 | Task 12's rules fail two of its own seven tests | The rules run as printed: `node:[REDACTED]:1364:14`; `antidisestablishmentarianism` entropy 3.34 |
-| 115 | The entropy rule redacts digests, SHAs, UUIDs, container names, integrity values and module paths | Sitting 6's seed logs: 21 of 138 and 20 of 137 lines altered; constructed samples |
+| 115 | The entropy rule redacts digests, SHAs, UUIDs, container names, integrity values and module paths — **decided by Rich the same evening: the measured refinement at the top of Task 12** | Sitting 6's seed logs: 21 of 138 and 20 of 137 lines altered; constructed samples |
 | 116 | It would redact SSO's persisted entity IDs and ACS URLs, and two Docker tests catch it | `sso/registration.ts`'s two events; `registration.docker.test.ts:152`, `deploy-sso.docker.test.ts:199` |
 | 117 | `makeRedactor([])` returns before any heuristic runs | `redact.ts`: `if (needles.length === 0) return (value) => value` |
 | 118 | Three of Task 12's four controls predict the wrong failure | The rules run with each mutation: (a) RED on URL and `Authorization`, (b) RED on the `sk-` key, (c) the PEM block untouched |
 
-**The decision sitting 7 must make:** 115 — what Task 12's entropy rule may treat as a candidate, or whether it ships at all. Recommended at the top of Task 12, with the alternative.
+**Decided the same evening, by Rich: 115 — the recommended entropy rule, refined by measurement.** The recommendation as first written was measured before it was adopted and still failed Step 1's word control and altered 130 lines of the repository's own documents; the refinement passed every corpus. The rule, what it gives up and what it keeps are at the top of Task 12, and sitting 7 has no decision left to make.
 
 **Checked, and not a correction:** `releases/` may import `observability/` through its `index` (the module-boundary test allows any module's public entry); the certificate fingerprint an SSO event stores is colon-separated and is never a candidate; nothing in production deletes a project or a build, so `audit.build_logs`'s `RESTRICT` blocks no current path.
 
