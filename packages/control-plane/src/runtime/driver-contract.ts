@@ -74,6 +74,7 @@ export function describeDriverContract(
       env: { MANIFEST_ENV: 'staging', PORT: '3000' },
       port: 3000,
       healthPath: '/healthz',
+      needsAiGateway: false,
       resources: { cpu: 0.5, memoryMi: 512, pids: 256, diskMi: 2048 },
       services: [],
       egressAllow: [],

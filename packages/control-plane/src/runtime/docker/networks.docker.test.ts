@@ -2,7 +2,12 @@ import { afterAll, beforeAll, expect, it } from 'vitest'
 import { createEngineClient, resolveSocketPath } from './engine.js'
 import { describeDocker } from './docker-tier.js'
 import { appNetwork } from './names.js'
-import { PLATFORM_NEIGHBOURS, destroyAppNetwork, ensureAppNetwork } from './networks.js'
+import {
+  AI_GATEWAY_NEIGHBOUR,
+  PLATFORM_NEIGHBOURS,
+  destroyAppNetwork,
+  ensureAppNetwork,
+} from './networks.js'
 
 const engine = createEngineClient({ socketPath: resolveSocketPath() })
 const SLUG = 'nettest'
@@ -43,6 +48,14 @@ const curlExit = (network: string, args: string[]): Promise<number> =>
 const hasDefaultRoute = (network: string): Promise<number> =>
   runExit(network, 'alpine:3.22', ['sh', '-c', 'ip route | grep -q default'])
 
+/** What the DAEMON says is attached — never what a call reported. */
+const attachedTo = async (network: string): Promise<string[]> => {
+  const net = await engine.get<{ Containers?: Record<string, { Name: string }> }>(
+    `/networks/${network}`,
+  )
+  return Object.values(net?.Containers ?? {}).map((c) => c.Name)
+}
+
 describeDocker('per-app networks and §12 east-west denials', () => {
   beforeAll(async () => {
     await ensureAppNetwork(engine, SLUG, KIND)
@@ -71,11 +84,36 @@ describeDocker('per-app networks and §12 east-west denials', () => {
   // renamed platform container produces app networks with no resolver and no edge,
   // silently, and the first symptom is an unexplainable DNS failure at Task 13.
   it('attaches the platform neighbours, and can tell when it did not', async () => {
-    const net = await engine.get<{ Containers?: Record<string, { Name: string }> }>(
-      `/networks/${appNetwork(SLUG, KIND)}`,
-    )
-    const attached = Object.values(net!.Containers ?? {}).map((c) => c.Name)
+    const attached = await attachedTo(appNetwork(SLUG, KIND))
     for (const neighbour of PLATFORM_NEIGHBOURS) expect(attached).toContain(neighbour)
+    // And NOT the model gateway: this network was ensured with no extras, which is
+    // every app that declares no models (P4b Task 8, Decision 5).
+    expect(attached).not.toContain(AI_GATEWAY_NEIGHBOUR)
+  })
+
+  /**
+   * THE TEARDOWN OF A CONDITIONAL NEIGHBOUR, against the daemon (P4b Task 8).
+   *
+   * `destroyAppNetwork` used to disconnect PLATFORM_NEIGHBOURS and nothing else, and
+   * `manifest-litellm` is not in that list. Its own network, so a failure here cannot
+   * strand the gateway on the network the denials below are measured from. The
+   * gateway must still be RUNNING afterwards: disconnecting it from an app network
+   * must not touch the platform network every other app reaches it on.
+   */
+  it('removes an app network the model gateway is attached to, and leaves the gateway running', async () => {
+    const slug = 'nettest-ai'
+    const name = appNetwork(slug, KIND)
+    await ensureAppNetwork(engine, slug, KIND, [AI_GATEWAY_NEIGHBOUR])
+    try {
+      expect(await attachedTo(name)).toContain(AI_GATEWAY_NEIGHBOUR)
+    } finally {
+      await destroyAppNetwork(engine, slug, KIND)
+    }
+    expect(await engine.get(`/networks/${name}`)).toBeUndefined()
+    const gateway = await engine.get<{ State: { Running: boolean } }>(
+      `/containers/${AI_GATEWAY_NEIGHBOUR}/json`,
+    )
+    expect(gateway!.State.Running).toBe(true)
   })
 
   /**

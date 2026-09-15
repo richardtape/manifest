@@ -386,6 +386,10 @@ export async function deployRelease(
     },
     services: serviceHandles,
     egressAllow: resolved.egressAllow,
+    // §10's gateway joins the app's network only for an app that declares models
+    // (P4b Task 8). `?.` because a release frozen before `ResolvedConfig.ai` existed
+    // has no `ai` key at all (pre-flight 64).
+    needsAiGateway: (resolved.ai?.models ?? []).length > 0,
   })
 
   // provisioning -> starting the moment the driver has bound services and the

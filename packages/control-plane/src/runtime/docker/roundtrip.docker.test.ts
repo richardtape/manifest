@@ -142,6 +142,7 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
     }),
     port: 8080,
     healthPath: '/healthz',
+    needsAiGateway: false,
     resources: { cpu: 0.5, memoryMi: 256, pids: 128, diskMi: 1024 },
     services: [service],
     egressAllow: [],

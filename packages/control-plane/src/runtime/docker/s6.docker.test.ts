@@ -2,11 +2,11 @@ import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { promisify } from 'node:util'
 import { afterAll, beforeAll, expect, it } from 'vitest'
-import type { Driver, ImageRef, ServiceHandle } from '../driver.js'
+import type { Driver, ImageRef, InstanceSpec, ServiceHandle } from '../driver.js'
 import { instanceName, serviceName } from '../driver.js'
 import { describeDocker } from './docker-tier.js'
 import { appContainer, appNetwork, serviceContainer } from './names.js'
-import { attachPlatformNeighbours } from './networks.js'
+import { AI_GATEWAY_NEIGHBOUR } from './networks.js'
 import { createEngineClient, resolveSocketPath } from './engine.js'
 import { CA_CERT, dockerDriverForTests, fixtureBareRepo } from './testing.js'
 import {
@@ -183,6 +183,8 @@ describeDocker(
     let driver: Driver
     let image: ImageRef
     let service: ServiceHandle
+    /** Kept, so probe 13 can re-ensure THIS instance rather than a lookalike. */
+    let instanceSpec: InstanceSpec
     /**
      * Built directly rather than reached through the Driver, which deliberately
      * exposes no engine.
@@ -227,7 +229,7 @@ describeDocker(
         projectSlug: NEIGHBOUR,
         credentials: { ...CREDENTIALS, database: 'neighbour' },
       })
-      await driver.ensureInstance({
+      instanceSpec = {
         name: instanceName(SLUG, KIND, RELEASE),
         projectSlug: SLUG,
         environmentKind: KIND,
@@ -241,7 +243,11 @@ describeDocker(
         // Nothing declared. Probe 8 checks that a declared host is the ONLY thing
         // that gets through, so this app declares none.
         egressAllow: [],
-      })
+        // No models declared, so no route to the gateway. Probe 13 re-ensures this
+        // same instance with `true` for its positive control.
+        needsAiGateway: false,
+      }
+      await driver.ensureInstance(instanceSpec)
       internetReachable =
         (await exitCode('bridge', ['https://registry.npmjs.org/'])) === 0
       await ensureProbeUser(PROBE_USER)
@@ -251,9 +257,9 @@ describeDocker(
 
     afterAll(async () => {
       // S6's measured matrix ran WITHOUT LiteLLM on this network, and probe 13's first
-      // assertion depends on that being the starting state. Left attached, it would
-      // also make the app network undeletable: destroying it disconnects only
-      // PLATFORM_NEIGHBOURS. Read back, because a disconnect that did nothing looks
+      // assertion depends on that being the starting state on the NEXT run: nothing
+      // detaches the gateway from a network once an ensure has attached it (see
+      // `ensureAppNetwork`). Read back, because a disconnect that did nothing looks
       // exactly like one that worked.
       if ((await attachedToAppNet()).includes('manifest-litellm')) {
         await engine.post(`/networks/${APP_NET}/disconnect`, {
@@ -491,9 +497,12 @@ describeDocker(
     }, 120_000)
 
     it('13. an app that declares no ai.models cannot reach LiteLLM at all', async () => {
-      // Decision 5's whole justification, asserted rather than argued. fixture-s6
-      // declares no models, so nothing attaches `manifest-litellm` to its network.
+      // Decision 5's whole justification, asserted rather than argued. fixture-s6 was
+      // ensured with `needsAiGateway: false` THROUGH THE DRIVER, so this reads what
+      // `ensureInstance` did rather than what a test arranged — both the daemon's own
+      // list of the network's containers and the request itself.
       // 000 is curl's "nothing answered" — it never got a status.
+      expect(await attachedToAppNet()).not.toContain(AI_GATEWAY_NEIGHBOUR)
       const before = await statusFromNetwork(
         APP_NET,
         'sk-irrelevant',
@@ -502,16 +511,24 @@ describeDocker(
       )
       expect(before).toBe(0)
 
-      // THE POSITIVE CONTROL, and it is the same probe from the same container: attach
-      // the neighbour Task 8 attaches for a declaring app, and the identical request
-      // answers. Without this pair, `000` is indistinguishable from "curl is missing",
-      // "LiteLLM is down" and "the timeout is too short" — S6's first run produced
-      // exactly that, and it is why the tier requires pairing.
-      await attachPlatformNeighbours(engine, APP_NET, ['manifest-litellm'])
+      // THE POSITIVE CONTROL, and it is the same probe from the same network: THIS
+      // instance, re-ensured with the flag a declaring app's release carries.
+      // `ensureInstance` is idempotent by name, so it is not a second container. It
+      // used to attach the neighbour BY HAND, which never exercised the driver, so a
+      // driver that ignored the flag passed it (P4b pre-flight 59). Without the pair,
+      // `000` is indistinguishable from "curl is missing", "LiteLLM is down" and "the
+      // timeout is too short" — S6's first run produced exactly that, and it is why
+      // the tier requires pairing.
+      await driver.ensureInstance({ ...instanceSpec, needsAiGateway: true })
+      expect(await attachedToAppNet()).toContain(AI_GATEWAY_NEIGHBOUR)
       const after = await statusFromNetwork(APP_NET, confinedKey, 'GET', '/v1/models')
       expect(after).toBe(200)
-      record('13', `no route without ai.models (${before})`, `attached -> ${after}`)
-    })
+      record(
+        '13',
+        `no route without ai.models (${before})`,
+        `ensured with ai -> ${after}`,
+      )
+    }, 180_000)
 
     it('14. a confined key reaches the three proxy routes and NO admin route', async () => {
       // Runs after 13, which attached the neighbour; vitest runs `it`s in file order.

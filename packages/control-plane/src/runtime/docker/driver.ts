@@ -50,7 +50,7 @@ import {
 } from './instances.js'
 import { containerLogs } from './logs.js'
 import { appNetwork } from './names.js'
-import { ensureAppNetwork } from './networks.js'
+import { AI_GATEWAY_NEIGHBOUR, ensureAppNetwork } from './networks.js'
 import { mintRegistryToken } from './registry-auth.js'
 import { destroyServiceContainer, ensureServiceContainer } from './services.js'
 
@@ -303,12 +303,22 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
 
     async ensureService(binding: ServiceBinding): Promise<ServiceHandle> {
       const kind = kindFromServiceName(binding.name)
+      // NO extra neighbours, deliberately: a database has no business reaching the
+      // model gateway, and the app's own `ensureInstance` attaches it a moment later
+      // when the release declares models (P4b Task 8).
       await ensureAppNetwork(engine, binding.projectSlug, kind)
       return ensureServiceContainer(engine, binding, kind)
     },
 
     async ensureInstance(spec: InstanceSpec): Promise<InstanceHandle> {
-      await ensureAppNetwork(engine, spec.projectSlug, spec.environmentKind)
+      // §10's gateway joins the network only for an app that declares models (P4b
+      // Task 8, Decision 5). S6 probe 13 asserts both halves from inside the network.
+      await ensureAppNetwork(
+        engine,
+        spec.projectSlug,
+        spec.environmentKind,
+        spec.needsAiGateway ? [AI_GATEWAY_NEIGHBOUR] : [],
+      )
       const proxy = await ensureEgressProxy(engine, {
         slug: spec.projectSlug,
         kind: spec.environmentKind,

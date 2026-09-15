@@ -47,6 +47,22 @@ export interface InstanceSpec {
   /** Default-deny egress: the allowlist, never a flag to disable it (D18). */
   egressAllow: string[]
   /**
+   * Whether the app's network gets a route to §10's model gateway (P4b Task 8).
+   * True exactly when the release declares `ai.models`.
+   *
+   * REQUIRED, not optional: an optional flag that defaults to "no gateway" fails
+   * silently for exactly the apps that need one — they deploy healthy and their
+   * first question times out. And not a platform neighbour of every network
+   * (Decision 5): §12's least privilege says an app that declared no models has no
+   * route to the gateway, and S6 probe 13 asserts that it does not.
+   *
+   * Why a NETWORK route at all, rather than the forced egress proxy: the OpenAI SDK
+   * inside `ubc-genai-toolkit-llm` cannot be made to use a proxy by any environment
+   * setting (P4a, three mechanisms measured), and C6 forbids a toolkit change being
+   * a prerequisite.
+   */
+  needsAiGateway: boolean
+  /**
    * Files the platform places INSIDE the container before it starts.
    *
    * §8 names two variables as paths to files Manifest MOUNTS —

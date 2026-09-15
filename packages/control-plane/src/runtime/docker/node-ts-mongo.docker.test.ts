@@ -144,6 +144,7 @@ describeDocker('node-ts-mongo@1 builds, deploys and authenticates (Task 12)', ()
     }),
     port: 8080,
     healthPath: '/healthz',
+    needsAiGateway: false,
     resources: { cpu: 0.5, memoryMi: 512, pids: 256, diskMi: 1024 },
     services: [service],
     egressAllow: [],

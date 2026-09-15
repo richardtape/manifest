@@ -310,6 +310,7 @@ export async function startSamlSp(input: {
     env: samlSpEnv({ slug, kind, hostname, row, signing: input.signing !== undefined }),
     port: 8080,
     healthPath: '/healthz',
+    needsAiGateway: false,
     resources: { cpu: 0.5, memoryMi: 256, pids: 128, diskMi: 1024 },
     services: [],
     egressAllow: [],

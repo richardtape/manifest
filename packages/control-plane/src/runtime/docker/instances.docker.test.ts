@@ -37,6 +37,7 @@ const spec = (): InstanceSpec => ({
   env: { MANIFEST_ENV: 'staging' },
   port: 8080,
   healthPath: '/healthz',
+  needsAiGateway: false,
   resources: { cpu: 0.5, memoryMi: 128, pids: 64, diskMi: 512 },
   services: [],
   egressAllow: [],
