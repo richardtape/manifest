@@ -19,7 +19,6 @@ export async function ensureServiceContainer(
   // `binding.name` is P2's serviceName(project, environment, declared); the Docker
   // name is that with our prefix. One derivation, not two.
   const name = serviceContainer(binding.name)
-  const volume = serviceVolume(binding.name)
   // The scheme comes from the CATALOGUE, not from binding.type: the type is
   // `mongo` and the scheme is `mongodb`, and `mongo://…` is not a valid URI.
   // The query carries authSource=admin, without which the root user — which
@@ -30,11 +29,38 @@ export async function ensureServiceContainer(
   const existing = await engine.get<{ Id: string; State: { Running: boolean } }>(
     `/containers/${name}/json`,
   )
-  if (existing) {
-    if (!existing.State.Running) await engine.post(`/containers/${name}/start`)
-    return { id: name, name, endpoint }
-  }
+  if (!existing) await createServiceContainer(engine, binding, kind)
+  if (!existing?.State.Running) await engine.post(`/containers/${name}/start`)
+  /**
+   * EVERY PATH WAITS, the one that starts an existing container included.
+   *
+   * It used to return the moment it had asked a stopped container to start — the
+   * wait below was reached only by a container this call had just created — so a
+   * service woken after a stop, or after the Docker VM restarted, was handed to the
+   * app while `mongod` was still coming up. The app connects at boot. A running,
+   * healthy container answers the first poll, so the no-op call costs one inspect.
+   */
+  await waitForServiceHealthy(engine, name)
+  return { id: name, name, endpoint }
+}
 
+/**
+ * The service's volume and container, created and NOT started.
+ *
+ * Exported for one caller besides `ensureServiceContainer`: the Docker tier, which
+ * places a slow init script in a container created exactly as production creates it
+ * before the first start — the only way to make P4b finding 133's race happen on
+ * demand rather than on a loaded machine.
+ */
+export async function createServiceContainer(
+  engine: EngineClient,
+  binding: ServiceBinding,
+  kind: EnvironmentKind,
+): Promise<void> {
+  const image = resolveServiceImage(binding.type, binding.version)
+  const creds = binding.credentials
+  const name = serviceContainer(binding.name)
+  const volume = serviceVolume(binding.name)
   await engine.post('/volumes/create', {
     Name: volume,
     Labels: { 'manifest.slug': binding.projectSlug },
@@ -57,18 +83,30 @@ export async function ensureServiceContainer(
       Memory: 512 * 1024 * 1024,
       RestartPolicy: { Name: 'unless-stopped' },
     },
+    /**
+     * EVERY SECOND WHILE IT STARTS, EVERY THIRTY SECONDS AFTER (P4b finding 134).
+     *
+     * A one-second interval for the container's whole life ran `mongosh` — a Node
+     * process — every second, at about a core a run: measured 2026-09-14, the two demo
+     * databases this machine keeps running sat at 69% and 39% CPU, which widened
+     * finding 133's window. `StartInterval` (Engine API 1.44, which `engine.ts` pins)
+     * keeps the fast check where it matters. Measured 2026-09-15 on Docker 29.7.2:
+     * checks 1.2 s apart until the first success, then 30 s apart, and the service at
+     * 0.62% CPU against 30% for a service still on the one-second check.
+     *
+     * StartPeriod is longer than `waitForServiceHealthy`'s 90 s, so a slow start is
+     * never marked `unhealthy` while this process is still waiting for it.
+     */
     Healthcheck: {
       Test: image.healthTest,
-      Interval: 1_000_000_000,
+      Interval: 30_000_000_000,
       Timeout: 5_000_000_000,
-      Retries: 30,
-      StartPeriod: 1_000_000_000,
+      Retries: 3,
+      StartPeriod: 120_000_000_000,
+      StartInterval: 1_000_000_000,
     },
     Labels: { 'manifest.slug': binding.projectSlug, 'manifest.environment': kind },
   })
-  await engine.post(`/containers/${name}/start`)
-  await waitForServiceHealthy(engine, name)
-  return { id: name, name, endpoint }
 }
 
 /**

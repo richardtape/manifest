@@ -1,11 +1,17 @@
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import type { ServiceBinding } from '../driver.js'
 import { serviceName } from '../driver.js'
+import { tarArchive } from './archive.js'
 import { createEngineClient, resolveSocketPath } from './engine.js'
 import { describeDocker } from './docker-tier.js'
-import { serviceVolume } from './names.js'
+import { containerLogs } from './logs.js'
+import { serviceContainer, serviceVolume } from './names.js'
 import { destroyAppNetwork, ensureAppNetwork } from './networks.js'
-import { destroyServiceContainer, ensureServiceContainer } from './services.js'
+import {
+  createServiceContainer,
+  destroyServiceContainer,
+  ensureServiceContainer,
+} from './services.js'
 import { withSecretScope } from '../../secrets/testing.js'
 import { ensureServiceCredentials, deriveCredentials } from '../../services/index.js'
 
@@ -116,6 +122,58 @@ describeDocker('dedicated backing services (D3)', () => {
     // detects a service started without authentication actually enforced.
     expect(await probe(handle.endpoint.replace(/\/\/[^@]+@/, '//'))).not.toBe(0)
   })
+
+  /**
+   * P4b FINDING 133, on demand rather than on a loaded machine.
+   *
+   * `ensureServiceContainer` hands an endpoint over when Docker calls the service
+   * healthy. The image's entrypoint first runs an INIT `mongod` — bound to
+   * 127.0.0.1, with no authentication — while it creates the user and runs
+   * `/docker-entrypoint-initdb.d`, and only then restarts it as
+   * `mongod --auth --bind_ip_all`. A health test that passes during init reports the
+   * service ready while every connection the app makes is refused. Measured
+   * 2026-09-14: healthy at 9.6 s, an authenticated insert refused until 33.8 s — and
+   * only under load, so a rerun proved nothing either way.
+   *
+   * A 20 s init script stretches init past any plausible start-up, in a container
+   * created exactly as production creates it. The insert runs the moment the service
+   * is handed over, from another container, with the credentials the app would use.
+   */
+  it('hands a service over only once it enforces the credentials it was created with (finding 133)', async () => {
+    const slow: ServiceBinding = {
+      ...binding,
+      name: serviceName(SLUG, 'staging', 'slowinit'),
+    }
+    const container = serviceContainer(slow.name)
+    try {
+      await createServiceContainer(engine, slow, 'staging')
+      // At `/`, with the directory in the entry's name: the image has no
+      // `/docker-entrypoint-initdb.d`, and the archive endpoint refuses a path that
+      // does not exist.
+      await engine.putArchive(
+        `/containers/${container}/archive?path=${encodeURIComponent('/')}`,
+        tarArchive([
+          {
+            path: '/docker-entrypoint-initdb.d/20-slow-init.sh',
+            contents:
+              'echo "manifest slow init: sleeping 20 s"\nsleep 20\necho "manifest slow init: done"\n',
+            mode: 0o644,
+          },
+        ]),
+      )
+      const handle = await ensureServiceContainer(engine, slow, 'staging')
+      expect(await probe(handle.endpoint)).toBe(0)
+      // And the script really ran. An init directory the entrypoint never read would
+      // leave no slow init at all, and this test green against the very health test
+      // it exists to catch.
+      const printed: string[] = []
+      for await (const line of containerLogs(engine, container, {}))
+        printed.push(line.text)
+      expect(printed).toContain('manifest slow init: done')
+    } finally {
+      await destroyServiceContainer(engine, container, { deleteData: true })
+    }
+  }, 180_000)
 
   // The container leaves nothing behind but its named data volume. The mongo
   // image declares /data/configdb as a VOLUME too, so without `v=true` on the

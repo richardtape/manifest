@@ -61,9 +61,32 @@ export const SERVICE_CATALOGUE: Record<'mongo' | 'qdrant', ServiceImage> = {
     uriScheme: 'mongodb',
     uriQuery: 'authSource=admin',
     envVar: 'MONGODB_URI',
-    // `ping` is served before authentication, which makes it useless as a
-    // SECURITY assertion and exactly right as a LIVENESS one.
-    healthTest: ['CMD', 'mongosh', '--quiet', '--eval', 'db.adminCommand({ping:1}).ok'],
+    /**
+     * READY MEANS AUTHENTICATION IS ENFORCED — not that `mongod` answers.
+     *
+     * This was a loopback `ping`, and it passed during the image's INIT phase: the
+     * entrypoint first runs a `mongod` bound to 127.0.0.1 with no authentication,
+     * creates the user, runs `/docker-entrypoint-initdb.d`, shuts it down, and only
+     * then starts `mongod --auth --bind_ip_all`. So the service was handed to the app
+     * while every connection the app made was refused (P4b finding 133). Measured
+     * 2026-09-15 with a 20 s init script: the ping passed from 1.4 s, an authenticated
+     * insert from another container failed until 22.3 s.
+     *
+     * An UNAUTHENTICATED `listDatabases` on loopback is allowed by the init `mongod`
+     * and refused with code 13 by the final one — the localhost exception closes once
+     * the user exists. Measured the same day, the check exited 1 through init and 0
+     * from 240 ms after the final `mongod` began listening, while the authenticated
+     * insert first succeeded at 22.4 s. And a Mongo started with no authentication at
+     * all never reports healthy, so a deploy fails with SERVICE_NOT_HEALTHY rather than
+     * binding an app to an open database.
+     */
+    healthTest: [
+      'CMD',
+      'mongosh',
+      '--quiet',
+      '--eval',
+      'try { db.adminCommand({ listDatabases: 1 }); quit(1) } catch (e) { quit(e.code === 13 ? 0 : 1) }',
+    ],
   },
   // §21: opt-in, not part of the default blueprint — one per app per environment is
   // affordable on UBC infrastructure and is not affordable on a laptop.
