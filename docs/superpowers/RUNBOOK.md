@@ -183,7 +183,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` �
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 18 / 0 and `make verify` 47 / 0**
-(re-measured 2026-09-14). ORIENTATION §2's box is the maintained copy of those; if this
+(re-measured 2026-09-15). ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. The evidence is left exactly as recorded — a run is a run — and this
@@ -313,9 +313,9 @@ second and `docker buildx imagetools inspect php:8.3-apache` in 1 s, and the pla
 `make doctor` 18/0, `make verify` 47/0 and all four pre-existing containers present. A restart
 restarts every container on the machine, so it is a person's call rather than a script's.
 
-**A Mongo service can be reported ready before it accepts the app's credentials.** *Measured 2026-09-14, `mongodb/mongodb-community-server:7.0.28-ubi8`.* The service catalogue's health test is a loopback `ping`, and the image first runs an init `mongod` on `127.0.0.1` with no authentication while it creates the user, then restarts it with `--auth --bind_ip_all`. The ping passes during init, so Docker reports the service healthy — measured at 9.6 s — while an authenticated write from another container is refused until 33.8 s. `deployRelease` waits for exactly that health status, so an app deployed onto a fresh database can find its first write refused, and `services.docker.test.ts` fails when the machine is busy and passes when it is not. **The window widens under load, and every idle Mongo service adds load**: its health test starts `mongosh` every second at about a core a run.
+**A Mongo service could be reported ready before it accepted the app's credentials — FIXED 2026-09-15, except in containers created before the fix.** *Measured 2026-09-14, `mongodb/mongodb-community-server:7.0.28-ubi8`.* The catalogue's health test was a loopback `ping`, which the image's init `mongod` — on `127.0.0.1`, with no authentication — answers while it creates the user, so a service was reported healthy at 9.6 s while an authenticated write from another container was refused until 33.8 s. P4b's sitting 8 replaced the check with one that passes only once authentication is enforced, runs it every second while the service starts and every 30 s after, and forces the race in the Docker tier with a 20 s init script (P4b findings 133 and 134).
 
-**Workaround:** redeploy, or restart the app once its database has been up for a minute; and read a lone `services.docker.test.ts` failure as this before reading it as anything else. **Not fixed yet** — P4b's sitting 8 settles it before Task 13, with a deterministic test (P4b finding 133).
+**What it leaves behind: a service container created before the fix keeps its old check**, because nothing recreates an existing service — the demo databases `mf-fixture-app-staging-db` and `mf-proof-app-staging-db` on the machine this was fixed on, for example. If a deploy onto such a database finds its first write refused, redeploy; or remove the container — `docker rm -f -v <name>`, where `-v` removes only its anonymous volumes and never the named `-data` volume its data lives in — so the next deploy recreates it with the new check. The image does not re-run its initialisation over a data directory that already has one.
 
 **Two things P4a Task 15 left open, both named rather than glossed.**
 
