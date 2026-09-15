@@ -803,6 +803,14 @@ which is why P1's **offline** acceptance can only run after a successful seed.
 - **Two Bash tool calls issued together share one shell**, so a `cd` in one moves the
   other's working directory mid-command. Measured 2026-09-14, when a guard refused seven
   edits it could no longer find. Use absolute paths in anything issued in parallel.
+- **The Docker tier leaves images in the daemon, and one image can carry two names.**
+  Deploys pull what the builder pushed into the daemon's store as
+  `127.0.0.1:7107/local/<slug>@sha256:…`, so a before/after snapshot shows new `<none>`
+  entries even when nothing else changed. Remove one only if its digest is absent from the
+  starting snapshot under EVERY name: two fixtures built from the same source share a digest
+  (`local/fixture-s6` and `local/fixture-rt`), `docker image rm <id>` then answers
+  `referenced in multiple repositories`, and untagging one name only moves the diff to the
+  other. Measured 2026-09-14, when four were left behind.
 
 ### Images already pulled
 
@@ -1517,7 +1525,7 @@ is at the top of Task 7. **Sitting 3 — Tasks 4 and 5 — is done too (2026-09-
 
 **The state it was handed over in, 2026-09-14.** `main`, tree clean; last code commit `88906bf`. `pnpm test` **617** (61 files), `pnpm test:docker` **128** (24 files), `make doctor` **18/0**, `make verify` **47/0**. LiteLLM 1.98.0 (`sha256:20b5044b`) running, `p4b-probe-user` holding **0 keys**, and **no `mf-` users** in LiteLLM. If your first measurements differ, find out why before you start.
 
-**THIS IS THE ONE SITTING THAT NEEDS THE NETWORK ON.** Task 10 adds `ubc-genai-toolkit-llm@0.7.0` to `node-ts-mongo@1`, regenerates the skeleton's lockfile and needs `make seed` to warm Verdaccio from it. Check Verdaccio's STORAGE for the tarballs afterwards, never `npm ci`'s exit code — a build against the public registry looks identical to a correct one (S1; ORIENTATION §4's `find /verdaccio/storage -name '*.tgz'`).
+**THIS IS THE ONE SITTING THAT NEEDS THE NETWORK ON.** Task 10 adds `ubc-genai-toolkit-llm@0.7.0` to `node-ts-mongo@1`, regenerates the skeleton's lockfile and needs `make seed` to warm Verdaccio from it. Seed's step 4b derives the warm list from every `blueprints/*/skeleton/package.json` and its lockfile (checked 2026-09-14, `infra/seed/seed.sh`), so regenerating the lockfile is the whole of the input — but **a failed warm prints only `WARN: mirror warm failed` and `make seed` still exits 0**, so read its output. Then check Verdaccio's STORAGE for the toolkit's tarballs, never `npm ci`'s exit code — a build against the public registry looks identical to a correct one (S1; §4's `find /verdaccio/storage -name '*.tgz'`).
 
 **What sitting 5 built for you** (Tasks 8 and 9):
 
@@ -1541,8 +1549,9 @@ MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/runtime/docker/
 
 **Task 10 touches `blueprints/`, so it ends with `pnpm test:docker` as well as the four gates** — then the record, the sittings table, and §6's sweep.
 
-The four items it also confirmed, which the plan could not know because P4a's
-Task 15 ran two days after P4b was written, are under *What sitting 1 must reconcile*: `fixtures/proof-app/package.json` and `package-lock.json`
+**Background, from sitting 1.** Its reconciliation pass also confirmed four items the plan could
+not know, because P4a's Task 15 ran two days after P4b was written; they are under *What sitting 1
+must reconcile*, and the first two matter to Task 10 and Task 16: `fixtures/proof-app/package.json` and `package-lock.json`
 **do not exist** (Task 16's *Files* block modifies both), `endUserId` already exists in
 `fixtures/proof-app/identity.js` and must be passed through rather than recomputed, the
 three-hop login is one shared function in `infra/lib/idp-login.sh` that `demo-ai.sh`
