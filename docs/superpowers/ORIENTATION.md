@@ -129,7 +129,7 @@ two came out of Tasks 1–3, the third out of Task 5, the fourth out of Task 8:
 
 | | |
 |---|---|
-| `pnpm test` (from the **repo root**) | **617 passed, 61 files**, ~33 s, no Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites — plus **`spec/injection-drift`**, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` — see §7d |
+| `pnpm test` (from the **repo root**) | **619 passed, 61 files**, ~33 s, no Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites — plus **`spec/injection-drift`**, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` — see §7d |
 | `pnpm test:docker` | **128 passed, 24 files**, ~407 s — needs `make up`, and **fails rather than skips** when asked to run |
 | `make doctor` | **18 checks, 0 failed, 0 warnings** — 18 since 2026-09-09, when the LiteLLM digest pin landed |
 | `make verify` | **47 checks, 0 failed, 0 warnings** — thirteen more than P3 left; the newest asserts the control plane's OWN SP keypair is a usable pair, because it is a `make up` artefact the process refuses to boot without and a half-minted one is a platform that does not start |
@@ -1329,7 +1329,7 @@ result was theirs.
 ./scripts/snapshot-machine.sh > /tmp/before.txt   # read-only, no sudo, no network
 make up                                            # ~1 min; re-adds the loopback alias
 make doctor && make verify                         # expect 18/0 and 47/0
-pnpm test                                          # expect 617 passed, 61 files
+pnpm test                                          # expect 619 passed, 61 files
 pnpm lint && pnpm --filter @manifest/control-plane typecheck && pnpm format:check
 ```
 
@@ -1523,7 +1523,7 @@ is at the top of Task 7. **Sitting 3 — Tasks 4 and 5 — is done too (2026-09-
 
 #### Sitting 6 — Task 10 — what you are walking into
 
-**The state it was handed over in, 2026-09-14.** `main`, tree clean; last code commit `88906bf`. `pnpm test` **617** (61 files), `pnpm test:docker` **128** (24 files), `make doctor` **18/0**, `make verify` **47/0**. LiteLLM 1.98.0 (`sha256:20b5044b`) running, `p4b-probe-user` holding **0 keys**, and **no `mf-` users** in LiteLLM. If your first measurements differ, find out why before you start.
+**The state it was handed over in, 2026-09-14.** `main`, tree clean; last code commit `c489da5` (the test pinning `resolveConfig`'s frozen `ai` shape, added after the close-out; the last feature commit is `88906bf`). `pnpm test` **619** (61 files), `pnpm test:docker` **128** (24 files), `make doctor` **18/0**, `make verify` **47/0**. LiteLLM 1.98.0 (`sha256:20b5044b`) running, `p4b-probe-user` holding **0 keys**, and **no `mf-` users** in LiteLLM. If your first measurements differ, find out why before you start.
 
 **THIS IS THE ONE SITTING THAT NEEDS THE NETWORK ON.** Task 10 adds `ubc-genai-toolkit-llm@0.7.0` to `node-ts-mongo@1`, regenerates the skeleton's lockfile and needs `make seed` to warm Verdaccio from it. Seed's step 4b derives the warm list from every `blueprints/*/skeleton/package.json` and its lockfile (checked 2026-09-14, `infra/seed/seed.sh`), so regenerating the lockfile is the whole of the input — but **a failed warm prints only `WARN: mirror warm failed` and `make seed` still exits 0**, so read its output. Then check Verdaccio's STORAGE for the toolkit's tarballs, never `npm ci`'s exit code — a build against the public registry looks identical to a correct one (S1; §4's `find /verdaccio/storage -name '*.tgz'`).
 
@@ -1542,7 +1542,7 @@ is at the top of Task 7. **Sitting 3 — Tasks 4 and 5 — is done too (2026-09-
 
 ```bash
 make up && make doctor && make verify                   # expect 18/0 and 47/0
-pnpm test                                               # expect 617 passed, 61 files
+pnpm test                                               # expect 619 passed, 61 files
 make seed                                               # NETWORK ON — after the lockfile changes
 MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/runtime/docker/roundtrip
 ```
