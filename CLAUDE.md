@@ -49,7 +49,7 @@ check that every app failed, because BusyBox `wget` honours `http_proxy` and ign
 of it was green in a suite of 74 passing Docker tests.**
 
 **P4a is EXECUTED AND GREEN: all 15 tasks (2026-09-09). P4b is PART-EXECUTED —
-sittings 1 to 4 of ten (Tasks 1–7) are done, 2026-09-14; CONTINUE AT TASK 8** —
+sittings 1 to 5 of ten (Tasks 1–9) are done, 2026-09-14; CONTINUE AT TASK 10** —
 ORIENTATION §7d-2. P4a's last twelve
 tasks ran in **seven agreed SITTINGS, one per session with a check-in at each
 boundary**, so a session limit could not land mid-task; all seven are done, and **P4b
@@ -61,7 +61,7 @@ audit tables used `ON DELETE CASCADE`, which bypasses §20's append-only grant b
 referential action runs with the referenced table's privileges. Then LiteLLM was pinned
 by digest to **`sha256:20b5044b` / 1.98.0, the version S3 measured** — Rich's call,
 taken because the `main-stable` tag moved to a fresh build two hours before the task
-started. `make doctor` is **18 checks** from there. **Sitting 2 (Task 3, 2026-09-14) built §16's AI-path tier and found that LiteLLM's `/user/new` mints an unconfined key unless `auto_create_key: false` is passed — Task 7's code would have done that for every app; the correction is at the top of Task 7.** **Sitting 3 (Tasks 4–5, the same day) built `ai/errors.ts` and `ai/client.ts` and found that Task 7's `ensureAiUser` would throw on every redeploy of an AI app — it matches LiteLLM text the client exists to strip — and that Task 9's client wiring cannot typecheck; both corrections are at the top of those tasks.** **Sitting 4 (Tasks 6–7, the same day) built `ai/catalogue.ts` and `ai/keys.ts` with 12 findings, and decided that AI is on unless `MANIFEST_AI_ENABLED=0` — on means a boot with no LiteLLM master key is refused, in development too. It measured that a key minted with an empty `models` list reaches EVERY model, which Task 9 must not do; A pre-flight read of Tasks 8 and 9 then wrote fifteen corrections and a note at the top of those two tasks, and ORIENTATION §7d-2 has the sitting-5 hand-off — read both before starting.** **Rich then decided that no live AI call may fail because a deploy revoked its key — Task 9 now commits the new key only after the instance is healthy — and that redeploys must become zero-downtime for the whole app in a plan of their own — P4c, straight after P4b.** *Sittings pace the work; they are not §17's product Phases.*
+started. `make doctor` is **18 checks** from there. **Sitting 2 (Task 3, 2026-09-14) built §16's AI-path tier and found that LiteLLM's `/user/new` mints an unconfined key unless `auto_create_key: false` is passed — Task 7's code would have done that for every app; the correction is at the top of Task 7.** **Sitting 3 (Tasks 4–5, the same day) built `ai/errors.ts` and `ai/client.ts` and found that Task 7's `ensureAiUser` would throw on every redeploy of an AI app — it matches LiteLLM text the client exists to strip — and that Task 9's client wiring cannot typecheck; both corrections are at the top of those tasks.** **Sitting 4 (Tasks 6–7, the same day) built `ai/catalogue.ts` and `ai/keys.ts` with 12 findings, and decided that AI is on unless `MANIFEST_AI_ENABLED=0` — on means a boot with no LiteLLM master key is refused, in development too. It measured that a key minted with an empty `models` list reaches EVERY model, which Task 9 must not do; A pre-flight read of Tasks 8 and 9 then wrote fifteen corrections and a note at the top of those two tasks, and ORIENTATION §7d-2 has the sitting-5 hand-off — read both before starting.** **Rich then decided that no live AI call may fail because a deploy revoked its key — Task 9 now commits the new key only after the instance is healthy — and that redeploys must become zero-downtime for the whole app in a plan of their own — P4c, straight after P4b.** **Sitting 5 (Tasks 8–9, the same day) built that interim: `deployRelease` mints the app key before the instance starts, commits it only after health and discards it on failure; the gateway joins only an AI app's network; and an AI release deployed with AI switched off is refused (`RELEASE_AI_DISABLED`). 11 findings — two now in ORIENTATION §4: a network removed under a stopped container strands it, and an empty `model_info:` stops LiteLLM starting. Task 10 is next, with the network on, and carries four corrections at its top.** *Sittings pace the work; they are not §17's product Phases.*
 **`make demo-identity` is P4a's acceptance and it passes**: §16's proof app from a bare
 repository to a real CWL sign-in in which the instructor cannot see the student's note
 — including from a `make reset` machine. **The offline run is outstanding and is
@@ -83,7 +83,7 @@ is deleted along with `MANIFEST_DEV_AUTH`; the control plane's SAML client is
 `@node-saml/node-saml`, **not** the `passport-saml` the blueprint pins, because that
 one carries an unfixable critical signature-verification advisory and nothing in this
 platform scans the control plane's own dependency tree. `make verify` is
-**47 / 0**, `pnpm test` **579**, `pnpm test:docker` **126** — one added 2026-09-14 when §12's scan turned out to refuse any vulnerability database more than five days old (fixed in `build/scan.ts`), five in sitting 2 (§16's AI-path tier), two in sitting 3 (the error table re-provoked against the live proxy), and two in sitting 4 (the live catalogue, and a key rotated against the live gateway). `secrets/` now holds every service credential — libsodium envelope
+**47 / 0**, `pnpm test` **617**, `pnpm test:docker` **128** — one added 2026-09-14 when §12's scan turned out to refuse any vulnerability database more than five days old (fixed in `build/scan.ts`), five in sitting 2 (§16's AI-path tier), two in sitting 3 (the error table re-provoked against the live proxy), two in sitting 4 (the live catalogue, and a key rotated against the live gateway), and two in sitting 5 (an app network torn down with the gateway attached, and a container replaced when its environment changed). `secrets/` now holds every service credential — libsodium envelope
 encryption in Postgres, replacing P3's HMAC derivation, migrated without breaking a
 running database — and §20's `audit.events` is append-only **by grant**, which needed
 the control plane to stop connecting as a superuser before it could mean anything:
@@ -134,12 +134,12 @@ repeatable has a state leak. For the platform itself it is `make doctor` and
 **Five spikes are done** (S7, S2, S1, S3 — all answered yes — and **S6**, which ran
 as P3's Task 18 on 2026-09-07 and found every probe denied with every denial paired
 with a positive control). P0, P1, P2 and P3 are written and **all three
-implementation plans are executed**. **P4a is executed in full; P4b is part-executed — 7 of 16
+implementation plans are executed**. **P4a is executed in full; P4b is part-executed — 9 of 16
 tasks; P4c (zero-downtime redeploys, placed straight after P4b) and P5 are unwritten.** Plan-writing stopped on 2026-09-04 in favour
 of execution; that hold is now discharged, and it was right — the three plans
 produced **152 defects between them** after all three had been self-reviewed, and
 P4a's fifteen tasks have since produced **80 more**. That
-is also why P4b's unrun stack — 9 of its 16 tasks — is worth naming out loud rather than glossing. The maintained status record is the *Spike status*
+is also why P4b's unrun stack — 7 of its 16 tasks — is worth naming out loud rather than glossing. The maintained status record is the *Spike status*
 ledger in `docs/superpowers/plans/2026-08-29-plan-roadmap.md`; if any document
 disagrees with it, the ledger wins.
 
