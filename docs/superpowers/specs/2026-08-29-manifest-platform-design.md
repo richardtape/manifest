@@ -876,8 +876,8 @@ single port.
 | Key | Scope | Lifetime | Budget source |
 |---|---|---|---|
 | **App key** | app + environment | rotated every deploy, revoked on archive | `ai.budget.project_monthly_usd`, held on the LiteLLM *user* rather than the key, so it survives key rotation |
-| **Agent key** | one `AgentSession` | dies with the sandbox — and carries a `duration` TTL, so it expires even if the control plane never calls `/key/delete` | hard session cap, independent of the app budget |
-| **End user** | app passes `hash(ubcEduCwlPuid ‖ project ‖ environment)` as LiteLLM `user` | per request | `ai.budget.per_user_monthly_usd` |
+| **Agent key** | one `AgentSession` | dies with the sandbox — and carries a `duration` TTL, so it expires even if the control plane never calls `/key/delete`. **Binds from Phase 3:** an `AgentSession` has nothing to attach to before sandboxes exist (§15), so no agent key is minted in Phase 1 | hard session cap, independent of the app budget |
+| **End user** | app passes `hash(ubcEduCwlPuid ‖ project ‖ environment)` as LiteLLM `user` | per request | `ai.budget.per_user_monthly_usd` — **validated, not enforced, in Phase 1** (below) |
 
 **The end-user identifier must be namespaced per app and environment, not a bare
 hash of the CWL PUID.** LiteLLM keys its end-user budget on that string globally
@@ -885,6 +885,20 @@ rather than per key, so an un-namespaced hash means a student who exhausts their
 budget in one course tool is refused by *every* Manifest application — an ordinary
 day's use turning into a cross-app outage (S3). Manifest holds the mapping, so the
 cross-app view of one person remains available on its side.
+
+**The per-user budget is validated in Phase 1, and not enforced.** At the LiteLLM
+version §21 pins (1.98.0), an end user's budget lives on a *customer* row; customer
+rows are created automatically on first use, with no budget; and neither a per-key nor
+a proxy-level default end-user budget exists in its admin API (measured 2026-09-07
+against the running proxy's own OpenAPI document). Setting one needs an explicit
+`/customer/new` naming the namespaced identifier — a string that exists only inside the
+app at request time, whose key `allowed_routes` confines to three routes, and which §12
+forbids from reaching the control plane. What fits is lazy customer registration
+driven by spend logs, which is a reconciler, and therefore Phase 4 (D10). Until then
+`ai.budget.per_user_monthly_usd` is validated against the project's quota and frozen
+with the release, and no single end user is limited by it. The **project** budget
+binds from Phase 1, and so does the namespacing rule above — which is what prevents
+S3's cross-app lockout.
 
 Budgets are a ceiling that is crossed, not one that is never reached: the cost of a
 request is unknown until the completion exists, so enforcement overshoots by roughly
@@ -1362,7 +1376,12 @@ tolerable in production at all.
 - Every `Event` carries a **faculty-legible** `human_message` alongside
   `machine_detail`. *"Your app couldn't start — it's asking for a database it
   hasn't declared"*, not `exit code 1`.
-- Build and deploy logs stream over WebSocket to the front-end.
+- One WebSocket stream per project (D23.2) carries build logs as they are written,
+  instance state transitions, incidents, approval decisions, and every other audit
+  `Event` the platform records — §9's SP registrations and §10's app-key rotations
+  among them. A connection that arrives late is replayed the project's recent events.
+  **Live tailing of a running application's own output is not v1**: it would carry
+  whatever the application prints, which is the hardest text to redact (below).
 - Per-app metrics: request count, error rate, p95 latency, memory, AI spend.
   Sufficient for a faculty dashboard; not a general-purpose metrics system.
 
