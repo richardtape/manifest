@@ -296,8 +296,8 @@ Caddy only when `ensure-alias.sh` itself added the alias would miss an alias add
   the driver 2026-09-14, not yet measured under load:* `DockerDriver.ensureInstance` moves the
   edge route to the new container and only then waits for it to answer, so the app's hostname
   answers 502 until the new container is up; and `applyRoute` deletes the route before re-adding
-  it. **Rich requires zero-downtime redeploys for the whole app — a plan of its own, not yet
-  written** (the roadmap's plan table). Until then, redeploy when nobody is using the app. **Do
+  it. **Rich requires zero-downtime redeploys for the whole app — a plan of its own, P4c, placed straight
+  after P4b and not yet written** (the roadmap's plan table). Until then, redeploy when nobody is using the app. **Do
   not "clean up" an old instance through the driver's `destroyInstance`:** it removes the route by
   hostname, which the live instance shares. The workaround in the next item uses `docker rm`
   for exactly that reason.

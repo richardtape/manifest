@@ -65,7 +65,7 @@ to a real CWL sign-in in which the instructor cannot see the student's note** �
 acceptance is not that a login happened, it is that the application knows who. It ran
 green from a `make reset` machine; the offline run is outstanding and is Rich's.
 P4b is now PART-EXECUTED — sittings 1 to 4 of ten are done (2026-09-09 and
-2026-09-14), and the current work is its Tasks 8 and 9.** P5 is unwritten. On
+2026-09-14), and the current work is its Tasks 8 and 9.** P4c — zero-downtime redeploys, placed straight after P4b by Rich on 2026-09-14 — and P5 are unwritten. On
 2026-09-04 the project stopped writing plans and started executing them, and that
 hold is now discharged.
 
