@@ -125,6 +125,27 @@ export async function testDeps(): Promise<ServerDeps> {
     // from the route. The unit tier has no LiteLLM; the Docker tier compares this
     // file with the live proxy's answer.
     catalogue: declaredCatalogue(),
+    // THROWS RATHER THAN MINTING, for the reason `sso` below does. Every app the API
+    // suite deploys declares no model, so nothing here should ever reach the gateway —
+    // and this tier has no LiteLLM to reach. `enabled: true` to match the catalogue
+    // above, so an AI deploy that does arrive here fails loudly at the mint rather
+    // than quietly at a guard.
+    ai: {
+      enabled: true,
+      mintAppKey: () => {
+        throw new Error(
+          'the API test harness has no LiteLLM: an app in this tier declared ai.models. ' +
+            'Fake the key service as releases.test.ts does, or move the test to the ' +
+            'Docker tier.',
+        )
+      },
+      commitAppKey: () => {
+        throw new Error('the API test harness has no LiteLLM to commit a key to')
+      },
+      discardAppKey: () => {
+        throw new Error('the API test harness has no LiteLLM to discard a key from')
+      },
+    },
     // A keypair per call, not a shared one: two tests sharing a master key can
     // read each other's secrets, and that is the test-isolation shape that made
     // P2's suite depend on the order Vitest happened to pick.

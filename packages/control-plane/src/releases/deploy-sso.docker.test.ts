@@ -20,6 +20,7 @@ import {
 } from '../sso/index.js'
 import { idpDatabaseUrl } from '../sso/testing.js'
 import { createRelease, deployRelease, startBuild } from './index.js'
+import { disabledAiKeyService, disabledCatalogue } from '../ai/index.js'
 
 /**
  * Task 9's composition, against the REAL registrar.
@@ -163,6 +164,12 @@ describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
             'https://manifest.internal',
             config.idp.signingCertPath,
           ),
+          // This app declares no model, so AI is SWITCHED OFF here rather than faked:
+          // an AI deploy reaching this test would be refused naming the setting, which
+          // is the honest answer for a suite that is not about AI. The live key path is
+          // `ai/keys.docker.test.ts`'s; the end-to-end one is Task 16's.
+          ai: disabledAiKeyService(),
+          catalogue: disabledCatalogue(),
         },
         { releaseId: release.id, environmentId: staging.id },
       )

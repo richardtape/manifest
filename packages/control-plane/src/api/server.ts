@@ -15,7 +15,7 @@ import { replayOrStore } from './idempotency.js'
 import { registerAuthRoutes } from './routes/auth.js'
 import type { SsoRegistrar } from '../sso/index.js'
 import type { SamlSp } from '../identity/index.js'
-import type { ModelCatalogue } from '../ai/index.js'
+import type { AiKeyService, ModelCatalogue } from '../ai/index.js'
 import { registerProjectRoutes } from './routes/projects.js'
 import { registerDeliveryRoutes } from './routes/delivery.js'
 import { registryTokenRoutes } from './routes/registry-token.js'
@@ -47,6 +47,12 @@ export interface ServerDeps {
    * under `MANIFEST_AI_ENABLED=0`, and then it is never read — see `src/index.ts`.
    */
   catalogue: ModelCatalogue
+  /**
+   * §10's app-key lifecycle, with the LiteLLM client and the master keypair bound (P4b
+   * Task 9), handed to `deployRelease`. `enabled` is false under
+   * `MANIFEST_AI_ENABLED=0`, and then every step refuses, naming the setting.
+   */
+  ai: AiKeyService
 }
 
 declare module 'fastify' {

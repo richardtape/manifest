@@ -126,7 +126,7 @@ describe('§8 injection contract', () => {
     const emitted = Object.keys(renderInjection(ctx())).filter((n) => !declared.has(n))
     const applicable = INJECTION_VARIABLES.filter(
       (v) =>
-        v.when !== 'ai.models' &&
+        !(v.when ?? '').startsWith('ai.models') &&
         v.when !== 'services.qdrant' &&
         (v.requiredIn === 'all' ||
           v.requiredIn === 'staging+production' ||
@@ -277,12 +277,13 @@ describe('§8 injection contract', () => {
     )
   })
 
-  it('refuses to render an AI row, naming P4b', () => {
-    // Decision 12. P4a has no LiteLLM client, so a spec with ai.models must
-    // fail loudly rather than deploy with LLM_API_KEY unset — an app that
-    // starts and cannot reach a model is a support ticket, not an error.
+  it('refuses to render an app that declares models with no key minted for it', () => {
+    // P4a's Decision 12 refused every AI row, naming P4b. P4b Task 9 keeps the refusal
+    // and changes its meaning — "P4b does not exist" became "the caller minted no key"
+    // — because the property is the same: an app deployed with LLM_API_KEY unset
+    // starts, looks healthy, and is a support ticket on its first question.
     expect(() => renderInjection(ctx({ spec: withModels(['default-chat']) }))).toThrow(
-      /INJECTION_AI_UNSUPPORTED/,
+      /INJECTION_AI_KEY_MISSING/,
     )
   })
 
@@ -392,7 +393,126 @@ describe('§8 injection contract — the guards on its inputs', () => {
       expect.unreachable('should have thrown')
     } catch (error) {
       expect(error).toBeInstanceOf(InjectionError)
-      expect((error as InjectionError).code).toBe('INJECTION_AI_UNSUPPORTED')
+      expect((error as InjectionError).code).toBe('INJECTION_AI_KEY_MISSING')
     }
+  })
+})
+
+/** What `deployRelease` hands the renderer for an AI app: the key it minted this deploy. */
+const MINTED = {
+  endpoint: 'http://manifest-litellm:4000/v1',
+  apiKey: 'sk-minted-for-this-deploy',
+}
+const CHAT_AND_EMBED = {
+  ...MINTED,
+  defaultChatModel: 'default-chat',
+  embeddingModel: 'default-embed',
+}
+
+/** A staging chem-labs declaring `models`, resolved from the spec, with `ai` supplied. */
+const aiCtx = (
+  models: string[],
+  ai: NonNullable<InjectionContext['ai']>,
+): InjectionContext => ({ ...ctx({ spec: withModels(models) }), ai })
+
+describe('§8 AI rows (P4b Task 9)', () => {
+  it('renders the six rows for an app that declares a chat and an embedding model', () => {
+    const env = renderInjection(aiCtx(['default-chat', 'default-embed'], CHAT_AND_EMBED))
+    // §8: there is NO `openai-compat` provider.
+    expect(env.LLM_PROVIDER).toBe('openai')
+    expect(env.LLM_ENDPOINT).toBe('http://manifest-litellm:4000/v1')
+    expect(env.LLM_API_KEY).toBe('sk-minted-for-this-deploy')
+    expect(env.LLM_DEFAULT_MODEL).toBe('default-chat')
+    expect(env.EMBEDDINGS_PROVIDER).toBe('openai')
+    expect(env.EMBEDDINGS_MODEL).toBe('default-embed')
+  })
+
+  it('adds exactly the table’s AI rows to an app, and nothing the table lacks', () => {
+    // Both directions, as the non-AI comparison above does: a row deleted from the
+    // table and a variable dropped from the renderer are each red, separately.
+    const plain = new Set(Object.keys(renderInjection(ctx())))
+    const added = Object.keys(
+      renderInjection(aiCtx(['default-chat', 'default-embed'], CHAT_AND_EMBED)),
+    ).filter((name) => !plain.has(name))
+    const aiRows = INJECTION_VARIABLES.filter((v) => v.requiredIn === 'if-ai').map(
+      (v) => v.name,
+    )
+    expect(added.sort()).toEqual([...aiRows].sort())
+  })
+
+  it('omits LLM_DEFAULT_MODEL for an embeddings-only app, and the EMBEDDINGS rows for a chat-only one', () => {
+    // §8's "if declared". An EMPTY LLM_DEFAULT_MODEL is worse than an absent one: the
+    // toolkit sends '' and a key with a models list refuses it as not permitted.
+    const embedOnly = renderInjection(
+      aiCtx(['default-embed'], { ...MINTED, embeddingModel: 'default-embed' }),
+    )
+    expect(embedOnly).not.toHaveProperty('LLM_DEFAULT_MODEL')
+    expect(embedOnly.EMBEDDINGS_MODEL).toBe('default-embed')
+
+    const chatOnly = renderInjection(
+      aiCtx(['default-chat'], { ...MINTED, defaultChatModel: 'default-chat' }),
+    )
+    expect(chatOnly.LLM_DEFAULT_MODEL).toBe('default-chat')
+    expect(chatOnly).not.toHaveProperty('EMBEDDINGS_MODEL')
+    expect(chatOnly).not.toHaveProperty('EMBEDDINGS_PROVIDER')
+  })
+
+  it('renders NO AI row for an app that declares no models', () => {
+    const env = renderInjection(ctx())
+    for (const row of INJECTION_VARIABLES.filter((v) => v.requiredIn === 'if-ai')) {
+      expect(env, `${row.name} leaked into a non-AI app`).not.toHaveProperty(row.name)
+    }
+  })
+
+  it('refuses an EMPTY key exactly as it refuses a missing one', () => {
+    expect(() =>
+      renderInjection(
+        aiCtx(['default-chat'], {
+          ...MINTED,
+          apiKey: '',
+          defaultChatModel: 'default-chat',
+        }),
+      ),
+    ).toThrow(/INJECTION_AI_KEY_MISSING/)
+  })
+
+  it('refuses a key for an app that declares no models', () => {
+    // The other half, as with an SP entity for an app with no sign-on: one of the two
+    // is wrong, and guessing gives an app AI access it never declared.
+    expect(() => renderInjection({ ...ctx(), ai: CHAT_AND_EMBED })).toThrow(
+      /INJECTION_AI_UNEXPECTED/,
+    )
+  })
+
+  it('refuses to name a model the release did not declare', () => {
+    // The key is minted for the declared models only, so any other name is a 403 on
+    // the app's first question.
+    expect(() =>
+      renderInjection(
+        aiCtx(['default-chat'], { ...MINTED, defaultChatModel: 'default-chat-onprem' }),
+      ),
+    ).toThrow(/INJECTION_AI_MODEL_UNDECLARED/)
+  })
+
+  it('never lets the app shadow its key or its endpoint', () => {
+    // §12: application code is untrusted input. An app that declares its own
+    // LLM_ENDPOINT must not be able to send its users' questions somewhere else while
+    // appearing bound to the platform's gateway.
+    const spec = manifestSchema.parse(
+      parse(
+        yaml({
+          ai: 'ai:\n  models: [default-chat]',
+          env:
+            "  - { name: LLM_API_KEY, value: 'sk-attacker' }\n" +
+            "  - { name: LLM_ENDPOINT, value: 'http://evil.example/v1' }",
+        }),
+      ),
+    )
+    const env = renderInjection({
+      ...ctx({ spec }),
+      ai: { ...MINTED, defaultChatModel: 'default-chat' },
+    })
+    expect(env.LLM_API_KEY).toBe('sk-minted-for-this-deploy')
+    expect(env.LLM_ENDPOINT).toBe('http://manifest-litellm:4000/v1')
   })
 })

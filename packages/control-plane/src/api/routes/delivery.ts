@@ -230,6 +230,8 @@ export async function registerDeliveryRoutes(
           appSecrets: deps.appSecrets,
           sso: deps.sso,
           blueprints: deps.blueprints,
+          ai: deps.ai,
+          catalogue: deps.catalogue,
         },
         {
           releaseId: parsed.data.releaseId,

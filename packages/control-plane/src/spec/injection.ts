@@ -36,8 +36,18 @@ export class InjectionError extends Error {
 export interface InjectionVariable {
   name: string
   requiredIn: 'all' | 'staging+production' | 'if-service' | 'if-ai'
-  /** Which declaration makes it appear, for the ones that are conditional. */
-  when?: 'auth.provider=cwl' | 'services.mongo' | 'services.qdrant' | 'ai.models'
+  /**
+   * Which declaration makes it appear, for the ones that are conditional. The two
+   * `ai.models.*` values are §8's "if declared": a row that appears only when the
+   * release declares a model of that kind.
+   */
+  when?:
+    | 'auth.provider=cwl'
+    | 'services.mongo'
+    | 'services.qdrant'
+    | 'ai.models'
+    | 'ai.models.chat'
+    | 'ai.models.embedding'
   note?: string
 }
 
@@ -84,20 +94,39 @@ export const INJECTION_VARIABLES: readonly InjectionVariable[] = [
   { name: 'QDRANT_URL', requiredIn: 'if-service', when: 'services.qdrant' },
   { name: 'QDRANT_API_KEY', requiredIn: 'if-service', when: 'services.qdrant' },
   { name: 'QDRANT_COLLECTION', requiredIn: 'if-service', when: 'services.qdrant' },
-  // The AI rows are in the table because §8 has them and the drift test reads
-  // this list. renderInjection REFUSES to produce them until P4b supplies a
-  // key — a variable rendered empty is worse than a refusal (Decision 12).
+  // §8's AI rows, rendered since P4b Task 9 — and only from `InjectionContext.ai`,
+  // which `deployRelease` fills with the key it minted for THIS deploy.
   {
     name: 'LLM_PROVIDER',
     requiredIn: 'if-ai',
     when: 'ai.models',
-    note: 'P4b. `openai` — there is no `openai-compat` provider.',
+    note: "`openai` — LiteLLM is OpenAI-compatible and there is NO `openai-compat` provider: ProviderType is 'openai' | 'anthropic' | 'ollama' | 'ubc-llm-sandbox'.",
   },
-  { name: 'LLM_ENDPOINT', requiredIn: 'if-ai', when: 'ai.models', note: 'P4b.' },
-  { name: 'LLM_API_KEY', requiredIn: 'if-ai', when: 'ai.models', note: 'P4b.' },
-  { name: 'LLM_DEFAULT_MODEL', requiredIn: 'if-ai', when: 'ai.models', note: 'P4b.' },
-  { name: 'EMBEDDINGS_PROVIDER', requiredIn: 'if-ai', when: 'ai.models', note: 'P4b.' },
-  { name: 'EMBEDDINGS_MODEL', requiredIn: 'if-ai', when: 'ai.models', note: 'P4b.' },
+  {
+    name: 'LLM_ENDPOINT',
+    requiredIn: 'if-ai',
+    when: 'ai.models',
+    note: 'The IN-NETWORK URL. The toolkit cannot be forced through the egress proxy (P4a, three mechanisms), so the app reaches manifest-litellm directly on its own network (P4b Task 8).',
+  },
+  {
+    name: 'LLM_API_KEY',
+    requiredIn: 'if-ai',
+    when: 'ai.models',
+    note: 'Minted on every deploy and committed once the instance is healthy, when the previous key is revoked (§10; Rich, 2026-09-14).',
+  },
+  {
+    name: 'LLM_DEFAULT_MODEL',
+    requiredIn: 'if-ai',
+    when: 'ai.models.chat',
+    note: 'The first declared chat model. ABSENT, never empty, when none is declared.',
+  },
+  { name: 'EMBEDDINGS_PROVIDER', requiredIn: 'if-ai', when: 'ai.models.embedding' },
+  {
+    name: 'EMBEDDINGS_MODEL',
+    requiredIn: 'if-ai',
+    when: 'ai.models.embedding',
+    note: 'The first declared embedding model.',
+  },
 ] as const
 
 /**
@@ -213,6 +242,20 @@ export interface InjectionContext {
   secrets: { sessionSecret: string }
   /** What `ensureService` returned, paired with what was declared. */
   services: InjectedService[]
+  /**
+   * §8's AI rows — present exactly when the resolved config declares models.
+   *
+   * RESOLVED BY THE CALLER, never here: the key `deployRelease` minted for this
+   * deploy, the IN-NETWORK endpoint, and the model names it read off the catalogue by
+   * kind. A renderer that minted keys or fetched a catalogue could not run in §16's
+   * unit tier, and would be a second place that decides which key an app holds.
+   */
+  ai?: {
+    endpoint: string
+    apiKey: string
+    defaultChatModel?: string
+    embeddingModel?: string
+  }
 }
 
 /**
@@ -251,20 +294,37 @@ export function renderInjection(ctx: InjectionContext): Record<string, string> {
     )
   }
 
-  // Decision 12. P4a has no LiteLLM client, so an app declaring models must fail
-  // here rather than start with LLM_API_KEY unset: an app that runs and cannot
-  // reach a model is a support ticket, and a variable rendered empty is worse
-  // than a refusal.
+  // §8's AI rows (P4b Task 9), which replace P4a's Decision 12 refusal. The meaning
+  // changed — "P4b does not exist" became "the caller minted no key" — and the
+  // property did not: a variable rendered EMPTY is worse than a refusal, because the
+  // app starts, looks healthy, and fails its first question.
   // `ai` is optional at runtime for the same reason `auth` is: §13 froze these
   // configs and the ones frozen before this field existed do not carry it.
   const models = resolved.ai?.models ?? []
-  if (models.length > 0) {
+  if (models.length > 0 && (ctx.ai === undefined || ctx.ai.apiKey === '')) {
     throw new InjectionError(
-      'INJECTION_AI_UNSUPPORTED',
-      `this app declares ai.models (${models.join(', ')}) and P4a injects no ` +
-        'AI variables. The LiteLLM client, the virtual key and the model catalogue are ' +
-        'P4b; until it lands, remove ai.models or deploy without it.',
+      'INJECTION_AI_KEY_MISSING',
+      `this app declares ai.models (${models.join(', ')}) and no AI key was supplied. ` +
+        '`deployRelease` mints one before the instance starts; an app rendered without ' +
+        'one would start healthy and fail its first question.',
     )
+  }
+  if (models.length === 0 && ctx.ai !== undefined) {
+    throw new InjectionError(
+      'INJECTION_AI_UNEXPECTED',
+      `'${ctx.projectSlug}' declares no ai.models and an AI key was supplied anyway. One ` +
+        'of the two is wrong, and guessing which gives an app AI access it never declared.',
+    )
+  }
+  for (const named of [ctx.ai?.defaultChatModel, ctx.ai?.embeddingModel]) {
+    // The key is minted for the DECLARED models only (Task 7), so any other name is a
+    // 403 on the app's first question. Two independent reads of one list.
+    if (named !== undefined && !models.includes(named)) {
+      throw new InjectionError(
+        'INJECTION_AI_MODEL_UNDECLARED',
+        `the model '${named}' is not among this release's ai.models (${models.join(', ')})`,
+      )
+    }
   }
 
   /**
@@ -364,6 +424,24 @@ export function renderInjection(ctx: InjectionContext): Record<string, string> {
 
   for (const service of ctx.services) {
     Object.assign(env, renderService(service))
+  }
+
+  if (ctx.ai !== undefined) {
+    // `openai`: LiteLLM is OpenAI-compatible, and §8 records that there is no
+    // `openai-compat` provider in the toolkit.
+    env.LLM_PROVIDER = 'openai'
+    env.LLM_ENDPOINT = ctx.ai.endpoint
+    env.LLM_API_KEY = ctx.ai.apiKey
+    // §8's "if declared", as ABSENCE. An empty LLM_DEFAULT_MODEL is worse than none:
+    // the toolkit sends the empty string, and a key with a models list refuses it as
+    // not permitted — which reads as a permissions problem (P4b sitting 3).
+    if (ctx.ai.defaultChatModel !== undefined) {
+      env.LLM_DEFAULT_MODEL = ctx.ai.defaultChatModel
+    }
+    if (ctx.ai.embeddingModel !== undefined) {
+      env.EMBEDDINGS_PROVIDER = 'openai'
+      env.EMBEDDINGS_MODEL = ctx.ai.embeddingModel
+    }
   }
 
   return env

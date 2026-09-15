@@ -10,8 +10,10 @@ import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/i
 import { createServiceCredentials } from './services/index.js'
 import { createSamlSp } from './identity/index.js'
 import {
+  createAiKeyService,
   createCatalogueCache,
   createLiteLlmClient,
+  disabledAiKeyService,
   disabledCatalogue,
 } from './ai/index.js'
 import {
@@ -166,6 +168,14 @@ const driver = await createDockerDriver({
 const masterKeypair = await loadMasterKeypair(config.secretsMasterKeyPath)
 const secrets = createServiceCredentials(masterKeypair, config.masterSecret)
 const appSecrets = createAppSecrets(masterKeypair)
+// §10's app keys (P4b Task 9): the admin client built above and the master keypair,
+// BOUND, so `releases/` holds neither. With AI switched off there is no client, and
+// the disabled service refuses every step naming the setting — behind
+// `deployRelease`'s own refusal, which names it first.
+const ai =
+  litellm === undefined
+    ? disabledAiKeyService()
+    : createAiKeyService(litellm, masterKeypair)
 
 // §9's SP registrar. The IdP metadata database is a SECOND connection to a
 // DIFFERENT database, constructed ONCE here — `sso/` writes SimpleSAMLphp's own
@@ -228,6 +238,7 @@ const app = await buildServer({
   appSecrets,
   sso,
   catalogue,
+  ai,
   samlSp: createSamlSp({
     entity: spEntity,
     idpBaseUrl: config.idp.baseUrl,

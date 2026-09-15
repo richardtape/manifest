@@ -1,7 +1,8 @@
 import { fileURLToPath } from 'node:url'
+import { eq } from 'drizzle-orm'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { resetDatabase, withRollback } from '../db/testing.js'
-import { appSpecs, builds, users } from '../db/index.js'
+import { appSpecs, builds, instances, users } from '../db/index.js'
 import { createFakeDriver } from '../runtime/index.js'
 import { createProject } from '../projects/index.js'
 import { loadConfig } from '../config.js'
@@ -10,8 +11,16 @@ import { createAppSecrets, generateMasterKeypair, getSecret } from '../secrets/i
 import { createServiceCredentials } from '../services/index.js'
 import { loadBlueprints } from '../blueprints/index.js'
 import { ReleaseError, createRelease, deployRelease, startBuild } from './index.js'
-import type { DeployDeps } from './index.js'
+import type { DeployDeps, ResolvedConfigSet } from './index.js'
 import type { SpRegistrationInput } from '../sso/index.js'
+import {
+  disabledAiKeyService,
+  disabledCatalogue,
+  type AiKeyService,
+  type MintAppKeyInput,
+  type ModelCatalogue,
+} from '../ai/index.js'
+import { declaredCatalogue } from '../ai/testing.js'
 
 /** The repository's own blueprints, resolved from THIS FILE — `pnpm test` and
  *  `pnpm --filter … test` have different working directories. */
@@ -53,6 +62,23 @@ beforeAll(async () => {
         throw new Error('no test in this file should need the IdP certificate')
       },
     },
+    // The default for every test EXCEPT the P4b Task 9 block at the end, which passes
+    // its own recorder. Throwing, for the reason `sso` does: these fixtures declare no
+    // model, so a mint here would mean the condition guarding it has stopped working.
+    ai: {
+      enabled: true,
+      mintAppKey: () => {
+        throw new Error('no test in this file should mint an AI key by default')
+      },
+      commitAppKey: () => {
+        throw new Error('no test in this file should commit an AI key by default')
+      },
+      discardAppKey: () => {
+        throw new Error('no test in this file should discard an AI key by default')
+      },
+    },
+    // infra/litellm/config.yaml through the real projection (`ai/testing.ts`).
+    catalogue: declaredCatalogue(),
   }
 })
 
@@ -1014,6 +1040,417 @@ describe('deployRelease sets up sign-on before the app starts (§9, Task 9)', ()
         { releaseId: release.id, environmentId: byKind.staging!.id },
       )
       expect(sso.seen).toEqual([])
+    })
+  })
+})
+
+/** `one(kind)` for an app that declares models, with a budget LiteLLM will honour. */
+const withAi = (
+  kind: 'sandbox' | 'staging' | 'production',
+  models: string[] = ['default-chat', 'default-embed'],
+  projectMonthlyUsd = 25,
+) => ({
+  ...one(kind),
+  ai: {
+    models,
+    budget: { project_monthly_usd: projectMonthlyUsd, per_user_monthly_usd: 1 },
+  },
+})
+const aiRelease = (models?: string[], projectMonthlyUsd?: number): ResolvedConfigSet => ({
+  sandbox: withAi('sandbox', models, projectMonthlyUsd),
+  staging: withAi('staging', models, projectMonthlyUsd),
+  production: withAi('production', models, projectMonthlyUsd),
+})
+
+/**
+ * §10's key at deploy (P4b Task 9) — and Rich's decision of 2026-09-14 that no live AI
+ * call may fail because a deploy revoked its key. So the ORDER is the assertion: the
+ * key service and the driver below write into ONE list, and every test reads it back.
+ */
+describe('deployRelease and §10’s app key (P4b Task 9)', () => {
+  function recordingAi(
+    events: string[],
+    fail: { discard?: boolean; commit?: boolean } = {},
+  ): { service: AiKeyService; minted: MintAppKeyInput[] } {
+    const minted: MintAppKeyInput[] = []
+    let n = 0
+    return {
+      minted,
+      service: {
+        enabled: true,
+        mintAppKey: async (input) => {
+          minted.push(input)
+          events.push('mint')
+          return `sk-minted-${++n}`
+        },
+        commitAppKey: async (_db, input) => {
+          events.push(`commit ${input.key}`)
+          if (fail.commit) throw new Error('the gateway refused the revoke')
+        },
+        discardAppKey: async (key) => {
+          events.push(`discard ${key}`)
+          if (fail.discard) throw new Error('the gateway is down')
+        },
+      },
+    }
+  }
+
+  /** The driver, recording `instance` and every health read into the same list. */
+  function recordingDriver(events: string[], base: Driver = createFakeDriver()) {
+    const seen: InstanceSpec[] = []
+    const driver: Driver = {
+      ...base,
+      ensureInstance: (spec) => {
+        events.push('instance')
+        seen.push(spec)
+        return base.ensureInstance(spec)
+      },
+      status: async (id) => {
+        const status = await base.status(id)
+        events.push(`health ${status.healthy ? 'passed' : 'failed'}`)
+        return status
+      },
+    }
+    return { driver, seen }
+  }
+
+  async function releaseWith(
+    db: Parameters<typeof createProject>[0],
+    driver: Driver,
+    resolvedConfig: ResolvedConfigSet,
+  ) {
+    const { user, project, appSpec, byKind } = await fixture(db)
+    const build = await startBuild(db, driver, {
+      projectId: project.id,
+      projectSlug: project.slug,
+      appSpecId: appSpec.id,
+      commitSha: appSpec.commitSha,
+      blueprintRef: project.blueprintRef,
+      repoPath: '/tmp/chem-labs.git',
+    })
+    const release = await createRelease(db, {
+      projectId: project.id,
+      buildId: build.id,
+      appSpecId: appSpec.id,
+      createdBy: user.id,
+      resolvedConfig,
+    })
+    return { release, project, staging: byKind.staging! }
+  }
+
+  it('mints BEFORE the instance starts, injects what it minted, and commits only AFTER health passes', async () => {
+    await withRollback(async (db) => {
+      const events: string[] = []
+      const { driver, seen } = recordingDriver(events)
+      const ai = recordingAi(events)
+      const { release, project, staging } = await releaseWith(db, driver, aiRelease())
+      const instance = await deployRelease(
+        db,
+        driver,
+        config,
+        { ...deployDeps, ai: ai.service },
+        { releaseId: release.id, environmentId: staging.id },
+      )
+      expect(instance.state).toBe('healthy')
+      expect(events).toEqual(['mint', 'instance', 'health passed', 'commit sk-minted-1'])
+      // Not "a key was minted" — the key the CONTAINER received. Every one of P3
+      // Session 5's seven defects was a value correct in the test and wrong in the
+      // running system, because the test handed the driver what it built.
+      const spec = seen.at(-1)!
+      expect(spec.env.LLM_API_KEY).toBe('sk-minted-1')
+      expect(spec.needsAiGateway).toBe(true)
+      // What was minted: the release's frozen models and budget, never the manifest's.
+      expect(ai.minted).toEqual([
+        {
+          projectId: project.id,
+          projectSlug: 'chem-labs',
+          kind: 'staging',
+          models: ['default-chat', 'default-embed'],
+          monthlyUsd: 25,
+        },
+      ])
+    })
+  })
+
+  it('gives the app the IN-NETWORK endpoint, and each model by the KIND the catalogue gives it', async () => {
+    await withRollback(async (db) => {
+      const events: string[] = []
+      const { driver, seen } = recordingDriver(events)
+      // Declared EMBEDDING FIRST, so a reader that took the first declared model as
+      // the chat model would inject `default-embed` as LLM_DEFAULT_MODEL. `kind` has
+      // had no reader until this task (P4b finding 46).
+      const { release, staging } = await releaseWith(
+        db,
+        driver,
+        aiRelease(['default-embed', 'default-chat']),
+      )
+      await deployRelease(
+        db,
+        driver,
+        config,
+        { ...deployDeps, ai: recordingAi(events).service },
+        { releaseId: release.id, environmentId: staging.id },
+      )
+      const env = seen.at(-1)!.env
+      // The pair that is not interchangeable and fails silently when swapped: an app
+      // handed http://127.0.0.1:7106 gets ECONNREFUSED from inside its own
+      // `--internal` network, and the symptom is "the AI is down".
+      expect(env.LLM_ENDPOINT).toBe(config.litellm.internalUrl)
+      expect(env.LLM_ENDPOINT).not.toBe(config.litellm.url)
+      expect(env.LLM_ENDPOINT).not.toContain('127.0.0.1')
+      expect(env.LLM_PROVIDER).toBe('openai')
+      expect(env.LLM_DEFAULT_MODEL).toBe('default-chat')
+      expect(env.EMBEDDINGS_MODEL).toBe('default-embed')
+    })
+  })
+
+  it('mints nothing, and asks for no gateway, for an app that declares no models', async () => {
+    // fixture-app is such an app and P3's whole Docker tier deploys it. An
+    // unconditional mint would put a LiteLLM user and a live key behind every app on
+    // the platform — and Task 7 refuses an empty model list, which LiteLLM reads as
+    // EVERY model.
+    await withRollback(async (db) => {
+      const events: string[] = []
+      const { driver, seen } = recordingDriver(events)
+      const ai = recordingAi(events)
+      const { release, staging } = await releaseWith(db, driver, RESOLVED)
+      await deployRelease(
+        db,
+        driver,
+        config,
+        { ...deployDeps, ai: ai.service },
+        { releaseId: release.id, environmentId: staging.id },
+      )
+      expect(events).toEqual(['instance', 'health passed'])
+      expect(seen.at(-1)!.needsAiGateway).toBe(false)
+      expect(
+        Object.keys(seen.at(-1)!.env).filter((n) => /^(LLM|EMBEDDINGS)_/.test(n)),
+      ).toEqual([])
+    })
+  })
+
+  it('redeploys a release frozen before ResolvedConfig.ai existed as the app with no AI it was', async () => {
+    // Pre-flight 64: such a release has no `ai` key at all, and reading
+    // `resolved.ai.models` would be a TypeError on its redeploy.
+    await withRollback(async (db) => {
+      const events: string[] = []
+      const { driver, seen } = recordingDriver(events)
+      const legacy = Object.fromEntries(
+        (['sandbox', 'staging', 'production'] as const).map((kind) => {
+          const { ai: _dropped, ...frozen } = one(kind)
+          return [kind, frozen]
+        }),
+      ) as unknown as ResolvedConfigSet
+      const { release, staging } = await releaseWith(db, driver, legacy)
+      const instance = await deployRelease(
+        db,
+        driver,
+        config,
+        { ...deployDeps, ai: recordingAi(events).service },
+        { releaseId: release.id, environmentId: staging.id },
+      )
+      expect(instance.state).toBe('healthy')
+      expect(events).toEqual(['instance', 'health passed'])
+      expect(seen.at(-1)!.needsAiGateway).toBe(false)
+    })
+  })
+
+  it('DISCARDS the minted key, and commits nothing, when the instance never becomes healthy', async () => {
+    // The stored key is still the previous one, and so is the key the previous
+    // container holds — which is exactly why the new one must not be committed.
+    await withRollback(async (db) => {
+      const events: string[] = []
+      const { driver } = recordingDriver(
+        events,
+        createFakeDriver({ failInstances: true }),
+      )
+      const { release, staging } = await releaseWith(db, driver, aiRelease())
+      const instance = await deployRelease(
+        db,
+        driver,
+        config,
+        { ...deployDeps, ai: recordingAi(events).service },
+        { releaseId: release.id, environmentId: staging.id },
+      )
+      expect(instance.state).toBe('failed')
+      expect(events).toEqual(['mint', 'instance', 'health failed', 'discard sk-minted-1'])
+    })
+  })
+
+  it('discards the minted key when the instance cannot be started, and rethrows THAT error', async () => {
+    await withRollback(async (db) => {
+      const events: string[] = []
+      const base = createFakeDriver()
+      vi.spyOn(base, 'ensureInstance').mockRejectedValue(
+        new Error('the daemon refused the container'),
+      )
+      const { driver } = recordingDriver(events, base)
+      const { release, staging } = await releaseWith(db, driver, aiRelease())
+      await expect(
+        deployRelease(
+          db,
+          driver,
+          config,
+          { ...deployDeps, ai: recordingAi(events).service },
+          { releaseId: release.id, environmentId: staging.id },
+        ),
+      ).rejects.toThrow('the daemon refused the container')
+      expect(events).toEqual(['mint', 'instance', 'discard sk-minted-1'])
+    })
+  })
+
+  it('a discard that fails too does not replace the deploy’s own failure — and never prints the key', async () => {
+    await withRollback(async (db) => {
+      const events: string[] = []
+      const base = createFakeDriver()
+      vi.spyOn(base, 'ensureInstance').mockRejectedValue(
+        new Error('the daemon refused the container'),
+      )
+      const { driver } = recordingDriver(events, base)
+      const { release, staging } = await releaseWith(db, driver, aiRelease())
+      const operator = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      try {
+        await expect(
+          deployRelease(
+            db,
+            driver,
+            config,
+            { ...deployDeps, ai: recordingAi(events, { discard: true }).service },
+            { releaseId: release.id, environmentId: staging.id },
+          ),
+        ).rejects.toThrow('the daemon refused the container')
+        const printed = operator.mock.calls.map((call) => String(call[0])).join('\n')
+        expect(printed).toContain('could not be discarded')
+        expect(printed).not.toContain('sk-minted-1')
+      } finally {
+        operator.mockRestore()
+      }
+    })
+  })
+
+  it('a commit that fails leaves the instance recorded healthy, surfaces the failure, and discards nothing', async () => {
+    // The healthy instance HOLDS the new key, so discarding it would take the app's AI
+    // down to tidy up a bookkeeping failure.
+    await withRollback(async (db) => {
+      const events: string[] = []
+      const { driver } = recordingDriver(events)
+      const { release, staging } = await releaseWith(db, driver, aiRelease())
+      await expect(
+        deployRelease(
+          db,
+          driver,
+          config,
+          { ...deployDeps, ai: recordingAi(events, { commit: true }).service },
+          { releaseId: release.id, environmentId: staging.id },
+        ),
+      ).rejects.toThrow('the gateway refused the revoke')
+      expect(events).toEqual(['mint', 'instance', 'health passed', 'commit sk-minted-1'])
+      const [row] = await db
+        .select()
+        .from(instances)
+        .where(eq(instances.releaseId, release.id))
+      // Recorded as what it is, not parked in `provisioning`, which nothing moves.
+      expect(row!.state).toBe('healthy')
+    })
+  })
+
+  it('refuses an AI release with AI switched off, naming the setting — reading EITHER half of it — before anything is minted or started', async () => {
+    // Sitting 5's decision. Validation refuses such a SPEC, but a release validated
+    // before the switch can still be redeployed, and there is no client to mint with.
+    await withRollback(async (db) => {
+      const events: string[] = []
+      const { driver } = recordingDriver(events)
+      const { release, staging } = await releaseWith(db, driver, aiRelease())
+      const halves: { catalogue: ModelCatalogue; ai: AiKeyService }[] = [
+        { catalogue: disabledCatalogue(), ai: recordingAi(events).service },
+        { catalogue: declaredCatalogue(), ai: disabledAiKeyService() },
+      ]
+      for (const half of halves) {
+        const refusal = deployRelease(
+          db,
+          driver,
+          config,
+          { ...deployDeps, ...half },
+          { releaseId: release.id, environmentId: staging.id },
+        )
+        await expect(refusal).rejects.toBeInstanceOf(ReleaseError)
+        await expect(refusal).rejects.toMatchObject({ code: 'RELEASE_AI_DISABLED' })
+        await expect(refusal).rejects.toThrow(/MANIFEST_AI_ENABLED=0/)
+      }
+      expect(events).toEqual([])
+    })
+  })
+
+  it('refuses a model the catalogue no longer offers, no longer classifies, or no longer approves for the app’s data', async () => {
+    // The catalogue can move between validation and deploy. Each refusal comes before
+    // the mint: a key minted for a model that is refused would be a key nobody holds.
+    await withRollback(async (db) => {
+      const events: string[] = []
+      const { driver } = recordingDriver(events)
+      const { release, staging } = await releaseWith(db, driver, aiRelease())
+      const { models: offered } = await declaredCatalogue().get()
+      const catalogueOf = (
+        models: typeof offered,
+        unclassified: string[] = [],
+      ): ModelCatalogue => ({
+        enabled: true,
+        get: async () => ({ models: [...models], unclassified }),
+      })
+      const cases: [ModelCatalogue, string][] = [
+        [
+          catalogueOf(offered.filter((m) => m.name !== 'default-embed')),
+          'RELEASE_MODEL_NOT_IN_CATALOGUE',
+        ],
+        [
+          catalogueOf(
+            offered.filter((m) => m.name !== 'default-chat'),
+            ['default-chat'],
+          ),
+          'RELEASE_MODEL_UNCLASSIFIED',
+        ],
+        [
+          // Approved for `internal` when validated; `public` only now. The app's data
+          // is `internal`, so D17 refuses it here as validation would have.
+          catalogueOf(
+            offered.map((m) =>
+              m.name === 'default-chat'
+                ? { ...m, maxClassification: 'public' as const }
+                : m,
+            ),
+          ),
+          'RELEASE_MODEL_CLASSIFICATION_TOO_LOW',
+        ],
+      ]
+      for (const [catalogue, code] of cases) {
+        await expect(
+          deployRelease(
+            db,
+            driver,
+            config,
+            { ...deployDeps, ai: recordingAi(events).service, catalogue },
+            { releaseId: release.id, environmentId: staging.id },
+          ),
+        ).rejects.toMatchObject({ code })
+      }
+      expect(events).toEqual([])
+    })
+  })
+
+  it('refuses a release whose project budget would refuse every request, before minting', async () => {
+    await withRollback(async (db) => {
+      const events: string[] = []
+      const { driver } = recordingDriver(events)
+      const { release, staging } = await releaseWith(db, driver, aiRelease(undefined, 0))
+      await expect(
+        deployRelease(
+          db,
+          driver,
+          config,
+          { ...deployDeps, ai: recordingAi(events).service },
+          { releaseId: release.id, environmentId: staging.id },
+        ),
+      ).rejects.toMatchObject({ code: 'RELEASE_AI_BUDGET_MISSING' })
+      expect(events).toEqual([])
     })
   })
 })

@@ -2,11 +2,17 @@ import { eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { builds, environments, instances, projects, releases } from '../db/index.js'
 import type { BlueprintRegistry } from '../blueprints/index.js'
-import type { Driver, InstanceFile } from '../runtime/index.js'
+import type { Driver, InstanceFile, InstanceHandle } from '../runtime/index.js'
 import { instanceName, serviceName } from '../runtime/index.js'
 import { nextState } from '../runtime/index.js'
-import type { InjectedService, ResolvedConfig } from '../spec/index.js'
-import { INJECTED_FILE_PATHS, renderInjection, toMebibytes } from '../spec/index.js'
+import type { InjectedService, InjectionContext, ResolvedConfig } from '../spec/index.js'
+import {
+  CLASSIFICATION_RANK,
+  INJECTED_FILE_PATHS,
+  renderInjection,
+  toMebibytes,
+} from '../spec/index.js'
+import type { AiKeyService, ModelCatalogue, ModelEntry } from '../ai/index.js'
 import type { AppSecretResolver } from '../secrets/index.js'
 import type { ServiceCredentialResolver } from '../services/index.js'
 import type { SpRegistration, SsoRegistrar } from '../sso/index.js'
@@ -37,6 +43,17 @@ export interface DeployDeps {
    * ownership or not at all.
    */
   blueprints: BlueprintRegistry
+  /**
+   * §10's key lifecycle — mint, commit, discard — with the LiteLLM client and the
+   * master keypair already bound (P4b Task 9). `releases/` holds neither.
+   */
+  ai: AiKeyService
+  /**
+   * D17's catalogue, READ AGAIN AT DEPLOY. Validation checked the declared models
+   * against it; the catalogue can move afterwards, and a release is redeployable long
+   * after it was validated.
+   */
+  catalogue: ModelCatalogue
 }
 
 export type Release = typeof releases.$inferSelect
@@ -218,6 +235,15 @@ export async function deployRelease(
   }
   const blueprintRef = project.blueprintRef
 
+  /**
+   * §10's models, checked against the platform AS IT IS NOW, before the instance row,
+   * the services or the Service Provider exist — so a refusal leaves nothing behind.
+   * `?.` because a release frozen before `ResolvedConfig.ai` existed has no `ai` key at
+   * all, and redeploys as the app with no AI it was (pre-flight 64).
+   */
+  const models = resolved.ai?.models ?? []
+  const aiPlan = models.length > 0 ? await modelsForDeploy(deps, resolved) : undefined
+
   const [row] = await db
     .insert(instances)
     .values({
@@ -346,56 +372,111 @@ export async function deployRelease(
     }
   }
 
-  const handle = await driver.ensureInstance({
-    name,
-    projectSlug,
-    environmentKind: environment.kind,
-    releaseId: release.id,
-    image: { digest, repository },
-    /**
-     * §8's ENTIRE contract, from one function. Nothing is added here.
-     *
-     * P3 built an ad-hoc block in this position — the app's own env, then PORT,
-     * MANIFEST_ENV, MANIFEST_PROJECT_SLUG, MANIFEST_APP_URL, then the service
-     * endpoints — and it was the platform's second producer of these names.
-     * `MONGODB_DB_NAME` is what that cost: §8 requires it, the block injected
-     * only the catalogue's `envVar`, and every deployed app wrote to a database
-     * called `app` while two Docker tests set the variable themselves and
-     * passed. The block is deleted rather than extended, and
-     * `grep -rn MANIFEST_APP_URL src --include='*.ts'` outside the tests now
-     * finds `spec/injection.ts` alone.
-     */
-    env: renderInjection({
-      resolved,
-      environmentKind: environment.kind,
-      hostname: environment.hostname,
+  /**
+   * §10's key, MINTED BEFORE THE CONTAINER STARTS — the container needs it in its
+   * environment, and an app that asks a question with no key gets a 401, a race nobody
+   * reproduces on demand — and COMMITTED ONLY ONCE THE INSTANCE IS HEALTHY (Rich,
+   * 2026-09-14: no live AI call may fail because a deploy revoked its key). Until the
+   * commit, the stored key and the key the previous container holds are both still the
+   * previous one.
+   *
+   * After the Service Provider and the files, so nothing that can still refuse the
+   * deploy runs between the mint and the `try` that discards it.
+   */
+  const minted =
+    aiPlan === undefined
+      ? undefined
+      : await deps.ai.mintAppKey({
+          projectId: environment.projectId,
+          projectSlug,
+          kind: environment.kind,
+          models,
+          monthlyUsd: aiPlan.monthlyUsd,
+        })
+  // `ModelEntry.kind`'s first reader (P4b finding 46): the first declared model of each
+  // kind is the one the app is told about.
+  const chat = aiPlan?.declared.find((m) => m.kind === 'chat')
+  const embedding = aiPlan?.declared.find((m) => m.kind === 'embedding')
+  const ai: InjectionContext['ai'] =
+    minted === undefined
+      ? undefined
+      : {
+          // The IN-NETWORK endpoint, NEVER `config.litellm.url`. The two are not
+          // interchangeable and fail silently when swapped: an app handed the control
+          // plane's `http://127.0.0.1:7106` gets ECONNREFUSED from inside its own
+          // `--internal` network, and the symptom is "the AI is down".
+          endpoint: config.litellm.internalUrl,
+          apiKey: minted,
+          // Conditional spread, not `x ?? undefined`: `exactOptionalPropertyTypes`.
+          ...(chat === undefined ? {} : { defaultChatModel: chat.name }),
+          ...(embedding === undefined ? {} : { embeddingModel: embedding.name }),
+        }
+
+  let handle: InstanceHandle
+  let healthy: boolean
+  try {
+    handle = await driver.ensureInstance({
+      name,
       projectSlug,
-      idp: config.idp,
-      ...(registration !== undefined ? { spEntity: registration.entity } : {}),
-      secrets: { sessionSecret },
-      services: boundServices,
-    }),
-    ...(files.length > 0 ? { files } : {}),
-    port: resolved.port,
-    healthPath: resolved.health,
-    resources: {
-      cpu: resolved.resources.cpu,
-      memoryMi: toMebibytes(resolved.resources.memory),
-      pids: resolved.resources.pids,
-      diskMi: toMebibytes(resolved.resources.disk),
-    },
-    services: serviceHandles,
-    egressAllow: resolved.egressAllow,
-    // §10's gateway joins the app's network only for an app that declares models
-    // (P4b Task 8). `?.` because a release frozen before `ResolvedConfig.ai` existed
-    // has no `ai` key at all (pre-flight 64).
-    needsAiGateway: (resolved.ai?.models ?? []).length > 0,
-  })
+      environmentKind: environment.kind,
+      releaseId: release.id,
+      image: { digest, repository },
+      /**
+       * §8's ENTIRE contract, from one function. Nothing is added here.
+       *
+       * P3 built an ad-hoc block in this position — the app's own env, then PORT,
+       * MANIFEST_ENV, MANIFEST_PROJECT_SLUG, MANIFEST_APP_URL, then the service
+       * endpoints — and it was the platform's second producer of these names.
+       * `MONGODB_DB_NAME` is what that cost: §8 requires it, the block injected
+       * only the catalogue's `envVar`, and every deployed app wrote to a database
+       * called `app` while two Docker tests set the variable themselves and
+       * passed. The block is deleted rather than extended, and
+       * `grep -rn MANIFEST_APP_URL src --include='*.ts'` outside the tests now
+       * finds `spec/injection.ts` alone.
+       */
+      env: renderInjection({
+        resolved,
+        environmentKind: environment.kind,
+        hostname: environment.hostname,
+        projectSlug,
+        idp: config.idp,
+        ...(registration !== undefined ? { spEntity: registration.entity } : {}),
+        secrets: { sessionSecret },
+        services: boundServices,
+        ...(ai === undefined ? {} : { ai }),
+      }),
+      ...(files.length > 0 ? { files } : {}),
+      port: resolved.port,
+      healthPath: resolved.health,
+      resources: {
+        cpu: resolved.resources.cpu,
+        memoryMi: toMebibytes(resolved.resources.memory),
+        pids: resolved.resources.pids,
+        diskMi: toMebibytes(resolved.resources.disk),
+      },
+      services: serviceHandles,
+      egressAllow: resolved.egressAllow,
+      // §10's gateway joins the app's network only for an app that declares models
+      // (P4b Task 8). `?.` because a release frozen before `ResolvedConfig.ai` existed
+      // has no `ai` key at all (pre-flight 64).
+      needsAiGateway: models.length > 0,
+    })
+    healthy = await waitForHealth(driver, handle.id, healthWait)
+  } catch (error) {
+    // The instance never started, or its health could not be read: the new key was
+    // never going to be committed, and the previous container still holds a valid
+    // one. THE ORIGINAL ERROR IS WHAT THE CALLER GETS — a discard that fails too is
+    // recorded, never allowed to replace it.
+    if (minted !== undefined) await discardMintedKey(deps.ai, minted, environment)
+    throw error
+  }
+  if (!healthy && minted !== undefined) {
+    await discardMintedKey(deps.ai, minted, environment)
+  }
 
   // provisioning -> starting the moment the driver has bound services and the
   // container exists; then health decides between healthy and failed.
   const starting = nextState('provisioning', 'services_bound')
-  const healthy = await waitForHealth(driver, handle.id, healthWait)
   const state = nextState(starting, healthy ? 'health_passed' : 'health_failed')
 
   const [updated] = await db
@@ -403,7 +484,132 @@ export async function deployRelease(
     .set({ state, handle: handle.id, lastSeenAt: new Date() })
     .where(eq(instances.id, row!.id))
     .returning()
+
+  /**
+   * COMMITTED LAST: after health, and after the row records `healthy`.
+   *
+   * By the time health passes, `DockerDriver.ensureInstance` has moved the edge route
+   * to the new container and reached it through the edge, and LiteLLM checks a key
+   * only when a request STARTS (measured 2026-09-14: a stream whose key was deleted 7 s
+   * in finished normally). What is left is a request that reached the OLD container
+   * before the route moved and starts its AI call after this line. Named, not closed:
+   * the zero-downtime redeploy plan's drain closes it.
+   *
+   * After the row rather than before it, so a commit that fails leaves the instance
+   * recorded as what it is — healthy, and holding the new key — rather than parked in
+   * `provisioning`, a state nothing moves it out of. The failure still reaches the
+   * caller. The key is NEVER discarded here: the healthy instance holds it.
+   */
+  if (healthy && minted !== undefined) {
+    await deps.ai.commitAppKey(db, {
+      projectId: environment.projectId,
+      kind: environment.kind,
+      key: minted,
+    })
+  }
   return updated!
+}
+
+/**
+ * What an AI release needs from the platform AS IT IS NOW: AI switched on, a budget
+ * LiteLLM will not refuse every request against, and every declared model still
+ * offered, still classified and still approved for the app's data. Validation checked
+ * each of these; the platform can move between validation and deploy.
+ */
+async function modelsForDeploy(
+  deps: DeployDeps,
+  resolved: ResolvedConfig,
+): Promise<{ declared: ModelEntry[]; monthlyUsd: number }> {
+  /**
+   * P4b sitting 5's decision: a release that declares models, deployed with AI switched
+   * off. Validation refuses such a SPEC; a release validated before the switch still
+   * exists and can be redeployed, and there is no client to mint with. So it is refused
+   * with a code that names the setting — never a TypeError on `undefined`, and never a
+   * render with an empty LLM_API_KEY.
+   *
+   * TWO INDEPENDENT READS of `MANIFEST_AI_ENABLED`, the catalogue's and the key
+   * service's: a guard whose enabling condition is read once is one edit from gone.
+   */
+  if (!deps.catalogue.enabled || !deps.ai.enabled) {
+    throw new ReleaseError(
+      'RELEASE_AI_DISABLED',
+      `this release declares ai.models (${resolved.ai.models.join(', ')}) and AI is ` +
+        'switched off on this control plane (MANIFEST_AI_ENABLED=0). Switch it on, or ' +
+        'release a manifest that declares no models.',
+    )
+  }
+  const monthlyUsd = resolved.ai.budget.project_monthly_usd
+  if (monthlyUsd === undefined || !(monthlyUsd > 0)) {
+    throw new ReleaseError(
+      'RELEASE_AI_BUDGET_MISSING',
+      `this release declares ai.models with a project AI budget of ${monthlyUsd ?? 'none'}. ` +
+        'LiteLLM refuses every request against a budget of 0, so the app would start ' +
+        'healthy and fail its first question. Validate the manifest again and release it.',
+    )
+  }
+  const { models: offered, unclassified } = await deps.catalogue.get()
+  const declared = resolved.ai.models.map((name) => {
+    if (unclassified.includes(name)) {
+      throw new ReleaseError(
+        'RELEASE_MODEL_UNCLASSIFIED',
+        `the model '${name}' has no data classification on this platform any more, so ` +
+          'no app may use it (D17). An administrator must classify it.',
+      )
+    }
+    const entry = offered.find((m) => m.name === name)
+    if (entry === undefined) {
+      // Refused rather than injected: LiteLLM would refuse the name on the app's first
+      // question, and the deploy would have reported success.
+      throw new ReleaseError(
+        'RELEASE_MODEL_NOT_IN_CATALOGUE',
+        `the model '${name}' is no longer offered`,
+      )
+    }
+    // D17 again, at deploy. A model whose approval was LOWERED since validation would
+    // otherwise be handed data above its classification — §7's "privacy incident at
+    // runtime", reached through a redeploy.
+    if (
+      CLASSIFICATION_RANK[entry.maxClassification] <
+      CLASSIFICATION_RANK[resolved.classification]
+    ) {
+      throw new ReleaseError(
+        'RELEASE_MODEL_CLASSIFICATION_TOO_LOW',
+        `the model '${name}' is now approved only up to ${entry.maxClassification} data, ` +
+          `and this app declares ${resolved.classification} (D17)`,
+      )
+    }
+    return entry
+  })
+  return { declared, monthlyUsd }
+}
+
+/**
+ * Revokes a key minted for an instance that never became healthy — and does not let a
+ * failure to do so replace the deploy's own failure (Rich, 2026-09-14).
+ *
+ * The OPERATOR's record, on stderr: `console.error`, because this server runs with
+ * `logger: false`. NEVER the key. What is left behind is confined to three routes,
+ * bound by the app's budget, tagged with `metadata.manifest_project`, and deletable by
+ * hand (P4b finding 55); reaping one is the reconciler's (Phase 4).
+ */
+async function discardMintedKey(
+  ai: AiKeyService,
+  key: string,
+  environment: { projectId: string; kind: string },
+): Promise<void> {
+  try {
+    await ai.discardAppKey(key)
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        msg: 'a minted AI key could not be discarded after a failed deploy, and stays live until removed by hand',
+        projectId: environment.projectId,
+        environment: environment.kind,
+        error: (error as { code?: string }).code ?? (error as Error).name,
+      }),
+    )
+  }
 }
 
 /**
