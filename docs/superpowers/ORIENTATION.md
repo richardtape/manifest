@@ -142,7 +142,7 @@ only current one.** §7a and §7c carry the same four numbers as P1's and P3's c
 records, and they are DATED measurements that deliberately do not move — if any of them
 disagrees with this box, this box wins.
 
-The immediate work is **P4b, sitting 7 — Tasks 11 and 12, no network needed** — see §7d-2's *Sitting 7 — what you are walking into*. P4a's fifteen tasks are done: the IdP
+The immediate work is **P4b, sitting 7 — Tasks 11 and 12, no network needed** — see §7d-2's *Sitting 7 — what you are walking into*, and read the eighteen pre-flight corrections at the tops of Tasks 11 and 12 first. P4a's fifteen tasks are done: the IdP
 works, `secrets/` holds every credential, `sso/` generates the registration a CWL login
 runs through and `deployRelease` calls it, §20's audit log is append-only against a
 role that can actually be constrained, §8's injection contract is one function with
@@ -1518,7 +1518,7 @@ table is at the top of the plan**, which is the maintained copy; this is the sha
 | 4 ✅ | 6–7 | the catalogue and the key minter — **done 2026-09-14, 12 findings; the boot decision made** |
 | 5 ✅ | 8–9 | the sitting where Tasks 6, 7 and 8 got a caller — **done 2026-09-14, 11 findings; the AI-off decision made** |
 | 6 ✅ | 10 | the blueprint's AI half — **done 2026-09-14, 14 findings; seed's npm warm fixed** |
-| **7 ← next** | **11–12** | build logs, and the redaction that covers them — **no network; hand-off below** |
+| **7 ← next** | **11–12** | build logs, and the redaction that covers them — **no network; 18 pre-flight corrections at the tops of Tasks 11 and 12; hand-off below** |
 | 8 | 13 | §14's `Incident` |
 | 9 | 14–15 | the stream, and the call sites that make it carry anything |
 | 10 | 16 | P4b's acceptance, alone |
@@ -1572,11 +1572,11 @@ is at the top of Task 7. **Sitting 3 — Tasks 4 and 5 — is done too (2026-09-
 1. **Keep the builder's throwaway `DOCKER_CONFIG` when `execFile` becomes `spawn`.** `runBuildxBuild` passes `{ ...process.env, DOCKER_CONFIG: configDir }`, and that config holds the scoped registry token the build pushes with and no `credsStore`. Task 11's Step 3 writes `spawn(command, args, { env })` without saying what `env` is; passing `process.env` drops the token and brings in the developer's `credsStore: desktop` — the credential helper that hung here and stopped `make seed` at step 2 (§4). The note is at the top of Task 11.
 2. **This agent's shell misleads in three measured ways** (§4): `grep` is a `ugrep` function that reads `$` as an anchor, zsh expands a word beginning with `=`, and a background command reports its LAST command's exit status. Each one silently skipped or misreported a step in sitting 6.
 
-**No pre-flight read of Tasks 11 and 12 has been done.** Sittings 2 to 5 each found corrections that way before they started; sitting 6 spent that capacity on the seed defect.
+**A pre-flight read of Tasks 11 and 12 has been done (2026-09-14): 18 corrections, at the top of each task.** The four that change the most: **Task 12's rules as printed fail two of its own tests and redact every image digest, commit SHA and module path in a real BuildKit log** (114, 115); **they would also redact the entity IDs and ACS URLs SSO registration persists**, which two Docker tests catch and a unit-only run does not (116); **Task 11's migration names an applied migration** — it is a new 0005 (101); and **`startBuild` holds no secret to redact with** — the registry JWT lives inside the Docker driver, which must redact its own token (105). **The decision sitting 7 must make** is 115: what Task 12's entropy rule may treat as a candidate, or whether it ships.
 
 **Still not proved end to end, and not Tasks 11–12's to prove:** no app that declares models has been deployed and asked a question. That is Task 16's.
 
-**Read these before writing a line:** the plan's *What executing this plan found*, sitting 6 — and sitting 1's reconciliation, which corrected Task 11's migration: `manifest_audit_owner` does not exist, and a referential action is `ON DELETE RESTRICT`, never `CASCADE`.
+**Read these before writing a line:** the *CORRECTIONS* blocks at the tops of Tasks 11 and 12; the plan's *What executing this plan found*, sitting 6 and the pre-flight read after it — and sitting 1's reconciliation, which corrected Task 11's migration: `manifest_audit_owner` does not exist, and a referential action is `ON DELETE RESTRICT`, never `CASCADE`.
 
 ```bash
 make up && make doctor && make verify                   # expect 18/0 and 47/0
