@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import type {
   InstanceHandle,
   InstanceSpec,
@@ -109,6 +110,23 @@ async function placeFiles(
   )
 }
 
+/** Where a container records the hash of the environment it was created with. */
+export const ENV_HASH_LABEL = 'manifest.env-sha256'
+
+/**
+ * A hash of a container's environment, order-insensitive.
+ *
+ * A HASH, never the environment: the environment carries `SESSION_SECRET` and, for
+ * an app that declares models, a live `LLM_API_KEY`, and a label is readable by
+ * anything that can inspect the container. The hash of a 32-byte secret reveals
+ * nothing usable.
+ */
+export function environmentHash(env: readonly string[]): string {
+  return createHash('sha256')
+    .update(JSON.stringify([...env].sort()))
+    .digest('hex')
+}
+
 export async function ensureInstanceContainer(
   engine: EngineClient,
   spec: InstanceSpec,
@@ -116,10 +134,39 @@ export async function ensureInstanceContainer(
 ): Promise<InstanceHandle> {
   const name = appContainer(spec.name)
   const url = `https://${deps.hostname}`
-  const existing = await engine.get<{ Id: string; State: { Running: boolean } }>(
-    `/containers/${name}/json`,
-  )
-  if (existing) {
+  const env = [
+    ...Object.entries(spec.env).map(([k, v]) => `${k}=${v}`),
+    ...Object.entries(proxyEnvironment(deps.proxyUrl)).map(([k, v]) => `${k}=${v}`),
+  ]
+  const envHash = environmentHash(env)
+  const existing = await engine.get<{
+    Id: string
+    State: { Running: boolean }
+    Config: { Labels?: Record<string, string> | null }
+  }>(`/containers/${name}/json`)
+  /**
+   * REUSED ONLY WHEN ITS ENVIRONMENT IS THE ONE ASKED FOR (P4b Task 9, finding 72).
+   *
+   * A container is named for (project, environment, release), and it used to be
+   * reused on the name alone, environment included — so a redeploy of the SAME
+   * release, such as a retry after a failed health check, left the container with
+   * the environment it was first created with. With §10's key minted on every
+   * deploy that is not a stale variable, it is a broken app: the deploy commits the
+   * new key, which the reused container never received, and revokes the one it
+   * holds. The same name with the same hash is the wake path, and is reused; a
+   * different hash is replaced. A container created before this label existed has no
+   * hash, and is replaced once.
+   *
+   * The fake driver already replaced the spec on reuse (`existing.spec = spec`), so
+   * until this the two drivers disagreed and nothing observed it (finding 73). The
+   * contract suite cannot see an environment, so the Docker tier asserts it from
+   * inside the container.
+   */
+  if (existing && existing.Config.Labels?.[ENV_HASH_LABEL] !== envHash) {
+    // `v=true` removes only ANONYMOUS volumes. The named files volume survives and
+    // `placeFiles` rewrites it below, before the new container starts.
+    await engine.del(`/containers/${name}?force=true&v=true`)
+  } else if (existing) {
     await placeFiles(engine, name, spec.files)
     if (!existing.State.Running) await engine.post(`/containers/${name}/start`)
     // Waking: the marker goes as soon as we intend it to run again, so a crash
@@ -135,10 +182,7 @@ export async function ensureInstanceContainer(
   const created = await engine.post<{ Id: string }>(`/containers/create?name=${name}`, {
     // §13: the digest, never the tag. An approval binds to this string.
     Image: `${spec.image.repository}@${spec.image.digest}`,
-    Env: [
-      ...Object.entries(spec.env).map(([k, v]) => `${k}=${v}`),
-      ...Object.entries(proxyEnvironment(deps.proxyUrl)).map(([k, v]) => `${k}=${v}`),
-    ],
+    Env: env,
     ExposedPorts: { [`${spec.port}/tcp`]: {} },
     ...(deps.command === undefined ? {} : { Cmd: deps.command }),
     // Runs INSIDE the container, so §21's "a host process cannot reach container
@@ -184,6 +228,7 @@ export async function ensureInstanceContainer(
       'manifest.slug': spec.projectSlug,
       'manifest.environment': spec.environmentKind,
       'manifest.release': spec.releaseId,
+      [ENV_HASH_LABEL]: envHash,
     },
   })
   // A CREATE THAT COULD NOT FAIL. Task 1 maps 404 to `undefined` by design, and

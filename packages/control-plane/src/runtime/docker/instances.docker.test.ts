@@ -121,6 +121,75 @@ describeDocker('instance lifecycle (§11)', () => {
   })
 
   /**
+   * THE WAKE PATH REUSES AND A CHANGED ENVIRONMENT REPLACES (P4b Task 9, finding 72).
+   *
+   * A container used to be reused on its name alone, environment included, so a
+   * redeploy of the SAME release — a retry after a failed health check — kept the
+   * environment it was first created with. With §10's key minted on every deploy, the
+   * deploy would then commit a key the container never received and revoke the one
+   * it holds. The fake driver already replaced the spec, and the contract suite cannot
+   * see an environment (finding 73), so this reads it from INSIDE the container.
+   */
+  it('reuses a container whose environment is unchanged, and REPLACES one whose environment changed', async () => {
+    const base: InstanceSpec = {
+      ...spec(),
+      // Its own instance name, for the reason the files test below gives.
+      name: instanceName(SLUG, 'staging', 'c3d4e5f6-0000-4000-8000-000000000002'),
+      env: { MANIFEST_ENV: 'staging', LLM_API_KEY: 'sk-first-key' },
+    }
+    const name = appContainer(base.name)
+    await destroyInstanceContainer(engine, name).catch(() => undefined)
+
+    const inspect = async () =>
+      (await engine.get<{ Id: string; Config: { Labels: Record<string, string> } }>(
+        `/containers/${name}/json`,
+      ))!
+    /** What the PROCESS sees, which is the only environment that matters. */
+    const seenInside = async (variable: string): Promise<string> => {
+      const exec = await engine.post<{ Id: string }>(`/containers/${name}/exec`, {
+        AttachStdout: true,
+        Cmd: ['sh', '-c', `printf '%s' "$${variable}"`],
+      })
+      const stream = await engine.stream(`/exec/${exec!.Id}/start`, 'POST', {
+        Detach: false,
+        Tty: true,
+      })
+      let out = ''
+      for await (const chunk of stream as unknown as AsyncIterable<Buffer>)
+        out += chunk.toString()
+      return out
+    }
+
+    try {
+      await ensureInstanceContainer(engine, base, deps)
+      const first = (await inspect()).Id
+      expect(await seenInside('LLM_API_KEY')).toBe('sk-first-key')
+
+      // THE WAKE PATH: stopped, then ensured with the same environment — the SAME
+      // container, which is what keeps §11's hibernation cheap.
+      await stopInstanceContainer(engine, name)
+      await ensureInstanceContainer(engine, base, deps)
+      expect((await inspect()).Id).toBe(first)
+
+      // A redeploy of the same release with a new key: a DIFFERENT container, and the
+      // process sees the new value.
+      await ensureInstanceContainer(
+        engine,
+        { ...base, env: { ...base.env, LLM_API_KEY: 'sk-second-key' } },
+        deps,
+      )
+      const replaced = await inspect()
+      expect(replaced.Id).not.toBe(first)
+      expect(await seenInside('LLM_API_KEY')).toBe('sk-second-key')
+      // The label carries a hash, never the environment.
+      expect(replaced.Config.Labels['manifest.env-sha256']).toMatch(/^[0-9a-f]{64}$/)
+      expect(JSON.stringify(replaced.Config.Labels)).not.toContain('sk-second-key')
+    } finally {
+      await destroyInstanceContainer(engine, name)
+    }
+  }, 120_000)
+
+  /**
    * §8's two mounted paths, end to end. `SAML_IDP_CERT_PATH` and
    * `SAML_PRIVATE_KEY_PATH` are specified as files Manifest PLACES in the
    * container, and until 2026-09-08 nothing could place one — the rows named

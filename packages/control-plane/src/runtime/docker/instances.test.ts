@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dockerStateToInstanceState } from './instances.js'
+import { dockerStateToInstanceState, environmentHash } from './instances.js'
 
 const state = (over: Partial<Parameters<typeof dockerStateToInstanceState>[0]> = {}) => ({
   Status: 'running',
@@ -62,5 +62,21 @@ describe('Docker state -> §11 InstanceState', () => {
 
   it('maps dead to failed', () => {
     expect(dockerStateToInstanceState(state({ Status: 'dead' }))).toBe('failed')
+  })
+})
+
+describe('environmentHash — what decides reuse against replacement (P4b Task 9)', () => {
+  it('is the same for the same environment in any order, and differs when one value does', () => {
+    const hash = environmentHash(['MANIFEST_ENV=staging', 'LLM_API_KEY=sk-first'])
+    expect(hash).toMatch(/^[0-9a-f]{64}$/)
+    // Order is not a change: a spurious replacement is a container restarted for nothing.
+    expect(environmentHash(['LLM_API_KEY=sk-first', 'MANIFEST_ENV=staging'])).toBe(hash)
+    // A rotated key is: finding 72's redeploy of the same release.
+    expect(environmentHash(['MANIFEST_ENV=staging', 'LLM_API_KEY=sk-second'])).not.toBe(
+      hash,
+    )
+    // And the hash is not the environment: a label is readable by anything that can
+    // inspect the container.
+    expect(hash).not.toContain('sk-first')
   })
 })
