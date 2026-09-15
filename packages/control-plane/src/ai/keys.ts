@@ -76,7 +76,21 @@ export async function ensureAiUser(
   return userId
 }
 
-export interface RotateAppKeyInput {
+/**
+ * §10's "rotated every deploy", in THREE STEPS rather than one (Rich, 2026-09-14):
+ * no live AI call may fail because a deploy revoked its key.
+ *
+ * The one-call rotation this replaces minted, stored and revoked before the new
+ * container existed, so the running app's calls failed from the revoke until the
+ * edge route moved (P4b pre-flight 71). So a deploy now MINTS before the instance
+ * starts — the container needs the key in its environment — COMMITS only once the
+ * instance is healthy, and DISCARDS the minted key if it never gets that far. The
+ * previous key stays valid, and stays the stored one, until the commit.
+ *
+ * There is deliberately no `revokeAppKey`. §10 also says "revoked on archive", and
+ * Phase 1 has no archive operation, so it would be a function with no caller.
+ */
+export interface MintAppKeyInput {
   projectId: string
   projectSlug: string
   kind: EnvironmentKind
@@ -85,17 +99,13 @@ export interface RotateAppKeyInput {
 }
 
 /**
- * §10's "rotated every deploy": ensure the user, mint a key, store it, revoke the
- * key it replaces, return the new one.
- *
- * There is deliberately no `revokeAppKey`. §10 also says "revoked on archive", and
- * Phase 1 has no archive operation, so it would be a function with no caller.
+ * Ensures the budgeted user and mints ONE confined key. Stores nothing and revokes
+ * nothing: until `commitAppKey`, the app's stored key — and the key its running
+ * container holds — is still the previous one.
  */
-export async function rotateAppKey(
-  db: Db,
+export async function mintAppKey(
   client: LiteLlmClient,
-  keys: MasterKeypair,
-  input: RotateAppKeyInput,
+  input: MintAppKeyInput,
 ): Promise<string> {
   // To LiteLLM an EMPTY model list is not "no models" — it is EVERY model. Measured
   // 2026-09-14 on 1.98.0: a key minted with `models: []` listed all three catalogue
@@ -105,21 +115,13 @@ export async function rotateAppKey(
   // is D17 undone at run time. Refused before anything is created.
   if (input.models.length === 0) {
     throw new Error(
-      'rotateAppKey needs at least one model: LiteLLM reads an empty model list as ' +
+      'mintAppKey needs at least one model: LiteLLM reads an empty model list as ' +
         'every model, so a key minted with none would not be confined to the app’s ' +
-        'declaration. Rotate a key only for an app whose ai.models is non-empty.',
+        'declaration. Mint a key only for an app whose ai.models is non-empty.',
     )
   }
 
   const userId = await ensureAiUser(client, input)
-  const scope = {
-    projectId: input.projectId,
-    environmentKind: input.kind,
-    name: LLM_API_KEY_SECRET,
-  }
-  // Read BEFORE the mint, so "previous" can never be the key this call creates.
-  const previous = await getSecret(db, scope, keys)
-
   const minted = await client.post<{ key?: unknown }>('/key/generate', {
     user_id: userId,
     models: [...input.models],
@@ -136,40 +138,112 @@ export async function rotateAppKey(
     // A 2xx with no key in it. Nothing from the body is carried (§14).
     throw new AiError(AI_CODES.UNMAPPED, 200, { status: 200 })
   }
-
-  // STORED BEFORE THE OLD KEY IS REVOKED. The other order has a window in which the
-  // running instance holds a dead key while the new one exists only in this
-  // process — and a failure inside it leaves the app with no working key and
-  // nothing recorded to recover from.
-  await putSecret(db, { ...scope, value: minted.key }, keys)
-
-  if (previous !== undefined) {
-    try {
-      await client.post('/key/delete', { keys: [previous] })
-    } catch (error) {
-      // 404 is "No keys found": LiteLLM no longer holds the key — its database was
-      // reset, or somebody deleted it — which is the end state this call wants.
-      // Failing here would fail the deploy AFTER a live key was minted and stored
-      // (pre-flight 43). Any other failure is real, and surfaces.
-      if (!(error instanceof AiError && error.status === 404)) throw error
-    }
-  }
   return minted.key
 }
 
+export interface CommitAppKeyInput {
+  projectId: string
+  kind: EnvironmentKind
+  /** A key `mintAppKey` returned, now held by an instance that has passed health. */
+  key: string
+}
+
 /**
- * `rotateAppKey` with the client and the master keypair bound — what `deployRelease`
- * receives (Task 9), so `releases/` never holds the LiteLLM master key or key
- * material. `db` stays a per-call argument because it may be a transaction. The
- * same shape as P4a's `createSsoRegistrar(pool, keys)`.
+ * Makes `key` the app's current key, then revokes the one it replaces.
+ *
+ * STORED BEFORE THE OLD KEY IS REVOKED. The other order has a window in which the
+ * old key is dead while the new one exists only in this process — and a failure
+ * inside it leaves nothing recorded to recover from.
+ */
+export async function commitAppKey(
+  db: Db,
+  client: LiteLlmClient,
+  keys: MasterKeypair,
+  input: CommitAppKeyInput,
+): Promise<void> {
+  const scope = {
+    projectId: input.projectId,
+    environmentKind: input.kind,
+    name: LLM_API_KEY_SECRET,
+  }
+  const previous = await getSecret(db, scope, keys)
+  await putSecret(db, { ...scope, value: input.key }, keys)
+  // Never the key being committed. A commit repeated with the same key — a retry —
+  // would otherwise revoke the key the healthy instance has just been given.
+  if (previous !== undefined && previous !== input.key) {
+    await revokeKey(client, previous)
+  }
+}
+
+/**
+ * Revokes a minted key that was never committed: its instance failed to start or
+ * never passed health. The stored key is untouched, so it is still the previous one,
+ * and the previous container still holds it.
+ */
+export async function discardAppKey(client: LiteLlmClient, key: string): Promise<void> {
+  await revokeKey(client, key)
+}
+
+async function revokeKey(client: LiteLlmClient, key: string): Promise<void> {
+  try {
+    await client.post('/key/delete', { keys: [key] })
+  } catch (error) {
+    // 404 is "No keys found": LiteLLM no longer holds the key — its database was
+    // reset, or somebody deleted it — which is the end state this call wants (P4b
+    // pre-flight 43). Any other failure is real, and surfaces.
+    if (!(error instanceof AiError && error.status === 404)) throw error
+  }
+}
+
+/**
+ * The three steps with the client and the master keypair bound — what `deployRelease`
+ * receives, so `releases/` never holds the LiteLLM master key or key material. `db`
+ * stays a per-call argument because it may be a transaction. The same shape as P4a's
+ * `createSsoRegistrar(pool, keys)`.
+ *
+ * `enabled` is read by `deployRelease` beside `ModelCatalogue.enabled`: two
+ * independent reads of `MANIFEST_AI_ENABLED`, which is the shape a guard needs.
  */
 export interface AiKeyService {
-  rotateAppKey(db: Db, input: RotateAppKeyInput): Promise<string>
+  readonly enabled: boolean
+  mintAppKey(input: MintAppKeyInput): Promise<string>
+  commitAppKey(db: Db, input: CommitAppKeyInput): Promise<void>
+  discardAppKey(key: string): Promise<void>
 }
 
 export function createAiKeyService(
   client: LiteLlmClient,
   keys: MasterKeypair,
 ): AiKeyService {
-  return { rotateAppKey: (db, input) => rotateAppKey(db, client, keys, input) }
+  return {
+    enabled: true,
+    mintAppKey: (input) => mintAppKey(client, input),
+    commitAppKey: (db, input) => commitAppKey(db, client, keys, input),
+    discardAppKey: (key) => discardAppKey(client, key),
+  }
+}
+
+/**
+ * `MANIFEST_AI_ENABLED=0`: there is no client, so there is nothing to mint with.
+ *
+ * `deployRelease` refuses an AI release before it gets here, with a code that names
+ * the setting. This is the backstop behind that guard, so that removing it fails
+ * loudly and says why — rather than as a `TypeError` on `undefined`, or as an app
+ * rendered with an empty `LLM_API_KEY` that starts healthy and fails its first
+ * question.
+ */
+export function disabledAiKeyService(): AiKeyService {
+  const refuse = (): Promise<never> =>
+    Promise.reject(
+      new Error(
+        'AI is switched off on this control plane (MANIFEST_AI_ENABLED=0), so no AI ' +
+          'key can be minted, committed or discarded. Check `enabled` first.',
+      ),
+    )
+  return {
+    enabled: false,
+    mintAppKey: refuse,
+    commitAppKey: refuse,
+    discardAppKey: refuse,
+  }
 }

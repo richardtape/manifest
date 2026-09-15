@@ -12,8 +12,11 @@ export type { ModelCatalogue, ModelEntry } from './catalogue.js'
 export {
   AI_ALLOWED_ROUTES,
   aiUserId,
+  commitAppKey,
   createAiKeyService,
+  disabledAiKeyService,
+  discardAppKey,
   ensureAiUser,
-  rotateAppKey,
+  mintAppKey,
 } from './keys.js'
-export type { AiKeyService, RotateAppKeyInput } from './keys.js'
+export type { AiKeyService, CommitAppKeyInput, MintAppKeyInput } from './keys.js'

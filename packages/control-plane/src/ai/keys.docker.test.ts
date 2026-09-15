@@ -1,8 +1,9 @@
 import { expect, it } from 'vitest'
 import { describeDocker } from '../runtime/testing.js'
+import { getSecret } from '../secrets/index.js'
 import { withSecretScope } from '../secrets/testing.js'
 import { createLiteLlmClient } from './client.js'
-import { aiUserId, createAiKeyService } from './keys.js'
+import { LLM_API_KEY_SECRET, aiUserId, createAiKeyService } from './keys.js'
 import { litellmMasterKey, litellmUrl } from './testing.js'
 
 /** One request, answered RAW: the assertions are on the gateway's own statuses. */
@@ -19,17 +20,19 @@ interface UserInfo {
 }
 
 /**
- * `ai/keys.ts` against the RUNNING gateway (P4b Task 7).
+ * `ai/keys.ts` against the RUNNING gateway (P4b Tasks 7 and 9).
  *
  * Three of the module's rules were measured rather than reasoned, and a fake client
  * can see none of them: `/user/new` mints an unconfined key unless told not to
  * (sitting 2, finding 19), a redeploy's `/user/new` answers 409 (sitting 3, finding
  * 28), and revoking a key the gateway no longer holds answers 404 (pre-flight 43).
- * So this rotates for real and reads the gateway back — the count of live keys, the
- * budget on the user, and what each key can still do.
+ * And the property the three-step split exists for — the previous key STILL WORKS
+ * after the next one is minted, until it is committed (Rich, 2026-09-14) — is a fact
+ * about the gateway, not about this module. So this mints, commits and discards for
+ * real, and reads the gateway back.
  */
-describeDocker('app keys against the running gateway (P4b Task 7)', () => {
-  it('one confined key per app and environment, under a budgeted user holding no other', async () => {
+describeDocker('app keys against the running gateway (P4b Tasks 7 and 9)', () => {
+  it('one confined key per app and environment, and the previous key lives until the next is committed', async () => {
     const master = litellmMasterKey()
     const client = createLiteLlmClient({ baseUrl: litellmUrl(), masterKey: master })
     // Aliased, so the child key a BROKEN confinement would mint is one teardown finds.
@@ -42,6 +45,8 @@ describeDocker('app keys against the running gateway (P4b Task 7)', () => {
       (await (
         await call(master, 'GET', `/user/info?user_id=${userId}`)
       ).json()) as UserInfo
+    const answers = async (key: string): Promise<number> =>
+      (await call(key, 'GET', '/v1/models')).status
 
     try {
       await withSecretScope(async (db, { projectId, keys }) => {
@@ -54,21 +59,38 @@ describeDocker('app keys against the running gateway (P4b Task 7)', () => {
           models: ['default-chat'],
           monthlyUsd: 5,
         }
+        const commit = (key: string) =>
+          service.commitAppKey(db, { projectId, kind: 'staging', key })
+        const storedKey = () =>
+          getSecret(
+            db,
+            { projectId, environmentKind: 'staging', name: LLM_API_KEY_SECRET },
+            keys,
+          )
 
-        const first = await service.rotateAppKey(db, args)
+        const first = await service.mintAppKey(args)
         minted.push(first)
-        // A REDEPLOY with a changed budget: /user/new answers 409, and is updated.
-        const second = await service.rotateAppKey(db, { ...args, monthlyUsd: 7 })
-        minted.push(second)
+        await commit(first)
 
+        // A REDEPLOY with a changed budget: /user/new answers 409, and is updated.
+        const second = await service.mintAppKey({ ...args, monthlyUsd: 7 })
+        minted.push(second)
+        // THE PROPERTY THE SPLIT EXISTS FOR. Minted, not committed: the running
+        // instance's key still answers and is still the stored one, and the new key
+        // answers too, because the new container needs it working before health.
+        expect(await answers(first)).toBe(200)
+        expect(await answers(second)).toBe(200)
+        expect(await storedKey()).toBe(first)
+
+        await commit(second)
         const info = await userInfo()
         // ONE live key, the second: no auto-created key beside it, the first revoked.
         expect(info.keys).toHaveLength(1)
         expect(info.user_info).toMatchObject({ max_budget: 7, budget_duration: '1mo' })
-        expect((await call(first, 'GET', '/v1/models')).status).toBe(401)
+        expect(await answers(first)).toBe(401)
+        expect(await storedKey()).toBe(second)
 
         const models = await call(second, 'GET', '/v1/models')
-        expect(models.status).toBe(200)
         const listed = ((await models.json()) as { data: { id: string }[] }).data
         expect(listed.map((m) => m.id)).toEqual(['default-chat'])
         // Confined: the admin route that mints a child key is refused.
@@ -77,14 +99,25 @@ describeDocker('app keys against the running gateway (P4b Task 7)', () => {
         })
         expect(escalation.status).toBe(403)
 
-        // The gateway loses the key — a reset database, a hand delete. The next
-        // rotation still succeeds, and still leaves exactly one live key.
+        // A deploy whose instance never became healthy: the minted key is discarded,
+        // and the committed one is untouched on both sides.
+        const failed = await service.mintAppKey(args)
+        minted.push(failed)
+        await service.discardAppKey(failed)
+        expect(await answers(failed)).toBe(401)
+        expect(await answers(second)).toBe(200)
+        expect(await storedKey()).toBe(second)
+        expect((await userInfo()).keys).toHaveLength(1)
+
+        // The gateway loses the committed key — a reset database, a hand delete. The
+        // next commit still succeeds, and still leaves exactly one live key.
         expect(
           (await call(master, 'POST', '/key/delete', { keys: [second] })).status,
         ).toBe(200)
-        const third = await service.rotateAppKey(db, args)
+        const third = await service.mintAppKey(args)
         minted.push(third)
-        expect((await call(third, 'GET', '/v1/models')).status).toBe(200)
+        await commit(third)
+        expect(await answers(third)).toBe(200)
         expect((await userInfo()).keys).toHaveLength(1)
       })
       passed = true
