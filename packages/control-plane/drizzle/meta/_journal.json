@@ -57,6 +57,13 @@
       "when": 1789492508451,
       "tag": "0007_stormy_demogoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789493530304,
+      "tag": "0008_amused_rachel_grey",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,8 @@
 import { desc, eq } from 'drizzle-orm'
 import { events, type Db } from '../db/index.js'
 import type { StoredBuildLogLine } from './build-logs.js'
-import { EventError, type Event } from './events.js'
+import { EventError, recordEvent, type Event, type EventInput } from './events.js'
+import type { Redactor } from './redact.js'
 
 /** The frame that ends a connection's replay and begins its live stream. */
 export const STREAM_READY = 'manifest.stream.ready'
@@ -157,6 +158,32 @@ export function createEventBus(): EventBus {
       return byProject.get(projectId)?.size ?? 0
     },
   }
+}
+
+/**
+ * **The one way an event is written** (P4b Task 15): recorded, then streamed.
+ *
+ * One helper rather than two calls at each site. A site that records without publishing
+ * is a silent stream; a site that publishes without recording is an event that vanishes
+ * on reconnect, because the replay reads the TABLE. Written separately at every call
+ * site, that is a chance per site to do one and not the other — and both failures pass
+ * every test that looks at only one of them.
+ *
+ * RECORDED FIRST, and what is published is the row AS STORED — redacted, with its id and
+ * time — never the caller's input. A refused record publishes nothing.
+ *
+ * One limit, named: if `db` is a transaction its caller later rolls back, the frame has
+ * already gone out. Every production call site writes on the pool.
+ */
+export async function publishEvent(
+  db: Db,
+  bus: EventBus,
+  input: EventInput,
+  redact: Redactor,
+): Promise<Event> {
+  const event = await recordEvent(db, input, redact)
+  bus.publish(eventFrame(event))
+  return event
 }
 
 /**

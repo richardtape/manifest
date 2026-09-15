@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm'
 import pg from 'pg'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { resetDatabase, withRollback } from '../db/testing.js'
-import { appSpecs, builds, db, incidents, instances, users } from '../db/index.js'
+import { appSpecs, builds, db, events, incidents, instances, users } from '../db/index.js'
 import { InstanceNotReadyError, createFakeDriver } from '../runtime/index.js'
 import { createProject } from '../projects/index.js'
 import { loadConfig } from '../config.js'
@@ -22,7 +22,12 @@ import {
   type ModelCatalogue,
 } from '../ai/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
-import { makeRedactor, readBuildLog } from '../observability/index.js'
+import {
+  createEventBus,
+  makeRedactor,
+  readBuildLog,
+  type StreamFrame,
+} from '../observability/index.js'
 
 /** The repository's own blueprints, resolved from THIS FILE — `pnpm test` and
  *  `pnpm --filter … test` have different working directories. */
@@ -41,6 +46,30 @@ beforeAll(resetDatabase)
  * outlives them, and the one test that cares about the stored value builds its
  * own resolver so it can read the row back.
  */
+/**
+ * D23.2's bus (P4b Task 15). ONE for the file: a test that cares what was streamed
+ * subscribes to its own project's id, which is unique per fixture, and unsubscribes.
+ */
+const bus = createEventBus()
+
+/** Every frame `bus` carries for one project while `run` runs. */
+async function streamedWhile(
+  projectId: string,
+  run: () => Promise<unknown>,
+): Promise<StreamFrame[]> {
+  const frames: StreamFrame[] = []
+  const off = bus.subscribe(projectId, (f) => frames.push(f))
+  try {
+    await run()
+  } finally {
+    off()
+  }
+  return frames
+}
+
+const eventTypes = (frames: StreamFrame[]) =>
+  frames.flatMap((f) => (f.kind === 'event' ? [f.type] : []))
+
 let deployDeps: DeployDeps
 beforeAll(async () => {
   const keys = await generateMasterKeypair()
@@ -81,6 +110,7 @@ beforeAll(async () => {
     },
     // infra/litellm/config.yaml through the real projection (`ai/testing.ts`).
     catalogue: declaredCatalogue(),
+    bus,
   }
 })
 
@@ -187,7 +217,7 @@ describe('builds', () => {
     await withRollback(async (db) => {
       const { project, appSpec } = await fixture(db)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, {
+      const build = await startBuild(db, driver, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -205,7 +235,7 @@ describe('builds', () => {
       const { project, appSpec } = await fixture(db)
       const driver = createFakeDriver()
       vi.spyOn(driver, 'buildImage').mockRejectedValueOnce(new Error('compile error'))
-      const build = await startBuild(db, driver, {
+      const build = await startBuild(db, driver, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -236,7 +266,12 @@ describe('builds', () => {
     // still arriving is the race pre-flight 108 named.
     await withRollback(async (db) => {
       const { project, appSpec } = await fixture(db)
-      const build = await startBuild(db, createFakeDriver(), buildInput(project, appSpec))
+      const build = await startBuild(
+        db,
+        createFakeDriver(),
+        bus,
+        buildInput(project, appSpec),
+      )
       expect(build.status).toBe('succeeded')
       const lines = await readBuildLog(db, build.id)
       expect(lines.length).toBeGreaterThan(0)
@@ -263,6 +298,7 @@ describe('builds', () => {
       const finishedAt = startBuild(
         db,
         createFakeDriver(),
+        bus,
         buildInput(project, appSpec),
       ).then((build) => ({ build, at: Date.now() }))
       await new Promise((resolve) => setTimeout(resolve, 1_000))
@@ -303,7 +339,7 @@ describe('builds', () => {
           throw new Error('npm ci exited 1')
         },
       }
-      const build = await startBuild(db, failingDriver, buildInput(project, appSpec))
+      const build = await startBuild(db, failingDriver, bus, buildInput(project, appSpec))
       expect(build.status).toBe('failed')
       const lines = await readBuildLog(db, build.id)
       expect(lines.map((l) => [l.stream, l.text])).toEqual([
@@ -328,11 +364,110 @@ describe('builds', () => {
           })
         },
       }
-      const build = await startBuild(db, refusing, buildInput(project, appSpec))
+      const build = await startBuild(db, refusing, bus, buildInput(project, appSpec))
       expect(build.status).toBe('failed')
       const lines = await readBuildLog(db, build.id)
       expect(lines.map((l) => [l.stream, l.text])).toEqual([['stderr', build.error]])
       expect(build.error).toContain('BUILD_GATE_FAILED')
+    })
+  })
+
+  it('streams build.started, each log line as it is written, and build.succeeded — the events RECORDED too (P4b Task 15)', async () => {
+    await withRollback(async (db) => {
+      const { project, appSpec } = await fixture(db)
+      let build: Awaited<ReturnType<typeof startBuild>> | undefined
+      const frames = await streamedWhile(project.id, async () => {
+        build = await startBuild(
+          db,
+          createFakeDriver(),
+          bus,
+          buildInput(project, appSpec),
+        )
+      })
+      // The log line BETWEEN the two events: streamed as it was written, not reported
+      // when the build ended.
+      expect(frames.map((f) => (f.kind === 'event' ? f.type : f.kind))).toEqual([
+        'build.started',
+        'log',
+        'build.succeeded',
+      ])
+      expect(frames[1]).toMatchObject({ kind: 'log', buildId: build!.id, seq: 0 })
+      // Durable as well as streamed: a client that connects after the build must still
+      // see what happened, and the replay reads the TABLE. The log is not in it.
+      const rows = await db.select().from(events).where(eq(events.projectId, project.id))
+      expect(rows.map((r) => r.type).sort()).toEqual(['build.started', 'build.succeeded'])
+      expect(frames.flatMap((f) => (f.kind === 'event' ? [f.id] : [])).sort()).toEqual(
+        rows.map((r) => r.id).sort(),
+      )
+      expect(rows.find((r) => r.type === 'build.succeeded')!.machineDetail).toMatchObject(
+        {
+          buildId: build!.id,
+          imageDigest: build!.imageDigest,
+        },
+      )
+    })
+  })
+
+  it('streams each log line exactly as it is STORED — redacted (P4b Task 15)', async () => {
+    // A frame is a copy of what a faculty member is shown, so it is held to the store's
+    // rule: redacted at capture. Compared line for line with the stored log, so a frame
+    // that carries the raw line differs from the row that does not.
+    const token = 'Zx9Qw8Er7Ty6Ui5Op4As3Df2Gh1Jk0L'
+    await withRollback(async (db) => {
+      const { project, appSpec } = await fixture(db)
+      const base = createFakeDriver()
+      const chatty: Driver = {
+        ...base,
+        async buildImage(src, spec, opts) {
+          opts?.onLog?.({
+            at: new Date(),
+            stream: 'stdout',
+            text: `npm http fetch GET 200 https://registry.example/pkg?token=${token}`,
+          })
+          return base.buildImage(src, spec)
+        },
+      }
+      let build: Awaited<ReturnType<typeof startBuild>> | undefined
+      const frames = await streamedWhile(project.id, async () => {
+        build = await startBuild(db, chatty, bus, buildInput(project, appSpec))
+      })
+      const streamed = frames.flatMap((f) => (f.kind === 'log' ? [f.text] : []))
+      const stored = (await readBuildLog(db, build!.id)).map((line) => line.text)
+      expect(stored.length).toBeGreaterThan(0)
+      expect(streamed).toEqual(stored)
+      expect(JSON.stringify(frames)).not.toContain(token)
+    })
+  })
+
+  it('streams build.failed as a sentence a faculty member can read, with the reason — redacted — in machine_detail (P4b Task 15)', async () => {
+    // §14's first bullet: "Your app couldn't start", not `exit code 1`. The reason is
+    // still there, for the agent, in machine_detail — through the redactor.
+    const token = 'aB3dE5fG7hJ9kL1mN3pQ5rS7tU9vWx'
+    await withRollback(async (db) => {
+      const { project, appSpec } = await fixture(db)
+      const failingDriver: Driver = {
+        ...createFakeDriver(),
+        async buildImage(_src, _spec, opts) {
+          opts?.onLog?.({
+            at: new Date(),
+            stream: 'stderr',
+            text: 'npm error code ELIFECYCLE',
+          })
+          await new Promise((resolve) => setImmediate(resolve))
+          throw new Error(`npm ci exited 1 (registry token ${token})`)
+        },
+      }
+      const build = await startBuild(db, failingDriver, bus, buildInput(project, appSpec))
+      expect(build.status).toBe('failed')
+      const rows = await db.select().from(events).where(eq(events.projectId, project.id))
+      const failed = rows.find((r) => r.type === 'build.failed')
+      expect(failed, 'no build.failed event was recorded').toBeDefined()
+      expect(failed!.humanMessage).toMatch(/could not be built/i)
+      expect(failed!.humanMessage).not.toMatch(/exit|ELIFECYCLE|npm|stack|token/i)
+      const detail = failed!.machineDetail as { buildId: string; reason: string }
+      expect(detail.buildId).toBe(build.id)
+      expect(detail.reason).toContain('npm ci exited 1')
+      expect(JSON.stringify(failed)).not.toContain(token)
     })
   })
 })
@@ -371,7 +506,7 @@ describe('releases (§13)', () => {
     await withRollback(async (db) => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, {
+      const build = await startBuild(db, driver, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -413,7 +548,7 @@ describe('releases (§13)', () => {
           return driver.ensureInstance(spec)
         },
       }
-      const build = await startBuild(db, recording, {
+      const build = await startBuild(db, recording, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -465,7 +600,7 @@ describe('releases (§13)', () => {
           return driver.ensureInstance(spec)
         },
       }
-      const build = await startBuild(db, recording, {
+      const build = await startBuild(db, recording, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -510,7 +645,7 @@ describe('releases (§13)', () => {
           return driver.ensureInstance(spec)
         },
       }
-      const build = await startBuild(db, recording, {
+      const build = await startBuild(db, recording, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -566,7 +701,7 @@ describe('releases (§13)', () => {
           return driver.ensureService(binding)
         },
       }
-      const build = await startBuild(db, recording, {
+      const build = await startBuild(db, recording, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -581,9 +716,13 @@ describe('releases (§13)', () => {
         createdBy: user.id,
         resolvedConfig: RESOLVED_WITH_SERVICE,
       })
+      // BOTH resolvers on the one keypair, as `src/index.ts` binds them: a deploy reads
+      // the app's whole secret set to build its event redactor (P4b Task 15), and a
+      // service password sealed under a second master key is a set nothing can open.
       const deps = {
         ...deployDeps,
         secrets: createServiceCredentials(keys, config.masterSecret),
+        appSecrets: createAppSecrets(keys),
       }
       await deployRelease(db, recording, config, deps, {
         releaseId: release.id,
@@ -619,7 +758,7 @@ describe('releases (§13)', () => {
           return driver.ensureInstance(spec)
         },
       }
-      const build = await startBuild(db, recording, {
+      const build = await startBuild(db, recording, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -675,7 +814,7 @@ describe('releases (§13)', () => {
           return driver.ensureInstance(spec)
         },
       }
-      const build = await startBuild(db, recording, {
+      const build = await startBuild(db, recording, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -723,7 +862,7 @@ describe('releases (§13)', () => {
     await withRollback(async (db) => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, {
+      const build = await startBuild(db, driver, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -756,7 +895,7 @@ describe('releases (§13)', () => {
     await withRollback(async (db) => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, {
+      const build = await startBuild(db, driver, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -787,7 +926,7 @@ describe('releases (§13)', () => {
     await withRollback(async (db) => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver({ capabilities: { remoteTarget: true } })
-      const build = await startBuild(db, driver, {
+      const build = await startBuild(db, driver, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -837,7 +976,7 @@ describe('waiting for health', () => {
     driver: ReturnType<typeof createFakeDriver>,
   ) {
     const { user, project, appSpec, byKind } = await fixture(db)
-    const build = await startBuild(db, driver, {
+    const build = await startBuild(db, driver, bus, {
       projectId: project.id,
       projectSlug: project.slug,
       appSpecId: appSpec.id,
@@ -1030,6 +1169,101 @@ describe('waiting for health', () => {
       )
     })
   })
+
+  it('streams instance.healthy for a deploy that became healthy, with its state (P4b Task 15)', async () => {
+    // Sitting 8: a deploy is a `200` whether it worked or not, so a frame about a deploy
+    // must carry the STATE — never only the fact that the call returned.
+    await withRollback(async (db) => {
+      const driver = createFakeDriver()
+      const { release, byKind } = await releaseFor(db, driver)
+      let instance: Awaited<ReturnType<typeof deployRelease>> | undefined
+      const frames = await streamedWhile(release.projectId, async () => {
+        instance = await deployRelease(
+          db,
+          driver,
+          config,
+          deployDeps,
+          { releaseId: release.id, environmentId: byKind.staging!.id },
+          { timeoutMs: 2000, intervalMs: 1 },
+        )
+      })
+      expect(eventTypes(frames)).toEqual(['instance.healthy'])
+      expect(frames[0]).toMatchObject({
+        subject: `instance:${instance!.id}`,
+        machineDetail: {
+          instanceId: instance!.id,
+          releaseId: release.id,
+          environment: 'staging',
+          state: 'healthy',
+        },
+      })
+      const rows = await db
+        .select()
+        .from(events)
+        .where(eq(events.type, 'instance.healthy'))
+      expect(rows.map((r) => r.id)).toEqual([frames[0]!.id])
+    })
+  })
+
+  it('streams instance.failed and then incident.opened, naming the Incident — in sentences with no exit code (P4b Task 15)', async () => {
+    await withRollback(async (db) => {
+      const driver = createFakeDriver({ failInstances: true })
+      const { release, byKind } = await releaseFor(db, driver)
+      let instance: Awaited<ReturnType<typeof deployRelease>> | undefined
+      const frames = await streamedWhile(release.projectId, async () => {
+        instance = await deployRelease(
+          db,
+          driver,
+          config,
+          deployDeps,
+          { releaseId: release.id, environmentId: byKind.staging!.id },
+          { timeoutMs: 20, intervalMs: 1 },
+        )
+      })
+      expect(instance!.state).toBe('failed')
+      expect(eventTypes(frames)).toEqual(['instance.failed', 'incident.opened'])
+      const [incident] = await db
+        .select()
+        .from(incidents)
+        .where(eq(incidents.instanceId, instance!.id))
+      expect(frames[0]).toMatchObject({
+        machineDetail: { instanceId: instance!.id, state: 'failed' },
+      })
+      // The Incident EXISTS by the time it is announced, and the frame names it — a
+      // client that reacts by fetching the incidents route finds it there.
+      expect(frames[1]).toMatchObject({
+        subject: `incident:${incident!.id}`,
+        machineDetail: { incidentId: incident!.id, instanceId: instance!.id },
+      })
+      for (const frame of frames) {
+        if (frame.kind !== 'event') continue
+        expect(frame.humanMessage).not.toMatch(/exit code|stack|health:/i)
+      }
+    })
+  })
+
+  it('streams nothing about an instance when the deploy never started one', async () => {
+    await withRollback(async (db) => {
+      const driver = createFakeDriver()
+      vi.spyOn(driver, 'ensureInstance').mockRejectedValue(
+        new Error('the daemon refused the container'),
+      )
+      const { release, byKind } = await releaseFor(db, driver)
+      const frames = await streamedWhile(release.projectId, async () => {
+        await expect(
+          deployRelease(
+            db,
+            driver,
+            config,
+            deployDeps,
+            { releaseId: release.id, environmentId: byKind.staging!.id },
+            { timeoutMs: 20, intervalMs: 1 },
+          ),
+        ).rejects.toThrow('the daemon refused the container')
+      })
+      expect(frames).toEqual([])
+    })
+  })
 })
 
 // What the driver is actually handed. Every assertion here replaces one that was
@@ -1041,7 +1275,7 @@ describe('the InstanceSpec handed to the driver', () => {
     await withRollback(async (db) => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, {
+      const build = await startBuild(db, driver, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -1141,7 +1375,7 @@ describe('deployRelease sets up sign-on before the app starts (§9, Task 9)', ()
           )(...args)
         })
       const sso = recordingSso(order)
-      const build = await startBuild(db, driver, {
+      const build = await startBuild(db, driver, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -1182,7 +1416,7 @@ describe('deployRelease sets up sign-on before the app starts (§9, Task 9)', ()
       const order: string[] = []
       const sso = recordingSso(order)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, {
+      const build = await startBuild(db, driver, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -1232,7 +1466,7 @@ describe('deployRelease sets up sign-on before the app starts (§9, Task 9)', ()
       const order: string[] = []
       const sso = recordingSso(order)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, {
+      const build = await startBuild(db, driver, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -1274,7 +1508,7 @@ describe('deployRelease sets up sign-on before the app starts (§9, Task 9)', ()
       const order: string[] = []
       const sso = recordingSso(order)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, {
+      const build = await startBuild(db, driver, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec.id,
@@ -1383,7 +1617,7 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
     resolvedConfig: ResolvedConfigSet,
   ) {
     const { user, project, appSpec, byKind } = await fixture(db)
-    const build = await startBuild(db, driver, {
+    const build = await startBuild(db, driver, bus, {
       projectId: project.id,
       projectSlug: project.slug,
       appSpecId: appSpec.id,
@@ -1651,6 +1885,110 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
         .where(eq(instances.releaseId, release.id))
       // Recorded as what it is, not parked in `provisioning`, which nothing moves.
       expect(row!.state).toBe('healthy')
+    })
+  })
+
+  it('streams ai.key_rotated once the key is COMMITTED — and neither the row nor the frame carries the key (P4b Task 15)', async () => {
+    // An audit record of a credential change is worth having; the credential is not.
+    // The recording key service stores nothing, so the redactor cannot rescue a key
+    // that reaches this event: only not putting it there can.
+    await withRollback(async (db) => {
+      const calls: string[] = []
+      const { driver } = recordingDriver(calls)
+      const ai = recordingAi(calls)
+      const { release, project, staging } = await releaseWith(db, driver, aiRelease())
+      const frames = await streamedWhile(project.id, () =>
+        deployRelease(
+          db,
+          driver,
+          config,
+          { ...deployDeps, ai: ai.service },
+          { releaseId: release.id, environmentId: staging.id },
+        ),
+      )
+      expect(eventTypes(frames)).toEqual(['instance.healthy', 'ai.key_rotated'])
+      const rotated = await db
+        .select()
+        .from(events)
+        .where(eq(events.type, 'ai.key_rotated'))
+      expect(rotated).toHaveLength(1)
+      expect(rotated[0]!.machineDetail).toMatchObject({
+        environment: 'staging',
+        models: ['default-chat', 'default-embed'],
+      })
+      expect(JSON.stringify(rotated)).not.toContain('sk-minted')
+      expect(JSON.stringify(frames)).not.toContain('sk-minted')
+      // And nothing was REDACTED out of it either. The redactor holds the committed key,
+      // so a key put into this event would come out as `[REDACTED]` and pass the two
+      // lines above — which would make them a test of the redactor, not of the event.
+      // Nothing this event legitimately carries is secret.
+      expect(JSON.stringify(rotated)).not.toContain('[REDACTED]')
+    })
+  })
+
+  it('streams no ai.key_rotated when the minted key is discarded, or when the commit fails', async () => {
+    // A discarded key never became the app's key, and a commit that failed did not
+    // rotate anything the app relies on — the failure reaches the caller instead.
+    await withRollback(async (db) => {
+      const calls: string[] = []
+      const { driver } = recordingDriver(calls, createFakeDriver({ failInstances: true }))
+      const { release, project, staging } = await releaseWith(db, driver, aiRelease())
+      const frames = await streamedWhile(project.id, () =>
+        deployRelease(
+          db,
+          driver,
+          config,
+          { ...deployDeps, ai: recordingAi(calls).service },
+          { releaseId: release.id, environmentId: staging.id },
+        ),
+      )
+      expect(calls).toContain('discard sk-minted-1')
+      expect(eventTypes(frames)).toEqual(['instance.failed', 'incident.opened'])
+    })
+    await withRollback(async (db) => {
+      const calls: string[] = []
+      const { driver } = recordingDriver(calls)
+      const { release, project, staging } = await releaseWith(db, driver, aiRelease())
+      const frames = await streamedWhile(project.id, async () => {
+        await expect(
+          deployRelease(
+            db,
+            driver,
+            config,
+            { ...deployDeps, ai: recordingAi(calls, { commit: true }).service },
+            { releaseId: release.id, environmentId: staging.id },
+          ),
+        ).rejects.toThrow('the gateway refused the revoke')
+      })
+      expect(eventTypes(frames)).toEqual(['instance.healthy'])
+    })
+  })
+
+  it('refuses a deploy whose app secret set cannot be opened BEFORE anything is minted or started (P4b sitting 9, finding 162)', async () => {
+    // Every deploy reads the app's whole secret set, to redact what it records (Task 15).
+    // A set that cannot be opened must stop the deploy while there is nothing to undo:
+    // read after the instance was recorded healthy, the same failure left a minted key
+    // neither committed nor discarded.
+    await withRollback(async (db) => {
+      const calls: string[] = []
+      const { driver } = recordingDriver(calls)
+      const { release, staging } = await releaseWith(db, driver, aiRelease())
+      const unopenable: DeployDeps['appSecrets'] = {
+        ...deployDeps.appSecrets,
+        secretValues: async () => {
+          throw new Error('could not unwrap the data key')
+        },
+      }
+      await expect(
+        deployRelease(
+          db,
+          driver,
+          config,
+          { ...deployDeps, appSecrets: unopenable, ai: recordingAi(calls).service },
+          { releaseId: release.id, environmentId: staging.id },
+        ),
+      ).rejects.toThrow('could not unwrap the data key')
+      expect(calls).toEqual([])
     })
   })
 

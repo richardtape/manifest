@@ -110,7 +110,7 @@ export async function registerDeliveryRoutes(
     if (incompatibilities.length > 0) throw new SpecInvalidError(incompatibilities)
 
     const { status, body } = await app.idempotent(request, async () => {
-      const build = await startBuild(deps.db, deps.driver, {
+      const build = await startBuild(deps.db, deps.driver, deps.bus, {
         projectId,
         projectSlug: project.slug,
         appSpecId: spec.id,
@@ -268,6 +268,7 @@ export async function registerDeliveryRoutes(
           blueprints: deps.blueprints,
           ai: deps.ai,
           catalogue: deps.catalogue,
+          bus: deps.bus,
         },
         {
           releaseId: parsed.data.releaseId,

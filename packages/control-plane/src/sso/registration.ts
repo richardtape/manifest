@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import type pg from 'pg'
 import type { Db } from '../db/index.js'
-import { makeRedactor, recordEvent } from '../observability/index.js'
+import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { SsoError } from './errors.js'
 import { secretValuesFor } from '../secrets/index.js'
 import type { EnvironmentKind, MasterKeypair } from '../secrets/index.js'
@@ -62,6 +62,13 @@ export async function registerServiceProvider(
   db: Db,
   pool: pg.Pool,
   keys: MasterKeypair,
+  /**
+   * D23.2's stream (P4b Task 15). §9's two events reach it as well as the table: the
+   * replay serves every recorded row, so recording one without publishing it is a
+   * stream that shows it only on reconnect — and §9's ACS-change alert is exactly the
+   * kind of subscriber D23.2 describes.
+   */
+  bus: EventBus,
   input: SpRegistrationInput,
 ): Promise<SpRegistration> {
   const entity = deriveSpEntity(input)
@@ -104,8 +111,9 @@ export async function registerServiceProvider(
     ).values(),
   )
 
-  await recordEvent(
+  await publishEvent(
     db,
+    bus,
     {
       projectId: input.projectId,
       subject: `sp:${input.slug}:${input.environmentKind}`,
@@ -126,8 +134,9 @@ export async function registerServiceProvider(
   // one specifically. An alert that has to parse `machine_detail` to find out
   // whether it should fire is an alert nobody writes correctly.
   if (registration.previousAcsUrl !== undefined) {
-    await recordEvent(
+    await publishEvent(
       db,
+      bus,
       {
         projectId: input.projectId,
         subject: `sp:${input.slug}:${input.environmentKind}`,
@@ -175,10 +184,11 @@ export function createSsoRegistrar(
   keys: MasterKeypair,
   entityBase: string,
   idpSigningCertPath: string,
+  bus: EventBus,
 ): SsoRegistrar {
   return {
     registerServiceProvider: (db, input) =>
-      registerServiceProvider(db, pool, keys, { ...input, entityBase }),
+      registerServiceProvider(db, pool, keys, bus, { ...input, entityBase }),
     idpSigningCertificate: async () => {
       let pem: string
       try {

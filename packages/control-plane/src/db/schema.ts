@@ -289,38 +289,53 @@ export const audit = pgSchema('audit')
  * leaves null, which reads as "we do not know who did this" rather than "nobody
  * did".
  */
-export const events = audit.table('events', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  /**
-   * RESTRICT, and every other table here cascades — measured, not stylistic.
-   *
-   * A referential action runs with the REFERENCED table's privileges, not the
-   * caller's, so `ON DELETE CASCADE` here is a hole straight through §20: with
-   * the grant working exactly as intended — `UPDATE`, `DELETE` and `TRUNCATE` on
-   * `audit.events` all refused — `manifest_app` deleted the project and took its
-   * audit rows with it. `events_after_project_delete` came back 0.
-   *
-   * Nothing in the control plane deletes a project, so RESTRICT costs nothing
-   * today. It makes the first code that wants to decide what happens to the audit
-   * trail, rather than inherit an answer silently.
-   */
-  projectId: uuid('project_id')
-    .notNull()
-    .references(() => projects.id, { onDelete: 'restrict' }),
-  subject: text('subject').notNull(),
-  type: text('type').notNull(),
-  machineDetail: jsonb('machine_detail').notNull(),
-  humanMessage: text('human_message').notNull(),
-  /**
-   * `clock_timestamp()`, NOT `now()` (P4b Task 14, migration 0007). `now()` is the
-   * TRANSACTION's start time, so every event one transaction writes carried the same
-   * instant — and the stream's replay, ordered by this column, returned them in
-   * whatever order the index held. `clock_timestamp()` is the moment of the insert.
-   */
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .default(sql`clock_timestamp()`),
-})
+export const events = audit.table(
+  'events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /**
+     * RESTRICT, and every other table here cascades — measured, not stylistic.
+     *
+     * A referential action runs with the REFERENCED table's privileges, not the
+     * caller's, so `ON DELETE CASCADE` here is a hole straight through §20: with
+     * the grant working exactly as intended — `UPDATE`, `DELETE` and `TRUNCATE` on
+     * `audit.events` all refused — `manifest_app` deleted the project and took its
+     * audit rows with it. `events_after_project_delete` came back 0.
+     *
+     * Nothing in the control plane deletes a project, so RESTRICT costs nothing
+     * today. It makes the first code that wants to decide what happens to the audit
+     * trail, rather than inherit an answer silently.
+     */
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'restrict' }),
+    subject: text('subject').notNull(),
+    type: text('type').notNull(),
+    machineDetail: jsonb('machine_detail').notNull(),
+    humanMessage: text('human_message').notNull(),
+    /**
+     * `clock_timestamp()`, NOT `now()` (P4b Task 14, migration 0007). `now()` is the
+     * TRANSACTION's start time, so every event one transaction writes carried the same
+     * instant — and the stream's replay, ordered by this column, returned them in
+     * whatever order the index held. `clock_timestamp()` is the moment of the insert.
+     */
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .default(sql`clock_timestamp()`),
+  },
+  (t) => [
+    /**
+     * The closed set, enforced by the database as well as by `observability/`'s
+     * `EVENT_TYPES` (P4b Task 15). Written out HERE rather than imported, on purpose:
+     * a constraint generated from the list it guards is one read of the rule, not two.
+     * `events.test.ts` reads this constraint back out of Postgres and compares.
+     */
+    check(
+      'events_type_known',
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated')`,
+    ),
+  ],
+)
 
 /**
  * §14's build log — the store `builds.logs_ref` has named since P3 wrote it (P4b

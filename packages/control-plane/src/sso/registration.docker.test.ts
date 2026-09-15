@@ -10,6 +10,10 @@ import { createIdpPool, deleteSpRow, readSpRow } from './metadata-store.js'
 import { createSsoRegistrar, registerServiceProvider } from './registration.js'
 import { SpEntityError } from './entity.js'
 import { idpDatabaseUrl, idpSigningCertPath } from './testing.js'
+import { createEventBus, type StreamFrame } from '../observability/index.js'
+
+/** D23.2's bus (P4b Task 15). §9's two events reach the stream as well as the table. */
+const bus = createEventBus()
 
 /**
  * `registerServiceProvider`, against the real metadata database.
@@ -62,7 +66,7 @@ describeDocker('registerServiceProvider (§9)', () => {
     await withSecretScope(async (db, { projectId, keys }) => {
       const entityId = 'https://manifest.internal/sp/reg-probe/staging'
       entityIds.push(entityId)
-      const result = await registerServiceProvider(db, pool, keys, {
+      const result = await registerServiceProvider(db, pool, keys, bus, {
         ...input('reg-probe'),
         projectId,
       })
@@ -92,11 +96,11 @@ describeDocker('registerServiceProvider (§9)', () => {
     await withSecretScope(async (db, { projectId, keys }) => {
       const entityId = 'https://manifest.internal/sp/reg-idem/staging'
       entityIds.push(entityId)
-      const first = await registerServiceProvider(db, pool, keys, {
+      const first = await registerServiceProvider(db, pool, keys, bus, {
         ...input('reg-idem'),
         projectId,
       })
-      const second = await registerServiceProvider(db, pool, keys, {
+      const second = await registerServiceProvider(db, pool, keys, bus, {
         ...input('reg-idem'),
         projectId,
       })
@@ -114,8 +118,11 @@ describeDocker('registerServiceProvider (§9)', () => {
     await withSecretScope(async (db, { projectId, keys }) => {
       const entityId = 'https://manifest.internal/sp/reg-moved/staging'
       entityIds.push(entityId)
-      await registerServiceProvider(db, pool, keys, { ...input('reg-moved'), projectId })
-      const moved = await registerServiceProvider(db, pool, keys, {
+      await registerServiceProvider(db, pool, keys, bus, {
+        ...input('reg-moved'),
+        projectId,
+      })
+      const moved = await registerServiceProvider(db, pool, keys, bus, {
         ...input('reg-moved', {
           auth: {
             provider: 'cwl',
@@ -164,10 +171,19 @@ describeDocker('registerServiceProvider (§9)', () => {
     await withSecretScope(async (db, { projectId, keys }) => {
       const entityId = 'https://manifest.internal/sp/reg-events/staging'
       entityIds.push(entityId)
-      await registerServiceProvider(db, pool, keys, { ...input('reg-events'), projectId })
+      const frames: StreamFrame[] = []
+      const off = bus.subscribe(projectId, (f) => frames.push(f))
+      await registerServiceProvider(db, pool, keys, bus, {
+        ...input('reg-events'),
+        projectId,
+      })
+      off()
 
       const rows = await eventsFor(db, projectId)
       expect(rows.map((r) => r.type)).toEqual(['sso.registered'])
+      // Streamed as well as recorded — §9 alerts on an ACS change, and an alert is a
+      // subscriber to this stream. The frame is the stored row, redacted.
+      expect(frames.map((f) => f.id)).toEqual(rows.map((r) => r.id))
       expect(rows[0]!.humanMessage).toBe(
         'Single sign-on was set up for reg-events in staging.',
       )
@@ -203,7 +219,7 @@ describeDocker('registerServiceProvider (§9)', () => {
         keys,
       )
 
-      await registerServiceProvider(db, pool, keys, {
+      await registerServiceProvider(db, pool, keys, bus, {
         ...input('reg-redact', {
           auth: {
             provider: 'cwl',
@@ -232,7 +248,7 @@ describeDocker('registerServiceProvider (§9)', () => {
       const entityId = 'https://manifest.internal/sp/reg-evil/staging'
       entityIds.push(entityId)
       await expect(
-        registerServiceProvider(db, pool, keys, {
+        registerServiceProvider(db, pool, keys, bus, {
           ...input('reg-evil', {
             auth: {
               provider: 'cwl',
@@ -259,6 +275,7 @@ describeDocker('registerServiceProvider (§9)', () => {
         keys,
         'https://manifest.internal',
         idpSigningCertPath(),
+        bus,
       )
       const { entityBase: _bound, ...unbound } = input('reg-bound')
 

@@ -1,5 +1,8 @@
-import { beforeEach, afterAll, describe, expect, it } from 'vitest'
+import { beforeEach, afterAll, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'node:crypto'
+import { asc, eq } from 'drizzle-orm'
+import { events } from '../db/index.js'
+import type { StreamFrame } from '../observability/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { createFakeDriver } from '../runtime/index.js'
 import { buildServer } from './server.js'
@@ -24,6 +27,78 @@ async function projectFor(puid: TestUserPuid) {
   })
   return { app, deps, cookies, project: created.json() }
 }
+
+describe('what the event stream carries (P4b Task 15)', () => {
+  it('streams every event the delivery lifecycle records — and nothing it did not record', async () => {
+    // The property `publishEvent` exists for, asserted by COUNTING rather than by
+    // reading the source, so a future direct `bus.publish` of an event, or a bare
+    // `recordEvent`, is caught wherever it is added. Both directions: every recorded row
+    // was streamed, and every streamed event frame is a recorded row.
+    const { app, deps, cookies, project } = await projectFor('bio_prof')
+    const frames: StreamFrame[] = []
+    deps.bus.subscribe(project.id, (f) => frames.push(f))
+    const staging = project.environments.find(
+      (e: { kind: string }) => e.kind === 'staging',
+    )
+    const post = (url: string, payload: Record<string, unknown>) =>
+      app.inject({ method: 'POST', url, payload, cookies, headers: key() })
+
+    // A build that fails, then one that succeeds.
+    vi.spyOn(deps.driver, 'buildImage').mockRejectedValueOnce(
+      Object.assign(new Error('npm ci exited 1'), { code: 'BUILD_FAILED' }),
+    )
+    const failedBuild = await post(`/projects/${project.id}/builds`, {
+      commitSha: project.commitSha,
+    })
+    expect(failedBuild.json().status).toBe('failed')
+    const build = await post(`/projects/${project.id}/builds`, {
+      commitSha: project.commitSha,
+    })
+    expect(build.json().status).toBe('succeeded')
+    const release = await post(`/projects/${project.id}/releases`, {
+      buildId: build.json().id,
+    })
+
+    // A deploy that becomes healthy, then one whose instance the driver reports failed.
+    const healthy = await post(`/environments/${staging.id}/deploy`, {
+      releaseId: release.json().id,
+    })
+    expect(healthy.json().state).toBe('healthy')
+    vi.spyOn(deps.driver, 'status').mockResolvedValue({
+      id: 'unused',
+      state: 'failed',
+      healthy: false,
+    })
+    const broken = await post(`/environments/${staging.id}/deploy`, {
+      releaseId: release.json().id,
+    })
+    expect(broken.json().state).toBe('failed')
+
+    const rows = await deps.db
+      .select()
+      .from(events)
+      .where(eq(events.projectId, project.id))
+      .orderBy(asc(events.createdAt))
+    expect(rows.map((r) => r.type)).toEqual([
+      'build.started',
+      'build.failed',
+      'build.started',
+      'build.succeeded',
+      'instance.healthy',
+      'instance.failed',
+      'incident.opened',
+    ])
+    expect(frames.filter((f) => f.kind === 'event').map((f) => f.id)).toEqual(
+      rows.map((r) => r.id),
+    )
+    // And the build log reached the stream while it was written — the failed build's
+    // reason line included — without a single line becoming an audit row.
+    const logs = frames.filter((f) => f.kind === 'log')
+    expect(logs.map((f) => f.kind === 'log' && f.buildId)).toEqual(
+      expect.arrayContaining([failedBuild.json().id, build.json().id]),
+    )
+  })
+})
 
 describe('the delivery routes', () => {
   it('builds, releases and deploys to staging', async () => {

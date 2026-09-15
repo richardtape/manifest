@@ -21,6 +21,7 @@ import {
 import { idpDatabaseUrl } from '../sso/testing.js'
 import { createRelease, deployRelease, startBuild } from './index.js'
 import { disabledAiKeyService, disabledCatalogue } from '../ai/index.js'
+import { createEventBus } from '../observability/index.js'
 
 /**
  * Task 9's composition, against the REAL registrar.
@@ -38,6 +39,7 @@ import { disabledAiKeyService, disabledCatalogue } from '../ai/index.js'
  * container's artefact.
  */
 const BLUEPRINTS_ROOT = fileURLToPath(new URL('../../../../blueprints', import.meta.url))
+const bus = createEventBus()
 
 describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
   let pool: pg.Pool
@@ -118,7 +120,7 @@ describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
         .returning()
 
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, {
+      const build = await startBuild(db, driver, bus, {
         projectId: project.id,
         projectSlug: project.slug,
         appSpecId: appSpec!.id,
@@ -163,6 +165,7 @@ describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
             keys,
             'https://manifest.internal',
             config.idp.signingCertPath,
+            bus,
           ),
           // This app declares no model, so AI is SWITCHED OFF here rather than faked:
           // an AI deploy reaching this test would be refused naming the setting, which
@@ -170,6 +173,7 @@ describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
           // `ai/keys.docker.test.ts`'s; the end-to-end one is Task 16's.
           ai: disabledAiKeyService(),
           catalogue: disabledCatalogue(),
+          bus,
         },
         { releaseId: release.id, environmentId: staging.id },
       )
@@ -188,15 +192,24 @@ describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
       expect(row!.certData).toMatch(/^[A-Za-z0-9+/=]{100,}$/)
 
       // §9: "Every registration and change is an append-only audit Event." One
-      // registration, no ACS change: this app has never been registered before.
+      // registration, no ACS change: this app has never been registered before. The
+      // WHOLE list, in order, since P4b Task 15 records the build and the instance too
+      // (sitting 9, finding 172): the registration lands after the build and BEFORE the
+      // instance is healthy, which is the ordering this suite exists for.
       const rows = await db
         .select()
         .from(events)
         .where(eq(events.projectId, project.id))
         .orderBy(asc(events.createdAt))
-      expect(rows.map((r) => r.type)).toEqual(['sso.registered'])
-      expect(rows[0]!.subject).toBe(`sp:${slug}:staging`)
-      expect(rows[0]!.machineDetail).toMatchObject({ entityId })
+      expect(rows.map((r) => r.type)).toEqual([
+        'build.started',
+        'build.succeeded',
+        'sso.registered',
+        'instance.healthy',
+      ])
+      const registered = rows.find((r) => r.type === 'sso.registered')!
+      expect(registered.subject).toBe(`sp:${slug}:staging`)
+      expect(registered.machineDetail).toMatchObject({ entityId })
 
       /**
        * TASK 11: what the app is actually told, from the REAL registration.

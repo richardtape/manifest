@@ -16,19 +16,33 @@ export class EventError extends Error {
 }
 
 /**
- * The closed set P4a writes. A `type` is API surface the moment a client filters
- * on it (§23's audit screen does), so it is a list rather than free text — a typo
- * in a caller becomes an event nobody can find, and nothing would ever say so.
+ * The closed set. A `type` is API surface the moment a client filters on it — §23's
+ * audit screen does, and D23.2's stream is switched on it — so it is a list rather than
+ * free text: a typo in a caller becomes an event nobody can find, and nothing would ever
+ * say so.
  *
- * P4b adds its own; this is not the final list, it is the enforced one.
+ * **Enforced twice**: here, and by the database's `events_type_known` CHECK (migration
+ * 0008), which names the same list independently. Adding a type needs both, and
+ * `events.test.ts` reads the constraint back out of Postgres and compares.
  */
 export const EVENT_TYPES = [
   /** §9: an SP registration was written or re-written. */
   'sso.registered',
   /** §9 alerts on this one SPECIFICALLY: where an app receives assertions moved. */
   'sso.acs_changed',
-  /** An instance failed to start or fell over. Written from P4b's Task 1 onwards. */
+  /** §14: a build began. Its log streams after this (P4b Task 15). */
+  'build.started',
+  'build.succeeded',
+  /** A sentence in `human_message`; the reason, redacted, in `machine_detail`. */
+  'build.failed',
+  /** §11: a deployed instance passed its health check. Carries the state. */
+  'instance.healthy',
+  /** §11: a deployed instance never became healthy. Carries the state. */
   'instance.failed',
+  /** §14: an Incident was recorded for that failure, and is named. */
+  'incident.opened',
+  /** §10: an app's AI key was replaced — committed once healthy. NEVER carries the key. */
+  'ai.key_rotated',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

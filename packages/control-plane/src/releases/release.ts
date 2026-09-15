@@ -4,7 +4,12 @@ import { builds, environments, instances, projects, releases } from '../db/index
 import type { BlueprintRegistry } from '../blueprints/index.js'
 import type { Driver, InstanceFile, InstanceHandle } from '../runtime/index.js'
 import { InstanceNotReadyError, instanceName, serviceName } from '../runtime/index.js'
-import { captureIncident, makeRedactor } from '../observability/index.js'
+import {
+  captureIncident,
+  makeRedactor,
+  publishEvent,
+  type EventBus,
+} from '../observability/index.js'
 import { nextState } from '../runtime/index.js'
 import type { InjectedService, InjectionContext, ResolvedConfig } from '../spec/index.js'
 import {
@@ -55,6 +60,11 @@ export interface DeployDeps {
    * after it was validated.
    */
   catalogue: ModelCatalogue
+  /**
+   * D23.2's stream (P4b Task 15): the instance's state, the Incident, and the key a
+   * healthy instance was given — each recorded and published through `publishEvent`.
+   */
+  bus: EventBus
 }
 
 export type Release = typeof releases.$inferSelect
@@ -374,6 +384,25 @@ export async function deployRelease(
   }
 
   /**
+   * THE APP'S OWN SECRET SET, read ONCE, here — for every redactor this deploy builds: the
+   * instance's events, the Incident, and the key rotation (P4b Tasks 13 and 15).
+   *
+   * HERE, and not after the instance is recorded: every secret this deploy stores is stored
+   * by now — the service credentials, `SESSION_SECRET`, the SP key — except the AI key,
+   * which is not stored until the commit and is added to its own redactor by hand. And a set
+   * that cannot be opened must refuse the deploy BEFORE anything starts or is minted. Read
+   * after the row said healthy, the same failure threw with the instance recorded healthy
+   * and a minted key neither committed nor discarded (P4b sitting 9, finding 162). §14's
+   * redaction at capture fails closed: an event is never written under a partial set.
+   */
+  const secretScope = {
+    projectId: environment.projectId,
+    environmentKind: environment.kind,
+  }
+  const appSecretValues = await deps.appSecrets.secretValues(db, secretScope)
+  const redact = makeRedactor(appSecretValues)
+
+  /**
    * §10's key, MINTED BEFORE THE CONTAINER STARTS — the container needs it in its
    * environment, and an app that asks a question with no key gets a 401, a race nobody
    * reproduces on demand — and COMMITTED ONLY ONCE THE INSTANCE IS HEALTHY (Rich,
@@ -521,14 +550,74 @@ export async function deployRelease(
    * A capture that fails reaches the caller. The row already says `failed`, so the
    * instance is recorded as what it is; a missing Incident is not swallowed.
    */
+  /**
+   * D23.2's instance state transition, recorded and streamed (P4b Task 15) — carrying
+   * the STATE, because a deploy is a `200` whether it worked or not (sitting 8, finding
+   * 146) and a client must never read "the call returned" as "the app is up".
+   */
+  const instanceDetail = {
+    instanceId: updated!.id,
+    releaseId: release.id,
+    environmentId: environment.id,
+    environment: environment.kind,
+    state: updated!.state,
+  }
   if (!healthy) {
-    const redact = makeRedactor(
-      await deps.appSecrets.secretValues(db, {
+    await publishEvent(
+      db,
+      deps.bus,
+      {
         projectId: environment.projectId,
-        environmentKind: environment.kind,
-      }),
+        subject: `instance:${updated!.id}`,
+        type: 'instance.failed',
+        machineDetail: { ...instanceDetail, failedCheck },
+        humanMessage: `${projectSlug} did not start in ${environment.kind}.`,
+      },
+      redact,
     )
-    await captureIncident(db, driver, { instanceId: updated!.id, failedCheck }, redact)
+    const incident = await captureIncident(
+      db,
+      driver,
+      { instanceId: updated!.id, failedCheck },
+      redact,
+    )
+    // Announced once it EXISTS, and named, so a client that reacts by reading
+    // `GET /environments/:environmentId/incidents` finds it there. Published HERE, at
+    // the call site, rather than inside `captureIncident`: the capture stays a store
+    // function with no bus in its signature, and the deploy — which holds the bus —
+    // narrates (sitting 8's note left this call to Task 15).
+    await publishEvent(
+      db,
+      deps.bus,
+      {
+        projectId: environment.projectId,
+        subject: `incident:${incident.id}`,
+        type: 'incident.opened',
+        machineDetail: {
+          incidentId: incident.id,
+          instanceId: updated!.id,
+          releaseId: release.id,
+          environment: environment.kind,
+        },
+        humanMessage:
+          `${projectSlug} failed to start in ${environment.kind}. The incident records ` +
+          'what it printed and what changed since it last worked.',
+      },
+      redact,
+    )
+  } else {
+    await publishEvent(
+      db,
+      deps.bus,
+      {
+        projectId: environment.projectId,
+        subject: `instance:${updated!.id}`,
+        type: 'instance.healthy',
+        machineDetail: instanceDetail,
+        humanMessage: `${projectSlug} is running in ${environment.kind}.`,
+      },
+      redact,
+    )
   }
 
   /**
@@ -552,6 +641,32 @@ export async function deployRelease(
       kind: environment.kind,
       key: minted,
     })
+    /**
+     * §10's rotation is COMPLETE at the commit, so that is where it is recorded (P4b
+     * Task 15; sitting 5's correction at the top of the task). A discarded key never
+     * became the app's key and gets no event of its own — the failed instance already
+     * has one — and a commit that failed threw above.
+     *
+     * NEVER THE KEY, in either field. And the redactor holds it anyway: the set read before
+     * the mint plus the key just committed — added by hand rather than by decrypting the
+     * whole set again, which could fail after a rotation that has already succeeded.
+     */
+    await publishEvent(
+      db,
+      deps.bus,
+      {
+        projectId: environment.projectId,
+        subject: `instance:${updated!.id}`,
+        type: 'ai.key_rotated',
+        machineDetail: {
+          instanceId: updated!.id,
+          environment: environment.kind,
+          models: [...models],
+        },
+        humanMessage: `${projectSlug} was given a new AI access key for this release in ${environment.kind}.`,
+      },
+      makeRedactor([...appSecretValues, minted]),
+    )
   }
   return updated!
 }

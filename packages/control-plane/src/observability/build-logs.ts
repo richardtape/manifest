@@ -126,6 +126,14 @@ export function createBuildLogWriter(
   db: Db,
   buildId: string,
   redact: Redactor,
+  /**
+   * Handed each line AS IT IS WRITTEN — numbered and already REDACTED — before it is
+   * stored (P4b Task 15). That is how a build's log reaches D23.2's stream while the
+   * build runs. It must not throw; the bus's `publish` never does.
+   *
+   * A line written after the writer has failed is neither stored nor handed over.
+   */
+  onLine?: (line: StoredBuildLogLine) => void,
 ): BuildLogWriter {
   let nextSeq = 0
   let pending: StoredBuildLogLine[] = []
@@ -152,8 +160,18 @@ export function createBuildLogWriter(
   return {
     write(line) {
       if (failure !== undefined) return
-      pending.push({ seq: nextSeq, at: line.at, stream: line.stream, text: line.text })
+      // Redacted HERE, so the line handed to `onLine` is the line that will be stored.
+      // `appendBuildLog` redacts again at the insert — it is the store's own guarantee,
+      // and redaction is idempotent — so a caller of the insert alone is still covered.
+      const stored: StoredBuildLogLine = {
+        seq: nextSeq,
+        at: line.at,
+        stream: line.stream,
+        text: String(redact(line.text)),
+      }
       nextSeq += 1
+      pending.push(stored)
+      onLine?.(stored)
       draining ??= drain()
     },
     async flush() {

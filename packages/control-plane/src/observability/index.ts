@@ -14,6 +14,7 @@ export {
   createEventBus,
   eventFrame,
   logFrame,
+  publishEvent,
   readyFrame,
   recentFramesFor,
   type EventBus,

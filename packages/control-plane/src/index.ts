@@ -188,6 +188,13 @@ const ai =
 // plane's URL by swapping the database name (P4a Decision 13) — they are two
 // independent settings, and the running system keeps them that way.
 const idpPool = createIdpPool(config.idpDatabaseUrl)
+
+// D23.2's fan-out: ONE bus for this process, which is every publisher and every socket
+// there is — built before anything that publishes, and handed to each of them. In-process
+// by design; a second control-plane process would need Postgres LISTEN/NOTIFY, and
+// `createEventBus` is the seam.
+const bus = createEventBus()
+
 const sso = createSsoRegistrar(
   idpPool,
   masterKeypair,
@@ -195,6 +202,8 @@ const sso = createSsoRegistrar(
   // Read per deploy, not here: `make up` mints it, so a re-minted IdP keypair is
   // picked up without restarting the control plane.
   config.idp.signingCertPath,
+  // §9's two audit events reach the stream as well as the table (P4b Task 15).
+  bus,
 )
 
 /**
@@ -240,10 +249,9 @@ const app = await buildServer({
   sso,
   catalogue,
   ai,
-  // D23.2's fan-out: one bus for this process, which is every publisher and every
-  // socket there is. In-process by design — a second control-plane process would need
-  // Postgres LISTEN/NOTIFY, and `createEventBus` is the seam.
-  bus: createEventBus(),
+  // The same bus the registrar above publishes to, and `WS /projects/:projectId/events`
+  // subscribes to.
+  bus,
   samlSp: createSamlSp({
     entity: spEntity,
     idpBaseUrl: config.idp.baseUrl,

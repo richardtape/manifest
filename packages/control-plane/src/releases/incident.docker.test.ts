@@ -8,7 +8,12 @@ import { loadBlueprints } from '../blueprints/index.js'
 import { loadConfig } from '../config.js'
 import { appSpecs, incidents, users } from '../db/index.js'
 import { withRollback } from '../db/testing.js'
-import { incidentPrompt, makeRedactor } from '../observability/index.js'
+import {
+  createEventBus,
+  incidentPrompt,
+  makeRedactor,
+  type StreamFrame,
+} from '../observability/index.js'
 import { createProject } from '../projects/index.js'
 import { instanceName, type Driver } from '../runtime/index.js'
 import {
@@ -39,6 +44,7 @@ import { createRelease, deployRelease, startBuild } from './index.js'
 const BLUEPRINTS_ROOT = fileURLToPath(new URL('../../../../blueprints', import.meta.url))
 const SLUG = 'incident-probe'
 const KIND = 'staging' as const
+const bus = createEventBus()
 const engine = createEngineClient({ socketPath: resolveSocketPath() })
 
 /**
@@ -137,7 +143,7 @@ describeDocker('a failed deploy records an Incident, from a real container (§14
         })
         .returning()
 
-      const build = await startBuild(db, driver, {
+      const build = await startBuild(db, driver, bus, {
         projectId: project.id,
         projectSlug: SLUG,
         appSpecId: appSpec!.id,
@@ -161,6 +167,10 @@ describeDocker('a failed deploy records an Incident, from a real container (§14
       containers.push(container)
       const appSecrets = createAppSecrets(keys)
 
+      // D23.2 (P4b Task 15): what a watching client is told about this failure, read
+      // off the same bus the deploy publishes to.
+      const frames: StreamFrame[] = []
+      const off = bus.subscribe(project.id, (f) => frames.push(f))
       const instance = await deployRelease(
         db,
         driver,
@@ -179,12 +189,19 @@ describeDocker('a failed deploy records an Incident, from a real container (§14
           blueprints: await loadBlueprints(BLUEPRINTS_ROOT),
           ai: disabledAiKeyService(),
           catalogue: disabledCatalogue(),
+          bus,
         },
         { releaseId: release.id, environmentId: staging.id },
       )
 
+      off()
       // A recorded failure — not an exception, and not a row parked in `provisioning`.
       expect(instance.state).toBe('failed')
+      // And a streamed one: the state transition, then the Incident it produced.
+      expect(frames.flatMap((f) => (f.kind === 'event' ? [f.type] : []))).toEqual([
+        'instance.failed',
+        'incident.opened',
+      ])
       expect(instance.handle).toBe(container)
 
       const recorded = await db

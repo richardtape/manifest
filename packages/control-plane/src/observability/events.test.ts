@@ -1,8 +1,16 @@
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { events } from '../db/index.js'
 import { withProject } from '../db/testing.js'
-import { makeRedactor, recordEvent } from './index.js'
+import {
+  EVENT_TYPES,
+  createEventBus,
+  eventFrame,
+  makeRedactor,
+  publishEvent,
+  recordEvent,
+  type StreamFrame,
+} from './index.js'
 // Why a message match cannot stand in for this is on the helper itself.
 import { expectSqlState } from './testing.js'
 
@@ -204,6 +212,90 @@ describe('audit integrity (§20)', () => {
         db.execute(sql`DELETE FROM projects WHERE id = ${projectId}`),
         '23503',
       )
+    })
+  })
+})
+
+describe('the closed set of event types (P4b Task 15)', () => {
+  it('is enforced by the DATABASE too — and the constraint names exactly EVENT_TYPES', async () => {
+    // Two independent reads of one rule, the shape P4a used for the IdP's attribute
+    // list. The list is read back out of Postgres rather than out of the migration
+    // file, so this compares what is IN FORCE: a type added to the code without a
+    // migration fails here, and so does a migration that never applied.
+    await withProject(async (db) => {
+      const result = await db.execute(
+        sql`SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint
+            WHERE conname = 'events_type_known' AND conrelid = 'audit.events'::regclass`,
+      )
+      const def = (result.rows[0] as { def: string } | undefined)?.def ?? ''
+      const inForce = [...def.matchAll(/'([^']+)'::text/g)].map((m) => m[1]).sort()
+      expect(inForce).toEqual([...EVENT_TYPES].sort())
+    })
+  })
+
+  it('refuses a type written PAST the code, at the CHECK', async () => {
+    // A free-text type is a stream no client can switch on, and the code's guard is
+    // one edit from gone.
+    await withProject(async (db, { projectId }) => {
+      await expectSqlState(
+        db.execute(
+          sql`INSERT INTO audit.events (project_id, subject, type, machine_detail, human_message)
+              VALUES (${projectId}, 's', 'sso.invented', '{}', 'Something happened.')`,
+        ),
+        '23514',
+      )
+    })
+  })
+})
+
+describe('publishEvent — recorded, then streamed (P4b Task 15)', () => {
+  it('publishes the row AS STORED, which is to say redacted', async () => {
+    // One helper rather than two calls at each site: a site that records without
+    // publishing is a silent stream, and one that publishes without recording is an
+    // event that vanishes on reconnect, because the replay reads the TABLE.
+    await withProject(async (db, { projectId }) => {
+      const bus = createEventBus()
+      const frames: StreamFrame[] = []
+      bus.subscribe(projectId, (f) => frames.push(f))
+      const event = await publishEvent(
+        db,
+        bus,
+        {
+          projectId,
+          subject: 'instance:abc',
+          type: 'instance.failed',
+          machineDetail: { stderr: 'connect failed: STUDENT-PII-CANARY' },
+          humanMessage: 'Your app could not start.',
+        },
+        makeRedactor(['STUDENT-PII-CANARY']),
+      )
+      const [row] = await db.select().from(events).where(eq(events.id, event.id))
+      expect(row).toBeDefined()
+      expect(frames).toEqual([eventFrame(row!)])
+      expect(JSON.stringify(frames)).not.toContain('STUDENT-PII-CANARY')
+    })
+  })
+
+  it('publishes nothing when the record is refused', async () => {
+    await withProject(async (db, { projectId }) => {
+      const bus = createEventBus()
+      const frames: StreamFrame[] = []
+      bus.subscribe(projectId, (f) => frames.push(f))
+      await expect(
+        publishEvent(
+          db,
+          bus,
+          {
+            projectId,
+            subject: 's',
+            type: 'sso.registered',
+            machineDetail: {},
+            humanMessage: '   ',
+          },
+          IDENTITY,
+        ),
+      ).rejects.toThrow(/human_message/i)
+      expect(frames).toEqual([])
     })
   })
 })
