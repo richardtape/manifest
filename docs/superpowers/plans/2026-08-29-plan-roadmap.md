@@ -113,7 +113,7 @@ highs still blocked after the change, and only an npm `override` to 0.8.15 clear
 them. Implemented in `build/scan.ts`; **the spec's own text is unchanged**, per the
 standing rule that only Rich edits the spec.
 
-### Spec actions raised by P4a and P4b — 6 of 12 applied 2026-09-14
+### Spec actions raised by P4a and P4b — 8 of 13 applied 2026-09-14
 
 **Rich approved six on 2026-09-14**, applied in one commit so they are one `git revert`
 away. From P4a: §12's scan gate blocks only on a Critical or High **with a published
@@ -125,10 +125,20 @@ two roles, reworded as a requirement because `ssp_ro` now exists. From P4b: §21
 LiteLLM row records the digest pin Task 2 made. One consistency edit went with them:
 §1's existing-assets row still said `docker-simple-saml` "becomes the Manifest IdP".
 
-**Not applied:** P4a's `MONGODB_DB_NAME` note, which is history rather than design, and
-**One more is Rich's decision already (2026-09-14): redeploys must be zero-downtime** — a §11 row in P4b's *Spec actions*, whose wording waits for its own plan — P4c, placed straight after P4b (see the plan table). P4b's other five, **held until Tasks 6, 7, 9 and 14 have run** — **6 and 7 ran on 2026-09-14, so two are now measured and ready for Rich's call**: §7's D17 mechanics, confirmed with one addition (one unclassified entry refuses the whole catalogue), and §7's zero-budget refusal, now `SPEC_AI_BUDGET_REQUIRED`. Two of those — the
-per-user AI budget §10 cannot enforce at LiteLLM 1.98.0, and what streams over
-WebSocket (§14 against D23.2) — are Rich's product decisions at that point.
+**Two more applied the same day, once Tasks 6 and 7 had run — §7, which Rich settled as three
+questions.** An unclassified catalogue entry now refuses only the model that names it, not the
+whole catalogue Task 6 refuses; §7 records how the catalogue is read — `/model/info` with the
+master key, and no classification on `/v1/models`, the one model route an app may call; and a
+declared model with an **omitted** project budget gets the project's AI quota instead of a
+refusal, while an explicit `0` is still refused. Both behaviours change committed code, which
+P4b's Task 9 now carries.
+
+**Not applied:** P4a's `MONGODB_DB_NAME` note, which is history rather than design; **zero-downtime
+redeploys**, already Rich's decision (2026-09-14) — a §11 row whose wording waits for its own
+plan, P4c, placed straight after P4b (see the plan table); and P4b's other three, held until the
+tasks that implement them have run. Two of those — the per-user AI budget §10 cannot enforce at
+LiteLLM 1.98.0, and what streams over WebSocket (§14 against D23.2) — are Rich's product
+decisions at that point.
 
 ### Spec actions raised by P3 — ✅ all six applied 2026-09-07
 

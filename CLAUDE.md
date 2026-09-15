@@ -107,7 +107,7 @@ and `MONGODB_DB_NAME` was never injected. Writing P4b found six more, including 
 **moving, unpinned LiteLLM image** while §16 pins the error mapping to a version, and
 a §10 requirement — the per-user AI budget — that **LiteLLM 1.98.0 provides no way to
 enforce**. **P3's six spec actions were all applied on 2026-09-07**, with Rich's
-approval; **six more were applied on 2026-09-14** — §12's scan-gate wording, four of P4a's and P4b's LiteLLM digest row; P4b's other five wait for their tasks.
+approval; **eight more were applied on 2026-09-14** — §12's scan-gate wording, four of P4a's, P4b's LiteLLM digest row, and two §7 rows Rich settled once Tasks 6 and 7 had run (an unclassified model refuses only itself; an omitted AI budget defaults to the project's quota), which change committed code that P4b's Task 9 now carries; P4b's other three wait for their tasks.
 
 Executing P2 found **52 defects** across three sittings — 5, then 20, then **27 in
 Tasks 12–21**. Four from that last batch are worth carrying: the plan's code had

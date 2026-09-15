@@ -113,7 +113,7 @@ two came out of Tasks 1–3, the third out of Task 5, the fourth out of Task 8:
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. **S6 has since run too, as P3's Task 18, 2026-09-07: every probe denied, every denial paired with a positive control, and one result BETTER than the spec** — §21's divergence 8 no longer holds, because app networks are `--internal` and the developer's machine is unroutable rather than merely policed. S5 and S4 are deliberately later (S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
 | **Plans** | **P1, P2, P3 AND P4a ARE ALL EXECUTED — P4a IN FULL ON 2026-09-09. P4b IS PART-EXECUTED: SITTINGS 1–4 OF TEN (TASKS 1–7) ARE DONE; CONTINUE AT TASK 8.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a's fifteen tasks found 80 defects — 5.3 per task, the highest rate measured here, in the plan that had the most research behind it.** Two were spec-level and are in §8. **P4b (16 tasks) is now the current work, and 9 of its tasks are unrun.** P4c (zero-downtime redeploys, placed after P4b by Rich on 2026-09-14) and P5 are unwritten — see §7. **The unrun stack was 16 tasks when P4b was written**, which is what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
 | **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`.** **The numbers are in the box below** — this row used to restate them and drifted by four releases.  **P4a Tasks 1–3 then added `sso/`'s test surface and login suite, `runtime/docker/archive.ts`, `infra/idp/metadata/saml20-idp-hosted.php`, `infra/idp/attributemap/ubcoid.php`, three new `infra/lib/ensure-*.sh` scripts wired into `make up`, and `fixtures/saml-sp/`; Tasks 4–5 added `secrets/`; Tasks 6–7 added `sso/`'s production half — `keypair.ts`, `entity.ts`, `metadata-store.ts`, `registration.ts` — plus `MANIFEST_IDP_DATABASE_URL` and `MANIFEST_SP_ENTITY_BASE` in `config.ts`; and Tasks 8–9 added `observability/` (`events.ts`, `redact.ts`), the `audit` schema and its migration, `infra/lib/ensure-app-role.sh` and the `manifest_app` role the control plane now connects as, and `sso`'s wire into `DeployDeps`, `ServerDeps` and boot. **Tasks 10–11 added `spec/injection.ts` — §8's table as data and the one renderer of every variable an app receives — plus `config.idp`, `secrets/`'s `ensureSessionSecret`, `SsoRegistrar.idpSigningCertificate()`, `ai` on `ResolvedConfig`, and the reserved-name check in `spec/policy.ts`. `deployRelease`'s ad-hoc env block is gone. Tasks 12–13 added `blueprints/node-ts-mongo/` — the descriptor, the Dockerfile, the skeleton with its auth component and §9's attribute bridge, and the D25 knowledge pack — plus `spec/injection-drift.test.ts` (§16's drift tier, reading the blueprint's source), `runtime/docker/node-ts-mongo.docker.test.ts` and `blueprints/attribute-bridge.test.ts`. Task 14 added `identity/saml.ts` — the control plane's own SAML SP, on `@node-saml/node-saml` rather than the `passport-saml` the blueprint pins — `identity/testing.ts` (an in-process SAML IdP and `testSessionCookie`), `identity/saml.docker.test.ts`, `sso/platform.ts` and `infra/lib/ensure-cp-sp-keypair.sh`, and DELETED `identity/dev-auth.ts` and its test.** **P4b's Task 3 (2026-09-14) added `ai/testing.ts` — probe keys through LiteLLM's admin API — and `ai/ai-path.docker.test.ts`, probes 13 and 14 in `runtime/docker/s6.docker.test.ts`, `ensureLitellmMasterKey()` in `vitest.env.ts`, and `ubc-genai-toolkit-llm@0.7.0` as an exact devDependency. Its Tasks 4–5 (sitting 3) added `ai/errors.ts` — S3's error table as one mapper — `ai/client.ts`, the LiteLLM admin transport, `ai/index.ts`, and `config.litellm`. Its Tasks 6–7 (sitting 4) added `ai/catalogue.ts` — D17's catalogue from `/model/info`, with `disabledCatalogue()` for `MANIFEST_AI_ENABLED=0` — `ai/keys.ts` (`AI_ALLOWED_ROUTES`, `ensureAiUser`, `rotateAppKey`, `createAiKeyService`), `ai/keys.docker.test.ts`, `declaredCatalogue()` in `ai/testing.ts`, `ServerDeps.catalogue`, a 503 in `api/errors.ts` for a gateway failure, and `SPEC_AI_DISABLED` and `SPEC_AI_BUDGET_REQUIRED` in `spec/policy.ts`; the model array in `api/routes/projects.ts` is deleted.**|
-| **Spec** | Current. **Six more spec actions were applied on 2026-09-14** with Rich's approval — §12's scan-gate wording, four of P4a's and P4b's LiteLLM digest row; P4b's other five wait for the tasks that implement them (§8). Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
+| **Spec** | Current. **Eight more spec actions were applied on 2026-09-14** with Rich's approval — §12's scan-gate wording, four of P4a's, P4b's LiteLLM digest row, and two §7 rows he settled once Tasks 6 and 7 had run, which change committed code that P4b's Task 9 now carries; P4b's other three wait for the tasks that implement them, and zero-downtime redeploys wait for P4c (§8). Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
 **The four numbers you will check first, measured 2026-09-14 on this machine:**
 
@@ -1513,6 +1513,8 @@ LiteLLM. If your first measurements differ, find out why before you start — §
   `declaredCatalogue()`, and the probe-key helpers. Use these in any Docker test; **three plan
   snippets have used undefined `LITELLM`/`MASTER` constants instead.**
 - `spec/policy.ts` — `ValidationContext.aiEnabled`, `SPEC_AI_DISABLED`, `SPEC_AI_BUDGET_REQUIRED`.
+  **§7 as amended on 2026-09-14 differs from both this and `ai/catalogue.ts`**: an unclassified
+  model refuses only itself, and an omitted budget is defaulted — *SPEC DECISIONS* in Task 9.
 
 **What the two tasks deliver.** Task 8: `manifest-litellm` joins an app network only when the
 app declares models (`InstanceSpec.needsAiGateway`), and `destroyAppNetwork` disconnects whatever
@@ -1527,11 +1529,12 @@ driver; Task 9's key is proved at the unit tier; Task 16 proves the whole path.
 
 1. **The pre-flight block at the top of Task 8** — seven corrections, including a probe whose
    positive control cannot fail and a negative control that cannot run as written.
-2. **The four blocks at the top of Task 9** — sitting 3's; sitting 4's, which says half of
+2. **The five blocks at the top of Task 9** — sitting 3's; sitting 4's, which says half of
    Step 4's wiring already exists and names the decision below; the pre-flight's eight
    corrections and a note — among them that `ResolvedConfig.ai` already exists with snake_case
-   fields, and that `deployRelease` is handed `DeployDeps`, never `ServerDeps`; and Rich's
-   *DECIDED* block, which changes Task 7's committed key code and the Docker driver.
+   fields, and that `deployRelease` is handed `DeployDeps`, never `ServerDeps`; Rich's
+   *DECIDED* block, which changes Task 7's committed key code and the Docker driver; and
+   *SPEC DECISIONS*, which changes Task 6's catalogue and Task 7's budget check to match §7.
 3. The plan's *What executing this plan found*: sitting 4, then *Before sitting 5*.
 
 **THE ONE DECISION SITTING 5 HAS TO MAKE, AND RECORD: what `deployRelease` does with a release
@@ -1589,7 +1592,7 @@ member; `ghcr.io/berriai/litellm:main-stable` is a **moving tag absent from
 `infra/images.lock`** while §16 pins the error mapping to a version; and
 **`ai.budget.per_user_monthly_usd` cannot be enforced at LiteLLM 1.98.0 at all** —
 customer rows auto-create with no budget, and `max_end_user_budget` does not exist
-in its admin API. **P4b proposes six spec actions; one — §21's LiteLLM digest row — was applied on 2026-09-14, and the other five wait for the tasks that implement them.**
+in its admin API. **P4b proposes six spec actions; three are applied (2026-09-14) — §21's LiteLLM digest row and two §7 rows — and the other three wait for the tasks that implement them.**
 
 ### 7d-3. Write P4c — zero-downtime redeploys *(after P4b)*
 
@@ -1647,11 +1650,11 @@ Surface these; do not decide them.
   [`plans/2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md)
   and in the roadmap. **P4b's other five are held until Tasks 6, 7, 9 and 14 have
   run**; two of them — the per-user AI budget §10 cannot enforce, and what streams over
-  WebSocket — are Rich's product calls at that point. **Tasks 6 and 7 ran on 2026-09-14,
-  so two are now measured and ready for his approval:** §7's D17 mechanics — confirmed
-  as proposed, with one fact added by execution, that a single unclassified catalogue
-  entry refuses every project creation — and §7's zero-budget refusal, now
-  `SPEC_AI_BUDGET_REQUIRED`. The wording is in P4b's *Spec actions proposed by this plan*.
+  WebSocket — are Rich's product calls at that point. **Tasks 6 and 7 ran on 2026-09-14, and he settled
+  their two §7 rows the same day — applied:** an unclassified catalogue entry refuses only the
+  model that names it; §7 records how the catalogue is read; and an omitted project AI budget
+  is defaulted to the project's quota, with an explicit `0` still refused. Two of those change
+  committed code — the *SPEC DECISIONS* block at the top of P4b's Task 9.
 - **Zero-downtime redeploys — DECIDED 2026-09-14, Rich's call: required for the whole app, in a
   plan of its own, later.** Measured the same day: every redeploy 502s the whole app while the new
   container starts, because the driver moves the edge route before the container answers and
