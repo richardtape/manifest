@@ -3,7 +3,8 @@ import type { Db } from '../db/index.js'
 import { builds, environments, instances, projects, releases } from '../db/index.js'
 import type { BlueprintRegistry } from '../blueprints/index.js'
 import type { Driver, InstanceFile, InstanceHandle } from '../runtime/index.js'
-import { instanceName, serviceName } from '../runtime/index.js'
+import { InstanceNotReadyError, instanceName, serviceName } from '../runtime/index.js'
+import { captureIncident, makeRedactor } from '../observability/index.js'
 import { nextState } from '../runtime/index.js'
 import type { InjectedService, InjectionContext, ResolvedConfig } from '../spec/index.js'
 import {
@@ -414,6 +415,8 @@ export async function deployRelease(
 
   let handle: InstanceHandle
   let healthy: boolean
+  // What the platform checked, in words, when it did not pass: §14's failing check.
+  let failedCheck = ''
   try {
     handle = await driver.ensureInstance({
       name,
@@ -461,14 +464,33 @@ export async function deployRelease(
       // has no `ai` key at all (pre-flight 64).
       needsAiGateway: models.length > 0,
     })
-    healthy = await waitForHealth(driver, handle.id, healthWait)
+    const health = await waitForHealth(driver, handle.id, healthWait)
+    healthy = health.healthy
+    if (!health.healthy) {
+      failedCheck = `health: GET ${resolved.health} on port ${resolved.port} — ${health.why}`
+    }
   } catch (error) {
-    // The instance never started, or its health could not be read: the new key was
-    // never going to be committed, and the previous container still holds a valid
-    // one. THE ORIGINAL ERROR IS WHAT THE CALLER GETS — a discard that fails too is
-    // recorded, never allowed to replace it.
-    if (minted !== undefined) await discardMintedKey(deps.ai, minted, environment)
-    throw error
+    if (error instanceof InstanceNotReadyError) {
+      /**
+       * A driver that STARTED the instance and could not make it ready says so with
+       * the handle (P4b Task 13), and that is a failed deploy — recorded like the one
+       * above, as a row in `failed` and an Incident, not thrown. The instance exists,
+       * and a failure a faculty member cannot see is the one §14 exists to prevent.
+       * Until this, the Docker driver's refusal — the commonest real failure, an app
+       * that crashes as it starts — left the row parked in `provisioning`, a state
+       * nothing moves it out of, with no record of why.
+       */
+      handle = error.handle
+      healthy = false
+      failedCheck = error.check
+    } else {
+      // The instance never started, or its health could not be read: the new key was
+      // never going to be committed, and the previous container still holds a valid
+      // one. THE ORIGINAL ERROR IS WHAT THE CALLER GETS — a discard that fails too is
+      // recorded, never allowed to replace it.
+      if (minted !== undefined) await discardMintedKey(deps.ai, minted, environment)
+      throw error
+    }
   }
   if (!healthy && minted !== undefined) {
     await discardMintedKey(deps.ai, minted, environment)
@@ -484,6 +506,30 @@ export async function deployRelease(
     .set({ state, handle: handle.id, lastSeenAt: new Date() })
     .where(eq(instances.id, row!.id))
     .returning()
+
+  /**
+   * §14's Incident, for a deploy that did not become healthy — by either route above.
+   * The one moment Phase 1 has (Decision 13): a crash LOOP needs the reconciler, which
+   * is Phase 4 (D10), and a deploy that never reached healthy is right here, with the
+   * handle, the release and the failing check in hand.
+   *
+   * AFTER the row records `failed` and its handle, because the Incident reads both from
+   * the row. Redacted with the app's OWN secret set, read after every secret this deploy
+   * stored — service credentials, SESSION_SECRET, the SP key — so an app that prints
+   * its environment as it dies has none of them persisted.
+   *
+   * A capture that fails reaches the caller. The row already says `failed`, so the
+   * instance is recorded as what it is; a missing Incident is not swallowed.
+   */
+  if (!healthy) {
+    const redact = makeRedactor(
+      await deps.appSecrets.secretValues(db, {
+        projectId: environment.projectId,
+        environmentKind: environment.kind,
+      }),
+    )
+    await captureIncident(db, driver, { instanceId: updated!.id, failedCheck }, redact)
+  }
 
   /**
    * COMMITTED LAST: after health, and after the row records `healthy`.
@@ -636,19 +682,33 @@ function blueprintRunAsUid(blueprints: BlueprintRegistry, ref: string): number {
   return descriptor.runtime.run_as_uid
 }
 
-/** Polls until the driver reports healthy, or the deadline passes. */
+/**
+ * Polls until the driver reports healthy, or the deadline passes — and says WHICH, so
+ * §14's failing check can: "the driver gave up" and "we stopped waiting" send whoever
+ * reads the Incident to different places.
+ */
 async function waitForHealth(
   driver: Driver,
   handleId: string,
   wait: HealthWait,
-): Promise<boolean> {
+): Promise<{ healthy: true } | { healthy: false; why: string }> {
   const deadline = Date.now() + wait.timeoutMs
   for (;;) {
     const status = await driver.status(handleId)
-    if (status.healthy) return true
+    if (status.healthy) return { healthy: true }
     // A driver that has already given up will not become healthy by waiting.
-    if (status.state === 'failed' || status.state === 'gone') return false
-    if (Date.now() >= deadline) return false
+    if (status.state === 'failed' || status.state === 'gone') {
+      return {
+        healthy: false,
+        why: `the driver reported the instance as ${status.state}`,
+      }
+    }
+    if (Date.now() >= deadline) {
+      return {
+        healthy: false,
+        why: `it did not report healthy within ${wait.timeoutMs / 1000} s`,
+      }
+    }
     await new Promise((resolve) => setTimeout(resolve, wait.intervalMs))
   }
 }

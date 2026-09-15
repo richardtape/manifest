@@ -1,6 +1,7 @@
 import { beforeEach, afterAll, describe, expect, it } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import { resetDatabase } from '../db/testing.js'
+import { createFakeDriver } from '../runtime/index.js'
 import { buildServer } from './server.js'
 import { loginAs, testDeps } from './testing.js'
 import type { TestUserPuid } from '../identity/testing.js'
@@ -199,6 +200,89 @@ describe('the delivery routes', () => {
     const other = await app.inject({
       method: 'GET',
       url: `/builds/${build.json().id}/logs`,
+      cookies: await loginAs(deps, 'bio_student'),
+    })
+    expect(other.statusCode).toBe(404)
+    await app.close()
+  })
+
+  it('lists a failed deploy’s Incident with its repair prompt, and hides it from anyone else (§14)', async () => {
+    const deps = {
+      ...(await testDeps()),
+      driver: createFakeDriver({ failInstances: true }),
+    }
+    const app = await buildServer(deps)
+    const cookies = await loginAs(deps, 'bio_prof')
+    const project = (
+      await app.inject({
+        method: 'POST',
+        url: '/projects',
+        payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
+        cookies,
+        headers: key(),
+      })
+    ).json()
+    const build = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/builds`,
+      payload: { commitSha: project.commitSha },
+      cookies,
+      headers: key(),
+    })
+    const release = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/releases`,
+      payload: { buildId: build.json().id },
+      cookies,
+      headers: key(),
+    })
+    const staging = project.environments.find(
+      (e: { kind: string }) => e.kind === 'staging',
+    )
+    const deploy = await app.inject({
+      method: 'POST',
+      url: `/environments/${staging.id}/deploy`,
+      payload: { releaseId: release.json().id },
+      cookies,
+      headers: key(),
+    })
+    // A failed deploy is a recorded outcome, not an error.
+    expect(deploy.statusCode).toBe(200)
+    expect(deploy.json().state).toBe('failed')
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: `/environments/${staging.id}/incidents`,
+      cookies,
+    })
+    expect(listed.statusCode).toBe(200)
+    const body = listed.json() as {
+      environmentId: string
+      incidents: {
+        instanceId: string
+        releaseId: string
+        failedCheck: string
+        logTail: string
+        prompt: string
+      }[]
+    }
+    expect(body.environmentId).toBe(staging.id)
+    // What the deploy RECORDED, not merely a list: an empty array is also what a route
+    // with no store behind it answers.
+    expect(body.incidents).toHaveLength(1)
+    const [incident] = body.incidents
+    expect(incident!.instanceId).toBe(deploy.json().id)
+    expect(incident!.releaseId).toBe(release.json().id)
+    expect(incident!.failedCheck).toBe(
+      'health: GET /healthz on port 3000 — the driver reported the instance as failed',
+    )
+    expect(incident!.prompt).toContain('"chem-labs"')
+    expect(incident!.prompt).toContain(incident!.failedCheck)
+    expect(incident!.prompt).toContain(incident!.logTail)
+
+    const other = await app.inject({
+      method: 'GET',
+      url: `/environments/${staging.id}/incidents`,
       cookies: await loginAs(deps, 'bio_student'),
     })
     expect(other.statusCode).toBe(404)

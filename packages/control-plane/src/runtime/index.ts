@@ -17,7 +17,7 @@ export type {
   SnapshotRef,
   SourceRef,
 } from './driver.js'
-export { instanceName, serviceName } from './driver.js'
+export { InstanceNotReadyError, instanceName, serviceName } from './driver.js'
 export { createFakeDriver } from './fake-driver.js'
 export type { FakeDriverOptions } from './fake-driver.js'
 export * from './state-machine.js'

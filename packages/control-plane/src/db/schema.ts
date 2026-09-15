@@ -354,3 +354,41 @@ export const buildLogs = audit.table(
     check('build_logs_stream_known', sql`${t.stream} IN ('stdout', 'stderr')`),
   ],
 )
+
+/**
+ * §14's Incident, with §6's columns (P4b Task 13): what a failed deploy looked like,
+ * assembled so it can be handed straight back to an agent as a repair prompt.
+ *
+ * In the `audit` schema, append-only by grant, for the reason `events` and
+ * `build_logs` are: it is what an app's owner is shown about a failure, and a record
+ * that can be edited after the fact is not a record (§20). The migration grants exactly
+ * SELECT and INSERT.
+ *
+ * EVERY COLUMN IS NOT NULL. `diff_since_healthy` carries the sentence saying there has
+ * never been a healthy release, and `log_tail` the sentence saying the log could not be
+ * read — a null becomes an empty panel, which reads as "nothing changed" or "it printed
+ * nothing", and both would be false.
+ */
+export const incidents = audit.table(
+  'incidents',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /**
+     * RESTRICT, for the reason `build_logs.build_id` is: a referential action runs with
+     * the REFERENCED table's privileges, so CASCADE would let `DELETE FROM instances` —
+     * or anything that cascades into it, such as deleting an environment — erase an
+     * Incident `manifest_app` cannot delete a row of.
+     */
+    instanceId: uuid('instance_id')
+      .notNull()
+      .references(() => instances.id, { onDelete: 'restrict' }),
+    exitReason: text('exit_reason').notNull(),
+    logTail: text('log_tail').notNull(),
+    failedCheck: text('failed_check').notNull(),
+    diffSinceHealthy: text('diff_since_healthy').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  // Postgres does not index a foreign key's referencing column by itself, and the
+  // environment's incident list joins on it.
+  (t) => [index('incidents_instance_idx').on(t.instanceId)],
+)

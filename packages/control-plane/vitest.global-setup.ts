@@ -20,6 +20,7 @@ const TEST_REPOS_ROOT = join(tmpdir(), 'manifest-test-repos')
  * commit for real, additionally reset between their own tests.
  */
 const TABLES = [
+  'audit.incidents',
   'audit.events',
   'audit.build_logs',
   'secrets',

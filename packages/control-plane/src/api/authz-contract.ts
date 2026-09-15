@@ -277,6 +277,20 @@ const ROUTES: RouteCase[] = [
       anonymous: 401,
     },
   },
+  // §14's Incidents (P4b Task 13): a failed app's last 200 log lines, so a stranger's
+  // 404 matters here as much as on the build log.
+  {
+    method: 'GET',
+    url: '/environments/:environmentId/incidents',
+    request: (f) => ({ url: `/environments/${f.environmentId.staging}/incidents` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
   /**
    * The registry token realm. Unlike every other route in this table it carries NO
    * session: its caller is BuildKit or the Docker daemon speaking the distribution

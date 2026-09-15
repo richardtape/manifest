@@ -150,8 +150,13 @@ echo "  release $RELEASE_ID"
 
 ENV_ID="$(environment staging)"
 DEPLOY="$(api POST "/environments/$ENV_ID/deploy" "{\"releaseId\":\"$RELEASE_ID\"}")"
-printf '%s' "$DEPLOY" | field state >/dev/null || fail "deploy failed: $DEPLOY"
-echo "  instance $(printf '%s' "$DEPLOY" | field state) at $APP_URL"
+STATE="$(printf '%s' "$DEPLOY" | field state)" || fail "deploy failed: $DEPLOY"
+# HEALTHY, not merely a state (P4b Task 13): a deploy that never becomes ready is a
+# 200 whose state is `failed`, with an Incident. See the same check in demo.sh.
+[ "$STATE" = healthy ] || fail "the deploy did not become healthy (state: $STATE).
+§14's Incident has the exit, the app's last 200 log lines and a repair prompt:
+GET /environments/$ENV_ID/incidents, signed in as the project's owner."
+echo "  instance $STATE at $APP_URL"
 
 # The deploy registered a Service Provider for this app, because its resolved
 # `auth.provider` is cwl. A health check that passes proves the container is up;

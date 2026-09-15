@@ -154,8 +154,15 @@ say "7. Deploy to staging — Mongo, the container, the route, and readiness"
 # ?expand=environments — the route returns the bare project row without it.
 ENV_ID="$(environment staging)"
 DEPLOY="$(api POST "/environments/$ENV_ID/deploy" "{\"releaseId\":\"$RELEASE_ID\"}")"
-printf '%s' "$DEPLOY" | field state >/dev/null || fail "deploy failed: $DEPLOY"
-echo "  instance $(printf '%s' "$DEPLOY" | field state)"
+STATE="$(printf '%s' "$DEPLOY" | field state)" || fail "deploy failed: $DEPLOY"
+# HEALTHY, not merely a state. Since P4b Task 13 a deploy that never becomes ready
+# is a RECORDED failure — a 200 whose state is `failed`, with an Incident — so a
+# check that a state came back would carry on to step 9 and blame the Caddyfile
+# wildcard for an app that crashed.
+[ "$STATE" = healthy ] || fail "the deploy did not become healthy (state: $STATE).
+§14's Incident has the exit, the app's last 200 log lines and a repair prompt:
+GET $API/environments/$ENV_ID/incidents, signed in as the instructor."
+echo "  instance $STATE"
 
 say "8. Refuse production — §13's checklist, not a button"
 PROD_ID="$(environment production)"

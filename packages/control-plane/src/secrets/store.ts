@@ -172,10 +172,25 @@ export interface AppSecretResolver {
     db: Db,
     scope: { projectId: string; environmentKind: EnvironmentKind },
   ): Promise<string>
+  /**
+   * Every secret stored for one app+environment, as plaintext: the exact-match half of
+   * §14's redactor for what `releases/` records about the app — an Incident (P4b Task
+   * 13). VALUES, not `secretValuesFor`'s Map: a Map is iterable too, as `[name, value]`
+   * pairs, and a redactor built over those matches nothing (P4b sitting 1, divergence 5).
+   */
+  secretValues(
+    db: Db,
+    scope: { projectId: string; environmentKind: EnvironmentKind },
+  ): Promise<string[]>
 }
 
 export function createAppSecrets(keys: MasterKeypair): AppSecretResolver {
-  return { sessionSecret: (db, scope) => ensureSessionSecret(db, scope, keys) }
+  return {
+    sessionSecret: (db, scope) => ensureSessionSecret(db, scope, keys),
+    secretValues: async (db, scope) => [
+      ...(await secretValuesFor(db, scope, keys)).values(),
+    ],
+  }
 }
 
 interface MasterKeyFile {

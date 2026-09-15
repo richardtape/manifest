@@ -32,6 +32,7 @@ import type {
   SnapshotRef,
   SourceRef,
 } from '../driver.js'
+import { InstanceNotReadyError } from '../driver.js'
 import {
   DEFAULT_BUILD_LIMITS,
   type BuildLimits,
@@ -377,8 +378,13 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
         intervalMs: 1000,
       })
       if (!readiness.ready) {
-        throw new EngineError(
-          'INSTANCE_NOT_REACHABLE',
+        // WITH THE HANDLE (P4b Task 13). The container exists — it has a log and an
+        // exit code — and `deployRelease` records what happened to it as §14's
+        // Incident. An error with a code and no handle left it nothing to read.
+        throw new InstanceNotReadyError(
+          handle,
+          `readiness: GET ${spec.healthPath} at ${handle.url} through the edge — ` +
+            `${readiness.reason} (${readiness.attempts} attempts)`,
           `${handle.name} started but never answered 200 at ${handle.url}${spec.healthPath} — ` +
             `${readiness.reason} (${readiness.attempts} attempts)`,
           'The container can be up while DNS, the Caddy route or the listener is not — ' +

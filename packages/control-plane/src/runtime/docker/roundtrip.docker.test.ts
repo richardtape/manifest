@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import type { Driver, ImageRef, ServiceHandle } from '../driver.js'
-import { instanceName, serviceName } from '../driver.js'
+import { InstanceNotReadyError, instanceName, serviceName } from '../driver.js'
 import { appContainer, serviceContainer } from './names.js'
 import { describeDocker } from './docker-tier.js'
 import { renderInjection } from '../../spec/index.js'
@@ -276,17 +276,26 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
   it('REFUSES to call a deploy done when the hostname does not serve', async () => {
     const impatient = await dockerDriverForTests({ readinessTimeoutMs: 12_000 })
     const spec = specFor()
-    await expect(
-      impatient.ensureInstance({
-        ...spec,
-        name: instanceName(SLUG, KIND, 'unreachable'),
-        releaseId: 'unreachable',
-        // The app really is up and really is routed. It listens on 8080; the route
-        // and the health check are pointed at a port nothing is bound to, so the
-        // edge answers 502 for ever.
-        port: 9999,
-      }),
-    ).rejects.toMatchObject({ code: 'INSTANCE_NOT_REACHABLE' })
+    const refusal = impatient.ensureInstance({
+      ...spec,
+      name: instanceName(SLUG, KIND, 'unreachable'),
+      releaseId: 'unreachable',
+      // The app really is up and really is routed. It listens on 8080; the route
+      // and the health check are pointed at a port nothing is bound to, so the
+      // edge answers 502 for ever.
+      port: 9999,
+    })
+    // WITH THE HANDLE (P4b Task 13). The container exists, and `deployRelease` reads
+    // its exit code and log through this handle to record §14's Incident — an error
+    // carrying only a code left it nothing to read.
+    await expect(refusal).rejects.toBeInstanceOf(InstanceNotReadyError)
+    await expect(refusal).rejects.toMatchObject({
+      code: 'INSTANCE_NOT_REACHABLE',
+      handle: { id: appContainer(instanceName(SLUG, KIND, 'unreachable')) },
+      check: expect.stringMatching(
+        /^readiness: GET \/\S+ at https:\/\/fixture-rt\.staging\.manifest\.internal through the edge — /,
+      ),
+    })
     await impatient
       .destroyInstance(appContainer(instanceName(SLUG, KIND, 'unreachable')))
       .catch(() => undefined)

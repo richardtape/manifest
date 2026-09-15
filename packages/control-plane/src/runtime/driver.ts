@@ -112,6 +112,35 @@ export interface InstanceStatus {
   state: InstanceState
   healthy: boolean
   message?: string
+  /**
+   * The app process's exit code, once it has exited — §14's "exit reason" (P4b Task
+   * 13). Absent while it runs, and from a driver with no process to report on.
+   */
+  exitCode?: number
+}
+
+/**
+ * An instance the driver created and started, and could not make ready.
+ *
+ * `ensureInstance` resolves only for an instance that answers; a driver that gives up
+ * throws THIS, carrying the handle, because the instance EXISTS — it has a log, an exit
+ * code and a route, and the caller is what records what happened to it (§14's Incident,
+ * P4b Task 13). The Docker driver used to throw an error with a code and no handle, so
+ * the commonest failed deploy — an app that crashes as it starts — left the caller
+ * nothing to read a log from and the instance row parked in `provisioning`.
+ */
+export class InstanceNotReadyError extends Error {
+  readonly code = 'INSTANCE_NOT_REACHABLE'
+  constructor(
+    readonly handle: InstanceHandle,
+    /** What was checked and how it ended, in words: it becomes `Incident.failed_check`. */
+    readonly check: string,
+    message: string,
+    readonly hint: string,
+  ) {
+    super(message)
+    this.name = 'InstanceNotReadyError'
+  }
 }
 
 export interface LogOpts {

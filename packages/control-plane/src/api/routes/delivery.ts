@@ -10,7 +10,7 @@ import {
   startBuild,
 } from '../../releases/index.js'
 import { checkBlueprintCompatibility } from '../../blueprints/index.js'
-import { readBuildLog } from '../../observability/index.js'
+import { incidentPrompt, listIncidents, readBuildLog } from '../../observability/index.js'
 import { resolveConfig } from '../../spec/index.js'
 import type { ManifestSpec } from '../../spec/index.js'
 import { BadRequestError, SpecInvalidError } from '../errors.js'
@@ -299,5 +299,43 @@ export async function registerDeliveryRoutes(
       .limit(1)
 
     return { ...environment, instance: instance ?? null }
+  })
+
+  /**
+   * §14's Incidents for one environment, newest first — each with the repair prompt §14
+   * says it is shaped to become (P4b Task 13), so an agent reads exactly what a faculty
+   * member would hand it. Authorized like the environment itself: the project comes from
+   * the environment ROW, never from the request.
+   */
+  app.get('/environments/:environmentId/incidents', async (request) => {
+    const actor = requireActor(request)
+    const { environmentId } = request.params as { environmentId: string }
+
+    const [environment] = await deps.db
+      .select()
+      .from(environments)
+      .where(eq(environments.id, environmentId))
+    if (!environment)
+      throw new AuthorizationError('NOT_FOUND', `no environment '${environmentId}'`)
+    await assertCapability(deps.db, actor, environment.projectId, 'project:read')
+
+    const [project] = await deps.db
+      .select({ slug: projects.slug })
+      .from(projects)
+      .where(eq(projects.id, environment.projectId))
+    if (!project)
+      throw new AuthorizationError('NOT_FOUND', `no project '${environment.projectId}'`)
+
+    const incidents = await listIncidents(deps.db, environmentId)
+    return {
+      environmentId,
+      incidents: incidents.map((incident) => ({
+        ...incident,
+        prompt: incidentPrompt(incident, {
+          slug: project.slug,
+          environmentKind: environment.kind,
+        }),
+      })),
+    }
   })
 }

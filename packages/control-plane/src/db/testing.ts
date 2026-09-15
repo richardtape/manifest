@@ -66,6 +66,10 @@ export async function withProject(
  * so this cannot run while another file holds a transaction open.
  */
 const TABLES = [
+  // P4b Task 13, for the reason `audit.build_logs` is named below: `instances` refuses
+  // a delete while an Incident references it (ON DELETE restrict), and manifest_app
+  // cannot truncate it either.
+  'audit.incidents',
   'audit.events',
   // P4b Task 11. Named for the same reason as the line above: `builds` refuses a
   // delete while a log line references it (ON DELETE restrict), and manifest_app

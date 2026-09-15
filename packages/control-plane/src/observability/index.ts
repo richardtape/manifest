@@ -15,3 +15,12 @@ export {
   type BuildLogWriter,
   type StoredBuildLogLine,
 } from './build-logs.js'
+export {
+  INCIDENT_LOG_LINES,
+  captureIncident,
+  incidentPrompt,
+  listIncidents,
+  type CaptureIncidentInput,
+  type Incident,
+  type IncidentSource,
+} from './incidents.js'

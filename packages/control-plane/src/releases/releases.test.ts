@@ -3,8 +3,8 @@ import { eq } from 'drizzle-orm'
 import pg from 'pg'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { resetDatabase, withRollback } from '../db/testing.js'
-import { appSpecs, builds, db, instances, users } from '../db/index.js'
-import { createFakeDriver } from '../runtime/index.js'
+import { appSpecs, builds, db, incidents, instances, users } from '../db/index.js'
+import { InstanceNotReadyError, createFakeDriver } from '../runtime/index.js'
 import { createProject } from '../projects/index.js'
 import { loadConfig } from '../config.js'
 import type { Driver, InstanceSpec, ServiceBinding } from '../runtime/index.js'
@@ -22,7 +22,7 @@ import {
   type ModelCatalogue,
 } from '../ai/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
-import { readBuildLog } from '../observability/index.js'
+import { makeRedactor, readBuildLog } from '../observability/index.js'
 
 /** The repository's own blueprints, resolved from THIS FILE — `pnpm test` and
  *  `pnpm --filter … test` have different working directories. */
@@ -869,6 +869,8 @@ describe('waiting for health', () => {
       )
       expect(instance.state).toBe('healthy')
       expect(driver.status).toHaveBeenCalledTimes(3)
+      // A healthy deploy is not an incident.
+      expect(await db.select().from(incidents)).toEqual([])
     })
   })
 
@@ -885,6 +887,147 @@ describe('waiting for health', () => {
         { timeoutMs: 20, intervalMs: 1 },
       )
       expect(instance.state).toBe('failed')
+    })
+  })
+
+  it('records an Incident naming the health check, read through the handle the row records (§14)', async () => {
+    await withRollback(async (db) => {
+      const driver = healthyOnCall(Number.POSITIVE_INFINITY)
+      const { release, byKind } = await releaseFor(db, driver)
+      const instance = await deployRelease(
+        db,
+        driver,
+        config,
+        deployDeps,
+        { releaseId: release.id, environmentId: byKind.staging!.id },
+        { timeoutMs: 20, intervalMs: 1 },
+      )
+      const recorded = await db
+        .select()
+        .from(incidents)
+        .where(eq(incidents.instanceId, instance.id))
+      expect(recorded).toHaveLength(1)
+      // "We stopped waiting", not "the driver gave up": they send a reader to
+      // different places, and the other route below says the other one.
+      expect(recorded[0]!.failedCheck).toBe(
+        'health: GET /healthz on port 3000 — it did not report healthy within 0.02 s',
+      )
+      expect(recorded[0]!.exitReason).toBe(
+        'the process is still running, and the platform reports it as starting',
+      )
+      // The fake driver's one line for this instance — which it can only have been
+      // asked for by the handle the row records.
+      expect(recorded[0]!.logTail).toBe(
+        `starting chem-labs-staging-${release.id.slice(0, 8)}`,
+      )
+      expect(recorded[0]!.diffSinceHealthy).toBe(
+        'This app has never been healthy in staging, so there is no working release to compare this one with.',
+      )
+    })
+  })
+
+  it('records a driver’s readiness REFUSAL as a failed instance with an Incident — not a throw, and not a row stuck in provisioning (§14)', async () => {
+    // The Docker driver refuses an app that never answers at its hostname by THROWING,
+    // with the handle. Before P4b Task 13 that throw reached the caller with the row
+    // parked in `provisioning`, which nothing moves, and no record of why.
+    await withRollback(async (db) => {
+      const driver = createFakeDriver()
+      const start = driver.ensureInstance.bind(driver)
+      const check =
+        'readiness: GET /healthz at https://chem-labs.staging.manifest.internal through the edge — HTTP 502 (12 attempts)'
+      vi.spyOn(driver, 'ensureInstance').mockImplementation(async (spec) => {
+        const handle = await start(spec)
+        throw new InstanceNotReadyError(
+          handle,
+          check,
+          'never answered 200',
+          'read the log',
+        )
+      })
+      const { release, byKind } = await releaseFor(db, driver)
+      const instance = await deployRelease(
+        db,
+        driver,
+        config,
+        deployDeps,
+        { releaseId: release.id, environmentId: byKind.staging!.id },
+        { timeoutMs: 20, intervalMs: 1 },
+      )
+      expect(instance.state).toBe('failed')
+      expect(instance.handle).toBe('inst-1')
+      const recorded = await db
+        .select()
+        .from(incidents)
+        .where(eq(incidents.instanceId, instance.id))
+      expect(recorded.map((incident) => incident.failedCheck)).toEqual([check])
+    })
+  })
+
+  it('lets any OTHER failure to start reach the caller, and records no Incident', async () => {
+    // An instance the driver never created has no process and no log: the error is the
+    // whole record.
+    await withRollback(async (db) => {
+      const driver = createFakeDriver()
+      vi.spyOn(driver, 'ensureInstance').mockRejectedValue(
+        new Error('the daemon refused the container'),
+      )
+      const { release, byKind } = await releaseFor(db, driver)
+      await expect(
+        deployRelease(
+          db,
+          driver,
+          config,
+          deployDeps,
+          { releaseId: release.id, environmentId: byKind.staging!.id },
+          { timeoutMs: 20, intervalMs: 1 },
+        ),
+      ).rejects.toThrow('the daemon refused the container')
+      expect(await db.select().from(incidents)).toEqual([])
+    })
+  })
+
+  it('redacts the app’s OWN secrets from the Incident — the SESSION_SECRET this deploy stored (§14)', async () => {
+    await withRollback(async (db) => {
+      const base = createFakeDriver({ failInstances: true })
+      let sessionSecret = ''
+      const driver = {
+        ...base,
+        ensureInstance: (spec: InstanceSpec) => {
+          sessionSecret = spec.env.SESSION_SECRET!
+          return base.ensureInstance(spec)
+        },
+        // An app that prints its environment as it dies — the ordinary case §14 names.
+        async *logs() {
+          yield {
+            at: new Date(),
+            stream: 'stderr' as const,
+            text: `boot failed; env SESSION_SECRET=${sessionSecret}`,
+          }
+        },
+      }
+      const { release, byKind } = await releaseFor(db, driver)
+      const instance = await deployRelease(
+        db,
+        driver,
+        config,
+        deployDeps,
+        { releaseId: release.id, environmentId: byKind.staging!.id },
+        { timeoutMs: 20, intervalMs: 1 },
+      )
+      // 64 hex characters, which no heuristic redacts (Task 12 excludes hex by design):
+      // only the app's own secret set, read at capture, can catch it.
+      expect(sessionSecret).toMatch(/^[0-9a-f]{64}$/)
+      expect(makeRedactor([])(sessionSecret)).toBe(sessionSecret)
+      const [incident] = await db
+        .select()
+        .from(incidents)
+        .where(eq(incidents.instanceId, instance.id))
+      expect(incident!.logTail).toBe('boot failed; env SESSION_SECRET=[REDACTED]')
+      expect(JSON.stringify(incident)).not.toContain(sessionSecret)
+      // The driver gave up; it did not time out — and the check says so.
+      expect(incident!.failedCheck).toBe(
+        'health: GET /healthz on port 3000 — the driver reported the instance as failed',
+      )
     })
   })
 })
@@ -1393,7 +1536,44 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
         { releaseId: release.id, environmentId: staging.id },
       )
       expect(instance.state).toBe('failed')
-      expect(events).toEqual(['mint', 'instance', 'health failed', 'discard sk-minted-1'])
+      // The last read is the Incident's (P4b Task 13), AFTER the discard: the key is
+      // gone before anything is written about the failure.
+      expect(events).toEqual([
+        'mint',
+        'instance',
+        'health failed',
+        'discard sk-minted-1',
+        'health failed',
+      ])
+    })
+  })
+
+  it('discards the minted key when the driver REFUSES the instance as not ready — a recorded failure, not a throw', async () => {
+    // The Docker driver's refusal is caught and recorded (P4b Task 13), so it no longer
+    // passes through the `catch` that discarded on a throw. The key must still go.
+    await withRollback(async (db) => {
+      const events: string[] = []
+      // `failInstances`: a refused instance reports `failed`, which is what the
+      // Incident's status read records below.
+      const base = createFakeDriver({ failInstances: true })
+      const start = base.ensureInstance.bind(base)
+      vi.spyOn(base, 'ensureInstance').mockImplementation(async (spec) => {
+        const handle = await start(spec)
+        throw new InstanceNotReadyError(handle, 'readiness: GET /healthz', 'never', 'log')
+      })
+      const { driver } = recordingDriver(events, base)
+      const { release, staging } = await releaseWith(db, driver, aiRelease())
+      const instance = await deployRelease(
+        db,
+        driver,
+        config,
+        { ...deployDeps, ai: recordingAi(events).service },
+        { releaseId: release.id, environmentId: staging.id },
+      )
+      expect(instance.state).toBe('failed')
+      // No health read before the discard — the driver refused first — and the one
+      // after it is the Incident's.
+      expect(events).toEqual(['mint', 'instance', 'discard sk-minted-1', 'health failed'])
     })
   })
 

@@ -304,10 +304,15 @@ export async function instanceStatus(
   // TS2375 — and `pnpm test` is green either way, because Vitest strips types
   // without checking them.
   const error = inspect.State.Error
+  // §14's exit reason (P4b Task 13). `ExitCode` reads 0 while a container runs, so it
+  // is reported only once the process has stopped; `restarting` carries the code of the
+  // exit it is restarting from.
+  const exited = ['exited', 'dead', 'restarting'].includes(inspect.State.Status)
   return {
     id,
     state,
     healthy: inspect.State.Health?.Status === 'healthy',
     ...(error === undefined || error === '' ? {} : { message: error }),
+    ...(exited ? { exitCode: inspect.State.ExitCode } : {}),
   }
 }

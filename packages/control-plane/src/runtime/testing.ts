@@ -35,3 +35,8 @@ export { createEngineClient, resolveSocketPath } from './docker/engine.js'
 // name, so every one of those runs redeployed nothing and tested the FIRST
 // image. A negative control that edits the app then passes is the symptom.
 export { appContainer, egressContainer } from './docker/names.js'
+
+// `releases/`'s Docker-tier Incident suite deploys a real app, and must leave no app
+// network behind. `docker network rm` fails while ANY container is still attached, and
+// every app network has the platform's neighbours on it (§4); this disconnects them.
+export { destroyAppNetwork } from './docker/networks.js'
