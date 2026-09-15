@@ -1,8 +1,9 @@
 import { fileURLToPath } from 'node:url'
 import { eq } from 'drizzle-orm'
+import pg from 'pg'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { resetDatabase, withRollback } from '../db/testing.js'
-import { appSpecs, builds, instances, users } from '../db/index.js'
+import { appSpecs, builds, db, instances, users } from '../db/index.js'
 import { createFakeDriver } from '../runtime/index.js'
 import { createProject } from '../projects/index.js'
 import { loadConfig } from '../config.js'
@@ -21,6 +22,7 @@ import {
   type ModelCatalogue,
 } from '../ai/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
+import { readBuildLog } from '../observability/index.js'
 
 /** The repository's own blueprints, resolved from THIS FILE — `pnpm test` and
  *  `pnpm --filter … test` have different working directories. */
@@ -213,6 +215,124 @@ describe('builds', () => {
       })
       expect(build.status).toBe('failed')
       expect(build.imageDigest).toBeNull()
+    })
+  })
+
+  const buildInput = (
+    project: { id: string; slug: string; blueprintRef: string },
+    appSpec: { id: string; commitSha: string },
+  ) => ({
+    projectId: project.id,
+    projectSlug: project.slug,
+    appSpecId: appSpec.id,
+    commitSha: appSpec.commitSha,
+    blueprintRef: project.blueprintRef,
+    repoPath: '/tmp/chem-labs.git',
+  })
+
+  it('stores a successful build’s log BEFORE the row says succeeded (§14)', async () => {
+    // Read straight after `startBuild` returns. Lines written by un-awaited inserts
+    // land some time later, and a status that says `succeeded` over a log that is
+    // still arriving is the race pre-flight 108 named.
+    await withRollback(async (db) => {
+      const { project, appSpec } = await fixture(db)
+      const build = await startBuild(db, createFakeDriver(), buildInput(project, appSpec))
+      expect(build.status).toBe('succeeded')
+      const lines = await readBuildLog(db, build.id)
+      expect(lines.length).toBeGreaterThan(0)
+      expect(lines[0]!.text).toContain('chem-labs')
+    })
+  })
+
+  it('does not call a build finished while its log is still being written (§14)', async () => {
+    // The test above cannot show this, and sitting 7 measured that it cannot: inside
+    // `withRollback` one connection runs its queries in order, so the status UPDATE
+    // queues behind the log INSERT whether or not `startBuild` waits — deleting the
+    // `flush` left it green. The control plane runs on a POOL, where the two race.
+    // So this runs on the pool, with the log table locked by a second connection for
+    // a second: a build that waits for its log cannot return before the lock goes.
+    const admin = new pg.Pool({
+      connectionString: process.env.MANIFEST_ADMIN_DATABASE_URL,
+    })
+    const lock = await admin.connect()
+    try {
+      const { project, appSpec } = await fixture(db)
+      await lock.query('BEGIN')
+      await lock.query('LOCK TABLE audit.build_logs IN ACCESS EXCLUSIVE MODE')
+      const started = Date.now()
+      const finishedAt = startBuild(
+        db,
+        createFakeDriver(),
+        buildInput(project, appSpec),
+      ).then((build) => ({ build, at: Date.now() }))
+      await new Promise((resolve) => setTimeout(resolve, 1_000))
+      await lock.query('COMMIT')
+      const { build, at } = await finishedAt
+      expect(
+        at - started,
+        'startBuild returned while its log was locked out',
+      ).toBeGreaterThanOrEqual(900)
+      expect(build.status).toBe('succeeded')
+      expect((await readBuildLog(db, build.id)).length).toBeGreaterThan(0)
+    } finally {
+      // ROLLBACK outside a transaction is a warning, not an error, so this is safe
+      // whether the test got as far as COMMIT or not.
+      await lock.query('ROLLBACK')
+      lock.release()
+      await admin.end()
+      // The rows above were COMMITTED, and every other test here assumes none are.
+      await resetDatabase()
+    }
+  })
+
+  it('a FAILED build keeps its log, and the reason is its last line', async () => {
+    // The case that matters. P3 measured the alternative: `startBuild` caught the
+    // error and discarded it, the row said `failed` and nothing else, and the only
+    // way to learn why was to re-run the build by hand outside the platform.
+    await withRollback(async (db) => {
+      const { project, appSpec } = await fixture(db)
+      const failingDriver: Driver = {
+        ...createFakeDriver(),
+        async buildImage(_src, _spec, opts) {
+          opts?.onLog?.({
+            at: new Date(),
+            stream: 'stderr',
+            text: 'npm error code ELIFECYCLE',
+          })
+          await new Promise((resolve) => setImmediate(resolve))
+          throw new Error('npm ci exited 1')
+        },
+      }
+      const build = await startBuild(db, failingDriver, buildInput(project, appSpec))
+      expect(build.status).toBe('failed')
+      const lines = await readBuildLog(db, build.id)
+      expect(lines.map((l) => [l.stream, l.text])).toEqual([
+        ['stderr', 'npm error code ELIFECYCLE'],
+        ['stderr', build.error],
+      ])
+    })
+  })
+
+  it('a build refused BEFORE the builder ran still has a log: the refusal', async () => {
+    // `assembleContext` and §12's gates throw before a builder exists, so a secret
+    // found in the source produces no BuildKit output at all (pre-flight 109). The
+    // log must not be empty for exactly the failures a faculty member can fix.
+    await withRollback(async (db) => {
+      const { project, appSpec } = await fixture(db)
+      const refusing: Driver = {
+        ...createFakeDriver(),
+        async buildImage() {
+          throw Object.assign(new Error('a secret was found in config.js'), {
+            code: 'BUILD_GATE_FAILED',
+            hint: 'Remove the secret and push again.',
+          })
+        },
+      }
+      const build = await startBuild(db, refusing, buildInput(project, appSpec))
+      expect(build.status).toBe('failed')
+      const lines = await readBuildLog(db, build.id)
+      expect(lines.map((l) => [l.stream, l.text])).toEqual([['stderr', build.error]])
+      expect(build.error).toContain('BUILD_GATE_FAILED')
     })
   })
 })

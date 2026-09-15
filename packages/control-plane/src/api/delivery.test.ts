@@ -154,4 +154,54 @@ describe('the delivery routes', () => {
     expect(mine.json().id).toBe(build.json().id)
     await app.close()
   })
+
+  it('serves a build log to a reader of the project, and hides it from anyone else', async () => {
+    const { app, deps, cookies, project } = await projectFor('bio_prof')
+    const build = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/builds`,
+      payload: { commitSha: project.commitSha },
+      cookies,
+      headers: key(),
+    })
+    expect(build.statusCode).toBe(201)
+
+    const logs = await app.inject({
+      method: 'GET',
+      url: `/builds/${build.json().id}/logs`,
+      cookies,
+    })
+    expect(logs.statusCode).toBe(200)
+    const lines = logs.json().lines as { seq: number; stream: string; text: string }[]
+    // What the build WROTE, not merely a list: an empty array is also what a route
+    // with no store behind it answers.
+    expect(lines.length).toBeGreaterThan(0)
+    expect(lines[0]).toMatchObject({ seq: 0, stream: 'stdout' })
+    expect(lines[0]!.text).toContain('chem-labs')
+
+    const tail = await app.inject({
+      method: 'GET',
+      url: `/builds/${build.json().id}/logs?tail=1`,
+      cookies,
+    })
+    expect(tail.json().lines.map((l: { seq: number }) => l.seq)).toEqual([
+      lines.at(-1)!.seq,
+    ])
+
+    const nonsense = await app.inject({
+      method: 'GET',
+      url: `/builds/${build.json().id}/logs?tail=0`,
+      cookies,
+    })
+    expect(nonsense.statusCode).toBe(400)
+
+    // The IDOR shape again, on the route that returns the most text.
+    const other = await app.inject({
+      method: 'GET',
+      url: `/builds/${build.json().id}/logs`,
+      cookies: await loginAs(deps, 'bio_student'),
+    })
+    expect(other.statusCode).toBe(404)
+    await app.close()
+  })
 })

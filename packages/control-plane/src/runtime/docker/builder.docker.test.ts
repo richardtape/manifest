@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -174,4 +175,88 @@ describeDocker('the ephemeral rootless builder (§12, D13)', () => {
       ),
     ).rejects.toThrow(/insufficient_scope|authorization failed/)
   })
+
+  /**
+   * §14's stream, through the real BuildKit (P4b Task 11). Three claims, and each
+   * has a way to be wrong that a unit test with `sh` cannot show:
+   *
+   *  * lines arrive WHILE the build runs — the `sleep 3` step is reported seconds
+   *    before the build resolves, which `execFile` could never do;
+   *  * they come from STDERR, where BuildKit writes its progress — a splitter on
+   *    stdout alone gets almost nothing, and reads as a quiet build;
+   *  * the registry token is gone from every line. A test that asserts a secret is
+   *    absent from output nothing put it in cannot fail (P4a defect 40), so the
+   *    token is put IN: BuildKit prints each RUN step's command, and this one echoes
+   *    the token. It is scoped to two test repositories and expires in minutes; the
+   *    probe image keeps it in its history, which is why the step discards it.
+   */
+  it('streams BuildKit progress WHILE the build runs, from stderr, with its token removed', async () => {
+    const token = (await mintFor('base/alpine', 'local/buildertest')).trim()
+    const dir = context(
+      'FROM manifest-registry:5000/base/alpine:3.22\n' +
+        `RUN echo ${randomUUID()} ${token} > /dev/null && sleep 3\n`,
+    )
+    const lines: { stream: string; text: string; receivedAt: number }[] = []
+    const result = await withEphemeralBuilder(
+      engine,
+      't1',
+      DEFAULT_BUILD_LIMITS,
+      (name) =>
+        runBuildxBuild({
+          builder: name,
+          contextDir: dir,
+          imageRef: 'manifest-registry:5000/local/buildertest:probe',
+          registryToken: token,
+          registryHost: 'manifest-registry:5000',
+          sourceDateEpoch: 1_700_000_000,
+          timeoutMs: DEFAULT_BUILD_LIMITS.timeoutMs,
+          onLog: (line) => lines.push({ ...line, receivedAt: Date.now() }),
+        }),
+    )
+    const finishedAt = Date.now()
+    expect(result.digest).toMatch(/^sha256:[0-9a-f]{64}$/)
+
+    expect(lines.filter((l) => l.stream === 'stderr').length).toBeGreaterThan(5)
+    const step = lines.find((l) => l.text.includes('&& sleep 3'))
+    expect(step, 'BuildKit never reported the RUN step').toBeDefined()
+    expect(finishedAt - step!.receivedAt).toBeGreaterThan(2_000)
+
+    // The canary reached the output — the step's own line carries the marker — and
+    // the token itself is in no line.
+    expect(step!.text).toContain('[REDACTED]')
+    expect(JSON.stringify(lines)).not.toContain(token)
+  })
+
+  /**
+   * The timeout, through the real CLI — `execFile`'s 900 s timeout was never once
+   * exercised. `docker buildx` is a plugin `docker` runs as a child sharing its
+   * pipes, the shape in which signalling only the spawned process leaves `close`
+   * never arriving. Measured 2026-09-14 (P4b sitting 7): Docker CLI 29.7.2 forwards
+   * SIGTERM to the plugin, so this passes with or without the process-group kill,
+   * and `builder.test.ts` is the test of that mechanism.
+   */
+  it('stops a build that outlives its timeout, and says it timed out', async () => {
+    const token = (await mintFor('base/alpine', 'local/buildertest')).trim()
+    const dir = context(
+      'FROM manifest-registry:5000/base/alpine:3.22\n' +
+        `RUN echo ${randomUUID()} && sleep 120\n`,
+    )
+    let started = 0
+    await expect(
+      withEphemeralBuilder(engine, 't1', DEFAULT_BUILD_LIMITS, (name) => {
+        started = Date.now()
+        return runBuildxBuild({
+          builder: name,
+          contextDir: dir,
+          imageRef: 'manifest-registry:5000/local/buildertest:probe',
+          registryToken: token,
+          registryHost: 'manifest-registry:5000',
+          sourceDateEpoch: 1_700_000_000,
+          timeoutMs: 8_000,
+        })
+      }),
+    ).rejects.toThrow(/timed out after 8000 ms/)
+    // The build's own step is 120 s. Well under that means the kill reached it.
+    expect(Date.now() - started).toBeLessThan(40_000)
+  }, 180_000)
 })

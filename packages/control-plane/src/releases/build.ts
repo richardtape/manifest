@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { builds } from '../db/index.js'
+import { createBuildLogWriter, makeRedactor } from '../observability/index.js'
 import type { Driver } from '../runtime/index.js'
 
 export type Build = typeof builds.$inferSelect
@@ -41,11 +42,25 @@ export async function startBuild(
     .returning()
   if (!created) throw new Error('build insert returned no row')
 
+  /**
+   * §14's build log, redacted at capture. The secret set is EMPTY, and that is
+   * accurate rather than lazy: §12 gives a build no app secret, and the one
+   * credential a build does hold — the registry JWT — is minted inside the Docker
+   * driver and removed from every line there, because nothing out here ever holds it
+   * (pre-flight 105). So until P4b Task 12 this is a pass-through, and from Task 12
+   * it carries the entropy and pattern heuristics.
+   */
+  const log = createBuildLogWriter(db, created.id, makeRedactor([]))
+
   try {
     const image = await driver.buildImage(
       { repoPath: input.repoPath, commitSha: input.commitSha },
       { blueprintRef: input.blueprintRef, projectSlug: input.projectSlug },
+      { onLog: (line) => log.write(line) },
     )
+    // Every line lands BEFORE the row says succeeded. A status over a log that is
+    // still arriving is what a reader polling the row would otherwise see.
+    await log.flush()
     const [done] = await db
       .update(builds)
       .set({
@@ -75,9 +90,28 @@ export async function startBuild(
       e.message ?? String(error),
       e.hint === undefined ? '' : ` — ${e.hint}`,
     ].join('')
+    /**
+     * AND THE REASON IS THE LOG'S LAST LINE. A refusal before the builder ran — the
+     * context export, §12's secret and lockfile gates — produces no BuildKit output
+     * at all (pre-flight 109), so without this the log is empty for exactly the
+     * failures a faculty member can fix themselves.
+     */
+    log.write({ at: new Date(), stream: 'stderr', text: message })
+    let recorded = message
+    try {
+      await log.flush()
+    } catch (logFailure) {
+      // Not swallowed: the row says the log is incomplete, and so does the operator's
+      // terminal. The driver's message, not drizzle's — that one quotes the whole
+      // failed INSERT, every queued line included.
+      const cause = (logFailure as { cause?: unknown }).cause ?? logFailure
+      const why = cause instanceof Error ? cause.message : String(cause)
+      console.error(`[build] ${created.id}: the build log could not be stored — ${why}`)
+      recorded = `${message} (the build log could not be stored: ${why.slice(0, 300)})`
+    }
     const [failed] = await db
       .update(builds)
-      .set({ status: 'failed', logsRef: `build:${created.id}`, error: message })
+      .set({ status: 'failed', logsRef: `build:${created.id}`, error: recorded })
       .where(eq(builds.id, created.id))
       .returning()
     return failed!

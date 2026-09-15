@@ -221,6 +221,21 @@ const ROUTES: RouteCase[] = [
     },
   },
   {
+    // §14's build log. Authorized exactly like the build it belongs to — the
+    // project comes from the build row, never from the request — because P2
+    // measured the alternative on the route above: an IDOR answering 200.
+    method: 'GET',
+    url: '/builds/:buildId/logs',
+    request: (f) => ({ url: `/builds/${f.buildId}/logs` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
     method: 'POST',
     url: '/projects/:projectId/releases',
     request: (f) => ({

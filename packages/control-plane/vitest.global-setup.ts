@@ -21,6 +21,7 @@ const TEST_REPOS_ROOT = join(tmpdir(), 'manifest-test-repos')
  */
 const TABLES = [
   'audit.events',
+  'audit.build_logs',
   'secrets',
   'idempotency_keys',
   'instances',

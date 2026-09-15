@@ -169,11 +169,26 @@ export interface DriverCapabilities {
   enforcesDiskQuota: boolean
 }
 
+export interface BuildOpts {
+  /**
+   * Called once per line of build output, AS THE BUILD RUNS — §14: build logs
+   * stream. A driver calls it before `buildImage` resolves, and the contract suite
+   * asserts exactly that, because lines handed over at the end are a report.
+   *
+   * Synchronous. A driver must not wait on it, and must not hand it a secret it
+   * holds: the Docker driver removes its own registry token from every line
+   * before this sees one (P4b Task 11).
+   */
+  onLog?: (line: LogLine) => void
+}
+
 export interface Driver {
   readonly name: string
   buildImage(
     src: SourceRef,
     spec: { blueprintRef: string; projectSlug: string },
+    /** Optional, so no caller that predates build logs has to change. */
+    opts?: BuildOpts,
   ): Promise<ImageRef>
   ensureService(binding: ServiceBinding): Promise<ServiceHandle>
   ensureInstance(spec: InstanceSpec): Promise<InstanceHandle>

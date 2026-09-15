@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import type {
+  BuildOpts,
   Driver,
   DriverCapabilities,
   ExecOpts,
@@ -48,7 +49,18 @@ export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
   return {
     name: 'fake',
 
-    async buildImage(src: SourceRef, spec): Promise<ImageRef> {
+    async buildImage(src: SourceRef, spec, opts: BuildOpts = {}): Promise<ImageRef> {
+      opts.onLog?.({
+        at: new Date(),
+        stream: 'stdout',
+        text: `fake build of ${spec.projectSlug} at ${src.commitSha} from ${spec.blueprintRef}`,
+      })
+      // A REAL YIELD between the line and the result. Without it this function has
+      // no `await`, resolves in the tick it was called, and the contract's streaming
+      // test sees `resolved` before its first poll — the fake would be modelling
+      // exactly the report-at-the-end build that test exists to refuse (pre-flight
+      // 110). Fixed here, never by weakening the test.
+      await new Promise((resolve) => setImmediate(resolve))
       return {
         repository: `local/${spec.projectSlug}`,
         digest: digestOf(`${spec.projectSlug}:${src.commitSha}:${spec.blueprintRef}`),

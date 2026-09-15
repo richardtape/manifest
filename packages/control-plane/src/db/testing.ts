@@ -67,6 +67,10 @@ export async function withProject(
  */
 const TABLES = [
   'audit.events',
+  // P4b Task 11. Named for the same reason as the line above: `builds` refuses a
+  // delete while a log line references it (ON DELETE restrict), and manifest_app
+  // cannot truncate it either.
+  'audit.build_logs',
   'secrets',
   'idempotency_keys',
   'instances',

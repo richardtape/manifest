@@ -10,6 +10,7 @@ import {
   startBuild,
 } from '../../releases/index.js'
 import { checkBlueprintCompatibility } from '../../blueprints/index.js'
+import { readBuildLog } from '../../observability/index.js'
 import { resolveConfig } from '../../spec/index.js'
 import type { ManifestSpec } from '../../spec/index.js'
 import { BadRequestError, SpecInvalidError } from '../errors.js'
@@ -26,6 +27,9 @@ const releaseBody = z.object({
   summary: z.string().max(500).optional(),
 })
 const deployBody = z.object({ releaseId: z.string().uuid() })
+const logsQuery = z.object({
+  tail: z.coerce.number().int().min(1).max(10_000).optional(),
+})
 
 /** §13's checklist, as data, so the refusal can name what is missing. */
 const LAUNCH_READINESS = [
@@ -133,6 +137,38 @@ export async function registerDeliveryRoutes(
     if (!build) throw new AuthorizationError('NOT_FOUND', `no build '${buildId}'`)
     await assertCapability(deps.db, actor, build.projectId, 'project:read')
     return build
+  })
+
+  /**
+   * §14's build log. Authorized exactly like the build above — the project comes
+   * from the build ROW, never from the request — and before the query is looked
+   * at, so a stranger learns nothing from a 400 that a 404 would have hidden.
+   *
+   * AFTER THE FACT, not a live tail (pre-flight 111): `POST …/builds` awaits the
+   * whole build and only then returns the id this route needs. Live delivery is
+   * `WS /projects/:projectId/events` (Task 14), published from `onLog` (Task 15).
+   */
+  app.get('/builds/:buildId/logs', async (request) => {
+    const actor = requireActor(request)
+    const { buildId } = request.params as { buildId: string }
+    const build = await getBuild(deps.db, buildId)
+    if (!build) throw new AuthorizationError('NOT_FOUND', `no build '${buildId}'`)
+    await assertCapability(deps.db, actor, build.projectId, 'project:read')
+
+    const query = logsQuery.safeParse(request.query ?? {})
+    if (!query.success) {
+      throw new BadRequestError(
+        'BUILD_LOG_INVALID_QUERY',
+        query.error.message,
+        '`tail` is a whole number of lines, from 1 to 10000; leave it out for the whole log.',
+      )
+    }
+    const lines = await readBuildLog(
+      deps.db,
+      buildId,
+      query.data.tail === undefined ? {} : { tail: query.data.tail },
+    )
+    return { buildId, lines }
   })
 
   app.post('/projects/:projectId/releases', async (request, reply) => {

@@ -3,38 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { events } from '../db/index.js'
 import { withProject } from '../db/testing.js'
 import { makeRedactor, recordEvent } from './index.js'
+// Why a message match cannot stand in for this is on the helper itself.
+import { expectSqlState } from './testing.js'
 
 const IDENTITY = (value: unknown): unknown => value
-
-/**
- * Asserts a query failed with a specific Postgres SQLSTATE.
- *
- * `rejects.toThrow(/permission denied/i)` does NOT work here and the way it fails
- * is worth keeping: drizzle wraps every driver error in its own, whose message is
- * `Failed query: UPDATE audit.events …` and carries the real one on `.cause`. So
- * the regex matched nothing while the query was in fact being refused — a test
- * that would have gone red against a working control and green against a broken
- * one the moment somebody relaxed it to `.rejects.toThrow()`.
- *
- * The code is also the stronger assertion. `42501` is insufficient_privilege and
- * `23503` is foreign_key_violation; a message match would accept a typo'd table
- * name or a rolled-back transaction as proof of a grant.
- */
-async function expectSqlState(promise: Promise<unknown>, code: string): Promise<void> {
-  let thrown: unknown
-  try {
-    await promise
-  } catch (error) {
-    thrown = error
-  }
-  expect(thrown, 'the query was expected to fail and did not').toBeDefined()
-  const codes: string[] = []
-  for (let e = thrown; e instanceof Error; e = e.cause) {
-    const found = (e as { code?: string }).code
-    if (found !== undefined) codes.push(found)
-  }
-  expect(codes).toContain(code)
-}
 
 describe('recordEvent (§14, §20)', () => {
   it('never persists the unredacted form', async () => {

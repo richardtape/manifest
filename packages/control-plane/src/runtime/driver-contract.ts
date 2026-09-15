@@ -1,6 +1,20 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import type { Driver, ImageRef, InstanceSpec, ServiceBinding } from './driver.js'
+import type { Driver, ImageRef, InstanceSpec, LogLine, ServiceBinding } from './driver.js'
 import { instanceName, serviceName } from './driver.js'
+
+/**
+ * Polls until `predicate` holds. Shared SUITE code rather than a test helper in
+ * `src/`: it exists for the streaming assertion below and nothing else needs it.
+ */
+async function waitUntil(predicate: () => boolean, timeoutMs = 600_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  while (!predicate()) {
+    if (Date.now() > deadline) {
+      throw new Error(`waitUntil: the condition did not hold within ${timeoutMs} ms`)
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5))
+  }
+}
 
 const binding = (): ServiceBinding => ({
   name: serviceName('chem-labs', 'staging', 'db'),
@@ -100,6 +114,34 @@ export function describeDriverContract(
       const first = await driver.buildImage(...args)
       const second = await driver.buildImage(...args)
       expect(second.digest).toBe(first.digest)
+    })
+
+    it('reports build progress through onLog BEFORE it resolves (§14)', async () => {
+      // Not "logs exist afterwards" — that is what execFile already gave us, and it
+      // is not a stream. A front-end that receives nothing for two minutes and then
+      // everything at once has not received a stream.
+      const driver = await factory()
+      const seen: LogLine[] = []
+      let resolved = false
+      const promise = driver.buildImage(
+        { repoPath: '/tmp/repo', commitSha: 'abc123' },
+        { blueprintRef: 'fixture-node@1', projectSlug: 'chem-labs' },
+        { onLog: (line) => seen.push(line) },
+      )
+      // Both settlements, so a build that REJECTS is reported by `await promise`
+      // below rather than as an unhandled rejection from this bookkeeping.
+      const settled = () => {
+        resolved = true
+      }
+      void promise.then(settled, settled)
+      // `|| resolved`: a driver that never logs fails here at once, instead of
+      // waiting out the timeout for a line that is never coming.
+      await waitUntil(() => seen.length > 0 || resolved)
+      expect(resolved, 'every line arrived after the build finished').toBe(false)
+      await promise
+      expect(['stdout', 'stderr']).toContain(seen[0]!.stream)
+      expect(typeof seen[0]!.text).toBe('string')
+      expect(seen[0]!.at).toBeInstanceOf(Date)
     })
 
     it('ensureService is idempotent — the second call returns the same handle', async () => {

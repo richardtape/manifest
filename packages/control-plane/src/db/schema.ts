@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm'
 import {
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -311,3 +313,44 @@ export const events = audit.table('events', {
   humanMessage: text('human_message').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+/**
+ * §14's build log — the store `builds.logs_ref` has named since P3 wrote it (P4b
+ * Task 11). One row per line, redacted before it is written (`observability/`).
+ *
+ * In the `audit` schema for the same reason `events` is: §20's append-only rule
+ * applies to the other thing a faculty member is shown, and a table in `public` is
+ * writable the moment it exists (see `audit` above). The migration grants exactly
+ * SELECT and INSERT.
+ *
+ * No separate tail index. The tail query is `WHERE build_id = $1 ORDER BY seq DESC
+ * LIMIT n`, and the primary key is already a btree on `(build_id, seq)`, which
+ * Postgres scans backwards — measured with EXPLAIN when the table was created, and
+ * recorded in P4b's record. A second index on the same columns is write cost on
+ * every line of every build for nothing.
+ */
+export const buildLogs = audit.table(
+  'build_logs',
+  {
+    /**
+     * RESTRICT, for the reason `events.project_id` is: a referential action runs
+     * with the REFERENCED table's privileges, so CASCADE would let `DELETE FROM
+     * builds` erase a log `manifest_app` cannot delete a line of. Nothing deletes a
+     * build today.
+     */
+    buildId: uuid('build_id')
+      .notNull()
+      .references(() => builds.id, { onDelete: 'restrict' }),
+    /** Assigned by the writer, in the order the driver reported the lines. */
+    seq: integer('seq').notNull(),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+    stream: text('stream', { enum: ['stdout', 'stderr'] }).notNull(),
+    text: text('text').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.buildId, t.seq] }),
+    // `text(…, { enum })` types the column and creates nothing in the database, so
+    // the enum is a TypeScript promise until this constraint makes it a rule.
+    check('build_logs_stream_known', sql`${t.stream} IN ('stdout', 'stderr')`),
+  ],
+)

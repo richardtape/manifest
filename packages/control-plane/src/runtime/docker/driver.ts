@@ -17,6 +17,7 @@ import {
   type RoutingDeps,
 } from '../../routing/index.js'
 import type {
+  BuildOpts,
   Driver,
   DriverCapabilities,
   ExecOpts,
@@ -178,7 +179,7 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
   return {
     name: 'docker',
 
-    async buildImage(src: SourceRef, spec): Promise<ImageRef> {
+    async buildImage(src: SourceRef, spec, opts: BuildOpts = {}): Promise<ImageRef> {
       const repository = `local/${spec.projectSlug}`
       return queue.run(spec.projectSlug, async () => {
         const workDir = await mkdtemp(join(tmpdir(), 'mf-build-'))
@@ -252,6 +253,10 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
                 registryHost: options.registryHost,
                 timeoutMs: limits.timeoutMs,
                 sourceDateEpoch: epoch,
+                // §14's stream. `runBuildxBuild` removes `buildToken` from every
+                // line before this sees it: the token is minted above and exists
+                // nowhere outside this driver, so nothing downstream could.
+                ...(opts.onLog === undefined ? {} : { onLog: opts.onLog }),
               }),
             // The FIFTH argument. The buildkitd TOML and buildx must name the
             // registry identically; if they diverge the failure is an HTTPS

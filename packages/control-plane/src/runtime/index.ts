@@ -1,4 +1,5 @@
 export type {
+  BuildOpts,
   Driver,
   DriverCapabilities,
   ImageRef,
