@@ -48,6 +48,15 @@ echo "4b/6 warming the package mirror from the blueprint and fixture lockfiles"
 # Into a TEMP DIRECTORY, never the source tree: a full install writes
 # node_modules, and under `blueprints/*/skeleton/` or `fixtures/*/` that tree
 # becomes part of the next build context.
+#
+# WITH AN EMPTY npm CACHE, in that temp directory. npm takes a tarball out of
+# ~/.npm by its integrity hash and never asks the registry for it, so any package
+# this machine has installed before -- in any project -- is never downloaded
+# THROUGH Verdaccio and never lands in its storage. Measured 2026-09-14, adding
+# ubc-genai-toolkit-llm to node-ts-mongo@1: this loop printed no WARN and exited 0,
+# `npm --loglevel http` showed 135 of 135 packages as `(cache hit)` and zero
+# fetches, and `make verify` then listed every new tarball MISSING. A clean second
+# machine would have warmed correctly; the developer's own machine never would.
 for manifest in blueprints/*/skeleton/package.json fixtures/*/package.json; do
   [ -f "$manifest" ] || continue
   d=$(dirname "$manifest")
@@ -57,6 +66,7 @@ for manifest in blueprints/*/skeleton/package.json fixtures/*/package.json; do
   [ -f "$d/package-lock.json" ] && cp "$d/package-lock.json" "$tmp/package-lock.json"
   (cd "$tmp" && npm install \
      --registry "http://127.0.0.1:$PORT_VERDACCIO" \
+     --cache "$tmp/.npm-cache" \
      --no-audit --no-fund --silent) || echo "     WARN: mirror warm failed for $d"
   rm -rf "$tmp"
 done
