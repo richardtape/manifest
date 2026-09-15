@@ -244,6 +244,16 @@ exactly what its own first version had.
 `fixtures/proof-app/README.md` carries the attribute justifications UBC IAM will ask
 for — `givenName` and `sn` are the two that are not pre-authorized.
 
+## Watching a project's event stream
+
+**`WS /projects/:projectId/events`** is D23.2's one stream per project (P4b Tasks 14–15, 2026-09-15): builds, each build-log line as it is written, instance state, incidents, §9's SSO registrations and §10's AI key rotations. There is no polling API for any of it.
+
+- **It needs a WebSocket client and a Manifest session.** `curl` cannot speak it: a plain GET from a member answers `426 Upgrade Required` with `Upgrade: websocket`, a stranger `404`, nobody `401` — which is also the quick way to check the route is up. The session is the `manifest_session` cookie a CWL login sets, sent with the upgrade request.
+- **A connection is replayed first.** It receives the project's newest 50 events, oldest first, then `{"kind":"control","type":"manifest.stream.ready"}`, then live frames — anything before the ready frame had already happened. Build-log lines are **not** replayed; `GET /builds/:buildId/logs` has them.
+- **A client that falls behind is closed with 1013** once a megabyte is queued for it, and should reconnect; the replay covers the events it missed.
+- **Frames reach only sockets on the control plane that published them.** Restarting the control plane drops every connection; a reconnect is replayed the events, and a build that was running has its lines in its build log.
+- **Authorization is checked when the socket opens, not per frame** — removing someone from a project does not close a stream they already hold.
+
 ## Known gaps
 
 **The second-machine test has NOT been run.** *Recorded 2026-09-05.* No second

@@ -31,7 +31,7 @@ and a Fastify surface with D23.6 idempotency keys and the D23.7 error envelope o
 every failure. The whole faculty lifecycle — project, spec, build, release, staging
 deploy to healthy, production correctly refused with its §13 checklist — runs against
 the fake driver in **~300 ms**, and against **real Docker** through `make demo`.
-**703 tests with no Docker, and 133 more that need a daemon.** See
+**735 tests with no Docker, and 133 more that need a daemon.** See
 [*Running the control plane*](#running-the-control-plane) below.
 
 The design is approved and complete.
@@ -64,8 +64,8 @@ And since Task 15, **`make demo-identity` takes §16's proof app from a bare rep
 to a real CWL sign-in in which the instructor cannot see the student's note** — the
 acceptance is not that a login happened, it is that the application knows who. It ran
 green from a `make reset` machine; the offline run is outstanding and is Rich's.
-P4b is now PART-EXECUTED — sittings 1 to 8 of ten are done (2026-09-09 to
-2026-09-15): a failed deploy now produces §14's `Incident`, shaped as a repair prompt, and the current work is its Tasks 14 and 15 — the event stream, and the call sites that make it carry anything.** P4c — zero-downtime redeploys, placed straight after P4b by Rich on 2026-09-14 — and P5 are unwritten. On
+P4b is now PART-EXECUTED — sittings 1 to 9 of ten are done (2026-09-09 to
+2026-09-15): a failed deploy produces §14's `Incident`, shaped as a repair prompt, and every build, deploy, Incident and AI key rotation now streams over `WS /projects/:projectId/events`; the current work is its Task 16 — the acceptance, in which the proof app answers a question.** P4c — zero-downtime redeploys, placed straight after P4b by Rich on 2026-09-14 — and P5 are unwritten. On
 2026-09-04 the project stopped writing plans and started executing them, and that
 hold is now discharged.
 
@@ -115,7 +115,7 @@ this machine will do to you, and what to do next. Then:
 | Understanding what the Docker half does | ORIENTATION §7c, then [`docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md`](docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md) — all 19 tasks executed. Read its *What executing this plan found*, Sessions 4 and 5 |
 | Running the control plane | [*Running the control plane*](#running-the-control-plane) below — `make up`, then `pnpm --filter @manifest/control-plane dev` |
 | Executing any plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan — fix it there |
-| **Executing P4b — the current job** | ORIENTATION §7d-2, then [`docs/superpowers/plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](docs/superpowers/plans/2026-09-07-p4b-ai-events-streaming-incidents.md), 16 tasks in **ten agreed sittings of one session each**; **sittings 1–8 (Tasks 1–13) are done, 2026-09-15 — continue at Task 14, from ORIENTATION §7d-2's sitting-9 hand-off and the note from sitting 8 at the top of Task 14**. Read the plan's *What executing this plan found* first: sitting 1's reconciliation corrected two migrations that would have failed outright. Read P4a's own *What executing this plan found* first — Sessions 1 to 9, **80 defects** — then P3's Sessions 4 and 5 |
+| **Executing P4b — the current job** | ORIENTATION §7d-2, then [`docs/superpowers/plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](docs/superpowers/plans/2026-09-07-p4b-ai-events-streaming-incidents.md), 16 tasks in **ten agreed sittings of one session each**; **sittings 1–9 (Tasks 1–15) are done, 2026-09-15 — continue at Task 16, alone, from ORIENTATION §7d-2's sitting-10 hand-off and the note from sitting 9 at the top of Task 16**. Read the plan's *What executing this plan found* first: sitting 1's reconciliation corrected two migrations that would have failed outright. Read P4a's own *What executing this plan found* first — Sessions 1 to 9, **80 defects** — then P3's Sessions 4 and 5 |
 | Seeing the platform actually work | `make demo` (an app, from a bare repository to a URL) and **`make demo-identity`** (a real CWL sign-in whose note nobody else can see), after `make up` and starting the control plane. [`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) has both, step by step |
 | Looking for what a spike proved | `docs/superpowers/spikes/S{7,2,1,3,6}-findings.md` — the answer is the first sentence of each |
 | Looking for the architecture | [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](docs/superpowers/specs/2026-08-29-manifest-platform-design.md) — authoritative, ~2,340 lines. ORIENTATION §3 tells you which sections you actually need |
