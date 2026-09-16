@@ -150,7 +150,7 @@ two came out of Tasks 1–3, the third out of Task 5, the fourth out of Task 8:
 | | |
 |---|---|
 | `pnpm test` (from the **repo root**) | **832 passed, 72 files**, ~50 s, no Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites — plus **`spec/injection-drift`**, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` — see §7d |
-| `pnpm test:docker` | **167 tests, 0 SKIPPED**, 27 files, ~790 s — **166 passed in each of the two full runs at the end of P4c**: the 20-move test in `routes.docker.test.ts` failed once on a reset (now counted, R1) and once on an edge reload's empty 502, which R1 does not name and the test still refuses (§8, finding 74). That file alone passed 7 of 7. **A 166 whose failure is that test is this, not a regression; anything else is.** The eleven skips were the driver contract's continuity block, and they are gone since P4c Task 5 gave the Docker driver its fixtures. Needs `make up`, and **fails rather than skips** when asked to run |
+| `pnpm test:docker` | **167 passed, 0 SKIPPED**, 27 files, ~777 s — measured at the end of P4c sitting 8, once the routing suites' stand-in app was a real HTTP server (P4c finding 74). The eleven skips that used to be here were the driver contract's continuity block, gone since P4c Task 5 gave the Docker driver its fixtures. Needs `make up`, and **fails rather than skips** when asked to run |
 | `make doctor` | **18 checks, 0 failed, 0 warnings** — 18 since 2026-09-09, when the LiteLLM digest pin landed |
 | `make verify` | **47 checks, 0 failed, 0 warnings** — thirteen more than P3 left; the newest asserts the control plane's OWN SP keypair is a usable pair, because it is a `make up` artefact the process refuses to boot without and a half-minted one is a platform that does not start |
 
@@ -1018,6 +1018,15 @@ which is why P1's **offline** acceptance can only run after a successful seed.
      put `manifest-caddy` on `manifest-caddy:local` `4926f9a62410` and `manifest-egress` on
      `fcbbbde15c72`, and doctor, verify, both test tiers and `make demo-redeploy` were green on them.
 - **A `200` from a `*.manifest.internal` name can be the edge's wildcard page, not the app** — its body is `manifest OK host=… scheme=https`. `routes.docker.test.ts` restarts the edge, which drops every runtime route, so after `pnpm test:docker` every demo hostname answers 200 with that body while its containers stay up and healthy (P4b finding 193). A reachability check reads the body, never only the status. A secret sealed under a different master keypair — a test fixture that binds two, or a key file replaced under a database that kept its rows — refuses every deploy of that app with `SECRET_UNWRAP_FAILED`, where it once failed only CWL deploys and failed ones.
+- **An `nc` one-liner is not an HTTP server, and behind the edge it produces a 502 that looks like
+  the edge's.** `printf "HTTP/1.1 200 OK…" | nc -l` writes its response the moment a connection
+  opens, before any request — measured 2026-09-16 by connecting and sending nothing. The edge
+  keeps pooled connections to an upstream, so one it parks receives an answer nobody asked for:
+  Caddy logs `Unsolicited response received on idle HTTP channel`, then an empty `502` as
+  `readLoopPeekFailLocked` for whichever request was handed that connection. It failed a full
+  `pnpm test:docker` and was first mistaken for a config-reload defect (P4c finding 74). Put a real
+  server behind the edge — `routing/testing.ts`'s `stubAppArgs` — and read the log line BEFORE a
+  502, not only the 502.
 - **A green `make demo-redeploy` does not prove four of the things it looks like it proves.**
   Measured 2026-09-16 (P4c sitting 8) by removing each and watching the acceptance stay green:
   **(1) an in-place route move** — delete-then-insert leaves a gap of milliseconds, and the
@@ -1872,7 +1881,7 @@ complete?" from an opinion into a build failure.
 **Propose a sitting split for Rich to approve** — every plan since P4a has been executed one sitting
 per session, and P5 will be no smaller. The roadmap's P5 section is its brief.
 
-**The state P5's writer is handed, 2026-09-16.** `main`; P4c's last code commit is `cf1a56a`, and
+**The state P5's writer is handed, 2026-09-16.** `main`; P4c's last code commit is `c51224e`, and
 the sweep after it is documentation. The four numbers are §2's box. The proof app is deployed from
 `make demo-redeploy`'s last run — one app container, its database, one live LiteLLM key — on a
 machine that was `make reset` during sitting 8, so **no other project's data exists**. Every
@@ -1887,18 +1896,6 @@ returns once the new instance serves, the old one drains in the background (`ins
 
 Surface these; do not decide them.
 
-- **OPEN, raised 2026-09-16 (P4c sitting 8, finding 74): an edge configuration reload can cost an
-  EMPTY 502, not only the connection reset R1 tolerates.** R1 says a redeploy produces *no 5xx*.
-  Measured: in two full `pnpm test:docker` runs, `routes.docker.test.ts`'s 20 in-place route moves
-  under a 25 ms loop failed once on a client-side reset (R1's case — the test now counts it) and
-  once on a `502` with an empty body, which the edge logged as `readLoopPeekFailLocked` — Go's
-  transport reusing a kept-alive upstream connection that closed underneath it. Alone the suite
-  passed 7 of 7 (140 moves, no 502), and 22 redeploys under `make demo-redeploy` saw none. **The test
-  still fails on it**, so `pnpm test:docker` can end 166 of 167 on this one test. Three ways forward,
-  none measured: **(a)** widen R1 to tolerate a reload's 502 as it tolerates its reset; **(b)** give
-  the route's `reverse_proxy` a retry for idempotent requests, so a request that fails on a stale
-  pooled connection is sent again on a fresh one; **(c)** turn off upstream keep-alive, at a latency
-  cost on every request. (b) is the one that keeps R1 as written, and would need its own measurement.
 - **§12's scan gate — SETTLED 2026-09-08, Rich's call, and written into §12 on
   2026-09-14.** The gate blocks on a Critical or High **that has a published fix**;
   findings with no fix are recorded on the Release and reported for §20's fleet-wide

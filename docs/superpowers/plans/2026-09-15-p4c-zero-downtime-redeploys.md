@@ -4704,7 +4704,7 @@ started 0.1–1.6 s before the deploy call and finished 2.1–4.6 s into it. Raw
 **The acceptance ends the sitting with 24 assertions** (sitting 7's 21, the two above, and finding
 67's), and it changed in four more places because controls showed it had to — findings 63, 66 and
 67, and a unit test for 64. Commits: `db7775b`, `fab0880`, `53f3d96`, `2af93ce`, `4c352e5`,
-`cf1a56a`, and this sweep.
+`cf1a56a`, `c51224e`, and this sweep.
 
 | Run | When | Assertions | Questions | Windows (requests, all `app`) | Resets |
 |---|---|---|---|---|---|
@@ -4712,6 +4712,7 @@ started 0.1–1.6 s before the deploy call and finished 2.1–4.6 s into it. Raw
 | 2 — Step 2 | 10:31–10:34 | 23 / 23 | 45 | 52, 52, 456 | 0 |
 | 3 — Step 3, `make reset` | 10:39–10:42 | 23 / 23 | 30 | 52, 51, 458 | 0 |
 | 4 — the final script, after both test tiers | 12:05–12:08 | 24 / 24 | 32 | 53, 52, 457 | 0 |
+| 5 — after finding 74's fix and a full, green `pnpm test:docker` | 12:58–13:01 | 24 / 24 | 30 | 52, 52, 451 | 0 |
 
 **Twelve findings.**
 
@@ -4798,19 +4799,26 @@ started 0.1–1.6 s before the deploy call and finished 2.1–4.6 s into it. Raw
     the same and reads identities off answered requests only (`cf1a56a`); **green, and still red on
     a wildcard with (a) applied**. The full tier was re-run — and failed the same test again, for a
     different reason: finding 74.
-74. **AN EDGE CONFIGURATION RELOAD CAN COST AN EMPTY 502, NOT ONLY THE RESET R1 TOLERATES — RICH'S
-    CALL.** The second full `pnpm test:docker` (11:46–11:59) ended **166 of 167** on the same 20-move
-    test: one record with **status 502 and an empty body**, and this time the edge logged it —
-    `http.log.error`, `"msg":"readLoopPeekFailLocked: %!w(<nil>)"`, status 502, host
-    `routetest.staging.manifest.internal`, at 18:51:43.524Z: Go's HTTP transport reusing a
-    kept-alive upstream connection that had closed underneath it, which a route move's reload
-    makes likely. It was the only upstream error for that host in the edge's log across both full
-    runs; the first run's reset left none. **Alone, the suite passed 7 of 7** (six back to back
-    afterwards, 120 moves, no 502 in the edge's log), and **22 redeploys under `make demo-redeploy`
-    saw no 502**. R1 reads *no 5xx*; this is a reload-class failure R1 did not name, so the test was
-    NOT widened to accept it and `pnpm test:docker` can end 166 of 167 on it. **Put to Rich in
-    ORIENTATION §8**, with three options: widen R1; a retry for idempotent requests in the route's
-    `reverse_proxy`; or no upstream keep-alive. None is measured.
+74. **THE TEST'S STAND-IN APP ANSWERED BEFORE IT WAS ASKED — AN EMPTY 502 THAT FIRST READ AS AN EDGE
+    DEFECT.** The second full `pnpm test:docker` (11:46–11:59) ended **166 of 167** on the same
+    20-move test: one record with **status 502 and an empty body**, which the edge logged as
+    `readLoopPeekFailLocked: %!w(<nil>)`. **This record first diagnosed it wrongly** — as a config
+    reload racing a pooled upstream connection — and put three changes to R1 or the edge to Rich in
+    ORIENTATION §8. The line Caddy logged a millisecond earlier says what happened: `Unsolicited
+    response received on idle HTTP channel starting with "HTTP/1.1 200 OK\r\nContent-Length:
+    2\r\n\r\nok"`. The test's stand-in apps were `printf … | nc -l` one-liners, which write their
+    canned response the moment a connection OPENS — measured by connecting and sending nothing,
+    which read the whole response back. A connection the edge had opened and parked received an
+    answer to a request nobody had made; Go's transport discarded it, and the request handed it at
+    that moment got the 502. **No real app speaks first, so neither R1 nor the edge is involved**, and
+    the §8 question was withdrawn the same day. **Fixed in the tests** (`c51224e`): `routing/testing.ts`'s
+    `stubAppArgs` runs Node's own HTTP server on the pinned `node:22-alpine`, for both routing suites,
+    the header-forging app included. Measured: the stub sends **0 bytes** to a client that sends
+    nothing; readiness **7 of 7**; the route suite **6 of 6** back to back with no unsolicited
+    response and no 502 in the edge's log; delete-then-insert restored still **red, on 1 and then 3
+    wildcard answers**; and the full tier **167 of 167** (12:44–12:57, 777 s), with no unsolicited response in the edge's log. Whether the first run's reset was the same stand-in
+    is unknown — it left nothing in the edge's log — so the reset tolerance (`cf1a56a`) stays, as R1
+    reads.
 
 **Finding 58's third consequence, measured:** `make reset`'s `compose down` put `manifest-caddy`
 and `manifest-egress` onto the images seed rebuilt (`manifest-caddy:local` `4926f9a62410`,
@@ -4834,21 +4842,20 @@ and every run after it green on them.
 
 **Gates.** `pnpm test` **832 passed, 72 files**, run twice at the end, identical. `pnpm lint`,
 `pnpm --filter @manifest/control-plane typecheck` and `pnpm format:check` clean before every commit.
-`pnpm test:docker` **167 tests, 0 skipped, 27 files, ~790 s — twice 166 passed and 1 failed**, the
-same route-move test each time: first on the reset R1 tolerates (fixed, finding 73), then on the
-reload 502 R1 does not name (finding 74, Rich's call); that file alone passed 7 of 7. Every other
-Docker-tier test passed in both runs. `make doctor` **18 / 0**; `make verify` **47 / 0**.
+`pnpm test:docker` **167 passed, 0 skipped, 27 files, ~777 s**, on the fixed tests (12:44–12:57) — after two full runs had each ended 166 of 167 on the 20-move route
+test, first on the reset R1 tolerates (finding 73) and then on the `nc` stand-in's unsolicited
+response (finding 74); every other Docker-tier test passed in both. `make doctor` **18 / 0**; `make verify` **47 / 0**.
 
 **Machine.** `./scripts/snapshot-machine.sh` before (10:22) and after (12:08), diffed. **What the
 authorised `make reset` removed is gone, as Rich agreed**: the fixture app's three containers, its
 network and its `-db-data` volume, and every project row; the proof app was recreated by run 3. The
-proof app ends on **one** app container (`…-6b6e5413-e91f7718-app`) with its files volume, its
-database, and **one** LiteLLM key; its database container's anonymous volume is new because the
+proof app ends on **one** app container (`…-70958c85-5383eeb6-app`, from run 5) with its files
+volume, its database, and **one** LiteLLM key; its database container's anonymous volume is new because the
 reset recreated it. `manifest-caddy` and `manifest-egress` run the rebuilt `:local` images (above).
-**Cleaned up by name after checking each:** 52 images the Docker tier and the acceptances built,
-each absent from the before-snapshot and used by no container; **five LiteLLM keys and users** for
-projects `pnpm test` had truncated during this sitting (P4b finding 183), leaving only the proof
-app's; the pre-reset copy of `.manifest/repos`, moved aside for Step 3 and deleted rather than
+**Cleaned up by name after checking each:** 62 images the Docker tier and the acceptances built
+(52, then 10 more after finding 74's fix), each absent from the before-snapshot and used by no
+container; **six LiteLLM keys and users** for projects `pnpm test` had truncated during this sitting
+(P4b finding 183), leaving only the proof app's; the pre-reset copy of `.manifest/repos`, moved aside for Step 3 and deleted rather than
 restored, because the projects its two bare repositories belonged to no longer exist and a
 repository without its project is P4b finding 190's trap; and the raw output the four red control
 runs kept. The four containers that must survive are there; port 7100 is free; free disk is back to

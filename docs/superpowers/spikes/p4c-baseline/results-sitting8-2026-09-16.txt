@@ -5,9 +5,10 @@ assertions for runs 1-3 (sitting 7's 21, plus one per successful redeploy: a que
 flight when the route moved was answered 200 by the instance it moved away from) and 24
 from control (e) on (every request in the failed release's window answered by the instance
 that was serving). Commits: db7775b, fab0880, 2af93ce, 4c352e5 (the script), 53f3d96 (a
-unit test control (c) showed was missing), cf1a56a (routes.docker.test.ts counts R1's reset).
-Both full `pnpm test:docker` runs ended 166 of 167 on that route test — a reset, then an edge
-reload's empty 502 (`readLoopPeekFailLocked`) that R1 does not name: finding 74, Rich's call. The record is in the plan's
+unit test control (c) showed was missing), cf1a56a (routes.docker.test.ts counts R1's reset),
+c51224e (a real HTTP server behind the edge in the routing suites). Two full `pnpm test:docker`
+runs ended 166 of 167 on that route test — a reset, then an empty 502 caused by the test's own
+`nc` stand-in answering before it was asked (finding 74; first mistaken for an edge defect). The record is in the plan's
 *What executing this plan found*, sitting 8.
 
   run 1  Step 1, the machine as sitting 7 left it   10:28:24-10:31:23  23/23 exit 0  45 asked
@@ -212,3 +213,38 @@ start 12:05:29
   resets: 0 (tolerated — an edge configuration reload, §11)
 exit=0
 end 12:08:28
+
+-----------------------------------------------------------------------------
+RUN 5 — after c51224e (finding 74's fix) and a full pnpm test:docker, 167 of 167 — summary lines
+start 12:58:23
+  reusing project fdce5bfb-ead5-4874-9a45-63e7c830bbc2
+  ok   a question is answered before any redeploy — the AI path works
+  ok   same-release: the deploy is healthy
+  ok   same-release: the edge names the new instance
+  ok   same-release: the previous instance was retired within 150 s
+  ok   same-release: exactly one app container is left
+  ok   same-release: no files volume without a container
+  ok   same-release: LiteLLM holds exactly one key for the app
+  ok   new-release: the deploy is healthy
+  ok   new-release: the edge names the new instance
+  ok   new-release: the previous instance was retired within 150 s
+  ok   new-release: exactly one app container is left
+  ok   new-release: LiteLLM holds exactly one key for the app
+  ok   failed release: the deploy is recorded failed
+  ok   failed release: the edge still names the instance that was serving
+  ok   failed release: an Incident names the failed instance
+  ok   failed release: the failed release left no container
+  ok   failed release: no files volume without a container
+  ok   failed release: LiteLLM still holds exactly one key for the app
+{"phase":"same-release","deployMs":5427,"requests":52,"counts":{"app":52},"instancesSeen":["318cf465-49bb-49ea-8906-e65a7521342e","375a8f69-2fd2-40ab-8b3e-254b86de4f74"],"firstWrongAtMs":null,"lastWrongEndedMs":null,"routeMovedMs":[1322,1552],"questions":{"inWindow":3,"notAnswered200":0,"inFlightAcrossMove":1,"acrossMoveAnswered200":1,"acrossMoveMs":[[-277,3782,"200"]],"retireStartedMs":5406,"inFlightAtRetire":0}}
+{"phase":"new-release","deployMs":5496,"requests":52,"counts":{"app":52},"instancesSeen":["375a8f69-2fd2-40ab-8b3e-254b86de4f74","5383eeb6-9e63-439e-9cb9-e57c52790251"],"firstWrongAtMs":null,"lastWrongEndedMs":null,"routeMovedMs":[1347,1561],"questions":{"inWindow":4,"notAnswered200":0,"inFlightAcrossMove":1,"acrossMoveAnswered200":1,"acrossMoveMs":[[595,4047,"200"]],"retireStartedMs":5479,"inFlightAtRetire":0}}
+{"phase":"failed-release","deployMs":90647,"requests":451,"counts":{"app":451},"instancesSeen":["5383eeb6-9e63-439e-9cb9-e57c52790251"],"firstWrongAtMs":null,"lastWrongEndedMs":null,"routeMovedMs":null,"questions":{"inWindow":19,"notAnswered200":0,"inFlightAcrossMove":0,"acrossMoveAnswered200":0,"acrossMoveMs":[],"retireStartedMs":null,"inFlightAtRetire":0}}
+  ok   no 5xx and no wildcard answer in any redeploy window
+  ok   every question was answered 200 by an instance (30 asked)
+  ok   nobody was signed out
+  ok   same-release: a question in flight when the route moved was answered by the previous instance
+  ok   new-release: a question in flight when the route moved was answered by the previous instance
+  ok   failed release: every request in its window was answered by the instance that was serving
+  resets: 0 (tolerated — an edge configuration reload, §11)
+exit=0
+end 13:01:20
