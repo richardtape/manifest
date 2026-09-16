@@ -12,6 +12,7 @@ import {
   instances,
   routes,
   users,
+  withEnvironmentLock,
 } from '../db/index.js'
 import {
   FAKE_NEVER_READY_PATH,
@@ -2306,11 +2307,70 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
     })
   })
 
-  it('serializes two deploys of one environment — one Route row, one serving instance', async () => {
+  it('holds the environment’s lock from the instance row to the Route row — and only THAT environment’s', async () => {
+    /**
+     * THE CONTROL THAT DISCRIMINATES, and the plan's own did not.
+     *
+     * The plan's (a) — take `withEnvironmentLock` off and watch the concurrent-deploy
+     * test fail — was measured on 2026-09-15 and came out GREEN: 58 of 58 passed with
+     * the lock replaced by a bare IIFE. Two `deployRelease` calls against the fake
+     * driver stay in lockstep through the same awaits, so each one's Route row lands
+     * after its own `ensureInstance` and the row and the edge agree either way. It is
+     * sitting 5's finding 37 again, one task later.
+     *
+     * What the lock actually buys is the WINDOW: from the instance row to the Route
+     * row, nothing else may change what this environment serves. So this holds a
+     * deploy open at its `ensureInstance` and asks a second holder to come in.
+     */
+    await withRollback(async (db) => {
+      const base = createFakeDriver()
+      let started = false
+      let release = (): void => {}
+      const held = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      const driver: Driver = {
+        ...base,
+        ensureInstance: async (spec) => {
+          started = true
+          await held
+          return base.ensureInstance(spec)
+        },
+      }
+      const { release: pending, staging, byKind } = await releaseFor(db, driver)
+      const deploying = deployRelease(db, driver, config, deployDeps, {
+        releaseId: pending.id,
+        environmentId: staging.id,
+      })
+      while (!started) await new Promise((r) => setTimeout(r, 5))
+
+      let entered = false
+      const second = withEnvironmentLock(staging.id, async () => {
+        entered = true
+      })
+      await new Promise((r) => setTimeout(r, 200))
+      expect(entered, 'a second holder got in while a deploy was mid-flight').toBe(false)
+
+      // PER ENVIRONMENT, not global: staging's deploy must not stop sandbox's. A lock
+      // keyed on anything coarser would serialize the whole platform.
+      let sandbox = false
+      await withEnvironmentLock(byKind.sandbox!.id, async () => {
+        sandbox = true
+      })
+      expect(sandbox).toBe(true)
+
+      release()
+      await deploying
+      await second
+      expect(entered).toBe(true)
+    })
+  })
+
+  it('two deploys of one environment leave one Route row and one serving instance', async () => {
     // COMMITTED ROWS, not withRollback: two deploys in parallel are two connections,
     // and an advisory lock taken on a third is the only thing either can see. Inside
     // one transaction they would queue on the connection and the lock would prove
-    // nothing.
+    // nothing. This is the OUTCOME; the test above is what goes red without the lock.
     try {
       const driver = createFakeDriver()
       const { release, staging } = await releaseFor(db, driver)
