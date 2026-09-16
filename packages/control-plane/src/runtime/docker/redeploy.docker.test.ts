@@ -14,10 +14,13 @@ import {
   type CaddyRoute,
 } from '../../routing/index.js'
 import { describeDocker } from './docker-tier.js'
+import { createEngineClient, resolveSocketPath } from './engine.js'
 import { appContainer, instanceAlias } from './names.js'
+import { destroyAppNetwork } from './networks.js'
 import { CA_CERT, dockerDriverForTests, ensureContractRepo } from './testing.js'
 
 const run = promisify(execFile)
+const engine = createEngineClient({ socketPath: resolveSocketPath() })
 
 /**
  * Its own slug, for the reason `roundtrip.docker.test.ts` gives at length: a slug
@@ -218,9 +221,17 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     await run('docker', ['rm', '-f', '-v', `mf-${SLUG}-${KIND}-egress`]).catch(
       () => undefined,
     )
-    await run('docker', ['network', 'rm', `mf-${SLUG}-${KIND}-net`]).catch(
-      () => undefined,
-    )
+    /**
+     * `destroyAppNetwork`, NOT `docker network rm`.
+     *
+     * Every app network has the platform's neighbours attached (§4), and
+     * `docker network rm` REFUSES while any container is — measured 2026-09-15 while
+     * cleaning up after this suite: `has active endpoints (manifest-dns-containers,
+     * manifest-caddy)`. Wrapped in `.catch(() => undefined)` that refusal is silent,
+     * and the network survives a cleanup that reported success — which is the shape
+     * ORIENTATION §4 records five app networks being lost to.
+     */
+    await destroyAppNetwork(engine, SLUG, KIND).catch(() => undefined)
   }, 300_000)
 
   /**
