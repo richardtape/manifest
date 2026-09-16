@@ -25,8 +25,8 @@ Agreed with Rich on 2026-09-15, the pattern that carried P4a's last twelve tasks
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
 | 1 ✅ | 1 | **The acceptance, built first and watched failing**, plus the five edge and Docker measurements every later task relies on. **Alone**, and first, because every worst defect in this project arrived the first time something ran end to end (brief §8) — **done 2026-09-15, 13 findings; run three times, exit 1 each time; the baseline is run C; M1 confirmed `UNLISTED_UPSTREAM_IS_IDLE = true` and M4 made Decision 2's alias load-bearing** | ✅ |
-| 2 | 2 | §11's contract in code: `InstanceSpec.instanceId`/`hostname`, the four new methods, the fake driver's routes and in-flight counters, and the contract suite's continuity block | ← **next** |
-| 3 | 3–4 | The edge (upsert in place, identity header, what serves, what is in flight), then the Docker `ensureInstance` that uses it: beside, privately ready, moved, verified, rolled back | |
+| 2 ✅ | 2 | §11's contract in code: `InstanceSpec.instanceId`/`hostname`, the four new methods, the fake driver's routes and in-flight counters, and the contract suite's continuity block — **done 2026-09-15, 4 findings; the fake runs all eleven continuity tests, the Docker driver's four refuse and its block skips with its reason; the plan's fake folded `failInstances` into the readiness refusal and erased the health-check half of §14's Incident** | ✅ |
+| 3 | 3–4 | The edge (upsert in place, identity header, what serves, what is in flight), then the Docker `ensureInstance` that uses it: beside, privately ready, moved, verified, rolled back | ← **next** |
 | 4 | 5 | Docker `retireInstance`, `listInstances`, `servingInstance`, `restoreRoute` and the gateway detach — **the contract suite green on the Docker driver**, drain tests included | |
 | 5 | 6–7 | The data and the keys (the `Route` table, migration 0009, per-instance AI keys, the advisory lock, the drain setting), then the retirer that uses them | |
 | 6 | 8–9 | `deployRelease` reordered — serialized, per instance, failing without taking the app down — with its wiring; then boot recovery | |
@@ -3572,3 +3572,45 @@ Questions: 404 asked, **1 × 200** (in 8,731 ms), 400 × 401, 3 × 502. **Resets
 **Documents swept.** The roadmap ledger first, then the plan's sittings table, ORIENTATION §2, §3, §4 and §7d-3, `README.md`, `CLAUDE.md`, `RUNBOOK.md` and `WALKTHROUGH.md`. The last two now say that **`make demo-redeploy` exists and fails on purpose**, so nobody runs it expecting a working demo before Task 11 — an undocumented red target in `make help` is a trap. **The four HTML pages were CHECKED and need no change**: none of them mentions P4c, and this sitting changed no product behaviour, no decision, no hostname example and no spike count. `docs/external-track.md` is untouched — the trigger P4b fired is still Rich's, and nothing here moves it.
 
 **No re-cut of the sittings.** Task 1's job includes moving task boundaries and it did not need to: nothing it measured changed what a later task must build. The corrections it produced are all inside tasks that already existed.
+
+### Sitting 2 — Task 2 — 2026-09-15 — 4 findings
+
+**What it built.** §11's redeploy contract, in code and in the suite that every driver must pass. `InstanceSpec` gained `instanceId` and `hostname`; `instanceName` gained the instance; `Driver` gained `retireInstance`, `servingInstance`, `listInstances` and `restoreRoute` plus `DriverRefusalError`; the fake driver gained an edge — a `hostname → instance` map — in-flight counters and both refusals; and the contract suite gained its **continuity block, eleven tests over §11's *Redeploys***, enabled per driver by a fixture (Decision 23).
+
+**The fake driver runs all eleven. The Docker driver's four methods refuse, naming Task 5**, and its continuity block is skipped **with the reason in its name** — proved on the wire rather than assumed, because the default reporter prints no skipped names:
+
+```
+ok 14 - continuity — §11 Redeploys [skipped: this driver supplies no continuity fixtures] # SKIP
+```
+
+**Three findings from RUNNING it, one from reading.**
+
+18. **The plan folded two different failure modes into one, and that erased the health-check half of §14's Incident.** Its fake driver computes `const ready = !(options.failInstances === true || neverReady(spec))` and throws `InstanceNotReadyError` whenever `!ready`. But the two model different failures. `neverReady` is §11's readiness refusal — the hostname never reaches the instance, `ensureInstance` throws, **the route does not move**. `failInstances` is an instance that **is** reachable and whose own `HEALTHCHECK` is failing: `ensureInstance` resolves, the route moves, and `deployRelease` fails afterwards at `waitForHealth`. That is what the Docker driver does, and §14's Incident has both producers. Measured: three `releases.test.ts` assertions went red — `records an Incident naming the health check` got the readiness text instead of `health: GET /healthz on port 3000 …`, and `DISCARDS the minted key…` lost `health failed` from its event order. **Fixed: only `neverReady` throws**, and the fake's comment says why the two must stay apart.
+19. **`destroyInstance` would have silently stopped removing routes for a whole sitting.** Task 2 deletes `DockerDriverOptions.hostnameFor`, but `manifest.hostname` — the label that replaces it — is in **Task 4's** file list. Between the two, `destroyInstance` has no way to name the route to remove, and its removal is already wrapped in `.catch(() => undefined)`, so it would have failed silently: a route left pointing at a container that no longer exists is a permanent 502 on the app's own hostname. **One label pulled forward into Task 2**, and the driver reads the hostname off the container's own label. Found by reading, before the first run.
+20. **`incident.docker.test.ts` predicted the container name before the deploy**, which the instance-in-the-name makes impossible — the row's uuid is created inside `deployRelease`. Rewritten to read it back from `instance.id`, which is the **stronger** assertion: it proves the running system derived the name from the same four parts the test did, rather than matching a literal. That is the "the test constructs the value correctly and the running system re-derives it wrongly" shape, tested from the right side.
+21. **Four suites name the containers they remove**, so a random instance id would leak one container per run. `sso/testing.ts`, `roundtrip.docker.test.ts`, `s6.docker.test.ts` and `node-ts-mongo.docker.test.ts` each pin a constant uuid, the way `sso/testing.ts` already pins its release id.
+
+**Five negative controls, each watched red.**
+
+| | Broken | What went red |
+|---|---|---|
+| a | the route moved BEFORE readiness | *an instance that never becomes ready…* — the never-ready instance served |
+| b | the `INSTANCE_SERVING` check deleted | *REFUSES to retire the instance that is serving* |
+| c | delete-and-recreate restored for a changed environment | *the same name with a DIFFERENT environment is refused, never replaced* |
+| d | `instanceId` dropped from `instanceName` | **eight tests**, in two files — including *a second instance takes the hostname over*, because without the instance in the name the second deploy collides with the first |
+| e | the fake's `continuity` fixtures withheld | the block skips **and its name says why** (the TAP line above); this is the control for Decision 23 itself |
+
+Control (d) is the one worth keeping: it fails loudly and in two files, which is what a naming key that is load-bearing should do.
+
+**What this sitting deliberately did NOT do.** The Docker driver's four methods throw `DRIVER_UNSUPPORTED` naming Task 5, rather than answering plausibly — a `servingInstance` that returned `undefined` would read as "nothing serves", which is exactly the state Decision 12 refuses to act on and on which a retirer would remove the live app. The plan names this state and closes it in Tasks 4–5; it is recorded here rather than left to be noticed.
+
+**Gates.** `pnpm test` **748 passed, 66 files**, run **twice**, identical — twelve more than sitting 1's 736: the eleven continuity tests and one new naming test. `pnpm test:docker` **133 passed, 11 skipped** in 25 files (~8 min) — the passing count is unchanged and the eleven skipped are the Docker driver's continuity block. `pnpm lint`, `pnpm --filter @manifest/control-plane typecheck`, `pnpm format:check` clean. `make doctor` **18 / 0**, `make verify` **47 / 0**.
+
+**Documents swept.** The roadmap ledger first, then the plan's sittings table, ORIENTATION §2 (both gate numbers moved this time), §3 and §7d-3, `README.md` and `CLAUDE.md`. `RUNBOOK.md` and `WALKTHROUGH.md` needed nothing: they state `make doctor` and `make verify`, which are unchanged at 18/0 and 47/0, and sitting 1 already described `make demo-redeploy` as red on purpose. **The four HTML pages were CHECKED and need no change** — none mentions P4c, and this sitting changed no product behaviour, no decision and no hostname example.
+
+**Machine.** Exactly one proof-app container, one `-files` volume and one LiteLLM key, as sitting 1 left them. Two known gaps bit in sequence and are worth the next agent's attention, because together they leave a state that reads as healthy and is not:
+
+- **`pnpm test:docker` restarts the edge, which drops every runtime route** (ORIENTATION §4), and nothing re-applies them until Task 9. Afterwards `https://proof-app.staging.manifest.internal/healthz` answered **`200 manifest OK host=…`** — the edge's wildcard, not the app (P4b finding 193), with the app's container up and healthy the whole time. **Read the body, never the status.**
+- **`pnpm test` truncates the control plane's tables**, so the proof app no longer has a project row at all, while its container, network, database and LiteLLM key live on (P4b findings 178 and 183). A redeploy through the API was therefore not available to put the route back — there was no project to deploy.
+
+So the route was restored **by hand**, as one admin `PUT` of exactly the route `buildRoute` produces, dialling the running container; the hostname serves the app's own body again. The next `make demo-ai` or `make demo-redeploy` recreates the project and takes it over.
