@@ -6,6 +6,7 @@ import {
   PLATFORM_NEIGHBOURS,
   attachPlatformNeighbours,
   destroyAppNetwork,
+  detachAiGatewayIfUnused,
   ensureAppNetwork,
 } from './networks.js'
 
@@ -26,9 +27,21 @@ import {
  *    network rm` is — and deleting one a STOPPED container still holds succeeds and
  *    strands that container, which then cannot start.
  */
+interface FakeApp {
+  name: string
+  labels: Record<string, string>
+}
+
 function fakeEngine(
   existingContainers: readonly string[],
   stoppedContainers: readonly string[] = [],
+  /**
+   * App containers, for `detachAiGatewayIfUnused`, which reads them through
+   * `listContainers`. Repeated label filters AND here as they do on the real daemon
+   * (measured 2026-09-15, Task 1's M5) — a fake that ORed them would let a selector
+   * that listed another app's containers pass.
+   */
+  appContainers: readonly FakeApp[] = [],
 ) {
   const endpoints = new Map<string, Set<string>>()
   const deleted: string[] = []
@@ -40,6 +53,22 @@ function fakeEngine(
 
   const engine: EngineClient = {
     async get<T>(path: string): Promise<T | undefined> {
+      if (path.startsWith('/containers/json')) {
+        const raw = new URLSearchParams(path.slice(path.indexOf('?'))).get('filters')
+        const wanted = (JSON.parse(raw ?? '{}') as { label?: string[] }).label ?? []
+        const matches = (app: FakeApp): boolean =>
+          wanted.every((filter) => {
+            const eq = filter.indexOf('=')
+            if (eq === -1) return app.labels[filter] !== undefined
+            return app.labels[filter.slice(0, eq)] === filter.slice(eq + 1)
+          })
+        return appContainers.filter(matches).map((app) => ({
+          Names: [`/${app.name}`],
+          Labels: app.labels,
+          State: 'running',
+          Ports: [],
+        })) as T
+      }
       const name = networkPath.exec(path)?.[1]
       if (name === undefined) throw new Error(`unexpected GET ${path}`)
       const held = endpoints.get(name)
@@ -205,5 +234,117 @@ describe('the AI gateway is a conditional neighbour (P4b Task 8)', () => {
       destroyAppNetwork(fake.engine, 'never-made', 'staging'),
     ).resolves.toBeUndefined()
     expect(fake.deleted).toEqual([])
+  })
+})
+
+/**
+ * The other direction, built in P4c Task 5: the gateway comes OFF once nothing on
+ * the network needs it (P4b finding 80). The live proof is in
+ * `redeploy.docker.test.ts`, against the real daemon and the real LiteLLM; these
+ * pin the DECISION — which containers count — because that is the half a Docker
+ * test cannot vary cheaply.
+ */
+describe('detachAiGatewayIfUnused (P4c Task 5)', () => {
+  const app = (
+    name: string,
+    ai?: string,
+  ): { name: string; labels: Record<string, string> } => ({
+    name,
+    labels: {
+      'manifest.slug': 'bio-tools',
+      'manifest.environment': 'staging',
+      'manifest.release': 'release-1',
+      ...(ai === undefined ? {} : { 'manifest.ai-gateway': ai }),
+    },
+  })
+
+  const withNetwork = async (
+    apps: { name: string; labels: Record<string, string> }[],
+    attachGateway: boolean,
+  ) => {
+    const fake = fakeEngine(PLATFORM, [], apps)
+    await ensureAppNetwork(
+      fake.engine,
+      'bio-tools',
+      'staging',
+      attachGateway ? [AI_GATEWAY_NEIGHBOUR] : [],
+    )
+    return fake
+  }
+
+  it('takes it off when every instance declares no models', async () => {
+    const fake = await withNetwork(
+      [app('mf-a-app', 'false'), app('mf-b-app', 'false')],
+      true,
+    )
+    await expect(
+      detachAiGatewayIfUnused(fake.engine, 'bio-tools', 'staging'),
+    ).resolves.toBe('detached')
+    expect(fake.connected(appNetwork('bio-tools', 'staging'))).not.toContain(
+      AI_GATEWAY_NEIGHBOUR,
+    )
+  })
+
+  it('KEEPS it while one instance still declares models', async () => {
+    // The redeploy case: the release being retired declared none, the one serving
+    // does. Detaching here is P4b finding 181 — a student waiting 611 s.
+    const fake = await withNetwork(
+      [app('mf-a-app', 'false'), app('mf-b-app', 'true')],
+      true,
+    )
+    await expect(
+      detachAiGatewayIfUnused(fake.engine, 'bio-tools', 'staging'),
+    ).resolves.toBe('kept')
+    expect(fake.connected(appNetwork('bio-tools', 'staging'))).toContain(
+      AI_GATEWAY_NEIGHBOUR,
+    )
+  })
+
+  it('KEEPS it for a container from BEFORE the label existed — the safe direction', async () => {
+    // No `manifest.ai-gateway` at all, which is every container deployed before P4c.
+    // Reading a missing label as "does not need one" silently cuts such an app off
+    // from its models; the live control for this is in `redeploy.docker.test.ts`.
+    const fake = await withNetwork([app('mf-old-app')], true)
+    await expect(
+      detachAiGatewayIfUnused(fake.engine, 'bio-tools', 'staging'),
+    ).resolves.toBe('kept')
+    expect(fake.connected(appNetwork('bio-tools', 'staging'))).toContain(
+      AI_GATEWAY_NEIGHBOUR,
+    )
+  })
+
+  it('is absent, not detached, when the gateway was never attached', async () => {
+    const fake = await withNetwork([app('mf-a-app', 'false')], false)
+    await expect(
+      detachAiGatewayIfUnused(fake.engine, 'bio-tools', 'staging'),
+    ).resolves.toBe('absent')
+  })
+
+  it('is absent for a network that does not exist', async () => {
+    // The retire of an instance whose app network has already been destroyed. A
+    // throw here would turn a completed retire into a failed one.
+    const fake = fakeEngine(PLATFORM)
+    await expect(
+      detachAiGatewayIfUnused(fake.engine, 'never-made', 'staging'),
+    ).resolves.toBe('absent')
+  })
+
+  it('ignores a container of ANOTHER app on the same daemon', async () => {
+    // Repeated label filters AND. If they ORed — as repeated `name` filters do
+    // (P4b finding 192) — another app's AI instance would keep this app's gateway
+    // attached for ever.
+    const elsewhere = {
+      name: 'mf-other-app',
+      labels: {
+        'manifest.slug': 'chem-labs',
+        'manifest.environment': 'staging',
+        'manifest.release': 'release-9',
+        'manifest.ai-gateway': 'true',
+      },
+    }
+    const fake = await withNetwork([app('mf-a-app', 'false'), elsewhere], true)
+    await expect(
+      detachAiGatewayIfUnused(fake.engine, 'bio-tools', 'staging'),
+    ).resolves.toBe('detached')
   })
 })
