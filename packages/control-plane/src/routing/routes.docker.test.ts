@@ -282,15 +282,23 @@ describeDocker('runtime routing through the Caddy admin API', () => {
     // Enough requests to have covered the moves at all: 20 moves, 300 ms apart.
     expect(seen.length).toBeGreaterThan(100)
     expect(seen.filter((r) => r.body.includes(FALLBACK))).toEqual([])
-    expect(seen.filter((r) => r.status !== 200)).toEqual([])
+    // R1 tolerates the connection reset a Caddy configuration reload occasionally causes,
+    // and counts it — the brief measured ONE in about 300 requests across 20 changes,
+    // which is this test's own shape. So a reset is counted here the way both takeover
+    // tests count it, and never read for an identity it cannot carry (P4c finding 49).
+    // Measured 2026-09-16 (P4c sitting 8): a full `pnpm test:docker` failed this test on
+    // exactly one status-0 record with an empty body — no wildcard, no 5xx.
+    const answered = seen.filter((r) => r.status !== 0)
+    expect(seen.length - answered.length).toBeLessThanOrEqual(2)
+    expect(answered.filter((r) => r.status !== 200)).toEqual([])
     // And it really did move — otherwise a route that never changed would pass every
     // assertion above.
-    expect(new Set(seen.map((r) => r.instance))).toEqual(
+    expect(new Set(answered.map((r) => r.instance))).toEqual(
       new Set([INSTANCE_A, INSTANCE_B]),
     )
     // Each answer's identity matches the body that came with it, so the header is
     // the app's own route rather than a value left over from the previous one.
-    for (const record of seen) {
+    for (const record of answered) {
       expect(record.instance).toBe(record.body === APP_BODY ? INSTANCE_A : INSTANCE_B)
     }
   }, 120_000)
