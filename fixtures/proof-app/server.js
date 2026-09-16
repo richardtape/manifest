@@ -12,10 +12,12 @@
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import express from 'express'
-import session from 'express-session'
 import passport from 'passport'
 import { MongoClient } from 'mongodb'
 import { configureCwl, logoutUrl } from './auth/ubcshib.js'
+// Sessions in this app's own Mongo — the BLUEPRINT's module, for the reason every other
+// import from the skeleton is one: a second copy of session handling drifts.
+import { sessionMiddleware } from './auth/session.js'
 // The AI half. The BLUEPRINT's component, not the toolkit: that is where
 // `encoding_format: 'float'` and the namespaced end-user identifier live, and §20's
 // "the blueprint is a security multiplier" is only true while apps actually use it.
@@ -37,7 +39,6 @@ const RAW = {
   MANIFEST_APP_URL: process.env.MANIFEST_APP_URL,
   MANIFEST_PROJECT_SLUG: process.env.MANIFEST_PROJECT_SLUG,
   PORT: process.env.PORT,
-  SESSION_SECRET: process.env.SESSION_SECRET,
   MONGODB_URI: process.env.MONGODB_URI,
   MONGODB_DB_NAME: process.env.MONGODB_DB_NAME,
   // Presence is the signal "this app declared CWL", never a value. The platform
@@ -81,18 +82,9 @@ configureAi()
 const app = express()
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
-app.use(
-  session({
-    secret: required('SESSION_SECRET'),
-    resave: false,
-    saveUninitialized: false,
-    // The platform terminates TLS at the edge and speaks HTTP to the container,
-    // so express-session must be told the connection was secure or it refuses
-    // to set a `secure` cookie and no session survives the redirect back.
-    proxy: true,
-    cookie: { httpOnly: true, sameSite: 'lax', secure: true },
-  }),
-)
+// In Mongo, not in this container's memory: a redeploy replaces the container, and
+// `make demo-redeploy` asserts that the student is still signed in afterwards.
+app.use(sessionMiddleware(client))
 app.set('trust proxy', 1)
 
 app.get('/healthz', async (_req, res) => {

@@ -87,3 +87,13 @@ pinned_dependencies:
   # Accepted (measured 2026-09-07): C6 says Manifest adapts to the toolkit rather
   # than reshaping it.
   ubc-genai-toolkit-llm: 0.7.0
+  # P4c Task 10: sessions in the app's own Mongo, so a redeploy signs nobody out
+  # (skeleton/auth/session.js). 6.0.0 is the current release (published
+  # 2025-11-30, re-checked 2026-09-16) and the evidence for it is fit, not
+  # recency: its peers are what this list already pins (express-session ^1.17.1
+  # against 1.19.0, mongodb >=5.0.0 against 6.12.0), its engine floor is Node
+  # >=20.8 against the image's 22, and it adds seven packages to every app's
+  # closure — kruptein 3.0.8, asn1.js, bn.js, minimalistic-assert, and its own
+  # debug and ms. `npm audit` of the lockfile measured the same five findings
+  # before and after the addition, none of them in that closure.
+  connect-mongo: 6.0.0

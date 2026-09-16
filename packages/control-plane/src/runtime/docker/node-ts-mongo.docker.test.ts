@@ -5,7 +5,8 @@ import { promisify } from 'node:util'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import type { Driver, ImageRef, ServiceHandle } from '../driver.js'
 import { instanceName, serviceName } from '../driver.js'
-import { mintSpKeypair, type SpKeypair } from '../../sso/index.js'
+import { mintSpKeypair, renderSpMetadata, type SpKeypair } from '../../sso/index.js'
+import { idpLogin, withRegisteredMetadata, type SamlSpHandle } from '../../sso/testing.js'
 import { INJECTED_FILE_PATHS, renderInjection } from '../../spec/index.js'
 import { appContainer, serviceContainer } from './names.js'
 import { describeDocker } from './docker-tier.js'
@@ -32,11 +33,18 @@ import { CA_CERT, REPO_ROOT, dockerDriverForTests, fixtureBareRepo } from './tes
  *    AuthnRequest. `configureCwl()` is where the library's traps live: the
  *    CommonJS export shape, and the `cert` IIFE that throws at construction.
  *
- * WHAT IT DELIBERATELY DOES NOT PROVE: a completed login. That is
+ *  * a sign-in is kept in the app's OWN DATABASE (P4c Task 10). This is the one
+ *    completed login in this file, and it is here for the session store rather than
+ *    for SAML: a redeploy replaces the container, so a session that lives anywhere
+ *    but Mongo signs every user out.
+ *
+ * WHAT IT DELIBERATELY DOES NOT PROVE: that SAML login works in general. That is
  * `sso/login.docker.test.ts` (§16's identity-path tier) and P4a Task 15's
- * acceptance. The SP row here is hand-built for the same reason — registration is
- * Task 9's and has its own test against the REAL registrar; what is under test
- * here is the blueprint's consumption of what the platform renders.
+ * acceptance. The SP row here is rendered by `renderSpMetadata` and registered by
+ * the test rather than by the real registrar for the same reason — registration is
+ * P4a Task 9's and has its own test; what is under test here is the blueprint's
+ * consumption of what the platform renders. That a session SURVIVES a redeploy is
+ * `make demo-redeploy`'s *nobody was signed out*, which drives two containers.
  */
 const run = promisify(execFile)
 
@@ -275,4 +283,63 @@ describeDocker('node-ts-mongo@1 builds, deploys and authenticates (Task 12)', ()
     )
     expect(location).toContain('SAMLRequest=')
   }, 120_000)
+
+  /**
+   * What the app's own database holds, read from INSIDE the service container with
+   * the credentials the app was bound with. Counted rather than listed, so no session
+   * contents — which carry a person's attributes — reach the test log.
+   */
+  async function sessionsInDatabase(): Promise<{ total: number; signedIn: number }> {
+    const { stdout } = await run('docker', [
+      'exec',
+      serviceContainer(SERVICE),
+      'mongosh',
+      '--quiet',
+      '-u',
+      CREDENTIALS.username,
+      '-p',
+      CREDENTIALS.password,
+      '--authenticationDatabase',
+      'admin',
+      '--eval',
+      `const c = db.getSiblingDB('${CREDENTIALS.database}').sessions;` +
+        `print(JSON.stringify({ total: c.countDocuments(),` +
+        ` signedIn: c.countDocuments({ session: /"ubcEduCwlPuid":"stu000001"/ }) }))`,
+    ])
+    return JSON.parse(stdout.trim().split('\n').at(-1) ?? '{}') as {
+      total: number
+      signedIn: number
+    }
+  }
+
+  it("writes a sign-in to the app's OWN DATABASE, not to the container's memory", async () => {
+    // The student is not signed in anywhere yet: nothing before this test completes a
+    // login, and `saveUninitialized: false` means an anonymous request stores nothing.
+    // Asserted, so the count below cannot be a document some earlier request left.
+    expect((await sessionsInDatabase()).signedIn).toBe(0)
+
+    // A real CWL login against the deployed blueprint app, through the edge, with the
+    // app's SP row rendered by the platform's own renderer and signed by the keypair
+    // whose private half the platform placed in the container.
+    const handle: SamlSpHandle = {
+      hostname: HOST,
+      idpBaseUrl: 'https://idp.manifest.internal',
+      row: { entityId: spEntity.entityId, acsUrl: spEntity.acsUrl, attributes: [] },
+      instance: INSTANCE,
+      stop: () => Promise.resolve(),
+    }
+    const login = await withRegisteredMetadata(
+      spEntity.entityId,
+      renderSpMetadata(spEntity, keypair),
+      () => idpLogin(handle, { user: 'student', password: 'student' }),
+    )
+    // `status` is the app's `/me` with the login's cookie: 200 only for a session the
+    // app can read back, which is the whole login working.
+    expect(login.status).toBe(200)
+
+    // THE EVIDENCE IS IN MONGO, NOT IN THE COOKIE. `express-session` writes a document
+    // only when it has a store, and this one carries the person the IdP asserted.
+    const after = await sessionsInDatabase()
+    expect(after.signedIn).toBeGreaterThanOrEqual(1)
+  }, 600_000)
 })

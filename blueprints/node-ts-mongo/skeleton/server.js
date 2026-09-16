@@ -10,10 +10,10 @@
 // blueprint's, and `assembleContext` writes both AFTER the app's tree, so a
 // committed copy is overwritten rather than honoured.
 import express from 'express'
-import session from 'express-session'
 import passport from 'passport'
 import { MongoClient } from 'mongodb'
 import { configureCwl, logoutUrl } from './auth/ubcshib.js'
+import { sessionMiddleware } from './auth/session.js'
 import { AI_ENABLED, configureAi } from './ai/llm.js'
 
 /**
@@ -36,7 +36,6 @@ const RAW = {
   MANIFEST_APP_URL: process.env.MANIFEST_APP_URL,
   MANIFEST_PROJECT_SLUG: process.env.MANIFEST_PROJECT_SLUG,
   PORT: process.env.PORT,
-  SESSION_SECRET: process.env.SESSION_SECRET,
   MONGODB_URI: process.env.MONGODB_URI,
   MONGODB_DB_NAME: process.env.MONGODB_DB_NAME,
   // NOT USED AS A VALUE — only as the signal below. The platform renders §8's
@@ -81,20 +80,12 @@ if (AI_ENABLED) configureAi()
 
 const app = express()
 app.use(express.urlencoded({ extended: false }))
-app.use(
-  session({
-    // Stored per app+environment by the platform and STABLE across deploys: a
-    // regenerated secret signs every user of a redeployed app out.
-    secret: required('SESSION_SECRET'),
-    resave: false,
-    saveUninitialized: false,
-    // The platform terminates TLS at the edge and speaks HTTP to the container,
-    // so express-session must be told the connection was secure or it refuses to
-    // set a `secure` cookie and no session ever survives a redirect.
-    proxy: true,
-    cookie: { httpOnly: true, sameSite: 'lax', secure: true },
-  }),
-)
+// Sessions live in the app's OWN Mongo, not in this process: the platform replaces
+// this container on every deploy (§11 Redeploys), and a session held in memory signs
+// everybody out each time. `auth/session.js` reads SESSION_SECRET and MONGODB_DB_NAME
+// itself, with no fallback, and is the one copy of this configuration — the proof app
+// imports it too.
+app.use(sessionMiddleware(client))
 // Same reason: `secure: true` above is only honoured once Express believes the
 // request arrived over HTTPS, which it learns from the edge's X-Forwarded-Proto.
 app.set('trust proxy', 1)

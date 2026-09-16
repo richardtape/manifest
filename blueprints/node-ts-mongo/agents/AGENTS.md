@@ -86,6 +86,8 @@ in all of them.
   names your code wants. The library's own map covers six friendly names, has no
   entry at all for `uid` or `eduPersonPrincipalName`, and reaches its MACE entry
   never. Use `bridge(profile)` and `puid(profile)`.
+- **`session.js`** keeps sessions in your app's own Mongo, so a deploy signs nobody
+  out. `app.use(sessionMiddleware(client))`, with the `MongoClient` you already hold.
 
 Mount the middlewares `configureCwl()` returns. Do not construct a `Strategy`
 yourself.
@@ -118,6 +120,27 @@ fallback writes to one they do not cover.
 refused at validation — the platform's binding is applied after yours, so the
 variable would do nothing, and being told at deploy time is worse than being told
 now.
+
+---
+
+## Two releases run at once, for up to two minutes
+
+When Manifest deploys a new version, the old one keeps serving until its last requests
+finish — that is what makes a deploy invisible to the people using your app (§11). For up
+to two minutes, **both versions are running against the same database.**
+
+Two rules follow, and the platform cannot check either of them for you.
+
+**Change the shape of your data in three releases, never one.** Add the new field and
+write both; then migrate what is already stored; then, in a later release, stop writing
+the old one. A release that renames a field in place will be reading its own new documents
+with the previous version's code for as long as the drain lasts.
+
+**Never keep anything that matters in the process.** Sessions, caches, counters, uploaded
+files held in a variable: the next release cannot see them, and the previous release's
+copy disappears when its container goes. Your session store is already in Mongo
+(`auth/session.js`) — do not replace it with `express-session`'s default, which keeps
+sessions in memory and signs everybody out on every deploy.
 
 ---
 
