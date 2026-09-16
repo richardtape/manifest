@@ -317,7 +317,7 @@ admin-ui/       React admin front-end
 | | `audience` = `{scale, burst, justification, set_by, set_at}`; human-set, shapes production capacity only (§24, D29) |
 | **ProjectMember** | `project_id`, `user_id`, `role` (`owner` \| `collaborator`) |
 | **Blueprint** | `name`, `major_version`, `source_ref`, `default_spec`, `knowledge_pack_path`, `descriptor` |
-| | `descriptor` = the parsed `blueprint.yaml` of §25: runtime, capabilities, defaults, schema compatibility (D30) |
+| | `descriptor` = the parsed `blueprint.yaml` of §25: runtime, capabilities, defaults, schema compatibility, starters (D30) |
 | **AppSpec** | `id`, `project_id`, `commit_sha`, `parsed` (jsonb), `schema_version`, `valid`, `errors` |
 | **Build** | `id`, `project_id`, `commit_sha`, `appspec_id`, `image_digest`, `status`, `logs_ref` |
 | **Release** | `id`, `project_id`, `build_id`, `appspec_id`, `resolved_config`, `created_by`, `summary` |
@@ -1076,6 +1076,19 @@ started (§11).
 Use `PUT` on `…/routes/0` to insert — `POST` appends, which lands the route *behind*
 the wildcard whose `terminal: true` then swallows it.
 
+**The control plane is served through the edge, and the edge refuses it to app and
+sandbox networks.** Clients reach the API on the reference console's origin (§21), so
+the edge forwards the control plane's paths there. But the edge is attached to every
+app network — that is how traffic reaches an app — and it answers any hostname asked of
+it **by address**, whether or not the name resolves inside the app: measured 2026-09-16
+from inside a deployed app, `getent hosts console.manifest.internal` failed and a request
+to the edge's address for that name was answered, with the app's own network address as
+the source. Name resolution is therefore not a boundary, and every route that forwards to
+the control plane **refuses a request arriving from an app or sandbox network**, by
+source. Without this, untrusted app code — and in Phase 3 an agent in a sandbox — could
+reach every unauthenticated control-plane path. §16's security tier proves the refusal,
+paired with the same request succeeding from the host.
+
 ### DNS
 
 A hostname in this system is resolved from **two different places** — the
@@ -1500,7 +1513,7 @@ the system becomes ordinary test-first development.
 | **Injection-contract drift** | The §8 table is asserted against the blueprint: every variable the blueprint reads is injected, and `SAML_ENVIRONMENT` is never absent. This is what keeps §8 honest — it was wrong once, from being written against memory of the libraries rather than against them. |
 | **AI-path regression** | An embedding through the blueprint asserts its **dimension**, not merely that a vector came back — without `encoding_format: 'float'` the toolkit silently returns 192 near-zero values in place of 768 (§21, S3), and every other assertion still passes. A *streamed* completion through `default-chat` asserts non-empty content, which a thinking model fails silently. LiteLLM's over-budget, revoked-key, expired-key and route-denied responses are pinned to the mapping in §20, against the LiteLLM version in §21's inventory. |
 | **Identity-path regression** | A production release whose `auth.attributes` exceed `IamRegistration.registered_attributes` fails at build; a production environment never resolves to the Manifest IdP; a sandbox or staging environment never resolves to real UBC Shibboleth; certificate expiry within 90 days raises an alert. |
-| **Security regression** | Secrets never appear in captured logs, incidents or events; a sandbox cannot reach the control plane or a metadata endpoint; **a sandbox's LiteLLM key is refused on `/key/generate` and every other admin route** (there is no admin *port* to block — §10, §12 — so this asserts the `allowed_routes` confinement, and a key minted without it is the negative control); a spec with a `runtime.build` block or a non-path `auth.callback` is rejected; a `confidential` app cannot resolve an off-premise model. **Every denial in this tier is paired with a positive control** — the same probe succeeding from a bridge network — **and a control that cannot be paired is reported as unpaired rather than omitted.** A matrix of denials with no positive control is indistinguishable from a matrix where the probe tool is missing or the address never resolved, and S6's first run produced exactly that. One probe's control needs the internet, which the rest of the tier does not, so the tier says out loud when a pairing could not be made. |
+| **Security regression** | Secrets never appear in captured logs, incidents or events; a sandbox cannot reach the control plane or a metadata endpoint; **an app or sandbox cannot reach the control plane *through the edge* either** — addressing the edge directly, with the console's hostname — while the same request from the host succeeds (§12); **a sandbox's LiteLLM key is refused on `/key/generate` and every other admin route** (there is no admin *port* to block — §10, §12 — so this asserts the `allowed_routes` confinement, and a key minted without it is the negative control); a spec with a `runtime.build` block or a non-path `auth.callback` is rejected; a `confidential` app cannot resolve an off-premise model. **Every denial in this tier is paired with a positive control** — the same probe succeeding from a bridge network — **and a control that cannot be paired is reported as unpaired rather than omitted.** A matrix of denials with no positive control is indistinguishable from a matrix where the probe tool is missing or the address never resolved, and S6's first run produced exactly that. One probe's control needs the internet, which the rest of the tier does not, so the tier says out loud when a pairing could not be made. |
 | **Contract** | The OpenAPI document is generated from the routes and checked in; drift fails CI. `manifest-mock` is validated against the same document, so a front-end built against the mock cannot compile against a contract the real API does not serve. |
 | **Integration** | Real Postgres, real Docker driver, one tiny fixture app; Supertest per route. |
 | **Acceptance** | The §1 journey, driven twice against the same published API: by a human in the reference console, and headlessly in CI by a script using the same generated client. Two independent clients over one contract. |
@@ -1554,7 +1567,7 @@ the contract and the console describe redeploys as they will be.
 | **1a — Baseline & deploy spine** | S1–S3 + S7 applied. §21's local stack (dnsmasq/`manifest.internal`, custom Caddy + trusted CA, Postgres, registry, Verdaccio, egress proxy, builder), `make seed/up/reset/doctor`. Driver interface + Docker driver + fake Driver + driver contract suite. Spec parse/validate, local git driver, service provisioning, staging deploy, routing. **The blueprint *machinery*** — the §25 registry, descriptor parsing, `checkBlueprintCompatibility()` and major-version pinning — plus **one minimal blueprint**, because under D13 the builder needs a Dockerfile from somewhere and D30's argument applies to the builder, health check, service catalogue and injection contract that all live here. **All cross-cutting security lands here**: container hardening, per-app networks, default-deny egress, authorization contract suite. **Demo:** a fixture app routed and healthy at a `manifest.internal` URL, from a clean checkout, offline. | Does C1 hold, and is the containment real? |
 | **1b — Identity, secrets & AI** | SP auto-provisioning against the metadata mechanism S2 selects, per-app keypairs, `secrets/` envelope encryption, the §8 injection contract, the **`node-ts-mongo` blueprint *content*** against 1a's machinery — auth component, attribute bridge, AI wiring, knowledge pack — LiteLLM client with the classification-gated model catalogue, events, WS streaming, redaction at capture, incidents. **Demo:** the proof app — CWL login, writes to its own Mongo, asks the LLM — driven by `curl`. | Is the loop real? |
 | **1b+ — Redeploys that do not interrupt** | §11's redeploy guarantee in the `Driver` contract and both drivers; in-place route moves verified by identity; background drain and retire of every instance that is not serving; Route records, re-applied at boot; a shared session store in `node-ts-mongo@1`. **Demo:** the proof app redeployed twice and failed once, under a request loop and a signed-in student asking questions, with no failed request. | Can an app change while people are using it? |
-| **1c — Contract & clients** | OpenAPI generation, versioned TS client, `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API (D25), `console/` with its import boundary, a read-only `LaunchReadiness` view, **the audience question at project creation (§24) and a read-only fleet list**, the CI acceptance script. **Demo:** the §1 journey, clickable, run twice over one contract. | Is the API complete, and can a second developer reproduce all of it? |
+| **1c — Contract & clients** | OpenAPI generation under `/v1`, versioned TS client, `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API (D25), **blueprint starters (§25)**, `console/` with its import boundary **on one origin with the API, behind the edge (§21)**, a read-only `LaunchReadiness` view, **the audience question at project creation (§24) and a read-only fleet list**, the CI acceptance script. **Demo:** the §1 journey, clickable, run twice over one contract. | Is the API complete? *Whether a second developer can reproduce all of it on another machine is tracked separately and is not part of 1c's acceptance (2026-09-16).* |
 | **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, **custom domains end to end (§23), the audience tiers' production effects (§24), and the showcase with forking (§27)**, the admin console built around its queue (§26), IAM registration package + PIA draft generation | Is it safe, and can we get an app legitimately launched? |
 | **3 — Sandboxes** | agent `exec`, per-session keys, preview routes; a chat pane added to the reference console against the same API; the **MCP server** (§22), making "bring your own agent" real. **The separate front-end project can now begin against a real, exercised API.** | Can an AI build here? |
 | **4 — Reconciler & hibernation** | straight-line path becomes the loop; wake-on-request | Does it scale down? |
@@ -1824,10 +1837,10 @@ created per build and destroyed:
 | Registry (`registry:2`) | 7107 | Required: §13 binds approval to a digest and restricts pushes |
 | Verdaccio | 7108 | The private package mirror §12 mandates; also what makes offline installs possible |
 | Egress proxy | 7109 | Default-deny must exist locally, or an app works here and fails in staging |
-| Control plane | 7100 | **Host Node process**, not a container — it needs the Docker socket, which §12 forbids mounting into *workload* containers while explicitly permitting the control plane's own access. Running on the host sidesteps the question and iterates faster. **It cannot reach container IPs** on Docker Desktop (S1), so health checks and readiness polling go through the edge or a published port, never the container address. |
+| Control plane | 7100 | **Host Node process**, not a container — it needs the Docker socket, which §12 forbids mounting into *workload* containers while explicitly permitting the control plane's own access. Running on the host sidesteps the question and iterates faster. **It cannot reach container IPs** on Docker Desktop (S1), so health checks and readiness polling go through the edge or a published port, never the container address. **Clients reach it through the edge on the console's origin (§21), never on this port**; the edge refuses those routes to app and sandbox networks (§12). |
 | Admin UI (Vite) | 7101 | Host process |
 | `manifest-mock` | 7102 | Host process; needed only when working on the front-end without the platform |
-| Reference console (§22) | 7104 | Host process (Vite). Served at `console.manifest.internal` through Caddy, leaving `app.manifest.internal` for the separate front-end project |
+| Reference console (§22) | 7104 | Host process (Vite). Served at `console.manifest.internal` through Caddy, **on the same origin as the API**, leaving `app.manifest.internal` for the separate front-end project |
 | Ollama | 11434 | **Host application** — Metal GPU access is unavailable from a container. `make seed` pulls a **non-thinking** chat model and an embedding model by name; a thinking model streams no content at all (§21, S3) |
 
 Git uses the local driver (bare repositories on disk), so it needs no container.
@@ -1884,6 +1897,16 @@ The faculty-facing front-end is a first-class citizen of this stack (C1). It is
 served at `app.manifest.internal` **through the same Caddy**, so cookie scope, CSRF
 origin and SAML redirect origins match production rather than being accidentally
 different on a bare Vite port.
+
+**The reference console and the API share one origin.** `console.manifest.internal`
+serves the console, and the edge forwards the control plane's paths on that same
+origin — the versioned API (`/v1/…`, the event stream included) and the sign-in
+endpoints — to the control plane. The console's session cookie, its CSRF origin and the
+control plane's own SAML return URL (§9) are then one HTTPS origin, as they will be in
+production, with no cross-origin requests and no CORS. The control plane's SP is
+registered for that origin. Those forwarded routes refuse app and sandbox networks
+(§12). The separate front-end project settles its own origin when it starts (Phase 3),
+under the same two rules: same-origin through the edge, and unreachable from app code.
 
 Front-end developers are not required to run the platform. `manifest-mock` (§5,
 §16) serves the published contract from fixtures — including scripted WebSocket
@@ -2008,11 +2031,12 @@ available through the published API. The console never gets a shortcut.
 ### The journey it drives
 
 Phase 1 — no AI authoring yet, since sandboxes arrive in Phase 3, so "describe your
-app" is "choose a blueprint":
+app" is "choose a blueprint and a starter" (§25):
 
 1. Log in with CWL (Manifest IdP, test user)
-2. Create a project — name and blueprint
-3. Watch provisioning: repository created, `manifest.yaml` validated
+2. Create a project — name, blueprint and starter, and who it is for (§24)
+3. Watch provisioning: repository created from the blueprint's skeleton and the
+   chosen starter, `manifest.yaml` validated
 4. Trigger a build; build logs stream live
 5. Deploy to staging; instance state transitions stream live
 6. Open the running app; log in with CWL *inside* it; write a note; ask the LLM
@@ -2053,7 +2077,7 @@ Flexibility for the future front-end is preserved by constraints, not intentions
 
 2. **One event stream per project, not polling.** Build logs, instance state
    transitions, incidents and approval decisions all flow over
-   `WS /projects/:id/events`. A polling API bakes in an assumption about UI shape;
+   `WS /v1/projects/:id/events` (item 8). A polling API bakes in an assumption about UI shape;
    a stream lets a chat interface, a dashboard, a CLI or a notification bot all
    react to the same source.
 
@@ -2084,7 +2108,12 @@ Flexibility for the future front-end is preserved by constraints, not intentions
 8. **The contract is versioned and generated from the routes** (§16). Drift between
    the implementation, the OpenAPI document and `manifest-mock` fails CI, so a
    front-end built against the mock cannot compile against a contract the real API
-   does not serve.
+   does not serve. **The version is a major-version path prefix: every resource route
+   and the event stream are served under `/v1/`.** A breaking change is a new prefix
+   served beside the old one, never an edit to `/v1`. Endpoints that are not resources
+   — the browser-mediated sign-in endpoints, whose URL is registered with the IdP (§9),
+   and platform-internal endpoints such as the registry's token realm — sit outside the
+   versioned contract, and the contract says so rather than omitting them silently.
 
 ---
 
@@ -2133,6 +2162,17 @@ collision unrepresentable — `chem-labs.staging.<zone>` and `chem-labs-staging.
 are different names by construction, with no reserved-suffix list to maintain and
 keep in sync with §7. This is the reasoning the two paragraphs above depend on, and
 it is why §11's lifetime table now points here.
+
+**Platform surfaces take labels in the production zone, so those labels are reserved.**
+The Manifest IdP (`idp`), the reference console (`console`), the separate front-end
+(`app`) and the admin console (`admin`) are served at `<label>.<production zone>`, which
+is exactly the shape of a production app's canonical hostname — so a project whose slug
+is one of those labels would claim the platform's own hostname the day it reached
+production. Project creation refuses a reserved label with a stable error. The list —
+`idp`, `console`, `app`, `admin`, `api`, `www` — is platform configuration held in one
+place, and a test fails when the edge serves a platform name the list does not contain.
+This is not the reserved-suffix list rejected above: that one would have had to track
+every legal slug; this one tracks the platform's own handful of names.
 
 **One sandbox environment per project at a time**, so its hostname is stable and
 predictable. Concurrent sandboxes, if they are ever needed, take a suffixed slug;
@@ -2370,7 +2410,31 @@ injection:
 
 dockerfile: ./Dockerfile.tmpl     # blueprint-managed, per D13
 knowledge_pack: ./agents/         # served over the API, per D25
+
+starters:                         # complete apps a project can start from
+  - name: proof-app
+    path: ./starters/proof-app/   # laid over the skeleton at project creation
+    summary: CWL sign-in, a private note, and a question answered from your notes
 ```
+
+### Starters
+
+A **starter** is a complete, deployable application published with a blueprint and
+laid over its skeleton when a project is created — the Phase 1 stand-in for "describe
+your app" (§22). The skeleton stays what it is: the minimal base an agent builds on,
+carrying the blueprint's auth component, AI wiring and pinned dependencies. A starter
+adds an app's own code and a `manifest.yaml` that declares what that app needs.
+
+- **Copied once, never linked.** The files land in the new project's repository as its
+  first commit, and the project owns them from then on; a later change to the starter
+  changes no existing project.
+- **Validated when the blueprint is loaded** — its `manifest.yaml` against §7 and against
+  the blueprint's own descriptor — so a starter that cannot pass validation is never
+  offered.
+- **Published by administrators with the blueprint** (below), and versioned with it.
+- **`node-ts-mongo@1`'s first starter is §16's proof application**, so §22's step 6 —
+  sign in inside the app, write a note, ask the LLM — is reachable from a project a
+  person created in the console.
 
 ### What this changes in the control plane
 
@@ -2383,6 +2447,10 @@ blueprint node-ts-mongo@2 cannot bind service type "postgres"
   (supported: mongo, qdrant)
 blueprint node-ts-mongo@2 does not support auth.provider "cwl"
 ```
+
+**Project creation seeds from the descriptor**: the new repository's first commit is the
+blueprint's skeleton with the chosen starter laid over it (above), and that commit's
+`manifest.yaml` is what step 3 of §22's journey validates.
 
 **And four assumptions become lookups**, which is the whole point: the builder asks
 the descriptor for the language and base image rather than knowing them; the health
