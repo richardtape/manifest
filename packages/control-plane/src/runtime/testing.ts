@@ -34,7 +34,11 @@ export { createEngineClient, resolveSocketPath } from './docker/engine.js'
 // survived sixteen minutes and four runs, and `ensureInstance` is idempotent by
 // name, so every one of those runs redeployed nothing and tested the FIRST
 // image. A negative control that edits the app then passes is the symptom.
-export { appContainer, egressContainer } from './docker/names.js'
+// `instanceAlias` is what the EDGE dials since P4c, so it is what a readiness failure
+// names — `releases/incident.docker.test.ts` asserts the Incident's failed check
+// against it rather than against a literal the test and the driver could each derive
+// differently (P4c sitting 2, finding 20).
+export { appContainer, egressContainer, instanceAlias } from './docker/names.js'
 
 // `releases/`'s Docker-tier Incident suite deploys a real app, and must leave no app
 // network behind. `docker network rm` fails while ANY container is still attached, and

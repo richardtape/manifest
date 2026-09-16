@@ -61,3 +61,23 @@ export function egressContainer(slug: string, kind: EnvironmentKind): string {
 export function isManifestOwned(name: string): boolean {
   return name.startsWith(MF_PREFIX)
 }
+
+/**
+ * What the EDGE dials to reach ONE instance: `mf-i-<instanceId>`, 41 characters.
+ *
+ * A dial address is a DNS label, and a label is at most 63 octets. A container name
+ * carries the slug, the environment, the release AND the instance (§11), which for a
+ * 39-character slug is 72 — and a 72-character name does not resolve: measured
+ * 2026-09-15 from inside the edge, `curl: (6) Could not resolve host …
+ * (Misformatted domain name)`, with `getent hosts` giving no answer, while a
+ * 17-character name answered 200. So the name cannot be the dial address.
+ *
+ * The alias is bounded, unambiguous — Docker resolves it only on the app's own
+ * network, so a 200 at this address is THIS instance's 200 by construction — and it
+ * is what `servingInstance` maps back to a container (Task 5).
+ */
+export const INSTANCE_ALIAS_PREFIX = 'mf-i-'
+
+export function instanceAlias(instanceId: string): string {
+  return `${INSTANCE_ALIAS_PREFIX}${instanceId}`
+}

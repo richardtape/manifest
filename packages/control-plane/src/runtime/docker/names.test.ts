@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { instanceName, serviceName } from '../driver.js'
 import {
+  INSTANCE_ALIAS_PREFIX,
   MF_PREFIX,
   appContainer,
   appNetwork,
   egressContainer,
+  instanceAlias,
   isManifestOwned,
   serviceContainer,
   serviceVolume,
@@ -64,6 +66,36 @@ describe('mf- naming (§11 determinism, P1 ownership rule)', () => {
     ).not.toBe(
       appContainer(instanceName('chem-labs', 'staging', RELEASE, OTHER_INSTANCE)),
     )
+  })
+
+  /**
+   * THE DIAL ADDRESS IS BOUNDED, AND THE CONTAINER NAME IS NOT (P4c Decision 2).
+   *
+   * A dial address is a DNS label and a label is at most 63 octets. With the
+   * instance in the name (§11), a 39-character slug gives a 72-character container
+   * name — and measured 2026-09-15 from inside the edge, a 72-character name does
+   * not resolve at all: `curl: (6) Could not resolve host … (Misformatted domain
+   * name)`, while a 17-character one answered 200. So the edge dials this instead.
+   */
+  it('gives the edge a dial address that fits in a DNS label, for any slug', () => {
+    expect(instanceAlias(INSTANCE)).toBe(`mf-i-${INSTANCE}`)
+    expect(instanceAlias(INSTANCE)).toHaveLength(41)
+    expect(instanceAlias(INSTANCE).length).toBeLessThanOrEqual(63)
+    // The longest name the platform can produce, for comparison: 39 characters is
+    // the longest slug `descriptorSchema` accepts, and this is what the edge would
+    // have had to dial without the alias.
+    const longest = appContainer(
+      instanceName('a'.repeat(39), 'staging', RELEASE, INSTANCE),
+    )
+    expect(longest.length).toBeGreaterThan(63)
+    // Owned by this driver, so the ownership rule below covers it too.
+    expect(isManifestOwned(instanceAlias(INSTANCE))).toBe(true)
+    expect(INSTANCE_ALIAS_PREFIX.startsWith(MF_PREFIX)).toBe(true)
+  })
+
+  it('gives two instances different aliases, and one instance a stable one', () => {
+    expect(instanceAlias(INSTANCE)).not.toBe(instanceAlias(OTHER_INSTANCE))
+    expect(instanceAlias(INSTANCE)).toBe(instanceAlias(INSTANCE))
   })
 
   // P1's ownership rule, restated as code: nothing outside manifest-* and mf-* is

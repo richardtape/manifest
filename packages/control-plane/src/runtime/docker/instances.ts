@@ -8,7 +8,7 @@ import type {
 import { DriverRefusalError } from '../driver.js'
 import { EngineError, type EngineClient } from './engine.js'
 import { hardenedHostConfig } from './hardening.js'
-import { appContainer, filesVolume } from './names.js'
+import { appContainer, filesVolume, instanceAlias } from './names.js'
 import { proxyEnvironment } from './egress.js'
 import { tarArchive } from './archive.js'
 
@@ -112,6 +112,30 @@ async function placeFiles(
 
 /** Where a container records the hash of the environment it was created with. */
 export const ENV_HASH_LABEL = 'manifest.env-sha256'
+
+/**
+ * What a container says about itself.
+ *
+ * The driver reads an instance's identity, the hostname it serves, its port and
+ * whether it needs §10's gateway from HERE and not from the database — §5 keeps
+ * `runtime/` away from `db/`, and a container whose row `pnpm test` truncated is
+ * still a container this driver has to be able to find, refuse and retire.
+ *
+ * `hostname` arrived in Task 2, pulled forward because `destroyInstance` lost its
+ * other way of naming the route to remove; the rest arrive here with the readers
+ * that need them (Task 5's `retireInstance`, `listInstances`, `servingInstance` and
+ * `restoreRoute`).
+ */
+export const LABEL = {
+  slug: 'manifest.slug',
+  environment: 'manifest.environment',
+  release: 'manifest.release',
+  instance: 'manifest.instance',
+  hostname: 'manifest.hostname',
+  port: 'manifest.port',
+  aiGateway: 'manifest.ai-gateway',
+  envHash: ENV_HASH_LABEL,
+} as const
 
 /**
  * A hash of a container's environment, order-insensitive.
@@ -240,14 +264,33 @@ export async function ensureInstanceContainer(
         : { Binds: [`${filesVolume(spec.name)}:${FILES_MOUNT}`] }),
     },
     Labels: {
-      'manifest.slug': spec.projectSlug,
-      'manifest.environment': spec.environmentKind,
-      'manifest.release': spec.releaseId,
+      [LABEL.slug]: spec.projectSlug,
+      [LABEL.environment]: spec.environmentKind,
+      [LABEL.release]: spec.releaseId,
+      [LABEL.instance]: spec.instanceId,
       // The hostname this instance serves, so `destroyInstance` can remove its route
-      // without knowing how a hostname is built (P4c Task 2). Task 4 adds the rest of
-      // §11's label set; this one is here because the driver stopped deriving it.
-      'manifest.hostname': spec.hostname,
-      [ENV_HASH_LABEL]: envHash,
+      // without knowing how a hostname is built (P4c Task 2).
+      [LABEL.hostname]: spec.hostname,
+      // The port and the gateway flag, so a retire can rebuild this instance's dial
+      // address and decide whether §10's gateway is still needed, with no database.
+      [LABEL.port]: String(spec.port),
+      [LABEL.aiGateway]: String(spec.needsAiGateway),
+      [LABEL.envHash]: envHash,
+    },
+    /**
+     * THE ALIAS THE EDGE DIALS, set at CREATE time and not afterwards.
+     *
+     * An alias added by a later `network connect` applies to THAT attachment, and
+     * this container already has one from `NetworkMode` — so a second connect would
+     * either be refused as a duplicate or add a second attachment to the same
+     * network. The name is not usable as a dial address (Decision 2: 72 characters
+     * for a long slug, and a 72-character name does not resolve), so without this
+     * the edge has nothing to reach the instance by.
+     */
+    NetworkingConfig: {
+      EndpointsConfig: {
+        [deps.networkName]: { Aliases: [instanceAlias(spec.instanceId)] },
+      },
     },
   })
   // A CREATE THAT COULD NOT FAIL. Task 1 maps 404 to `undefined` by design, and

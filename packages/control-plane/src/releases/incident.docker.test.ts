@@ -24,6 +24,7 @@ import {
   dockerDriverForTests,
   egressContainer,
   fixtureBareRepo,
+  instanceAlias,
   resolveSocketPath,
 } from '../runtime/testing.js'
 import { createAppSecrets, generateMasterKeypair } from '../secrets/index.js'
@@ -218,8 +219,19 @@ describeDocker('a failed deploy records an Incident, from a real container (§14
       const incident = recorded[0]!
 
       expect(incident.exitReason).toBe('the process exited with code 3')
+      /**
+       * THE PROBE MOVED (P4c Task 4). Readiness is asked from INSIDE THE EDGE against
+       * the instance's own network alias — `mf-i-<instanceId>:<port>` — not at the
+       * public hostname, because the hostname's route has not moved yet and must not:
+       * whatever serves it keeps serving it while this instance tries to start. The
+       * alias is asserted rather than matched loosely, so a probe that went back to
+       * the hostname (and would then be answered by the instance already serving)
+       * fails here as well as in `redeploy.docker.test.ts`.
+       */
       expect(incident.failedCheck).toMatch(
-        /^readiness: GET \/healthz at https:\/\/incident-probe\.staging\.manifest\.internal through the edge — .+ \(\d+ attempts\)$/,
+        new RegExp(
+          `^readiness: GET /healthz on ${instanceAlias(instance.id)}:\\d+ from the edge — .+ \\(\\d+ attempts\\)$`,
+        ),
       )
 
       // 252 lines printed; the LAST 200 kept, in order.

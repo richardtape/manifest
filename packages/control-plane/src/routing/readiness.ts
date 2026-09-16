@@ -228,13 +228,24 @@ async function curlThroughEdge(
 /**
  * Is the app reachable at its public hostname? A status, and nothing more.
  *
- * This asks a different question from `status().healthy`, which reads Docker's
- * in-container HEALTHCHECK: this one additionally proves DNS, the Caddy route and
- * the listener, which is what "reachable" means to the person who asked for the app.
+ * NOT FOR READINESS, AND NO PRODUCTION CALLER SINCE P4c TASK 4. It is kept, and
+ * exported, because it is the CONTROL: `readiness.docker.test.ts` runs it against a
+ * hostname the platform holds no route to and it answers **200**, from the edge's
+ * wildcard, for any path — which is the whole reason `waitForIdentity` exists and
+ * the reason a deploy that checked a status could report success against an app that
+ * never started (P4b finding 193, measured again 2026-09-15).
  *
- * It CANNOT tell one instance from another, or either from the edge's wildcard —
- * `edgeIdentityProbe` is for that, and since P4c it is what a deploy verifies a
- * route move with.
+ * Kept rather than deleted, deliberately, against this project's rule that a
+ * function with no call site is not built (Decision 22 deleted `reapplyAllRoutes`
+ * under it the same day). That rule exists because uncalled code has never run — and
+ * this runs on every Docker-tier pass, as the negative control that makes the
+ * identity check mean something. Deleting it would mean rebuilding the probe
+ * container inside a test to keep the control, which is the duplication
+ * `curlThroughEdge` was factored out to prevent.
+ *
+ * If you are reaching for this to decide whether an app is up: you want
+ * `edgeIdentityProbe` with `waitForIdentity`, or `privateProbe` if the route has not
+ * moved yet.
  */
 export function edgeProbe(
   engine: EngineClient,

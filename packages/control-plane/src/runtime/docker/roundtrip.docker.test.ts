@@ -288,9 +288,11 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
       name: instanceName(SLUG, KIND, 'unreachable', UNREACHABLE_INSTANCE_ID),
       instanceId: UNREACHABLE_INSTANCE_ID,
       releaseId: 'unreachable',
-      // The app really is up and really is routed. It listens on 8080; the route
-      // and the health check are pointed at a port nothing is bound to, so the
-      // edge answers 502 for ever.
+      // The app really is up. It listens on 8080; the readiness probe and the health
+      // check are pointed at a port nothing is bound to, so the probe inside the edge
+      // gets a connection refused for ever — and since P4c the route is NOT moved
+      // before that, so `fixture-rt.staging.manifest.internal` keeps serving whatever
+      // it served. The one thing under test is "does the deploy notice?".
       port: 9999,
     })
     // WITH THE HANDLE (P4b Task 13). The container exists, and `deployRelease` reads
@@ -304,8 +306,17 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
           instanceName(SLUG, KIND, 'unreachable', UNREACHABLE_INSTANCE_ID),
         ),
       },
+      /**
+       * THE PROBE MOVED (P4c Task 4). Readiness is now asked from INSIDE THE EDGE
+       * against the instance's own network alias — `mf-i-<instanceId>:<port>` —
+       * rather than at the public hostname, because the public hostname's route has
+       * not moved yet and must not: whatever serves it keeps serving it. The `9999`
+       * in this string is the whole of what this test breaks.
+       */
       check: expect.stringMatching(
-        /^readiness: GET \/\S+ at https:\/\/fixture-rt\.staging\.manifest\.internal through the edge — /,
+        new RegExp(
+          `^readiness: GET /\\S+ on mf-i-${UNREACHABLE_INSTANCE_ID}:9999 from the edge — `,
+        ),
       ),
     })
     await impatient

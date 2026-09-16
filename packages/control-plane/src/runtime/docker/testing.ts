@@ -11,7 +11,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Driver } from '../driver.js'
-import { createCaddyClient } from '../../routing/index.js'
+import { createCaddyClient, type RoutingDeps } from '../../routing/index.js'
 import { createDockerDriver } from './driver.js'
 import { createEngineClient, resolveSocketPath } from './engine.js'
 import { fileURLToPath } from 'node:url'
@@ -107,7 +107,7 @@ export const CA_CERT = join(REPO_ROOT, 'infra/ca/manifest-root.crt')
  * tokens the running registry refuses.
  */
 export function dockerDriverForTests(
-  overrides: { readinessTimeoutMs?: number } = {},
+  overrides: { readinessTimeoutMs?: number; routing?: RoutingDeps } = {},
 ): Promise<Driver> {
   const keyPath = join(REPO_ROOT, 'infra/registry-auth/token.key')
   const certPath = join(REPO_ROOT, 'infra/registry-auth/token.crt')
@@ -137,7 +137,16 @@ export function dockerDriverForTests(
     registryPublicHost: '127.0.0.1:7107',
     registryTokenKeyPem: readFileSync(keyPath, 'utf8'),
     registryTokenCertPem: readFileSync(certPath, 'utf8'),
-    routing: {
+    /**
+     * The real edge, unless a test hands one in.
+     *
+     * `routing` is overridable for exactly one case (P4c Task 4): a driver whose
+     * route WRITES do nothing, so the route never actually moves and the identity
+     * check cannot pass. That proves the rollback without breaking the edge for the
+     * driver that is serving — which is why it is an override on this factory rather
+     * than something a test does to `manifest-caddy`.
+     */
+    routing: overrides.routing ?? {
       caddy: createCaddyClient('http://127.0.0.1:7119'),
       servers: { internal: 'srv0', public: 'srv0' },
     },

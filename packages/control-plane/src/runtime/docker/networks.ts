@@ -12,6 +12,18 @@ import { appNetwork, type EnvironmentKind } from './names.js'
 export const PLATFORM_NEIGHBOURS = ['manifest-caddy', 'manifest-dns-containers']
 
 /**
+ * The edge, by name — the first of `PLATFORM_NEIGHBOURS` and the one the driver has
+ * to be able to say out loud.
+ *
+ * P4c's readiness probe runs INSIDE it (`probes.ts`): the edge is on every app
+ * network, carries no proxy environment, and is the exact network position Caddy
+ * will dial from when the route moves. Named here rather than repeated as a literal
+ * in the driver, because `PLATFORM_NEIGHBOURS[0]` is a fact about an array's order
+ * and this is a fact about which container is the edge.
+ */
+export const EDGE_NEIGHBOUR = 'manifest-caddy'
+
+/**
  * §10's model gateway — a CONDITIONAL neighbour, attached only to the network of an
  * app whose release declares `ai.models` (P4b Task 8, Decision 5).
  *

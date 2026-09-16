@@ -11,8 +11,11 @@ import {
 } from '../../build/index.js'
 import {
   applyRoute,
-  edgeProbe,
+  edgeIdentityProbe,
   removeRoute,
+  restoreRouteTo,
+  servingRoute,
+  waitForIdentity,
   waitForReady,
   type RoutingDeps,
 } from '../../routing/index.js'
@@ -40,6 +43,8 @@ import {
   withEphemeralBuilder,
 } from './builder.js'
 import { createBuildQueue } from './concurrency.js'
+import { createKeyedMutex } from './keyed-mutex.js'
+import { privateProbe } from './probes.js'
 import { ensureEgressProxy } from './egress.js'
 import { EngineError, registryAuthHeader, type EngineClient } from './engine.js'
 import { containerExec } from './exec.js'
@@ -51,8 +56,8 @@ import {
   stopInstanceContainer,
 } from './instances.js'
 import { containerLogs } from './logs.js'
-import { appNetwork } from './names.js'
-import { AI_GATEWAY_NEIGHBOUR, ensureAppNetwork } from './networks.js'
+import { appNetwork, instanceAlias } from './names.js'
+import { AI_GATEWAY_NEIGHBOUR, EDGE_NEIGHBOUR, ensureAppNetwork } from './networks.js'
 import { mintRegistryToken } from './registry-auth.js'
 import { destroyServiceContainer, ensureServiceContainer } from './services.js'
 
@@ -136,6 +141,18 @@ export interface DockerDriverOptions {
  */
 const DEFAULT_READINESS_TIMEOUT_MS = 90_000
 
+/**
+ * How long the edge gets to start answering as the new instance after the route has
+ * moved in place.
+ *
+ * SHORT, and separate from readiness, because at this point the instance is already
+ * answering on its own network: the only things left are Caddy's own handling of one
+ * `PATCH /id/<route>` and the probe's round trip. Task 1 measured a move taking
+ * effect between two requests 25 ms apart, 20 times out of 20. A long bound here
+ * would turn a route that will never be right into a deploy that hangs.
+ */
+const IDENTITY_TIMEOUT_MS = 15_000
+
 /** Matches `registry:2`'s configured issuer and service (infra/compose.yaml). */
 const TOKEN_ISSUER = 'manifest-control-plane'
 const TOKEN_SERVICE = 'manifest-registry'
@@ -144,6 +161,15 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
   const { engine } = options
   const limits = options.limits ?? DEFAULT_BUILD_LIMITS
   const queue = createBuildQueue(limits)
+  /**
+   * ONE CALLER AT A TIME PER APP NETWORK (Decision 13).
+   *
+   * `ensureAppNetwork` attaches §10's gateway and then the container is created with
+   * its alias on that network; Task 5's retire decides whether the gateway is still
+   * needed and detaches it. Interleave those and an AI app comes up with no route to
+   * its models — P4b measured that as a student waiting 611 s (finding 181).
+   */
+  const perNetwork = createKeyedMutex()
   // Read once at construction: it is a property of the daemon, not of a call, and
   // re-reading it per container would make `capabilities()` async.
   const host = await detectHostCapabilities(engine)
@@ -315,87 +341,145 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
       return ensureServiceContainer(engine, binding, kind)
     },
 
+    /**
+     * §11's Redeploys, in one call: BESIDE, PRIVATELY READY, MOVED ONCE, VERIFIED.
+     *
+     * The guarantee lives HERE rather than in `deployRelease`, so Phase 5's UBC
+     * driver inherits it rather than having to re-derive it — which is R6, and is
+     * why the contract suite has a continuity block every driver must pass.
+     *
+     * What this replaces: `applyRoute` used to run BEFORE the readiness wait, so
+     * the hostname pointed at a container that had not started yet and the edge
+     * answered an empty 502 until it did. Measured 2026-09-15 over three runs of
+     * `make demo-redeploy`: a window of empty 502s 1.0-1.9 s long, starting
+     * 0.2-0.4 s into every redeploy, on an app that boots in about a second.
+     */
     async ensureInstance(spec: InstanceSpec): Promise<InstanceHandle> {
-      // §10's gateway joins the network only for an app that declares models (P4b
-      // Task 8, Decision 5). S6 probe 13 asserts both halves from inside the network.
-      await ensureAppNetwork(
-        engine,
-        spec.projectSlug,
-        spec.environmentKind,
-        spec.needsAiGateway ? [AI_GATEWAY_NEIGHBOUR] : [],
-      )
-      const proxy = await ensureEgressProxy(engine, {
-        slug: spec.projectSlug,
-        kind: spec.environmentKind,
-        allow: spec.egressAllow,
-      })
-      // §23 assigned it and `deployRelease` holds the environment row, so it arrives on
-      // the spec (P4c Task 2). Re-deriving it here made this driver a SECOND producer
-      // of the name — the shape that cost P3's session 5 seven defects.
-      const hostname = spec.hostname
-      // The daemon does not have the image just because the builder pushed it:
-      // buildx `--push` writes to the registry and never loads into the daemon's
-      // store. Deploying a release built in an earlier process — a promotion, a
-      // redeploy, anything after `make reset` — would otherwise fail
-      // `no such image` at create time.
-      await ensureImagePulled(engine, spec.image, pullToken, options.registryPublicHost)
-      const handle = await ensureInstanceContainer(engine, spec, {
-        networkName: appNetwork(spec.projectSlug, spec.environmentKind),
-        dnsServer: options.dnsServer,
-        proxyUrl: proxy.url,
-        diskQuotaEnforceable: host.diskQuota,
-      })
-      // The route is applied here, not by the caller: §21 makes the edge the only
-      // way to reach the app, so an instance without a route is not deployed.
-      await applyRoute(options.routing, {
-        hostname,
-        upstream: `${handle.name}:${spec.port}`,
-        kind: spec.environmentKind,
-        // The route names the instance it reaches, on every response (P4c Task 3).
-        // Task 4 is what reads it back to confirm the move actually happened; until
-        // then it is set and unread, which is the right order — a route already
-        // deployed has to carry the header before anything can wait on it.
-        instanceId: spec.instanceId,
+      const network = appNetwork(spec.projectSlug, spec.environmentKind)
+      // What the EDGE dials. Never the container name: with the instance in the name
+      // (§11) a long slug gives 72 characters, and a 72-character name does not
+      // resolve — measured 2026-09-15 (Decision 2).
+      const upstream = `${instanceAlias(spec.instanceId)}:${spec.port}`
+
+      // The network, the proxy, the image and the container, with nothing else
+      // touching this network meanwhile (Decision 13).
+      const handle = await perNetwork(network, async () => {
+        // §10's gateway joins the network only for an app that declares models (P4b
+        // Task 8, Decision 5). S6 probe 13 asserts both halves from inside the network.
+        await ensureAppNetwork(
+          engine,
+          spec.projectSlug,
+          spec.environmentKind,
+          spec.needsAiGateway ? [AI_GATEWAY_NEIGHBOUR] : [],
+        )
+        const proxy = await ensureEgressProxy(engine, {
+          slug: spec.projectSlug,
+          kind: spec.environmentKind,
+          allow: spec.egressAllow,
+        })
+        // The daemon does not have the image just because the builder pushed it:
+        // buildx `--push` writes to the registry and never loads into the daemon's
+        // store. Deploying a release built in an earlier process — a promotion, a
+        // redeploy, anything after `make reset` — would otherwise fail
+        // `no such image` at create time.
+        await ensureImagePulled(engine, spec.image, pullToken, options.registryPublicHost)
+        return ensureInstanceContainer(engine, spec, {
+          networkName: network,
+          dnsServer: options.dnsServer,
+          proxyUrl: proxy.url,
+          diskQuotaEnforceable: host.diskQuota,
+        })
       })
 
       /**
-       * AND THEN WAIT UNTIL IT ANSWERS AT THAT HOSTNAME.
+       * 1. READY, WITHOUT TOUCHING THE ROUTE.
        *
-       * Task 14 built `waitForReady`/`edgeProbe` for exactly this and nothing
-       * called them — the module was reachable only from its own tests, which is
-       * the defect P2 shipped with its boot entry point and P3's self-review found
-       * in P3. Measured 2026-09-07 by the Task 17 round trip: the wake path
-       * (`stopInstance` then `ensureInstance`) returned a handle while the app was
-       * still connecting to its database, and the very next request through the
-       * edge got Caddy's **502 with an empty body**.
-       *
-       * This asks a different question from `status().healthy`, which reads the
-       * container's own HEALTHCHECK and means "the process is up". This means
-       * "reachable at its hostname" — DNS, the Caddy route and the listener as
-       * well — which is what §11's `starting → healthy` is supposed to mean and
-       * what a faculty member will actually check.
+       * Whatever serves this hostname keeps serving it while the new instance
+       * starts. The probe runs INSIDE THE EDGE against the instance's own network
+       * alias, which is both the position Caddy will dial from and the only way to
+       * ask the question without the public hostname — a status-only probe of a
+       * hostname gets 200 from the edge's wildcard whether an app is there or not
+       * (P4b finding 193).
        */
       const readiness = await waitForReady({
-        url: handle.url,
-        probe: edgeProbe(engine, hostname, spec.healthPath, options.caCertPath, {
-          dnsServer: options.dnsServer,
-        }),
+        url: `http://${upstream}${spec.healthPath}`,
+        probe: privateProbe(engine, EDGE_NEIGHBOUR, upstream, spec.healthPath),
         timeoutMs: options.readinessTimeoutMs ?? DEFAULT_READINESS_TIMEOUT_MS,
         intervalMs: 1000,
       })
       if (!readiness.ready) {
-        // WITH THE HANDLE (P4b Task 13). The container exists — it has a log and an
-        // exit code — and `deployRelease` records what happened to it as §14's
-        // Incident. An error with a code and no handle left it nothing to read.
+        // THE INSTANCE STAYS. §14's Incident is read through this handle — the exit
+        // code and the last 200 log lines — and §11 has the CALLER remove it once
+        // that is captured (Decision 10). A driver that removed it first would hand
+        // the Incident nothing, which is the commonest real failure: an app that
+        // crashes as it starts.
         throw new InstanceNotReadyError(
           handle,
-          `readiness: GET ${spec.healthPath} at ${handle.url} through the edge — ` +
+          `readiness: GET ${spec.healthPath} on ${upstream} from the edge — ` +
             `${readiness.reason} (${readiness.attempts} attempts)`,
-          `${handle.name} started but never answered 200 at ${handle.url}${spec.healthPath} — ` +
+          `${handle.name} started and never answered 200 at ${spec.healthPath} — ` +
             `${readiness.reason} (${readiness.attempts} attempts)`,
-          'The container can be up while DNS, the Caddy route or the listener is not — ' +
-            'this probe covers all four, unlike the container HEALTHCHECK. ' +
+          `The route did not move, so whatever served ${spec.hostname} still does. ` +
             `\`docker logs ${handle.name}\` is the next thing to read.`,
+        )
+      }
+
+      /**
+       * 2. ONE IN-PLACE MOVE.
+       *
+       * `applyRoute` PATCHes the route by `@id` where one exists. Delete-then-insert
+       * leaves a window with no route, which the edge's wildcard answers 200 —
+       * measured 2026-09-15: 4 wildcard answers in 320 requests across 20 such
+       * moves, 0 in 330 across 20 PATCHes.
+       */
+      const previous = await servingRoute(options.routing, spec.hostname)
+      await applyRoute(options.routing, {
+        hostname: spec.hostname,
+        upstream,
+        kind: spec.environmentKind,
+        instanceId: spec.instanceId,
+      })
+
+      /**
+       * 3. AND THE EDGE MUST SAY SO ITSELF.
+       *
+       * Not a status — the wildcard answers 200 for a hostname with no route at all,
+       * for any path — but THIS instance's own identity, off the header the route
+       * sets and nothing else sets (Decision 7).
+       */
+      const verified = await waitForIdentity({
+        url: handle.url,
+        expected: spec.instanceId,
+        probe: edgeIdentityProbe(
+          engine,
+          spec.hostname,
+          spec.healthPath,
+          options.caCertPath,
+          {
+            dnsServer: options.dnsServer,
+          },
+        ),
+        timeoutMs: IDENTITY_TIMEOUT_MS,
+        intervalMs: 500,
+      })
+      if (!verified.ready) {
+        // PUT IT BACK. The previous instance is still running and still healthy;
+        // leaving the hostname on a move we could not confirm is the outage this
+        // refuses. `restoreRouteTo(undefined, …)` removes the route, which is what
+        // "what served before" means when nothing did.
+        await restoreRouteTo(
+          options.routing,
+          previous,
+          spec.hostname,
+          spec.environmentKind,
+        )
+        throw new InstanceNotReadyError(
+          handle,
+          `identity: GET ${spec.healthPath} at ${handle.url} through the edge did not ` +
+            `answer as ${spec.instanceId} — ${verified.reason}`,
+          `${handle.name} is ready, and ${spec.hostname} did not reach it`,
+          'The route was put back to what served before. The edge, its route and DNS ' +
+            'are what to look at; the container itself answered on its own network.',
         )
       }
       return handle
