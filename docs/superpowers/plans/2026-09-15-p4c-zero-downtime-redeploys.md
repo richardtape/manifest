@@ -3614,3 +3614,5 @@ Control (d) is the one worth keeping: it fails loudly and in two files, which is
 - **`pnpm test` truncates the control plane's tables**, so the proof app no longer has a project row at all, while its container, network, database and LiteLLM key live on (P4b findings 178 and 183). A redeploy through the API was therefore not available to put the route back — there was no project to deploy.
 
 So the route was restored **by hand**, as one admin `PUT` of exactly the route `buildRoute` produces, dialling the running container; the hostname serves the app's own body again. The next `make demo-ai` or `make demo-redeploy` recreates the project and takes it over.
+
+The Docker tier also left five images in the daemon. Three were removed by digest, each checked absent from the previous snapshot under every name first; **two could not be, and should not be** — `local/fixture-s6` and `local/saml-unsigned` answer *"image is referenced in multiple repositories"*, which is ORIENTATION §4's shared-digest case: two fixtures built from the same source share one digest, and untagging one name only moves the diff to the other. They are named here rather than forced.
