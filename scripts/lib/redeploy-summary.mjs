@@ -1,10 +1,12 @@
-// node scripts/lib/redeploy-summary.mjs [--bad | --across-move <phase>] <loop.ndjson> <markers.ndjson> [asks.log [frames.ndjson]]
+// node scripts/lib/redeploy-summary.mjs [--bad | --across-move <phase> | --instances <phase>] <loop.ndjson> <markers.ndjson> [asks.log [frames.ndjson]]
 //
 // One line per phase — a `<phase>-start` / `<phase>-end` marker pair — counting each
 // class of response from the phase's start until TAIL_MS (default 5000) after its end,
 // because the window that matters ends when the app is serving again, not when the
 // deploy call returns. `--bad` prints one number: responses that were neither `app`
-// nor `reset`, which is what the acceptance asserts is zero.
+// nor `reset`, which is what the acceptance asserts is zero. `--instances <phase>` prints
+// every instance that answered inside the window, comma-joined in order of appearance —
+// for the failed release, R5's "the route never moves", read off the wire.
 //
 // WITH THE ASKER'S LOG, each line also says whether a question was IN FLIGHT when the
 // route moved (P4c Task 11, sitting 7 finding 61). The move is read off the health
@@ -20,7 +22,7 @@
 // moves about 1.3 s into a ~5.4 s deploy, the retirer starts only once the deploy call
 // has returned, and a question here takes 3–5 s — so the question the move leaves on the
 // old instance has finished before any drain begins, and a drain bound of 1 ms changed
-// nothing. WITH THE STREAM'S FRAMES, each line also reports `atRetire`: questions the
+// nothing. WITH THE STREAM'S FRAMES, each line also reports `inFlightAtRetire`: questions the
 // previous instance answered after its `instance.retiring` event — the ones a drain
 // actually waited for. Reported, not asserted: in this app it is usually zero, and the
 // drain is proved where a request can be held open on purpose, the Docker tier.
@@ -28,10 +30,12 @@ import { readFileSync } from 'node:fs'
 
 const argv = process.argv.slice(2)
 const badOnly = argv[0] === '--bad'
-const drainedPhase = argv[0] === '--across-move' ? argv[1] : undefined
+const acrossMovePhase = argv[0] === '--across-move' ? argv[1] : undefined
+const instancesPhase = argv[0] === '--instances' ? argv[1] : undefined
+const oneNumber = badOnly || acrossMovePhase !== undefined || instancesPhase !== undefined
 const [loopPath, markPath, asksPath, framesPath] = badOnly
   ? argv.slice(1)
-  : drainedPhase !== undefined
+  : oneNumber
     ? argv.slice(2)
     : argv
 const read = (path) =>
@@ -102,18 +106,20 @@ for (const phase of [...new Set(marks.map((m) => m.name.replace(/-(start|end)$/,
   const drained = acrossMove.filter((a) => a.code === '200').length
   const retireAt = previous === null ? undefined : retiringAt.get(previous)
   const atRetire = retireAt === undefined ? [] : acrossMove.filter((a) => a.t1 > retireAt)
-  if (drainedPhase === phase) {
+  const instancesSeen = [...new Set(window.map((r) => r.instance).filter(Boolean))]
+  if (acrossMovePhase === phase) {
     console.log(drained)
     drainedPrinted = true
   }
+  if (instancesPhase === phase) console.log(instancesSeen.join(','))
 
-  if (!badOnly && drainedPhase === undefined) {
+  if (!oneNumber) {
     const line = {
       phase,
       deployMs: end - start,
       requests: window.length,
       counts,
-      instancesSeen: [...new Set(window.map((r) => r.instance).filter(Boolean))],
+      instancesSeen,
       firstWrongAtMs: wrong[0] === undefined ? null : wrong[0].t - start,
       lastWrongEndedMs:
         wrong.length === 0 ? null : wrong.at(-1).t + wrong.at(-1).ms - start,
@@ -143,4 +149,4 @@ for (const phase of [...new Set(marks.map((m) => m.name.replace(/-(start|end)$/,
 if (badOnly) console.log(bad)
 // A phase with no markers drained nothing — say 0, never nothing, so the caller's
 // numeric comparison fails as an assertion rather than as a shell syntax error.
-if (drainedPhase !== undefined && !drainedPrinted) console.log(0)
+if (acrossMovePhase !== undefined && !drainedPrinted) console.log(0)

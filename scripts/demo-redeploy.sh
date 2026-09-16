@@ -313,6 +313,7 @@ kill "$WATCHER" 2>/dev/null; wait "$WATCHER" 2>/dev/null; WATCHER=""
 node scripts/lib/redeploy-summary.mjs "$LOOP" "$MARKS" "$ASKS" "$FRAMES"
 BAD="$(node scripts/lib/redeploy-summary.mjs --bad "$LOOP" "$MARKS")"
 across_move() { node scripts/lib/redeploy-summary.mjs --across-move "$1" "$LOOP" "$MARKS" "$ASKS"; }
+answered_by() { node scripts/lib/redeploy-summary.mjs --instances "$1" "$LOOP" "$MARKS"; }
 RESETS="$(grep -c '"cls":"reset"' "$LOOP" | tr -d ' ')"
 ASKED="$(grep -c . "$ASKS" | tr -d ' ')"
 ASK_FAILS="$(awk '$3 != 200 || $4 == "-"' "$ASKS" | grep -c . | tr -d ' ')"
@@ -329,6 +330,13 @@ check "same-release: a question in flight when the route moved was answered by t
   [ "$(across_move same-release)" -ge 1 ]
 check "new-release: a question in flight when the route moved was answered by the previous instance" \
   [ "$(across_move new-release)" -ge 1 ]
+# R5 IS "THE ROUTE NEVER MOVES", NOT "THE ROUTE IS BACK BY THE END". Step 7 reads the
+# header once, after the deploy has returned — and a deploy that moved the route to the
+# never-ready instance and put it back 90 s later passes that read. Measured under
+# Task 11's control (b): the failed instance answered every request for 90 s, and only
+# the four empty 502s as it started made the run red. So every request is read.
+check "failed release: every request in its window was answered by the instance that was serving" \
+  [ "$(answered_by failed-release)" = "$NEW_INSTANCE" ]
 echo "  resets: $RESETS (tolerated — an edge configuration reload, §11)"
 
 if [ -n "$FAILURES" ]; then
