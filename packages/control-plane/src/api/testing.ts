@@ -148,6 +148,14 @@ export async function testDeps(): Promise<ServerDeps> {
       discardAppKey: () => {
         throw new Error('the API test harness has no LiteLLM to discard a key from')
       },
+      storeInstanceKey: () => {
+        throw new Error('the API test harness has no LiteLLM: nothing here mints a key')
+      },
+      // The two REVOKES answer rather than throwing, unlike everything above: a retire
+      // (P4c) runs for every app, and no app in this tier declares a model — so a
+      // retire here reaches a key that was never minted, which is not a failure.
+      revokeInstanceKey: () => Promise.resolve(false),
+      revokeLegacyAppKey: () => Promise.resolve(false),
     },
     // A keypair per call, not a shared one: two tests sharing a master key can
     // read each other's secrets, and that is the test-isolation shape that made

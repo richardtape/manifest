@@ -43,6 +43,12 @@ export const EVENT_TYPES = [
   'incident.opened',
   /** §10: an app's AI key was replaced — committed once healthy. NEVER carries the key. */
   'ai.key_rotated',
+  /** §11: an instance this deploy replaced is finishing its last requests (P4c). */
+  'instance.retiring',
+  /** §11: it finished, its container is gone and its AI key is revoked. */
+  'instance.retired',
+  /** It could not be, and will be tried again — never a silent retry (§11). */
+  'instance.retire_failed',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

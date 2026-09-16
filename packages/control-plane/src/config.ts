@@ -172,6 +172,17 @@ const envSchema = z.object({
    * a database connection) as well as DNS, the route and the listener.
    */
   MANIFEST_READINESS_TIMEOUT_MS: z.coerce.number().int().positive().default(90_000),
+  /**
+   * §11's drain bound (P4c): how long a retire waits for the instance it replaced to
+   * finish the requests already in flight to it before the container is removed.
+   *
+   * ONE PLATFORM SETTING, not a field in `manifest.yaml` (Rich, 2026-09-15) — a
+   * per-app bound is a §7 schema change, and this is a property of the platform's
+   * patience rather than of an app. 120 s: long enough for a slow answer from a
+   * language model, short enough that a container is not held for ever by a client
+   * that never hangs up.
+   */
+  MANIFEST_DRAIN_TIMEOUT_MS: z.coerce.number().int().positive().default(120_000),
   // Every backing-service credential is derived from this by HMAC (Task 6), so it
   // is the single secret behind every app's database password. Optional here and
   // required outside development below, for the same two reasons the build
@@ -265,6 +276,8 @@ export interface Config {
   /** Absolute. `infra/lib/ensure-master-key.sh` mints the file `make up` puts here. */
   secretsMasterKeyPath: string
   readinessTimeoutMs: number
+  /** §11's drain bound, in milliseconds. `MANIFEST_DRAIN_TIMEOUT_MS`, 120 s default. */
+  drainTimeoutMs: number
   /** Task 6 derives every service credential from this by HMAC. */
   masterSecret: string
   /**
@@ -423,6 +436,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     caCertPath: fromRepoRoot(raw.MANIFEST_CA_CERT),
     secretsMasterKeyPath: fromRepoRoot(raw.MANIFEST_SECRETS_MASTER_KEY),
     readinessTimeoutMs: raw.MANIFEST_READINESS_TIMEOUT_MS,
+    drainTimeoutMs: raw.MANIFEST_DRAIN_TIMEOUT_MS,
     masterSecret,
     masterSecretGenerated,
     dockerSocket: raw.MANIFEST_DOCKER_SOCKET ?? resolveSocketPath(),

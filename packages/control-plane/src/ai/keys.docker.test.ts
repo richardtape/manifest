@@ -1,9 +1,15 @@
+import { randomUUID } from 'node:crypto'
 import { expect, it } from 'vitest'
 import { describeDocker } from '../runtime/testing.js'
 import { getSecret } from '../secrets/index.js'
 import { withSecretScope } from '../secrets/testing.js'
 import { createLiteLlmClient } from './client.js'
-import { LLM_API_KEY_SECRET, aiUserId, createAiKeyService } from './keys.js'
+import {
+  LLM_API_KEY_SECRET,
+  aiUserId,
+  createAiKeyService,
+  instanceKeySecretName,
+} from './keys.js'
 import { litellmMasterKey, litellmUrl } from './testing.js'
 
 /** One request, answered RAW: the assertions are on the gateway's own statuses. */
@@ -132,6 +138,133 @@ describeDocker('app keys against the running gateway (P4b Tasks 7 and 9)', () =>
         // By the HASHED token /user/info reports, which /key/delete accepts (measured
         // 2026-09-14) — so a key this test never saw, such as one auto-created with
         // the user, does not outlive the run either.
+        const tokens = left
+          .map((k) => k.token)
+          .filter((t): t is string => typeof t === 'string')
+        if (tokens.length > 0) await call(master, 'POST', '/key/delete', { keys: tokens })
+        await call(master, 'POST', '/user/delete', { user_ids: [userId] })
+        const leak = `teardown: ${userId} held ${left.length} key(s) this test did not mint`
+        if (left.length > 0 && passed) throw new Error(leak)
+        if (left.length > 0) console.error(leak)
+      }
+    }
+  })
+
+  /**
+   * A KEY PER INSTANCE (P4c Task 6).
+   *
+   * P4b stored one key per app and environment and revoked the previous one at the
+   * commit — the moment the previous container is still serving. P4c replaces an
+   * instance beside the one serving and drains it, so both instances hold a live key
+   * at once and each is revoked exactly when its own instance is retired. That is a
+   * fact about the gateway — two keys under one user, both answering — so it is
+   * measured here rather than against a fake.
+   */
+  it('gives each instance its own live key, and revokes exactly that one', async () => {
+    const master = litellmMasterKey()
+    const client = createLiteLlmClient({ baseUrl: litellmUrl(), masterKey: master })
+    const minted: string[] = []
+    let userId: string | undefined
+    let passed = false
+
+    const answers = async (key: string): Promise<number> =>
+      (await call(key, 'GET', '/v1/models')).status
+
+    try {
+      await withSecretScope(async (db, { projectId, keys }) => {
+        userId = aiUserId(projectId, 'staging')
+        const service = createAiKeyService(client, keys)
+        const args = {
+          projectId,
+          projectSlug: 'chem-labs',
+          kind: 'staging' as const,
+          models: ['default-chat'],
+          monthlyUsd: 5,
+        }
+        const oldInstance = randomUUID()
+        const newInstance = randomUUID()
+        const stored = (instanceId: string) =>
+          getSecret(
+            db,
+            {
+              projectId,
+              environmentKind: 'staging',
+              name: instanceKeySecretName(instanceId),
+            },
+            keys,
+          )
+
+        const oldKey = await service.mintAppKey(args)
+        minted.push(oldKey)
+        await service.storeInstanceKey(db, {
+          ...args,
+          instanceId: oldInstance,
+          key: oldKey,
+        })
+        const newKey = await service.mintAppKey(args)
+        minted.push(newKey)
+        await service.storeInstanceKey(db, {
+          ...args,
+          instanceId: newInstance,
+          key: newKey,
+        })
+
+        // BOTH LIVE AT ONCE. This is the whole point: the old container is draining
+        // and its questions must still be answered.
+        expect(await answers(oldKey)).toBe(200)
+        expect(await answers(newKey)).toBe(200)
+        expect(await stored(oldInstance)).toBe(oldKey)
+        expect(await stored(newInstance)).toBe(newKey)
+
+        // The old instance is retired: its key dies and the serving one does not.
+        expect(
+          await service.revokeInstanceKey(db, {
+            projectId,
+            kind: 'staging',
+            instanceId: oldInstance,
+          }),
+        ).toBe(true)
+        expect(await answers(oldKey)).toBe(401)
+        expect(await answers(newKey)).toBe(200)
+        expect(await stored(oldInstance)).toBeUndefined()
+        expect(await stored(newInstance)).toBe(newKey)
+
+        // A second retire of the same instance — the retirer runs again after a
+        // failure — is not an error, and revokes nothing it should not.
+        expect(
+          await service.revokeInstanceKey(db, {
+            projectId,
+            kind: 'staging',
+            instanceId: oldInstance,
+          }),
+        ).toBe(false)
+        expect(await answers(newKey)).toBe(200)
+
+        // P4b's ENVIRONMENT-level key, which every app deployed before P4c holds.
+        const legacy = await service.mintAppKey(args)
+        minted.push(legacy)
+        await service.commitAppKey(db, { projectId, kind: 'staging', key: legacy })
+        expect(await service.revokeLegacyAppKey(db, { projectId, kind: 'staging' })).toBe(
+          true,
+        )
+        expect(await answers(legacy)).toBe(401)
+        // It is gone from the store as well as from the gateway, so the next retire
+        // does not try again for ever.
+        expect(await service.revokeLegacyAppKey(db, { projectId, kind: 'staging' })).toBe(
+          false,
+        )
+        // And the instance's own key — the one actually serving — is still live.
+        expect(await answers(newKey)).toBe(200)
+      })
+      passed = true
+    } finally {
+      for (const key of minted) await call(master, 'POST', '/key/delete', { keys: [key] })
+      if (userId !== undefined) {
+        const left = ((
+          (await (
+            await call(master, 'GET', `/user/info?user_id=${userId}`)
+          ).json()) as UserInfo
+        ).keys ?? []) as { token?: string }[]
         const tokens = left
           .map((k) => k.token)
           .filter((t): t is string => typeof t === 'string')

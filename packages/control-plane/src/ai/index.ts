@@ -17,6 +17,15 @@ export {
   disabledAiKeyService,
   discardAppKey,
   ensureAiUser,
+  instanceKeySecretName,
   mintAppKey,
+  revokeInstanceKey,
+  revokeLegacyAppKey,
+  storeInstanceKey,
 } from './keys.js'
-export type { AiKeyService, CommitAppKeyInput, MintAppKeyInput } from './keys.js'
+export type {
+  AiKeyService,
+  CommitAppKeyInput,
+  InstanceKeyScope,
+  MintAppKeyInput,
+} from './keys.js'

@@ -3,12 +3,14 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+  deleteSecret,
   generateMasterKeypair,
   getSecret,
   loadMasterKeypair,
   putSecret,
   secretValuesFor,
   SecretError,
+  type EnvironmentKind,
 } from './index.js'
 import { masterKeyFileContent, withSecretScope } from './testing.js'
 
@@ -109,6 +111,49 @@ describe('the secret store (§6, §12)', () => {
           keys,
         ),
       ).toBeUndefined()
+    })
+  })
+
+  // P4c Task 6. A retired instance's AI key is revoked at the gateway and then
+  // forgotten here; the environment's pre-P4c key is forgotten the same way.
+  it('deleteSecret removes ONE scope’s row and leaves the others', async () => {
+    await withSecretScope(async (db, { projectId, keys }) => {
+      const put = (environmentKind: EnvironmentKind, name: string, value: string) =>
+        putSecret(db, { projectId, environmentKind, name, value }, keys)
+      await put('staging', 'app:llmApiKey:one', 'sk-one')
+      await put('staging', 'app:llmApiKey:two', 'sk-two')
+      await put('production', 'app:llmApiKey:one', 'sk-prod')
+
+      expect(
+        await deleteSecret(db, {
+          projectId,
+          environmentKind: 'staging',
+          name: 'app:llmApiKey:one',
+        }),
+      ).toBe(true)
+
+      const read = (environmentKind: EnvironmentKind, name: string) =>
+        getSecret(db, { projectId, environmentKind, name }, keys)
+      expect(await read('staging', 'app:llmApiKey:one')).toBeUndefined()
+      // The sibling instance's key, and the other environment's, are untouched — the
+      // scope is (project, kind, name) and a delete that took the name alone would
+      // revoke an instance that is still serving.
+      expect(await read('staging', 'app:llmApiKey:two')).toBe('sk-two')
+      expect(await read('production', 'app:llmApiKey:one')).toBe('sk-prod')
+    })
+  })
+
+  it('deleteSecret answers false for a secret that was never stored', async () => {
+    // A retire of an instance that never minted a key is not an error: an app with no
+    // ai.models has no key, and every retire calls this.
+    await withSecretScope(async (db, { projectId }) => {
+      expect(
+        await deleteSecret(db, {
+          projectId,
+          environmentKind: 'staging',
+          name: 'app:llmApiKey:never',
+        }),
+      ).toBe(false)
     })
   })
 

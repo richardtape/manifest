@@ -14,6 +14,15 @@ export type InstanceEvent =
   | 'wake_requested'
   | 'destroy_requested'
   | 'destroyed'
+  /**
+   * The control plane restarted while this instance was mid-deploy (P4c Task 9).
+   *
+   * A deploy runs inside an HTTP request, so a restart leaves its row in whatever
+   * state it had reached and nothing ever moves it again — the process that would
+   * have is the one that died. Boot ends those. NOT accepted from `healthy`: the
+   * control plane restarting says nothing about a container that is still serving.
+   */
+  | 'interrupted'
 
 type TransitionTable = Readonly<
   Record<InstanceState, Readonly<Partial<Record<InstanceEvent, InstanceState>>>>
@@ -29,11 +38,13 @@ export const TRANSITIONS: TransitionTable = Object.freeze({
   provisioning: {
     services_bound: 'starting',
     health_failed: 'failed',
+    interrupted: 'failed',
     destroy_requested: 'destroying',
   },
   starting: {
     health_passed: 'healthy',
     health_failed: 'failed',
+    interrupted: 'failed',
     destroy_requested: 'destroying',
   },
   healthy: {
@@ -46,6 +57,7 @@ export const TRANSITIONS: TransitionTable = Object.freeze({
   waking: {
     container_started: 'starting',
     health_failed: 'failed',
+    interrupted: 'failed',
     destroy_requested: 'destroying',
   },
   failed: { build_started: 'building', destroy_requested: 'destroying' },

@@ -194,6 +194,44 @@ export const instances = pgTable(
   (t) => [index('instances_environment_idx').on(t.environmentId)],
 )
 
+/** §23's two listeners, as `routing/hostnames.ts` names them. */
+export const routeListener = pgEnum('route_listener', ['internal', 'public'])
+/** §6's Route kind. Only `canonical` is written in Phase 1; custom domains are Phase 2. */
+export const routeKind = pgEnum('route_kind', ['canonical', 'custom'])
+
+/**
+ * §6's `Route`, and the platform's record of WHICH INSTANCE SERVES a hostname (P4c).
+ *
+ * Nothing recorded it before. `GET /environments/:id` answered with the instance row
+ * whose `last_seen_at` was newest, which is the newest DEPLOY — including one that
+ * failed — and the edge's own configuration was the only place the answer existed.
+ * The control plane's boot re-applies the edge's routes from these rows (§12), which
+ * is what makes a restart of the edge recoverable without a redeploy.
+ *
+ * `ON DELETE cascade`, unlike `audit.events`' restrict: a route is not an audit
+ * record, and when an instance row goes its route goes with it. §20's argument for
+ * restrict is about a trail that must outlive its subject; this is the opposite — a
+ * route that outlived its instance would be a hostname dialling a container that is
+ * gone, which is the 502 P4c exists to remove.
+ *
+ * Unique on `hostname` alone: one hostname reaches one instance, and that uniqueness
+ * is what makes the takeover an UPDATE rather than a second row nothing can choose
+ * between.
+ */
+export const routes = pgTable(
+  'routes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    instanceId: uuid('instance_id')
+      .notNull()
+      .references(() => instances.id, { onDelete: 'cascade' }),
+    hostname: text('hostname').notNull(),
+    listener: routeListener('listener').notNull(),
+    kind: routeKind('kind').notNull().default('canonical'),
+  },
+  (t) => [uniqueIndex('routes_hostname_key').on(t.hostname)],
+)
+
 export const serviceInstances = pgTable('service_instances', {
   id: uuid('id').primaryKey().defaultRandom(),
   environmentId: uuid('environment_id')
@@ -332,7 +370,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed')`,
     ),
   ],
 )

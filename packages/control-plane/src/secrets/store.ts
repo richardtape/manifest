@@ -104,6 +104,22 @@ export async function getSecret(
 }
 
 /**
+ * Removes one secret. `false` when there was none (P4c Task 6).
+ *
+ * A retire of an instance that never minted a key is not an error — an app with no
+ * `ai.models` has none, and every retire calls this — so an absent row answers rather
+ * than throwing. Scoped to (project, kind, name) like every other read here: a delete
+ * by name alone would take the sibling instance's key, and that instance is the one
+ * still serving.
+ */
+export async function deleteSecret(db: Db, scope: SecretScope): Promise<boolean> {
+  const deleted = await db.delete(secrets).where(scopeWhere(scope)).returning({
+    id: secrets.id,
+  })
+  return deleted.length > 0
+}
+
+/**
  * Every secret in one scope, as plaintext — the input Task 8's redactor needs.
  *
  * Scoped to the environment KIND rather than the project, because a redactor

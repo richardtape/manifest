@@ -1,5 +1,6 @@
 import type { Db } from '../db/index.js'
 import {
+  deleteSecret,
   getSecret,
   putSecret,
   type EnvironmentKind,
@@ -141,6 +142,90 @@ export async function mintAppKey(
   return minted.key
 }
 
+/**
+ * An instance's own key (P4c Task 6).
+ *
+ * P4b stored ONE key per app and environment and revoked the previous one at the
+ * commit — which is the moment the previous container is still serving, so the revoke
+ * had to wait for a drain that did not exist. P4c starts the new instance BESIDE the
+ * one serving and drains the old one, so both hold a live key at once. A key stored
+ * under its instance's id is revoked exactly when that instance is retired, and a key
+ * whose instance failed is still recorded, so the next retire cleans it up rather than
+ * losing the only reference to a live key.
+ */
+export const instanceKeySecretName = (instanceId: string): string =>
+  `${LLM_API_KEY_SECRET}:${instanceId}`
+
+export interface InstanceKeyScope {
+  projectId: string
+  kind: EnvironmentKind
+  instanceId: string
+}
+
+const instanceScope = (input: InstanceKeyScope) => ({
+  projectId: input.projectId,
+  environmentKind: input.kind,
+  name: instanceKeySecretName(input.instanceId),
+})
+
+/** Records the key this instance holds. Revokes nothing: every other instance's key
+ *  stays live, which is what lets the old container answer while it drains. */
+export async function storeInstanceKey(
+  db: Db,
+  keys: MasterKeypair,
+  input: InstanceKeyScope & { key: string },
+): Promise<void> {
+  await putSecret(db, { ...instanceScope(input), value: input.key }, keys)
+}
+
+/**
+ * Revokes the key this instance held and forgets it. `false` when it held none.
+ *
+ * THE REVOKE COMES FIRST. A failure then leaves the secret recorded, so the next
+ * retire tries again; deleting first and failing at the gateway would leave a live key
+ * with nothing in the platform referencing it — a key nobody can revoke and nobody
+ * can find.
+ */
+export async function revokeInstanceKey(
+  db: Db,
+  client: LiteLlmClient,
+  keys: MasterKeypair,
+  input: InstanceKeyScope,
+): Promise<boolean> {
+  const scope = instanceScope(input)
+  const key = await getSecret(db, scope, keys)
+  if (key === undefined) return false
+  await revokeKey(client, key)
+  await deleteSecret(db, scope)
+  return true
+}
+
+/**
+ * The same for P4b's environment-level `app:llmApiKey`, which every app deployed
+ * before P4c holds.
+ *
+ * Called only once the environment's serving instance has a `Route` record — until
+ * then that key is the one the RUNNING container is using, and revoking it fails
+ * every question a student asks of an app this platform has not redeployed yet.
+ */
+export async function revokeLegacyAppKey(
+  db: Db,
+  client: LiteLlmClient,
+  keys: MasterKeypair,
+  input: { projectId: string; kind: EnvironmentKind },
+): Promise<boolean> {
+  const scope = {
+    projectId: input.projectId,
+    environmentKind: input.kind,
+    name: LLM_API_KEY_SECRET,
+  }
+  const key = await getSecret(db, scope, keys)
+  if (key === undefined) return false
+  await revokeKey(client, key)
+  await deleteSecret(db, scope)
+  return true
+}
+
 export interface CommitAppKeyInput {
   projectId: string
   kind: EnvironmentKind
@@ -209,6 +294,15 @@ export interface AiKeyService {
   mintAppKey(input: MintAppKeyInput): Promise<string>
   commitAppKey(db: Db, input: CommitAppKeyInput): Promise<void>
   discardAppKey(key: string): Promise<void>
+  /** P4c: the key this instance holds, recorded under its own id. */
+  storeInstanceKey(db: Db, input: InstanceKeyScope & { key: string }): Promise<void>
+  /** P4c: revoked when THAT instance is retired, never when its replacement starts. */
+  revokeInstanceKey(db: Db, input: InstanceKeyScope): Promise<boolean>
+  /** P4c: P4b's environment-level key, once the serving instance has a Route record. */
+  revokeLegacyAppKey(
+    db: Db,
+    input: { projectId: string; kind: EnvironmentKind },
+  ): Promise<boolean>
 }
 
 export function createAiKeyService(
@@ -220,6 +314,9 @@ export function createAiKeyService(
     mintAppKey: (input) => mintAppKey(client, input),
     commitAppKey: (db, input) => commitAppKey(db, client, keys, input),
     discardAppKey: (key) => discardAppKey(client, key),
+    storeInstanceKey: (db, input) => storeInstanceKey(db, keys, input),
+    revokeInstanceKey: (db, input) => revokeInstanceKey(db, client, keys, input),
+    revokeLegacyAppKey: (db, input) => revokeLegacyAppKey(db, client, keys, input),
   }
 }
 
@@ -237,7 +334,8 @@ export function disabledAiKeyService(): AiKeyService {
     Promise.reject(
       new Error(
         'AI is switched off on this control plane (MANIFEST_AI_ENABLED=0), so no AI ' +
-          'key can be minted, committed or discarded. Check `enabled` first.',
+          'key can be minted, stored, committed, discarded or revoked. Check ' +
+          '`enabled` first.',
       ),
     )
   return {
@@ -245,5 +343,8 @@ export function disabledAiKeyService(): AiKeyService {
     mintAppKey: refuse,
     commitAppKey: refuse,
     discardAppKey: refuse,
+    storeInstanceKey: refuse,
+    revokeInstanceKey: refuse,
+    revokeLegacyAppKey: refuse,
   }
 }

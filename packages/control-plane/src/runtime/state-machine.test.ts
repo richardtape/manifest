@@ -55,6 +55,23 @@ describe('instance state machine (§11)', () => {
     expect(canTransition('gone', 'build_started')).toBe(false)
   })
 
+  // P4c Task 6. A control plane that restarts mid-deploy leaves a row in the state
+  // the deploy was in — `provisioning`, `starting`, or `waking` for a wake — and
+  // nothing ever moves it again, because the process that would have was the one
+  // that died. Boot (Task 9) ends those with `interrupted`.
+  it('ends a deploy a restart cut short, from every state a deploy can be in', () => {
+    for (const state of ['provisioning', 'starting', 'waking'] as const) {
+      expect(nextState(state, 'interrupted')).toBe('failed')
+    }
+  })
+
+  it('does NOT interrupt a healthy instance — a restart does not make a running app fail', () => {
+    // The control plane restarting says nothing about the container, which is still
+    // serving. Marking it failed would make boot report an outage that is not one.
+    expect(canTransition('healthy', 'interrupted')).toBe(false)
+    expect(canTransition('hibernated', 'interrupted')).toBe(false)
+  })
+
   it('refuses an illegal transition with a machine-readable code', () => {
     expect(() => nextState('healthy', 'build_succeeded')).toThrow(InvalidTransitionError)
     try {

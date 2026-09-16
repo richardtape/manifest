@@ -10,6 +10,7 @@ export {
 } from './envelope.js'
 export {
   createAppSecrets,
+  deleteSecret,
   ensureSessionSecret,
   getSecret,
   loadMasterKeypair,

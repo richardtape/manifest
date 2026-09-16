@@ -25,6 +25,7 @@ const TABLES = [
   'audit.build_logs',
   'secrets',
   'idempotency_keys',
+  'routes',
   'instances',
   'service_instances',
   'releases',

@@ -289,6 +289,16 @@ describe('configuration', () => {
     ).toThrow(ConfigError)
   })
 
+  // P4c Task 6. §11's drain bound, one platform setting rather than a field in
+  // `manifest.yaml` (Rich, 2026-09-15): a per-app bound is a §7 schema change, and
+  // 120 s is how long a retire waits for the old instance's last requests.
+  it('bounds a drain at two minutes by default, and lets an operator change it', () => {
+    expect(loadConfig({ ...base }).drainTimeoutMs).toBe(120_000)
+    expect(
+      loadConfig({ ...base, MANIFEST_DRAIN_TIMEOUT_MS: '5000' }).drainTimeoutMs,
+    ).toBe(5000)
+  })
+
   it('derives §23 zones per environment kind, one setting each', () => {
     const config = loadConfig({ ...base, MANIFEST_ENV: 'development' })
     expect(zoneFor(config, 'sandbox')).toBe('sandbox.manifest.internal')

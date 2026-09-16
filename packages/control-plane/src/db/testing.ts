@@ -77,6 +77,9 @@ const TABLES = [
   'audit.build_logs',
   'secrets',
   'idempotency_keys',
+  // P4c Task 6. Before `instances`, which it references: a route left behind is a
+  // unique `hostname` the next run's deploy of the same app collides on.
+  'routes',
   'instances',
   'service_instances',
   'releases',

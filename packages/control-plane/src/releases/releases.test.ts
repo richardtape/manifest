@@ -107,6 +107,11 @@ beforeAll(async () => {
       discardAppKey: () => {
         throw new Error('no test in this file should discard an AI key by default')
       },
+      storeInstanceKey: () => {
+        throw new Error('no test in this file should store an instance key by default')
+      },
+      revokeInstanceKey: () => Promise.resolve(false),
+      revokeLegacyAppKey: () => Promise.resolve(false),
     },
     // infra/litellm/config.yaml through the real projection (`ai/testing.ts`).
     catalogue: declaredCatalogue(),
@@ -1589,6 +1594,18 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
         discardAppKey: async (key) => {
           events.push(`discard ${key}`)
           if (fail.discard) throw new Error('the gateway is down')
+        },
+        // P4c Task 6. Recorded into the same list, so the order stays the assertion.
+        storeInstanceKey: async (_db, input) => {
+          events.push(`store ${input.key}`)
+        },
+        revokeInstanceKey: async (_db, input) => {
+          events.push(`revoke instance ${input.instanceId}`)
+          return true
+        },
+        revokeLegacyAppKey: async () => {
+          events.push('revoke legacy')
+          return true
         },
       },
     }
