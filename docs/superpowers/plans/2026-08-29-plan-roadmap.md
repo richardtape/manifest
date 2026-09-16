@@ -700,10 +700,11 @@ execution layer.** Each is written when its predecessor lands.
    here rather than left implicit.
    ← **Then P4c, before P5 (Rich, 2026-09-14): zero-downtime redeploys — WRITTEN 2026-09-15,
    11 tasks in eight agreed sittings, AND BEING EXECUTED: sittings 1 to 5 are done
-   (2026-09-15; 13 findings, 4, 7 and 6 — the acceptance built and watched failing with the
+   (2026-09-15; 13 findings, 4, 7, 6 and 9 — the acceptance built and watched failing with the
    baseline it is judged against, §11's redeploy contract in code, the edge and an
-   `ensureInstance` that starts beside what serves, and then the retire that reaps what it
-   replaced), and sitting 5 (Tasks 6-7) is next.** It waited for P4b to execute, because P4b's Tasks 8–15 were changing the deploy
+   `ensureInstance` that starts beside what serves, the retire that reaps what it
+   replaced, and then §6's `Route` record with the retirer that decides what to reap), and
+   sitting 6 (Tasks 8-9) is next.** It waited for P4b to execute, because P4b's Tasks 8–15 were changing the deploy
    path it replaces; that path is now finished. The plan table's P4c row is its brief — including
    the five things it must settle, first among them a measured baseline — and P4b's sitting 10
    adds two inputs: an AI app whose gateway vanishes under a pooled connection waits 611 s

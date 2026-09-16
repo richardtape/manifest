@@ -1824,17 +1824,40 @@ sitting 3 found a defect that only the FULL run could see. Two things sitting 5 
 `make demo-redeploy` was deliberately not re-run — sitting 3's 14 of 21 stands until the retirer has
 a caller.
 
+**The state sitting 6 is handed, 2026-09-15.** `main`, tree clean; last code commit `3bfe29f`
+(the corrected concurrency control), Task 7 `0d622a9`, Task 6 `aec4fc8`. `pnpm test` **811 passed,
+70 files**; `pnpm test:docker` **160 passed, 0 skipped, 26 files**, ~615 s; `make doctor` **18 / 0**;
+`make verify` **47 / 0**. Migration **0009** (`routes`, both its enums, and `events_type_known`
+re-added with the three retire types) is applied — a database that has not run it fails
+`observability/events.test.ts` and `db/locks.test.ts`, and `pnpm --filter @manifest/control-plane
+db:migrate` fixes that. LiteLLM 1.98.0 (`sha256:20b5044b`) running, holding **two `mf-` users and
+two keys that are NOT yours** — orphans of projects `pnpm test` truncated, P4b finding 183.
+**If your first measurements differ, find out why before you start.**
+
+```bash
+make up && make doctor && make verify                   # expect 18/0 and 47/0
+pnpm test                                               # expect 811 passed, 70 files
+pnpm exec vitest run --project unit src/releases/retire src/db/locks
+```
+
+**Both demo hostnames need their routes back after any `pnpm test:docker` run**, and they will read
+as `200` while broken — the edge's wildcard answers any path. **Read the body**: an app answers
+`{"status":"ok","mongo":true}` and the wildcard answers `manifest OK host=…`. Sitting 5's record has
+the two exact routes to restore, and Task 9 is what finally makes a restart enough.
+
 **Invoke `superpowers:subagent-driven-development` or `superpowers:executing-plans` — NOT
 `brainstorming`.** The design conversation is finished; its results are the plan's *Read this
 first*, *Decisions Rich made, 2026-09-15* and *Decisions this plan makes*. **The eight spec actions
 P4c needed were applied before it was written** (Rich's call, commit `888d9d1`), so §11 already
 carries the `Driver` contract the plan builds — the spec is the target here, not a proposal.
 
-**Read, in this order:** the plan's *Read this first* — twelve facts the brief did not know, four
-of which changed the design, including that **nothing re-applies routes at all** — then *Decisions
-Rich made*, *Global Constraints*, **the sitting records for 1 and 2 at the end of the plan
+**Read, in this order:** **the note at the top of your own tasks first** — sittings 4 and 5 wrote
+one at the top of Tasks 7, 8 and 9, and Task 8's carries four corrections including a leak R5 says
+must not happen; then the plan's *Read this first* — twelve facts the brief did not know, four of
+which changed the design, including that **nothing re-applies routes at all** — then *Decisions
+Rich made*, *Global Constraints*, **the sitting records 1 to 5 at the end of the plan
 (*What executing this plan found*), which carry the corrections written into later tasks**, and
-then your own sitting's tasks. The brief,
+then your own sitting's tasks in full. The brief,
 [`plans/2026-09-15-p4c-brief.md`](plans/2026-09-15-p4c-brief.md), holds the measurements behind all
 of it and is still worth reading: the redeploy baseline under load, three ways of moving an edge
 route measured, and a request in flight shown to survive a move.

@@ -2866,6 +2866,40 @@ git commit -m "feat(releases): the retirer — drain, revoke, remove, and say so
 
 ## Task 8: `deployRelease` — serialized, per instance, and a failure that leaves the app up. **The task that gives Tasks 5, 6 and 7 their caller.**
 
+> **NOTE FROM SITTING 5 (2026-09-15), which built everything this task calls.** A pre-flight
+> read against the code as it now stands. **The interfaces match**: `deps.ai.storeInstanceKey(db,
+> { projectId, kind, instanceId, key })`, `deps.ai.revokeInstanceKey(db, { projectId, kind,
+> instanceId })`, `deps.retirer.schedule(environmentId)`, `createRetirer({ db, driver, ai,
+> appSecrets, bus, drainMs })` and `withEnvironmentLock(id, fn)` are all exactly as this task
+> calls them, and `instanceName` takes its four arguments in the order used here. Four
+> corrections:
+>
+> 1. **`commitAppKey` is referenced in NINE files, not the three the *Files* block names.**
+>    Beyond `ai/keys.ts`, `ai/index.ts` and `ai/keys.docker.test.ts`, it is in
+>    **`ai/keys.test.ts`** (about ten call sites, and the file is not in the block at all),
+>    `releases/release.ts` (the caller), `releases/releases.test.ts` (two fixtures),
+>    `releases/retire.test.ts` and `api/testing.ts`. Budget for all of them.
+> 2. **`keys.docker.test.ts`'s P4c test uses `commitAppKey` to STORE THE LEGACY KEY** — it is
+>    how `revokeLegacyAppKey` is given something to revoke. After this task nothing writes the
+>    environment-level `app:llmApiKey` at all (it exists only on machines deployed before P4c),
+>    so that setup becomes a direct `putSecret(db, { projectId, environmentKind, name:
+>    LLM_API_KEY_SECRET, value }, keys)`. Do not delete the assertion with the function.
+> 3. **A FIRST deploy that promotes and then fails its own health check leaks its container.**
+>    The restore is guarded on `previous !== undefined`, so for the first deploy of an
+>    environment the route is left dialling the failed instance — and the Docker driver's
+>    `retireInstance` then refuses it with `DriverRefusalError('INSTANCE_SERVING')`, because it
+>    matches the host half of every live dial address (sitting 4, finding 30). The `.catch()`
+>    swallows the refusal, so **the failed container and its `-files` volume survive, and that
+>    volume holds the app's SP private key** — which is exactly what R5 says must not happen.
+>    Reachable whenever the app answers through the edge and its own `HEALTHCHECK` disagrees
+>    within `waitForHealth`, which is the case Decision 18 exists for. Decide what a first
+>    deploy falls back to — removing the route before the retire is the obvious answer, and it
+>    leaves the hostname on the wildcard, which is honest — and give it a test.
+> 4. **`api/testing.ts`'s key service already suits "a real one".** Its two revokes answer
+>    `false` rather than throwing, precisely so a retire in a tier with no LiteLLM is not a
+>    failure; `storeInstanceKey` throws, like `mintAppKey`, because no app in that tier declares
+>    a model. Nothing there needs changing to build a real retirer.
+
 **Files:**
 - Modify: `packages/control-plane/src/releases/release.ts`
 - Modify: `packages/control-plane/src/releases/releases.test.ts`
@@ -3116,6 +3150,22 @@ git commit -m "feat(releases): a deploy that replaces an instance without interr
 ---
 
 ## Task 9: Boot — the routes come back, interrupted deploys end, and a cut-short drain finishes
+
+> **NOTE FROM SITTING 5 (2026-09-15), which built the `interrupted` transition, the `routes`
+> table and the retirer this task consumes.** All three are as this task assumes:
+> `provisioning`, `starting` and `waking` accept `interrupted` and land in `failed`, `healthy`
+> does not, and `recoverAtBoot`'s `retirer: Pick<Retirer, 'schedule'>` matches. Two things:
+>
+> 1. **DECISION 20'S ORDER IS LOAD-BEARING, and not for the reason it gives.** `retireEnvironment`
+>    returns `skipped: 'nothing-serves'` and does **nothing at all** when `servingInstance` answers
+>    `undefined` — which is the state of every environment before this task's first pass has put
+>    the routes back. So scheduling the sweeps before the routes are restored does not merely
+>    reorder the work: **every pass becomes a silent no-op**, the containers are never reaped, and
+>    nothing anywhere reports a failure. Restore the routes, `await` that, and only then schedule.
+>    Worth its own test, because the wrong order is green everywhere else.
+> 2. **A row already in `destroying` is handled.** `retireEnvironment` keeps such a row in its
+>    `marked` list and carries on to the retire, so the *finishes a drain a restart cut short*
+>    test needs no new path in the retirer — only for boot to schedule the environment.
 
 **Files:**
 - Create: `packages/control-plane/src/releases/recover.ts` + `recover.test.ts`

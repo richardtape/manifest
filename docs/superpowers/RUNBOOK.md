@@ -419,10 +419,10 @@ restarts every container on the machine, so it is a person's call rather than a 
   with 401 and none with a 5xx** — where the baseline had three 502s. It went from 10 of 21
   assertions green to **14**.
   **Sitting 4 built the retire at the driver** — `retireInstance` drains until the edge holds
-  nothing against the old instance and then removes it with its files volume — **but nothing in
-  the control plane CALLS it yet** (Tasks 7 and 8), so a redeploy still leaves the previous
-  container running today.
-  **P4c is being executed — 11 tasks in eight sittings, sittings 1–4 done**
+  nothing against the old instance and then removes it with its files volume — and **sitting 5
+  built the retirer that decides what to retire**, but **nothing in the control plane CALLS
+  either yet** (Task 8), so a redeploy still leaves the previous container running today.
+  **P4c is being executed — 11 tasks in eight sittings, sittings 1–5 done**
   ([`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md)).
   Redeploy when nobody is mid-session. **Do
   not "clean up" an old instance through the driver's `destroyInstance`:** it removes the route by
