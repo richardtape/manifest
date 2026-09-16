@@ -126,7 +126,9 @@ for (const phase of [...new Set(marks.map((m) => m.name.replace(/-(start|end)$/,
           : [lastOld === undefined ? null : lastOld.t - start, movedBy - start]
       line.questions = {
         inWindow: overlapping.length,
-        notAnswered200: overlapping.filter((a) => a.code !== '200').length,
+        // A 200 with no identity is the edge's wildcard, not an answer.
+        notAnswered200: overlapping.filter((a) => a.code !== '200' || a.instance === null)
+          .length,
         inFlightAcrossMove: acrossMove.length,
         acrossMoveAnswered200: drained,
         // [started, ended] relative to the phase start, so a reader can see the straddle.

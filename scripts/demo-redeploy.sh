@@ -228,12 +228,17 @@ ASKER=$!
 # question was answered 200" was false for a reason that had nothing to do with a redeploy
 # (finding 10). Bounded, and an ASSERTION rather than a precondition: if the AI path is
 # broken the run says so in its own words instead of blaming the redeploy.
+#
+# AN ANSWER IS A 200 THAT AN INSTANCE SENT — `$4`, the edge's X-Manifest-Instance, is not
+# `-`. The edge's wildcard answers 200 for ANY path and method, `POST /api/ask` included
+# (P4b finding 193), and carries no identity header; the asker never reads the body,
+# so a status alone would count a question the app never saw as answered (Task 11).
 for _ in $(seq 1 60); do
-  awk '$3 == 200' "$ASKS" | grep -q . && break
+  awk '$3 == 200 && $4 != "-"' "$ASKS" | grep -q . && break
   sleep 1
 done
 check "a question is answered before any redeploy — the AI path works" \
-  [ "$(awk '$3 == 200' "$ASKS" | grep -c . | tr -d ' ')" -ge 1 ]
+  [ "$(awk '$3 == 200 && $4 != "-"' "$ASKS" | grep -c . | tr -d ' ')" -ge 1 ]
 
 say "5. A SAME-release redeploy, while both loops run"
 PREVIOUS="$BASE_INSTANCE"
@@ -310,9 +315,9 @@ BAD="$(node scripts/lib/redeploy-summary.mjs --bad "$LOOP" "$MARKS")"
 across_move() { node scripts/lib/redeploy-summary.mjs --across-move "$1" "$LOOP" "$MARKS" "$ASKS"; }
 RESETS="$(grep -c '"cls":"reset"' "$LOOP" | tr -d ' ')"
 ASKED="$(grep -c . "$ASKS" | tr -d ' ')"
-ASK_FAILS="$(awk '$3 != 200' "$ASKS" | grep -c . | tr -d ' ')"
+ASK_FAILS="$(awk '$3 != 200 || $4 == "-"' "$ASKS" | grep -c . | tr -d ' ')"
 check "no 5xx and no wildcard answer in any redeploy window" [ "$BAD" = 0 ]
-check "every question was answered 200 ($ASKED asked)" [ "$ASK_FAILS" = 0 ]
+check "every question was answered 200 by an instance ($ASKED asked)" [ "$ASK_FAILS" = 0 ]
 check "nobody was signed out" [ "$(awk '$3 == 401' "$ASKS" | grep -c . | tr -d ' ')" = 0 ]
 # A RUN WHOSE STUDENT WAS BETWEEN QUESTIONS WHEN A ROUTE MOVED PROVES NOTHING ABOUT A
 # QUESTION UNDER WAY (Task 11 Step 1), so it is asserted rather than left for a reader
