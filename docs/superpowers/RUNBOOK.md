@@ -251,6 +251,19 @@ exactly what its own first version had.
 `fixtures/proof-app/README.md` carries the attribute justifications UBC IAM will ask
 for — `givenName` and `sn` are the two that are not pre-authorized.
 
+## `make demo-redeploy` — P4c's acceptance, and it FAILS on purpose
+
+*Added by P4c sitting 1, 2026-09-15, before the feature it tests.*
+
+It exits **1**, with eleven assertions red, and that is its job for now: it was written
+first so the platform's redeploy behaviour could be measured before anything was built on
+it. Its baseline is in
+[`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md)'s
+*What executing this plan found*. **Do not run it to see the platform work** — run
+`make demo-ai`. It takes about thirteen minutes, builds three releases, and leaves the app
+deployed. Six of its assertions are already green, including that a failed deploy is
+recorded with an Incident and that LiteLLM holds exactly one key for the app throughout.
+
 ## `make demo-ai` — the proof app answers a question, charged to one person
 
 *Added by P4b Task 16, 2026-09-15. §16's proof app is complete with it.*

@@ -51,7 +51,7 @@ of it was green in a suite of 74 passing Docker tests.**
 
 **P4a is EXECUTED AND GREEN: all 15 tasks (2026-09-09). P4b is EXECUTED AND GREEN —
 all 16 tasks, in ten sittings, finished 2026-09-15; P4C — zero-downtime redeploys — IS
-WRITTEN (2026-09-15): 11 tasks in EIGHT AGREED SITTINGS, ONE PER SESSION, and sitting 1 — Task 1 alone — is next; executing the whole plan in one session is exactly what the sittings exist to prevent** — ORIENTATION §7d-3, the plan `docs/superpowers/plans/2026-09-15-p4c-zero-downtime-redeploys.md`, and its brief,
+WRITTEN (2026-09-15) AND BEING EXECUTED: 11 tasks in EIGHT AGREED SITTINGS, ONE PER SESSION. **Sitting 1 (Task 1) is done, 2026-09-15, with 13 findings**: `make demo-redeploy` exists and is red by design — run three times, exit 1 each time, eleven assertions failing and six already green — and the baseline it measured is the plan's own number (a redeploy is ~1.0–1.9 s of empty 502s, every user is signed out, and an AI question in flight when a same-release redeploy destroys its container comes back 502). Two of the thirteen were defects in the acceptance itself that made the measurement meaningless — it rate-limited its own health loop, and a fixed warm-up let a whole run answer zero questions — both fixed before the baseline was taken. **Sitting 2 — Task 2 alone — is next**; executing the whole plan in one session is exactly what the sittings exist to prevent** — ORIENTATION §7d-3, the plan `docs/superpowers/plans/2026-09-15-p4c-zero-downtime-redeploys.md`, and its brief,
 `docs/superpowers/plans/2026-09-15-p4c-brief.md`, which measured the redeploy baseline. P4a's last twelve
 tasks ran in **seven agreed SITTINGS, one per session with a check-in at each
 boundary**, so a session limit could not land mid-task; all seven are done, and **P4b
@@ -137,7 +137,7 @@ repeatable has a state leak. For the platform itself it is `make doctor` and
 as P3's Task 18 on 2026-09-07 and found every probe denied with every denial paired
 with a positive control). P0, P1, P2 and P3 are written and **all three
 implementation plans are executed**. **P4a and P4b are executed in full; P4c (zero-downtime redeploys, placed straight
-after P4b) is WRITTEN and waiting to be executed; P5 is unwritten.** Plan-writing stopped on 2026-09-04 in favour
+after P4b) is WRITTEN and BEING EXECUTED — sitting 1 is done, 2026-09-15, with 13 findings; P5 is unwritten.** Plan-writing stopped on 2026-09-04 in favour
 of execution; that hold is now discharged, and it was right — the three plans
 produced **152 defects between them** after all three had been self-reviewed, and
 P4a's fifteen tasks have since produced **80 more**, and P4b's sixteen **140**. The maintained status record is the *Spike status*

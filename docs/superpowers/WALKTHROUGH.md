@@ -73,7 +73,15 @@ Each of these is re-runnable, takes one to three minutes, and drives the real HT
 make demo-ai          # the fullest: the proof app, sign-in, notes AND an AI answer. Run this one.
 make demo-identity    # the proof app's sign-in and notes only
 make demo             # the fixture app
+make demo-redeploy    # P4c's acceptance — RED ON PURPOSE until P4c is executed
 ```
+
+**`make demo-redeploy` fails today, and that is the point.** It was written first, before
+the feature it tests, so the platform's behaviour could be measured before anything was
+built on it (P4c sitting 1, 2026-09-15). It exits 1 with eleven assertions red: a redeploy
+is about a second of empty 502s, it signs every user out, it leaves the old container
+running, and a release that never becomes ready takes the app down. Six of its assertions
+are already green. Do not run it expecting a working demo; run the three above.
 
 `make demo-ai` and `make demo-identity` end with **`Done.`** and leave a note each for the
 student and the instructor, so there is something to ask about.
@@ -152,6 +160,7 @@ The lifecycle, as the API sees it: `POST /projects` → push to the bare reposit
 | `pnpm lint`, `pnpm --filter @manifest/control-plane typecheck`, `pnpm format:check` | The other three commit gates. Tests do not check types — `tsc` does | — | ~30 s |
 | `pnpm test:docker` | Real builds, deploys and containers | `make up` | ~8 min |
 | `make demo`, `make demo-identity`, `make demo-ai` | The acceptances, end to end, through the real API and the edge | `make up` and the control plane | 1–3 min each |
+| `make demo-redeploy` | P4c's acceptance, **red until P4c is executed** — a redeploy that interrupts nobody | `make up` and the control plane | ~13 min |
 | `scripts/offline-acceptance.sh` | C1: all of it with the network off | **a person** — turning the network off cuts an agent off too | not yet run end to end |
 
 **All four gates must be clean before a commit**, and `pnpm test:docker` too when a change

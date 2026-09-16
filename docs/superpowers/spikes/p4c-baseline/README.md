@@ -14,6 +14,7 @@ first task can re-measure rather than trust these numbers.
 | `p4c-caddy-controls.sh` | The same with no config change (control), and keep-alive against new-connection clients |
 | `p4c-redeploy.sh` | A real same-release and new-release redeploy of the proof app under a health loop and a signed-in student asking questions |
 | `p4c-inflight.sh` | Whether a request in flight survives the route moving to another container |
+| **`p4c-measure-edge.sh`** | **P4c Task 1's five measurements** (2026-09-15): whether Caddy keeps counting an upstream whose route has moved while a request is in flight (M1, with a parked-route control M1b); whether a **deferred** `headers` handler replaces an app's own `X-Manifest-Instance` (M2, with the app's forgery proved first); twenty in-place `PATCH` moves of the **real** route shape (M3); whether a container name past DNS's 63-octet label resolves from the edge (M4); and whether repeated `--filter label=` filters AND (M5). Takes two upstream addresses to move a throwaway route between. Results: [`results-task1-2026-09-15.txt`](results-task1-2026-09-15.txt), which also carries the three `make demo-redeploy` baseline runs |
 
 **Before re-running:** they need `make up`, the control plane, and the proof app deployed
 (`make demo-ai`). The container names, project, environment and release IDs are hard-coded

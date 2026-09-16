@@ -1,0 +1,244 @@
+P4c Task 1 — the acceptance watched failing, and the five measurements
+=====================================================================
+2026-09-15, macOS 26.6.2 (25G83), Docker Engine 29.7.2 (API 1.55), the custom Caddy
+2.11.4 edge, LiteLLM 1.98.0 (sha256:20b5044b), the proof app on node-ts-mongo@1
+(node:22-alpine). make doctor 18/0 and make verify 47/0 before and after.
+
+`make demo-redeploy` was run THREE times. Run A is the script as the plan wrote it; runs
+B and C are after the two harness defects it exposed were fixed. RUN C IS THE BASELINE —
+it is the script as it ships. All three exited 1 with the same eleven red assertions.
+
+-----------------------------------------------------------------------------------
+PART 1 — the acceptance, red
+-----------------------------------------------------------------------------------
+
+The eleven assertions that are red today, identical in all three runs:
+
+  same-release: the edge names the new instance          (no route sets X-Manifest-Instance)
+  same-release: the previous instance was retired within 150 s   (nothing retires)
+  same-release: exactly one app container is left
+  new-release:  the edge names the new instance
+  new-release:  the previous instance was retired within 150 s
+  new-release:  exactly one app container is left
+  failed release: the edge still names the instance that was serving
+  failed release: the failed release left no container
+  no 5xx and no wildcard answer in any redeploy window
+  every question was answered 200
+  nobody was signed out
+
+Green today, and they are the ones that must STAY green:
+
+  the deploy is healthy (same-release, new-release)
+  the deploy is recorded failed (failed release)
+  an Incident names the failed instance
+  no files volume without a container  (all three phases)
+  LiteLLM holds exactly one key for the app  (all three phases)
+  a question is answered before any redeploy — the AI path works  (runs C onward)
+
+Per-phase windows (deploy start -> deploy end + 5 s):
+
+  run A (contaminated — see finding 4)
+    same-release    deploy 5,458 ms   52 req   46 app   6 x 502-empty   0 x 429   +203 -> +1,299 ms
+    new-release     deploy 5,342 ms   51 req   45 app   5 x 502-empty   1 x 429   +129 -> +1,134 ms
+    failed-release  deploy 91,363 ms 456 req  314 app   4 x 502-empty 138 x 429    +83 -> +70,168 ms
+    questions: 6,295 asked — 2 x 200, 3,474 x 401, 2,782 x 429, 37 x 502.  resets 0
+
+  run B (clean)
+    same-release    deploy 5,611 ms   53 req   47 app   6 x 502-empty   0 x 429   +227 -> +1,235 ms
+    new-release     deploy 5,447 ms   52 req   48 app   4 x 502-empty   0 x 429   +441 -> +1,047 ms
+    failed-release  deploy 90,752 ms 453 req  449 app   4 x 502-empty   0 x 429   +258 -> +862 ms
+    questions: 404 asked — 0 x 200, 400 x 401, 4 x 502.  resets 0
+    loop overall: 2,265 app, 14 x 502-empty, 0 x 429
+
+  run C (THE BASELINE — the script as it ships)
+    same-release    deploy 5,578 ms   53 req   44 app   9 x 502-empty   0 x 429   +275 -> +1,882 ms
+    new-release     deploy 5,456 ms   52 req   47 app   5 x 502-empty   0 x 429   +351 -> +1,157 ms
+    failed-release  deploy 90,599 ms 452 req  448 app   4 x 502-empty   0 x 429   +378 -> +982 ms
+    questions: 404 asked — 1 x 200 (in 8,731 ms), 400 x 401, 3 x 502.  resets 0
+    loop overall: 2,270 app, 18 x 502-empty, 0 x 429
+    student signed out at +2,305 ms after the first redeploy began
+
+What that says, and it agrees with the brief's 3.1 (7 and 6 x 502-empty,
++428 -> +1,634 ms and +411 -> +1,417 ms):
+
+  * every redeploy is a window of EMPTY 502s about 1.0-1.9 s long, beginning 0.2-0.4 s
+    after the deploy call starts;
+  * every redeploy SIGNS EVERY USER OUT, within about 1.4-2.3 s;
+  * an AI question in flight when a same-release redeploy destroys its container comes
+    back 502 — measured three times (2,493 ms, 8,223 ms, 585 ms). The brief's 3.3 showed
+    a request surviving a route MOVE; destroying the container is not a move;
+  * ZERO connection resets across nine admin changes and ~6,800 loop requests. R1's
+    tolerated reset did not occur in any of the three runs.
+
+CONTROL FOR THE CONTROL — can the classifier see a wildcard at all?
+  The app's route was deleted under a running loop and PUT back from its own saved JSON:
+    {"app":25,"wildcard":16}
+  It can. A green run later is therefore meaningful.
+
+-----------------------------------------------------------------------------------
+PART 2 — the five measurements
+-----------------------------------------------------------------------------------
+== M1. Does Caddy keep counting an upstream that still has a request in flight after a PATCH moved its route?
+create route: 200
+before the move: 1
+patch to B: 200
+after the move +250 ms: 1
+after the move +500 ms: 1
+after the move +750 ms: 1
+after the move +1000 ms: 1
+after the move +1250 ms: 1
+after the move +1500 ms: 1
+after the move +1750 ms: 1
+after the move +2000 ms: 1
+after the move +2250 ms: 1
+after the move +2500 ms: 1
+after the move +2750 ms: 1
+after the move +3000 ms: 1
+after the move +3250 ms: 1
+after the move +3500 ms: 1
+after the move +3750 ms: 1
+after the move +4000 ms: 1
+held request: 200 in 6.813646s
+after the move +4250 ms: unlisted
+after the move +4500 ms: unlisted
+after the move +4750 ms: unlisted
+after the move +5000 ms: unlisted
+after the move +5250 ms: unlisted
+after the move +5500 ms: unlisted
+after the move +5750 ms: unlisted
+after the move +6000 ms: unlisted
+M1b. The same, with the old upstream ALSO parked on a second route that nothing reaches:
+park: 200
+patch to slow: 200
+patch away: 200
+parked, after the move +250 ms: 1
+parked, after the move +500 ms: 1
+parked, after the move +750 ms: 1
+parked, after the move +1000 ms: 1
+parked, after the move +1250 ms: 1
+parked, after the move +1500 ms: 1
+parked, after the move +1750 ms: 1
+held request: 200 in 3.941706s
+parked, after the move +2000 ms: 0
+parked, after the move +2250 ms: 0
+parked, after the move +2500 ms: 0
+parked, after the move +2750 ms: 0
+parked, after the move +3000 ms: 0
+parked, after the move +3250 ms: 0
+parked, after the move +3500 ms: 0
+parked, after the move +3750 ms: 0
+parked, after the move +4000 ms: 0
+parked, after the move +4250 ms: 0
+parked, after the move +4500 ms: 0
+parked, after the move +4750 ms: 0
+parked, after the move +5000 ms: 0
+parked, after the move +5250 ms: 0
+parked, after the move +5500 ms: 0
+parked, after the move +5750 ms: 0
+parked, after the move +6000 ms: 0
+remove the parked route: 200
+
+== M2. Does a deferred headers handler REPLACE an app's own X-Manifest-Instance?
+patch to the forging app, deferred=true: 200
+-- the control: the same route with deferred absent
+patch deferred=false: 200
+x-content-type-options: nosniff
+x-manifest-instance: edge-value
+x-manifest-instance: forged
+
+== M3. Twenty in-place moves of the REAL route shape, under a request every 25 ms
+{"phase":"patch-moves","deployMs":7583,"requests":330,"counts":{"status-200":2,"app":327,"reset":1},"instancesSeen":["edge-value, forged","move-1","move-2","move-3","move-4","move-5","move-6","move-7","move-8","move-9","move-10","move-11","move-12","move-13","move-14","move-15","move-16","move-17","move-18","move-19","move-20"],"firstWrongAtMs":25,"lastWrongEndedMs":53}
+
+== M4. Is a container name longer than DNS's 63-octet label resolvable from the edge?
+short name (17 chars): 200
+curl: (6) Could not resolve host: p4c-measure-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (Misformatted domain name)
+long name  (72 chars): 000curl failed
+getent from the edge: no answer
+
+== M5. Do repeated label filters AND, and do only app containers carry manifest.release?
+mf-proof-app-staging-001b7d9c-app
+mf-proof-app-staging-777c529d-app
+mf-proof-app-staging-3f3330fc-app
+mf-proof-app-staging-3d7f3eba-app
+mf-proof-app-staging-3b6d1a49-app
+mf-proof-app-staging-936e9bd6-app
+mf-proof-app-staging-86c294fa-app
+mf-proof-app-staging-788d1e45-app
+mf-proof-app-staging-df0e8c34-app
+mf-proof-app-staging-23fb8892-app
+-- with an environment that does not exist (empty means AND):
+
+== CLEANUP
+remove the route: 200; GET it now: 404
+throwaway containers left: 0
+
+-----------------------------------------------------------------------------------
+M2, RE-MEASURED — the first run above raced the forge container's startup and its
+deferred=true probe printed nothing at all, which reads exactly like "the header was
+not set". Re-run with a readiness wait and a positive control first:
+-----------------------------------------------------------------------------------
+forge answering after 1s
+direct from the edge, the app's own header:
+X-Manifest-Instance: forged
+
+=== A. deferred: true (Decision 6) ===
+PUT route: 200
+  x-content-type-options: nosniff
+  x-manifest-instance: edge-value
+
+=== B. control: deferred absent ===
+PATCH route: 200
+  x-content-type-options: nosniff
+  x-manifest-instance: edge-value
+  x-manifest-instance: forged
+
+=== what a client's headers.get() sees in each case ===
+PATCH back to deferred=true: 200
+  deferred=true  -> headers.get(): "edge-value"
+PATCH to deferred absent: 200
+  deferred absent -> headers.get(): "edge-value, forged"
+
+CLEANUP: delete route 200; rm forge
+throwaway containers left: 0
+
+-----------------------------------------------------------------------------------
+PART 3 — what each measurement decided
+-----------------------------------------------------------------------------------
+
+M1  ->  UNLISTED_UPSTREAM_IS_IDLE = true, and NO drain parking is needed.
+    Caddy kept counting the old upstream at 1 for 4,000 ms after the PATCH moved its
+    route — the whole time the held request was in flight — and the address became
+    `unlisted` only AFTER that request finished (200 in 6.81 s). M1b confirms the
+    mechanism from the other side: with a second, unreachable route still referencing
+    the same address, it stayed LISTED and its count went 1 -> 0 the moment the request
+    ended. So the pool counts addresses the configuration references, and an address
+    that has been moved away from disappears once, and only once, it is idle.
+    Both halves agree: unlisted means idle. The plan's constant already reads `true`.
+
+M2  ->  no correction to Task 3. `deferred: true` REPLACES an app's own header.
+    Positive control: the forge app really does serve `X-Manifest-Instance: forged`,
+    read directly from the edge. With deferred: true the response carries only
+    `x-manifest-instance: edge-value`. With deferred absent BOTH are present, and a
+    client's `headers.get('x-manifest-instance')` returns the string
+    "edge-value, forged" — so a naive identity check would not be fooled, it would
+    simply never match. Deferral is what makes the edge's value the only one.
+
+M3  ->  the design's central claim holds. ZERO wildcard answers in 330 requests across
+    20 in-place PATCH moves of the real route shape, under a request every 25 ms.
+    1 connection reset (R1's tolerated case), and 2 x status-200 which are the forge
+    app's own body, left over from M2 before the first move.
+
+M4  ->  the bounded alias (Decision 2) is LOAD-BEARING, not tidiness.
+    A 72-character container name does not resolve from inside the edge:
+      curl: (6) Could not resolve host: p4c-measure-xxx... (Misformatted domain name)
+      getent hosts <72-char name>  ->  no answer
+    while a 17-character name answers 200. DNS's 63-octet label limit is enforced by
+    the resolver, so `mf-` + a 39-character slug + `-staging-` + 8 + `-` + 8 + `-app`
+    (72 characters) would be undialable. ORIENTATION §4 gains this.
+
+M5  ->  confirms Task 5's retire selector, unchanged.
+    Repeated `--filter label=` ANDs: `label=manifest.slug=proof-app` plus
+    `label=manifest.environment=nonexistent` lists NOTHING, while either alone lists
+    rows. And only app containers carry `manifest.release`: ten app containers were
+    listed where `label=manifest.slug=proof-app` alone also returns the app's database
+    and egress containers.

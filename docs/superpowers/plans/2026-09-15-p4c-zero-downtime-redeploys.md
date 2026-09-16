@@ -24,8 +24,8 @@ Agreed with Rich on 2026-09-15, the pattern that carried P4a's last twelve tasks
 
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
-| 1 | 1 | **The acceptance, built first and watched failing**, plus the five edge and Docker measurements every later task relies on. **Alone**, and first, because every worst defect in this project arrived the first time something ran end to end (brief §8) | ← **next** |
-| 2 | 2 | §11's contract in code: `InstanceSpec.instanceId`/`hostname`, the four new methods, the fake driver's routes and in-flight counters, and the contract suite's continuity block | |
+| 1 ✅ | 1 | **The acceptance, built first and watched failing**, plus the five edge and Docker measurements every later task relies on. **Alone**, and first, because every worst defect in this project arrived the first time something ran end to end (brief §8) — **done 2026-09-15, 13 findings; run three times, exit 1 each time; the baseline is run C; M1 confirmed `UNLISTED_UPSTREAM_IS_IDLE = true` and M4 made Decision 2's alias load-bearing** | ✅ |
+| 2 | 2 | §11's contract in code: `InstanceSpec.instanceId`/`hostname`, the four new methods, the fake driver's routes and in-flight counters, and the contract suite's continuity block | ← **next** |
 | 3 | 3–4 | The edge (upsert in place, identity header, what serves, what is in flight), then the Docker `ensureInstance` that uses it: beside, privately ready, moved, verified, rolled back | |
 | 4 | 5 | Docker `retireInstance`, `listInstances`, `servingInstance`, `restoreRoute` and the gateway detach — **the contract suite green on the Docker driver**, drain tests included | |
 | 5 | 6–7 | The data and the keys (the `Route` table, migration 0009, per-instance AI keys, the advisory lock, the drain setting), then the retirer that uses them | |
@@ -2302,8 +2302,17 @@ with
  *
  * `undefined` is not zero: it means Caddy does not list the address at all. Task 1
  * measured which of those a moved route produces, and this constant carries the answer.
+ *
+ * MEASURED 2026-09-15 (Task 1, M1), and `true` is confirmed. After a PATCH moved the
+ * route away, Caddy kept reporting `num_requests: 1` for the old address for 4,000 ms —
+ * the whole time the held request was in flight — and the address became UNLISTED only
+ * after that request finished (200 in 6.81 s). M1b showed the other half: with a second,
+ * unreachable route still referencing the same address it stayed listed and went 1 -> 0
+ * when the request ended. So the pool counts addresses the configuration references, and
+ * an address nothing references any more has no request left on it. No drain parking is
+ * needed, and the drain does not have to wait its full bound.
  */
-const UNLISTED_UPSTREAM_IS_IDLE = true // ← Task 1, measurement M1
+const UNLISTED_UPSTREAM_IS_IDLE = true // ← Task 1, measurement M1 — CONFIRMED
 
 async function drainUpstream(routing: RoutingDeps, upstream: string, drainMs: number): Promise<void> {
   const deadline = Date.now() + drainMs
@@ -3351,6 +3360,14 @@ git commit -m "feat(blueprint): sessions in the app's own database, so a redeplo
 
 ## Task 11: `make demo-redeploy` green — P4c's acceptance
 
+> **FOUR CORRECTIONS FROM SITTING 1, which built this script and ran it twice (2026-09-15).**
+>
+> 1. **Control (e) comes out GREEN as written — it does not test what it says.** It breaks the readiness probe to "status-only against the public hostname" and expects a never-ready release to succeed. But Decision 25's failing release is a manifest whose `health:` path is `/never-ready`, and the probe requests **that path**: under P4c the route has not moved, so the probe reaches the **previous** instance, which is the same application and answers `/never-ready` **404** — measured on the failed container, which served `GET /healthz` **200** at the same moment. The control fails for the wrong reason and proves nothing. **Run control (e) against a slug the platform has never deployed**, whose hostname therefore has no route at all: measured 2026-09-15, the edge's wildcard answers **200 `manifest OK host=… scheme=https` for ANY path**, `/never-ready` included. That is P4b finding 193's real shape and the only thing a status-only probe can be fooled by.
+> 2. **`BAD` says nothing about the failed-release phase, so do not read it as if it did.** The same measurement is why: a release whose health path 404s is an otherwise perfect container, so in sitting 1's run the loop recorded **314 `app` responses** inside the failed-release window while the route had wrongly moved to the failed instance. The assertion that covers that phase is `the edge still names the instance that was serving` — the identity header, Decision 7 — and nothing else. Step 1's "every assertion must be green" is unchanged; what changes is what a green `BAD` is evidence of.
+> 3. **The asker carries a one-second floor, and it is load-bearing.** §20 rate-limits every route at 600 events/min keyed on the client IP and both loops run on this host, so they share one budget. Without the floor, a question that fails fast — a 401 after a redeploy signed the student out — turns the asker into a ~13 req/s spin: sitting 1 measured 6,295 questions, 2,782 of them refused 429 by the edge, and **959 of the health loop's own requests, 43% of them, refused 429 as well**. Do not remove the floor to make questions "more back to back"; with answers taking seconds one is in flight regardless, which is what Step 1 requires.
+> 4. **The container backlog is real and the acceptance sees it.** Sitting 1's three runs left nine app containers for one app. R7 says the first P4c redeploy of an app reaps all of them, so `exactly one app container is left` is the assertion that proves R7 as well as the retire.
+> 5. **There is a TWELFTH assertion, and it is the first one.** `a question is answered before any redeploy — the AI path works`. The script no longer sleeps a fixed warm-up: an AI answer here takes 2.5–8.2 s, so `sleep 8` yielded between one and three questions, and in run B the single one it managed was still in flight when the redeploy destroyed its container — the run answered **zero** questions and `every question was answered 200` was red for a reason that had nothing to do with a redeploy. The warm-up now waits (bounded at 60 s) for the first question answered 200 and asserts it, so a broken AI path says so in its own words.
+
 **Alone, for the reason P4a's Task 15 and P4b's Task 16 were alone:** the first end-to-end run is where this project's worst defects have always been, and P4a's passed at the first attempt and still produced eight defects, every one of them from refusing to believe it.
 
 **Files:**
@@ -3493,3 +3510,65 @@ Run against the spec and the code on 2026-09-15, after the plan was written. **S
 ## What executing this plan found
 
 *One dated section per sitting: the tasks, every defect with the measurement that found it, the negative controls, and the four gate numbers at the end. This is the record that stops the next agent repeating the work rather than continuing it, and it is where a defect that is not worth fixing yet gets named instead of lost.*
+
+### Sitting 1 — Task 1 — 2026-09-15 — 13 findings
+
+**What it built.** `scripts/lib/redeploy-loop.mjs`, `scripts/lib/redeploy-summary.mjs`, `scripts/demo-redeploy.sh`, `make demo-redeploy`, and `docs/superpowers/spikes/p4c-baseline/p4c-measure-edge.sh`. No production code, on purpose. **The acceptance was run three times and exited 1 every time**, with the same eleven red assertions; the raw output of all three runs and of the five measurements is [`../spikes/p4c-baseline/results-task1-2026-09-15.txt`](../spikes/p4c-baseline/results-task1-2026-09-15.txt).
+
+**Run C is the baseline** — it is the script as it ships. Runs A and B are kept because each exposed a defect in the harness itself, and a baseline taken with a different script from the one that ships is exactly the drift this project pays for.
+
+| phase | deploy | requests | app | 502-empty | outage window |
+|---|---|---|---|---|---|
+| same-release | 5,578 ms | 53 | 44 | **9** | +275 → +1,882 ms |
+| new-release | 5,456 ms | 52 | 47 | **5** | +351 → +1,157 ms |
+| failed-release | 90,599 ms | 452 | 448 | 4 | +378 → +982 ms |
+
+Questions: 404 asked, **1 × 200** (in 8,731 ms), 400 × 401, 3 × 502. **Resets: 0.** The student was signed out **2,305 ms** after the first redeploy began. This agrees with the brief's §3.1 and is now this plan's own number.
+
+**Three defects found by READING, before the first run.**
+
+1. **The failing release's `manifest.yaml` edit matched nothing, and its guard passed anyway.** The plan's step 7 anchors on `^health:`; `health:` lives **indented** under `runtime:` (`fixtures/proof-app/manifest.yaml:14`). The `if` therefore took the `else` branch and appended a **top-level** `health: /never-ready`, which the guard `grep -q '^health: /never-ready$'` matches — so the control could not fail. And the top-level manifest schema is `.strict()` (`spec/schema.ts:80`), so `proof_app_validate` would have called `fail` and **the run would have exited at step 7, never reaching step 8's summary** — the whole point of the sitting. Fixed: the edit targets the indented key and asserts **both** the pre-state and the post-state.
+2. **Three `proof_app_push` calls, two leaked source trees.** It mktemps a fresh `$WORK` every call and `cleanup` removes only the last. Fixed with a `push()` wrapper.
+3. **Four of the run's own files were read before their writer had written them** — `frames.ndjson`, `markers.ndjson`, `loop.ndjson`, `asks.log`. A missing file is a stderr error, not a zero count. Created empty up front.
+
+**Two defects in the harness, each found by RUNNING it and each of which made the measurement meaningless.**
+
+4. **THE ACCEPTANCE RATE-LIMITED ITS OWN MEASUREMENT.** §20 rate-limits every route at 600 events/min keyed on the client IP; both loops run on this host and share one budget, and the `/healthz` loop at 200 ms is already 300/min. The back-to-back asker had no floor, so when the same-release redeploy signed the student out at +1.2 s each question failed 401 in ~40 ms and the asker became a **~13 requests/second spin**: run A issued **6,295 questions, 2,782 of them refused 429 by the edge**, and thirty seconds later the health loop — the measurement itself — began collecting its own 429s: **959 of 2,252, 43%**. `--bad` counts every one, so run A measured the harness. **Fixed with a one-second floor per question**, which keeps a question in flight while answers take seconds (the real case) and stops the spin when one fails instantly. Runs B and C have **zero** 429s anywhere.
+5. **A fixed `sleep 8` warm-up does not guarantee the acceptance ever sees a question answered.** An AI answer here takes **2.5–8.2 s**, so eight seconds yields between one and three questions. Run A got `200 in 3,055 ms`, `200 in 2,585 ms`, `502 in 2,493 ms`; **run B got exactly one, `502 in 8,223 ms`** — still in flight when the redeploy destroyed its container at +197 ms. So run B answered **zero** questions in its whole life, and `every question was answered 200 (404 asked)` was red for a reason that had nothing to do with a redeploy. Fixed: the warm-up **waits** (bounded at 60 s) for the first question answered 200 and then **asserts** it — a twelfth assertion, `a question is answered before any redeploy — the AI path works` — so a broken AI path says so in its own words. Green in run C.
+
+**Four facts about the platform, measured rather than read.**
+
+6. **A failed deploy leaves the public route on the failed container.** The brief §2.6 read this from the code and said so ("*Read from the code, not measured*"). Measured: after run A's failed release the route dialled `mf-proof-app-staging-86c294fa-app:3000`, a container Docker's own HEALTHCHECK reports **unhealthy**, and nothing restored the previous route. R5 and Task 8 close it.
+7. **The failed container and its files volume are left behind.** `failed release: the failed release left no container` is red: P4b Task 13 keeps the container so `captureIncident` can read its exit code and log tail, and nothing removes it afterwards. The Incident itself **is** recorded — `an Incident names the failed instance` is green. R5 removes the container once the Incident is captured.
+8. **Destroying a container does NOT let an in-flight request finish, where moving a route does.** The brief §3.3 measured a request surviving a route move. A same-release redeploy today deletes the live container instead, and an AI question in flight when that happens comes back **502** — measured three times (2,493 ms, 8,223 ms, 585 ms). This is R1's interruption on a real AI call rather than a health check, which is what brief §8 asks the drain to be tested against.
+9. **Zero connection resets**, across three runs, nine admin changes and ~6,800 loop requests — plus one in M3's 330 requests across 20 moves. R1's tolerated reset is real but rarer than one run will show; the acceptance counts and reports it rather than asserting on it, which is right.
+
+**Two corrections written into later tasks** (both at the top of Task 11).
+
+10. **Decision 25's failure mode is invisible to the request loop.** A release whose `health:` path 404s is an otherwise perfect container: measured on the failed instance, `GET /never-ready` → **404** while `GET /healthz` → **200 `{"status":"ok","mongo":true}`**. So the loop recorded **448 `app` responses inside the failed-release window** while the route had wrongly moved to the failed instance. **`BAD` therefore says nothing about that phase**; the assertion that covers it is the identity header, Decision 7, and nothing else.
+11. **Task 11's negative control (e) would have come out GREEN.** It breaks the readiness probe to "status-only against the public hostname" and expects a never-ready release to succeed — but the probe requests the declared health path `/never-ready`, the route has not moved, so it reaches the **previous** instance, which is the same application and also answers 404. The control fails for the wrong reason and proves nothing. What does fool a status-only probe is P4b finding 193's real shape, measured here: **the wildcard answers 200 `manifest OK host=… scheme=https` for ANY path** on a hostname it holds no route to, `/never-ready` included. So control (e) must be run against a slug the platform has never deployed.
+
+**Two defects in this sitting's own measurement script.**
+
+12. **M2 raced the forge container's startup**, so its `deferred: true` probe printed nothing at all — which reads exactly like *"the header was not set"*. A measurement that cannot fail is worth nothing. Fixed in `p4c-measure-edge.sh` with a readiness wait and a **positive control first** (prove the app really does serve its own header), and M2 was re-run.
+13. **A 72-character container name does not resolve, so Decision 2's bounded alias is load-bearing rather than tidy.** From inside the edge: `curl: (6) Could not resolve host … (Misformatted domain name)` and `getent hosts` gives no answer, while a 17-character name answers 200. ORIENTATION §4 gains it.
+
+**What the five measurements decided.**
+
+- **M1 → `UNLISTED_UPSTREAM_IS_IDLE = true`, confirmed, and no drain parking is needed.** Caddy reported `num_requests: 1` for the moved-away upstream for **4,000 ms**, the whole time the held request was in flight, and the address became `unlisted` only **after** it finished (200 in 6.81 s). **M1b is the control**: with a second, unreachable route still referencing the same address it stayed **listed** and went 1 → 0 when the request ended. Both halves agree — the pool counts addresses the configuration references, so unlisted means idle. The constant's comment now carries the measurement.
+- **M2 → no correction to Task 3.** With `deferred: true` the response carries only the edge's `x-manifest-instance: edge-value`. **Control, deferred absent:** both are present, and a client's `headers.get()` returns the string `"edge-value, forged"`.
+- **M3 → the design's central claim holds.** **Zero wildcard answers in 330 requests** across 20 in-place `PATCH` moves of the real route shape, at a request every 25 ms.
+- **M4 → see finding 13.**
+- **M5 → Task 5's retire selector is unchanged.** Repeated `--filter label=` **ANDs** (`slug=proof-app` plus `environment=nonexistent` lists nothing, while either alone lists rows), and only app containers carry `manifest.release`.
+
+**Six negative controls, each watched.** (a) the classifier's own control — the app's route was deleted under a running loop and the loop recorded **16 × `wildcard`**, then the route was PUT back from its saved JSON and `app` resumed; without this a green run later would prove nothing; (b) M2 with `deferred` absent — both header values present; (c) M1b's parked route — the address stays listed and goes 1 → 0; (d) M5's `environment=nonexistent` — nothing listed; (e) M4's 17-character name — 200, against the 72-character name's refusal; (f) the failing release's edit asserts `health: /healthz` is present **before** it rewrites it, so the edit can fail.
+
+**One thing left as it is, named rather than fixed.** `wait_retired` polls for 150 s and nothing retires today, so each red run spends 300 s in two waits. That is the assertion doing its job against a 120 s drain bound; a shorter poll would pass for the wrong reason once Task 7 exists.
+
+**Machine.** `./scripts/snapshot-machine.sh` before and after: the only differences are timestamps, uptimes, 2 GiB of disk, port 7100 (the control plane, stopped at the end), and **one** proof-app container in place of the one that was there. The three runs left **ten** app containers for one app and nine build images; all were removed by explicit name with their `-files` volumes, and the eight images removed were each checked absent from the before-snapshot under every name first. The app was left **healthy and routed** by deploying the last good release through the API rather than leaving it on the failed one. LiteLLM holds **one** user and **one** key for the app — P4b's commit-and-revoke held across nine deploys.
+
+**Gates.** `pnpm test` **736 passed, 66 files**, run **twice**, identical. `pnpm lint`, `pnpm --filter @manifest/control-plane typecheck`, `pnpm format:check` all clean. `make doctor` **18 / 0**, `make verify` **47 / 0**, before and after. **`pnpm test:docker` was not run**: the sittings table requires it for every sitting that touched `runtime/`, `routing/`, `releases/`, `secrets/`, `ai/`, `observability/`, `blueprints/` or `infra/` — "which is all of them from sitting 2 on" — and this one touched only `scripts/`, `Makefile` and `docs/`. It also restarts the edge, which would drop every runtime route and leave the demo app unreachable (P4b finding 193). **All four numbers are unchanged, so the four documents that state them did not move.**
+
+**Documents swept.** The roadmap ledger first, then the plan's sittings table, ORIENTATION §2, §3, §4 and §7d-3, `README.md`, `CLAUDE.md`, `RUNBOOK.md` and `WALKTHROUGH.md`. The last two now say that **`make demo-redeploy` exists and fails on purpose**, so nobody runs it expecting a working demo before Task 11 — an undocumented red target in `make help` is a trap. **The four HTML pages were CHECKED and need no change**: none of them mentions P4c, and this sitting changed no product behaviour, no decision, no hostname example and no spike count. `docs/external-track.md` is untouched — the trigger P4b fired is still Rich's, and nothing here moves it.
+
+**No re-cut of the sittings.** Task 1's job includes moving task boundaries and it did not need to: nothing it measured changed what a later task must build. The corrections it produced are all inside tasks that already existed.
