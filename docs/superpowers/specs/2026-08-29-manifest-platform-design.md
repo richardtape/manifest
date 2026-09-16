@@ -1567,7 +1567,7 @@ the contract and the console describe redeploys as they will be.
 | **1a — Baseline & deploy spine** | S1–S3 + S7 applied. §21's local stack (dnsmasq/`manifest.internal`, custom Caddy + trusted CA, Postgres, registry, Verdaccio, egress proxy, builder), `make seed/up/reset/doctor`. Driver interface + Docker driver + fake Driver + driver contract suite. Spec parse/validate, local git driver, service provisioning, staging deploy, routing. **The blueprint *machinery*** — the §25 registry, descriptor parsing, `checkBlueprintCompatibility()` and major-version pinning — plus **one minimal blueprint**, because under D13 the builder needs a Dockerfile from somewhere and D30's argument applies to the builder, health check, service catalogue and injection contract that all live here. **All cross-cutting security lands here**: container hardening, per-app networks, default-deny egress, authorization contract suite. **Demo:** a fixture app routed and healthy at a `manifest.internal` URL, from a clean checkout, offline. | Does C1 hold, and is the containment real? |
 | **1b — Identity, secrets & AI** | SP auto-provisioning against the metadata mechanism S2 selects, per-app keypairs, `secrets/` envelope encryption, the §8 injection contract, the **`node-ts-mongo` blueprint *content*** against 1a's machinery — auth component, attribute bridge, AI wiring, knowledge pack — LiteLLM client with the classification-gated model catalogue, events, WS streaming, redaction at capture, incidents. **Demo:** the proof app — CWL login, writes to its own Mongo, asks the LLM — driven by `curl`. | Is the loop real? |
 | **1b+ — Redeploys that do not interrupt** | §11's redeploy guarantee in the `Driver` contract and both drivers; in-place route moves verified by identity; background drain and retire of every instance that is not serving; Route records, re-applied at boot; a shared session store in `node-ts-mongo@1`. **Demo:** the proof app redeployed twice and failed once, under a request loop and a signed-in student asking questions, with no failed request. | Can an app change while people are using it? |
-| **1c — Contract & clients** | OpenAPI generation under `/v1`, versioned TS client, `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API (D25), **blueprint starters (§25)**, `console/` with its import boundary **on one origin with the API, behind the edge (§21)**, a read-only `LaunchReadiness` view, **the audience question at project creation (§24) and a read-only fleet list**, the CI acceptance script. **Demo:** the §1 journey, clickable, run twice over one contract. | Is the API complete? *Whether a second developer can reproduce all of it on another machine is tracked separately and is not part of 1c's acceptance (2026-09-16).* |
+| **1c — Contract & clients** | OpenAPI generation under `/v1`, versioned TS client, `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API (D25), **blueprint starters (§25)**, **reserved labels and the slug check (§23)**, `console/` with its import boundary **on one origin with the API, behind the edge (§21)**, a read-only `LaunchReadiness` view, **the audience question at project creation (§24) and a read-only fleet list**, the CI acceptance script. **Demo:** the §1 journey, clickable, run twice over one contract. | Is the API complete? *Whether a second developer can reproduce all of it on another machine is tracked separately and is not part of 1c's acceptance (2026-09-16).* |
 | **2 — Environments & approvals** | production environments, promotion by digest, the `LaunchReadiness` *gate* (1c ships only its read-only view), sensitive-diff escalation, approvals with step-up re-auth, **custom domains end to end (§23), the audience tiers' production effects (§24), and the showcase with forking (§27)**, the admin console built around its queue (§26), IAM registration package + PIA draft generation | Is it safe, and can we get an app legitimately launched? |
 | **3 — Sandboxes** | agent `exec`, per-session keys, preview routes; a chat pane added to the reference console against the same API; the **MCP server** (§22), making "bring your own agent" real. **The separate front-end project can now begin against a real, exercised API.** | Can an AI build here? |
 | **4 — Reconciler & hibernation** | straight-line path becomes the loop; wake-on-request | Does it scale down? |
@@ -2163,20 +2163,60 @@ are different names by construction, with no reserved-suffix list to maintain an
 keep in sync with §7. This is the reasoning the two paragraphs above depend on, and
 it is why §11's lifetime table now points here.
 
-**Platform surfaces take labels in the production zone, so those labels are reserved.**
-The Manifest IdP (`idp`), the reference console (`console`), the separate front-end
-(`app`) and the admin console (`admin`) are served at `<label>.<production zone>`, which
-is exactly the shape of a production app's canonical hostname — so a project whose slug
-is one of those labels would claim the platform's own hostname the day it reached
-production. Project creation refuses a reserved label with a stable error. The list —
-`idp`, `console`, `app`, `admin`, `api`, `www` — is platform configuration held in one
-place, and a test fails when the edge serves a platform name the list does not contain.
-This is not the reserved-suffix list rejected above: that one would have had to track
-every legal slug; this one tracks the platform's own handful of names.
+**Some labels are reserved, and a project cannot take them as its slug.** The Manifest IdP
+(`idp`), the reference console (`console`), the separate front-end (`app`) and the admin
+console (`admin`) are served at `<label>.<production zone>`, which is exactly the shape of a
+production app's canonical hostname — so a project whose slug is one of those labels would
+claim the platform's own hostname the day it reached production. Beyond the platform's own
+names, a hostname is read by people as a claim about what is behind it, and some names are
+looked up by software nobody pointed at them. The reserved list therefore has four groups,
+each with its reason:
+
+| Group | Labels | Why |
+|---|---|---|
+| **Manifest's own surfaces** | `idp` `console` `app` `admin` `api` `www` `manifest` `mock` `docs` `status` `help` `support` | the platform serves, or will serve, these names itself |
+| **Sign-in and identity** | `login` `logout` `signin` `sign-in` `signup` `sign-up` `auth` `sso` `saml` `oauth` `cwl` `shibboleth` `account` `accounts` `password` `identity` | a UBC-looking hostname that reads as a sign-in page is a phishing page whether or not anyone meant it to be |
+| **Environments and infrastructure** | `sandbox` `staging` `production` `prod` `dev` `test` `demo` `preview` `internal` `edge` `proxy` `gateway` `registry` `cdn` `static` `assets` `mail` `smtp` `ftp` `vpn` `dns` `ubc` | reads as a tier, a platform component or the institution itself rather than as one person's app |
+| **Names software looks up automatically** | `wpad` `isatap` `autodiscover` `autoconfig` `mta-sts` `openpgpkey` | proxy auto-discovery, IPv6 transition, mail-client configuration, mail transport policy and key discovery resolve these names without being asked to — a project holding one could receive traffic, and credentials, meant for something else |
+
+Labels shorter than three characters (`id`, `ns`, `mx`) need no entry: §7's slug rule
+already refuses them. **Matching is on the whole label**, never a prefix or a substring — a
+prefix list would refuse `login-help-desk` and `test-prep`, which are legitimate course
+tools, and a lookalike such as `cw1` is an administrator's review, not a rule.
+
+The list is **platform configuration held in one place**, extended by administrators; a test
+fails when the edge serves a platform name the list does not contain. **Adding a label never
+renames an existing project**: a project that already holds a newly reserved label keeps it,
+and is reported to administrators (§26) to be handled with its owner. This is not the
+reserved-suffix list rejected above: that one would have had to track every legal slug; this
+one names a bounded set of labels, each for a stated reason.
 
 **One sandbox environment per project at a time**, so its hostname is stable and
 predictable. Concurrent sandboxes, if they are ever needed, take a suffixed slug;
 the zone scheme does not change.
+
+### Checking a slug before creating a project
+
+Every client that creates projects — the reference console, the separate front-end, an agent
+— should be able to tell a person whether a name will work **while they are typing it**, not
+after they submit. So the API offers one read that answers exactly the question project
+creation will:
+
+`GET /v1/slugs/{slug}` → `{ "slug": "…", "available": true }`, or `"available": false` with
+`"reasons"`: a list of `{ code, message, hint }` in §20's error shape.
+
+- **One function answers both.** The check and project creation (and any rename, §7) call the
+  same validation, so the codes cannot disagree: the slug rule (`SLUG_INVALID`), a reserved
+  label (`SLUG_RESERVED`, with the group's reason in the message), and a slug another project
+  holds (`SLUG_TAKEN`). A check is advisory — creation checks again, and a name taken between
+  the two is refused at creation with the same code.
+- **A `200` either way.** The request succeeded; the answer is about the name. A `4xx` would
+  make "this name is taken" indistinguishable from "you are not allowed to ask".
+- **Authenticated, rate-limited, and it says nothing about the holder.** A taken slug is
+  `SLUG_TAKEN` and nothing more — no owner, no project id, no environment — because a global
+  namespace already reveals that a name exists to anyone who tries to create it; the check
+  must not reveal anything creation does not. It is covered by §16's authorization contract
+  suite like every other route, and a delegated token (D24) may call it.
 
 ### Certificates for the platform zones
 
