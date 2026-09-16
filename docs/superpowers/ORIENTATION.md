@@ -1885,7 +1885,10 @@ like: no route has a schema and every response is a database row, so the public 
 the largest piece of work; project creation seeds a stub, so §22's step 6 cannot be reached from a
 browser; no event is published for provisioning or for an instance's intermediate states;
 `LaunchReadiness` is a stale constant; no admin can exist; and nothing like a delegated token exists.
-**Its §5 holds five decisions that are Rich's — settle them before writing the plan**, as P4c's were.
+**Its §5 holds five decisions that are Rich's. FOUR ARE DECIDED (2026-09-16): starters, THREE PLANS
+(P5a contract, P5b delegated tokens, P5c clients — write P5a first), a `/v1` prefix, and no acceptance
+that depends on a second machine. ONE IS OPEN — where the API is served and who may reach it — and
+P5a's plan cannot be written without it** (§8).
 It also measured that the edge can front the control plane (so a browser console can be same-origin),
 and that an app container can reach any edge route by the edge's address even where the name does
 not resolve — so an API on the edge is reachable from app code unless the edge refuses app networks,
@@ -1911,17 +1914,16 @@ returns once the new instance serves, the old one drains in the background (`ins
 
 Surface these; do not decide them.
 
-- **OPEN, raised 2026-09-16 — five decisions to settle before P5 is written.** The reasoning, the
-  options and a recommendation for each are §5 of
-  [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md): **(1)** what a project created from
-  the console contains — recommended, the skeleton plus a chosen *starter*, with the proof app as
-  `node-ts-mongo@1`'s first (a §22/§25 spec action); **(2)** whether P5 becomes three plans —
-  recommended, P5a the contract, P5b delegated tokens and pending actions, P5c the clients, each
-  written after the one before executes; **(3)** where the API is served and whether app containers
-  may reach it through the edge — recommended, behind the edge at the console's origin with the edge
-  refusing app and sandbox networks, proved by a new S6 probe; **(4)** the contract's version
-  scheme — recommended, a `/v1` path prefix; **(5)** whether 1c's *can a second developer reproduce
-  it* requires the second-machine clean clone, which has never been run.
+- **P5's five decisions — FOUR DECIDED 2026-09-16, ONE OPEN.** The reasoning is §5 of
+  [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md). **Decided by Rich:** (1) a project
+  created from the console is the blueprint skeleton plus a chosen *starter*, the proof app being
+  `node-ts-mongo@1`'s first; (2) P5 is **three plans — P5a the contract, P5b delegated tokens and
+  pending actions, P5c the clients** — each written after the one before executes; (4) the contract
+  is versioned with a **`/v1` path prefix**; (5) **no P5 acceptance depends on a clean machine or a
+  second developer**. **STILL OPEN: (3) where the API is served, and whether code running inside an
+  app may reach it through the edge.** The spec actions (1) and (4) imply — §22's step 2, §25's
+  descriptor, and D23.8's scheme — are agreed in substance and **not yet applied**; whether to apply
+  them before P5a is written is Rich's instruction to give.
 - **§12's scan gate — SETTLED 2026-09-08, Rich's call, and written into §12 on
   2026-09-14.** The gate blocks on a Critical or High **that has a published fix**;
   findings with no fix are recorded on the Release and reported for §20's fleet-wide
