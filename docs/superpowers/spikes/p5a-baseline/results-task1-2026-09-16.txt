@@ -1,0 +1,128 @@
+# P5a Task 1 — results, 2026-09-16
+# macOS 26.6.2 (25G83), Node v24.12.0, Docker Engine 29.7.2, pnpm 11.24.0
+# zod 3.25.76, fastify 5.12.3
+# caddy v2.11.4 h1:XKxkMTgNSizEvKG6QHue6cAsFOteU2qA61w2tKkCWi0=
+# preconditions: make doctor 18/0, make verify 47/0, 7100 free, proof-app container mf-proof-app-staging-70958c85-5383eeb6-app healthy
+
+[M1g] typecheck with the generic defineRoute (expect clean):
+$ tsc --noEmit
+[M1g] exit=0
+[M1g] NEGATIVE CONTROL — handler returns slug: 1 (expect TS2322 on slug):
+src/api/contract/m1-spike.test.ts(54,34): error TS2322: Type 'Promise<{ id: string; slug: number; createdAt: string; }>' is not assignable to type 'Promise<{ id: string; slug: string; createdAt: string; environments?: { id: string; kind: "staging" | "production" | "sandbox"; hostname: string; }[] | undefined; }>'.
+[M1g] control exit=2
+[M1g] NEGATIVE CONTROL 2 — handler reads params.projectID (expect TS2339/TS2551: params are typed, not any):
+src/api/contract/m1-spike.test.ts(53,48): error TS2551: Property 'projectID' does not exist on type '{ projectId: string; }'. Did you mean 'projectId'?
+
+[M2 pre] routes on srv0 before: 3
+[M2 pre] p5a-probe before: manifest OK host=p5a-probe.manifest.internal scheme=https remote=10.89.0.1
+[M2a] host           : held 1 [200]
+[M2b] platform net   : manifest: the control plane is not reachable from this network [403]
+[M2c] proof-app net  : manifest: the control plane is not reachable from this network [403]
+[M2d] CONTROL, no refusal — proof-app net: held 1 [200]
+[M2e] a 100 s request through the edge, from the host:
+      held 100000 [200] after 100 s
+[M2f] adapted:
+{"apps":{"http":{"servers":{"srv0":{"listen":[":443"],"routes":[{"match":[{"host":["console.manifest.internal"]}],"handle":[{"handler":"subroute","routes":[{"handle":[{"handler":"subroute","routes":[{"handle":[{"body":"manifest: the control plane is not reachable from this network","handler":"static_response","status_code":403}],"match":[{"not":[{"remote_ip":{"ranges":["10.89.0.1/32"]}}]}]},{"handle":[{"handler":"reverse_proxy","upstreams":[{"dial":"host.docker.internal:7100"}]}],"match":[{"path":["/v1/*","/auth/*"]}]},{"handle":[{"body":"manifest console: not built yet — P5c serves it here. The API is under /v1/.","handler":"static_response","status_code":200}]}]}]}]}],"terminal":true}]}}},"tls":{"automation":{"policies":[{"subjects":["console.manifest.internal"],"issuers":[{"module":"internal"}]}]}}}}
+docs/superpowers/spikes/p5a-baseline/m2-edge-refusal.sh: line 30:  9630 Terminated: 15          node -e '
+  const http = require("node:http")
+  http.createServer((req, res) => {
+    const ms = Number(new URL(req.url, "http://x").searchParams.get("ms") ?? 0)
+    setTimeout(() => res.end(`held ${ms}`), ms)
+  }).listen(Number(process.argv[1]), "127.0.0.1")
+' "$HOLD_PORT"
+[M2 post] p5a-probe after: manifest OK host=p5a-probe.manifest.internal scheme=https remote=10.89.0.1
+[M2 post] routes on srv0 after: 3
+[M2g] proof-app via its egress proxy, WITH the refusal   : proxy refused CONNECT [403 Filtered]
+[M2g] proof-app via its egress proxy, WITHOUT the refusal: proxy refused CONNECT [403 Filtered]
+[M2g post] p5a-probe after: manifest OK host=p5a-probe.manifest.internal scheme=https remote=10.89.0.1 ; routes: 3
+[M2g] proof-app via its egress proxy, WITH the refusal   : proxy refused CONNECT [403 Filtered]
+[M2g] proof-app via its egress proxy, WITHOUT the refusal: proxy refused CONNECT [403 Filtered]
+[M2g] POSITIVE CONTROL, CONNECT manifest-idp:80 (allowlisted): [200 Connection established]
+[M2g] CONNECT manifest-caddy:443                           : [403 Filtered]
+[M2g] CONNECT 10.89.0.10:443 (the edge's platform address)  : [403 Filtered]
+[M2g] CONNECT host.docker.internal:7100 (the control plane) : [403 Filtered]
+[M2g post] p5a-probe after: manifest OK host=p5a-probe.manifest.internal scheme=https remote=10.89.0.1 ; routes: 3
+
+[M3 pre] platform SP row ACS before M3: [{"index":0,"Binding":"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST","Location":"http://127.0.0.1:7100/auth/saml/callback"}]
+$ tsc
+{"driver":"docker","port":7100,"ai":"enabled","routesRestored":1,"routesFailed":0,"interrupted":0,"msg":"control plane ready","secretsScrubbed":11}
+[M3a] sign-in through https://p5a-probe.manifest.internal
+      cookie manifest_session domain=#HttpOnly_p5a-probe.manifest.internal secure=FALSE
+[M3b] {"id":"f4312ae0-8310-4403-b150-1603712e571c","puid":"ins000001","role":"member"}
+[M3c] frames through the edge: 25, ready frame: 1
+[M3d] RelayState round trip through the real IdP
+      RelayState in the IdP's form: p5a-m3-relaystate-probe
+docs/superpowers/spikes/p5a-baseline/m3-login-through-origin.sh: line 33: 15081 Terminated: 15          MANIFEST_CONTROL_PLANE_ORIGIN="$ORIGIN" node packages/control-plane/dist/index.js > "$WORK/cp.log" 2>&1
+[M3 post] p5a-probe after: manifest OK host=p5a-probe.manifest.internal scheme=https remote=10.89.0.1 ; 7100: curl: (7) Failed to connect to 127.0.0.1 port 7100 after 0 m
+[Step 8] ACS while registered at the probe origin: [{"index":0,"Binding":"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST","Location":"https://p5a-probe.manifest.internal/auth/saml/callback"}]
+[Step 8] ACS after booting at the default origin: [{"index":0,"Binding":"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST","Location":"http://127.0.0.1:7100/auth/saml/callback"}]
+
+[M1] vitest run (run AFTER M3 and Step 8 — the unit project's globalSetup truncates the control plane's tables)
+
+ RUN  v2.1.9 /Users/rich/Developer/manifest
+
+stdout | src/api/contract/m1-spike.test.ts > M1 — zod/v4 on a real route shape > [M1a] refuses a bad param and strips a column the representation does not name
+[M1a] bad  400 {"issues":[{"path":"projectId","code":"invalid_format"}]}
+[M1a] good 200 {"id":"6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f","slug":"chem-labs","createdAt":"2026-09-16T00:00:00.000Z"}
+
+stdout | src/api/contract/m1-spike.test.ts > M1 — zod/v4 on a real route shape > [M1b] refuses a Date where a timestamp string belongs
+[M1b] false [{"expected":"string","code":"invalid_type","path":["createdAt"],"message":"Invalid input: expected string, received Date"}]
+
+stdout | src/api/contract/m1-spike.test.ts > M1 — zod/v4 on a real route shape > [M1c] turns two registries into components that $ref each other
+[M1c] output {"schemas":{"Environment":{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"#/components/schemas/Environment","type":"object","properties":{"id":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"},"kind":{"type":"string","enum":["sandbox","staging","production"]},"hostname":{"type":"string"}},"required":["id","kind","hostname"],"additionalProperties":false},"Project":{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"#/components/schemas/Project","type":"object","properties":{"id":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"},"slug":{"type":"string"},"createdAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"},"environments":{"type":"array","items":{"$ref":"#/components/schemas/Environment"}}},"required":["id","slug","createdAt"],"additionalProperties":false}}}
+[M1c] input  {"schemas":{"CreateProjectRequest":{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"#/components/schemas/CreateProjectRequest","type":"object","properties":{"slug":{"type":"string"},"audience":{"type":"object","properties":{"scale":{"type":"string","enum":["solo","class","large_course","public"]},"justification":{"type":"string"}},"required":["scale"],"additionalProperties":false}},"required":["slug","audience"],"additionalProperties":false}}}
+
+ ✓ |unit| src/api/contract/m1-spike.test.ts (6 tests) 33ms
+stdout | src/api/contract/m1-spike.test.ts > M1 — zod/v4 on a real route shape > [M1d] emits the shapes P5a will use
+[M1d] nullable {"$schema":"https://json-schema.org/draft/2020-12/schema","anyOf":[{"type":"string"},{"type":"null"}]}
+[M1d] record {"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","propertyNames":{"type":"string"},"additionalProperties":{}}
+[M1d] literal {"$schema":"https://json-schema.org/draft/2020-12/schema","type":"string","const":"event"}
+[M1d] union {"$schema":"https://json-schema.org/draft/2020-12/schema","anyOf":[{"type":"object","properties":{"kind":{"type":"string","const":"a"}},"required":["kind"],"additionalProperties":false},{"type":"object","properties":{"kind":{"type":"string","const":"b"}},"required":["kind"],"additionalProperties":false}]}
+[M1d] discriminated {"$schema":"https://json-schema.org/draft/2020-12/schema","anyOf":[{"type":"object","properties":{"kind":{"type":"string","const":"a"},"x":{"type":"string"}},"required":["kind","x"],"additionalProperties":false},{"type":"object","properties":{"kind":{"type":"string","const":"b"},"y":{"type":"number"}},"required":["kind","y"],"additionalProperties":false}]}
+[M1d] optionalKey {"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"a":{"type":"string"}},"additionalProperties":false}
+[M1d] defaulted {"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"a":{"default":"x","type":"string"}},"required":["a"],"additionalProperties":false}
+[M1d] integer {"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":0,"maximum":9007199254740991}
+
+stdout | src/api/contract/m1-spike.test.ts > M1 — zod/v4 on a real route shape > [M1e] a v4 ZodError is not a v3 ZodError
+[M1e] instanceof zod 3 ZodError: false
+
+stdout | src/api/contract/m1-spike.test.ts > M1 — zod/v4 on a real route shape > [M1f] a query object converts to what OpenAPI parameters need
+[M1f] {"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"expand":{"type":"string"},"tail":{"type":"integer","minimum":1,"maximum":10000}},"additionalProperties":false}
+[M1f] coerced from a query string: {"success":true,"data":{"tail":5}}
+
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  16:09:07
+   Duration  269ms (transform 14ms, setup 4ms, collect 48ms, tests 33ms, environment 0ms, prepare 27ms)
+
+
+[M4a] 755 labels in 6 groups: manifest=12 sign-in=16 environments-and-infrastructure=21 automatic-lookups=6 ubc=22 ubc-academic=678
+[M4a] problems: none
+[M4b] Caddyfile sites: idp.manifest.internal → manifest
+[M4b] 116 slug-shaped names in src/, scripts/ and fixtures/; reserved among them: manifest, staging, app, port
+[M4c] comments 35 → 35; lines changed: 58; name now: journey-app
+[M4c+] name node: Scalar type PLAIN range [408,417,418] source slice: "proof-app"
+[M4c+] range splice: byte-identical apart from name: true ; parses with name: journey-app ; errors: 0
+[M4c+] "name: \"proof-app\"\n" → "name: journey-app\n" parses: journey-app
+[M4c+] "name: 'proof-app'\n" → "name: journey-app\n" parses: journey-app
+[M4c+] "name: proof-app # the slug\n" → "name: journey-app # the slug\n" parses: journey-app
+[M4c+] M4c's "lines changed: 58" compares line i with line i, so the ONE line yaml inserts (a folded description) shifts every later line. The real diff of String(doc) is 4 hunks:
+[M4c+]   name (intended); description folded at 80 columns; `[a, b]` → `[ a, b ]` twice (models, sso attributes).
+[M4c+] default: diff hunks 4 | lineWidth:0: 3 | lineWidth:0 + flowCollectionPadding:false: 3 — the file pads flow MAPS `{ a: b }` and not flow SEQUENCES `[a, b]`, and one option sets both. Every variant parses to the same object apart from name.
+[M4b+] tight scan (slug: "…", SLUG:-…, SLUG=…, manifest.yaml name:) over src/, scripts/, fixtures/, blueprints/, infra/lib/: 21 project slugs; reserved among them: none
+[M4b+] the loose scan's four (manifest, staging, app, port) are not slugs: git user.name=manifest and the manifest.* label keys; staging.hostname; appContainer(…); a comment in spec/injection.ts
+[M4b+] slugs: authz-fixture bio-tools chem-labs deploy-sso-probe duplicate fixture-app impostor-idp manifest-control-plane nettest-ai once-only proof-app quota-default saml-probe saml-unsigned store-absent store-delete store-empty store-probe store-upsert test-control-plane test-idp
+[M4b+] console → manifest: Manifest's reference console
+[M4b+] edge → environments-and-infrastructure: Manifest's edge proxy
+[M4b+] idp → manifest: the Manifest IdP
+[M4b+] journey-app → NOT RESERVED
+[M4b+] proof-app → NOT RESERVED
+
+[M5] fetch POST, no headers: {"origin":null}
+[M5] fetch POST, origin given: {"origin":"https://console.manifest.internal"}
+[M5] WebSocket upgrade origin: null, cookie: absent
+[M5] WebSocket upgrade origin: https://console.manifest.internal, cookie: present
+[M1d+] int, no min: {"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":-9007199254740991,"maximum":9007199254740991}
+[M1d+] z.iso.datetime() pattern length: 261
+[M4c+] Task 11's corrected rename, typechecked and run as a scratch test in src/blueprints/: range splice → byte-exact PASS; negative control (parseDocument + set + String) → the byte-equality expectation FAILS
