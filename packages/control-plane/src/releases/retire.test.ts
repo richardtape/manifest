@@ -400,9 +400,15 @@ describe('retireEnvironment (P4c Task 7)', () => {
   })
 
   it('never retires an instance a concurrent deploy is still starting', async () => {
-    // A deploy holds the environment lock from its instance row to its Route row.
-    // This holds the lock, makes a NEW instance serve, and releases — while a retire
-    // scheduled in the middle waits and then sees the new instance serving.
+    // A deploy holds the environment lock from its instance row to its Route row, and
+    // THE WINDOW THAT MATTERS IS THE ONE IN THE MIDDLE: the new container is up and
+    // the route has not moved to it yet. An unlocked retire looking in that window
+    // sees an instance that does not serve and removes the deploy from under itself.
+    //
+    // The fake's `ensureInstance` starts and promotes in one call, so the route is
+    // put back afterwards to model the window. Without that this test passes with the
+    // lock removed — measured 2026-09-15, and it is why the plan's control (c) came
+    // out green.
     await withRollback(async (db) => {
       const { driver, environment, rows, orphan } = await threeInstances(db)
       let newcomer = ''
@@ -431,7 +437,12 @@ describe('retireEnvironment (P4c Task 7)', () => {
           needsAiGateway: false,
         })
         newcomer = handle.id
+        // The window: container up, route not yet moved. `restoreRoute` points the
+        // hostname back at what was serving when this deploy started.
+        await driver.restoreRoute(rows.serving.handle)
         await mayFinish
+        // …and the deploy finishes by promoting, still under the lock.
+        await driver.restoreRoute(newcomer)
       })
       while (!insideLock) await sleep(5)
 
