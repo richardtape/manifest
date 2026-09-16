@@ -312,14 +312,16 @@ admin-ui/       React admin front-end
 | Entity | Key fields |
 |---|---|
 | **User** | `id`, `ubc_cwl_puid` (from `ubcEduCwlPuid`), `email`, `display_name`, `role` (`admin` \| `member`) |
-| **Project** | `id`, `slug`, `owner_id`, `blueprint_ref`, `quota`, `audience`, `visibility`, `published`, `forked_from` |
+| **Project** | `id`, `slug`, `owner_id`, `blueprint_ref`, `starter`, `quota`, `audience`, `visibility`, `published`, `forked_from` |
+| | `starter` = the §25 starter the first commit was seeded from, or null for the skeleton alone; provenance only — a later change to the starter changes no project |
 | | `quota` = `{max_cpu, max_memory, max_services, ai_monthly_usd}`; enforced at spec validation (§7) |
 | | `audience` = `{scale, burst, justification, set_by, set_at}`; human-set, shapes production capacity only (§24, D29) |
 | **ProjectMember** | `project_id`, `user_id`, `role` (`owner` \| `collaborator`) |
 | **Blueprint** | `name`, `major_version`, `source_ref`, `default_spec`, `knowledge_pack_path`, `descriptor` |
 | | `descriptor` = the parsed `blueprint.yaml` of §25: runtime, capabilities, defaults, schema compatibility, starters (D30) |
 | **AppSpec** | `id`, `project_id`, `commit_sha`, `parsed` (jsonb), `schema_version`, `valid`, `errors` |
-| **Build** | `id`, `project_id`, `commit_sha`, `appspec_id`, `image_digest`, `status`, `logs_ref` |
+| **Build** | `id`, `project_id`, `commit_sha`, `appspec_id`, `image_digest`, `status`, `logs_ref`, `scan` |
+| | `scan` = §12's scan of the image: scanner, database age and staleness, counts by severity for findings the build introduced with and without a published fix and for the base image's own, and the unfixable findings by id. Every `Release` of the build shows it — this is how unfixable findings are *recorded on the Release* (§12) |
 | **Release** | `id`, `project_id`, `build_id`, `appspec_id`, `resolved_config`, `created_by`, `summary` |
 | **Environment** | `id`, `project_id`, `kind` (`sandbox` \| `staging` \| `production`), `policy`, `hostname` |
 | **Instance** | `id`, `environment_id`, `release_id`, `driver`, `kind` (`web` \| `worker` \| `cron`), `state`, `handle`, `last_seen_at` |
@@ -335,6 +337,7 @@ admin-ui/       React admin front-end
 | **PendingAction** | `id`, `project_id`, `requested_by_token`, `action`, `payload`, `state` (`pending` \| `confirmed` \| `rejected` \| `expired`), `resolved_by`, `resolved_at` |
 | **AgentSession** | `id`, `project_id`, `instance_id`, `litellm_key_id`, `expires_at` |
 | **Event** | `id`, `project_id`, `subject`, `type`, `machine_detail`, `human_message`, `created_at` |
+| **RoleChange** | `id`, `user_id`, `from_role`, `to_role`, `actor`, `reason`, `created_at` — append-only by grant, like `Event`; `actor` is text, because the first administrator's grant has no administrator to attribute it to (§20) |
 | **Incident** | `id`, `instance_id`, `exit_reason`, `log_tail`, `failed_check`, `diff_since_healthy` |
 
 **Central economy:** `sandbox` is not a separate subsystem. It is an `Environment`
@@ -1428,8 +1431,9 @@ tolerable in production at all.
 - Every `Event` carries a **faculty-legible** `human_message` alongside
   `machine_detail`. *"Your app couldn't start — it's asking for a database it
   hasn't declared"*, not `exit code 1`.
-- One WebSocket stream per project (D23.2) carries build logs as they are written,
-  instance state transitions, incidents, approval decisions, and every other audit
+- One WebSocket stream per project (D23.2) carries provisioning — the project created,
+  its repository seeded, its `manifest.yaml` validated (§22 step 3) — build logs as
+  they are written, instance state transitions, incidents, approval decisions, and every other audit
   `Event` the platform records — §9's SP registrations and §10's app-key rotations
   among them. A connection that arrives late is replayed the project's recent events.
   **Live tailing of a running application's own output is not v1**: it would carry
@@ -1649,10 +1653,18 @@ nowhere else, and maps everything back to §3.5.
 
 - Session cookies `Secure`, `HttpOnly`, `SameSite=Lax`; server-side session store;
   rotation on privilege change.
-- CSRF protection on every state-changing route.
+- CSRF protection on every state-changing route, **as an `Origin` check**: every
+  mutation carrying a session cookie, and every event-stream upgrade carrying one,
+  must name the console's origin. The mechanism matters here because every deployed
+  app is *same-site* with the console — `<slug>.staging.<zone>` beside
+  `console.<zone>` — so `SameSite=Lax` alone would send the session on a form an
+  app's untrusted code submits. **A sign-in is bound to the browser that started it**:
+  the assertion must return with the nonce a short-lived cookie set when the sign-in
+  began, or it is refused, because proving an assertion answers a request the control
+  plane made does not prove this browser made it.
 - **Admin bootstrapping is explicit:** the first administrator is created by a
   documented out-of-band procedure, never by "first user to log in wins". Role
-  changes are audited.
+  changes are audited, as a `RoleChange` (§6) carrying who made the change and why.
 - **Step-up re-authentication** for the privileged set — approving a release,
   reading a secret, changing a quota, changing project membership — plus the
   admin-only actions of changing the model catalogue and publishing a blueprint. A
@@ -2114,6 +2126,14 @@ Flexibility for the future front-end is preserved by constraints, not intentions
    — the browser-mediated sign-in endpoints, whose URL is registered with the IdP (§9),
    and platform-internal endpoints such as the registry's token realm — sit outside the
    versioned contract, and the contract says so rather than omitting them silently.
+
+9. **Long-running work answers at once and finishes on the event stream.** Starting a
+   build answers `202` with the build running; its log lines stream as they are
+   written and its end arrives as an event, so no client holds a request open for the
+   length of a build. **A deploy is the stated exception**: it answers once the new
+   instance serves or has failed with an Incident (§11), because that is seconds when
+   healthy and bounded by the readiness timeout when not, and a deploy that answered
+   before it knew would hand every client the same wait to rebuild.
 
 ---
 
