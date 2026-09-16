@@ -19,6 +19,7 @@ import { registerAuthRoutes } from './routes/auth.js'
 import type { SsoRegistrar } from '../sso/index.js'
 import type { SamlSp } from '../identity/index.js'
 import type { AiKeyService, ModelCatalogue } from '../ai/index.js'
+import type { Retirer } from '../releases/index.js'
 import { registerProjectRoutes } from './routes/projects.js'
 import { registerDeliveryRoutes } from './routes/delivery.js'
 import { registryTokenRoutes } from './routes/registry-token.js'
@@ -62,6 +63,13 @@ export interface ServerDeps {
    * socket meet on the same instance.
    */
   bus: EventBus
+  /**
+   * THE CONTROL PLANE'S FIRST BACKGROUND WORK (P4c Task 7): what drains and removes
+   * the instances a deploy replaced. ONE per process, like the bus, and built at boot
+   * — a deploy calls `schedule` and returns (R3), and `idle()` is what the acceptance
+   * and the Docker tier wait on.
+   */
+  retirer: Retirer
 }
 
 declare module 'fastify' {

@@ -12,7 +12,6 @@ export type { CatalogueSnapshot, ModelCatalogue, ModelEntry } from './catalogue.
 export {
   AI_ALLOWED_ROUTES,
   aiUserId,
-  commitAppKey,
   createAiKeyService,
   disabledAiKeyService,
   discardAppKey,
@@ -23,9 +22,4 @@ export {
   revokeLegacyAppKey,
   storeInstanceKey,
 } from './keys.js'
-export type {
-  AiKeyService,
-  CommitAppKeyInput,
-  InstanceKeyScope,
-  MintAppKeyInput,
-} from './keys.js'
+export type { AiKeyService, InstanceKeyScope, MintAppKeyInput } from './keys.js'

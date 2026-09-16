@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
 import { getSecret, putSecret } from '../secrets/index.js'
 import { withSecretScope } from '../secrets/testing.js'
@@ -8,11 +9,11 @@ import {
   AI_ALLOWED_ROUTES,
   LLM_API_KEY_SECRET,
   aiUserId,
-  commitAppKey,
   createAiKeyService,
   disabledAiKeyService,
   discardAppKey,
   ensureAiUser,
+  instanceKeySecretName,
   mintAppKey,
 } from './keys.js'
 
@@ -165,98 +166,6 @@ describe('minting an app key (§10, S3 Evidence 11)', () => {
   })
 })
 
-describe('committing a minted key, once its instance is healthy', () => {
-  it('stores the key, and revokes the PREVIOUS one — a first commit revokes nothing', async () => {
-    // §10: "rotated every deploy". Without the revoke, every deploy leaves a live key
-    // behind, and an app archived after ten deploys has ten working keys.
-    await withSecretScope(async (db, { projectId, keys }) => {
-      const fake = fakeClient()
-      const first = await mintAppKey(fake.client, input(projectId))
-      await commitAppKey(db, fake.client, keys, {
-        projectId,
-        kind: 'staging',
-        key: first,
-      })
-      expect(revoked(fake.calls)).toEqual([])
-
-      const second = await mintAppKey(fake.client, input(projectId))
-      expect(second).not.toBe(first)
-      await commitAppKey(db, fake.client, keys, {
-        projectId,
-        kind: 'staging',
-        key: second,
-      })
-      expect(revoked(fake.calls)).toEqual([[first]])
-      expect(await getSecret(db, stored(projectId), keys)).toBe(second)
-    })
-  })
-
-  it('stores the new key BEFORE revoking the old one — observed at the moment of the revoke', async () => {
-    // The plan asserted the ORDER OF ADMIN CALLS, and storing is not an admin call,
-    // so its test could not see the ordering it was named for (sitting 4). This
-    // reads the secret store at the instant /key/delete is sent.
-    await withSecretScope(async (db, { projectId, keys }) => {
-      const fake = fakeClient()
-      await putSecret(db, { ...stored(projectId), value: 'sk-previous' }, keys)
-      const seenAtRevoke: (string | undefined)[] = []
-      const record = fake.post.getMockImplementation()!
-      fake.post.mockImplementation(async (path: string, body: unknown) => {
-        if (path === '/key/delete')
-          seenAtRevoke.push(await getSecret(db, stored(projectId), keys))
-        return record(path, body)
-      })
-      await commitAppKey(db, fake.client, keys, {
-        projectId,
-        kind: 'staging',
-        key: 'sk-new',
-      })
-      expect(seenAtRevoke).toEqual(['sk-new'])
-    })
-  })
-
-  it('never revokes the key it is committing, when the same key is committed twice', async () => {
-    // A retried commit. Revoking "the previous key" here would revoke the key the
-    // healthy instance was just given.
-    await withSecretScope(async (db, { projectId, keys }) => {
-      const fake = fakeClient()
-      const commit = { projectId, kind: 'staging' as const, key: 'sk-same' }
-      await commitAppKey(db, fake.client, keys, commit)
-      await commitAppKey(db, fake.client, keys, commit)
-      expect(revoked(fake.calls)).toEqual([])
-      expect(await getSecret(db, stored(projectId), keys)).toBe('sk-same')
-    })
-  })
-
-  it('a previous key LiteLLM no longer holds (404) does not fail the commit', async () => {
-    // Pre-flight 43: a reset gateway database, or a key deleted by hand. The deploy
-    // must not fail after a live key has been stored.
-    await withSecretScope(async (db, { projectId, keys }) => {
-      const fake = fakeClient({ '/key/delete': 404 })
-      await putSecret(db, { ...stored(projectId), value: 'sk-previous' }, keys)
-      await commitAppKey(db, fake.client, keys, {
-        projectId,
-        kind: 'staging',
-        key: 'sk-new',
-      })
-      expect(await getSecret(db, stored(projectId), keys)).toBe('sk-new')
-    })
-  })
-
-  it('any other revoke failure does fail it', async () => {
-    await withSecretScope(async (db, { projectId, keys }) => {
-      const fake = fakeClient({ '/key/delete': 500 })
-      await putSecret(db, { ...stored(projectId), value: 'sk-previous' }, keys)
-      await expect(
-        commitAppKey(db, fake.client, keys, {
-          projectId,
-          kind: 'staging',
-          key: 'sk-new',
-        }),
-      ).rejects.toMatchObject({ code: 'AI_BACKEND_UNAVAILABLE' })
-    })
-  })
-})
-
 describe('discarding a key that was never committed', () => {
   it('revokes exactly that key, and leaves the stored one — the previous key — alone', async () => {
     // The instance holding the new key failed to start or never passed health. The
@@ -282,7 +191,7 @@ describe('discarding a key that was never committed', () => {
 })
 
 describe('the bound service `deployRelease` holds', () => {
-  it('mints, commits and discards through the same functions, with no key material of its own', async () => {
+  it('mints, records and discards through the same functions, with no key material of its own', async () => {
     await withSecretScope(async (db, { projectId, keys }) => {
       const fake = fakeClient()
       const service = createAiKeyService(fake.client, keys)
@@ -291,8 +200,19 @@ describe('the bound service `deployRelease` holds', () => {
       expect(bodyOf(fake.calls, '/key/generate').allowed_routes).toEqual(
         AI_ALLOWED_ROUTES,
       )
-      await service.commitAppKey(db, { projectId, kind: 'staging', key })
-      expect(await getSecret(db, stored(projectId), keys)).toBe(key)
+      const instanceId = randomUUID()
+      await service.storeInstanceKey(db, { projectId, kind: 'staging', instanceId, key })
+      expect(
+        await getSecret(
+          db,
+          {
+            projectId,
+            environmentKind: 'staging',
+            name: instanceKeySecretName(instanceId),
+          },
+          keys,
+        ),
+      ).toBe(key)
       await service.discardAppKey('sk-stray')
       expect(revoked(fake.calls)).toEqual([['sk-stray']])
     })
@@ -305,7 +225,12 @@ describe('the bound service `deployRelease` holds', () => {
     expect(service.enabled).toBe(false)
     await expect(service.mintAppKey(input('p1'))).rejects.toThrow(/MANIFEST_AI_ENABLED=0/)
     await expect(
-      service.commitAppKey({} as never, { projectId: 'p1', kind: 'staging', key: 'k' }),
+      service.storeInstanceKey({} as never, {
+        projectId: 'p1',
+        kind: 'staging',
+        instanceId: 'i1',
+        key: 'k',
+      }),
     ).rejects.toThrow(/MANIFEST_AI_ENABLED=0/)
     await expect(service.discardAppKey('k')).rejects.toThrow(/MANIFEST_AI_ENABLED=0/)
   })

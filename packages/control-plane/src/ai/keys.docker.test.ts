@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { expect, it } from 'vitest'
 import { describeDocker } from '../runtime/testing.js'
-import { getSecret } from '../secrets/index.js'
+import { getSecret, putSecret } from '../secrets/index.js'
 import { withSecretScope } from '../secrets/testing.js'
 import { createLiteLlmClient } from './client.js'
 import {
@@ -32,13 +32,17 @@ interface UserInfo {
  * can see none of them: `/user/new` mints an unconfined key unless told not to
  * (sitting 2, finding 19), a redeploy's `/user/new` answers 409 (sitting 3, finding
  * 28), and revoking a key the gateway no longer holds answers 404 (pre-flight 43).
- * And the property the three-step split exists for — the previous key STILL WORKS
- * after the next one is minted, until it is committed (Rich, 2026-09-14) — is a fact
- * about the gateway, not about this module. So this mints, commits and discards for
- * real, and reads the gateway back.
+ * And the property the split exists for — the previous key STILL WORKS after the next
+ * one is minted (Rich, 2026-09-14) — is a fact about the gateway, not about this
+ * module. So this mints, records and discards for real, and reads the gateway back.
+ *
+ * P4c deleted `commitAppKey` with its caller (Task 8, Decision 15): a redeploy now
+ * runs the new instance beside the one serving, so a key is recorded PER INSTANCE and
+ * revoked when that instance is retired. This test was written against the commit and
+ * keeps every assertion that is about the gateway rather than about the store.
  */
 describeDocker('app keys against the running gateway (P4b Tasks 7 and 9)', () => {
-  it('one confined key per app and environment, and the previous key lives until the next is committed', async () => {
+  it('one confined key per instance, and a redeploy updates the user’s budget', async () => {
     const master = litellmMasterKey()
     const client = createLiteLlmClient({ baseUrl: litellmUrl(), masterKey: master })
     // Aliased, so the child key a BROKEN confinement would mint is one teardown finds.
@@ -65,36 +69,51 @@ describeDocker('app keys against the running gateway (P4b Tasks 7 and 9)', () =>
           models: ['default-chat'],
           monthlyUsd: 5,
         }
-        const commit = (key: string) =>
-          service.commitAppKey(db, { projectId, kind: 'staging', key })
-        const storedKey = () =>
+        const instanceA = randomUUID()
+        const instanceB = randomUUID()
+        const instanceC = randomUUID()
+        const record = (instanceId: string, key: string) =>
+          service.storeInstanceKey(db, { projectId, kind: 'staging', instanceId, key })
+        const storedFor = (instanceId: string) =>
           getSecret(
             db,
-            { projectId, environmentKind: 'staging', name: LLM_API_KEY_SECRET },
+            {
+              projectId,
+              environmentKind: 'staging',
+              name: instanceKeySecretName(instanceId),
+            },
             keys,
           )
 
         const first = await service.mintAppKey(args)
         minted.push(first)
-        await commit(first)
+        await record(instanceA, first)
 
         // A REDEPLOY with a changed budget: /user/new answers 409, and is updated.
         const second = await service.mintAppKey({ ...args, monthlyUsd: 7 })
         minted.push(second)
-        // THE PROPERTY THE SPLIT EXISTS FOR. Minted, not committed: the running
-        // instance's key still answers and is still the stored one, and the new key
-        // answers too, because the new container needs it working before health.
+        await record(instanceB, second)
+        // THE PROPERTY THE SPLIT EXISTS FOR, and the whole of P4c at the gateway: the
+        // draining instance's key still answers while the new one does too, and each
+        // is recorded under its own instance.
         expect(await answers(first)).toBe(200)
         expect(await answers(second)).toBe(200)
-        expect(await storedKey()).toBe(first)
+        expect(await storedFor(instanceA)).toBe(first)
+        expect(await storedFor(instanceB)).toBe(second)
 
-        await commit(second)
-        const info = await userInfo()
-        // ONE live key, the second: no auto-created key beside it, the first revoked.
-        expect(info.keys).toHaveLength(1)
-        expect(info.user_info).toMatchObject({ max_budget: 7, budget_duration: '1mo' })
+        const both = await userInfo()
+        // TWO live keys and no third: no auto-created key beside either of them.
+        expect(both.keys).toHaveLength(2)
+        expect(both.user_info).toMatchObject({ max_budget: 7, budget_duration: '1mo' })
+
+        // The old instance is retired, which is the only thing that revokes its key.
+        await service.revokeInstanceKey(db, {
+          projectId,
+          kind: 'staging',
+          instanceId: instanceA,
+        })
         expect(await answers(first)).toBe(401)
-        expect(await storedKey()).toBe(second)
+        expect((await userInfo()).keys).toHaveLength(1)
 
         const models = await call(second, 'GET', '/v1/models')
         const listed = ((await models.json()) as { data: { id: string }[] }).data
@@ -105,25 +124,34 @@ describeDocker('app keys against the running gateway (P4b Tasks 7 and 9)', () =>
         })
         expect(escalation.status).toBe(403)
 
-        // A deploy whose instance never became healthy: the minted key is discarded,
-        // and the committed one is untouched on both sides.
+        // A key `storeInstanceKey` could not record: discarded BY VALUE, and the
+        // serving instance's key is untouched on both sides.
         const failed = await service.mintAppKey(args)
         minted.push(failed)
         await service.discardAppKey(failed)
         expect(await answers(failed)).toBe(401)
         expect(await answers(second)).toBe(200)
-        expect(await storedKey()).toBe(second)
+        expect(await storedFor(instanceB)).toBe(second)
         expect((await userInfo()).keys).toHaveLength(1)
 
-        // The gateway loses the committed key — a reset database, a hand delete. The
-        // next commit still succeeds, and still leaves exactly one live key.
-        expect(
-          (await call(master, 'POST', '/key/delete', { keys: [second] })).status,
-        ).toBe(200)
+        // The gateway loses a recorded key — a reset database, a hand delete. Revoking
+        // it answers 404, which `revokeKey` treats as the end state it wanted, so the
+        // retire still finishes and the record still goes (pre-flight 43).
         const third = await service.mintAppKey(args)
         minted.push(third)
-        await commit(third)
-        expect(await answers(third)).toBe(200)
+        await record(instanceC, third)
+        expect(
+          (await call(master, 'POST', '/key/delete', { keys: [third] })).status,
+        ).toBe(200)
+        await expect(
+          service.revokeInstanceKey(db, {
+            projectId,
+            kind: 'staging',
+            instanceId: instanceC,
+          }),
+        ).resolves.toBe(true)
+        expect(await storedFor(instanceC)).toBeUndefined()
+        expect(await answers(second)).toBe(200)
         expect((await userInfo()).keys).toHaveLength(1)
       })
       passed = true
@@ -291,7 +319,21 @@ describeDocker('app keys against the running gateway (P4b Tasks 7 and 9)', () =>
         // P4b's ENVIRONMENT-level key, which every app deployed before P4c holds.
         const legacy = await service.mintAppKey(args)
         minted.push(legacy)
-        await service.commitAppKey(db, { projectId, kind: 'staging', key: legacy })
+        // WRITTEN BY HAND, because nothing writes it any more: `commitAppKey` was
+        // deleted with its caller in P4c Task 8, and this key exists only on a machine
+        // that deployed the app before P4c. That is exactly what `revokeLegacyAppKey`
+        // is for, so the setup states the starting condition rather than reaching for
+        // a function that no longer models it (sitting 5's correction 2).
+        await putSecret(
+          db,
+          {
+            projectId,
+            environmentKind: 'staging',
+            name: LLM_API_KEY_SECRET,
+            value: legacy,
+          },
+          keys,
+        )
         expect(await service.revokeLegacyAppKey(db, { projectId, kind: 'staging' })).toBe(
           true,
         )

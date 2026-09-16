@@ -173,6 +173,9 @@ describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
           // `ai/keys.docker.test.ts`'s; the end-to-end one is Task 16's.
           ai: disabledAiKeyService(),
           catalogue: disabledCatalogue(),
+          // Nothing here reads what a retire does — that is `retire`'s own Docker
+          // tier and Task 8's — so this records the call and removes nothing.
+          retirer: { schedule: () => undefined },
           bus,
         },
         { releaseId: release.id, environmentId: staging.id },

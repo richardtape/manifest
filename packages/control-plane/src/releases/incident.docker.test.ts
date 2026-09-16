@@ -165,6 +165,7 @@ describeDocker('a failed deploy records an Incident, from a real container (§14
         },
       })
       const appSecrets = createAppSecrets(keys)
+      const scheduled: string[] = []
 
       // D23.2 (P4b Task 15): what a watching client is told about this failure, read
       // off the same bus the deploy publishes to.
@@ -189,6 +190,9 @@ describeDocker('a failed deploy records an Incident, from a real container (§14
           ai: disabledAiKeyService(),
           catalogue: disabledCatalogue(),
           bus,
+          // This deploy FAILS, so it schedules nothing; a recorder proves that rather
+          // than a real retirer removing the container this test reads an Incident from.
+          retirer: { schedule: () => scheduled.push('a retire was scheduled') },
         },
         { releaseId: release.id, environmentId: staging.id },
       )
@@ -196,6 +200,8 @@ describeDocker('a failed deploy records an Incident, from a real container (§14
       off()
       // A recorded failure — not an exception, and not a row parked in `provisioning`.
       expect(instance.state).toBe('failed')
+      // A failed deploy schedules no retire: nothing of this app was replaced (P4c).
+      expect(scheduled).toEqual([])
       // And a streamed one: the state transition, then the Incident it produced.
       expect(frames.flatMap((f) => (f.kind === 'event' ? [f.type] : []))).toEqual([
         'instance.failed',

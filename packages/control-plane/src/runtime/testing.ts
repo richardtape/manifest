@@ -22,6 +22,12 @@ export {
   CA_CERT,
   dockerDriverForTests,
   fixtureBareRepo,
+  // `releases/redeploy.docker.test.ts` deploys THROUGH the control plane and needs an
+  // app that is healthy with no database: `fixtures/fixture-app` connects to Mongo
+  // before it listens and exits if it cannot (ORIENTATION §4), so a routing test built
+  // on it measures a Mongo timeout. The blueprint skeleton serves `/healthz` on its
+  // own, and this is the one function that turns it into a buildable bare repository.
+  ensureContractRepo,
 } from './docker/testing.js'
 
 // `build/`'s Docker-tier suite drives the real engine (Task 12). It reaches the

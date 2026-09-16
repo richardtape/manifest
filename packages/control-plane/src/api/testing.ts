@@ -26,7 +26,40 @@ import { mkdir, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
+import { createRetirer } from '../releases/index.js'
+import type { AiKeyService } from '../ai/index.js'
 import type { ServerDeps } from './server.js'
+
+/**
+ * THROWS RATHER THAN MINTING, for the reason `sso` does below. Every app the API suite
+ * deploys declares no model, so nothing here should ever reach the gateway — and this
+ * tier has no LiteLLM to reach. `enabled: true` to match `declaredCatalogue()`, so an
+ * AI deploy that does arrive here fails loudly at the mint rather than quietly at a
+ * guard.
+ */
+function testAiKeyService(): AiKeyService {
+  return {
+    enabled: true,
+    mintAppKey: () => {
+      throw new Error(
+        'the API test harness has no LiteLLM: an app in this tier declared ai.models. ' +
+          'Fake the key service as releases.test.ts does, or move the test to the ' +
+          'Docker tier.',
+      )
+    },
+    discardAppKey: () => {
+      throw new Error('the API test harness has no LiteLLM to discard a key from')
+    },
+    storeInstanceKey: () => {
+      throw new Error('the API test harness has no LiteLLM: nothing here mints a key')
+    },
+    // The two REVOKES answer rather than throwing, unlike everything above: a retire
+    // (P4c) runs for every app, and no app in this tier declares a model — so a retire
+    // here reaches a key that was never minted, which is not a failure.
+    revokeInstanceKey: () => Promise.resolve(false),
+    revokeLegacyAppKey: () => Promise.resolve(false),
+  }
+}
 
 /**
  * Blueprints live at the repo root. Resolved from this file rather than from the
@@ -115,10 +148,16 @@ export async function testDeps(): Promise<ServerDeps> {
   })
   const masterKeypair = await generateMasterKeypair()
   const { idp, keypair } = await testSamlMaterial()
+  // Hoisted, because the retirer below is built FROM them: one driver, one bus and one
+  // key service per server, shared by the routes and by the background work.
+  const driver = createFakeDriver()
+  const bus = createEventBus()
+  const appSecrets = createAppSecrets(masterKeypair)
+  const ai = testAiKeyService()
   return {
     db,
     config,
-    driver: createFakeDriver(),
+    driver,
     source: createLocalSourceDriver(reposRoot),
     blueprints: await loadBlueprints(config.blueprintsRoot),
     // infra/litellm/config.yaml through the REAL projection, not a list written out
@@ -127,41 +166,19 @@ export async function testDeps(): Promise<ServerDeps> {
     // file with the live proxy's answer.
     catalogue: declaredCatalogue(),
     // The REAL bus, one per server: a test subscribes to exactly what its routes publish.
-    bus: createEventBus(),
-    // THROWS RATHER THAN MINTING, for the reason `sso` below does. Every app the API
-    // suite deploys declares no model, so nothing here should ever reach the gateway —
-    // and this tier has no LiteLLM to reach. `enabled: true` to match the catalogue
-    // above, so an AI deploy that does arrive here fails loudly at the mint rather
-    // than quietly at a guard.
-    ai: {
-      enabled: true,
-      mintAppKey: () => {
-        throw new Error(
-          'the API test harness has no LiteLLM: an app in this tier declared ai.models. ' +
-            'Fake the key service as releases.test.ts does, or move the test to the ' +
-            'Docker tier.',
-        )
-      },
-      commitAppKey: () => {
-        throw new Error('the API test harness has no LiteLLM to commit a key to')
-      },
-      discardAppKey: () => {
-        throw new Error('the API test harness has no LiteLLM to discard a key from')
-      },
-      storeInstanceKey: () => {
-        throw new Error('the API test harness has no LiteLLM: nothing here mints a key')
-      },
-      // The two REVOKES answer rather than throwing, unlike everything above: a retire
-      // (P4c) runs for every app, and no app in this tier declares a model — so a
-      // retire here reaches a key that was never minted, which is not a failure.
-      revokeInstanceKey: () => Promise.resolve(false),
-      revokeLegacyAppKey: () => Promise.resolve(false),
-    },
+    bus,
+    /**
+     * A REAL RETIRER (P4c Task 8), not a stub. A stub would let a deploy that never
+     * schedules a retire pass every API test, and the schedule is half of what this
+     * task builds. `drainMs: 0` because the fake driver counts nothing in flight.
+     */
+    retirer: createRetirer({ db, driver, ai, appSecrets, bus, drainMs: 0 }),
+    ai,
     // A keypair per call, not a shared one: two tests sharing a master key can
     // read each other's secrets, and that is the test-isolation shape that made
     // P2's suite depend on the order Vitest happened to pick.
     secrets: createServiceCredentials(masterKeypair, config.masterSecret),
-    appSecrets: createAppSecrets(masterKeypair),
+    appSecrets,
     // THROWS RATHER THAN RETURNING A STUB. Every app the API suite deploys is
     // `fixture-node`, which declares `auth.provider: none`, so nothing here should
     // ever register an SP — and if that changes, this says so loudly instead of

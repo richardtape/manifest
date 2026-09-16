@@ -78,15 +78,15 @@ export async function ensureAiUser(
 }
 
 /**
- * §10's "rotated every deploy", in THREE STEPS rather than one (Rich, 2026-09-14):
- * no live AI call may fail because a deploy revoked its key.
+ * §10's "rotated every deploy", with no moment at which a live call can fail (Rich,
+ * 2026-09-14) — and, since P4c, no moment at which two instances cannot both answer.
  *
  * The one-call rotation this replaces minted, stored and revoked before the new
- * container existed, so the running app's calls failed from the revoke until the
- * edge route moved (P4b pre-flight 71). So a deploy now MINTS before the instance
- * starts — the container needs the key in its environment — COMMITS only once the
- * instance is healthy, and DISCARDS the minted key if it never gets that far. The
- * previous key stays valid, and stays the stored one, until the commit.
+ * container existed, so the running app's calls failed from the revoke until the edge
+ * route moved (P4b pre-flight 71). P4b split it into mint / commit / discard; P4c
+ * deletes the commit, because a redeploy now runs the new instance BESIDE the one
+ * serving and each holds its own key — `storeInstanceKey` at the mint,
+ * `revokeInstanceKey` when that instance is retired, after its drain.
  *
  * There is deliberately no `revokeAppKey`. §10 also says "revoked on archive", and
  * Phase 1 has no archive operation, so it would be a function with no caller.
@@ -101,8 +101,8 @@ export interface MintAppKeyInput {
 
 /**
  * Ensures the budgeted user and mints ONE confined key. Stores nothing and revokes
- * nothing: until `commitAppKey`, the app's stored key — and the key its running
- * container holds — is still the previous one.
+ * nothing: every instance already running keeps the key it was given, and this one is
+ * recorded by `storeInstanceKey` under the instance that is about to hold it.
  */
 export async function mintAppKey(
   client: LiteLlmClient,
@@ -226,44 +226,10 @@ export async function revokeLegacyAppKey(
   return true
 }
 
-export interface CommitAppKeyInput {
-  projectId: string
-  kind: EnvironmentKind
-  /** A key `mintAppKey` returned, now held by an instance that has passed health. */
-  key: string
-}
-
 /**
- * Makes `key` the app's current key, then revokes the one it replaces.
- *
- * STORED BEFORE THE OLD KEY IS REVOKED. The other order has a window in which the
- * old key is dead while the new one exists only in this process — and a failure
- * inside it leaves nothing recorded to recover from.
- */
-export async function commitAppKey(
-  db: Db,
-  client: LiteLlmClient,
-  keys: MasterKeypair,
-  input: CommitAppKeyInput,
-): Promise<void> {
-  const scope = {
-    projectId: input.projectId,
-    environmentKind: input.kind,
-    name: LLM_API_KEY_SECRET,
-  }
-  const previous = await getSecret(db, scope, keys)
-  await putSecret(db, { ...scope, value: input.key }, keys)
-  // Never the key being committed. A commit repeated with the same key — a retry —
-  // would otherwise revoke the key the healthy instance has just been given.
-  if (previous !== undefined && previous !== input.key) {
-    await revokeKey(client, previous)
-  }
-}
-
-/**
- * Revokes a minted key that was never committed: its instance failed to start or
- * never passed health. The stored key is untouched, so it is still the previous one,
- * and the previous container still holds it.
+ * Revokes a minted key that was never RECORDED: `storeInstanceKey` itself failed, so
+ * nothing in the platform references it and the only way to name it is by value. Every
+ * other failed deploy revokes by instance id instead, which survives a retry.
  */
 export async function discardAppKey(client: LiteLlmClient, key: string): Promise<void> {
   await revokeKey(client, key)
@@ -292,7 +258,7 @@ async function revokeKey(client: LiteLlmClient, key: string): Promise<void> {
 export interface AiKeyService {
   readonly enabled: boolean
   mintAppKey(input: MintAppKeyInput): Promise<string>
-  commitAppKey(db: Db, input: CommitAppKeyInput): Promise<void>
+  /** Only for a key `storeInstanceKey` could not record: revoked by VALUE. */
   discardAppKey(key: string): Promise<void>
   /** P4c: the key this instance holds, recorded under its own id. */
   storeInstanceKey(db: Db, input: InstanceKeyScope & { key: string }): Promise<void>
@@ -312,7 +278,6 @@ export function createAiKeyService(
   return {
     enabled: true,
     mintAppKey: (input) => mintAppKey(client, input),
-    commitAppKey: (db, input) => commitAppKey(db, client, keys, input),
     discardAppKey: (key) => discardAppKey(client, key),
     storeInstanceKey: (db, input) => storeInstanceKey(db, keys, input),
     revokeInstanceKey: (db, input) => revokeInstanceKey(db, client, keys, input),
@@ -334,14 +299,13 @@ export function disabledAiKeyService(): AiKeyService {
     Promise.reject(
       new Error(
         'AI is switched off on this control plane (MANIFEST_AI_ENABLED=0), so no AI ' +
-          'key can be minted, stored, committed, discarded or revoked. Check ' +
+          'key can be minted, stored, discarded or revoked. Check ' +
           '`enabled` first.',
       ),
     )
   return {
     enabled: false,
     mintAppKey: refuse,
-    commitAppKey: refuse,
     discardAppKey: refuse,
     storeInstanceKey: refuse,
     revokeInstanceKey: refuse,

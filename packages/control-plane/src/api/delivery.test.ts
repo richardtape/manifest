@@ -147,6 +147,72 @@ describe('the delivery routes', () => {
     await app.close()
   })
 
+  it('reports the instance that SERVES, not the newest deploy (P4c Task 8)', async () => {
+    // A failed deploy writes a newer `instances` row, and reporting that one told a
+    // faculty member their app was failed while it was serving perfectly. §6's Route
+    // record is what says which instance the hostname actually reaches.
+    let sicken = false
+    const base = createFakeDriver()
+    const deps = {
+      ...(await testDeps()),
+      driver: {
+        ...base,
+        status: async (id: string) =>
+          sicken ? ({ id, state: 'failed', healthy: false } as const) : base.status(id),
+      },
+    }
+    const app = await buildServer(deps)
+    const cookies = await loginAs(deps, 'bio_prof')
+    const project = (
+      await app.inject({
+        method: 'POST',
+        url: '/projects',
+        payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
+        cookies,
+        headers: key(),
+      })
+    ).json()
+    const build = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/builds`,
+      payload: { commitSha: project.commitSha },
+      cookies,
+      headers: key(),
+    })
+    const release = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/releases`,
+      payload: { buildId: build.json().id },
+      cookies,
+      headers: key(),
+    })
+    const staging = project.environments.find(
+      (e: { kind: string }) => e.kind === 'staging',
+    )
+    const deploy = () =>
+      app.inject({
+        method: 'POST',
+        url: `/environments/${staging.id}/deploy`,
+        payload: { releaseId: release.json().id },
+        cookies,
+        headers: key(),
+      })
+    const healthy = await deploy()
+    expect(healthy.json().state).toBe('healthy')
+    sicken = true
+    const failed = await deploy()
+    expect(failed.json().state).toBe('failed')
+    // The newest row by `last_seen_at` is the failed one; the served one is the answer.
+    const environment = await app.inject({
+      method: 'GET',
+      url: `/environments/${staging.id}`,
+      cookies,
+    })
+    expect(environment.json().instance.id).toBe(healthy.json().id)
+    expect(environment.json().instance.state).toBe('healthy')
+    await app.close()
+  })
+
   it('refuses a release from a build that has not succeeded', async () => {
     const { app, cookies, project } = await projectFor('bio_prof')
     const response = await app.inject({

@@ -3,8 +3,21 @@ import { eq } from 'drizzle-orm'
 import pg from 'pg'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { resetDatabase, withRollback } from '../db/testing.js'
-import { appSpecs, builds, db, events, incidents, instances, users } from '../db/index.js'
-import { InstanceNotReadyError, createFakeDriver } from '../runtime/index.js'
+import {
+  appSpecs,
+  builds,
+  db,
+  events,
+  incidents,
+  instances,
+  routes,
+  users,
+} from '../db/index.js'
+import {
+  FAKE_NEVER_READY_PATH,
+  InstanceNotReadyError,
+  createFakeDriver,
+} from '../runtime/index.js'
 import { createProject } from '../projects/index.js'
 import { loadConfig } from '../config.js'
 import type { Driver, InstanceSpec, ServiceBinding } from '../runtime/index.js'
@@ -101,9 +114,6 @@ beforeAll(async () => {
       mintAppKey: () => {
         throw new Error('no test in this file should mint an AI key by default')
       },
-      commitAppKey: () => {
-        throw new Error('no test in this file should commit an AI key by default')
-      },
       discardAppKey: () => {
         throw new Error('no test in this file should discard an AI key by default')
       },
@@ -116,6 +126,11 @@ beforeAll(async () => {
     // infra/litellm/config.yaml through the real projection (`ai/testing.ts`).
     catalogue: declaredCatalogue(),
     bus,
+    // THE DEFAULT IS A RETIRER THAT RECORDS AND DOES NOTHING (P4c Task 8). A real one
+    // would drain and remove the instance every redeploy test in this file leaves
+    // behind, which is Task 7's behaviour and is tested there; the tests that care
+    // what a deploy SCHEDULES pass their own.
+    retirer: { schedule: () => undefined },
   }
 })
 
@@ -1574,7 +1589,7 @@ const aiRelease = (models?: string[], projectMonthlyUsd?: number): ResolvedConfi
 describe('deployRelease and §10’s app key (P4b Task 9)', () => {
   function recordingAi(
     events: string[],
-    fail: { discard?: boolean; commit?: boolean } = {},
+    fail: { discard?: boolean; revoke?: boolean } = {},
   ): { service: AiKeyService; minted: MintAppKeyInput[] } {
     const minted: MintAppKeyInput[] = []
     let n = 0
@@ -1587,10 +1602,6 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
           events.push('mint')
           return `sk-minted-${++n}`
         },
-        commitAppKey: async (_db, input) => {
-          events.push(`commit ${input.key}`)
-          if (fail.commit) throw new Error('the gateway refused the revoke')
-        },
         discardAppKey: async (key) => {
           events.push(`discard ${key}`)
           if (fail.discard) throw new Error('the gateway is down')
@@ -1601,6 +1612,7 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
         },
         revokeInstanceKey: async (_db, input) => {
           events.push(`revoke instance ${input.instanceId}`)
+          if (fail.revoke) throw new Error('the gateway is down')
           return true
         },
         revokeLegacyAppKey: async () => {
@@ -1654,7 +1666,7 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
     return { release, project, staging: byKind.staging! }
   }
 
-  it('mints BEFORE the instance starts, injects what it minted, and commits only AFTER health passes', async () => {
+  it('mints BEFORE the instance starts, injects what it minted, and records it against THIS instance (P4c)', async () => {
     await withRollback(async (db) => {
       const events: string[] = []
       const { driver, seen } = recordingDriver(events)
@@ -1668,7 +1680,9 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
         { releaseId: release.id, environmentId: staging.id },
       )
       expect(instance.state).toBe('healthy')
-      expect(events).toEqual(['mint', 'instance', 'health passed', 'commit sk-minted-1'])
+      // P4c Task 8 deleted the commit: the key is recorded against the instance at the
+      // mint, and revoked when THAT instance is retired, after its drain.
+      expect(events).toEqual(['mint', 'store sk-minted-1', 'instance', 'health passed'])
       // Not "a key was minted" — the key the CONTAINER received. Every one of P3
       // Session 5's seven defects was a value correct in the test and wrong in the
       // running system, because the test handed the driver what it built.
@@ -1771,9 +1785,10 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
     })
   })
 
-  it('DISCARDS the minted key, and commits nothing, when the instance never becomes healthy', async () => {
-    // The stored key is still the previous one, and so is the key the previous
-    // container holds — which is exactly why the new one must not be committed.
+  it('REVOKES this instance’s key, after its Incident, when it never becomes healthy', async () => {
+    // Every other instance keeps the key it was given: the revoke names this instance,
+    // not the app. And it comes last, after the Incident has read the container's log
+    // through its handle — P4c moved it there from before the row was even updated.
     await withRollback(async (db) => {
       const events: string[] = []
       const { driver } = recordingDriver(
@@ -1789,19 +1804,19 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
         { releaseId: release.id, environmentId: staging.id },
       )
       expect(instance.state).toBe('failed')
-      // The last read is the Incident's (P4b Task 13), AFTER the discard: the key is
-      // gone before anything is written about the failure.
+      // The second health read is the Incident's (P4b Task 13); the revoke is after it.
       expect(events).toEqual([
         'mint',
+        'store sk-minted-1',
         'instance',
         'health failed',
-        'discard sk-minted-1',
         'health failed',
+        `revoke instance ${instance.id}`,
       ])
     })
   })
 
-  it('discards the minted key when the driver REFUSES the instance as not ready — a recorded failure, not a throw', async () => {
+  it('revokes the key when the driver REFUSES the instance as not ready — a recorded failure, not a throw', async () => {
     // The Docker driver's refusal is caught and recorded (P4b Task 13), so it no longer
     // passes through the `catch` that discarded on a throw. The key must still go.
     await withRollback(async (db) => {
@@ -1824,13 +1839,18 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
         { releaseId: release.id, environmentId: staging.id },
       )
       expect(instance.state).toBe('failed')
-      // No health read before the discard — the driver refused first — and the one
-      // after it is the Incident's.
-      expect(events).toEqual(['mint', 'instance', 'discard sk-minted-1', 'health failed'])
+      // No health read at all before the Incident's — the driver refused first.
+      expect(events).toEqual([
+        'mint',
+        'store sk-minted-1',
+        'instance',
+        'health failed',
+        `revoke instance ${instance.id}`,
+      ])
     })
   })
 
-  it('discards the minted key when the instance cannot be started, and rethrows THAT error', async () => {
+  it('revokes the key when the instance cannot be started, and rethrows THAT error', async () => {
     await withRollback(async (db) => {
       const events: string[] = []
       const base = createFakeDriver()
@@ -1848,11 +1868,18 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
           { releaseId: release.id, environmentId: staging.id },
         ),
       ).rejects.toThrow('the daemon refused the container')
-      expect(events).toEqual(['mint', 'instance', 'discard sk-minted-1'])
+      // By instance id, not by value: the key is recorded, so a failed revoke leaves
+      // the record for the next retire rather than losing the only reference to it.
+      expect(events).toEqual([
+        'mint',
+        'store sk-minted-1',
+        'instance',
+        expect.stringMatching(/^revoke instance /),
+      ])
     })
   })
 
-  it('a discard that fails too does not replace the deploy’s own failure — and never prints the key', async () => {
+  it('a revoke that fails too does not replace the deploy’s own failure — and never prints the key', async () => {
     await withRollback(async (db) => {
       const events: string[] = []
       const base = createFakeDriver()
@@ -1868,12 +1895,12 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
             db,
             driver,
             config,
-            { ...deployDeps, ai: recordingAi(events, { discard: true }).service },
+            { ...deployDeps, ai: recordingAi(events, { revoke: true }).service },
             { releaseId: release.id, environmentId: staging.id },
           ),
         ).rejects.toThrow('the daemon refused the container')
         const printed = operator.mock.calls.map((call) => String(call[0])).join('\n')
-        expect(printed).toContain('could not be discarded')
+        expect(printed).toContain('could not be revoked')
         expect(printed).not.toContain('sk-minted-1')
       } finally {
         operator.mockRestore()
@@ -1881,33 +1908,7 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
     })
   })
 
-  it('a commit that fails leaves the instance recorded healthy, surfaces the failure, and discards nothing', async () => {
-    // The healthy instance HOLDS the new key, so discarding it would take the app's AI
-    // down to tidy up a bookkeeping failure.
-    await withRollback(async (db) => {
-      const events: string[] = []
-      const { driver } = recordingDriver(events)
-      const { release, staging } = await releaseWith(db, driver, aiRelease())
-      await expect(
-        deployRelease(
-          db,
-          driver,
-          config,
-          { ...deployDeps, ai: recordingAi(events, { commit: true }).service },
-          { releaseId: release.id, environmentId: staging.id },
-        ),
-      ).rejects.toThrow('the gateway refused the revoke')
-      expect(events).toEqual(['mint', 'instance', 'health passed', 'commit sk-minted-1'])
-      const [row] = await db
-        .select()
-        .from(instances)
-        .where(eq(instances.releaseId, release.id))
-      // Recorded as what it is, not parked in `provisioning`, which nothing moves.
-      expect(row!.state).toBe('healthy')
-    })
-  })
-
-  it('streams ai.key_rotated once the key is COMMITTED — and neither the row nor the frame carries the key (P4b Task 15)', async () => {
+  it('streams ai.key_rotated once the ROUTE HAS MOVED — and neither the row nor the frame carries the key (P4b Task 15)', async () => {
     // An audit record of a credential change is worth having; the credential is not.
     // The recording key service stores nothing, so the redactor cannot rescue a key
     // that reaches this event: only not putting it there can.
@@ -1945,9 +1946,10 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
     })
   })
 
-  it('streams no ai.key_rotated when the minted key is discarded, or when the commit fails', async () => {
-    // A discarded key never became the app's key, and a commit that failed did not
-    // rotate anything the app relies on — the failure reaches the caller instead.
+  it('streams no ai.key_rotated when the instance failed, or when the key could not be recorded', async () => {
+    // A key whose instance never served never became the app's key. And a key the
+    // platform could not record is discarded by value before the container exists, so
+    // there is no instance to rotate anything for.
     await withRollback(async (db) => {
       const calls: string[] = []
       const { driver } = recordingDriver(calls, createFakeDriver({ failInstances: true }))
@@ -1961,12 +1963,16 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
           { releaseId: release.id, environmentId: staging.id },
         ),
       )
-      expect(calls).toContain('discard sk-minted-1')
+      expect(calls).toContain(`store sk-minted-1`)
+      expect(calls.some((c) => c.startsWith('revoke instance '))).toBe(true)
       expect(eventTypes(frames)).toEqual(['instance.failed', 'incident.opened'])
     })
     await withRollback(async (db) => {
       const calls: string[] = []
       const { driver } = recordingDriver(calls)
+      const ai = recordingAi(calls)
+      // A key that cannot be RECORDED: discarded by value, and nothing starts.
+      ai.service.storeInstanceKey = () => Promise.reject(new Error('the store is down'))
       const { release, project, staging } = await releaseWith(db, driver, aiRelease())
       const frames = await streamedWhile(project.id, async () => {
         await expect(
@@ -1974,12 +1980,13 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
             db,
             driver,
             config,
-            { ...deployDeps, ai: recordingAi(calls, { commit: true }).service },
+            { ...deployDeps, ai: ai.service },
             { releaseId: release.id, environmentId: staging.id },
           ),
-        ).rejects.toThrow('the gateway refused the revoke')
+        ).rejects.toThrow('the store is down')
       })
-      expect(eventTypes(frames)).toEqual(['instance.healthy'])
+      expect(calls).toEqual(['mint', 'discard sk-minted-1'])
+      expect(eventTypes(frames)).toEqual([])
     })
   })
 
@@ -2108,6 +2115,421 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
         ),
       ).rejects.toMatchObject({ code: 'RELEASE_AI_BUDGET_MISSING' })
       expect(events).toEqual([])
+    })
+  })
+})
+
+/**
+ * A DEPLOY THAT REPLACES AN INSTANCE WITHOUT INTERRUPTING IT (P4c Task 8).
+ *
+ * This is the task that gives Tasks 5, 6 and 7 their caller. Everything under test
+ * here is an ORDER or a RECORD: the new instance starts beside the one serving and the
+ * route moves only after health; the platform writes down which instance serves; the
+ * environment is serialized so two deploys cannot both think they won; and a deploy
+ * that fails leaves the app up and takes its own container — and its files volume,
+ * which holds the app's SP private key — with it (R5).
+ */
+describe('deployRelease replaces an instance without interrupting it (P4c Task 8)', () => {
+  /** A key service recording into the caller's list, so the order is the assertion. */
+  function recordingAi(events: string[], fail: { store?: boolean } = {}): AiKeyService {
+    let n = 0
+    return {
+      enabled: true,
+      mintAppKey: async () => {
+        events.push('mint')
+        return `sk-minted-${++n}`
+      },
+      discardAppKey: async (key) => {
+        events.push(`discard ${key}`)
+      },
+      storeInstanceKey: async (_db, input) => {
+        events.push(`store ${input.key} for ${input.instanceId}`)
+        if (fail.store === true) throw new Error('the secret store is down')
+      },
+      revokeInstanceKey: async (_db, input) => {
+        events.push(`revoke key of ${input.instanceId}`)
+        return true
+      },
+      revokeLegacyAppKey: async () => {
+        events.push('revoke legacy')
+        return true
+      },
+    }
+  }
+
+  /** Records what a retire was asked for; the pass itself is Task 7's, tested there. */
+  function recordingRetirer(scheduled: string[]) {
+    return { schedule: (environmentId: string) => void scheduled.push(environmentId) }
+  }
+
+  async function releaseFor(
+    db: Parameters<typeof createProject>[0],
+    driver: Driver,
+    resolvedConfig: ResolvedConfigSet = RESOLVED,
+  ) {
+    const { user, project, appSpec, byKind } = await fixture(db)
+    const build = await startBuild(db, driver, bus, {
+      projectId: project.id,
+      projectSlug: project.slug,
+      appSpecId: appSpec.id,
+      commitSha: appSpec.commitSha,
+      blueprintRef: project.blueprintRef,
+      repoPath: '/tmp/chem-labs.git',
+    })
+    const release = await createRelease(db, {
+      projectId: project.id,
+      buildId: build.id,
+      appSpecId: appSpec.id,
+      createdBy: user.id,
+      resolvedConfig,
+    })
+    return { release, project, staging: byKind.staging!, byKind }
+  }
+
+  it('starts the new instance BESIDE the one serving, and only then makes it serve', async () => {
+    // THE WHOLE POINT OF P4c, from the driver's own point of view. What the brief
+    // measured before it: the same release redeployed DELETED the live container and
+    // the hostname answered 502 for about a second.
+    await withRollback(async (db) => {
+      const base = createFakeDriver()
+      const atEnsure: { serving: string | undefined; running: number }[] = []
+      const driver: Driver = {
+        ...base,
+        ensureInstance: async (spec) => {
+          atEnsure.push({
+            serving: await base.servingInstance(spec.hostname),
+            running: (await base.listInstances(spec.hostname)).length,
+          })
+          return base.ensureInstance(spec)
+        },
+      }
+      const { release, staging } = await releaseFor(db, driver)
+      const deploy = () =>
+        deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: staging.id,
+        })
+      const first = await deploy()
+      const second = await deploy()
+
+      expect(first.handle).not.toBe(second.handle)
+      // At the moment the SECOND instance was asked for, the first was still running
+      // and was still what the hostname reached.
+      expect(atEnsure[1]).toEqual({ serving: first.handle, running: 1 })
+      // And afterwards both exist — nothing here retires anything; that is scheduled.
+      expect(await driver.servingInstance(staging.hostname)).toBe(second.handle)
+      expect((await driver.listInstances(staging.hostname)).sort()).toEqual(
+        [first.handle!, second.handle!].sort(),
+      )
+    })
+  })
+
+  it('records which instance serves, in §6’s Route row, and moves that row on a redeploy', async () => {
+    await withRollback(async (db) => {
+      const driver = createFakeDriver()
+      const { release, staging } = await releaseFor(db, driver)
+      const deploy = () =>
+        deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: staging.id,
+        })
+      const first = await deploy()
+      const afterFirst = await db
+        .select()
+        .from(routes)
+        .where(eq(routes.hostname, staging.hostname))
+      expect(afterFirst).toHaveLength(1)
+      expect(afterFirst[0]).toMatchObject({
+        instanceId: first.id,
+        hostname: staging.hostname,
+        // §23: staging is not public, so the route belongs on the internal listener.
+        listener: 'internal',
+        kind: 'canonical',
+      })
+
+      const second = await deploy()
+      const afterSecond = await db
+        .select()
+        .from(routes)
+        .where(eq(routes.hostname, staging.hostname))
+      // UPSERT, not a second row: one hostname reaches one instance.
+      expect(afterSecond).toHaveLength(1)
+      expect(afterSecond[0]!.instanceId).toBe(second.id)
+      expect(afterSecond[0]!.id).toBe(afterFirst[0]!.id)
+    })
+  })
+
+  it('marks every other instance of the environment destroying, and schedules the retire', async () => {
+    await withRollback(async (db) => {
+      const driver = createFakeDriver()
+      const scheduled: string[] = []
+      const { release, staging } = await releaseFor(db, driver)
+      const deploy = () =>
+        deployRelease(
+          db,
+          driver,
+          config,
+          { ...deployDeps, retirer: recordingRetirer(scheduled) },
+          { releaseId: release.id, environmentId: staging.id },
+        )
+      const first = await deploy()
+      expect(scheduled).toEqual([staging.id])
+      const second = await deploy()
+
+      const state = async (id: string) =>
+        (await db.select().from(instances).where(eq(instances.id, id)))[0]!.state
+      // The ROWS are how a console sees what is happening; the CONTAINERS are what
+      // the retirer actually reads (Decision 17).
+      expect(await state(first.id)).toBe('destroying')
+      expect(await state(second.id)).toBe('healthy')
+      expect(scheduled).toEqual([staging.id, staging.id])
+    })
+  })
+
+  it('schedules no retire, and marks nothing, when the deploy failed', async () => {
+    await withRollback(async (db) => {
+      const driver = createFakeDriver({ failInstances: true })
+      const scheduled: string[] = []
+      const { release, staging } = await releaseFor(db, driver)
+      const instance = await deployRelease(
+        db,
+        driver,
+        config,
+        { ...deployDeps, retirer: recordingRetirer(scheduled) },
+        { releaseId: release.id, environmentId: staging.id },
+      )
+      expect(instance.state).toBe('failed')
+      expect(scheduled).toEqual([])
+      expect(
+        await db.select().from(routes).where(eq(routes.hostname, staging.hostname)),
+      ).toEqual([])
+    })
+  })
+
+  it('serializes two deploys of one environment — one Route row, one serving instance', async () => {
+    // COMMITTED ROWS, not withRollback: two deploys in parallel are two connections,
+    // and an advisory lock taken on a third is the only thing either can see. Inside
+    // one transaction they would queue on the connection and the lock would prove
+    // nothing.
+    try {
+      const driver = createFakeDriver()
+      const { release, staging } = await releaseFor(db, driver)
+      const deploy = () =>
+        deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: staging.id,
+        })
+      const [a, b] = await Promise.all([deploy(), deploy()])
+
+      const written = await db
+        .select()
+        .from(routes)
+        .where(eq(routes.hostname, staging.hostname))
+      expect(written).toHaveLength(1)
+      // Whichever finished last is what serves, and the Route row says the same —
+      // the two cannot disagree, which is what the lock buys.
+      const serving = await driver.servingInstance(staging.hostname)
+      const winner = [a, b].find((row) => row.handle === serving)
+      expect(winner, 'the serving instance is one of the two deploys').toBeDefined()
+      expect(written[0]!.instanceId).toBe(winner!.id)
+      // Both are recorded healthy: neither deploy failed because of the other.
+      expect([a.state, b.state]).toEqual(['healthy', 'healthy'])
+    } finally {
+      await resetDatabase()
+    }
+  })
+
+  it('leaves the previous instance serving when the new one never becomes ready, and removes the failed one AFTER its Incident', async () => {
+    await withRollback(async (db) => {
+      const order: string[] = []
+      const base = createFakeDriver()
+      let refuse = false
+      const driver: Driver = {
+        ...base,
+        ensureInstance: async (spec) => {
+          if (!refuse) return base.ensureInstance(spec)
+          // §11's readiness refusal, from the fake itself: the instance EXISTS, with a
+          // log and an exit code, and the route did NOT move.
+          try {
+            return await base.ensureInstance({
+              ...spec,
+              healthPath: FAKE_NEVER_READY_PATH,
+            })
+          } catch (error) {
+            order.push(`ensure ${(error as InstanceNotReadyError).handle.id}`)
+            throw error
+          }
+        },
+        logs: (id, opts) => {
+          order.push(`incident read the log of ${id}`)
+          return base.logs(id, opts)
+        },
+        retireInstance: async (id, opts) => {
+          order.push(`retire ${id}`)
+          return base.retireInstance(id, opts)
+        },
+      }
+      const { release, staging } = await releaseFor(db, driver, aiRelease())
+      const ai = recordingAi(order)
+      const deploy = () =>
+        deployRelease(
+          db,
+          driver,
+          config,
+          { ...deployDeps, ai, retirer: recordingRetirer([]) },
+          { releaseId: release.id, environmentId: staging.id },
+        )
+      const first = await deploy()
+      expect(first.state).toBe('healthy')
+      order.length = 0
+      refuse = true
+      const failed = await deploy()
+
+      expect(failed.state).toBe('failed')
+      // THE ORDER IS THE ASSERTION: the Incident is read THROUGH the handle, so the
+      // container cannot go first — and the key goes after the container, never before.
+      expect(order).toEqual([
+        'mint',
+        `store sk-minted-2 for ${failed.id}`,
+        `ensure ${failed.handle}`,
+        `incident read the log of ${failed.handle}`,
+        `retire ${failed.handle}`,
+        `revoke key of ${failed.id}`,
+      ])
+      // §13: deploying a release never takes down the one it replaces.
+      expect(await driver.servingInstance(staging.hostname)).toBe(first.handle)
+      expect(await driver.listInstances(staging.hostname)).toEqual([first.handle])
+      // And the Route row still names the instance that is actually serving.
+      const [route] = await db
+        .select()
+        .from(routes)
+        .where(eq(routes.hostname, staging.hostname))
+      expect(route!.instanceId).toBe(first.id)
+    })
+  })
+
+  it('puts the route back when the container’s own health check fails after the move', async () => {
+    // Decision 18. `ensureInstance` resolves once the EDGE reaches the new instance;
+    // Docker's own HEALTHCHECK runs on its own interval and can disagree a second
+    // later. The previous instance is still running, so the hostname goes back to it.
+    await withRollback(async (db) => {
+      const base = createFakeDriver()
+      const restored: string[] = []
+      // The container's OWN health check, which the fake's edge knows nothing about:
+      // switched on after the first deploy, so the second instance answers through the
+      // edge — the route moves — and then reports itself failed.
+      let sicken = false
+      const driver: Driver = {
+        ...base,
+        status: async (id) =>
+          sicken ? { id, state: 'failed', healthy: false } : base.status(id),
+        restoreRoute: async (id) => {
+          restored.push(id)
+          return base.restoreRoute(id)
+        },
+      }
+      const { release, staging } = await releaseFor(db, driver)
+      const deploy = () =>
+        deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: staging.id,
+        })
+      const first = await deploy()
+      sicken = true
+      const failed = await deploy()
+
+      expect(failed.state).toBe('failed')
+      expect(restored).toEqual([first.handle])
+      expect(await driver.servingInstance(staging.hostname)).toBe(first.handle)
+      // The failed container is gone, and the app is still the previous instance.
+      expect(await driver.listInstances(staging.hostname)).toEqual([first.handle])
+    })
+  })
+
+  it('a FIRST deploy that fails after the move takes its route with it, rather than leaking the container', async () => {
+    // R5: "a failed deploy leaks nothing." There is no previous instance to fall back
+    // to, so the route is removed with the container — the hostname lands on the
+    // edge's wildcard, which is honest. Left alone, the route dials the failed
+    // instance, `retireInstance` refuses it with INSTANCE_SERVING, and the container
+    // AND ITS FILES VOLUME — which holds the app's SP private key — survive (sitting
+    // 5's correction 3 at the top of this task).
+    await withRollback(async (db) => {
+      const base = createFakeDriver()
+      const retires: string[] = []
+      const driver: Driver = {
+        ...base,
+        status: async (id) => ({ id, state: 'failed', healthy: false }),
+        retireInstance: async (id, opts) => {
+          retires.push(id)
+          return base.retireInstance(id, opts)
+        },
+      }
+      const { release, staging } = await releaseFor(db, driver)
+      const failed = await deployRelease(db, driver, config, deployDeps, {
+        releaseId: release.id,
+        environmentId: staging.id,
+      })
+
+      expect(failed.state).toBe('failed')
+      // NOT a retire: a retire refuses an instance a live route dials, which is exactly
+      // what this one is. The route goes first, and the container with it.
+      expect(retires).toEqual([])
+      expect(await driver.servingInstance(staging.hostname)).toBeUndefined()
+      expect(await driver.listInstances(staging.hostname)).toEqual([])
+    })
+  })
+
+  it('stores the minted key against THIS instance before the container starts', async () => {
+    await withRollback(async (db) => {
+      const order: string[] = []
+      const base = createFakeDriver()
+      const driver: Driver = {
+        ...base,
+        ensureInstance: (spec) => {
+          order.push(`ensure ${spec.instanceId}`)
+          return base.ensureInstance(spec)
+        },
+      }
+      const { release, staging } = await releaseFor(db, driver, aiRelease())
+      const instance = await deployRelease(
+        db,
+        driver,
+        config,
+        { ...deployDeps, ai: recordingAi(order) },
+        { releaseId: release.id, environmentId: staging.id },
+      )
+      expect(instance.state).toBe('healthy')
+      // Stored against the instance id BEFORE the container exists, so a key never
+      // reaches a container the platform cannot later revoke it for.
+      expect(order).toEqual([
+        'mint',
+        `store sk-minted-1 for ${instance.id}`,
+        `ensure ${instance.id}`,
+      ])
+    })
+  })
+
+  it('discards a key it could not record, rather than leaving one nothing can revoke', async () => {
+    await withRollback(async (db) => {
+      const order: string[] = []
+      const driver = createFakeDriver()
+      const { release, staging } = await releaseFor(db, driver, aiRelease())
+      await expect(
+        deployRelease(
+          db,
+          driver,
+          config,
+          { ...deployDeps, ai: recordingAi(order, { store: true }) },
+          { releaseId: release.id, environmentId: staging.id },
+        ),
+      ).rejects.toThrow('the secret store is down')
+      // BY VALUE, because nothing recorded it: the only reference to this key is the
+      // string in this process.
+      expect(order).toEqual([
+        'mint',
+        expect.stringContaining('store sk-minted-1'),
+        'discard sk-minted-1',
+      ])
     })
   })
 })

@@ -51,7 +51,6 @@ function recordingAi(events: string[], enabled = true): AiKeyService {
   return {
     enabled,
     mintAppKey: refuse,
-    commitAppKey: refuse,
     discardAppKey: refuse,
     storeInstanceKey: refuse,
     revokeInstanceKey: async (_db, input) => {

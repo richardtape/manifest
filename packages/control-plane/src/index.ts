@@ -6,6 +6,7 @@ import { db } from './db/index.js'
 import { createCaddyClient } from './routing/index.js'
 import { createDockerDriver, createEngineClient } from './runtime/index.js'
 import { createLocalSourceDriver } from './source/index.js'
+import { createRetirer } from './releases/index.js'
 import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
 import { createServiceCredentials } from './services/index.js'
 import { createSamlSp } from './identity/index.js'
@@ -234,6 +235,23 @@ const spKeypair = describeKeypair(
 )
 await registerControlPlaneSp(idpPool, spEntity, spKeypair)
 
+/**
+ * THE CONTROL PLANE'S FIRST BACKGROUND WORK (P4c Task 7): what drains and removes the
+ * instances a deploy replaced, and the backlog every redeploy before P4c left running.
+ *
+ * ONE per process, like the bus, built after the driver and the key service and
+ * HOLDING them rather than reaching for them — so the thing that removes containers is
+ * constructed in the one file that decides which driver this process runs.
+ */
+const retirer = createRetirer({
+  db,
+  driver,
+  ai,
+  appSecrets,
+  bus,
+  drainMs: config.drainTimeoutMs,
+})
+
 const app = await buildServer({
   db,
   config,
@@ -248,6 +266,7 @@ const app = await buildServer({
   // The same bus the registrar above publishes to, and `WS /projects/:projectId/events`
   // subscribes to.
   bus,
+  retirer,
   samlSp: createSamlSp({
     entity: spEntity,
     idpBaseUrl: config.idp.baseUrl,
