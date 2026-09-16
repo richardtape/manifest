@@ -35,7 +35,7 @@
   open in a browser and show to somebody</strong> &mdash; not a status report, an actual working
   thing.</p>
   <div class="meta">
-    <span><b>Now</b> stage 1a is complete and 1b is nearly done &mdash; an app goes from repository to a working web address, practice CWL sign-in works end to end for apps <em>and</em> for the platform's own staff, the platform registers each app with the login service itself, every database password is encrypted in its own store, each app is handed every setting it needs from one place, and the first real blueprint is built and deployed; the AI features are what remain</span>
+    <span><b>Now</b> stages 1a, 1b and 1b+ are complete &mdash; an app goes from repository to a working web address, practice CWL sign-in works end to end for apps <em>and</em> for the platform's own staff, every database password is encrypted in its own store, the proof application answers a person's question from their own notes through a language model, and a new version of an app can be put live while people are using it without interrupting anyone; stage 1c, the interface people will use, is next</span>
     <span><b>Full detail</b> &sect;17 of the design document</span>
   </div>
 </header>
@@ -203,6 +203,28 @@
         from a machine wiped clean, and again; running them with the network switched off
         is still to do.</p>
         <p class="q">Is the loop genuinely real, end to end?</p>
+      </div>
+    </div>
+
+    <div class="ph">
+      <div class="pid">1b+<span>without a gap</span></div>
+      <div>
+        <h4>Redeploys that do not interrupt</h4>
+        <p>Putting a new version of an app live used to take it offline for a second or two
+        and sign everybody out. Now the new version starts beside the old one, is checked
+        privately, and only then takes over; the old one finishes what it was doing and is
+        removed; and a version that never starts properly leaves the previous one running.</p>
+        <p><b>You can show:</b> the proof application replaced twice, and a broken version
+        refused once, while a signed-in student keeps asking it questions.</p>
+        <p><b>Where this has got to:</b> done, 16 September. Every request made during every
+        replacement was answered by the application, nobody was signed out, and no question
+        failed &mdash; on this laptop, again straight afterwards, and again from a machine
+        wiped clean. Each safeguard was then removed one at a time to check the test notices;
+        four of the nine removals did not show up in that test, and each of those four was
+        shown to be caught by a different, more targeted check &mdash; one of them written that
+        day because nothing caught it. One thing it does not promise: someone <em>in the middle of signing
+        in</em> at that moment has to sign in again.</p>
+        <p class="q">Can an app change while people are using it?</p>
       </div>
     </div>
 

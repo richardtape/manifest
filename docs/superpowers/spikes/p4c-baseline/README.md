@@ -16,8 +16,8 @@ first task can re-measure rather than trust these numbers.
 | `p4c-inflight.sh` | Whether a request in flight survives the route moving to another container |
 | **`p4c-measure-edge.sh`** | **P4c Task 1's five measurements** (2026-09-15): whether Caddy keeps counting an upstream whose route has moved while a request is in flight (M1, with a parked-route control M1b); whether a **deferred** `headers` handler replaces an app's own `X-Manifest-Instance` (M2, with the app's forgery proved first); twenty in-place `PATCH` moves of the **real** route shape (M3); whether a container name past DNS's 63-octet label resolves from the edge (M4); and whether repeated `--filter label=` filters AND (M5). Takes two upstream addresses to move a throwaway route between. Results: [`results-task1-2026-09-15.txt`](results-task1-2026-09-15.txt), which also carries the three `make demo-redeploy` baseline runs |
 
-**`make demo-redeploy` has been run at four points so far: the before, two middles, and the
-first green.** [`results-task1-2026-09-15.txt`](results-task1-2026-09-15.txt)
+**`make demo-redeploy` has been run at five points: the before, two middles, the first green, and
+P4c's acceptance.** [`results-task1-2026-09-15.txt`](results-task1-2026-09-15.txt)
 holds sitting 1's three baseline runs against the platform as P4b left it — **ten green,
 eleven red**, and the outage numbers this plan exists to remove.
 [`results-sitting3-2026-09-15.txt`](results-sitting3-2026-09-15.txt) holds the same script
@@ -37,6 +37,10 @@ Task 10 moved the blueprint's sessions into the app's own Mongo — **twenty-one
 answered by the app, zero resets. It is not Task 11's acceptance run, and its header names
 two things Task 11 needs: a green run deletes the evidence of a question in flight through
 each window, and the asker's `head -c 300 | tr` breaks on a multi-byte character.
+[`results-sitting8-2026-09-16.txt`](results-sitting8-2026-09-16.txt) is **P4c's acceptance, Task 11**:
+four green runs — at once, again immediately, from a `make reset` machine, and on the final script —
+with 23 assertions and then 24, and the nine negative controls, four of which cannot fail in this
+acceptance (the plan's sitting 8 record says which tier sees each).
 
 **Before re-running:** they need `make up`, the control plane, and the proof app deployed
 (`make demo-ai`). The container names, project, environment and release IDs are hard-coded

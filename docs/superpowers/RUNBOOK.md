@@ -253,7 +253,8 @@ for — `givenName` and `sn` are the two that are not pre-authorized.
 
 ## `make demo-redeploy` — P4c's acceptance: a redeploy nobody using the app notices
 
-*Added by P4c sitting 1, 2026-09-15, before the feature it tests. Green since sitting 7, 2026-09-16.*
+*Added by P4c sitting 1, 2026-09-15, before the feature it tests. Green since sitting 7, and P4c's
+acceptance since sitting 8 — both 2026-09-16.*
 
 Same requirements as `make demo-ai` — the control plane running, Ollama on the host. It deploys the
 proof app, signs a student in, starts two loops through the edge — a health request every 200 ms and
@@ -263,21 +264,28 @@ release that never becomes ready**, asserting on every request and question in e
 ```bash
 make up
 # ... the control plane running, per README ...
-make demo-redeploy          # ~13 minutes; ends with Done. and exit 0
+make demo-redeploy          # ~3 minutes; ends with Done. and exit 0
 ```
 
-**Twenty-one assertions**, and at the end of P4c sitting 7 **all 21 are green**: no 5xx and no
-wildcard page in any redeploy window, every question answered 200, **nobody signed out**, the edge
-naming the new instance, each replaced instance retired within 150 s with exactly one app container,
-no orphan `-files` volume and one LiteLLM key left, and a release that never becomes ready recorded
-`failed` with an Incident while the previous one keeps serving. It was written first and ran red —
-**ten of twenty-one** — so the numbers it now reports are measured against a baseline rather than
-asserted; the baseline, and every run since, are in
+**Twenty-four assertions, all green**: no 5xx and no wildcard page in any redeploy window, every
+question answered 200 **by an instance** (the edge's wildcard answers 200 too, with no
+`X-Manifest-Instance`), **nobody signed out**, the edge naming the new instance, each replaced
+instance retired within 150 s with exactly one app container, no orphan `-files` volume and one
+LiteLLM key left; in each of the two redeploys that move the route, **a question in flight at the
+move answered 200 by the instance the route moved away from**; and a release that never becomes
+ready recorded `failed` with an Incident, **every request in its window answered by the instance
+that was serving**. It was written first and ran red — **ten of twenty-one** — and P4c's sitting 8
+ran it green three times, once from a `make reset` machine, and watched its nine negative controls.
+**Four of those nine cannot fail here, and it is worth knowing which**: a delete-then-insert route
+move (a millisecond gap under 200 ms sampling — `routes.docker.test.ts` sees it), a drain of 1 ms
+(the deploy call itself outlasts the question a move leaves behind — the Docker tier's driver
+contract sees it), revoking the old key at promotion (a unit test in `releases.test.ts` sees it)
+and removing both serving guards (nothing in a run makes a retire find nothing serving — the driver
+contract and `retire.test.ts` see it). The summary's per-phase `inFlightAtRetire` says whether the
+drain held a question in that run; it usually did not. The baseline and every run are in
 [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md)'s
-*What executing this plan found* and `spikes/p4c-baseline/`. **P4c's Task 11 still has to run it
-twice more, once from a `make reset` machine, with its nine negative controls** — until then, one
-green run is what stands behind it. It leaves the app deployed. **A red run keeps its raw output**
-and prints the directory; a green one deletes it.
+*What executing this plan found* and `spikes/p4c-baseline/`. It leaves the app deployed. **A red run
+keeps its raw output** and prints the directory; a green one deletes it.
 
 ## `make demo-ai` — the proof app answers a question, charged to one person
 
@@ -320,8 +328,8 @@ mf-proof-app-staging-net` lists it. **`AI_EMPTY_ANSWER`** is S3's thinking-model
 the model streamed no text. **A dimension of 192** is S3's silent embedding failure, an
 `embed()` without `encoding_format: 'float'`.
 
-It is re-runnable and every run redeploys — so every run leaves the previous release's
-container behind (*Known gaps*).
+It is re-runnable and every run redeploys. Since P4c the previous release's container is
+drained and removed behind each redeploy, so a re-run leaves one app container, not two.
 
 ## Watching a project's event stream
 
@@ -426,8 +434,9 @@ restarts every container on the machine, so it is a person's call rather than a 
   in the container's memory. **P4c fixed both.** Since sitting 3 the new container starts beside the
   one serving, is proved ready from inside the edge, and only then takes the route with one in-place
   `PATCH`; since sitting 7 (2026-09-16) `node-ts-mongo@1` keeps sessions in the app's own Mongo
-  (`skeleton/auth/session.js`). `make demo-redeploy` is **21 of 21 green**: nobody signed out, 45 of
-  45 questions answered, 560 of 560 requests answered by the app. **Three limits remain, all
+  (`skeleton/auth/session.js`). `make demo-redeploy` is **24 of 24 green**, run three times on
+  2026-09-16 and once from a `make reset` machine: nobody signed out, every question answered by an
+  instance, every request in every redeploy window answered by the app. **Three limits remain, all
   deliberate** (the plan's *What this plan does not build*): **an app generated from the skeleton
   BEFORE 2026-09-16 still keeps sessions in memory** and signs everyone out until it mounts
   `sessionMiddleware(client)` from `auth/session.js`; **a sign-in under way at the IdP when the
@@ -435,7 +444,7 @@ restarts every container on the machine, so it is a person's call rather than a 
   edge configuration reload can reset about one connection in 300 (R1). **Do not "clean up" an
   instance through the driver's `destroyInstance`:** it removes the route by hostname, which the live
   instance shares.
-- **Redeploys used to leave the PREVIOUS release's container running.** *Measured
+- **CLOSED 2026-09-16 (P4c): redeploys used to leave the PREVIOUS release's container running.** *Measured
   2026-09-09:* eleven deploys of one app in one session produced eleven
   `mf-proof-app-staging-*-app` containers, all `Up` and healthy, each holding its full
   cpu/memory/pids allocation, with only one carrying the route. `deployRelease` calls
@@ -445,8 +454,13 @@ restarts every container on the machine, so it is a person's call rather than a 
   120 s), and is then removed with its `-files` volume and its AI key — and the first P4c redeploy
   of an app reaps every older container it left too (R7). What is still not reaped: anything a
   crashed control plane left for an app nobody redeploys, and containers the Docker tier's tests
-  leave. Fleet-wide reaping belongs to §11's reconciliation loop, which is Phase 4 (D10). P4c's
-  Task 11 closes this entry. **Workaround for what remains** — and `-v` removes a container's
+  leave. Fleet-wide reaping belongs to §11's reconciliation loop, which is Phase 4 (D10). **P4c's
+  Task 11 closed this entry for every redeploy from here on**: `make demo-redeploy` asserts exactly
+  one app container and no orphan `-files` volume after each redeploy, and a control with the
+  retire unscheduled left four. A container from before P4c is reaped by the next redeploy of its
+  app (R7), and one a redeploy failed to retire by that or by the next control-plane boot —
+  measured 2026-09-16, when a boot reaped the three that control had left. **For anything older
+  or stranded** — and `-v` removes a container's
   ANONYMOUS volumes only, so each instance's named `-files` volume has to go by name:
 
   ```bash

@@ -31,7 +31,7 @@ Agreed with Rich on 2026-09-15, the pattern that carried P4a's last twelve tasks
 | 5 ✅ | 6–7 | The data and the keys (the `Route` table, migration 0009, per-instance AI keys, the advisory lock, the drain setting), then the retirer that uses them — **done 2026-09-15, 9 findings; §6's `Route` exists and an AI key is stored PER INSTANCE, so the draining container's key stays live; `retireEnvironment` reaps every instance of an environment that does not serve, and does NOTHING when nothing serves. THREE of the plan's own negative controls could not fail** — Task 6's (c) and (d) and Task 7's (c) — and all three were measured and replaced. **Nothing calls the retirer yet: that is Task 8** | ✅ |
 | 6 ✅ | 8–9 | `deployRelease` reordered — serialized, per instance, failing without taking the app down — with its wiring; then boot recovery — **done 2026-09-15, 10 findings; THE RETIRER HAS A CALLER AND THE PLATFORM REDEPLOYS ITSELF END TO END**: `releases/redeploy.docker.test.ts` replaces an instance under a request every 25 ms with zero 502s and zero wildcard answers and then reaps the old container with its files volume, and `boot.docker.test.ts` proves the real compiled entry point puts a lost route back, ends an interrupted deploy and finishes a cut-short drain. **Task 8's control (a) could not fail** and was replaced; **sitting 5's correction 3 was confirmed by measurement** — the plan's code leaks a first deploy's failed container with `INSTANCE_SERVING`; and **`retireEnvironment` opens the app's whole secret set before it retires anything, so a set it cannot open silently stops every reap** | ✅ |
 | 7 ✅ | 10 | `node-ts-mongo@1` keeps sessions in the app's own Mongo. **Alone, and the one sitting that NEEDS THE NETWORK ON**: it adds a pinned dependency, regenerates the lockfile and needs `make seed` to warm Verdaccio from it (P4a sitting 5, P4b sitting 6) — **done 2026-09-16, 9 findings; `skeleton/auth/session.js` puts sessions in the app's own Mongo, the warm was watched (152 → 157 tarballs, `make verify` 250 pinned / 0 missing) and the scan gate passed. `make demo-redeploy` WAS RE-RUN AND IS 21 OF 21 GREEN, EXIT 0, FOR THE FIRST TIME** — nobody signed out, 45 of 45 questions answered. **A FIFTH of the plan's own negative controls could not fail** — Task 10's (d): with the network on, Verdaccio fetched the tarball it lacked mid-build; `make verify` is the control that goes red. Two corrections for Task 11 are at the top of it | ✅ |
-| 8 | 11 | `make demo-redeploy` green, with its negative controls. **Alone**, for the reason P4a's Task 15 and P4b's Task 16 were alone | ← **next** |
+| 8 ✅ | 11 | `make demo-redeploy` green, with its negative controls. **Alone**, for the reason P4a's Task 15 and P4b's Task 16 were alone — **done 2026-09-16, 12 findings; P4c IS EXECUTED.** Green three times — at once, again immediately, and from a `make reset` machine — with 23 assertions, and 24 by the end. **FOUR OF THE NINE CONTROLS COULD NOT FAIL IN THE ACCEPTANCE** — (a) delete-then-insert, (c) revoking the old key at promotion, (d) a 1 ms drain, (f) both serving guards removed — and each was watched red in the tier that can see it; (c) in NONE until this sitting wrote the test. Two more changed the acceptance: the asker counted a status, and the failed release was read once at the end | ✅ |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -3478,6 +3478,12 @@ git commit -m "feat(blueprint): sessions in the app's own database, so a redeplo
 
 ## Task 11: `make demo-redeploy` green — P4c's acceptance
 
+> **DONE — SITTING 8, 2026-09-16. P4c IS EXECUTED.** Steps 1 to 7 below are ticked; the record is
+> *Sitting 8* at the end of this plan. The acceptance now has **24 assertions** and was green at
+> once, immediately again, and from a `make reset` machine. Both corrections below are made
+> (`db7775b`), and four of Step 4's nine controls turned out unable to fail in this acceptance —
+> the record says which tier sees each.
+
 > **WHERE THE ACCEPTANCE STANDS AFTER SITTING 7 (2026-09-16) — READ THIS BEFORE THE OLDER NOTES
 > BELOW.** Re-run at the end of sitting 7, once, against the control plane started from README:
 > **21 of 21 green, exit 0, `Done.`** — *nobody was signed out* and *every question was answered 200
@@ -3554,7 +3560,7 @@ git commit -m "feat(blueprint): sessions in the app's own database, so a redeplo
 - Modify: `docs/superpowers/RUNBOOK.md` (*Known gaps*: the leaked-container gap closes; the offline note), `WALKTHROUGH.md` (the new demo)
 - Modify: this plan's *What executing this plan found*, and the close-out sweep of ORIENTATION §6
 
-- [ ] **Step 1: Run it from the machine as it is**
+- [x] **Step 1: Run it from the machine as it is**
 
 ```bash
 make up
@@ -3564,11 +3570,11 @@ bash scripts/demo-redeploy.sh 2>&1 | tee /tmp/p4c-demo-1.txt
 
 **Every assertion must be green, and the summary must show at least one question in flight through each redeploy** — a run where the student's loop happened to be idle proves nothing about a drain. If `resets` is greater than zero, that is R1's tolerated case: report the number, and check it against Task 1's baseline rather than treating it as new.
 
-- [ ] **Step 2: Run it again, immediately**
+- [x] **Step 2: Run it again, immediately**
 
 A second run redeploys an app that P4c has already deployed once, which is the path every later run takes. P4a's `make demo-identity` passed its first run and failed its second.
 
-- [ ] **Step 3: Run it from a `make reset` machine**
+- [x] **Step 3: Run it from a `make reset` machine**
 
 ```bash
 make reset
@@ -3581,7 +3587,7 @@ bash scripts/demo-redeploy.sh
 
 This is the run that proves the acceptance does not depend on anything a previous run left behind — including the `routes` rows, which a reset drops.
 
-- [ ] **Step 4: The negative controls, each watched red**
+- [x] **Step 4: The negative controls, each watched red**
 
 Each is a one-line edit, a run, and an undo. **A control that comes out green is a finding, not a formality** — two of P4b's sitting 7 controls did, and each forced a test that goes red.
 
@@ -3599,7 +3605,7 @@ Each is a one-line edit, a run, and an undo. **A control that comes out green is
 
 Control (f) takes the app down on purpose: run it last, and redeploy afterwards.
 
-- [ ] **Step 5: Sweep what P4c changed in the documents**
+- [x] **Step 5: Sweep what P4c changed in the documents**
 
 - **RUNBOOK's *Known gaps*:** the leaked-container gap **closes for every redeploy from here on** — say that, say that containers from before P4c are reaped by the next redeploy of that app (R7), and keep the manual recipe for anything older, including its `-files` volume (P4b 194).
 - **RUNBOOK and WALKTHROUGH:** `make demo-redeploy` exists, what it proves, and that a redeploy no longer signs anyone out.
@@ -3607,7 +3613,7 @@ Control (f) takes the app down on purpose: run it last, and redeploy afterwards.
 - **The four gate numbers**, in ORIENTATION §2's box, `README.md`, `CLAUDE.md` and `RUNBOOK.md`, together.
 - **The roadmap ledger first**, then the rest of ORIENTATION §6's checklist, including the four HTML pages — **check them rather than assuming**, and say in the record that you checked.
 
-- [ ] **Step 6: Leave the machine as you found it**
+- [x] **Step 6: Leave the machine as you found it**
 
 ```bash
 # The `before` file is this sitting's own, taken before anything ran — every sitting
@@ -3618,7 +3624,7 @@ diff /tmp/p4c-sitting8-before.txt /tmp/p4c-sitting8-after.txt
 
 The proof app's containers, its database and its network are expected to remain — the demo leaves a deployed app, as `make demo-ai` does. **Exactly one app container**, no orphan `-files` volume, and one LiteLLM key for the app: the acceptance asserts all three, so the diff should show nothing else.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git commit -m "test: P4c's acceptance — a redeploy nobody using the app notices"
@@ -4681,3 +4687,178 @@ mentions P4c, redeploys, sessions or sign-out (the two matches in `manifest-deci
 AI "build session"), and what an outsider is told the platform does has not changed. The
 knowledge pack (`agents/AGENTS.md`) changed in the task's own commit. `docs/external-track.md` is
 unchanged: no owner or state moved.
+
+### Sitting 8 — Task 11 — 2026-09-16 — 12 findings — P4c IS EXECUTED
+
+**What it did.** Ran `make demo-redeploy` green three times — Step 1 on the machine as sitting 7
+left it, Step 2 straight afterwards, Step 3 from a `make reset` machine with `.manifest/repos`
+moved aside (a fresh `project`, not `reusing`) — watched the nine controls, and swept. **All three
+runs exit 0**, each in about **three minutes**; in every redeploy window of every run every request
+was answered by the app, with **zero resets**; nobody was signed out. The two corrections sitting 7
+wrote at the top of this task are made, in `db7775b`: the asker reads each answer byte-wise under
+`LC_ALL=C` and records the edge's `X-Manifest-Instance` on it (finding 60), and **two new
+assertions** say that in each redeploy that moves the route a question in flight at the move was
+answered 200 by the instance it moved away from (finding 61). Every run had one: in runs 1–3 it
+started 0.1–1.6 s before the deploy call and finished 2.1–4.6 s into it. Raw output:
+[`../spikes/p4c-baseline/results-sitting8-2026-09-16.txt`](../spikes/p4c-baseline/results-sitting8-2026-09-16.txt).
+**The acceptance ends the sitting with 24 assertions** (sitting 7's 21, the two above, and finding
+67's), and it changed in four more places because controls showed it had to — findings 63, 66 and
+67, and a unit test for 64. Commits: `db7775b`, `fab0880`, `53f3d96`, `2af93ce`, `4c352e5`,
+`cf1a56a`, and this sweep.
+
+| Run | When | Assertions | Questions | Windows (requests, all `app`) | Resets |
+|---|---|---|---|---|---|
+| 1 — Step 1 | 10:28–10:31 | 23 / 23 | 45 | 53, 53, 457 | 0 |
+| 2 — Step 2 | 10:31–10:34 | 23 / 23 | 45 | 52, 52, 456 | 0 |
+| 3 — Step 3, `make reset` | 10:39–10:42 | 23 / 23 | 30 | 52, 51, 458 | 0 |
+| 4 — the final script, after both test tiers | 12:05–12:08 | 24 / 24 | 32 | 53, 52, 457 | 0 |
+
+**Twelve findings.**
+
+63. **CONTROL (d) CANNOT FAIL IN THIS ACCEPTANCE — THE DEPLOY CALL OUTLASTS THE QUESTION THE MOVE
+    LEAVES BEHIND.** `MANIFEST_DRAIN_TIMEOUT_MS=1` (boot line checked, `ps eww` showed the variable):
+    **23 of 23 green**. Read off the runs: the route usually moves **1.2–1.7 s** into a **~5.4 s** deploy —
+    identity verification, `waitForHealth` and the `Route` row come after the move — and the retirer
+    starts only once the deploy has returned (**5.4–6.1 s** in, off `instance.retiring`), by
+    which time the question the move left on the old instance (3–5 s long) has finished. So the
+    drain is rarely exercised here: of the **ten** redeploys where `inFlightAtRetire` was measured,
+    **one** had a question outlive the deploy — control (f)'s run, new-release, which ended 365 ms
+    after its retire began. The summary text
+    `db7775b` wrote credited the drain with what the move does; `fab0880` corrects it, renames the
+    flag `--across-move`, and reports per phase `inFlightAtRetire` without asserting it. **(d′)**, the
+    drain skipped inside the Docker driver: the driver contract's *a retire waits for a request that
+    is in flight* **goes red on Docker** (`expected false to be true`), and passes again restored
+    (22.2 s — the 20 s hold).
+64. **CONTROL (c) COULD NOT FAIL ANYWHERE IN THE REPOSITORY.** Revoking every replaced instance's key
+    in `deployRelease`'s marking loop — at promotion — left `make demo-redeploy` **23 of 23** and
+    **all 80 tests** of `releases.test.ts`, `retire.test.ts` and `recover.test.ts` green.
+    `retire.test.ts` orders the revoke after the RETIRE; nothing said the DEPLOY must not revoke
+    first. The acceptance cannot see it because LiteLLM checks a key when a request STARTS (§4) and
+    the question under way at the move started before it — both its AI calls are already made. **A
+    unit test now asserts the order** (`53f3d96`): two deploys of an AI release and no `revoke
+    instance <first>` between them — **red with the edit, green without**. `pnpm test` 831 → 832.
+65. **CONTROL (a) CANNOT FAIL IN THIS ACCEPTANCE, AND ONE OF THE TWO DOCKER TESTS FOR IT CANNOT
+    EITHER.** Delete-then-insert restored in `applyRoute`: **23 of 23**. The acceptance samples every
+    200 ms — §20's 600/min per-IP limit, shared by both loops, is the ceiling — and the gap lasts
+    milliseconds. `runtime/docker/redeploy.docker.test.ts`'s takeover (ONE move at 25 ms) **stayed
+    green** too. `routing/routes.docker.test.ts`'s 20 moves at 25 ms **went red: 2 wildcard answers**
+    — that test is the control, and the only one.
+66. **THE ASKER COUNTED A STATUS.** It never reads an answer's body, and the edge's wildcard answers
+    200 for any path and method — `POST /api/ask` included — with no identity header (P4b finding
+    193). Found while working out why (a) was green. A question is now answered only by a 200 that
+    carries `X-Manifest-Instance` — the warm-up, the assertion (*every question was answered 200
+    **by an instance***) and the summary (`2af93ce`).
+67. **CONTROL (b) SHOWED THE FAILED RELEASE WAS READ ONCE, AT THE END.** With the route moved before
+    the readiness wait the run went red — **4 empty 502s in each of the three windows** — but in the
+    failed-release phase the route moved to the never-ready instance, which answered every request
+    for **~90 s** until the failure path put the previous route back, and *the edge still names the
+    instance that was serving*, read once after the deploy, **passed**. An app that starts faster
+    than the loop samples would have made the run green. **New assertion** (`4c352e5`): every request
+    in the failed release's window was answered by the instance that was serving, through the
+    summary's `--instances <phase>`; on (b)'s kept output it prints two instances, on a green run one.
+68. **CONTROL (e) GOES RED — BUT NOT THE WAY THE PLAN SAYS.** Readiness probed status-only through
+    the public hostname: the never-ready release did **not** "succeed" — it failed on readiness as
+    before, because the previous instance answers `/never-ready` 404 (sitting 1's correction 1,
+    confirmed). What went red was the two HEALTHY redeploys, **4 and 5 empty 502s**: the probe was
+    answered 200 at `/healthz` by the instance being replaced, so the route moved before the new one
+    listened. For a hostname with no route the wildcard would pass the probe, and identity
+    verification then refuses the deploy — sitting 3's control (h) measured that.
+69. **CONTROL (f) CANNOT FAIL IN THIS ACCEPTANCE; STAGED, IT TAKES THE APP DOWN IN A SECOND.** Both
+    serving guards removed (the retirer's `serving === undefined` return, and the driver's
+    `INSTANCE_SERVING` refusal): **24 of 24** — nothing in a run makes a retire pass find nothing
+    serving. **(f′)** staged Decision 12's case: the proof app's `Route` row deleted (an app with no
+    record, as after `pnpm test`), `docker restart manifest-caddy`, and a control-plane boot, whose
+    pass 3 schedules the environment. **Guards in place: the app's only container kept**, no retire
+    event. **Guards removed: `instance.retiring` at 18:24:00.969Z, `instance.retired` at .188, the
+    container gone within a second of `control plane ready`.** The driver half alone: the contract's
+    *REFUSES to retire the instance that is serving* goes red on Docker (`promise resolved
+    "undefined" instead of rejecting`). *(Running `redeploy.docker.test.ts`'s own refusal test with
+    `-t` failed on `network … not found` — the suite says in its docstring that it is sequential and
+    `-t` does not work on it; that run was the agent's error, not a finding.)*
+70. **CONTROL (i) IS RED AT A PRECONDITION, NOT AT THE IDENTITY ASSERTIONS.** With the route's
+    `X-Manifest-Instance` dropped, **every deploy fails identity verification** — step 2 stopped with
+    *the deploy did not become healthy (state: failed)*, its Incident reading *the edge answered 200
+    with no X-Manifest-Instance after 23 attempt(s) — that is the edge's wildcard, not a routed app*
+    — and the previous instance kept serving. So the script's own identity assertions were never
+    reached: the platform refuses first, which is the stronger result. The Incident's wording names
+    the wrong thing in this one case (the 200 was the app's, minus the header); no real route lacks
+    the header, so it is noted, not changed. That control's boot also **reaped (h)'s three leftover
+    containers** — R7 at boot, measured.
+71. **`make verify` STRAIGHT AFTER `make reset && make up` IS 47 / 1** — *the events table is
+    append-only by GRANT* — until `db:migrate` runs; then 47 / 0. `make reset` prints that the
+    database is empty and names `pnpm test` and the control plane as needing the migration, not
+    `make verify`. Named, not fixed.
+72. **`make demo-redeploy` TAKES THREE MINUTES, NOT THIRTEEN.** Every complete run this sitting took
+    2:51–3:01, except (h)'s 8:14 — two 150 s waits for a retire that never comes. The failed release's
+    readiness bound is ~91 s of it. RUNBOOK, WALKTHROUGH and ORIENTATION said ~13 minutes; corrected.
+73. **`routes.docker.test.ts` FAILED A FULL `pnpm test:docker` ON THE RESET R1 TOLERATES.** 166 of
+    167: *moves a route between two upstreams with no wildcard answer* on one record with status 0,
+    an empty body and no identity. The brief measured about one reset in 300 requests across 20
+    changes — this test's own shape — and both takeover tests already count up to two. It now does
+    the same and reads identities off answered requests only (`cf1a56a`); **green, and still red on
+    a wildcard with (a) applied**. The full tier was re-run — and failed the same test again, for a
+    different reason: finding 74.
+74. **AN EDGE CONFIGURATION RELOAD CAN COST AN EMPTY 502, NOT ONLY THE RESET R1 TOLERATES — RICH'S
+    CALL.** The second full `pnpm test:docker` (11:46–11:59) ended **166 of 167** on the same 20-move
+    test: one record with **status 502 and an empty body**, and this time the edge logged it —
+    `http.log.error`, `"msg":"readLoopPeekFailLocked: %!w(<nil>)"`, status 502, host
+    `routetest.staging.manifest.internal`, at 18:51:43.524Z: Go's HTTP transport reusing a
+    kept-alive upstream connection that had closed underneath it, which a route move's reload
+    makes likely. It was the only upstream error for that host in the edge's log across both full
+    runs; the first run's reset left none. **Alone, the suite passed 7 of 7** (six back to back
+    afterwards, 120 moves, no 502 in the edge's log), and **22 redeploys under `make demo-redeploy`
+    saw no 502**. R1 reads *no 5xx*; this is a reload-class failure R1 did not name, so the test was
+    NOT widened to accept it and `pnpm test:docker` can end 166 of 167 on it. **Put to Rich in
+    ORIENTATION §8**, with three options: widen R1; a retry for idempotent requests in the route's
+    `reverse_proxy`; or no upstream keep-alive. None is measured.
+
+**Finding 58's third consequence, measured:** `make reset`'s `compose down` put `manifest-caddy`
+and `manifest-egress` onto the images seed rebuilt (`manifest-caddy:local` `4926f9a62410`,
+`manifest-egress:local` `fcbbbde15c72`); `make doctor` 18 / 0, `make verify` 47 / 0 once migrated,
+and every run after it green on them.
+
+**The controls.** Each was an edit, a control-plane restart where it was under `src/`, a run, and
+`git checkout` against a committed tree — `git status` clean after each.
+
+| | Broken | In `make demo-redeploy` | Where it goes red |
+|---|---|---|---|
+| a | `applyRoute` back to delete-then-insert | **green** 23/23 | `routes.docker.test.ts`, 20 moves: 2 wildcard answers (finding 65) |
+| b | the route moved before the private readiness wait | **red** — 4+4+4 empty 502s | here; and finding 67's new assertion on its kept output |
+| c | the old key revoked at promotion | **green** 23/23 | nowhere, until `53f3d96`'s unit test (finding 64) |
+| d | `MANIFEST_DRAIN_TIMEOUT_MS=1` | **green** 23/23 | d′: the driver contract on Docker, *a retire waits for a request that is in flight* (finding 63) |
+| e | readiness probed status-only via the public hostname | **red** — 4 and 5 empty 502s | here, in the healthy redeploys (finding 68) |
+| f | both serving guards removed | **green** 24/24 | f′: a staged nothing-serves boot removed the app; the driver contract's serving refusal (finding 69) |
+| g | `store:` removed from `sessionMiddleware` | **red** — 123 of 125 questions 401 from +3,520 ms; *nobody was signed out* | here |
+| h | `deps.retirer.schedule(...)` removed | **red** — 7 assertions; 4 app containers left | here |
+| i | `X-Manifest-Instance` dropped from the route | **red** at step 2 — every deploy refused by identity verification | here (finding 70) |
+
+**Gates.** `pnpm test` **832 passed, 72 files**, run twice at the end, identical. `pnpm lint`,
+`pnpm --filter @manifest/control-plane typecheck` and `pnpm format:check` clean before every commit.
+`pnpm test:docker` **167 tests, 0 skipped, 27 files, ~790 s — twice 166 passed and 1 failed**, the
+same route-move test each time: first on the reset R1 tolerates (fixed, finding 73), then on the
+reload 502 R1 does not name (finding 74, Rich's call); that file alone passed 7 of 7. Every other
+Docker-tier test passed in both runs. `make doctor` **18 / 0**; `make verify` **47 / 0**.
+
+**Machine.** `./scripts/snapshot-machine.sh` before (10:22) and after (12:08), diffed. **What the
+authorised `make reset` removed is gone, as Rich agreed**: the fixture app's three containers, its
+network and its `-db-data` volume, and every project row; the proof app was recreated by run 3. The
+proof app ends on **one** app container (`…-6b6e5413-e91f7718-app`) with its files volume, its
+database, and **one** LiteLLM key; its database container's anonymous volume is new because the
+reset recreated it. `manifest-caddy` and `manifest-egress` run the rebuilt `:local` images (above).
+**Cleaned up by name after checking each:** 52 images the Docker tier and the acceptances built,
+each absent from the before-snapshot and used by no container; **five LiteLLM keys and users** for
+projects `pnpm test` had truncated during this sitting (P4b finding 183), leaving only the proof
+app's; the pre-reset copy of `.manifest/repos`, moved aside for Step 3 and deleted rather than
+restored, because the projects its two bare repositories belonged to no longer exist and a
+repository without its project is P4b finding 190's trap; and the raw output the four red control
+runs kept. The four containers that must survive are there; port 7100 is free; free disk is back to
+124 GiB from 132 at the start and 122 before the image clean-up.
+
+**Documents swept.** The roadmap ledger first; then this plan's sittings table, Task 11's note and
+steps, ORIENTATION's header, §2, §3, §4 and §7; `README.md`, `CLAUDE.md`, `RUNBOOK.md` (the
+`make demo-redeploy` section, a stale line in `make demo-ai`'s, and *Known gaps*, whose
+leaked-container entry is CLOSED), `WALKTHROUGH.md`, and the `p4c-baseline` spike index. **The four
+HTML pages were CHECKED**: `manifest-schematic.html`'s status line and `manifest-phases.html`'s *Now*
+line — stale since P4b, it still said the AI features remained — are updated, and the phases page
+gained §17's **1b+** stage, which it never had; `manifest-decisions.html` and `manifest-stories.html`
+mention nothing P4c changed. `docs/external-track.md` is unchanged: no owner or state moved.
