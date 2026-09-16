@@ -92,6 +92,27 @@ implied have already been applied to
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
 
+### Spec action raised by executing P5a — ✅ accepted in substance 2026-09-16, spec text his to apply
+
+**§12, *Egress — default deny* (and §7's `egress.allow`): an app may not egress to a platform
+surface.** `egress.allow` may name only destinations *outside* the platform — not the platform
+zone (`*.manifest.internal`, and each environment zone at UBC) nor a platform service
+(`manifest-*`); a platform surface is refused at validation as `EGRESS_ALLOW_INVALID`, before
+deploy. **Why:** P5a Task 1's `[M2g]` measured that `renderAllowlist` accepts any syntactic
+hostname and that the app's forced proxy — dual-homed onto `manifest-platform`, the app network's
+only route out — tunnels raw TCP to *any* port (the control opened `manifest-idp:80`) to any name
+it resolves there, so a declared `manifest-postgres` or `console.manifest.internal` opens a tunnel
+across the east-west boundary §12 exists to hold. The three platform destinations an app may reach
+(mirror, AI proxy, IdP) are the baseline the platform adds, never declared, so a platform surface
+has no honest use; and §12/§20 must not rest a network boundary on the service's credentials.
+**Scope:** platform surfaces only — not app-to-app public hostnames (east-west, denied at the
+network layer, untouched); not a replacement for the edge's source allow-list, which stays the
+primary control (Task 3, probe 15). Derived from §23's reserved labels and the platform zones, not
+hardcoded. **Placement:** a hardening slice of its own, **not P5a** — the check reuses Task 9's
+reserved-label loader wherever it lands. The full write-up, with the proposed §12 wording, is in
+P5a's *Spec actions* (raised while executing). **Spec text unchanged, per the standing rule that
+only Rich edits the spec.**
+
 ### Spec action raised by executing P4a — ✅ approved 2026-09-08, spec text not yet edited
 
 **§12, *Supply chain*.** The gate blocks on a Critical or High **that has a published
