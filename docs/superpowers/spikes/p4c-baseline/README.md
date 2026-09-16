@@ -16,15 +16,21 @@ first task can re-measure rather than trust these numbers.
 | `p4c-inflight.sh` | Whether a request in flight survives the route moving to another container |
 | **`p4c-measure-edge.sh`** | **P4c Task 1's five measurements** (2026-09-15): whether Caddy keeps counting an upstream whose route has moved while a request is in flight (M1, with a parked-route control M1b); whether a **deferred** `headers` handler replaces an app's own `X-Manifest-Instance` (M2, with the app's forgery proved first); twenty in-place `PATCH` moves of the **real** route shape (M3); whether a container name past DNS's 63-octet label resolves from the edge (M4); and whether repeated `--filter label=` filters AND (M5). Takes two upstream addresses to move a throwaway route between. Results: [`results-task1-2026-09-15.txt`](results-task1-2026-09-15.txt), which also carries the three `make demo-redeploy` baseline runs |
 
-**`make demo-redeploy` has been run twice, and the two runs are the before and after.**
-[`results-task1-2026-09-15.txt`](results-task1-2026-09-15.txt) holds sitting 1's three
-baseline runs against the platform as P4b left it — **ten green, eleven red**, and the
-outage numbers this plan exists to remove.
+**`make demo-redeploy` has been run three times so far, and they are the before, the
+middle and the after.** [`results-task1-2026-09-15.txt`](results-task1-2026-09-15.txt)
+holds sitting 1's three baseline runs against the platform as P4b left it — **ten green,
+eleven red**, and the outage numbers this plan exists to remove.
 [`results-sitting3-2026-09-15.txt`](results-sitting3-2026-09-15.txt) holds the same script
 re-run after Tasks 3 and 4 — **fourteen green, seven red**, no 5xx and no wildcard answer
 in any redeploy window, and every remaining question failure a 401 rather than a 502. Read
-the second one's note on the failed-release phase: its 450 `app` answers look identical to
-the baseline's 448 and are a different fact, which is what the identity header is for.
+that one's note on the failed-release phase: its 450 `app` answers look identical to the
+baseline's 448 and are a different fact, which is what the identity header is for.
+[`results-sitting6-2026-09-15.txt`](results-sitting6-2026-09-15.txt) holds it re-run after
+Tasks 8 and 9, which gave the driver and the retirer their caller — **nineteen green, two
+red**. Every retire assertion is green in all three phases, all 560 requests across the
+three windows were answered by the app, and there were **zero resets**. The two still red
+are one thing: the app keeps its sessions in memory, so a redeploy signs the student out
+and their next 122 questions are 401s. That is Task 10.
 
 **Before re-running:** they need `make up`, the control plane, and the proof app deployed
 (`make demo-ai`). The container names, project, environment and release IDs are hard-coded
