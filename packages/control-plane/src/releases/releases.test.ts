@@ -1703,6 +1703,42 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
     })
   })
 
+  it('a redeploy leaves the REPLACED instance’s key alone — its retire revokes it, after the drain (P4c)', async () => {
+    // LiteLLM checks a key when a request STARTS (measured 2026-09-14), so a key revoked
+    // at promotion fails the next AI call that a question already on the old instance
+    // makes. `make demo-redeploy` cannot see it: its question has made both of its
+    // calls before any deploy returns, and it stayed 23 of 23 green with the revoke
+    // moved here (P4c Task 11, control c). No other test could either — this ORDER can.
+    await withRollback(async (db) => {
+      const events: string[] = []
+      const { driver } = recordingDriver(events)
+      const ai = recordingAi(events)
+      const { release, staging } = await releaseWith(db, driver, aiRelease())
+      const deploy = () =>
+        deployRelease(
+          db,
+          driver,
+          config,
+          { ...deployDeps, ai: ai.service },
+          { releaseId: release.id, environmentId: staging.id },
+        )
+      const first = await deploy()
+      const second = await deploy()
+      expect(second.state).toBe('healthy')
+      expect(events).not.toContain(`revoke instance ${first.id}`)
+      expect(events).toEqual([
+        'mint',
+        'store sk-minted-1',
+        'instance',
+        'health passed',
+        'mint',
+        'store sk-minted-2',
+        'instance',
+        'health passed',
+      ])
+    })
+  })
+
   it('gives the app the IN-NETWORK endpoint, and each model by the KIND the catalogue gives it', async () => {
     await withRollback(async (db) => {
       const events: string[] = []
