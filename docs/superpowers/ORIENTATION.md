@@ -1005,7 +1005,9 @@ which is why P1's **offline** acceptance can only run after a successful seed.
      the reference IdP. **The image it replaced is gone, so the version it ran is unrecorded.**
      Every identity tier passed on the new one (the Docker tier's login suites, a real login in
      `node-ts-mongo.docker.test.ts`, and `make demo-redeploy`'s CWL sign-ins) — which is §16's
-     identity tier doing the job S2 wrote it for. **Pinning it is not yet decided.**
+     identity tier doing the job S2 wrote it for. **Rich, 2026-09-16: do not pin it — keep it
+     current** (§8). Record the version a seed leaves running:
+     `docker exec manifest-idp grep -m1 '"version"' /var/simplesamlphp/composer.json`.
   2. **Seed's step 5 (`compose up -d dns-containers dns-host caddy`) RECREATED both dnsmasq
      containers onto the rebuilt image, and a recreated `manifest-dns-containers` is on NO app
      network** — `ensureAppNetwork` attaches it to every one (`PLATFORM_NEIGHBOURS`) and
@@ -1833,14 +1835,15 @@ closes P4c — RUNBOOK's leaked-container gap among it. **Budget for it**: one r
 and Step 4 is "a one-line edit, a run, and an undo" nine times, so the task is two to three hours of
 runs before its sweep. Control (f) takes the app down on purpose — run it last and redeploy.
 
-**The state sitting 8 is handed, 2026-09-16.** `main`, tree clean; Task 10 is `70f30c0`, and the
-sweep that followed it is the commit after. `pnpm test` **831 passed, 72 files**;
+**The state sitting 8 is handed, 2026-09-16.** `main`, tree clean; Task 10 is `70f30c0`, and every
+commit after it is documentation — the sitting-7 sweep and Rich's decision not to pin the IdP. `pnpm test` **831 passed, 72 files**;
 `pnpm test:docker` **167 passed, 0 skipped, 27 files**, ~772 s; `make doctor` **18 / 0**;
 `make verify` **47 / 0**. The proof app is deployed from `make demo-redeploy`'s last good release,
 **one** app container, its database and one LiteLLM key; its Route record exists until the next
 `pnpm test`. **If your first measurements differ, find out why before you start.**
 
 ```bash
+./scripts/snapshot-machine.sh > /tmp/p4c-sitting8-before.txt   # Task 11 Step 6 diffs against it
 make up && make doctor && make verify                   # expect 18/0 and 47/0
 pnpm test                                               # expect 831 passed, 72 files
 MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/runtime/docker/node-ts-mongo
@@ -1854,14 +1857,18 @@ MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/runtime/docker/
    61) — and control (d) has nothing to cut off unless a question straddles the window. And the
    asker's `head -c 300 | tr -d '\n'` breaks on a multi-byte character under this machine's
    UTF-8 locale (finding 60), which is the field control (c) reads its AI error code from.
-2. **`make reset` asks you to type `reset`**, so from a tool call it is `echo reset | make reset`.
-   It keeps the npm mirror, the CA, the master key and the IdP key, so the network can stay off.
-   Move `.manifest/repos` aside first (Task 11 Step 3; P4b finding 190).
+2. **`make reset` asks you to type `reset`**, so from a tool call it is `echo reset | make reset`,
+   and **it destroys every project's data on this machine** — the plan requires it, as P4b's
+   sitting 10 did. It keeps the npm mirror, the CA, the master key and the IdP key, so the network
+   can stay off. Move `.manifest/repos` aside first (Task 11 Step 3; P4b finding 190). **The
+   top of Task 11 has five practical notes for Steps 3 and 4** — including that every control in
+   `src/` needs the control plane restarted, and that control (d) cannot be a drain bound of `0`.
 3. **`make reset`'s `compose down` is the first recreate since seed rebuilt the platform images**
    (§4, finding 58): the `make up` after it puts `manifest-caddy` and `manifest-egress` on images
    that have not served yet. A red result straight after the reset is worth checking against that
-   before blaming Task 11. The IdP already runs its rebuild — **SimpleSAMLphp v2.5.3.1, from an
-   unpinned `^2.0`** (finding 62) — and every identity tier passed on it.
+   before blaming Task 11. The IdP already runs its rebuild — **SimpleSAMLphp v2.5.3.1, from
+   `^2.0`, deliberately unpinned** (finding 62; Rich, 2026-09-16: keep it current) — and every
+   identity tier passed on it.
 4. **`retireEnvironment` opens the app's WHOLE secret set before it retires anything**, to build
    §14's redactor, which fails closed — so a set it cannot open stops every reap of that
    environment, with one line on stderr (§4, finding 46). Named, not fixed.
@@ -1963,15 +1970,15 @@ Surface these; do not decide them.
   revoked its key. **Built in sitting 5.** Two things it leaves for P4c are named in P4b's *What this
   plan does not build*: an app that stops declaring models keeps its route to the gateway and its
   last key, and a key whose discard or commit fails stays live until removed by hand.
-- **Pin the Manifest IdP's SimpleSAMLphp version? — RAISED 2026-09-16, not decided.**
-  `infra/idp/Dockerfile` installs `simplesamlphp/simplesamlphp:^2.0`, a range, and `make seed`
-  rebuilds that image from nothing, so every seed can move the IdP every CWL login runs
-  through. P4c sitting 7's seed moved it to **v2.5.3.1**, and the image it replaced was removed,
-  so the version before is unrecorded (P4c finding 62, §4). Every identity tier passed on the new
-  one. The options are pinning the version that is running and has been proved (v2.5.3.1),
-  pinning by the resolved composer lock, or keeping the range and relying on §16's identity tier
-  to catch an upgrade, which is what S2 built that tier for. Every app-side dependency is already
-  exact (C6, D30); the IdP is the exception.
+- **The Manifest IdP's SimpleSAMLphp version — DECIDED 2026-09-16, Rich's call: DO NOT PIN IT.
+  Keep it current.** `infra/idp/Dockerfile` installs `simplesamlphp/simplesamlphp:^2.0`, a range,
+  and `make seed` rebuilds that image from nothing, so every seed can move the IdP every CWL login
+  runs through; P4c sitting 7's seed moved it to **v2.5.3.1** (P4c finding 62, §4). The control is
+  §16's identity-path tier and the demos, which is what S2 built that tier for — every one passed
+  on v2.5.3.1. **What follows from it:** a sitting that runs `make seed` records the IdP version it
+  left running (the command is in the Dockerfile's comment), so the next move is traceable. The
+  app-side rule is unchanged: blueprint dependencies stay exact (C6, D30). *Rejected:* pinning the
+  proved version; pinning by the resolved composer lock. **Do not re-raise.**
 - **SimpleSAMLphp's session store connects as the superuser `manifest`.** *Found
   2026-09-14, while wording the §21 change.* §9 says that store is a separate subsystem
   "with its own credentials"; `infra/idp/config/config.php` gives it `manifest`, the

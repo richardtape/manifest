@@ -14,6 +14,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# A RANGE, ON PURPOSE — do not pin it. `make seed` rebuilds this image from nothing,
+# so each seed takes the newest SimpleSAMLphp 2.x: v2.5.3.1 on 2026-09-16, where S2
+# measured 2.4.9. Rich's call that day: keep it current. What catches an upgrade that
+# breaks a CWL login is §16's identity-path tier (`sso/login.docker.test.ts`) and the
+# demos, not a pin. After a seed, record the version in the sitting's notes:
+#   docker exec manifest-idp grep -m1 '"version"' /var/simplesamlphp/composer.json
 RUN composer create-project simplesamlphp/simplesamlphp:^2.0 /var/simplesamlphp --no-interaction
 
 ENV SIMPLESAMLPHP_CONFIG_DIR=/var/simplesamlphp/config

@@ -3482,9 +3482,10 @@ git commit -m "feat(blueprint): sessions in the app's own database, so a redeplo
 > BELOW.** Re-run at the end of sitting 7, once, against the control plane started from README:
 > **21 of 21 green, exit 0, `Done.`** — *nobody was signed out* and *every question was answered 200
 > (45 asked)* are green, all 560 requests in the three windows (52, 52, 456) were answered by the
-> app, and there were zero resets. So this task starts with every assertion already green, and its
-> work is Steps 2 to 7: the immediate second run, the run from a `make reset` machine, the nine
-> controls, and the sweep. Raw output:
+> app, and there were zero resets. So this task starts with every assertion already green: Step 1
+> is this sitting's own first run and should confirm that, and the rest of the work is Steps 2 to 7 —
+> the immediate second run, the run from a `make reset` machine, the nine controls, the sweep that
+> closes P4c, and the machine. Raw output:
 > [`../spikes/p4c-baseline/results-sitting7-2026-09-16.txt`](../spikes/p4c-baseline/results-sitting7-2026-09-16.txt).
 >
 > **TWO CORRECTIONS FROM THAT RUN**, both in `scripts/demo-redeploy.sh`, neither fixed — the script
@@ -3503,6 +3504,28 @@ git commit -m "feat(blueprint): sessions in the app's own database, so a redeplo
 >    `printf 'ab\xe2\x80\x99cd' | head -c 3 | tr -d '\n'`; `LC_ALL=C tr` passes the bytes. It
 >    printed twice in phase 7 and was harmless there, because a 200's code field is empty — but
 >    **that field is what control (c), *a question in flight fails with an AI code*, reads.**
+>
+> **FIVE PRACTICAL NOTES FOR STEPS 3 AND 4**, read from the code and the Makefile on 2026-09-16:
+>
+> - **`make reset` asks you to type `reset`** (`read -p` in the Makefile), so from a tool call it is
+>   `echo reset | make reset`. **It destroys every project's data on this machine** — the proof app's
+>   and the fixture app's databases, the registry and Postgres — and keeps the npm mirror, the CA, the
+>   master key and the IdP key, so the network can stay off. The plan requires it and P4b's sitting 10
+>   did the same; the demos recreate what they need.
+> - **`make reset`'s `compose down` makes the next `make up` recreate `manifest-caddy` and
+>   `manifest-egress` onto images sitting 7's `make seed` rebuilt and that have not served yet**
+>   (ORIENTATION §4, finding 58). If Step 3 goes red, rule that out before blaming the task.
+> - **Every control whose edit is under `packages/control-plane/src` needs the control plane
+>   restarted before its run** — `pnpm --filter @manifest/control-plane dev` recompiles — and so does
+>   its undo. Only (g) does not: `scripts/lib/proof-app.sh` copies the skeleton from the working tree.
+> - **(g)'s target is now `blueprints/node-ts-mongo/skeleton/auth/session.js`**: drop `store:` from
+>   `sessionMiddleware`. Sitting 7 watched that edit fail in the Docker tier (its control (a)) — the
+>   login still completes and Mongo holds no session.
+> - **(d) cannot be `MANIFEST_DRAIN_TIMEOUT_MS=0`**: `config.ts` refuses it
+>   (`z.coerce.number().int().positive()`), so the control plane would not boot and the run would
+>   measure nothing. Use `MANIFEST_DRAIN_TIMEOUT_MS=1`, or `drainMs: 0` at the retirer's construction
+>   in `src/index.ts` (`drainMs: config.drainTimeoutMs`). And (d) only means something once
+>   correction 1 above can show a question straddling the window.
 
 > **WHERE THE ACCEPTANCE STOOD AFTER SITTING 3 (2026-09-15).** Re-run at the end of sitting 3:
 > **14 of 21 green, 7 red**, against sitting 1's baseline of 10 / 11. The four that flipped are
@@ -3516,7 +3539,7 @@ git commit -m "feat(blueprint): sessions in the app's own database, so a redeplo
 > rather than adjusting the assertion.** Raw output:
 > [`../spikes/p4c-baseline/results-sitting3-2026-09-15.txt`](../spikes/p4c-baseline/results-sitting3-2026-09-15.txt).
 
-> **FOUR CORRECTIONS FROM SITTING 1, which built this script and ran it twice (2026-09-15).**
+> **FIVE CORRECTIONS FROM SITTING 1, which built this script and ran it twice (2026-09-15).**
 >
 > 1. **Control (e) comes out GREEN as written — it does not test what it says.** It breaks the readiness probe to "status-only against the public hostname" and expects a never-ready release to succeed. But Decision 25's failing release is a manifest whose `health:` path is `/never-ready`, and the probe requests **that path**: under P4c the route has not moved, so the probe reaches the **previous** instance, which is the same application and answers `/never-ready` **404** — measured on the failed container, which served `GET /healthz` **200** at the same moment. The control fails for the wrong reason and proves nothing. **Run control (e) against a slug the platform has never deployed**, whose hostname therefore has no route at all: measured 2026-09-15, the edge's wildcard answers **200 `manifest OK host=… scheme=https` for ANY path**, `/never-ready` included. That is P4b finding 193's real shape and the only thing a status-only probe can be fooled by.
 > 2. **`BAD` says nothing about the failed-release phase, so do not read it as if it did.** The same measurement is why: a release whose health path 404s is an otherwise perfect container, so in sitting 1's run the loop recorded **314 `app` responses** inside the failed-release window while the route had wrongly moved to the failed instance. The assertion that covers that phase is `the edge still names the instance that was serving` — the identity header, Decision 7 — and nothing else. Step 1's "every assertion must be green" is unchanged; what changes is what a green `BAD` is evidence of.
@@ -4596,8 +4619,10 @@ Mongo user is the root user of its own dedicated database (D3), so the index nee
     identity tier passed on the new one — the Docker tier's `sso/` login suites, this sitting's real
     login in `node-ts-mongo.docker.test.ts`, and `make demo-redeploy`'s CWL sign-ins — which is §16's
     identity-path tier doing what S2 built it for. Every blueprint dependency is exact (C6, D30); the
-    IdP, which every one of those logins goes through, is not. **Named, not fixed** — pinning it
-    touches `infra/` and is outside Task 10 — and in ORIENTATION §4.
+    IdP, which every one of those logins goes through, is not. **Raised with Rich at the end of the
+    sitting, and DECIDED the same day: do not pin it — keep it current.** The identity tier is the
+    control; `infra/idp/Dockerfile` says so beside the range, with the command that reads the
+    version a seed leaves running. ORIENTATION §4 and §8.
 
 **Negative controls, each watched.** The letters are the plan's.
 
