@@ -1,4 +1,4 @@
-// node scripts/lib/redeploy-summary.mjs [--bad | --drained <phase>] <loop.ndjson> <markers.ndjson> [asks.log]
+// node scripts/lib/redeploy-summary.mjs [--bad | --across-move <phase>] <loop.ndjson> <markers.ndjson> [asks.log [frames.ndjson]]
 //
 // One line per phase — a `<phase>-start` / `<phase>-end` marker pair — counting each
 // class of response from the phase's start until TAIL_MS (default 5000) after its end,
@@ -12,16 +12,24 @@
 // instance from the one serving before it. A question in flight across that move is
 // one the PREVIOUS instance answered and that ended after that response came back —
 // the previous instance cannot have been chosen for a request that started after the
-// move, so its answer could only arrive after the move if the drain let it finish.
-// `--drained <phase>` prints how many of those were answered 200, which is what the
-// acceptance asserts is at least one: a run whose student happened to be between
-// questions at the move proves nothing about a drain.
+// move. `--across-move <phase>` prints how many of those were answered 200, which the
+// acceptance asserts is at least one: a run whose student was between questions at the
+// move proves nothing about what a move does to a question under way.
+//
+// THAT IS NOT THE DRAIN, and the difference was measured (Task 11, control d): the route
+// moves about 1.3 s into a ~5.4 s deploy, the retirer starts only once the deploy call
+// has returned, and a question here takes 3–5 s — so the question the move leaves on the
+// old instance has finished before any drain begins, and a drain bound of 1 ms changed
+// nothing. WITH THE STREAM'S FRAMES, each line also reports `atRetire`: questions the
+// previous instance answered after its `instance.retiring` event — the ones a drain
+// actually waited for. Reported, not asserted: in this app it is usually zero, and the
+// drain is proved where a request can be held open on purpose, the Docker tier.
 import { readFileSync } from 'node:fs'
 
 const argv = process.argv.slice(2)
 const badOnly = argv[0] === '--bad'
-const drainedPhase = argv[0] === '--drained' ? argv[1] : undefined
-const [loopPath, markPath, asksPath] = badOnly
+const drainedPhase = argv[0] === '--across-move' ? argv[1] : undefined
+const [loopPath, markPath, asksPath, framesPath] = badOnly
   ? argv.slice(1)
   : drainedPhase !== undefined
     ? argv.slice(2)
@@ -49,6 +57,17 @@ const asks =
             aiCode: aiCode ?? '',
           }
         })
+
+// When the retirer began each instance's drain, off the stream: `instance:<id>` →
+// epoch ms. The replay carries earlier runs' events too, so the LAST one wins.
+const retiringAt = new Map()
+if (framesPath !== undefined) {
+  for (const frame of read(framesPath)) {
+    if (frame.type === 'instance.retiring' && typeof frame.subject === 'string') {
+      retiringAt.set(frame.subject.replace(/^instance:/, ''), Date.parse(frame.createdAt))
+    }
+  }
+}
 
 const rows = read(loopPath)
 const marks = read(markPath)
@@ -81,6 +100,8 @@ for (const phase of [...new Set(marks.map((m) => m.name.replace(/-(start|end)$/,
       ? []
       : asks.filter((a) => a.instance === previous && a.t1 > movedBy)
   const drained = acrossMove.filter((a) => a.code === '200').length
+  const retireAt = previous === null ? undefined : retiringAt.get(previous)
+  const atRetire = retireAt === undefined ? [] : acrossMove.filter((a) => a.t1 > retireAt)
   if (drainedPhase === phase) {
     console.log(drained)
     drainedPrinted = true
@@ -107,9 +128,11 @@ for (const phase of [...new Set(marks.map((m) => m.name.replace(/-(start|end)$/,
         inWindow: overlapping.length,
         notAnswered200: overlapping.filter((a) => a.code !== '200').length,
         inFlightAcrossMove: acrossMove.length,
-        drainedAndAnswered200: drained,
+        acrossMoveAnswered200: drained,
         // [started, ended] relative to the phase start, so a reader can see the straddle.
         acrossMoveMs: acrossMove.map((a) => [a.t0 - start, a.t1 - start, a.code]),
+        retireStartedMs: retireAt === undefined ? null : retireAt - start,
+        inFlightAtRetire: atRetire.length,
       }
     }
     console.log(JSON.stringify(line))

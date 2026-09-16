@@ -19,6 +19,8 @@
 #      header still names it — with an Incident, its container gone and no second key;
 #      and, read off both loops together, that in each of 5 and 6 a question in flight
 #      when the route moved was answered 200 by the instance it had moved away from.
+#      That is the move. Whether the DRAIN held a question is reported per phase as
+#      `inFlightAtRetire` and not asserted — see scripts/lib/redeploy-summary.mjs.
 #
 # IT RUNS EVERY PHASE AND FAILS AT THE END, listing every assertion that failed, so a
 # red run is a measurement. Task 1 runs it against the platform as P4b left it.
@@ -194,8 +196,7 @@ LOOPER=$!
 # EACH LINE OF asks.log IS `<t0> <t1> <status> <instance> [<AI error code>]`. The
 # instance is the edge's X-Manifest-Instance on the ANSWER (`-` when there is none), so
 # the summary can show a question the PREVIOUS instance answered after the route had
-# moved — the one thing that proves a drain let a question finish (sitting 7 finding
-# 61). Both fields are read BYTE-WISE: an answer is model text, the app's own error
+# moved (sitting 7 finding 61), and one it answered after its retire began. Both fields are read BYTE-WISE: an answer is model text, the app's own error
 # messages contain `’`, and BSD `tr` and `sed` under a UTF-8 locale refuse a fragment
 # of a multi-byte character with `Illegal byte sequence` (finding 60) — so the whole
 # body is read, never a `head -c` cut of it, and under LC_ALL=C.
@@ -304,9 +305,9 @@ touch "$OUT/stop"
 wait "$LOOPER" 2>/dev/null; LOOPER=""
 wait "$ASKER"  2>/dev/null; ASKER=""
 kill "$WATCHER" 2>/dev/null; wait "$WATCHER" 2>/dev/null; WATCHER=""
-node scripts/lib/redeploy-summary.mjs "$LOOP" "$MARKS" "$ASKS"
+node scripts/lib/redeploy-summary.mjs "$LOOP" "$MARKS" "$ASKS" "$FRAMES"
 BAD="$(node scripts/lib/redeploy-summary.mjs --bad "$LOOP" "$MARKS")"
-drained() { node scripts/lib/redeploy-summary.mjs --drained "$1" "$LOOP" "$MARKS" "$ASKS"; }
+across_move() { node scripts/lib/redeploy-summary.mjs --across-move "$1" "$LOOP" "$MARKS" "$ASKS"; }
 RESETS="$(grep -c '"cls":"reset"' "$LOOP" | tr -d ' ')"
 ASKED="$(grep -c . "$ASKS" | tr -d ' ')"
 ASK_FAILS="$(awk '$3 != 200' "$ASKS" | grep -c . | tr -d ' ')"
@@ -314,13 +315,15 @@ check "no 5xx and no wildcard answer in any redeploy window" [ "$BAD" = 0 ]
 check "every question was answered 200 ($ASKED asked)" [ "$ASK_FAILS" = 0 ]
 check "nobody was signed out" [ "$(awk '$3 == 401' "$ASKS" | grep -c . | tr -d ' ')" = 0 ]
 # A RUN WHOSE STUDENT WAS BETWEEN QUESTIONS WHEN A ROUTE MOVED PROVES NOTHING ABOUT A
-# DRAIN (Task 11 Step 1), so it is asserted rather than left for a reader to notice: in
-# each redeploy that moved the route, the PREVIOUS instance answered a question 200
-# after the edge had already moved to the new one. The failed release moves nothing.
+# QUESTION UNDER WAY (Task 11 Step 1), so it is asserted rather than left for a reader
+# to notice: in each redeploy that moved the route, the PREVIOUS instance answered a
+# question 200 after the edge had already moved to the new one. The failed release
+# moves nothing. This is the MOVE, not the drain — the summary's `inFlightAtRetire` is
+# the drain, and it is usually zero here (redeploy-summary.mjs says why).
 check "same-release: a question in flight when the route moved was answered by the previous instance" \
-  [ "$(drained same-release)" -ge 1 ]
+  [ "$(across_move same-release)" -ge 1 ]
 check "new-release: a question in flight when the route moved was answered by the previous instance" \
-  [ "$(drained new-release)" -ge 1 ]
+  [ "$(across_move new-release)" -ge 1 ]
 echo "  resets: $RESETS (tolerated — an edge configuration reload, §11)"
 
 if [ -n "$FAILURES" ]; then
