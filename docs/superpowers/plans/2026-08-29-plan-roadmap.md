@@ -92,7 +92,7 @@ implied have already been applied to
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
 
-### Spec action raised by executing P5a — ✅ accepted in substance 2026-09-16, spec text his to apply
+### Spec action raised by executing P5a — ✅ APPLIED to §12, 2026-09-16, on Rich's instruction; tracked as its own hardening item
 
 **§12, *Egress — default deny* (and §7's `egress.allow`): an app may not egress to a platform
 surface.** `egress.allow` may name only destinations *outside* the platform — not the platform
@@ -108,10 +108,13 @@ has no honest use; and §12/§20 must not rest a network boundary on the service
 **Scope:** platform surfaces only — not app-to-app public hostnames (east-west, denied at the
 network layer, untouched); not a replacement for the edge's source allow-list, which stays the
 primary control (Task 3, probe 15). Derived from §23's reserved labels and the platform zones, not
-hardcoded. **Placement:** a hardening slice of its own, **not P5a** — the check reuses Task 9's
-reserved-label loader wherever it lands. The full write-up, with the proposed §12 wording, is in
-P5a's *Spec actions* (raised while executing). **Spec text unchanged, per the standing rule that
-only Rich edits the spec.**
+hardcoded. **Placement:** its own hardening item (Rich, 2026-09-16), **not P5a** and not folded
+into P5a Task 9 — the check reuses Task 9's reserved-label loader, so it can only be built after
+P5a executes. Tracked below under *Tracked hardening items*. The full write-up, with the wording as
+applied, is in P5a's *Spec actions* (raised while executing). **The §12 text is now applied**
+(Rich told the executing agent to make the change so the decision would not be lost when another
+agent takes over); the spec rule now describes a behaviour code does not yet enforce, which is why
+the implementation is tracked rather than left to a future reader to notice.
 
 ### Spec action raised by executing P4a — ✅ approved 2026-09-08, spec text not yet edited
 
@@ -675,6 +678,17 @@ its own plan producing working software:
 Dependencies among these are real but shallow: P6 is a prerequisite for P7, P8 and
 P9; P10 and P11 depend on P6 only. P8 should start earliest of the four that follow
 P6, because it feeds the external track below.
+
+### Tracked hardening items — small, not a plan of their own
+
+Security hardening the spec now *describes* but no code yet *enforces*. Each is here
+so it is not lost between plans, and because a spec rule with no caller is this
+project's most-repeated defect. **A plan that touches the named module should fold the
+item in and delete its row.**
+
+| Item | Spec | Enforce in | Needs | Why it is not done yet |
+|---|---|---|---|---|
+| **`egress.allow` may not name a platform surface** — the platform zone (`*.manifest.internal`, UBC's zones) or a `manifest-*` service. Refuse at validation as `EGRESS_ALLOW_INVALID`. | §12 *Egress* (applied 2026-09-16) | `spec/` validation, reusing the reserved-label set; the syntactic check is `runtime/docker/egress.ts`'s `renderAllowlist` today | **P5a Task 9's reserved-label loader** (`projects/reserved-labels.ts`), plus the environment zones | Rich's call (2026-09-16): its own hardening item, built **after P5a executes** so the loader exists. Measured exposure: P5a Task 1 `[M2g]` — the dual-homed egress proxy tunnels raw TCP to any name it resolves on `manifest-platform`, so a declared `manifest-postgres` reaches the platform DB across the east-west boundary. Defense in depth behind the edge's source check (§21), which already refuses the console leg. |
 
 ### Phases 3–5 — not planned
 

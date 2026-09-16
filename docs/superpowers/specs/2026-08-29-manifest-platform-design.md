@@ -1175,6 +1175,22 @@ All environments route outbound traffic through a forced HTTP(S) proxy. The poli
 is **deny by default**: a platform baseline (the registry mirror, LiteLLM, the
 Manifest IdP) plus whatever the app declares in `egress.allow`.
 
+**`egress.allow` may name only destinations outside the platform.** It may not name
+the platform's own zone (`*.manifest.internal`, and each environment zone at UBC) or
+a platform service (`manifest-*`); such an entry is refused at validation as
+`EGRESS_ALLOW_INVALID`, before deploy. The destinations an app legitimately reaches
+on the platform — the package mirror, the AI proxy and the Manifest IdP — are the
+baseline the platform adds, never something an app declares, so a platform surface in
+`egress.allow` has no honest use. It also closes an east-west path: the egress proxy
+is dual-homed onto the platform network (it is the app network's only route out), so
+a platform name in `egress.allow` would open a proxy tunnel from the app to a platform
+service — the control plane's database, or the edge — across the boundary this section
+exists to hold, and that boundary must not rest on the service's own credentials. The
+refused set is derived from the reserved labels (§23) and the platform zones, not
+written as literals, because the zones differ at UBC. This is defense in depth behind
+the edge's own source check (§21), which already refuses the control-plane routes to
+every app and sandbox network.
+
 Sandboxes get a wider baseline than production, but **that baseline is the package
 mirror, not the public registries** — Verdaccio is the only dependency source, which
 is what makes C1's offline claim true and what gives the supply-chain controls below

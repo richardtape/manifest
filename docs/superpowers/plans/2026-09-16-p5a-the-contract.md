@@ -9276,7 +9276,7 @@ Named because the spec asks for it, or because someone will look for it.
 | §20, *Manifest's own front door* | *CSRF protection* stated as an **`Origin` check** on every session-bearing mutation and stream upgrade, and a sign-in **bound to the browser that started it** | the same-site apps (Decision 15) make the mechanism a security property, not an implementation detail |
 | §14 | the stream's contents gain **provisioning**: `project.created`, `repository.seeded`, `spec.validated` | §22 step 3 is *watch provisioning*, and §14 lists what streams |
 
-**Raised while executing — sitting 1, 2026-09-16. Accepted in substance by Rich the same day; the spec text is his to apply.** Not one of the six above; not P5a's to build.
+**Raised while executing — sitting 1, 2026-09-16. Decided by Rich the same day; the §12 text is APPLIED (he told the executing agent to make the change so the decision would survive a hand-off), and it is ITS OWN HARDENING ITEM — not P5a's to build.** Not one of the six above. The rule now sits in §12 with no code enforcing it yet; it is the roadmap's one *Tracked hardening item*, to be built after P5a's Task 9 supplies the reserved-label loader.
 
 **§12, *Egress — default deny, every environment (D18)* (and §7's `egress.allow`): an app may not egress to a platform surface.** Proposed wording, to follow the baseline paragraph:
 
@@ -9286,7 +9286,7 @@ Named because the spec asks for it, or because someone will look for it.
 
 **What it is NOT.** Not a replacement for the edge's source allow-list, which stays the primary control and is what Task 3 builds and probe 15 watches (`[M2b]`: the edge already refuses every platform-network source but the gateway, so `console.manifest.internal` is refused there regardless). Not a restriction on an app egressing to *another app's public hostname* — that is east-west, denied at the network layer, and a separate question left untouched.
 
-**Where it lands.** A hardening slice of its own, **not P5a** (P5a is the contract). It is cheap wherever the reserved labels and the zones are both known — Task 9 loads the labels, so it *could* ride there — but keeping it out of P5a leaves this plan the contract plan; Rich's call on the slice. The check reuses §23's reserved-label loader plus the environment zones; it does not hardcode `*.manifest.internal`.
+**Where it lands.** Its own hardening item, **not P5a** and not folded into Task 9 (Rich, 2026-09-16) — the check reuses Task 9's reserved-label loader, so it can only be built once P5a has executed. Tracked in the roadmap's *Tracked hardening items*; the check reuses §23's reserved-label loader plus the environment zones and does not hardcode `*.manifest.internal`.
 
 **Nothing else is proposed.** If executing this plan finds a section that no longer matches what runs, it is recorded here and put to Rich rather than edited.
 
