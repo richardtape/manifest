@@ -1,0 +1,96 @@
+P4c sitting 3 — `make demo-redeploy` re-run after Tasks 3 and 4
+===============================================================
+
+Run on 2026-09-15, against the platform as sitting 3 left it: control plane on 7100 with
+the DOCKER driver and AI enabled, `make doctor` 18/0, `make verify` 47/0.
+
+FOURTEEN GREEN, SEVEN RED — twenty-one assertions. Sitting 1's baseline, the same script
+against the platform as P4b left it, was TEN GREEN, ELEVEN RED
+(`results-task1-2026-09-15.txt`). The four that flipped are all Tasks 3 and 4:
+
+  same-release:   the edge names the new instance
+  new-release:    the edge names the new instance
+  failed release: the edge still names the instance that was serving
+  no 5xx and no wildcard answer in any redeploy window
+
+The seven still red each belong to a named later task and NONE of them is a regression:
+
+  same-release / new-release: the previous instance was retired within 150 s   Tasks 5, 7
+  same-release / new-release: exactly one app container is left                Tasks 5, 7
+  failed release: the failed release left no container                         R5, Task 8
+  every question was answered 200                                              Task 10*
+  nobody was signed out                                                        Task 10
+
+  * every one of the 397 failed questions is a 401 from the sign-out. ZERO are 5xx.
+
+WHAT THE LOOPS SAW
+------------------
+{"phase":"same-release","deployMs":5421,"requests":52,"counts":{"app":52},"instancesSeen":["f0cfd8e8-0d98-498a-8762-b17d82fa5bab","5518d60d-6b2d-419c-8de2-59b9995dbb38"],"firstWrongAtMs":null,"lastWrongEndedMs":null}
+{"phase":"new-release","deployMs":5391,"requests":52,"counts":{"app":52},"instancesSeen":["5518d60d-6b2d-419c-8de2-59b9995dbb38","12c39e2c-91cf-482e-bbd5-19d7420902e6"],"firstWrongAtMs":null,"lastWrongEndedMs":null}
+{"phase":"failed-release","deployMs":90528,"requests":450,"counts":{"app":450},"instancesSeen":["12c39e2c-91cf-482e-bbd5-19d7420902e6"],"firstWrongAtMs":null,"lastWrongEndedMs":null}
+
+Compare sitting 1 run C, the same three phases:
+
+  same-release   5,578 ms  53 requests  44 app   9 502-empty   outage +275 -> +1,882 ms
+  new-release    5,456 ms  52 requests  47 app   5 502-empty   outage +351 -> +1,157 ms
+  failed-release 90,599 ms 452 requests 448 app  4 502-empty   outage +378 ->   +982 ms
+
+`counts` is now `{"app": N}` for every phase — every request reached the application, and
+`firstWrongAtMs` is null in all three. Resets: 0, as in all three baseline runs.
+
+THE FAILED-RELEASE PHASE IS THE ONE TO READ TWICE. Its 450 `app` answers look identical to
+the baseline's 448, and they are not the same fact. Sitting 1 finding 10 measured that a
+release whose `health:` path 404s is otherwise a perfect container, so the loop recorded
+`app` for 448 requests while the route had WRONGLY moved to the failed instance. Here
+`instancesSeen` holds exactly ONE instance for the whole 90 s phase — the one that was
+already serving — which is the identity header (Decision 7) doing the job finding 10 said
+nothing else could.
+
+QUESTIONS
+---------
+     2 200  397 401 
+
+  2 x 200, 397 x 401, 0 x 5xx.
+
+Sitting 1 measured three 502s here (2,493 ms, 8,223 ms and 585 ms in) — an AI question in
+flight when a same-release redeploy destroyed its container. That is now ZERO: the
+container is no longer destroyed under the request, and every remaining failure is the
+401 that Task 10's shared session store removes.
+
+The student was signed out 3,340 ms after the first redeploy began (baseline: 2,305 ms).
+Later only because the route now moves after readiness rather than before it; the same
+defect, and Task 10's.
+
+EVERY ASSERTION, IN ORDER
+-------------------------
+  ok   a question is answered before any redeploy — the AI path works
+  ok   same-release: the deploy is healthy
+  ok   same-release: the edge names the new instance
+  FAIL same-release: the previous instance was retired within 150 s
+  FAIL same-release: exactly one app container is left
+  ok   same-release: no files volume without a container
+  ok   same-release: LiteLLM holds exactly one key for the app
+  ok   new-release: the deploy is healthy
+  ok   new-release: the edge names the new instance
+  FAIL new-release: the previous instance was retired within 150 s
+  FAIL new-release: exactly one app container is left
+  ok   new-release: LiteLLM holds exactly one key for the app
+  ok   failed release: the deploy is recorded failed
+  ok   failed release: the edge still names the instance that was serving
+  ok   failed release: an Incident names the failed instance
+  FAIL failed release: the failed release left no container
+  ok   failed release: no files volume without a container
+  ok   failed release: LiteLLM still holds exactly one key for the app
+  ok   no 5xx and no wildcard answer in any redeploy window
+  FAIL every question was answered 200 (399 asked)
+  FAIL nobody was signed out
+  resets: 0 (tolerated — an edge configuration reload, §11)
+FAILED:
+  - same-release: the previous instance was retired within 150 s
+  - same-release: exactly one app container is left
+  - new-release: the previous instance was retired within 150 s
+  - new-release: exactly one app container is left
+  - failed release: the failed release left no container
+  - every question was answered 200 (399 asked)
+  - nobody was signed out
+raw output kept in /var/folders/jc/z5frlyr10fxcqlgsk755hfp40000gn/T/mf-redeploy.QQByuAe4bP

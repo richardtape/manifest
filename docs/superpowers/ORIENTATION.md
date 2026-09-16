@@ -158,7 +158,10 @@ only current one.** §7a and §7c carry the same four numbers as P1's and P3's c
 records, and they are DATED measurements that deliberately do not move — if any of them
 disagrees with this box, this box wins.
 
-The immediate work is **executing P4c — zero-downtime redeploys — SITTING 4, WHICH IS TASK 5** (§7d-3). **Sittings 1, 2 and 3 are done (2026-09-15, 13 findings, 4 and 7):** `make demo-redeploy` exists and is red by design and the baseline it measured is in the plan's record; §11's redeploy contract is in code; and **the driver now redeploys without interrupting anybody** — `ensureInstance` starts the new container beside what serves, proves it ready from INSIDE THE EDGE against a bounded per-instance alias, moves the route with one in-place `PATCH`, and resolves only when the edge answers as that instance, rolling the route back if it does not. **Nothing yet removes the old container**, so a redeploy currently leaves two; that is Task 5. **Not the whole plan in one session:** eight agreed sittings, one per session, with a check-in at each boundary. P4b is finished; its sitting-10 record, the last entry in its *What executing this plan found*, is the one to read first. P4a's fifteen tasks are done: the IdP
+The immediate work is **executing P4c — zero-downtime redeploys — SITTING 4, WHICH IS TASK 5** (§7d-3). **Sittings 1, 2 and 3 are done (2026-09-15, 13 findings, 4 and 7):** `make demo-redeploy` exists and is red by design and the baseline it measured is in the plan's record; §11's redeploy contract is in code; and **the driver now redeploys without interrupting anybody** — `ensureInstance` starts the new container beside what serves, proves it ready from INSIDE THE EDGE against a bounded per-instance alias, moves the route with one in-place `PATCH`, and resolves only when the edge answers as that instance, rolling the route back if it does not. **Nothing yet removes the old container**, so a redeploy currently leaves two; that is Task 5.
+**`make demo-redeploy` was re-run at the end of sitting 3 and is 14 of 21 green**, against sitting
+1's baseline of 10 — every one of the seven still red belongs to Task 5, 7, 8 or 10, and none is a
+regression. **Not the whole plan in one session:** eight agreed sittings, one per session, with a check-in at each boundary. P4b is finished; its sitting-10 record, the last entry in its *What executing this plan found*, is the one to read first. P4a's fifteen tasks are done: the IdP
 works, `secrets/` holds every credential, `sso/` generates the registration a CWL login
 runs through and `deployRelease` calls it, §20's audit log is append-only against a
 role that can actually be constrained, §8's injection contract is one function with
@@ -1737,6 +1740,16 @@ moved before readiness records **seven empty 502s**. Seven findings. Two negativ
 out WRONG (one red before the thing under test ran, one green because the route never moved), and
 one correction Task 5 must carry: **neither fixture app 404s an unknown path**, so the plan's
 `healthPath: '/never-ready'` never-ready fixture cannot work.
+
+**The acceptance is the cheapest way to see where you are.** `make demo-redeploy` was re-run at
+the end of sitting 3 — **14 of 21 green, up from 10** — and the seven still red map one-to-one onto
+the tasks left: *retired within 150 s* and *exactly one app container is left*, in both phases, are
+**Tasks 5 and 7**; *the failed release left no container* is **Task 8**; *nobody was signed out* and
+*every question was answered 200* are both **Task 10** (of 399 questions, 397 failed with 401 and
+**none** with a 5xx, where sitting 1 measured three 502s). It still exits 1, and it is still Task
+11's to make green. Raw output:
+[`spikes/p4c-baseline/results-sitting3-2026-09-15.txt`](spikes/p4c-baseline/results-sitting3-2026-09-15.txt),
+beside sitting 1's baseline in the same directory.
 
 **Sitting 4 is Task 5**: `retireInstance` with its drain, `listInstances`, `servingInstance`,
 `restoreRoute`, the AI-gateway detach, and **the contract suite's continuity block green on the

@@ -26,7 +26,7 @@ Agreed with Rich on 2026-09-15, the pattern that carried P4a's last twelve tasks
 |---|---|---|---|
 | 1 ✅ | 1 | **The acceptance, built first and watched failing**, plus the five edge and Docker measurements every later task relies on. **Alone**, and first, because every worst defect in this project arrived the first time something ran end to end (brief §8) — **done 2026-09-15, 13 findings; run three times, exit 1 each time; the baseline is run C; M1 confirmed `UNLISTED_UPSTREAM_IS_IDLE = true` and M4 made Decision 2's alias load-bearing** | ✅ |
 | 2 ✅ | 2 | §11's contract in code: `InstanceSpec.instanceId`/`hostname`, the four new methods, the fake driver's routes and in-flight counters, and the contract suite's continuity block — **done 2026-09-15, 4 findings; the fake runs all eleven continuity tests, the Docker driver's four refuse and its block skips with its reason; the plan's fake folded `failInstances` into the readiness refusal and erased the health-check half of §14's Incident** | ✅ |
-| 3 ✅ | 3–4 | The edge (upsert in place, identity header, what serves, what is in flight), then the Docker `ensureInstance` that uses it: beside, privately ready, moved, verified, rolled back — **done 2026-09-15, 7 findings; `redeploy.docker.test.ts` takes a hostname over under a request every 25 ms with ZERO 502s and ZERO wildcard answers, where the pre-P4c order records seven empty 502s. Two negative controls first came out wrong — one red for the wrong reason, one GREEN — and neither fixture app 404s an unknown path, which Task 5's `neverReady` fixture depends on** | ✅ |
+| 3 ✅ | 3–4 | The edge (upsert in place, identity header, what serves, what is in flight), then the Docker `ensureInstance` that uses it: beside, privately ready, moved, verified, rolled back — **done 2026-09-15, 7 findings; `redeploy.docker.test.ts` takes a hostname over under a request every 25 ms with ZERO 502s and ZERO wildcard answers, where the pre-P4c order records seven empty 502s. `make demo-redeploy` was re-run at the end and moved from 10/21 green to 14/21 — every remaining red belongs to Task 5, 7, 8 or 10. Two negative controls first came out wrong — one red for the wrong reason, one GREEN — and neither fixture app 404s an unknown path, which Task 5's `neverReady` fixture depends on** | ✅ |
 | 4 | 5 | Docker `retireInstance`, `listInstances`, `servingInstance`, `restoreRoute` and the gateway detach — **the contract suite green on the Docker driver**, drain tests included | ← **next** |
 | 5 | 6–7 | The data and the keys (the `Route` table, migration 0009, per-instance AI keys, the advisory lock, the drain setting), then the retirer that uses them | |
 | 6 | 8–9 | `deployRelease` reordered — serialized, per instance, failing without taking the app down — with its wiring; then boot recovery | |
@@ -3392,6 +3392,18 @@ git commit -m "feat(blueprint): sessions in the app's own database, so a redeplo
 
 ## Task 11: `make demo-redeploy` green — P4c's acceptance
 
+> **WHERE THE ACCEPTANCE STOOD AFTER SITTING 3 (2026-09-15).** Re-run at the end of sitting 3:
+> **14 of 21 green, 7 red**, against sitting 1's baseline of 10 / 11. The four that flipped are
+> Tasks 3 and 4's — the identity header on all three phases, and *no 5xx and no wildcard answer in
+> any redeploy window*. The seven still red are **Tasks 5 and 7** (*retired within 150 s* and
+> *exactly one app container is left*, in both phases), **Task 8** (*the failed release left no
+> container*, R5) and **Task 10** (*nobody was signed out*, and with it *every question was
+> answered 200* — all 397 failed questions are 401s, none is a 5xx). So by the time this task runs,
+> every assertion should already be green **before** it changes anything, and its job is to prove
+> that and to add the negative controls. **If one is still red here, find out which task owns it
+> rather than adjusting the assertion.** Raw output:
+> [`../spikes/p4c-baseline/results-sitting3-2026-09-15.txt`](../spikes/p4c-baseline/results-sitting3-2026-09-15.txt).
+
 > **FOUR CORRECTIONS FROM SITTING 1, which built this script and ran it twice (2026-09-15).**
 >
 > 1. **Control (e) comes out GREEN as written — it does not test what it says.** It breaks the readiness probe to "status-only against the public hostname" and expects a never-ready release to succeed. But Decision 25's failing release is a manifest whose `health:` path is `/never-ready`, and the probe requests **that path**: under P4c the route has not moved, so the probe reaches the **previous** instance, which is the same application and answers `/never-ready` **404** — measured on the failed container, which served `GET /healthz` **200** at the same moment. The control fails for the wrong reason and proves nothing. **Run control (e) against a slug the platform has never deployed**, whose hostname therefore has no route at all: measured 2026-09-15, the edge's wildcard answers **200 `manifest OK host=… scheme=https` for ANY path**, `/never-ready` included. That is P4b finding 193's real shape and the only thing a status-only probe can be fooled by.
@@ -3759,6 +3771,44 @@ name** — 11 skipped, unchanged. So nothing yet removes the old instance a rede
 after this sitting a redeploy leaves **two** containers, which is the state Task 5 reaps and which
 the machine record below accounts for.
 
+**THE ACCEPTANCE WAS RE-RUN, AND IT MOVED: 14 GREEN / 7 RED, from 10 / 11.** Run at the end
+of this sitting against the control plane on 7100 with the **docker** driver and AI enabled;
+raw output in [`../spikes/p4c-baseline/results-sitting3-2026-09-15.txt`](../spikes/p4c-baseline/results-sitting3-2026-09-15.txt),
+beside sitting 1's baseline. **`make demo-redeploy` still exits 1, and it is still Task 11's** —
+but it is now a measurement of what is left rather than of what was never built.
+
+**The four that flipped**, all Tasks 3 and 4: *same-release: the edge names the new instance*,
+*new-release: the edge names the new instance*, *failed release: the edge still names the
+instance that was serving*, and *no 5xx and no wildcard answer in any redeploy window*.
+
+| phase | deploy | requests | app | 502-empty | outage window |
+|---|---|---|---|---|---|
+| same-release | 5,421 ms | 52 | **52** | **0** | none |
+| new-release | 5,391 ms | 52 | **52** | **0** | none |
+| failed-release | 90,528 ms | 450 | **450** | **0** | none |
+
+Sitting 1's run C, the same three phases, was 44 of 53, 47 of 52 and 448 of 452, with 9, 5 and 4
+empty 502s and outage windows of 1.0–1.9 s. `firstWrongAtMs` is now null in all three, and resets
+are 0 as in every baseline run.
+
+**The failed-release phase is the one to read twice.** Its 450 `app` answers look identical to the
+baseline's 448 and are not the same fact. Finding 10 of sitting 1 measured that a release whose
+`health:` path 404s is otherwise a perfect container, so the loop recorded `app` for 448 requests
+while the route had **wrongly moved to the failed instance** — `BAD` could say nothing about that
+phase. Here `instancesSeen` holds exactly **one** instance for the whole 90 s, the one that was
+already serving. That is Decision 7's identity header doing the job finding 10 said nothing else
+could, and it is why that assertion was worth having before the feature existed.
+
+**The seven still red each belong to a named later task, and none is a regression.** *retired
+within 150 s* and *exactly one app container is left*, in both phases, are Tasks 5 and 7; *the
+failed release left no container* is R5, in Task 8; *nobody was signed out* is Task 10. And *every
+question was answered 200* is Task 10 too, not an AI defect: of 399 questions, **2 answered 200,
+397 refused 401, and ZERO returned 5xx**. Sitting 1 measured three 502s there — an AI question in
+flight when a same-release redeploy destroyed its container (finding 8) — and that is now **zero**,
+because the container is no longer destroyed under the request. The student is signed out 3,340 ms
+after the first redeploy begins, against the baseline's 2,305 ms; later only because the route now
+moves after readiness rather than before it.
+
 **Gates.** `pnpm test` **775 passed, 67 files**, run **twice**, identical — 27 more than sitting
 2's 748 (20 in `routing/`, 5 for the keyed mutex, 2 for the alias). `pnpm test:docker` **144
 passed and 11 skipped** in **26 files** (~524 s) — 11 more than sitting 2's 133 (2 in
@@ -3784,6 +3834,16 @@ were removed by digest, each checked absent from the before-snapshot first: `loc
 `local/fixture-rd` — this sitting's new suite builds the same `/tmp/repo` at `abc123` as the
 contract suite, so D30's reproducible build gives them the same image, and both tags had to be
 untagged before the layer would go.
+
+**What the acceptance run itself left, and how it was cleaned.** `make demo-redeploy` deploys
+three releases, so it left **five** proof-app containers where there had been one — which is the
+two assertions it fails, not a surprise. The four that are not serving were removed by explicit
+name with their `-files` volumes (each holds an SP private key), keeping the one the route dials;
+the app is left **healthy, routed and answering with its own identity header**. Two of its three
+new images were removed by digest and the third kept, because the surviving container runs it. The
+control plane was started for the run — `{"driver":"docker","port":7100,"ai":"enabled"}`, which is
+the line to read, since every one of these numbers is meaningless against the fake driver — and
+stopped at the end. `make doctor` 18/0 and `make verify` 47/0 after all of it.
 
 **Routes were restored by hand, again.** `pnpm test:docker` restarts the edge, which drops every
 runtime route (nothing re-applies them until Task 9), and it also left a stale

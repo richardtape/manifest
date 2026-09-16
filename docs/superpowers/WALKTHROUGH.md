@@ -84,11 +84,12 @@ the feature it tests, so the platform's behaviour could be measured before anyth
 built on it (P4c sitting 1, 2026-09-15). It exited 1 with eleven of its twenty-one
 assertions red: a redeploy was about a second of empty 502s, it signed every user out, it
 left the old container running, and a release that never became ready took the app down.
-**Two of those four are fixed in the driver since sitting 3** — the route moves only once
-the new instance is ready, and a release that never becomes ready leaves the previous one
-serving — but **the acceptance has not been re-run since**, so how many assertions are green
-today is unmeasured. It stays red until Task 11 in any case, because people are still signed
-out and the old container is still left running. Do not run it expecting a working demo; run the three above.
+**Re-run at the end of P4c sitting 3 it is 14 of 21 green**, up from ten: the redeploy
+windows now hold no 502 and no wildcard answer at all, and a release that never becomes
+ready leaves the previous one serving. The seven still red are the work that is left —
+the old container is not retired (Tasks 5 and 7), a failed release's container is not
+removed (Task 8), and people are still signed out (Task 10, which is also why questions
+asked during a redeploy fail: 397 of them with 401, none with a 5xx). Do not run it expecting a working demo; run the three above.
 
 `make demo-ai` and `make demo-identity` end with **`Done.`** and leave a note each for the
 student and the instructor, so there is something to ask about.
@@ -190,8 +191,8 @@ ORIENTATION §6 and any plan's negative controls.
 - **Every redeploy leaves the previous container running** and signs every user out (**P4c's
   job — being executed; the container is Task 5's and the sessions are Task 10's**). It no
   longer takes the app down while the new container starts: since 2026-09-15 the driver proves
-  the new instance ready before it moves the route, measured at the driver with zero 502s under
-  a request every 25 ms. To clean the containers up, RUNBOOK's *Known gaps* — and remove each
+  the new instance ready before it moves the route — zero 502s at the driver under a request
+  every 25 ms, and zero across all three phases of `make demo-redeploy`. To clean the containers up, RUNBOOK's *Known gaps* — and remove each
   one's `-files` volume too: it holds a private key.
 - **An AI app whose gateway drops off its network can make a person wait ten minutes** before an
   error. Redeploying the app re-attaches it. RUNBOOK's *Known gaps*.

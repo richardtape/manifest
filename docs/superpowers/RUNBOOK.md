@@ -413,8 +413,11 @@ restarts every container on the machine, so it is a person's call rather than a 
   container beside the one serving, proves it ready from inside the edge, and moves the route with
   one in-place `PATCH` only then — measured at the driver as **zero 502s and zero wildcard answers**
   under a request every 25 ms, against seven empty 502s for the old order. **The 401 is NOT fixed**
-  (sessions move to the app's own Mongo in Task 10), and `make demo-redeploy` has not been re-run
-  since the driver changed, so the end-to-end numbers above are the last measured ones.
+  (sessions move to the app's own Mongo in Task 10). `make demo-redeploy`, re-run end to end after
+  that change, agrees: **52 of 52 and 52 of 52 requests reached the application in the two redeploy
+  phases, with no 502 and no wildcard answer**, and of 399 questions asked under load **397 failed
+  with 401 and none with a 5xx** — where the baseline had three 502s. It went from 10 of 21
+  assertions green to **14**.
   **P4c is being executed — 11 tasks in eight sittings, sittings 1–3 done**
   ([`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md)).
   Redeploy when nobody is mid-session. **Do
