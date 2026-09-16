@@ -17,6 +17,17 @@ const server = createServer(async (req, res) => {
     return
   }
 
+  // P4c: the driver contract's drain tests hold ONE request open here, so a retire
+  // can be SHOWN to wait for it — and to stop waiting at its bound. Bounded at 60 s:
+  // a fixture that could hold a request for ever is a fixture that can hang a suite.
+  if (url.pathname === '/hold') {
+    const ms = Math.min(Number(url.searchParams.get('ms') ?? 0), 60_000)
+    await new Promise((resolve) => setTimeout(resolve, ms))
+    res.writeHead(200, { 'content-type': 'text/plain' })
+    res.end('held')
+    return
+  }
+
   if (url.pathname === '/notes' && req.method === 'POST' && client) {
     const db = client.db(MONGODB_DB_NAME)
     const { insertedId } = await db.collection('notes').insertOne({ at: new Date() })

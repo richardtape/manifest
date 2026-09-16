@@ -15,8 +15,8 @@ import {
 } from '../../routing/index.js'
 import { describeDocker } from './docker-tier.js'
 import { createEngineClient, resolveSocketPath } from './engine.js'
-import { appContainer, instanceAlias } from './names.js'
-import { destroyAppNetwork } from './networks.js'
+import { appContainer, appNetwork, instanceAlias } from './names.js'
+import { AI_GATEWAY_NEIGHBOUR, destroyAppNetwork } from './networks.js'
 import { CA_CERT, dockerDriverForTests, ensureContractRepo } from './testing.js'
 
 const run = promisify(execFile)
@@ -43,9 +43,23 @@ const FIRST_ID = 'aaaaaaaa-0000-4000-8000-000000000001'
 const SECOND_ID = 'bbbbbbbb-0000-4000-8000-000000000002'
 const LYING_ID = 'cccccccc-0000-4000-8000-000000000003'
 const NEVER_READY_ID = 'dddddddd-0000-4000-8000-000000000004'
+const AI_ID = 'eeeeeeee-0000-4000-8000-000000000005'
+const PLAIN_ID = 'ffffffff-0000-4000-8000-000000000006'
 
 const RELEASE_A = 'release-aaaaaaaa'
 const RELEASE_B = 'release-bbbbbbbb'
+const RELEASE_C = 'release-cccccccc'
+const RELEASE_D = 'release-dddddddd'
+
+/**
+ * Containers carrying ONLY the labels a deploy wrote before P4c — no instance, no
+ * hostname, no port, no gateway flag. R7's backlog, made by hand, because there is no
+ * other way to produce one now that `ensureInstanceContainer` writes all five: eleven
+ * of these were left behind by one P4a session, and the first P4c redeploy of an app
+ * is what reaps them.
+ */
+const PRE_P4C = `mf-${SLUG}-${KIND}-oldrelease-app`
+const PRE_P4C_KEEPER = `mf-${SLUG}-${KIND}-oldgateway-app`
 
 const nameOf = (releaseId: string, instanceId: string): string =>
   appContainer(instanceName(SLUG, KIND, releaseId, instanceId))
@@ -55,6 +69,10 @@ const EVERY_CONTAINER = [
   nameOf(RELEASE_B, SECOND_ID),
   nameOf(RELEASE_B, LYING_ID),
   nameOf('release-never', NEVER_READY_ID),
+  nameOf(RELEASE_C, AI_ID),
+  nameOf(RELEASE_D, PLAIN_ID),
+  PRE_P4C,
+  PRE_P4C_KEEPER,
 ]
 
 const ADMIN = 'http://127.0.0.1:7119'
@@ -118,6 +136,56 @@ const stopLoop = async (name: string): Promise<Seen[]> => {
     })
 }
 
+/** `docker volume inspect` exits non-zero for a volume that is not there. */
+const volumeExists = async (name: string): Promise<boolean> =>
+  run('docker', ['volume', 'inspect', name]).then(
+    () => true,
+    () => false,
+  )
+
+/** Is §10's gateway on this app's network? `network inspect` lists what is attached. */
+const gatewayAttached = async (): Promise<boolean> => {
+  const { stdout } = await run('docker', [
+    'network',
+    'inspect',
+    appNetwork(SLUG, KIND),
+    '--format',
+    '{{range .Containers}}{{.Name}} {{end}}',
+  ])
+  return stdout.split(/\s+/).includes(AI_GATEWAY_NEIGHBOUR)
+}
+
+/**
+ * A container carrying ONLY the three labels a pre-P4c deploy wrote.
+ *
+ * `curlimages/curl` sleeping, rather than the app image: the point is the LABELS the
+ * driver reads, and an image that serves nothing makes it obvious that this container
+ * is never expected to answer a request. It is attached to the app's own network so
+ * that a detach decision has to account for it.
+ */
+const startPreP4cContainer = async (name: string, releaseId: string): Promise<void> => {
+  await run('docker', ['rm', '-f', '-v', name]).catch(() => undefined)
+  await run('docker', [
+    'run',
+    '-d',
+    '--name',
+    name,
+    '--network',
+    appNetwork(SLUG, KIND),
+    '--label',
+    `manifest.slug=${SLUG}`,
+    '--label',
+    `manifest.environment=${KIND}`,
+    '--label',
+    `manifest.release=${releaseId}`,
+    '--entrypoint',
+    'sh',
+    'curlimages/curl:8.11.1',
+    '-c',
+    'sleep 3600',
+  ])
+}
+
 /**
  * THIS SUITE IS SEQUENTIAL, AND `vitest -t` WILL NOT WORK ON IT.
  *
@@ -179,6 +247,16 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     resources: { cpu: 0.5, memoryMi: 256, pids: 128, diskMi: 1024 },
     services: [],
     egressAllow: [],
+    /**
+     * ONE PLACED FILE, so every instance here has a `…-app-files` volume.
+     *
+     * Not decoration: a retire that removed the container and left the volume is
+     * P4b finding 194, and on a real app that volume holds a copy of the app's SP
+     * PRIVATE KEY. Without a file in the spec no volume is created, and the test
+     * that asserts the volume is gone would pass against a volume that never existed
+     * — a check that cannot fail.
+     */
+    files: [{ path: '/manifest/redeploy-fixture.txt', contents: 'p4c task 5\n' }],
   })
 
   beforeAll(async () => {
@@ -454,4 +532,95 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     })
     expect((await servingRoute(routing, HOST))?.instanceId).toBe(SECOND_ID)
   }, 120_000)
+
+  /**
+   * TASK 5, AND THE OTHER HALF OF §11's REDEPLOYS. Everything above leaves the
+   * previous container running — which is what makes a drain possible, and which
+   * until this point meant a redeploy left two.
+   */
+  it('retires the instance it replaced, and its files volume goes with it', async () => {
+    const retiring = nameOf(RELEASE_A, FIRST_ID)
+    const serving = nameOf(RELEASE_B, SECOND_ID)
+    expect(await volumeExists(`${retiring}-files`)).toBe(true)
+    expect((await driver.listInstances(HOST)).sort()).toContain(retiring)
+
+    /**
+     * THE GUARD FIRST, against the container that is actually serving (Decision 11).
+     * It reads the EDGE, not the caller's intent, so a control plane that picked the
+     * wrong instance is refused rather than obeyed.
+     */
+    await expect(driver.retireInstance(serving, { drainMs: 0 })).rejects.toMatchObject({
+      code: 'INSTANCE_SERVING',
+    })
+    expect((await driver.status(serving)).state).not.toBe('gone')
+
+    await driver.retireInstance(retiring, { drainMs: 0 })
+    expect((await driver.status(retiring)).state).toBe('gone')
+    // The NAMED volume, which `docker rm -v` does not take (P4b finding 194). On a
+    // real app it holds the SP private key the platform placed.
+    expect(await volumeExists(`${retiring}-files`)).toBe(false)
+    expect(await driver.listInstances(HOST)).not.toContain(retiring)
+
+    // AND THE APP IS UNTOUCHED — a retire never changes what a hostname reaches.
+    expect((await servingRoute(routing, HOST))?.instanceId).toBe(SECOND_ID)
+  }, 300_000)
+
+  /**
+   * R7's backlog, as a test. Every app on this machine has containers from before
+   * P4c: no instance label, no hostname label, and therefore nothing to select them
+   * by except their app. They are found through a SIBLING that does name the
+   * hostname, and they are retired by the same call as anything else.
+   */
+  it('lists an instance from before P4c, and retires it', async () => {
+    await startPreP4cContainer(PRE_P4C, 'release-oldrelease')
+    expect(await driver.listInstances(HOST)).toContain(PRE_P4C)
+    // And nothing that is not an app: only an app container carries
+    // `manifest.release`, so the app's own egress proxy is never listed.
+    expect(await driver.listInstances(HOST)).not.toContain(`mf-${SLUG}-${KIND}-egress`)
+
+    await driver.retireInstance(PRE_P4C, { drainMs: 0 })
+    expect((await driver.status(PRE_P4C)).state).toBe('gone')
+    expect(await driver.listInstances(HOST)).not.toContain(PRE_P4C)
+    expect((await servingRoute(routing, HOST))?.instanceId).toBe(SECOND_ID)
+  }, 300_000)
+
+  /**
+   * §10's gateway comes OFF the app network when nothing on it needs one — P4b
+   * finding 80, left open there because the deploy is the wrong moment: detaching
+   * then cuts the previous release off from its models while it is still serving,
+   * and P4b measured what that costs a student — 611 s (finding 181). The retire is
+   * the first moment it is safe.
+   */
+  it('keeps the model gateway while anything might need it, and takes it off when nothing does', async () => {
+    expect(await gatewayAttached()).toBe(false)
+
+    // 1. An AI release takes the hostname over, and the gateway joins the network.
+    const ai = await driver.ensureInstance({
+      ...specFor(RELEASE_C, AI_ID),
+      needsAiGateway: true,
+    })
+    expect(await gatewayAttached()).toBe(true)
+    expect((await servingRoute(routing, HOST))?.instanceId).toBe(AI_ID)
+
+    // 2. POSITIVE CONTROL: retiring an instance that declares no models leaves the
+    //    gateway attached, because the instance that DOES need it is still there.
+    await driver.retireInstance(nameOf(RELEASE_B, LYING_ID), { drainMs: 0 })
+    expect(await gatewayAttached()).toBe(true)
+
+    // 3. THE SECOND POSITIVE CONTROL, and the one that matters most. A container from
+    //    before P4c carries no `manifest.ai-gateway` label at all, and is read as
+    //    NEEDING the gateway — the safe direction. Read it the other way and an app
+    //    whose only instances predate the label silently loses its models.
+    await startPreP4cContainer(PRE_P4C_KEEPER, 'release-oldgateway')
+    await driver.ensureInstance(specFor(RELEASE_D, PLAIN_ID))
+    expect((await servingRoute(routing, HOST))?.instanceId).toBe(PLAIN_ID)
+    await driver.retireInstance(ai.id, { drainMs: 0 })
+    expect(await gatewayAttached()).toBe(true)
+
+    // 4. And once nothing is left that might need it, it goes.
+    await driver.retireInstance(PRE_P4C_KEEPER, { drainMs: 0 })
+    expect(await gatewayAttached()).toBe(false)
+    // The app is still up, on the release that replaced them all.
+    expect((await servingRoute(routing, HOST))?.instanceId).toBe(PLAIN_ID)
+  }, 900_000)
 })

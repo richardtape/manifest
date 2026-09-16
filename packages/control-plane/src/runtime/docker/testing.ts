@@ -1,5 +1,5 @@
-import { execFileSync } from 'node:child_process'
-import { createHash } from 'node:crypto'
+import { execFile, execFileSync } from 'node:child_process'
+import { createHash, randomUUID } from 'node:crypto'
 import {
   existsSync,
   mkdirSync,
@@ -10,8 +10,16 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { Driver } from '../driver.js'
-import { createCaddyClient, type RoutingDeps } from '../../routing/index.js'
+import { promisify } from 'node:util'
+import type { ContinuityFixtures } from '../driver-contract.js'
+import type { Driver, InstanceSpec } from '../driver.js'
+import {
+  createCaddyClient,
+  inFlightTo,
+  routeIdFor,
+  servingRoute,
+  type RoutingDeps,
+} from '../../routing/index.js'
 import { createDockerDriver } from './driver.js'
 import { createEngineClient, resolveSocketPath } from './engine.js'
 import { fileURLToPath } from 'node:url'
@@ -159,11 +167,51 @@ export function dockerDriverForTests(
 }
 
 /**
+ * A hash of a source tree, over NAMES as well as contents, recursively.
+ *
+ * It was `cat <source>/*` until 2026-09-09, which is a TOP-LEVEL glob: every file
+ * under a subdirectory was invisible, so editing `skeleton/auth/ubcshib.js` left the
+ * hash byte-identical and the cached bare repo was reused — the build then tested the
+ * code before the edit. Same shape as the stale container that served four runs of a
+ * suite and made a negative control pass against an app it had already edited
+ * (ORIENTATION §4).
+ *
+ * BSD userland: no `sort -z`, no `xargs -r`. The file list is emitted first so a
+ * rename with identical contents also moves the stamp.
+ */
+function sourceStamp(source: string): string {
+  return execFileSync('sh', [
+    '-c',
+    `cd ${JSON.stringify(source)} && { find . -type f | LC_ALL=C sort; ` +
+      `find . -type f | LC_ALL=C sort | tr '\\n' '\\0' | xargs -0 cat; } ` +
+      `| shasum -a 256 | cut -c1-16`,
+  ])
+    .toString()
+    .trim()
+}
+
+/**
  * The bare repository the contract suite names. Idempotent, and it deliberately
  * uses a TAG for the commit-ish so `git archive 'abc123'` resolves.
+ *
+ * REBUILT WHEN THE SKELETON CHANGES (P4c Task 5, Decision 24). It used to return
+ * early whenever `/tmp/repo` existed, so a skeleton edited after the first run was
+ * never tested again — and two suites now build from this repo, the driver contract
+ * and `redeploy.docker.test.ts`. Without the stamp, `/hold?ms=` added to the skeleton
+ * in this very task would not be in the tree either of them builds, and both would
+ * keep testing the skeleton as it was: the drain tests would fail against a fixture
+ * that looks correct in the working copy. `fixtureBareRepo` has had a stamp since
+ * P4a for exactly this reason.
  */
 export function ensureContractRepo(repoPath = '/tmp/repo'): void {
-  if (existsSync(join(repoPath, 'HEAD'))) return
+  const skeletonDir = join(REPO_ROOT, 'blueprints/fixture-node/skeleton')
+  const stamp = sourceStamp(skeletonDir)
+  const stampFile = join(repoPath, 'manifest-contract-stamp')
+  const current = existsSync(stampFile) ? readFileSync(stampFile, 'utf8').trim() : ''
+  if (existsSync(join(repoPath, 'HEAD')) && current === stamp) return
+  // A repo built before the stamp existed has no stamp file, so it is rebuilt once —
+  // which is correct: nothing knows whether the skeleton moved under it.
+  rmSync(repoPath, { recursive: true, force: true })
   const work = mkdtempSync(join(tmpdir(), 'mf-contract-src-'))
   try {
     const skeleton = join(REPO_ROOT, 'blueprints/fixture-node/skeleton')
@@ -237,32 +285,14 @@ export function fixtureBareRepo(
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([name, contents]) => `${name}:${contents}`)
     .join('\n')
-  /**
-   * RECURSIVE, and over NAMES as well as contents.
-   *
-   * It was `cat <source>/*` until 2026-09-09, which is a top-level glob: every
-   * file under a subdirectory was invisible to the stamp, so editing
-   * `skeleton/auth/ubcshib.js` reused the previous bare repo and the build
-   * tested the code before the edit. Nothing had a subdirectory until
-   * `node-ts-mongo@1` arrived, so it had never mattered — and it is the same
-   * shape as the stale container that served four runs of a suite and made a
-   * negative control pass against an app it had already edited.
-   *
-   * BSD userland: no `sort -z`, no `xargs -r`. The file list is emitted first so
-   * a rename with identical contents also moves the stamp.
-   */
-  const sourceStamp = execFileSync('sh', [
-    '-c',
-    `cd ${JSON.stringify(source)} && { find . -type f | LC_ALL=C sort; ` +
-      `find . -type f | LC_ALL=C sort | tr '\\n' '\\0' | xargs -0 cat; } ` +
-      `| shasum -a 256 | cut -c1-16`,
-  ])
-    .toString()
-    .trim()
+  // ONE stamp function, shared with `ensureContractRepo` since P4c Task 5. Two
+  // copies of a rule this project has already been bitten by is two places for it
+  // to drift — see `sourceStamp` for what the top-level glob cost.
+  const stampOfSource = sourceStamp(source)
   const stamp =
     extraStamp === ''
-      ? sourceStamp
-      : `${sourceStamp}-${createHash('sha256').update(extraStamp).digest('hex').slice(0, 16)}`
+      ? stampOfSource
+      : `${stampOfSource}-${createHash('sha256').update(extraStamp).digest('hex').slice(0, 16)}`
   const stampFile = join(repoPath, 'manifest-fixture-stamp')
   const current = existsSync(stampFile) ? readFileSync(stampFile, 'utf8').trim() : ''
   if (current !== stamp) {
@@ -305,4 +335,111 @@ export function fixtureBareRepo(
     .toString()
     .trim()
   return { repoPath, commitSha }
+}
+
+const run = promisify(execFile)
+
+/** The real edge, as every Docker-tier suite reaches it. */
+const CONTRACT_ROUTING: RoutingDeps = {
+  caddy: createCaddyClient('http://127.0.0.1:7119'),
+  servers: { internal: 'srv0', public: 'srv0' },
+}
+
+/** How long the fixture app holds one request open for the drain tests. */
+const HOLD_MS = 20_000
+
+/**
+ * The fixtures that ENABLE the driver contract's continuity block for this driver
+ * (Decision 23). Until this existed the block was skipped, with the reason in its
+ * name — never silently.
+ *
+ * Everything here is real: a real request held open by a real container through the
+ * real edge, and a route really removed from the running Caddy. The fake driver's
+ * equivalents are in-memory and the same eleven assertions run against both, which is
+ * the whole point of §16's shared suite.
+ */
+export function dockerContinuityFixtures(): ContinuityFixtures {
+  return {
+    /**
+     * A PORT NOTHING IS BOUND TO — not a path the app does not serve.
+     *
+     * The plan said `healthPath: '/never-ready'`, and that CANNOT WORK here: neither
+     * fixture app 404s a path it does not serve. `fixture-node@1`'s skeleton ends in
+     * `res.writeHead(200); res.end('fixture-app in …')` and `fixtures/fixture-app`
+     * ends in a catch-all 200. Measured 2026-09-15 (sitting 3, finding 25): the
+     * instance became ready immediately and the test passed for the wrong reason.
+     * Task 1's finding 10 measured a 404 on the PROOF APP, which is Express — a
+     * different application.
+     *
+     * The app still listens on the port its rendered `PORT` names, so it is up and
+     * answering; the probe is pointed where nothing is bound and gets
+     * connection-refused for ever. That is the state §11 means by "never became
+     * ready", and it is what `roundtrip.docker.test.ts` and
+     * `redeploy.docker.test.ts` both already do.
+     */
+    neverReady: (spec: InstanceSpec): InstanceSpec => ({ ...spec, port: 9999 }),
+    holdMs: HOLD_MS,
+    /** Comfortably under HOLD_MS, and well over the drain's 250 ms poll. */
+    shortDrainMs: 3_000,
+    holdRequest: async (_driver: Driver, hostname: string) => {
+      const done = run('docker', [
+        'run',
+        '--rm',
+        '--network',
+        'manifest-platform',
+        '--dns',
+        '10.89.0.53',
+        '-v',
+        `${CA_CERT}:/ca.crt:ro`,
+        'curlimages/curl:8.11.1',
+        '--cacert',
+        '/ca.crt',
+        '-sS',
+        '-m',
+        '60',
+        `https://${hostname}/hold?ms=${HOLD_MS}`,
+      ]).then(
+        ({ stdout }) => ({ ok: stdout.trim() === 'held' }),
+        // A cut-off request is an ERROR from curl, and it is the answer the
+        // "never waits longer than its drain bound" test asserts on.
+        () => ({ ok: false }),
+      )
+      /**
+       * IN FLIGHT MEANS THE EDGE IS HOLDING IT AGAINST THE UPSTREAM — which is also
+       * the signal the drain reads. A fixture that returned as soon as `docker run`
+       * was issued would make the drain test pass against a request that had not
+       * started, which is a test that cannot fail.
+       */
+      const serving = await servingRoute(CONTRACT_ROUTING, hostname)
+      if (serving === undefined) {
+        throw new Error(
+          `nothing serves ${hostname}, so no request can be held against it. ` +
+            'This suite is SEQUENTIAL — run the whole file, not `vitest -t`.',
+        )
+      }
+      const deadline = Date.now() + 30_000
+      for (;;) {
+        if (((await inFlightTo(CONTRACT_ROUTING, serving.upstream)) ?? 0) >= 1) break
+        if (Date.now() >= deadline) {
+          // Never a silent timeout: a `holdRequest` that gave up and returned would
+          // make every drain assertion below it meaningless.
+          throw new Error(
+            `no request reached ${serving.upstream} within 30 s — ` +
+              `${JSON.stringify(await done)}`,
+          )
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100))
+      }
+      return { done }
+    },
+    dropRoute: async (hostname: string) => {
+      await CONTRACT_ROUTING.caddy.deleteRoute('srv0', routeIdFor(hostname))
+    },
+    /**
+     * A hostname per test. The edge's routes outlive a test, so two tests sharing one
+     * would each see the other's instance serving — and the block's own `afterAll`
+     * removes every route it hands out.
+     */
+    hostname: () => `contract-${randomUUID().slice(0, 8)}.staging.manifest.internal`,
+  }
 }

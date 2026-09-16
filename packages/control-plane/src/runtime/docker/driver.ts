@@ -12,9 +12,11 @@ import {
 import {
   applyRoute,
   edgeIdentityProbe,
+  inFlightTo,
   removeRoute,
   restoreRouteTo,
   servingRoute,
+  upstreamsInUse,
   waitForIdentity,
   waitForReady,
   type RoutingDeps,
@@ -30,12 +32,13 @@ import type {
   InstanceSpec,
   LogLine,
   LogOpts,
+  RetireOpts,
   ServiceBinding,
   ServiceHandle,
   SnapshotRef,
   SourceRef,
 } from '../driver.js'
-import { InstanceNotReadyError } from '../driver.js'
+import { DriverRefusalError, InstanceNotReadyError } from '../driver.js'
 import {
   DEFAULT_BUILD_LIMITS,
   type BuildLimits,
@@ -43,6 +46,14 @@ import {
   withEphemeralBuilder,
 } from './builder.js'
 import { createBuildQueue } from './concurrency.js'
+import {
+  containerForUpstream,
+  dialHostOf,
+  hostOfAddress,
+  inspectApp,
+  listContainers,
+  upstreamFor,
+} from './containers.js'
 import { createKeyedMutex } from './keyed-mutex.js'
 import { privateProbe } from './probes.js'
 import { ensureEgressProxy } from './egress.js'
@@ -50,6 +61,7 @@ import { EngineError, registryAuthHeader, type EngineClient } from './engine.js'
 import { containerExec } from './exec.js'
 import { detectHostCapabilities } from './hardening.js'
 import {
+  LABEL,
   destroyInstanceContainer,
   ensureInstanceContainer,
   instanceStatus,
@@ -57,7 +69,12 @@ import {
 } from './instances.js'
 import { containerLogs } from './logs.js'
 import { appNetwork, instanceAlias } from './names.js'
-import { AI_GATEWAY_NEIGHBOUR, EDGE_NEIGHBOUR, ensureAppNetwork } from './networks.js'
+import {
+  AI_GATEWAY_NEIGHBOUR,
+  EDGE_NEIGHBOUR,
+  detachAiGatewayIfUnused,
+  ensureAppNetwork,
+} from './networks.js'
 import { mintRegistryToken } from './registry-auth.js'
 import { destroyServiceContainer, ensureServiceContainer } from './services.js'
 
@@ -156,6 +173,50 @@ const IDENTITY_TIMEOUT_MS = 15_000
 /** Matches `registry:2`'s configured issuer and service (infra/compose.yaml). */
 const TOKEN_ISSUER = 'manifest-control-plane'
 const TOKEN_SERVICE = 'manifest-registry'
+
+/**
+ * Does an address Caddy does not list at all hold nothing?
+ *
+ * `undefined` from `inFlightTo` is NOT zero: it means the edge does not list the
+ * address. Which of those a moved-away route produces is a property of this edge, and
+ * the answer is measured rather than assumed — a wrong `true` here cuts off live
+ * requests on every retire, and a wrong `false` makes every retire wait its full
+ * bound.
+ *
+ * MEASURED 2026-09-15 (Task 1, measurement M1), and `true` is CONFIRMED. After a
+ * `PATCH` moved the route away, Caddy kept reporting `num_requests: 1` for the old
+ * address for 4,000 ms — the whole time the held request was in flight — and the
+ * address became UNLISTED only after that request finished (200 in 6.81 s). M1b is
+ * the other half: with a second, unreachable route still REFERENCING the same
+ * address, it stayed listed and went 1 -> 0 when the request ended. So the pool counts
+ * addresses the CONFIGURATION references, and an address nothing references any more
+ * has no request left on it. No drain parking is needed, and a drain does not have to
+ * wait its full bound.
+ */
+const UNLISTED_UPSTREAM_IS_IDLE = true // ← Task 1, measurement M1 — CONFIRMED
+
+/**
+ * Waits until the edge holds nothing against this upstream, and never longer than
+ * `drainMs` (R4).
+ *
+ * After the route has moved, no new request can select the old upstream, so the count
+ * only falls. Polling at 250 ms rather than subscribing, because Caddy offers no event
+ * for this and 250 ms is two orders of magnitude below the bound.
+ */
+async function drainUpstream(
+  routing: RoutingDeps,
+  upstream: string,
+  drainMs: number,
+): Promise<void> {
+  const deadline = Date.now() + drainMs
+  for (;;) {
+    const inFlight = await inFlightTo(routing, upstream)
+    if (inFlight === 0) return
+    if (inFlight === undefined && UNLISTED_UPSTREAM_IS_IDLE) return
+    if (Date.now() >= deadline) return
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+}
 
 export async function createDockerDriver(options: DockerDriverOptions): Promise<Driver> {
   const { engine } = options
@@ -486,46 +547,157 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
     },
 
     /**
-     * Tasks 4 and 5 implement these four. Refusing loudly — naming the task that
-     * supplies it — beats a plausible-looking answer: `servingInstance` returning
-     * `undefined` would read as "nothing serves", which is exactly the state
-     * Decision 12 refuses to act on, and a retirer acting on it would remove the
-     * live app.
+     * DRAIN, THEN REMOVE — AND NEVER TOUCH A ROUTE.
      *
-     * The contract suite skips its continuity block for this driver meanwhile, with
-     * the reason in the block's name, because `runtime/docker/testing.ts` supplies no
-     * `continuity` fixtures until Task 5.
+     * §11: a retire changes nothing about what a hostname reaches. `ensureInstance`
+     * has already moved the hostname to its successor; this waits out whatever the
+     * edge is still holding against the old instance and then removes it, with its
+     * files volume — which on a real app holds a copy of the SP private key.
+     *
+     * Retiring something that is already gone is a no-op, like `destroyInstance`: the
+     * retirer runs repeatedly and the common case is that there is nothing left to do.
      */
-    retireInstance: () => {
-      throw new EngineError(
-        'DRIVER_UNSUPPORTED',
-        'retireInstance is P4c Task 5',
-        'The Docker driver gains it in Task 5; until then the contract suite skips the continuity block for this driver.',
+    async retireInstance(id: string, { drainMs }: RetireOpts): Promise<void> {
+      const container = await inspectApp(engine, id)
+      if (container === undefined) return
+      /**
+       * THE SECOND GUARD, AND IT READS THE EDGE RATHER THAN THE CALLER'S INTENT.
+       *
+       * Any route dialling this container means it is serving somebody, including a
+       * hostname this driver was never told about. The control plane also chooses not
+       * to retire what serves (Decision 12); this is what makes a wrong choice
+       * harmless rather than an outage — measured, with the check removed: the retire
+       * of the SERVING instance succeeded and took the app down, leaving its route
+       * pointing at a container that no longer existed.
+       *
+       * It matches on the HOST half of every dial address rather than on one
+       * reconstructed address, because a container from before P4c carries no port
+       * label — so an exact-match guard would protect nothing for exactly the
+       * containers R7 exists to reap.
+       */
+      const host = dialHostOf(container)
+      const dialled = [...(await upstreamsInUse(options.routing))].find(
+        (address) => hostOfAddress(address) === host,
       )
+      if (dialled !== undefined) {
+        throw new DriverRefusalError(
+          'INSTANCE_SERVING',
+          `${container.name} is dialled by a live route (${dialled})`,
+          'A retire never changes what a hostname reaches (§11). Move the hostname ' +
+            'first — ensureInstance does exactly that.',
+        )
+      }
+      const upstream = upstreamFor(container)
+      // `undefined` only when this driver cannot name the address at all, and the
+      // guard above has just proved that no route references this container — so
+      // there is nothing the edge could still be holding against it (M1).
+      if (upstream !== undefined) await drainUpstream(options.routing, upstream, drainMs)
+      // No stop-then-remove: the drain IS the wait, and `force` removes what is left.
+      // A second grace period here would double the length of every retire for nothing.
+      await destroyInstanceContainer(engine, container.name)
+      const slug = container.labels[LABEL.slug]
+      const kind = container.labels[LABEL.environment] as
+        InstanceSpec['environmentKind'] | undefined
+      if (slug !== undefined && kind !== undefined) {
+        // Under the SAME mutex `ensureInstance` holds (Decision 13): a deploy of an
+        // AI release that starts while this is deciding would otherwise come up with
+        // no route to its models.
+        await perNetwork(appNetwork(slug, kind), () =>
+          detachAiGatewayIfUnused(engine, slug, kind),
+        )
+      }
     },
 
-    servingInstance: () => {
-      throw new EngineError(
-        'DRIVER_UNSUPPORTED',
-        'servingInstance is P4c Task 5',
-        'The Docker driver gains it in Task 5; until then the contract suite skips the continuity block for this driver.',
-      )
+    /**
+     * What the hostname reaches, read from the EDGE'S OWN CONFIGURATION rather than
+     * from the wire (Decision 8): a wire check cannot tell "nothing is routed" from
+     * "the app is slow to answer", and Decision 12 turns that difference into
+     * retiring nothing versus retiring the live app.
+     *
+     * `undefined` for a route whose container is gone as well as for a hostname with
+     * no route. Both are honestly "nothing this driver holds serves it", and both
+     * make the retirer stop.
+     */
+    async servingInstance(hostname: string): Promise<string | undefined> {
+      const serving = await servingRoute(options.routing, hostname)
+      if (serving === undefined) return undefined
+      return containerForUpstream(engine, serving.upstream)
     },
 
-    listInstances: () => {
-      throw new EngineError(
-        'DRIVER_UNSUPPORTED',
-        'listInstances is P4c Task 5',
-        'The Docker driver gains it in Task 5; until then the contract suite skips the continuity block for this driver.',
-      )
+    /**
+     * Every app container of this hostname — AND the containers from before P4c,
+     * which carry no hostname label and are exactly what R7 exists to reap. One P4a
+     * session left eleven of them running, each holding its full allocation.
+     *
+     * A database or an egress proxy is never listed: only an app container carries
+     * `manifest.release` (measured 2026-09-15, M5), while those two carry the slug
+     * and the environment too.
+     *
+     * A hostname whose every instance predates P4c answers with nothing, because the
+     * only way to the siblings is through a container that names the hostname. That
+     * is a real gap and it closes itself: the first P4c deploy of the app writes the
+     * label, and the retire that follows reaps the backlog behind it.
+     */
+    async listInstances(hostname: string): Promise<string[]> {
+      const byHostname = await listContainers(engine, [
+        `${LABEL.hostname}=${hostname}`,
+        LABEL.release,
+      ])
+      const found = new Map(byHostname.map((container) => [container.name, container]))
+      const apps = new Set<string>()
+      for (const container of byHostname) {
+        const slug = container.labels[LABEL.slug]
+        const kind = container.labels[LABEL.environment]
+        if (slug === undefined || kind === undefined) continue
+        apps.add(JSON.stringify([slug, kind]))
+      }
+      for (const app of apps) {
+        const [slug, kind] = JSON.parse(app) as [string, string]
+        const siblings = await listContainers(engine, [
+          `${LABEL.slug}=${slug}`,
+          `${LABEL.environment}=${kind}`,
+          LABEL.release,
+        ])
+        for (const sibling of siblings) {
+          if (sibling.labels[LABEL.hostname] === undefined) {
+            found.set(sibling.name, sibling)
+          }
+        }
+      }
+      return [...found.keys()]
     },
 
-    restoreRoute: () => {
-      throw new EngineError(
-        'DRIVER_UNSUPPORTED',
-        'restoreRoute is P4c Task 5',
-        'The Docker driver gains it in Task 5; until then the contract suite skips the continuity block for this driver.',
-      )
+    /**
+     * Points a hostname back at an instance that is already running — what boot calls
+     * for each `Route` record after an edge restart, which drops every runtime route
+     * (§12, Task 9).
+     *
+     * It starts and stops nothing. Everything it needs comes off the container's own
+     * labels, so an instance this process did not create is restorable too; an
+     * instance from BEFORE P4c is not, and says so rather than guessing a hostname.
+     */
+    async restoreRoute(id: string): Promise<void> {
+      const container = await inspectApp(engine, id)
+      const hostname = container?.labels[LABEL.hostname]
+      const instanceId = container?.labels[LABEL.instance]
+      const kind = container?.labels[LABEL.environment] as
+        InstanceSpec['environmentKind'] | undefined
+      const upstream = container === undefined ? undefined : upstreamFor(container)
+      if (
+        container === undefined ||
+        hostname === undefined ||
+        instanceId === undefined ||
+        kind === undefined ||
+        upstream === undefined
+      ) {
+        throw new DriverRefusalError(
+          'INSTANCE_NOT_FOUND',
+          `no instance '${id}' with a hostname to restore`,
+          'Only an instance this driver created since P4c carries its hostname. An ' +
+            'app deployed before it gets its Route record at its next deploy.',
+        )
+      }
+      await applyRoute(options.routing, { hostname, upstream, kind, instanceId })
     },
 
     stopInstance: (id) => stopInstanceContainer(engine, id),

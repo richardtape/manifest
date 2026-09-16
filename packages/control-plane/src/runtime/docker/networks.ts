@@ -1,4 +1,6 @@
+import { listContainers } from './containers.js'
 import { EngineError, type EngineClient } from './engine.js'
+import { LABEL } from './instances.js'
 import { appNetwork, type EnvironmentKind } from './names.js'
 
 /**
@@ -41,12 +43,12 @@ export const AI_GATEWAY_NEIGHBOUR = 'manifest-litellm'
  * other app, and no accidental egress. Everything that legitimately needs in is
  * attached explicitly below.
  *
- * `extraNeighbours` ADDS; it never removes. An app that stops declaring models keeps
- * the gateway attached until its network is destroyed. Detaching here would cut the
- * previous release's container — still running, since nothing retires it — off from
- * its models in the middle of the deploy that replaces it, and that container still
- * holds a live key anyway. Named rather than built: retiring an old instance is the
- * zero-downtime redeploy plan's, and the detach belongs there, beside the revoke.
+ * `extraNeighbours` ADDS; it never removes — still, and deliberately. Detaching here
+ * would cut the previous release's container, which is still running and still
+ * serving until the route moves, off from its models in the middle of the deploy that
+ * replaces it. The removal is `detachAiGatewayIfUnused` below, called from the RETIRE
+ * (P4c Task 5), which is the first moment the container that needed the gateway is
+ * gone.
  */
 export async function ensureAppNetwork(
   engine: EngineClient,
@@ -167,4 +169,59 @@ export async function destroyAppNetwork(
     }
   }
   await engine.del(`/networks/${name}`)
+}
+
+/**
+ * Takes §10's gateway off an app network once nothing on it needs one (P4b finding 80).
+ *
+ * HERE, IN THE RETIRE, because this is the first moment it is safe: the container
+ * that was using the gateway has just been removed, and the one that replaced it
+ * declared no models. Detaching during the deploy would cut the PREVIOUS release off
+ * from its models while it was still serving — and P4b measured what that costs a
+ * student: 611 s (finding 181), because the toolkit exposes no timeout.
+ *
+ * It must run under the same per-app-network mutex as `ensureInstance`'s
+ * attach-and-create (Decision 13). Without it, a deploy of an AI release that starts
+ * while a retire is deciding can lose its gateway.
+ *
+ * A container from before P4c carries no `manifest.ai-gateway` label and is read as
+ * NEEDING one. That is the safe direction, and it is the direction a negative control
+ * watches: flip it to "does not need one" and an app whose only instances predate
+ * this label loses its gateway.
+ *
+ * A STOPPED instance counts too — `listContainers` asks for `all=true`. A hibernated
+ * app is one `ensureInstance` away from serving again, and it would wake with no
+ * route to its models.
+ */
+export async function detachAiGatewayIfUnused(
+  engine: EngineClient,
+  slug: string,
+  kind: EnvironmentKind,
+): Promise<'detached' | 'kept' | 'absent'> {
+  const name = appNetwork(slug, kind)
+  // 404 -> undefined: no network, so there is nothing attached to anything.
+  if ((await engine.get(`/networks/${name}`)) === undefined) return 'absent'
+  const instances = await listContainers(engine, [
+    `${LABEL.slug}=${slug}`,
+    `${LABEL.environment}=${kind}`,
+    // Only an APP container carries `manifest.release` (measured 2026-09-15, M5) —
+    // the app's database and its egress proxy carry the slug and the environment too.
+    LABEL.release,
+  ])
+  if (instances.some((container) => container.labels[LABEL.aiGateway] !== 'false')) {
+    return 'kept'
+  }
+  try {
+    await engine.post(`/networks/${name}/disconnect`, {
+      Container: AI_GATEWAY_NEIGHBOUR,
+      Force: true,
+    })
+  } catch (error) {
+    // The one answer that means there was nothing to do. Anything else is a real
+    // failure and belongs to the caller — a swallowed one here would leave the
+    // gateway on an app network that no longer declares models and say it did not.
+    if ((error as Error).message.includes('is not connected')) return 'absent'
+    throw error
+  }
+  return 'detached'
 }
