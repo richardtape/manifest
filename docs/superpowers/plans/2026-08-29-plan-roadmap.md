@@ -612,8 +612,19 @@ LLM a question, display the answer — driven by `curl`.
 OpenAPI generation from the routes, the versioned TypeScript client,
 `manifest-mock`, delegated tokens and `PendingAction` (D24), the knowledge pack API
 (D25), `console/` with its import boundary, a read-only `LaunchReadiness` view, the
-audience question at project creation (§24 — collected, acted on in Phase 2), and
+audience question at project creation (§24 — collected, acted on in Phase 2), **a
+read-only fleet list** (§17 lists it; this section omitted it until 2026-09-16), and
 the CI acceptance script.
+
+**ITS BRIEF IS [`2026-09-16-p5-brief.md`](./2026-09-16-p5-brief.md) — READ IT BEFORE WRITING THE
+PLAN.** Written from the code the day P4c finished, it finds that §17's one line hides three large
+pieces of work — the public representations of every resource (routes have no schemas and return
+database rows), delegated tokens with pending actions, and a browser console — and estimates **30–40
+tasks**. **Five decisions are Rich's and should be settled first**: what a console-created project
+contains (today it is a stub, so §22's step 6 is unreachable from a browser); whether P5 becomes
+three plans (contract, D24, clients) as P4 became three; where the API is served and whether app
+containers may reach it through the edge (measured: they could); the contract's version scheme; and
+whether 1c's *second developer* question requires the never-run second-machine clone.
 
 **Demo:** the §1 journey — login through to seeing the launch-readiness gate —
 clickable in the console *and* driven headlessly by a script, both using nothing but

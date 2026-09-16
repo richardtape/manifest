@@ -234,6 +234,9 @@ docs/superpowers/
 │                                                  facts, one of them a §10
 │                                                  requirement LiteLLM 1.98.0
 │                                                  cannot satisfy.
+│   └── 2026-09-16-p5-brief.md
+│                                                  THE BRIEF FOR WRITING P5. Five
+│                                                  decisions for Rich in its §5.
 │   └── 2026-09-15-p4c-zero-downtime-redeploys.md
 │                                                  P4c. 11 tasks in EIGHT AGREED
 │                                                  SITTINGS. WRITTEN 2026-09-15,
@@ -1876,6 +1879,16 @@ complete?" from an opinion into a build failure.
 
 **Demo:** the §1 faculty journey, clickable, driven twice over one contract.
 
+**READ THE BRIEF FIRST: [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md)** (2026-09-16).
+It compares §17 and §22 with the code and finds P5 is **30–40 tasks**, not the one line it looks
+like: no route has a schema and every response is a database row, so the public representations are
+the largest piece of work; project creation seeds a stub, so §22's step 6 cannot be reached from a
+browser; no event is published for provisioning or for an instance's intermediate states;
+`LaunchReadiness` is a stale constant; no admin can exist; and nothing like a delegated token exists.
+**Its §5 holds five decisions that are Rich's — settle them before writing the plan**, as P4c's were.
+It also measured that the edge can front the control plane (so a browser console can be same-origin)
+and that doing so makes the API reachable from every app container, which S6 does not yet probe.
+
 **Invoke `superpowers:writing-plans`.** House style is P1's plan or either half of P4, and P4c's
 *Read this first* / *Decisions Rich made* / *Decisions this plan makes* layout is the newest example.
 **Propose a sitting split for Rich to approve** — every plan since P4a has been executed one sitting
@@ -1896,6 +1909,17 @@ returns once the new instance serves, the old one drains in the background (`ins
 
 Surface these; do not decide them.
 
+- **OPEN, raised 2026-09-16 — five decisions to settle before P5 is written.** The reasoning, the
+  options and a recommendation for each are §5 of
+  [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md): **(1)** what a project created from
+  the console contains — recommended, the skeleton plus a chosen *starter*, with the proof app as
+  `node-ts-mongo@1`'s first (a §22/§25 spec action); **(2)** whether P5 becomes three plans —
+  recommended, P5a the contract, P5b delegated tokens and pending actions, P5c the clients, each
+  written after the one before executes; **(3)** where the API is served and whether app containers
+  may reach it through the edge — recommended, behind the edge at the console's origin with the edge
+  refusing app and sandbox networks, proved by a new S6 probe; **(4)** the contract's version
+  scheme — recommended, a `/v1` path prefix; **(5)** whether 1c's *can a second developer reproduce
+  it* requires the second-machine clean clone, which has never been run.
 - **§12's scan gate — SETTLED 2026-09-08, Rich's call, and written into §12 on
   2026-09-14.** The gate blocks on a Critical or High **that has a published fix**;
   findings with no fix are recorded on the Release and reported for §20's fleet-wide
