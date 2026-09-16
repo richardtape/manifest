@@ -1889,18 +1889,22 @@ clicked by a person in the console and run by the script, over one contract.
 
 | Plan | Scope | Its acceptance |
 |---|---|---|
-| **P5a — the contract** ← yours | public representations of every resource (today every response is a database row); route schemas as the one source; OpenAPI under `/v1`; the generated client; an error-code registry; event and frame schemas, plus the journey's missing events; **the API on the console's origin through the edge**, with CSRF and the edge refusing app and sandbox networks (and the S6 probe proving it); reserved labels; project creation from the skeleton plus a starter (the proof app becomes `node-ts-mongo@1`'s first); the missing reads; the `LaunchReadiness` view with scan findings persisted; audience at creation; blueprints and the knowledge pack; an admin bootstrap and the fleet list | every §22 step driven, through the edge, by a script using only the generated client, with a session |
+| **P5a — the contract** ← yours | public representations of every resource (today every response is a database row); route schemas as the one source; OpenAPI under `/v1`; the generated client; an error-code registry; event and frame schemas, plus the journey's missing events; **the API on the console's origin through the edge**, with CSRF and the edge refusing app and sandbox networks (and the S6 probe proving it); reserved labels and **the slug check API, `GET /v1/slugs/{slug}`**; project creation from the skeleton plus a starter (the proof app becomes `node-ts-mongo@1`'s first); the missing reads; the `LaunchReadiness` view with scan findings persisted; audience at creation; blueprints and the knowledge pack; an admin bootstrap and the fleet list | every §22 step driven, through the edge, by a script using only the generated client, with a session |
 | P5b — delegated tokens | D24's two tables, bearer authentication, the central rule that tokens never hold the privileged four, pending actions, per-token limits, the authorization suite's new actors | a token runs the build loop and is refused the privileged four, each refusal a `PendingAction` a human confirms |
 | P5c — the clients | `manifest-mock`, `console/` with its import boundary, the CI acceptance script | the journey clicked and run headlessly over one contract |
 
 **EVERYTHING THAT WAS RICH'S IS DECIDED, AND THE SPEC ALREADY SAYS IT** (Rich, 2026-09-16; spec
-commit `1d88846`). Do not re-open any of these: **(1)** a project starts from the blueprint's
+commits `1d88846` and `ecf5f29`). Do not re-open any of these: **(1)** a project starts from the blueprint's
 skeleton plus a chosen *starter* (§22 step 2, §25 *Starters*); **(2)** three plans, as above;
 **(3)** the console and the API share **one origin, `console.manifest.internal`, through the edge**,
 and the edge refuses the control plane's routes to app and sandbox networks (§21, §12, §16);
 **(4)** the contract is versioned by a **`/v1` path prefix** (§22 D23.8); **(5)** no P5 acceptance
 depends on a clean machine or a second developer (§17's 1c row). Applying (3) needed **§23's reserved
-labels** — `idp`, `console`, `app`, `admin`, `api`, `www` can no longer be project slugs. **Any further
+labels**, which Rich then extended the same day (spec commit `ecf5f29`): **four groups of labels no
+project may take** — Manifest's own surfaces, sign-in and identity words, environment and
+infrastructure words, and names software resolves unasked — **and a slug check API**, `GET
+/v1/slugs/{slug}`, answering exactly what project creation will, so a client can tell a person
+whether a name works while they type it. **Any further
 spec change is proposed to Rich, never edited** — the brief's §7 items 5 and 6 are still proposals,
 both P5b's; item 7 is not a spec change but work P5a does (persisting scan findings on the release).
 
@@ -1962,7 +1966,8 @@ Surface these; do not decide them.
 
 - **P5's five decisions — ALL DECIDED 2026-09-16, and applied to the spec (`1d88846`).** (1) starters;
   (2) three plans, P5a/P5b/P5c; (3) the console and the API on one origin through the edge, refused
-  to app and sandbox networks — with §23's reserved labels, which that needed; (4) a `/v1` prefix;
+  to app and sandbox networks — with §23's reserved labels, which that needed, extended the same day
+  to four groups with a slug check API (`ecf5f29`); (4) a `/v1` prefix;
   (5) no acceptance that depends on a second machine. §7e carries them into the P5a task; the
   reasoning is §5 of [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md). **Still Rich's,
   when P5b is written:** the brief's §7 items 5 and 6 (D24's entity fields, and the stateless-session
