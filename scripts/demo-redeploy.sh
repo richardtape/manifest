@@ -16,7 +16,9 @@
 #      container, and exactly one live LiteLLM key for the app's user — and the key the
 #      retired instance held is gone only AFTER the stream said it was retired;
 #   8  a release that never becomes ready leaves the previous instance serving — the
-#      header still names it — with an Incident, its container gone and no second key.
+#      header still names it — with an Incident, its container gone and no second key;
+#      and, read off both loops together, that in each of 5 and 6 a question in flight
+#      when the route moved was answered 200 by the instance it had moved away from.
 #
 # IT RUNS EVERY PHASE AND FAILS AT THE END, listing every assertion that failed, so a
 # red run is a measurement. Task 1 runs it against the platform as P4b left it.
@@ -188,16 +190,31 @@ LOOPER=$!
 # the asker then issued 6,295 questions (2,782 of them refused 429 by the edge), and the
 # health loop — the measurement itself — collected 959 of its own 429s, 43% of its
 # requests. `--bad` counted every one, so the baseline measured the harness (finding 4).
+#
+# EACH LINE OF asks.log IS `<t0> <t1> <status> <instance> [<AI error code>]`. The
+# instance is the edge's X-Manifest-Instance on the ANSWER (`-` when there is none), so
+# the summary can show a question the PREVIOUS instance answered after the route had
+# moved — the one thing that proves a drain let a question finish (sitting 7 finding
+# 61). Both fields are read BYTE-WISE: an answer is model text, the app's own error
+# messages contain `’`, and BSD `tr` and `sed` under a UTF-8 locale refuse a fragment
+# of a multi-byte character with `Illegal byte sequence` (finding 60) — so the whole
+# body is read, never a `head -c` cut of it, and under LC_ALL=C.
 (
   while [ ! -f "$OUT/stop" ]; do
+    # EMPTIED FIRST: curl creates its output files only once data arrives, so a question
+    # that got no answer would otherwise be recorded with the PREVIOUS one's instance and
+    # code — and a question cut off mid-drain is exactly the one that must not borrow them.
+    : > "$OUT/ask-head"; : > "$OUT/ask-body"
     t0="$(now)"
     code="$(curl -sS --cacert "$CA" -b "$STU_JAR" -m 180 -X POST \
       -H 'content-type: application/json' \
       -d '{"question":"What is my favourite element?"}' \
-      -o "$OUT/ask-body" -w '%{http_code}' "$APP_URL/api/ask" 2>/dev/null)"
+      -D "$OUT/ask-head" -o "$OUT/ask-body" -w '%{http_code}' "$APP_URL/api/ask" 2>/dev/null)"
     t1="$(now)"
-    printf '%s %s %s %s\n' "$t0" "$t1" "$code" \
-      "$(head -c 300 "$OUT/ask-body" | tr -d '\n' | sed -n 's/.*"code":"\([A-Z_]*\)".*/\1/p')" \
+    instance="$(LC_ALL=C tr -d '\r' < "$OUT/ask-head" 2>/dev/null \
+      | LC_ALL=C sed -n 's/^[Xx]-[Mm]anifest-[Ii]nstance: //p' | tail -1)"
+    printf '%s %s %s %s %s\n' "$t0" "$t1" "$code" "${instance:--}" \
+      "$(LC_ALL=C sed -n 's/.*"code":"\([A-Z_]*\)".*/\1/p' "$OUT/ask-body" 2>/dev/null | head -1)" \
       >> "$ASKS"
     [ "$((t1 - t0))" -lt 1000 ] && sleep 1
   done
@@ -287,14 +304,23 @@ touch "$OUT/stop"
 wait "$LOOPER" 2>/dev/null; LOOPER=""
 wait "$ASKER"  2>/dev/null; ASKER=""
 kill "$WATCHER" 2>/dev/null; wait "$WATCHER" 2>/dev/null; WATCHER=""
-node scripts/lib/redeploy-summary.mjs "$LOOP" "$MARKS"
+node scripts/lib/redeploy-summary.mjs "$LOOP" "$MARKS" "$ASKS"
 BAD="$(node scripts/lib/redeploy-summary.mjs --bad "$LOOP" "$MARKS")"
+drained() { node scripts/lib/redeploy-summary.mjs --drained "$1" "$LOOP" "$MARKS" "$ASKS"; }
 RESETS="$(grep -c '"cls":"reset"' "$LOOP" | tr -d ' ')"
 ASKED="$(grep -c . "$ASKS" | tr -d ' ')"
 ASK_FAILS="$(awk '$3 != 200' "$ASKS" | grep -c . | tr -d ' ')"
 check "no 5xx and no wildcard answer in any redeploy window" [ "$BAD" = 0 ]
 check "every question was answered 200 ($ASKED asked)" [ "$ASK_FAILS" = 0 ]
 check "nobody was signed out" [ "$(awk '$3 == 401' "$ASKS" | grep -c . | tr -d ' ')" = 0 ]
+# A RUN WHOSE STUDENT WAS BETWEEN QUESTIONS WHEN A ROUTE MOVED PROVES NOTHING ABOUT A
+# DRAIN (Task 11 Step 1), so it is asserted rather than left for a reader to notice: in
+# each redeploy that moved the route, the PREVIOUS instance answered a question 200
+# after the edge had already moved to the new one. The failed release moves nothing.
+check "same-release: a question in flight when the route moved was answered by the previous instance" \
+  [ "$(drained same-release)" -ge 1 ]
+check "new-release: a question in flight when the route moved was answered by the previous instance" \
+  [ "$(drained new-release)" -ge 1 ]
 echo "  resets: $RESETS (tolerated — an edge configuration reload, §11)"
 
 if [ -n "$FAILURES" ]; then
