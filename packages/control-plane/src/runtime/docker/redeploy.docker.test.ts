@@ -31,6 +31,8 @@ const engine = createEngineClient({ socketPath: resolveSocketPath() })
 const SLUG = 'fixture-rd'
 const KIND = 'staging' as const
 const HOST = `${SLUG}.staging.manifest.internal`
+/** A second hostname, so a pre-P4c route can be held without touching the app's. */
+const OLD_HOST = `${SLUG}-old.staging.manifest.internal`
 const PORT = 8080
 
 /**
@@ -60,6 +62,7 @@ const RELEASE_D = 'release-dddddddd'
  */
 const PRE_P4C = `mf-${SLUG}-${KIND}-oldrelease-app`
 const PRE_P4C_KEEPER = `mf-${SLUG}-${KIND}-oldgateway-app`
+const PRE_P4C_SERVING = `mf-${SLUG}-${KIND}-oldserving-app`
 
 const nameOf = (releaseId: string, instanceId: string): string =>
   appContainer(instanceName(SLUG, KIND, releaseId, instanceId))
@@ -73,6 +76,7 @@ const EVERY_CONTAINER = [
   nameOf(RELEASE_D, PLAIN_ID),
   PRE_P4C,
   PRE_P4C_KEEPER,
+  PRE_P4C_SERVING,
 ]
 
 const ADMIN = 'http://127.0.0.1:7119'
@@ -285,6 +289,10 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
 
   afterAll(async () => {
     await removeRoute(routing, HOST, KIND).catch(() => undefined)
+    // The pre-P4c route the INSTANCE_SERVING test holds. A route outliving its
+    // container is a permanent 502 on that hostname and a stale upstream for
+    // whatever takes the name next.
+    await removeRoute(routing, OLD_HOST, KIND).catch(() => undefined)
     // By explicit name, with the named `-files` volumes each instance holds (P4b
     // finding 194) — never `dangling=true`, which lists other people's volumes.
     await run('docker', ['rm', '-f', '-v', ...EVERY_CONTAINER, LOOP]).catch(
@@ -571,6 +579,39 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
    * by except their app. They are found through a SIBLING that does name the
    * hostname, and they are retired by the same call as anything else.
    */
+  /**
+   * DECISION 11'S GUARD, AGAINST THE CONTAINER IT IS HARDEST TO PROTECT.
+   *
+   * The guard matches on the HOST half of every dial address rather than on one
+   * reconstructed `<host>:<port>`. That is not a style choice: a container from
+   * before P4c carries no `manifest.port` label, and this one — like several real
+   * ones — exposes no port either, so the address the plan's exact-match version
+   * would compare is `undefined` and it would refuse nothing. The container it would
+   * fail to protect is exactly the container R7 exists to reap, which is the one
+   * still serving somebody at the moment the retirer first runs.
+   */
+  it('REFUSES to retire a pre-P4c instance that a route still dials', async () => {
+    await startPreP4cContainer(PRE_P4C_SERVING, 'release-oldserving')
+    // The shape a pre-P4c route has: the CONTAINER NAME as the dial address, which
+    // is what `ensureInstance` wrote until Task 4 (`${handle.name}:${spec.port}`).
+    await applyRoute(routing, {
+      hostname: OLD_HOST,
+      upstream: `${PRE_P4C_SERVING}:${PORT}`,
+      kind: KIND,
+      instanceId: 'pre-p4c-has-no-instance-id',
+    })
+    await expect(
+      driver.retireInstance(PRE_P4C_SERVING, { drainMs: 0 }),
+    ).rejects.toMatchObject({ code: 'INSTANCE_SERVING' })
+    expect((await driver.status(PRE_P4C_SERVING)).state).not.toBe('gone')
+
+    // And once nothing dials it, the same call removes it — so the refusal is about
+    // the ROUTE and not about the container being old.
+    await removeRoute(routing, OLD_HOST, KIND)
+    await driver.retireInstance(PRE_P4C_SERVING, { drainMs: 0 })
+    expect((await driver.status(PRE_P4C_SERVING)).state).toBe('gone')
+  }, 300_000)
+
   it('lists an instance from before P4c, and retires it', async () => {
     await startPreP4cContainer(PRE_P4C, 'release-oldrelease')
     expect(await driver.listInstances(HOST)).toContain(PRE_P4C)
