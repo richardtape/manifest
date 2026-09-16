@@ -33,8 +33,21 @@ export interface ServiceHandle {
 }
 
 export interface InstanceSpec {
-  /** Deterministic, derived from (project, environment, release) — §11. */
+  /** Deterministic, derived from (project, environment, release, instance) — §11. */
   name: string
+  /**
+   * The control plane's `instances` row (P4c). It is the instance's identity
+   * everywhere: in its name, in its container labels, in the alias the edge dials,
+   * and in the `X-Manifest-Instance` header a deploy checks the edge for.
+   */
+  instanceId: string
+  /**
+   * The hostname §23 assigned this environment, PASSED IN rather than re-derived.
+   * `deployRelease` holds the environment row; a driver that rebuilt the name from a
+   * slug would be a second producer of it, which is the shape that cost P3's Session 5
+   * seven defects.
+   */
+  hostname: string
   projectSlug: string
   environmentKind: 'sandbox' | 'staging' | 'production'
   releaseId: string
@@ -143,6 +156,29 @@ export class InstanceNotReadyError extends Error {
   }
 }
 
+/**
+ * What a driver refuses to do, as a code the caller can act on (§20's
+ * machine-actionable errors).
+ */
+export type DriverRefusalCode =
+  'INSTANCE_SERVING' | 'INSTANCE_SPEC_CHANGED' | 'INSTANCE_NOT_FOUND'
+
+export class DriverRefusalError extends Error {
+  constructor(
+    readonly code: DriverRefusalCode,
+    message: string,
+    readonly hint: string,
+  ) {
+    super(message)
+    this.name = 'DriverRefusalError'
+  }
+}
+
+export interface RetireOpts {
+  /** How long to wait for what is in flight, before the instance is removed anyway. */
+  drainMs: number
+}
+
 export interface LogOpts {
   follow?: boolean
   tail?: number
@@ -220,7 +256,35 @@ export interface Driver {
     opts?: BuildOpts,
   ): Promise<ImageRef>
   ensureService(binding: ServiceBinding): Promise<ServiceHandle>
+  /**
+   * Start the instance BESIDE whatever serves `spec.hostname`, make it ready without
+   * touching the route, move the route in ONE in-place change, and resolve only once
+   * the hostname is shown to reach THIS instance by its identity (§11 Redeploys).
+   *
+   * An instance that never becomes ready throws `InstanceNotReadyError` carrying its
+   * handle, with the route unmoved and the instance still there for §14's Incident.
+   * Asked twice for one name it returns the same instance; asked for one name with a
+   * different environment it throws `DriverRefusalError('INSTANCE_SPEC_CHANGED')`.
+   */
   ensureInstance(spec: InstanceSpec): Promise<InstanceHandle>
+  /**
+   * Wait until nothing is in flight to this instance — at most `drainMs` — then remove
+   * it and everything it owns. NEVER changes what a hostname reaches, and refuses an
+   * instance that is serving one (`DriverRefusalError('INSTANCE_SERVING')`).
+   * Retiring something that is already gone is a no-op, like `destroyInstance`.
+   */
+  retireInstance(id: string, opts: RetireOpts): Promise<void>
+  /** Which instance this hostname reaches now, or undefined if nothing does. */
+  servingInstance(hostname: string): Promise<string | undefined>
+  /** Every instance this driver holds for the hostname, serving or not. */
+  listInstances(hostname: string): Promise<string[]>
+  /**
+   * Point the hostname's route back at an instance that is already running, starting
+   * and stopping nothing — what the control plane calls at boot for each Route record
+   * (§12). Throws `DriverRefusalError('INSTANCE_NOT_FOUND')` for an instance it does
+   * not hold.
+   */
+  restoreRoute(id: string): Promise<void>
   stopInstance(id: string): Promise<void>
   destroyInstance(id: string): Promise<void>
   destroyService(id: string, opts: { deleteData: boolean }): Promise<void>
@@ -231,13 +295,23 @@ export interface Driver {
   capabilities(): DriverCapabilities
 }
 
-/** §11: keyed by a deterministic name derived from (project, environment, release). */
+/**
+ * §11: keyed by a deterministic name derived from (project, environment, release,
+ * instance).
+ *
+ * The INSTANCE joined the key in P4c, because a redeploy of the same release is a new
+ * instance beside the one serving — and with the release alone in the name the two
+ * would collide on the name that identifies the container, so the second deploy could
+ * only replace the first. That replacement is what made every same-release redeploy
+ * about a second of 502s (the P4c brief, §3.1).
+ */
 export function instanceName(
   projectSlug: string,
   environmentKind: string,
   releaseId: string,
+  instanceId: string,
 ): string {
-  return `${projectSlug}-${environmentKind}-${releaseId.slice(0, 8)}`
+  return `${projectSlug}-${environmentKind}-${releaseId.slice(0, 8)}-${instanceId.slice(0, 8)}`
 }
 
 export function serviceName(

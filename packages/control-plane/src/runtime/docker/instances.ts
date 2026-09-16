@@ -5,6 +5,7 @@ import type {
   InstanceState,
   InstanceStatus,
 } from '../driver.js'
+import { DriverRefusalError } from '../driver.js'
 import { EngineError, type EngineClient } from './engine.js'
 import { hardenedHostConfig } from './hardening.js'
 import { appContainer, filesVolume } from './names.js'
@@ -50,7 +51,6 @@ export interface InstanceDeps {
   networkName: string
   dnsServer: string
   proxyUrl: string
-  hostname: string
   diskQuotaEnforceable: boolean
   /**
    * Normally absent: a real app's command is its blueprint's `CMD` (D13), and the
@@ -133,7 +133,7 @@ export async function ensureInstanceContainer(
   deps: InstanceDeps,
 ): Promise<InstanceHandle> {
   const name = appContainer(spec.name)
-  const url = `https://${deps.hostname}`
+  const url = `https://${spec.hostname}`
   const env = [
     ...Object.entries(spec.env).map(([k, v]) => `${k}=${v}`),
     ...Object.entries(proxyEnvironment(deps.proxyUrl)).map(([k, v]) => `${k}=${v}`),
@@ -163,9 +163,24 @@ export async function ensureInstanceContainer(
    * inside the container.
    */
   if (existing && existing.Config.Labels?.[ENV_HASH_LABEL] !== envHash) {
-    // `v=true` removes only ANONYMOUS volumes. The named files volume survives and
-    // `placeFiles` rewrites it below, before the new container starts.
-    await engine.del(`/containers/${name}?force=true&v=true`)
+    /**
+     * REFUSED, WHERE IT USED TO BE DELETED AND RECREATED (P4c Task 2).
+     *
+     * P4b added the delete to fix finding 72 — a reused container keeping a stale
+     * environment, which for an app with a minted AI key is a broken app. With the
+     * INSTANCE in the name (§11, P4c), that delete is no longer reachable by any
+     * legitimate redeploy: a new deploy is a new instance row and therefore a new
+     * name, so the only caller that can arrive here is a retry of THIS instance that
+     * changed something. Deleting would then remove a container that may be the one
+     * serving the app, which is exactly what §11's Redeploys forbids.
+     */
+    throw new DriverRefusalError(
+      'INSTANCE_SPEC_CHANGED',
+      `container '${name}' exists with a different environment`,
+      'A name carries its instance id (§11), so this can only be a retry that changed ' +
+        'something. Deploy a new instance instead — replacing this one would delete a ' +
+        'container that may be serving.',
+    )
   } else if (existing) {
     await placeFiles(engine, name, spec.files)
     if (!existing.State.Running) await engine.post(`/containers/${name}/start`)
@@ -228,6 +243,10 @@ export async function ensureInstanceContainer(
       'manifest.slug': spec.projectSlug,
       'manifest.environment': spec.environmentKind,
       'manifest.release': spec.releaseId,
+      // The hostname this instance serves, so `destroyInstance` can remove its route
+      // without knowing how a hostname is built (P4c Task 2). Task 4 adds the rest of
+      // §11's label set; this one is here because the driver stopped deriving it.
+      'manifest.hostname': spec.hostname,
       [ENV_HASH_LABEL]: envHash,
     },
   })

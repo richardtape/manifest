@@ -11,16 +11,23 @@ import type {
   InstanceStatus,
   LogLine,
   LogOpts,
+  RetireOpts,
   ServiceBinding,
   ServiceHandle,
   SnapshotRef,
   SourceRef,
 } from './driver.js'
+import { DriverRefusalError, InstanceNotReadyError } from './driver.js'
+
+/** A health path this driver starts and never makes ready — the contract's `neverReady`. */
+export const FAKE_NEVER_READY_PATH = '/__fake_never_ready__'
 
 interface FakeInstance {
   spec: InstanceSpec
   state: InstanceStatus['state']
   logs: LogLine[]
+  /** Requests the contract's drain tests are holding open against this instance. */
+  inFlight: number
 }
 interface FakeService {
   binding: ServiceBinding
@@ -31,20 +38,47 @@ interface FakeService {
 export interface FakeDriverOptions {
   /** Make ensureInstance land in `failed` — for testing failure paths without Docker. */
   failInstances?: boolean
+  /** Which specs this driver starts and never makes ready. */
+  neverReady?: (spec: InstanceSpec) => boolean
   capabilities?: Partial<DriverCapabilities>
 }
 
-export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
+export type FakeDriver = Driver & {
   /** Test affordance: advance a starting instance to healthy. */
   markHealthy(id: string): void
   instanceCount(): number
-} {
+  /** Holds one request in flight to whatever serves `hostname` for `ms`. */
+  holdRequest(hostname: string, ms: number): Promise<{ ok: boolean }>
+  /** Forgets every route, as restarting the edge does. */
+  dropRoutes(): void
+}
+
+export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
   const instances = new Map<string, FakeInstance>()
   const services = new Map<string, FakeService>()
   const byName = new Map<string, string>()
+  /**
+   * hostname -> instance id. The fake driver's edge. Without it the two drivers
+   * disagreed about the route and no contract test could see it (P4b finding 73).
+   */
+  const routes = new Map<string, string>()
+  // NOT `instances.size + 1`: a retire removes entries, and a reused id would make two
+  // instances share one name in the tests that retire and redeploy.
+  let created = 0
 
   const digestOf = (input: string) =>
     `sha256:${createHash('sha256').update(input).digest('hex')}`
+
+  const envKey = (env: Record<string, string>): string =>
+    JSON.stringify(Object.entries(env).sort(([a], [b]) => a.localeCompare(b)))
+  const handleOf = (id: string, spec: InstanceSpec): InstanceHandle => ({
+    id,
+    name: spec.name,
+    url: `https://${spec.hostname}`,
+  })
+  const neverReady =
+    options.neverReady ??
+    ((spec: InstanceSpec) => spec.healthPath === FAKE_NEVER_READY_PATH)
 
   return {
     name: 'fake',
@@ -88,29 +122,106 @@ export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
 
     async ensureInstance(spec: InstanceSpec): Promise<InstanceHandle> {
       const existingId = byName.get(`instance:${spec.name}`)
-      if (existingId) {
+      if (existingId !== undefined) {
         const existing = instances.get(existingId)!
-        existing.spec = spec
-        if (existing.state === 'hibernated') existing.state = 'starting'
-        return {
-          id: existingId,
-          name: spec.name,
-          url: `https://${spec.name}.manifest.internal`,
+        if (envKey(existing.spec.env) !== envKey(spec.env)) {
+          throw new DriverRefusalError(
+            'INSTANCE_SPEC_CHANGED',
+            `instance '${spec.name}' exists with a different environment`,
+            'A name carries its instance id (§11), so this can only be a retry that ' +
+              'changed something. Deploy a new instance instead — replacing this one ' +
+              'would delete a container that may be serving.',
+          )
         }
+        existing.spec = spec
+        if (existing.state === 'hibernated') existing.state = 'healthy'
+        if (existing.state === 'healthy') routes.set(spec.hostname, existingId)
+        return handleOf(existingId, spec)
       }
-      const id = `inst-${instances.size + 1}`
-      // An in-memory driver has no container to probe, so there is nothing that
-      // could move it out of `starting` later: reporting `starting` forever is the
-      // fake modelling a state it can never leave. It reports the outcome directly,
-      // and `failInstances` is how a test asks for the other one. `markHealthy`
-      // stays for tests that drive a hibernated instance back up.
+      const id = `inst-${++created}`
+      /**
+       * TWO DIFFERENT FAILURES, and they must stay different (P4c Task 2).
+       *
+       * `neverReady` is §11's readiness refusal: the instance starts and the hostname
+       * never reaches it, so `ensureInstance` THROWS, the route does not move, and
+       * whatever served the hostname still does.
+       *
+       * `failInstances` is the other one — the instance is reachable and its own
+       * HEALTHCHECK is failing — so `ensureInstance` RESOLVES, the route moves, and
+       * `deployRelease` fails afterwards at `waitForHealth`. That is what the real
+       * Docker driver does, and §14's Incident has both producers.
+       *
+       * Folding the two into one readiness refusal would leave the health-check half
+       * of the Incident with no test that reaches it: three of `releases.test.ts`'s
+       * assertions go red on exactly that, which is how this was found.
+       *
+       * An in-memory driver has no container to probe, so there is nothing that could
+       * move an instance out of `starting` later; it reports the outcome directly, and
+       * `markHealthy` stays for tests that drive a hibernated instance back up.
+       */
       instances.set(id, {
         spec,
-        state: options.failInstances ? 'failed' : 'healthy',
+        state: options.failInstances === true || neverReady(spec) ? 'failed' : 'healthy',
         logs: [{ at: new Date(), stream: 'stdout', text: `starting ${spec.name}` }],
+        inFlight: 0,
       })
       byName.set(`instance:${spec.name}`, id)
-      return { id, name: spec.name, url: `https://${spec.name}.manifest.internal` }
+      const handle = handleOf(id, spec)
+      if (neverReady(spec)) {
+        // WITH THE HANDLE, and the instance left in place: §14's Incident is read
+        // through it, and §11 has the caller remove the instance afterwards.
+        throw new InstanceNotReadyError(
+          handle,
+          `readiness: the fake driver was asked for a spec it never makes ready (${spec.healthPath})`,
+          `${spec.name} never became ready`,
+          'The route did not move, so whatever served this hostname still does.',
+        )
+      }
+      // THE MOVE, AFTER READINESS. The other order is the ~1 s of 502s the brief measured.
+      routes.set(spec.hostname, id)
+      return handle
+    },
+
+    async retireInstance(id: string, opts: RetireOpts): Promise<void> {
+      const instance = instances.get(id)
+      if (instance === undefined) return
+      if (routes.get(instance.spec.hostname) === id) {
+        throw new DriverRefusalError(
+          'INSTANCE_SERVING',
+          `instance '${id}' is what ${instance.spec.hostname} reaches`,
+          'A retire never changes what a hostname reaches (§11). Move the hostname to ' +
+            'another instance first — ensureInstance does exactly that.',
+        )
+      }
+      const deadline = Date.now() + opts.drainMs
+      while (instance.inFlight > 0 && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 5))
+      }
+      instance.state = 'gone'
+      byName.delete(`instance:${instance.spec.name}`)
+      instances.delete(id)
+    },
+
+    async servingInstance(hostname: string): Promise<string | undefined> {
+      return routes.get(hostname)
+    },
+
+    async listInstances(hostname: string): Promise<string[]> {
+      return [...instances.entries()]
+        .filter(([, instance]) => instance.spec.hostname === hostname)
+        .map(([id]) => id)
+    },
+
+    async restoreRoute(id: string): Promise<void> {
+      const instance = instances.get(id)
+      if (instance === undefined) {
+        throw new DriverRefusalError(
+          'INSTANCE_NOT_FOUND',
+          `no instance '${id}' to point a hostname at`,
+          'restoreRoute re-points a hostname at an instance that is already running.',
+        )
+      }
+      routes.set(instance.spec.hostname, id)
     },
 
     async stopInstance(id: string): Promise<void> {
@@ -121,6 +232,7 @@ export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
     async destroyInstance(id: string): Promise<void> {
       const instance = instances.get(id)
       if (!instance) return
+      if (routes.get(instance.spec.hostname) === id) routes.delete(instance.spec.hostname)
       instance.state = 'gone'
       byName.delete(`instance:${instance.spec.name}`)
       instances.delete(id)
@@ -170,6 +282,25 @@ export function createFakeDriver(options: FakeDriverOptions = {}): Driver & {
         enforcesDiskQuota: false, // honest: an in-memory driver has no disk to bound
         ...options.capabilities,
       }
+    },
+
+    holdRequest(hostname: string, ms: number): Promise<{ ok: boolean }> {
+      const id = routes.get(hostname)
+      const instance = id === undefined ? undefined : instances.get(id)
+      if (instance === undefined || id === undefined)
+        return Promise.resolve({ ok: false })
+      instance.inFlight += 1
+      return new Promise((resolve) =>
+        setTimeout(() => {
+          instance.inFlight -= 1
+          // Answered only if its instance outlived it — which is what a drain protects.
+          resolve({ ok: instances.get(id) === instance })
+        }, ms),
+      )
+    },
+
+    dropRoutes(): void {
+      routes.clear()
     },
 
     markHealthy(id: string) {

@@ -1055,9 +1055,11 @@ describe('waiting for health', () => {
         'the process is still running, and the platform reports it as starting',
       )
       // The fake driver's one line for this instance — which it can only have been
-      // asked for by the handle the row records.
+      // asked for by the handle the row records. §11's key gained the INSTANCE in
+      // P4c, so the name carries the instance row's id too, and this asserts that
+      // the running system derived it from the same four parts.
       expect(recorded[0]!.logTail).toBe(
-        `starting chem-labs-staging-${release.id.slice(0, 8)}`,
+        `starting chem-labs-staging-${release.id.slice(0, 8)}-${instance.id.slice(0, 8)}`,
       )
       expect(recorded[0]!.diffSinceHealthy).toBe(
         'This app has never been healthy in staging, so there is no working release to compare this one with.',

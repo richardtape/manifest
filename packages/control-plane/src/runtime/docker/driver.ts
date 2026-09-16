@@ -118,7 +118,6 @@ export interface DockerDriverOptions {
    */
   registryTokenKeyPem: string
   registryTokenCertPem: string
-  hostnameFor: (kind: InstanceSpec['environmentKind'], slug: string) => string
   routing: RoutingDeps
   limits?: BuildLimits
   /**
@@ -330,7 +329,10 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
         kind: spec.environmentKind,
         allow: spec.egressAllow,
       })
-      const hostname = options.hostnameFor(spec.environmentKind, spec.projectSlug)
+      // §23 assigned it and `deployRelease` holds the environment row, so it arrives on
+      // the spec (P4c Task 2). Re-deriving it here made this driver a SECOND producer
+      // of the name — the shape that cost P3's session 5 seven defects.
+      const hostname = spec.hostname
       // The daemon does not have the image just because the builder pushed it:
       // buildx `--push` writes to the registry and never loads into the daemon's
       // store. Deploying a release built in an earlier process — a promotion, a
@@ -341,7 +343,6 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
         networkName: appNetwork(spec.projectSlug, spec.environmentKind),
         dnsServer: options.dnsServer,
         proxyUrl: proxy.url,
-        hostname,
         diskQuotaEnforceable: host.diskQuota,
       })
       // The route is applied here, not by the caller: §21 makes the edge the only
@@ -395,6 +396,49 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
       return handle
     },
 
+    /**
+     * Tasks 4 and 5 implement these four. Refusing loudly — naming the task that
+     * supplies it — beats a plausible-looking answer: `servingInstance` returning
+     * `undefined` would read as "nothing serves", which is exactly the state
+     * Decision 12 refuses to act on, and a retirer acting on it would remove the
+     * live app.
+     *
+     * The contract suite skips its continuity block for this driver meanwhile, with
+     * the reason in the block's name, because `runtime/docker/testing.ts` supplies no
+     * `continuity` fixtures until Task 5.
+     */
+    retireInstance: () => {
+      throw new EngineError(
+        'DRIVER_UNSUPPORTED',
+        'retireInstance is P4c Task 5',
+        'The Docker driver gains it in Task 5; until then the contract suite skips the continuity block for this driver.',
+      )
+    },
+
+    servingInstance: () => {
+      throw new EngineError(
+        'DRIVER_UNSUPPORTED',
+        'servingInstance is P4c Task 5',
+        'The Docker driver gains it in Task 5; until then the contract suite skips the continuity block for this driver.',
+      )
+    },
+
+    listInstances: () => {
+      throw new EngineError(
+        'DRIVER_UNSUPPORTED',
+        'listInstances is P4c Task 5',
+        'The Docker driver gains it in Task 5; until then the contract suite skips the continuity block for this driver.',
+      )
+    },
+
+    restoreRoute: () => {
+      throw new EngineError(
+        'DRIVER_UNSUPPORTED',
+        'restoreRoute is P4c Task 5',
+        'The Docker driver gains it in Task 5; until then the contract suite skips the continuity block for this driver.',
+      )
+    },
+
     stopInstance: (id) => stopInstanceContainer(engine, id),
 
     async destroyInstance(id: string): Promise<void> {
@@ -412,12 +456,13 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
         `/containers/${id}/json`,
       )
       const labels = inspect?.Config.Labels
-      const slug = labels?.['manifest.slug']
       const kind = labels?.['manifest.environment'] as InstanceSpec['environmentKind']
-      if (slug !== undefined && kind !== undefined) {
-        await removeRoute(options.routing, options.hostnameFor(kind, slug), kind).catch(
-          () => undefined,
-        )
+      // THE HOSTNAME OFF THE CONTAINER'S OWN LABEL (P4c Task 2), not re-derived from the
+      // slug: the driver no longer knows how a hostname is built, and a container from
+      // before this label carries none — for which there is nothing to remove.
+      const hostname = labels?.['manifest.hostname']
+      if (hostname !== undefined && kind !== undefined) {
+        await removeRoute(options.routing, hostname, kind).catch(() => undefined)
       }
       await destroyInstanceContainer(engine, id)
     },

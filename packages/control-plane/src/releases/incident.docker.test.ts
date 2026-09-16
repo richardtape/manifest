@@ -163,8 +163,6 @@ describeDocker('a failed deploy records an Incident, from a real container (§14
           production: resolvedFor('production'),
         },
       })
-      const container = appContainer(instanceName(SLUG, KIND, release.id))
-      containers.push(container)
       const appSecrets = createAppSecrets(keys)
 
       // D23.2 (P4b Task 15): what a watching client is told about this failure, read
@@ -202,6 +200,14 @@ describeDocker('a failed deploy records an Incident, from a real container (§14
         'instance.failed',
         'incident.opened',
       ])
+      // THE NAME CARRIES THE INSTANCE (§11, P4c), so it cannot be predicted before the
+      // deploy: the instance row's uuid is created inside `deployRelease`. Asserting it
+      // this way round is stronger than the literal it replaced — it proves the running
+      // system derived the name from the SAME four parts this test did, which is the
+      // "the test constructs the value correctly and the running system re-derives it
+      // wrongly" shape that cost P3's session 5 seven defects.
+      const container = appContainer(instanceName(SLUG, KIND, release.id, instance.id))
+      containers.push(container)
       expect(instance.handle).toBe(container)
 
       const recorded = await db

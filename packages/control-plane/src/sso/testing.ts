@@ -279,7 +279,11 @@ export async function startSamlSp(input: {
     projectSlug: slug,
   })
 
-  const name = instanceName(slug, kind, 'r1')
+  // A constant instance id, because §11's key gained the instance (P4c) and this
+  // fixture must be idempotent across runs: a random one would name a new container
+  // every time and leave the last one behind.
+  const instanceId = 'f1e2d3c4-0000-4000-8000-00000000550a'
+  const name = instanceName(slug, kind, 'r1', instanceId)
   const row: SpRow = {
     // §9's shape: https://{platform-domain}/sp/{slug}/{env}. Manifest supplies
     // the origin; the app supplies only a path.
@@ -291,6 +295,8 @@ export async function startSamlSp(input: {
 
   await driver.ensureInstance({
     name,
+    instanceId,
+    hostname,
     projectSlug: slug,
     environmentKind: kind,
     releaseId: 'r1',

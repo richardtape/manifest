@@ -137,10 +137,6 @@ export function dockerDriverForTests(
     registryPublicHost: '127.0.0.1:7107',
     registryTokenKeyPem: readFileSync(keyPath, 'utf8'),
     registryTokenCertPem: readFileSync(certPath, 'utf8'),
-    hostnameFor: (kind, slug) =>
-      kind === 'production'
-        ? `${slug}.manifest.internal`
-        : `${slug}.${kind}.manifest.internal`,
     routing: {
       caddy: createCaddyClient('http://127.0.0.1:7119'),
       servers: { internal: 'srv0', public: 'srv0' },

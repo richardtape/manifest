@@ -44,7 +44,10 @@ const SLUG = 'blueprint-ntm'
 const KIND = 'staging' as const
 const RELEASE = 'r1'
 const HOST = `${SLUG}.staging.manifest.internal`
-const INSTANCE = appContainer(instanceName(SLUG, KIND, RELEASE))
+// §11's key gained the INSTANCE (P4c). A constant, for the reason this suite removes
+// its containers by name.
+const INSTANCE_ID = '7a7a7a7a-0000-4000-8000-000000000007'
+const INSTANCE = appContainer(instanceName(SLUG, KIND, RELEASE, INSTANCE_ID))
 const SERVICE = serviceName(SLUG, KIND, 'db')
 
 /**
@@ -96,7 +99,9 @@ describeDocker('node-ts-mongo@1 builds, deploys and authenticates (Task 12)', ()
   }
 
   const specFor = () => ({
-    name: instanceName(SLUG, KIND, RELEASE),
+    name: instanceName(SLUG, KIND, RELEASE, INSTANCE_ID),
+    instanceId: INSTANCE_ID,
+    hostname: HOST,
     projectSlug: SLUG,
     environmentKind: KIND,
     releaseId: RELEASE,

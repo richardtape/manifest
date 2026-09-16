@@ -48,7 +48,10 @@ const RELEASE = 's6'
 
 const APP_NET = appNetwork(SLUG, KIND)
 const NEIGHBOUR_NET = appNetwork(NEIGHBOUR, KIND)
-const APP = appContainer(instanceName(SLUG, KIND, RELEASE))
+// §11's key gained the INSTANCE (P4c). A constant, not a random uuid: this suite
+// names the containers it removes, and a random id would leak one per run.
+const INSTANCE_ID = '56565656-0000-4000-8000-000000000006'
+const APP = appContainer(instanceName(SLUG, KIND, RELEASE, INSTANCE_ID))
 const APP_DB = serviceContainer(serviceName(SLUG, KIND, 'db'))
 const NEIGHBOUR_DB = serviceContainer(serviceName(NEIGHBOUR, KIND, 'db'))
 
@@ -230,7 +233,9 @@ describeDocker(
         credentials: { ...CREDENTIALS, database: 'neighbour' },
       })
       instanceSpec = {
-        name: instanceName(SLUG, KIND, RELEASE),
+        name: instanceName(SLUG, KIND, RELEASE, INSTANCE_ID),
+        instanceId: INSTANCE_ID,
+        hostname: `${SLUG}.${KIND}.manifest.internal`,
         projectSlug: SLUG,
         environmentKind: KIND,
         releaseId: RELEASE,

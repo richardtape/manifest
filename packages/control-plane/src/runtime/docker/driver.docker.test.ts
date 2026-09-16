@@ -43,8 +43,11 @@ describeDocker('Docker driver', () => {
       { repoPath: '/tmp/repo', commitSha: 'abc123' },
       { blueprintRef: 'fixture-node@1', projectSlug: 'chem-labs' },
     )
+    const instanceId = '9b9b9b9b-0000-4000-8000-000000000009'
     const handle = await driver.ensureInstance({
-      name: instanceName('chem-labs', 'staging', 'release-routegone'),
+      name: instanceName('chem-labs', 'staging', 'release-routegone', instanceId),
+      instanceId,
+      hostname: 'chem-labs.staging.manifest.internal',
       projectSlug: 'chem-labs',
       environmentKind: 'staging',
       releaseId: 'release-routegone',

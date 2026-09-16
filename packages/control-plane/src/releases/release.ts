@@ -228,7 +228,6 @@ export async function deployRelease(
   assertPromotable(driver, { repository, digest })
 
   const resolved = (release.resolvedConfig as ResolvedConfigSet)[environment.kind]
-  const name = instanceName(projectSlug, environment.kind, release.id)
 
   // The PROJECT's blueprint reference, which is what the build was made against
   // (`startBuild` takes `project.blueprintRef`). Read here rather than from the
@@ -265,6 +264,14 @@ export async function deployRelease(
       state: 'provisioning',
     })
     .returning()
+  const instanceId = row!.id
+  /**
+   * §11's key gained the INSTANCE (P4c): a redeploy of the same release is a new
+   * instance beside the one serving, so the name can no longer be computed before the
+   * row exists — with the release alone in it, the two would collide on the name that
+   * identifies the container and the second deploy could only replace the first.
+   */
+  const name = instanceName(projectSlug, environment.kind, release.id, instanceId)
 
   /**
    * THE SERVICE WIRE. Until this existed `services: []` was a hardcoded literal,
@@ -449,6 +456,10 @@ export async function deployRelease(
   try {
     handle = await driver.ensureInstance({
       name,
+      instanceId,
+      // §23 assigned it and this function holds the environment row, so the driver is
+      // HANDED it rather than re-deriving it (P4c Task 2).
+      hostname: environment.hostname,
       projectSlug,
       environmentKind: environment.kind,
       releaseId: release.id,

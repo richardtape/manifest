@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { buildServer } from './api/index.js'
 import { loadBlueprints } from './blueprints/index.js'
-import { hostnameFor, loadConfig } from './config.js'
+import { loadConfig } from './config.js'
 import { db } from './db/index.js'
 import { createCaddyClient } from './routing/index.js'
 import { createDockerDriver, createEngineClient } from './runtime/index.js'
@@ -144,10 +144,6 @@ const driver = await createDockerDriver({
   registryPublicHost: config.registryUrl,
   registryTokenKeyPem: readIssuerPem(config.registryTokenKeyPath, 'key'),
   registryTokenCertPem: readIssuerPem(config.registryTokenCertPath, 'certificate'),
-  // P2's `hostnameFor` is `(config, kind, slug)`; the driver's option is
-  // `(kind, slug)`. Config is bound here rather than threaded through the driver,
-  // which has no other use for it.
-  hostnameFor: (kind, slug) => hostnameFor(config, kind, slug),
   routing: {
     caddy: createCaddyClient(config.caddyAdminUrl),
     servers: config.caddyServers,

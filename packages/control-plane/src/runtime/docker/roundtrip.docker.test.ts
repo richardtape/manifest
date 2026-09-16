@@ -24,7 +24,12 @@ const SLUG = 'fixture-rt'
 const KIND = 'staging' as const
 const RELEASE = 'r1'
 const HOST = `${SLUG}.staging.manifest.internal`
-const INSTANCE = appContainer(instanceName(SLUG, KIND, RELEASE))
+// §11's key gained the INSTANCE (P4c). Constants rather than random ids, because this
+// suite names the containers it cleans up and a random one would leak a container per
+// run — the same reason `sso/testing.ts` pins one.
+const INSTANCE_ID = '11111111-0000-4000-8000-000000000001'
+const UNREACHABLE_INSTANCE_ID = '22222222-0000-4000-8000-000000000002'
+const INSTANCE = appContainer(instanceName(SLUG, KIND, RELEASE, INSTANCE_ID))
 const SERVICE = serviceName(SLUG, KIND, 'db')
 
 /**
@@ -91,7 +96,9 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
   let service: ServiceHandle
 
   const specFor = () => ({
-    name: instanceName(SLUG, KIND, RELEASE),
+    name: instanceName(SLUG, KIND, RELEASE, INSTANCE_ID),
+    instanceId: INSTANCE_ID,
+    hostname: HOST,
     projectSlug: SLUG,
     environmentKind: KIND,
     releaseId: RELEASE,
@@ -278,7 +285,8 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
     const spec = specFor()
     const refusal = impatient.ensureInstance({
       ...spec,
-      name: instanceName(SLUG, KIND, 'unreachable'),
+      name: instanceName(SLUG, KIND, 'unreachable', UNREACHABLE_INSTANCE_ID),
+      instanceId: UNREACHABLE_INSTANCE_ID,
       releaseId: 'unreachable',
       // The app really is up and really is routed. It listens on 8080; the route
       // and the health check are pointed at a port nothing is bound to, so the
@@ -291,13 +299,19 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
     await expect(refusal).rejects.toBeInstanceOf(InstanceNotReadyError)
     await expect(refusal).rejects.toMatchObject({
       code: 'INSTANCE_NOT_REACHABLE',
-      handle: { id: appContainer(instanceName(SLUG, KIND, 'unreachable')) },
+      handle: {
+        id: appContainer(
+          instanceName(SLUG, KIND, 'unreachable', UNREACHABLE_INSTANCE_ID),
+        ),
+      },
       check: expect.stringMatching(
         /^readiness: GET \/\S+ at https:\/\/fixture-rt\.staging\.manifest\.internal through the edge — /,
       ),
     })
     await impatient
-      .destroyInstance(appContainer(instanceName(SLUG, KIND, 'unreachable')))
+      .destroyInstance(
+        appContainer(instanceName(SLUG, KIND, 'unreachable', UNREACHABLE_INSTANCE_ID)),
+      )
       .catch(() => undefined)
   }, 300_000)
 })

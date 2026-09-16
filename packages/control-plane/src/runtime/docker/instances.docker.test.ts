@@ -22,8 +22,12 @@ let deps: Parameters<typeof ensureInstanceContainer>[2]
 // runs the real fixture app. `sleep` keeps it running long enough to observe the
 // difference between a deliberate stop and a crash — alpine's default command
 // exits immediately, which would make every state `exited` before a test looked.
+const INSTANCE = 'd4c3b2a1-0000-4000-8000-000000000009'
+
 const spec = (): InstanceSpec => ({
-  name: instanceName(SLUG, 'staging', RELEASE),
+  name: instanceName(SLUG, 'staging', RELEASE, INSTANCE),
+  instanceId: INSTANCE,
+  hostname: `${SLUG}.staging.manifest.internal`,
   projectSlug: SLUG,
   environmentKind: 'staging',
   releaseId: RELEASE,
@@ -55,7 +59,6 @@ describeDocker('instance lifecycle (§11)', () => {
       networkName: 'mf-insttest-staging-net',
       dnsServer: '127.0.0.11',
       proxyUrl: proxy.url,
-      hostname: `${SLUG}.staging.manifest.internal`,
       diskQuotaEnforceable: false,
       // Holds the container open. Without it `alpine` exits in under a second and
       // every assertion below is made against an already-dead container — the
@@ -121,20 +124,32 @@ describeDocker('instance lifecycle (§11)', () => {
   })
 
   /**
-   * THE WAKE PATH REUSES AND A CHANGED ENVIRONMENT REPLACES (P4b Task 9, finding 72).
+   * THE WAKE PATH REUSES AND A CHANGED ENVIRONMENT IS REFUSED (P4b finding 72, then
+   * P4c Task 2).
    *
    * A container used to be reused on its name alone, environment included, so a
    * redeploy of the SAME release — a retry after a failed health check — kept the
    * environment it was first created with. With §10's key minted on every deploy, the
    * deploy would then commit a key the container never received and revoke the one
-   * it holds. The fake driver already replaced the spec, and the contract suite cannot
-   * see an environment (finding 73), so this reads it from INSIDE the container.
+   * it holds. P4b made that case DELETE and recreate.
+   *
+   * P4c makes it REFUSE, because §11's key gained the instance: a legitimate redeploy
+   * is a new instance row and therefore a new name, so nothing that arrives here with
+   * a changed environment can be a redeploy — and deleting would remove a container
+   * that may be the one serving the app. The wake path is unchanged and still reuses.
+   * The environment is read from INSIDE the container, because the contract suite
+   * cannot see one (finding 73).
    */
-  it('reuses a container whose environment is unchanged, and REPLACES one whose environment changed', async () => {
+  it('reuses a container whose environment is unchanged, and REFUSES one whose environment changed', async () => {
     const base: InstanceSpec = {
       ...spec(),
       // Its own instance name, for the reason the files test below gives.
-      name: instanceName(SLUG, 'staging', 'c3d4e5f6-0000-4000-8000-000000000002'),
+      name: instanceName(
+        SLUG,
+        'staging',
+        'c3d4e5f6-0000-4000-8000-000000000002',
+        INSTANCE,
+      ),
       env: { MANIFEST_ENV: 'staging', LLM_API_KEY: 'sk-first-key' },
     }
     const name = appContainer(base.name)
@@ -171,19 +186,24 @@ describeDocker('instance lifecycle (§11)', () => {
       await ensureInstanceContainer(engine, base, deps)
       expect((await inspect()).Id).toBe(first)
 
-      // A redeploy of the same release with a new key: a DIFFERENT container, and the
-      // process sees the new value.
-      await ensureInstanceContainer(
-        engine,
-        { ...base, env: { ...base.env, LLM_API_KEY: 'sk-second-key' } },
-        deps,
-      )
-      const replaced = await inspect()
-      expect(replaced.Id).not.toBe(first)
-      expect(await seenInside('LLM_API_KEY')).toBe('sk-second-key')
+      // THE SAME NAME WITH A NEW KEY IS REFUSED, and — the half that matters — the
+      // container that was there is STILL THERE, still holding the value it was
+      // created with. A delete here would have removed a container that may be serving.
+      await expect(
+        ensureInstanceContainer(
+          engine,
+          { ...base, env: { ...base.env, LLM_API_KEY: 'sk-second-key' } },
+          deps,
+        ),
+      ).rejects.toMatchObject({ code: 'INSTANCE_SPEC_CHANGED' })
+      const after = await inspect()
+      expect(after.Id).toBe(first)
+      expect(await seenInside('LLM_API_KEY')).toBe('sk-first-key')
       // The label carries a hash, never the environment.
-      expect(replaced.Config.Labels['manifest.env-sha256']).toMatch(/^[0-9a-f]{64}$/)
-      expect(JSON.stringify(replaced.Config.Labels)).not.toContain('sk-second-key')
+      expect(after.Config.Labels['manifest.env-sha256']).toMatch(/^[0-9a-f]{64}$/)
+      expect(JSON.stringify(after.Config.Labels)).not.toContain('sk-first-key')
+      // And the hostname label `destroyInstance` removes a route by (P4c Task 2).
+      expect(after.Config.Labels['manifest.hostname']).toBe(base.hostname)
     } finally {
       await destroyInstanceContainer(engine, name)
     }
@@ -207,7 +227,12 @@ describeDocker('instance lifecycle (§11)', () => {
     // same trap that let a stale container serve four runs of the SAML suite.
     const withFiles = {
       ...spec(),
-      name: instanceName(SLUG, 'staging', 'a1b2c3d4-0000-4000-8000-000000000001'),
+      name: instanceName(
+        SLUG,
+        'staging',
+        'a1b2c3d4-0000-4000-8000-000000000001',
+        INSTANCE,
+      ),
       files: [
         {
           path: '/manifest/idp-signing.crt',

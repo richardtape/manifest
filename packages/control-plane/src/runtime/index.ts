@@ -2,6 +2,7 @@ export type {
   BuildOpts,
   Driver,
   DriverCapabilities,
+  DriverRefusalCode,
   ImageRef,
   InstanceHandle,
   InstanceFile,
@@ -12,14 +13,20 @@ export type {
   LogOpts,
   ExecOpts,
   ExecStream,
+  RetireOpts,
   ServiceBinding,
   ServiceHandle,
   SnapshotRef,
   SourceRef,
 } from './driver.js'
-export { InstanceNotReadyError, instanceName, serviceName } from './driver.js'
-export { createFakeDriver } from './fake-driver.js'
-export type { FakeDriverOptions } from './fake-driver.js'
+export {
+  DriverRefusalError,
+  InstanceNotReadyError,
+  instanceName,
+  serviceName,
+} from './driver.js'
+export { FAKE_NEVER_READY_PATH, createFakeDriver } from './fake-driver.js'
+export type { FakeDriver, FakeDriverOptions } from './fake-driver.js'
 export * from './state-machine.js'
 
 // §13's gate integrity. The api/ route that acts as registry:2's token realm
