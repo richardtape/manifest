@@ -2169,23 +2169,33 @@ console (`admin`) are served at `<label>.<production zone>`, which is exactly th
 production app's canonical hostname — so a project whose slug is one of those labels would
 claim the platform's own hostname the day it reached production. Beyond the platform's own
 names, a hostname is read by people as a claim about what is behind it, and some names are
-looked up by software nobody pointed at them. The reserved list therefore has four groups,
-each with its reason:
+looked up by software nobody pointed at them, and at a university a department's name reads
+as the department. The reserved list therefore has six groups, each with its reason:
 
-| Group | Labels | Why |
+| Group | For example | Why |
 |---|---|---|
-| **Manifest's own surfaces** | `idp` `console` `app` `admin` `api` `www` `manifest` `mock` `docs` `status` `help` `support` | the platform serves, or will serve, these names itself |
-| **Sign-in and identity** | `login` `logout` `signin` `sign-in` `signup` `sign-up` `auth` `sso` `saml` `oauth` `cwl` `shibboleth` `account` `accounts` `password` `identity` | a UBC-looking hostname that reads as a sign-in page is a phishing page whether or not anyone meant it to be |
-| **Environments and infrastructure** | `sandbox` `staging` `production` `prod` `dev` `test` `demo` `preview` `internal` `edge` `proxy` `gateway` `registry` `cdn` `static` `assets` `mail` `smtp` `ftp` `vpn` `dns` `ubc` | reads as a tier, a platform component or the institution itself rather than as one person's app |
+| **Manifest's own surfaces** | `idp` `console` `app` `admin` `api` `www` `manifest` `docs` `status` | the platform serves, or will serve, these names itself |
+| **Sign-in and identity** | `login` `signin` `sso` `saml` `cwl` `shibboleth` `account` `password` | a UBC-looking hostname that reads as a sign-in page is a phishing page whether or not anyone meant it to be |
+| **Environments and infrastructure** | `sandbox` `staging` `production` `test` `demo` `edge` `proxy` `registry` `mail` `vpn` | reads as a tier or a platform component rather than as one person's app |
 | **Names software looks up automatically** | `wpad` `isatap` `autodiscover` `autoconfig` `mta-sts` `openpgpkey` | proxy auto-discovery, IPv6 transition, mail-client configuration, mail transport policy and key discovery resolve these names without being asked to — a project holding one could receive traffic, and credentials, meant for something else |
+| **UBC — the University, its campuses and its shared services** | `ubc` `ubco` `ubcv` `okanagan` `vancouver` `canvas` `workday` `kaltura` `ipeer` `slack` `teams` `arc` `sauder` `allard` `ctlt` `ssc` | reads as the University itself, one of its campuses, a service it runs for everyone, or a unit by its everyday name |
+| **UBC — academic units** | `chemistry` `chem` `computer-science` `cpsc` `faculty-of-science` `law` `nursing` `psyo` | every faculty, school, college, department and course subject in UBC's academic calendars, by name **and** by abbreviation — a hostname made of one reads as that unit's own official service. **Generated from the calendars, not typed** (below) |
 
 Labels shorter than three characters (`id`, `ns`, `mx`) need no entry: §7's slug rule
 already refuses them. **Matching is on the whole label**, never a prefix or a substring — a
 prefix list would refuse `login-help-desk` and `test-prep`, which are legitimate course
 tools, and a lookalike such as `cw1` is an administrator's review, not a rule.
 
-The list is **platform configuration held in one place**, extended by administrators; a test
-fails when the edge serves a platform name the list does not contain. **Adding a label never
+The list is **platform configuration held in one place — `infra/reserved-labels/`**, where each
+label carries a sentence saying what it stands for, which is what the slug check returns. The
+first five groups are hand-maintained and extended by administrators (`labels.yaml`). The UBC
+academic group is **generated** from the Vancouver and Okanagan academic calendars'
+course-subject and faculty listings (`ubc-academic.yaml`, by `generate-ubc-academic.mjs`), because
+UBC adds and renames units: an administrator re-runs the generator, reviews the diff and commits
+it, and the generator refuses to write a list shorter than the calendars yielded when it was
+written, so a redesigned page cannot silently un-reserve a department. On 2026-09-16 the six
+groups held **755** labels, 678 of them generated. A test fails when the edge serves a platform
+name the list does not contain. **Adding a label never
 renames an existing project**: a project that already holds a newly reserved label keeps it,
 and is reported to administrators (§26) to be handled with its owner. This is not the
 reserved-suffix list rejected above: that one would have had to track every legal slug; this
@@ -2207,7 +2217,8 @@ creation will:
 
 - **One function answers both.** The check and project creation (and any rename, §7) call the
   same validation, so the codes cannot disagree: the slug rule (`SLUG_INVALID`), a reserved
-  label (`SLUG_RESERVED`, with the group's reason in the message), and a slug another project
+  label (`SLUG_RESERVED`, whose message says what the label stands for and why its group is
+  reserved — *"`chem` is UBC's course subject code for Chemistry"*), and a slug another project
   holds (`SLUG_TAKEN`). A check is advisory — creation checks again, and a name taken between
   the two is refused at creation with the same code.
 - **A `200` either way.** The request succeeded; the answer is about the name. A `4xx` would

@@ -1,0 +1,130 @@
+# §23's reserved labels: names no project may take as its slug, and why.
+#
+# HAND-MAINTAINED. Administrators extend it; the platform reads it together with
+# `ubc-academic.yaml` beside it, which is GENERATED from UBC's academic calendars
+# (`generate-ubc-academic.mjs`) and must not be edited by hand. Together the two files are
+# the one place §23 says the list is held.
+#
+# Each group has a reason, and each label says what it stands for — that sentence is what
+# the slug check (`GET /v1/slugs/{slug}`) returns to a person who asked for the name.
+#
+# Rules from §23, so an edit here does not break them:
+#   - a label must satisfy §7's slug rule, ^[a-z][a-z0-9-]{2,38}$ — anything shorter or
+#     longer cannot be a slug and needs no entry;
+#   - matching is on the WHOLE label, never a prefix: `login-help-desk` stays available;
+#   - adding a label never renames a project that already holds it — that project is
+#     reported to administrators instead.
+#
+# Loaded by nothing yet: P5a builds the check, the refusal at creation and the loader.
+# Written 2026-09-16.
+
+groups:
+  - group: manifest
+    reason: >-
+      Manifest serves, or will serve, this name itself.
+    labels:
+      idp: "the Manifest IdP"
+      console: "Manifest's reference console"
+      app: "Manifest's faculty front-end"
+      admin: "Manifest's admin console"
+      api: "Manifest's API"
+      www: "Manifest's web presence"
+      manifest: "Manifest itself"
+      mock: "manifest-mock, Manifest's contract fixture server"
+      docs: "Manifest's documentation"
+      status: "Manifest's status page"
+      help: "help for Manifest"
+      support: "support for Manifest"
+
+  - group: sign-in
+    reason: >-
+      A UBC-looking hostname that reads as a sign-in page is a phishing page, whether or not
+      anyone meant it to be.
+    labels:
+      login: "a sign-in page"
+      logout: "a sign-out page"
+      signin: "a sign-in page"
+      sign-in: "a sign-in page"
+      signup: "an account sign-up page"
+      sign-up: "an account sign-up page"
+      auth: "an authentication service"
+      sso: "single sign-on"
+      saml: "SAML single sign-on"
+      oauth: "OAuth sign-in"
+      cwl: "UBC's Campus-Wide Login"
+      shibboleth: "UBC's Shibboleth identity provider"
+      account: "account management"
+      accounts: "account management"
+      password: "password management"
+      identity: "an identity service"
+
+  - group: environments-and-infrastructure
+    reason: >-
+      Reads as an environment tier or a platform component rather than as one person's app.
+    labels:
+      sandbox: "Manifest's sandbox tier"
+      staging: "Manifest's staging tier"
+      production: "Manifest's production tier"
+      prod: "Manifest's production tier"
+      dev: "a development environment"
+      test: "a test environment"
+      demo: "a demonstration environment"
+      preview: "a preview environment"
+      internal: "an internal service"
+      edge: "Manifest's edge proxy"
+      proxy: "a proxy"
+      gateway: "a gateway"
+      registry: "Manifest's image registry"
+      cdn: "a content delivery network"
+      static: "static assets"
+      assets: "static assets"
+      mail: "mail"
+      smtp: "mail transport"
+      ftp: "file transfer"
+      vpn: "a VPN"
+      dns: "name service"
+
+  - group: automatic-lookups
+    reason: >-
+      Software resolves this name without being asked to — proxy auto-discovery, IPv6
+      transition, mail-client configuration, mail transport policy, key discovery — so a
+      project holding it could receive traffic, and credentials, meant for something else.
+    labels:
+      wpad: "Web Proxy Auto-Discovery, which browsers and operating systems look up unasked"
+      isatap: "ISATAP, an IPv6 transition name Windows looks up unasked"
+      autodiscover: "mail-client auto-discovery, which Outlook looks up unasked"
+      autoconfig: "mail-client auto-configuration, which Thunderbird looks up unasked"
+      mta-sts: "MTA-STS, the mail transport security policy host"
+      openpgpkey: "OpenPGP Web Key Directory, which mail clients look up unasked"
+
+  - group: ubc
+    reason: >-
+      Reads as the University itself, one of its campuses, a service it runs for everyone, or
+      a unit by the name the University uses day to day. UBC's faculties, departments and
+      course subjects are in the generated `ubc-academic.yaml` beside this file.
+    labels:
+      # Rich, 2026-09-16.
+      canvas: "Canvas, UBC's learning management system"
+      workday: "Workday, UBC's HR, finance and student system"
+      kaltura: "Kaltura, UBC's media platform"
+      ipeer: "iPeer, UBC's peer evaluation tool"
+      slack: "Slack"
+      teams: "Microsoft Teams"
+      ubco: "UBC Okanagan"
+      okanagan: "UBC's Okanagan campus"
+      arc: "UBC Advanced Research Computing"
+      # Added with them: the University and its other campus, which the list above implies.
+      ubc: "the University of British Columbia"
+      ubcv: "UBC Vancouver"
+      vancouver: "UBC's Vancouver campus"
+      # The names units are known by that the academic calendars do not use.
+      sauder: "the UBC Sauder School of Business (the Faculty of Commerce and Business Administration)"
+      allard: "the Peter A. Allard School of Law"
+      vse: "the Vancouver School of Economics"
+      sppga: "the School of Public Policy and Global Affairs"
+      scarp: "the School of Community and Regional Planning"
+      sala: "the School of Architecture and Landscape Architecture"
+      ischool: "the School of Information"
+      ctlt: "the Centre for Teaching, Learning and Technology"
+      ssc: "the Student Service Centre"
+      ltic: "LTIC, whose domain serves Manifest (apps.ltic.ubc.ca)"
