@@ -1684,8 +1684,8 @@ plan's sittings table is the maintained copy** — read it before you start and 
 marker before you stop.
 
 **What sitting 1 did, and what sitting 2 inherits.** `make demo-redeploy` exists and is **red by
-design**: run three times on 2026-09-15, exit 1 each time, **eleven assertions failing and six
-already green** — including that a failed deploy is recorded with an Incident and that LiteLLM
+design**: run three times on 2026-09-15, exit 1 each time, **eleven of its twenty-one assertions
+failing and ten already green** — including that a failed deploy is recorded with an Incident and that LiteLLM
 holds exactly one key for the app throughout. Its baseline is the plan's own number now: **a
 redeploy is a window of empty 502s about 1.0–1.9 s long**, **every user is signed out** within
 ~2.3 s, and **an AI question in flight when a same-release redeploy destroys its container comes

@@ -261,7 +261,7 @@ it. Its baseline is in
 [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md)'s
 *What executing this plan found*. **Do not run it to see the platform work** — run
 `make demo-ai`. It takes about thirteen minutes, builds three releases, and leaves the app
-deployed. Six of its assertions are already green, including that a failed deploy is
+deployed. **Ten of its twenty-one assertions are already green**, including that a failed deploy is
 recorded with an Incident and that LiteLLM holds exactly one key for the app throughout.
 
 ## `make demo-ai` — the proof app answers a question, charged to one person

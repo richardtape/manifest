@@ -80,8 +80,8 @@ make demo-redeploy    # P4c's acceptance — RED ON PURPOSE until P4c is execute
 the feature it tests, so the platform's behaviour could be measured before anything was
 built on it (P4c sitting 1, 2026-09-15). It exits 1 with eleven assertions red: a redeploy
 is about a second of empty 502s, it signs every user out, it leaves the old container
-running, and a release that never becomes ready takes the app down. Six of its assertions
-are already green. Do not run it expecting a working demo; run the three above.
+running, and a release that never becomes ready takes the app down. **Ten of its twenty-one
+assertions are already green.** Do not run it expecting a working demo; run the three above.
 
 `make demo-ai` and `make demo-identity` end with **`Done.`** and leave a note each for the
 student and the instructor, so there is something to ask about.

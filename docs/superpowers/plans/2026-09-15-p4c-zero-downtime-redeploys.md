@@ -3513,7 +3513,7 @@ Run against the spec and the code on 2026-09-15, after the plan was written. **S
 
 ### Sitting 1 — Task 1 — 2026-09-15 — 13 findings
 
-**What it built.** `scripts/lib/redeploy-loop.mjs`, `scripts/lib/redeploy-summary.mjs`, `scripts/demo-redeploy.sh`, `make demo-redeploy`, and `docs/superpowers/spikes/p4c-baseline/p4c-measure-edge.sh`. No production code, on purpose. **The acceptance was run three times and exited 1 every time**, with the same eleven red assertions; the raw output of all three runs and of the five measurements is [`../spikes/p4c-baseline/results-task1-2026-09-15.txt`](../spikes/p4c-baseline/results-task1-2026-09-15.txt).
+**What it built.** `scripts/lib/redeploy-loop.mjs`, `scripts/lib/redeploy-summary.mjs`, `scripts/demo-redeploy.sh`, `make demo-redeploy`, and `docs/superpowers/spikes/p4c-baseline/p4c-measure-edge.sh`. No production code, on purpose. **The acceptance was run three times and exited 1 every time**, with the same eleven red assertions — **eleven red and ten green, twenty-one in all** (run C; runs A and B had twenty, before the twelfth assertion of finding 5 was added); the raw output of all three runs and of the five measurements is [`../spikes/p4c-baseline/results-task1-2026-09-15.txt`](../spikes/p4c-baseline/results-task1-2026-09-15.txt).
 
 **Run C is the baseline** — it is the script as it ships. Runs A and B are kept because each exposed a defect in the harness itself, and a baseline taken with a different script from the one that ships is exactly the drift this project pays for.
 

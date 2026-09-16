@@ -12,7 +12,10 @@ it is the script as it ships. All three exited 1 with the same eleven red assert
 PART 1 — the acceptance, red
 -----------------------------------------------------------------------------------
 
-The eleven assertions that are red today, identical in all three runs:
+ELEVEN RED, TEN GREEN — twenty-one assertions in run C. (Runs A and B had twenty; the
+twelfth kind, the warm-up assertion, was added after run B.)
+
+The eleven that are red today, identical in all three runs:
 
   same-release: the edge names the new instance          (no route sets X-Manifest-Instance)
   same-release: the previous instance was retired within 150 s   (nothing retires)
@@ -26,7 +29,7 @@ The eleven assertions that are red today, identical in all three runs:
   every question was answered 200
   nobody was signed out
 
-Green today, and they are the ones that must STAY green:
+Green today — ten assertions across these six kinds — and they must STAY green:
 
   the deploy is healthy (same-release, new-release)
   the deploy is recorded failed (failed release)
