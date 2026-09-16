@@ -28,8 +28,8 @@ Agreed with Rich on 2026-09-15, the pattern that carried P4a's last twelve tasks
 | 2 ✅ | 2 | §11's contract in code: `InstanceSpec.instanceId`/`hostname`, the four new methods, the fake driver's routes and in-flight counters, and the contract suite's continuity block — **done 2026-09-15, 4 findings; the fake runs all eleven continuity tests, the Docker driver's four refuse and its block skips with its reason; the plan's fake folded `failInstances` into the readiness refusal and erased the health-check half of §14's Incident** | ✅ |
 | 3 ✅ | 3–4 | The edge (upsert in place, identity header, what serves, what is in flight), then the Docker `ensureInstance` that uses it: beside, privately ready, moved, verified, rolled back — **done 2026-09-15, 7 findings; `redeploy.docker.test.ts` takes a hostname over under a request every 25 ms with ZERO 502s and ZERO wildcard answers, where the pre-P4c order records seven empty 502s. `make demo-redeploy` was re-run at the end and moved from 10/21 green to 14/21 — every remaining red belongs to Task 5, 7, 8 or 10. Two negative controls first came out wrong — one red for the wrong reason, one GREEN — and neither fixture app 404s an unknown path, which Task 5's `neverReady` fixture depends on** | ✅ |
 | 4 ✅ | 5 | Docker `retireInstance`, `listInstances`, `servingInstance`, `restoreRoute` and the gateway detach — **done 2026-09-15, 6 findings; THE CONTRACT SUITE IS GREEN ON THE DOCKER DRIVER — 25 of 25, 0 skipped**, where sitting 3 left the eleven-test continuity block skipped. A retire drains a real request held open through the real edge and returns only once it has been ANSWERED, and cuts it off at its bound. **Two of the plan's own negative controls were defective**: (b) comes out GREEN and cannot fail, and the retire guard as written protects NOTHING for a pre-P4c container — the one R7 exists to reap | ✅ |
-| 5 | 6–7 | The data and the keys (the `Route` table, migration 0009, per-instance AI keys, the advisory lock, the drain setting), then the retirer that uses them | ← **next** |
-| 6 | 8–9 | `deployRelease` reordered — serialized, per instance, failing without taking the app down — with its wiring; then boot recovery | |
+| 5 ✅ | 6–7 | The data and the keys (the `Route` table, migration 0009, per-instance AI keys, the advisory lock, the drain setting), then the retirer that uses them — **done 2026-09-15, 9 findings; §6's `Route` exists and an AI key is stored PER INSTANCE, so the draining container's key stays live; `retireEnvironment` reaps every instance of an environment that does not serve, and does NOTHING when nothing serves. THREE of the plan's own negative controls could not fail** — Task 6's (c) and (d) and Task 7's (c) — and all three were measured and replaced. **Nothing calls the retirer yet: that is Task 8** | ✅ |
+| 6 | 8–9 | `deployRelease` reordered — serialized, per instance, failing without taking the app down — with its wiring; then boot recovery | ← **next** |
 | 7 | 10 | `node-ts-mongo@1` keeps sessions in the app's own Mongo. **Alone, and the one sitting that NEEDS THE NETWORK ON**: it adds a pinned dependency, regenerates the lockfile and needs `make seed` to warm Verdaccio from it (P4a sitting 5, P4b sitting 6) | |
 | 8 | 11 | `make demo-redeploy` green, with its negative controls. **Alone**, for the reason P4a's Task 15 and P4b's Task 16 were alone | |
 
@@ -4030,3 +4030,153 @@ route `buildRoute` produces — the pre-P4c one dialling its container by NAME, 
 dialling `mf-i-<instanceId>` — and both hostnames serve their own body
 (`{"status":"ok","mongo":true}`) with their own `X-Manifest-Instance`, not the edge's
 wildcard. **Read the body, never the status.**
+
+### Sitting 5 — Tasks 6 and 7 — 2026-09-15 — 9 findings
+
+**What it built, and the headline.** §6's `Route` record — specified since P2 and never
+built — with migration 0009, `withEnvironmentLock`, `deleteSecret`, an AI key stored
+**per instance**, the `interrupted` transition and `MANIFEST_DRAIN_TIMEOUT_MS`; then
+`releases/retire.ts`, **the control plane's first background work**. `retireEnvironment`
+reaps every instance of an environment that does not serve (R7), under the environment
+lock, draining outside it — and **does nothing at all when nothing serves**, which is the
+line that would otherwise remove the app people are using after an edge restart. Commits
+`aec4fc8`, `ac66830`, `0d622a9`, `3bfe29f`.
+
+**Nothing calls the retirer.** That is Task 8, in sitting 6, and it is said here as well as
+in Task 7's own text because this project has shipped a module with no call site three
+times, twice with passing tests.
+
+**Three of the plan's own negative controls could not fail, and this is the sitting's
+pattern** — sitting 4 found two, and finding 29's shape is now the most repeated defect in
+this plan.
+
+35. **TASK 6'S CONTROL (c) CANNOT DISCRIMINATE THE ORDER.** It says: *"Make
+    `revokeInstanceKey` delete the secret before revoking, then make the revoke throw →
+    the key is live and nothing records it; the keys Docker test fails."* Measured both
+    ways on 2026-09-15: with a **working** revoke, delete-then-revoke and
+    revoke-then-delete end in the same state and **both pass**; with a **throwing** revoke
+    **both fail**, because the throw propagates either way. So the control proves only
+    that a failing revoke is noticed. What discriminates the order is **the state a failed
+    revoke leaves**: revoke-first keeps the secret recorded, so the retirer's next pass
+    finds the key; delete-first loses the only reference to a key that is still live. The
+    Docker test now mints a key, stores it, and revokes it through a client whose
+    `/key/delete` throws — asserting the secret is **still there** and the key still
+    answers 200, then that the next pass finishes the job. Watched red under
+    delete-then-revoke with a working gateway: `expected undefined to be 'sk-…'`.
+36. **TASK 6'S CONTROL (d) CANNOT FAIL EITHER**, for two independent reasons. It says
+    leaving `routes` out of the TRUNCATE lists makes the second `pnpm test` run fail on the
+    unique hostname. But `routes` references `instances`, which **is** in the list, and the
+    statement is `CASCADE` — measured 2026-09-15 with a route inserted by hand:
+    `NOTICE: truncate cascades to table "routes"`, and the count goes 1 → 0 with the line
+    removed. And nothing writes a `routes` row until Task 8 in any case, so there is
+    nothing to leave behind this sitting. The line stays as belt and braces so the reset
+    does not depend on a foreign key staying as it is, and `db/testing.ts`'s comment now
+    says that rather than claiming to be the control.
+37. **TASK 7'S CONTROL (c) CAME OUT GREEN.** *"Take the selection out of the lock →
+    `never retires an instance a concurrent deploy is still starting` fails."* It did not:
+    14 of 14 passed with `withEnvironmentLock` replaced by a bare IIFE. The test held the
+    lock and called the fake's `ensureInstance`, which **starts and promotes in one call**
+    — so the route had already moved to the newcomer before any unlocked retire could
+    look, and both versions chose the same instances. The window the lock actually protects
+    is the one in the middle of a real deploy: **the new container is up and the route has
+    not moved to it yet**. The test now models it with `restoreRoute`, and the corrected
+    control goes red with a failure that names the consequence exactly:
+    `no instance 'inst-4' to point a hostname at` — the retirer removed the instance the
+    deploy was still starting, and the deploy's own promotion then failed.
+
+**Three found by reading or by the compiler, before anything ran.**
+
+38. **The plan's Task 7 test snippet does not compile against the current `InstanceSpec`.**
+    `memoryMb`, `network` and `listener` are not fields — it is `memoryMi` with `diskMi`,
+    and there is no `network` or `listener` on the spec at all — and `projectSlug`,
+    `environmentKind`, `releaseId`, `services`, `egressAllow` and `needsAiGateway` are all
+    required. Caught by `tsc`, which Vitest cannot see.
+39. **Task 6's *Files* block names `packages/control-plane/src/secrets/secrets.test.ts`,
+    which does not exist.** The file is `secrets/store.test.ts`; `secrets/` also holds
+    `scrub.test.ts` and `envelope.test.ts`. The `deleteSecret` tests went into the real one.
+40. **A `StreamFrame` event is FLAT.** The frame is `{ kind: 'event', id, projectId,
+    subject, type, humanMessage, machineDetail, createdAt }`, so a stream assertion reads
+    `frame.type` — not `frame.event.type`, which is what an event frame reads like from
+    `publishEvent`'s signature. `tsc` refused the cast rather than letting it through.
+
+**Three measured, and worth carrying.**
+
+41. **A bigint advisory lock's key is reassembled from `pg_locks` by MASKING, not by
+    shifting the halves back together.** Postgres stores it as `classid` = the high 32
+    bits, `objid` = the low 32 bits, `objsubid` = 1, and both are `oid` — so
+    `(classid::bigint << 32) | objid::bigint` overflows `int8` for any key with the high
+    bit set. `((hashtextextended(k,0) >> 32) & 4294967295)::bigint::oid` and
+    `(hashtextextended(k,0) & 4294967295)::bigint::oid` work, verified 2026-09-15 for a
+    positive key (7080496501827605070) and a negative one (-3353903585181089628).
+42. **Unlocking an advisory lock on a different connection is a WARNING, not an error.**
+    Control (a) replaced the held client with `pool.query`: the serialization test timed
+    out at 5,006 ms, the `pg_locks` test failed, and Postgres logged
+    `WARNING: you don't own a lock of type ExclusiveLock` — five times. The call still
+    "succeeds", which is exactly why the lock has to be taken and released on one
+    connection rather than through the pool.
+43. **`manifest_app` holds `arwd` on `routes`**, checked with `\dp` before anything used
+    it, because P4b's migration 0005 shipped without its grant and nobody looked (finding
+    129). It comes from `ALTER DEFAULT PRIVILEGES` in `ensure-app-role.sh`. No defect this
+    time — the point is that it was looked at.
+
+**Eight negative controls, each watched.** The letters are the plan's own, per task; the
+two primed ones replace a control that could not fail, and the last two are this
+sitting's.
+
+| Task | | Broken | What went red |
+|---|---|---|---|
+| 6 | a | the advisory lock released through `pool.query` rather than the held client | *serializes two holders of the SAME environment* timed out at 5,006 ms, and *is a real advisory lock, visible in pg_locks* — with Postgres logging the unlock warning |
+| 6 | b | one event type dropped from the database CHECK, left in `EVENT_TYPES` | *the constraint names exactly EVENT_TYPES* — 11 against 12, naming the difference. Restored by replaying the statement **out of the migration file**, not by retyping it |
+| 6 | c′ | `revokeInstanceKey` deleting before revoking, gateway WORKING | the new failed-revoke assertion: `expected undefined to be 'sk-…'`. (The plan's own (c) is finding 35: it cannot discriminate. Its (d) is finding 36: it cannot fail) |
+| 7 | a | the `serving === undefined` guard removed from `retireEnvironment` | *does nothing at all when the hostname reaches no instance* — and it failed by retiring **all three**, the live one included |
+| 7 | b | the key revoke moved above `retireInstance` | *revokes each retired instance's key AFTER its retire, never before* |
+| 7 | c′ | the selection taken out of the lock, against the REWRITTEN test | *never retires an instance a concurrent deploy is still starting* — `no instance 'inst-4' to point a hostname at` (finding 37) |
+| 7 | d | `retireEnvironment`'s per-instance `catch` replaced by a rethrow | *records instance.retire_failed, leaves the row destroying, and never throws* |
+| 7 | e | the `servingIsRecorded` guard removed | *does NOT revoke the pre-P4c key while the instance serving is itself from before P4c* |
+| 7 | f | `createRetirer`'s own `catch` removed | *never throws out of schedule()* — `promise rejected "Error: the daemon is down" instead of resolving`, which in production is the whole process |
+
+Control (c′) and the rewritten concurrency test are the two worth keeping: each is the
+only thing in the suite that fails for the case it exists to protect.
+
+**Gates.** `pnpm test` **811 passed, 70 files**, run **twice**, identical — 23 more than
+sitting 4's 788 (4 for the lock, 2 for `deleteSecret`, 2 for `interrupted`, 1 for the
+drain setting, 14 for the retirer). `pnpm test:docker` **160 passed, 0 skipped**, 26 files
+(~615 s) — one more than sitting 4's 159, the per-instance key against the live gateway.
+`pnpm lint`, `pnpm --filter @manifest/control-plane typecheck`, `pnpm format:check` clean.
+`make doctor` **18 / 0**, `make verify` **47 / 0**, unchanged.
+
+**Machine.** `./scripts/snapshot-machine.sh` before and after: containers, networks and
+volumes **identical** — no leak from any run. Four images the Docker tier built were
+removed by digest (`blueprint-ntm`, `chem-labs`, `fixture-rd`, `incident-probe`), each
+checked absent from the before-snapshot under every name first; the seven that remain
+under those names were all in the before-snapshot. The only other differences are
+timestamps, uptimes and the git state.
+
+**Routes were restored by hand, for the fourth sitting running.** `routes.docker.test.ts`
+restarts the edge, which drops every runtime route, and nothing re-applies them until
+Task 9. Both demo hostnames were answering `200` with the edge's **wildcard body** —
+`manifest OK host=…` — which is why the check reads the body, never the status. Each was
+given back exactly the route `buildRoute` produces: `proof-app` dialling
+`mf-i-12c39e2c-…:3000` with that instance id as its `X-Manifest-Instance`, and the pre-P4c
+`fixture-app` dialling `mf-fixture-app-staging-fccfc99d-app:8080` by container name. Both
+now serve `{"status":"ok","mongo":true}` with their own identity header.
+
+**The four shared HTML pages were CHECKED and need no change.** None of
+`manifest-schematic.html`, `manifest-phases.html`, `manifest-decisions.html` or
+`manifest-stories.html` mentions P4c, sittings or redeploys, and the schematic's status line
+describes what a person can do — sign in, keep their data theirs, get an answer from their own
+notes — none of which sitting 5 changes. The retirer is invisible to an outsider until Task 8
+gives it a caller. `docs/external-track.md` is unchanged too: no owner or state moved.
+
+**Three durable facts went into ORIENTATION §4**, findings 41, 42 and 36: the `pg_locks`
+decomposition, the unlock-on-another-connection warning, and what `TRUNCATE … CASCADE` reaches.
+
+**Two LiteLLM users and two keys survive on this machine and are NOT this sitting's.**
+`mf-e741c882-…-staging` and `mf-f0d1890a-…-staging`, created at 00:24 and 02:59 UTC —
+before this session's first test run at 04:33 — and their `projects` rows are gone,
+because `pnpm test` truncates the §6 tables. That is P4b finding 183, and P4c leaves it to
+the Phase 4 reconciler. The keys test's own teardown left nothing behind.
+
+**`make demo-redeploy` was deliberately NOT re-run.** Nothing in the control plane calls
+the retirer yet, so its two still-red retire assertions are Task 8's caller rather than
+this sitting's code, and sitting 3's 14 of 21 stands as the acceptance's current reading.

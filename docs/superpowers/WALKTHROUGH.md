@@ -84,12 +84,13 @@ the feature it tests, so the platform's behaviour could be measured before anyth
 built on it (P4c sitting 1, 2026-09-15). It exited 1 with eleven of its twenty-one
 assertions red: a redeploy was about a second of empty 502s, it signed every user out, it
 left the old container running, and a release that never became ready took the app down.
-**Re-run at the end of P4c sitting 3 it is 14 of 21 green**, up from ten (sitting 4 changed
-the driver but not the control plane, so it did not move): the redeploy
+**Re-run at the end of P4c sitting 3 it is 14 of 21 green**, up from ten (sittings 4 and 5
+changed the driver and built the retirer, but nothing in the control plane calls either yet,
+so it has not moved since): the redeploy
 windows now hold no 502 and no wildcard answer at all, and a release that never becomes
 ready leaves the previous one serving. The seven still red are the work that is left —
-the old container is not retired (Tasks 5 and 7), a failed release's container is not
-removed (Task 8), and people are still signed out (Task 10, which is also why questions
+the old container is not retired (Task 8 wires up what Tasks 5 and 7 built), a failed
+release's container is not removed (Task 8), and people are still signed out (Task 10, which is also why questions
 asked during a redeploy fail: 397 of them with 401, none with a 5xx). Do not run it expecting a working demo; run the three above.
 
 `make demo-ai` and `make demo-identity` end with **`Done.`** and leave a note each for the
@@ -190,8 +191,9 @@ ORIENTATION §6 and any plan's negative controls.
 - **`pnpm test` and `pnpm test:docker` empty the control plane's tables.** Demo projects vanish
   (their containers keep running), and the next demo prints `reusing project` — correctly.
 - **Every redeploy leaves the previous container running** and signs every user out (**P4c's
-  job — being executed; since 2026-09-15 the DRIVER can retire the old container, but nothing
-  calls it until Task 7, and the sessions are Task 10's**). It no
+  job — being executed; since 2026-09-15 the driver can retire the old container and the
+  retirer that decides what to retire exists, but nothing calls either until Task 8, and the
+  sessions are Task 10's**). It no
   longer takes the app down while the new container starts: since 2026-09-15 the driver proves
   the new instance ready before it moves the route — zero 502s at the driver under a request
   every 25 ms, and zero across all three phases of `make demo-redeploy`. To clean the containers up, RUNBOOK's *Known gaps* — and remove each
