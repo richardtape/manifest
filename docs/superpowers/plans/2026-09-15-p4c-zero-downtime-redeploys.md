@@ -29,8 +29,8 @@ Agreed with Rich on 2026-09-15, the pattern that carried P4a's last twelve tasks
 | 3 ✅ | 3–4 | The edge (upsert in place, identity header, what serves, what is in flight), then the Docker `ensureInstance` that uses it: beside, privately ready, moved, verified, rolled back — **done 2026-09-15, 7 findings; `redeploy.docker.test.ts` takes a hostname over under a request every 25 ms with ZERO 502s and ZERO wildcard answers, where the pre-P4c order records seven empty 502s. `make demo-redeploy` was re-run at the end and moved from 10/21 green to 14/21 — every remaining red belongs to Task 5, 7, 8 or 10. Two negative controls first came out wrong — one red for the wrong reason, one GREEN — and neither fixture app 404s an unknown path, which Task 5's `neverReady` fixture depends on** | ✅ |
 | 4 ✅ | 5 | Docker `retireInstance`, `listInstances`, `servingInstance`, `restoreRoute` and the gateway detach — **done 2026-09-15, 6 findings; THE CONTRACT SUITE IS GREEN ON THE DOCKER DRIVER — 25 of 25, 0 skipped**, where sitting 3 left the eleven-test continuity block skipped. A retire drains a real request held open through the real edge and returns only once it has been ANSWERED, and cuts it off at its bound. **Two of the plan's own negative controls were defective**: (b) comes out GREEN and cannot fail, and the retire guard as written protects NOTHING for a pre-P4c container — the one R7 exists to reap | ✅ |
 | 5 ✅ | 6–7 | The data and the keys (the `Route` table, migration 0009, per-instance AI keys, the advisory lock, the drain setting), then the retirer that uses them — **done 2026-09-15, 9 findings; §6's `Route` exists and an AI key is stored PER INSTANCE, so the draining container's key stays live; `retireEnvironment` reaps every instance of an environment that does not serve, and does NOTHING when nothing serves. THREE of the plan's own negative controls could not fail** — Task 6's (c) and (d) and Task 7's (c) — and all three were measured and replaced. **Nothing calls the retirer yet: that is Task 8** | ✅ |
-| 6 | 8–9 | `deployRelease` reordered — serialized, per instance, failing without taking the app down — with its wiring; then boot recovery | ← **next** |
-| 7 | 10 | `node-ts-mongo@1` keeps sessions in the app's own Mongo. **Alone, and the one sitting that NEEDS THE NETWORK ON**: it adds a pinned dependency, regenerates the lockfile and needs `make seed` to warm Verdaccio from it (P4a sitting 5, P4b sitting 6) | |
+| 6 ✅ | 8–9 | `deployRelease` reordered — serialized, per instance, failing without taking the app down — with its wiring; then boot recovery — **done 2026-09-15, 10 findings; THE RETIRER HAS A CALLER AND THE PLATFORM REDEPLOYS ITSELF END TO END**: `releases/redeploy.docker.test.ts` replaces an instance under a request every 25 ms with zero 502s and zero wildcard answers and then reaps the old container with its files volume, and `boot.docker.test.ts` proves the real compiled entry point puts a lost route back, ends an interrupted deploy and finishes a cut-short drain. **Task 8's control (a) could not fail** and was replaced; **sitting 5's correction 3 was confirmed by measurement** — the plan's code leaks a first deploy's failed container with `INSTANCE_SERVING`; and **`retireEnvironment` opens the app's whole secret set before it retires anything, so a set it cannot open silently stops every reap** | ✅ |
+| 7 | 10 | `node-ts-mongo@1` keeps sessions in the app's own Mongo. **Alone, and the one sitting that NEEDS THE NETWORK ON**: it adds a pinned dependency, regenerates the lockfile and needs `make seed` to warm Verdaccio from it (P4a sitting 5, P4b sitting 6) | ← **next** |
 | 8 | 11 | `make demo-redeploy` green, with its negative controls. **Alone**, for the reason P4a's Task 15 and P4b's Task 16 were alone | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -4230,3 +4230,209 @@ the Phase 4 reconciler. The keys test's own teardown left nothing behind.
 **`make demo-redeploy` was deliberately NOT re-run.** Nothing in the control plane calls
 the retirer yet, so its two still-red retire assertions are Task 8's caller rather than
 this sitting's code, and sitting 3's 14 of 21 stands as the acceptance's current reading.
+
+### Sitting 6 — Tasks 8 and 9 — 2026-09-15 — 10 findings
+
+**What it built, and the headline.** `deployRelease` now runs everything that changes
+what serves inside the environment's advisory lock — the instance row, the mint, the
+ensure, §6's Route record and the marking of every instance it replaced — and **the
+retirer has a caller**, which is what Tasks 5, 6 and 7 were built for. An AI key is
+minted and recorded against THIS instance before its container starts and revoked when
+that instance is retired; `commitAppKey` is deleted with its caller.
+`GET /environments/:environmentId` reports the instance the Route row names rather than
+the newest deploy. Then `recoverAtBoot`: §6's routes back on the edge, interrupted
+deploys ended, and a retire pass asked for over every environment with something left to
+remove — before `listen`, so an app is reachable again before this process accepts the
+first request that might deploy over it. Commits `fd65cf2`, `be4b01c`, `f849525`.
+
+**THE PLATFORM NOW REDEPLOYS ITSELF END TO END, through the control plane.**
+`releases/redeploy.docker.test.ts` replaces an instance under a request every 25 ms —
+**zero 502s, zero wildcard answers, exactly two identities answering in order** — and
+then reaps the old container **with its `-files` volume**; a release that never becomes
+ready leaves the previous one serving and its own container is gone once §14's Incident
+has been read through its handle; and two deploys of one environment at once leave one
+Route row, one serving instance and one container. `boot.docker.test.ts` proves the same
+three recoveries against the **real compiled entry point**.
+
+**Two of the plan's own corrections were confirmed by measurement, and one of its
+negative controls could not fail.** That is the fourth could-not-fail control in this
+plan (sitting 4's 29, sitting 5's 35, 36 and 37).
+
+44. **TASK 8'S CONTROL (a) CANNOT FAIL.** It says: *"Take `withEnvironmentLock` off
+    `deployRelease` → the concurrent-deploy tests fail."* Measured 2026-09-15 with the
+    lock replaced by a bare IIFE: **58 of 58 passed**. Two `deployRelease` calls against
+    the fake driver stay in lockstep through the same awaits, so each one's Route row
+    lands after its own `ensureInstance` and the row and the edge agree either way. What
+    the lock actually buys is **the window**: from the instance row to the Route row,
+    nothing else may change what this environment serves. The replacement holds a deploy
+    open at its `ensureInstance` and asks a second holder of `withEnvironmentLock` to
+    come in — red without the lock, with `a second holder got in while a deploy was
+    mid-flight` — and it also checks that a **different** environment is not blocked,
+    because a lock keyed on anything coarser would serialize the whole platform.
+45. **SITTING 5'S CORRECTION 3 IS REAL, AND MEASURED.** A first deploy that promotes and
+    then fails its own health check has no previous instance to restore, so the route is
+    left dialling the failed one — and `retireInstance` refuses it. Watched with the
+    plan's code as written: `{"level":"error","msg":"a failed instance could not be
+    removed; the next deploy or boot will retire it","error":"INSTANCE_SERVING"}`, and
+    the container and its `-files` volume — which on a real app holds the SP private key
+    — survive, which is exactly what R5 says must not happen. **The fallback is
+    `destroyInstance`**, which removes the route with the container and leaves the
+    hostname on the edge's wildcard: honest, because the app was never up. It also gives
+    `destroyInstance` its **first production caller** — *Read this first* item 2 recorded
+    that it had none, and a function with no call site is this project's most-repeated
+    defect.
+46. **`retireEnvironment` OPENS THE APP'S WHOLE SECRET SET BEFORE IT RETIRES ANYTHING,
+    AND A SET IT CANNOT OPEN SILENTLY STOPS EVERY REAP.** Measured at the boot tier: the
+    fixture deployed under a freshly generated master keypair while the booted control
+    plane reads `infra/secrets/master.key`, so `secretValues` threw
+    `SECRET_UNWRAP_FAILED` before the first `retireInstance`, `createRetirer`'s outer
+    catch turned it into one line on the child's stderr, and **both containers were still
+    running after 120 s** with the route correctly restored and the boot line reporting
+    success. §14's redaction fails closed by design, so refusing to write an Event under
+    a partial set is right — but the consequence is that one unopenable secret set stops
+    that environment being reaped for ever, and nothing above stderr says so. **Named,
+    not fixed**; the fixture now loads the platform's own key, which is also the honest
+    thing for a test that boots the real process.
+47. **THE RETIRER IS GENUINELY CONCURRENT WITH ANYTHING A TEST ASSERTS AFTER A DEPLOY
+    RETURNS.** `schedule` returns while the deploy is still inside the lock, and the pass
+    takes that lock the moment the deploy releases it — so a Docker-tier assertion that
+    the replaced row is `destroying` read `gone` on its second run. The marking is pinned
+    deterministically in the unit tier instead, against a retirer that only records; the
+    Docker tier accepts either and asserts the end state after `idle()`.
+48. **TWO `createFakeDriver()`s HAND OUT THE SAME HANDLES.** Each counts its own
+    instances from `inst-1`, so two fixtures with their own drivers both call their
+    instance `inst-1`. `recover.test.ts`'s *carries on with the rest* test then refused
+    **both** routes and read as a defect in `recoverAtBoot`. The fixture takes a driver,
+    as `retire.test.ts`'s does, and the broken instance is now **really gone** —
+    `destroyInstance`d — rather than a stub that refuses.
+49. **THE TOLERATED RESET LANDED LAST, AND A RESET CARRIES NO IDENTITY HEADER.**
+    `expect(seen.at(-1)!.instance).toBe(second.id)` — the assertion the driver's own
+    redeploy suite uses — failed on an otherwise perfect run: no 5xx, no wildcard, one
+    status-0. The Docker-tier redeploy assertions now read the requests that were
+    **answered**, assert that **none of them lacks an identity header** (Decision 6, and
+    a stronger check than the original), and assert that **exactly two identities ever
+    answered, in that order**.
+50. **`commitAppKey` reached nine files, and its Docker-tier block was a test of the
+    function rather than of the gateway.** Sitting 5's correction 1 was right about the
+    count. Every assertion in that block that is about LiteLLM survives against
+    `storeInstanceKey`/`revokeInstanceKey` — the 409 redeploy and the budget update, the
+    model list, the escalation 403, the discard, and the 404-tolerant revoke — and P4b's
+    *one live key* invariant becomes **two live keys while two instances exist**, which
+    is P4c's whole point at the gateway. The legacy key is now written with `putSecret`,
+    as sitting 5 said, because nothing else writes it any more.
+51. **The `a commit that fails…` test has no subject any more, and is deleted.** It
+    asserted that a bookkeeping failure after health leaves the instance recorded
+    healthy; there is no longer any AI call between health and the return. Its successor
+    is *discards a key it could not record*, which refuses the deploy **before the
+    container starts** — the only remaining way a key can be minted and not recorded.
+52. **A STATUS-ONLY CHECK PASSES WITH NO ROUTE AT ALL, measured as this task's control
+    (d).** With `restoreRoute` skipped at boot, `expect(status).toBe(200)` — asserted
+    first, deliberately — **passed**, and `expect(instance).toBe(<id>)` failed on `''`.
+    The edge's wildcard answered. P4b finding 193 as a live control, and the reason every
+    assertion in these two suites reads the identity header or the body.
+53. **SKIPPING `restoreRoute` AT BOOT ALSO STOPS EVERY RETIRE**, which is correction 1's
+    cascade observed rather than reasoned. The same control run took down *finishes a
+    drain a restart cut short* as well: with no route restored, `servingInstance` answers
+    `undefined` and `retireEnvironment` does nothing at all, so both containers were
+    still there. The unit tier pins the order directly — *RESTORES THE ROUTES BEFORE IT
+    SCHEDULES* reads what the edge holds at the moment a retire is scheduled, and goes
+    red with `[undefined, 'inst-1']`.
+
+**Decisions this sitting made.**
+
+- **A failed first deploy's route goes with its container** (finding 45), via
+  `destroyInstance`. *Rejected:* leaving the route and accepting the leak (R5 forbids
+  it); removing the route from `releases/` through `routing/`, which would duplicate what
+  `destroyInstance` already does and give the route two producers.
+- **`recoverAtBoot` schedules a pass for every environment that still has a non-`gone`
+  instance row.** *Rejected:* every environment (a pass over an app nobody has deployed
+  reads the driver for nothing and reports a retire that is not pending), and only
+  environments with a `destroying` row (which would miss the pre-P4c backlog R7 exists
+  for, whose rows are `healthy`).
+- **`api/testing.ts` gets a REAL retirer**, as the task says: a stub would let a deploy
+  that never schedules one pass every API test. `releases.test.ts`'s default records and
+  does nothing, because a real one would drain and remove the instance every redeploy
+  test in that file leaves behind — which is Task 7's behaviour, tested there.
+- **`ai.key_rotated` is published at the moment the route moved**, in the events block's
+  healthy branch, rather than after a commit that no longer exists. The frame order the
+  P4b test asserts — `instance.healthy` then `ai.key_rotated` — is unchanged.
+
+**Twelve negative controls, each watched.** The letters are the plan's own, per task.
+
+| Task | | Broken | What went red |
+|---|---|---|---|
+| 8 | a | `withEnvironmentLock` replaced by a bare IIFE | **NOTHING — 58 of 58 passed** (finding 44). The plan's control cannot fail |
+| 8 | a′ | the same, against the rewritten test | *holds the environment's lock from the instance row to the Route row* — `a second holder got in while a deploy was mid-flight` |
+| 8 | b | the Route row written whether or not health passed | three: *schedules no retire, and marks nothing, when the deploy failed*, *leaves the previous instance serving…*, and the API's *reports the instance that SERVES* |
+| 8 | c | `deps.retirer.schedule(...)` removed | *marks every other instance destroying, and schedules the retire* — and **all three** Docker-tier redeploy tests, which end with 2, 2 and 4 containers |
+| 8 | d | the failed instance never removed | the Docker tier's *…and removes the failed container* — two containers where one belongs |
+| 8 | e | the failed instance removed ABOVE `captureIncident` | three, including §14's own: the Incident's log is `(the application printed nothing)` |
+| 8 | f | the plan's unguarded `retireInstance` for a failed first deploy | *a FIRST deploy that fails after the move takes its route with it* — `INSTANCE_SERVING`, container and volume left (finding 45) |
+| 9 | a | `restoreRoute` skipped at boot | the boot tier's *re-applies an app's route* (on `''`) **and** *finishes a drain a restart cut short* (finding 53) |
+| 9 | b | a failed `restoreRoute` allowed to throw | *reports a route whose instance is gone, and carries on with the rest* |
+| 9 | c | the `interrupted` pass dropped | *ends a deploy the restart interrupted* — the row stays `provisioning` |
+| 9 | d | the boot-tier route test asserted on the STATUS, `restoreRoute` skipped | **it PASSED** — the wildcard answers 200 (finding 52) |
+| 9 | e | the sweeps scheduled BEFORE the routes are restored | *RESTORES THE ROUTES BEFORE IT SCHEDULES* — `[undefined, 'inst-1']`, which is every pass a silent no-op |
+
+Controls (a′), (f) and (e) are the three worth keeping: each is the only thing in the
+suite that fails for the case it exists to protect.
+
+**THE ACCEPTANCE: `make demo-redeploy` IS 19 OF 21 GREEN**, against sitting 3's 14 and
+sitting 1's baseline of 10. Every retire assertion that was Task 7's and Task 8's is
+green, in both redeploy phases and in the failed-release phase: *the previous instance
+was retired within 150 s*, *exactly one app container is left*, *no files volume without
+a container*, *LiteLLM holds exactly one key for the app*, and *the failed release left
+no container*. Of the **560 requests** made through the edge across the three windows —
+54, 52 and 454 — **every one was answered by the app**: no 5xx, no wildcard page, and
+**zero resets**, where sitting 1 measured a window of empty 502s 1.0–1.9 s long on every
+redeploy. The `failed-release` window is the one to notice: 91.4 s of a deploy that never
+became ready, 454 requests, **one instance seen throughout** — R5, measured.
+
+**The two still red are Task 10's, and they are one thing**: *nobody was signed out* and
+*every question was answered 200 (123 asked)*. The student's session lives in the app's
+memory, so a redeploy signs them out and their next questions are 401s. Sitting 7 moves
+sessions into the app's own Mongo. Raw output:
+[`../spikes/p4c-baseline/results-sitting6-2026-09-15.txt`](../spikes/p4c-baseline/results-sitting6-2026-09-15.txt).
+
+**Task 9's numbers reached the real boot line**, run from README's *Running the control
+plane*: `{"driver":"docker","port":7100,"ai":"enabled","routesRestored":0,
+"routesFailed":0,"interrupted":0,"msg":"control plane ready","secretsScrubbed":12}`.
+`routesRestored: 0` because `pnpm test` had truncated the §6 tables, so there were no
+Route records — which is Decision 20's *no backfill* showing itself rather than a defect.
+
+**Gates.** `pnpm test` **824 passed, 71 files**, run **twice**, identical — 13 more than
+sitting 5's 811: eleven for Task 8 (less the six that went with `commitAppKey` — five in
+`ai/keys.test.ts` and the commit-failure test), one for the corrected lock control, and
+seven for `recoverAtBoot`. `pnpm test:docker` **166 passed, 0 skipped, 27 files**
+(~751 s) — six more than sitting 5's 160: three in `releases/redeploy.docker.test.ts` and
+three in `boot.docker.test.ts`. `pnpm lint`, `pnpm --filter @manifest/control-plane
+typecheck`, `pnpm format:check` clean. `make doctor` **18 / 0**, `make verify` **47 / 0**,
+unchanged.
+
+**Machine.** `./scripts/snapshot-machine.sh` before and after: containers, networks and
+volumes **identical** apart from the proof app's own instance and its `-files` volume,
+which `make demo-redeploy` replaced — **one container and one volume, where before P4c
+the old one would have stayed** — so the difference is the feature rather than a leak.
+Seventeen images the Docker tier and the acceptance built were removed by digest, each
+checked absent from the before-snapshot first and skipped if a container references it;
+the one left is the proof app's current image, which is running. The control plane this
+sitting started for the acceptance was stopped, and port 7100 is free again.
+
+**Routes did NOT have to be restored by hand, for the first time in four sittings** — but
+not because Task 9 rescued this run. `pnpm test:docker` restarts the edge and `pnpm test`
+truncates the §6 tables, so after a full run there are no `Route` records to restore and
+the boot line honestly says `routesRestored: 0`; `make demo-redeploy` then redeployed the
+proof app and wrote it a fresh one. What Task 9 buys is real and narrower than it looks:
+**a control-plane restart now repairs the edge for every app that has a Route record**,
+which is every app deployed since P4c whose rows still exist.
+
+**The four shared HTML pages were CHECKED and need no change.** None of
+`manifest-schematic.html`, `manifest-phases.html`, `manifest-decisions.html` or
+`manifest-stories.html` mentions P4c, sittings or redeploys, and what a person can do
+with the platform is unchanged — a redeploy that nobody notices is invisible to an
+outsider until it is described. `docs/external-track.md` is unchanged too: no owner or
+state moved.
+
+**Three durable facts went into ORIENTATION §4**, findings 46, 48 and 49: what an
+unopenable secret set does to the retirer, the colliding fake-driver handles, and the
+tolerated reset that carries no identity header.

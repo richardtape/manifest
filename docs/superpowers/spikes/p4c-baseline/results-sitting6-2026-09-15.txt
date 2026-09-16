@@ -1,0 +1,86 @@
+`make demo-redeploy`, at the end of P4c SITTING 6 (Tasks 8 and 9) — 2026-09-15.
+
+19 OF 21 GREEN, against sitting 3's 14 and sitting 1's baseline of 10. The retire
+assertions that were Task 7's and Task 8's are green in both redeploy phases and in the
+failed-release phase: the previous instance is retired within 150 s, exactly one app
+container is left, no files volume outlives its container, LiteLLM holds exactly one key
+for the app, and a release that never becomes ready leaves NO container behind.
+
+Of the 560 requests made through the edge across the three windows — 54, 52 and 454 —
+EVERY ONE was answered by the app: no 5xx, no wildcard page, and ZERO resets, where
+sitting 1's baseline measured a window of empty 502s 1.0-1.9 s long on every redeploy.
+
+The two still red are Task 10's, and they are one thing: the student's session lives in
+the app's memory, so a redeploy signs them out and their next 122 questions are 401s.
+`node-ts-mongo@1` moves sessions into the app's own Mongo in sitting 7.
+
+Run against the control plane started from README's *Running the control plane*, whose
+boot line carried Task 9's recovery numbers for the first time:
+{"driver":"docker","port":7100,"ai":"enabled","routesRestored":0,"routesFailed":0,
+ "interrupted":0,"msg":"control plane ready","secretsScrubbed":12}
+(`routesRestored: 0` because `pnpm test` had truncated the §6 tables, so there were no
+Route records to restore — which is Decision 20's "no backfill" showing itself.)
+
+-----------------------------------------------------------------------------
+
+0. Is the control plane up?
+  http://127.0.0.1:7100 answered
+
+1. Log in to Manifest itself with CWL (§9: Manifest is its own SP)
+
+2. The proof app, deployed and healthy — the instance every later phase replaces
+  reusing project cf8c8562-d174-4b0a-a67c-938d78d150ef
+  pushed 76ea474f583c55cd2090589ead2bcdd551987ace
+  valid; sensitive diff: {"sensitive":false,"fields":[]}
+  built sha256:f1dac1d283b1ec11aff193fb81f4b943ed474d542322a58aa5bf50ad7dcc1885
+  release 23d1b505-5e9f-4eab-a990-2b7c01512ec9
+  instance healthy at https://proof-app.staging.manifest.internal
+  healthz pings its own database: {"status":"ok","mongo":true}
+
+3. Subscribe to the project's event stream
+
+4. A student signs in, writes a note, and the two loops start
+  ok   a question is answered before any redeploy — the AI path works
+
+5. A SAME-release redeploy, while both loops run
+  ok   same-release: the deploy is healthy
+  ok   same-release: the edge names the new instance
+  ok   same-release: the previous instance was retired within 150 s
+  ok   same-release: exactly one app container is left
+  ok   same-release: no files volume without a container
+  ok   same-release: LiteLLM holds exactly one key for the app
+
+6. A NEW-release redeploy
+  pushed 7475b8cc31fd9a78efd66a6312c9438c9e1f6b3a
+  valid; sensitive diff: {"sensitive":true,"fields":["services"]}
+  ok   new-release: the deploy is healthy
+  ok   new-release: the edge names the new instance
+  ok   new-release: the previous instance was retired within 150 s
+  ok   new-release: exactly one app container is left
+  ok   new-release: LiteLLM holds exactly one key for the app
+
+7. A release that never becomes ready — the previous instance keeps serving
+  pushed e7004c99a7ff70ff91179fcd1c7d78e11c8844d4
+  valid; sensitive diff: {"sensitive":true,"fields":["services"]}
+  ok   failed release: the deploy is recorded failed
+  ok   failed release: the edge still names the instance that was serving
+  ok   failed release: an Incident names the failed instance
+  ok   failed release: the failed release left no container
+  ok   failed release: no files volume without a container
+  ok   failed release: LiteLLM still holds exactly one key for the app
+
+8. What the loops saw
+{"phase":"same-release","deployMs":5798,"requests":54,"counts":{"app":54},"instancesSeen":["a6957944-8cbd-48d9-87d9-5f546c520b45","e3c081d6-8830-4c85-a3ca-943ffde789b6"],"firstWrongAtMs":null,"lastWrongEndedMs":null}
+{"phase":"new-release","deployMs":5393,"requests":52,"counts":{"app":52},"instancesSeen":["e3c081d6-8830-4c85-a3ca-943ffde789b6","0de60489-7149-43a2-89eb-a94eda39d720"],"firstWrongAtMs":null,"lastWrongEndedMs":null}
+{"phase":"failed-release","deployMs":91400,"requests":454,"counts":{"app":454},"instancesSeen":["0de60489-7149-43a2-89eb-a94eda39d720"],"firstWrongAtMs":null,"lastWrongEndedMs":null}
+  ok   no 5xx and no wildcard answer in any redeploy window
+  FAIL every question was answered 200 (123 asked)
+  FAIL nobody was signed out
+  resets: 0 (tolerated — an edge configuration reload, §11)
+
+FAILED:
+  - every question was answered 200 (123 asked)
+  - nobody was signed out
+raw output kept in /var/folders/jc/z5frlyr10fxcqlgsk755hfp40000gn/T/mf-redeploy.NDzcpiyNj4
+make: *** [demo-redeploy] Error 1
+exit=2

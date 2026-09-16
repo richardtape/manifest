@@ -480,6 +480,12 @@ restarts every container on the machine, so it is a person's call rather than a 
   demo hostname answers the edge's wildcard page, `manifest OK host=…`, **with status 200**,
   while the app's containers stay up and healthy. **Read the body, not the status.** Re-run
   `make demo`, `make demo-identity` or `make demo-ai` to deploy it again.
+  **Since P4c Task 9, RESTARTING THE CONTROL PLANE re-applies the routes** — `recoverAtBoot`
+  does it before the server listens, and the boot line says how many it restored. That only
+  helps for an app with a §6 `Route` record, and `pnpm test` truncates the table those live in,
+  so after a *unit* run there is nothing to restore and the demo has to be deployed again. An
+  app deployed before P4c has no record either, deliberately: there is no backfill, and it gets
+  one at its next deploy.
 
 Two smaller things P1's execution did not settle:
 
