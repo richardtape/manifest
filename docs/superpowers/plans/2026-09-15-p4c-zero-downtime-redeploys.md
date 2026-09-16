@@ -26,8 +26,8 @@ Agreed with Rich on 2026-09-15, the pattern that carried P4a's last twelve tasks
 |---|---|---|---|
 | 1 ✅ | 1 | **The acceptance, built first and watched failing**, plus the five edge and Docker measurements every later task relies on. **Alone**, and first, because every worst defect in this project arrived the first time something ran end to end (brief §8) — **done 2026-09-15, 13 findings; run three times, exit 1 each time; the baseline is run C; M1 confirmed `UNLISTED_UPSTREAM_IS_IDLE = true` and M4 made Decision 2's alias load-bearing** | ✅ |
 | 2 ✅ | 2 | §11's contract in code: `InstanceSpec.instanceId`/`hostname`, the four new methods, the fake driver's routes and in-flight counters, and the contract suite's continuity block — **done 2026-09-15, 4 findings; the fake runs all eleven continuity tests, the Docker driver's four refuse and its block skips with its reason; the plan's fake folded `failInstances` into the readiness refusal and erased the health-check half of §14's Incident** | ✅ |
-| 3 | 3–4 | The edge (upsert in place, identity header, what serves, what is in flight), then the Docker `ensureInstance` that uses it: beside, privately ready, moved, verified, rolled back | ← **next** |
-| 4 | 5 | Docker `retireInstance`, `listInstances`, `servingInstance`, `restoreRoute` and the gateway detach — **the contract suite green on the Docker driver**, drain tests included | |
+| 3 ✅ | 3–4 | The edge (upsert in place, identity header, what serves, what is in flight), then the Docker `ensureInstance` that uses it: beside, privately ready, moved, verified, rolled back — **done 2026-09-15, 7 findings; `redeploy.docker.test.ts` takes a hostname over under a request every 25 ms with ZERO 502s and ZERO wildcard answers, where the pre-P4c order records seven empty 502s. Two negative controls first came out wrong — one red for the wrong reason, one GREEN — and neither fixture app 404s an unknown path, which Task 5's `neverReady` fixture depends on** | ✅ |
+| 4 | 5 | Docker `retireInstance`, `listInstances`, `servingInstance`, `restoreRoute` and the gateway detach — **the contract suite green on the Docker driver**, drain tests included | ← **next** |
 | 5 | 6–7 | The data and the keys (the `Route` table, migration 0009, per-instance AI keys, the advisory lock, the drain setting), then the retirer that uses them | |
 | 6 | 8–9 | `deployRelease` reordered — serialized, per instance, failing without taking the app down — with its wiring; then boot recovery | |
 | 7 | 10 | `node-ts-mongo@1` keeps sessions in the app's own Mongo. **Alone, and the one sitting that NEEDS THE NETWORK ON**: it adds a pinned dependency, regenerates the lockfile and needs `make seed` to warm Verdaccio from it (P4a sitting 5, P4b sitting 6) | |
@@ -2109,6 +2109,29 @@ git commit -m "feat(runtime/docker): start beside, ready privately, move once, v
 
 ## Task 5: Retire, list, serve, restore — and the contract suite green on Docker
 
+> **THREE CORRECTIONS FROM SITTING 3 (2026-09-15).**
+>
+> 1. **`neverReady: (spec) => ({ ...spec, healthPath: '/never-ready' })` CANNOT WORK, and its
+>    comment is wrong.** Neither fixture app 404s a path it does not serve: `fixture-node@1`'s
+>    skeleton ends with `res.writeHead(200); res.end('fixture-app in …')` and
+>    `fixtures/fixture-app` ends with a catch-all 200 carrying its JSON. Measured 2026-09-15 —
+>    the instance became ready immediately and the test passed for the wrong reason. Task 1's
+>    finding 10 measured the 404 on the **proof app**, which is Express and does 404; that is a
+>    different application. Use a port nothing is bound to instead, which is what
+>    `roundtrip.docker.test.ts` and `redeploy.docker.test.ts` both do:
+>    `neverReady: (spec) => ({ ...spec, port: 9999 })`. The app still listens on the port its
+>    rendered `PORT` names, so it is up and answering while the probe gets connection-refused
+>    for ever — which is the state §11 means by "never became ready".
+> 2. **`redeploy.docker.test.ts` already exists and builds from `/tmp/repo`** (Task 4). So
+>    Decision 24's stamp on `ensureContractRepo` is load-bearing for two suites, not one: until
+>    it lands, `/hold?ms=` added to the skeleton in step 1 is NOT in the bare repo that either
+>    suite builds from, and both keep testing the skeleton as it was. Do step 1's stamp before
+>    step 1's `/hold`, and check `git -C /tmp/repo log -1 --stat` after.
+> 3. **That suite is SEQUENTIAL and `vitest -t` does not work on it** — each test reads the
+>    state the one before it left. Two of sitting 3's negative controls were first watched with
+>    `-t` and failed on `servingRoute` being `undefined`, before the thing under test ran. Run
+>    the whole file and read the FIRST failure. Task 5 adds retire and volume assertions to it.
+
 **Files:**
 - Create: `packages/control-plane/src/runtime/docker/containers.ts`
 - Modify: `packages/control-plane/src/runtime/docker/driver.ts` (the four methods)
@@ -3625,3 +3648,147 @@ Control (d) is the one worth keeping: it fails loudly and in two files, which is
 So the route was restored **by hand**, as one admin `PUT` of exactly the route `buildRoute` produces, dialling the running container; the hostname serves the app's own body again. The next `make demo-ai` or `make demo-redeploy` recreates the project and takes it over.
 
 The Docker tier also left five images in the daemon. Three were removed by digest, each checked absent from the previous snapshot under every name first; **two could not be, and should not be** — `local/fixture-s6` and `local/saml-unsigned` answer *"image is referenced in multiple repositories"*, which is ORIENTATION §4's shared-digest case: two fixtures built from the same source share one digest, and untagging one name only moves the diff to the other. They are named here rather than forced.
+
+### Sitting 3 — Tasks 3 and 4 — 2026-09-15 — 7 findings
+
+**What it built.** The edge, and the `ensureInstance` that uses it. `applyRoute` upserts —
+`GET /id/<route>`, then `PATCH` where one exists and `PUT` at index 0 where none does — so a
+redeploy never leaves the hostname with no route; every route serves `X-Manifest-Instance` from a
+**deferred** headers handler; `servingRoute`, `restoreRouteTo`, `inFlightTo`, `upstreamsInUse`,
+`upstreamOf` and `instanceIdOf` are the reads Tasks 4 and 5 rest on; `reapplyAllRoutes` is
+**deleted** (Decision 22). Then the driver: `instanceAlias`, the five container labels, the
+network alias set at create time, `createKeyedMutex`, `privateProbe`, and an `ensureInstance` that
+starts the container **beside** what serves, proves it ready **privately** from inside the edge,
+moves the route **once**, and resolves only when the edge answers **as this instance**. A move it
+cannot confirm is put back; a readiness refusal leaves the previous release serving and the failed
+container in place for §14's Incident. Commits `9640e78` and `adc8446`.
+
+**THE PLAN'S CENTRAL CLAIM, PROVED AT THE DRIVER.** `redeploy.docker.test.ts` takes
+`fixture-rd.staging.manifest.internal` over from one live instance to another under a request
+every 25 ms: **zero wildcard answers, zero 5xx, zero resets**, the first request answered by the
+first instance and the last by the second, and the first container **still running** afterwards —
+which is what makes Task 5's drain possible at all. The takeover took **6.4 s**. With the route
+moved before readiness — the order this task replaces — the same loop records **seven empty 502s**,
+which is the brief's 1.0–1.9 s baseline as a test failure.
+
+**Two defects found by RUNNING it, in the tier that exists for exactly this.**
+
+22. **`demux` strips newlines, and the probe concatenated its lines.** `demux` yields one record
+    per LINE with the terminator removed — it exists for §14's log stream, where a line is the
+    unit — and `curlThroughEdge` built its result with `out += line.text`. A two-line `-w` format
+    therefore came back as `20033333333-3333-4333-8333-333333333333`, so the status parsed as
+    **20,033,333,333** and the identity as nothing. **No unit test could see it** — both tiers fake
+    the probe — and `edgeProbe` never had, because a one-line format has no newline to lose. The
+    lines are joined back in the shared runner, and the control is to concatenate them again: the
+    unit tier stays **36 of 36 green** while the Docker tier goes red.
+23. **`routes.docker.test.ts` created its app container in the FIRST test**, so the four tests
+    after it depended on that side effect. Negative control (a) — delete-then-put restored — went
+    red on `expected '' to be 'ok'` **before its request loop ran**, which proves nothing. That is
+    P2's defect 7 exactly, and `readiness.docker.test.ts` already avoided it. Setup moved to
+    `beforeAll`, after which the same control goes red on **3 wildcard answers, 200 each, with no
+    identity** — the brief's measurement, reproduced inside the suite.
+
+**Two defects found by a NEGATIVE CONTROL behaving wrongly**, which is this sitting's pattern.
+
+24. **`fixtureBareRepo()` builds `fixtures/fixture-app`, which needs Mongo before it listens.**
+    `await client.connect()` runs ahead of `server.listen`, so with no service provisioned the new
+    suite sat with `node server.js` running, nothing bound, and an empty log for 30 s, then died
+    with `MongoServerSelectionError: connect ECONNREFUSED 127.0.0.1:27017` — read by the readiness
+    probe as **87 attempts of `000`**. The suite now builds the blueprint SKELETON from the
+    contract repo, as the plan's own snippet did, which serves `/healthz` with no database.
+25. **Neither fixture app 404s a path it does not serve**, so the plan's never-ready mechanism
+    cannot work. Both end in a catch-all **200**. Task 1's finding 10 measured the 404 on the
+    **proof app**, which is Express; that is a different application, and Task 5's `neverReady`
+    fixture inherits the mistake — the correction is at the top of Task 5. Here the probe is
+    pointed at a port nothing is bound to instead, as `roundtrip.docker.test.ts` already does.
+26. **Negative control (b) came out GREEN.** The first rollback test used a driver whose route
+    writes did nothing — so the route never moved, and deleting `restoreRouteTo` altogether had
+    nothing to undo. The test now uses a driver that **writes successfully and writes a route
+    dialling nowhere**, mangled only for the instance under test so the rollback's own write goes
+    through untouched. The control then goes red on the hostname left on `mf-i-nowhere:9999`, with
+    the app down. Task 1's finding 11 shape, twice in one sitting.
+
+**One found by CLEANING UP.**
+
+28. **`docker network rm` refuses while any container is attached, and a `.catch(() => undefined)`
+    around it makes that silent.** Every app network carries the platform's neighbours (§4), so
+    the new suite's `afterAll` — a bare `docker network rm` — could never have worked:
+    `has active endpoints (manifest-dns-containers, manifest-caddy)`, swallowed, network left
+    behind. Found only because the machine snapshot was diffed. It now calls `destroyAppNetwork`,
+    which disconnects the neighbours first, as `releases/incident.docker.test.ts` already did — and
+    the network is gone after a run. This is ORIENTATION §4's five-lost-app-networks shape.
+
+**One found by the FULL Docker tier and nothing smaller.**
+
+27. **`releases/incident.docker.test.ts` also pins the readiness `check` text**, which Task 4's
+    step 7 named two suites for and not this one. `pnpm test`, `pnpm lint`, `tsc` and
+    `vitest --project docker src/runtime/docker` were all green with it broken; only
+    `pnpm test:docker` in full saw it. It now asserts against `instanceAlias(instance.id)` read
+    back from the row, which is the stronger form sitting 2's finding 20 established.
+
+**One decision, recorded rather than left ambiguous.** **`edgeProbe` lost its last production
+caller and is KEPT.** This project's rule is that a function with no call site is not built —
+Decision 22 deleted `reapplyAllRoutes` under it the same day. The rule exists because uncalled
+code has never run, and `edgeProbe` runs on every Docker-tier pass as **the control**: it answers
+**200** against a hostname holding no route, for any path, which is the entire reason
+`waitForIdentity` exists. Deleting it would mean rebuilding the probe container inside a test to
+keep the control — the duplication `curlThroughEdge` was factored out to prevent. Its doc comment
+now says all of this, and says what to reach for instead.
+
+**Nine negative controls, each watched.**
+
+| | Broken | What went red |
+|---|---|---|
+| a | delete-then-put restored in `applyRoute` | *moves a route between two upstreams with no wildcard answer* — **3 wildcard answers, 200 each, no identity** |
+| b | `deferred: true` removed from the headers handler | *an app cannot serve its own* — **both** `x-manifest-instance` values on the wire, the edge's and the app's `forged` |
+| c | `waitForIdentity` accepting any 200 | 3 unit tests and 2 Docker tests |
+| d | `patchRoute` swallowing a 404 | *refuses to treat a 404 as success* |
+| e | the demux line-join reverted to concatenation | the identity probe, on Docker — **and the unit tier stays 36/36**, which is the point |
+| f | `applyRoute` moved above the readiness wait | *takes the hostname over…* — **7 empty 502s**, the brief's baseline as a test |
+| g | the `restoreRouteTo` call deleted | *a move the edge cannot confirm is put back* — hostname left on `mf-i-nowhere:9999` |
+| h | readiness probed at the PUBLIC HOSTNAME | the never-ready deploy fails as `identity: … 502 after 23 attempt(s)` instead of `readiness: …` — i.e. the live app was moved away and rolled back for nothing |
+| i | the network alias removed from `NetworkingConfig` | every deploy fails readiness, **87 attempts of 0** — the control for Decision 2 |
+
+Control (h) is the one worth keeping: it does not merely fail, it shows the *worse* failure the
+private probe exists to avoid — the route moving on the strength of the instance already serving.
+
+**What this sitting deliberately did NOT do.** The Docker driver's `retireInstance`,
+`servingInstance`, `listInstances` and `restoreRoute` still throw `DRIVER_UNSUPPORTED` naming
+Task 5, and the contract suite's continuity block is still skipped for it **with the reason in its
+name** — 11 skipped, unchanged. So nothing yet removes the old instance a redeploy leaves running:
+after this sitting a redeploy leaves **two** containers, which is the state Task 5 reaps and which
+the machine record below accounts for.
+
+**Gates.** `pnpm test` **775 passed, 67 files**, run **twice**, identical — 27 more than sitting
+2's 748 (20 in `routing/`, 5 for the keyed mutex, 2 for the alias). `pnpm test:docker` **144
+passed and 11 skipped** in **26 files** (~524 s) — 11 more than sitting 2's 133 (2 in
+`routes.docker.test.ts`, 3 in `readiness.docker.test.ts`, 5 in the new
+`redeploy.docker.test.ts`, and 1 recount). `pnpm lint`, `pnpm --filter @manifest/control-plane
+typecheck`, `pnpm format:check` clean. `make doctor` **18 / 0**, `make verify` **47 / 0**,
+unchanged.
+
+**Documents swept.** The roadmap ledger first — including its defect-rate table, which gains three
+P4c rows — then this plan's sittings table, the corrections at the top of Task 5, ORIENTATION §2,
+§3, §4 and §7d-3, `README.md` and `CLAUDE.md`. `RUNBOOK.md` and `WALKTHROUGH.md` state `make
+doctor` and `make verify` only, which are unchanged at 18/0 and 47/0. **The four HTML pages were
+CHECKED and need no change**: none mentions P4c, and this sitting changed no product behaviour a
+reader outside the team can see, no decision, no hostname example and no spike count.
+`docs/external-track.md` is untouched.
+
+**Machine.** `./scripts/snapshot-machine.sh` before and after: once finding 28 was fixed and the
+images removed, the only differences are timestamps, uptimes, 3 GiB of disk and the git state.
+Containers are **exactly the six `mf-` ones that were there at the start** — the two demo apps with
+their databases and egress proxies — with no leak from any run. Three images the Docker tier built
+were removed by digest, each checked absent from the before-snapshot first: `local/blueprint-ntm`,
+`local/incident-probe`, and one digest carrying **two** names, `local/chem-labs` and
+`local/fixture-rd` — this sitting's new suite builds the same `/tmp/repo` at `abc123` as the
+contract suite, so D30's reproducible build gives them the same image, and both tags had to be
+untagged before the layer would go.
+
+**Routes were restored by hand, again.** `pnpm test:docker` restarts the edge, which drops every
+runtime route (nothing re-applies them until Task 9), and it also left a stale
+`mf-chem-labs-staging-manifest-internal` route dialling a container that no longer existed. That
+route was removed, and `proof-app` and `fixture-app` were each given back the route `buildRoute`
+produces, dialling their running containers; both hostnames serve their own body again
+(`{"status":"ok","mongo":true}`) rather than the edge's wildcard. **Read the body, never the
+status.**

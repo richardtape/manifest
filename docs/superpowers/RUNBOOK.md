@@ -404,16 +404,20 @@ restarts every container on the machine, so it is a person's call rather than a 
   `make reset` machine. **P4b's Task 16 appended a step 7, `make demo-ai`** (2026-09-15),
   equally unrun offline; its open question is whether **Ollama** — a host application,
   not a container — answers with the network off.
-- **A redeploy is not zero-downtime — the app answers 502 for about as long as it takes to boot,
-  and every signed-in person is signed out.** *Measured 2026-09-15 under a request loop classified
-  by body:* a same-release redeploy produced **7 empty 502s between +428 ms and +1,634 ms**, a
-  new-release redeploy 6 between +411 ms and +1,417 ms, and in both the first request to the new
-  container answered **401** — the blueprint keeps sessions in the container's memory, so a new
-  container has none. `DockerDriver.ensureInstance` moves the edge route to the new container and
-  only then waits for it to answer, and `applyRoute` deletes the route before re-adding it.
-  **P4c fixes all of it — WRITTEN 2026-09-15, 11 tasks in eight sittings, NOT YET EXECUTED**
+- **A redeploy still signs every signed-in person out — but since 2026-09-15 it no longer
+  502s the app.** *The baseline, measured 2026-09-15 under a request loop classified by body:* a
+  same-release redeploy produced **7 empty 502s between +428 ms and +1,634 ms**, a new-release
+  redeploy 6 between +411 ms and +1,417 ms, and in both the first request to the new container
+  answered **401** — the blueprint keeps sessions in the container's memory, so a new container has
+  none. **P4c's sitting 3 fixed the 502s at the driver**: `ensureInstance` now starts the new
+  container beside the one serving, proves it ready from inside the edge, and moves the route with
+  one in-place `PATCH` only then — measured at the driver as **zero 502s and zero wildcard answers**
+  under a request every 25 ms, against seven empty 502s for the old order. **The 401 is NOT fixed**
+  (sessions move to the app's own Mongo in Task 10), and `make demo-redeploy` has not been re-run
+  since the driver changed, so the end-to-end numbers above are the last measured ones.
+  **P4c is being executed — 11 tasks in eight sittings, sittings 1–3 done**
   ([`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md)).
-  Until it runs, redeploy when nobody is using the app. **Do
+  Redeploy when nobody is mid-session. **Do
   not "clean up" an old instance through the driver's `destroyInstance`:** it removes the route by
   hostname, which the live instance shares. The workaround in the next item uses `docker rm`
   for exactly that reason.
@@ -421,9 +425,12 @@ restarts every container on the machine, so it is a person's call rather than a 
   2026-09-09:* eleven deploys of one app in one session produced eleven
   `mf-proof-app-staging-*-app` containers, all `Up` and healthy, each holding its full
   cpu/memory/pids allocation, with only one carrying the route. `deployRelease` calls
-  `ensureInstance` and nothing destroys what the last release left. **Reaping belongs
-  to §11's reconciliation loop, which is Phase 4 (D10)**, so this is a gap rather than
-  a regression — but nothing bounds it, and a long session of redeploys will eat the
+  `ensureInstance` and nothing destroys what the last release left. **P4c's Task 5 gives the
+  driver a `retireInstance` that drains and removes, and its Task 7 the background retirer that
+  calls it; until those land this is unchanged, and sitting 3 made a redeploy leave the old
+  container by design rather than by omission** — it has to stay up to keep serving what is in
+  flight. Fleet-wide reaping still belongs to §11's reconciliation loop, which is Phase 4 (D10),
+  so this is a gap rather than a regression — but nothing bounds it, and a long session of redeploys will eat the
   Docker VM's 8 GB. **Workaround** — and `-v` removes a container's ANONYMOUS volumes
   only, so each instance's named `-files` volume has to go by name:
 

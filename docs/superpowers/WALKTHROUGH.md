@@ -29,7 +29,10 @@ to staging; sign a person in with practice CWL; keep each person's data theirs; 
 questions through a per-app AI key charged to the person who asked; stream build logs and
 events; record a failed deploy as an Incident. **What does not exist yet:** a web console
 (P5) — everything is JSON; production deploys (refused, with a checklist); redeploys that
-do not interrupt the app (P4c — written 2026-09-15, not yet executed).
+keep people signed in and tidy up after themselves (P4c — being executed; since
+2026-09-15 the driver starts the new container beside the old one and moves the route only
+once it is ready, but nothing removes the old container yet and every redeploy still signs
+people out).
 
 ---
 
@@ -78,10 +81,14 @@ make demo-redeploy    # P4c's acceptance — RED ON PURPOSE until P4c is execute
 
 **`make demo-redeploy` fails today, and that is the point.** It was written first, before
 the feature it tests, so the platform's behaviour could be measured before anything was
-built on it (P4c sitting 1, 2026-09-15). It exits 1 with eleven assertions red: a redeploy
-is about a second of empty 502s, it signs every user out, it leaves the old container
-running, and a release that never becomes ready takes the app down. **Ten of its twenty-one
-assertions are already green.** Do not run it expecting a working demo; run the three above.
+built on it (P4c sitting 1, 2026-09-15). It exited 1 with eleven of its twenty-one
+assertions red: a redeploy was about a second of empty 502s, it signed every user out, it
+left the old container running, and a release that never became ready took the app down.
+**Two of those four are fixed in the driver since sitting 3** — the route moves only once
+the new instance is ready, and a release that never becomes ready leaves the previous one
+serving — but **the acceptance has not been re-run since**, so how many assertions are green
+today is unmeasured. It stays red until Task 11 in any case, because people are still signed
+out and the old container is still left running. Do not run it expecting a working demo; run the three above.
 
 `make demo-ai` and `make demo-identity` end with **`Done.`** and leave a note each for the
 student and the instructor, so there is something to ask about.
@@ -180,9 +187,12 @@ ORIENTATION §6 and any plan's negative controls.
   every demo URL answers this way until you run the demo again. **Read the body, not the status.**
 - **`pnpm test` and `pnpm test:docker` empty the control plane's tables.** Demo projects vanish
   (their containers keep running), and the next demo prints `reusing project` — correctly.
-- **Every redeploy leaves the previous container running**, interrupts the app for about a second
-  and signs every user out (measured 2026-09-15 — **P4c's job: written, not yet executed**). To clean up, RUNBOOK's *Known gaps* — and remove each container's `-files`
-  volume too: it holds a private key.
+- **Every redeploy leaves the previous container running** and signs every user out (**P4c's
+  job — being executed; the container is Task 5's and the sessions are Task 10's**). It no
+  longer takes the app down while the new container starts: since 2026-09-15 the driver proves
+  the new instance ready before it moves the route, measured at the driver with zero 502s under
+  a request every 25 ms. To clean the containers up, RUNBOOK's *Known gaps* — and remove each
+  one's `-files` volume too: it holds a private key.
 - **An AI app whose gateway drops off its network can make a person wait ten minutes** before an
   error. Redeploying the app re-attaches it. RUNBOOK's *Known gaps*.
 - **After a reboot:** `make up`. If the host cannot reach `https://*.manifest.internal` but
