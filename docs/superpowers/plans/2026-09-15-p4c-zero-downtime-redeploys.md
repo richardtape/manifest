@@ -1770,6 +1770,15 @@ git commit -m "feat(routing): move a route in place, name the instance on every 
 ---
 ## Task 4: The Docker `ensureInstance` — beside, privately ready, moved, verified, rolled back
 
+> **ONE CORRECTION FROM SITTING 2 (2026-09-15).** `manifest.hostname` is **already written** by
+> `ensureInstanceContainer`, and `destroyInstance` already reads it to find the route to remove.
+> It was pulled forward because Task 2 deletes `DockerDriverOptions.hostnameFor` — between the two
+> tasks the driver would otherwise have had no way to name the route, and the removal sits inside a
+> `.catch(() => undefined)`, so it would have failed silently (finding 19). So the `LABEL` map
+> below adds **three** labels to a container in practice — `instance`, `port`, `aiGateway` —
+> and replaces one hand-written literal with `LABEL.hostname`. The refusal on a mismatched
+> environment hash is likewise already in place, as the text below already notes.
+
 **Files:**
 - Modify: `packages/control-plane/src/runtime/docker/names.ts` (`instanceAlias`, `LABEL`)
 - Create: `packages/control-plane/src/runtime/docker/keyed-mutex.ts` + `keyed-mutex.test.ts`

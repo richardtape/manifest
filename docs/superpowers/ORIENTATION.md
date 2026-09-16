@@ -1722,7 +1722,9 @@ carries the `Driver` contract the plan builds — the spec is the target here, n
 
 **Read, in this order:** the plan's *Read this first* — twelve facts the brief did not know, four
 of which changed the design, including that **nothing re-applies routes at all** — then *Decisions
-Rich made*, *Global Constraints*, and sitting 1's task. The brief,
+Rich made*, *Global Constraints*, **the sitting records for 1 and 2 at the end of the plan
+(*What executing this plan found*), which carry the corrections written into later tasks**, and
+then your own sitting's tasks. The brief,
 [`plans/2026-09-15-p4c-brief.md`](plans/2026-09-15-p4c-brief.md), holds the measurements behind all
 of it and is still worth reading: the redeploy baseline under load, three ways of moving an edge
 route measured, and a request in flight shown to survive a move.
