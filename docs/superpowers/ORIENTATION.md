@@ -1,6 +1,6 @@
 # Orientation — read this first
 
-**You are picking up a project whose design is finished and whose first five
+**You are picking up a project whose design is finished and whose first six
 implementation plans are executed — P1, P2, P3, P4a and, since 2026-09-15, all 16 tasks of
 P4b. §16's proof app is complete: it signs a real person in with CWL, keeps their data
 theirs, and answers their question from their own notes through a language model, charged
@@ -9,7 +9,8 @@ streams over one WebSocket per project. **P4c — zero-downtime
 redeploys — IS EXECUTED TOO: all 11 tasks in eight sittings, finished 2026-09-16, 70 findings.
 THE PLATFORM REDEPLOYS AN APP WITHOUT INTERRUPTING ANYBODY OR SIGNING ANYBODY OUT**, puts its
 routes back at its own boot, and `make demo-redeploy` — P4c's acceptance, 24 assertions — is
-green from a `make reset` machine. **The next job is WRITING P5** (§7e). This is the single
+green from a `make reset` machine. **The next job is WRITING THE P5a PLAN — the first of Phase 1c's
+three — and §7e says exactly what that is, what is already decided, and what to read.** This is the single
 entry point: what Manifest is, what has been established, what the machine will do to
 you, and what to do next. It is written for someone with **no prior context** —
 a new agent with a fresh window, or a developer joining.
@@ -141,7 +142,7 @@ two came out of Tasks 1–3, the third out of Task 5, the fourth out of Task 8:
 | | State |
 |---|---|
 | **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. **S6 has since run too, as P3's Task 18, 2026-09-07: every probe denied, every denial paired with a positive control, and one result BETTER than the spec** — §21's divergence 8 no longer holds, because app networks are `--internal` and the developer's machine is unroutable rather than merely policed. S5 and S4 are deliberately later (S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
-| **Plans** | **P1, P2, P3, P4a, P4b AND P4c ARE ALL EXECUTED — P4a ON 2026-09-09, P4b ON 2026-09-15, P4c ON 2026-09-16 (11 tasks in eight agreed sittings, 70 findings). THE NEXT PLAN TO WRITE IS P5.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a's fifteen tasks found 80 defects — 5.3 per task, the highest rate measured here, in the plan that had the most research behind it.** Two were spec-level and are in §8. **P4b's sixteen tasks found 140 — 8.8 per task, the highest rate measured here, and its acceptance alone found 22.** P4c (zero-downtime redeploys, placed after P4b by Rich on 2026-09-14) is **EXECUTED — sittings 1 to 8, 2026-09-15 and 2026-09-16, with 13 findings, 4, 7, 6, 9, 10, 9 and 12; sitting 3 proved the plan's central claim at the driver, sitting 4 made the §11 contract green on the real driver, 25 of 25 with nothing skipped, and SITTING 6 GAVE ALL OF IT A CALLER — a hostname taken over from one live instance to another under a request every 25 ms with ZERO 502s and ZERO wildcard answers, now through `deployRelease` and with the old container reaped behind it, where the pre-P4c order records seven empty 502s — and SITTING 7 put `node-ts-mongo@1`'s sessions in the app's own Mongo, so a redeploy signs nobody out; SITTING 8 ran the acceptance green three times, once from a `make reset` machine, and found that four of its nine negative controls could not fail in it — each is now watched red in the tier that can see it**; P5 is unwritten and is the next job — see §7e. **The unrun stack was 16 tasks when P4b was written**, which is what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
+| **Plans** | **P1, P2, P3, P4a, P4b AND P4c ARE ALL EXECUTED — P4a ON 2026-09-09, P4b ON 2026-09-15, P4c ON 2026-09-16 (11 tasks in eight agreed sittings, 70 findings). P5 IS NOW THREE PLANS, AND THE NEXT TO WRITE IS P5a — §7e.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a's fifteen tasks found 80 defects — 5.3 per task, the highest rate measured here, in the plan that had the most research behind it.** Two were spec-level and are in §8. **P4b's sixteen tasks found 140 — 8.8 per task, the highest rate measured here, and its acceptance alone found 22.** P4c (zero-downtime redeploys, placed after P4b by Rich on 2026-09-14) is **EXECUTED — sittings 1 to 8, 2026-09-15 and 2026-09-16, with 13 findings, 4, 7, 6, 9, 10, 9 and 12; sitting 3 proved the plan's central claim at the driver, sitting 4 made the §11 contract green on the real driver, 25 of 25 with nothing skipped, and SITTING 6 GAVE ALL OF IT A CALLER — a hostname taken over from one live instance to another under a request every 25 ms with ZERO 502s and ZERO wildcard answers, now through `deployRelease` and with the old container reaped behind it, where the pre-P4c order records seven empty 502s — and SITTING 7 put `node-ts-mongo@1`'s sessions in the app's own Mongo, so a redeploy signs nobody out; SITTING 8 ran the acceptance green three times, once from a `make reset` machine, and found that four of its nine negative controls could not fail in it — each is now watched red in the tier that can see it**; P5 — split by Rich into P5a, P5b and P5c — is unwritten, and writing P5a is the next job — see §7e. **The unrun stack was 16 tasks when P4b was written**, which is what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
 | **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`.** **The numbers are in the box below** — this row used to restate them and drifted by four releases.  **P4a Tasks 1–3 then added `sso/`'s test surface and login suite, `runtime/docker/archive.ts`, `infra/idp/metadata/saml20-idp-hosted.php`, `infra/idp/attributemap/ubcoid.php`, three new `infra/lib/ensure-*.sh` scripts wired into `make up`, and `fixtures/saml-sp/`; Tasks 4–5 added `secrets/`; Tasks 6–7 added `sso/`'s production half — `keypair.ts`, `entity.ts`, `metadata-store.ts`, `registration.ts` — plus `MANIFEST_IDP_DATABASE_URL` and `MANIFEST_SP_ENTITY_BASE` in `config.ts`; and Tasks 8–9 added `observability/` (`events.ts`, `redact.ts`), the `audit` schema and its migration, `infra/lib/ensure-app-role.sh` and the `manifest_app` role the control plane now connects as, and `sso`'s wire into `DeployDeps`, `ServerDeps` and boot. **Tasks 10–11 added `spec/injection.ts` — §8's table as data and the one renderer of every variable an app receives — plus `config.idp`, `secrets/`'s `ensureSessionSecret`, `SsoRegistrar.idpSigningCertificate()`, `ai` on `ResolvedConfig`, and the reserved-name check in `spec/policy.ts`. `deployRelease`'s ad-hoc env block is gone. Tasks 12–13 added `blueprints/node-ts-mongo/` — the descriptor, the Dockerfile, the skeleton with its auth component and §9's attribute bridge, and the D25 knowledge pack — plus `spec/injection-drift.test.ts` (§16's drift tier, reading the blueprint's source), `runtime/docker/node-ts-mongo.docker.test.ts` and `blueprints/attribute-bridge.test.ts`. Task 14 added `identity/saml.ts` — the control plane's own SAML SP, on `@node-saml/node-saml` rather than the `passport-saml` the blueprint pins — `identity/testing.ts` (an in-process SAML IdP and `testSessionCookie`), `identity/saml.docker.test.ts`, `sso/platform.ts` and `infra/lib/ensure-cp-sp-keypair.sh`, and DELETED `identity/dev-auth.ts` and its test.** **P4b's Task 3 (2026-09-14) added `ai/testing.ts` — probe keys through LiteLLM's admin API — and `ai/ai-path.docker.test.ts`, probes 13 and 14 in `runtime/docker/s6.docker.test.ts`, `ensureLitellmMasterKey()` in `vitest.env.ts`, and `ubc-genai-toolkit-llm@0.7.0` as an exact devDependency. Its Tasks 4–5 (sitting 3) added `ai/errors.ts` — S3's error table as one mapper — `ai/client.ts`, the LiteLLM admin transport, `ai/index.ts`, and `config.litellm`. Its Tasks 6–7 (sitting 4) added `ai/catalogue.ts` — D17's catalogue from `/model/info`, with `disabledCatalogue()` for `MANIFEST_AI_ENABLED=0` — `ai/keys.ts` (`AI_ALLOWED_ROUTES`, `ensureAiUser`, `rotateAppKey`, `createAiKeyService`), `ai/keys.docker.test.ts`, `declaredCatalogue()` in `ai/testing.ts`, `ServerDeps.catalogue`, a 503 in `api/errors.ts` for a gateway failure, and `SPEC_AI_DISABLED` and `SPEC_AI_BUDGET_REQUIRED` in `spec/policy.ts`; the model array in `api/routes/projects.ts` is deleted. Its Tasks 8–9 (sitting 5) added `runtime/docker/networks.test.ts`, `AI_GATEWAY_NEIGHBOUR` and the neighbour sweep in `destroyAppNetwork`, `InstanceSpec.needsAiGateway`, the `manifest.env-sha256` container label, `mintAppKey`/`commitAppKey`/`discardAppKey` and `disabledAiKeyService()` in place of `rotateAppKey`, `CatalogueSnapshot`, `declaresModels` and `SPEC_MODEL_UNCLASSIFIED`, `InjectionContext.ai` with §8's six AI rows, and `ai` and `catalogue` on `DeployDeps` and `ServerDeps`. Its Task 10 (sitting 6) added `blueprints/node-ts-mongo/skeleton/ai/` — `llm.js` and `end-user.js` — with `provides.ai: true` and the toolkit pin, `blueprints/ai-component.test.ts` (the wire tier), and an empty npm cache in `infra/seed/seed.sh`'s warm step. Its Tasks 11–12 (sitting 7) added `observability/build-logs.ts` with migration 0005's `audit.build_logs`, `observability/testing.ts`, `BuildOpts` and `onLog` on `Driver.buildImage`, `runStreamed` and `REDACTED_TOKEN` in `runtime/docker/builder.ts`, `GET /builds/:buildId/logs`, and `makeRedactor`'s entropy and pattern heuristics. Its Task 13 (sitting 8) added `observability/incidents.ts` — `captureIncident`, `listIncidents`, `incidentPrompt` — over migration 0006's `audit.incidents`, `describeDiff` and `DESCRIBED_PATHS` in `spec/diff.ts`, `InstanceNotReadyError` and `InstanceStatus.exitCode` in `runtime/driver.ts`, `AppSecretResolver.secretValues`, `GET /environments/:environmentId/incidents`, `createServiceContainer` with the authentication-enforced Mongo health check, and `releases/incident.docker.test.ts`. Its Tasks 14–15 (sitting 9) added `observability/bus.ts` — `createEventBus`, `publishEvent`, `recentFramesFor` and the three frame producers — `api/routes/events.ts` with `WS /projects/:projectId/events`, `@fastify/websocket` 11.3.0, `ServerDeps.bus` and `DeployDeps.bus`, the `onLine` hand-off in `createBuildLogWriter`, six new `EVENT_TYPES`, and migrations 0007 (`clock_timestamp()`) and 0008 (`events_type_known`). Its Task 16 (sitting 10) added `scripts/demo-ai.sh` and `make demo-ai`, `scripts/lib/proof-app.sh` — the proof app assembled and deployed once, for both demos — `scripts/lib/event-stream.mjs`, the dependency-free stream subscriber, `POST /api/ask` in the proof app, and `embed(texts, puid)` in the blueprint's AI component; it DELETED `fixtures/proof-app/identity.js`.* **P4c's Task 1 (sitting 1) added `scripts/demo-redeploy.sh`, `make demo-redeploy`, `scripts/lib/redeploy-loop.mjs` and `redeploy-summary.mjs`, and `spikes/p4c-baseline/p4c-measure-edge.sh`. Its Task 2 (sitting 2) added `InstanceSpec.instanceId`/`hostname`, the four continuity methods and `DriverRefusalError` on `Driver`, and the contract suite's eleven-test continuity block. Its Tasks 3–4 (sitting 3) added `runtime/docker/probes.ts` and `keyed-mutex.ts`, `instanceAlias` and the five container labels, `routing/`'s `servingRoute`/`restoreRouteTo`/`inFlightTo`/`upstreamsInUse`/`upstreamOf`/`instanceIdOf` and `edgeIdentityProbe`/`waitForIdentity`, and `runtime/docker/redeploy.docker.test.ts`; `reapplyAllRoutes` is DELETED. Its Task 5 (sitting 4) added `runtime/docker/containers.ts` — `listContainers`, `inspectApp`, `dialHostOf`, `upstreamFor`, `hostOfAddress`, `containerForUpstream` — `detachAiGatewayIfUnused` in `networks.ts`, the Docker driver's four continuity methods with `drainUpstream` and `UNLISTED_UPSTREAM_IS_IDLE`, `dockerContinuityFixtures()` and a STAMP on `ensureContractRepo`, `/hold?ms=` in `fixture-node@1`'s skeleton, and `containers.test.ts`. **Its Tasks 6–7 (sitting 5) added the `routes` table and migration 0009 (both enums, the table, and the `events_type_known` CHECK dropped and re-added with three retire types), `db/locks.ts` with `withEnvironmentLock` and `locks.test.ts`, `deleteSecret` in `secrets/store.ts`, `instanceKeySecretName`/`storeInstanceKey`/`revokeInstanceKey`/`revokeLegacyAppKey` on `ai/keys.ts` and `AiKeyService`, the `interrupted` transition in `state-machine.ts`, `MANIFEST_DRAIN_TIMEOUT_MS` → `config.drainTimeoutMs`, and `releases/retire.ts` + `retire.test.ts` — `retireEnvironment`, `createRetirer`, `RetirerDeps`, `RetireOutcome`.** **Its Tasks 8–9 (sitting 6) reordered `releases/release.ts` under the lock and added `releases/recover.ts` (`recoverAtBoot`) with `recover.test.ts`, `releases/redeploy.docker.test.ts`, `ServerDeps.retirer` with a real retirer in `api/testing.ts`, the Route row read by `GET /environments/:environmentId`, three recovery tests in `boot.docker.test.ts`, and recovery before `listen` in `src/index.ts`; `commitAppKey` is DELETED. Its Task 10 (sitting 7) added `blueprints/node-ts-mongo/skeleton/auth/session.js` (`sessionMiddleware`), `connect-mongo` 6.0.0 in the skeleton's `package.json`, `package-lock.json` and `blueprint.yaml`, *Two releases run at once* in `agents/AGENTS.md`, `blueprints/session-component.test.ts`, and a completed CWL login in `runtime/docker/node-ts-mongo.docker.test.ts`; the skeleton's and the proof app's `server.js` no longer import `express-session`. Its Task 11 (sitting 8) changed `scripts/demo-redeploy.sh` and `scripts/lib/redeploy-summary.mjs` — the asker records each answer's instance, three more assertions, `--across-move`, `--instances` and `inFlightAtRetire` — and added a key-order test to `releases/releases.test.ts`; `routes.docker.test.ts` now counts R1's reset.**|
 | **Spec** | Current. **Eight more spec actions were applied on 2026-09-14** with Rich's approval — §12's scan-gate wording, four of P4a's, P4b's LiteLLM digest row, and two §7 rows he settled once Tasks 6 and 7 had run, which change committed code that P4b's Task 9 now carries; **P4b's last three were applied on 2026-09-15**, Rich's calls once Task 14 had run — §10's per-user budget is validated, not enforced, in Phase 1; §10's agent-key row binds from Phase 3; and §14 describes the event stream as built — and zero-downtime redeploys wait for P4c (§8). Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
 
@@ -160,7 +161,7 @@ only current one.** §7a and §7c carry the same four numbers as P1's and P3's c
 records, and they are DATED measurements that deliberately do not move — if any of them
 disagrees with this box, this box wins.
 
-The immediate work is **WRITING P5 — contract and clients** (§7e). **P4c is executed (2026-09-15 and 2026-09-16; 70 findings across eight sittings), and the platform now redeploys an app without interrupting anybody or signing anybody out:** `deployRelease` starts the new instance beside the one serving, proves it ready from INSIDE THE EDGE against a bounded per-instance alias, moves the route with one in-place `PATCH`, resolves only when the edge answers as that instance — all inside an advisory lock per environment, with §6's `Route` record written and the retirer scheduled behind it. A release that never becomes ready leaves the previous one serving and takes its own container, its files volume and its key with it. **`recoverAtBoot` puts the routes back at the control plane's own boot**, ends the deploys a restart interrupted and finishes the drains it cut short. `node-ts-mongo@1` keeps its sessions in the app's own Mongo (`skeleton/auth/session.js`).
+The immediate work is **WRITING P5a — the contract, first of 1c's three plans** (§7e, which is complete: task, decisions, reading order, traps). **P4c is executed (2026-09-15 and 2026-09-16; 70 findings across eight sittings), and the platform now redeploys an app without interrupting anybody or signing anybody out:** `deployRelease` starts the new instance beside the one serving, proves it ready from INSIDE THE EDGE against a bounded per-instance alias, moves the route with one in-place `PATCH`, resolves only when the edge answers as that instance — all inside an advisory lock per environment, with §6's `Route` record written and the retirer scheduled behind it. A release that never becomes ready leaves the previous one serving and takes its own container, its files volume and its key with it. **`recoverAtBoot` puts the routes back at the control plane's own boot**, ends the deploys a restart interrupted and finishes the drains it cut short. `node-ts-mongo@1` keeps its sessions in the app's own Mongo (`skeleton/auth/session.js`).
 **`make demo-redeploy` is P4c's acceptance and it is green** — at once, again immediately, and from a
 `make reset` machine (sitting 8): every request in every redeploy window answered by the app, zero
 resets, nobody signed out, and in each redeploy that moves the route a question under way at the
@@ -191,7 +192,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 |---|---|
 | **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
 | **executing a plan** | **No plan is waiting to be executed: P4c, the last one written, is done.** [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md) — 11 tasks in eight agreed sittings, **all done, 2026-09-15 and 2026-09-16, 70 findings**; sitting 1's record carries the baseline, and sitting 8's the acceptance with its nine controls. The sittings pattern — one per session, a check-in at each boundary — is how P5 should be executed too. [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) — 16 tasks in **ten agreed sittings, one per session**; **all ten are done, 2026-09-15**, and their findings — numbered 1 to 194, the pre-flight reads' corrections among them — are in the plan's *What executing this plan found*. P4a itself is [`2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md) — 15 tasks, **all executed, 2026-09-09**, self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P4a's own *What executing this plan found* first — Sessions 1 to 9, 80 defects — and then P3's**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
-| **writing a plan** | ← **this is the current job: P5** — §7e. P4c is written and executed. House style: `plans/2026-08-30-p1-local-substrate.md`, `2026-08-29-p2-control-plane-spine.md`, or either half of P4. |
+| **writing a plan** | ← **this is the current job: P5a** — §7e, then [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md). P4c is written and executed. House style: `plans/2026-08-30-p1-local-substrate.md`, `2026-08-29-p2-control-plane-spine.md`, or either half of P4. |
 | **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. The short version of RUNBOOK. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
 | **writing code** | Seventeen modules exist: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/` (with `runtime/docker/`), `source/`, `identity/`, `projects/`, `releases/`, `api/`, P3's `services/`, `build/` and `routing/`, P4a's `secrets/`, `sso/` and `observability/`, and P4b's `ai/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else is built against them — then `runtime/docker/driver.ts`, which is the one implementation of that interface and where every P3 module meets; then `api/server.ts` for how a request becomes an actor, and `projects/authz.ts` for the one function every route's security depends on. **Then run `make demo` once**: it is the only thing that exercises all of it through the real HTTP surface, and it is where the last four sessions' worst defects were found. |
@@ -235,8 +236,10 @@ docs/superpowers/
 │                                                  requirement LiteLLM 1.98.0
 │                                                  cannot satisfy.
 │   └── 2026-09-16-p5-brief.md
-│                                                  THE BRIEF FOR WRITING P5. Five
-│                                                  decisions for Rich in its §5.
+│                                                  THE BRIEF FOR WRITING P5a, P5b
+│                                                  AND P5c. All five of Rich's
+│                                                  decisions made 2026-09-16 and
+│                                                  applied to the spec.
 │   └── 2026-09-15-p4c-zero-downtime-redeploys.md
 │                                                  P4c. 11 tasks in EIGHT AGREED
 │                                                  SITTINGS. WRITTEN 2026-09-15,
@@ -1232,13 +1235,13 @@ coherent. Follow them.
 
 ---
 
-## 7. What to do next — write P5 (P4c is executed)
+## 7. What to do next — write P5a (P4c is executed; P5 is three plans)
 
 P1, P2, P3 and P4a are all executed and green; S6 has reported; **P3's six spec actions
 were applied on 2026-09-07**. P4 was split into **P4a** and **P4b** (Rich's
 call). **P4a is finished — all 15 tasks, 1–5 on 2026-09-08 and 6–15 on 2026-09-09.
 P4b is executed in full: sitting 1 ran Task 1's reconciliation pass and Task 2's LiteLLM
-pin on 2026-09-09, sitting 2 ran Task 3, sitting 3 ran Tasks 4–5, sitting 4 ran Tasks 6–7, sitting 5 ran Tasks 8–9, sitting 6 ran Task 10 and sitting 7 ran Tasks 11–12, all on 2026-09-14, sitting 8 ran Task 13, sitting 9 ran Tasks 14–15 and sitting 10 ran Task 16, all on 2026-09-15**, so P4b is finished, and **P4c — §7d-3 — is finished too: all eight sittings, 2026-09-15 and 2026-09-16, 70 findings**, one sitting per session exactly as P4a's seven and P4b's ten. **The next job is writing P5 — §7e.** **P4b ran in ten agreed sittings**,
+pin on 2026-09-09, sitting 2 ran Task 3, sitting 3 ran Tasks 4–5, sitting 4 ran Tasks 6–7, sitting 5 ran Tasks 8–9, sitting 6 ran Task 10 and sitting 7 ran Tasks 11–12, all on 2026-09-14, sitting 8 ran Task 13, sitting 9 ran Tasks 14–15 and sitting 10 ran Task 16, all on 2026-09-15**, so P4b is finished, and **P4c — §7d-3 — is finished too: all eight sittings, 2026-09-15 and 2026-09-16, 70 findings**, one sitting per session exactly as P4a's seven and P4b's ten. **The next job is writing P5a — §7e.** **P4b ran in ten agreed sittings**,
 one per session — the table is at the top of the plan and summarised in §7d-2.
 
 **The measured plan-to-reality gap, in one table.** Every one of these plans was
@@ -1706,7 +1709,7 @@ track's C4 trigger is P4b's and not this one (roadmap, *Order of operations* ste
 ### 7d-2. P4b is done *(executed 2026-09-15)* — AI, events, streaming, incidents (1b-ii)
 
 *[`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md)
-— **16 tasks, written 2026-09-07, ALL EXECUTED: Tasks 1–2 on 2026-09-09, 3–12 on 2026-09-14 and 13–16 on 2026-09-15.** Not the current job; **§7d-3 is.** This section stays because what P4b established is what P4c and P5 build on.*
+— **16 tasks, written 2026-09-07, ALL EXECUTED: Tasks 1–2 on 2026-09-09, 3–12 on 2026-09-14 and 13–16 on 2026-09-15.** Not the current job; **§7e is.** This section stays because what P4b established is what P4c and P5 build on.*
 
 **IT RUNS IN TEN AGREED SITTINGS, one per session with a check-in at each boundary**
 — settled with Rich on 2026-09-09, the same pattern that carried P4a's last twelve
@@ -1870,43 +1873,86 @@ cut off an AI question in flight and left the old container running.
 - **`make demo-redeploy` is not in `scripts/offline-acceptance.sh`**; the offline acceptance, with
   `make demo-identity` and `make demo-ai` in it, is still Rich's to run.
 
-### 7e. Write P5 — contract and clients (1c) ← **START HERE**
+### 7e. Write P5a — the contract (first of 1c's three plans) ← **START HERE**
 
-*Depends on P4; placed after P4c by Rich (2026-09-14). P4b and P4c are both executed.* The published OpenAPI contract, `manifest-mock`, the generated
-client, and the reference console (D22) that imports **only** the generated client —
-a lint boundary *and* a test enforce it, which is what converts "is the API
-complete?" from an opinion into a build failure.
+**YOUR TASK IS TO WRITE THE P5a PLAN.** Not to execute any of it, and not to write P5b or P5c:
+Rich split P5 into three plans on 2026-09-16, **each written only after the one before it has
+executed** — the 2026-09-04 lesson that a plan written against an imagined predecessor pays for it
+in defects.
 
-**Demo:** the §1 faculty journey, clickable, driven twice over one contract.
+**What 1c is.** §17's Phase 1c: the published contract and the clients that prove it — an OpenAPI
+document generated from the routes, a versioned TypeScript client, `manifest-mock`, delegated tokens
+and pending actions (D24), the knowledge pack API (D25), blueprint starters, a reference console
+that may import **only** the generated client, a read-only `LaunchReadiness` view, the audience
+question, a read-only fleet list, and a headless acceptance script. **Demo:** §22's seven-step journey,
+clicked by a person in the console and run by the script, over one contract.
 
-**READ THE BRIEF FIRST: [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md)** (2026-09-16).
-It compares §17 and §22 with the code and finds P5 is **30–40 tasks**, not the one line it looks
-like: no route has a schema and every response is a database row, so the public representations are
-the largest piece of work; project creation seeds a stub, so §22's step 6 cannot be reached from a
-browser; no event is published for provisioning or for an instance's intermediate states;
-`LaunchReadiness` is a stale constant; no admin can exist; and nothing like a delegated token exists.
-**Its §5 holds five decisions that are Rich's. FOUR ARE DECIDED (2026-09-16): starters, THREE PLANS
-(P5a contract, P5b delegated tokens, P5c clients — write P5a first), a `/v1` prefix, and no acceptance
-that depends on a second machine. ONE IS OPEN — where the API is served and who may reach it — and
-P5a's plan cannot be written without it** (§8).
-It also measured that the edge can front the control plane (so a browser console can be same-origin),
-and that an app container can reach any edge route by the edge's address even where the name does
-not resolve — so an API on the edge is reachable from app code unless the edge refuses app networks,
-which S6 does not yet probe.
+| Plan | Scope | Its acceptance |
+|---|---|---|
+| **P5a — the contract** ← yours | public representations of every resource (today every response is a database row); route schemas as the one source; OpenAPI under `/v1`; the generated client; an error-code registry; event and frame schemas, plus the journey's missing events; **the API on the console's origin through the edge**, with CSRF and the edge refusing app and sandbox networks (and the S6 probe proving it); reserved labels; project creation from the skeleton plus a starter (the proof app becomes `node-ts-mongo@1`'s first); the missing reads; the `LaunchReadiness` view with scan findings persisted; audience at creation; blueprints and the knowledge pack; an admin bootstrap and the fleet list | every §22 step driven, through the edge, by a script using only the generated client, with a session |
+| P5b — delegated tokens | D24's two tables, bearer authentication, the central rule that tokens never hold the privileged four, pending actions, per-token limits, the authorization suite's new actors | a token runs the build loop and is refused the privileged four, each refusal a `PendingAction` a human confirms |
+| P5c — the clients | `manifest-mock`, `console/` with its import boundary, the CI acceptance script | the journey clicked and run headlessly over one contract |
 
-**Invoke `superpowers:writing-plans`.** House style is P1's plan or either half of P4, and P4c's
-*Read this first* / *Decisions Rich made* / *Decisions this plan makes* layout is the newest example.
-**Propose a sitting split for Rich to approve** — every plan since P4a has been executed one sitting
-per session, and P5 will be no smaller. The roadmap's P5 section is its brief.
+**EVERYTHING THAT WAS RICH'S IS DECIDED, AND THE SPEC ALREADY SAYS IT** (Rich, 2026-09-16; spec
+commit `1d88846`). Do not re-open any of these: **(1)** a project starts from the blueprint's
+skeleton plus a chosen *starter* (§22 step 2, §25 *Starters*); **(2)** three plans, as above;
+**(3)** the console and the API share **one origin, `console.manifest.internal`, through the edge**,
+and the edge refuses the control plane's routes to app and sandbox networks (§21, §12, §16);
+**(4)** the contract is versioned by a **`/v1` path prefix** (§22 D23.8); **(5)** no P5 acceptance
+depends on a clean machine or a second developer (§17's 1c row). Applying (3) needed **§23's reserved
+labels** — `idp`, `console`, `app`, `admin`, `api`, `www` can no longer be project slugs. **Any further
+spec change is proposed to Rich, never edited** — the brief's §7 items 5 and 6 are still proposals,
+both P5b's; item 7 is not a spec change but work P5a does (persisting scan findings on the release).
 
-**The state P5's writer is handed, 2026-09-16.** `main`; P4c's last code commit is `c51224e`, and
-the sweep after it is documentation. The four numbers are §2's box. The proof app is deployed from
-`make demo-redeploy`'s last run — one app container, its database, one live LiteLLM key — on a
-machine that was `make reset` during sitting 8, so **no other project's data exists**. Every
-redeploy a contract describes is now the P4c one: `POST /environments/:environmentId/deploy`
-returns once the new instance serves, the old one drains in the background (`instance.retiring`,
-`instance.retired`, `instance.retire_failed` on the event stream), and `GET
-/environments/:environmentId` reports the instance §6's `Route` row names.
+**Read, in this order:**
+
+1. **[`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md), all of it.** It is the brief this
+   plan is written from: §2 is what the code does today with file references, §2.4 two things found
+   while applying the decisions, §3 the three measurements, §6 a default for each decision the plan
+   makes itself, and §8 the traps that will bite it.
+2. **The spec:** §22 in full; §21 *The front-end in the local topology* and the inventory; §12 *Edge*
+   (its last paragraph is new); §16's *Security regression*, *Contract*, *Acceptance* and *API
+   completeness* rows; §17's 1c row; §20 *Manifest's own front door*, *Credential classes*,
+   *Machine-actionable errors* and *Authorization*; §23's reserved labels; §25's descriptor and
+   *Starters*; §24 *Two questions*; §13 *First production launch*; §6's entities; §26's *Fleet*.
+3. **[P4c's plan](plans/2026-09-15-p4c-zero-downtime-redeploys.md)** as the house layout — *Read this
+   first*, *Decisions Rich made*, *Decisions this plan makes*, the sittings table — and its sitting 8
+   record, for how often a plan's own negative controls turn out unable to fail.
+4. **The code** the brief's §9 lists, starting with `api/server.ts` and `api/routes/`.
+5. **This file's §4** (the machine) and **§6** (how to work, and the close-out sweep a plan-writing
+   session owes too).
+
+**How to write it.** Invoke **`superpowers:writing-plans`**. Make the **first task a measurement**,
+as P4c's was: the brief's §6 names what to measure before designing — `zod/v4`'s JSON Schema on one
+real route end to end, the edge route with its source refusal and the S6 probe, and a CWL login
+through the new origin. **Propose a sitting split for Rich to approve**, one sitting per session,
+with a network-on sitting wherever a dependency is added. Write each negative control as the exact
+edit that must turn a named test red. State what P5a leaves to P5b and P5c. End the session with
+§6's sweep — the roadmap's P5a row, this section, README and `CLAUDE.md`.
+
+**What will surprise you, before you design anything:**
+
+- **Every demo script, `scripts/lib/proof-app.sh`, `infra/lib/idp-login.sh`, README's *Running the
+  control plane*, RUNBOOK and WALKTHROUGH speak `http://127.0.0.1:7100` with `curl`.** Moving the API
+  to `https://console.manifest.internal/v1` moves all of them, and the control plane's own SP
+  registration (`MANIFEST_CONTROL_PLANE_ORIGIN`, `sso/platform.ts`).
+- **`make verify` probes the edge with `console.manifest.internal`** and expects the placeholder page
+  (brief §2.4) — the task that serves the console there must move those probes.
+- **The authorization contract suite fails for any route it does not list** (`app.registeredRoutes`),
+  so every route-adding task adds its row.
+- **`pnpm test` truncates the control plane's tables and `pnpm test:docker` restarts the edge** — a
+  demo app answers the wildcard afterwards until it is redeployed.
+- **zod 3.25 already ships `zod/v4`** with `z.toJSONSchema`; no schema library needs adding to start.
+- **Adding a dependency needs the network**, and pnpm 11 refuses install scripts not named in
+  `allowBuilds` (§4).
+
+**The state you are handed, 2026-09-16.** `main`, clean. P4c's last code commit is `c51224e`; every
+commit after it is documentation, the brief or the spec. The four gate numbers are §2's box, all
+green. The proof app is deployed from `make demo-redeploy`'s last run — one app container, its
+database, one live LiteLLM key — on a machine `make reset` during P4c sitting 8, so no other project's
+data exists. The control plane is **not** running (port 7100 is free); README's *Running the control
+plane* starts it. A redeploy is P4c's: `POST /environments/:environmentId/deploy` returns once the new
+instance serves and the old one drains in the background.
 
 ---
 
@@ -1914,16 +1960,13 @@ returns once the new instance serves, the old one drains in the background (`ins
 
 Surface these; do not decide them.
 
-- **P5's five decisions — FOUR DECIDED 2026-09-16, ONE OPEN.** The reasoning is §5 of
-  [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md). **Decided by Rich:** (1) a project
-  created from the console is the blueprint skeleton plus a chosen *starter*, the proof app being
-  `node-ts-mongo@1`'s first; (2) P5 is **three plans — P5a the contract, P5b delegated tokens and
-  pending actions, P5c the clients** — each written after the one before executes; (4) the contract
-  is versioned with a **`/v1` path prefix**; (5) **no P5 acceptance depends on a clean machine or a
-  second developer**. **STILL OPEN: (3) where the API is served, and whether code running inside an
-  app may reach it through the edge.** The spec actions (1) and (4) imply — §22's step 2, §25's
-  descriptor, and D23.8's scheme — are agreed in substance and **not yet applied**; whether to apply
-  them before P5a is written is Rich's instruction to give.
+- **P5's five decisions — ALL DECIDED 2026-09-16, and applied to the spec (`1d88846`).** (1) starters;
+  (2) three plans, P5a/P5b/P5c; (3) the console and the API on one origin through the edge, refused
+  to app and sandbox networks — with §23's reserved labels, which that needed; (4) a `/v1` prefix;
+  (5) no acceptance that depends on a second machine. §7e carries them into the P5a task; the
+  reasoning is §5 of [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md). **Still Rich's,
+  when P5b is written:** the brief's §7 items 5 and 6 (D24's entity fields, and the stateless-session
+  divergence from §20). Item 7 is not a spec change: P5a makes §12's *recorded on the Release* true.
 - **§12's scan gate — SETTLED 2026-09-08, Rich's call, and written into §12 on
   2026-09-14.** The gate blocks on a Critical or High **that has a published fix**;
   findings with no fix are recorded on the Release and reported for §20's fleet-wide
