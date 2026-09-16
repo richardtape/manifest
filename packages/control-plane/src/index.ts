@@ -6,7 +6,7 @@ import { db } from './db/index.js'
 import { createCaddyClient } from './routing/index.js'
 import { createDockerDriver, createEngineClient } from './runtime/index.js'
 import { createLocalSourceDriver } from './source/index.js'
-import { createRetirer } from './releases/index.js'
+import { createRetirer, recoverAtBoot } from './releases/index.js'
 import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
 import { createServiceCredentials } from './services/index.js'
 import { createSamlSp } from './identity/index.js'
@@ -280,6 +280,18 @@ const app = await buildServer({
   }),
 })
 
+/**
+ * BEFORE `listen`, deliberately (P4c Task 9): §12 says the control plane re-applies
+ * all routes at its own boot, and until now nothing did — so an edge restart left
+ * every app answering the wildcard until somebody redeployed it. This also ends the
+ * deploys this process was running when it last stopped, and asks for a retire pass
+ * over every environment that still has something to remove.
+ *
+ * An app is reachable again before this process accepts the first request that might
+ * deploy over it, and no single broken app stops the boot.
+ */
+const recovery = await recoverAtBoot({ db, driver, retirer })
+
 await app.listen({ port: config.port, host: '127.0.0.1' })
 
 // Which driver actually booted is the one fact this file decides, and every
@@ -297,6 +309,12 @@ console.log(
     port: config.port,
     // The other fact this file decides. Read back by boot.docker.test.ts.
     ai: catalogue.enabled ? 'enabled' : 'disabled',
+    // What the recovery above did, on the one line an operator reads — and the one
+    // `boot.docker.test.ts` reads back, because a recovery nobody can see is
+    // indistinguishable from one that never ran.
+    routesRestored: recovery.routesRestored,
+    routesFailed: recovery.routesFailed.length,
+    interrupted: recovery.interrupted,
     msg: 'control plane ready',
     // The COUNT, never the names' values. A zero here means the scrub did not
     // run, which is indistinguishable from a clean environment without it.
