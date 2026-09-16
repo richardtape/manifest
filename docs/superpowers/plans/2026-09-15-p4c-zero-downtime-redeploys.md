@@ -30,8 +30,8 @@ Agreed with Rich on 2026-09-15, the pattern that carried P4a's last twelve tasks
 | 4 ✅ | 5 | Docker `retireInstance`, `listInstances`, `servingInstance`, `restoreRoute` and the gateway detach — **done 2026-09-15, 6 findings; THE CONTRACT SUITE IS GREEN ON THE DOCKER DRIVER — 25 of 25, 0 skipped**, where sitting 3 left the eleven-test continuity block skipped. A retire drains a real request held open through the real edge and returns only once it has been ANSWERED, and cuts it off at its bound. **Two of the plan's own negative controls were defective**: (b) comes out GREEN and cannot fail, and the retire guard as written protects NOTHING for a pre-P4c container — the one R7 exists to reap | ✅ |
 | 5 ✅ | 6–7 | The data and the keys (the `Route` table, migration 0009, per-instance AI keys, the advisory lock, the drain setting), then the retirer that uses them — **done 2026-09-15, 9 findings; §6's `Route` exists and an AI key is stored PER INSTANCE, so the draining container's key stays live; `retireEnvironment` reaps every instance of an environment that does not serve, and does NOTHING when nothing serves. THREE of the plan's own negative controls could not fail** — Task 6's (c) and (d) and Task 7's (c) — and all three were measured and replaced. **Nothing calls the retirer yet: that is Task 8** | ✅ |
 | 6 ✅ | 8–9 | `deployRelease` reordered — serialized, per instance, failing without taking the app down — with its wiring; then boot recovery — **done 2026-09-15, 10 findings; THE RETIRER HAS A CALLER AND THE PLATFORM REDEPLOYS ITSELF END TO END**: `releases/redeploy.docker.test.ts` replaces an instance under a request every 25 ms with zero 502s and zero wildcard answers and then reaps the old container with its files volume, and `boot.docker.test.ts` proves the real compiled entry point puts a lost route back, ends an interrupted deploy and finishes a cut-short drain. **Task 8's control (a) could not fail** and was replaced; **sitting 5's correction 3 was confirmed by measurement** — the plan's code leaks a first deploy's failed container with `INSTANCE_SERVING`; and **`retireEnvironment` opens the app's whole secret set before it retires anything, so a set it cannot open silently stops every reap** | ✅ |
-| 7 | 10 | `node-ts-mongo@1` keeps sessions in the app's own Mongo. **Alone, and the one sitting that NEEDS THE NETWORK ON**: it adds a pinned dependency, regenerates the lockfile and needs `make seed` to warm Verdaccio from it (P4a sitting 5, P4b sitting 6) | ← **next** |
-| 8 | 11 | `make demo-redeploy` green, with its negative controls. **Alone**, for the reason P4a's Task 15 and P4b's Task 16 were alone | |
+| 7 ✅ | 10 | `node-ts-mongo@1` keeps sessions in the app's own Mongo. **Alone, and the one sitting that NEEDS THE NETWORK ON**: it adds a pinned dependency, regenerates the lockfile and needs `make seed` to warm Verdaccio from it (P4a sitting 5, P4b sitting 6) — **done 2026-09-16, 9 findings; `skeleton/auth/session.js` puts sessions in the app's own Mongo, the warm was watched (152 → 157 tarballs, `make verify` 250 pinned / 0 missing) and the scan gate passed. `make demo-redeploy` WAS RE-RUN AND IS 21 OF 21 GREEN, EXIT 0, FOR THE FIRST TIME** — nobody signed out, 45 of 45 questions answered. **A FIFTH of the plan's own negative controls could not fail** — Task 10's (d): with the network on, Verdaccio fetched the tarball it lacked mid-build; `make verify` is the control that goes red. Two corrections for Task 11 are at the top of it | ✅ |
+| 8 | 11 | `make demo-redeploy` green, with its negative controls. **Alone**, for the reason P4a's Task 15 and P4b's Task 16 were alone | ← **next** |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -3274,6 +3274,17 @@ git commit -m "feat(releases): routes, interrupted deploys and unfinished drains
 ---
 ## Task 10: `node-ts-mongo@1` keeps its sessions in the app's own database
 
+> **EXECUTED IN SITTING 7, 2026-09-16 — commit `70f30c0`.** The record is *Sitting 7* at the end of
+> this plan. Four corrections to the text below, each measured: **Step 1** needs `--save-exact` — as
+> printed, npm writes `"connect-mongo": "^6.0.0"` and the step's own `grep` still matches (finding 57);
+> **Step 6's** snippet calls `handleFor`, which exists nowhere, and imports none of its four helpers —
+> the test as built passes a local `SamlSpHandle` to `idpLogin` and asserts on the signed-in PUID
+> rather than on a bare count (finding 54); **Step 7's control (c)** names a test it does not
+> provide, and app-side JavaScript that imports npm packages cannot be imported by the unit tier —
+> `blueprints/session-component.test.ts` runs the module against stub libraries in a child process
+> (finding 56); and **control (d) comes out GREEN with the network on**, because Verdaccio fetches
+> what its storage lacks — `make verify`'s mirror check is the control that goes red (finding 55).
+
 **Alone, and THE ONE SITTING THAT NEEDS THE NETWORK ON.** It adds a pinned dependency, regenerates the lockfile and needs `make seed` to warm Verdaccio from it — P4a's sitting 5 and P4b's sitting 6 were alone for exactly this, and P4b's finding 143 is what happens when the warm silently does nothing.
 
 **Files:**
@@ -3288,7 +3299,7 @@ git commit -m "feat(releases): routes, interrupted deploys and unfinished drains
 - Produces: `sessionMiddleware(client)` from `skeleton/auth/session.js`; `connect-mongo@6.0.0` in both pin lists.
 - Consumes: §8's `SESSION_SECRET` and `MONGODB_DB_NAME`, which the platform already injects and which the skeleton already reads with no fallback.
 
-- [ ] **Step 1: Add the dependency, with the network on**
+- [x] **Step 1: Add the dependency, with the network on**
 
 ```bash
 cd blueprints/node-ts-mongo/skeleton
@@ -3300,7 +3311,7 @@ Then the same exact version in `blueprint.yaml`'s `pinned_dependencies` — `blu
 
 **Why 6.0.0 and not a range** (ORIENTATION §8's rule: a pin with no evidence is a pin Rich will ask about): it is the current release, its peers are the versions this blueprint already pins (`express-session ^1.17.1` against 1.19.0, `mongodb >=5.0.0` against 6.12.0), its engine floor is Node ≥20.8 against the image's 22, and it brings two runtime dependencies — `debug` and `kruptein` — into every faculty app's image.
 
-- [ ] **Step 2: Check it through §12's gate before writing any code against it**
+- [x] **Step 2: Check it through §12's gate before writing any code against it**
 
 ```bash
 make seed        # warms Verdaccio from the blueprint lockfiles — network on
@@ -3316,7 +3327,7 @@ MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/runtime/docker/
 
 If §12's scan blocks on a finding **with a published fix** in that closure, this task stops and reports: the gate is unwaivable and an override is Rich's (ORIENTATION §8).
 
-- [ ] **Step 3: Write the module**
+- [x] **Step 3: Write the module**
 
 `blueprints/node-ts-mongo/skeleton/auth/session.js`:
 
@@ -3390,13 +3401,13 @@ export function sessionMiddleware(client) {
 }
 ```
 
-- [ ] **Step 4: Use it — in both apps, and nowhere else**
+- [x] **Step 4: Use it — in both apps, and nowhere else**
 
 In `blueprints/node-ts-mongo/skeleton/server.js`: drop `import session from 'express-session'` and `SESSION_SECRET` from its own `RAW` block, import `sessionMiddleware` from `./auth/session.js`, and replace the inline `app.use(session({…}))` with `app.use(sessionMiddleware(client))`. The same three edits in `fixtures/proof-app/server.js`.
 
 **`client.connect()` still happens where it did**, at the end of `server.js`: the driver connects lazily on first use, and the store holds the same client.
 
-- [ ] **Step 5: Teach it**
+- [x] **Step 5: Teach it**
 
 `agents/AGENTS.md` gains a section, between *The environment you are given* and *AI*:
 
@@ -3421,7 +3432,7 @@ copy disappears when its container goes. Your session store is already in Mongo
 sessions in memory and signs everybody out on every deploy.
 ```
 
-- [ ] **Step 6: Prove the store is real, in the Docker tier**
+- [x] **Step 6: Prove the store is real, in the Docker tier**
 
 In `node-ts-mongo.docker.test.ts`, after the existing AuthnRequest test:
 
@@ -3442,7 +3453,7 @@ In `node-ts-mongo.docker.test.ts`, after the existing AuthnRequest test:
   }, 600_000)
 ```
 
-- [ ] **Step 7: Gates, Docker tier, negative controls**
+- [x] **Step 7: Gates, Docker tier, negative controls**
 
 ```bash
 pnpm test && pnpm test && pnpm lint && pnpm --filter @manifest/control-plane typecheck && pnpm format:check
@@ -3456,7 +3467,7 @@ make verify
 - (c) Give `SESSION_SECRET` a fallback in `session.js` → §16's drift test still passes and the app silently signs its cookies with a default; assert instead that `sessionMiddleware` throws when the variable is absent, and watch that test go red with the fallback in place.
 - (d) Empty Verdaccio's `connect-mongo` directory and rebuild → `npm ci` fails in the builder, which is what a cold mirror does with the network off (C1).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add blueprints/node-ts-mongo fixtures/proof-app/server.js packages/control-plane/src/runtime/docker/node-ts-mongo.docker.test.ts
@@ -3466,6 +3477,32 @@ git commit -m "feat(blueprint): sessions in the app's own database, so a redeplo
 ---
 
 ## Task 11: `make demo-redeploy` green — P4c's acceptance
+
+> **WHERE THE ACCEPTANCE STANDS AFTER SITTING 7 (2026-09-16) — READ THIS BEFORE THE OLDER NOTES
+> BELOW.** Re-run at the end of sitting 7, once, against the control plane started from README:
+> **21 of 21 green, exit 0, `Done.`** — *nobody was signed out* and *every question was answered 200
+> (45 asked)* are green, all 560 requests in the three windows (52, 52, 456) were answered by the
+> app, and there were zero resets. So this task starts with every assertion already green, and its
+> work is Steps 2 to 7: the immediate second run, the run from a `make reset` machine, the nine
+> controls, and the sweep. Raw output:
+> [`../spikes/p4c-baseline/results-sitting7-2026-09-16.txt`](../spikes/p4c-baseline/results-sitting7-2026-09-16.txt).
+>
+> **TWO CORRECTIONS FROM THAT RUN**, both in `scripts/demo-redeploy.sh`, neither fixed — the script
+> is this task's to change:
+>
+> 1. **Step 1's "at least one question in flight through each redeploy" cannot be read off a green
+>    run** (finding 61). The summary reports only the health loop, and `cleanup` deletes `$OUT` —
+>    `asks.log` with it — whenever nothing failed. Either print, per phase window, the questions that
+>    started before its deploy and ended after it, or keep `asks.log` on a green run. Without one of
+>    the two, the requirement is unverified, and control (d) — *an in-flight question is cut off* —
+>    has nothing to cut off unless a question happened to straddle the window.
+> 2. **The asker's `head -c 300 "$OUT/ask-body" | tr -d '\n'` breaks on a multi-byte character**
+>    (finding 60). `head -c` can end mid-way through one — the answers are model text, and the
+>    platform's own error messages contain `’` — and BSD `tr` under this machine's `en_CA.UTF-8`
+>    prints `tr: Illegal byte sequence` and exits 1 after partial output. Reproduced with
+>    `printf 'ab\xe2\x80\x99cd' | head -c 3 | tr -d '\n'`; `LC_ALL=C tr` passes the bytes. It
+>    printed twice in phase 7 and was harmless there, because a 200's code field is empty — but
+>    **that field is what control (c), *a question in flight fails with an AI code*, reads.**
 
 > **WHERE THE ACCEPTANCE STOOD AFTER SITTING 3 (2026-09-15).** Re-run at the end of sitting 3:
 > **14 of 21 green, 7 red**, against sitting 1's baseline of 10 / 11. The four that flipped are
@@ -4436,3 +4473,186 @@ state moved.
 **Three durable facts went into ORIENTATION §4**, findings 46, 48 and 49: what an
 unopenable secret set does to the retirer, the colliding fake-driver handles, and the
 tolerated reset that carries no identity header.
+
+### Sitting 7 — Task 10 — 2026-09-16 — 9 findings
+
+**What it built.** `node-ts-mongo@1` keeps its sessions in the app's own Mongo.
+`skeleton/auth/session.js` exports `sessionMiddleware(client)` — `express-session` 1.19.0
+over `connect-mongo` 6.0.0, on the `MongoClient` the app already holds, in the database the
+platform injected, with `SESSION_SECRET` and `MONGODB_DB_NAME` both required and neither
+defaulted — and the skeleton's `server.js` and §16's proof app both mount it, and neither
+configures `express-session` itself. `connect-mongo` is pinned in the skeleton's
+`package.json` and in `blueprint.yaml`; the lockfile was regenerated with the network on and
+Verdaccio warmed by `make seed`. The knowledge pack gained *Two releases run at once, for up
+to two minutes*, and its auth-component list names `session.js`. Commit `70f30c0`.
+
+**The dependency, checked before any code was written against it.** `connect-mongo` 6.0.0 is
+still the current release (published 2025-11-30, re-checked 2026-09-16), and its metadata is
+what *Read this first* item 11 says. The regenerated lockfile is purely additive — **seven
+packages**, `connect-mongo`, `kruptein` 3.0.8, `asn1.js` 5.4.1, `bn.js` 4.12.5,
+`minimalistic-assert` 1.0.1, and its own nested `debug` 4.4.3 and `ms` 2.1.3 — and **no
+existing entry moved**. `npm audit --package-lock-only` of the lockfile before and after is
+identical: 2 critical and 3 moderate, all in `passport-saml`, `passport-ubcshib`, `express`,
+`qs` and `xml2js`, none in the new closure. **The warm was watched doing something**: before
+`make seed` none of the five new top-level packages was in `/verdaccio/storage` and it held
+152 tarballs; after, all five were there and it held **157** (`debug` 4.4.3 and `ms` 2.1.3
+were already mirrored). `make verify`: **250 pinned tarballs across every lockfile, 0
+missing**. Then **§12's scan gate passed** a real build of the skeleton with the dependency
+in it — *no fixable high or critical findings in what this build added*, the one no-fix
+finding being `passport-saml`, as before.
+
+**What the real package does, read from its `dist/index.mjs` rather than assumed.** The
+default export is `MongoStore` with a static `create`; `client` is wrapped in
+`Promise.resolve`; and the store **creates its TTL index as soon as it is constructed** — so
+in `server.js` that happens before `await client.connect()`, on the mongodb 6 driver's
+connect-on-first-operation. The Docker tier's real login is what proves that ordering works.
+`autoRemove: 'native'` is already the default; it stays explicit, with a comment. The app's
+Mongo user is the root user of its own dedicated database (D3), so the index needs no grant.
+
+**Four defects in the task's own text** — each written into a note at the top of Task 10.
+
+54. **STEP 6'S SNIPPET COULD NOT HAVE RUN.** It calls `handleFor(HOST)`, which exists nowhere
+    in the repository, and `withRegisteredMetadata`, `idpLogin`, `renderSpMetadata` and
+    `serviceContainer`'s credentials without importing the first three — and the file it
+    edits said in its own docstring that it *deliberately does not prove a completed login*.
+    The test as built passes a local `SamlSpHandle` to `sso/testing.ts`'s `idpLogin`, renders
+    the row with the platform's `renderSpMetadata`, and asserts on **the signed-in student's
+    PUID inside a stored session** — zero before the login, at least one after — rather than
+    on a bare document count, which an anonymous session could satisfy. The docstring now
+    says what it proves and what it still leaves to `make demo-redeploy`.
+55. **CONTROL (d) COMES OUT GREEN WITH THE NETWORK ON — the fifth of this plan's negative
+    controls that could not fail.** It says: *empty Verdaccio's `connect-mongo` directory and
+    rebuild → `npm ci` fails*. Measured: with `/verdaccio/storage/connect-mongo` moved aside,
+    the whole `node-ts-mongo.docker.test.ts` passed, **4 of 4**, and the directory was back
+    when it finished — Verdaccio fetched the tarball from its npmjs uplink mid-build, and
+    `sha256` of the fetched copy and the one set aside are the same
+    (`3e5d821f…06ce7`). A cold mirror and a warm one behave identically until the network is
+    off (ORIENTATION §4 has said so since 2026-09-09; this is the measurement). **The control
+    that goes red is `make verify`**: with the directory still aside it failed `the package
+    mirror holds every blueprint's closure as tarballs` with `MISSING
+    connect-mongo/connect-mongo-6.0.0.tgz (blueprints/node-ts-mongo/skeleton/package-lock.json)`,
+    47 checks and 1 failed. The original directory was put back and the refetched one removed.
+    The form of (d) that can fail is the offline acceptance, which is Rich's.
+56. **CONTROL (c) NAMES A TEST THE TASK DOES NOT PROVIDE, IN A TIER THAT CANNOT IMPORT THE
+    MODULE.** *"Assert instead that `sessionMiddleware` throws when the variable is absent"* —
+    but `session.js` imports `express-session` and `connect-mongo`, which do not resolve from
+    the skeleton, and the unit tier cannot mock a package for app-side code outside the
+    package (ORIENTATION §4). **The control's premise was measured true**: with
+    `SESSION_SECRET: process.env.SESSION_SECRET || 'keyboard cat'`, `spec/injection-drift`
+    stayed **6 of 6 green**. `blueprints/session-component.test.ts` runs the module in a child
+    `node` process against stub `express-session` and `connect-mongo` packages that record
+    what they are handed: the store, the client **by identity**, the database, the TTL, the
+    cookie, and three refusals. *Rejected:* the two real packages as control-plane
+    devDependencies — two more app-side trees in a dependency graph nothing here scans, for a
+    test, and a real store connects to a database the moment it is built.
+57. **STEP 1'S COMMAND WRITES A RANGE.** `npm install --package-lock-only
+    connect-mongo@6.0.0`, run exactly as printed on a copy of the skeleton, wrote
+    `"connect-mongo": "^6.0.0"` — and the step's own `grep -n '"connect-mongo"'` matches that
+    line, so its check passes. `blueprints.test.ts`'s agreement test would have caught it
+    against `blueprint.yaml`'s exact pin; `--save-exact` is what was run. npm also rewrote the
+    one-line `"engines"` onto three lines, which was put back so the diff is the one pin.
+
+**Five more: two about the machine (58, 62), two about the acceptance script Task 11 inherits (60, 61), and one about the documents (59).**
+
+58. **`make seed` REBUILT FOUR PLATFORM IMAGES, AND RECREATED THE DNSMASQ CONTAINERS OFF EVERY APP
+    NETWORK.** Seed's step 2 produced new image IDs for `manifest-dnsmasq:local` (`6e88ee08` →
+    `4dad4c25`), `manifest-idp:local`, `manifest-caddy:local` and `manifest-egress:local` — read off
+    `scripts/snapshot-machine.sh` before and after; `docker images`' *CreatedAt* for dnsmasq still
+    says 2026-08-29, which is what first made this look causeless. Step 5 (`compose up -d
+    dns-containers dns-host caddy`) then printed `Recreate` for both dnsmasq containers, and the new
+    `manifest-dns-containers` was attached to `manifest-platform` ONLY — `ensureAppNetwork` attaches
+    it to every app network (`PLATFORM_NEIGHBOURS`), and nothing re-attaches it until each app is
+    deployed again. Reconnected by hand to all nine `mf-*-net` networks. **No consequence was
+    measured**: from inside the proof app and the fixture app, `getent hosts idp.manifest.internal`
+    failed (exit 2) both before and after the reconnect. `manifest-idp` was recreated onto its
+    rebuilt image too; **`manifest-caddy`, `manifest-egress` and both app egress containers were
+    not**, by seed or by the `make up` after it, and still run the previous, now untagged images —
+    why compose treated them differently was not established. ORIENTATION §4. Seed's, not Task
+    10's; named, not fixed.
+59. **RUNBOOK HAD NOT BEEN SWEPT SINCE SITTING 5.** Its *`make demo-redeploy`* section still said the
+    acceptance *fails on purpose* with eleven assertions red and ten green, and its *Known gaps*
+    still said *nothing in the control plane CALLS either yet*, *sittings 1–5 done* and that *every
+    redeploy leaves the PREVIOUS release's container running* — two sittings after Task 8 gave the
+    retirer its caller. Corrected in this sweep, with Task 10's result.
+60. **THE ACCEPTANCE'S ASKER BREAKS ON A MULTI-BYTE CHARACTER.** Phase 7 printed `tr: Illegal byte
+    sequence` twice — in no earlier run, because until now almost every question was a short ASCII
+    401. The asker records each answer's code with `head -c 300 "$OUT/ask-body" | tr -d '\n'`;
+    `head -c` can end mid-way through a character, and BSD `tr` under this machine's `en_CA.UTF-8`
+    refuses the fragment and exits 1 after partial output. Reproduced with
+    `printf 'ab\xe2\x80\x99cd' | head -c 3 | tr -d '\n'`; `LC_ALL=C tr` passes the bytes, and a
+    whole character is fine. Harmless for a 200, whose code field is empty — but that field is what
+    Task 11's control (c) reads, and the platform's own AI error messages contain `’`. Written into a
+    note at the top of Task 11, not fixed: the script is Task 11's.
+61. **A GREEN `make demo-redeploy` DELETES THE EVIDENCE TASK 11'S STEP 1 ASKS FOR.** *"The summary must
+    show at least one question in flight through each redeploy"* — but the summary reports only the
+    health loop, and `cleanup` removes `$OUT`, `asks.log` with it, whenever nothing failed. So this
+    run's 45 green questions cannot be placed against the three windows after the fact. Written into
+    the note at the top of Task 11.
+62. **THE MANIFEST IdP'S SimpleSAMLphp IS AN UNPINNED RANGE, AND SEED MOVED IT.** `infra/idp/Dockerfile`
+    runs `composer create-project simplesamlphp/simplesamlphp:^2.0`, and seed rebuilt the image from
+    nothing (created 2026-09-16T15:59:19Z, composer layers downloaded fresh). The running IdP is now
+    **v2.5.3.1** (its `composer.json`); S2 measured 2.4.9 on the reference IdP, and **the image it
+    replaced was removed, so the version the Manifest IdP ran until today is unrecorded.** Every
+    identity tier passed on the new one — the Docker tier's `sso/` login suites, this sitting's real
+    login in `node-ts-mongo.docker.test.ts`, and `make demo-redeploy`'s CWL sign-ins — which is §16's
+    identity-path tier doing what S2 built it for. Every blueprint dependency is exact (C6, D30); the
+    IdP, which every one of those logins goes through, is not. **Named, not fixed** — pinning it
+    touches `infra/` and is outside Task 10 — and in ORIENTATION §4.
+
+**Negative controls, each watched.** The letters are the plan's.
+
+| | Broken | What went red |
+|---|---|---|
+| a | `store:` removed from `sessionMiddleware` — express-session's MemoryStore back | the Docker tier's *writes a sign-in to the app's OWN DATABASE* — **the login still completed** (`/me` 200) and Mongo held `expected 0 to be greater than or equal to 1`, which is MemoryStore exactly; and the unit tier's *keeps sessions in a connect-mongo store* and *REFUSES to start without MONGODB_DB_NAME* — a module with no store never reads the database name |
+| b | `connect-mongo` removed from `blueprint.yaml`, kept in `package.json` | *agrees with its own skeleton package.json* |
+| c | a fallback for `SESSION_SECRET` in `session.js` | **§16's drift test stayed green, 6 of 6**, as the plan predicted; *REFUSES to start without SESSION_SECRET* and *REFUSES an EMPTY SESSION_SECRET* went red |
+| d | `connect-mongo` moved out of Verdaccio's storage, and the blueprint rebuilt | **NOTHING — 4 of 4 passed** (finding 55). The plan's control cannot fail with the network on |
+| d′ | the same, and `make verify` | *the package mirror holds every blueprint's closure* — `MISSING connect-mongo/connect-mongo-6.0.0.tgz` |
+| e | `import session from 'express-session'` added back to the proof app | *the proof app's server.js mounts sessionMiddleware and does not import express-session* |
+
+Every control was run against the committed task, so each restore was `git checkout` and
+`git status` was clean after it.
+
+Controls (a), (c) and (d′) are the three worth keeping: (a) is the defect this task exists to fix,
+seen in both tiers; (c) is the only thing that notices a fallback; (d′) is the only form of (d)
+that can go red while an agent can still run anything.
+
+**THE ACCEPTANCE: `make demo-redeploy` IS 21 OF 21 GREEN AND EXITS 0 — FOR THE FIRST TIME**,
+against sitting 6's 19, sitting 3's 14 and sitting 1's baseline of 10. The two that were Task
+10's are green: *nobody was signed out*, and *every question was answered 200 (45 asked)*. All
+**560 requests** across the three windows — 52, 52 and 456 — were answered by the app, with no
+5xx, no wildcard page and **zero resets**; each redeploy's previous instance was retired within
+150 s with exactly one app container, no orphan files volume and one LiteLLM key left; and the
+release that never became ready was recorded `failed` with an Incident while the edge kept naming
+the instance that was serving. **This is not Task 11**: it was run once, not twice and not from a
+reset machine, and none of its nine controls was run — and findings 60 and 61 are about what that
+task will need from the script. Run against the control plane from README's *Running the control
+plane*, whose boot line said `"driver":"docker"`, `"ai":"enabled"` and `routesRestored: 0` (both
+test tiers had truncated the §6 tables). Raw output:
+[`../spikes/p4c-baseline/results-sitting7-2026-09-16.txt`](../spikes/p4c-baseline/results-sitting7-2026-09-16.txt).
+
+**Gates.** `pnpm test` **831 passed, 72 files**, run **twice**, identical — seven more than
+sitting 6's 824, all in the new `blueprints/session-component.test.ts`. `pnpm test:docker`
+**167 passed, 0 skipped, 27 files** (~772 s) — one more than sitting 6's 166, the session-store
+test. `pnpm lint`, `pnpm --filter @manifest/control-plane typecheck` and `pnpm format:check`
+clean. `make doctor` **18 / 0** and `make verify` **47 / 0** before `make seed` and after it.
+
+**Machine.** `./scripts/snapshot-machine.sh` before and after. Containers, networks and volumes are
+the same apart from three things: **the proof app's instance and its `-files` volume**, which
+`make demo-redeploy` replaced — one container and one volume, as sitting 6 left it; **the four
+platform images seed rebuilt**, with `manifest-dns-containers`, `manifest-dns-host` and
+`manifest-idp` recreated onto theirs (finding 58); and **Verdaccio's five new packages**, which are
+the point of the warm. `manifest-dns-containers` was re-attached to all nine app networks by hand.
+Eleven images the Docker tier and the acceptance built were removed by ID, each checked absent from
+the before-snapshot and used by no container; the one left is the proof app's running image.
+Verdaccio's `connect-mongo` directory is the original, put back after control (d). The control
+plane started for the acceptance was stopped, and port 7100 is free.
+
+**Documents swept.** The roadmap ledger first; then this plan's sittings table, the notes at the
+top of Tasks 10 and 11, ORIENTATION's header and §2, §3, §4 and §7d-3; `README.md`, `CLAUDE.md`,
+`RUNBOOK.md` — whose redeploy sections were two sittings stale (finding 59) — `WALKTHROUGH.md`,
+and the `p4c-baseline` spike index. **The four HTML pages were CHECKED and need no change**: none
+mentions P4c, redeploys, sessions or sign-out (the two matches in `manifest-decisions.html` are an
+AI "build session"), and what an outsider is told the platform does has not changed. The
+knowledge pack (`agents/AGENTS.md`) changed in the task's own commit. `docs/external-track.md` is
+unchanged: no owner or state moved.

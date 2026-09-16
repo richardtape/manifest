@@ -1,0 +1,95 @@
+`make demo-redeploy`, at the end of P4c SITTING 7 (Task 10) — 2026-09-16.
+
+21 OF 21 GREEN, AND IT EXITS 0 — for the first time, against sitting 6's 19, sitting 3's 14
+and sitting 1's baseline of 10. The two that were red after sitting 6 were one thing and
+both are green: "nobody was signed out", and "every question was answered 200 (45 asked)".
+The student's session now lives in the app's own Mongo (node-ts-mongo@1's auth/session.js),
+so the new container reads the session the old one wrote.
+
+Of the 560 requests made through the edge across the three windows — 52, 52 and 456 —
+EVERY ONE was answered by the app: no 5xx, no wildcard page, ZERO resets.
+
+This is NOT Task 11. Task 11 (sitting 8) runs it twice more, from a `make reset` machine,
+and watches nine negative controls fail. Two things this run could not show and Task 11
+needs to know about:
+  * a GREEN run deletes its raw output ($OUT, including asks.log), and the summary below
+    reports the health loop only — so whether a question was IN FLIGHT through each
+    redeploy window, which Task 11's Step 1 requires, is not recorded anywhere;
+  * the two `tr: Illegal byte sequence` lines in phase 7 are the asker's
+    `head -c 300 | tr -d '\n'`: `head -c` cut a multi-byte UTF-8 character in a long
+    answer, and BSD tr under en_CA.UTF-8 refuses the fragment (reproduced; LC_ALL=C does
+    not). Harmless for a 200, whose code field is empty anyway — but it is the field
+    Task 11's control (c) reads an AI error code from.
+
+Run against the control plane started from README's *Running the control plane*:
+{"driver":"docker","port":7100,"ai":"enabled","routesRestored":0,"routesFailed":0,
+ "interrupted":0,"msg":"control plane ready","secretsScrubbed":12}
+(`routesRestored: 0` because `pnpm test` and `pnpm test:docker` had truncated the §6
+tables earlier in the sitting.)
+
+-----------------------------------------------------------------------------
+
+0. Is the control plane up?
+  http://127.0.0.1:7100 answered
+
+1. Log in to Manifest itself with CWL (§9: Manifest is its own SP)
+
+2. The proof app, deployed and healthy — the instance every later phase replaces
+  reusing project e0c39df5-c59a-41d9-8c95-217ac52e01fd
+  pushed e2bee12759e4d48cb9cdcfac473699cee097c0cf
+  valid; sensitive diff: {"sensitive":false,"fields":[]}
+  built sha256:3f54603ba0363c8a30f7ec5d6f766c331747fbebc7e592d2a2497d3f302d3f2c
+  release 78e62e68-ec25-4b9f-82d2-9ee568a96673
+  instance healthy at https://proof-app.staging.manifest.internal
+  healthz pings its own database: {"status":"ok","mongo":true}
+
+3. Subscribe to the project's event stream
+
+4. A student signs in, writes a note, and the two loops start
+  ok   a question is answered before any redeploy — the AI path works
+
+5. A SAME-release redeploy, while both loops run
+  ok   same-release: the deploy is healthy
+  ok   same-release: the edge names the new instance
+  ok   same-release: the previous instance was retired within 150 s
+  ok   same-release: exactly one app container is left
+  ok   same-release: no files volume without a container
+  ok   same-release: LiteLLM holds exactly one key for the app
+
+6. A NEW-release redeploy
+  pushed 8b10658f780b8c311d3a079ef69f7c4326f7217d
+  valid; sensitive diff: {"sensitive":true,"fields":["services"]}
+  ok   new-release: the deploy is healthy
+  ok   new-release: the edge names the new instance
+  ok   new-release: the previous instance was retired within 150 s
+  ok   new-release: exactly one app container is left
+  ok   new-release: LiteLLM holds exactly one key for the app
+
+7. A release that never becomes ready — the previous instance keeps serving
+  pushed f09ec6723dbec9149720664fd0c7a5c239e656fa
+tr: Illegal byte sequence
+  valid; sensitive diff: {"sensitive":true,"fields":["services"]}
+tr: Illegal byte sequence
+  ok   failed release: the deploy is recorded failed
+  ok   failed release: the edge still names the instance that was serving
+  ok   failed release: an Incident names the failed instance
+  ok   failed release: the failed release left no container
+  ok   failed release: no files volume without a container
+  ok   failed release: LiteLLM still holds exactly one key for the app
+
+8. What the loops saw
+{"phase":"same-release","deployMs":5493,"requests":52,"counts":{"app":52},"instancesSeen":["8fb9e849-2973-4946-b2a7-2966676a7b88","8b2efcbf-69ab-4d5a-a316-121956490481"],"firstWrongAtMs":null,"lastWrongEndedMs":null}
+{"phase":"new-release","deployMs":5480,"requests":52,"counts":{"app":52},"instancesSeen":["8b2efcbf-69ab-4d5a-a316-121956490481","c4acd605-32bf-4f22-8c7b-8992f62aef4b"],"firstWrongAtMs":null,"lastWrongEndedMs":null}
+{"phase":"failed-release","deployMs":91508,"requests":456,"counts":{"app":456},"instancesSeen":["c4acd605-32bf-4f22-8c7b-8992f62aef4b"],"firstWrongAtMs":null,"lastWrongEndedMs":null}
+  ok   no 5xx and no wildcard answer in any redeploy window
+  ok   every question was answered 200 (45 asked)
+  ok   nobody was signed out
+  resets: 0 (tolerated — an edge configuration reload, §11)
+
+Done.
+  https://proof-app.staging.manifest.internal          sign in, write a note, ask about it — through a redeploy
+
+  What this proved that a health check cannot: the app changed release while people
+  were using it, nobody was signed out, no question failed, and the instance it
+  replaced was drained, its key revoked and its container and files volume removed.
+exit=0

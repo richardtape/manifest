@@ -16,8 +16,8 @@ first task can re-measure rather than trust these numbers.
 | `p4c-inflight.sh` | Whether a request in flight survives the route moving to another container |
 | **`p4c-measure-edge.sh`** | **P4c Task 1's five measurements** (2026-09-15): whether Caddy keeps counting an upstream whose route has moved while a request is in flight (M1, with a parked-route control M1b); whether a **deferred** `headers` handler replaces an app's own `X-Manifest-Instance` (M2, with the app's forgery proved first); twenty in-place `PATCH` moves of the **real** route shape (M3); whether a container name past DNS's 63-octet label resolves from the edge (M4); and whether repeated `--filter label=` filters AND (M5). Takes two upstream addresses to move a throwaway route between. Results: [`results-task1-2026-09-15.txt`](results-task1-2026-09-15.txt), which also carries the three `make demo-redeploy` baseline runs |
 
-**`make demo-redeploy` has been run three times so far, and they are the before, the
-middle and the after.** [`results-task1-2026-09-15.txt`](results-task1-2026-09-15.txt)
+**`make demo-redeploy` has been run at four points so far: the before, two middles, and the
+first green.** [`results-task1-2026-09-15.txt`](results-task1-2026-09-15.txt)
 holds sitting 1's three baseline runs against the platform as P4b left it — **ten green,
 eleven red**, and the outage numbers this plan exists to remove.
 [`results-sitting3-2026-09-15.txt`](results-sitting3-2026-09-15.txt) holds the same script
@@ -31,6 +31,12 @@ red**. Every retire assertion is green in all three phases, all 560 requests acr
 three windows were answered by the app, and there were **zero resets**. The two still red
 are one thing: the app keeps its sessions in memory, so a redeploy signs the student out
 and their next 122 questions are 401s. That is Task 10.
+[`results-sitting7-2026-09-16.txt`](results-sitting7-2026-09-16.txt) holds it re-run after
+Task 10 moved the blueprint's sessions into the app's own Mongo — **twenty-one green, exit
+0, for the first time**: nobody signed out, all 45 questions answered 200, all 560 requests
+answered by the app, zero resets. It is not Task 11's acceptance run, and its header names
+two things Task 11 needs: a green run deletes the evidence of a question in flight through
+each window, and the asker's `head -c 300 | tr` breaks on a multi-byte character.
 
 **Before re-running:** they need `make up`, the control plane, and the proof app deployed
 (`make demo-ai`). The container names, project, environment and release IDs are hard-coded
