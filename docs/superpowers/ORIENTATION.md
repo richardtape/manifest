@@ -160,8 +160,8 @@ disagrees with this box, this box wins.
 
 The immediate work is **executing P4c — zero-downtime redeploys — SITTING 5, WHICH IS TASKS 6 AND 7** (§7d-3). **Sittings 1 to 4 are done (2026-09-15, 13 findings, 4, 7 and 6):** `make demo-redeploy` exists and is red by design and the baseline it measured is in the plan's record; §11's redeploy contract is in code; **the driver redeploys without interrupting anybody** — `ensureInstance` starts the new container beside what serves, proves it ready from INSIDE THE EDGE against a bounded per-instance alias, moves the route with one in-place `PATCH`, and resolves only when the edge answers as that instance, rolling the route back if it does not; **and it now reaps what it replaced** — `retireInstance` drains until the edge holds nothing against the old instance, removes it with its files volume, and refuses anything a live route dials. **THE DRIVER CONTRACT IS GREEN ON DOCKER: 25 of 25, 0 skipped.** Nothing in the control plane CALLS those four methods yet; that is Tasks 7 and 8.
 **`make demo-redeploy` was re-run at the end of sitting 3 and is 14 of 21 green**, against sitting
-1's baseline of 10 — every one of the seven still red belongs to Task 5, 7, 8 or 10, and none is a
-regression. **Not the whole plan in one session:** eight agreed sittings, one per session, with a check-in at each boundary. P4b is finished; its sitting-10 record, the last entry in its *What executing this plan found*, is the one to read first. P4a's fifteen tasks are done: the IdP
+1's baseline of 10 — every one of the seven still red belongs to Task 7, 8 or 10 — Task 5's driver half is
+built and its caller is not — and none is a regression. **Not the whole plan in one session:** eight agreed sittings, one per session, with a check-in at each boundary. P4b is finished; its sitting-10 record, the last entry in its *What executing this plan found*, is the one to read first. P4a's fifteen tasks are done: the IdP
 works, `secrets/` holds every credential, `sso/` generates the registration a CWL login
 runs through and `deployRelease` calls it, §20's audit log is append-only against a
 role that can actually be constrained, §8's injection contract is one function with
@@ -1466,7 +1466,7 @@ curl -s --cacert infra/ca/manifest-root.crt \
 **Expect signed SAML metadata** carrying `entityID="https://idp.manifest.internal/idp/shibboleth"`
 and an `<ds:X509Certificate>`. It answered **500** until 2026-09-08.
 
-`pnpm test:docker` is ~7 minutes (§2's box has the count); run it before the first commit that
+`pnpm test:docker` is ~10 minutes (§2's box has the count); run it before the first commit that
 touches `infra/`, `runtime/`, `services/`, `sso/`, `secrets/`, `releases/`, `build/` or
 **`blueprints/`** — the last since Task 12, because `node-ts-mongo@1`'s own skeleton is
 a build target and nothing in the unit tier builds it. A faster
@@ -1756,6 +1756,19 @@ out WRONG (one red before the thing under test ran, one green because the route 
 one correction Task 5 must carry: **neither fixture app 404s an unknown path**, so the plan's
 `healthPath: '/never-ready'` never-ready fixture cannot work.
 
+**Sitting 4** built the retire, and **the driver contract is now GREEN ON DOCKER: 25 of 25, 0
+skipped**, where sitting 3 left the eleven-test continuity block skipped with its reason in its
+name. `retireInstance` refuses anything a live route dials, drains until the edge holds nothing
+against the old instance — proved against a real request held open for 20 s through the real edge,
+and cut off at 3 s when the bound says so — removes the container with its `-files` volume, and
+takes §10's gateway off the app network once nothing on it needs one. `servingInstance` reads the
+edge's configuration, `listInstances` finds the pre-P4c siblings R7 exists to reap, and
+`restoreRoute` rebuilds a route from the container's own labels. **The driver can now reap what a
+redeploy replaced — but nothing CALLS it**, so a redeploy through the control plane still leaves two
+containers until Task 7 builds the retirer and Task 8 wires it. Six findings — **two of them defects in the plan's own negative controls**: (b)
+comes out GREEN and cannot fail, and the retire guard as written protects **nothing** for a pre-P4c
+container. Both are at the top of Task 5.
+
 **The acceptance is the cheapest way to see where you are.** `make demo-redeploy` was re-run at
 the end of sitting 3 — **14 of 21 green, up from 10** — and it was deliberately NOT re-run in
 sitting 4, because nothing in the control plane calls the retire yet. The seven still red map
@@ -1766,18 +1779,6 @@ both phases, are **Task 7's**, the caller for the driver Task 5 built; *the fail
 11's to make green. Raw output:
 [`spikes/p4c-baseline/results-sitting3-2026-09-15.txt`](spikes/p4c-baseline/results-sitting3-2026-09-15.txt),
 beside sitting 1's baseline in the same directory.
-
-**Sitting 4** built the retire, and **the driver contract is now GREEN ON DOCKER: 25 of 25, 0
-skipped**, where sitting 3 left the eleven-test continuity block skipped with its reason in its
-name. `retireInstance` refuses anything a live route dials, drains until the edge holds nothing
-against the old instance — proved against a real request held open for 20 s through the real edge,
-and cut off at 3 s when the bound says so — removes the container with its `-files` volume, and
-takes §10's gateway off the app network once nothing on it needs one. `servingInstance` reads the
-edge's configuration, `listInstances` finds the pre-P4c siblings R7 exists to reap, and
-`restoreRoute` rebuilds a route from the container's own labels. **A redeploy no longer leaves two
-containers.** Six findings — **two of them defects in the plan's own negative controls**: (b)
-comes out GREEN and cannot fail, and the retire guard as written protects **nothing** for a pre-P4c
-container. Both are at the top of Task 5.
 
 **Sitting 5 is Tasks 6 and 7**: the `Route` table and migration 0009, per-instance AI keys, the
 Postgres advisory lock and the drain setting; then the retirer that uses them — **the control

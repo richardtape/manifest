@@ -3885,8 +3885,10 @@ and `restoreRoute` on the Docker driver, `runtime/docker/containers.ts`,
 `detachAiGatewayIfUnused`, `/hold?ms=` in `fixture-node@1`'s skeleton, and a stamp on
 `ensureContractRepo`. **THE DRIVER CONTRACT IS GREEN ON DOCKER: 25 of 25, 0 SKIPPED** —
 the eleven-test continuity block sitting 2 wrote now runs against the real driver, where
-sitting 3 left it skipped with its reason in its name. A redeploy no longer leaves two
-containers. Commits `e114010`, `39972c2`, `bef51bc`.
+sitting 3 left it skipped with its reason in its name. **The driver can now reap what a redeploy
+replaced — but nothing CALLS it yet**: a redeploy through the control plane still leaves two
+containers until Task 7 builds the retirer and Task 8 wires it. Commits `e114010`, `39972c2`,
+`bef51bc`.
 
 The two drain tests are the ones to read: *a retire waits for a request that is in flight*
 holds a real request open through the real edge for 20 s, moves the hostname to a second
