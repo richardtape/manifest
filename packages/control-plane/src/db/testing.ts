@@ -77,8 +77,12 @@ const TABLES = [
   'audit.build_logs',
   'secrets',
   'idempotency_keys',
-  // P4c Task 6. Before `instances`, which it references: a route left behind is a
-  // unique `hostname` the next run's deploy of the same app collides on.
+  // P4c Task 6. NAMED EXPLICITLY, AND THAT IS BELT AND BRACES RATHER THAN THE
+  // CONTROL. Measured 2026-09-15: `routes` references `instances`, so the CASCADE on
+  // the statement below already empties it — Postgres prints `truncate cascades to
+  // table "routes"` — and a run with this line removed is still repeatable. It is
+  // here so the reset does not depend on a foreign key staying as it is, which is the
+  // sort of thing a later migration changes silently.
   'routes',
   'instances',
   'service_instances',

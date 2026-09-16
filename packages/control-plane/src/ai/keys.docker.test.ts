@@ -240,6 +240,54 @@ describeDocker('app keys against the running gateway (P4b Tasks 7 and 9)', () =>
         ).toBe(false)
         expect(await answers(newKey)).toBe(200)
 
+        // THE ORDER, AND THE ONLY THING THAT DISCRIMINATES IT.
+        //
+        // The plan's negative control for this — delete before revoking, then make
+        // the revoke throw — cannot fail: with a working revoke both orders end in
+        // the same state and both pass, and with a throwing revoke both orders throw
+        // and both fail. (Measured 2026-09-15; it is sitting 4's finding 29 again.)
+        // What tells them apart is the STATE A FAILED REVOKE LEAVES: revoke-then-
+        // delete keeps the secret recorded, so the next retire tries again;
+        // delete-then-revoke loses the only reference to a key that is still live.
+        const failing = await service.mintAppKey(args)
+        minted.push(failing)
+        const failedInstance = randomUUID()
+        await service.storeInstanceKey(db, {
+          ...args,
+          instanceId: failedInstance,
+          key: failing,
+        })
+        const brokenGateway = createAiKeyService(
+          {
+            get: (path, query) => client.get(path, query as Record<string, string>),
+            post: (path, body) => {
+              if (path === '/key/delete') throw new Error('the gateway is down')
+              return client.post(path, body)
+            },
+          },
+          keys,
+        )
+        await expect(
+          brokenGateway.revokeInstanceKey(db, {
+            projectId,
+            kind: 'staging',
+            instanceId: failedInstance,
+          }),
+        ).rejects.toThrow('the gateway is down')
+        // STILL RECORDED, and still live: the retirer's next pass can find it.
+        expect(await stored(failedInstance)).toBe(failing)
+        expect(await answers(failing)).toBe(200)
+        // And that next pass finishes the job.
+        expect(
+          await service.revokeInstanceKey(db, {
+            projectId,
+            kind: 'staging',
+            instanceId: failedInstance,
+          }),
+        ).toBe(true)
+        expect(await answers(failing)).toBe(401)
+        expect(await stored(failedInstance)).toBeUndefined()
+
         // P4b's ENVIRONMENT-level key, which every app deployed before P4c holds.
         const legacy = await service.mintAppKey(args)
         minted.push(legacy)
