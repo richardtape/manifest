@@ -27,8 +27,8 @@ Agreed with Rich on 2026-09-15, the pattern that carried P4a's last twelve tasks
 | 1 ✅ | 1 | **The acceptance, built first and watched failing**, plus the five edge and Docker measurements every later task relies on. **Alone**, and first, because every worst defect in this project arrived the first time something ran end to end (brief §8) — **done 2026-09-15, 13 findings; run three times, exit 1 each time; the baseline is run C; M1 confirmed `UNLISTED_UPSTREAM_IS_IDLE = true` and M4 made Decision 2's alias load-bearing** | ✅ |
 | 2 ✅ | 2 | §11's contract in code: `InstanceSpec.instanceId`/`hostname`, the four new methods, the fake driver's routes and in-flight counters, and the contract suite's continuity block — **done 2026-09-15, 4 findings; the fake runs all eleven continuity tests, the Docker driver's four refuse and its block skips with its reason; the plan's fake folded `failInstances` into the readiness refusal and erased the health-check half of §14's Incident** | ✅ |
 | 3 ✅ | 3–4 | The edge (upsert in place, identity header, what serves, what is in flight), then the Docker `ensureInstance` that uses it: beside, privately ready, moved, verified, rolled back — **done 2026-09-15, 7 findings; `redeploy.docker.test.ts` takes a hostname over under a request every 25 ms with ZERO 502s and ZERO wildcard answers, where the pre-P4c order records seven empty 502s. `make demo-redeploy` was re-run at the end and moved from 10/21 green to 14/21 — every remaining red belongs to Task 5, 7, 8 or 10. Two negative controls first came out wrong — one red for the wrong reason, one GREEN — and neither fixture app 404s an unknown path, which Task 5's `neverReady` fixture depends on** | ✅ |
-| 4 | 5 | Docker `retireInstance`, `listInstances`, `servingInstance`, `restoreRoute` and the gateway detach — **the contract suite green on the Docker driver**, drain tests included | ← **next** |
-| 5 | 6–7 | The data and the keys (the `Route` table, migration 0009, per-instance AI keys, the advisory lock, the drain setting), then the retirer that uses them | |
+| 4 ✅ | 5 | Docker `retireInstance`, `listInstances`, `servingInstance`, `restoreRoute` and the gateway detach — **done 2026-09-15, 6 findings; THE CONTRACT SUITE IS GREEN ON THE DOCKER DRIVER — 25 of 25, 0 skipped**, where sitting 3 left the eleven-test continuity block skipped. A retire drains a real request held open through the real edge and returns only once it has been ANSWERED, and cuts it off at its bound. **Two of the plan's own negative controls were defective**: (b) comes out GREEN and cannot fail, and the retire guard as written protects NOTHING for a pre-P4c container — the one R7 exists to reap | ✅ |
+| 5 | 6–7 | The data and the keys (the `Route` table, migration 0009, per-instance AI keys, the advisory lock, the drain setting), then the retirer that uses them | ← **next** |
 | 6 | 8–9 | `deployRelease` reordered — serialized, per instance, failing without taking the app down — with its wiring; then boot recovery | |
 | 7 | 10 | `node-ts-mongo@1` keeps sessions in the app's own Mongo. **Alone, and the one sitting that NEEDS THE NETWORK ON**: it adds a pinned dependency, regenerates the lockfile and needs `make seed` to warm Verdaccio from it (P4a sitting 5, P4b sitting 6) | |
 | 8 | 11 | `make demo-redeploy` green, with its negative controls. **Alone**, for the reason P4a's Task 15 and P4b's Task 16 were alone | |
@@ -2109,6 +2109,19 @@ git commit -m "feat(runtime/docker): start beside, ready privately, move once, v
 
 ## Task 5: Retire, list, serve, restore — and the contract suite green on Docker
 
+> **EXECUTED IN SITTING 4 (2026-09-15). Two things below are WRONG and were measured to be
+> wrong — see findings 29 and 30 in *What executing this plan found*.**
+>
+> * **Step 6's negative control (b) CANNOT FAIL.** Returning `0` instead of `undefined` from
+>   `inFlightTo` for an unlisted address is behaviourally identical to
+>   `UNLISTED_UPSTREAM_IS_IDLE = true`: `drainUpstream` returns on either, at the same moment.
+>   Watched green, 22,044 ms against 22,096 ms unbroken. **Delete the `drainUpstream` call
+>   instead** — that goes red on `finished` in 10 s.
+> * **Step 4's `retireInstance` guard protects nothing for a pre-P4c container.**
+>   `upstreamsInUse().has(upstreamFor(container))` compares one reconstructed
+>   `<host>:<port>`, and a pre-P4c container carries no `manifest.port` label. As shipped the
+>   guard matches the HOST half of every dial address instead, which needs no port.
+>
 > **THREE CORRECTIONS FROM SITTING 3 (2026-09-15).**
 >
 > 1. **`neverReady: (spec) => ({ ...spec, healthPath: '/never-ready' })` CANNOT WORK, and its
@@ -2145,7 +2158,7 @@ git commit -m "feat(runtime/docker): start beside, ready privately, move once, v
 - Produces: `listContainers(engine, labels)`, `inspectApp(engine, id)`; `detachAiGatewayIfUnused(engine, slug, kind)`; the Docker driver's `retireInstance`/`servingInstance`/`listInstances`/`restoreRoute`; the contract's Docker continuity fixtures.
 - Consumes: Task 3's `inFlightTo`, `upstreamsInUse`, `applyRoute`; Task 4's `LABEL`, `instanceAlias`, `perNetwork`.
 
-- [ ] **Step 1: The app the drain tests need**
+- [x] **Step 1: The app the drain tests need**
 
 In `blueprints/fixture-node/skeleton/server.js`, before the fallback:
 
@@ -2175,7 +2188,7 @@ And `ensureContractRepo` gets a stamp, exactly as `fixtureBareRepo` has one:
  */
 ```
 
-- [ ] **Step 2: Write the Docker continuity fixtures**
+- [x] **Step 2: Write the Docker continuity fixtures**
 
 In `runtime/docker/testing.ts`, and used from `driver.docker.test.ts`:
 
@@ -2217,7 +2230,7 @@ and in `driver.docker.test.ts`:
 
 **The suite's `afterAll` must also remove the app-files volumes and every route the continuity block created** — the block's own `afterAll` drops the routes, and the suite removes containers by label, not by repeated `name` filters (P4b 192).
 
-- [ ] **Step 3: Run the contract on Docker and watch it fail**
+- [x] **Step 3: Run the contract on Docker and watch it fail**
 
 ```bash
 MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/runtime/docker/driver
@@ -2225,7 +2238,7 @@ MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/runtime/docker/
 
 Expected: the continuity block now RUNS and fails on `DRIVER_UNSUPPORTED` from Task 2's refusals.
 
-- [ ] **Step 4: Implement the four methods**
+- [x] **Step 4: Implement the four methods**
 
 `containers.ts`:
 
@@ -2378,14 +2391,14 @@ function upstreamFor(container: AppContainer): string
 export async function detachAiGatewayIfUnused(engine, slug, kind): Promise<'detached' | 'kept' | 'absent'>
 ```
 
-- [ ] **Step 5: Extend the Docker redeploy suite**
+- [x] **Step 5: Extend the Docker redeploy suite**
 
 Add to `redeploy.docker.test.ts`:
 - **'retires the instance it replaced, with its files volume'** — `docker volume ls` shows no `…-app-files` for the retired instance (P4b 194).
 - **'takes the model gateway off the network once no instance needs it'**, with its positive control: while an AI instance is still there, the gateway stays.
 - **'lists an instance from before P4c, and retires it'** — create a container by hand with only the pre-P4c labels (slug, environment, release) and prove `listInstances` finds it and `retireInstance` removes it. **This is R7's backlog, as a test.**
 
-- [ ] **Step 6: Gates, the whole Docker tier, negative controls**
+- [x] **Step 6: Gates, the whole Docker tier, negative controls**
 
 ```bash
 make up && pnpm test:docker
@@ -2397,7 +2410,7 @@ make up && pnpm test:docker
 - (c) Widen the selector to `manifest.slug` alone → *listInstances names … and nothing else* fails, listing the database.
 - (d) Make `detachAiGatewayIfUnused` treat a missing label as "does not need one" → the pre-P4c positive control fails.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git commit -m "feat(runtime/docker): drain and retire, without touching a route"
@@ -2601,6 +2614,18 @@ git commit -m "feat(db,ai): §6's Route record, a key per instance, and one lock
 
 ---
 ## Task 7: The retirer — the control plane's first background work
+
+> **NOTE FROM SITTING 4 (2026-09-15), which built the three driver methods this task calls.**
+> The shapes are as this task assumes — `servingInstance(hostname)` and `listInstances(hostname)`
+> both answer with container NAMES, which are the handles, and `retireInstance(handle, { drainMs })`
+> refuses anything a live route dials. One behaviour to know before you write the tests:
+> **`listInstances` answers with NOTHING for a hostname whose every instance predates P4c**,
+> because the only route to the pre-P4c siblings is through a container that carries the
+> hostname label. That is not a gap this task closes and it is not a defect — R7 says the
+> backlog is reaped by the next redeploy of that app, and that deploy is what writes the first
+> hostname label. So `retireEnvironment` against an app that has never been deployed since P4c
+> correctly does nothing, and `skipped: 'nothing-serves'` is not the reason.
+
 
 **Its caller arrives in Task 8, in the next sitting.** That is stated here rather than left to be noticed: this project has shipped a module with no call site three times, twice with passing tests. Task 8's title says it gives this one its caller, and Task 8 is the first task of sitting 6.
 
@@ -3852,3 +3877,154 @@ route was removed, and `proof-app` and `fixture-app` were each given back the ro
 produces, dialling their running containers; both hostnames serve their own body again
 (`{"status":"ok","mongo":true}`) rather than the edge's wildcard. **Read the body, never the
 status.**
+
+### Sitting 4 — Task 5 — 2026-09-15 — 6 findings
+
+**What it built, and the headline.** `retireInstance`, `servingInstance`, `listInstances`
+and `restoreRoute` on the Docker driver, `runtime/docker/containers.ts`,
+`detachAiGatewayIfUnused`, `/hold?ms=` in `fixture-node@1`'s skeleton, and a stamp on
+`ensureContractRepo`. **THE DRIVER CONTRACT IS GREEN ON DOCKER: 25 of 25, 0 SKIPPED** —
+the eleven-test continuity block sitting 2 wrote now runs against the real driver, where
+sitting 3 left it skipped with its reason in its name. A redeploy no longer leaves two
+containers. Commits `e114010`, `39972c2`, `bef51bc`.
+
+The two drain tests are the ones to read: *a retire waits for a request that is in flight*
+holds a real request open through the real edge for 20 s, moves the hostname to a second
+instance, and the retire returns only once that request has been **answered** (21.9 s);
+*a retire never waits longer than its drain bound* cuts the same request off at 3 s and
+asserts it came back `{ ok: false }` — a bound that quietly waited anyway would pass every
+other assertion.
+
+**Two defects in the plan's own negative controls, which is this sitting's pattern.**
+
+29. **NEGATIVE CONTROL (b) CANNOT FAIL, and it was watched not failing.** Step 6 says:
+    *"Return `0` instead of `undefined` from `inFlightTo` for an unlisted address → the
+    waits for a request in flight test fails."* Measured: with `?? 0` added to
+    `inFlightTo`, the test passed in **22,044 ms** against **22,096 ms** unbroken. The two
+    are the same program. `drainUpstream` returns on `inFlight === 0` **and** on
+    `inFlight === undefined && UNLISTED_UPSTREAM_IS_IDLE`, and M1 established that while a
+    request is in flight the address IS listed with `num_requests: 1` — so the `undefined`
+    branch is only ever reached after the request has finished, which is exactly when `0`
+    would be returned too. **The control that does discriminate is deleting the drain
+    call**: the test then goes red on `expect(finished).toBe(true)`
+    (`driver-contract.ts:377`) in 10,000 ms, the held request cut off. That is the control
+    this sitting ran, and the one a later reader should run.
+30. **THE PLAN'S RETIRE GUARD PROTECTS NOTHING FOR A PRE-P4C CONTAINER.** Its form is
+    `(await upstreamsInUse(routing)).has(upstream)` where `upstream = upstreamFor(container)`
+    — one reconstructed `<host>:<port>`. A container from before P4c carries no
+    `manifest.port` label, so that address has to come from somewhere else, and where it
+    cannot be reconstructed the guard compares nothing at all. Measured with the exact-match
+    version restored: a pre-P4c container with a live route dialling `<name>:8080` was
+    **retired anyway**, and the hostname was left pointing at a container that no longer
+    existed. That is the one container R7 exists to reap and the one most likely to still be
+    serving when the retirer first runs — its hardest case, not its easiest. The guard now
+    matches the **host half** of every dial address, which needs no port, and
+    `redeploy.docker.test.ts` gains *REFUSES to retire a pre-P4c instance that a route still
+    dials*, which is red under the plan's version.
+
+**One found by reading, before the first run.**
+
+31. **`ensureContractRepo` had no stamp, and TWO suites build from `/tmp/repo`.** Decision 24
+    named one; sitting 3's correction named the second. Measured before the change: `/tmp/repo`
+    held a 45-line `server.js` dated 2026-09-14 and no stamp file at all, so the `/hold?ms=`
+    added to the skeleton in step 1 would have reached **neither** the driver contract nor
+    `redeploy.docker.test.ts`, and both drain tests would have failed against a fixture that
+    looked correct in the working copy. The stamp is now one function shared with
+    `fixtureBareRepo`, which had its own copy of the same rule.
+
+**One about working here, and it cost twenty minutes.**
+
+32. **`git checkout <path>` on an UNCOMMITTED file destroys the task, not the control.**
+    Restoring `driver.ts` after negative control (a) reverted every one of Task 5's changes
+    to that file, because the work had not been committed — `git checkout` restores from the
+    index, and the index was HEAD. Re-applied by hand. **Commit the task BEFORE breaking
+    anything**, which is what the remaining four controls did; the restore is then exact and
+    `git status` proves it.
+
+**One about the suites themselves.**
+
+33. **The driver contract left a route behind, dialling a container it had just removed.**
+    Its `afterAll` removed every `chem-labs` container and nothing removed
+    `mf-chem-labs-staging-manifest-internal` — a permanent 502 on that hostname and a stale
+    upstream for whatever takes the name next, which is precisely what the suite's OWN first
+    test asserts against. Sitting 3 had to remove one such route by hand. The `afterAll` now
+    removes it, and removes containers by label with their `-files` volumes, because the
+    continuity block deploys instances with random ids that nothing can name in advance.
+
+**One measured and deliberately NOT fixed.**
+
+34. **`s6.docker.test.ts` probe 14 failed once in the full tier and passes alone — cause not
+    established.** `/v1/embeddings` returned `000` where 200 was expected, in the same test
+    where `/v1/models` and `/v1/chat/completions` had just returned 200 from the same
+    network with the same key — so neither the gateway attachment nor the key explains it.
+    Re-run of that file alone: **17 of 17**. The full tier re-run at close-out: **green**.
+    Measured on an idle machine with both Ollama models unloaded first, in probe 14's own
+    order: a cold chat is **3.54 s** and a cold embedding **0.30 s**, so a cold model load
+    does not explain a 15 s bound being exceeded. `statusFromNetwork`'s `-m 15` is the most
+    likely limiter under a full-tier load and **it was not changed**: raising a timeout to
+    remove a flake whose cause is unknown hides the defect it might be. Named here so the
+    next agent recognises it rather than re-deriving it.
+
+**Five negative controls, each watched.**
+
+| | Broken | What went red |
+|---|---|---|
+| a | the `upstreamsInUse` guard in `retireInstance` | *retires the instance it replaced…* — the retire of the SERVING instance **succeeded**, taking the app down and leaving its route on a container that no longer existed |
+| b′ | the `drainUpstream` call deleted | the contract's *a retire waits for a request that is in flight* — `finished` false at `driver-contract.ts:377`, in 10.0 s rather than 21.9 s. (The plan's own (b) is finding 29: it comes out GREEN) |
+| c | the sibling selector widened to `manifest.slug` alone | the contract's *listInstances names … and nothing else* — it listed `mf-chem-labs-staging-db` **and** `mf-chem-labs-staging-egress` |
+| d | a missing `manifest.ai-gateway` label read as "does not need one" | *keeps the model gateway while anything might need it* — the gateway was detached with a pre-P4c container still on the network. Red in the unit tier too |
+| e | the retire guard reverted to the plan's exact-address match | *REFUSES to retire a pre-P4c instance that a route still dials* — finding 30 |
+
+Control (e) is the one worth keeping: it is the only one that fails **only** for the
+containers R7 exists to reap, which is the set every app on this machine is in today.
+
+**Four decisions this sitting made, recorded rather than left to be noticed.**
+
+1. **`AppContainer` has NO `id` field beside `name`**, unlike the plan's snippet. Every handle
+   this driver hands out is `{ id: name, name, url }` — the id IS the container name — and
+   `destroyInstanceContainer` derives the files volume from it. A second field holding
+   Docker's own 64-hex Id would be one `container.id` away from deleting nothing and
+   reporting success.
+2. **`AppContainer` carries `exposedPorts`.** It is where a pre-P4c container's dial port
+   comes from, and the platform writes exactly one. Measured 2026-09-15: `/containers/json`
+   reports `Ports: [{ PrivatePort, Type }]` even for a port that is exposed and not published.
+3. **The Docker contract suite runs with `readinessTimeoutMs: 20_000`**, not the 90 s default:
+   the continuity block waits out an instance that can never become ready, and this fixture
+   boots in 2-4 s.
+4. **`specFor` in `redeploy.docker.test.ts` gained a placed file.** Without one no `-files`
+   volume is created, and *"the volume is gone"* would have been asserted against a volume
+   that never existed — a check that cannot fail. The test now asserts the volume is
+   **there** first.
+
+**What this sitting deliberately did NOT do.** Nothing calls `retireInstance`,
+`listInstances`, `servingInstance` or `restoreRoute` from the control plane yet — the caller
+is Task 7's retirer, wired in Task 8. `listInstances` answers with nothing for a hostname
+whose every instance predates P4c, because the only route to the siblings is through a
+container that names the hostname; that gap closes itself at the app's first P4c deploy and
+is stated in the method's own comment. `make demo-redeploy` was **not** re-run: its two
+still-red retire assertions are Task 7's caller, not Task 5's driver, and sitting 3's 14/21
+stands as the acceptance's current reading.
+
+**Gates.** `pnpm test` **788 passed, 68 files**, run **twice**, identical — 13 more than
+sitting 3's 775 (6 for the detach decision in `networks.test.ts`, 7 for the retire's pure
+reads in the new `containers.test.ts`). `pnpm test:docker` **159 passed and 0 SKIPPED** in
+26 files (~612 s) — 15 more than sitting 3's 144, and the eleven skips are gone, which is
+this sitting's whole point. `pnpm lint`, `pnpm --filter @manifest/control-plane typecheck`,
+`pnpm format:check` clean. `make doctor` **18 / 0**, `make verify` **47 / 0**, unchanged.
+
+**Machine.** `./scripts/snapshot-machine.sh` before and after: containers, networks and
+volumes are **exactly** the six `mf-` ones and the nine app networks that were there at the
+start — no leak from any run. Sixteen images the Docker tier built were removed by digest,
+each checked absent from the before-snapshot under every name first (`chem-labs` ×7,
+`fixture-rd` ×7, `blueprint-ntm`, `incident-probe`); there were seven of each because every
+rebuild of `/tmp/repo` moves its commit time and therefore its `SOURCE_DATE_EPOCH`. The only
+remaining differences are timestamps, uptimes, 3 GiB of disk, the git state — and **Ollama
+updating itself from 0.34.0 to 0.34.1 mid-session**, which nothing here asked for.
+
+**Routes were restored by hand, again**, and it is now the third sitting running:
+`routes.docker.test.ts` restarts the edge, which drops every runtime route, and nothing
+re-applies them until Task 9. `proof-app` and `fixture-app` were each given back exactly the
+route `buildRoute` produces — the pre-P4c one dialling its container by NAME, the P4c one
+dialling `mf-i-<instanceId>` — and both hostnames serve their own body
+(`{"status":"ok","mongo":true}`) with their own `X-Manifest-Instance`, not the edge's
+wildcard. **Read the body, never the status.**
