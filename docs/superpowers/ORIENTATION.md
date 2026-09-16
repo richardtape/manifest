@@ -1886,8 +1886,10 @@ the largest piece of work; project creation seeds a stub, so §22's step 6 canno
 browser; no event is published for provisioning or for an instance's intermediate states;
 `LaunchReadiness` is a stale constant; no admin can exist; and nothing like a delegated token exists.
 **Its §5 holds five decisions that are Rich's — settle them before writing the plan**, as P4c's were.
-It also measured that the edge can front the control plane (so a browser console can be same-origin)
-and that doing so makes the API reachable from every app container, which S6 does not yet probe.
+It also measured that the edge can front the control plane (so a browser console can be same-origin),
+and that an app container can reach any edge route by the edge's address even where the name does
+not resolve — so an API on the edge is reachable from app code unless the edge refuses app networks,
+which S6 does not yet probe.
 
 **Invoke `superpowers:writing-plans`.** House style is P1's plan or either half of P4, and P4c's
 *Read this first* / *Decisions Rich made* / *Decisions this plan makes* layout is the newest example.
