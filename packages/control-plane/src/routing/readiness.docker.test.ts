@@ -9,7 +9,12 @@ import {
   resolveSocketPath,
 } from '../runtime/testing.js'
 import { createCaddyClient } from './caddy.js'
-import { edgeProbe, waitForReady } from './readiness.js'
+import {
+  edgeIdentityProbe,
+  edgeProbe,
+  waitForIdentity,
+  waitForReady,
+} from './readiness.js'
 import { applyRoute, removeRoute } from './routes.js'
 
 const run = promisify(execFile)
@@ -20,7 +25,10 @@ const deps = {
 }
 
 const HOST = 'readyprobe.staging.manifest.internal'
+/** In the zone, and holding no route. The wildcard's own hostname. */
+const UNROUTED = 'readyprobe-unrouted.staging.manifest.internal'
 const APP = 'mf-readyprobe-staging-app'
+const INSTANCE = '33333333-3333-4333-8333-333333333333'
 const CA = join(REPO_ROOT, 'infra/ca/manifest-root.crt')
 /** A real certificate, and the WRONG one. The negative control's trust anchor. */
 const WRONG_CA = join(REPO_ROOT, 'infra/registry-auth/token.crt')
@@ -48,7 +56,12 @@ describeDocker('edgeProbe — readiness through the edge, from a container', () 
       '-c',
       'while true; do printf "HTTP/1.1 200 OK\\r\\nContent-Length: 2\\r\\n\\r\\nok" | nc -l -p 8080; done',
     ])
-    await applyRoute(deps, { hostname: HOST, upstream: `${APP}:8080`, kind: 'staging' })
+    await applyRoute(deps, {
+      hostname: HOST,
+      upstream: `${APP}:8080`,
+      kind: 'staging',
+      instanceId: INSTANCE,
+    })
   }, 60_000)
 
   afterAll(async () => {
@@ -96,12 +109,81 @@ describeDocker('edgeProbe — readiness through the edge, from a container', () 
     expect(result.lastStatus).not.toBe(200)
   }, 60_000)
 
+  /**
+   * THE SAME QUESTION, WITH AN IDENTITY (P4c). A status cannot tell this instance
+   * from the previous one, or from the edge's wildcard; the header the route sets
+   * can, and only the route sets it.
+   */
+  it('reads the instance identity back from a routed app', async () => {
+    const seen = await edgeIdentityProbe(engine, HOST, '/', CA)()
+    expect(seen.status).toBe(200)
+    expect(seen.instance).toBe(INSTANCE)
+  }, 60_000)
+
+  /**
+   * THE CONTROL FOR THE WHOLE DESIGN. A hostname in the zone with NO route answers
+   * 200 from the Caddyfile wildcard — for any path, measured 2026-09-15 — so a
+   * status-only readiness check passes against an app that never started (P4b
+   * finding 193, Task 1 finding 11). The wildcard carries no identity, and that is
+   * the difference `waitForIdentity` exists to read.
+   */
+  it('answers 200 with NO identity for an unrouted hostname, and waitForIdentity refuses it', async () => {
+    const seen = await edgeIdentityProbe(engine, UNROUTED, '/', CA)()
+    expect(seen.status).toBe(200)
+    expect(seen.instance).toBeUndefined()
+
+    const refused = await waitForIdentity({
+      url: `https://${UNROUTED}/`,
+      expected: INSTANCE,
+      probe: edgeIdentityProbe(engine, UNROUTED, '/', CA),
+      timeoutMs: 1,
+      intervalMs: 10,
+    })
+    expect(refused.ready).toBe(false)
+    expect(refused.reason).toContain('no X-Manifest-Instance')
+
+    // And the status-only probe passes against exactly the same hostname, which is
+    // what makes this a control rather than a restatement.
+    const statusOnly = await waitForReady({
+      url: `https://${UNROUTED}/`,
+      probe: edgeProbe(engine, UNROUTED, '/', CA),
+      timeoutMs: 1,
+      intervalMs: 10,
+    })
+    expect(statusOnly.ready).toBe(true)
+  }, 60_000)
+
+  it('waits until the edge answers as the instance it was given', async () => {
+    const ready = await waitForIdentity({
+      url: `https://${HOST}/`,
+      expected: INSTANCE,
+      probe: edgeIdentityProbe(engine, HOST, '/', CA),
+      timeoutMs: 30_000,
+      intervalMs: 500,
+    })
+    expect(ready.ready).toBe(true)
+
+    // The same edge, the same 200, a different instance asked for: not ready, and it
+    // says which instance actually answered.
+    const wrong = await waitForIdentity({
+      url: `https://${HOST}/`,
+      expected: 'deadbeef-0000-4000-8000-000000000000',
+      probe: edgeIdentityProbe(engine, HOST, '/', CA),
+      timeoutMs: 1,
+      intervalMs: 10,
+    })
+    expect(wrong.ready).toBe(false)
+    expect(wrong.reason).toContain(INSTANCE)
+  }, 90_000)
+
   // Defect 24 was 42 orphaned anonymous volumes, one per deploy, from a missing
   // `v=true`. This probe creates a container on EVERY poll, so the same omission
-  // here is unbounded growth at a much faster rate.
+  // here is unbounded growth at a much faster rate — and both probes run through the
+  // one container body, so this covers the identity probe too.
   it('leaves no probe container behind', async () => {
     const before = (await run('docker', ['ps', '-aq'])).stdout.trim().split('\n').length
     await edgeProbe(engine, HOST, '/', CA)()
+    await edgeIdentityProbe(engine, HOST, '/', CA)()
     const after = (await run('docker', ['ps', '-aq'])).stdout.trim().split('\n').length
     expect(after).toBe(before)
   }, 60_000)

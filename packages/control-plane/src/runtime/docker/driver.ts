@@ -351,6 +351,11 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
         hostname,
         upstream: `${handle.name}:${spec.port}`,
         kind: spec.environmentKind,
+        // The route names the instance it reaches, on every response (P4c Task 3).
+        // Task 4 is what reads it back to confirm the move actually happened; until
+        // then it is set and unread, which is the right order — a route already
+        // deployed has to carry the header before anything can wait on it.
+        instanceId: spec.instanceId,
       })
 
       /**

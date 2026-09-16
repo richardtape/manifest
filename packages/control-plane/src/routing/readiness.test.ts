@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { waitForReady } from './readiness.js'
+import { waitForIdentity, waitForReady } from './readiness.js'
 
 describe('readiness polling', () => {
   it('returns ready on the first 200', async () => {
@@ -67,5 +67,100 @@ describe('readiness polling', () => {
       intervalMs: 10,
     })
     expect(result.ready).toBe(false)
+  })
+})
+
+/**
+ * A status is not an identity.
+ *
+ * The edge's `*.staging.manifest.internal` wildcard answers **200** for any host in
+ * the zone that holds no route, and for ANY path on it — measured 2026-09-15, run C:
+ * `manifest OK host=… scheme=https` for `/never-ready` on a hostname with no route
+ * (P4b finding 193, Task 1 finding 11). So "the edge answered 200" cannot tell this
+ * instance from the previous one, from the wildcard, or from an app that never
+ * started. The identity header the route sets can, and only the route sets it.
+ */
+describe('waitForIdentity (P4c)', () => {
+  it('is ready when the edge answers 200 AS THIS INSTANCE', async () => {
+    const result = await waitForIdentity({
+      url: 'https://x/',
+      expected: 'inst-a',
+      timeoutMs: 1000,
+      intervalMs: 10,
+      probe: async () => ({ status: 200, instance: 'inst-a' }),
+    })
+    expect(result.ready).toBe(true)
+    expect(result.attempts).toBe(1)
+    expect(result.lastStatus).toBe(200)
+  })
+
+  it('keeps trying while the edge is still answering as the previous instance', async () => {
+    let calls = 0
+    const result = await waitForIdentity({
+      url: 'https://x/',
+      expected: 'inst-a',
+      timeoutMs: 2000,
+      intervalMs: 5,
+      probe: async () => ({
+        status: 200,
+        instance: ++calls < 3 ? 'inst-b' : 'inst-a',
+      }),
+    })
+    expect(result.ready).toBe(true)
+    expect(result.attempts).toBe(3)
+  })
+
+  it('is NOT ready when a 200 carries no identity — that is the edge’s wildcard', async () => {
+    const result = await waitForIdentity({
+      url: 'https://x/',
+      expected: 'inst-a',
+      timeoutMs: 60,
+      intervalMs: 10,
+      probe: async () => ({ status: 200, instance: undefined }),
+    })
+    expect(result.ready).toBe(false)
+    expect(result.reason).toContain('no X-Manifest-Instance')
+  })
+
+  it('is NOT ready when the edge still answers as another instance, and says which', async () => {
+    const result = await waitForIdentity({
+      url: 'https://x/',
+      expected: 'inst-a',
+      timeoutMs: 60,
+      intervalMs: 10,
+      probe: async () => ({ status: 200, instance: 'inst-b' }),
+    })
+    expect(result.ready).toBe(false)
+    expect(result.reason).toContain('inst-b')
+  })
+
+  // The right instance answering the wrong thing is not ready either: a 502 carrying
+  // this instance's header is the edge reaching a container that is not serving.
+  it('is NOT ready for a non-200, whatever identity it carries', async () => {
+    const result = await waitForIdentity({
+      url: 'https://x/',
+      expected: 'inst-a',
+      timeoutMs: 60,
+      intervalMs: 10,
+      probe: async () => ({ status: 502, instance: 'inst-a' }),
+    })
+    expect(result.ready).toBe(false)
+    expect(result.lastStatus).toBe(502)
+    expect(result.reason).toContain('502')
+  })
+
+  it('treats a throwing probe as not-ready and reports the error, not a status', async () => {
+    const result = await waitForIdentity({
+      url: 'https://x/',
+      expected: 'inst-a',
+      timeoutMs: 60,
+      intervalMs: 10,
+      probe: async () => {
+        throw new Error('could not resolve host')
+      },
+    })
+    expect(result.ready).toBe(false)
+    expect(result.lastStatus).toBeUndefined()
+    expect(result.reason).toContain('could not resolve host')
   })
 })
