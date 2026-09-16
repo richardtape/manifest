@@ -8,6 +8,7 @@ import { afterAll, beforeAll, expect, it } from 'vitest'
 import { describeDocker, REPO_ROOT } from '../runtime/testing.js'
 import { createCaddyClient } from './caddy.js'
 import { applyRoute, removeRoute, servingRoute } from './routes.js'
+import { stubAppArgs } from './testing.js'
 
 const run = promisify(execFile)
 const caddy = createCaddyClient('http://127.0.0.1:7119')
@@ -99,20 +100,6 @@ const spec = {
   instanceId: INSTANCE_A,
 }
 
-/** An `nc` one-liner that serves `body` on 8080, plus any extra response headers. */
-const ncApp = (name: string, body: string, extraHeaders = ''): string[] => [
-  'run',
-  '-d',
-  '--name',
-  name,
-  '--network',
-  'manifest-platform',
-  'alpine:3.22',
-  'sh',
-  '-c',
-  `while true; do printf "HTTP/1.1 200 OK\\r\\nContent-Length: ${body.length}\\r\\n${extraHeaders}\\r\\n${body}" | nc -l -p 8080; done`,
-]
-
 /**
  * A request every 25 ms from inside ONE container, classified by body AND by the
  * identity header, until a stop file appears.
@@ -181,10 +168,16 @@ describeDocker('runtime routing through the Caddy admin API', () => {
   beforeAll(async () => {
     await removeRoute(deps, HOST, 'staging').catch(() => undefined)
     await run('docker', ['rm', '-f', APP, APP_B, FORGER]).catch(() => undefined)
-    await run('docker', ncApp(APP, APP_BODY))
-    await run('docker', ncApp(APP_B, APP_B_BODY))
-    await run('docker', ncApp(FORGER, APP_BODY, 'X-Manifest-Instance: forged\\r\\n'))
-    // `nc -l` needs a moment before it accepts; a probe of a container that has not
+    // Real HTTP servers, never `nc`: an `nc` stand-in answers before it is asked, and
+    // the edge's pooled connection to it turned one request into an empty 502
+    // (`stubAppArgs` has the measurement).
+    await run('docker', stubAppArgs(APP, APP_BODY))
+    await run('docker', stubAppArgs(APP_B, APP_B_BODY))
+    await run(
+      'docker',
+      stubAppArgs(FORGER, APP_BODY, { 'X-Manifest-Instance': 'forged' }),
+    )
+    // A server needs a moment before it accepts; a probe of a container that has not
     // bound yet reads as the app being broken.
     await new Promise((r) => setTimeout(r, 1500))
   }, 120_000)
@@ -287,7 +280,8 @@ describeDocker('runtime routing through the Caddy admin API', () => {
     // which is this test's own shape. So a reset is counted here the way both takeover
     // tests count it, and never read for an identity it cannot carry (P4c finding 49).
     // Measured 2026-09-16 (P4c sitting 8): a full `pnpm test:docker` failed this test on
-    // exactly one status-0 record with an empty body — no wildcard, no 5xx.
+    // exactly one status-0 record with an empty body — no wildcard, no 5xx. A 502 is
+    // NOT tolerated: the one this test once saw was its `nc` stand-in's (finding 74).
     const answered = seen.filter((r) => r.status !== 0)
     expect(seen.length - answered.length).toBeLessThanOrEqual(2)
     expect(answered.filter((r) => r.status !== 200)).toEqual([])

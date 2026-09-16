@@ -16,6 +16,7 @@ import {
   waitForReady,
 } from './readiness.js'
 import { applyRoute, removeRoute } from './routes.js'
+import { stubAppArgs } from './testing.js'
 
 const run = promisify(execFile)
 const engine = createEngineClient({ socketPath: resolveSocketPath() })
@@ -44,18 +45,8 @@ describeDocker('edgeProbe — readiness through the edge, from a container', () 
     // In beforeAll, not in the first `it`: defect 7 was three tests depending on a
     // side effect of the first one, which is the ordering shape behind five of P2's.
     await run('docker', ['rm', '-f', APP]).catch(() => undefined)
-    await run('docker', [
-      'run',
-      '-d',
-      '--name',
-      APP,
-      '--network',
-      'manifest-platform',
-      'alpine:3.22',
-      'sh',
-      '-c',
-      'while true; do printf "HTTP/1.1 200 OK\\r\\nContent-Length: 2\\r\\n\\r\\nok" | nc -l -p 8080; done',
-    ])
+    // A real HTTP server, never `nc`, which answers before it is asked (`stubAppArgs`).
+    await run('docker', stubAppArgs(APP, 'ok'))
     await applyRoute(deps, {
       hostname: HOST,
       upstream: `${APP}:8080`,
