@@ -1,23 +1,10 @@
 # Orientation — read this first
 
-**You are picking up a project whose design is finished and whose first six
-implementation plans are executed — P1, P2, P3, P4a and, since 2026-09-15, all 16 tasks of
-P4b. §16's proof app is complete: it signs a real person in with CWL, keeps their data
-theirs, and answers their question from their own notes through a language model, charged
-to them; a failed deploy produces §14's Incident, and every build, deploy and incident
-streams over one WebSocket per project. **P4c — zero-downtime
-redeploys — IS EXECUTED TOO: all 11 tasks in eight sittings, finished 2026-09-16, 70 findings.
-THE PLATFORM REDEPLOYS AN APP WITHOUT INTERRUPTING ANYBODY OR SIGNING ANYBODY OUT**, puts its
-routes back at its own boot, and `make demo-redeploy` — P4c's acceptance, 24 assertions — is
-green from a `make reset` machine. **P5a — the contract, the first of Phase 1c's three plans — IS WRITTEN
-(2026-09-16): 17 tasks in twelve agreed sittings. ITS SITTINGS 1 TO 6 ARE DONE (2026-09-16, 9, 16, 15, 7, 4 and 13 findings) — the measurements; the API under `/v1` and through the edge at `https://console.manifest.internal`, refused to every source but the host; then CSRF by `Origin`, a sign-in bound to its browser, and one registry of every error code; then `defineRoute` and the OpenAPI document generated from it, `packages/contract/openapi.json`; then `@manifest/contract`, the TypeScript client generated from that document, and `make demo-journey` calling it through the edge; then projects, environments, members and specs as public representations, and §23's reserved labels behind `GET /v1/slugs/{slug}` — and the next job is EXECUTING SITTING 7 (Tasks 10–11) — §7e says what that is.** This is the single
-entry point: what Manifest is, what has been established, what the machine will do to
-you, and what to do next. It is written for someone with **no prior context** —
-a new agent with a fresh window, or a developer joining.
+**Manifest's design is finished, six implementation plans are executed — P1, P2, P3, P4a, P4b and P4c — and the seventh, P5a (the contract), is being executed one sitting per session. The next job is always §7e.** This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
 
-*Last verified 2026-09-16.* Two things in this file state current status and will go
-stale: §2 and §7. **The roadmap's ledger outranks both** — it is the maintained
-record. Everything else here is durable.
+*Last verified 2026-09-16.* **Three places state current status — §2, §7e and §8 — and a sitting's sweep REPLACES what they say; it never appends a sitting's story here** (§6). **The roadmap's ledger outranks all three.** Everything else is durable.
+
+**Short of context? Read §7e, §2's numbers box, §6, and the newest entries at the end of §4's *Things that will cost you a morning*, in that order.** §4 is most of this file and is meant to be searched, not read through.
 
 ---
 
@@ -36,386 +23,177 @@ everything.
 
 ## 2. Where things stand
 
-**Five spikes are done. P1, P2, P3, P4a, P4b AND P4c are executed.** The platform runs offline,
-the control plane serves HTTP on 7100 with the real Docker driver, `make demo` takes an
-application from a bare git repository to a healthy `https://…manifest.internal` URL,
-and **`make demo-identity` takes §16's proof app from a bare repository to a real CWL
-sign-in in which the instructor cannot see the student's note.** **`make demo-ai` takes the
-same app to an answer from a language model, drawn from the asker's own notes and charged to
-that one person** — through the event stream, a streamed completion, a 768-dimension
-embedding and LiteLLM's own spend log.
+**Five spikes are done — S7, S2, S1, S3 and S6 — and all five answered yes (§5); S5 and S4 are deliberately later. Six plans are executed, and each has an acceptance that passes:**
 
-**P4a IS EXECUTED AND GREEN — all 15 tasks, finished 2026-09-09**, in seven agreed
-sittings of one session each. **P4b IS EXECUTED AND GREEN — sitting 1 (Tasks 1–2) is done,
-2026-09-09, with 10 findings, sitting 2 (Task 3) on 2026-09-14, with 6, sitting 3 (Tasks 4–5) the same day, with 11, sitting 4 (Tasks 6–7) the same day, with 12, sitting 5 (Tasks 8–9) the same day, with 11, sitting 6 (Task 10) the same day, with 14, sitting 7 (Tasks 11–12) the same day, with 16, sitting 8 (Task 13) on 2026-09-15, with 20, sitting 9 (Tasks 14–15) the same day, with 18, and sitting 10 (Task 16) the same day, with 22 — 140 in all. P4c IS EXECUTED AND GREEN — SITTINGS 1 TO 6 ON 2026-09-15, WITH 13 FINDINGS, 4, 7, 6, 9 AND 10, AND SITTINGS 7 AND 8 ON 2026-09-16, WITH 9 AND 12 — 70 IN ALL**
-— §7d-3 records it. **P4b is split into TEN agreed sittings** (Rich, 2026-09-09), the same
-one-per-session pattern with a check-in at each boundary. *(Sittings pace execution. They are **not** §17's
-product Phases — the roadmap's "Phase 2" is six unwritten plans.)*
+| Plan | Executed | What it made true | Acceptance |
+|---|---|---|---|
+| P1 | 2026-09-05 | The platform runs on one laptop, offline after `make seed` | `make doctor`, `make verify` |
+| P2 | 2026-09-05 | The control plane serves the API on 7100 | its unit tier |
+| P3 | 2026-09-07 | An app goes from a bare repository to a URL, through the Docker driver and the edge | `make demo` |
+| P4a | 2026-09-09 | A real CWL sign-in; secrets stored, not derived; §8's injection contract | `make demo-identity` |
+| P4b | 2026-09-15 | AI answers charged to the asker; build logs, events and Incidents | `make demo-ai` |
+| P4c | 2026-09-16 | A redeploy interrupts and signs out nobody | `make demo-redeploy` |
 
-**2026-09-14, before sitting 2: restored after a reboot, and two defects.** `make up`
-does not recover the edge when Docker Desktop starts before the `127.0.0.2` alias
-exists — named, not fixed; RUNBOOK's *Known gaps* has the workaround. And §12's scan
-refused any vulnerability database more than five days old, failing every build while
-`make doctor` called the database fresh — **fixed** in `build/scan.ts`, with a test that
-fails on a database of any age. The record is in P4b's *What executing this plan found*,
-and five corrections to Task 3's own text are at the top of Task 3.
+**The current plan is P5a — the contract** ([`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), 17 tasks in twelve agreed sittings, one per session), the first of Phase 1c's three plans. It puts the API under `/v1` at `https://console.manifest.internal` through the edge, generates an OpenAPI document from the routes and a TypeScript client from that document, and ends with `make demo-journey` driving §22's journey through nothing but that client. **Which of its sittings are done, and which is next, is its sittings table — and §7e.** P5b (delegated tokens) and P5c (the mock, the console, CI) are written only after it executes. *Sittings pace the work; they are not §17's product Phases.*
 
-**Sitting 2 then ran Task 3, the same day.** §16's AI-path tier exists before any `ai/`
-module does, and it found that **LiteLLM's `/user/new` mints an unconfined key unless
-`auto_create_key: false` is passed — which Task 7's code does not pass**, so every app
-would have held one. The correction is at the top of Task 7.
-
-**Sitting 3 then ran Tasks 4 and 5, also 2026-09-14.** `ai/errors.ts` maps LiteLLM's
-failures to Manifest codes that carry nothing but a status, and `ai/client.ts` is the one
-place the control plane calls LiteLLM's admin API. It found that **Task 7's code, as
-written, throws on every redeploy of an AI app** — it recognises an existing LiteLLM user by
-text the client exists to strip — and that Task 9's client wiring cannot typecheck. Both
-corrections are at the top of those tasks.
-
-**Sitting 4 then ran Tasks 6 and 7, also 2026-09-14.** D17's catalogue is read from LiteLLM's
-`/model/info`, and the model list the route used to restate is deleted; `ai/keys.ts` mints every
-app key confined to three routes, under a budgeted LiteLLM user. It made the decision its hand-off
-named — **AI is on unless `MANIFEST_AI_ENABLED=0`, and on means a boot with no LiteLLM master key
-is refused, in development too** — and measured that **a key minted with an empty `models` list
-reaches every model**, which is why `rotateAppKey` refuses one. Task 9 carries a correction.
-
-**Sitting 5 then ran Tasks 8 and 9, also 2026-09-14 — the sitting that gave Tasks 6, 7 and 8 their
-caller.** `manifest-litellm` joins an app's network only when the app declares models, and
-`deployRelease` now **mints the app key before the instance starts, commits it only once the
-instance is healthy, and discards it if the instance fails** — Rich's decision that no live AI call
-may fail because a deploy revoked its key, which split `rotateAppKey` into three. It made the
-decision its hand-off named: **a release that declares models, deployed with AI switched off, is
-refused with `RELEASE_AI_DISABLED`**. It built both §7 amendments, and measured two facts now in §4:
-**a network removed under a stopped container leaves that container unable to start**, and **an
-empty `model_info:` stops LiteLLM starting, for every app**. Task 10 carries four corrections from it.
-
-**Sitting 6 then ran Task 10, also 2026-09-14 — the blueprint's AI half, with the network on.** `node-ts-mongo@1` provides AI: `skeleton/ai/llm.js` closes S3's two silent failures once, in code, and **`blueprints/ai-component.test.ts` proves it on the wire** — the real toolkit in a child `node` process against a fake gateway that reproduces S3's 192-dimension embedding when the option is missing. `node-ts-mongo.docker.test.ts` built it through §12's gates and booted it. It found that **`make seed`'s npm warm had never warmed a package already in the developer's npm cache** — 135 of 135 cache hits, zero fetches, no `WARN`, exit 0 — fixed with an empty cache and caught only by `make verify`; and that **Docker Desktop's credential helper can hang and stop `make seed` at step 2** — named, not fixed; RUNBOOK's *Known gaps* has the workaround.
-
-**Sitting 7 then ran Tasks 11 and 12, also 2026-09-14 — build logs, and the redaction that covers them.** A build's output reaches `audit.build_logs` line by line while the build runs, redacted, through `Driver.buildImage`'s new `onLog` and a spawn-based splitter in `runtime/docker/builder.ts`; a failed build keeps its log, with its reason as the last line; and `makeRedactor` gained §14's heuristic half — Rich's entropy rule and five patterns, one of them corrected by measurement. It found that **migration 0005 applied without its grant** — a `$(ls …)` captured an aliased listing — and replayed it from the file as it ships; that **a missing flush was invisible inside one test transaction**, so that property is proved on the pool against a table lock; and that **Docker CLI 29.7.2 forwards SIGTERM to buildx**. 27 negative controls: the two that first came out green each forced a test that goes red. **Its Docker tier ended 130 of 131**, and the failure is not its code: **a Mongo service is reported healthy 24 s or more before it accepts the app's credentials**, because the catalogue's `ping` health test passes during the image's unauthenticated init phase — a platform defect since P3, measured and deliberately not fixed at the end of a sitting.
-
-**Sitting 8 then ran Task 13, on 2026-09-15 — §14's `Incident`, after settling the Mongo race first.** A Mongo service is now handed over only once it enforces authentication: its check is an unauthenticated `listDatabases` that must be refused, it runs every second while the service starts and every 30 s after, and a Docker-tier test forces the race on demand with a 20 s init script. Then Task 13, which found that **the plan's caller position for the Incident was unreachable on the Docker driver**: an app that never answered at its hostname made `ensureInstance` throw with no handle, so the commonest real failure — an app that crashes as it starts — left no record and its row parked in `provisioning`. **A readiness refusal now throws `InstanceNotReadyError` carrying the handle, and `deployRelease` records it as a `failed` instance with an Incident**: the exit code, the last 200 log lines, the failing check and the diff since the last healthy release, redacted at capture with the app's own stored secret set, append-only in `audit.incidents`, and served with its repair prompt at `GET /environments/:environmentId/incidents`. **A failed deploy is therefore a `200` whose state is `failed`**, and `make demo` and `make demo-identity` now check for `healthy`. A real crashing container proves it in the Docker tier, and 17 negative controls go red.
-
-**Sitting 9 then ran Tasks 14 and 15, also 2026-09-15 — the event stream, and the call sites that make it carry anything.** `WS /projects/:projectId/events` is D23.2's one stream per project. **The plan's code could not pass its own test**: it authorized inside the socket handler, which `@fastify/websocket` runs after the upgrade, so a stranger's socket would have opened. Authorization is now a route hook that runs before the upgrade — a stranger's upgrade is an HTTP `404` — and a member's plain GET is `426`, which is how §16's authorization contract suite covers the stream. A connection is replayed the newest 50 events, marked ready, then streamed live, and closed with 1013 past a megabyte of backlog. **Every event is now written through one `publishEvent`**, which records the row and publishes it as stored — builds, deploys, incidents, AI key rotations and P4a's SSO registrations — and a build's log lines stream as they are written. `audit.events` gained `clock_timestamp()` and a database CHECK on its nine types. It also found that a deploy reading the app's secret set after the instance was recorded could strand a minted AI key, so that read now happens before anything is minted. 25 negative controls.
-
-**Sitting 10 then ran Task 16, also 2026-09-15 — P4b's acceptance, and P4b is finished.** §16's proof app answers a question: `POST /api/ask` embeds the question beside the asker's own newest notes, picks the closest as context and streams the answer, through the key the platform minted for that app and charged to `sha256(puid ‖ project ‖ environment)`. **`make demo-ai`** proves it against the running platform — the event stream carrying the deploy in order with every build-log line exactly as stored, a non-empty streamed answer, a 768-dimension embedding, context that is the asker's own note and never the other person's, and LiteLLM's own spend log holding a chat and an embedding row per person on their namespaced identifier — **green from a `make reset` machine, twice**. Its first run failed at step 9 on the sitting's own guess, and the measurement behind the fix found that **the blueprint's `embed()` had charged every embedding to nobody** — fixed, with the PUID now required. Negative control (e) found that **an AI app whose gateway vanishes under a pooled connection makes a student wait 611 seconds** — the toolkit exposes no timeout — named for P4c and the blueprint. `make demo-identity` and `make demo-ai` share `scripts/lib/proof-app.sh`, the proof app's own `identity.js` is gone, and **the external-track trigger has fired** — raised with Rich, not started. 12 negative controls.
-
-**One thing is outstanding and it is RICH'S to run: the offline acceptance.** Turning
-the network off from a tool call cuts the agent off too, so
-`scripts/offline-acceptance.sh` is run by hand; it gained a step 6 that runs
-`make demo-identity`, which is the step most likely to need a route out — it builds
-from `node-ts-mongo@1`'s five app-side dependencies through Verdaccio *and* completes a
-SAML round trip. **P4b's Task 16 appended a step 7, `make demo-ai`**, whose open question is
-whether Ollama — a host application, not a container — answers with the network off. **A
-skipped acceptance is not a passed one.**
-
-**The identity half of the platform now works, and it did not before.** A real CWL
-login completes end to end — an app redirects to the Manifest IdP, a test user
-authenticates, the IdP releases exactly the attributes the SP row declares named by
-OID, and `passport-ubcshib` maps them back so the app reads `ubcEduCwlPuid`. **Since
-Task 14, MANIFEST'S OWN users log in the same way** — §9's first sentence is that
-Manifest is itself an SP — through a Service Provider row the control plane registers
-at its own boot, and `POST /auth/dev-login`, an unauthenticated route that minted real
-sessions, is deleted. Before
-Task 1 the IdP could not issue an assertion **and** could not authenticate anybody,
-with `make verify` reporting 34/0 throughout. **Since Task 7 that login also runs
-through a row `sso/` itself renders**, with the AuthnRequest signed by a per-app
-RSA-4096 key the platform minted and stored — and it is refused when the row pins a
-different certificate, and refused again when the app does not sign at all.
-
-**Executing the fifteen found 80 defects.** Four were bigger than the plan — the first
-two came out of Tasks 1–3, the third out of Task 5, the fourth out of Task 8:
-
-- **§12's dependency-scan gate blocked every CWL application.** `passport-ubcshib`
-  depends on a deprecated `passport-saml` carrying a critical signature-verification
-  advisory with no fix. §12's unwaivable gate and C6's "a library change is never a
-  prerequisite" could not both hold. **Rich settled it on 2026-09-08:** block on a
-  Critical/High **that has a published fix**, record the rest. See §8.
-- **§8's `SAML_IDP_CERT_PATH` named a file nothing could create.** `InstanceSpec` had
-  no way to put a file in a container, so Task 11 would have injected a path that does
-  not exist. `InstanceSpec.files` now exists — see §4.
-- **`ServiceBinding.credentials` was required by Task 5 and filled by nobody until
-  Task 9.** `deployRelease` builds that binding today, so following the plan literally
-  breaks every deploy for four tasks — a contract field with no producer, which is
-  `MONGODB_DB_NAME`'s shape exactly. Task 9's `deps` parameter was pulled forward
-  carrying `{ secrets }`; **Task 9 is now smaller, not larger.**
-
-| | State |
-|---|---|
-| **Spikes** | S7, S2, S1, S3 — **all four answered yes**, each far inside its timebox. Their spec changes are applied. **S6 has since run too, as P3's Task 18, 2026-09-07: every probe denied, every denial paired with a positive control, and one result BETTER than the spec** — §21's divergence 8 no longer holds, because app networks are `--internal` and the developer's machine is unroutable rather than merely policed. S5 and S4 are deliberately later (S5 follows S6, S4 precedes Phase 4). **Nothing is waiting on a spike.** |
-| **Plans** | **P1, P2, P3, P4a, P4b AND P4c ARE ALL EXECUTED — P4a ON 2026-09-09, P4b ON 2026-09-15, P4c ON 2026-09-16 (11 tasks in eight agreed sittings, 70 findings). P5 IS NOW THREE PLANS; P5a IS WRITTEN AND ITS SITTINGS 1 TO 6 ARE DONE — §7e.** P1 (13 tasks) and P2 (21 tasks) on 2026-09-05; **P3 (19 tasks) on 2026-09-07**. **P0** (spike briefs) is written. Executing them found **152 defects** in plans that had all been self-reviewed first — P1 18, P2 52, **P3 82 across five sessions, 4.3 per task**, the highest rate measured here. P3's own self-review found seven, the worst being that **nothing wired the Docker driver into the boot entry point**, so its `make demo` would have passed against the fake driver; P2's execution hit that same defect in P2, and **P3's execution hit a third instance of it** — `waitForReady` and `edgeProbe` were built in Task 14 and nothing called them until Task 17. **P4a's fifteen tasks found 80 defects — 5.3 per task, the highest rate measured here, in the plan that had the most research behind it.** Two were spec-level and are in §8. **P4b's sixteen tasks found 140 — 8.8 per task, the highest rate measured here, and its acceptance alone found 22.** P4c (zero-downtime redeploys, placed after P4b by Rich on 2026-09-14) is **EXECUTED — sittings 1 to 8, 2026-09-15 and 2026-09-16, with 13 findings, 4, 7, 6, 9, 10, 9 and 12; sitting 3 proved the plan's central claim at the driver, sitting 4 made the §11 contract green on the real driver, 25 of 25 with nothing skipped, and SITTING 6 GAVE ALL OF IT A CALLER — a hostname taken over from one live instance to another under a request every 25 ms with ZERO 502s and ZERO wildcard answers, now through `deployRelease` and with the old container reaped behind it, where the pre-P4c order records seven empty 502s — and SITTING 7 put `node-ts-mongo@1`'s sessions in the app's own Mongo, so a redeploy signs nobody out; SITTING 8 ran the acceptance green three times, once from a `make reset` machine, and found that four of its nine negative controls could not fail in it — each is now watched red in the tier that can see it**; P5 — split by Rich into P5a, P5b and P5c — has its first plan WRITTEN: **P5a, 2026-09-16, 17 tasks in twelve agreed sittings, its six spec actions applied (`491f8be`); sitting 1, the measurements, ran the same day with 9 findings, sitting 2 — the API under `/v1` and through the edge — with 16, sitting 3 — CSRF by `Origin`, a sign-in bound to its browser, and the error-code registry — with 15, sitting 4 — `defineRoute`, the generated OpenAPI document and its drift test — with 7, sitting 5 — the generated client and `make demo-journey` — with 4, sitting 6 — projects as public representations and the slug check — with 13, and executing sitting 7 is the next job — see §7e.** P5b and P5c are written after it executes. **The unrun stack was 16 tasks when P4b was written**, which is what the 2026-09-04 decision existed to avoid; it is recorded rather than glossed. |
-| **Code** | **The platform runs, and so does the control plane.** P1 shipped `Makefile`, `infra/` and `scripts/`: split-horizon DNS, the custom `xcaddy` edge, Postgres with three databases, registry, Verdaccio, a native egress proxy, rootless BuildKit, LiteLLM and the Manifest IdP — `make seed / up / down / reset / doctor / verify`. P2 then shipped the whole control plane: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/`, `source/`, `identity/`, `projects/`, `releases/` and `api/` — a Fastify server on **7100** with D23.6 idempotency, the D23.7 error envelope, the §13 capability model and the §16 authorization contract suite, and the full lifecycle runs in **~300 ms** against the fake driver. **P3 has since added `runtime/docker/` (fourteen files: the Engine API client, the `mf-` naming scheme, §12's hardening, per-app networks, the forced egress proxy, `services/`, the instance lifecycle, log demux and exec, the registry token issuer, the ephemeral builder), `services/`, `build/` and `api/routes/registry-token.ts`.** **The numbers are in the box below** — this row used to restate them and drifted by four releases.  **P4a Tasks 1–3 then added `sso/`'s test surface and login suite, `runtime/docker/archive.ts`, `infra/idp/metadata/saml20-idp-hosted.php`, `infra/idp/attributemap/ubcoid.php`, three new `infra/lib/ensure-*.sh` scripts wired into `make up`, and `fixtures/saml-sp/`; Tasks 4–5 added `secrets/`; Tasks 6–7 added `sso/`'s production half — `keypair.ts`, `entity.ts`, `metadata-store.ts`, `registration.ts` — plus `MANIFEST_IDP_DATABASE_URL` and `MANIFEST_SP_ENTITY_BASE` in `config.ts`; and Tasks 8–9 added `observability/` (`events.ts`, `redact.ts`), the `audit` schema and its migration, `infra/lib/ensure-app-role.sh` and the `manifest_app` role the control plane now connects as, and `sso`'s wire into `DeployDeps`, `ServerDeps` and boot. **Tasks 10–11 added `spec/injection.ts` — §8's table as data and the one renderer of every variable an app receives — plus `config.idp`, `secrets/`'s `ensureSessionSecret`, `SsoRegistrar.idpSigningCertificate()`, `ai` on `ResolvedConfig`, and the reserved-name check in `spec/policy.ts`. `deployRelease`'s ad-hoc env block is gone. Tasks 12–13 added `blueprints/node-ts-mongo/` — the descriptor, the Dockerfile, the skeleton with its auth component and §9's attribute bridge, and the D25 knowledge pack — plus `spec/injection-drift.test.ts` (§16's drift tier, reading the blueprint's source), `runtime/docker/node-ts-mongo.docker.test.ts` and `blueprints/attribute-bridge.test.ts`. Task 14 added `identity/saml.ts` — the control plane's own SAML SP, on `@node-saml/node-saml` rather than the `passport-saml` the blueprint pins — `identity/testing.ts` (an in-process SAML IdP and `testSessionCookie`), `identity/saml.docker.test.ts`, `sso/platform.ts` and `infra/lib/ensure-cp-sp-keypair.sh`, and DELETED `identity/dev-auth.ts` and its test.** **P4b's Task 3 (2026-09-14) added `ai/testing.ts` — probe keys through LiteLLM's admin API — and `ai/ai-path.docker.test.ts`, probes 13 and 14 in `runtime/docker/s6.docker.test.ts`, `ensureLitellmMasterKey()` in `vitest.env.ts`, and `ubc-genai-toolkit-llm@0.7.0` as an exact devDependency. Its Tasks 4–5 (sitting 3) added `ai/errors.ts` — S3's error table as one mapper — `ai/client.ts`, the LiteLLM admin transport, `ai/index.ts`, and `config.litellm`. Its Tasks 6–7 (sitting 4) added `ai/catalogue.ts` — D17's catalogue from `/model/info`, with `disabledCatalogue()` for `MANIFEST_AI_ENABLED=0` — `ai/keys.ts` (`AI_ALLOWED_ROUTES`, `ensureAiUser`, `rotateAppKey`, `createAiKeyService`), `ai/keys.docker.test.ts`, `declaredCatalogue()` in `ai/testing.ts`, `ServerDeps.catalogue`, a 503 in `api/errors.ts` for a gateway failure, and `SPEC_AI_DISABLED` and `SPEC_AI_BUDGET_REQUIRED` in `spec/policy.ts`; the model array in `api/routes/projects.ts` is deleted. Its Tasks 8–9 (sitting 5) added `runtime/docker/networks.test.ts`, `AI_GATEWAY_NEIGHBOUR` and the neighbour sweep in `destroyAppNetwork`, `InstanceSpec.needsAiGateway`, the `manifest.env-sha256` container label, `mintAppKey`/`commitAppKey`/`discardAppKey` and `disabledAiKeyService()` in place of `rotateAppKey`, `CatalogueSnapshot`, `declaresModels` and `SPEC_MODEL_UNCLASSIFIED`, `InjectionContext.ai` with §8's six AI rows, and `ai` and `catalogue` on `DeployDeps` and `ServerDeps`. Its Task 10 (sitting 6) added `blueprints/node-ts-mongo/skeleton/ai/` — `llm.js` and `end-user.js` — with `provides.ai: true` and the toolkit pin, `blueprints/ai-component.test.ts` (the wire tier), and an empty npm cache in `infra/seed/seed.sh`'s warm step. Its Tasks 11–12 (sitting 7) added `observability/build-logs.ts` with migration 0005's `audit.build_logs`, `observability/testing.ts`, `BuildOpts` and `onLog` on `Driver.buildImage`, `runStreamed` and `REDACTED_TOKEN` in `runtime/docker/builder.ts`, `GET /builds/:buildId/logs`, and `makeRedactor`'s entropy and pattern heuristics. Its Task 13 (sitting 8) added `observability/incidents.ts` — `captureIncident`, `listIncidents`, `incidentPrompt` — over migration 0006's `audit.incidents`, `describeDiff` and `DESCRIBED_PATHS` in `spec/diff.ts`, `InstanceNotReadyError` and `InstanceStatus.exitCode` in `runtime/driver.ts`, `AppSecretResolver.secretValues`, `GET /environments/:environmentId/incidents`, `createServiceContainer` with the authentication-enforced Mongo health check, and `releases/incident.docker.test.ts`. Its Tasks 14–15 (sitting 9) added `observability/bus.ts` — `createEventBus`, `publishEvent`, `recentFramesFor` and the three frame producers — `api/routes/events.ts` with `WS /projects/:projectId/events`, `@fastify/websocket` 11.3.0, `ServerDeps.bus` and `DeployDeps.bus`, the `onLine` hand-off in `createBuildLogWriter`, six new `EVENT_TYPES`, and migrations 0007 (`clock_timestamp()`) and 0008 (`events_type_known`). Its Task 16 (sitting 10) added `scripts/demo-ai.sh` and `make demo-ai`, `scripts/lib/proof-app.sh` — the proof app assembled and deployed once, for both demos — `scripts/lib/event-stream.mjs`, the dependency-free stream subscriber, `POST /api/ask` in the proof app, and `embed(texts, puid)` in the blueprint's AI component; it DELETED `fixtures/proof-app/identity.js`.* **P4c's Task 1 (sitting 1) added `scripts/demo-redeploy.sh`, `make demo-redeploy`, `scripts/lib/redeploy-loop.mjs` and `redeploy-summary.mjs`, and `spikes/p4c-baseline/p4c-measure-edge.sh`. Its Task 2 (sitting 2) added `InstanceSpec.instanceId`/`hostname`, the four continuity methods and `DriverRefusalError` on `Driver`, and the contract suite's eleven-test continuity block. Its Tasks 3–4 (sitting 3) added `runtime/docker/probes.ts` and `keyed-mutex.ts`, `instanceAlias` and the five container labels, `routing/`'s `servingRoute`/`restoreRouteTo`/`inFlightTo`/`upstreamsInUse`/`upstreamOf`/`instanceIdOf` and `edgeIdentityProbe`/`waitForIdentity`, and `runtime/docker/redeploy.docker.test.ts`; `reapplyAllRoutes` is DELETED. Its Task 5 (sitting 4) added `runtime/docker/containers.ts` — `listContainers`, `inspectApp`, `dialHostOf`, `upstreamFor`, `hostOfAddress`, `containerForUpstream` — `detachAiGatewayIfUnused` in `networks.ts`, the Docker driver's four continuity methods with `drainUpstream` and `UNLISTED_UPSTREAM_IS_IDLE`, `dockerContinuityFixtures()` and a STAMP on `ensureContractRepo`, `/hold?ms=` in `fixture-node@1`'s skeleton, and `containers.test.ts`. **Its Tasks 6–7 (sitting 5) added the `routes` table and migration 0009 (both enums, the table, and the `events_type_known` CHECK dropped and re-added with three retire types), `db/locks.ts` with `withEnvironmentLock` and `locks.test.ts`, `deleteSecret` in `secrets/store.ts`, `instanceKeySecretName`/`storeInstanceKey`/`revokeInstanceKey`/`revokeLegacyAppKey` on `ai/keys.ts` and `AiKeyService`, the `interrupted` transition in `state-machine.ts`, `MANIFEST_DRAIN_TIMEOUT_MS` → `config.drainTimeoutMs`, and `releases/retire.ts` + `retire.test.ts` — `retireEnvironment`, `createRetirer`, `RetirerDeps`, `RetireOutcome`.** **Its Tasks 8–9 (sitting 6) reordered `releases/release.ts` under the lock and added `releases/recover.ts` (`recoverAtBoot`) with `recover.test.ts`, `releases/redeploy.docker.test.ts`, `ServerDeps.retirer` with a real retirer in `api/testing.ts`, the Route row read by `GET /environments/:environmentId`, three recovery tests in `boot.docker.test.ts`, and recovery before `listen` in `src/index.ts`; `commitAppKey` is DELETED. Its Task 10 (sitting 7) added `blueprints/node-ts-mongo/skeleton/auth/session.js` (`sessionMiddleware`), `connect-mongo` 6.0.0 in the skeleton's `package.json`, `package-lock.json` and `blueprint.yaml`, *Two releases run at once* in `agents/AGENTS.md`, `blueprints/session-component.test.ts`, and a completed CWL login in `runtime/docker/node-ts-mongo.docker.test.ts`; the skeleton's and the proof app's `server.js` no longer import `express-session`. Its Task 11 (sitting 8) changed `scripts/demo-redeploy.sh` and `scripts/lib/redeploy-summary.mjs` — the asker records each answer's instance, three more assertions, `--across-move`, `--instances` and `inFlightAtRetire` — and added a key-order test to `releases/releases.test.ts`; `routes.docker.test.ts` now counts R1's reset.** **P5a's Task 2 (sitting 2) added `api/unversioned.ts` and `api/versioning.test.ts`, a D23.7 not-found handler in `api/server.ts`, and `scripts/lib/api.sh` — the one `key`/`api`/`field`/`json`/`environment` — and moved every resource route under `/v1` (`/auth/me` is `/v1/me`). Its Task 3 added the `console.manifest.internal` site to `infra/caddy/Caddyfile` (allow-list `10.89.0.1/32`, `/v1/*` and `/auth/*` to the control plane, `stream_close_delay 1h`), `CONSOLE_HOST`, `HOST_SOURCE_IP` and `EDGE_PROBE_HOST` in `infra/lib/common.sh`, the re-bind in `infra/lib/ensure-caddy-config.sh`, three console checks in `scripts/verify.sh` (whose edge probes moved to `edge.manifest.internal`), S6 probe 15, and `origin` on the boot line; `MANIFEST_CONTROL_PLANE_ORIGIN` defaults to `https://console.manifest.internal` and the session cookie is `Secure` on an https origin.** **Its Task 4 (sitting 3) added `api/csrf.ts` (`CsrfRefusedError`, `assertSameOrigin`, `carriesSession`) and its call in the preHandler and in both halves of the event stream's route, `identity/login-state.ts` (`manifest_login`, `safeReturnTo`, the nonce and `sameNonce`), `SamlSp.loginUrl(relayState)`, `SAML_LOGIN_NOT_BOUND` in the callback, `GET /auth/login?returnTo=`, `mutationHeaders` in `api/testing.ts`, `RelayState` posted back by `infra/lib/idp-login.sh`, and `Origin` from `scripts/lib/api.sh` and `event-stream.mjs`. Its Task 5 added `api/error-codes.ts` — `ERROR_CODES` (65 codes), `ErrorCode`, `ErrorFamily`, `ERROR_CODE_LIST`, `MANIFEST_ERROR_CODE_LIST` — with `error-codes.test.ts`, and split `api/errors.ts` into `toErrorResponse` over `mapError`, with `frameworkRefusal` for Fastify's own 400/413/415.** **Its Task 6 (sitting 4) added `api/contract/` — `route.ts` (`defineRoute`, `registerRoutes`, `fastifyPath`, `NO_PARAMS`/`NO_QUERY`/`NO_BODY`, `RequestValidationError`, `ResponseContractError`), `schemas.ts` (the `representations` and `requests` registries, `Uuid`, `Timestamp`, the error envelope), `document.ts` (`openApiDocument`, `CONTRACT_VERSION` 0.1.0) and three tests, among them the drift test that writes `packages/contract/openapi.json` under `pnpm contract:write` — plus `api/actor.ts` (`requireActor`, `SessionActor`), `api/representations/me.ts` (`Me`, `toMe`), `api/routes/me.ts` and `api/routes/index.ts` (`ROUTE_DEFINITIONS`); `GET /v1/me` answers `Me` and its old handler in `routes/auth.ts` is deleted.** **Its Task 7 (sitting 5) added `packages/contract/` as a package — `src/schema.d.ts` generated by `openapi-typescript` 7.13.0, `src/client.ts` (`createManifestClient` over `openapi-fetch` 0.17.0, `unwrap`, `idempotencyKey`, `SESSION_COOKIE`), `src/errors.ts` (`ManifestApiError`), `client.test.ts` and a README — and `packages/journey/` (`src/main.ts`, `check.ts`, `state.ts`, `boundary.test.ts`), `scripts/demo-journey.sh` and `make demo-journey`, the `packages` Vitest project, the journey's `no-restricted-imports` block in `eslint.config.js`, and `pnpm contract:generate`; `pnpm typecheck` is `pnpm -r typecheck`.** **Its Task 8 (sitting 6) added `api/representations/{projects,environments,instances,members,specs}.ts` and `api/routes/project-reads.ts` — eight `/v1` routes, among them `GET /v1/projects/{projectId}/environments` and `…/members` — and `projectViews`, `listMembers`, `servingInstanceOf` in `projects/repository.ts`; `REFUSAL_CODE` in `api/authz-contract.ts`; key-order-blind `stable` in `spec/diff.ts`. Its Task 9 added `projects/reserved-labels.ts` (`loadReservedLabels`), `projects/slugs.ts` (`checkSlug`, `slugTaken`, `SlugRefusedError`, `assertSlugAvailable`), `projects/testing.ts` (`testReservedLabels`), `api/rate-limit.ts`, `api/routes/slugs.ts` with `GET /v1/slugs/{slug}`, `ServerDeps.reservedLabels` and `ServerDeps.limits`, `MANIFEST_RESERVED_LABELS_DIR` → `config.reservedLabelsDir`, `reservedLabels` on the boot line, and `frameworkErrors` on the Fastify instance; `createProject` takes the list, and `ProjectError` is DELETED.**|
-| **Spec** | Current. **Eight more spec actions were applied on 2026-09-14** with Rich's approval — §12's scan-gate wording, four of P4a's, P4b's LiteLLM digest row, and two §7 rows he settled once Tasks 6 and 7 had run, which change committed code that P4b's Task 9 now carries; **P4b's last three were applied on 2026-09-15**, Rich's calls once Task 14 had run — §10's per-user budget is validated, not enforced, in Phase 1; §10's agent-key row binds from Phase 3; and §14 describes the event stream as built — and zero-downtime redeploys wait for P4c (§8). Every spike's actions have been applied with Rich's explicit approval, and P2 raised a fifth change — the §11/§23 hostname disagreement, settled 2026-08-31. **Trust the spec over the spike briefs**, which are deliberately preserved as a record of what was originally asked. |
+**Executing a plan finds defects at a rate that has never fallen with practice** — 18 in P1's 13 tasks, 52 in P2's 21, 82 in P3's 19, 80 in P4a's 15, 140 in P4b's 16, 70 in P4c's 11, every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat a written plan as a hypothesis (§9).
 
 **The four numbers you will check first, measured 2026-09-16 on this machine, at the end of P5a sitting 6:**
 
 | | |
 |---|---|
-| `pnpm test` (from the **repo root**) | **918 passed, 85 files**, ~55 s — the `unit` project and, since P5a Task 7, `packages` (the client and the journey, which need nothing running) — no Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites — plus **`spec/injection-drift`**, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` — see §7d |
-| `pnpm test:docker` | **168 passed, 0 SKIPPED**, 27 files, ~755 s — re-measured at the end of P5a sitting 6 with the control plane running (S6 probe 15 `app=403 host=401`); sittings 4 and 5 were exempt, and sitting 6 changed four Docker-tier files' `createProject` arguments and added no Docker test. S6 probe 15 is the 168th, since sitting 2. The eleven skips that used to be here were the driver contract's continuity block, gone since P4c Task 5 gave the Docker driver its fixtures. Needs `make up`, and **fails rather than skips** when asked to run |
-| `make doctor` | **18 checks, 0 failed, 0 warnings** — 18 since 2026-09-09, when the LiteLLM digest pin landed |
-| `make verify` | **50 checks, 0 failed, 0 warnings** — sixteen more than P3 left; the three newest (P5a Task 3) assert that `https://console.manifest.internal` serves the host, refuses a container on `manifest-platform` with its own body, and allows exactly one source, the platform network's gateway — and its edge probes read `edge.manifest.internal` since then |
+| `pnpm test` (from the **repo root**) | **918 passed, 85 files**, ~55 s — the `unit` project and `packages` (the client and the journey, which need nothing running). No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
+| `pnpm test:docker` | **168 passed, 0 SKIPPED**, 27 files, ~755 s — re-measured at the end of P5a sitting 6 with the control plane running (S6 probe 15 `app=403 host=401`). Needs `make up`, and **fails rather than skips** when asked to run |
+| `make doctor` | **18 checks, 0 failed, 0 warnings** |
+| `make verify` | **50 checks, 0 failed, 0 warnings** |
 
-**A different number on a clean checkout is signal, not noise** — it means something
-moved, and finding out what is cheaper before you start than after. **This box is the
-only current one.** §7a and §7c carry the same four numbers as P1's and P3's completion
-records, and they are DATED measurements that deliberately do not move — if any of them
-disagrees with this box, this box wins.
+**A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is cheaper before you start than after. **This box is the only current one in this file**; the same four numbers are stated in `README.md` and `RUNBOOK.md`, and all three move together (§6). A plan's record carries the numbers as each sitting left them, dated, and they deliberately do not move.
 
-The immediate work is **EXECUTING P5a — the contract, first of 1c's three plans — at sitting 7, Tasks 10 and 11** (§7e, and the plan's own sittings table); sitting 1's measurements, sitting 2's move of the API — under `/v1`, and served at `https://console.manifest.internal` through the edge, refused to every source but the host — and sitting 3's front door — a session-bearing mutation or stream upgrade refused unless it carries the console's `Origin`, a sign-in that completes only in the browser that started it, and one registry of every error code a client can receive — and sitting 4's contract spine — `defineRoute`, and `packages/contract/openapi.json` generated from the definitions and held by a drift test, with `GET /v1/me` the first route declared through it — and sitting 5's client — `@manifest/contract`, generated from that document, and `make demo-journey`, which calls it through the edge — and sitting 6's resources — projects, environments, members and specs answered as public representations, and §23's reserved labels behind `GET /v1/slugs/{slug}` — are done. **P4c is executed (2026-09-15 and 2026-09-16; 70 findings across eight sittings), and the platform now redeploys an app without interrupting anybody or signing anybody out:** `deployRelease` starts the new instance beside the one serving, proves it ready from INSIDE THE EDGE against a bounded per-instance alias, moves the route with one in-place `PATCH`, resolves only when the edge answers as that instance — all inside an advisory lock per environment, with §6's `Route` record written and the retirer scheduled behind it. A release that never becomes ready leaves the previous one serving and takes its own container, its files volume and its key with it. **`recoverAtBoot` puts the routes back at the control plane's own boot**, ends the deploys a restart interrupted and finishes the drains it cut short. `node-ts-mongo@1` keeps its sessions in the app's own Mongo (`skeleton/auth/session.js`).
-**`make demo-redeploy` is P4c's acceptance and it is green** — at once, again immediately, and from a
-`make reset` machine (sitting 8): every request in every redeploy window answered by the app, zero
-resets, nobody signed out, and in each redeploy that moves the route a question under way at the
-move answered by the instance it moved away from, where the baseline measured 1.0–1.9 s of empty
-502s on every redeploy. **Four of its nine negative controls cannot fail in it** — a
-delete-then-insert move, an early key revoke, a 1 ms drain and both serving guards removed — and
-§4 says which tier sees each; read that before trusting a green run to prove any of the four.
-P4c's sitting-8 record, the last entry in its *What executing this plan found*, is the one to read first; P4b's sitting 10 before it. P4a's fifteen tasks are done: the IdP
-works, `secrets/` holds every credential, `sso/` generates the registration a CWL login
-runs through and `deployRelease` calls it, §20's audit log is append-only against a
-role that can actually be constrained, §8's injection contract is one function with
-one producer — `MONGODB_DB_NAME` reached a deployed container for the first time on
-2026-09-09 — and **`node-ts-mongo@1`, the blueprint faculty applications are generated
-from, has been built, deployed and made to issue a real AuthnRequest**, and
-**Manifest itself now logs its users in with CWL — the dev shim is gone**. **`make verify`
-grew from 34 checks to 47** since
-P3, and every one of the new ones asserts something that completes an operation rather
-than starting it — this project's most-repeated lesson, and the shape of three separate
-defects in that session alone.
+**Outstanding, and Rich's.**
+
+- **The offline acceptance.** Turning the network off from a tool call cuts the agent off too, so `scripts/offline-acceptance.sh` is run by hand. Its step 6 runs `make demo-identity`, the step most likely to need a route out; its step 7 runs `make demo-ai`, whose open question is whether Ollama — a host application, not a container — answers with the network off. **A skipped acceptance is not a passed one.**
+- **The second-machine clean clone** — no second Mac has been available; `RUNBOOK.md`'s *Known gaps* records it.
+- **Starting the UBC external track** — its trigger, §16's proof app answering a question, fired on 2026-09-15 and was raised with Rich that day. [`docs/external-track.md`](../external-track.md).
+- **§8's open questions.**
+
+**The spec is current.** Every spike's and every plan's spec actions have been applied with Rich's explicit approval — most recently P5a's six (`491f8be`). **Trust the spec over the spike briefs**, which are preserved as a record of what was originally asked, and **propose any further change; never edit it** (§6).
 
 ---
 
-## 3. The document map
+## 3. The document map, the code, and what it keeps true
 
 Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads it all.
 
 | You are… | Read |
 |---|---|
-| **new, any role** | This file. Then the roadmap's *Spike status* ledger and *Lessons*. |
-| **executing a plan** | **← this is the current job: P5a.** [`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md) — 17 tasks in **twelve agreed sittings, one per session**, written 2026-09-16; **sitting 1 (Task 1, the measurements) is done — 2026-09-16, 9 findings, results in [`spikes/p5a-baseline/`](spikes/p5a-baseline/README.md) — and so are sitting 2 (Tasks 2–3, the API under `/v1` and through the edge), 16 findings, sitting 3 (Tasks 4–5, CSRF by `Origin` and the error-code registry), 15, sitting 4 (Task 6, `defineRoute` and the generated OpenAPI document), 7, sitting 5 (Task 7, the generated client and `make demo-journey`), 4, and sitting 6 (Tasks 8–9, projects as representations and the slug check), 13, the same day; sitting 7 (Tasks 10–11) is next**, as the sittings table at its top says. Before it, P4c: [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md) — 11 tasks in eight agreed sittings, **all done, 2026-09-15 and 2026-09-16, 70 findings**; sitting 1's record carries the baseline, and sitting 8's the acceptance with its nine controls. The sittings pattern — one per session, a check-in at each boundary — is how P5 should be executed too. [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) — 16 tasks in **ten agreed sittings, one per session**; **all ten are done, 2026-09-15**, and their findings — numbered 1 to 194, the pre-flight reads' corrections among them — are in the plan's *What executing this plan found*. P4a itself is [`2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md) — 15 tasks, **all executed, 2026-09-09**, self-contained by construction — if it is not, that is a defect in the plan, so fix it there as you go. **Read P4a's own *What executing this plan found* first — Sessions 1 to 9, 80 defects — and then P3's**, especially Sessions 4 and 5: between them they establish that no build and then no deploy had ever succeeded, both invisible behind a green suite. |
-| **writing a plan** | **No plan is waiting to be written**: P5a is written (§7e), and P5b is written only after P5a executes, from [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md) and P5a's *What this plan does not build*. House style: `plans/2026-08-30-p1-local-substrate.md`, `2026-08-29-p2-control-plane-spine.md`, or either half of P4. |
-| **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. The short version of RUNBOOK. |
-| **running the platform** | [`RUNBOOK.md`](RUNBOOK.md). `make seed && make host-setup && make up`. |
-| **writing code** | Seventeen modules exist: `spec/`, `blueprints/`, `db/`, `errors/`, `runtime/` (with `runtime/docker/`), `source/`, `identity/`, `projects/`, `releases/`, `api/`, P3's `services/`, `build/` and `routing/`, P4a's `secrets/`, `sso/` and `observability/`, and P4b's `ai/`. Read `runtime/driver.ts` and `runtime/driver-contract.ts` first — everything else is built against them — then `runtime/docker/driver.ts`, which is the one implementation of that interface and where every P3 module meets; then `api/server.ts` for how a request becomes an actor, and `projects/authz.ts` for the one function every route's security depends on. **Then run `make demo` once**: it is the only thing that exercises all of it through the real HTTP surface, and it is where the last four sessions' worst defects were found. |
-| **changing the spec** | Don't, without asking. It is marked *Approved design*. Record the proposed change and Rich decides — that has been the pattern five times. |
+| **new, any role** | This file — §7e and §2 first. Then the roadmap's ledger and its *Lessons*. |
+| **executing a plan** | **The current plan, which §7e names.** Its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
+| **writing a plan** | None is waiting: P5b is written only after P5a executes, from [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md) and P5a's *What this plan does not build*. House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or any later plan. |
+| **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. |
+| **running the platform** | [`RUNBOOK.md`](RUNBOOK.md) — `make seed && make host-setup && make up`, every demo step by step, and *Known gaps*. README's *Running the control plane* is the export block to start it with. |
+| **writing code** | *The code* and *What the platform keeps true* below. **Then run `make demo` once**: it is the only thing that exercises boot, build, release, deploy and the edge through the real HTTP surface, and it is where this project's worst defects were found. |
+| **changing the spec** | Don't, without asking. It is marked *Approved design*. Record the proposed change and Rich decides. |
 
 ```
-docs/
-├── external-track.md       the UBC IAM / PIA work that runs in parallel
-│                           (NOTE: docs/, not docs/superpowers/)
+docs/external-track.md          the UBC IAM / PIA work that runs in parallel (docs/, not docs/superpowers/)
 docs/superpowers/
-├── ORIENTATION.md          ← you are here
-├── WALKTHROUGH.md          RUN IT, SEE IT, CHECK IT — one page, browser included.
-├── RUNBOOK.md              HOW TO RUN THE PLATFORM. Start here to use it.
+├── ORIENTATION.md              ← you are here
+├── WALKTHROUGH.md              run it, see it, check it — one page, browser included
+├── RUNBOOK.md                  run and operate the platform; every demo; Known gaps
 ├── specs/
-│   ├── 2026-08-29-manifest-platform-design.md    AUTHORITATIVE. 27 sections.
-│   └── manifest-*.html                            plain-language versions for
-│                                                  non-engineers; markdown wins
+│   ├── 2026-08-29-manifest-platform-design.md   AUTHORITATIVE. 27 sections.
+│   └── manifest-*.html         plain-language versions, SHARED OUTSIDE THE TEAM; markdown wins
 ├── plans/
-│   ├── 2026-08-29-plan-roadmap.md                 THE LEDGER. Status lives here.
+│   ├── 2026-08-29-plan-roadmap.md                 THE LEDGER. Status and the defect-rate table.
 │   ├── 2026-08-29-phase-0-spike-briefs.md         P0. Historical record.
-│   ├── 2026-08-29-p2-control-plane-spine.md       P2. 21 tasks, ALL EXECUTED.
-│   ├── 2026-08-30-p1-local-substrate.md           P1. 13 tasks, ALL EXECUTED.
-│   ├── 2026-08-31-p3-docker-driver-deploy-spine.md
-│                                                  P3. 19 tasks, ALL EXECUTED
-│                                                  2026-09-07. S6 ran as Task 18.
-│                                                  Proposed six spec actions; all
-│                                                  APPLIED 2026-09-07.
-│   └── 2026-09-07-p4a-identity-secrets-injection.md
-│                                                  P4a. 15 tasks, ALL EXECUTED
-│                                                  2026-09-09. Its 'What executing
-│                                                  this plan found' carries 80
-│                                                  defects across nine sessions —
-│                                                  read it before P4b.
-│   └── 2026-09-07-p4b-ai-events-streaming-incidents.md
-│                                                  P4b. 16 tasks in TEN AGREED
-│                                                  SITTINGS (table at the top of the
-│                                                  plan). ALL TEN ARE DONE —
-│                                                  ARE DONE, 2026-09-15.
-│                                                  EXECUTED, 140 findings. Records ten more measured
-│                                                  facts, one of them a §10
-│                                                  requirement LiteLLM 1.98.0
-│                                                  cannot satisfy.
-│   └── 2026-09-16-p5-brief.md
-│                                                  THE BRIEF P5a WAS WRITTEN FROM, AND P5b
-│                                                  AND P5c. All five of Rich's
-│                                                  decisions made 2026-09-16 and
-│                                                  applied to the spec.
-│   └── 2026-09-16-p5a-the-contract.md
-│                                                  P5a. 17 tasks in TWELVE AGREED
-│                                                  SITTINGS. WRITTEN 2026-09-16;
-│                                                  SITTINGS 1–6 DONE, 7 NEXT. Its six spec
-│                                                  actions are applied (491f8be).
-│   └── 2026-09-15-p4c-zero-downtime-redeploys.md
-│                                                  P4c. 11 tasks in EIGHT AGREED
-│                                                  SITTINGS. WRITTEN 2026-09-15,
-│                                                  ALL EXECUTED 2026-09-15 AND
-│                                                  2026-09-16, 70 findings.
-│                                                  Its brief, with the measurements,
-│                                                  is 2026-09-15-p4c-brief.md.
+│   ├── 2026-08-30-p1-local-substrate.md           P1 — and the house style for a plan
+│   ├── 2026-08-29-p2-control-plane-spine.md       P2
+│   ├── 2026-08-31-p3-docker-driver-deploy-spine.md P3 — its Sessions 4 and 5 above all
+│   ├── 2026-09-07-p4a-identity-secrets-injection.md P4a
+│   ├── 2026-09-07-p4b-ai-events-streaming-incidents.md P4b
+│   ├── 2026-09-15-p4c-brief.md + …-p4c-zero-downtime-redeploys.md P4c
+│   ├── 2026-09-16-p5-brief.md                     the brief P5a, P5b and P5c are written from
+│   └── 2026-09-16-p5a-the-contract.md             P5a ← CURRENT
 └── spikes/
-    ├── S7-findings.md  DNS, the edge, TLS       ← P1's content
-    ├── S2-findings.md  SimpleSAMLphp metadata   ← P4's shape
-    ├── S1-findings.md  Docker round-trip        ← P3's content
-    ├── S3-findings.md  LiteLLM, Ollama, budgets ← P4's AI half
-    ├── p5a-baseline/   P5a Task 1's measurements, 2026-09-16: the edge's
-    │                   source refusal, a sign-in and a stream through a new
-    │                   origin, zod/v4, the reserved labels. README indexes them.
-    ├── S1-controls-settled.md  the two controls S1 left to P3, probed
-    │                           2026-08-31 before P3 was written. Scoped
-    │                           registry tokens work; the builder's bounds
-    │                           are three mechanisms and one of them
-    │                           does not exist.
-    ├── START-HERE.md   the ORIGINAL spike briefing. Historical; §6 is wrong.
-    └── HANDOFF-2026-08-3*.md  dated handoffs. BOTH SUPERSEDED by this file.
-                               Kept as a record; do not act on either.
+    ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
+    ├── S1-controls-settled.md          scoped registry tokens; the builder's bounds
+    ├── p4c-baseline/, p5a-baseline/    the measurements P4c and P5a rest on
+    ├── START-HERE.md                   the ORIGINAL spike briefing. Historical; its §6 is wrong
+    └── HANDOFF-2026-08-3*.md           dated handoffs, SUPERSEDED by this file; do not act on either
 ```
 
-**And the code.** P1 added the whole `infra/` and `scripts/` tree on 2026-09-05 —
-`Makefile`, `infra/compose.yaml` and the ten platform services, `scripts/doctor.sh`
-and `scripts/verify.sh`. Below is the TypeScript tree as of 2026-09-05, after **all
-21 of P2's tasks**:
+**Every executed plan's *What executing this plan found* is its record**: every defect with the measurement that found it, every negative control, the gate numbers and the machine, sitting by sitting. §7a says which entries to read first.
+
+### The code
 
 ```
-.nvmrc  package.json  pnpm-workspace.yaml  tsconfig.base.json
-eslint.config.js  vitest.workspace.ts          the workspace (P2 Task 1)
-vitest.config.ts                               ROOT: fileParallelism: false. It is a
-                                               root-level option and does nothing in
-                                               the package config          (Task 18)
-.prettierrc  .prettierignore                   Prettier owns packages/ ONLY —
-                                               without the ignore, `pnpm format`
-                                               rewrites the approved spec
-blueprints/fixture-node/                       P2's minimal blueprint   (Task 7)
-    blueprint.yaml  Dockerfile.tmpl  skeleton/  agents/
-blueprints/node-ts-mongo/                      P4a Task 12. THE blueprint faculty
-    blueprint.yaml  Dockerfile.tmpl  .npmrc     applications are generated from.
-    skeleton/{server.js,package.json,           §20's "security multiplier": its auth
-      package-lock.json,auth/{ubcshib.js,       component is written once and
-      attributes.js}}                          inherited by every app. Built,
-    agents/AGENTS.md                           deployed and made to issue a real
-                                               AuthnRequest — see the docker test
-packages/control-plane/
-├── drizzle/0000_*.sql .. 0004   migrations, all applied. 0004 is P4a Task 8's:
-│                                the `audit` schema, `events`, and the two grants
-│                                that are §20's whole control
-├── drizzle.config.ts
-├── vitest.config.ts             setupFiles + globalSetup
-├── vitest.env.ts                ensureDatabaseUrls() — .env → the THREE urls: the
-│                                app role, the admin role and the IdP database
-├── vitest.setup.ts              per file; calls it
-├── vitest.global-setup.ts       ONCE per run: truncates the §6 tables, so a run
-│                                never inherits the last one's rows   (Task 18)
-└── src/
-    ├── index.ts                 BOOT. loadConfig, buildServer, listen 7100 (Task 17)
-    ├── config.ts                env parsing + the dev-auth kill switch    (Task 12)
-    ├── module-boundaries.test.ts   the §5 rule, enforced by a test that resolves
-    │                               imports and compares modules. THE enforcement —
-    │                               the ESLint rule was removed, see Task 17's notes
-    ├── lifecycle.test.ts        P2's acceptance: the whole journey, ~300ms (Task 21)
-    ├── errors/index.ts          ManifestError + ManifestValidationError   (Task 3)
-    ├── spec/
-    │   ├── schema.ts            the §7 v1 zod schema                      (Task 2)
-    │   ├── errors.ts            zod issue → stable code + hint            (Task 3)
-    │   ├── policy.ts            catalogues, whitelist, quota, D17         (Task 4)
-    │   ├── diff.ts              isSensitiveDiff, the D9 gate              (Task 5)
-    │   ├── resolve.ts           §7's THREE-layer override merge          (Task 16)
-    │   └── index.ts             THE module's public surface
-    ├── blueprints/
-    │   ├── descriptor.ts        §25 blueprint.yaml schema                 (Task 6)
-    │   ├── compatibility.ts     checkBlueprintCompatibility — called from the
-    │   │                        build route, not at validation time      (Task 19)
-    │   ├── registry.ts          load, resolve name@major                  (Task 6)
-    │   └── index.ts
-    ├── db/
-    │   ├── schema.ts            the ten §6 tables P2 writes               (Task 8)
-    │   ├── client.ts            Drizzle over pg, from MANIFEST_DATABASE_URL
-    │   ├── testing.ts           withRollback, AND resetDatabase — the second
-    │   │                        because withRollback does not isolate you from
-    │   │                        rows somebody else COMMITTED             (Task 18)
-    │   └── index.ts
-    ├── runtime/
-    │   ├── driver.ts            the §11 Driver interface                  (Task 9)
-    │   ├── fake-driver.ts       in-memory implementation                  (Task 9)
-    │   ├── driver-contract.ts   THE SHARED SUITE P3 IMPORTS UNCHANGED    (Task 10)
-    │   ├── state-machine.ts     §11 transitions + IDLE_POLICY            (Task 11)
-    │   └── *.test.ts
-    ├── source/                  D5 driver 1: bare repos on disk          (Task 15)
-    │   ├── git-driver.ts        the provider interface driver 2 replaces
-    │   ├── local-driver.ts      ~130ms per createRepository — seven git calls
-    │   └── index.ts
-    ├── identity/                roadmap gap 3, CLOSED by P4a Task 14
-    │   ├── session.ts           signed, expiring cookies; no sessions table
-    │   ├── saml.ts              THE CONTROL PLANE'S OWN SP (§9). node-saml, not
-    │   │                        the passport-saml the blueprint pins — see §7d
-    │   ├── testing.ts           testSessionCookie + an in-process SAML IdP that
-    │   │                        signs what a real one never will
-    │   └── index.ts             (dev-auth.ts DELETED — it was the bypass)
-    ├── projects/
-    │   ├── authz.ts             §13 capabilities; stranger → NOT_FOUND,  (Task 14)
-    │   │                        member-without-capability → FORBIDDEN
-    │   ├── repository.ts        createProject + all three environments at once
-    │   └── index.ts
-    ├── releases/                §5's build/ lives in here for P2         (Task 16)
-    │   ├── build.ts             a failed build is a ROW, not an exception
-    │   ├── release.ts           immutable releases; deploy waits for health
-    │   └── index.ts
-    ├── routing/                 P3 Tasks 13-14. §23 hostnames -> Caddy routes
-    │   ├── hostnames.ts         listenerFor, routeIdFor
-    │   ├── caddy.ts             the admin client. node:http, NOT fetch — Caddy
-    │   │                        refuses any request carrying an Origin header
-    │   ├── routes.ts            applyRoute / removeRoute / reapplyAllRoutes
-    │   └── readiness.ts         waitForReady + edgeProbe, which runs FROM a
-    │                            container, over HTTPS, with the platform CA.
-    │                            CALLED BY DockerDriver.ensureInstance — it was
-    │                            called by nothing at all until Task 17
-    ├── build/                   P3. source+spec -> digest, with §12's gates
-    │   ├── context.ts           assembleContext. TWO processes, never a pipe:
-    │   │                        `git archive | tar` takes tar's exit status
-    │   ├── gates.ts             secret + lockfile, platform-mandatory
-    │   └── scan.ts              Syft SBOM, Grype, the staleness rule
-    ├── services/                P3. dedicated Mongo per app+environment (D3)
-    ├── secrets/                 P4a Tasks 4-5. libsodium envelope encryption over
-    │                            a Postgres table, plus the boot process.env scrub
-    ├── sso/                     P4a Tasks 6-7. D15 entity derivation, per-app
-    │                            RSA-4096 keypairs, the manifest_idp metadata
-    │                            store, registerServiceProvider. Called by
-    │                            releases/ since Task 9
-    ├── observability/           P4a Task 8
-    │   ├── events.ts            recordEvent — the redactor is a PARAMETER, so no
-    │   │                        path can write an unredacted row (§14)
-    │   └── redact.ts            exact-match only (Decision 11), longest first
-    └── api/
-        ├── server.ts            Fastify, session hook, idempotency hook  (Task 17)
-        ├── errors.ts            the D23.7 envelope — every failure exits here
-        ├── idempotency.ts       D23.6; replay same body, 409 on a different one
-        ├── testing.ts           testDeps — blueprints resolved from import.meta.url
-        ├── authz-contract.ts    THE SHARED SUITE P3 IMPORTS UNCHANGED    (Task 20)
-        ├── routes/auth.ts       dev login, me, logout
-        ├── routes/projects.ts   projects, members, and POST .../spec — the ONLY
-        │                        way a project's manifest.yaml can change after
-        │                        creation, and isSensitiveDiff's one call site
-        ├── routes/delivery.ts   builds, releases, deploy, environments   (Task 19)
-        └── index.ts
+Makefile  infra/  scripts/        P1's platform: compose.yaml and its services; make seed / up / down / reset /
+                                  doctor / verify / demo*; infra/lib/ holds the ensure-*.sh steps and idp-login.sh
+vitest.config.ts                  ROOT: fileParallelism: false — a root-level option; it does nothing in a package config
+.prettierrc  .prettierignore      Prettier owns packages/ ONLY — without the ignore, `pnpm format` rewrites the approved spec
+blueprints/fixture-node/          P2's minimal blueprint
+blueprints/node-ts-mongo/         THE blueprint faculty apps are generated from: descriptor, Dockerfile, skeleton
+                                  (auth/, ai/, server.js), agents/AGENTS.md — the knowledge pack
+fixtures/fixture-app/             make demo's build target — server.js at the tree root, because the blueprint's CMD
+                                  is not templated
+fixtures/proof-app/               §16's proof app, laid over node-ts-mongo@1's skeleton by scripts/lib/proof-app.sh
+fixtures/saml-sp/                 a throwaway SP on the real passport-ubcshib — §16's identity-path tier
+infra/reserved-labels/            §23's reserved labels, loaded at boot
+packages/control-plane/src/       the control plane — below
+packages/contract/                openapi.json (GENERATED) and @manifest/contract, the client generated from it
+packages/journey/                 §22's journey through that client — make demo-journey
 ```
 
-Plus, from P3: `fixtures/fixture-app/` (the build target — `server.js` at the tree
-root, because the blueprint's `CMD` is not templated), `scripts/demo.sh`, and
-`src/runtime/docker/{roundtrip,s6}.docker.test.ts`, which are the two suites that
-exercise the whole thing rather than a part of it.
+`packages/control-plane/src/` — one directory per §5 module, and **`module-boundaries.test.ts` refuses an import of another module except through its `index.ts` or `testing.ts`**:
 
-`pnpm test` → the count in §2's box, **run from the repo root** (`pnpm test`,
-not `pnpm --filter … test` — the two set a different working directory, and that
-difference was a defect). Everything that touches `src/db/`, `src/api/`, `src/secrets/`,
-`src/sso/`, `src/observability/`, `src/services/` or `src/releases/` needs `make up`;
-the rest needs no Docker, no Postgres and no network. **All three connection strings are
-derived from `.env` automatically** by `vitest.env.ts`, and the suite connects as
-`manifest_app` — the least-privilege role — not as `manifest`.
+| Module | What it is |
+|---|---|
+| `index.ts`, `config.ts` | the boot, and env parsing (repo paths resolve from the repo root, never the cwd) |
+| `spec/` | §7's schema and policy, `diff.ts` (D9's sensitive diff, §14's readable diff), `resolve.ts` (three layers), `injection.ts` (§8) |
+| `blueprints/` | §25 descriptors and the registry |
+| `db/` | Drizzle schema and client, `locks.ts`, `testing.ts` — `withRollback` isolates a test from its OWN writes only; `resetDatabase` is for a test that drives a real server, whose rows are committed |
+| `runtime/` | §11's `Driver`, the fake driver, **`driver-contract.ts`**, the state machine; `runtime/docker/` is the one real driver |
+| `routing/` | §23 hostnames → Caddy routes; readiness and identity probes run from inside the edge. `caddy.ts` speaks `node:http`, not `fetch` — Caddy's admin API refuses any request carrying an `Origin` header |
+| `build/`, `services/`, `source/` | the build context, §12's gates and scan; per-app Mongo; bare git repositories (D5 driver 1) |
+| `identity/`, `sso/`, `secrets/` | sessions and Manifest's own SAML SP; per-app SP registration in the IdP; envelope encryption |
+| `projects/` | §13 authorization (`authz.ts`), the repository, reserved labels and `checkSlug` |
+| `releases/` | build, release, deploy, retire, recover-at-boot |
+| `observability/` | events, redaction, build logs, Incidents, the event bus |
+| `ai/` | the LiteLLM admin client, D17's catalogue, app keys |
+| `api/` | the Fastify server; `contract/` (`defineRoute`, the OpenAPI document); `representations/`; `routes/`; `error-codes.ts`; CSRF; idempotency; **`authz-contract.ts`** |
 
-Also `pnpm lint`, `pnpm typecheck` (every workspace package, since P5a Task 7) and
-`pnpm format:check`. **All four must be clean before you commit, and the last two are
-not formalities** — Vitest strips types without checking them, so `tsc` is the only
-gate that sees a whole class of error (it caught six in P2), and `format:check` was
-silently red on 29 files. **Run `pnpm test` twice:** a suite that is not repeatable
-has a state leak, which is how five of P2's defects were found.
+**Read first:** `runtime/driver.ts` and `runtime/driver-contract.ts` — everything is built against them — then `runtime/docker/driver.ts`, `api/server.ts` for how a request becomes an actor, `projects/authz.ts`, and `api/contract/route.ts`.
+
+### What the platform keeps true
+
+Each of these was built, measured and paid for; the record is in the plan named. **A change that breaks one is a defect even when every test is green.**
+
+**Identity**
+
+- **Manifest is its own SP (§9), and there is no login shim.** `GET /auth/login` sets `manifest_login` and sends its nonce as `RelayState`; `POST /auth/saml/callback` refuses an assertion not bound to the browser that started the sign-in (`401 SAML_LOGIN_NOT_BOUND`) before node-saml validates it, then lands on `/` or a same-origin `?returnTo=`. Sessions are stateless signed cookies that carry the role they were issued with. Tests sign their own with `identity/testing.ts`. *(P4a Task 14, P5a Task 4.)*
+- **The control plane's SAML library is `@node-saml/node-saml` 5.1.0, NOT the `passport-saml` the blueprint pins**, which audits one Critical with no fix. Three node-saml defaults fail open and are set explicitly — sha1 signing and digest, `validateInResponseTo: never`, `emailAddress` — and nothing scans the control plane's own dependency tree (§12's gate scans app images). *(P4a.)*
+- **The platform's SP row is written at every boot**, through `renderSpMetadata` — the one renderer of an `entity_data` document — with its ACS from `MANIFEST_CONTROL_PLANE_ORIGIN` (default `https://console.manifest.internal`) and its keypair in `infra/sp/control-plane.{key,crt}`. The Docker tier boots control planes on 7188/7189 that re-register it at a loopback ACS: **restart the control plane after `pnpm test:docker`.**
+- **The Manifest IdP releases attributes by `core:AttributeLimit` at priority 50 on friendly names, then `core:AttributeMap` at 60 to the OIDs UBC sends — the order is load-bearing** (reversed, it releases nothing), and `make verify` asserts it. `ssp_ro` reads metadata and cannot write it; a CHECK makes a row with an empty or absent `attributes` — which S2 measured releasing everything — unrepresentable.
+- **Four settings read like controls and are not**: SimpleSAMLphp's `validate.authnrequest` (a present signature is always validated), node-saml's `wantAssertionsSigned` and `wantAuthnResponseSigned`, and the blueprint's `attributeConfig` (its bridge reads the OID first). §9's release enforcement is the control. *(P4a, measured.)*
+- **The three-hop CWL sign-in is ONE function, `idp_login` in `infra/lib/idp-login.sh`.** It proves the SP row and the AuthnRequest signature; it does not prove the session authenticates anybody, so **a caller's identity check is the assertion**.
+
+**Data, secrets and audit**
+
+- **The control plane connects as `manifest_app`, never as `manifest`**: `manifest` is `POSTGRES_USER` and so a superuser, and a superuser bypasses every grant — which made §20's append-only audit unimplementable. **Three database URLs, none derived from another**: `MANIFEST_DATABASE_URL` (the app role), `MANIFEST_ADMIN_DATABASE_URL` (migrations and the test harness's `TRUNCATE` only; `src/` never reads it) and `MANIFEST_IDP_DATABASE_URL`. `vitest.env.ts` derives all three from `.env`.
+- **`audit` is its own schema** — `events`, `build_logs` and `incidents`, append-only by grant, with foreign keys `ON DELETE RESTRICT`, because a referential action runs with the referenced table's privileges and a cascade let the application erase the trail. `recordEvent` takes its redactor as a PARAMETER, so nothing writes an unredacted row, and **every event goes through `publishEvent`**, which records it and streams it; a database CHECK closes the event types.
+- **`secrets/` is libsodium envelope encryption over a `secrets` table**; service credentials and each app's `SESSION_SECRET` are STORED, not derived; `process.env` is scrubbed at boot. Tests use `withSecretScope` (`secrets/testing.ts`). **`deriveCredentials` survives on purpose**: a service created before credentials were stored still holds the derived password, which the store adopts on first call — deleting it before every existing service has been deployed once is the trap P4a's Decision 8 describes. **`infra/secrets/master.key`, `infra/idp/cert/`, `infra/sp/` and the Caddy CA are minted by `make up`, gitignored, and NOT removed by `make reset`.**
+- **A migration is always its own file** — drizzle-kit keeps a journal and never re-runs an applied one — applied with `pnpm --filter @manifest/control-plane db:migrate`, which reads the admin URL.
+
+**Build and deploy**
+
+- **§8's injection contract is ONE function with ONE producer** — `spec/injection.ts`'s `renderInjection` — and `deployRelease` adds nothing; service variables are read out of the endpoint the driver returned, and §8's two files reach the container through `InstanceSpec.files` — the IdP certificate `0444`, the SP key `0440`, root-owned with the blueprint's `run_as_uid` as its group. **§16's drift tier reads the blueprint's SOURCE**, comments stripped, against the renderer's output; `ALLOWED_UNSET` and `PLATFORM_ONLY` are deliberately empty. *(P4a Tasks 10–13.)*
+- **A deploy reads only the `ResolvedConfig` frozen at release (§13)**, never `app_specs.parsed` — a second source of truth is the defect shape P3 paid for seven times.
+- **A redeploy interrupts nobody (P4c).** The new instance starts beside the old one, is proved ready from inside the edge, and takes the route with one in-place `PATCH`, under a per-environment advisory lock, with §6's `Route` record written; the retirer drains and removes the old one after the deploy returns. `recoverAtBoot` puts routes back from `Route` rows, ends interrupted deploys and finishes drains. **A release that never becomes ready is a `200` whose state is `failed`**, with §14's Incident, and the previous instance keeps serving. Sessions live in the app's own Mongo.
+- **§12's scan gate blocks on a Critical or High that has a published fix**; findings with no fix, and the base image's, are recorded on the Release.
+- **AI (P4b):** the gateway joins an app's network only when the app declares models; each instance's key is confined to `/v1/chat/completions`, `/v1/embeddings` and `/v1/models`, under a budgeted LiteLLM user `mf-<project>-<environment>`; the end-user identifier `sha256(puid ‖ project ‖ environment)` has one producer, the blueprint's `skeleton/ai/end-user.js`. AI is on unless `MANIFEST_AI_ENABLED=0`, and on refuses a boot with no master key.
+- **`node-ts-mongo@1` is §20's security multiplier**: its skeleton — CWL sign-in, the AI component, sessions — is written once and inherited by every app, its skeleton is a Docker-tier build target, and every app-side dependency is pinned exactly (C6, D30).
+
+**The API (P5a)**
+
+- **Every resource route is under `/v1`, reached at `https://console.manifest.internal` through the edge, which refuses every source but the host** (`10.89.0.1/32`); the sign-in endpoints and the registry's token realm stay outside `/v1`, listed in `api/unversioned.ts`.
+- **A `/v1` route is declared once, through `defineRoute`**, with `zod/v4` schemas; its answer is parsed through a registered representation, so no column a mapper forgets can leave. `packages/contract/openapi.json` is generated from the definitions and held by a drift test (`pnpm contract:write`), and `@manifest/contract` is generated from the document (`pnpm contract:generate`).
+- **A session-bearing mutation or stream upgrade must carry the console's `Origin`** (`403 CSRF_ORIGIN_REFUSED`); **every mutation carries an `Idempotency-Key`** (D23.6); **every code a client can receive is in `api/error-codes.ts`**, held to the source in both directions.
+- **§13's authorization is `projects/authz.ts`**: a stranger gets `404 NOT_FOUND`, a member without the capability `403 FORBIDDEN`. **`api/authz-contract.ts` covers every registered route and asserts each refusal's code.**
+- **One event stream per project**, `WS /v1/projects/:projectId/events`, authorized before it upgrades.
+- **One slug function, `checkSlug`**, answers `GET /v1/slugs/{slug}` and project creation with the same code, message and hint.
+
+### What it deliberately does not do yet
+
+Each is named in its plan's *What this plan does not build*, and none is an accident:
+
+- **A sign-in under way at the IdP when a route moves fails once** — `passport-ubcshib` 0.1.6 drops passport-saml's `cacheProvider`, so the request id lives in the old container. Rich: tolerate it. *(P4c.)*
+- **An edge configuration reload can reset about one request in 300 per admin change** (P4c R1), and **closes every app's proxied WebSocket** — only the console sets `stream_close_delay` (§8).
+- **Two releases share one database for up to two minutes** during a redeploy — a knowledge-pack rule, checked by nothing. *(P4c R8.)*
+- **An AI app whose gateway vanishes under a pooled connection makes a person wait 611 s** — the toolkit exposes no timeout. *(P4b finding 181.)*
+- **Nothing notices an edge restart while the control plane runs** — that is Phase 4's reconciler; restart the control plane after `docker restart manifest-caddy` or `pnpm test:docker`.
+- **§10's per-user AI budget is validated, not enforced**, in Phase 1.
+- **`egress.allow` may still name a platform surface** — decided in §12, enforced by nothing until the roadmap's tracked hardening item.
+- **No console, no delegated tokens, no production deploy, no custom domain** — P5b, P5c and Phase 2.
 
 **Which spec sections matter, by topic:** §7 the `manifest.yaml` contract · §9 identity ·
 §10 AI access · §11 execution model and the `Driver` interface · §12 networking,
@@ -1249,7 +1027,7 @@ Read the findings note before touching the area it covers. Do not re-derive any 
 
 ## 6. How to work here
 
-These conventions have held across five sessions and are why the work has stayed
+These conventions have held since P1 and are why the work has stayed
 coherent. Follow them.
 
 1. **Invoke the skill.** `superpowers:writing-plans` for a plan,
@@ -1299,7 +1077,7 @@ coherent. Follow them.
    | `plans/2026-08-29-plan-roadmap.md` | **The ledger — update this first, it outranks the rest.** Spike status, the plan set table, *Order of operations* |
    | **The plan's own SITTINGS TABLE** | **Added 2026-09-09. The first thing to change and the easiest to forget** — it is at the top of the plan, it says which sitting is next, and a stale one sends the next agent at a task that is already committed. Mark the sitting done, move the `← next` marker, and say how many findings it produced |
    | **The plan's *What executing this plan found*** | One dated section per sitting: the tasks, every defect with the measurement that found it, the negative controls, and the gate numbers at the end. **This is the record that stops the next agent repeating the work rather than continuing it** — and it is where a defect that is not worth fixing yet gets named instead of lost |
-   | `ORIENTATION.md` | §2 and §7 by design — **including §2's numbers box, which is the one place this file states the four gate counts**; §4 whenever the machine changes; §8 when something becomes or stops being Rich's call |
+   | `ORIENTATION.md` | **§7e and §2's numbers box, every sitting — and REPLACE, never append.** §7e says only what the next sitting needs: the job, what to read, how to run it, what will surprise it, and the state it is handed. A sitting's story — what it built, its findings, its controls — goes in its plan's *What executing this plan found*, not here; this file grew to 240 KB by collecting them and was trimmed on 2026-09-16. §2's plan table when a plan starts or finishes; §3's *What the platform keeps true* when an invariant changes; §4 whenever the machine does something new; §8 when something becomes or stops being Rich's call |
    | `README.md` | The status section, and the *Where to start* table's "current job" row |
    | `RUNBOOK.md` | **Added to this list 2026-09-09, having been missed once.** Its *C1's acceptance* preamble restates the CURRENT `make doctor` / `make verify` totals beside the dated 2026-09-05 ones, so it drifts every time a check lands — and it is the document a new agent opens to run the platform |
    | `WALKTHROUGH.md` | **Added 2026-09-15.** Its *What is built* status lines, and any URL, command, test user or demo that changes. It deliberately states no counts — keep it that way |
@@ -1333,645 +1111,42 @@ coherent. Follow them.
    touch them — a pinned digest or a reconciliation pass is invisible to an outsider —
    but **check rather than assume**, and say in the session record that you checked.
 
+### Your first ten minutes, in this order
+
+Establish a baseline before you change anything — every session that skipped this spent longer working out whether a red result was theirs.
+
+```bash
+./scripts/snapshot-machine.sh > <scratchpad>/before.txt  # read-only, no sudo, no network
+make up                                                  # ~1 min; re-adds the loopback alias
+make doctor && make verify                               # expect §2's box
+pnpm test                                                # expect §2's box
+pnpm lint && pnpm typecheck && pnpm format:check
+curl -s --cacert infra/ca/manifest-root.crt \
+  https://idp.manifest.internal/module.php/saml/idp/metadata | head -3   # signed metadata, entityID …/idp/shibboleth
+```
+
+**`pnpm test:docker`** (~13 minutes, `make up` first, §2's box has the count) is owed by any change to `runtime/`, `routing/`, `services/`, `build/`, `releases/`, `identity/`, `sso/`, `secrets/`, `projects/`, `blueprints/`, `ai/`, `observability/`, `infra/` or a `*.docker.test.ts` — and whenever the current plan's sittings rule says so, which wins. One Docker file: `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/<path>`. **Restart the control plane after it.**
+
+**`make demo` is worth one run before you start** — README's *Running the control plane* first. It is the only thing that exercises boot, build, release, deploy and the edge through the real HTTP surface.
+
 ---
 
-## 7. What to do next — execute P5a (written 2026-09-16; P5 is three plans)
+## 7. What to do next
 
-P1, P2, P3 and P4a are all executed and green; S6 has reported; **P3's six spec actions
-were applied on 2026-09-07**. P4 was split into **P4a** and **P4b** (Rich's
-call). **P4a is finished — all 15 tasks, 1–5 on 2026-09-08 and 6–15 on 2026-09-09.
-P4b is executed in full: sitting 1 ran Task 1's reconciliation pass and Task 2's LiteLLM
-pin on 2026-09-09, sitting 2 ran Task 3, sitting 3 ran Tasks 4–5, sitting 4 ran Tasks 6–7, sitting 5 ran Tasks 8–9, sitting 6 ran Task 10 and sitting 7 ran Tasks 11–12, all on 2026-09-14, sitting 8 ran Task 13, sitting 9 ran Tasks 14–15 and sitting 10 ran Task 16, all on 2026-09-15**, so P4b is finished, and **P4c — §7d-3 — is finished too: all eight sittings, 2026-09-15 and 2026-09-16, 70 findings**, one sitting per session exactly as P4a's seven and P4b's ten. **P5a is written (2026-09-16) and its sittings 1 to 6 are done, the same day; the next job is executing sitting 7 — §7e.** **P4b ran in ten agreed sittings**,
-one per session — the table is at the top of the plan and summarised in §7d-2.
+**The next job is §7e.** Everything before it is executed, and each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
 
-**The measured plan-to-reality gap, in one table.** Every one of these plans was
-self-reviewed before anyone executed it.
+### 7a. The executed plans, and which of their records to read first
 
-| Plan | Tasks | Defects found by READING | Defects found by RUNNING |
+*Until 2026-09-16 each executed plan had a hand-off section here — P1 was §7a, P2 §7b, P3 §7c, P4a §7d, P4b §7d-2, P4c §7d-3 — and a paragraph per sitting in §2. What in them was durable is now §3's* What the platform keeps true *and* What it deliberately does not do yet*, §4 and §9; the rest was each plan's history, which is in that plan's record, and in this file as it stood at `191cc60`. A plan or brief that cites one of those sections means the plan named in the row below.*
+
+| Plan | Record | Acceptance | Read first |
 |---|---|---|---|
-| P1 | 13 | 5 | **18** |
-| P2 | 21 | 7 | **52** |
-| P3 | 19 | 7 (+8 reconciling against a real P2) | **82** |
-
-The rate never fell with practice. It rose whenever the work stopped being pure
-functions, and it rose again whenever something was made to run end to end for the
-first time. **Budget accordingly.** P4a's fifteen tasks came in at
-**5.3 defects per task** — above every plan in that table, in the plan that had the
-most research behind it. Task 15 held to it exactly: the first end-to-end run of the
-proof app **passed at the first attempt**, which had never happened here, and eight
-defects came out of refusing to believe it — including a negative control that was
-itself falsely green, and a blueprint option that reads as a control and is not one.
-**P4b's sixteen tasks against a live LiteLLM came in at 8.8 per task — 140 findings — and
-the rate did not fall: its acceptance alone found 22, the first of them in the first run.**
-
-### 7a. P1 is done *(executed 2026-09-05)*
-
-[`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md) —
-13 tasks, all executed and green. The platform runs; read
-[`RUNBOOK.md`](RUNBOOK.md) to start it, not the plan.
-
-`make doctor` was **16 checks / 0 failed** and `make verify` **34 / 0** *on the day P1
-finished*, and both were green with the network off — a dated record, not today's
-baseline; §2's box is the current one. The C1 demo holds:
-`https://console.manifest.internal/` returns a byte-identical hostname and scheme
-from the host and from inside a container, no port, no `-k`.
-
-**Executing it found 18 defects in an already-self-reviewed plan**, and the shape of
-them is the durable lesson: **six were checks that passed while the thing under test
-was broken or absent.** **The one thing P1 did not prove: the second-machine clean
-clone.** No second Mac was available; it is recorded as a gap in `RUNBOOK.md`.
-
-### 7b. P2 is done *(executed 2026-09-05)*
-
-[`plans/2026-08-29-p2-control-plane-spine.md`](plans/2026-08-29-p2-control-plane-spine.md)
-— **all 21 tasks executed and green.** The control plane boots, serves HTTP on 7100,
-and the whole lifecycle runs against the fake driver in ~300 ms.
-
-**Executing it found 52 defects across three sittings.** The classes worth carrying:
-**six type errors no test could ever catch** (Vitest strips types without checking
-them); **five test-isolation defects** that made the suite pass or fail on the order
-Vitest happened to pick; **two controls one edit from being live** — `/auth/dev-login`
-one line from an authentication bypass, and an IDOR in `GET /builds/:id`, both
-answering **200** when broken; and **nothing had ever executed the boot entry point.**
-
-**One rule earned that batch.** *Never accept a check you have not watched fail.*
-
-### 7c. P3 is done *(executed 2026-09-07)*
-
-[`plans/2026-08-31-p3-docker-driver-deploy-spine.md`](plans/2026-08-31-p3-docker-driver-deploy-spine.md)
-— **all 19 tasks executed and green.** The real Docker driver passes P2's
-`driver-contract.ts` unchanged, and `make demo` takes an application from a bare git
-repository to `https://fixture-app.staging.manifest.internal` — then does it again
-from a dropped database, a deleted repository root and an emptied registry.
-
-**Measured on 2026-09-07, the day P3 finished. These are a record, not today's
-baseline** — P4a has since added tests and checks, and §2's box is the current one.
-
-| | *as P3 left it* |
-|---|---|
-| `pnpm test` (repo root) | **381 tests**, Docker-free |
-| `pnpm test:docker` | **89 tests**, ~5 min, needs `make up` |
-| `make doctor` | **16 checks / 0 failed** |
-| `make verify` | **34 checks / 0 failed** |
-
-**Read Sessions 4 and 5 of *What executing this plan found* before touching any of
-it.** They are the most useful pages in this repository, because between them they
-establish two things that were invisible behind a fully green test suite:
-
-- **Session 4: no BUILD in this platform had ever succeeded.** The blueprint
-  Dockerfile opened with a `# syntax=` directive, which makes BuildKit fetch a
-  frontend from Docker Hub before it reads line two, and §12's builder has no egress.
-  Underneath it, **D13's npm-mirror control was completely inert** — `.npmrc` arrived
-  after `npm ci`, so the build used the public registry.
-- **Session 5: no DEPLOY had ever succeeded either.** Seven separate defects of one
-  shape: **the test constructs the value correctly and the running system re-derives
-  it wrongly.** A blueprint directory, a repository path, an image repository, a port.
-  Every one was green in 74 Docker tests, because a test hands the driver what it
-  built while the control plane rebuilds it from a slug. Plus a health check that
-  every app failed — BusyBox `wget` honours `http_proxy` and ignores `NO_PROXY`, so
-  D18's forced proxy denied each app's probe of its own loopback with `403 Filtered`,
-  and §11 recorded working deploys as `failed`.
-
-**S6 ran as its Task 18** and is `docs/superpowers/spikes/S6-findings.md`: twelve
-probes, every denial paired with a positive control, and the app still serving at the
-end so the denials cannot be a dead container. Isolation is `container`; **whether
-that suffices for sandboxes is left to S5**, deliberately.
-
-**P3 proposes five spec actions and applies none.** They are Rich's, listed at the end
-of the plan, and every one is measured rather than argued. The first — narrowing §21's
-divergence 8 — was deliberately deferred until Task 18 measured it, and **it now has.**
-
-### 7d. P4a is done *(executed 2026-09-09)* — identity, secrets and the §8 contract (1b-i)
-
-*[`plans/2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md)
-— **15 tasks, ALL EXECUTED and green: 1–5 on 2026-09-08, 6–15 on 2026-09-09.** Not the
-current job; **§7e is.** This section stays because everything under *What Tasks
-1–15 established* is what P4b builds on, and re-deriving it is a session.*
-
-**It ran in SEVEN AGREED SITTINGS**, settled with Rich on 2026-09-08 so a session
-limit could never land mid-task. The plan commits after every task, so a stop
-*between* tasks is recoverable; a stop *inside* one is not. **The pattern held for all
-seven, and P4b should use it.**
-
-**"Sitting", not "phase", deliberately:** this project already uses *Phase 1/2/4+* for
-the §17 product roadmap — the roadmap's "Phase 2" is six plans nobody has written.
-These are units of execution, and P2's record already calls them sittings.
-
-**The whole of `make demo-identity` is the deliverable**, and it is what to run first
-if anything in the identity path looks broken: it drives Manifest's own CWL login, a
-project, a push, validation, a build, a release, a deploy, a student sign-in through
-the edge over TLS, a note written and read back, and an instructor who sees their own
-note and **not** the student's.
-
-| Sitting | Tasks | What it delivers |
-|---|---|---|
-| 1 ✅ | 4–5 | `secrets/` — envelope encryption, the store, the boot scrub — and its first call site: service credentials move from derivation to storage |
-| 2 ✅ | 6–7 | Per-app SP keypairs and the whole of `sso/`: the D15 derivation, S2's `entity_data` as one renderer, the `manifest_idp` store, `registerServiceProvider` |
-| 3 ✅ | 8–9 | The `events` table — append-only **by grant**, which needed a real application role before it could mean anything — redaction at capture, its two call sites in `sso/registration.ts`, and `deployRelease` registering the SP **before** `ensureInstance` |
-| 4 ✅ | 10–11 | §8's frozen table as one function (`spec/injection.ts`) and then its call site, deleting P3's ad-hoc env block so there is exactly one producer. Fixed `MONGODB_DB_NAME` and threaded `run_as_uid` + `InstanceSpec.files` so the SAML cert and key paths point at files that exist |
-| 5 ✅ | 12–13 | `node-ts-mongo@1` — the blueprint faculty actually use — plus the drift test that reads its source. The sitting that needed the network on, to warm Verdaccio from the new lockfile |
-| 6 ✅ | 14 | Manifest's own CWL login, and the end of the dev shim — `GET /auth/login`, `POST /auth/saml/callback`, the platform's own SP row written at boot, and `POST /auth/dev-login` deleted |
-| 7 ✅ | 15 | The proof app and P4a's acceptance — `fixtures/proof-app/`, `scripts/demo-identity.sh`, `infra/lib/idp-login.sh`. **Alone on purpose**, and it earned it: the run passed at the first attempt, which had never happened here, and **eight defects came out of disbelieving that green** |
-
-Each sitting ends with the four gates, the Docker tier where it applies, a session
-record in the plan's *What executing this plan found*, and the §6 close-out sweep.
-
-**Read the plan's *What executing this plan found* before anything else.** Sessions 1
-to 9 are there, with all 80 defects and what each was measured against. It
-is the difference between repeating this work and continuing it. **Session 5's first
-defect is the one to read**: §20's control was not merely unimplemented, it was
-*unimplementable*, because the application connected as a superuser and a superuser
-bypasses every privilege check — a REVOKE that reads exactly like a control and does
-nothing.
-
-**What Tasks 1–15 established, so you do not re-derive it.**
-
-- **The Manifest IdP is a working IdP.** It has a hosted entity, an RSA-4096 signing
-  keypair (`infra/idp/cert/`, gitignored, minted by `make up`, **not** removed by
-  `make reset`), and one URL — `https://idp.manifest.internal` — that resolves
-  identically from host, container and `curl`. Its entityID is configuration and is
-  never derived from the request host.
-- **Attribute release is enforced.** The auth source emits **friendly** names,
-  `core:AttributeLimit` at priority 50 matches them, `core:AttributeMap` at 60
-  converts to the OIDs real UBC Shibboleth sends. **The order is load-bearing and
-  reversing it releases nothing** — `scripts/lib/idp-attribute-chain.php` runs the
-  configured chain and `make verify` asserts the result.
-- **`ssp_ro` reads metadata and cannot write it**, and a `CHECK` constraint makes
-  §9's fail-open row (empty *or absent* `attributes`) unrepresentable.
-- **A real CWL login works**, proved by `src/sso/login.docker.test.ts` against a
-  throwaway SP built on the real `passport-ubcshib`. That suite is §16's identity-path
-  regression tier and it is the thing to run first if you break something.
-- **The platform can place files inside a container** — `InstanceSpec.files`, which
-  §8's `SAML_IDP_CERT_PATH` and `SAML_PRIVATE_KEY_PATH` need and which did not exist.
-- **`secrets/` exists and is used.** libsodium envelope encryption — a per-secret data
-  key wrapped with `crypto_box_seal`, payload under `crypto_secretbox_easy` — over a
-  Postgres `secrets` table, with the master keypair in `infra/secrets/master.key`
-  (gitignored, minted by `make up`, **not** removed by `make reset`, same rule as the
-  IdP key and the Caddy CA). `process.env` is scrubbed at boot and
-  `boot.docker.test.ts` asserts it, because `runtime/docker/builder.ts` spawns
-  `docker` with `{ ...process.env }`.
-- **Service credentials are STORED, not derived**, and `ServiceBinding.credentials` is
-  filled by `deployRelease` — the driver derives nothing. The migration adopts P3's
-  derived value on first call, so a developer's existing Mongo keeps working;
-  `services.docker.test.ts` proves that against a real one, including the outage a
-  cut-over would have caused. **`releases/` takes a `DeployDeps` object**, which since
-  Task 9 carries `{ secrets, sso }`.
-- **`sso/` produces a working registration AND HAS A CALLER.**
-  `registerServiceProvider(db, pool, keys, input)` derives the entity, mints or reuses
-  a per-app RSA-4096 keypair (two Secrets), writes one `saml20_sp_remote` row and
-  records §9's two audit Events. `deployRelease` calls it — after the service loop,
-  before `ensureInstance` — for any app whose resolved `auth.provider` is `cwl`, and
-  `src/index.ts` builds the registrar once at boot. `releases/deploy-sso.docker.test.ts`
-  runs that path against the REAL registrar, not a recorder.
-- **The control plane connects as `manifest_app`, a least-privilege role, and so does
-  the whole test suite.** `manifest` is `POSTGRES_USER` and therefore a superuser, and a
-  superuser bypasses every privilege check — measured, `REVOKE UPDATE, DELETE` then
-  `UPDATE 1`, `DELETE 1` — so §20's append-only `events` table was *unimplementable*
-  until this existed. `infra/lib/ensure-app-role.sh` creates the role on every `make up`;
-  `MANIFEST_ADMIN_DATABASE_URL` is the harness's own connection for migrations and
-  `TRUNCATE`, and `src/` never reads it.
-- **`audit.events` is in its own SCHEMA, deliberately.** Every blanket grant here is
-  scoped `IN SCHEMA public`, so nothing can reach it by accident; the migration grants
-  exactly `SELECT, INSERT`. Its foreign key is `ON DELETE RESTRICT`, because a
-  referential action runs with the referenced table's privileges and a cascade let the
-  application erase the audit trail by deleting the project. `make verify` attempts all
-  four write paths and expects four refusals.
-- **`recordEvent` takes its redactor as a PARAMETER**, so no code path can write an
-  unredacted row; `makeRedactor` is exact-match only (Decision 11), longest needle
-  first, with a six-character floor. **A test that asserts a secret is ABSENT from a
-  document nothing ever put it into cannot fail** — that was defect 40, and the fix is
-  a canary in a field app-supplied text actually reaches.
-- **`ResolvedConfig` now carries `auth` AND `ai`, and that is the whole of what §8's
-  renderer reads.** §13 freezes the config at release time, so a second source of truth
-  beside it — reading `app_specs.parsed` back out — is the defect shape P3 paid for
-  seven times. `InjectionContext` therefore has no `ManifestSpec` at all and
-  `deployRelease` never loads the AppSpec row. A release frozen before either field
-  existed has neither key and is treated as an app with no sign-on and no AI.
-- **§8's injection contract is ONE function with ONE producer.**
-  `spec/injection.ts` exports the table as DATA (`INJECTION_VARIABLES`), the renderer
-  (`renderInjection`), the contract version, the reserved-name set `spec/policy.ts`
-  reads, and the two container paths §8 names as files. `deployRelease` calls it and
-  adds nothing:
-  `grep -rn 'MANIFEST_APP_URL\|SAML_ENTRY_POINT\|MONGODB_DB_NAME' packages/control-plane/src --include='*.ts' | grep -v test`
-  returns that file and comments. **Keep it that way** — a second producer is what
-  cost P3's Session 5 a day.
-- **`MONGODB_DB_NAME` reaches a real container.** Verified on the running platform on
-  2026-09-09, not only in a test. Every service variable is read OUT OF the endpoint
-  the driver returned, so the URI and the database name cannot disagree. The Mongo
-  volume still holds an `app` database with one boot and one write in it — the record
-  of every deploy this platform made before that day.
-- **The platform PLACES §8's two files.** The IdP signing certificate at
-  `/manifest/idp-signing.crt` (0444) and the SP private key at
-  `/manifest/sp-private-key.pem` (0440, root-owned, group = the blueprint's
-  `run_as_uid`, which its own Dockerfile creates with the same number). Both paths are
-  `INJECTED_FILE_PATHS` constants, so the variable and the file are one value.
-  `SsoRegistrar` gained `idpSigningCertificate()` — everything a CWL deploy needs from
-  the IdP arrives through one dependency, read per deploy so a re-minted key needs no
-  restart.
-- **`SESSION_SECRET` is stored per app+environment**, resolved BEFORE the SP
-  registration so §14's redactor covers it, and stable across deploys — a regenerated
-  one signs every user of a redeployed app out.
-- **`DeployDeps` now has FOUR fields**: `secrets`, `appSecrets`, `sso`, `blueprints`.
-  The last is read for exactly one value, `runtime.run_as_uid`.
-- **Certificates come from `openssl`, spawned.** `node:crypto` has no API that issues
-  one. `make doctor` **now checks the host tools the control plane spawns** — `git`,
-  `tar`, `openssl` and the `docker buildx` plugin — by running each one's real
-  invocation, which is why doctor is 17 checks rather than 16 (2026-09-09, Rich's
-  call; §8).
-- **There are now THREE database URLs, and none is derived from another.**
-  `MANIFEST_DATABASE_URL` connects as `manifest_app`; `MANIFEST_ADMIN_DATABASE_URL`
-  connects as `manifest` and is used only by `db:migrate` and the test harness's
-  `TRUNCATE` (`src/` never reads it); `MANIFEST_IDP_DATABASE_URL` is the IdP's
-  (Decision 13). `MANIFEST_SP_ENTITY_BASE` defaults to `https://manifest.internal`.
-  `vitest.env.ts` derives all three from `.env`. **The README's *Running the control
-  plane* export block is the copy to use** — it changed on 2026-09-09.
-- **A signature that is PRESENT is always validated by SimpleSAMLphp**, whatever the
-  row says — so `certData` is mandatory for any app that signs, and
-  `validate.authnrequest` can only be proved by an SP that does *not* sign. Both are
-  measured, and both have a test.
-- **`node-ts-mongo@1` EXISTS AND HAS BEEN RUN** — `blueprints/node-ts-mongo/`, the
-  blueprint faculty applications are generated from, and §20's "security multiplier":
-  whatever is in it is replicated into every application. Its skeleton is its own
-  build target, so `runtime/docker/node-ts-mongo.docker.test.ts` proves the real thing
-  builds through §12's gates, deploys, reads the injected `MONGODB_DB_NAME` with **no
-  fallback**, and issues a real AuthnRequest. Every app-side library is pinned to the
-  set `fixtures/saml-sp` measured, with an `@xmldom/xmldom` override the scan gate
-  needs. `provides.ai` is `false` (Decision 12); **P4b flips it.**
-- **§16's drift tier reads the blueprint's SOURCE**, in `spec/injection-drift.test.ts`,
-  both directions, against `renderInjection`'s OUTPUT rather than against the table's
-  `requiredIn` column — a comparison whose expected side is a hand-maintained list
-  gets *smaller* when somebody edits the list. It strips comments before scanning,
-  because a **commented-out** read otherwise counts as a read and the direction that
-  catches a dead §8 row passes silently. `ALLOWED_UNSET` and `PLATFORM_ONLY` are both
-  deliberately **empty**: every name added to either is an exemption.
-- **MANIFEST IS ITS OWN SP, AND THERE IS NO LOGIN SHIM.** `GET /auth/login` issues a
-  signed AuthnRequest; `POST /auth/saml/callback` validates the assertion and mints the
-  §13 session; `POST /auth/dev-login`, `MANIFEST_DEV_AUTH` and its two safeguards are
-  deleted. Tests sign their own sessions with `identity/testing.ts`'s `testSessionCookie`
-  — the bypass was the ROUTE, never a test's ability to construct a session. **The
-  callback redirects to `/auth/me`, and the target is asserted** — it said `/` first,
-  which this server does not serve, so a successful login ended on a 404 while every
-  test passed by stopping at the 302. D22's console is P5's; that is the line to change.
-- **The SAML library is `@node-saml/node-saml@5.1.0`, deliberately NOT the
-  `passport-saml` the blueprint pins.** Measured 2026-09-09: `passport-saml@3.2.4` audits
-  **1 critical** (*Node-SAML SAML Signature Verification*, no fix), 1 high, 3 moderate;
-  node-saml 5.1.0 audits **0**. C6 binds the app side, not Manifest's own code, and
-  **§12's scan gate scans app IMAGES — nothing here scans the control plane's own
-  dependency tree**, so that critical would have been invisible to every gate.
-- **Three of node-saml's defaults are wrong in the fail-open direction**, and are set
-  explicitly: `signatureAlgorithm` and `digestAlgorithm` default to **sha1**,
-  `validateInResponseTo` defaults to **`never`** (which accepts an unsolicited
-  assertion), and `identifierFormat` defaults to `emailAddress` while every row
-  `renderSpMetadata` writes declares **transient**. But **`wantAssertionsSigned` and
-  `wantAuthnResponseSigned` do NOTHING** — setting both to `false` reddens no test,
-  because node-saml refuses an unsigned document regardless and `idpCert` is what
-  refuses a wrongly-signed one. Same shape as `validate.authnrequest`.
-- **The control plane registers its own SP at BOOT**, through `renderSpMetadata` —
-  the one renderer of an `entity_data` document — not from `ensure-idp-sql.sh`.
-  entityID `https://manifest.internal/sp/manifest-control-plane/platform`, ACS built
-  from `MANIFEST_CONTROL_PLANE_ORIGIN` (default `http://127.0.0.1:7100`; `loadConfig`
-  refuses a loopback origin whose port is not `MANIFEST_PORT`). Its keypair is
-  `infra/sp/control-plane.{key,crt}`, minted by `make up`, gitignored, **not removed by
-  `make reset`** — a file rather than two `secrets` rows, because that table is scoped
-  to a `projects` row by a foreign key and the platform is not a project.
-- **`make demo-identity` IS P4a's ACCEPTANCE, and it is repeatable.** Nine steps by
-  `curl`. It passed at the first attempt and then FAILED on the second, because step 8
-  asserted the instructor's note list was `[]` — true only against a virgin database.
-  Both notes are unique per run now and the isolation is checked **both ways**: neither
-  person sees the other's note and each reads back their own, because "the note is
-  absent" is also true of an app that returns nothing to anybody. **Run it twice.**
-- **Every redeploy leaves the PREVIOUS release's container running.** Eleven deploys in
-  one session produced eleven `mf-proof-app-staging-*-app` containers, all Up and
-  healthy, each holding its full cpu/memory/pids allocation; only one carries the route.
-  `deployRelease` calls `ensureInstance` and nothing destroys what the last release
-  left. **Not a Task 15 defect and not fixed** — reaping belongs to §11's reconciliation
-  loop, which is Phase 4 (D10) — but it is unbounded, and an operator meets it long
-  before Phase 4 does. `RUNBOOK.md`'s *Known gaps* carries the workaround.
-- **The blueprint's skeleton serves `/auth/logout`, not `/logout`.** `auth.logout`
-  defaults to `/auth/logout` and that default is what the platform writes into the
-  app's `SingleLogoutService`, so until 2026-09-09 every app generated from
-  `node-ts-mongo@1` that took the default advertised a logout endpoint it did not
-  answer. Invisible while nothing initiates IdP-side single logout; a 404 in front of a
-  real person the moment anything does.
-- **The two Docker tests that boot the control plane REGISTER THEIR OWN SP**, by
-  setting `MANIFEST_SP_ENTITY_BASE=https://test-suite.manifest.internal`, and delete
-  only that row. They boot on 7188/7189 and the row is keyed on one entityID, so
-  writing the shared one leaves a developer's control plane registered at a port
-  nothing listens on — a login that completes at the IdP and dies on the redirect
-  back. Deleting it afterwards was the first answer and is worse in its own way: it
-  logs the developer out until they restart. Nothing is weakened by the override — the
-  entityID is opaque to SAML and the row still goes through `renderSpMetadata` — but it
-  leaves nothing over there asserting that the DEFAULT base produces the documented
-  entityID, so `sso/platform.test.ts` asserts that as a pure function.
-
-**Your first ten minutes, in this order.** Establish a baseline before you change
-anything — every session that skipped this spent longer working out whether a red
-result was theirs.
-
-```bash
-./scripts/snapshot-machine.sh > /tmp/before.txt   # read-only, no sudo, no network
-make up                                            # ~1 min; re-adds the loopback alias
-make doctor && make verify                         # expect §2's box
-pnpm test                                          # expect §2's box
-pnpm lint && pnpm typecheck && pnpm format:check
-```
-
-**Then run this, because it is what Tasks 1–3 bought, and it still holds:**
-
-```bash
-curl -s --cacert infra/ca/manifest-root.crt \
-  https://idp.manifest.internal/module.php/saml/idp/metadata | head -3
-```
-
-**Expect signed SAML metadata** carrying `entityID="https://idp.manifest.internal/idp/shibboleth"`
-and an `<ds:X509Certificate>`. It answered **500** until 2026-09-08.
-
-`pnpm test:docker` is ~10 minutes (§2's box has the count); run it before the first commit that
-touches `infra/`, `runtime/`, `services/`, `sso/`, `secrets/`, `releases/`, `build/` or
-**`blueprints/`** — the last since Task 12, because `node-ts-mongo@1`'s own skeleton is
-a build target and nothing in the unit tier builds it. A faster
-loop for one file: `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker sso/login`.
-
-**`make demo` is worth one run before you start.** It is the only thing that exercises
-boot, build, release, deploy and the edge through the real HTTP surface, and it is where
-the last five sessions' worst defects were found. It needs the control plane already
-running — README's *Running the control plane*, then `make demo`.
-
-**THE PROOF APP EXISTS AND THE ACCEPTANCE PASSES** (Task 15). `make demo-identity`
-runs `scripts/demo-identity.sh`: nine steps by `curl`, ending with an instructor who
-**cannot** see the student's note. `fixtures/proof-app/` carries `server.js`,
-`identity.js`, `manifest.yaml`, a page and a README — and **deliberately no `auth/`,
-`package.json` or `package-lock.json`**: the demo copies `node-ts-mongo@1`'s skeleton
-first and lays the app over it, the way an agent generates one, so §20's security
-multiplier stays one copy. Four things to know:
-
-- **The three-hop CWL login is ONE function**, `idp_login` in `infra/lib/idp-login.sh`,
-  sourced by `demo.sh`, `demo-identity.sh` and any control harness. It proves the SP
-  row and the AuthnRequest signature, and it reads the ACS out of the IdP's own form
-  and checks it (D15). It does **not** prove a session authenticates anybody — it
-  discards the ACS response — so **the caller's identity check is the assertion**. A
-  control that stopped at `idp_login` came out falsely green; that is defect 77.
-- **A note is keyed on `sha256(puid ‖ slug ‖ env)`**, space-separated, in
-  `fixtures/proof-app/identity.js`, and the database holds no PUID at all. The
-  namespace is not privacy garnish: S3 measured that LiteLLM keys an end-user budget
-  on this string **globally**, so a bare hash locks a student out of every Manifest
-  app once one app's budget is spent. **Since P4b's Task 16 it has ONE producer** — the
-  blueprint's `skeleton/ai/end-user.js`; the proof app imports it, its own `identity.js` is
-  deleted, and `blueprints/proof-app-identity.test.ts` pins the formula and keeps a second
-  copy out.
-- **`fixtures/proof-app/README.md` is the attribute justification table** P8's UBC IAM
-  registration needs. `givenName` and `sn` are the two that are not pre-authorized.
-- **`GET /api/ai` answered 501 and named P4b** — the stub is gone since P4b's Task 16:
-  `POST /api/ask` answers from the asker's own notes, and `make demo-ai` proves it.
-
-**`node-ts-mongo@1` exists and works** (Tasks 12–13). It is `blueprints/node-ts-mongo/`:
-express + `express-session` + `passport-ubcshib` + `mongodb`, every version pinned to the
-set `fixtures/saml-sp` proved against the real IdP, with an `@xmldom/xmldom` override
-because §12's scan gate needs it. Its skeleton is its own build target, so
-`runtime/docker/node-ts-mongo.docker.test.ts` proves the blueprint faculty use actually
-builds, deploys, reads the injected `MONGODB_DB_NAME` with **no fallback**, and issues a
-real AuthnRequest. `provides.ai` is `false` per Decision 12 — `renderInjection` refuses an
-app declaring `ai.models` — and **P4b flips it.** Three things to know before touching it:
-
-- **§16's drift tier reads the blueprint's SOURCE**, in `spec/injection-drift.test.ts`,
-  and it strips comments before scanning. That is not tidiness: a read that has been
-  COMMENTED OUT otherwise counts as a read, so the direction that catches a dead §8 row
-  passes against a variable the running app never reads. Measured both ways.
-- **Both directions compare against `renderInjection`'s OUTPUT**, not against the table's
-  `requiredIn` column. A comparison whose expected side is a hand-maintained list gets
-  *smaller* when somebody edits the list — defect 46's shape, and the reason the plan's
-  own control (b) came out green.
-- **`ALLOWED_UNSET` and `PLATFORM_ONLY` are both empty**, deliberately. The blueprint
-  genuinely reads all twelve of §8's required-in-all rows, including
-  `SAML_IDP_METADATA_URL`. Every name added to either set is an exemption, and an
-  exemption is how a missing injection stops being visible.
-
-**That owed control was run in sitting 7, AND IT CAME OUT GREEN** — Task 12's (c),
-removing `attributeConfig` from `skeleton/auth/ubcshib.js` and expecting raw
-`urn:oid:` keys. The full nine-step acceptance passed with it gone. Measured: the
-library does `attributeConfig: options.attributeConfig || []` then `if (length > 0)`,
-so an absent list means `mapAttributes` never runs and `profile.attributes` is never
-set — and `bridge()` reads the OID key **first** and falls back to `profile` itself, so
-it finds all seven names in the raw profile. That is the bridge doing exactly what S2
-built it for. **`attributeConfig` is therefore not the control it looks like** — the
-third flag in this plan with that property, after `validate.authnrequest` and
-node-saml's `wantAssertionsSigned`. §9's release enforcement **is** the control, and
-`demo-identity`'s negative control (c) watches it work: cut `auth.attributes` to
-`[ubcEduCwlPuid]` and the app renders no display name while the notes still round-trip.
-`blueprints/attribute-bridge.test.ts` still goes red in five of six when the OID read
-is removed.
-
-Tests of anything secret-scoped use **`withSecretScope` from
-`secrets/testing.ts`**; tests that touch the IdP database belong in the **Docker tier**,
-because the table is the IdP container's artefact. **Any new migration must be its own
-file** — drizzle-kit keeps a journal and an applied migration is never re-run.
-
-*(The plan's own text still describes Tasks 4–13 as upcoming — they are done, and the
-plan's *What executing this plan found* is the corrected record. Three places where its
-text is now wrong on purpose: there is no `manifest_audit_owner` role and no
-`REVOKE`, because `events` is in an `audit` schema no blanket grant reaches;
-`ResolvedConfig.auth`, which Task 10's own context object assumes, did not exist until
-Task 9 added it; and **`InjectionContext` has no `spec` field** — `ResolvedConfig` gained
-`ai` so the renderer reads only the frozen config, which is Session 6's defect 48. `deriveCredentials` survives on purpose and deleting it is still the
-trap Decision 8 describes; it can go once every existing service has been deployed
-once, and not before.)*
-
-**Four things Tasks 1–3 learned that Task 15 will need.**
-
-1. **Three defects this session were a swallowed error.** `applyRoute` hid a failed
-   delete; `stop()` hid a failed `destroyInstance` and a stale container then served
-   four runs of a suite, making a negative control pass against an app it had already
-   edited; and a probe that inserted a row it expected to be refused never deleted it,
-   which broke the next `make up`. **`.catch(() => undefined)` is this codebase's most
-   productive defect.** Look hard at every one you write and every one you inherit.
-2. **The Prettier trap is real and it caught this session three times in one change.**
-   A `sed`/`python .replace()` that matches nothing after Prettier reformatted its
-   target reports success and changes nothing. §4 has said so since 2026-09-06.
-   **Assert the pattern matched before writing the file** — every time, not when you
-   remember.
-3. **That unfinished thread is now closed.** `renderInjection` emits
-   `SAML_IDP_CERT_PATH` and `SAML_PRIVATE_KEY_PATH` from `INJECTED_FILE_PATHS`, and
-   `deployRelease` passes both through `InstanceSpec.files` — the certificate `0444`,
-   the key `0440` root-owned with the blueprint's `run_as_uid` as its gid, threaded
-   from the descriptor through `DeployDeps.blueprints` (Task 11).
-4. **A module with no call site is not built**, and **schedule the end-to-end task
-   early**. Both held again: Task 3 was scheduled third on purpose and it is the only
-   reason the IdP's inability to authenticate anybody was found before Task 15.
-
-**Start P4b at its Task 1**, which reconciles it against the P4a that has now run.
-
-**Demo:** `make demo-identity` — CWL login and a Mongo write, driven by `curl`. The
-LLM answer is the third of §16's three and is **P4b's**, which is also why the external
-track's C4 trigger is P4b's and not this one (roadmap, *Order of operations* step 6).
-`fixtures/fixture-app/` is P3's build target and stays trivial; §16's proof app is
-`fixtures/proof-app/`.
-
-### 7d-2. P4b is done *(executed 2026-09-15)* — AI, events, streaming, incidents (1b-ii)
-
-*[`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md)
-— **16 tasks, written 2026-09-07, ALL EXECUTED: Tasks 1–2 on 2026-09-09, 3–12 on 2026-09-14 and 13–16 on 2026-09-15.** Not the current job; **§7e is.** This section stays because what P4b established is what P4c and P5 build on.*
-
-**IT RUNS IN TEN AGREED SITTINGS, one per session with a check-in at each boundary**
-— settled with Rich on 2026-09-09, the same pattern that carried P4a's last twelve
-tasks through seven sittings without a session limit ever landing mid-task. **The
-table is at the top of the plan**, which is the maintained copy; this is the shape:
-
-| Sitting | Tasks | |
-|---|---|---|
-| 1 ✅ | 1–2 | the reconciliation pass (**six divergences, two fatal to a migration**), and LiteLLM pinned by digest — **done 2026-09-09, 10 findings** |
-| 2 ✅ | 3 | §16's AI-path regression tier, before any `ai/` module exists — **done 2026-09-14, 6 findings** |
-| 3 ✅ | 4–5 | `ai/errors.ts`, then the transport that uses it — **done 2026-09-14, 11 findings** |
-| 4 ✅ | 6–7 | the catalogue and the key minter — **done 2026-09-14, 12 findings; the boot decision made** |
-| 5 ✅ | 8–9 | the sitting where Tasks 6, 7 and 8 got a caller — **done 2026-09-14, 11 findings; the AI-off decision made** |
-| 6 ✅ | 10 | the blueprint's AI half — **done 2026-09-14, 14 findings; seed's npm warm fixed** |
-| 7 ✅ | 11–12 | build logs, and the redaction that covers them — **done 2026-09-14, 16 findings; a migration that applied without its grant, replayed; the tier ended 130 of 131 on a Mongo readiness race** |
-| 8 ✅ | 13 | §14's `Incident` — **done 2026-09-15, 20 findings; the Mongo readiness race settled first; the plan's caller position was unreachable on the Docker driver** |
-| 9 ✅ | 14–15 | the stream, and the call sites that make it carry anything — **done 2026-09-15, 18 findings; the plan's stream authorized after the upgrade and could not pass its own test; nine event types closed by a database CHECK** |
-| 10 ✅ | 16 | P4b's acceptance, alone — **done 2026-09-15, 22 findings; the proof app answers a question, from a reset machine twice; every embedding had been charged to nobody; a vanished gateway makes a student wait 611 s** |
-
-**Ten rather than eight** — which is what sixteen tasks at P4a's average would give —
-because three tasks are alone for reasons that are not their size: Task 3 builds the
-probe harness every later sitting is measured against, Task 10 needs `make seed` with
-the network on to warm Verdaccio from a new lockfile (P4a's sitting 5 was alone for
-exactly this), and Task 16 is the first end-to-end run, which is where this project's
-worst defects have always been. **The table is a schedule, not a contract**: Task 1's
-job is to move task boundaries, so re-cut it if that happens. Two rules survive any
-re-cut — **Task 16 stays alone, and Tasks 14 and 15 stay together**, because Task 15
-is what makes the stream carry anything and a stream with no publisher sits green for
-a whole session.
-
-**Task 1 has run (2026-09-09) and found SIX divergences** — the record is in P4b's
-*What executing this plan found*, and the two worth knowing before Task 11 are that
-**`manifest_audit_owner` does not exist** (P4b's Tasks 11 and 13 both did DDL against
-it, so both migrations would have failed on their first statement) and that both new
-audit tables used **`ON DELETE CASCADE`**, which bypasses §20's append-only grant
-because a referential action runs with the referenced table's privileges. Both are
-corrected in the plan.
-
-**Task 2 is done too, and the tag moved while we were looking at it.**
-`ghcr.io/berriai/litellm:main-stable` resolved to `sha256:20b5044b` (litellm 1.98.0) on
-2026-09-07 and to `sha256:a3715fa7` on 2026-09-09 — a rebuild about two hours before the
-task started. **Rich pinned 20b5044b, the version S3 measured**, because §16 pins the AI
-error mapping to a version and Tasks 4 and 15 assert against 1.98.0's envelopes. It is
-pinned **by digest in `infra/images.txt`** — the only line there that is — derived at use
-from `images.lock` by `infra/lib/common.sh` and the Makefile, never copied into `.env`.
-`make doctor` is **18 checks** from here: the new one asks the DAEMON what is running,
-not the file it was written from.
-
-**Sitting 2 — Task 3 — is done too (2026-09-14), with 6 findings.** §16's AI-path tier
-exists before any `ai/` module: probes 13 and 14 in `s6.docker.test.ts` and
-`ai/ai-path.docker.test.ts`, with `ai/testing.ts` minting the probe keys. The finding to
-carry forward: **LiteLLM's `/user/new` mints an unconfined key unless
-`auto_create_key: false` is passed, and Task 7's code does not pass it** — the correction
-is at the top of Task 7. **Sitting 3 — Tasks 4 and 5 — is done too (2026-09-14), with 11 findings.** The two to carry forward: **Task 7's `ensureAiUser` recognises an existing LiteLLM user by text Task 5's client exists to strip, so as written every redeploy of an AI app throws** — catch on status 409 — and **Task 9's `createLiteLlmClient(config.litellm)` cannot typecheck** against the shapes Task 5 fixed. Both corrections are at the top of those tasks. **Sitting 4 — Tasks 6 and 7 — is done too (2026-09-14), with 12 findings**, and it made the boot decision its hand-off named: AI is on unless `MANIFEST_AI_ENABLED=0`. **Sitting 5 — Tasks 8 and 9 — is done too (2026-09-14), with 11 findings**: the gateway joins only an AI app's network, `deployRelease` mints before the instance starts and commits after health, and an AI release deployed with AI switched off is refused with `RELEASE_AI_DISABLED`. **Sitting 6 — Task 10 — is done too (2026-09-14), with 14 findings**: `node-ts-mongo@1` provides AI and its component is proved on the wire, and seed's npm warm — inert on any machine whose npm cache already held a package — is fixed. **Sitting 7 — Tasks 11 and 12 — is done too (2026-09-14), with 16 findings**: build logs are captured line by line, redacted and stored, and redaction has its heuristic half — and its Docker tier ended 130 of 131 on a Mongo readiness race that is not its code (finding 133). **Sitting 8 — Task 13 — is done too (2026-09-15), with 20 findings**: a Mongo service is healthy only once it enforces authentication, and a deploy that fails to become ready — by either route, the Docker driver's readiness refusal included — is a recorded `failed` instance with §14's Incident. **Sitting 9 — Tasks 14 and 15 — is done too (2026-09-15), with 18 findings**: the stream is authorized before it upgrades — the plan's code authorized after, and could not pass its own test — and every event reaches it through one `publishEvent`. **Sitting 10 — Task 16 — is done too (2026-09-15), with 22 findings**: `make demo-ai` passes from a reset machine, twice; the blueprint's `embed()` charged every embedding to nobody and now takes the PUID; and an AI app whose gateway vanishes under a pooled connection waits 611 s. **P4b is finished.**
-
-#### Sitting 10 — Task 16 — the hand-off it was given *(HISTORICAL: sitting 10 has run; its numbers below are the start of that sitting, and §2's box is current)*
-
-**The state it was handed over in, 2026-09-15.** `main`, tree clean; last code commit `5149663` (a comment corrected in `release.ts`; Task 15 is `28df4f3`, Task 14 `13d28f9`). `pnpm test` **735** (66 files), `pnpm test:docker` **133 tests in 25 files, all passing**, `make doctor` **18/0**, `make verify` **47/0**. Migrations `0007_stormy_demogoblin` (`audit.events.created_at` is `clock_timestamp()`) and `0008_amused_rachel_grey` (the CHECK `events_type_known`) are applied; a database that has not run them fails `observability/events.test.ts`, and `db:migrate` fixes that. LiteLLM 1.98.0 (`sha256:20b5044b`) running, with no `mf-` users and no probe keys. If your first measurements differ, find out why before you start.
-
-**Task 16 is alone, deliberately** — the first end-to-end run is where this project's worst defects have always been, and P4a's passed at the first attempt and still produced eight defects. **It is the first time an app that declares models is deployed and asked a question**, and the first time anything but a test's `ws` client connects to the event stream. It fires the external-track trigger, which is Rich's to act on: say that it has fired, and do not start it.
-
-**What sitting 9 built** (Task 14, then Task 15): `WS /projects/:projectId/events` in `api/routes/events.ts` — a `preValidation` hook authorizing `project:read` before `@fastify/websocket` 11.3.0 upgrades, `426` with `Upgrade: websocket` for a member's plain GET, a replay of the newest 50 events, a `manifest.stream.ready` frame, live frames, and 1013 past 1 MiB queued; `observability/bus.ts` — `createEventBus` (in-process, with `listenerCount`), `publishEvent`, `recentFramesFor`, `eventFrame`, `logFrame` and `readyFrame`; nine `EVENT_TYPES`, closed by the database CHECK; `ServerDeps.bus`, `DeployDeps.bus`, and the bus threaded through `startBuild(db, driver, bus, input)`, `registerServiceProvider(db, pool, keys, bus, input)` and `createSsoRegistrar(…, bus)`; `onLine` on `createBuildLogWriter`; `deployRelease` opening the app's secret set before it mints; and the authorization contract's five stream rows.
-
-**Four things from sitting 9 that touch Task 16** — the note at the top of Task 16 has all nine:
-
-1. **A shell cannot speak the stream.** Step 3's background subscriber has to be a program: `ws@8.21.3` is what the tests use, and whether Node 24's global `WebSocket` will send the session cookie is unmeasured.
-2. **The proof app's first deploy streams, in order,** `build.started`, its log frames, `build.succeeded`, `sso.registered`, `instance.healthy` and `ai.key_rotated`. A subscriber that connects late is replayed the events, never the log lines.
-3. **There is no event for an app's failed AI call.** Step 7 (e)'s *"the platform reports AI_BACKEND_UNAVAILABLE"* can only be about the app's own response; a new event type is a migration and a drift test.
-4. **Every deploy opens the app's whole secret set before it mints** (finding 162), so a secret sealed under another master key refuses the deploy outright.
-
-**Decided by Rich on 2026-09-15, and applied to the spec (§8):** §10's per-user budget is validated, not enforced, in Phase 1 — so Task 16's `per_user_monthly_usd: 1` is declared and deliberately unenforced, exactly as Step 1's comment says, and no step should try to prove a per-student cap; §14 describes the stream as built, with no tailing of an app's own output; and §10's agent-key row binds from Phase 3. None of the three changes Task 16's scope.
-
-**Read these before writing a line:** the note at the top of Task 16; the plan's *What executing this plan found*, sittings 8 and 9; and P4a's Task 15 record, because Task 16 has its shape.
-
-```bash
-make up && make doctor && make verify                   # expect 18/0 and 47/0
-pnpm test                                               # expect 735 passed, 66 files
-MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/releases/incident src/sso/registration
-```
-
-**Task 16 runs the whole platform, so the sitting ends with `make demo-ai` twice — the second from a `make reset` machine — `pnpm test:docker` and the four gates**, then the record, the sittings table, §6's sweep, and the one sentence to Rich that the trigger has fired.
-
-**Background, from sitting 1.** Its reconciliation pass also confirmed four items the plan could
-not know, because P4a's Task 15 ran two days after P4b was written; they are under *What sitting 1
-must reconcile*, and the first two matter to Task 10 and Task 16: `fixtures/proof-app/package.json` and `package-lock.json`
-**do not exist** (Task 16's *Files* block modifies both), `endUserId` already exists in
-`fixtures/proof-app/identity.js` and must be passed through rather than recomputed, the
-three-hop login is one shared function in `infra/lib/idp-login.sh` that `demo-ai.sh`
-must source, and `scripts/offline-acceptance.sh` already has a step 6 that a new one
-must append to rather than replace.
-
-The LiteLLM admin client with `allowed_routes` as a constant rather than a
-parameter, S3's error table as one mapper, D17's catalogue read from `/model/info`,
-app-key rotation with the budget on the LiteLLM user, the gateway joining an app
-network **only** for an app that declares models, §8's AI rows, the blueprint's AI
-component, build-log capture, redaction's heuristic half, §14's `Incident` shaped as
-a repair prompt, and `WS /projects/:id/events` — **authorized before it upgrades**,
-so §16's authorization contract suite can cover it like any other route.
-**Demo:** the proof app answers a question, attributed to
-`sha256(puid ‖ project ‖ environment)`.
-
-**It was written before P4a ran, on Rich's instruction.** That is a departure from
-the 2026-09-04 decision, and the plan answers it rather than ignoring it: **Task 1
-is a reconciliation pass** against the executed P4a with a named checklist, and
-three places where P4a's own text is ambiguous are flagged at the point of use.
-**P4a has now executed in full (2026-09-09), so that reconciliation is sitting 1's first job rather than a hypothetical.**
-
-**Writing it measured ten more facts.** The load-bearing ones: `/model/info` returns
-`mode: null` for a chat model — not `"chat"` — so a catalogue filtered on `'chat'`
-comes back **empty** and every spec then fails with a message blaming the faculty
-member; `ghcr.io/berriai/litellm:main-stable` is a **moving tag absent from
-`infra/images.lock`** while §16 pins the error mapping to a version; and
-**`ai.budget.per_user_monthly_usd` cannot be enforced at LiteLLM 1.98.0 at all** —
-customer rows auto-create with no budget, and `max_end_user_budget` does not exist
-in its admin API. **P4b proposed six spec actions, and all six are applied** — §21's LiteLLM digest row and two §7 rows on 2026-09-14, and §10's two rows and §14's streaming bullet on 2026-09-15, Rich's calls once Task 14 had run.
-
-### 7d-3. P4c is done *(executed 2026-09-16)* — zero-downtime redeploys (1b+)
-
-[`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md) —
-11 tasks in **eight agreed sittings, one per session**, all done: 1 to 6 on 2026-09-15 with 13
-findings, 4, 7, 6, 9 and 10, and 7 and 8 on 2026-09-16 with 9 and 12 — **70 in all, 6.4 per task**.
-Its brief, with the measured baseline, is
-[`plans/2026-09-15-p4c-brief.md`](plans/2026-09-15-p4c-brief.md). **The eight spec actions it needed
-were applied before it was written** (Rich's call, commit `888d9d1`), so §11 already describes what
-it built.
-
-**THE HEADLINE: A REDEPLOY INTERRUPTS NOBODY AND SIGNS NOBODY OUT, AND THE ACCEPTANCE SAYS SO FROM A
-`make reset` MACHINE.** Before P4c a redeploy was 1.0–1.9 s of empty 502s, signed every user out,
-cut off an AI question in flight and left the old container running.
-
-**What each sitting did, in one line.**
-
-- **1** — the acceptance, built first and watched failing three times; the baseline is the plan's
-  own number. Two of its thirteen findings were defects in the measurement itself.
-- **2** — §11's redeploy contract in code: `InstanceSpec.instanceId`/`hostname`, the four new
-  `Driver` methods, `DriverRefusalError`, and the contract suite's eleven-test continuity block.
-- **3** — the edge and the Docker `ensureInstance`: beside, privately ready, moved with one
-  in-place `PATCH`, verified BY IDENTITY from inside the edge, rolled back if it cannot be.
-- **4** — the Docker retire, and **the driver contract green on Docker, 25 of 25, 0 skipped**.
-- **5** — §6's `Route` record, `withEnvironmentLock`, a key per instance, and the retirer.
-- **6** — **the caller**: `deployRelease` reordered, and boot recovery.
-- **7** — **sessions in the app's own Mongo** (`skeleton/auth/session.js`, `connect-mongo` 6.0.0).
-- **8** — **the acceptance**: green three times, once from a `make reset` machine, with 24
-  assertions; the nine negative controls watched, and **four of them could not fail in it** — each
-  now watched red in the tier that can see it (§4), one in a test the sitting had to write.
-
-**What P4c deliberately leaves open** (its *What this plan does not build* has the reasons):
-
-- **A sign-in under way at the IdP when the route moves fails once** — `passport-ubcshib` 0.1.6 drops
-  passport-saml's `cacheProvider`, so the request id lives in the old container (Rich: tolerate it; §8).
-- **An edge configuration reload can reset about one request in 300 per admin change** (R1) —
-  counted, not failed, by the acceptance and by every Docker test that moves a route.
-- **Two releases share one database for up to two minutes** — a knowledge-pack rule (R8), checked by
-  nothing.
-- **An AI app whose gateway vanishes under a pooled connection waits 611 s** (P4b finding 181) — a
-  deadline in the blueprint's AI client, which needs a decision about half-streamed answers.
-- **Noticing an edge restart while the control plane runs** is Phase 4's reconciler; until then
-  restart the control plane after `docker restart manifest-caddy` or `pnpm test:docker`.
-- **`retireEnvironment` opens the app's whole secret set first**, so a set it cannot open stops every
-  reap of that environment with one line on stderr (finding 46, §4).
-- **`make demo-redeploy` is not in `scripts/offline-acceptance.sh`**; the offline acceptance, with
-  `make demo-identity` and `make demo-ai` in it, is still Rich's to run.
+| **P1** | [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md) | `make doctor`, `make verify` | 18 defects in 13 tasks, and **six were checks that passed while the thing under test was broken or absent**. The second-machine clean clone is untested. |
+| **P2** | [`plans/2026-08-29-p2-control-plane-spine.md`](plans/2026-08-29-p2-control-plane-spine.md) | its unit tier; `lifecycle.test.ts` | 52 defects: six type errors no test could catch, five test-isolation defects, a login shim one line from an authentication bypass, and a boot entry point nothing had ever executed. |
+| **P3** | [`plans/2026-08-31-p3-docker-driver-deploy-spine.md`](plans/2026-08-31-p3-docker-driver-deploy-spine.md) | `make demo` | **Sessions 4 and 5**: no build had ever succeeded (a `# syntax=` directive the egress-free builder could not fetch, and a `.npmrc` that arrived after `npm ci`), and then no deploy — seven defects of one shape behind 74 green Docker tests. S6 ran as its Task 18 ([`spikes/S6-findings.md`](spikes/S6-findings.md)). |
+| **P4a** | [`plans/2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md) | `make demo-identity` | 80 defects in seven sittings. **Session 5's first**: §20's audit grant was unimplementable while the application connected as a superuser. The acceptance passed first time and eight defects came out of disbelieving it. |
+| **P4b** | [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) | `make demo-ai` | 140 findings in ten sittings. **Sitting 9**: the plan's stream authorized after the upgrade and could not pass its own test. **Sitting 10**: every embedding had been charged to nobody. |
+| **P4c** | [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md), with [its brief](plans/2026-09-15-p4c-brief.md) | `make demo-redeploy` | 70 findings in eight sittings. **Sitting 8**: four of the acceptance's nine negative controls could not fail in it — §4 says which tier sees each. |
 
 ### 7e. Execute P5a — the contract (first of 1c's three plans) ← **START HERE**
 
@@ -2012,17 +1187,7 @@ whether a name works while they type it. **Any further
 spec change is proposed to Rich, never edited** — the brief's §7 items 5 and 6 are still proposals,
 both P5b's; item 7 is not a spec change but work P5a does (persisting scan findings on the release). **And four more were made while P5a was written, the same day, and are in the plan's *Decisions Rich made*:** **R6** — builds answer `202` and finish on the event stream, while a deploy stays synchronous; **R7** — the client is generated by `openapi-typescript` 7.13.0 and called through `openapi-fetch` 0.17.0; **R8** — twelve sittings; **R9** — the plan's six spec actions applied before it executes (spec commit `491f8be`: §6 `Project.starter`, `Build.scan` and `RoleChange`, §20's CSRF as an `Origin` check with a sign-in bound to its browser, §22 D23.9, and provisioning on §14's stream). Do not re-open any of them.
 
-**What sitting 1 established (2026-09-16, 9 findings; [`spikes/p5a-baseline/`](spikes/p5a-baseline/README.md)).** Every premise the plan rests on held on this machine, each with its control watched: the edge refuses an app network by source with an allow-list of one address, `10.89.0.1/32`, and forwards the host — and with the refusal removed the proof app got through, so the matcher is what refused it; a real CWL sign-in and a WebSocket stream work through an origin behind the edge; the IdP echoes `RelayState`; `zod/v4` does what Task 6 needs; the reserved-label data loads clean and no existing slug is reserved. What it changed is written at the top of Tasks 3, 4, 6, 9, 11 and 12: **Task 3's probe 15 gains the app's egress proxy** — its filter refuses the console's name today, but `egress.allow` would accept a platform hostname — **Task 11 splices the slug into the starter's text** rather than re-stringifying it, which refolded and re-padded three lines, and **Task 6 gains a type-level control**. No sitting boundary moved.
-
-**What sitting 2 established (2026-09-16, 16 findings, `fad5e31`, `8520e0a`, `92b4ebb`, `1c83bd3`).** Every resource route is under `/v1` — an old path answers `404 ROUTE_NOT_FOUND` naming `/v1` — and **the API is reached at `https://console.manifest.internal` through the edge**, which forwards `/v1/*` and `/auth/*` to the control plane on the host and refuses every source but `10.89.0.1` with `403 manifest: the control plane is not reachable from this network`. The control plane's origin defaults there, its session cookie is `Secure`, and every demo signs in and calls through it — all four green, `make verify` 50/0, S6 probe 15 `app=403 host=401`. Four things the plan did not foresee are now in §4: **an edge reload closes every proxied WebSocket with `1001`** (the console sets `stream_close_delay 1h`; app routes do not — §8), **a save that replaces the Caddyfile strands the edge's mount** (`ensure-caddy-config.sh` re-binds), **an app's `node` PID 1 never reaps orphans**, so S6 probe 11 leaves the app unable to start `node` (probe 15 runs before it — §8), and **a Node process needs the platform CA passed to it** for anything on the console origin. Tasks 7 and 12 carry a *Sitting 2 correction*. No sitting boundary moved.
-
-**What sitting 3 established (2026-09-16, 15 findings, `b59ef28`, `998557e`, `6b3ae28`, `cbd4ce5`).** **A request carrying a session must come from the console's origin**: every mutation and every event-stream upgrade without `Origin: https://console.manifest.internal` is `403 CSRF_ORIGIN_REFUSED`, the SAML callback is the one exemption, and the refusal holds through the real edge with its control watched. **A sign-in completes only in the browser that started it** — a nonce in `manifest_login` and in `RelayState`, checked before node-saml sees the assertion (`401 SAML_LOGIN_NOT_BOUND`) — and lands on `/`, or on the same-origin `?returnTo=`. **Every code a client can receive is in `api/error-codes.ts`** — 65, held to the source in both directions. Writing that registry found **Fastify's own refusals of an unreadable body answering `500 INTERNAL`** (now 400, 413 and 415) and a build route answering `SPEC_INVALID` 400 where the spec route answers 422. Two things to carry: **the plan's "before the idempotency check" is one `return` away from exempting `/auth/logout`** (control (k)), and **a refusal test that does not say which refusal it expects stops testing anything the moment a new refusal is added in front of it** — four SAML tests and a Docker test were one binding away from that. Task 6 carries a *Sitting 3 correction* (`EVERY_MUTATION` gains the two framework codes). No sitting boundary moved.
-
-**What sitting 4 established (2026-09-16, 7 findings, `204bf49`).** **A `/v1` route is declared once, through `defineRoute`** (`api/contract/route.ts`): its `zod/v4` schemas validate params, query and body — a strict object, so an unknown field or query parameter is `400 REQUEST_INVALID` naming it — authentication runs before any of them, and the handler's answer is parsed through its registered representation, so a column a mapper forgets is stripped and a wrong type is `500` with the operation and field (never the value) on stderr. **`packages/contract/openapi.json` is generated from `ROUTE_DEFINITIONS` and checked in**: `api/contract/document.test.ts` compares it byte for byte and, under `pnpm contract:write`, writes it. **`GET /v1/me` is the first route declared that way** and answers `Me` — `{ id, puid, displayName, email, role }`, with the session's role — verified through the real edge after a real CWL sign-in, and `make demo-identity` was green on it. Two corrections to the plan's code were measured: **zod's registry inherits a parent's metadata minus its `id`**, so the plan's `ref()` emitted `$ref: …/undefined` for a `.describe()` copy (§4); and the plan's *never the value* test asserted `not.toContain('42')`, which a random UUID in the logged URL contains 15% of the time. No later task needed a correction. No sitting boundary moved.
-
-**What sitting 5 established (2026-09-16, 4 findings, `97f6be4`, `917dd5f`).** **`@manifest/contract` is a package**: `src/schema.d.ts` generated from `openapi.json` by `openapi-typescript` 7.13.0 — `ErrorCode` a union of the 65 literals — and `createManifestClient` over `openapi-fetch` 0.17.0, which sends the session cookie and the console's `Origin` and leaves `Idempotency-Key` to each call (`params: { header: { 'Idempotency-Key': idempotencyKey() } }`, measured reaching the wire beside the defaults). Both generated files are held by drift tests, and the package's version by a test on each side. **`make demo-journey` signs the instructor in through the edge and runs `packages/journey` — §22 step 1, `GET /v1/me` through the client — green**, and its shape check was watched failing against a control plane that returned one field more. Neither dependency runs an install script, and `pnpm audit` finds nothing in the new closure. `pnpm test` runs a `packages` project; **the typecheck gate is `pnpm typecheck`** over all three packages. The plan's `demo-journey.sh` sent each build to `/dev/null`, where `tsc` writes its errors, so a journey that did not type-check stopped with no reason; it now prints them (`917dd5f`). No later task needed a correction. No sitting boundary moved.
-
-**What sitting 6 established (2026-09-16, 13 findings, `ba1dda5`, `4a1d8cd`, `0246d3c`, `b043d9d`).** **Every read of a project, its environments, its members and its spec answers a representation** (`api/routes/project-reads.ts`): `quota`, `visibility`, `published`, `forkedFrom`, `ownerId`, and an instance's `driver` and `handle` no longer leave; `GET /v1/projects/{projectId}/environments` and `…/members` exist; `GET /v1/projects` is the caller's memberships for administrators too; and the staging environment through the real edge reported the instance its Route serves, not a newer failed deploy. **§23's reserved labels are loaded at boot** — 755, and the boot line says so — **behind one function, `checkSlug`**, which answers `GET /v1/slugs/{slug}` (a `200` either way, 60 a minute per person) and refuses at creation with the same code, message and hint; `createProject` checks before it writes. Three things the plan did not foresee: **the authorization contract suite had asserted a refusal's status only**, so a stranger's `404` passed against a route that did not exist — it now names each refusal's code; **D9's sensitive diff reported every re-validation of a manifest with a service** (jsonb's key order is not zod's; `4a1d8cd`); and **Fastify's router answered an over-long path parameter or a malformed URL in its own body**, outside the envelope, because only `frameworkErrors` hands them over (`b043d9d`). `ProjectError` is deleted. Task 11 carries a *Sitting 6 correction*. No sitting boundary moved.
+**What sittings 1 to 6 established is in the plan's *What executing this plan found*, one dated entry each — read them; do not look for them here.** In one line each: **1** the measurements the design rests on (`spikes/p5a-baseline/`); **2** every resource route under `/v1`, served at `https://console.manifest.internal` through the edge and refused to every source but the host; **3** CSRF by `Origin`, a sign-in bound to its browser, and one registry of every error code; **4** `defineRoute` and the generated OpenAPI document with its drift test; **5** `@manifest/contract` and `make demo-journey`; **6** projects, environments, members and specs as public representations, and §23's reserved labels behind `GET /v1/slugs/{slug}`. Each later task a sitting's measurements changed carries a correction at its top.
 
 **Read, in this order, before sitting 7:**
 
@@ -2031,7 +1196,7 @@ both P5b's; item 7 is not a spec change but work P5a does (persisting scan findi
 3. **This file's §4** — its last ten entries are sittings 3 to 6's — and **§6** (how to work, and the close-out sweep every sitting owes).
 
 **How to execute it.** `superpowers:executing-plans` or `superpowers:subagent-driven-development`, **one sitting per
-session**, with a check-in at each boundary. **Start with the baseline in §7d's *Your first ten minutes*** — snapshot the
+session**, with a check-in at each boundary. **Start with the baseline in §6's *Your first ten minutes*** — snapshot the
 machine, `make up`, doctor, verify and the four gates — and compare every number with §2's box before changing anything. **Sitting 7 changes `blueprints/` (a starter moves
 into `node-ts-mongo@1`), `projects/`, `api/`, `observability/`, a migration (0010, applied with `db:migrate`, which reads the ADMIN
 url) and the journey — so it OWES `pnpm test:docker` (~13 min, `make up` first) as well as the four gates, and after each task
@@ -2120,9 +1285,11 @@ both with the same header.
 
 ## 8. Decisions waiting on Rich
 
-Surface these; do not decide them.
+Surface these; do not decide them. **When one is decided, move it to *Decided* as one line naming where the reasoning is recorded.**
 
-- **Should an APP's route carry `stream_close_delay`, as the console's does? — RAISED 2026-09-16 (P5a sitting 2), not decided.**
+### Open
+
+- **Should an APP's route carry `stream_close_delay`, as the console's does? — RAISED 2026-09-16 (P5a sitting 2).**
   Every Caddy admin-API change reloads the edge's whole config and closes every WebSocket the old config proxied with
   `1001` — measured by closing an event stream with one unrelated route `PUT`. The console site now sets an hour. **App
   routes, which `routing/` writes, set nothing, so any deploy of any app closes every app's WebSockets**, which sits
@@ -2130,199 +1297,55 @@ Surface these; do not decide them.
   route; the questions are the value (a stream on an old config outlives it by that long, and the old handler with it)
   and whether it belongs in P5a, a hardening slice or Phase 4. *Not measured:* an app WebSocket actually cut by another
   app's deploy.
-- **Should app containers run with an init (`Init: true`)? — RAISED 2026-09-16 (P5a sitting 2), not decided.** An
-  app's PID 1 is its own `node`, which never reaps the orphans it adopts, so a process an app starts that leaves
-  children behind turns them into zombies holding pids against §12's `PidsLimit` (64 in the S6 fixture) for the
-  container's life — measured with twenty orphaned `sleep`s in state `Z`, and with S6 probe 11 leaving `docker exec …
-  node` unable to start. It changes every app's process tree, which is why it is asked rather than done.
-
-- **`egress.allow` may not name a platform surface — DECIDED 2026-09-16, Rich's call; §12 text APPLIED, and it is ITS OWN HARDENING ITEM (NOT P5a), built after P5a executes.** P5a Task 1's `[M2g]` measured that `renderAllowlist` (`runtime/docker/egress.ts`) accepts any syntactic hostname, and that the app's forced proxy — dual-homed onto `manifest-platform`, the app network's only route out — tunnels raw TCP to any port (the control opened `manifest-idp:80`) to any name it resolves there. So an app that declares a platform service (`manifest-postgres`) or the console/IdP zone in `egress.allow` gets a tunnel across the east-west boundary §12 exists to hold; the edge's own source allow-list (`10.89.0.1/32`, Task 3) already refuses the console leg, so the fix is defense in depth. §12 now says `egress.allow` may not name the platform zone or `manifest-*`, refused as `EGRESS_ALLOW_INVALID`. **Nothing enforces it yet** — it is the roadmap's one *Tracked hardening item*, to be built after P5a's Task 9 gives it the reserved-label loader; a plan touching `spec/` validation or `runtime/docker/egress.ts` folds it in and deletes the row. **The decision is settled; do not re-raise it. What is open is only the implementation.**
-- **P5a's own four — DECIDED 2026-09-16, while it was written, and in its *Decisions Rich made*.** R6: builds answer `202` and finish on the stream; a deploy stays synchronous. R7: the client is generated by `openapi-typescript` and called through `openapi-fetch`. R8: twelve sittings. R9: its six spec actions applied before execution (`491f8be`). *Rejected, in order:* a synchronous build call; a dependency-free generator of our own; about nine sittings; holding the spec actions until the tasks run. **Do not re-raise.**
-- **P5's five decisions — ALL DECIDED 2026-09-16, and applied to the spec (`1d88846`).** (1) starters;
-  (2) three plans, P5a/P5b/P5c; (3) the console and the API on one origin through the edge, refused
-  to app and sandbox networks — with §23's reserved labels, which that needed, extended the same day
-  to six groups — two of them UBC's, 755 labels in `infra/reserved-labels/` — with a slug check API
-  (`ecf5f29`, `5065c13`); (4) a `/v1` prefix;
-  (5) no acceptance that depends on a second machine. §7e carries them into the P5a task; the
-  reasoning is §5 of [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md). **Still Rich's,
-  when P5b is written:** the brief's §7 items 5 and 6 (D24's entity fields, and the stateless-session
-  divergence from §20). Item 7 is not a spec change: P5a makes §12's *recorded on the Release* true.
-- **§12's scan gate — SETTLED 2026-09-08, Rich's call, and written into §12 on
-  2026-09-14.** The gate blocks on a Critical or High **that has a published fix**;
-  findings with no fix are recorded on the Release and reported for §20's fleet-wide
-  rebuild, exactly as base-image findings already are. It had to be settled because
-  §12's unwaivable gate and C6's "a library change is never a prerequisite" could not
-  both hold: `passport-ubcshib` → deprecated `passport-saml` (critical, no fix) →
-  `@xmldom/xmldom` blocked **every CWL application**, which is every application the
-  platform exists to deploy. Implemented in `build/scan.ts`, and §12's own words now say
-  so.
-- **The long-term fix for `passport-ubcshib` is UBC's, not Manifest's.**
-  `@node-saml/passport-saml@5.1.0` audits clean, and moving to it is exactly the
-  "strictly safer for every consumer" change C6 permits. It is **not** blocking
-  Manifest and should not be treated as though it were — but somebody should be told
-  that six UBC applications depend on a library with a critical signature-verification
-  advisory.
-- **P4a's spec actions — applied 2026-09-14, all but one.** Rich approved §9 naming the
-  **Manifest IdP** instead of `docker-simple-saml`, the IdP's hosted entity and signing
-  keypair as deployment artefacts, §8's SimpleSAMLphp 2.x paths and §21's two IdP
-  database roles, plus §12's wording above; the `MONGODB_DB_NAME` note was not applied.
-  The record is at the end of
-  [`plans/2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md)
-  and in the roadmap. **P4b's other five were held until Tasks 6, 7, 9 and 14 had
-  run** — all five are applied now, the last three on 2026-09-15 (below); two of them — the per-user AI budget §10 cannot enforce, and what streams over
-  WebSocket — are Rich's product calls at that point. **Tasks 6 and 7 ran on 2026-09-14, and he settled
-  their two §7 rows the same day — applied:** an unclassified catalogue entry refuses only the
-  model that names it; §7 records how the catalogue is read; and an omitted project AI budget
-  is defaulted to the project's quota, with an explicit `0` still refused. Two of those change
-  committed code — the *SPEC DECISIONS* block at the top of P4b's Task 9.
-- **P4b's last three spec actions — DECIDED AND APPLIED 2026-09-15, Rich's calls, in one spec
-  commit.** Put to him as three questions once Task 14 had run; he chose the proposal each time.
-  1. **§10's per-user AI budget is validated, not enforced, in Phase 1.** LiteLLM 1.98.0 cannot apply
-     one without a `/customer/new` for an identifier only the app holds, so enforcement is the
-     Phase 4 reconciler's; the project budget and the namespaced end-user identifier bind now.
-     *Rejected:* refusing `per_user_monthly_usd` until it can be enforced; building a spend-log
-     poller before P4b's acceptance.
-  2. **§14 describes the event stream as built** — build logs, instance state transitions,
-     incidents, approval decisions and every other audit Event, §9's SP registrations and §10's
-     key rotations among them — and **live tailing of an application's own output is not v1**.
-     *Rejected:* streaming application output now; narrowing the stream to D23.2's four kinds.
-  3. **§10's agent-key row binds from Phase 3**, when sandboxes exist. *Rejected:* leaving the row
-     as it was; building a TTL with no caller.
-
-  None changes committed code or Task 16. **Do not re-raise.**
-- **Zero-downtime redeploys — DECIDED 2026-09-14, Rich's call: required for the whole app, in a
-  plan of its own, later.** Measured the same day: every redeploy 502s the whole app while the new
-  container starts, because the driver moves the edge route before the container answers and
-  `applyRoute` deletes the route before it re-adds it; retiring an old instance through
-  `destroyInstance` would remove the live route; and LiteLLM checks a key only when a request
-  starts. **Placed the same day, also his call: straight after P4b and before P5, as P4c** — the roadmap's
-  plan table carries its brief. Still his to approve: the §11 wording it needs (a spec action is
-  recorded in P4b). Meanwhile P4b's Task 9 commits a new app key only after the
-  instance is healthy — also his call, the same day — so no live AI call fails because a deploy
-  revoked its key. **Built in sitting 5.** Two things it leaves for P4c are named in P4b's *What this
-  plan does not build*: an app that stops declaring models keeps its route to the gateway and its
-  last key, and a key whose discard or commit fails stays live until removed by hand.
-- **The Manifest IdP's SimpleSAMLphp version — DECIDED 2026-09-16, Rich's call: DO NOT PIN IT.
-  Keep it current.** `infra/idp/Dockerfile` installs `simplesamlphp/simplesamlphp:^2.0`, a range,
-  and `make seed` rebuilds that image from nothing, so every seed can move the IdP every CWL login
-  runs through; P4c sitting 7's seed moved it to **v2.5.3.1** (P4c finding 62, §4). The control is
-  §16's identity-path tier and the demos, which is what S2 built that tier for — every one passed
-  on v2.5.3.1. **What follows from it:** a sitting that runs `make seed` records the IdP version it
-  left running (the command is in the Dockerfile's comment), so the next move is traceable. The
-  app-side rule is unchanged: blueprint dependencies stay exact (C6, D30). *Rejected:* pinning the
-  proved version; pinning by the resolved composer lock. **Do not re-raise.**
-- **SimpleSAMLphp's session store connects as the superuser `manifest`.** *Found
-  2026-09-14, while wording the §21 change.* §9 says that store is a separate subsystem
-  "with its own credentials"; `infra/idp/config/config.php` gives it `manifest`, the
-  same superuser the control plane writes SP rows with. The metadata source is
-  correctly `ssp_ro`. Not fixed, and not a spec action — the spec is right and the
-  implementation is not.
-- **The hung Docker credential helper — CLEARED 2026-09-14, by Rich restarting Docker Desktop.**
-  `docker-credential-desktop get` had hung and stopped `make seed` at step 2 (§4). Measured after
-  the restart: the helper answered in under a second, a Docker Hub metadata lookup in 1 s, all four
-  pre-existing containers were present, Caddy's host ports were published, and `make doctor` and
-  `make verify` were 18/0 and 47/0. `make seed` itself was not re-run, because it rebuilds the
-  platform images. **Do not re-raise.**
-- **What Task 12's entropy rule may redact — SETTLED 2026-09-14, Rich's call: the pre-flight's
-  recommendation, refined by measurement.** A digest or integrity value is one token and is never
-  redacted; `/`, `.`, `:` and an interior `=` end a token; a candidate needs 24+ characters, upper
-  case, lower case and a digit, is neither hex nor a UUID, and has entropy above 3.0. Measured: it
-  redacts 88–100% of random base64, base64url and base62 secrets and no hex — the platform's own
-  secrets are hex and exact-matched from each app's secret set — and alters nothing in real build
-  logs, ORIENTATION, RUNBOOK or the spec. The rule is at the top of P4b's Task 12, and sitting 7
-  built it exactly — except one of the five patterns the decision left as printed, corrected on
-  measurement (P4b finding 130: a URL credential's password holds no `/`). **Do not
-  re-raise.**
-- **Where the service-binding wire lands — SETTLED 2026-09-06, Rich's call: P3 Task
-  15.** `deployRelease` now derives a `ServiceBinding` per entry in
-  `resolved.services`, calls `ensureService`, and passes the handles through with
-  the endpoint injected under the name the catalogue gives it. Platform bindings are
-  applied **after** the app's own `env`, so a declared `MONGODB_URI` cannot shadow
-  one — an app is untrusted input (§12), and that has its own test. §8's injection
-  contract, with its general mapping and drift test, remains P4's; this replaced the
-  plumbing only, not the naming. **Do not re-raise.**
-- **C4's actual turnaround time** for UBC IAM registration and the PIA is
-  **unmeasured**, and §9 calls it the highest-risk dependency in the design. It has
-  weeks of latency and no software dependency, so it *could* start today —
-  **and deliberately is not.** *Decided 2026-09-05, Rich's call:* the external track
-  starts once the local proof of concept works end to end, because the goal is to
-  get this right rather than to get it started, and the conversation goes better
-  with a working demonstration behind it. **Do not re-raise this**; the trigger is
-  P4's proof app running. **THE TRIGGER FIRED ON 2026-09-15** — P4b's Task 16,
-  `make demo-ai`, green from a reset machine — and it was raised with Rich that day.
-  Starting the track is his call. See `docs/external-track.md`.
-- **Fix `passport-ubcshib` upstream, or leave it?** Not needed — `tlef-starter`
-  already bridges both attribute formats and C6 forbids a library change being a
-  prerequisite. Its real gaps are the unreachable MACE entry and missing OID entries
-  for `uid` and `eduPersonPrincipalName`. If fixed, ship as **0.2.0** so the six live
-  apps on `^0.1.6` adopt deliberately.
-- **Does LiteLLM's embedding `encoding_format` bug affect a commercial provider, or
-  only the Ollama path?** Unmeasured — only Ollama was reachable offline. Cheap to
-  settle the first time anyone has a provider key.
-- **Should the blueprint base image move from `node:22-alpine` to 24?** Open, and
-  **now priced in exposure as well as effort** (measured 2026-09-06 with Grype
-  v0.118.0 against a database built that morning):
+- **Should app containers run with an init (`Init: true`)? — RAISED 2026-09-16 (P5a sitting 2).** An app's PID 1 is its
+  own `node`, which never reaps the orphans it adopts, so a process an app starts that leaves children behind turns them
+  into zombies holding pids against §12's `PidsLimit` (64 in the S6 fixture) for the container's life — measured with
+  twenty orphaned `sleep`s in state `Z`, and with S6 probe 11 leaving `docker exec … node` unable to start. It changes
+  every app's process tree, which is why it is asked rather than done.
+- **P5b's two spec questions, when P5b is written** — the P5 brief's §7 items 5 and 6: D24's entity fields, and the
+  stateless-session divergence from §20 (a session carries the role it was issued with).
+- **Should the blueprint base image move from `node:22-alpine` to 24?** Priced in exposure as well as effort (Grype
+  v0.118.0, 2026-09-06):
 
   | | apk Critical / High | npm Critical / High |
   |---|---|---|
   | `node:22-alpine` *(what the blueprint pins)* | 4 / 14 | **1 / 10** |
   | `node:24-alpine` | 4 / 14 | **0 / 4** |
 
-  The npm findings are npm's **own bundled dependency tree** inside the image
-  (`/usr/local/lib/node_modules/npm/`), not anything an app chose. Moving to 24
-  removes the Critical from that half. The mechanical cost is what P1's execution
-  already measured: **one line in `infra/images.txt` plus a `make seed`**. **Still
-  Rich's call** — it changes what faculty apps run in, which is a compatibility
-  decision, not a mechanical one.
+  The npm findings are npm's own bundled tree inside the image, not anything an app chose; moving removes the
+  Critical. Mechanically one line in `infra/images.txt` plus a `make seed` — but it changes what faculty apps run in,
+  which is a compatibility decision.
+- **Should Phase 1 ship an apk mirror alongside Verdaccio? — RAISED 2026-09-06.** The 4 Critical and 14 High apk
+  findings are `libcrypto3`/`libssl3` at `3.5.7-r0`, fixed in `3.5.8-r0`; no newer base image clears them, and
+  `RUN apk upgrade` cannot work from a builder with no route off its `--internal` network. An apk mirror is the only
+  mechanism that would let a build clear them offline. The scan gate does not block on base-image findings, but
+  "ship on day one with four Criticals in the base image" is a decision rather than an accident.
+- **SimpleSAMLphp's session store connects as the superuser `manifest`** (found 2026-09-14). §9 says that store has
+  "its own credentials"; `infra/idp/config/config.php` gives it the superuser the control plane writes SP rows with.
+  The spec is right and the implementation is not; not fixed.
+- **The long-term fix for `passport-ubcshib` is UBC's.** `@node-saml/passport-saml@5.1.0` audits clean, and moving to
+  it is the "strictly safer for every consumer" change C6 permits. It does not block Manifest — but somebody should
+  tell the owners of the six UBC applications that depend on a library with a critical signature-verification
+  advisory. If it is fixed upstream, ship it as **0.2.0** so apps on `^0.1.6` adopt deliberately; its other gaps are
+  the unreachable MACE entry and missing OID entries for `uid` and `eduPersonPrincipalName`.
+- **Does LiteLLM's embedding `encoding_format` bug affect a commercial provider, or only the Ollama path?** Unmeasured
+  — only Ollama was reachable offline. Cheap to settle the first time anyone has a provider key.
+- **Starting the UBC external track (C4)** — the trigger fired 2026-09-15; see §2 and `docs/external-track.md`.
 
-- **Should Phase 1 ship an apk mirror alongside Verdaccio?** *Raised 2026-09-06, not
-  decided, and nothing in P3–P5 proposes one.* The 4 Critical and 14 High `apk`
-  findings above are `libcrypto3`/`libssl3` at `3.5.7-r0`; the fix is `3.5.8-r0`,
-  published 2026-08-26. **No newer base image clears them** — the `alpine:3.22` and
-  `node:22-alpine` tags Docker Hub serves today have moved digest since
-  `infra/images.lock` was written and scan *identically*. The only other route is
-  `RUN apk upgrade` in the blueprint Dockerfile, and that cannot work: the builder
-  sits on an `--internal` network with no route off it (a §12 control with its own
-  negative test), and Verdaccio mirrors npm, not apk. So **an apk mirror is the only
-  mechanism that would let a build clear them offline.** P3's scan gate does not
-  block on them — they are the base image's, and §20 already makes the fleet-wide
-  rebuild their remedy in Phase 4+ — but they are recorded on every Release, and
-  "ship on day one with four Criticals in the base image" is a decision rather than
-  an accident.
+### Decided — do not re-raise
 
-**Closed 2026-09-09, Rich's call: `make doctor` now asserts the host tools the
-control plane spawns.** It was raised the same day and settled immediately —
-`make doctor` is **17 checks** from here on. The check found a **third and a fourth**
-undeclared dependency beyond the `git` and `openssl` that prompted it: `tar`, which
-`build/context.ts` unpacks every source export with, and the **`docker buildx` CLI
-plugin at `~/.docker/cli-plugins`**, which `runtime/docker/builder.ts` symlinks into a
-throwaway `DOCKER_CONFIG` — buildx installed anywhere else passes `docker buildx
-version` and still fails every build. It **runs** each tool with the control plane's own
-invocation rather than looking on `PATH`, because presence was never the failure that
-costs anything here: macOS ships LibreSSL, Homebrew puts OpenSSL ahead of it, and
-`-addext` — which `mintSpKeypair` depends on — is the flag that differs.
-
-**Closed 2026-09-07: P3's six spec actions are all applied**, with Rich's approval,
-in one commit (`53ecb1d`) so they are one `git revert` away. Two consistency edits went
-with them — §11's `isolationLevel` sentence and §21's divergence 6 both still said S6
-was yet to run. The roadmap's *Spec actions raised by P3* section is the record.
-
-**Closed recently:** the §11/§23 hostname disagreement — settled 2026-08-31 in §23's
-favour and both spec edits applied. The environment kind lives in the **zone**, never
-as a suffix on the label, because those suffixes are themselves legal slugs and
-`{slug}-staging` is squattable across tenants. §11's row now points at §23.
-
-**Closed 2026-09-05, by executing P1.** Two things that had been open assumptions:
-the **offline** half of C1 (now demonstrated — `make up`, doctor and verify all
-green with Wi-Fi off), and whether `make host-setup`'s three privileged steps work
-as one bundled command (they do, first time). What remains untested is the
-**second machine**; see `RUNBOOK.md`'s *Known gaps*.
-
-**Closed recently:** who re-adds the `127.0.0.2` alias after a reboot. P1 decides it:
-`make up` does, with `sudo`, guarded so it prompts only when the alias is missing. A
-launchd daemon was rejected because it leaves a root-owned service `make reset` would
-not remove. **Re-adding the alias is not the whole recovery** — see §4, measured
-2026-09-14.
+- **`egress.allow` may not name a platform surface** (2026-09-16) — §12 applied; enforcing it is the roadmap's tracked hardening item, after P5a. Only the implementation is open.
+- **P5a's R6–R9** (2026-09-16) — builds answer `202`; `openapi-typescript` + `openapi-fetch`; twelve sittings; spec actions applied first. P5a's *Decisions Rich made*.
+- **P5's five** (2026-09-16) — starters; P5a/P5b/P5c; one console origin through the edge with §23's reserved labels and a slug check; a `/v1` prefix; no acceptance on a second machine. The P5 brief's §5; spec `1d88846`, `ecf5f29`, `5065c13`.
+- **§12's scan gate blocks only on a Critical or High with a published fix** (2026-09-08) — §12, `build/scan.ts`.
+- **P4a's and P4b's spec actions** (2026-09-14 and 2026-09-15), among them §10's per-user AI budget validated not enforced in Phase 1, §14's stream as built with no app-output tailing, and §10's agent-key row from Phase 3 — the roadmap and each plan's *Spec actions*.
+- **Zero-downtime redeploys required, as P4c, before P5** (2026-09-14) — executed; P4c's *Decisions Rich made*.
+- **A sign-in under way when a route moves may fail once** — tolerated (P4c).
+- **The Manifest IdP's SimpleSAMLphp is kept current, not pinned** (2026-09-16) — a sitting that runs `make seed` records the version it left running; P4c finding 62.
+- **Task 12's entropy redaction rule** (2026-09-14) — P4b Task 12.
+- **Where the service-binding wire lands** (2026-09-06) — P3 Task 15; platform bindings apply after the app's own `env`.
+- **The external track starts once the local proof works end to end** (2026-09-05) — that trigger has fired; starting it is the open item above.
+- **`make doctor` asserts the host tools the control plane spawns** (2026-09-09); **P3's six spec actions** (2026-09-07, `53ecb1d`); **the §11/§23 hostname rule — the environment lives in the zone** (2026-08-31); **`make up` re-adds the `127.0.0.2` alias** (P1); **the hung Docker credential helper** (2026-09-14, cleared by restarting Docker Desktop).
 
 ---
 
