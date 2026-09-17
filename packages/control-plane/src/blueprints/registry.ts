@@ -109,8 +109,17 @@ export async function loadBlueprints(root: string): Promise<BlueprintRegistry> {
   for (const entry of entries) {
     if (!entry.isDirectory()) continue
     const dir = join(root, entry.name)
-    const text = await readFile(join(dir, 'blueprint.yaml'), 'utf8')
-    const descriptor = descriptorSchema.parse(parseYaml(text))
+    const file = join(dir, 'blueprint.yaml')
+    const described = descriptorSchema.safeParse(parseYaml(await readFile(file, 'utf8')))
+    if (!described.success) {
+      // Naming the FILE: a bare ZodError names a field and not which blueprint's (P5a
+      // sitting 7), and every descriptor has the same fields.
+      throw new BlueprintLoadError(
+        'BLUEPRINT_DESCRIPTOR_INVALID',
+        `${file} is not a valid blueprint descriptor: ${described.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`,
+      )
+    }
+    const descriptor = described.data
     const ref = `${descriptor.blueprint}@${descriptor.major_version}`
     const skeleton = await readTextTree(
       join(dir, 'skeleton'),

@@ -13,6 +13,7 @@ export class BlueprintLoadError extends Error {
       | 'BLUEPRINT_TREE_SYMLINK'
       | 'BLUEPRINT_TREE_NOT_TEXT'
       | 'BLUEPRINT_TREE_TOO_LARGE'
+      | 'BLUEPRINT_DESCRIPTOR_INVALID'
       | 'BLUEPRINT_STARTER_PATH'
       | 'BLUEPRINT_STARTER_INVALID',
     message: string,

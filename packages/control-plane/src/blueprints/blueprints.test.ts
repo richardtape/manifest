@@ -485,6 +485,23 @@ describe('starters and the knowledge pack, read at load (§25, D25 — P5a Task 
     })
   })
 
+  it('refuses a descriptor that does not parse, naming its file and the field', async () => {
+    // The boot's refusal was a bare ZodError naming `starters.0.summary` and no file —
+    // with two blueprints, a guess (P5a sitting 7, control (d)).
+    const root = await blueprintsCopy()
+    await edit(
+      join(root, 'node-ts-mongo/blueprint.yaml'),
+      'summary: CWL sign-in, a private note, and a question answered from your notes',
+      'summary: ""',
+    )
+    await expect(loadBlueprints(root)).rejects.toMatchObject({
+      code: 'BLUEPRINT_DESCRIPTOR_INVALID',
+      message: expect.stringMatching(
+        /node-ts-mongo\/blueprint\.yaml.*starters\.0\.summary/,
+      ),
+    })
+  })
+
   it('refuses a starter whose path is not ./starters/<its name>/', async () => {
     const root = await blueprintsCopy()
     await edit(
