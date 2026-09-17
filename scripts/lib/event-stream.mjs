@@ -1,4 +1,4 @@
-// WS /projects/:projectId/events, for a shell script — `curl` cannot speak WebSocket.
+// WS /v1/projects/:projectId/events, for a shell script — `curl` cannot speak WebSocket.
 //
 //   node scripts/lib/event-stream.mjs watch  <api> <projectId> <cookie-jar> <frames.ndjson>
 //   node scripts/lib/event-stream.mjs expect <frames.ndjson> <projectId> <buildId> <build-log.json> <type>…
@@ -38,7 +38,7 @@ function sessionFrom(jarPath) {
 function watch([api, projectId, jarPath, outPath]) {
   if (!outPath)
     die('usage: event-stream.mjs watch <api> <projectId> <cookie-jar> <frames.ndjson>')
-  const url = `${api.replace(/^http/, 'ws')}/projects/${projectId}/events`
+  const url = `${api.replace(/^http/, 'ws')}/v1/projects/${projectId}/events`
   const socket = new WebSocket(url, {
     headers: { cookie: `${SESSION_COOKIE}=${sessionFrom(jarPath)}` },
   })

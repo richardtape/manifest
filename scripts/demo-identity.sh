@@ -27,7 +27,6 @@ cd "$ROOT"
 # shellcheck source=lib/proof-app.sh
 . scripts/lib/proof-app.sh
 
-API="${MANIFEST_API:-http://127.0.0.1:7100}"
 SLUG="${DEMO_SLUG:-proof-app}"
 CA="$ROOT/$CA_FILE"
 APP_URL="https://$SLUG.staging.$ZONE"
@@ -57,7 +56,7 @@ say()  { printf '\n\033[1m%s\033[0m\n' "$*"; }
 fail() { printf '\n\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 
 say "0. Is the control plane up?"
-curl -sS -m 5 -o /dev/null "$API/auth/me" \
+curl -sS -m 5 -o /dev/null "$API/v1/me" \
   || fail "no control plane at $API. README's 'Running the control plane' has the
 exact commands — and check the boot line says {\"driver\":\"docker\"}, because
 every claim this demo makes is meaningless against the fake one."
@@ -66,7 +65,7 @@ echo "  $API answered"
 say "1. Log in to Manifest itself with CWL (§9: Manifest is its own SP)"
 idp_login "$CP_JAR" "$IDP_CP_JAR" "$API/auth/login" instructor instructor \
   "$API/auth/saml/callback" "$CA"
-WHO="$(api GET /auth/me | field puid)"
+WHO="$(api GET /v1/me | field puid)"
 [ "$WHO" = ins000001 ] || fail "logged in to the control plane as '$WHO', expected ins000001"
 echo "  session for $WHO"
 

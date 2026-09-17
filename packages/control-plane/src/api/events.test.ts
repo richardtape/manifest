@@ -38,7 +38,7 @@ async function streamServer() {
   const owner = await loginAs(deps, 'bio_prof')
   const created = await app.inject({
     method: 'POST',
-    url: '/projects',
+    url: '/v1/projects',
     payload: { slug: `chem-${randomUUID().slice(0, 6)}`, blueprint: 'fixture-node@1' },
     cookies: owner,
     headers: { 'idempotency-key': randomUUID() },
@@ -46,7 +46,7 @@ async function streamServer() {
   const projectId: string = created.json().id
   await app.listen({ port: 0, host: '127.0.0.1' })
   const { port } = app.server.address() as AddressInfo
-  const urlFor = (id: string) => `ws://127.0.0.1:${port}/projects/${id}/events`
+  const urlFor = (id: string) => `ws://127.0.0.1:${port}/v1/projects/${id}/events`
   const connect = async (puid: TestUserPuid | 'anonymous', id = projectId) => {
     const headers =
       puid === 'anonymous'
@@ -122,14 +122,14 @@ const liveFrame = (
 const isReady = (f: StreamFrame) =>
   f.kind === 'control' && f.type === 'manifest.stream.ready'
 
-describe('WS /projects/:projectId/events (D23.2)', () => {
+describe('WS /v1/projects/:projectId/events (D23.2)', () => {
   it('answers a plain GET from an authorized actor with 426 and the Upgrade header', async () => {
     // What makes the stream coverable by §16's authorization contract suite, which can
     // only speak HTTP. RFC 9110 requires the Upgrade header on a 426.
     const { app, owner, projectId } = await streamServer()
     const res = await app.inject({
       method: 'GET',
-      url: `/projects/${projectId}/events`,
+      url: `/v1/projects/${projectId}/events`,
       cookies: owner,
     })
     expect(res.statusCode).toBe(426)
@@ -162,7 +162,7 @@ describe('WS /projects/:projectId/events (D23.2)', () => {
     await loginAs(deps, 'bio_student')
     const added = await app.inject({
       method: 'POST',
-      url: `/projects/${projectId}/members`,
+      url: `/v1/projects/${projectId}/members`,
       payload: { puid: 'bio_student', role: 'collaborator' },
       cookies: owner,
       headers: { 'idempotency-key': randomUUID() },
@@ -243,7 +243,7 @@ describe('WS /projects/:projectId/events (D23.2)', () => {
     const { app, deps, owner, projectId, connect } = await streamServer()
     const other = await app.inject({
       method: 'POST',
-      url: '/projects',
+      url: '/v1/projects',
       payload: { slug: `other-${randomUUID().slice(0, 6)}`, blueprint: 'fixture-node@1' },
       cookies: owner,
       headers: { 'idempotency-key': randomUUID() },

@@ -31,7 +31,7 @@ export interface SourceDriver {
    * Without it a caller that did not create the repository has no way to name it,
    * and the only alternative is to build a `file://` URL by hand — which is
    * exactly the driver-specific knowledge D5 exists to keep out of the control
-   * plane, and which `POST /projects/:id/builds` was already doing.
+   * plane, and which `POST /v1/projects/:id/builds` was already doing.
    *
    * Synchronous and total: it derives a name, it does not check that the
    * repository exists. Every other method already fails honestly if it does not.

@@ -59,7 +59,7 @@ export async function registerDeliveryRoutes(
   app: FastifyInstance,
   deps: ServerDeps,
 ): Promise<void> {
-  app.post('/projects/:projectId/builds', async (request, reply) => {
+  app.post('/v1/projects/:projectId/builds', async (request, reply) => {
     const actor = requireActor(request)
     const { projectId } = request.params as { projectId: string }
     await assertCapability(deps.db, actor, projectId, 'build:create')
@@ -83,7 +83,7 @@ export async function registerDeliveryRoutes(
       throw new BadRequestError(
         'SPEC_INVALID',
         'the latest manifest.yaml is not valid, so there is nothing to build',
-        'GET /projects/:id/spec lists the errors.',
+        'GET /v1/projects/:id/spec lists the errors.',
       )
     }
 
@@ -129,7 +129,7 @@ export async function registerDeliveryRoutes(
     return reply.status(status).send(body)
   })
 
-  app.get('/builds/:buildId', async (request) => {
+  app.get('/v1/builds/:buildId', async (request) => {
     const actor = requireActor(request)
     const { buildId } = request.params as { buildId: string }
     const build = await getBuild(deps.db, buildId)
@@ -146,9 +146,9 @@ export async function registerDeliveryRoutes(
    *
    * AFTER THE FACT, not a live tail (pre-flight 111): `POST …/builds` awaits the
    * whole build and only then returns the id this route needs. Live delivery is
-   * `WS /projects/:projectId/events` (Task 14), published from `onLog` (Task 15).
+   * `WS /v1/projects/:projectId/events` (Task 14), published from `onLog` (Task 15).
    */
-  app.get('/builds/:buildId/logs', async (request) => {
+  app.get('/v1/builds/:buildId/logs', async (request) => {
     const actor = requireActor(request)
     const { buildId } = request.params as { buildId: string }
     const build = await getBuild(deps.db, buildId)
@@ -171,7 +171,7 @@ export async function registerDeliveryRoutes(
     return { buildId, lines }
   })
 
-  app.post('/projects/:projectId/releases', async (request, reply) => {
+  app.post('/v1/projects/:projectId/releases', async (request, reply) => {
     const actor = requireActor(request)
     const { projectId } = request.params as { projectId: string }
     await assertCapability(deps.db, actor, projectId, 'release:create')
@@ -228,7 +228,7 @@ export async function registerDeliveryRoutes(
     return reply.status(status).send(body)
   })
 
-  app.post('/environments/:environmentId/deploy', async (request, reply) => {
+  app.post('/v1/environments/:environmentId/deploy', async (request, reply) => {
     const actor = requireActor(request)
     const { environmentId } = request.params as { environmentId: string }
 
@@ -281,7 +281,7 @@ export async function registerDeliveryRoutes(
     return reply.status(status).send(body)
   })
 
-  app.get('/environments/:environmentId', async (request) => {
+  app.get('/v1/environments/:environmentId', async (request) => {
     const actor = requireActor(request)
     const { environmentId } = request.params as { environmentId: string }
 
@@ -324,7 +324,7 @@ export async function registerDeliveryRoutes(
    * member would hand it. Authorized like the environment itself: the project comes from
    * the environment ROW, never from the request.
    */
-  app.get('/environments/:environmentId/incidents', async (request) => {
+  app.get('/v1/environments/:environmentId/incidents', async (request) => {
     const actor = requireActor(request)
     const { environmentId } = request.params as { environmentId: string }
 

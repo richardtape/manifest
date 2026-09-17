@@ -10,7 +10,7 @@
 # `infra/lib/idp-login.sh`.
 #
 # The caller sets, before calling anything:
-#   ROOT API CA CP_JAR SLUG APP_URL
+#   ROOT CA CP_JAR SLUG APP_URL      (API comes from `scripts/lib/api.sh`, sourced below)
 # and has sourced `infra/lib/common.sh`, and defined `say` and `fail`.
 # These functions set, for the caller:
 #   PROJECT_ID  WORK  COMMIT  BUILD_ID  RELEASE_ID  ENV_ID  STATE
@@ -19,27 +19,10 @@
 # macOS ships bash 3.2 and a BSD userland: no associative arrays, no `mapfile`,
 # no `xargs -r`, no `readlink -f`.
 
-key() { uuidgen | tr 'A-Z' 'a-z'; }
-
-# A control-plane call as the person whose session is in $CP_JAR.
-api() {
-  local method="$1" path="$2" body="${3:-}"
-  local args=(-sS -b "$CP_JAR" -c "$CP_JAR" -X "$method" -H 'content-type: application/json')
-  if [ "$method" != GET ]; then args+=(-H "idempotency-key: $(key)"); fi
-  if [ -n "$body" ]; then args+=(-d "$body"); fi
-  curl "${args[@]}" "$API$path"
-}
-
-# jq is not guaranteed on a UBC developer's Mac and C1 forbids a new prerequisite,
-# so JSON is read with node, which the toolchain already requires.
-field() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);const v=process.argv[1].split(".").reduce((a,k)=>a?.[k],j);if(v===undefined){console.error(s);process.exit(1)}console.log(typeof v==="object"?JSON.stringify(v):v)})' "$1"; }
-
-json() { node -e 'console.log(JSON.stringify(process.argv[1]))' "$1"; }
-
-environment() {
-  api GET "/projects/$PROJECT_ID?expand=environments" \
-    | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);const e=(j.environments??[]).find(x=>x.kind===process.argv[1]);if(!e){console.error(s);process.exit(1)}console.log(e.id)})' "$1"
-}
+# key, api, field, json and environment: THE one copy, shared with `scripts/demo.sh`
+# (P5a Task 2). It sets API.
+# shellcheck source=./api.sh
+. "$ROOT/scripts/lib/api.sh"
 
 # An authenticated call to the DEPLOYED APP, as the identity whose jar is $1.
 app() {
@@ -53,10 +36,10 @@ app() {
 # both demos are re-runnable by design.
 proof_app_project() {
   local project
-  project="$(api POST /projects "{\"slug\":\"$SLUG\",\"blueprint\":\"node-ts-mongo@1\"}")"
+  project="$(api POST /v1/projects "{\"slug\":\"$SLUG\",\"blueprint\":\"node-ts-mongo@1\"}")"
   PROJECT_ID="$(printf '%s' "$project" | field id 2>/dev/null || true)"
   if [ -z "$PROJECT_ID" ]; then
-    PROJECT_ID="$(api GET /projects | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const p=JSON.parse(s).find(x=>x.slug===process.argv[1]);if(!p){console.error(s);process.exit(1)}console.log(p.id)})' "$SLUG")"
+    PROJECT_ID="$(api GET /v1/projects | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const p=JSON.parse(s).find(x=>x.slug===process.argv[1]);if(!p){console.error(s);process.exit(1)}console.log(p.id)})' "$SLUG")"
     echo "  reusing project $PROJECT_ID"
   else
     echo "  project $PROJECT_ID"
@@ -94,7 +77,7 @@ proof_app_push() {
 # Validates manifest.yaml at $COMMIT (§22 step 3).
 proof_app_validate() {
   local spec
-  spec="$(api POST "/projects/$PROJECT_ID/spec" "{\"commitSha\":\"$COMMIT\"}")"
+  spec="$(api POST "/v1/projects/$PROJECT_ID/spec" "{\"commitSha\":\"$COMMIT\"}")"
   [ "$(printf '%s' "$spec" | field valid)" = true ] \
     || fail "manifest.yaml is not valid: $spec"
   echo "  valid; sensitive diff: $(printf '%s' "$spec" | field sensitiveDiff)"
@@ -105,24 +88,24 @@ proof_app_validate() {
 #   $1 the release summary
 proof_app_deploy() {
   local build deploy health
-  build="$(api POST "/projects/$PROJECT_ID/builds" "{\"commitSha\":\"$COMMIT\"}")"
+  build="$(api POST "/v1/projects/$PROJECT_ID/builds" "{\"commitSha\":\"$COMMIT\"}")"
   BUILD_ID="$(printf '%s' "$build" | field id)"
   [ "$(printf '%s' "$build" | field status)" = succeeded ] \
     || fail "build $BUILD_ID did not succeed: $build"
   echo "  built $(printf '%s' "$build" | field imageDigest)"
 
-  RELEASE_ID="$(api POST "/projects/$PROJECT_ID/releases" \
+  RELEASE_ID="$(api POST "/v1/projects/$PROJECT_ID/releases" \
     "{\"buildId\":\"$BUILD_ID\",\"summary\":\"$1\"}" | field id)"
   echo "  release $RELEASE_ID"
 
   ENV_ID="$(environment staging)"
-  deploy="$(api POST "/environments/$ENV_ID/deploy" "{\"releaseId\":\"$RELEASE_ID\"}")"
+  deploy="$(api POST "/v1/environments/$ENV_ID/deploy" "{\"releaseId\":\"$RELEASE_ID\"}")"
   STATE="$(printf '%s' "$deploy" | field state)" || fail "deploy failed: $deploy"
   # HEALTHY, not merely a state (P4b Task 13): a deploy that never becomes ready is a
   # 200 whose state is `failed`, with an Incident. See the same check in demo.sh.
   [ "$STATE" = healthy ] || fail "the deploy did not become healthy (state: $STATE).
 §14's Incident has the exit, the app's last 200 log lines and a repair prompt:
-GET /environments/$ENV_ID/incidents, signed in as the project's owner."
+GET /v1/environments/$ENV_ID/incidents, signed in as the project's owner."
   echo "  instance $STATE at $APP_URL"
 
   # A health check that passes proves the container is up and reaches Mongo; it

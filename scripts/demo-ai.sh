@@ -35,7 +35,6 @@ cd "$ROOT"
 # shellcheck source=lib/proof-app.sh
 . scripts/lib/proof-app.sh
 
-API="${MANIFEST_API:-http://127.0.0.1:7100}"
 SLUG="${DEMO_SLUG:-proof-app}"
 CA="$ROOT/$CA_FILE"
 APP_URL="https://$SLUG.staging.$ZONE"
@@ -119,7 +118,7 @@ The context query must filter on the asker's own identifier, exactly as GET
 }
 
 say "0. Is the control plane up?"
-curl -sS -m 5 -o /dev/null "$API/auth/me" \
+curl -sS -m 5 -o /dev/null "$API/v1/me" \
   || fail "no control plane at $API. README's 'Running the control plane' has the
 exact commands — and check the boot line says {\"driver\":\"docker\"}, because
 every claim this demo makes is meaningless against the fake one."
@@ -128,7 +127,7 @@ echo "  $API answered"
 say "1. Log in to Manifest itself with CWL (§9: Manifest is its own SP)"
 idp_login "$CP_JAR" "$IDP_CP_JAR" "$API/auth/login" instructor instructor \
   "$API/auth/saml/callback" "$CA"
-WHO="$(api GET /auth/me | field puid)"
+WHO="$(api GET /v1/me | field puid)"
 [ "$WHO" = ins000001 ] || fail "logged in to the control plane as '$WHO', expected ins000001"
 echo "  session for $WHO"
 
@@ -147,7 +146,7 @@ $(cat "$FRAMES")"
   sleep 0.5
 done
 grep -qF '"manifest.stream.ready"' "$FRAMES" \
-  || fail "WS /projects/$PROJECT_ID/events sent no ready frame within 20 s"
+  || fail "WS /v1/projects/$PROJECT_ID/events sent no ready frame within 20 s"
 REPLAYED="$(( $(wc -l < "$FRAMES") - 1 ))"
 echo "  subscribed; replayed $REPLAYED earlier events"
 
@@ -157,7 +156,7 @@ proof_app_validate
 proof_app_deploy "make demo-ai"
 
 say "5. The stream carried this deploy, in order"
-api GET "/builds/$BUILD_ID/logs" > "$BUILD_LOG"
+api GET "/v1/builds/$BUILD_ID/logs" > "$BUILD_LOG"
 # The deploy's last event is published before its response returns, but a frame is
 # still in flight when curl exits. Wait for it rather than for a fixed time.
 for _ in $(seq 1 20); do

@@ -176,7 +176,7 @@ built. **Read it** — every acceptance in P3 is meaningless if it says `fake`:
 Verified end to end on 2026-09-05:
 
 ```bash
-curl -s http://127.0.0.1:7100/auth/me
+curl -s http://127.0.0.1:7100/v1/me
 # {"error":{"code":"UNAUTHENTICATED","message":"a session is required","hint":"Log in first."}}
 
 # §9: Manifest is its own SP, so logging in is a real CWL round trip against the
@@ -188,7 +188,7 @@ curl -s -o /dev/null -w '%{redirect_url}\n' http://127.0.0.1:7100/auth/login
 
 curl -s -b /tmp/jar -X POST -H 'content-type: application/json' \
   -H "idempotency-key: $(uuidgen)" \
-  -d '{"slug":"boot-check","blueprint":"fixture-node@1"}' http://127.0.0.1:7100/projects
+  -d '{"slug":"boot-check","blueprint":"fixture-node@1"}' http://127.0.0.1:7100/v1/projects
 ```
 
 **`node src/index.ts` does not work**, though Node 24 strips types natively: the

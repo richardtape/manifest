@@ -78,16 +78,17 @@ export async function registerAuthRoutes(
       // 302, not 200 with a body: the browser arrives here from the IdP's
       // auto-submitting form, so whatever this returns is what the person sees.
       //
-      // To `/auth/me` and NOT to `/`, which is what this said first and is a
+      // To `/v1/me` (it was `/auth/me` until P5a Task 2 put every resource under
+      // `/v1`, D23.8) and NOT to `/`, which is what this said first and is a
       // route the control plane does not serve — so a successful login ended on
       // a 404 that reads exactly like a failed one. There is no console yet
       // (D22's is P5's), and until there is, the honest place to land is the one
       // that says who you are. P5 changes this line, not the flow.
-      return reply.redirect('/auth/me', 302)
+      return reply.redirect('/v1/me', 302)
     },
   )
 
-  app.get('/auth/me', async (request) => {
+  app.get('/v1/me', async (request) => {
     const actor = requireActor(request)
     return { id: actor.userId, puid: actor.puid, role: actor.platformRole }
   })

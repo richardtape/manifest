@@ -311,7 +311,7 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
     expect(callback.status, callback.body).toBe(302)
     // Where a browser actually lands. `/` was the first answer and is a route
     // this server does not have, so a successful login finished on a 404.
-    expect(callback.location).toBe('/auth/me')
+    expect(callback.location).toBe('/v1/me')
     appJar.take(callback)
     expect(appJar.get('manifest_session')).toBeTruthy()
 
@@ -320,7 +320,7 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
     // only the second one means the login worked. `ins000001` is the
     // `ubcEduCwlPuid` the IdP's own auth source holds for `instructor`, and
     // `member` is Manifest's — the assertion says eduPersonAffiliation=faculty.
-    const me = await request(`${ORIGIN}/auth/me`, {
+    const me = await request(`${ORIGIN}/v1/me`, {
       cookie: `manifest_session=${appJar.get('manifest_session')}`,
     })
     expect(me.status).toBe(200)

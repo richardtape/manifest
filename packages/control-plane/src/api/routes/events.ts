@@ -33,7 +33,7 @@ async function authorizeStream(
 }
 
 /**
- * `WS /projects/:projectId/events` — D23.2's one stream per project, never polling.
+ * `WS /v1/projects/:projectId/events` — D23.2's one stream per project, never polling.
  *
  * **AUTHORIZED BEFORE IT UPGRADES, in a route hook.** `@fastify/websocket` 11.3.0 sends
  * an upgrade through Fastify's router, so the route's hooks run before its handler calls
@@ -57,7 +57,7 @@ export async function registerEventRoutes(
 ): Promise<void> {
   app.route({
     method: 'GET',
-    url: '/projects/:projectId/events',
+    url: '/v1/projects/:projectId/events',
     preValidation: async (request) => {
       await authorizeStream(deps, request)
     },
@@ -70,7 +70,7 @@ export async function registerEventRoutes(
           error: {
             code: 'EVENTS_UPGRADE_REQUIRED',
             message: 'this endpoint is a WebSocket stream',
-            hint: 'Connect with a WebSocket client to ws(s)://<host>/projects/<projectId>/events. D23.2: one stream per project, never polling.',
+            hint: 'Connect with a WebSocket client to wss://<host>/v1/projects/<projectId>/events. D23.2: one stream per project, never polling.',
           },
         }),
     wsHandler: async (socket, request) => {

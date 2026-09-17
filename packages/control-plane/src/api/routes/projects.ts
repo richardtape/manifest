@@ -96,7 +96,7 @@ export async function registerProjectRoutes(
   app: FastifyInstance,
   deps: ServerDeps,
 ): Promise<void> {
-  app.post('/projects', async (request, reply) => {
+  app.post('/v1/projects', async (request, reply) => {
     const actor = requireActor(request)
     const parsed = createBody.safeParse(request.body)
     if (!parsed.success) {
@@ -187,12 +187,12 @@ export async function registerProjectRoutes(
     return reply.status(status).send(body)
   })
 
-  app.get('/projects', async (request) => {
+  app.get('/v1/projects', async (request) => {
     const actor = requireActor(request)
     return listProjectsFor(deps.db, actor)
   })
 
-  app.get('/projects/:projectId', async (request) => {
+  app.get('/v1/projects/:projectId', async (request) => {
     const actor = requireActor(request)
     const { projectId } = request.params as { projectId: string }
     await assertCapability(deps.db, actor, projectId, 'project:read')
@@ -204,7 +204,7 @@ export async function registerProjectRoutes(
     return { ...project, environments: await listEnvironments(deps.db, projectId) }
   })
 
-  app.get('/projects/:projectId/spec', async (request) => {
+  app.get('/v1/projects/:projectId/spec', async (request) => {
     const actor = requireActor(request)
     const { projectId } = request.params as { projectId: string }
     await assertCapability(deps.db, actor, projectId, 'project:read')
@@ -241,7 +241,7 @@ export async function registerProjectRoutes(
    * a call site instead of a function that has never been called by anything but
    * its own test.
    */
-  app.post('/projects/:projectId/spec', async (request, reply) => {
+  app.post('/v1/projects/:projectId/spec', async (request, reply) => {
     const actor = requireActor(request)
     const { projectId } = request.params as { projectId: string }
     await assertCapability(deps.db, actor, projectId, 'project:write')
@@ -305,7 +305,7 @@ export async function registerProjectRoutes(
     return reply.status(status).send(body)
   })
 
-  app.post('/projects/:projectId/members', async (request, reply) => {
+  app.post('/v1/projects/:projectId/members', async (request, reply) => {
     const actor = requireActor(request)
     const { projectId } = request.params as { projectId: string }
     // A collaborator reaches this line and is refused here. §13: "same as owner

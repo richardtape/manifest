@@ -53,7 +53,7 @@ const run = promisify(execFile)
  * through `app.log.info` under `logger: false`.
  *
  * Verified to fail on demand 2026-09-06: putting `createFakeDriver()` back prints
- * `"driver":"fake"` and the control plane comes up and serves 401 on /auth/me
+ * `"driver":"fake"` and the control plane comes up and serves 401 on /v1/me
  * exactly as before — indistinguishable at every level above this file.
  */
 describeDocker('the boot entry point', () => {

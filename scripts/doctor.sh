@@ -163,10 +163,10 @@ manifest_own_ports() {
 # there was a control plane worth running.
 #
 # It is identified by ASKING IT, not by matching a process name: `node` on 7100 is
-# a guess, whereas the D23.7 error envelope on /auth/me is this application
+# a guess, whereas the D23.7 error envelope on /v1/me is this application
 # answering. A different service on that port stays foreign, which is the point.
 control_plane_is_ours() {
-  curl -sS -m 2 "http://127.0.0.1:$PORT_CONTROL_PLANE/auth/me" 2>/dev/null \
+  curl -sS -m 2 "http://127.0.0.1:$PORT_CONTROL_PLANE/v1/me" 2>/dev/null \
     | grep -q 'UNAUTHENTICATED'
 }
 check_block() {

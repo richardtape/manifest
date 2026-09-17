@@ -202,7 +202,7 @@ export const routeKind = pgEnum('route_kind', ['canonical', 'custom'])
 /**
  * §6's `Route`, and the platform's record of WHICH INSTANCE SERVES a hostname (P4c).
  *
- * Nothing recorded it before. `GET /environments/:id` answered with the instance row
+ * Nothing recorded it before. `GET /v1/environments/:id` answered with the instance row
  * whose `last_seen_at` was newest, which is the newest DEPLOY — including one that
  * failed — and the edge's own configuration was the only place the answer existed.
  * The control plane's boot re-applies the edge's routes from these rows (§12), which

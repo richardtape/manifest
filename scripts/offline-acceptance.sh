@@ -56,7 +56,7 @@ echo "=== 6. P4a's acceptance: a real CWL login, offline ==="
 # It needs the control plane RUNNING, which `make up` does not start — see
 # README's "Running the control plane". If it is not up, this reports that and
 # the rest of the run still stands.
-if curl -sS -m 5 -o /dev/null http://127.0.0.1:7100/auth/me 2>/dev/null; then
+if curl -sS -m 5 -o /dev/null http://127.0.0.1:7100/v1/me 2>/dev/null; then
   make demo-identity; echo "demo-identity exit=$?"
 else
   echo "  SKIPPED: no control plane on 7100. Start it (README: Running the"
@@ -72,7 +72,7 @@ echo "=== 7. P4b's acceptance: the proof app answers a question, offline ==="
 # host.docker.internal:11434. If this is the step that fails, check `ollama list`
 # holds ministral-3 and nomic-embed-text before blaming the platform. It also
 # reads LiteLLM's spend log, which needs no network.
-if curl -sS -m 5 -o /dev/null http://127.0.0.1:7100/auth/me 2>/dev/null; then
+if curl -sS -m 5 -o /dev/null http://127.0.0.1:7100/v1/me 2>/dev/null; then
   make demo-ai; echo "demo-ai exit=$?"
 else
   echo "  SKIPPED: no control plane on 7100 — the same rule as step 6."

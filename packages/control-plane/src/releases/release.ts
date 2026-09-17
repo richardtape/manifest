@@ -643,7 +643,7 @@ export async function deployRelease(
       /**
        * THE PLATFORM'S RECORD OF WHAT SERVES — §6's `Route`, specified since P2 and
        * built in P4c Task 6. Boot re-applies the edge's routes from these rows (§12,
-       * Task 9), `GET /environments/:environmentId` reports the instance they name
+       * Task 9), `GET /v1/environments/:environmentId` reports the instance they name
        * rather than the newest deploy, and the retirer reads them to know whether the
        * environment's pre-P4c key is still somebody's.
        *
@@ -727,7 +727,7 @@ export async function deployRelease(
         redact,
       )
       // Announced once it EXISTS, and named, so a client that reacts by reading
-      // `GET /environments/:environmentId/incidents` finds it there. Published HERE, at
+      // `GET /v1/environments/:environmentId/incidents` finds it there. Published HERE, at
       // the call site, rather than inside `captureIncident`: the capture stays a store
       // function with no bus in its signature, and the deploy — which holds the bus —
       // narrates (sitting 8's note left this call to Task 15).

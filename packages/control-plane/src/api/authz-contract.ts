@@ -53,8 +53,8 @@ const ALL_ACTORS: Actor[] = ['owner', 'collaborator', 'stranger', 'admin', 'anon
 const ROUTES: RouteCase[] = [
   {
     method: 'GET',
-    url: '/auth/me',
-    request: () => ({ url: '/auth/me' }),
+    url: '/v1/me',
+    request: () => ({ url: '/v1/me' }),
     expect: {
       owner: 'pass',
       collaborator: 'pass',
@@ -108,9 +108,9 @@ const ROUTES: RouteCase[] = [
   },
   {
     method: 'POST',
-    url: '/projects',
+    url: '/v1/projects',
     request: () => ({
-      url: '/projects',
+      url: '/v1/projects',
       payload: { slug: `p-${randomUUID().slice(0, 8)}`, blueprint: 'fixture-node@1' },
     }),
     expect: {
@@ -123,8 +123,8 @@ const ROUTES: RouteCase[] = [
   },
   {
     method: 'GET',
-    url: '/projects',
-    request: () => ({ url: '/projects' }),
+    url: '/v1/projects',
+    request: () => ({ url: '/v1/projects' }),
     expect: {
       owner: 'pass',
       collaborator: 'pass',
@@ -135,8 +135,8 @@ const ROUTES: RouteCase[] = [
   },
   {
     method: 'GET',
-    url: '/projects/:projectId',
-    request: (f) => ({ url: `/projects/${f.projectId}` }),
+    url: '/v1/projects/:projectId',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}` }),
     expect: {
       owner: 'pass',
       collaborator: 'pass',
@@ -147,8 +147,8 @@ const ROUTES: RouteCase[] = [
   },
   {
     method: 'GET',
-    url: '/projects/:projectId/spec',
-    request: (f) => ({ url: `/projects/${f.projectId}/spec` }),
+    url: '/v1/projects/:projectId/spec',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/spec` }),
     expect: {
       owner: 'pass',
       collaborator: 'pass',
@@ -163,8 +163,8 @@ const ROUTES: RouteCase[] = [
     // project. Idempotent for the suite's purposes: it appends an AppSpec row for
     // the SAME commit with the same result, which no other case reads.
     method: 'POST',
-    url: '/projects/:projectId/spec',
-    request: (f) => ({ url: `/projects/${f.projectId}/spec`, payload: {} }),
+    url: '/v1/projects/:projectId/spec',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/spec`, payload: {} }),
     expect: {
       owner: 'pass',
       collaborator: 'pass',
@@ -180,9 +180,9 @@ const ROUTES: RouteCase[] = [
     // idempotent, so running this case as owner and as admin does not change the
     // membership graph the other cases depend on.
     method: 'POST',
-    url: '/projects/:projectId/members',
+    url: '/v1/projects/:projectId/members',
     request: (f) => ({
-      url: `/projects/${f.projectId}/members`,
+      url: `/v1/projects/${f.projectId}/members`,
       payload: { puid: 'bio_student', role: 'collaborator' },
     }),
     expect: {
@@ -195,9 +195,9 @@ const ROUTES: RouteCase[] = [
   },
   {
     method: 'POST',
-    url: '/projects/:projectId/builds',
+    url: '/v1/projects/:projectId/builds',
     request: (f) => ({
-      url: `/projects/${f.projectId}/builds`,
+      url: `/v1/projects/${f.projectId}/builds`,
       payload: { commitSha: f.commitSha },
     }),
     expect: {
@@ -210,8 +210,8 @@ const ROUTES: RouteCase[] = [
   },
   {
     method: 'GET',
-    url: '/builds/:buildId',
-    request: (f) => ({ url: `/builds/${f.buildId}` }),
+    url: '/v1/builds/:buildId',
+    request: (f) => ({ url: `/v1/builds/${f.buildId}` }),
     expect: {
       owner: 'pass',
       collaborator: 'pass',
@@ -225,8 +225,8 @@ const ROUTES: RouteCase[] = [
     // project comes from the build row, never from the request — because P2
     // measured the alternative on the route above: an IDOR answering 200.
     method: 'GET',
-    url: '/builds/:buildId/logs',
-    request: (f) => ({ url: `/builds/${f.buildId}/logs` }),
+    url: '/v1/builds/:buildId/logs',
+    request: (f) => ({ url: `/v1/builds/${f.buildId}/logs` }),
     expect: {
       owner: 'pass',
       collaborator: 'pass',
@@ -237,9 +237,9 @@ const ROUTES: RouteCase[] = [
   },
   {
     method: 'POST',
-    url: '/projects/:projectId/releases',
+    url: '/v1/projects/:projectId/releases',
     request: (f) => ({
-      url: `/projects/${f.projectId}/releases`,
+      url: `/v1/projects/${f.projectId}/releases`,
       payload: { buildId: f.buildId },
     }),
     expect: {
@@ -252,9 +252,9 @@ const ROUTES: RouteCase[] = [
   },
   {
     method: 'POST',
-    url: '/environments/:environmentId/deploy',
+    url: '/v1/environments/:environmentId/deploy',
     request: (f) => ({
-      url: `/environments/${f.environmentId.staging}/deploy`,
+      url: `/v1/environments/${f.environmentId.staging}/deploy`,
       payload: { releaseId: f.releaseId },
     }),
     expect: {
@@ -267,8 +267,8 @@ const ROUTES: RouteCase[] = [
   },
   {
     method: 'GET',
-    url: '/environments/:environmentId',
-    request: (f) => ({ url: `/environments/${f.environmentId.staging}` }),
+    url: '/v1/environments/:environmentId',
+    request: (f) => ({ url: `/v1/environments/${f.environmentId.staging}` }),
     expect: {
       owner: 'pass',
       collaborator: 'pass',
@@ -281,8 +281,8 @@ const ROUTES: RouteCase[] = [
   // 404 matters here as much as on the build log.
   {
     method: 'GET',
-    url: '/environments/:environmentId/incidents',
-    request: (f) => ({ url: `/environments/${f.environmentId.staging}/incidents` }),
+    url: '/v1/environments/:environmentId/incidents',
+    request: (f) => ({ url: `/v1/environments/${f.environmentId.staging}/incidents` }),
     expect: {
       owner: 'pass',
       collaborator: 'pass',
@@ -301,8 +301,8 @@ const ROUTES: RouteCase[] = [
    */
   {
     method: 'GET',
-    url: '/projects/:projectId/events',
-    request: (f) => ({ url: `/projects/${f.projectId}/events` }),
+    url: '/v1/projects/:projectId/events',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/events` }),
     expect: {
       owner: 426,
       collaborator: 426,
@@ -379,7 +379,7 @@ export function describeAuthorizationContract(
 
       const project = await app.inject({
         method: 'POST',
-        url: '/projects',
+        url: '/v1/projects',
         payload: { slug: 'authz-fixture', blueprint: 'fixture-node@1' },
         cookies: cookies.owner,
         headers: { 'idempotency-key': randomUUID() },
@@ -388,14 +388,14 @@ export function describeAuthorizationContract(
 
       const build = await app.inject({
         method: 'POST',
-        url: `/projects/${body.id}/builds`,
+        url: `/v1/projects/${body.id}/builds`,
         payload: { commitSha: body.commitSha },
         cookies: cookies.owner,
         headers: { 'idempotency-key': randomUUID() },
       })
       const release = await app.inject({
         method: 'POST',
-        url: `/projects/${body.id}/releases`,
+        url: `/v1/projects/${body.id}/releases`,
         payload: { buildId: build.json().id },
         cookies: cookies.owner,
         headers: { 'idempotency-key': randomUUID() },
@@ -421,7 +421,7 @@ export function describeAuthorizationContract(
       // the reverse mistake (a stranger who is secretly a member) fails silently.
       await app.inject({
         method: 'POST',
-        url: `/projects/${body.id}/members`,
+        url: `/v1/projects/${body.id}/members`,
         payload: { puid: 'bio_student', role: 'collaborator' },
         cookies: cookies.owner,
         headers: { 'idempotency-key': randomUUID() },
@@ -430,7 +430,7 @@ export function describeAuthorizationContract(
       // The stranger must be a member of nothing. Assert it rather than assume it.
       const strangerView = await app.inject({
         method: 'GET',
-        url: '/projects',
+        url: '/v1/projects',
         cookies: cookies.stranger,
       })
       expect(strangerView.json()).toEqual([])

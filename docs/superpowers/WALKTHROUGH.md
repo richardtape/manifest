@@ -61,7 +61,7 @@ Two quick checks that it is all up:
 
 ```bash
 curl -s https://console.manifest.internal/    # manifest OK host=console.manifest.internal scheme=https …
-curl -s http://127.0.0.1:7100/auth/me         # {"error":{"code":"UNAUTHENTICATED",…}}
+curl -s http://127.0.0.1:7100/v1/me           # {"error":{"code":"UNAUTHENTICATED",…}}
 ```
 
 ---
@@ -116,15 +116,15 @@ writing a note; the demos write them.
 ### Manifest itself — the control plane
 
 **http://127.0.0.1:7100/auth/login** → sign in as `instructor` / `instructor` → you land on
-`/auth/me`. Then, still JSON:
+`/v1/me`. Then, still JSON:
 
-- `/projects` — your projects
-- `/projects/<projectId>?expand=environments` — a project and its three environments
-- `/builds/<buildId>/logs` — a build's log. There is no route that lists builds: the ID comes back
-  from `POST /projects/<projectId>/builds`, which the demos print
-- `/environments/<environmentId>/incidents` — why a deploy failed, with a repair prompt
+- `/v1/projects` — your projects
+- `/v1/projects/<projectId>?expand=environments` — a project and its three environments
+- `/v1/builds/<buildId>/logs` — a build's log. There is no route that lists builds: the ID comes back
+  from `POST /v1/projects/<projectId>/builds`, which the demos print
+- `/v1/environments/<environmentId>/incidents` — why a deploy failed, with a repair prompt
 
-The event stream (`WS /projects/<projectId>/events`) needs a WebSocket client — see §4.
+The event stream (`WS /v1/projects/<projectId>/events`) needs a WebSocket client — see §4.
 
 ### The AI gateway
 
@@ -149,12 +149,14 @@ order, by `curl`. Its helpers are shared and should be reused, not copied:
 | File | Gives you |
 |---|---|
 | `infra/lib/idp-login.sh` | `idp_login` — the three-hop CWL sign-in, into a cookie jar, for the control plane or any app |
-| `scripts/lib/proof-app.sh` | `api`, `field`, `app`, and the proof app's assemble / push / validate / build / release / deploy |
+| `scripts/lib/api.sh` | `api`, `field`, `json`, `environment` — every call to the control plane, with its `Idempotency-Key`; paths spelled as the contract spells them, `/v1` included |
+| `scripts/lib/proof-app.sh` | `app`, and the proof app's assemble / push / validate / build / release / deploy |
 | `scripts/lib/event-stream.mjs` | `watch` subscribes to a project's event stream with a jar's session; `expect` checks what it carried |
 
-The lifecycle, as the API sees it: `POST /projects` → push to the bare repository →
-`POST /projects/:id/spec` (validate a commit) → `POST /projects/:id/builds` →
-`POST /projects/:id/releases` → `POST /environments/:id/deploy`. **A deploy that fails is a
+The lifecycle, as the API sees it: `POST /v1/projects` → push to the bare repository →
+`POST /v1/projects/:id/spec` (validate a commit) → `POST /v1/projects/:id/builds` →
+`POST /v1/projects/:id/releases` → `POST /v1/environments/:id/deploy`. Every resource route is
+under `/v1` (D23.8); an old path answers `404 ROUTE_NOT_FOUND`. **A deploy that fails is a
 `200` whose `state` is `failed`** — check for `healthy`, never just for a response.
 
 ---

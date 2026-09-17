@@ -8,13 +8,13 @@ import type { Redactor } from './redact.js'
 export const STREAM_READY = 'manifest.stream.ready'
 
 /**
- * What travels over `WS /projects/:projectId/events` (D23.2). `kind` is what a client
+ * What travels over `WS /v1/projects/:projectId/events` (D23.2). `kind` is what a client
  * switches on.
  *
  * TWO KINDS OF CONTENT, deliberately. An `event` is a row of the append-only
  * `audit.events` table, so a client that reconnects is replayed it. A `log` is one line
  * of a build's output: durable in `audit.build_logs` and served by
- * `GET /builds/:buildId/logs`, but never written to `events` — a two-minute build is
+ * `GET /v1/builds/:buildId/logs`, but never written to `events` — a two-minute build is
  * hundreds of lines, and §6's `Event` is an audit record, not a transport.
  */
 export type StreamFrame =

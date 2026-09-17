@@ -71,7 +71,7 @@ export function declaresModels(yamlText: string): boolean {
  * A budget WRITTEN as 0 is left alone, and policy refuses it.
  *
  * Nothing tells the faculty member a default was applied, in Phase 1: the stored spec
- * and `GET /projects/:id/spec` show the number, and a validation notice is P5's.
+ * and `GET /v1/projects/:id/spec` show the number, and a validation notice is P5's.
  */
 function withDefaultedAiBudget(spec: ManifestSpec, ctx: ValidationContext): ManifestSpec {
   if (spec.ai.models.length === 0) return spec

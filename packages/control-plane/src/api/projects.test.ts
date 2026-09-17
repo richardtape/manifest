@@ -23,11 +23,11 @@ async function loggedIn(puid: TestUserPuid = 'bio_prof') {
 
 const create = (slug: string) => ({
   method: 'POST' as const,
-  url: '/projects',
+  url: '/v1/projects',
   payload: { slug, blueprint: 'fixture-node@1' },
 })
 
-describe('POST /projects', () => {
+describe('POST /v1/projects', () => {
   it('creates a project with three environments and a seeded repository', async () => {
     const { app, session } = await loggedIn()
     const response = await app.inject({
@@ -78,7 +78,7 @@ describe('POST /projects', () => {
 
     const list = await app.inject({
       method: 'GET',
-      url: '/projects',
+      url: '/v1/projects',
       cookies: { manifest_session: session },
     })
     expect(list.json()).toHaveLength(1)
@@ -107,7 +107,7 @@ describe('POST /projects', () => {
   })
 })
 
-describe('GET /projects/:id', () => {
+describe('GET /v1/projects/:id', () => {
   it('expands environments only when asked (D23.1)', async () => {
     const { app, session } = await loggedIn()
     const created = await app.inject({
@@ -119,14 +119,14 @@ describe('GET /projects/:id', () => {
 
     const plain = await app.inject({
       method: 'GET',
-      url: `/projects/${id}`,
+      url: `/v1/projects/${id}`,
       cookies: { manifest_session: session },
     })
     expect(plain.json().environments).toBeUndefined()
 
     const expanded = await app.inject({
       method: 'GET',
-      url: `/projects/${id}?expand=environments`,
+      url: `/v1/projects/${id}?expand=environments`,
       cookies: { manifest_session: session },
     })
     expect(expanded.json().environments).toHaveLength(3)
@@ -142,7 +142,7 @@ describe('GET /projects/:id', () => {
     })
     const spec = await app.inject({
       method: 'GET',
-      url: `/projects/${created.json().id}/spec`,
+      url: `/v1/projects/${created.json().id}/spec`,
       cookies: { manifest_session: session },
     })
     expect(spec.statusCode).toBe(200)
@@ -162,7 +162,7 @@ describe('GET /projects/:id', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: `/projects/${created.json().id}`,
+      url: `/v1/projects/${created.json().id}`,
       cookies: { manifest_session: otherSession },
     })
     expect(response.statusCode).toBe(404)
@@ -176,7 +176,7 @@ describe('GET /projects/:id', () => {
  * an agent could push a manifest declaring a database and the platform would
  * never read it. `make demo` is what found that.
  */
-describe('POST /projects/:id/spec', () => {
+describe('POST /v1/projects/:id/spec', () => {
   it('re-validates the manifest at HEAD after the repository changes', async () => {
     const { app, deps, session } = await loggedIn()
     const created = await app.inject({
@@ -210,7 +210,7 @@ describe('POST /projects/:id/spec', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: `/projects/${projectId}/spec`,
+      url: `/v1/projects/${projectId}/spec`,
       payload: {},
       cookies: { manifest_session: session },
       headers: { 'idempotency-key': randomUUID() },
@@ -222,7 +222,7 @@ describe('POST /projects/:id/spec', () => {
     // THE POINT. Before this route existed, GET /spec still answered with the
     // seeded manifest and its empty service list, whatever the repository said.
     const latest = await app.inject({
-      url: `/projects/${projectId}/spec`,
+      url: `/v1/projects/${projectId}/spec`,
       cookies: { manifest_session: session },
     })
     expect(latest.json().spec.services).toEqual([
@@ -262,7 +262,7 @@ describe('POST /projects/:id/spec', () => {
     )
     const response = await app.inject({
       method: 'POST',
-      url: `/projects/${projectId}/spec`,
+      url: `/v1/projects/${projectId}/spec`,
       payload: {},
       cookies: { manifest_session: session },
       headers: { 'idempotency-key': randomUUID() },
@@ -293,7 +293,7 @@ describe('POST /projects/:id/spec', () => {
     )
     const response = await app.inject({
       method: 'POST',
-      url: `/projects/${projectId}/spec`,
+      url: `/v1/projects/${projectId}/spec`,
       payload: {},
       cookies: { manifest_session: session },
       headers: { 'idempotency-key': randomUUID() },
@@ -307,7 +307,7 @@ describe('POST /projects/:id/spec', () => {
   })
 })
 
-describe('POST /projects/:id/members', () => {
+describe('POST /v1/projects/:id/members', () => {
   it('lets an owner add a collaborator, who can then read the project', async () => {
     const { app, deps, session } = await loggedIn('bio_prof')
     const created = await app.inject({
@@ -323,7 +323,7 @@ describe('POST /projects/:id/members', () => {
 
     const added = await app.inject({
       method: 'POST',
-      url: `/projects/${id}/members`,
+      url: `/v1/projects/${id}/members`,
       payload: { puid: 'bio_student', role: 'collaborator' },
       cookies: { manifest_session: session },
       headers: { 'idempotency-key': randomUUID() },
@@ -332,7 +332,7 @@ describe('POST /projects/:id/members', () => {
 
     const read = await app.inject({
       method: 'GET',
-      url: `/projects/${id}`,
+      url: `/v1/projects/${id}`,
       cookies: { manifest_session: inviteeSession },
     })
     expect(read.statusCode).toBe(200)
@@ -351,7 +351,7 @@ describe('POST /projects/:id/members', () => {
     const { manifest_session: inviteeSession } = await loginAs(deps, 'bio_student')
     await app.inject({
       method: 'POST',
-      url: `/projects/${id}/members`,
+      url: `/v1/projects/${id}/members`,
       payload: { puid: 'bio_student', role: 'collaborator' },
       cookies: { manifest_session: session },
       headers: { 'idempotency-key': randomUUID() },
@@ -359,7 +359,7 @@ describe('POST /projects/:id/members', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: `/projects/${id}/members`,
+      url: `/v1/projects/${id}/members`,
       payload: { puid: 'unrelated_user', role: 'collaborator' },
       cookies: { manifest_session: inviteeSession },
       headers: { 'idempotency-key': randomUUID() },
@@ -420,7 +420,7 @@ describe('the model catalogue a spec is validated against', () => {
     )
     return app.inject({
       method: 'POST',
-      url: `/projects/${created.json().id as string}/spec`,
+      url: `/v1/projects/${created.json().id as string}/spec`,
       payload: {},
       cookies: { manifest_session: session },
       headers: { 'idempotency-key': randomUUID() },
@@ -522,11 +522,11 @@ describe('the model catalogue a spec is validated against', () => {
 
     // NOTHING stored: the project's spec is still the one creation seeded.
     const [project] = (
-      await ctx.app.inject({ method: 'GET', url: '/projects', cookies })
+      await ctx.app.inject({ method: 'GET', url: '/v1/projects', cookies })
     ).json()
     const spec = await ctx.app.inject({
       method: 'GET',
-      url: `/projects/${project.id as string}/spec`,
+      url: `/v1/projects/${project.id as string}/spec`,
       cookies,
     })
     expect(spec.json().spec.ai.models).toEqual([])
@@ -536,7 +536,7 @@ describe('the model catalogue a spec is validated against', () => {
     // to interpret.
     const retried = await ctx.app.inject({
       method: 'POST',
-      url: `/projects/${project.id as string}/spec`,
+      url: `/v1/projects/${project.id as string}/spec`,
       payload: {},
       cookies,
       headers: { 'idempotency-key': randomUUID() },
@@ -557,19 +557,19 @@ describe('the model catalogue a spec is validated against', () => {
     expect(pushed.json()).toMatchObject({ valid: true, errors: [] })
 
     const [listed] = (
-      await ctx.app.inject({ method: 'GET', url: '/projects', cookies })
+      await ctx.app.inject({ method: 'GET', url: '/v1/projects', cookies })
     ).json()
     const project = (
       await ctx.app.inject({
         method: 'GET',
-        url: `/projects/${listed.id as string}`,
+        url: `/v1/projects/${listed.id as string}`,
         cookies,
       })
     ).json()
     const spec = (
       await ctx.app.inject({
         method: 'GET',
-        url: `/projects/${listed.id as string}/spec`,
+        url: `/v1/projects/${listed.id as string}/spec`,
         cookies,
       })
     ).json()

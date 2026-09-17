@@ -263,7 +263,7 @@ const app = await buildServer({
   sso,
   catalogue,
   ai,
-  // The same bus the registrar above publishes to, and `WS /projects/:projectId/events`
+  // The same bus the registrar above publishes to, and `WS /v1/projects/:projectId/events`
   // subscribes to.
   bus,
   retirer,

@@ -304,7 +304,7 @@ make demo-ai
 Nine steps, and every assertion is on the shape of the answer rather than its arrival:
 
 1. log in to Manifest with CWL, and create or reuse the `proof-app` project;
-2. **subscribe to `WS /projects/:projectId/events` before anything is built** — with
+2. **subscribe to `WS /v1/projects/:projectId/events` before anything is built** — with
    `scripts/lib/event-stream.mjs`, a dependency-free Node program, because a shell
    cannot speak WebSocket;
 3. push, validate, build, release and deploy;
@@ -333,10 +333,10 @@ drained and removed behind each redeploy, so a re-run leaves one app container, 
 
 ## Watching a project's event stream
 
-**`WS /projects/:projectId/events`** is D23.2's one stream per project (P4b Tasks 14–15, 2026-09-15): builds, each build-log line as it is written, instance state, incidents, §9's SSO registrations and §10's AI key rotations. There is no polling API for any of it.
+**`WS /v1/projects/:projectId/events`** is D23.2's one stream per project (P4b Tasks 14–15, 2026-09-15): builds, each build-log line as it is written, instance state, incidents, §9's SSO registrations and §10's AI key rotations. There is no polling API for any of it.
 
 - **It needs a WebSocket client and a Manifest session.** `curl` cannot speak it: a plain GET from a member answers `426 Upgrade Required` with `Upgrade: websocket`, a stranger `404`, nobody `401` — which is also the quick way to check the route is up. The session is the `manifest_session` cookie a CWL login sets, sent with the upgrade request.
-- **A connection is replayed first.** It receives the project's newest 50 events, oldest first, then `{"kind":"control","type":"manifest.stream.ready"}`, then live frames — anything before the ready frame had already happened. Build-log lines are **not** replayed; `GET /builds/:buildId/logs` has them.
+- **A connection is replayed first.** It receives the project's newest 50 events, oldest first, then `{"kind":"control","type":"manifest.stream.ready"}`, then live frames — anything before the ready frame had already happened. Build-log lines are **not** replayed; `GET /v1/builds/:buildId/logs` has them.
 - **A client that falls behind is closed with 1013** once a megabyte is queued for it, and should reconnect; the replay covers the events it missed.
 - **Frames reach only sockets on the control plane that published them.** Restarting the control plane drops every connection; a reconnect is replayed the events, and a build that was running has its lines in its build log.
 - **Authorization is checked when the socket opens, not per frame** — removing someone from a project does not close a stream they already hold.
@@ -490,7 +490,7 @@ restarts every container on the machine, so it is a person's call rather than a 
   using it. `make reset` does clear them, because LiteLLM's database is in the Postgres
   volume it destroys. **Check:** the `/user/list` call in `make demo-ai`'s section above
   lists `mf-` users; one whose project UUID is no longer in `projects` is an orphan.
-- **After `pnpm test` or `make reset`, the first `POST /projects` for a demo's slug fails
+- **After `pnpm test` or `make reset`, the first `POST /v1/projects` for a demo's slug fails
   and still creates the project.** *Measured 2026-09-15.* Neither removes the bare source
   repositories in `.manifest/repos`, so creating the project again finds the slug's old
   repository and answers `SOURCE_GIT_FAILED` — with git's raw output — after the project row

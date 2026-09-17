@@ -20,7 +20,7 @@ async function projectFor(puid: TestUserPuid) {
   const cookies = await loginAs(deps, puid)
   const created = await app.inject({
     method: 'POST',
-    url: '/projects',
+    url: '/v1/projects',
     payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
     cookies,
     headers: key(),
@@ -47,20 +47,20 @@ describe('what the event stream carries (P4b Task 15)', () => {
     vi.spyOn(deps.driver, 'buildImage').mockRejectedValueOnce(
       Object.assign(new Error('npm ci exited 1'), { code: 'BUILD_FAILED' }),
     )
-    const failedBuild = await post(`/projects/${project.id}/builds`, {
+    const failedBuild = await post(`/v1/projects/${project.id}/builds`, {
       commitSha: project.commitSha,
     })
     expect(failedBuild.json().status).toBe('failed')
-    const build = await post(`/projects/${project.id}/builds`, {
+    const build = await post(`/v1/projects/${project.id}/builds`, {
       commitSha: project.commitSha,
     })
     expect(build.json().status).toBe('succeeded')
-    const release = await post(`/projects/${project.id}/releases`, {
+    const release = await post(`/v1/projects/${project.id}/releases`, {
       buildId: build.json().id,
     })
 
     // A deploy that becomes healthy, then one whose instance the driver reports failed.
-    const healthy = await post(`/environments/${staging.id}/deploy`, {
+    const healthy = await post(`/v1/environments/${staging.id}/deploy`, {
       releaseId: release.json().id,
     })
     expect(healthy.json().state).toBe('healthy')
@@ -69,7 +69,7 @@ describe('what the event stream carries (P4b Task 15)', () => {
       state: 'failed',
       healthy: false,
     })
-    const broken = await post(`/environments/${staging.id}/deploy`, {
+    const broken = await post(`/v1/environments/${staging.id}/deploy`, {
       releaseId: release.json().id,
     })
     expect(broken.json().state).toBe('failed')
@@ -106,7 +106,7 @@ describe('the delivery routes', () => {
 
     const build = await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/builds`,
+      url: `/v1/projects/${project.id}/builds`,
       payload: { commitSha: project.commitSha },
       cookies,
       headers: key(),
@@ -117,7 +117,7 @@ describe('the delivery routes', () => {
 
     const release = await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/releases`,
+      url: `/v1/projects/${project.id}/releases`,
       payload: { buildId: build.json().id, summary: 'first' },
       cookies,
       headers: key(),
@@ -129,7 +129,7 @@ describe('the delivery routes', () => {
     )
     const deploy = await app.inject({
       method: 'POST',
-      url: `/environments/${staging.id}/deploy`,
+      url: `/v1/environments/${staging.id}/deploy`,
       payload: { releaseId: release.json().id },
       cookies,
       headers: key(),
@@ -139,7 +139,7 @@ describe('the delivery routes', () => {
 
     const environment = await app.inject({
       method: 'GET',
-      url: `/environments/${staging.id}`,
+      url: `/v1/environments/${staging.id}`,
       cookies,
     })
     expect(environment.json().hostname).toBe('chem-labs.staging.manifest.internal')
@@ -166,7 +166,7 @@ describe('the delivery routes', () => {
     const project = (
       await app.inject({
         method: 'POST',
-        url: '/projects',
+        url: '/v1/projects',
         payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
         cookies,
         headers: key(),
@@ -174,14 +174,14 @@ describe('the delivery routes', () => {
     ).json()
     const build = await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/builds`,
+      url: `/v1/projects/${project.id}/builds`,
       payload: { commitSha: project.commitSha },
       cookies,
       headers: key(),
     })
     const release = await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/releases`,
+      url: `/v1/projects/${project.id}/releases`,
       payload: { buildId: build.json().id },
       cookies,
       headers: key(),
@@ -192,7 +192,7 @@ describe('the delivery routes', () => {
     const deploy = () =>
       app.inject({
         method: 'POST',
-        url: `/environments/${staging.id}/deploy`,
+        url: `/v1/environments/${staging.id}/deploy`,
         payload: { releaseId: release.json().id },
         cookies,
         headers: key(),
@@ -205,7 +205,7 @@ describe('the delivery routes', () => {
     // The newest row by `last_seen_at` is the failed one; the served one is the answer.
     const environment = await app.inject({
       method: 'GET',
-      url: `/environments/${staging.id}`,
+      url: `/v1/environments/${staging.id}`,
       cookies,
     })
     expect(environment.json().instance.id).toBe(healthy.json().id)
@@ -217,7 +217,7 @@ describe('the delivery routes', () => {
     const { app, cookies, project } = await projectFor('bio_prof')
     const response = await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/releases`,
+      url: `/v1/projects/${project.id}/releases`,
       payload: { buildId: '00000000-0000-0000-0000-000000000000' },
       cookies,
       headers: key(),
@@ -231,14 +231,14 @@ describe('the delivery routes', () => {
     const { app, cookies, project } = await projectFor('bio_prof')
     const build = await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/builds`,
+      url: `/v1/projects/${project.id}/builds`,
       payload: { commitSha: project.commitSha },
       cookies,
       headers: key(),
     })
     const release = await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/releases`,
+      url: `/v1/projects/${project.id}/releases`,
       payload: { buildId: build.json().id },
       cookies,
       headers: key(),
@@ -249,7 +249,7 @@ describe('the delivery routes', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: `/environments/${production.id}/deploy`,
+      url: `/v1/environments/${production.id}/deploy`,
       payload: { releaseId: release.json().id },
       cookies,
       headers: key(),
@@ -270,7 +270,7 @@ describe('the delivery routes', () => {
     const { app, deps, cookies, project } = await projectFor('bio_prof')
     const build = await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/builds`,
+      url: `/v1/projects/${project.id}/builds`,
       payload: { commitSha: project.commitSha },
       cookies,
       headers: key(),
@@ -279,7 +279,7 @@ describe('the delivery routes', () => {
     const otherCookies = await loginAs(deps, 'bio_student')
     const response = await app.inject({
       method: 'GET',
-      url: `/builds/${build.json().id}`,
+      url: `/v1/builds/${build.json().id}`,
       cookies: otherCookies,
     })
     expect(response.statusCode).toBe(404)
@@ -289,7 +289,7 @@ describe('the delivery routes', () => {
     // "absent", which is the failure mode a stub already slipped past once.
     const mine = await app.inject({
       method: 'GET',
-      url: `/builds/${build.json().id}`,
+      url: `/v1/builds/${build.json().id}`,
       cookies,
     })
     expect(mine.statusCode).toBe(200)
@@ -301,7 +301,7 @@ describe('the delivery routes', () => {
     const { app, deps, cookies, project } = await projectFor('bio_prof')
     const build = await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/builds`,
+      url: `/v1/projects/${project.id}/builds`,
       payload: { commitSha: project.commitSha },
       cookies,
       headers: key(),
@@ -310,7 +310,7 @@ describe('the delivery routes', () => {
 
     const logs = await app.inject({
       method: 'GET',
-      url: `/builds/${build.json().id}/logs`,
+      url: `/v1/builds/${build.json().id}/logs`,
       cookies,
     })
     expect(logs.statusCode).toBe(200)
@@ -323,7 +323,7 @@ describe('the delivery routes', () => {
 
     const tail = await app.inject({
       method: 'GET',
-      url: `/builds/${build.json().id}/logs?tail=1`,
+      url: `/v1/builds/${build.json().id}/logs?tail=1`,
       cookies,
     })
     expect(tail.json().lines.map((l: { seq: number }) => l.seq)).toEqual([
@@ -332,7 +332,7 @@ describe('the delivery routes', () => {
 
     const nonsense = await app.inject({
       method: 'GET',
-      url: `/builds/${build.json().id}/logs?tail=0`,
+      url: `/v1/builds/${build.json().id}/logs?tail=0`,
       cookies,
     })
     expect(nonsense.statusCode).toBe(400)
@@ -340,7 +340,7 @@ describe('the delivery routes', () => {
     // The IDOR shape again, on the route that returns the most text.
     const other = await app.inject({
       method: 'GET',
-      url: `/builds/${build.json().id}/logs`,
+      url: `/v1/builds/${build.json().id}/logs`,
       cookies: await loginAs(deps, 'bio_student'),
     })
     expect(other.statusCode).toBe(404)
@@ -357,7 +357,7 @@ describe('the delivery routes', () => {
     const project = (
       await app.inject({
         method: 'POST',
-        url: '/projects',
+        url: '/v1/projects',
         payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
         cookies,
         headers: key(),
@@ -365,14 +365,14 @@ describe('the delivery routes', () => {
     ).json()
     const build = await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/builds`,
+      url: `/v1/projects/${project.id}/builds`,
       payload: { commitSha: project.commitSha },
       cookies,
       headers: key(),
     })
     const release = await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/releases`,
+      url: `/v1/projects/${project.id}/releases`,
       payload: { buildId: build.json().id },
       cookies,
       headers: key(),
@@ -382,7 +382,7 @@ describe('the delivery routes', () => {
     )
     const deploy = await app.inject({
       method: 'POST',
-      url: `/environments/${staging.id}/deploy`,
+      url: `/v1/environments/${staging.id}/deploy`,
       payload: { releaseId: release.json().id },
       cookies,
       headers: key(),
@@ -393,7 +393,7 @@ describe('the delivery routes', () => {
 
     const listed = await app.inject({
       method: 'GET',
-      url: `/environments/${staging.id}/incidents`,
+      url: `/v1/environments/${staging.id}/incidents`,
       cookies,
     })
     expect(listed.statusCode).toBe(200)
@@ -423,7 +423,7 @@ describe('the delivery routes', () => {
 
     const other = await app.inject({
       method: 'GET',
-      url: `/environments/${staging.id}/incidents`,
+      url: `/v1/environments/${staging.id}/incidents`,
       cookies: await loginAs(deps, 'bio_student'),
     })
     expect(other.statusCode).toBe(404)

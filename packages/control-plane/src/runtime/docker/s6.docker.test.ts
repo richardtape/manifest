@@ -323,7 +323,7 @@ describeDocker(
      * already requires. Measured 2026-09-07.
      */
     it('2. cannot reach the platform on the host, while a bridge container can', async () => {
-      const cp = await exitCode(APP_NET, ['http://host.docker.internal:7100/auth/me'])
+      const cp = await exitCode(APP_NET, ['http://host.docker.internal:7100/v1/me'])
       const admin = await exitCode(APP_NET, ['http://host.docker.internal:7119/config/'])
       expect(cp).not.toBe(0)
       expect(admin).not.toBe(0)

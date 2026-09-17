@@ -36,7 +36,7 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
     //    manifest.yaml validated.
     const created = await app.inject({
       method: 'POST',
-      url: '/projects',
+      url: '/v1/projects',
       payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
       cookies,
       headers: key(),
@@ -52,7 +52,7 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
     // The spec that was validated is the spec at that commit, read from a bare repo.
     const spec = await app.inject({
       method: 'GET',
-      url: `/projects/${project.id}/spec`,
+      url: `/v1/projects/${project.id}/spec`,
       cookies,
     })
     expect(spec.json().commitSha).toBe(project.commitSha)
@@ -61,7 +61,7 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
     // 4. Build (§22 step 4). Assert the digest, not that a build row came back.
     const build = await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/builds`,
+      url: `/v1/projects/${project.id}/builds`,
       payload: { commitSha: project.commitSha },
       cookies,
       headers: key(),
@@ -72,7 +72,7 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
     // 5. Release — immutable: build + appspec + resolved config (§13).
     const release = await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/releases`,
+      url: `/v1/projects/${project.id}/releases`,
       payload: { buildId: build.json().id, summary: 'first release' },
       cookies,
       headers: key(),
@@ -88,7 +88,7 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
     )
     const deployed = await app.inject({
       method: 'POST',
-      url: `/environments/${staging.id}/deploy`,
+      url: `/v1/environments/${staging.id}/deploy`,
       payload: { releaseId: release.json().id },
       cookies,
       headers: key(),
@@ -98,7 +98,7 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
 
     const environment = await app.inject({
       method: 'GET',
-      url: `/environments/${staging.id}`,
+      url: `/v1/environments/${staging.id}`,
       cookies,
     })
     expect(environment.json().hostname).toBe('chem-labs.staging.manifest.internal')
@@ -110,7 +110,7 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
     )
     const blocked = await app.inject({
       method: 'POST',
-      url: `/environments/${production.id}/deploy`,
+      url: `/v1/environments/${production.id}/deploy`,
       payload: { releaseId: release.json().id },
       cookies,
       headers: key(),

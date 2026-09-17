@@ -38,7 +38,6 @@ cd "$ROOT"
 # shellcheck source=lib/proof-app.sh
 . scripts/lib/proof-app.sh
 
-API="${MANIFEST_API:-http://127.0.0.1:7100}"
 SLUG="${DEMO_SLUG:-proof-app}"
 CA="$ROOT/$CA_FILE"
 APP_URL="https://$SLUG.staging.$ZONE"
@@ -121,7 +120,7 @@ containers_for_release() {
   docker ps -a --filter "label=manifest.release=$1" --format '{{.Names}}' | grep -c . | tr -d ' '
 }
 incident_for() {
-  api GET "/environments/$ENV_ID/incidents" \
+  api GET "/v1/environments/$ENV_ID/incidents" \
     | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);const rows=j.incidents??j;process.exit(rows.some(i=>i.instanceId===process.argv[1])?0:1)})' "$1"
 }
 # The stream said this instance was retired — never a sleep: the drain is bounded at
@@ -136,12 +135,12 @@ wait_retired() {
 }
 redeploy() { # $1 phase  $2 release id   -> sets DEPLOYED
   mark "$1-start"
-  DEPLOYED="$(api POST "/environments/$ENV_ID/deploy" "{\"releaseId\":\"$2\"}")"
+  DEPLOYED="$(api POST "/v1/environments/$ENV_ID/deploy" "{\"releaseId\":\"$2\"}")"
   mark "$1-end"
 }
 
 say "0. Is the control plane up?"
-curl -sS -m 5 -o /dev/null "$API/auth/me" \
+curl -sS -m 5 -o /dev/null "$API/v1/me" \
   || fail "no control plane at $API. README's 'Running the control plane' has the exact
 commands — and check the boot line says {\"driver\":\"docker\"}, because every claim
 this demo makes is meaningless against the fake one."
@@ -159,7 +158,7 @@ push
 proof_app_validate
 proof_app_deploy "make demo-redeploy: the instance a redeploy replaces"
 BASE_RELEASE="$RELEASE_ID"
-BASE_INSTANCE="$(api GET "/environments/$ENV_ID" | field instance.id)"
+BASE_INSTANCE="$(api GET "/v1/environments/$ENV_ID" | field instance.id)"
 
 say "3. Subscribe to the project's event stream"
 node scripts/lib/event-stream.mjs watch "$API" "$PROJECT_ID" "$CP_JAR" "$FRAMES" &
@@ -170,7 +169,7 @@ for _ in $(seq 1 40); do
   sleep 0.5
 done
 grep -qF '"manifest.stream.ready"' "$FRAMES" \
-  || fail "WS /projects/$PROJECT_ID/events sent no ready frame within 20 s"
+  || fail "WS /v1/projects/$PROJECT_ID/events sent no ready frame within 20 s"
 
 say "4. A student signs in, writes a note, and the two loops start"
 idp_login "$STU_JAR" "$IDP_STU_JAR" "$APP_URL/login" student student \
@@ -255,8 +254,8 @@ check "same-release: LiteLLM holds exactly one key for the app" [ "$(app_keys)" 
 say "6. A NEW-release redeploy"
 push
 proof_app_validate
-NEW_BUILD="$(api POST "/projects/$PROJECT_ID/builds" "{\"commitSha\":\"$COMMIT\"}" | field id)"
-NEW_RELEASE="$(api POST "/projects/$PROJECT_ID/releases" \
+NEW_BUILD="$(api POST "/v1/projects/$PROJECT_ID/builds" "{\"commitSha\":\"$COMMIT\"}" | field id)"
+NEW_RELEASE="$(api POST "/v1/projects/$PROJECT_ID/releases" \
   "{\"buildId\":\"$NEW_BUILD\",\"summary\":\"make demo-redeploy: a new release\"}" | field id)"
 PREVIOUS="$SAME_INSTANCE"
 redeploy new-release "$NEW_RELEASE"
@@ -290,8 +289,8 @@ git -C "$WORK" -c user.name=manifest -c user.email=manifest@localhost \
 git -C "$WORK" push -q origin HEAD:main
 COMMIT="$(git -C "$WORK" rev-parse HEAD)"
 proof_app_validate
-FAIL_BUILD="$(api POST "/projects/$PROJECT_ID/builds" "{\"commitSha\":\"$COMMIT\"}" | field id)"
-FAIL_RELEASE="$(api POST "/projects/$PROJECT_ID/releases" \
+FAIL_BUILD="$(api POST "/v1/projects/$PROJECT_ID/builds" "{\"commitSha\":\"$COMMIT\"}" | field id)"
+FAIL_RELEASE="$(api POST "/v1/projects/$PROJECT_ID/releases" \
   "{\"buildId\":\"$FAIL_BUILD\",\"summary\":\"make demo-redeploy: a release that never becomes ready\"}" | field id)"
 redeploy failed-release "$FAIL_RELEASE"
 FAILED_INSTANCE="$(printf '%s' "$DEPLOYED" | field id 2>/dev/null || echo none)"

@@ -58,7 +58,7 @@ export interface ServerDeps {
    */
   ai: AiKeyService
   /**
-   * D23.2's per-project fan-out (P4b Task 14): `WS /projects/:projectId/events`
+   * D23.2's per-project fan-out (P4b Task 14): `WS /v1/projects/:projectId/events`
    * subscribes to it. ONE bus per process, built at boot, so every publisher and every
    * socket meet on the same instance.
    */
@@ -207,6 +207,25 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
     }
     return reply.status(status).send(body)
   })
+
+  /**
+   * D23.7 for a path that matched nothing, too. Fastify's default answers
+   * `{"message":"Route GET:/projects not found","error":"Not Found","statusCode":404}`,
+   * which is a shape no client switches on — and after the `/v1` move (P5a Task 2) an
+   * old path is exactly what a stale script or a stale bookmark will send. The path is
+   * echoed without its query string and capped: it is the caller's own input.
+   */
+  app.setNotFoundHandler((request, reply) =>
+    reply.status(404).send({
+      error: {
+        code: 'ROUTE_NOT_FOUND',
+        message: `no route ${request.method} ${request.url.split('?')[0]!.slice(0, 200)}`,
+        hint:
+          'Every resource route is under /v1/ (D23.8). Signing in is /auth/login; ' +
+          'the document at packages/contract/openapi.json lists every route.',
+      },
+    }),
+  )
 
   /** Wraps a mutating handler in its idempotency record. */
   app.decorate(

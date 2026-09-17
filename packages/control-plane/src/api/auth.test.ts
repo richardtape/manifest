@@ -30,20 +30,20 @@ const SP_ENTITY = 'https://manifest.internal/sp/manifest-control-plane/platform'
 const ACS = 'http://127.0.0.1:7100/auth/saml/callback'
 
 describe('auth routes', () => {
-  it('returns the session holder from /auth/me', async () => {
+  it('returns the session holder from /v1/me', async () => {
     const deps = await testDeps()
     const app = await buildServer(deps)
     const cookies = await loginAs(deps, 'bio_prof')
 
-    const me = await app.inject({ method: 'GET', url: '/auth/me', cookies })
+    const me = await app.inject({ method: 'GET', url: '/v1/me', cookies })
     expect(me.statusCode).toBe(200)
     expect(me.json()).toMatchObject({ puid: 'bio_prof', role: 'member' })
     await app.close()
   })
 
-  it('refuses /auth/me without a session', async () => {
+  it('refuses /v1/me without a session', async () => {
     const app = await buildServer(await testDeps())
-    const me = await app.inject({ method: 'GET', url: '/auth/me' })
+    const me = await app.inject({ method: 'GET', url: '/v1/me' })
     expect(me.statusCode).toBe(401)
     expect(me.json().error.code).toBe('UNAUTHENTICATED')
     await app.close()
@@ -56,7 +56,7 @@ describe('auth routes', () => {
     const tampered = `${value.slice(0, -4)}AAAA`
     const me = await app.inject({
       method: 'GET',
-      url: '/auth/me',
+      url: '/v1/me',
       cookies: { manifest_session: tampered },
     })
     expect(me.statusCode).toBe(401)
@@ -151,7 +151,7 @@ describe('Manifest is its own SP (§9)', () => {
     // control plane does not serve — so a SUCCESSFUL login ended on a 404 that
     // reads exactly like a failed one, and every test still passed because they
     // all stopped at the status code. Found by opening it in a browser.
-    expect(res.headers.location).toBe('/auth/me')
+    expect(res.headers.location).toBe('/v1/me')
     const cookie = res.cookies.find((c) => c.name === 'manifest_session')
     expect(cookie?.httpOnly).toBe(true)
     expect(cookie?.sameSite?.toLowerCase()).toBe('lax')
@@ -160,7 +160,7 @@ describe('Manifest is its own SP (§9)', () => {
     // belongs to the person the IdP asserted" are different claims.
     const me = await app.inject({
       method: 'GET',
-      url: '/auth/me',
+      url: '/v1/me',
       cookies: { manifest_session: cookie!.value },
     })
     expect(me.json()).toMatchObject({ puid: 'ins000001', role: 'member' })
