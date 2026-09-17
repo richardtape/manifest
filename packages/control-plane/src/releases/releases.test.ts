@@ -93,6 +93,18 @@ async function streamedWhile(
 const eventTypes = (frames: StreamFrame[]) =>
   frames.flatMap((f) => (f.kind === 'event' ? [f.type] : []))
 
+/**
+ * The two frames every deploy now opens with (P5a Task 14): the row exists, then its
+ * services are bound and the driver is asked to start it. Named rather than spelled out at
+ * each call site, so a third state on the way in is one edit — and so each expectation
+ * below still reads as the OUTCOME it is about.
+ */
+const OPENS_WITH = ['instance.provisioning', 'instance.starting'] as const
+
+/** One event frame of a given type, by name: a deploy's frames are no longer positional. */
+const eventOfType = (frames: StreamFrame[], type: string) =>
+  frames.find((f) => f.kind === 'event' && f.type === type)
+
 let deployDeps: DeployDeps
 beforeAll(async () => {
   const keys = await generateMasterKeypair()
@@ -598,6 +610,48 @@ describe('releases (§13)', () => {
       })
       expect(instance.state).toBe('healthy')
       expect(instance.handle).toBeTruthy()
+    })
+  })
+
+  it('stores `starting` once services are bound, before the driver starts the instance (P5a Task 14)', async () => {
+    await withRollback(async (db) => {
+      const { user, project, appSpec, byKind } = await fixture(db)
+      const driver = createFakeDriver()
+      // The instance row's state at the moment the driver is asked to start it.
+      let stateWhenStarted: string | undefined
+      const ensure = driver.ensureInstance.bind(driver)
+      driver.ensureInstance = async (spec) => {
+        const [row] = await db
+          .select({ state: instances.state })
+          .from(instances)
+          .where(eq(instances.id, spec.instanceId))
+        stateWhenStarted = row?.state
+        return ensure(spec)
+      }
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
+      const release = await createRelease(db, {
+        projectId: project.id,
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: RESOLVED,
+      })
+      const instance = await deployRelease(db, driver, config, deployDeps, {
+        releaseId: release.id,
+        environmentId: byKind.staging!.id,
+      })
+      expect(stateWhenStarted).toBe('starting')
+      expect(instance.state).toBe('healthy')
     })
   })
 
@@ -1290,8 +1344,9 @@ describe('waiting for health', () => {
           { timeoutMs: 2000, intervalMs: 1 },
         )
       })
-      expect(eventTypes(frames)).toEqual(['instance.healthy'])
-      expect(frames[0]).toMatchObject({
+      expect(eventTypes(frames)).toEqual([...OPENS_WITH, 'instance.healthy'])
+      const healthy = eventOfType(frames, 'instance.healthy')
+      expect(healthy).toMatchObject({
         subject: `instance:${instance!.id}`,
         machineDetail: {
           instanceId: instance!.id,
@@ -1300,11 +1355,19 @@ describe('waiting for health', () => {
           state: 'healthy',
         },
       })
+      // Each opening frame carries the state the row was IN when it was published — not
+      // the state the deploy ended in, which is what a copied detail would have said.
+      expect(
+        frames.slice(0, 2).map((f) => f.kind === 'event' && f.machineDetail),
+      ).toEqual([
+        expect.objectContaining({ instanceId: instance!.id, state: 'provisioning' }),
+        expect.objectContaining({ instanceId: instance!.id, state: 'starting' }),
+      ])
       const rows = await db
         .select()
         .from(events)
         .where(eq(events.type, 'instance.healthy'))
-      expect(rows.map((r) => r.id)).toEqual([frames[0]!.id])
+      expect(rows.map((r) => r.id)).toEqual([healthy!.id])
     })
   })
 
@@ -1324,17 +1387,21 @@ describe('waiting for health', () => {
         )
       })
       expect(instance!.state).toBe('failed')
-      expect(eventTypes(frames)).toEqual(['instance.failed', 'incident.opened'])
+      expect(eventTypes(frames)).toEqual([
+        ...OPENS_WITH,
+        'instance.failed',
+        'incident.opened',
+      ])
       const [incident] = await db
         .select()
         .from(incidents)
         .where(eq(incidents.instanceId, instance!.id))
-      expect(frames[0]).toMatchObject({
+      expect(eventOfType(frames, 'instance.failed')).toMatchObject({
         machineDetail: { instanceId: instance!.id, state: 'failed' },
       })
       // The Incident EXISTS by the time it is announced, and the frame names it — a
       // client that reacts by fetching the incidents route finds it there.
-      expect(frames[1]).toMatchObject({
+      expect(eventOfType(frames, 'incident.opened')).toMatchObject({
         subject: `incident:${incident!.id}`,
         machineDetail: { incidentId: incident!.id, instanceId: instance!.id },
       })
@@ -1345,7 +1412,16 @@ describe('waiting for health', () => {
     })
   })
 
-  it('streams nothing about an instance when the deploy never started one', async () => {
+  /**
+   * P5a Task 14 changed what this test is about, and the new property is the useful one.
+   * It read `expect(frames).toEqual([])` — nothing at all — because a deploy published only
+   * its OUTCOME. A deploy now says it started: the row exists and its services are bound
+   * before the driver is asked for a container, so a driver that refuses leaves
+   * `instance.provisioning` and `instance.starting` behind it, which is §14's point that a
+   * failure leaving no trail hides the next one. What must still be absent is an OUTCOME —
+   * no healthy, no failed, no Incident — for an instance that never existed to have one.
+   */
+  it('streams that a deploy began, and no outcome, when the driver never started an instance', async () => {
     await withRollback(async (db) => {
       const driver = createFakeDriver()
       vi.spyOn(driver, 'ensureInstance').mockRejectedValue(
@@ -1364,7 +1440,15 @@ describe('waiting for health', () => {
           ),
         ).rejects.toThrow('the daemon refused the container')
       })
-      expect(frames).toEqual([])
+      expect(eventTypes(frames)).toEqual([...OPENS_WITH])
+      // The row is left in `starting`, which is a state §11's machine accepts
+      // `interrupted` from — so `recoverAtBoot` can end it. `provisioning` would have
+      // been indistinguishable from a deploy that never reached its services.
+      const [row] = await db
+        .select({ state: instances.state })
+        .from(instances)
+        .where(eq(instances.releaseId, release.id))
+      expect(row?.state).toBe('starting')
     })
   })
 })
@@ -2061,7 +2145,11 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
           { releaseId: release.id, environmentId: staging.id },
         ),
       )
-      expect(eventTypes(frames)).toEqual(['instance.healthy', 'ai.key_rotated'])
+      expect(eventTypes(frames)).toEqual([
+        ...OPENS_WITH,
+        'instance.healthy',
+        'ai.key_rotated',
+      ])
       const rotated = await db
         .select()
         .from(events)
@@ -2100,7 +2188,11 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
       )
       expect(calls).toContain(`store sk-minted-1`)
       expect(calls.some((c) => c.startsWith('revoke instance '))).toBe(true)
-      expect(eventTypes(frames)).toEqual(['instance.failed', 'incident.opened'])
+      expect(eventTypes(frames)).toEqual([
+        ...OPENS_WITH,
+        'instance.failed',
+        'incident.opened',
+      ])
     })
     await withRollback(async (db) => {
       const calls: string[] = []
@@ -2121,7 +2213,11 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
         ).rejects.toThrow('the store is down')
       })
       expect(calls).toEqual(['mint', 'discard sk-minted-1'])
-      expect(eventTypes(frames)).toEqual([])
+      // PROVISIONING AND NOT STARTING, and the difference is the point (P5a Task 14): the
+      // row exists, and the key the container would have been given could not be recorded,
+      // so nothing was ever asked to start. `instance.starting` is published where the
+      // services ARE bound — one frame later than this deploy ever got.
+      expect(eventTypes(frames)).toEqual(['instance.provisioning'])
     })
   })
 

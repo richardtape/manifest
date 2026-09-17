@@ -82,6 +82,16 @@ that makes the result stale, and Critical and High counts in three buckets — i
 build with a fix, introduced with none, and the base image's own. Lower severities are not
 counted. `databaseAgeDays` is `null` when the scanner could not say.
 
+## A release names its env vars; an instance names no container
+
+`createRelease` answers a **`Release`**: its build's `imageDigest` and `scan`, and `config` —
+one frozen view per environment (§13), each carrying that environment's numbers and
+**`envNames`**, the names the app declares and never their values. A deploy answers an
+**`Instance`**: its state, its environment and its release, and never the driver or the
+container handle, which are the platform's. While a deploy runs, the project's stream carries
+`instance.provisioning`, then `instance.starting`, then `instance.healthy` or
+`instance.failed` — so a client shows the states as they happen rather than only the outcome.
+
 ## The event stream
 
 `WS /v1/projects/{projectId}/events` is how a client learns that anything changed — builds

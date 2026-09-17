@@ -26,7 +26,6 @@ import type { SsoRegistrar } from '../sso/index.js'
 import type { SamlSp } from '../identity/index.js'
 import type { AiKeyService, ModelCatalogue } from '../ai/index.js'
 import type { BuildRunner, Retirer } from '../releases/index.js'
-import { registerDeliveryRoutes } from './routes/delivery.js'
 import { registryTokenRoutes } from './routes/registry-token.js'
 import { registerRoutes } from './contract/route.js'
 import { ROUTE_DEFINITIONS } from './routes/index.js'
@@ -319,11 +318,11 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
     }),
   )
 
-  // Every `/v1` route declared through `defineRoute` (P5a Task 6). The rest still register
-  // themselves below until their task converts them — `contract/coverage.test.ts` lists them.
+  // EVERY `/v1` route, declared through `defineRoute` (P5a Task 6, complete at Task 14) —
+  // `contract/coverage.test.ts` holds it so. What is left registers itself: the sign-in
+  // endpoints, which are outside `/v1` (D23.8), and the stream, which upgrades.
   registerRoutes(app, deps, ROUTE_DEFINITIONS)
   await registerAuthRoutes(app, deps)
-  await registerDeliveryRoutes(app, deps)
   await registerEventRoutes(app, deps)
 
   return app

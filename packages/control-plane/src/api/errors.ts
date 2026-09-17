@@ -18,6 +18,8 @@ export interface ErrorEnvelope {
     message: string
     hint?: string
     details?: ManifestError[]
+    /** §13's checklist, on RELEASE_PRODUCTION_GATE_UNAVAILABLE only (P5a Task 14). */
+    launchReadiness?: unknown
   }
 }
 
@@ -37,6 +39,19 @@ export class BadRequestError extends Error {
   ) {
     super(message)
     this.name = 'BadRequestError'
+  }
+}
+
+/**
+ * §13: a first production launch is a checklist, not a button. A 409 that carries the
+ * checklist — not a refusal a client has to go and ask about (P5a Task 14; Task 15 makes
+ * the checklist computed rather than a constant).
+ */
+export class ProductionGateError extends Error {
+  readonly code = 'RELEASE_PRODUCTION_GATE_UNAVAILABLE'
+  constructor(readonly launchReadiness: unknown) {
+    super('first production launch is a checklist, not a button (§13, D19)')
+    this.name = 'ProductionGateError'
   }
 }
 
@@ -173,6 +188,22 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
           code: error.code,
           message: error.message,
           hint: `Send Origin: ${error.expected}. A browser does this itself; a script sets the header.`,
+        },
+      },
+    }
+  }
+
+  // §13 (P5a Task 14). The refusal carries the checklist, so a client that asked to launch
+  // reads what is missing from the same answer rather than going to fetch it.
+  if (error instanceof ProductionGateError) {
+    return {
+      status: 409,
+      body: {
+        error: {
+          code: error.code,
+          message: error.message,
+          hint: 'These items have multi-week lead times and are tracked from project creation.',
+          launchReadiness: error.launchReadiness,
         },
       },
     }

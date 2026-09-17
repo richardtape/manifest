@@ -398,6 +398,123 @@ async function step4Build(): Promise<void> {
   }
 }
 
+/** §22 step 5: deploy to staging; instance state transitions stream live. */
+async function step5Deploy(): Promise<void> {
+  checks.step('5. Deploy to staging; the instance’s states stream live')
+  const release = unwrap(
+    await client.POST('/v1/projects/{projectId}/releases', {
+      params: {
+        path: { projectId: state.projectId! },
+        header: { 'Idempotency-Key': idempotencyKey() },
+      },
+      body: { buildId: state.buildId!, summary: 'P5a acceptance journey' },
+    }),
+    'createRelease',
+  )
+  state.releaseId = release.id
+  checks.ok(
+    'the release carries its build’s digest and scan (§12, §13)',
+    release.imageDigest.startsWith('sha256:') && release.scan !== null,
+    `${release.imageDigest.slice(0, 20)}… scan ${release.scan === null ? 'null' : release.scan.scanner}`,
+  )
+  checks.ok(
+    'and names its env vars without their values',
+    release.config.staging.envNames.includes('COURSE_CODE') &&
+      !JSON.stringify(release).includes('CHEM_121'),
+    JSON.stringify(release.config.staging.envNames),
+  )
+  // The two READS, from the running platform. Every route this plan adds is called by a
+  // step of this journey (Global Constraints): a route only a unit test reaches is a route
+  // the edge, the session and the generated client have never had to agree about.
+  const read = unwrap(
+    await client.GET('/v1/releases/{releaseId}', {
+      params: { path: { releaseId: release.id } },
+    }),
+    'getRelease',
+  )
+  checks.ok(
+    'it reads back identically',
+    JSON.stringify(read) === JSON.stringify(release),
+    `${JSON.stringify(read).length} vs ${JSON.stringify(release).length} bytes`,
+  )
+  const releases = unwrap(
+    await client.GET('/v1/projects/{projectId}/releases', {
+      params: { path: { projectId: state.projectId! } },
+    }),
+    'listReleases',
+  )
+  checks.ok(
+    'and the project’s releases list it first',
+    releases[0]?.id === release.id,
+    JSON.stringify(releases.map((r) => r.id).slice(0, 3)),
+  )
+
+  const frames: StreamFrame[] = []
+  const stream = subscribe({
+    ...signedIn,
+    projectId: state.projectId!,
+    onFrame: (frame) => frames.push(frame),
+  })
+  try {
+    await stream.ready
+  } catch (error) {
+    checks.ok('the stream became ready', false, (error as Error).message)
+    return
+  }
+  try {
+    const instance = unwrap(
+      await client.POST('/v1/environments/{environmentId}/deploy', {
+        params: {
+          path: { environmentId: state.stagingEnvironmentId! },
+          header: { 'Idempotency-Key': idempotencyKey() },
+        },
+        body: { releaseId: release.id },
+      }),
+      'deploy',
+    )
+    state.instanceId = instance.id
+    checks.must(
+      'the instance is healthy',
+      instance.state === 'healthy' ? instance : undefined,
+      instance.state,
+    )
+    // The RUNNING system's answer, not the types: a column the representation stopped
+    // stripping would reach here while tsc stayed green.
+    checks.ok(
+      'and carries no driver internals',
+      !('handle' in instance) && !('driver' in instance),
+      Object.keys(instance).join(','),
+    )
+    // `f.type === type` with a `string` parameter narrows nothing — only a comparison
+    // with a literal does — so `machineDetail` keeps its cast here.
+    const ofInstance = (type: string) => (f: StreamFrame) =>
+      f.kind === 'event' &&
+      f.type === type &&
+      (f.machineDetail as { instanceId?: string }).instanceId === instance.id
+    await waitFor(frames, ofInstance('instance.healthy'), 10_000)
+    const at = (type: string) => frames.findIndex(ofInstance(type))
+    checks.ok(
+      'provisioning, starting and healthy streamed, in that order',
+      at('instance.provisioning') >= 0 &&
+        at('instance.starting') > at('instance.provisioning') &&
+        at('instance.healthy') > at('instance.starting'),
+      `${at('instance.provisioning')} ${at('instance.starting')} ${at('instance.healthy')}`,
+    )
+    const environment = unwrap(
+      await client.GET('/v1/environments/{environmentId}', {
+        params: { path: { environmentId: state.stagingEnvironmentId! } },
+      }),
+      'getEnvironment',
+    )
+    checks.ok(
+      'the environment serves that instance',
+      environment.instance?.id === instance.id,
+    )
+  } finally {
+    stream.close()
+  }
+}
+
 const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
   'before-app': [
     step1SignedIn,
@@ -407,6 +524,7 @@ const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
     step2Create,
     step3WatchProvisioning,
     step4Build,
+    step5Deploy,
   ],
   'after-app': [],
 }

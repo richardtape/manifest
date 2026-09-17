@@ -219,7 +219,14 @@ describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
       expect(rows.map((r) => r.type)).toEqual([
         'build.started',
         'build.succeeded',
+        // §22 step 5 (P5a Task 14). The SP is registered BETWEEN the two: `provisioning`
+        // is published the moment the row exists, and `starting` the moment before the
+        // driver is asked for a container — and P4a Task 9 puts the registration after the
+        // service loop and before that, so the app's metadata row exists before it can
+        // redirect anyone to the IdP. This order is that ordering, read from the stream.
+        'instance.provisioning',
         'sso.registered',
+        'instance.starting',
         'instance.healthy',
       ])
       const registered = rows.find((r) => r.type === 'sso.registered')!

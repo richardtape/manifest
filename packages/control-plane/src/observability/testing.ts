@@ -66,6 +66,20 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     imageRepository: 'manifest-registry:5000/apps/chem-labs',
   },
   'build.failed': { buildId: UUID, code: 'BUILD_FAILED', reason: 'npm ci exited 1' },
+  'instance.provisioning': {
+    instanceId: UUID,
+    releaseId: UUID,
+    environmentId: UUID,
+    environment: 'staging',
+    state: 'provisioning',
+  },
+  'instance.starting': {
+    instanceId: UUID,
+    releaseId: UUID,
+    environmentId: UUID,
+    environment: 'staging',
+    state: 'starting',
+  },
   'instance.healthy': {
     instanceId: UUID,
     releaseId: UUID,

@@ -371,6 +371,32 @@ const ROUTES: RouteCase[] = [
     },
   },
   {
+    // P5a Task 14: a reader of the project may read one of its releases. The project comes
+    // from the release ROW, so a stranger gets the 404 the project itself gives them.
+    method: 'GET',
+    url: '/v1/releases/:releaseId',
+    request: (f) => ({ url: `/v1/releases/${f.releaseId}` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
+    method: 'GET',
+    url: '/v1/projects/:projectId/releases',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/releases` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
     method: 'POST',
     url: '/v1/environments/:environmentId/deploy',
     request: (f) => ({

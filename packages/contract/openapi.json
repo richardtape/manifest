@@ -331,6 +331,141 @@
         ]
       }
     },
+    "/v1/environments/{environmentId}/deploy": {
+      "post": {
+        "operationId": "deploy",
+        "tags": [
+          "delivery"
+        ],
+        "summary": "Deploy a release to an environment",
+        "description": "§22 step 5. Answers once the new instance serves, or once it has failed with an Incident — a failed deploy is a 200 whose state is `failed` (R3, §14). The previous instance keeps serving until the new one is proved, and drains in the background. Up to ~90 s when a release never becomes ready. Production answers 409 with LaunchReadiness (§13).",
+        "parameters": [
+          {
+            "name": "environmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeployRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The instance, healthy or failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Instance"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_PRODUCTION_GATE_UNAVAILABLE, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "AI_BACKEND_UNAVAILABLE",
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RELEASE_AI_BUDGET_MISSING",
+          "RELEASE_AI_DISABLED",
+          "RELEASE_DIGEST_MISSING",
+          "RELEASE_MODEL_CLASSIFICATION_TOO_LOW",
+          "RELEASE_MODEL_NOT_IN_CATALOGUE",
+          "RELEASE_MODEL_UNCLASSIFIED",
+          "RELEASE_NOT_FOUND",
+          "RELEASE_PRODUCTION_GATE_UNAVAILABLE",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/environments/{environmentId}/incidents": {
+      "get": {
+        "operationId": "listIncidents",
+        "tags": [
+          "delivery"
+        ],
+        "summary": "An environment’s incidents",
+        "description": "§14: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, newest first, with its repair prompt.",
+        "parameters": [
+          {
+            "name": "environmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The incidents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
     "/v1/me": {
       "get": {
         "operationId": "getMe",
@@ -907,6 +1042,134 @@
         ]
       }
     },
+    "/v1/projects/{projectId}/releases": {
+      "get": {
+        "operationId": "listReleases",
+        "tags": [
+          "delivery"
+        ],
+        "summary": "A project’s releases",
+        "description": "The newest 50, newest first.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The releases.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      },
+      "post": {
+        "operationId": "createRelease",
+        "tags": [
+          "delivery"
+        ],
+        "summary": "Release a build",
+        "description": "§13: an immutable release — the build’s digest, the newest valid spec, and the configuration resolved for all three environments, frozen together.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReleaseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The release.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Release"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RELEASE_BUILD_NOT_DEPLOYABLE, RELEASE_BUILD_NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SPEC_NOT_FOUND, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "BLUEPRINT_NOT_FOUND",
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RELEASE_BUILD_NOT_DEPLOYABLE",
+          "RELEASE_BUILD_NOT_FOUND",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "SPEC_NOT_FOUND",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
     "/v1/projects/{projectId}/spec": {
       "get": {
         "operationId": "getSpec",
@@ -1032,6 +1295,56 @@
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
           "SOURCE_GIT_FAILED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/releases/{releaseId}": {
+      "get": {
+        "operationId": "getRelease",
+        "tags": [
+          "delivery"
+        ],
+        "summary": "A release",
+        "description": "One immutable release (§13).",
+        "parameters": [
+          {
+            "name": "releaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The release.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Release"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
       }
@@ -1502,6 +1815,24 @@
         ],
         "additionalProperties": false
       },
+      "CreateReleaseRequest": {
+        "type": "object",
+        "properties": {
+          "buildId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "buildId"
+        ],
+        "additionalProperties": false
+      },
       "CreatedProject": {
         "description": "§22 steps 2–3: the project, its environments, and the validation of the manifest its first commit carries.",
         "type": "object",
@@ -1569,6 +1900,20 @@
           "createdAt",
           "environments",
           "spec"
+        ],
+        "additionalProperties": false
+      },
+      "DeployRequest": {
+        "type": "object",
+        "properties": {
+          "releaseId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          }
+        },
+        "required": [
+          "releaseId"
         ],
         "additionalProperties": false
       },
@@ -1656,7 +2001,6 @@
           "CONFIG_LITELLM_MASTER_KEY_REQUIRED",
           "CONFIG_MASTER_SECRET_REQUIRED",
           "CSRF_ORIGIN_REFUSED",
-          "DEPLOY_INVALID_INPUT",
           "EVENTS_UPGRADE_REQUIRED",
           "FORBIDDEN",
           "IDEMPOTENCY_KEY_REQUIRED",
@@ -1673,7 +2017,6 @@
           "RELEASE_DIGEST_MISSING",
           "RELEASE_ENVIRONMENT_NOT_FOUND",
           "RELEASE_IMAGE_REPOSITORY_MISSING",
-          "RELEASE_INVALID_INPUT",
           "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER",
           "RELEASE_MODEL_CLASSIFICATION_TOO_LOW",
           "RELEASE_MODEL_NOT_IN_CATALOGUE",
@@ -1724,6 +2067,9 @@
                 "items": {
                   "$ref": "#/components/schemas/ManifestError"
                 }
+              },
+              "launchReadiness": {
+                "description": "On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs (§13). Typed in Task 15."
               }
             },
             "required": [
@@ -2102,6 +2448,204 @@
                   "buildId",
                   "code",
                   "reason"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "const": "instance.provisioning"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "type": "object",
+                "properties": {
+                  "instanceId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "releaseId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "environmentId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "environment": {
+                    "type": "string",
+                    "enum": [
+                      "sandbox",
+                      "staging",
+                      "production"
+                    ]
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "building",
+                      "provisioning",
+                      "starting",
+                      "healthy",
+                      "failed",
+                      "hibernated",
+                      "waking",
+                      "destroying",
+                      "gone"
+                    ]
+                  }
+                },
+                "required": [
+                  "instanceId",
+                  "releaseId",
+                  "environmentId",
+                  "environment",
+                  "state"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "const": "instance.starting"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "type": "object",
+                "properties": {
+                  "instanceId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "releaseId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "environmentId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "environment": {
+                    "type": "string",
+                    "enum": [
+                      "sandbox",
+                      "staging",
+                      "production"
+                    ]
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "building",
+                      "provisioning",
+                      "starting",
+                      "healthy",
+                      "failed",
+                      "hibernated",
+                      "waking",
+                      "destroying",
+                      "gone"
+                    ]
+                  }
+                },
+                "required": [
+                  "instanceId",
+                  "releaseId",
+                  "environmentId",
+                  "environment",
+                  "state"
                 ],
                 "additionalProperties": false
               },
@@ -3015,6 +3559,84 @@
           }
         ]
       },
+      "Incident": {
+        "description": "A failed deploy, as §14 records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "instanceId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "releaseId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "exitReason": {
+            "type": "string"
+          },
+          "logTail": {
+            "description": "The last 200 lines, redacted at capture (§14).",
+            "type": "string"
+          },
+          "failedCheck": {
+            "type": "string"
+          },
+          "diffSinceHealthy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "description": "An instant, ISO 8601 in UTC.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "prompt": {
+            "description": "§14: shaped to be handed straight to an agent as a repair request.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "instanceId",
+          "releaseId",
+          "exitReason",
+          "logTail",
+          "failedCheck",
+          "diffSinceHealthy",
+          "createdAt",
+          "prompt"
+        ],
+        "additionalProperties": false
+      },
+      "IncidentList": {
+        "description": "One environment’s Incidents, newest first.",
+        "type": "object",
+        "properties": {
+          "environmentId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "incidents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Incident"
+            }
+          }
+        },
+        "required": [
+          "environmentId",
+          "incidents"
+        ],
+        "additionalProperties": false
+      },
       "Instance": {
         "description": "A running (or once-running) copy of a release in one environment (§11). Never its driver or handle.",
         "type": "object",
@@ -3384,6 +4006,485 @@
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/Project"
+        }
+      },
+      "Release": {
+        "description": "Immutable: a build, a spec and the configuration resolved for every environment (§13).",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "buildId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "appSpecId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "imageDigest": {
+            "description": "What an approval binds to (§13).",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "createdAt": {
+            "description": "An instant, ISO 8601 in UTC.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "scan": {
+            "description": "§12: its build’s scan, recorded on the Release.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "sandbox": {
+                "description": "One environment’s view of the release, frozen when it was made (§13).",
+                "type": "object",
+                "properties": {
+                  "port": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "health": {
+                    "type": "string"
+                  },
+                  "resources": {
+                    "type": "object",
+                    "properties": {
+                      "cpu": {
+                        "type": "number"
+                      },
+                      "memory": {
+                        "type": "string"
+                      },
+                      "pids": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "disk": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "cpu",
+                      "memory",
+                      "pids",
+                      "disk"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "services": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "version",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "egressAllow": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "classification": {
+                    "type": "string"
+                  },
+                  "auth": {
+                    "type": "object",
+                    "properties": {
+                      "provider": {
+                        "type": "string",
+                        "enum": [
+                          "cwl",
+                          "none"
+                        ]
+                      },
+                      "attributes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "provider",
+                      "attributes"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "ai": {
+                    "type": "object",
+                    "properties": {
+                      "models": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "models"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "envNames": {
+                    "description": "The names the app declares — never their values (P5a Decision 22).",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "port",
+                  "health",
+                  "resources",
+                  "services",
+                  "egressAllow",
+                  "classification",
+                  "auth",
+                  "ai",
+                  "envNames"
+                ],
+                "additionalProperties": false
+              },
+              "staging": {
+                "description": "One environment’s view of the release, frozen when it was made (§13).",
+                "type": "object",
+                "properties": {
+                  "port": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "health": {
+                    "type": "string"
+                  },
+                  "resources": {
+                    "type": "object",
+                    "properties": {
+                      "cpu": {
+                        "type": "number"
+                      },
+                      "memory": {
+                        "type": "string"
+                      },
+                      "pids": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "disk": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "cpu",
+                      "memory",
+                      "pids",
+                      "disk"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "services": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "version",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "egressAllow": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "classification": {
+                    "type": "string"
+                  },
+                  "auth": {
+                    "type": "object",
+                    "properties": {
+                      "provider": {
+                        "type": "string",
+                        "enum": [
+                          "cwl",
+                          "none"
+                        ]
+                      },
+                      "attributes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "provider",
+                      "attributes"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "ai": {
+                    "type": "object",
+                    "properties": {
+                      "models": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "models"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "envNames": {
+                    "description": "The names the app declares — never their values (P5a Decision 22).",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "port",
+                  "health",
+                  "resources",
+                  "services",
+                  "egressAllow",
+                  "classification",
+                  "auth",
+                  "ai",
+                  "envNames"
+                ],
+                "additionalProperties": false
+              },
+              "production": {
+                "description": "One environment’s view of the release, frozen when it was made (§13).",
+                "type": "object",
+                "properties": {
+                  "port": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "health": {
+                    "type": "string"
+                  },
+                  "resources": {
+                    "type": "object",
+                    "properties": {
+                      "cpu": {
+                        "type": "number"
+                      },
+                      "memory": {
+                        "type": "string"
+                      },
+                      "pids": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "disk": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "cpu",
+                      "memory",
+                      "pids",
+                      "disk"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "services": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "version",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "egressAllow": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "classification": {
+                    "type": "string"
+                  },
+                  "auth": {
+                    "type": "object",
+                    "properties": {
+                      "provider": {
+                        "type": "string",
+                        "enum": [
+                          "cwl",
+                          "none"
+                        ]
+                      },
+                      "attributes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "provider",
+                      "attributes"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "ai": {
+                    "type": "object",
+                    "properties": {
+                      "models": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "models"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "envNames": {
+                    "description": "The names the app declares — never their values (P5a Decision 22).",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "port",
+                  "health",
+                  "resources",
+                  "services",
+                  "egressAllow",
+                  "classification",
+                  "auth",
+                  "ai",
+                  "envNames"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "sandbox",
+              "staging",
+              "production"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "buildId",
+          "appSpecId",
+          "imageDigest",
+          "summary",
+          "createdBy",
+          "createdAt",
+          "scan",
+          "config"
+        ],
+        "additionalProperties": false
+      },
+      "ReleaseList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Release"
         }
       },
       "ScanSummary": {

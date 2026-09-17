@@ -36,6 +36,10 @@ export const EVENT_TYPES = [
   'build.succeeded',
   /** A sentence in `human_message`; the reason, redacted, in `machine_detail`. */
   'build.failed',
+  /** §22 step 5 (P5a): an instance row exists and its services are being bound. */
+  'instance.provisioning',
+  /** Its services are bound and the driver is starting it — beside the one serving (§11). */
+  'instance.starting',
   /** §11: a deployed instance passed its health check. Carries the state. */
   'instance.healthy',
   /** §11: a deployed instance never became healthy. Carries the state. */

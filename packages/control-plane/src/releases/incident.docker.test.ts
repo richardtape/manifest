@@ -214,8 +214,12 @@ describeDocker('a failed deploy records an Incident, from a real container (§14
       expect(instance.state).toBe('failed')
       // A failed deploy schedules no retire: nothing of this app was replaced (P4c).
       expect(scheduled).toEqual([])
-      // And a streamed one: the state transition, then the Incident it produced.
+      // And a streamed one: the deploy begins, then the state transition, then the
+      // Incident it produced. The two opening frames are P5a Task 14's — a deploy that
+      // ends badly says it started, which is what makes the failure legible on the stream.
       expect(frames.flatMap((f) => (f.kind === 'event' ? [f.type] : []))).toEqual([
+        'instance.provisioning',
+        'instance.starting',
         'instance.failed',
         'incident.opened',
       ])

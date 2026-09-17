@@ -12,14 +12,14 @@ import type { TestUserPuid } from '../identity/testing.js'
 beforeEach(resetDatabase)
 afterAll(resetDatabase)
 
-async function projectFor(puid: TestUserPuid) {
+async function projectFor(puid: TestUserPuid, slug = 'chem-labs') {
   const deps = await testDeps()
   const app = await buildServer(deps)
   const cookies = await loginAs(deps, puid)
   const created = await app.inject({
     method: 'POST',
     url: '/v1/projects',
-    payload: projectBody('chem-labs'),
+    payload: projectBody(slug),
     cookies,
     headers: mutationHeaders(deps),
   })
@@ -76,6 +76,83 @@ async function projectWithBuilds(n: number) {
     await deps.builds.idle()
   }
   return { app, deps, cookies, project, ids }
+}
+
+/**
+ * A project with one SUCCEEDED build (P5a Task 14). `env` is written into its
+ * `manifest.yaml` and pushed, so the release below resolves a config with an env var
+ * whose VALUE must not travel with it — the property Decision 22 exists for cannot be
+ * tested against a manifest that declares none.
+ */
+async function builtProject(
+  slug: string,
+  options: { env?: { name: string; value: string }[] } = {},
+) {
+  // The slug reaches BOTH halves: the project this creates and the repository the manifest
+  // below is committed to. Passing it to only one is a fixture that works for exactly one
+  // name and fails confusingly for any other.
+  const { app, deps, cookies, project } = await projectFor('bio_prof', slug)
+  if (options.env !== undefined) {
+    await deps.source.commitFiles(
+      deps.source.repositoryFor(slug),
+      {
+        'manifest.yaml': [
+          'manifest: 1',
+          `name: ${slug}`,
+          'blueprint: fixture-node@1',
+          'runtime:',
+          '  port: 3000',
+          '  health: /healthz',
+          'env:',
+          ...options.env.map((e) => `  - { name: ${e.name}, value: ${e.value} }`),
+          '',
+        ].join('\n'),
+      },
+      'feat: an env var whose value is the app’s, not the contract’s',
+    )
+    const pushed = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${project.id}/spec`,
+      payload: {},
+      cookies,
+      headers: mutationHeaders(deps),
+    })
+    expect(pushed.json().valid, pushed.body).toBe(true)
+  }
+  const started = await app.inject({
+    method: 'POST',
+    url: `/v1/projects/${project.id}/builds`,
+    payload: {},
+    cookies,
+    headers: mutationHeaders(deps),
+  })
+  expect(started.statusCode, started.body).toBe(202)
+  await deps.builds.idle()
+  const build = (
+    await app.inject({ method: 'GET', url: `/v1/builds/${started.json().id}`, cookies })
+  ).json()
+  expect(build.status, JSON.stringify(build)).toBe('succeeded')
+  return { app, deps, cookies, project, build }
+}
+
+/** The same, released — and its staging environment, which is what a deploy names. */
+async function releasedProject(
+  slug: string,
+  options: { env?: { name: string; value: string }[] } = {},
+) {
+  const built = await builtProject(slug, options)
+  const created = await built.app.inject({
+    method: 'POST',
+    url: `/v1/projects/${built.project.id}/releases`,
+    payload: { buildId: built.build.id },
+    cookies: built.cookies,
+    headers: mutationHeaders(built.deps),
+  })
+  expect(created.statusCode, created.body).toBe(201)
+  const staging = built.project.environments.find(
+    (e: { kind: string }) => e.kind === 'staging',
+  )
+  return { ...built, release: created.json(), staging }
 }
 
 describe('a build answers at once and finishes on the stream (R6, P5a Task 13)', () => {
@@ -281,7 +358,12 @@ describe('what the event stream carries (P4b Task 15)', () => {
       'build.failed',
       'build.started',
       'build.succeeded',
+      // Each deploy says it began before it says how it ended (P5a Task 14, §22 step 5).
+      'instance.provisioning',
+      'instance.starting',
       'instance.healthy',
+      'instance.provisioning',
+      'instance.starting',
       'instance.failed',
       'incident.opened',
     ])
@@ -678,6 +760,97 @@ describe('the delivery routes', () => {
       cookies: await loginAs(deps, 'bio_student'),
     })
     expect(other.statusCode).toBe(404)
+    await app.close()
+  })
+})
+
+describe('releases, deploys and incidents answer representations (P5a Task 14)', () => {
+  it('a release shows its build’s digest and scan, and env var NAMES only', async () => {
+    const { deps, app, cookies, project, build } = await builtProject('chem-labs', {
+      // A manifest with an env var whose VALUE must not travel with the release.
+      env: [{ name: 'COURSE_CODE', value: 'CHEM_121' }],
+    })
+    const res = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${project.id}/releases`,
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: { buildId: build.id },
+    })
+    expect(res.statusCode, res.body).toBe(201)
+    const release = res.json()
+    expect(release).toMatchObject({
+      buildId: build.id,
+      imageDigest: build.imageDigest,
+      scan: { scanner: 'fake' },
+    })
+    expect(release.config.staging.envNames).toEqual(['COURSE_CODE'])
+    expect(JSON.stringify(release)).not.toContain('CHEM_121')
+    expect(release).not.toHaveProperty('resolvedConfig')
+    expect(
+      (
+        await app.inject({ method: 'GET', url: `/v1/releases/${release.id}`, cookies })
+      ).json(),
+    ).toEqual(release)
+    expect(
+      (
+        await app.inject({
+          method: 'GET',
+          url: `/v1/projects/${project.id}/releases`,
+          cookies,
+        })
+      ).json(),
+    ).toEqual([release])
+    await app.close()
+  })
+
+  it('a deploy answers the instance without its driver or handle', async () => {
+    const { deps, app, cookies, staging, release } = await releasedProject('chem-labs')
+    const res = await app.inject({
+      method: 'POST',
+      url: `/v1/environments/${staging.id}/deploy`,
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: { releaseId: release.id },
+    })
+    expect(res.statusCode, res.body).toBe(200)
+    expect(Object.keys(res.json()).sort()).toEqual([
+      'environmentId',
+      'id',
+      'kind',
+      'lastSeenAt',
+      'releaseId',
+      'state',
+    ])
+    expect(res.json().state).toBe('healthy')
+    await app.close()
+  })
+
+  it('streams provisioning, starting and healthy for the instance, in that order (§22 step 5)', async () => {
+    const { deps, app, cookies, project, staging, release } =
+      await releasedProject('chem-labs')
+    const frames: StreamFrame[] = []
+    deps.bus.subscribe(project.id, (frame) => frames.push(frame))
+    const instance = (
+      await app.inject({
+        method: 'POST',
+        url: `/v1/environments/${staging.id}/deploy`,
+        cookies,
+        headers: mutationHeaders(deps),
+        payload: { releaseId: release.id },
+      })
+    ).json()
+    const forInstance = frames.flatMap((f) =>
+      f.kind === 'event' &&
+      (f.machineDetail as { instanceId?: string }).instanceId === instance.id
+        ? [f.type]
+        : [],
+    )
+    expect(forInstance.filter((t) => t.startsWith('instance.'))).toEqual([
+      'instance.provisioning',
+      'instance.starting',
+      'instance.healthy',
+    ])
     await app.close()
   })
 })

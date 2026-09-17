@@ -131,9 +131,7 @@ export const ERROR_CODES = {
     'A mutation arrived without an Idempotency-Key of at least 8 characters (D23.6).',
   ),
   BLUEPRINT_NOT_FOUND: bad('No blueprint with this reference is in the registry.'),
-  DEPLOY_INVALID_INPUT: bad('The deploy request body is malformed.'),
   MEMBER_USER_NOT_FOUND: bad('No user with this PUID has ever signed in.'),
-  RELEASE_INVALID_INPUT: bad('The release request body is malformed.'),
   SPEC_NOT_FOUND: bad('The project has no validated spec yet.'),
   STARTER_NOT_FOUND: bad('The blueprint offers no starter by that name (§25).'),
 

@@ -16,9 +16,14 @@ import type { EventType } from './events.js'
  *
  * Validated BEFORE redaction. Redaction only rewrites strings, and nothing below constrains
  * a string that a redactor could rewrite: an id is a UUID and a commit is hex, both of which
- * the heuristics leave alone by design (`observability/redact.ts`). Adding an event type
- * needs THREE things — this map, `EVENT_TYPES`, and the database's CHECK — and
- * `events.test.ts` holds each pair equal.
+ * the heuristics leave alone by design (`observability/redact.ts`).
+ *
+ * **Adding an event type is FOUR edits** — this map, `EVENT_TYPES`, the database's CHECK (a
+ * migration) and `EXAMPLE_DETAILS` in `observability/testing.ts` — and `events.test.ts` holds
+ * each pair equal. It said three until P5a Task 14 counted them: `EXAMPLE_DETAILS` became the
+ * fourth in Task 12 and nothing here said so. The contract's `EventFrame` union is NOT a fifth:
+ * `api/representations/events.ts` builds it from `EVENT_TYPES` and this map, so a new type
+ * appears in the document by construction (and `pnpm contract:write` then shows the drift).
  *
  * Read from the call sites on 2026-09-17: `sso/registration.ts`, `releases/build.ts`,
  * `releases/release.ts`, `releases/retire.ts` and `api/routes/projects.ts`.
@@ -77,6 +82,8 @@ export const EVENT_DETAIL_SCHEMAS = {
         'Redacted at capture (§14). For the agent; the human message is for a person.',
       ),
   }),
+  'instance.provisioning': InstanceDetail,
+  'instance.starting': InstanceDetail,
   'instance.healthy': InstanceDetail,
   'instance.failed': InstanceDetail.extend({ failedCheck: z.string() }),
   'incident.opened': z.strictObject({

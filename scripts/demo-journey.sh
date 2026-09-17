@@ -26,6 +26,9 @@ say()  { printf '\n\033[1m%s\033[0m\n' "$*"; }
 fail() { printf '\n\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 
 CA="$ROOT/$CA_FILE"
+# The one place the journey's project name is written in bash. `scripts/lib/api.sh` and
+# `scripts/lib/proof-app.sh` read $SLUG; the TypeScript half writes it in `step2Create`.
+SLUG=journey-app
 WORK="$(mktemp -d -t manifest-journey)"
 trap 'rm -rf "$WORK"' EXIT
 CP_JAR="$WORK/instructor.jar"
@@ -80,3 +83,34 @@ say "The journey, through @manifest/contract"
 # without it every call is `fetch failed` (P5a sitting 2).
 NODE_EXTRA_CA_CERTS="$CA" MANIFEST_ORIGIN="$ORIGIN" MANIFEST_SESSION="$SESSION" \
   node packages/journey/dist/main.js before-app "$STATE"
+
+# shellcheck source=./lib/proof-app.sh
+. scripts/lib/proof-app.sh     # for `app`: an authenticated call to the DEPLOYED app
+
+APP_URL="$(node -e 'console.log(require(process.argv[1]).appUrl ?? "")' "$STATE")"
+[ -n "$APP_URL" ] || fail "the journey recorded no app URL"
+
+say "6. Open the app; sign in with CWL INSIDE it; write a note; ask the LLM"
+# The app's API, not Manifest's — curl, through the same one sign-in flow (Decision 38).
+APP_JAR="$WORK/app.jar"; APP_IDP_JAR="$WORK/app-idp.jar"
+idp_login "$APP_JAR" "$APP_IDP_JAR" "$APP_URL/login" instructor instructor \
+  "$APP_URL/auth/ubcshib/callback" "$CA"
+ME="$(app "$APP_JAR" GET /api/me)"
+[ "$(printf '%s' "$ME" | field attributes.ubcEduCwlPuid)" = ins000001 ] \
+  || fail "signed in inside the app, and it does not see the instructor: $ME"
+echo "  signed in inside the app as ins000001"
+STAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)-$$"
+NOTE="The P5a journey's note: bismuth grows iridescent staircase crystals. ($STAMP)"
+[ "$(app "$APP_JAR" POST /api/notes "{\"text\":$(json "$NOTE")}" | field text)" = "$NOTE" ] \
+  || fail "the note was not written"
+echo "  wrote a note"
+REPLY="$(app "$APP_JAR" POST /api/ask "{\"question\":$(json "What crystals does bismuth grow?")}")"
+ANSWER="$(printf '%s' "$REPLY" | field answer 2>/dev/null || true)"
+[ -n "$ANSWER" ] || fail "asked, and got no answer: $REPLY"
+[ "$(printf '%s' "$REPLY" | field embeddingDimensions)" = 768 ] \
+  || fail "the question was embedded in the wrong number of dimensions (S3's silent failure): $REPLY"
+echo "  asked, and was answered: $(printf '%s' "$ANSWER" | tr '\n' ' ' | cut -c1-120)"
+
+say "7 and after — through @manifest/contract"
+NODE_EXTRA_CA_CERTS="$CA" MANIFEST_ORIGIN="$ORIGIN" MANIFEST_SESSION="$SESSION" \
+  node packages/journey/dist/main.js after-app "$STATE"

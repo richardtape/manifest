@@ -4,6 +4,7 @@ import { buildRoutes } from './builds.js'
 import { meRoutes } from './me.js'
 import { projectReadRoutes } from './project-reads.js'
 import { createProjectRoutes } from './projects.js'
+import { releaseRoutes } from './releases.js'
 import { slugRoutes } from './slugs.js'
 
 /**
@@ -18,4 +19,5 @@ export const ROUTE_DEFINITIONS: readonly AnyRoute[] = [
   ...slugRoutes,
   ...blueprintRoutes,
   ...buildRoutes,
+  ...releaseRoutes,
 ]

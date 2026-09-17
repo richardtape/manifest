@@ -124,6 +124,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/environments/{environmentId}/deploy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deploy a release to an environment
+         * @description §22 step 5. Answers once the new instance serves, or once it has failed with an Incident — a failed deploy is a 200 whose state is `failed` (R3, §14). The previous instance keeps serving until the new one is proved, and drains in the background. Up to ~90 s when a release never becomes ready. Production answers 409 with LaunchReadiness (§13).
+         */
+        post: operations["deploy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/environments/{environmentId}/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * An environment’s incidents
+         * @description §14: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, newest first, with its repair prompt.
+         */
+        get: operations["listIncidents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me": {
         parameters: {
             query?: never;
@@ -276,6 +316,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/projects/{projectId}/releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A project’s releases
+         * @description The newest 50, newest first.
+         */
+        get: operations["listReleases"];
+        put?: never;
+        /**
+         * Release a build
+         * @description §13: an immutable release — the build’s digest, the newest valid spec, and the configuration resolved for all three environments, frozen together.
+         */
+        post: operations["createRelease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects/{projectId}/spec": {
         parameters: {
             query?: never;
@@ -294,6 +358,26 @@ export interface paths {
          * @description §22 step 3: reads manifest.yaml at the commit (HEAD by default), validates it (§7) and records the result. A sensitive diff (D9) is reported, not yet enforced.
          */
         post: operations["validateSpec"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/releases/{releaseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A release
+         * @description One immutable release (§13).
+         */
+        get: operations["getRelease"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -437,6 +521,11 @@ export interface components {
             starter?: string;
             audience: components["schemas"]["AudienceInput"];
         };
+        CreateReleaseRequest: {
+            /** Format: uuid */
+            buildId: string;
+            summary?: string;
+        };
         /** @description §22 steps 2–3: the project, its environments, and the validation of the manifest its first commit carries. */
         CreatedProject: {
             /** Format: uuid */
@@ -456,6 +545,10 @@ export interface components {
             createdAt: string;
             environments: components["schemas"]["Environment"][];
             spec: components["schemas"]["SpecValidation"];
+        };
+        DeployRequest: {
+            /** Format: uuid */
+            releaseId: string;
         };
         EmptyRequest: Record<string, never>;
         Environment: {
@@ -477,7 +570,7 @@ export interface components {
          * @description Every code the API answers with (api/error-codes.ts). Stable: a client switches on it (§20).
          * @enum {string}
          */
-        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CSRF_ORIGIN_REFUSED" | "DEPLOY_INVALID_INPUT" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "RATE_LIMITED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_INVALID_INPUT" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_NO_PUID" | "SAML_USER_UPSERT_FAILED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_FOREIGN_REPO" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_PATH_ESCAPE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "UNAUTHENTICATED";
+        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CSRF_ORIGIN_REFUSED" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "RATE_LIMITED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_NO_PUID" | "SAML_USER_UPSERT_FAILED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_FOREIGN_REPO" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_PATH_ESCAPE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "UNAUTHENTICATED";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -486,6 +579,8 @@ export interface components {
                 /** @description What to do about it. */
                 hint?: string;
                 details?: components["schemas"]["ManifestError"][];
+                /** @description On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs (§13). Typed in Task 15. */
+                launchReadiness?: unknown;
             };
         };
         /** @description An audit Event, as recorded (§20) and redacted at capture (§14). Switch on `type`; each type has one `machineDetail` shape. Replayed on reconnect. */
@@ -603,6 +698,66 @@ export interface components {
                 code: string | null;
                 /** @description Redacted at capture (§14). For the agent; the human message is for a person. */
                 reason: string;
+            };
+            /**
+             * Format: date-time
+             * @description An instant, ISO 8601 in UTC.
+             */
+            createdAt: string;
+        } | {
+            /** @constant */
+            kind: "event";
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /** @constant */
+            type: "instance.provisioning";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            machineDetail: {
+                /** Format: uuid */
+                instanceId: string;
+                /** Format: uuid */
+                releaseId: string;
+                /** Format: uuid */
+                environmentId: string;
+                /** @enum {string} */
+                environment: "sandbox" | "staging" | "production";
+                /** @enum {string} */
+                state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
+            };
+            /**
+             * Format: date-time
+             * @description An instant, ISO 8601 in UTC.
+             */
+            createdAt: string;
+        } | {
+            /** @constant */
+            kind: "event";
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /** @constant */
+            type: "instance.starting";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            machineDetail: {
+                /** Format: uuid */
+                instanceId: string;
+                /** Format: uuid */
+                releaseId: string;
+                /** Format: uuid */
+                environmentId: string;
+                /** @enum {string} */
+                environment: "sandbox" | "staging" | "production";
+                /** @enum {string} */
+                state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
             };
             /**
              * Format: date-time
@@ -878,6 +1033,33 @@ export interface components {
              */
             createdAt: string;
         };
+        /** @description A failed deploy, as §14 records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked. */
+        Incident: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            instanceId: string;
+            /** Format: uuid */
+            releaseId: string;
+            exitReason: string;
+            /** @description The last 200 lines, redacted at capture (§14). */
+            logTail: string;
+            failedCheck: string;
+            diffSinceHealthy: string;
+            /**
+             * Format: date-time
+             * @description An instant, ISO 8601 in UTC.
+             */
+            createdAt: string;
+            /** @description §14: shaped to be handed straight to an agent as a repair request. */
+            prompt: string;
+        };
+        /** @description One environment’s Incidents, newest first. */
+        IncidentList: {
+            /** Format: uuid */
+            environmentId: string;
+            incidents: components["schemas"]["Incident"][];
+        };
         /** @description A running (or once-running) copy of a release in one environment (§11). Never its driver or handle. */
         Instance: {
             /** Format: uuid */
@@ -981,6 +1163,116 @@ export interface components {
             environments?: components["schemas"]["Environment"][];
         };
         ProjectList: components["schemas"]["Project"][];
+        /** @description Immutable: a build, a spec and the configuration resolved for every environment (§13). */
+        Release: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            projectId: string;
+            /** Format: uuid */
+            buildId: string;
+            /** Format: uuid */
+            appSpecId: string;
+            /** @description What an approval binds to (§13). */
+            imageDigest: string;
+            summary: string | null;
+            /** Format: uuid */
+            createdBy: string;
+            /**
+             * Format: date-time
+             * @description An instant, ISO 8601 in UTC.
+             */
+            createdAt: string;
+            /** @description §12: its build’s scan, recorded on the Release. */
+            scan: components["schemas"]["ScanSummary"] | null;
+            config: {
+                /** @description One environment’s view of the release, frozen when it was made (§13). */
+                sandbox: {
+                    port: number;
+                    health: string;
+                    resources: {
+                        cpu: number;
+                        memory: string;
+                        pids: number;
+                        disk: string;
+                    };
+                    services: {
+                        type: string;
+                        version: string;
+                        name: string;
+                    }[];
+                    egressAllow: string[];
+                    classification: string;
+                    auth: {
+                        /** @enum {string} */
+                        provider: "cwl" | "none";
+                        attributes: string[];
+                    };
+                    ai: {
+                        models: string[];
+                    };
+                    /** @description The names the app declares — never their values (P5a Decision 22). */
+                    envNames: string[];
+                };
+                /** @description One environment’s view of the release, frozen when it was made (§13). */
+                staging: {
+                    port: number;
+                    health: string;
+                    resources: {
+                        cpu: number;
+                        memory: string;
+                        pids: number;
+                        disk: string;
+                    };
+                    services: {
+                        type: string;
+                        version: string;
+                        name: string;
+                    }[];
+                    egressAllow: string[];
+                    classification: string;
+                    auth: {
+                        /** @enum {string} */
+                        provider: "cwl" | "none";
+                        attributes: string[];
+                    };
+                    ai: {
+                        models: string[];
+                    };
+                    /** @description The names the app declares — never their values (P5a Decision 22). */
+                    envNames: string[];
+                };
+                /** @description One environment’s view of the release, frozen when it was made (§13). */
+                production: {
+                    port: number;
+                    health: string;
+                    resources: {
+                        cpu: number;
+                        memory: string;
+                        pids: number;
+                        disk: string;
+                    };
+                    services: {
+                        type: string;
+                        version: string;
+                        name: string;
+                    }[];
+                    egressAllow: string[];
+                    classification: string;
+                    auth: {
+                        /** @enum {string} */
+                        provider: "cwl" | "none";
+                        attributes: string[];
+                    };
+                    ai: {
+                        models: string[];
+                    };
+                    /** @description The names the app declares — never their values (P5a Decision 22). */
+                    envNames: string[];
+                };
+            };
+        };
+        ReleaseList: components["schemas"]["Release"][];
         /** @description §12’s scan of the image a build produced (§6 `Build.scan`). */
         ScanSummary: {
             /** @description The scanner and its version — `fake` from the in-memory driver. */
@@ -1249,6 +1541,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Environment"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deploy: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                environmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeployRequest"];
+            };
+        };
+        responses: {
+            /** @description The instance, healthy or failed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Instance"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_PRODUCTION_GATE_UNAVAILABLE, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listIncidents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                environmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The incidents. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentList"];
                 };
             };
             /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED. */
@@ -1596,6 +1957,75 @@ export interface operations {
             };
         };
     };
+    listReleases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The releases. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseList"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createRelease: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReleaseRequest"];
+            };
+        };
+        responses: {
+            /** @description The release. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Release"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RELEASE_BUILD_NOT_DEPLOYABLE, RELEASE_BUILD_NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SPEC_NOT_FOUND, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     getSpec: {
         parameters: {
             query?: never;
@@ -1655,6 +2085,37 @@ export interface operations {
                 };
             };
             /** @description An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_GIT_FAILED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getRelease: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                releaseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The release. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Release"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

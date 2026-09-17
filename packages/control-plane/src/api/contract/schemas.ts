@@ -90,6 +90,12 @@ export const ErrorEnvelope = representation(
       message: z.string().describe('For a person. Never parse it; switch on `code`.'),
       hint: z.string().optional().describe('What to do about it.'),
       details: z.array(ManifestErrorSchema).optional(),
+      launchReadiness: z
+        .unknown()
+        .optional()
+        .describe(
+          'On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs (§13). Typed in Task 15.',
+        ),
     }),
   }),
 )

@@ -82,8 +82,10 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
     })
     expect(release.statusCode).toBe(201)
     expect(release.json().buildId).toBe(build.json().id)
-    expect(release.json().resolvedConfig.staging.port).toBe(3000)
-    expect(release.json().resolvedConfig.production.resources.memory).toBe('512Mi')
+    // `config`, not `resolvedConfig`: the release answers a representation (P5a Task 14),
+    // which carries each environment's frozen numbers and its env var NAMES only.
+    expect(release.json().config.staging.port).toBe(3000)
+    expect(release.json().config.production.resources.memory).toBe('512Mi')
 
     // 6. Deploy to staging (§22 step 5) and reach healthy.
     const staging = project.environments.find(

@@ -302,6 +302,28 @@ export async function deployRelease(
       })
       .returning()
     const instanceId = row!.id
+    const instanceDetail0 = {
+      instanceId,
+      releaseId: release.id,
+      environmentId: environment.id,
+      environment: environment.kind,
+      state: 'provisioning',
+    }
+    // §22 step 5 (P5a Task 14). The redactor is EMPTY and that is accurate: nothing in this
+    // detail or sentence is secret, and the app's secret set is opened further down, before
+    // anything is minted (P4b finding 162) — not moved up for an event that needs none of it.
+    await publishEvent(
+      db,
+      deps.bus,
+      {
+        projectId: environment.projectId,
+        subject: `instance:${instanceId}`,
+        type: 'instance.provisioning',
+        machineDetail: instanceDetail0,
+        humanMessage: `Preparing ${projectSlug} in ${environment.kind}.`,
+      },
+      makeRedactor([]),
+    )
     /**
      * §11's key gained the INSTANCE (P4c): a redeploy of the same release is a new
      * instance beside the one serving, so the name can no longer be computed before the
@@ -516,6 +538,27 @@ export async function deployRelease(
     // What the platform checked, in words, when it did not pass: §14's failing check.
     let failedCheck = ''
     try {
+      // provisioning → starting, STORED (P5a Task 14). Services are bound; the driver is
+      // about to start the instance beside the one serving. Before this, `starting` existed
+      // only as a value computed on the way to `healthy`, so no client could ever see it —
+      // and a restart in this window left a row in `provisioning` that `recoverAtBoot`
+      // could not tell from one that never reached its services.
+      await db
+        .update(instances)
+        .set({ state: nextState('provisioning', 'services_bound') })
+        .where(eq(instances.id, instanceId))
+      await publishEvent(
+        db,
+        deps.bus,
+        {
+          projectId: environment.projectId,
+          subject: `instance:${instanceId}`,
+          type: 'instance.starting',
+          machineDetail: { ...instanceDetail0, state: 'starting' },
+          humanMessage: `${projectSlug} is starting in ${environment.kind}.`,
+        },
+        redact,
+      )
       handle = await driver.ensureInstance({
         name,
         instanceId,
@@ -628,9 +671,8 @@ export async function deployRelease(
         })
     }
 
-    // provisioning -> starting the moment the driver has bound services and the
-    // container exists; then health decides between healthy and failed.
-    const starting = nextState('provisioning', 'services_bound')
+    // Stored above, before the driver started the instance; health decides the rest.
+    const starting = 'starting' as const
     const state = nextState(starting, healthy ? 'health_passed' : 'health_failed')
 
     const [updated] = await db
