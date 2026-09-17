@@ -122,6 +122,12 @@ const envSchema = z.object({
   MANIFEST_SP_CERTIFICATE: z.string().min(1).default('infra/sp/control-plane.crt'),
   MANIFEST_BLUEPRINTS_ROOT: z.string().min(1),
   MANIFEST_REPOS_ROOT: z.string().min(1),
+  /**
+   * §23's reserved labels (P5a Decision 25): the directory holding `labels.yaml` and
+   * `ubc-academic.yaml`, read once at boot. A missing or malformed list refuses the boot.
+   * Repo-relative for the reason `fromRepoRoot` records.
+   */
+  MANIFEST_RESERVED_LABELS_DIR: z.string().min(1).default('infra/reserved-labels'),
   // §23: one zone setting per environment kind. Laptop defaults, verified in S7.
   MANIFEST_ZONE_SANDBOX: z.string().min(1).default('sandbox.manifest.internal'),
   MANIFEST_ZONE_STAGING: z.string().min(1).default('staging.manifest.internal'),
@@ -264,6 +270,8 @@ export interface Config {
   }
   blueprintsRoot: string
   reposRoot: string
+  /** Absolute. §23's reserved labels. */
+  reservedLabelsDir: string
   zones: { sandbox: string; staging: string; production: string }
   registryTokenKeyPath: string
   registryTokenCertPath: string
@@ -421,6 +429,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     },
     blueprintsRoot: raw.MANIFEST_BLUEPRINTS_ROOT,
     reposRoot: raw.MANIFEST_REPOS_ROOT,
+    reservedLabelsDir: fromRepoRoot(raw.MANIFEST_RESERVED_LABELS_DIR),
     zones: {
       sandbox: raw.MANIFEST_ZONE_SANDBOX,
       staging: raw.MANIFEST_ZONE_STAGING,

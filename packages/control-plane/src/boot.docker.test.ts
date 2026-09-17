@@ -31,6 +31,7 @@ import { createServiceCredentials } from './services/index.js'
 import { litellmMasterKey } from './ai/testing.js'
 import { deleteSpRow, readSpRow } from './sso/index.js'
 import { idpDatabaseUrl } from './sso/testing.js'
+import { testReservedLabels } from './projects/testing.js'
 
 /** Its own SP scope. `identity/saml.docker.test.ts` records why at length. */
 const TEST_ENTITY_BASE = 'https://test-suite.manifest.internal'
@@ -288,11 +289,16 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
         role: 'member',
       })
       .returning()
-    const { project, environments } = await createProject(db, config, {
-      slug: SLUG,
-      ownerId: user!.id,
-      blueprintRef: 'fixture-node@1',
-    })
+    const { project, environments } = await createProject(
+      db,
+      config,
+      await testReservedLabels(),
+      {
+        slug: SLUG,
+        ownerId: user!.id,
+        blueprintRef: 'fixture-node@1',
+      },
+    )
     const staging = environments.find((e) => e.kind === KIND)!
     expect(staging.hostname).toBe(HOST)
     const [spec] = await db

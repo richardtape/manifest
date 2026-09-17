@@ -15,7 +15,7 @@
 #   - adding a label never renames a project that already holds it — that project is
 #     reported to administrators instead.
 #
-# Loaded by nothing yet: P5a builds the check, the refusal at creation and the loader.
+# Loaded at boot by `projects/reserved-labels.ts` (P5a Task 9); a malformed list refuses the boot.
 # Written 2026-09-16.
 
 groups:

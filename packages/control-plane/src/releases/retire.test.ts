@@ -20,6 +20,7 @@ import { createFakeDriver, type Driver, type FakeDriver } from '../runtime/index
 import type { AiKeyService } from '../ai/index.js'
 import type { AppSecretResolver } from '../secrets/index.js'
 import { createRetirer, retireEnvironment, type RetirerDeps } from './retire.js'
+import { testReservedLabels } from '../projects/testing.js'
 
 beforeAll(resetDatabase)
 
@@ -95,11 +96,16 @@ async function threeInstances(
       displayName: 'Test Owner',
     })
     .returning()
-  const { project, environments: created } = await createProject(db, config, {
-    slug: `chem-labs-${unique}`,
-    ownerId: owner!.id,
-    blueprintRef: 'fixture-node@1',
-  })
+  const { project, environments: created } = await createProject(
+    db,
+    config,
+    await testReservedLabels(),
+    {
+      slug: `chem-labs-${unique}`,
+      ownerId: owner!.id,
+      blueprintRef: 'fixture-node@1',
+    },
+  )
   const staging = created.find((environment) => environment.kind === 'staging')!
   const [spec] = await db
     .insert(appSpecs)

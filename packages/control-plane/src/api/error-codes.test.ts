@@ -4,7 +4,12 @@ import { afterAll, describe, expect, it, vi } from 'vitest'
 import { AI_CODES, AiError, CATALOGUE_CODES, CatalogueError } from '../ai/index.js'
 import { ConfigError } from '../config.js'
 import { SamlError } from '../identity/index.js'
-import { AuthorizationError, ProjectError } from '../projects/index.js'
+import {
+  AuthorizationError,
+  SLUG_CODES,
+  SlugRefusedError,
+  type SlugReason,
+} from '../projects/index.js'
 import { ReleaseError } from '../releases/index.js'
 import { SourceError } from '../source/index.js'
 import { ERROR_CODES, type ErrorFamily } from './error-codes.js'
@@ -34,7 +39,6 @@ async function sourceFiles(dir: string): Promise<string[]> {
 const WIRE_CLASSES = [
   'AuthorizationError',
   'BadRequestError',
-  'ProjectError',
   'ReleaseError',
   'SourceError',
   'ConfigError',
@@ -64,6 +68,8 @@ async function thrown(): Promise<Map<string, Set<ErrorFamily>>> {
   }
   for (const code of Object.values(AI_CODES)) add(code, 'AiError')
   for (const code of Object.values(CATALOGUE_CODES)) add(code, 'CatalogueError')
+  // The constructor takes a REASON, not a literal, so the scan above cannot see these.
+  for (const code of Object.values(SLUG_CODES)) add(code, 'SlugRefusedError')
   return found
 }
 
@@ -93,13 +99,14 @@ describe('the error-code registry (§20, D23.7)', () => {
       AuthorizationError: (c) =>
         new AuthorizationError(c as 'FORBIDDEN' | 'NOT_FOUND', 'm'),
       BadRequestError: (c) => new BadRequestError(c, 'm'),
-      ProjectError: (c) => new ProjectError(c, 'm'),
       ReleaseError: (c) => new ReleaseError(c, 'm'),
       SourceError: (c) => new SourceError(c, 'm'),
       ConfigError: (c) => new ConfigError(c, 'm'),
       SamlError: (c) => new SamlError(c, 'm'),
       AiError: (c) => new AiError(c, 503, {}),
       CatalogueError: (c) => new CatalogueError(c, 'm', 'h'),
+      SlugRefusedError: (c) =>
+        new SlugRefusedError({ code: c as SlugReason['code'], message: 'm', hint: 'h' }),
     }
     const wrong: string[] = []
     for (const [code, entry] of Object.entries(ERROR_CODES)) {

@@ -158,6 +158,20 @@ const ROUTES: RouteCase[] = [
     },
   },
   {
+    // §23 (P5a Task 9): any signed-in person may ask, and the answer says nothing about a
+    // holder — so there is no stranger to hide anything from.
+    method: 'GET',
+    url: '/v1/slugs/:slug',
+    request: () => ({ url: '/v1/slugs/journey-app' }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
     method: 'GET',
     url: '/v1/projects/:projectId',
     request: (f) => ({ url: `/v1/projects/${f.projectId}` }),

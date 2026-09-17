@@ -4,6 +4,7 @@ import { createProject } from './repository.js'
 import { resetDatabase, withRollback } from '../db/testing.js'
 import { users } from '../db/index.js'
 import { loadConfig } from '../config.js'
+import { testReservedLabels } from './testing.js'
 
 // Each database file starts from a known slate rather than trusting whatever ran
 // before it to have cleaned up. `withRollback` isolates a test from its OWN writes
@@ -73,7 +74,7 @@ describe('assertCapability', () => {
         role: 'member',
       })
       .returning()
-    const { project } = await createProject(db, config, {
+    const { project } = await createProject(db, config, await testReservedLabels(), {
       slug: 'chem-labs',
       ownerId: owner!.id,
       blueprintRef: 'fixture-node@1',

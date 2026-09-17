@@ -10,37 +10,13 @@ import {
 } from '../db/index.js'
 import { type Config, hostnameFor } from '../config.js'
 import type { Actor, ProjectRole } from './authz.js'
+import type { ReservedLabels } from './reserved-labels.js'
+import { assertSlugAvailable, SlugRefusedError, slugTaken } from './slugs.js'
 
 export type Project = typeof projects.$inferSelect
 export type Environment = typeof environments.$inferSelect
 
-/**
- * §7's name rule, restated where a slug becomes a hostname. `spec/` validates the
- * name inside manifest.yaml; this validates the slug the API was handed, which is
- * a different input arriving by a different path. §23 depends on this holding:
- * "nothing free-text reaches a hostname".
- */
-const SLUG = /^[a-z][a-z0-9-]{2,38}$/
-
 const ENVIRONMENT_KINDS = ['sandbox', 'staging', 'production'] as const
-
-/**
- * A refusal this module owns, so the API can answer 409 instead of 500.
- *
- * A duplicate slug used to reach the client as `INTERNAL — the control plane
- * failed to handle this request`, which tells a faculty member nothing and tells
- * an operator nothing either, because `logger: false` swallowed the trace as well.
- * Creating a project whose name is taken is an ordinary, expected answer.
- */
-export class ProjectError extends Error {
-  constructor(
-    readonly code: string,
-    message: string,
-  ) {
-    super(message)
-    this.name = 'ProjectError'
-  }
-}
 
 /** Postgres `unique_violation`. */
 const UNIQUE_VIOLATION = '23505'
@@ -51,17 +27,19 @@ export interface CreateProjectInput {
   blueprintRef: string
 }
 
+/**
+ * §23: the slug is checked by THE one function the slug check API answers from
+ * (`checkSlug`, P5a Task 9), before anything is written — so creation cannot accept a
+ * name the check refused, or refuse one it accepted. §23 depends on this holding:
+ * "nothing free-text reaches a hostname".
+ */
 export async function createProject(
   db: Db,
   config: Config,
+  reserved: ReservedLabels,
   input: CreateProjectInput,
 ): Promise<{ project: Project; environments: Environment[] }> {
-  if (!SLUG.test(input.slug)) {
-    throw new ProjectError(
-      'PROJECT_INVALID_SLUG',
-      `invalid project slug '${input.slug}' — must match ${SLUG.source} (§7)`,
-    )
-  }
+  await assertSlugAvailable(db, reserved, input.slug)
 
   const [project] = await db
     .insert(projects)
@@ -75,14 +53,11 @@ export async function createProject(
       // The slug is unique and it is also the first label of three hostnames
       // (§23), so "that name is taken" is a normal answer, not a fault. Drizzle
       // wraps the driver error; the pg code is on the `cause`.
+      // This is the race between the check above and this insert, and it answers what
+      // the check would have: the same code, the same sentence.
       const cause = (error as { cause?: { code?: string } }).cause
-      if (cause?.code === UNIQUE_VIOLATION) {
-        throw new ProjectError(
-          'PROJECT_SLUG_TAKEN',
-          `the name '${input.slug}' is already in use. Project names are unique across ` +
-            'the platform because each one becomes a hostname (§23).',
-        )
-      }
+      if (cause?.code === UNIQUE_VIOLATION)
+        throw new SlugRefusedError(slugTaken(input.slug))
       throw error
     })
   if (!project) throw new Error('project insert returned no row')

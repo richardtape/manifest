@@ -278,6 +278,118 @@ describe('project reads answer representations (P5a Task 8)', () => {
 })
 
 /**
+ * §23: "one function answers both". The check and creation must give the same answer
+ * for the same name, and this is the test that makes that a fact rather than two
+ * functions that happen to agree today (P5a Task 9, control (b)).
+ */
+describe('the slug check and creation agree (§23, P5a Task 9)', () => {
+  async function signedIn() {
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const cookies = await loginAs(deps, 'bio_prof')
+    return { deps, app, cookies }
+  }
+
+  it('GET /v1/slugs answers 200 whatever the answer, and creation refuses with the same code', async () => {
+    const { deps, app, cookies } = await signedIn()
+    for (const [slug, code, status] of [
+      ['console', 'SLUG_RESERVED', 409],
+      ['chem', 'SLUG_RESERVED', 409],
+      ['Chem_Labs', 'SLUG_INVALID', 400],
+      // Longer than any slug, and still §23's answer rather than a request refusal.
+      ['a'.repeat(80), 'SLUG_INVALID', 400],
+    ] as const) {
+      const check = await app.inject({ method: 'GET', url: `/v1/slugs/${slug}`, cookies })
+      expect(check.statusCode).toBe(200)
+      expect(check.json()).toMatchObject({ slug, available: false, reasons: [{ code }] })
+      const created = await app.inject({
+        method: 'POST',
+        url: '/v1/projects',
+        cookies,
+        headers: mutationHeaders(deps),
+        payload: { slug, blueprint: 'fixture-node@1' },
+      })
+      expect({ status: created.statusCode, code: created.json().error?.code }).toEqual({
+        status,
+        code,
+      })
+      // The message a person reads at creation is the one the check gave them.
+      expect(created.json().error.message).toBe(check.json().reasons[0].message)
+    }
+    await app.close()
+  })
+
+  it('a name taken by creation is SLUG_TAKEN at both', async () => {
+    const { deps, app, cookies } = await signedIn()
+    const first = await app.inject({
+      ...create('chem-labs'),
+      cookies,
+      headers: mutationHeaders(deps),
+    })
+    expect(first.statusCode).toBe(201)
+    const check = await app.inject({ method: 'GET', url: '/v1/slugs/chem-labs', cookies })
+    expect(check.json()).toEqual({
+      slug: 'chem-labs',
+      available: false,
+      reasons: [expect.objectContaining({ code: 'SLUG_TAKEN' })],
+    })
+    const again = await app.inject({
+      ...create('chem-labs'),
+      cookies,
+      headers: mutationHeaders(deps),
+    })
+    expect({ status: again.statusCode, code: again.json().error.code }).toEqual({
+      status: 409,
+      code: 'SLUG_TAKEN',
+    })
+    await app.close()
+  })
+
+  it('an available name is available, and says nothing more', async () => {
+    const { app, cookies } = await signedIn()
+    const check = await app.inject({
+      method: 'GET',
+      url: '/v1/slugs/journey-app',
+      cookies,
+    })
+    expect(check.statusCode).toBe(200)
+    expect(check.json()).toEqual({ slug: 'journey-app', available: true })
+    await app.close()
+  })
+
+  it('limits the check to 60 a minute per person, with Retry-After', async () => {
+    const { deps, app, cookies } = await signedIn()
+    for (let i = 0; i < 60; i += 1) {
+      const ok = await app.inject({
+        method: 'GET',
+        url: '/v1/slugs/journey-app',
+        cookies,
+      })
+      expect(ok.statusCode).toBe(200)
+    }
+    const limited = await app.inject({
+      method: 'GET',
+      url: '/v1/slugs/journey-app',
+      cookies,
+    })
+    expect({ status: limited.statusCode, code: limited.json().error.code }).toEqual({
+      status: 429,
+      code: 'RATE_LIMITED',
+    })
+    expect(Number(limited.headers['retry-after'])).toBeGreaterThan(0)
+    // Per PERSON: somebody else is not limited by it.
+    const other = await loginAs(deps, 'bio_student')
+    const theirs = await app.inject({
+      method: 'GET',
+      url: '/v1/slugs/journey-app',
+      cookies: other,
+    })
+    expect(theirs.statusCode).toBe(200)
+    await app.close()
+  })
+})
+
+/**
  * §22 step 3, at a commit. Project creation was the ONLY thing that had ever
  * validated a manifest.yaml, so a project's spec was fixed for its whole life —
  * an agent could push a manifest declaring a database and the platform would

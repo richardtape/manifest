@@ -30,6 +30,8 @@ import { join } from 'node:path'
 import { createRetirer } from '../releases/index.js'
 import type { AiKeyService } from '../ai/index.js'
 import type { ServerDeps } from './server.js'
+import { testReservedLabels } from '../projects/testing.js'
+import { createRateLimiter } from './rate-limit.js'
 
 /**
  * THROWS RATHER THAN MINTING, for the reason `sso` does below. Every app the API suite
@@ -186,6 +188,9 @@ export async function testDeps(): Promise<ServerDeps> {
      * task builds. `drainMs: 0` because the fake driver counts nothing in flight.
      */
     retirer: createRetirer({ db, driver, ai, appSecrets, bus, drainMs: 0 }),
+    reservedLabels: await testReservedLabels(),
+    // The production limit, so a test of the limit tests the number the boot uses.
+    limits: { slugCheck: createRateLimiter({ limit: 60, windowMs: 60_000 }) },
     ai,
     // A keypair per call, not a shared one: two tests sharing a master key can
     // read each other's secrets, and that is the test-isolation shape that made

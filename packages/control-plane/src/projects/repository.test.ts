@@ -1,8 +1,10 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { resetDatabase, withRollback } from '../db/testing.js'
-import { users } from '../db/index.js'
+import { eq } from 'drizzle-orm'
+import { projects, users } from '../db/index.js'
 import { loadConfig } from '../config.js'
 import { createProject, getProject, listProjectsFor } from './repository.js'
+import { testReservedLabels } from './testing.js'
 
 // Each database file starts from a known slate rather than trusting whatever ran
 // before it to have cleaned up. `withRollback` isolates a test from its OWN writes
@@ -27,11 +29,16 @@ describe('project creation', () => {
         .insert(users)
         .values({ ubcCwlPuid: 'o', email: 'o@ubc.ca', displayName: 'O', role: 'member' })
         .returning()
-      const { project, environments } = await createProject(db, config, {
-        slug: 'chem-labs',
-        ownerId: owner!.id,
-        blueprintRef: 'fixture-node@1',
-      })
+      const { project, environments } = await createProject(
+        db,
+        config,
+        await testReservedLabels(),
+        {
+          slug: 'chem-labs',
+          ownerId: owner!.id,
+          blueprintRef: 'fixture-node@1',
+        },
+      )
 
       expect(project.slug).toBe('chem-labs')
       expect(environments.map((e) => e.kind).sort()).toEqual([
@@ -64,7 +71,7 @@ describe('project creation', () => {
         .insert(users)
         .values({ ubcCwlPuid: 's2', email: 's@ubc.ca', displayName: 'S', role: 'member' })
         .returning()
-      await createProject(db, config, {
+      await createProject(db, config, await testReservedLabels(), {
         slug: 'chem-labs',
         ownerId: owner!.id,
         blueprintRef: 'fixture-node@1',
@@ -96,13 +103,30 @@ describe('project creation', () => {
         'a'.repeat(60),
       ]) {
         await expect(
-          createProject(db, config, {
+          createProject(db, config, await testReservedLabels(), {
             slug,
             ownerId: owner!.id,
             blueprintRef: 'fixture-node@1',
           }),
-        ).rejects.toThrow(/slug/i)
+        ).rejects.toMatchObject({ code: 'SLUG_INVALID' })
       }
+    })
+  })
+
+  it('refuses a reserved label (§23) before anything is written', async () => {
+    await withRollback(async (db) => {
+      const [owner] = await db
+        .insert(users)
+        .values({ ubcCwlPuid: 'o4', email: 'o@ubc.ca', displayName: 'O', role: 'member' })
+        .returning()
+      await expect(
+        createProject(db, config, await testReservedLabels(), {
+          slug: 'idp',
+          ownerId: owner!.id,
+          blueprintRef: 'fixture-node@1',
+        }),
+      ).rejects.toMatchObject({ code: 'SLUG_RESERVED' })
+      expect(await db.select().from(projects).where(eq(projects.slug, 'idp'))).toEqual([])
     })
   })
 

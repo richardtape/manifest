@@ -12,7 +12,8 @@ import type { BlueprintRegistry } from '../blueprints/index.js'
 import type { ServiceCredentialResolver } from '../services/index.js'
 import type { AppSecretResolver } from '../secrets/index.js'
 import { SESSION_COOKIE, verifySession } from '../identity/index.js'
-import type { Actor } from '../projects/index.js'
+import type { Actor, ReservedLabels } from '../projects/index.js'
+import { RateLimitedError, type RateLimiter } from './rate-limit.js'
 import { assertSameOrigin } from './csrf.js'
 import { BadRequestError, toErrorResponse } from './errors.js'
 import { replayOrStore } from './idempotency.js'
@@ -74,6 +75,10 @@ export interface ServerDeps {
    * and the Docker tier wait on.
    */
   retirer: Retirer
+  /** §23's reserved labels, loaded once at boot (P5a Task 9). */
+  reservedLabels: ReservedLabels
+  /** In-process request limits, one limiter per purpose, shared by every request (P5a Task 9). */
+  limits: { slugCheck: RateLimiter }
 }
 
 declare module 'fastify' {
@@ -198,6 +203,8 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
       })
     }
     const { status, body } = toErrorResponse(error)
+    if (error instanceof RateLimitedError)
+      reply.header('retry-after', String(error.retryAfterSeconds))
     if (status === 500) {
       // `console.error`, NOT `request.log.error`. This server is built with
       // `logger: false`, under which `request.log.error` EXISTS, accepts the call

@@ -15,6 +15,7 @@ import { resetDatabase, withRollback } from '../db/testing.js'
 import { createProject } from '../projects/index.js'
 import { createFakeDriver, type FakeDriver } from '../runtime/index.js'
 import { recoverAtBoot } from './recover.js'
+import { testReservedLabels } from '../projects/testing.js'
 
 beforeAll(resetDatabase)
 
@@ -55,11 +56,16 @@ async function deployed(
       displayName: 'Test Owner',
     })
     .returning()
-  const { project, environments: created } = await createProject(db, config, {
-    slug: `chem-labs-${unique}`,
-    ownerId: owner!.id,
-    blueprintRef: 'fixture-node@1',
-  })
+  const { project, environments: created } = await createProject(
+    db,
+    config,
+    await testReservedLabels(),
+    {
+      slug: `chem-labs-${unique}`,
+      ownerId: owner!.id,
+      blueprintRef: 'fixture-node@1',
+    },
+  )
   const staging = created.find((environment) => environment.kind === 'staging')!
   const sandbox = created.find((environment) => environment.kind === 'sandbox')!
   const [spec] = await db

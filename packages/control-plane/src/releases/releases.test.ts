@@ -42,6 +42,7 @@ import {
   readBuildLog,
   type StreamFrame,
 } from '../observability/index.js'
+import { testReservedLabels } from '../projects/testing.js'
 
 /** The repository's own blueprints, resolved from THIS FILE — `pnpm test` and
  *  `pnpm --filter … test` have different working directories. */
@@ -214,11 +215,16 @@ async function fixture(db: Parameters<typeof createProject>[0]) {
     .insert(users)
     .values({ ubcCwlPuid: 'o', email: 'o@ubc.ca', displayName: 'O', role: 'member' })
     .returning()
-  const { project, environments } = await createProject(db, config, {
-    slug: 'chem-labs',
-    ownerId: user!.id,
-    blueprintRef: 'fixture-node@1',
-  })
+  const { project, environments } = await createProject(
+    db,
+    config,
+    await testReservedLabels(),
+    {
+      slug: 'chem-labs',
+      ownerId: user!.id,
+      blueprintRef: 'fixture-node@1',
+    },
+  )
   const [appSpec] = await db
     .insert(appSpecs)
     .values({

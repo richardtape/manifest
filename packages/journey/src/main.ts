@@ -58,8 +58,43 @@ async function step2MyProjects(): Promise<void> {
   if (journeyApp !== undefined) state.projectId = journeyApp.id
 }
 
+/** §23: the name is checked while it is typed, with the answer creation will give. */
+async function step2aCheckTheName(): Promise<void> {
+  checks.step('2a. The project’s name, checked while it is typed (§23)')
+  const check = async (slug: string) =>
+    unwrap(
+      await client.GET('/v1/slugs/{slug}', { params: { path: { slug } } }),
+      'checkSlug',
+    )
+  const platform = await check('console')
+  checks.ok(
+    'console is reserved for the platform',
+    platform.available === false && platform.reasons?.[0]?.code === 'SLUG_RESERVED',
+    JSON.stringify(platform),
+  )
+  const unit = await check('chem')
+  checks.ok(
+    'chem says it is Chemistry',
+    unit.reasons?.[0]?.message.includes('Chemistry') === true,
+    JSON.stringify(unit),
+  )
+  const invalid = await check('Journey_App')
+  checks.ok(
+    'Journey_App is SLUG_INVALID',
+    invalid.reasons?.[0]?.code === 'SLUG_INVALID',
+    JSON.stringify(invalid),
+  )
+  const ours = await check('journey-app')
+  checks.ok(
+    'journey-app is free — or already ours from an earlier run',
+    ours.available ||
+      (state.projectId !== undefined && ours.reasons?.[0]?.code === 'SLUG_TAKEN'),
+    JSON.stringify(ours),
+  )
+}
+
 const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
-  'before-app': [step1SignedIn, step2MyProjects],
+  'before-app': [step1SignedIn, step2MyProjects, step2aCheckTheName],
   'after-app': [],
 }
 

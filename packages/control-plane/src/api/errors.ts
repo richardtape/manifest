@@ -1,4 +1,4 @@
-import { AuthorizationError, ProjectError } from '../projects/index.js'
+import { AuthorizationError, SlugRefusedError } from '../projects/index.js'
 import { ReleaseError } from '../releases/index.js'
 import { SourceError } from '../source/index.js'
 import { ConfigError } from '../config.js'
@@ -10,6 +10,7 @@ import { CsrfRefusedError } from './csrf.js'
 import { AiError, CatalogueError } from '../ai/index.js'
 import { ERROR_CODES } from './error-codes.js'
 import { RequestValidationError } from './contract/route.js'
+import { RateLimitedError } from './rate-limit.js'
 
 export interface ErrorEnvelope {
   error: {
@@ -264,9 +265,31 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
     }
   }
 
+  // §23 (P5a Task 9). The same codes, messages and hints the slug check reports, answered
+  // at creation — a name the check refuses is refused with exactly that sentence.
+  if (error instanceof SlugRefusedError) {
+    return {
+      status: error.code === 'SLUG_INVALID' ? 400 : 409,
+      body: { error: { code: error.code, message: error.message, hint: error.hint } },
+    }
+  }
+
+  // P5a Decision 26. `setErrorHandler` sets Retry-After from the same number.
+  if (error instanceof RateLimitedError) {
+    return {
+      status: 429,
+      body: {
+        error: {
+          code: error.code,
+          message: error.message,
+          hint: `Wait ${error.retryAfterSeconds} s; Retry-After says the same.`,
+        },
+      },
+    }
+  }
+
   // The state-conflict family.
   if (
-    error instanceof ProjectError ||
     error instanceof ReleaseError ||
     error instanceof SourceError ||
     error instanceof ConfigError

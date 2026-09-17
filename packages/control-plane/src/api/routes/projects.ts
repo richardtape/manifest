@@ -9,9 +9,9 @@ import { BadRequestError } from '../errors.js'
 import { requireActor, type ServerDeps } from '../server.js'
 
 const createBody = z.object({
-  slug: z
-    .string()
-    .regex(/^[a-z][a-z0-9-]{2,38}$/, 'slug must match ^[a-z][a-z0-9-]{2,38}$'),
+  // Not §7's rule: that is `checkSlug`'s, so creation and GET /v1/slugs/{slug} refuse a
+  // name with the same code and the same sentence (§23, P5a Task 9).
+  slug: z.string().min(1),
   blueprint: z.string().min(1),
 })
 
@@ -88,7 +88,7 @@ export async function registerProjectRoutes(
       throw new BadRequestError(
         'PROJECT_INVALID_INPUT',
         parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '),
-        'Slugs are lowercase letters, digits and hyphens, 3–39 characters, starting with a letter.',
+        'Send `slug` and `blueprint`. GET /v1/slugs/{slug} says whether a name will be accepted.',
       )
     }
     const { slug, blueprint } = parsed.data
@@ -118,11 +118,16 @@ export async function registerProjectRoutes(
       // FIRST — before the project row and the repository exist. See modelPolicy. The
       // seeded manifest declares no model, so the catalogue is not read here at all.
       const models = await modelPolicy(deps.catalogue, seeded)
-      const { project, environments } = await createProject(deps.db, deps.config, {
-        slug,
-        ownerId: actor.userId,
-        blueprintRef: blueprint,
-      })
+      const { project, environments } = await createProject(
+        deps.db,
+        deps.config,
+        deps.reservedLabels,
+        {
+          slug,
+          ownerId: actor.userId,
+          blueprintRef: blueprint,
+        },
+      )
 
       // §22 step 3: "repository created, manifest.yaml validated".
       const repo = await deps.source.createRepository(slug, {

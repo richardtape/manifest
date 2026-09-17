@@ -152,6 +152,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/slugs/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Would this project name work?
+         * @description §23: answers exactly what project creation will, so a client can tell a person while they type. Always 200 — the answer is about the name, and a 4xx would make "taken" indistinguishable from "not allowed to ask". Says nothing about a holder. 60 a minute per person.
+         */
+        get: operations["checkSlug"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -196,7 +216,7 @@ export interface components {
          * @description Every code the API answers with (api/error-codes.ts). Stable: a client switches on it (§20).
          * @enum {string}
          */
-        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "BLUEPRINT_NOT_FOUND" | "BUILD_INVALID_INPUT" | "BUILD_LOG_INVALID_QUERY" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CSRF_ORIGIN_REFUSED" | "DEPLOY_INVALID_INPUT" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PROJECT_INVALID_INPUT" | "PROJECT_INVALID_SLUG" | "PROJECT_SLUG_TAKEN" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_INVALID_INPUT" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_NO_PUID" | "SAML_USER_UPSERT_FAILED" | "SOURCE_FOREIGN_REPO" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_PATH_ESCAPE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "UNAUTHENTICATED";
+        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "BLUEPRINT_NOT_FOUND" | "BUILD_INVALID_INPUT" | "BUILD_LOG_INVALID_QUERY" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CSRF_ORIGIN_REFUSED" | "DEPLOY_INVALID_INPUT" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PROJECT_INVALID_INPUT" | "RATE_LIMITED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_INVALID_INPUT" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_NO_PUID" | "SAML_USER_UPSERT_FAILED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_FOREIGN_REPO" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_PATH_ESCAPE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "UNAUTHENTICATED";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -279,6 +299,18 @@ export interface components {
         SensitiveDiff: {
             sensitive: boolean;
             fields: string[];
+        };
+        /** @description §23: exactly what project creation will answer — advisory, since creation checks again. */
+        SlugCheck: {
+            slug: string;
+            available: boolean;
+            /** @description Present when `available` is false: every reason that applies. */
+            reasons?: {
+                /** @enum {string} */
+                code: "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN";
+                message: string;
+                hint: string;
+            }[];
         };
         Spec: {
             /** Format: uuid */
@@ -596,6 +628,37 @@ export interface operations {
                 };
             };
             /** @description An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_GIT_FAILED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    checkSlug: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The verdict. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlugCheck"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

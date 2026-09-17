@@ -21,13 +21,13 @@ export type ErrorFamily =
   | 'api'
   | 'AuthorizationError'
   | 'BadRequestError'
-  | 'ProjectError'
   | 'ReleaseError'
   | 'SourceError'
   | 'ConfigError'
   | 'SamlError'
   | 'AiError'
   | 'CatalogueError'
+  | 'SlugRefusedError'
 
 interface Entry {
   status: number
@@ -95,6 +95,10 @@ export const ERROR_CODES = {
     403,
     'A request carrying a session did not come from the console’s origin.',
   ),
+  RATE_LIMITED: api(
+    429,
+    'Too many requests from this person; Retry-After says when to try again.',
+  ),
   EVENTS_UPGRADE_REQUIRED: api(
     426,
     'The event stream is a WebSocket; a plain GET cannot read it.',
@@ -135,16 +139,22 @@ export const ERROR_CODES = {
   RELEASE_INVALID_INPUT: bad('The release request body is malformed.'),
   SPEC_NOT_FOUND: bad('The project has no validated spec yet.'),
 
-  // projects/repository.ts
-  PROJECT_INVALID_SLUG: {
-    status: 409,
-    families: ['ProjectError'],
-    summary: 'The slug breaks §7’s rule.',
+  // projects/slugs.ts — §23. The check answers them in a 200; creation refuses with them.
+  SLUG_INVALID: {
+    status: 400,
+    families: ['SlugRefusedError'],
+    summary: 'The name breaks §7’s slug rule.',
   },
-  PROJECT_SLUG_TAKEN: {
+  SLUG_RESERVED: {
     status: 409,
-    families: ['ProjectError'],
-    summary: 'Another project holds this slug.',
+    families: ['SlugRefusedError'],
+    summary:
+      'The name is one of §23’s reserved labels; the message says what it stands for.',
+  },
+  SLUG_TAKEN: {
+    status: 409,
+    families: ['SlugRefusedError'],
+    summary: 'Another project holds the name.',
   },
 
   // releases/ — every one is 409

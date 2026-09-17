@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { buildServer } from './api/index.js'
+import { buildServer, createRateLimiter } from './api/index.js'
 import { loadBlueprints } from './blueprints/index.js'
 import { loadConfig } from './config.js'
 import { db } from './db/index.js'
@@ -7,6 +7,7 @@ import { createCaddyClient } from './routing/index.js'
 import { createDockerDriver, createEngineClient } from './runtime/index.js'
 import { createLocalSourceDriver } from './source/index.js'
 import { createRetirer, recoverAtBoot } from './releases/index.js'
+import { loadReservedLabels } from './projects/index.js'
 import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
 import { createServiceCredentials } from './services/index.js'
 import { createSamlSp } from './identity/index.js'
@@ -112,6 +113,11 @@ const readIssuerPem = (path: string, which: string): string => {
 // directory. One registry, so the server and the builder cannot disagree about
 // which blueprint `fixture-node@1` names.
 const blueprints = await loadBlueprints(config.blueprintsRoot)
+
+// §23's reserved labels (P5a Decision 25), read once — and before the driver touches
+// Docker, so a missing or malformed list refuses the boot having changed nothing. A list
+// this process half-read would reserve half the names, silently.
+const reservedLabels = await loadReservedLabels(config.reservedLabelsDir)
 
 const driver = await createDockerDriver({
   engine: createEngineClient({ socketPath: config.dockerSocket }),
@@ -267,6 +273,9 @@ const app = await buildServer({
   // subscribes to.
   bus,
   retirer,
+  reservedLabels,
+  // §23: the slug check is asked while a person types (P5a Decision 26).
+  limits: { slugCheck: createRateLimiter({ limit: 60, windowMs: 60_000 }) },
   samlSp: createSamlSp({
     entity: spEntity,
     idpBaseUrl: config.idp.baseUrl,
@@ -320,6 +329,8 @@ console.log(
     routesFailed: recovery.routesFailed.length,
     interrupted: recovery.interrupted,
     msg: 'control plane ready',
+    // How many names §23's list reserves: 0 would mean nothing is reserved.
+    reservedLabels: reservedLabels.size,
     // The COUNT, never the names' values. A zero here means the scrub did not
     // run, which is indistinguishable from a clean environment without it.
     secretsScrubbed: secretsScrubbed.length,
