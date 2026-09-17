@@ -13,6 +13,7 @@ import type { ServiceCredentialResolver } from '../services/index.js'
 import type { AppSecretResolver } from '../secrets/index.js'
 import { SESSION_COOKIE, verifySession } from '../identity/index.js'
 import type { Actor } from '../projects/index.js'
+import { assertSameOrigin } from './csrf.js'
 import { BadRequestError, toErrorResponse } from './errors.js'
 import { replayOrStore } from './idempotency.js'
 import { registerAuthRoutes } from './routes/auth.js'
@@ -79,6 +80,13 @@ declare module 'fastify' {
   interface FastifyContextConfig {
     /** `/auth/*` opts out: logging in twice is not a domain mutation. */
     idempotency?: 'exempt'
+    /**
+     * `/auth/saml/callback` ONLY (P5a Task 4): its credential is a signed assertion bound
+     * to the browser that started the sign-in, and the IdP's auto-submitting POST carries
+     * the IdP's origin. Declared on the route, never matched from a path list — and
+     * `/auth/logout` is deliberately NOT exempt.
+     */
+    csrf?: 'exempt'
   }
   interface FastifyInstance {
     /** Wraps a mutating handler in its idempotency record. Decorated below. */
@@ -153,13 +161,21 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
     }
   })
 
-  // D23.6, applied by the framework rather than remembered per route.
+  // §20's CSRF check and D23.6, applied by the framework rather than remembered per route.
   app.addHook('preHandler', async (request) => {
     if (!MUTATING.has(request.method)) return
     // A request that matched no route has no route options to opt out with, and
     // answering 400 here would mask the 404 — which is exactly what the "the
-    // dev-login route is absent, not forbidden" test is checking for.
+    // dev-login route is absent, not forbidden" test is checking for. It changes
+    // nothing either, so there is nothing for the origin check below to protect.
     if (request.routeOptions.url === undefined) return
+    // §20 CSRF (P5a Task 4). BEFORE the idempotency check, so a cross-site form learns
+    // nothing about which headers it lacks — and before the idempotency opt-out, which
+    // `/auth/logout` carries and this check must not inherit. The stream's upgrade is a
+    // GET and is checked in its own route hook (`routes/events.ts`).
+    if (request.routeOptions.config?.csrf !== 'exempt') {
+      assertSameOrigin(request, deps.config.sp.origin)
+    }
     if (request.routeOptions.config?.idempotency === 'exempt') return
     const key = request.headers['idempotency-key']
     if (typeof key !== 'string' || key.length < 8) {

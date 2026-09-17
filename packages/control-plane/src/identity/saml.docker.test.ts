@@ -270,10 +270,16 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
     const idpJar = cookieJar()
     const appJar = cookieJar()
 
-    // HOP 1: the control plane redirects to the IdP with a signed AuthnRequest.
+    // HOP 1: the control plane redirects to the IdP with a signed AuthnRequest — and
+    // sets the login cookie that binds the sign-in to this browser (P5a Task 4), whose
+    // nonce rides to the IdP as RelayState.
     const login = await request(`${ORIGIN}/auth/login`)
     expect(login.status).toBe(302)
+    appJar.take(login)
+    expect(appJar.get('manifest_login')).toBeTruthy()
     const authnUrl = login.location!
+    const sentRelayState = new URL(authnUrl).searchParams.get('RelayState')
+    expect(sentRelayState).toBeTruthy()
     expect(authnUrl.startsWith(`${IDP}/module.php/saml/idp/singleSignOnService`)).toBe(
       true,
     )
@@ -302,16 +308,33 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
       samlResponse,
       `no SAMLResponse in:\n${autosubmit.body.slice(0, 2000)}`,
     ).toBeTruthy()
+    // THE REAL IdP ECHOES RelayState in its auto-submitting form, unchanged — which is
+    // what the binding rests on (P5a Task 1, M3d), asserted here on every run.
+    const relayState = unescape(attr(autosubmit.body, 'RelayState') ?? '')
+    expect(relayState).toBe(sentRelayState)
 
-    // HOP 4: the browser posts the assertion to the control plane's own ACS.
+    // HOP 4, AS SOMEBODY ELSE'S BROWSER: the same real assertion and RelayState with no
+    // login cookie — the shape of login CSRF. Refused before node-saml is asked, so the
+    // request ID survives for the browser that started the sign-in.
+    const unbound = await request(`${ORIGIN}/auth/saml/callback`, {
+      method: 'POST',
+      form: { SAMLResponse: samlResponse, RelayState: relayState },
+    })
+    expect(unbound.status, unbound.body).toBe(401)
+    expect(JSON.parse(unbound.body).error.code).toBe('SAML_LOGIN_NOT_BOUND')
+    expect(unbound.setCookie).toHaveLength(0)
+
+    // HOP 4: the browser posts the assertion to the control plane's own ACS, with the
+    // RelayState the IdP echoed and the login cookie from hop 1.
     const callback = await request(`${ORIGIN}/auth/saml/callback`, {
       method: 'POST',
-      form: { SAMLResponse: samlResponse },
+      cookie: `manifest_login=${appJar.get('manifest_login')}`,
+      form: { SAMLResponse: samlResponse, RelayState: relayState },
     })
     expect(callback.status, callback.body).toBe(302)
-    // Where a browser actually lands. `/` was the first answer and is a route
-    // this server does not have, so a successful login finished on a 404.
-    expect(callback.location).toBe('/v1/me')
+    // Where a browser actually lands: `/`, the console's home (P5a Task 4), because
+    // hop 1 asked for nowhere else.
+    expect(callback.location).toBe('/')
     appJar.take(callback)
     expect(appJar.get('manifest_session')).toBeTruthy()
 
@@ -331,9 +354,18 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
     // An ACS is reachable without any credential at all, so it must refuse
     // malformed input rather than 500 on it — a handler that crashes on bad XML
     // is a denial-of-service surface anybody can reach. 401 and no cookie.
+    //
+    // WITH A REAL BINDING (P5a Task 4): an unbound post is refused before the XML is
+    // parsed at all, so without hop 1's cookie and nonce this test would stay green
+    // while no longer reaching the parser it exists for. The code says which refusal.
+    const login = await request(`${ORIGIN}/auth/login`)
+    const jar = cookieJar()
+    jar.take(login)
     const nobody = await request(`${ORIGIN}/auth/saml/callback`, {
       method: 'POST',
+      cookie: `manifest_login=${jar.get('manifest_login')}`,
       form: {
+        RelayState: new URL(login.location!).searchParams.get('RelayState') ?? '',
         SAMLResponse: Buffer.from(
           '<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"/>',
           'utf8',
@@ -341,6 +373,7 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
       },
     })
     expect(nobody.status).toBe(401)
+    expect(JSON.parse(nobody.body).error.code).toBe('SAML_ASSERTION_REJECTED')
     expect(nobody.setCookie).toHaveLength(0)
   }, 60_000)
 })

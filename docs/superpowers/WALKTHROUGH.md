@@ -115,8 +115,9 @@ writing a note; the demos write them.
 
 ### Manifest itself — the control plane
 
-**https://console.manifest.internal/auth/login** → sign in as `instructor` / `instructor` → you land on
-`/v1/me`. Then, still JSON:
+**https://console.manifest.internal/auth/login?returnTo=/v1/me** → sign in as `instructor` /
+`instructor` → you land on `/v1/me`. Without `?returnTo=` you land on `/`, which says the console
+is not built yet — that is a successful sign-in, not a failed one. Then, still JSON:
 
 - `/v1/projects` — your projects
 - `/v1/projects/<projectId>?expand=environments` — a project and its three environments
@@ -207,6 +208,12 @@ ORIENTATION §6 and any plan's negative controls.
 - **`403 manifest: the control plane is not reachable from this network`** is the console's origin
   refusing a request that did not come from the host — from a container, an app included. That is
   §12 working. From the host, a `502` there means the control plane is not running.
+- **`403 CSRF_ORIGIN_REFUSED`** is a `POST` (or an event-stream upgrade) that carried your
+  session and no `origin: https://console.manifest.internal` header. A browser on the console
+  sends it; `curl` does not unless you add `-H "origin: https://console.manifest.internal"`.
+  Every deployed app is same-site with the console, so the cookie alone proves nothing (§20).
+- **`401 SAML_LOGIN_NOT_BOUND`** is a sign-in finished in a different browser — or cookie jar —
+  from the one that opened `/auth/login`. Start again at `/auth/login` in one browser.
 - **A sign-in to Manifest fails after `pnpm test:docker`** until the control plane is restarted: the
   tier re-registers Manifest's own SP at a loopback ACS, and the boot puts it back.
 - **After a reboot:** `make up`. If the host cannot reach `https://*.manifest.internal` but

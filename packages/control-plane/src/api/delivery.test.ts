@@ -1,18 +1,15 @@
 import { beforeEach, afterAll, describe, expect, it, vi } from 'vitest'
-import { randomUUID } from 'node:crypto'
 import { asc, eq } from 'drizzle-orm'
 import { events } from '../db/index.js'
 import type { StreamFrame } from '../observability/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { createFakeDriver } from '../runtime/index.js'
 import { buildServer } from './server.js'
-import { loginAs, testDeps } from './testing.js'
+import { loginAs, mutationHeaders, testDeps } from './testing.js'
 import type { TestUserPuid } from '../identity/testing.js'
 
 beforeEach(resetDatabase)
 afterAll(resetDatabase)
-
-const key = () => ({ 'idempotency-key': randomUUID() })
 
 async function projectFor(puid: TestUserPuid) {
   const deps = await testDeps()
@@ -23,7 +20,7 @@ async function projectFor(puid: TestUserPuid) {
     url: '/v1/projects',
     payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
     cookies,
-    headers: key(),
+    headers: mutationHeaders(deps),
   })
   return { app, deps, cookies, project: created.json() }
 }
@@ -41,7 +38,13 @@ describe('what the event stream carries (P4b Task 15)', () => {
       (e: { kind: string }) => e.kind === 'staging',
     )
     const post = (url: string, payload: Record<string, unknown>) =>
-      app.inject({ method: 'POST', url, payload, cookies, headers: key() })
+      app.inject({
+        method: 'POST',
+        url,
+        payload,
+        cookies,
+        headers: mutationHeaders(deps),
+      })
 
     // A build that fails, then one that succeeds.
     vi.spyOn(deps.driver, 'buildImage').mockRejectedValueOnce(
@@ -102,14 +105,14 @@ describe('what the event stream carries (P4b Task 15)', () => {
 
 describe('the delivery routes', () => {
   it('builds, releases and deploys to staging', async () => {
-    const { app, cookies, project } = await projectFor('bio_prof')
+    const { app, deps, cookies, project } = await projectFor('bio_prof')
 
     const build = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/builds`,
       payload: { commitSha: project.commitSha },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     expect(build.statusCode).toBe(201)
     expect(build.json().status).toBe('succeeded')
@@ -120,7 +123,7 @@ describe('the delivery routes', () => {
       url: `/v1/projects/${project.id}/releases`,
       payload: { buildId: build.json().id, summary: 'first' },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     expect(release.statusCode).toBe(201)
 
@@ -132,7 +135,7 @@ describe('the delivery routes', () => {
       url: `/v1/environments/${staging.id}/deploy`,
       payload: { releaseId: release.json().id },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     expect(deploy.statusCode).toBe(200)
     expect(deploy.json().state).toBe('healthy')
@@ -169,7 +172,7 @@ describe('the delivery routes', () => {
         url: '/v1/projects',
         payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
         cookies,
-        headers: key(),
+        headers: mutationHeaders(deps),
       })
     ).json()
     const build = await app.inject({
@@ -177,14 +180,14 @@ describe('the delivery routes', () => {
       url: `/v1/projects/${project.id}/builds`,
       payload: { commitSha: project.commitSha },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     const release = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/releases`,
       payload: { buildId: build.json().id },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     const staging = project.environments.find(
       (e: { kind: string }) => e.kind === 'staging',
@@ -195,7 +198,7 @@ describe('the delivery routes', () => {
         url: `/v1/environments/${staging.id}/deploy`,
         payload: { releaseId: release.json().id },
         cookies,
-        headers: key(),
+        headers: mutationHeaders(deps),
       })
     const healthy = await deploy()
     expect(healthy.json().state).toBe('healthy')
@@ -214,13 +217,13 @@ describe('the delivery routes', () => {
   })
 
   it('refuses a release from a build that has not succeeded', async () => {
-    const { app, cookies, project } = await projectFor('bio_prof')
+    const { app, deps, cookies, project } = await projectFor('bio_prof')
     const response = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/releases`,
       payload: { buildId: '00000000-0000-0000-0000-000000000000' },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     expect(response.statusCode).toBe(409)
     expect(response.json().error.code).toBe('RELEASE_BUILD_NOT_FOUND')
@@ -228,20 +231,20 @@ describe('the delivery routes', () => {
   })
 
   it('refuses production and says what is blocking it', async () => {
-    const { app, cookies, project } = await projectFor('bio_prof')
+    const { app, deps, cookies, project } = await projectFor('bio_prof')
     const build = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/builds`,
       payload: { commitSha: project.commitSha },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     const release = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/releases`,
       payload: { buildId: build.json().id },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     const production = project.environments.find(
       (e: { kind: string }) => e.kind === 'production',
@@ -252,7 +255,7 @@ describe('the delivery routes', () => {
       url: `/v1/environments/${production.id}/deploy`,
       payload: { releaseId: release.json().id },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     expect(response.statusCode).toBe(409)
     expect(response.json().error.code).toBe('RELEASE_PRODUCTION_GATE_UNAVAILABLE')
@@ -273,7 +276,7 @@ describe('the delivery routes', () => {
       url: `/v1/projects/${project.id}/builds`,
       payload: { commitSha: project.commitSha },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
 
     const otherCookies = await loginAs(deps, 'bio_student')
@@ -304,7 +307,7 @@ describe('the delivery routes', () => {
       url: `/v1/projects/${project.id}/builds`,
       payload: { commitSha: project.commitSha },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     expect(build.statusCode).toBe(201)
 
@@ -360,7 +363,7 @@ describe('the delivery routes', () => {
         url: '/v1/projects',
         payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
         cookies,
-        headers: key(),
+        headers: mutationHeaders(deps),
       })
     ).json()
     const build = await app.inject({
@@ -368,14 +371,14 @@ describe('the delivery routes', () => {
       url: `/v1/projects/${project.id}/builds`,
       payload: { commitSha: project.commitSha },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     const release = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/releases`,
       payload: { buildId: build.json().id },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     const staging = project.environments.find(
       (e: { kind: string }) => e.kind === 'staging',
@@ -385,7 +388,7 @@ describe('the delivery routes', () => {
       url: `/v1/environments/${staging.id}/deploy`,
       payload: { releaseId: release.json().id },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     // A failed deploy is a recorded outcome, not an error.
     expect(deploy.statusCode).toBe(200)

@@ -9,7 +9,7 @@ import { SESSION_COOKIE } from '../identity/index.js'
 import type { TestUserPuid } from '../identity/testing.js'
 import { eventFrame, recordEvent, type StreamFrame } from '../observability/index.js'
 import { buildServer } from './server.js'
-import { loginAs, testDeps } from './testing.js'
+import { loginAs, mutationHeaders, testDeps } from './testing.js'
 
 beforeEach(resetDatabase)
 afterAll(resetDatabase)
@@ -41,17 +41,27 @@ async function streamServer() {
     url: '/v1/projects',
     payload: { slug: `chem-${randomUUID().slice(0, 6)}`, blueprint: 'fixture-node@1' },
     cookies: owner,
-    headers: { 'idempotency-key': randomUUID() },
+    headers: mutationHeaders(deps),
   })
   const projectId: string = created.json().id
   await app.listen({ port: 0, host: '127.0.0.1' })
   const { port } = app.server.address() as AddressInfo
   const urlFor = (id: string) => `ws://127.0.0.1:${port}/v1/projects/${id}/events`
-  const connect = async (puid: TestUserPuid | 'anonymous', id = projectId) => {
-    const headers =
-      puid === 'anonymous'
+  /**
+   * `origin` is the console's own by default, which is what a browser on the console
+   * sends on every handshake (P5a Task 4); `null` sends none at all.
+   */
+  const connect = async (
+    puid: TestUserPuid | 'anonymous',
+    id = projectId,
+    origin: string | null = deps.config.sp.origin,
+  ) => {
+    const headers = {
+      ...(puid === 'anonymous'
         ? {}
-        : { cookie: `${SESSION_COOKIE}=${(await loginAs(deps, puid))[SESSION_COOKIE]}` }
+        : { cookie: `${SESSION_COOKIE}=${(await loginAs(deps, puid))[SESSION_COOKIE]}` }),
+      ...(origin === null ? {} : { origin }),
+    }
     const socket = new WebSocket(urlFor(id), { headers })
     // `ws` emits 'error' for a refused upgrade, and an 'error' with no listener is an
     // uncaught exception that lands on whichever test runs next. Each test reads the
@@ -152,6 +162,31 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
     expect(deps.bus.listenerCount(projectId)).toBe(0)
   })
 
+  it('refuses an UPGRADE carrying a member’s session from another origin, or from none (P5a Task 4)', async () => {
+    // Cross-site WebSocket hijacking. A deployed app is SAME-SITE with the console, so a
+    // page it serves can open this stream with a member's cookie and READ the project's
+    // events — `SameSite=Lax` does not stop it. An HTTP status, not a close code: the
+    // refusal is before the upgrade, and no subscription ever exists.
+    const { deps, projectId, connect } = await streamServer()
+    const sibling = await connect(
+      'bio_prof',
+      projectId,
+      'https://proof-app.staging.manifest.internal',
+    )
+    const siblingFrames = recorder(sibling)
+    expect(await outcomeOf(sibling)).toEqual({ status: 403 })
+    const none = await connect('bio_prof', projectId, null)
+    expect(await outcomeOf(none)).toEqual({ status: 403 })
+    expect(siblingFrames).toEqual([])
+    expect(deps.bus.listenerCount(projectId)).toBe(0)
+
+    // THE POSITIVE CONTROL, on the same server: the same member from the console's own
+    // origin gets the stream — so the refusals above are the origin's, not the member's.
+    const own = await connect('bio_prof')
+    const frames = recorder(own)
+    await waitUntil(() => frames.some(isReady), 'the ready frame from the console origin')
+  })
+
   it('replays what was recorded, marks the boundary, then streams live — to a collaborator too', async () => {
     // A client that connects during a build must see what it missed. Without the
     // boundary frame it cannot tell a replayed failure from a new one.
@@ -165,7 +200,7 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
       url: `/v1/projects/${projectId}/members`,
       payload: { puid: 'bio_student', role: 'collaborator' },
       cookies: owner,
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     expect(added.statusCode).toBeLessThan(300)
     const recorded = await recordEvent(
@@ -246,7 +281,7 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
       url: '/v1/projects',
       payload: { slug: `other-${randomUUID().slice(0, 6)}`, blueprint: 'fixture-node@1' },
       cookies: owner,
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     const socket = await connect('bio_prof')
     const frames = recorder(socket)

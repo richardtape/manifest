@@ -77,6 +77,14 @@ $(echo "$form" | sed -n 's/.*<title>\(.*\)<\/title>.*/  <title>\1<\/title>/p' | 
   [ -n "$saml" ] || fail "the IdP returned no SAMLResponse for '$user'. If it
 returned a login page again, the credentials were refused."
 
+  # RelayState rides back to the ACS beside the assertion, as a browser's auto-submit
+  # sends it (P5a Task 4): Manifest's own SP binds a sign-in to the browser that started
+  # it by comparing it with a cookie hop 1 put in "$jar". An app that sent none gets none
+  # back. `${relay_arg[@]+…}` because bash 3.2 under `set -u` calls an empty array unbound.
+  local relay relay_arg=()
+  relay="$(echo "$assertion" | sed -n 's/.*name="RelayState"[^>]*value="\([^"]*\)".*/\1/p' | head -1 | idp_unescape)"
+  if [ -n "$relay" ]; then relay_arg=(--data-urlencode "RelayState=$relay"); fi
+
   # THE ACS IS READ OUT OF THE IdP'S OWN FORM, not constructed here, and then
   # checked against what this Service Provider actually answers at. That is the
   # assertion D15 exists for: the IdP posts to whatever its row says, so an app
@@ -91,5 +99,5 @@ but this Service Provider answers at
 which is D15's failure: the registration and the running app disagree."
 
   curl -sS --cacert "$ca" -c "$jar" -b "$jar" -o /dev/null \
-    --data-urlencode "SAMLResponse=$saml" "$acs"
+    --data-urlencode "SAMLResponse=$saml" ${relay_arg[@]+"${relay_arg[@]}"} "$acs"
 }

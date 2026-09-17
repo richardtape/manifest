@@ -82,14 +82,38 @@ describe('Manifest is its own SP (§9)', () => {
 
   type App = Awaited<ReturnType<typeof buildServer>>
 
-  /** A login redirect, and the request ID an assertion must answer. */
+  /**
+   * A login redirect, the request ID an assertion must answer, and the browser's
+   * binding (P5a Task 4): the `RelayState` the redirect carries and the login cookie
+   * set beside it. A browser holds both; an attacker posting through someone else's
+   * browser holds only the first.
+   */
   async function pendingLogin(
     app: App,
-  ): Promise<{ location: string; requestId: string }> {
-    const res = await app.inject({ method: 'GET', url: '/auth/login' })
+    returnTo?: string,
+  ): Promise<{
+    location: string
+    requestId: string
+    relayState: string
+    loginCookie: string
+  }> {
+    const res = await app.inject({
+      method: 'GET',
+      url:
+        returnTo === undefined
+          ? '/auth/login'
+          : `/auth/login?returnTo=${encodeURIComponent(returnTo)}`,
+    })
     expect(res.statusCode).toBe(302)
     const location = res.headers.location as string
-    return { location, requestId: authnRequestId(location) }
+    const cookie = res.cookies.find((c) => c.name === 'manifest_login')
+    expect(cookie).toBeDefined()
+    return {
+      location,
+      requestId: authnRequestId(location),
+      relayState: new URL(location).searchParams.get('RelayState') ?? '',
+      loginCookie: cookie!.value,
+    }
   }
 
   function assertion(
@@ -114,8 +138,28 @@ describe('Manifest is its own SP (§9)', () => {
     })
   }
 
-  const post = (app: App, SAMLResponse: string) =>
-    app.inject({ method: 'POST', url: '/auth/saml/callback', payload: { SAMLResponse } })
+  /**
+   * The IdP's auto-submitting POST, as a browser sends it: the assertion, the
+   * `RelayState` the IdP echoes, and whatever login cookie this browser holds. Every
+   * refusal test below passes the WHOLE binding, so the refusal it asserts is the one
+   * under test and not the binding's — which is also why each of them names its code.
+   */
+  const post = (
+    app: App,
+    SAMLResponse: string,
+    binding: { relayState?: string; loginCookie?: string } = {},
+  ) =>
+    app.inject({
+      method: 'POST',
+      url: '/auth/saml/callback',
+      payload: {
+        SAMLResponse,
+        ...(binding.relayState === undefined ? {} : { RelayState: binding.relayState }),
+      },
+      ...(binding.loginCookie === undefined
+        ? {}
+        : { cookies: { manifest_login: binding.loginCookie } }),
+    })
 
   it('GET /auth/login redirects to the Manifest IdP with a signed SAMLRequest', async () => {
     const app = await buildServer(await testDeps())
@@ -143,15 +187,20 @@ describe('Manifest is its own SP (§9)', () => {
     const deps = await testDeps()
     const app = await buildServer(deps)
     const idp = await testSamlIdp()
-    const { requestId } = await pendingLogin(app)
+    const login = await pendingLogin(app)
 
-    const res = await post(app, assertion(idp, requestId))
+    const res = await post(app, assertion(idp, login.requestId), login)
     expect(res.statusCode).toBe(302)
-    // THE TARGET, not just that it redirected. This said `/` first, which the
-    // control plane does not serve — so a SUCCESSFUL login ended on a 404 that
-    // reads exactly like a failed one, and every test still passed because they
-    // all stopped at the status code. Found by opening it in a browser.
-    expect(res.headers.location).toBe('/v1/me')
+    // THE TARGET, not just that it redirected. `/` again (P5a Task 4), and this time
+    // deliberately: through the edge `/` is the console's home — P5c serves it, and
+    // until then the edge answers it with a page naming /v1/. It was `/` once before,
+    // when the control plane was reached directly and `/` was its own 404 — a
+    // SUCCESSFUL login that read exactly like a failed one, found by opening it in a
+    // browser. A browser that asks for somewhere else says so with `?returnTo=`.
+    expect(res.headers.location).toBe('/')
+    // The login cookie is spent: cleared on the way out, so it cannot bind a second
+    // assertion.
+    expect(res.cookies.find((c) => c.name === 'manifest_login')?.value).toBe('')
     const cookie = res.cookies.find((c) => c.name === 'manifest_session')
     expect(cookie?.httpOnly).toBe(true)
     expect(cookie?.sameSite?.toLowerCase()).toBe('lax')
@@ -183,8 +232,8 @@ describe('Manifest is its own SP (§9)', () => {
     }
     const app = await buildServer(loopback)
     const idp = await testSamlIdp()
-    const { requestId } = await pendingLogin(app)
-    const res = await post(app, assertion(idp, requestId))
+    const login = await pendingLogin(app)
+    const res = await post(app, assertion(idp, login.requestId), login)
     expect(res.statusCode).toBe(302)
     expect(res.cookies.find((c) => c.name === 'manifest_session')?.secure).toBeFalsy()
     await app.close()
@@ -196,7 +245,7 @@ describe('Manifest is its own SP (§9)', () => {
     // class of thing `/auth/dev-login` was, which P2 measured one line from live.
     const app = await buildServer(await testDeps())
     const idp = await testSamlIdp()
-    const { requestId } = await pendingLogin(app)
+    const login = await pendingLogin(app)
     const impostor = await mintSpKeypair({
       projectId: '00000000-0000-0000-0000-000000000000',
       environmentKind: 'staging',
@@ -204,7 +253,11 @@ describe('Manifest is its own SP (§9)', () => {
       entityId: 'https://impostor.example/idp',
     })
 
-    const res = await post(app, assertion(idp, requestId, { signWith: impostor }))
+    const res = await post(
+      app,
+      assertion(idp, login.requestId, { signWith: impostor }),
+      login,
+    )
     expect(res.statusCode).toBe(401)
     expect(res.cookies).toHaveLength(0)
     // The envelope names no detail (D23.7): which signature failed is a probing
@@ -227,10 +280,15 @@ describe('Manifest is its own SP (§9)', () => {
     // load-bearing and whose removal no test can see.
     const app = await buildServer(await testDeps())
     const idp = await testSamlIdp()
-    const { requestId } = await pendingLogin(app)
+    const login = await pendingLogin(app)
 
-    const res = await post(app, assertion(idp, requestId, { unsigned: true }))
+    const res = await post(
+      app,
+      assertion(idp, login.requestId, { unsigned: true }),
+      login,
+    )
     expect(res.statusCode).toBe(401)
+    expect(res.json().error.code).toBe('SAML_ASSERTION_REJECTED')
     expect(res.cookies).toHaveLength(0)
     await app.close()
   })
@@ -242,15 +300,17 @@ describe('Manifest is its own SP (§9)', () => {
     // only thing that separates them.
     const app = await buildServer(await testDeps())
     const idp = await testSamlIdp()
-    const { requestId } = await pendingLogin(app)
+    const login = await pendingLogin(app)
 
     const res = await post(
       app,
-      assertion(idp, requestId, {
+      assertion(idp, login.requestId, {
         audience: 'https://manifest.internal/sp/chem-labs/staging',
       }),
+      login,
     )
     expect(res.statusCode).toBe(401)
+    expect(res.json().error.code).toBe('SAML_ASSERTION_REJECTED')
     expect(res.cookies).toHaveLength(0)
     await app.close()
   })
@@ -261,20 +321,22 @@ describe('Manifest is its own SP (§9)', () => {
     // set — and this is what proves it, by quoting an ID no login produced.
     const app = await buildServer(await testDeps())
     const idp = await testSamlIdp()
-    await pendingLogin(app)
+    const login = await pendingLogin(app)
 
-    const res = await post(app, assertion(idp, '_anIdNobodyIssued'))
+    const res = await post(app, assertion(idp, '_anIdNobodyIssued'), login)
     expect(res.statusCode).toBe(401)
+    expect(res.json().error.code).toBe('SAML_ASSERTION_REJECTED')
     await app.close()
   })
 
   it('refuses an expired assertion', async () => {
     const app = await buildServer(await testDeps())
     const idp = await testSamlIdp()
-    const { requestId } = await pendingLogin(app)
+    const login = await pendingLogin(app)
 
-    const res = await post(app, assertion(idp, requestId, { expired: true }))
+    const res = await post(app, assertion(idp, login.requestId, { expired: true }), login)
     expect(res.statusCode).toBe(401)
+    expect(res.json().error.code).toBe('SAML_ASSERTION_REJECTED')
     await app.close()
   })
 
@@ -283,11 +345,12 @@ describe('Manifest is its own SP (§9)', () => {
     // belongs to the wrong person, so this fails rather than storing a blank.
     const app = await buildServer(await testDeps())
     const idp = await testSamlIdp()
-    const { requestId } = await pendingLogin(app)
+    const login = await pendingLogin(app)
 
     const res = await post(
       app,
-      assertion(idp, requestId, { attributes: { [OID.mail]: 'nobody@ubc.ca' } }),
+      assertion(idp, login.requestId, { attributes: { [OID.mail]: 'nobody@ubc.ca' } }),
+      login,
     )
     expect(res.statusCode).toBe(401)
     expect(res.json().error.code).toBe('SAML_NO_PUID')
@@ -300,8 +363,8 @@ describe('Manifest is its own SP (§9)', () => {
     const idp = await testSamlIdp()
 
     for (let i = 0; i < 2; i++) {
-      const { requestId } = await pendingLogin(app)
-      const res = await post(app, assertion(idp, requestId))
+      const login = await pendingLogin(app)
+      const res = await post(app, assertion(idp, login.requestId), login)
       expect(res.statusCode).toBe(302)
     }
 
@@ -335,13 +398,102 @@ describe('Manifest is its own SP (§9)', () => {
       role: 'admin',
     })
 
-    const { requestId } = await pendingLogin(app)
-    expect((await post(app, assertion(idp, requestId))).statusCode).toBe(302)
+    const login = await pendingLogin(app)
+    expect((await post(app, assertion(idp, login.requestId), login)).statusCode).toBe(302)
 
     const [row] = await db.select().from(users).where(eq(users.ubcCwlPuid, 'ins000001'))
     expect(row!.role).toBe('admin')
     // The name and address DO follow the assertion — those are the IdP's to say.
     expect(row!.email).toBe('instructor@ubc.ca')
+    await app.close()
+  })
+
+  it('sets a login cookie bound to the RelayState it sends, for ten minutes, on /auth only', async () => {
+    const app = await buildServer(await testDeps())
+    const res = await app.inject({ method: 'GET', url: '/auth/login' })
+    const cookie = res.cookies.find((c) => c.name === 'manifest_login')!
+    expect(cookie.httpOnly).toBe(true)
+    expect(cookie.path).toBe('/auth')
+    expect(cookie.maxAge).toBe(600)
+    // `SameSite=None; Secure` on the https origin: the IdP's auto-submitting POST is
+    // cross-site wherever the IdP is on another registrable domain, and Lax would drop
+    // this cookie from exactly that request.
+    expect(cookie.secure).toBe(true)
+    expect(String(cookie.sameSite).toLowerCase()).toBe('none')
+    const relayState = new URL(res.headers.location as string).searchParams.get(
+      'RelayState',
+    )
+    expect(relayState).toMatch(/^[A-Za-z0-9_-]{32}$/)
+    expect(cookie.value.startsWith(`${relayState}.`)).toBe(true)
+    // RelayState is SIGNED into the redirect (the HTTP-Redirect binding signs the whole
+    // query), so a nonce swapped in transit is refused by the IdP, not only here.
+    expect(
+      new URL(res.headers.location as string).searchParams.get('Signature'),
+    ).toBeTruthy()
+    await app.close()
+  })
+
+  it('refuses an assertion posted by a browser that did not start the sign-in', async () => {
+    const app = await buildServer(await testDeps())
+    const idp = await testSamlIdp()
+    const login = await pendingLogin(app)
+    // The attacker's own assertion, posted through a victim's browser: the right
+    // RelayState, but no login cookie — the victim never started this sign-in.
+    const res = await post(app, assertion(idp, login.requestId), {
+      relayState: login.relayState,
+    })
+    expect(res.statusCode).toBe(401)
+    expect(res.json().error.code).toBe('SAML_LOGIN_NOT_BOUND')
+    expect(res.cookies.find((c) => c.name === 'manifest_session')).toBeUndefined()
+
+    // AND THE REQUEST ID IS NOT SPENT: the refusal happened before node-saml was asked,
+    // so the browser that DID start this sign-in still completes it. Without this, a
+    // refusal that consumed the ID would read the same from outside.
+    const own = await post(app, assertion(idp, login.requestId), login)
+    expect(own.statusCode).toBe(302)
+    await app.close()
+  })
+
+  it('refuses an assertion that carries no RelayState, even with a login cookie', async () => {
+    const app = await buildServer(await testDeps())
+    const idp = await testSamlIdp()
+    const login = await pendingLogin(app)
+    const res = await post(app, assertion(idp, login.requestId), {
+      loginCookie: login.loginCookie,
+    })
+    expect(res.statusCode).toBe(401)
+    expect(res.json().error.code).toBe('SAML_LOGIN_NOT_BOUND')
+    await app.close()
+  })
+
+  it('refuses an assertion whose RelayState is not this browser’s nonce', async () => {
+    const app = await buildServer(await testDeps())
+    const idp = await testSamlIdp()
+    const mine = await pendingLogin(app)
+    const theirs = await pendingLogin(app)
+    const res = await post(app, assertion(idp, theirs.requestId), {
+      relayState: theirs.relayState,
+      loginCookie: mine.loginCookie,
+    })
+    expect(res.statusCode).toBe(401)
+    expect(res.json().error.code).toBe('SAML_LOGIN_NOT_BOUND')
+    await app.close()
+  })
+
+  it('returns to a same-origin path, and to / for anything else', async () => {
+    const app = await buildServer(await testDeps())
+    const idp = await testSamlIdp()
+    for (const [asked, landed] of [
+      ['/v1/me', '/v1/me'],
+      ['/projects/7', '/projects/7'],
+      ['//evil.example', '/'],
+      ['https://evil.example/', '/'],
+    ] as const) {
+      const login = await pendingLogin(app, asked)
+      const res = await post(app, assertion(idp, login.requestId), login)
+      expect(res.statusCode, asked).toBe(302)
+      expect(res.headers.location, asked).toBe(landed)
+    }
     await app.close()
   })
 

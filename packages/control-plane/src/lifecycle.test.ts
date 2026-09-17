@@ -1,14 +1,11 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { randomUUID } from 'node:crypto'
 import { resetDatabase } from './db/testing.js'
 import { buildServer } from './api/index.js'
-import { loginAs, testDeps } from './api/testing.js'
+import { loginAs, mutationHeaders, testDeps } from './api/testing.js'
 
 beforeEach(resetDatabase)
 // This file commits for real, so it clears up behind itself too.
 afterAll(resetDatabase)
-
-const key = () => ({ 'idempotency-key': randomUUID() })
 
 describe('P2 acceptance: the full lifecycle against the fake driver', () => {
   it('goes from no project to a healthy staging instance, in under a second', async () => {
@@ -39,7 +36,7 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
       url: '/v1/projects',
       payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     const afterCreate = performance.now()
     expect(created.statusCode).toBe(201)
@@ -64,7 +61,7 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
       url: `/v1/projects/${project.id}/builds`,
       payload: { commitSha: project.commitSha },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     expect(build.json().status).toBe('succeeded')
     expect(build.json().imageDigest).toMatch(/^sha256:[0-9a-f]{64}$/)
@@ -75,7 +72,7 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
       url: `/v1/projects/${project.id}/releases`,
       payload: { buildId: build.json().id, summary: 'first release' },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     expect(release.statusCode).toBe(201)
     expect(release.json().buildId).toBe(build.json().id)
@@ -91,7 +88,7 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
       url: `/v1/environments/${staging.id}/deploy`,
       payload: { releaseId: release.json().id },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     expect(deployed.statusCode).toBe(200)
     expect(deployed.json().state).toBe('healthy')
@@ -113,7 +110,7 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
       url: `/v1/environments/${production.id}/deploy`,
       payload: { releaseId: release.json().id },
       cookies,
-      headers: key(),
+      headers: mutationHeaders(deps),
     })
     expect(blocked.statusCode).toBe(409)
     expect(

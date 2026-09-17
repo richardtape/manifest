@@ -175,7 +175,7 @@ export interface AssertionInput {
   audience: string
   /** Where it is posted. Must be the SP's registered ACS URL. */
   destination: string
-  /** The AuthnRequest this answers — `authnRequestId(await sp.loginUrl())`. */
+  /** The AuthnRequest this answers — `authnRequestId(await sp.loginUrl(nonce))`. */
   inResponseTo: string
   /** Keyed by OID, as the Manifest IdP releases them after `core:AttributeMap`. */
   attributes: Record<string, string>

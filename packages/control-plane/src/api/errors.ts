@@ -6,6 +6,7 @@ import { SamlError } from '../identity/index.js'
 import { ZodError } from 'zod'
 import type { ManifestError } from '../errors/index.js'
 import { IdempotencyConflictError } from './idempotency.js'
+import { CsrfRefusedError } from './csrf.js'
 import { AiError, CatalogueError } from '../ai/index.js'
 
 export interface ErrorEnvelope {
@@ -79,6 +80,22 @@ export function toErrorResponse(error: unknown): { status: number; body: ErrorEn
           code: 'IDEMPOTENCY_KEY_REUSED',
           message: error.message,
           hint: 'Use a fresh Idempotency-Key for a request with a different body.',
+        },
+      },
+    }
+  }
+
+  // §20 (P5a Task 4). The hint names the origin: it is configuration, not a secret, and a
+  // script author needs it to fix their request. The message echoes at most 100
+  // characters of what arrived, which is the caller's own header.
+  if (error instanceof CsrfRefusedError) {
+    return {
+      status: 403,
+      body: {
+        error: {
+          code: error.code,
+          message: error.message,
+          hint: `Send Origin: ${error.expected}. A browser does this itself; a script sets the header.`,
         },
       },
     }

@@ -84,8 +84,12 @@ export interface SamlIdentity {
 export interface SamlSp {
   /** The entity this SP is, so the caller need not hold it twice. */
   entity: SpEntity
-  /** A signed AuthnRequest as a redirect URL. */
-  loginUrl(): Promise<string>
+  /**
+   * A signed AuthnRequest as a redirect URL, carrying `relayState` to the IdP and back to
+   * the ACS — the nonce that binds a sign-in to the browser that started it (P5a Task 4,
+   * `login-state.ts`). The HTTP-Redirect binding signs it with the request.
+   */
+  loginUrl(relayState: string): Promise<string>
   /** Validates a `SAMLResponse` and returns §9's identity, or throws. */
   validate(samlResponse: string): Promise<SamlIdentity>
 }
@@ -148,7 +152,8 @@ export function createSamlSp(config: SamlSpConfig): SamlSp {
 
   return {
     entity: config.entity,
-    loginUrl: () => saml.getAuthorizeUrlAsync('', undefined, {}),
+    loginUrl: (relayState: string) =>
+      saml.getAuthorizeUrlAsync(relayState, undefined, {}),
     validate: async (samlResponse: string): Promise<SamlIdentity> => {
       let profile
       try {

@@ -22,6 +22,7 @@ import {
 } from '../sso/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
 import { createEventBus } from '../observability/index.js'
+import { randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -100,6 +101,18 @@ export async function loginAs(
 ): Promise<Record<typeof SESSION_COOKIE, string>> {
   const user = await ensureTestUser(deps.db, puid)
   return testSessionCookies(user, deps.config.sessionSecret)
+}
+
+/**
+ * What every mutation a session makes must carry: D23.6's Idempotency-Key and, since P5a
+ * Task 4, §20's Origin — the configured one, read from `deps` rather than restated, so a
+ * test that moves the origin moves what it sends.
+ */
+export function mutationHeaders(deps: ServerDeps): {
+  'idempotency-key': string
+  origin: string
+} {
+  return { 'idempotency-key': randomUUID(), origin: deps.config.sp.origin }
 }
 
 /**

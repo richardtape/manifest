@@ -28,11 +28,13 @@ key() { uuidgen | tr 'A-Z' 'a-z'; }
 # A control-plane call as the person whose session is in $CP_JAR. $2 is the path AS THE
 # CONTRACT SPELLS IT — `/v1/projects`, never `/projects` — so a script can be grepped
 # against packages/contract/openapi.json. Every mutation carries a fresh
-# Idempotency-Key (D23.6): replaying one returns the FIRST response.
+# Idempotency-Key (D23.6): replaying one returns the FIRST response. And §20's Origin
+# (P5a Task 4): a mutation carrying a session from anywhere else is `403
+# CSRF_ORIGIN_REFUSED`, which is what a browser gets from a page on an app's origin.
 api() {
   local method="$1" path="$2" body="${3:-}"
   local args=(-sS -b "$CP_JAR" -c "$CP_JAR" -X "$method" -H 'content-type: application/json')
-  if [ "$method" != GET ]; then args+=(-H "idempotency-key: $(key)"); fi
+  if [ "$method" != GET ]; then args+=(-H "idempotency-key: $(key)" -H "origin: $ORIGIN"); fi
   if [ -n "$body" ]; then args+=(-d "$body"); fi
   curl "${args[@]}" "$API$path"
 }

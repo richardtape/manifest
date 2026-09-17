@@ -1,8 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { randomUUID } from 'node:crypto'
 import { resetDatabase } from '../db/testing.js'
 import { buildServer } from './server.js'
-import { loginAs, testDeps } from './testing.js'
+import { loginAs, mutationHeaders, testDeps } from './testing.js'
 import type { TestUserPuid } from '../identity/testing.js'
 import { AI_CODES, AiError, disabledCatalogue, type ModelCatalogue } from '../ai/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
@@ -29,11 +28,11 @@ const create = (slug: string) => ({
 
 describe('POST /v1/projects', () => {
   it('creates a project with three environments and a seeded repository', async () => {
-    const { app, session } = await loggedIn()
+    const { app, deps, session } = await loggedIn()
     const response = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     expect(response.statusCode).toBe(201)
     const body = response.json()
@@ -50,10 +49,12 @@ describe('POST /v1/projects', () => {
   })
 
   it('refuses a mutating request with no Idempotency-Key', async () => {
-    const { app, session } = await loggedIn()
+    const { app, deps, session } = await loggedIn()
     const response = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
+      // The ORIGIN is present, so the refusal is the key's and not §20's (P5a Task 4).
+      headers: { origin: deps.config.sp.origin },
     })
     expect(response.statusCode).toBe(400)
     expect(response.json().error.code).toBe('IDEMPOTENCY_KEY_REQUIRED')
@@ -61,8 +62,9 @@ describe('POST /v1/projects', () => {
   })
 
   it('creates one project when the same request is replayed', async () => {
-    const { app, session } = await loggedIn()
-    const headers = { 'idempotency-key': randomUUID() }
+    const { app, deps, session } = await loggedIn()
+    // ONE object, so both requests carry the same key — which is the replay.
+    const headers = mutationHeaders(deps)
     const first = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
@@ -86,21 +88,21 @@ describe('POST /v1/projects', () => {
   })
 
   it('rejects a slug §7 would not accept', async () => {
-    const { app, session } = await loggedIn()
+    const { app, deps, session } = await loggedIn()
     const response = await app.inject({
       ...create('Chem_Labs'),
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     expect(response.statusCode).toBe(400)
     await app.close()
   })
 
   it('refuses an unauthenticated request', async () => {
-    const { app } = await loggedIn()
+    const { app, deps } = await loggedIn()
     const response = await app.inject({
       ...create('chem-labs'),
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     expect(response.statusCode).toBe(401)
     await app.close()
@@ -109,11 +111,11 @@ describe('POST /v1/projects', () => {
 
 describe('GET /v1/projects/:id', () => {
   it('expands environments only when asked (D23.1)', async () => {
-    const { app, session } = await loggedIn()
+    const { app, deps, session } = await loggedIn()
     const created = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     const id = created.json().id
 
@@ -134,11 +136,11 @@ describe('GET /v1/projects/:id', () => {
   })
 
   it('returns the validated spec at the seeded commit', async () => {
-    const { app, session } = await loggedIn()
+    const { app, deps, session } = await loggedIn()
     const created = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     const spec = await app.inject({
       method: 'GET',
@@ -156,7 +158,7 @@ describe('GET /v1/projects/:id', () => {
     const created = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     const { manifest_session: otherSession } = await loginAs(deps, 'bio_student')
 
@@ -182,7 +184,7 @@ describe('POST /v1/projects/:id/spec', () => {
     const created = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     const projectId = created.json().id as string
 
@@ -213,7 +215,7 @@ describe('POST /v1/projects/:id/spec', () => {
       url: `/v1/projects/${projectId}/spec`,
       payload: {},
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     expect(response.statusCode).toBe(201)
     const body = response.json()
@@ -236,7 +238,7 @@ describe('POST /v1/projects/:id/spec', () => {
     const created = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     const projectId = created.json().id as string
 
@@ -265,7 +267,7 @@ describe('POST /v1/projects/:id/spec', () => {
       url: `/v1/projects/${projectId}/spec`,
       payload: {},
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     // Adding a service is sensitive under D9. It is REPORTED and not enforced —
     // the escalation and step-up re-auth it feeds are P6's — but `isSensitiveDiff`
@@ -282,7 +284,7 @@ describe('POST /v1/projects/:id/spec', () => {
     const created = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     const projectId = created.json().id as string
     const repo = deps.source.repositoryFor('chem-labs')
@@ -296,7 +298,7 @@ describe('POST /v1/projects/:id/spec', () => {
       url: `/v1/projects/${projectId}/spec`,
       payload: {},
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     // 201: the validation RAN and its answer is "no". A build then refuses with
     // SPEC_INVALID, which is where the failure belongs (P2's build route).
@@ -313,7 +315,7 @@ describe('POST /v1/projects/:id/members', () => {
     const created = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     const id = created.json().id
 
@@ -326,7 +328,7 @@ describe('POST /v1/projects/:id/members', () => {
       url: `/v1/projects/${id}/members`,
       payload: { puid: 'bio_student', role: 'collaborator' },
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     expect(added.statusCode).toBe(201)
 
@@ -344,7 +346,7 @@ describe('POST /v1/projects/:id/members', () => {
     const created = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     const id = created.json().id
 
@@ -354,7 +356,7 @@ describe('POST /v1/projects/:id/members', () => {
       url: `/v1/projects/${id}/members`,
       payload: { puid: 'bio_student', role: 'collaborator' },
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
 
     const response = await app.inject({
@@ -362,7 +364,7 @@ describe('POST /v1/projects/:id/members', () => {
       url: `/v1/projects/${id}/members`,
       payload: { puid: 'unrelated_user', role: 'collaborator' },
       cookies: { manifest_session: inviteeSession },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     // 403, not 404: a collaborator already knows this project exists.
     expect(response.statusCode).toBe(403)
@@ -410,7 +412,7 @@ describe('the model catalogue a spec is validated against', () => {
     const created = await app.inject({
       ...create(slug),
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     expect(created.statusCode).toBe(201)
     await deps.source.commitFiles(
@@ -423,7 +425,7 @@ describe('the model catalogue a spec is validated against', () => {
       url: `/v1/projects/${created.json().id as string}/spec`,
       payload: {},
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
   }
 
@@ -490,11 +492,11 @@ describe('the model catalogue a spec is validated against', () => {
         reason: 'unreachable',
       }),
     )
-    const { app, session } = await withCatalogue({ enabled: true, get })
+    const { app, deps, session } = await withCatalogue({ enabled: true, get })
     const created = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(deps),
     })
     expect(created.statusCode).toBe(201)
     expect(created.json().specValid).toBe(true)
@@ -539,7 +541,7 @@ describe('the model catalogue a spec is validated against', () => {
       url: `/v1/projects/${project.id as string}/spec`,
       payload: {},
       cookies,
-      headers: { 'idempotency-key': randomUUID() },
+      headers: mutationHeaders(ctx.deps),
     })
     expect(retried.json()).toMatchObject({ valid: true, errors: [] })
     await ctx.app.close()

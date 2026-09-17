@@ -1,9 +1,17 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import {
+  LOGIN_COOKIE,
+  LOGIN_TTL_SECONDS,
   SESSION_COOKIE,
   SESSION_TTL_MS,
+  SamlError,
+  encodeLoginCookie,
   issueSession,
+  newLoginNonce,
+  readLoginCookie,
+  safeReturnTo,
+  sameNonce,
   signSession,
   upsertUserFromAssertion,
 } from '../../identity/index.js'
@@ -14,7 +22,15 @@ import { requireActor, type ServerDeps } from '../server.js'
  * `application/x-www-form-urlencoded` — `server.ts` registers that parser for the
  * registry token realm and it serves here too.
  */
-const callbackBody = z.object({ SAMLResponse: z.string().min(1) })
+const callbackBody = z.object({
+  SAMLResponse: z.string().min(1),
+  // SAML Bindings §3.4.3: at most 80 bytes. Optional in the SCHEMA so a malformed body is
+  // still 400 for every actor (the authorization suite's claim); refused below if absent.
+  RelayState: z.string().max(80).optional(),
+})
+
+/** Where the browser wants to land after signing in (P5a Task 4). Checked again on use. */
+const loginQuery = z.object({ returnTo: z.string().max(512).optional() })
 
 export async function registerAuthRoutes(
   app: FastifyInstance,
@@ -32,17 +48,56 @@ export async function registerAuthRoutes(
    * sign their own sessions in-process (`identity/testing.ts`), which needs no
    * HTTP surface for anyone to find.
    */
-  app.get('/auth/login', async (_request, reply) => {
-    return reply.redirect(await deps.samlSp.loginUrl(), 302)
+  app.get('/auth/login', async (request, reply) => {
+    const { returnTo } = loginQuery.parse(request.query ?? {})
+    // A sign-in BOUND TO THIS BROWSER (P5a Decision 16, `identity/login-state.ts`): the
+    // nonce goes to the IdP as RelayState and into a cookie only this browser holds, and
+    // the callback refuses an assertion whose RelayState is not the cookie's.
+    const nonce = newLoginNonce()
+    const https = deps.config.sp.origin.startsWith('https://')
+    reply.setCookie(LOGIN_COOKIE, encodeLoginCookie(nonce, safeReturnTo(returnTo)), {
+      httpOnly: true,
+      path: '/auth',
+      maxAge: LOGIN_TTL_SECONDS,
+      secure: https,
+      // The IdP's auto-submitting POST is CROSS-site wherever the IdP is on another
+      // registrable domain, and Lax would drop this cookie from it. None needs Secure,
+      // which a loopback http origin cannot give — the Docker tier's case, same-site.
+      sameSite: https ? 'none' : 'lax',
+    })
+    return reply.redirect(await deps.samlSp.loginUrl(nonce), 302)
   })
 
   app.post(
     '/auth/saml/callback',
     // Logging in twice is not a domain mutation, and the IdP does not send an
-    // Idempotency-Key. Same exemption `/auth/logout` carries.
-    { config: { idempotency: 'exempt' } },
+    // Idempotency-Key. Same exemption `/auth/logout` carries. And the ONE route exempt
+    // from §20's origin check (P5a Decision 15): the IdP's form posts it from the IdP's
+    // origin, and its credential is an assertion bound to this browser, checked below.
+    { config: { idempotency: 'exempt', csrf: 'exempt' } },
     async (request, reply) => {
-      const { SAMLResponse } = callbackBody.parse(request.body)
+      const { SAMLResponse, RelayState } = callbackBody.parse(request.body)
+      // BOUND BEFORE IT IS VALIDATED: a refusal here never touches the SAML library, and
+      // never consumes the request ID node-saml is holding for the real browser.
+      const binding = readLoginCookie(request.cookies[LOGIN_COOKIE])
+      if (
+        binding === undefined ||
+        RelayState === undefined ||
+        !sameNonce(binding.nonce, RelayState)
+      ) {
+        console.error(
+          JSON.stringify({
+            level: 'error',
+            msg: 'SAML assertion refused',
+            error:
+              'the sign-in was not started by this browser (no login cookie, or a RelayState that is not its nonce)',
+          }),
+        )
+        throw new SamlError(
+          'SAML_LOGIN_NOT_BOUND',
+          'the assertion answers a sign-in this browser did not start',
+        )
+      }
       // Throws SamlError on any refusal — bad signature, wrong audience,
       // expired, unsolicited — which `toErrorResponse` maps to 401 with an
       // envelope that names no detail. The detail goes to the operator here,
@@ -78,16 +133,19 @@ export async function registerAuthRoutes(
           maxAge: SESSION_TTL_MS / 1000,
         },
       )
+      // The login cookie is spent: a second assertion cannot be bound with it.
+      reply.clearCookie(LOGIN_COOKIE, { path: '/auth' })
       // 302, not 200 with a body: the browser arrives here from the IdP's
       // auto-submitting form, so whatever this returns is what the person sees.
       //
-      // To `/v1/me` (it was `/auth/me` until P5a Task 2 put every resource under
-      // `/v1`, D23.8) and NOT to `/`, which is what this said first and is a
-      // route the control plane does not serve — so a successful login ended on
-      // a 404 that reads exactly like a failed one. There is no console yet
-      // (D22's is P5's), and until there is, the honest place to land is the one
-      // that says who you are. P5 changes this line, not the flow.
-      return reply.redirect('/v1/me', 302)
+      // To the path the browser asked for at /auth/login, re-checked on the way out
+      // (`login-state.ts`), and `/` by default — the console's home, which P5c serves on
+      // this origin and which the edge answers until then with a page naming /v1/ (P5a
+      // Task 4). It was `/v1/me` from P5a Task 2 until then, and `/` once before THAT,
+      // when the control plane was reached directly and `/` was its own 404: a
+      // successful login that read exactly like a failed one. `?returnTo=/v1/me` lands
+      // where that said.
+      return reply.redirect(binding.returnTo, 302)
     },
   )
 

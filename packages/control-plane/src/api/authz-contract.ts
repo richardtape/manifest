@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { resetDatabase } from '../db/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
-import { loginAs } from './testing.js'
+import { loginAs, mutationHeaders } from './testing.js'
 
 type Actor = 'owner' | 'collaborator' | 'stranger' | 'admin' | 'anonymous'
 
@@ -357,6 +357,7 @@ export function describeAuthorizationContract(
 ): void {
   describe(`authorization contract (${name})`, () => {
     let app: FastifyInstance
+    let deps: ServerDeps
     let fixture: Fixture
     const cookies: Partial<Record<Actor, Record<string, string>>> = {}
 
@@ -367,7 +368,7 @@ export function describeAuthorizationContract(
       // artefact that silently depends on test-file ordering is one that will be
       // green for the wrong reason exactly once.
       await resetDatabase()
-      const deps = await factory()
+      deps = await factory()
       app = await buildServer(deps)
       // Four distinct identities for §16's four tiers. Reusing one for two tiers is
       // how a suite comes to assert nothing: a "collaborator" who is not a member
@@ -382,7 +383,7 @@ export function describeAuthorizationContract(
         url: '/v1/projects',
         payload: { slug: 'authz-fixture', blueprint: 'fixture-node@1' },
         cookies: cookies.owner,
-        headers: { 'idempotency-key': randomUUID() },
+        headers: mutationHeaders(deps),
       })
       const body = project.json()
 
@@ -391,14 +392,14 @@ export function describeAuthorizationContract(
         url: `/v1/projects/${body.id}/builds`,
         payload: { commitSha: body.commitSha },
         cookies: cookies.owner,
-        headers: { 'idempotency-key': randomUUID() },
+        headers: mutationHeaders(deps),
       })
       const release = await app.inject({
         method: 'POST',
         url: `/v1/projects/${body.id}/releases`,
         payload: { buildId: build.json().id },
         cookies: cookies.owner,
-        headers: { 'idempotency-key': randomUUID() },
+        headers: mutationHeaders(deps),
       })
 
       fixture = {
@@ -424,7 +425,7 @@ export function describeAuthorizationContract(
         url: `/v1/projects/${body.id}/members`,
         payload: { puid: 'bio_student', role: 'collaborator' },
         cookies: cookies.owner,
-        headers: { 'idempotency-key': randomUUID() },
+        headers: mutationHeaders(deps),
       })
 
       // The stranger must be a member of nothing. Assert it rather than assume it.
@@ -461,7 +462,7 @@ export function describeAuthorizationContract(
           const response = await app.inject({
             method: route.method as 'GET',
             url,
-            headers: { 'idempotency-key': randomUUID() },
+            headers: mutationHeaders(deps),
             ...(payload === undefined ? {} : { payload }),
             ...(actorCookies === undefined ? {} : { cookies: actorCookies }),
           })

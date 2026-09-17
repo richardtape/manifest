@@ -40,7 +40,13 @@ function watch([api, projectId, jarPath, outPath]) {
     die('usage: event-stream.mjs watch <api> <projectId> <cookie-jar> <frames.ndjson>')
   const url = `${api.replace(/^http/, 'ws')}/v1/projects/${projectId}/events`
   const socket = new WebSocket(url, {
-    headers: { cookie: `${SESSION_COOKIE}=${sessionFrom(jarPath)}` },
+    // Origin as a browser on the console sends it (P5a Task 4): an upgrade carrying a
+    // session from any other origin is refused 403 before it opens — which reaches this
+    // watcher as an `error` and close 1006, never as a status.
+    headers: {
+      cookie: `${SESSION_COOKIE}=${sessionFrom(jarPath)}`,
+      origin: new URL(api).origin,
+    },
   })
   let stopping = false
   // Appended per frame, synchronously, so SIGTERM loses nothing already received.

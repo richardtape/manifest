@@ -8,10 +8,13 @@ import {
   recentFramesFor,
   type StreamFrame,
 } from '../../observability/index.js'
+import { assertSameOrigin } from '../csrf.js'
 import { requireActor, type ServerDeps } from '../server.js'
 
 /** A refusal AFTER the upgrade: "you may not", distinct from 1011's "I broke". */
 const CLOSE_NOT_FOUND = 4404
+/** The same, for a handshake from another origin (P5a Task 4) — HTTP's 403 in the 4000s. */
+const CLOSE_FORBIDDEN = 4403
 /** RFC 6455's Try Again Later: the client reconnects and is replayed. */
 const CLOSE_TRY_AGAIN_LATER = 1013
 const CLOSE_INTERNAL_ERROR = 1011
@@ -30,6 +33,11 @@ async function authorizeStream(
   const { projectId } = request.params as { projectId: string }
   await assertCapability(deps.db, actor, projectId, 'project:read')
   return projectId
+}
+
+/** An RFC 6455 handshake, which is what a browser page can open cross-origin. */
+function isUpgrade(request: FastifyRequest): boolean {
+  return request.headers.upgrade?.toLowerCase() === 'websocket'
 }
 
 /**
@@ -59,6 +67,14 @@ export async function registerEventRoutes(
     method: 'GET',
     url: '/v1/projects/:projectId/events',
     preValidation: async (request) => {
+      // Cross-site WebSocket hijacking (P5a Task 4): a same-site app's page can open this
+      // stream with the member's cookie and READ it — `SameSite=Lax` does not stop it.
+      // Browsers always send Origin on a handshake. A plain GET — the authorization
+      // suite's 426 — is not an upgrade and reads nothing. First, so a refused origin
+      // learns nothing about the project either.
+      if (isUpgrade(request)) {
+        assertSameOrigin(request, deps.config.sp.origin)
+      }
       await authorizeStream(deps, request)
     },
     handler: async (_request, reply) =>
@@ -74,6 +90,13 @@ export async function registerEventRoutes(
           },
         }),
     wsHandler: async (socket, request) => {
+      // The origin, read a second time for the same reason authorization is below.
+      try {
+        assertSameOrigin(request, deps.config.sp.origin)
+      } catch {
+        socket.close(CLOSE_FORBIDDEN, 'forbidden')
+        return
+      }
       // A SECOND READ, after the hook's. A guard whose enabling condition is written
       // once is one edit from gone: if the hook is ever lost, a stranger's socket is
       // closed here before it is subscribed to anything.

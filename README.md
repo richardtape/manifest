@@ -197,9 +197,18 @@ curl -s -o /dev/null -w '%{redirect_url}\n' https://console.manifest.internal/au
 # https://idp.manifest.internal/module.php/saml/idp/singleSignOnService?SAMLRequest=…&Signature=…
 
 curl -s -b /tmp/jar -X POST -H 'content-type: application/json' \
-  -H "idempotency-key: $(uuidgen)" \
+  -H "idempotency-key: $(uuidgen)" -H "origin: https://console.manifest.internal" \
   -d '{"slug":"boot-check","blueprint":"fixture-node@1"}' https://console.manifest.internal/v1/projects
 ```
+
+**A mutation carrying a session is refused `403 CSRF_ORIGIN_REFUSED` without that `origin`
+header** (§20, P5a Task 4), and so is an event-stream upgrade: every deployed app is
+same-site with the console, so a session cookie alone proves nothing about which page sent
+the request. A browser on the console sends it itself; a script sets it, as
+`scripts/lib/api.sh` does. A sign-in lands on `/`, or on the same-origin path it was started
+with — `https://console.manifest.internal/auth/login?returnTo=/v1/me` — and it completes only
+in the browser that started it: the callback refuses an assertion whose `RelayState` is not
+the nonce in that browser's `manifest_login` cookie (`401 SAML_LOGIN_NOT_BOUND`).
 
 **`node src/index.ts` does not work**, though Node 24 strips types natively: the
 source uses NodeNext `.js` specifiers, which Node resolves literally rather than
