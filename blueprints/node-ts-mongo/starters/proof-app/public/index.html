@@ -10,15 +10,19 @@
   li { margin: .3rem 0; }
   form { display: flex; gap: .5rem; margin: .5rem 0 0; }
   input { flex: 1; font: inherit; padding: .25rem .4rem; }
+  #who { padding: .6rem .8rem; border-radius: 6px; background: rgba(127,127,127,.12); }
+  #who[data-state="in"] { background: rgba(40,160,80,.16); }
 </style>
+<script src="/app.js" defer></script>
 <h1>Manifest proof application</h1>
+<p id="who" aria-live="polite">Checking whether you are signed in…</p>
 <p>
   This app exists to prove three things: it knows <em>who</em> signed in, one
   person cannot see another person's notes, and a question is answered from
   <em>your</em> notes and charged to you.
 </p>
 <ul>
-  <li><a href="/login">Sign in with CWL</a></li>
+  <li id="sign-in"><a href="/login">Sign in with CWL</a></li>
   <li><a href="/api/me">/api/me</a> — what the IdP released about you</li>
   <li><a href="/api/notes">/api/notes</a> — your notes, and nobody else's</li>
   <li>
@@ -28,7 +32,7 @@
       <button>Ask</button>
     </form>
   </li>
-  <li><a href="/auth/logout">Sign out</a></li>
+  <li id="sign-out"><a href="/auth/logout">Sign out</a></li>
 </ul>
 <p>
   A note is stored under <code>sha256(puid ‖ project ‖ environment)</code> and
