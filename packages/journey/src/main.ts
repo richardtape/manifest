@@ -39,8 +39,27 @@ async function step1SignedIn(): Promise<void> {
   )
 }
 
+/** §22 step 2, the half before creating: what the instructor already has. */
+async function step2MyProjects(): Promise<void> {
+  checks.step('2. My projects')
+  const mine = unwrap(await client.GET('/v1/projects'), 'listProjects')
+  checks.ok('GET /v1/projects answers a list', Array.isArray(mine))
+  // The RUNNING system's answer, not the types: a column the representation stopped
+  // stripping would reach here while tsc stayed green.
+  const internals = mine.flatMap((p) =>
+    ['quota', 'ownerId', 'visibility', 'blueprintRef'].filter((k) => k in p),
+  )
+  checks.ok(
+    'no project carries a database-only field',
+    internals.length === 0,
+    internals.join(','),
+  )
+  const journeyApp = mine.find((p) => p.slug === 'journey-app')
+  if (journeyApp !== undefined) state.projectId = journeyApp.id
+}
+
 const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
-  'before-app': [step1SignedIn],
+  'before-app': [step1SignedIn, step2MyProjects],
   'after-app': [],
 }
 

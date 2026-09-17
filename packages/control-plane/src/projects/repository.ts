@@ -1,8 +1,15 @@
-import { eq, inArray } from 'drizzle-orm'
+import { desc, eq, inArray } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
-import { environments, projectMembers, projects } from '../db/index.js'
+import {
+  environments,
+  instances,
+  projectMembers,
+  projects,
+  routes,
+  users,
+} from '../db/index.js'
 import { type Config, hostnameFor } from '../config.js'
-import type { Actor } from './authz.js'
+import type { Actor, ProjectRole } from './authz.js'
 
 export type Project = typeof projects.$inferSelect
 export type Environment = typeof environments.$inferSelect
@@ -111,17 +118,102 @@ export async function getProject(
   return project
 }
 
-/** A platform admin sees the whole fleet (§13); everyone else sees their memberships. */
-export async function listProjectsFor(db: Db, actor: Actor): Promise<Project[]> {
-  if (actor.platformRole === 'admin') return db.select().from(projects)
+export interface ProjectView {
+  project: Project
+  owner: { id: string; displayName: string }
+}
 
+/** Projects with their owners' names, in the order asked for. */
+export async function projectViews(
+  db: Db,
+  projectIds: readonly string[],
+): Promise<ProjectView[]> {
+  if (projectIds.length === 0) return []
+  const rows = await db
+    .select({ project: projects, ownerId: users.id, ownerName: users.displayName })
+    .from(projects)
+    .innerJoin(users, eq(projects.ownerId, users.id))
+    .where(inArray(projects.id, [...projectIds]))
+  const byId = new Map(
+    rows.map((r) => [
+      r.project.id,
+      { project: r.project, owner: { id: r.ownerId, displayName: r.ownerName } },
+    ]),
+  )
+  return projectIds.flatMap((id) => byId.get(id) ?? [])
+}
+
+/**
+ * The caller's memberships — for EVERY caller, administrators included (P5a Decision 20).
+ * A person's own list should not change shape the day they are made an administrator;
+ * the fleet is `GET /v1/fleet` (Task 16). Newest first.
+ */
+export async function listProjectsFor(db: Db, actor: Actor): Promise<Project[]> {
   const memberships = await db
     .select({ projectId: projectMembers.projectId })
     .from(projectMembers)
     .where(eq(projectMembers.userId, actor.userId))
   const ids = memberships.map((m) => m.projectId)
   if (ids.length === 0) return []
-  return db.select().from(projects).where(inArray(projects.id, ids))
+  return db
+    .select()
+    .from(projects)
+    .where(inArray(projects.id, ids))
+    .orderBy(desc(projects.createdAt))
+}
+
+export interface MemberRow {
+  userId: string
+  puid: string
+  displayName: string
+  email: string
+  role: ProjectRole
+}
+
+/** Owners first — Postgres orders an enum by declaration — then by name. */
+export async function listMembers(db: Db, projectId: string): Promise<MemberRow[]> {
+  return db
+    .select({
+      userId: users.id,
+      puid: users.ubcCwlPuid,
+      displayName: users.displayName,
+      email: users.email,
+      role: projectMembers.role,
+    })
+    .from(projectMembers)
+    .innerJoin(users, eq(projectMembers.userId, users.id))
+    .where(eq(projectMembers.projectId, projectId))
+    .orderBy(projectMembers.role, users.displayName)
+}
+
+/**
+ * WHAT SERVES an environment — §6's Route record — and, for an app deployed before P4c
+ * that has none, its newest instance (P4c Task 8's rule, moved here from the route so the
+ * environment list and the fleet read it once).
+ *
+ * Not the newest deploy: a failed deploy writes a newer `instances` row, and reporting
+ * that one told a faculty member their app was failed while it was serving perfectly.
+ * The newest row is only the fallback for an app with no Route record, which gets one at
+ * its next deploy (P4c Decision 20 — there is no backfill).
+ */
+export async function servingInstanceOf(
+  db: Db,
+  environment: Environment,
+): Promise<typeof instances.$inferSelect | undefined> {
+  const [served] = await db
+    .select({ instance: instances })
+    .from(routes)
+    .innerJoin(instances, eq(routes.instanceId, instances.id))
+    .where(eq(routes.hostname, environment.hostname))
+    .limit(1)
+  if (served !== undefined) return served.instance
+  const [latest] = await db
+    .select()
+    .from(instances)
+    .where(eq(instances.environmentId, environment.id))
+    .orderBy(desc(instances.lastSeenAt))
+    .limit(1)
+  return latest
 }
 
 /**

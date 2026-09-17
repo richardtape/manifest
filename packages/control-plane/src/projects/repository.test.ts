@@ -54,7 +54,7 @@ describe('project creation', () => {
     })
   })
 
-  it('lists only the projects a member belongs to', async () => {
+  it('lists only the projects a member belongs to — an administrator too', async () => {
     await withRollback(async (db) => {
       const [owner] = await db
         .insert(users)
@@ -73,12 +73,12 @@ describe('project creation', () => {
       expect(
         await listProjectsFor(db, { userId: stranger!.id, platformRole: 'member' }),
       ).toEqual([])
-      // A platform admin sees the whole fleet (§13).
-      const asAdmin = await listProjectsFor(db, {
-        userId: stranger!.id,
-        platformRole: 'admin',
-      })
-      expect(asAdmin.map((p) => p.slug)).toEqual(['chem-labs'])
+      // A platform admin's OWN list is their memberships too (P5a Decision 20): the
+      // fleet is a separate, admin-scoped read, so a person's list does not change
+      // shape the day they are made an administrator.
+      expect(
+        await listProjectsFor(db, { userId: stranger!.id, platformRole: 'admin' }),
+      ).toEqual([])
     })
   })
 

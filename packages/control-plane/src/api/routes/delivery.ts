@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { appSpecs, environments, instances, projects, routes } from '../../db/index.js'
+import { appSpecs, environments, projects } from '../../db/index.js'
 import { assertCapability, AuthorizationError } from '../../projects/index.js'
 import {
   createRelease,
@@ -277,43 +277,6 @@ export async function registerDeliveryRoutes(
       return { status: 200, body: instance }
     })
     return reply.status(status).send(body)
-  })
-
-  app.get('/v1/environments/:environmentId', async (request) => {
-    const actor = requireActor(request)
-    const { environmentId } = request.params as { environmentId: string }
-
-    const [environment] = await deps.db
-      .select()
-      .from(environments)
-      .where(eq(environments.id, environmentId))
-    if (!environment)
-      throw new AuthorizationError('NOT_FOUND', `no environment '${environmentId}'`)
-    await assertCapability(deps.db, actor, environment.projectId, 'project:read')
-
-    /**
-     * WHAT SERVES, not the newest deploy (P4c Task 8). A failed deploy writes a newer
-     * `instances` row, and reporting that one told a faculty member their app was
-     * failed while it was serving perfectly. §6's `Route` is the platform's record of
-     * which instance the hostname reaches.
-     *
-     * The newest row is still the fallback, for an app deployed before P4c: it has no
-     * Route record and gets one at its next deploy (Decision 20 — there is no backfill).
-     */
-    const [served] = await deps.db
-      .select({ instance: instances })
-      .from(routes)
-      .innerJoin(instances, eq(routes.instanceId, instances.id))
-      .where(eq(routes.hostname, environment.hostname))
-      .limit(1)
-    const [latest] = await deps.db
-      .select()
-      .from(instances)
-      .where(eq(instances.environmentId, environmentId))
-      .orderBy(desc(instances.lastSeenAt))
-      .limit(1)
-
-    return { ...environment, instance: served?.instance ?? latest ?? null }
   })
 
   /**

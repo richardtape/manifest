@@ -130,12 +130,9 @@ export const ERROR_CODES = {
   BUILD_INVALID_INPUT: bad('The build request body is malformed.'),
   BUILD_LOG_INVALID_QUERY: bad('`tail` is not a whole number from 1 to 10000.'),
   DEPLOY_INVALID_INPUT: bad('The deploy request body is malformed.'),
-  MEMBER_INVALID_INPUT: bad('The member request body is malformed.'),
   MEMBER_USER_NOT_FOUND: bad('No user with this PUID has ever signed in.'),
   PROJECT_INVALID_INPUT: bad('The project request body is malformed.'),
-  PROJECT_NOT_FOUND: bad('No project with this id.'),
   RELEASE_INVALID_INPUT: bad('The release request body is malformed.'),
-  SPEC_INVALID_INPUT: bad('The spec request body is malformed.'),
   SPEC_NOT_FOUND: bad('The project has no validated spec yet.'),
 
   // projects/repository.ts

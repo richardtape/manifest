@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify'
 import { resetDatabase } from '../db/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
 import { loginAs, mutationHeaders } from './testing.js'
+import type { ErrorCode } from './error-codes.js'
 
 type Actor = 'owner' | 'collaborator' | 'stranger' | 'admin' | 'anonymous'
 
@@ -18,6 +19,29 @@ type Actor = 'owner' | 'collaborator' | 'stranger' | 'admin' | 'anonymous'
  * 401 would have made a body error indistinguishable from a refused login.
  */
 type Expectation = 'pass' | 400 | 403 | 404 | 401 | 426
+
+/**
+ * THE CODE each refusal must carry, not only its status (P5a sitting 6). A stranger's
+ * `404` was asserted by status alone, and `404 ROUTE_NOT_FOUND` — the answer for a route
+ * that does not exist — satisfied it: both of Task 8's new rows passed "hidden from a
+ * stranger" before either route was written. `NOT_FOUND` is the authorization answer;
+ * `ROUTE_NOT_FOUND` is no route at all.
+ */
+const REFUSAL_CODE: Record<Exclude<Expectation, 'pass'>, ErrorCode> = {
+  400: 'REQUEST_INVALID',
+  401: 'UNAUTHENTICATED',
+  403: 'FORBIDDEN',
+  404: 'NOT_FOUND',
+  426: 'EVENTS_UPGRADE_REQUIRED',
+}
+
+function codeOf(body: string): unknown {
+  try {
+    return (JSON.parse(body) as { error?: { code?: unknown } }).error?.code
+  } catch {
+    return undefined
+  }
+}
 
 interface RouteCase {
   method: string
@@ -137,6 +161,32 @@ const ROUTES: RouteCase[] = [
     method: 'GET',
     url: '/v1/projects/:projectId',
     request: (f) => ({ url: `/v1/projects/${f.projectId}` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
+    // P5a Task 8. The environments a project holds — the same capability as the project.
+    method: 'GET',
+    url: '/v1/projects/:projectId/environments',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/environments` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
+    // P5a Task 8. Reading who is a member is `project:read`; CHANGING it stays `members:manage`.
+    method: 'GET',
+    url: '/v1/projects/:projectId/members',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/members` }),
     expect: {
       owner: 'pass',
       collaborator: 'pass',
@@ -470,7 +520,10 @@ export function describeAuthorizationContract(
           if (expected === 'pass') {
             expect(response.statusCode).toBeLessThan(400)
           } else {
-            expect(response.statusCode).toBe(expected)
+            expect({ status: response.statusCode, code: codeOf(response.body) }).toEqual({
+              status: expected,
+              code: REFUSAL_CODE[expected],
+            })
           }
         })
       }

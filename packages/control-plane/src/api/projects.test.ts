@@ -173,6 +173,111 @@ describe('GET /v1/projects/:id', () => {
 })
 
 /**
+ * P5a Task 8: every read answers a REPRESENTATION, not a row. A column added to a table
+ * cannot reach a client unless a mapper names it and its schema admits it (Decision 2).
+ */
+describe('project reads answer representations (P5a Task 8)', () => {
+  const PROJECT_KEYS = ['audience', 'blueprint', 'createdAt', 'id', 'owner', 'slug']
+
+  async function withCreatedProject(slug: string) {
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const cookies = await loginAs(deps, 'bio_prof')
+    const res = await app.inject({
+      ...create(slug),
+      cookies,
+      headers: mutationHeaders(deps),
+    })
+    expect(res.statusCode).toBe(201)
+    return { deps, app, cookies, project: res.json() as { id: string } }
+  }
+
+  it('a project carries exactly the representation’s fields, and its owner by name', async () => {
+    const { app, cookies, project } = await withCreatedProject('chem-labs')
+    const res = await app.inject({
+      method: 'GET',
+      url: `/v1/projects/${project.id}`,
+      cookies,
+    })
+    expect(res.statusCode).toBe(200)
+    expect(Object.keys(res.json()).sort()).toEqual(PROJECT_KEYS)
+    expect(res.json().owner).toEqual({ id: expect.any(String), displayName: 'Bio Prof' })
+    for (const internal of [
+      'quota',
+      'visibility',
+      'published',
+      'forkedFrom',
+      'ownerId',
+      'blueprintRef',
+    ])
+      expect(res.json()).not.toHaveProperty(internal)
+    await app.close()
+  })
+
+  it('expands environments, each with its url and no driver internals', async () => {
+    const { app, cookies, project } = await withCreatedProject('chem-labs')
+    const res = await app.inject({
+      method: 'GET',
+      url: `/v1/projects/${project.id}?expand=environments`,
+      cookies,
+    })
+    const staging = res
+      .json()
+      .environments.find((e: { kind: string }) => e.kind === 'staging')
+    expect(staging).toEqual({
+      id: expect.any(String),
+      projectId: project.id,
+      kind: 'staging',
+      hostname: 'chem-labs.staging.manifest.internal',
+      url: 'https://chem-labs.staging.manifest.internal',
+      instance: null,
+    })
+    await app.close()
+  })
+
+  it('lists a project’s environments and its members', async () => {
+    const { app, cookies, project } = await withCreatedProject('chem-labs')
+    const environments = await app.inject({
+      method: 'GET',
+      url: `/v1/projects/${project.id}/environments`,
+      cookies,
+    })
+    expect(environments.statusCode).toBe(200)
+    expect(
+      environments
+        .json()
+        .map((e: { kind: string }) => e.kind)
+        .sort(),
+    ).toEqual(['production', 'sandbox', 'staging'])
+    const members = await app.inject({
+      method: 'GET',
+      url: `/v1/projects/${project.id}/members`,
+      cookies,
+    })
+    expect(members.statusCode).toBe(200)
+    expect(members.json()).toEqual([
+      {
+        userId: expect.any(String),
+        puid: 'bio_prof',
+        displayName: 'Bio Prof',
+        email: 'bio_prof@example.ubc.ca',
+        role: 'owner',
+      },
+    ])
+    await app.close()
+  })
+
+  it('an administrator’s own list is their memberships — the fleet is another read (Decision 20)', async () => {
+    const { deps, app } = await withCreatedProject('chem-labs')
+    const admin = await loginAs(deps, 'platform_admin')
+    const res = await app.inject({ method: 'GET', url: '/v1/projects', cookies: admin })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual([])
+    await app.close()
+  })
+})
+
+/**
  * §22 step 3, at a commit. Project creation was the ONLY thing that had ever
  * validated a manifest.yaml, so a project's spec was fixed for its whole life —
  * an agent could push a manifest declaring a database and the platform would
