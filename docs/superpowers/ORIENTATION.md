@@ -54,6 +54,7 @@ everything.
 - **The offline acceptance.** Turning the network off from a tool call cuts the agent off too, so `scripts/offline-acceptance.sh` is run by hand. Its step 6 runs `make demo-identity`, the step most likely to need a route out; its step 7 runs `make demo-ai`, whose open question is whether Ollama — a host application, not a container — answers with the network off. **A skipped acceptance is not a passed one.**
 - **The second-machine clean clone** — no second Mac has been available; `RUNBOOK.md`'s *Known gaps* records it.
 - **Starting the UBC external track** — its trigger, §16's proof app answering a question, fired on 2026-09-15 and was raised with Rich that day. [`docs/external-track.md`](../external-track.md).
+- **Five LiteLLM users with no project**, each holding a live, confined key — demos replaced their proof apps after a test run emptied the tables. Deleting them is refused to an agent; §7e names them and has the commands.
 - **§8's open questions.**
 
 **The spec is current.** Every spike's and every plan's spec actions have been applied with Rich's explicit approval — most recently P5a's six (`491f8be`). **Trust the spec over the spike briefs**, which are preserved as a record of what was originally asked, and **propose any further change; never edit it** (§6).
@@ -1243,9 +1244,9 @@ both P5b's; item 7 is not a spec change but work P5a does (persisting scan findi
 
 **Read, in this order, before sitting 8:**
 
-1. **The plan's** *How this plan is to be executed*, *Read this first*, *Decisions Rich made*, *Decisions this plan makes* (33 and 34 above all) and **sittings 1 to 7's entries in *What executing this plan found*** — then **Task 12 in full**, including the *Task 1 result* on `[M1d]` (a discriminated union is an `anyOf`, and whether the generated type narrows is for you to read in `schema.d.ts`), the *Sitting 2 correction* (a Node subscriber through the edge needs the CA and `Origin`, and an edge reload closes a stream) and the *Sitting 7 correction* (creation's three events, body and answer).
+1. **The plan's** *How this plan is to be executed*, *Read this first*, *Decisions Rich made*, *Decisions this plan makes* (33 and 34 above all) and **sittings 1 to 7's entries in *What executing this plan found*, with the *After sitting 7 — signing out* entry that follows them** — then **Task 12 in full**, including the *Task 1 result* on `[M1d]` (a discriminated union is an `anyOf`, and whether the generated type narrows is for you to read in `schema.d.ts`), the *Sitting 2 correction* (a Node subscriber through the edge needs the CA and `Origin`, and an edge reload closes a stream) and the *Sitting 7 correction* (creation's three events, body and answer).
 2. **[`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md)** §8 (the traps).
-3. **This file's §4** — its last fifteen entries are sittings 3 to 7's — and **§6** (how to work, and the close-out sweep every sitting owes).
+3. **This file's §4** — its last eighteen entries are sittings 3 to 7's and the sign-out fix's — and **§6** (how to work, and the close-out sweep every sitting owes).
 
 **How to execute it.** `superpowers:executing-plans` or `superpowers:subagent-driven-development`, **one sitting per
 session**, with a check-in at each boundary. **Start with the baseline in §6's *Your first ten minutes*** — snapshot the
@@ -1323,6 +1324,14 @@ its boot puts both back. Every sitting ends with the plan's four steps, the last
   holds the name. A `POST /v1/projects` of your own for such a slug answers `SOURCE_GIT_FAILED` and leaves nothing.
 - **The proof app lives at `blueprints/node-ts-mongo/starters/proof-app/`** (it was `fixtures/proof-app/`), and `.prettierignore`
   names `blueprints/*/starters/`. A broken starter or descriptor refuses the control plane's BOOT, naming the file.
+- **`make demo-identity` has NINE steps**: step 9 signs the student out and the instructor in through the same cookie jars, and
+  fails naming the hop that broke. Signing out of an app was fixed after sitting 7 (the IdP's `ReturnTo` allow-list, and the
+  blueprint's `cwl.logout` answering the IdP's `LogoutRequest`); `make verify` holds the IdP's half.
+- **The IdP's `config.php` and `authsources.php` are single-file mounts**: a `git checkout` or `git pull` that replaces either
+  leaves the IdP with NO config until `docker restart manifest-idp` — and a control harness that restores with `git checkout`
+  does exactly that (§4).
+- **The Claude in Chrome extension will not type a password**, and needs a site permission for `idp.manifest.internal`: a
+  browser test of a CWL flow needs Rich to type the sign-in while the agent drives the app's pages (§4).
 
 **The state you are handed, 2026-09-16, after sitting 7 and the sign-out fix that followed it.** `main`, clean. Sitting 7's code
 commits are Task 10's `930cbe2` with `45a5cc9`, `8eff3ab` and `343f189`, and Task 11's `c12c423`; after it, found by Rich in a browser,
