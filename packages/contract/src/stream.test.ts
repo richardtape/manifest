@@ -63,13 +63,18 @@ describe('subscribe (D23.2)', () => {
       projectId: PROJECT,
       type: 'manifest.stream.ready',
     }
+    // The ready frame is HELD until the test has seen the replay arrive alone. Written
+    // together, both frames land in one chunk and are dispatched in one turn, so a `ready`
+    // that resolved on the replayed event would be indistinguishable — measured, P5a
+    // sitting 8 control (l): `markReady()` on every frame, and this test stayed green.
+    let sendReady: () => void = () => undefined
     const server = await streamServer((_headers, socket, accept) => {
       socket.write(
         'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n' +
           `Sec-WebSocket-Accept: ${accept}\r\n\r\n`,
       )
       socket.write(textFrame(JSON.stringify(replay)))
-      socket.write(textFrame(JSON.stringify(ready)))
+      sendReady = () => socket.write(textFrame(JSON.stringify(ready)))
       // The closing handshake: a client's close frame (opcode 8) is answered with one.
       socket.on('data', (data: Buffer) => {
         if ((data[0]! & 0x0f) === 0x8) socket.end(Buffer.from([0x88, 0]))
@@ -82,6 +87,17 @@ describe('subscribe (D23.2)', () => {
       projectId: PROJECT,
       onFrame: (frame) => frames.push(frame),
     })
+    let isReady = false
+    void stream.ready.then(() => {
+      isReady = true
+    })
+    for (let i = 0; i < 200 && frames.length === 0; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    }
+    expect(frames.map((f) => f.kind)).toEqual(['event'])
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(isReady, 'ready before the ready frame').toBe(false)
+    sendReady()
     await stream.ready
     expect(frames.map((f) => f.kind)).toEqual(['event', 'control'])
     expect(server.seen[0]).toMatchObject({

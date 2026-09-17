@@ -9,7 +9,12 @@ import {
   REPLAY_LIMIT,
   type StreamFrame as BusFrame,
 } from '../observability/index.js'
-import { StreamFrame } from './representations/events.js'
+import {
+  ControlFrame,
+  EventFrame,
+  LogFrame,
+  StreamFrame,
+} from './representations/events.js'
 import { Audience } from './representations/projects.js'
 import { buildServer } from './server.js'
 import { loginAs, mutationHeaders, projectBody, testDeps } from './testing.js'
@@ -99,19 +104,21 @@ describe('the stream in the contract (D23.2)', () => {
 
     const replayed = await recentFramesFor(deps.db, project.id, REPLAY_LIMIT)
     const frames = [...published, ...replayed, readyFrame(project.id)]
-    const refused = frames
-      .map((frame) => ({
-        frame,
-        // Through JSON, because that is what a client receives: a Date or an undefined
-        // that survives in memory does not survive the socket.
-        result: StreamFrame.safeParse(JSON.parse(JSON.stringify(frame))),
-      }))
-      .filter((r) => !r.result.success)
-      .map(
-        (r) =>
-          `${r.frame.kind} ${'type' in r.frame ? r.frame.type : ''}: ` +
-          r.result.error!.issues.map((i) => i.path.join('.')).join(', '),
-      )
+    // The union's own refusal is `invalid_union` at the root, naming nothing (measured,
+    // control (b) of P5a sitting 8) — so a refused frame is re-read by its kind's schema,
+    // which names the path.
+    const byKind = { event: EventFrame, log: LogFrame, control: ControlFrame }
+    const refused = frames.flatMap((frame) => {
+      // Through JSON, because that is what a client receives: a Date or an undefined that
+      // survives in memory does not survive the socket.
+      const json: unknown = JSON.parse(JSON.stringify(frame))
+      if (StreamFrame.safeParse(json).success) return []
+      const issues = byKind[frame.kind].safeParse(json).error?.issues ?? []
+      return [
+        `${frame.kind} ${'type' in frame ? frame.type : ''}: ` +
+          (issues.map((i) => i.path.join('.') || '(root)').join(', ') || 'kind'),
+      ]
+    })
     expect(refused).toEqual([])
 
     // And the run reached what it claims to — every kind, and every event type but the
