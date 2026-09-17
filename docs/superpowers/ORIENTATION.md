@@ -1366,11 +1366,16 @@ last of which is §6's sweep.
 **The state you are handed, 2026-09-17, after sitting 10.** `main`, clean. Sitting 10's commits are Task 14's **`dddd683`**
 and the sweep after it. Migration **0012** (two event types on the events CHECK) is the newest and is applied. The four gate
 numbers are §2's box — all green, `pnpm test` **995** in 89 files, `make doctor` 18/0, `make verify` 51/0 and
-`pnpm test:docker` **170**, re-measured at the end of the sitting. **The control plane IS RUNNING on 7100**, started from
-README's *Running the control plane*; its boot line reads `{"driver":"docker","origin":"https://console.manifest.internal",
-"reservedLabels":755,"buildsInterrupted":0,…}`. **The proof app, the journey app and the fixture app are all deployed,
-healthy and serving** — but **their project rows are gone**, because the closing `pnpm test` truncated them, so nothing in
-the database knows about the containers the edge is routing to; the next demo recreates each. **The platform SP row's ACS is
+`pnpm test:docker` **170**, re-measured at the end of the sitting. **The control plane WAS LEFT RUNNING on 7100** — check with
+`curl -sS -o /dev/null -w '%{http_code}' --cacert infra/ca/manifest-root.crt https://console.manifest.internal/v1/me`,
+which answers `401` when it is up; if it is not, README's *Running the control plane* is the export block, and its boot line
+must read `{"driver":"docker","origin":"https://console.manifest.internal","reservedLabels":755,…}`. (Do not start a second
+one: it would fail to bind 7100, and `recoverAtBoot`'s pass 0 would fail the first one's builds.) **The proof app and the
+journey app are deployed, healthy and serving** — `{"status":"ok","mongo":true}` on each — but **their project rows are
+gone**, because the closing `pnpm test` truncated them, so nothing in the database knows about the containers the edge is
+routing to; the next demo recreates each. `.manifest/repos/` holds `proof-app.git` and `journey-app.git`, whose projects the
+demos clear and recreate. **The fixture app `make demo` created was removed** with its containers, network, volume, image
+and repository, so `make demo` starts from nothing. **The platform SP row's ACS is
 `https://console.manifest.internal/auth/saml/callback`.**
 **LiteLLM holds FOUR Manifest users, all orphaned by project, all for Rich**:
 `mf-7c841b6e-4e60-4b96-9002-964cd3baa83c-staging` (**2 keys**), `mf-7a4b1cc2-273d-4f10-a238-e8f613110e80-staging` (1),
