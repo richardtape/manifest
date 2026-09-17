@@ -468,15 +468,20 @@ describe('starters and the knowledge pack, read at load (§25, D25 — P5a Task 
     })
   })
 
-  it('refuses a binary file in a starter', async () => {
+  /**
+   * TWO CASES, one per refusal (P5a sitting 7). A PNG's header is both — `89` is not a
+   * UTF-8 lead byte and it carries a NUL — so with it alone either check could be deleted
+   * and the test would stay green: measured, the NUL check removed, 25 of 25 passed.
+   */
+  it.each([
+    ['valid UTF-8 carrying a NUL', Buffer.from('GIF89a\u0000\u0000', 'utf8')],
+    ['no NUL, but not UTF-8 (Latin-1 é)', Buffer.from([0x63, 0x61, 0x66, 0xe9, 0x0a])],
+  ])('refuses a file in a starter that is not text: %s', async (_, bytes) => {
     const root = await blueprintsCopy()
-    await writeFile(
-      join(root, 'node-ts-mongo/starters/proof-app/public/logo.png'),
-      Buffer.from([0x89, 0x50, 0x00, 0x47]),
-    )
+    await writeFile(join(root, 'node-ts-mongo/starters/proof-app/public/logo.gif'), bytes)
     await expect(loadBlueprints(root)).rejects.toMatchObject({
       code: 'BLUEPRINT_TREE_NOT_TEXT',
-      message: expect.stringContaining('public/logo.png'),
+      message: expect.stringContaining('public/logo.gif'),
     })
   })
 
