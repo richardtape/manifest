@@ -33,4 +33,15 @@ export default defineWorkspace([
       globalSetup: ['./vitest.global-setup.ts', './src/runtime/docker/tier-setup.ts'],
     },
   },
+  {
+    // P5a Task 7. The client and the journey: no Postgres, no Docker, no setup file.
+    test: {
+      name: 'packages',
+      root: '.',
+      include: [
+        'packages/contract/src/**/*.test.ts',
+        'packages/journey/src/**/*.test.ts',
+      ],
+    },
+  },
 ])

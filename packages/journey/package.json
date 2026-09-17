@@ -1,0 +1,14 @@
+{
+  "name": "@manifest/journey",
+  "version": "0.0.0",
+  "description": "§22's journey, driven through the edge by nothing but @manifest/contract — P5a's acceptance.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@manifest/contract": "workspace:*"
+  }
+}

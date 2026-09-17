@@ -170,7 +170,7 @@ under `/v1` (D23.8); an old path answers `404 ROUTE_NOT_FOUND`. **A deploy that 
 | `make doctor` | The machine can run the platform | nothing running | seconds |
 | `make verify` | The running platform is correct — DNS, TLS, the edge, the mirror, grants, the IdP | `make up` | ~1 min |
 | `pnpm test` — **from the repo root, run it twice** | The control plane's unit and Postgres tiers; a second run catches state leaks | `make up` (Postgres) | ~45 s |
-| `pnpm lint`, `pnpm --filter @manifest/control-plane typecheck`, `pnpm format:check` | The other three commit gates. Tests do not check types — `tsc` does | — | ~30 s |
+| `pnpm lint`, `pnpm typecheck`, `pnpm format:check` | The other three commit gates. Tests do not check types — `tsc` does | — | ~30 s |
 | `pnpm test:docker` | Real builds, deploys and containers | `make up` | ~13 min |
 | `make demo`, `make demo-identity`, `make demo-ai` | The acceptances, end to end, through the real API and the edge | `make up` and the control plane | 1–3 min each |
 | `make demo-redeploy` | P4c's acceptance, **green** — a redeploy that interrupts nobody and signs nobody out | `make up` and the control plane | ~3 min |

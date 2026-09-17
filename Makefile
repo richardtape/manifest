@@ -16,7 +16,7 @@ LITELLM_DIGEST := $(shell awk '$$1 ~ /berriai\/litellm/ {print $$2}' infra/image
 LITELLM_DIGEST := $(or $(LITELLM_DIGEST),sha256:0000000000000000000000000000000000000000000000000000000000000000)
 COMPOSE := LITELLM_DIGEST=$(LITELLM_DIGEST) docker compose -f infra/compose.yaml -p manifest --env-file .env
 
-.PHONY: help seed up down reset doctor verify demo demo-identity demo-ai demo-redeploy host-setup host-undo
+.PHONY: help seed up down reset doctor verify demo demo-identity demo-ai demo-redeploy demo-journey host-setup host-undo
 
 # Every compose target needs .env to exist — `--env-file` on a missing file is a
 # hard error, not a warning. `make seed` also writes it; this makes `make up` on
@@ -118,6 +118,9 @@ demo-ai: up  ## P4b's acceptance: the proof app answers a question, charged to o
 
 demo-redeploy: up  ## P4c's acceptance: a redeploy nobody using the app notices.
 	@bash scripts/demo-redeploy.sh
+
+demo-journey: up  ## P5a's acceptance: §22's journey through the edge, by nothing but the generated client.
+	@bash scripts/demo-journey.sh
 
 host-setup:  ## The three privileged steps. Prompts for a password.
 	@sudo bash infra/host/host-setup.sh

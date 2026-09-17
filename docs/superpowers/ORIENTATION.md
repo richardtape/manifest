@@ -410,7 +410,7 @@ the rest needs no Docker, no Postgres and no network. **All three connection str
 derived from `.env` automatically** by `vitest.env.ts`, and the suite connects as
 `manifest_app` — the least-privilege role — not as `manifest`.
 
-Also `pnpm lint`, `pnpm --filter @manifest/control-plane typecheck` and
+Also `pnpm lint`, `pnpm typecheck` (every workspace package, since P5a Task 7) and
 `pnpm format:check`. **All four must be clean before you commit, and the last two are
 not formalities** — Vitest strips types without checking them, so `tsc` is the only
 gate that sees a whole class of error (it caught six in P2), and `format:check` was
@@ -617,7 +617,7 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   could-not-fail check this project has paid for. **Assert the pattern matched before
   writing the file.** A `git diff` after the edit is the other cheap proof.
 - **Vitest strips types; it does not check them.** A file can pass every one of its
-  tests and have four `tsc` errors. `pnpm --filter @manifest/control-plane typecheck`
+  tests and have four `tsc` errors. `pnpm typecheck` (every package — P5a Task 7)
   is the only gate that sees them, and this repo's `exactOptionalPropertyTypes` makes
   that class common: `hint: cond ? x : undefined` is a type error, conditional spread
   is the fix.
@@ -1234,7 +1234,7 @@ coherent. Follow them.
 2. **Ask before `sudo`, and before modifying anything outside your branch.**
    Installing a global tool counts. So does touching the spec.
 3. **Green before you commit:** `pnpm test`, `pnpm lint`,
-   `pnpm --filter @manifest/control-plane typecheck` and `pnpm format:check`. All
+   `pnpm typecheck` (all three packages, since P5a Task 7) and `pnpm format:check`. All
    four, every time — `CLAUDE.md` says why the last two are not optional extras.
 4. **Record exact versions.** Image digests, package versions, macOS and Docker
    Desktop versions. A finding without a version is not reproducible.
@@ -1648,7 +1648,7 @@ result was theirs.
 make up                                            # ~1 min; re-adds the loopback alias
 make doctor && make verify                         # expect §2's box
 pnpm test                                          # expect §2's box
-pnpm lint && pnpm --filter @manifest/control-plane typecheck && pnpm format:check
+pnpm lint && pnpm typecheck && pnpm format:check
 ```
 
 **Then run this, because it is what Tasks 1–3 bought, and it still holds:**

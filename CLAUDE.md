@@ -126,7 +126,7 @@ which is the same defect P3's self-review found in P3.
 **Toolchain:** Node 24 via nvm, pnpm 11 via corepack. **Four gates, all clean before
 a commit** — and `pnpm test:docker` too, once you are touching `runtime/docker/`,
 `services/` or `build/`: `pnpm test` (from the repo root), `pnpm lint`,
-`pnpm --filter @manifest/control-plane typecheck` and `pnpm format:check`. The last
+`pnpm typecheck` (every workspace package since P5a Task 7) and `pnpm format:check`. The last
 two are not optional extras — Vitest strips types without checking them, so `tsc` is
 the only thing that sees a whole class of error, and `format:check` was silently red
 on 29 files until 2026-09-05. Run `pnpm test` **twice**: a suite that is not

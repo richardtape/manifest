@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { ROUTE_DEFINITIONS } from '../routes/index.js'
 import { UNVERSIONED } from '../unversioned.js'
-import { openApiDocument } from './document.js'
+import { CONTRACT_VERSION, openApiDocument } from './document.js'
 
 const DOCUMENT = fileURLToPath(
   new URL('../../../../contract/openapi.json', import.meta.url),
@@ -51,6 +51,16 @@ describe('the OpenAPI document (§16 Contract, D23.8)', () => {
       'x-manifest-unversioned': unknown[]
     }
     expect(document['x-manifest-unversioned']).toEqual(UNVERSIONED.map((u) => ({ ...u })))
+  })
+
+  it('versions the document and @manifest/contract together (Decision 8)', async () => {
+    const pkg = JSON.parse(
+      await readFile(
+        fileURLToPath(new URL('../../../../contract/package.json', import.meta.url)),
+        'utf8',
+      ),
+    ) as { version: string }
+    expect(pkg.version).toBe(CONTRACT_VERSION)
   })
 
   it('refuses a representation that is not registered', () => {

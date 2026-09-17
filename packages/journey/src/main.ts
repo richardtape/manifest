@@ -1,0 +1,66 @@
+import { createManifestClient, ManifestApiError, unwrap } from '@manifest/contract'
+import { Checks, JourneyStop } from './check.js'
+import { readState, writeState, type JourneyState } from './state.js'
+
+/**
+ * §22's journey, through the edge, by nothing but the generated client (P5a's acceptance).
+ *
+ *   node packages/journey/dist/main.js <before-app|after-app> <state.json>
+ *
+ * Reads MANIFEST_ORIGIN (default the console's) and MANIFEST_SESSION — the instructor's
+ * session, which `scripts/demo-journey.sh` obtained through the one CWL flow. Each P5a task
+ * that adds a route adds the step that calls it.
+ */
+const [phase, statePath] = process.argv.slice(2)
+const origin = process.env.MANIFEST_ORIGIN ?? 'https://console.manifest.internal'
+const session = process.env.MANIFEST_SESSION
+if (
+  (phase !== 'before-app' && phase !== 'after-app') ||
+  statePath === undefined ||
+  session === undefined
+) {
+  console.error('usage: MANIFEST_SESSION=… main.js <before-app|after-app> <state.json>')
+  process.exit(2)
+}
+
+const client = createManifestClient({ origin, session })
+const checks = new Checks()
+const state: JourneyState = readState(statePath)
+
+/** §22 step 1 — the sign-in happened in bash; this proves the session is the instructor's. */
+async function step1SignedIn(): Promise<void> {
+  checks.step('1. Signed in with CWL, through the edge')
+  const me = unwrap(await client.GET('/v1/me'), 'getMe')
+  checks.ok('GET /v1/me is the instructor', me.puid === 'ins000001', JSON.stringify(me))
+  checks.ok(
+    'and carries exactly the fields the contract names',
+    Object.keys(me).sort().join(',') === 'displayName,email,id,puid,role',
+    Object.keys(me).join(','),
+  )
+}
+
+const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
+  'before-app': [step1SignedIn],
+  'after-app': [],
+}
+
+try {
+  for (const step of phases[phase]) await step()
+} catch (error) {
+  if (error instanceof ManifestApiError)
+    checks.ok(`no call refused (${error.operation})`, false, error.message)
+  else if (!(error instanceof JourneyStop)) {
+    // `fetch failed` says nothing on its own; the reason is its cause's code — for this
+    // origin most often UNABLE_TO_GET_ISSUER_CERT_LOCALLY, a Node process started without
+    // NODE_EXTRA_CA_CERTS (P5a sitting 2).
+    const cause = (error as { cause?: { code?: unknown } }).cause?.code
+    checks.ok(
+      'no step threw',
+      false,
+      `${cause === undefined ? '' : `[cause ${String(cause)}] `}${(error as Error).stack ?? String(error)}`,
+    )
+  }
+} finally {
+  writeState(statePath, state)
+}
+checks.finish()
