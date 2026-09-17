@@ -272,7 +272,7 @@ make demo-journey           # ~1 minute; ends with `every check passed` and exit
 Every check prints `ok` or `FAIL` and the run exits 1 listing each failure. **A journey that does not build stops at step 0 and
 prints `tsc`'s errors** — the journey is type-checked against the generated contract, so a call or a field the contract does
 not have stops it there. `FAIL no step threw — [cause UNABLE_TO_GET_ISSUER_CERT_LOCALLY] TypeError: fetch failed` is a journey
-run without the platform CA. It changes nothing on the platform yet.
+run without the platform CA. So far it runs §22 step 1 (`GET /v1/me`), step 2's list of the instructor's projects, and step 2a's slug checks (`GET /v1/slugs/{slug}` for `console`, `chem`, `Journey_App` and `journey-app`) — every one a read, so it changes nothing on the platform yet.
 
 ## `make demo-redeploy` — P4c's acceptance: a redeploy nobody using the app notices
 
