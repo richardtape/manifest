@@ -104,6 +104,52 @@ describe('what the event stream carries (P4b Task 15)', () => {
 })
 
 describe('the delivery routes', () => {
+  it('refuses to build an invalid spec as 422 SPEC_INVALID, with the errors — the status every route answers it with', async () => {
+    // P5a Task 5. This refusal was `400 SPEC_INVALID` with no details while `GET …/spec`
+    // answered the same code 422 with them, and no test built against an invalid spec,
+    // so nothing could see the two disagree.
+    const { app, deps, cookies, project } = await projectFor('bio_prof')
+    await deps.source.commitFiles(
+      deps.source.repositoryFor('chem-labs'),
+      {
+        'manifest.yaml':
+          'manifest: 1\nname: not-this-project\nblueprint: fixture-node@1\n',
+      },
+      'feat: a manifest that names another project',
+    )
+    const pushed = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${project.id}/spec`,
+      payload: {},
+      cookies,
+      headers: mutationHeaders(deps),
+    })
+    expect(pushed.json().valid).toBe(false)
+
+    const build = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${project.id}/builds`,
+      payload: {},
+      cookies,
+      headers: mutationHeaders(deps),
+    })
+    expect(build.statusCode).toBe(422)
+    expect(build.json().error.code).toBe('SPEC_INVALID')
+    expect(build.json().error.details.map((d: { code: string }) => d.code)).toEqual(
+      pushed.json().errors.map((e: { code: string }) => e.code),
+    )
+    expect(build.json().error.details.length).toBeGreaterThan(0)
+
+    // The same code, the same status, from the spec read.
+    const read = await app.inject({
+      method: 'GET',
+      url: `/v1/projects/${project.id}/spec`,
+      cookies,
+    })
+    expect([read.statusCode, read.json().error.code]).toEqual([422, 'SPEC_INVALID'])
+    await app.close()
+  })
+
   it('builds, releases and deploys to staging', async () => {
     const { app, deps, cookies, project } = await projectFor('bio_prof')
 

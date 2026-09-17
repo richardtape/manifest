@@ -79,13 +79,11 @@ export async function registerDeliveryRoutes(
         'SPEC_NOT_FOUND',
         'this project has no validated spec yet',
       )
-    if (!spec.valid) {
-      throw new BadRequestError(
-        'SPEC_INVALID',
-        'the latest manifest.yaml is not valid, so there is nothing to build',
-        'GET /v1/projects/:id/spec lists the errors.',
-      )
-    }
+    // SpecInvalidError, with the errors (P5a Task 5). This was
+    // `BadRequestError('SPEC_INVALID', …)` — one code answered 400 here and 422 from
+    // `GET …/spec`, which a client switching on the code could not tell apart, and it
+    // carried no `details` to act on.
+    if (!spec.valid) throw new SpecInvalidError(spec.errors as never)
 
     const [project] = await deps.db
       .select()

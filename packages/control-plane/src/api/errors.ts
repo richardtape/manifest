@@ -8,6 +8,7 @@ import type { ManifestError } from '../errors/index.js'
 import { IdempotencyConflictError } from './idempotency.js'
 import { CsrfRefusedError } from './csrf.js'
 import { AiError, CatalogueError } from '../ai/index.js'
+import { ERROR_CODES } from './error-codes.js'
 
 export interface ErrorEnvelope {
   error: {
@@ -41,8 +42,82 @@ export class BadRequestError extends Error {
  * Every failure leaves through here, so no route invents its own shape. D23.7:
  * stable codes plus remediation hints, "so an agent can correct itself rather than
  * surfacing a wall of text to its user".
+ *
+ * Every code it answers with is in `error-codes.ts` (P5a Task 5). The test is the gate;
+ * the line below is the operator's copy for a code that reached the wire anyway.
  */
 export function toErrorResponse(error: unknown): { status: number; body: ErrorEnvelope } {
+  const response = mapError(error)
+  if (!(response.body.error.code in ERROR_CODES)) {
+    // The code only — never the message, which can quote the caller's input.
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        msg: 'an error code is not in api/error-codes.ts',
+        code: response.body.error.code,
+      }),
+    )
+  }
+  return response
+}
+
+/**
+ * Fastify's OWN refusals of a request it could not read — a malformed or empty JSON
+ * body, a body over its limit, a content type no route parses — carry an `FST_` code
+ * and a 4xx `statusCode`. They were answered `500 INTERNAL` with an "unhandled error"
+ * operator line until P5a Task 5 measured all four: the commonest client mistake there
+ * is, reported as the control plane's own failure. One code per status, because a
+ * client switches on the code; the messages are fixed, because Fastify's can quote the
+ * caller's input (`FST_ERR_BAD_URL`).
+ */
+function frameworkRefusal(
+  error: unknown,
+): { status: number; body: ErrorEnvelope } | undefined {
+  const { code, statusCode } = (error ?? {}) as { code?: unknown; statusCode?: unknown }
+  if (typeof code !== 'string' || !code.startsWith('FST_')) return undefined
+  if (typeof statusCode !== 'number' || statusCode < 400 || statusCode >= 500)
+    return undefined
+  if (statusCode === 413) {
+    return {
+      status: 413,
+      body: {
+        error: {
+          code: 'REQUEST_BODY_TOO_LARGE',
+          message: 'the request body is larger than the API accepts',
+          hint: 'Send a smaller body. No API request needs more than 1 MiB.',
+        },
+      },
+    }
+  }
+  if (statusCode === 415) {
+    return {
+      status: 415,
+      body: {
+        error: {
+          code: 'REQUEST_MEDIA_TYPE_UNSUPPORTED',
+          message: 'the request body is a content type this route does not read',
+          hint: 'Send the body as JSON with Content-Type: application/json.',
+        },
+      },
+    }
+  }
+  return {
+    status: 400,
+    body: {
+      error: {
+        code: 'REQUEST_INVALID',
+        message:
+          'the request could not be read as sent: an empty or malformed body, or a malformed URL',
+        hint: 'Send a well-formed JSON body with Content-Type: application/json.',
+      },
+    },
+  }
+}
+
+function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
+  const refusal = frameworkRefusal(error)
+  if (refusal !== undefined) return refusal
+
   if (error instanceof AuthorizationError) {
     return {
       status: error.code === 'NOT_FOUND' ? 404 : 403,
