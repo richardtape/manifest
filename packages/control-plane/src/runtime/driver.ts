@@ -7,6 +7,59 @@ export interface ImageRef {
   repository: string
 }
 
+/**
+ * Findings by severity — CRITICAL AND HIGH ONLY, because those are the two §12's gate
+ * classifies into its buckets (`assessScan` drops every other severity before it asks
+ * whose a finding is or whether it has a fix). A `medium: 0` beside them would be a zero
+ * nothing counted: a record that says "none" where the truth is "not looked at".
+ */
+export interface SeverityCounts {
+  critical: number
+  high: number
+}
+
+/**
+ * §12's scan of what a build produced, as the platform RECORDS it (§6 `Build.scan`, P5a
+ * Task 13). Required on every BuiltImage, from every driver: §12 says unfixable findings
+ * are "recorded on the Release", and a field a driver may omit is a record nobody can rely
+ * on.
+ */
+export interface ScanSummary {
+  /** `anchore/grype:v0.118.0`, or `fake` — so a summary never passes for a real scan. */
+  scanner: string
+  scannedAt: string
+  /**
+   * How old the scanner's vulnerability database was, in days. NULL when the scanner did
+   * not say — `scanImage` reads that as Infinity, which JSON cannot carry — and then
+   * `stale` is true, because not knowing is not evidence of currency.
+   */
+  databaseAgeDays: number | null
+  /** A clean result from a stale database is NOT evidence there is nothing to find (§12). */
+  stale: boolean
+  /**
+   * Whether the blueprint's base image was identified. FALSE means every finding was
+   * attributed to the build — so `baseImage` is a zero nobody could have counted.
+   */
+  baseImageKnown: boolean
+  /** Introduced by this build and fixable. On a fresh database a build with any is refused. */
+  fixable: SeverityCounts
+  /** Introduced by this build, with no published fix: recorded, never blocking (Rich, 2026-09-08). */
+  unfixable: SeverityCounts
+  /** The base image's own — §20's fleet-wide rebuild. */
+  baseImage: SeverityCounts
+  /** The unfixable findings a person would look up, by id. At most 50; `unfixable` counts all. */
+  unfixableFindings: { id: string; severity: string; package: string }[]
+}
+
+/**
+ * What `buildImage` answers: the image, AND its scan. A separate type from `ImageRef`
+ * because an `ImageRef` is also what a deploy is handed (`InstanceSpec.image`), and a
+ * deploy has no scan to give — the scan belongs to the build, and is stored there.
+ */
+export interface BuiltImage extends ImageRef {
+  scan: ScanSummary
+}
+
 export interface ServiceBinding {
   /** Deterministic, derived from (project, environment, service name). */
   name: string
@@ -254,7 +307,7 @@ export interface Driver {
     spec: { blueprintRef: string; projectSlug: string },
     /** Optional, so no caller that predates build logs has to change. */
     opts?: BuildOpts,
-  ): Promise<ImageRef>
+  ): Promise<BuiltImage>
   ensureService(binding: ServiceBinding): Promise<ServiceHandle>
   /**
    * Start the instance BESIDE whatever serves `spec.hostname`, make it ready without

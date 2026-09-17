@@ -130,7 +130,10 @@ echo "  valid; sensitive diff: $(printf '%s' "$SPEC" | field sensitiveDiff)"
 
 say "5. Build — blueprint Dockerfile, egress-free builder, mirror, scan, digest"
 BUILD="$(api POST "/v1/projects/$PROJECT_ID/builds" "{\"commitSha\":\"$COMMIT\"}")"
-BUILD_ID="$(printf '%s' "$BUILD" | field id)"
+# 202, still running (R6): the build ends in the background.
+BUILD_ID="$(printf '%s' "$BUILD" | field id)" || fail "the build was not started: $BUILD"
+BUILD="$(wait_for_build "$BUILD_ID")" \
+  || fail "build $BUILD_ID was not seen to end (960 s, or its read was refused): $BUILD"
 [ "$(printf '%s' "$BUILD" | field status)" = succeeded ] \
   || fail "build $BUILD_ID did not succeed: $BUILD"
 echo "  $(printf '%s' "$BUILD" | field imageDigest)"

@@ -6,7 +6,7 @@ import { db } from './db/index.js'
 import { createCaddyClient } from './routing/index.js'
 import { createDockerDriver, createEngineClient } from './runtime/index.js'
 import { createLocalSourceDriver } from './source/index.js'
-import { createRetirer, recoverAtBoot } from './releases/index.js'
+import { createBuildRunner, createRetirer, recoverAtBoot } from './releases/index.js'
 import { loadReservedLabels } from './projects/index.js'
 import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
 import { createServiceCredentials } from './services/index.js'
@@ -258,6 +258,13 @@ const retirer = createRetirer({
   drainMs: config.drainTimeoutMs,
 })
 
+/**
+ * THE SECOND BACKGROUND WORK (P5a Task 13, Rich's R6): a build answers 202 and runs here.
+ * One per process, over the same driver and bus as everything else, so its log lines and
+ * its end reach the stream a client is watching.
+ */
+const builds = createBuildRunner({ db, driver, bus })
+
 const app = await buildServer({
   db,
   config,
@@ -273,6 +280,7 @@ const app = await buildServer({
   // subscribes to.
   bus,
   retirer,
+  builds,
   reservedLabels,
   // §23: the slug check is asked while a person types (P5a Decision 26).
   limits: { slugCheck: createRateLimiter({ limit: 60, windowMs: 60_000 }) },
@@ -299,7 +307,7 @@ const app = await buildServer({
  * An app is reachable again before this process accepts the first request that might
  * deploy over it, and no single broken app stops the boot.
  */
-const recovery = await recoverAtBoot({ db, driver, retirer })
+const recovery = await recoverAtBoot({ db, driver, retirer, bus })
 
 await app.listen({ port: config.port, host: '127.0.0.1' })
 
@@ -325,6 +333,8 @@ console.log(
     // What the recovery above did, on the one line an operator reads — and the one
     // `boot.docker.test.ts` reads back, because a recovery nobody can see is
     // indistinguishable from one that never ran.
+    // R6: builds a restart cut short, failed and published before the first request.
+    buildsInterrupted: recovery.buildsInterrupted,
     routesRestored: recovery.routesRestored,
     routesFailed: recovery.routesFailed.length,
     interrupted: recovery.interrupted,

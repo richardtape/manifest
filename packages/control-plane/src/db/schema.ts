@@ -142,6 +142,12 @@ export const builds = pgTable('builds', {
    * a build had failed was to re-run it by hand outside the platform.
    */
   error: text('error'),
+  /**
+   * §12's scan of the image, as `ScanSummary` (§6 `Build.scan`, P5a Task 13). Null for a
+   * build that has not succeeded, and for every build before this column — the scan was
+   * printed to the operator's terminal and kept nowhere until then.
+   */
+  scan: jsonb('scan'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 

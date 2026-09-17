@@ -3,7 +3,13 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
-import { demux, registryAuthHeader, type EngineClient } from '../runtime/index.js'
+import {
+  demux,
+  registryAuthHeader,
+  type EngineClient,
+  type ScanSummary,
+  type SeverityCounts,
+} from '../runtime/index.js'
 
 export const STALENESS_THRESHOLD_DAYS = 7
 const BLOCKING_SEVERITIES = new Set(['Critical', 'High'])
@@ -177,6 +183,51 @@ export function assessScan(input: {
 
 const SYFT = 'anchore/syft:v1.51.1'
 export const GRYPE = 'anchore/grype:v0.118.0'
+
+/** At most this many unfixable findings are named in a summary; all of them are counted. */
+const NAMED_FINDINGS = 50
+
+function countSerious(findings: readonly Vulnerability[]): SeverityCounts {
+  // Only Critical and High reach `assessScan`'s buckets; anything else here would be a
+  // bucket this code no longer understands, and is refused rather than miscounted.
+  const counts: SeverityCounts = { critical: 0, high: 0 }
+  for (const f of findings) {
+    if (f.severity === 'Critical') counts.critical += 1
+    else if (f.severity === 'High') counts.high += 1
+    else
+      throw new Error(
+        `a ${f.severity} finding (${f.id}) reached a bucket of serious ones`,
+      )
+  }
+  return counts
+}
+
+/**
+ * What the platform RECORDS of a scan (§6 `Build.scan`, P5a Task 13): who scanned, how
+ * current its database was, the three buckets `assessScan` sorted Critical and High
+ * findings into, and the unfixable ones by id. The SBOM and the full list stay with the
+ * scanner's run; this is what a Release shows and `LaunchReadiness` reads.
+ */
+export function summarizeScan(result: ScanResult, scannedAt: Date): ScanSummary {
+  return {
+    scanner: GRYPE,
+    scannedAt: scannedAt.toISOString(),
+    // Infinity is `scanImage`'s "the database did not say when it was built" — and
+    // `JSON.stringify(Infinity)` is `null`, so null is what a stored summary would hold
+    // anyway. Said here rather than discovered in a jsonb column.
+    databaseAgeDays: Number.isFinite(result.databaseAgeDays)
+      ? result.databaseAgeDays
+      : null,
+    stale: result.stale,
+    baseImageKnown: result.baseImageKnown,
+    fixable: countSerious(result.appFindings),
+    unfixable: countSerious(result.unfixableFindings),
+    baseImage: countSerious(result.baseImageFindings),
+    unfixableFindings: result.unfixableFindings
+      .slice(0, NAMED_FINDINGS)
+      .map((f) => ({ id: f.id, severity: f.severity, package: f.package })),
+  }
+}
 
 export interface ScanOptions {
   /** A scoped pull token, when the image still has to come out of the registry. */

@@ -1,5 +1,6 @@
 export type {
   BuildOpts,
+  BuiltImage,
   Driver,
   DriverCapabilities,
   DriverRefusalCode,
@@ -14,8 +15,10 @@ export type {
   ExecOpts,
   ExecStream,
   RetireOpts,
+  ScanSummary,
   ServiceBinding,
   ServiceHandle,
+  SeverityCounts,
   SnapshotRef,
   SourceRef,
 } from './driver.js'

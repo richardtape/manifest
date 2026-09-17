@@ -3,33 +3,18 @@ import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { appSpecs, environments, projects } from '../../db/index.js'
 import { assertCapability, AuthorizationError } from '../../projects/index.js'
-import {
-  createRelease,
-  deployRelease,
-  getBuild,
-  startBuild,
-} from '../../releases/index.js'
-import { checkBlueprintCompatibility } from '../../blueprints/index.js'
-import { incidentPrompt, listIncidents, readBuildLog } from '../../observability/index.js'
+import { createRelease, deployRelease } from '../../releases/index.js'
+import { incidentPrompt, listIncidents } from '../../observability/index.js'
 import { resolveConfig } from '../../spec/index.js'
 import type { ManifestSpec } from '../../spec/index.js'
-import { BadRequestError, SpecInvalidError } from '../errors.js'
+import { BadRequestError } from '../errors.js'
 import { requireActor, type ServerDeps } from '../server.js'
 
-const buildBody = z.object({
-  commitSha: z
-    .string()
-    .regex(/^[0-9a-f]{40}$/)
-    .optional(),
-})
 const releaseBody = z.object({
   buildId: z.string().uuid(),
   summary: z.string().max(500).optional(),
 })
 const deployBody = z.object({ releaseId: z.string().uuid() })
-const logsQuery = z.object({
-  tail: z.coerce.number().int().min(1).max(10_000).optional(),
-})
 
 /** §13's checklist, as data, so the refusal can name what is missing. */
 const LAUNCH_READINESS = [
@@ -59,116 +44,6 @@ export async function registerDeliveryRoutes(
   app: FastifyInstance,
   deps: ServerDeps,
 ): Promise<void> {
-  app.post('/v1/projects/:projectId/builds', async (request, reply) => {
-    const actor = requireActor(request)
-    const { projectId } = request.params as { projectId: string }
-    await assertCapability(deps.db, actor, projectId, 'build:create')
-
-    const parsed = buildBody.safeParse(request.body ?? {})
-    if (!parsed.success)
-      throw new BadRequestError('BUILD_INVALID_INPUT', parsed.error.message)
-
-    const [spec] = await deps.db
-      .select()
-      .from(appSpecs)
-      .where(eq(appSpecs.projectId, projectId))
-      .orderBy(desc(appSpecs.createdAt))
-      .limit(1)
-    if (!spec)
-      throw new BadRequestError(
-        'SPEC_NOT_FOUND',
-        'this project has no validated spec yet',
-      )
-    // SpecInvalidError, with the errors (P5a Task 5). This was
-    // `BadRequestError('SPEC_INVALID', …)` — one code answered 400 here and 422 from
-    // `GET …/spec`, which a client switching on the code could not tell apart, and it
-    // carried no `details` to act on.
-    if (!spec.valid) throw new SpecInvalidError(spec.errors as never)
-
-    const [project] = await deps.db
-      .select()
-      .from(projects)
-      .where(eq(projects.id, projectId))
-    if (!project) throw new AuthorizationError('NOT_FOUND', `no project '${projectId}'`)
-
-    // D30/§25: the spec is checked against the blueprint it pins, here rather than at
-    // validation time, because a blueprint's major version can move under a spec that
-    // has not changed. This is `checkBlueprintCompatibility`'s call site.
-    const descriptor = deps.blueprints.resolve(project.blueprintRef)
-    if (!descriptor) {
-      throw new BadRequestError(
-        'BLUEPRINT_NOT_FOUND',
-        `this project pins '${project.blueprintRef}', which is no longer in the registry`,
-      )
-    }
-    const incompatibilities = checkBlueprintCompatibility(
-      spec.parsed as ManifestSpec,
-      descriptor,
-    )
-    if (incompatibilities.length > 0) throw new SpecInvalidError(incompatibilities)
-
-    const { status, body } = await app.idempotent(request, async () => {
-      const build = await startBuild(deps.db, deps.driver, deps.bus, {
-        projectId,
-        projectSlug: project.slug,
-        appSpecId: spec.id,
-        commitSha: parsed.data.commitSha ?? spec.commitSha,
-        blueprintRef: project.blueprintRef,
-        // The PATH, from D5's driver, not a hand-built `file://` URL. The driver
-        // passes this straight to `git --git-dir=`, which does not accept a URL:
-        // `fatal: not a git repository`. Nothing caught it, because the export
-        // was a shell pipeline whose exit status came from `tar` — so the build
-        // proceeded with an EMPTY context and failed at the lockfile gate,
-        // naming a file the repository actually has. Both halves fixed 2026-09-07.
-        repoPath: deps.source.repositoryFor(project.slug).path,
-      })
-      return { status: 201, body: build }
-    })
-    return reply.status(status).send(body)
-  })
-
-  app.get('/v1/builds/:buildId', async (request) => {
-    const actor = requireActor(request)
-    const { buildId } = request.params as { buildId: string }
-    const build = await getBuild(deps.db, buildId)
-    // The project comes from the resource, never from the request.
-    if (!build) throw new AuthorizationError('NOT_FOUND', `no build '${buildId}'`)
-    await assertCapability(deps.db, actor, build.projectId, 'project:read')
-    return build
-  })
-
-  /**
-   * §14's build log. Authorized exactly like the build above — the project comes
-   * from the build ROW, never from the request — and before the query is looked
-   * at, so a stranger learns nothing from a 400 that a 404 would have hidden.
-   *
-   * AFTER THE FACT, not a live tail (pre-flight 111): `POST …/builds` awaits the
-   * whole build and only then returns the id this route needs. Live delivery is
-   * `WS /v1/projects/:projectId/events` (Task 14), published from `onLog` (Task 15).
-   */
-  app.get('/v1/builds/:buildId/logs', async (request) => {
-    const actor = requireActor(request)
-    const { buildId } = request.params as { buildId: string }
-    const build = await getBuild(deps.db, buildId)
-    if (!build) throw new AuthorizationError('NOT_FOUND', `no build '${buildId}'`)
-    await assertCapability(deps.db, actor, build.projectId, 'project:read')
-
-    const query = logsQuery.safeParse(request.query ?? {})
-    if (!query.success) {
-      throw new BadRequestError(
-        'BUILD_LOG_INVALID_QUERY',
-        query.error.message,
-        '`tail` is a whole number of lines, from 1 to 10000; leave it out for the whole log.',
-      )
-    }
-    const lines = await readBuildLog(
-      deps.db,
-      buildId,
-      query.data.tail === undefined ? {} : { tail: query.data.tail },
-    )
-    return { buildId, lines }
-  })
-
   app.post('/v1/projects/:projectId/releases', async (request, reply) => {
     const actor = requireActor(request)
     const { projectId } = request.params as { projectId: string }

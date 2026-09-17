@@ -29,7 +29,8 @@ import {
 } from '../runtime/testing.js'
 import { createAppSecrets, generateMasterKeypair } from '../secrets/index.js'
 import { createServiceCredentials } from '../services/index.js'
-import { createRelease, deployRelease, startBuild } from './index.js'
+import { createRelease, deployRelease } from './index.js'
+import { buildToEnd } from './testing.js'
 import { testAudience, testReservedLabels } from '../projects/testing.js'
 
 /**
@@ -152,14 +153,17 @@ describeDocker('a failed deploy records an Incident, from a real container (§14
         })
         .returning()
 
-      const build = await startBuild(db, driver, bus, {
-        projectId: project.id,
-        projectSlug: SLUG,
-        appSpecId: appSpec!.id,
-        commitSha: repo.commitSha,
-        blueprintRef: 'fixture-node@1',
-        repoPath: repo.repoPath,
-      })
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: SLUG,
+          appSpecId: appSpec!.id,
+          commitSha: repo.commitSha,
+          blueprintRef: 'fixture-node@1',
+          repoPath: repo.repoPath,
+        },
+      )
       expect(build.status, build.error ?? '').toBe('succeeded')
       const release = await createRelease(db, {
         projectId: project.id,

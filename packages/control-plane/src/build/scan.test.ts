@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { STALENESS_THRESHOLD_DAYS, assessScan, type Vulnerability } from './scan.js'
+import {
+  STALENESS_THRESHOLD_DAYS,
+  assessScan,
+  summarizeScan,
+  type ScanResult,
+  type Vulnerability,
+} from './scan.js'
 
 const BASE = new Set(['sha256:base1', 'sha256:base2'])
 
@@ -245,5 +251,88 @@ describe('who owns a finding (§20)', () => {
       baseLayerIds: BASE,
     })
     expect(result.baseImageFindings.map((v) => v.package)).toEqual(['libcrypto3'])
+  })
+})
+
+/** A complete `ScanResult` with nothing found, overridden by `overrides`. */
+const scanResultWith = (overrides: Partial<ScanResult> = {}): ScanResult => ({
+  sbom: '{}',
+  vulnerabilities: [],
+  appFindings: [],
+  unfixableFindings: [],
+  baseImageFindings: [],
+  baseImageKnown: true,
+  databaseAgeDays: 1,
+  stale: false,
+  blocked: false,
+  reason: 'no fixable high or critical findings in what this build added',
+  ...overrides,
+})
+
+describe('what the platform records of a scan (§12, P5a Task 13)', () => {
+  it('counts each bucket by severity, and names the unfixable findings', () => {
+    const summary = summarizeScan(
+      scanResultWith({
+        // A STALE scan, because only a stale scan lets a fixable High through the gate —
+        // and a fixture with no fixable finding cannot tell `fixable` from a constant.
+        appFindings: [finding('High', { id: 'CVE-3', package: 'tar-fs' })],
+        unfixableFindings: [
+          finding('Critical', {
+            id: 'GHSA-1',
+            package: 'passport-saml',
+            fixAvailable: false,
+          }),
+        ],
+        baseImageFindings: [
+          finding('High', {
+            id: 'CVE-2',
+            package: 'libssl3',
+            packageType: 'apk',
+            layerIds: ['sha256:base1'],
+          }),
+          finding('Critical', { id: 'CVE-4', package: 'libcrypto3', packageType: 'apk' }),
+        ],
+        databaseAgeDays: 8.5,
+        stale: true,
+      }),
+      new Date('2026-09-16T00:00:00Z'),
+    )
+    expect(summary).toEqual({
+      scanner: 'anchore/grype:v0.118.0',
+      scannedAt: '2026-09-16T00:00:00.000Z',
+      databaseAgeDays: 8.5,
+      stale: true,
+      baseImageKnown: true,
+      fixable: { critical: 0, high: 1 },
+      unfixable: { critical: 1, high: 0 },
+      baseImage: { critical: 1, high: 1 },
+      unfixableFindings: [
+        { id: 'GHSA-1', severity: 'Critical', package: 'passport-saml' },
+      ],
+    })
+  })
+
+  it('records a database whose age the scanner could not read as null, never as Infinity', () => {
+    // `scanImage` sets `databaseAgeDays` to Infinity when grype does not say when its
+    // database was built — and JSON has no Infinity: `JSON.stringify` writes `null`, so a
+    // jsonb column would hold a value the number the summary claims could never be.
+    const summary = summarizeScan(
+      scanResultWith({ databaseAgeDays: Number.POSITIVE_INFINITY, stale: true }),
+      new Date('2026-09-16T00:00:00Z'),
+    )
+    expect(summary.databaseAgeDays).toBeNull()
+    expect(summary.stale).toBe(true)
+  })
+
+  it('names at most 50 unfixable findings, and still counts every one', () => {
+    const many = Array.from({ length: 60 }, (_, i) =>
+      finding('High', { id: `CVE-${i}`, fixAvailable: false }),
+    )
+    const summary = summarizeScan(
+      scanResultWith({ unfixableFindings: many }),
+      new Date('2026-09-16T00:00:00Z'),
+    )
+    expect(summary.unfixableFindings).toHaveLength(50)
+    expect(summary.unfixable).toEqual({ critical: 0, high: 60 })
   })
 })

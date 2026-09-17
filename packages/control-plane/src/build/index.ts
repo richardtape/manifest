@@ -28,5 +28,6 @@ export {
   assessScan,
   generateSbom,
   scanImage,
+  summarizeScan,
 } from './scan.js'
 export type { ScanOptions, ScanResult, Vulnerability } from './scan.js'

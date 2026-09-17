@@ -263,6 +263,9 @@ say "6. A NEW-release redeploy"
 push
 proof_app_validate
 NEW_BUILD="$(api POST "/v1/projects/$PROJECT_ID/builds" "{\"commitSha\":\"$COMMIT\"}" | field id)"
+# 202, still running (R6): a release needs the build ended, and succeeded.
+BUILT="$(wait_for_build "$NEW_BUILD")" || fail "build $NEW_BUILD was not seen to end: $BUILT"
+[ "$(printf '%s' "$BUILT" | field status)" = succeeded ] || fail "build $NEW_BUILD did not succeed: $BUILT"
 NEW_RELEASE="$(api POST "/v1/projects/$PROJECT_ID/releases" \
   "{\"buildId\":\"$NEW_BUILD\",\"summary\":\"make demo-redeploy: a new release\"}" | field id)"
 PREVIOUS="$SAME_INSTANCE"
@@ -298,6 +301,9 @@ git -C "$WORK" push -q origin HEAD:main
 COMMIT="$(git -C "$WORK" rev-parse HEAD)"
 proof_app_validate
 FAIL_BUILD="$(api POST "/v1/projects/$PROJECT_ID/builds" "{\"commitSha\":\"$COMMIT\"}" | field id)"
+# It BUILDS cleanly — what it cannot do is become ready — so it must succeed here too.
+BUILT="$(wait_for_build "$FAIL_BUILD")" || fail "build $FAIL_BUILD was not seen to end: $BUILT"
+[ "$(printf '%s' "$BUILT" | field status)" = succeeded ] || fail "build $FAIL_BUILD did not succeed: $BUILT"
 FAIL_RELEASE="$(api POST "/v1/projects/$PROJECT_ID/releases" \
   "{\"buildId\":\"$FAIL_BUILD\",\"summary\":\"make demo-redeploy: a release that never becomes ready\"}" | field id)"
 redeploy failed-release "$FAIL_RELEASE"

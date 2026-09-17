@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { loadConfig } from '../config.js'
 import {
@@ -12,6 +12,7 @@ import {
   type Db,
 } from '../db/index.js'
 import { resetDatabase, withRollback } from '../db/testing.js'
+import { createEventBus, type StreamFrame } from '../observability/index.js'
 import { createProject } from '../projects/index.js'
 import { createFakeDriver, type FakeDriver } from '../runtime/index.js'
 import { recoverAtBoot } from './recover.js'
@@ -36,6 +37,8 @@ interface Fixture {
   releaseId: string
   /** An environment of the same project with nothing deployed to it at all. */
   emptyEnvironmentId: string
+  projectId: string
+  appSpecId: string
 }
 
 /**
@@ -148,8 +151,13 @@ async function deployed(
     serving: { id: row!.id, handle: handle.id },
     releaseId: release!.id,
     emptyEnvironmentId: sandbox.id,
+    projectId: project.id,
+    appSpecId: spec!.id,
   }
 }
+
+/** ONE bus for the file; a test that reads what boot streamed subscribes to its own project. */
+const bus = createEventBus()
 
 const recorder = () => {
   const scheduled: string[] = []
@@ -157,6 +165,52 @@ const recorder = () => {
 }
 
 describe('recoverAtBoot (P4c Task 9)', () => {
+  it('fails every build the restart interrupted, and says so on the stream (P5a Task 13)', async () => {
+    // R6: a build runs in the background, so a process that stops mid-build leaves its row
+    // `running` — a state nothing else will ever move, and a client waiting on the stream
+    // for that build's end would wait for ever.
+    await withRollback(async (db) => {
+      const { driver, projectId, appSpecId } = await deployed(db)
+      const unfinished = await db
+        .insert(builds)
+        .values(
+          (['running', 'pending'] as const).map((status) => ({
+            projectId,
+            appSpecId,
+            commitSha: 'a'.repeat(40),
+            status,
+          })),
+        )
+        .returning()
+      const ids = unfinished.map((b) => b.id).sort()
+      const frames: StreamFrame[] = []
+      const off = bus.subscribe(projectId, (f) => frames.push(f))
+      try {
+        const report = await recoverAtBoot({ db, driver, bus, ...recorder() })
+        expect(report.buildsInterrupted).toBe(2)
+      } finally {
+        off()
+      }
+
+      const after = await db.select().from(builds).where(inArray(builds.id, ids))
+      expect(after.map((b) => b.status)).toEqual(['failed', 'failed'])
+      for (const b of after) expect(b.error).toContain('BUILD_INTERRUPTED')
+      // The fixture's succeeded build is not a build a restart interrupted.
+      const others = await db.select().from(builds).where(eq(builds.projectId, projectId))
+      expect(others.filter((b) => b.status === 'succeeded')).toHaveLength(1)
+
+      const failed = frames.flatMap((f) =>
+        f.kind === 'event' && f.type === 'build.failed' ? [f] : [],
+      )
+      expect(frames).toHaveLength(2)
+      expect(
+        failed.map((f) => (f.machineDetail as { buildId: string }).buildId).sort(),
+      ).toEqual(ids)
+      expect(failed[0]!.machineDetail).toMatchObject({ code: 'BUILD_INTERRUPTED' })
+      expect(failed[0]!.humanMessage).not.toMatch(/BUILD_INTERRUPTED|control plane/)
+    })
+  })
+
   it('re-applies the edge route for every Route record', async () => {
     // §12: "the control plane re-applies all routes at boot." Nothing did —
     // `reapplyAllRoutes` was exported and had no production caller — so an edge
@@ -165,7 +219,7 @@ describe('recoverAtBoot (P4c Task 9)', () => {
       const { driver, hostname, serving, environmentId } = await deployed(db)
       expect(await driver.servingInstance(hostname)).toBeUndefined()
 
-      const report = await recoverAtBoot({ db, driver, ...recorder() })
+      const report = await recoverAtBoot({ db, driver, bus, ...recorder() })
 
       expect(await driver.servingInstance(hostname)).toBe(serving.handle)
       expect(report.routesRestored).toBe(1)
@@ -186,7 +240,7 @@ describe('recoverAtBoot (P4c Task 9)', () => {
       await driver.destroyInstance(broken.serving.handle)
       driver.dropRoutes()
 
-      const report = await recoverAtBoot({ db, driver, ...recorder() })
+      const report = await recoverAtBoot({ db, driver, bus, ...recorder() })
 
       expect(report.routesRestored).toBe(1)
       expect(report.routesFailed).toEqual([
@@ -215,7 +269,7 @@ describe('recoverAtBoot (P4c Task 9)', () => {
       const starting = await stuck('starting')
       const waking = await stuck('waking')
 
-      const report = await recoverAtBoot({ db, driver, ...recorder() })
+      const report = await recoverAtBoot({ db, driver, bus, ...recorder() })
 
       expect(report.interrupted).toBe(3)
       const state = async (id: string) =>
@@ -229,7 +283,7 @@ describe('recoverAtBoot (P4c Task 9)', () => {
   it('leaves a healthy row alone — `interrupted` is not a state the machine accepts for it', async () => {
     await withRollback(async (db) => {
       const { driver, serving } = await deployed(db)
-      const report = await recoverAtBoot({ db, driver, ...recorder() })
+      const report = await recoverAtBoot({ db, driver, bus, ...recorder() })
       expect(report.interrupted).toBe(0)
       expect(
         (await db.select().from(instances).where(eq(instances.id, serving.id)))[0]!.state,
@@ -244,7 +298,7 @@ describe('recoverAtBoot (P4c Task 9)', () => {
       const second = await deployed(db, { driver })
       const { scheduled, retirer } = recorder()
 
-      const report = await recoverAtBoot({ db, driver, retirer })
+      const report = await recoverAtBoot({ db, driver, bus, retirer })
 
       expect(scheduled.sort()).toEqual([first.environmentId, second.environmentId].sort())
       expect(report.scheduled.sort()).toEqual(scheduled.sort())
@@ -266,6 +320,7 @@ describe('recoverAtBoot (P4c Task 9)', () => {
       const report = await recoverAtBoot({
         db,
         driver,
+        bus,
         retirer: { schedule: (id: string) => void scheduled.push(id) },
       })
       expect(scheduled).toEqual([])
@@ -292,6 +347,7 @@ describe('recoverAtBoot (P4c Task 9)', () => {
       await recoverAtBoot({
         db,
         driver,
+        bus,
         retirer: {
           schedule: () => {
             // Synchronous, like the real `schedule`: read what the edge holds now.

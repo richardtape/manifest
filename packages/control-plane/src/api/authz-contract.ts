@@ -315,6 +315,20 @@ const ROUTES: RouteCase[] = [
     },
   },
   {
+    // P5a Task 13: a reader of the project may list its builds; the project comes from the
+    // path, so a stranger is hidden exactly as the project itself hides them.
+    method: 'GET',
+    url: '/v1/projects/:projectId/builds',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/builds` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
     method: 'GET',
     url: '/v1/builds/:buildId',
     request: (f) => ({ url: `/v1/builds/${f.buildId}` }),
@@ -500,6 +514,8 @@ export function describeAuthorizationContract(
         cookies: cookies.owner,
         headers: mutationHeaders(deps),
       })
+      // A build answers 202 and runs in the background (R6); a release needs it ended.
+      await deps.builds.idle()
       const release = await app.inject({
         method: 'POST',
         url: `/v1/projects/${body.id}/releases`,
@@ -543,7 +559,12 @@ export function describeAuthorizationContract(
       expect(strangerView.json()).toEqual([])
     })
 
-    afterAll(resetDatabase)
+    // The owner's, collaborator's and admin's `startBuild` cases each leave a build running
+    // in the background; truncating under one would fail it for a reason no test asked about.
+    afterAll(async () => {
+      await deps.builds.idle()
+      await resetDatabase()
+    })
 
     // The drift guard. A route added without an entry here fails the build.
     it('covers every route the server registers', () => {

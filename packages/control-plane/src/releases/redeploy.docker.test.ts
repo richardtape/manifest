@@ -36,7 +36,8 @@ import {
 } from '../runtime/testing.js'
 import { createAppSecrets, generateMasterKeypair } from '../secrets/index.js'
 import { createServiceCredentials } from '../services/index.js'
-import { createRelease, createRetirer, deployRelease, startBuild } from './index.js'
+import { createRelease, createRetirer, deployRelease } from './index.js'
+import { buildToEnd } from './testing.js'
 import type { DeployDeps, Retirer } from './index.js'
 import { testAudience, testReservedLabels } from '../projects/testing.js'
 
@@ -199,14 +200,17 @@ describeDocker('a redeploy through deployRelease (§11 Redeploys)', () => {
 
   /** A release built from `repoPath`, ready to deploy. */
   const releaseFrom = async (repoPath: string, commitSha: string): Promise<string> => {
-    const build = await startBuild(db, driver, deps.bus, {
-      projectId: project.id,
-      projectSlug: SLUG,
-      appSpecId,
-      commitSha,
-      blueprintRef: 'fixture-node@1',
-      repoPath,
-    })
+    const build = await buildToEnd(
+      { db: db, driver: driver, bus: deps.bus },
+      {
+        projectId: project.id,
+        projectSlug: SLUG,
+        appSpecId,
+        commitSha,
+        blueprintRef: 'fixture-node@1',
+        repoPath,
+      },
+    )
     expect(build.status, build.error ?? '').toBe('succeeded')
     const release = await createRelease(db, {
       projectId: project.id,

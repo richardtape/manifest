@@ -2,17 +2,18 @@ import { execFile, spawn } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import pg from 'pg'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import { disabledAiKeyService, disabledCatalogue } from './ai/index.js'
 import { loadBlueprints } from './blueprints/index.js'
 import { loadConfig } from './config.js'
-import { appSpecs, db, instances, users } from './db/index.js'
+import { appSpecs, builds, db, events, instances, users } from './db/index.js'
 import { resetDatabase } from './db/testing.js'
 import { createEventBus } from './observability/index.js'
 import { createProject } from './projects/index.js'
-import { createRelease, deployRelease, startBuild } from './releases/index.js'
+import { createRelease, deployRelease } from './releases/index.js'
+import { buildToEnd } from './releases/testing.js'
 import { createCaddyClient, removeRoute } from './routing/index.js'
 import type { Driver } from './runtime/index.js'
 import {
@@ -187,6 +188,7 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
   let driver: Driver
   let child: ReturnType<typeof spawn> | undefined
   let boot: {
+    buildsInterrupted: number
     routesRestored: number
     routesFailed: number
     interrupted: number
@@ -194,6 +196,7 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
   let serving: { id: string; handle: string }
   let retired: { id: string; handle: string }
   let interrupted: string
+  let interruptedBuild: string
   let probeAfterBoot: { status: number; body: string; instance: string }
 
   /**
@@ -349,14 +352,17 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
       retirer: { schedule: () => undefined },
     }
     const deployOnce = async () => {
-      const build = await startBuild(db, driver, bus, {
-        projectId: project.id,
-        projectSlug: SLUG,
-        appSpecId: spec!.id,
-        commitSha: contractRepoCommit(repoPath),
-        blueprintRef: 'fixture-node@1',
-        repoPath,
-      })
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: SLUG,
+          appSpecId: spec!.id,
+          commitSha: contractRepoCommit(repoPath),
+          blueprintRef: 'fixture-node@1',
+          repoPath,
+        },
+      )
       expect(build.status, build.error ?? '').toBe('succeeded')
       const release = await createRelease(db, {
         projectId: project.id,
@@ -393,6 +399,20 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
           )[0]!.releaseId,
           driver: 'docker',
           state: 'provisioning',
+        })
+        .returning()
+    )[0]!.id
+
+    // A BUILD the restart interrupted (P5a Task 13): since R6 a build runs in the
+    // background, so a process that stops mid-build leaves its row `running`.
+    interruptedBuild = (
+      await db
+        .insert(builds)
+        .values({
+          projectId: project.id,
+          appSpecId: spec!.id,
+          commitSha: contractRepoCommit(repoPath),
+          status: 'running',
         })
         .returning()
     )[0]!.id
@@ -496,6 +516,28 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
     expect(await appContainers()).toEqual([serving.handle])
     expect(await stateOf(retired.id)).toBe('gone')
     expect(await stateOf(serving.id)).toBe('healthy')
+  }, 120_000)
+
+  it('fails a build the restart interrupted, and publishes its end (P5a Task 13)', async () => {
+    expect(boot.buildsInterrupted).toBe(1)
+    const [row] = await db.select().from(builds).where(eq(builds.id, interruptedBuild))
+    expect(row).toMatchObject({
+      status: 'failed',
+      error: expect.stringContaining('BUILD_INTERRUPTED'),
+    })
+    // RECORDED by the real process, so a client that connects later is replayed it.
+    const ended = await db
+      .select()
+      .from(events)
+      .where(
+        and(
+          eq(events.subject, `build:${interruptedBuild}`),
+          eq(events.type, 'build.failed'),
+        ),
+      )
+    expect(ended.map((e) => e.machineDetail)).toEqual([
+      expect.objectContaining({ buildId: interruptedBuild, code: 'BUILD_INTERRUPTED' }),
+    ])
   }, 120_000)
 
   it('ends a deploy the restart interrupted', async () => {

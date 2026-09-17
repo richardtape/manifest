@@ -63,8 +63,14 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
       cookies,
       headers: mutationHeaders(deps),
     })
-    expect(build.json().status).toBe('succeeded')
-    expect(build.json().imageDigest).toMatch(/^sha256:[0-9a-f]{64}$/)
+    // It answers 202 while it runs (R6), and ends in the background: awaited, then read.
+    expect([build.statusCode, build.json().status]).toEqual([202, 'running'])
+    await deps.builds.idle()
+    const built = (
+      await app.inject({ method: 'GET', url: `/v1/builds/${build.json().id}`, cookies })
+    ).json()
+    expect(built.status).toBe('succeeded')
+    expect(built.imageDigest).toMatch(/^sha256:[0-9a-f]{64}$/)
 
     // 5. Release — immutable: build + appspec + resolved config (§13).
     const release = await app.inject({

@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto'
 import type {
   BuildOpts,
+  BuiltImage,
   Driver,
   DriverCapabilities,
   ExecOpts,
   ExecStream,
-  ImageRef,
   InstanceHandle,
   InstanceSpec,
   InstanceStatus,
@@ -83,7 +83,7 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
   return {
     name: 'fake',
 
-    async buildImage(src: SourceRef, spec, opts: BuildOpts = {}): Promise<ImageRef> {
+    async buildImage(src: SourceRef, spec, opts: BuildOpts = {}): Promise<BuiltImage> {
       opts.onLog?.({
         at: new Date(),
         stream: 'stdout',
@@ -98,6 +98,18 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
       return {
         repository: `local/${spec.projectSlug}`,
         digest: digestOf(`${spec.projectSlug}:${src.commitSha}:${spec.blueprintRef}`),
+        // `fake`, so a summary from this driver is never read as a real scan.
+        scan: {
+          scanner: 'fake',
+          scannedAt: new Date().toISOString(),
+          databaseAgeDays: 0,
+          stale: false,
+          baseImageKnown: true,
+          fixable: { critical: 0, high: 0 },
+          unfixable: { critical: 0, high: 0 },
+          baseImage: { critical: 0, high: 0 },
+          unfixableFindings: [],
+        },
       }
     },
 

@@ -126,8 +126,9 @@ is not built yet — that is a successful sign-in, not a failed one. Then, still
 
 - `/v1/projects` — your projects
 - `/v1/projects/<projectId>?expand=environments` — a project and its three environments
-- `/v1/builds/<buildId>/logs` — a build's log. There is no route that lists builds: the ID comes back
-  from `POST /v1/projects/<projectId>/builds`, which the demos print
+- `/v1/projects/<projectId>/builds` — a project's builds, newest first; `/v1/builds/<buildId>` — one, with
+  its status, digest and §12's scan (`scan`: the scanner, how old its database was, and Critical and High
+  counts that were fixable, unfixable, or the base image's own); `/v1/builds/<buildId>/logs` — its log
 - `/v1/environments/<environmentId>/incidents` — why a deploy failed, with a repair prompt
 
 The event stream (`WS /v1/projects/<projectId>/events`) needs a WebSocket client — see §4.
@@ -161,7 +162,9 @@ order, by `curl`. Its helpers are shared and should be reused, not copied:
 | `scripts/lib/event-stream.mjs` | `watch` subscribes to a project's event stream with a jar's session; `expect` checks what it carried |
 
 The lifecycle, as the API sees it: `POST /v1/projects` (a slug, a blueprint, optionally a starter, and a required `audience`) → push to the bare repository →
-`POST /v1/projects/:id/spec` (validate a commit) → `POST /v1/projects/:id/builds` →
+`POST /v1/projects/:id/spec` (validate a commit) → `POST /v1/projects/:id/builds` (**answers `202` while the
+build runs**; it ends as `build.succeeded` or `build.failed` on the event stream, and `GET /v1/builds/:id` says
+which — `wait_for_build` in `scripts/lib/api.sh` polls it) →
 `POST /v1/projects/:id/releases` → `POST /v1/environments/:id/deploy`. Every resource route is
 under `/v1` (D23.8); an old path answers `404 ROUTE_NOT_FOUND`. **A deploy that fails is a
 `200` whose `state` is `failed`** — check for `healthy`, never just for a response.

@@ -8,6 +8,7 @@ import {
   runMandatoryGates,
   scanImage,
   sourceDateEpoch,
+  summarizeScan,
 } from '../../build/index.js'
 import {
   applyRoute,
@@ -23,6 +24,7 @@ import {
 } from '../../routing/index.js'
 import type {
   BuildOpts,
+  BuiltImage,
   Driver,
   DriverCapabilities,
   ExecOpts,
@@ -266,7 +268,7 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
   return {
     name: 'docker',
 
-    async buildImage(src: SourceRef, spec, opts: BuildOpts = {}): Promise<ImageRef> {
+    async buildImage(src: SourceRef, spec, opts: BuildOpts = {}): Promise<BuiltImage> {
       const repository = `local/${spec.projectSlug}`
       return queue.run(spec.projectSlug, async () => {
         const workDir = await mkdtemp(join(tmpdir(), 'mf-build-'))
@@ -380,12 +382,17 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
            *
            * `console.error`, not a logger: `request.log.error` writes nothing under
            * `Fastify({ logger: false })` and this runs outside a request anyway.
-           * Persisting these on the Release row is owed and is `releases/`'s to do.
+           * Recorded on the build as `scan` since P5a Task 13, and shown on every
+           * release of it — this line stays as the operator's copy.
            */
           if (scan.unfixableFindings.length > 0) {
             console.error(`[build] ${repository}@${digest}: ${scan.reason}`)
           }
-          return { repository: `${options.registryPublicHost}/${repository}`, digest }
+          return {
+            repository: `${options.registryPublicHost}/${repository}`,
+            digest,
+            scan: summarizeScan(scan, new Date()),
+          }
         } finally {
           // Defect 35's class: one temp tree per build, never removed.
           await rm(workDir, { recursive: true, force: true })

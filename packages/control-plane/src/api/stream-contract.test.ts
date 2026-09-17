@@ -77,16 +77,19 @@ describe('the stream in the contract (D23.2)', () => {
     vi.spyOn(deps.driver, 'buildImage').mockRejectedValueOnce(
       Object.assign(new Error('npm ci exited 1'), { code: 'BUILD_FAILED' }),
     )
-    expect(
-      (
-        await post(`/v1/projects/${project.id}/builds`, {
-          commitSha: project.spec.commitSha,
-        })
-      ).status,
-    ).toBe('failed')
+    // Each build answers 202 and ends in the background (R6): awaited, then read back.
+    const failed = await post(`/v1/projects/${project.id}/builds`, {
+      commitSha: project.spec.commitSha,
+    })
+    await deps.builds.idle()
+    const readBuild = async (id: string) =>
+      (await app.inject({ method: 'GET', url: `/v1/builds/${id}`, cookies })).json()
+    expect((await readBuild(failed.id)).status).toBe('failed')
     const build = await post(`/v1/projects/${project.id}/builds`, {
       commitSha: project.spec.commitSha,
     })
+    await deps.builds.idle()
+    expect((await readBuild(build.id)).status).toBe('succeeded')
     const release = await post(`/v1/projects/${project.id}/releases`, {
       buildId: build.id,
     })

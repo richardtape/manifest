@@ -122,7 +122,10 @@ proof_app_validate() {
 proof_app_deploy() {
   local build deploy health
   build="$(api POST "/v1/projects/$PROJECT_ID/builds" "{\"commitSha\":\"$COMMIT\"}")"
-  BUILD_ID="$(printf '%s' "$build" | field id)"
+  # 202, still running (R6): the build ends in the background.
+  BUILD_ID="$(printf '%s' "$build" | field id)" || fail "the build was not started: $build"
+  build="$(wait_for_build "$BUILD_ID")" \
+    || fail "build $BUILD_ID was not seen to end (960 s, or its read was refused): $build"
   [ "$(printf '%s' "$build" | field status)" = succeeded ] \
     || fail "build $BUILD_ID did not succeed: $build"
   echo "  built $(printf '%s' "$build" | field imageDigest)"

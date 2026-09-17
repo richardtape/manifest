@@ -155,6 +155,37 @@ export function describeDriverContract(
       expect(second.digest).toBe(first.digest)
     })
 
+    it('reports the scan of what it built (§12, P5a Task 13)', async () => {
+      const driver = await factory()
+      const image = await driver.buildImage(
+        { repoPath: '/tmp/repo', commitSha: 'abc123' },
+        { blueprintRef: 'fixture-node@1', projectSlug: 'chem-labs' },
+      )
+      const counts = (c: object) =>
+        Object.keys(c).sort().join(',') === 'critical,high' &&
+        Object.values(c).every((n: unknown) => Number.isInteger(n) && (n as number) >= 0)
+      expect(image.scan.scanner).not.toBe('')
+      expect(Number.isNaN(Date.parse(image.scan.scannedAt))).toBe(false)
+      expect(typeof image.scan.stale).toBe('boolean')
+      // A number a JSON column can hold, or null for "the scanner could not say".
+      expect(
+        image.scan.databaseAgeDays === null ||
+          (Number.isFinite(image.scan.databaseAgeDays) &&
+            image.scan.databaseAgeDays >= 0),
+      ).toBe(true)
+      expect(
+        counts(image.scan.fixable) &&
+          counts(image.scan.unfixable) &&
+          counts(image.scan.baseImage),
+      ).toBe(true)
+      // A fixable Critical or High is REFUSED (§12) — unless the database is stale, when
+      // the gate warns instead — so on a fresh database none survives to here.
+      expect(
+        image.scan.stale || image.scan.fixable.critical + image.scan.fixable.high === 0,
+      ).toBe(true)
+      expect(image.scan.unfixableFindings.length).toBeLessThanOrEqual(50)
+    })
+
     it('reports build progress through onLog BEFORE it resolves (§14)', async () => {
       // Not "logs exist afterwards" — that is what execFile already gave us, and it
       // is not a stream. A front-end that receives nothing for two minutes and then

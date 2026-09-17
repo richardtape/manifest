@@ -3,7 +3,8 @@ import { asc, eq } from 'drizzle-orm'
 import { events } from '../db/index.js'
 import type { StreamFrame } from '../observability/index.js'
 import { resetDatabase } from '../db/testing.js'
-import { createFakeDriver } from '../runtime/index.js'
+import { createFakeDriver, type Driver } from '../runtime/index.js'
+import { createBuildRunner, createRetirer } from '../releases/index.js'
 import { buildServer } from './server.js'
 import { loginAs, mutationHeaders, projectBody, testDeps } from './testing.js'
 import type { TestUserPuid } from '../identity/testing.js'
@@ -24,6 +25,192 @@ async function projectFor(puid: TestUserPuid) {
   })
   return { app, deps, cookies, project: created.json() }
 }
+
+/** A build's present status, read the way a client reads it (R6). */
+async function statusOf(
+  app: Awaited<ReturnType<typeof buildServer>>,
+  cookies: Record<string, string>,
+  buildId: string,
+): Promise<string> {
+  return (
+    await app.inject({ method: 'GET', url: `/v1/builds/${buildId}`, cookies })
+  ).json().status
+}
+
+/**
+ * `testDeps()` with another driver — and the background work built FROM it. Spreading a
+ * driver over `testDeps()` alone leaves the build runner and the retirer holding the
+ * harness's own fake, so a build would quietly run on a driver the test never chose.
+ */
+async function depsWithDriver(driver: Driver) {
+  const deps = await testDeps()
+  return {
+    ...deps,
+    driver,
+    builds: createBuildRunner({ db: deps.db, driver, bus: deps.bus }),
+    retirer: createRetirer({
+      db: deps.db,
+      driver,
+      ai: deps.ai,
+      appSecrets: deps.appSecrets,
+      bus: deps.bus,
+      drainMs: 0,
+    }),
+  }
+}
+
+/** A project with `n` builds started through the route and awaited to their end. */
+async function projectWithBuilds(n: number) {
+  const { app, deps, cookies, project } = await projectFor('bio_prof')
+  const ids: string[] = []
+  for (let i = 0; i < n; i += 1) {
+    const started = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${project.id}/builds`,
+      payload: {},
+      cookies,
+      headers: mutationHeaders(deps),
+    })
+    expect(started.statusCode, started.body).toBe(202)
+    ids.push(started.json().id)
+    await deps.builds.idle()
+  }
+  return { app, deps, cookies, project, ids }
+}
+
+describe('a build answers at once and finishes on the stream (R6, P5a Task 13)', () => {
+  it('answers 202 while the build is still running, and GET tells the rest', async () => {
+    const deps = await testDeps()
+    // A driver whose build waits for the test to let it finish.
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    const buildImage = deps.driver.buildImage.bind(deps.driver)
+    deps.driver.buildImage = async (...args) => {
+      await gate
+      return buildImage(...args)
+    }
+    const app = await buildServer(deps)
+    const cookies = await loginAs(deps, 'bio_prof')
+    const project = (
+      await app.inject({
+        method: 'POST',
+        url: '/v1/projects',
+        cookies,
+        headers: mutationHeaders(deps),
+        payload: projectBody('chem-labs'),
+      })
+    ).json()
+    const frames: StreamFrame[] = []
+    deps.bus.subscribe(project.id, (f) => frames.push(f))
+
+    const started = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${project.id}/builds`,
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: {},
+    })
+    expect(started.statusCode, started.body).toBe(202)
+    expect(started.json()).toMatchObject({
+      status: 'running',
+      projectId: project.id,
+      commitSha: project.spec.commitSha,
+      imageDigest: null,
+      scan: null,
+    })
+    expect(await statusOf(app, cookies, started.json().id)).toBe('running')
+    // build.started is on the stream before the build ends; its end is not.
+    const types = () => frames.flatMap((f) => (f.kind === 'event' ? [f.type] : []))
+    expect(types()).toEqual(['build.started'])
+
+    release()
+    await deps.builds.idle()
+    const done = (
+      await app.inject({ method: 'GET', url: `/v1/builds/${started.json().id}`, cookies })
+    ).json()
+    expect(done).toMatchObject({
+      id: started.json().id,
+      status: 'succeeded',
+      imageDigest: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+      error: null,
+    })
+    expect(done.scan).toMatchObject({
+      scanner: 'fake',
+      stale: false,
+      fixable: { critical: 0, high: 0 },
+    })
+    // The repository half of the image is a build internal, and so is its log pointer.
+    expect(Object.keys(done).sort()).toEqual([
+      'commitSha',
+      'createdAt',
+      'error',
+      'id',
+      'imageDigest',
+      'projectId',
+      'scan',
+      'status',
+    ])
+    expect(types()).toEqual(['build.started', 'build.succeeded'])
+    await app.close()
+  })
+
+  it('replays the 202 as it was recorded for a repeated Idempotency-Key, and starts nothing', async () => {
+    const { app, deps, cookies, project } = await projectFor('bio_prof')
+    const headers = mutationHeaders(deps)
+    const post = () =>
+      app.inject({
+        method: 'POST',
+        url: `/v1/projects/${project.id}/builds`,
+        cookies,
+        headers,
+        payload: {},
+      })
+    const first = await post()
+    await deps.builds.idle()
+    const again = await post()
+    expect([again.statusCode, again.json()]).toEqual([202, first.json()])
+    const list = await app.inject({
+      method: 'GET',
+      url: `/v1/projects/${project.id}/builds`,
+      cookies,
+    })
+    expect(list.json()).toHaveLength(1)
+    await app.close()
+  })
+
+  it('lists a project’s builds, newest first', async () => {
+    const { app, cookies, project, ids } = await projectWithBuilds(2)
+    const list = (
+      await app.inject({
+        method: 'GET',
+        url: `/v1/projects/${project.id}/builds`,
+        cookies,
+      })
+    ).json()
+    expect(list.map((b: { id: string }) => b.id)).toEqual([...ids].reverse())
+    expect(Date.parse(list[0].createdAt)).toBeGreaterThanOrEqual(
+      Date.parse(list[1].createdAt),
+    )
+    await app.close()
+  })
+
+  it('refuses a commit that is not 40 hex characters as REQUEST_INVALID, naming the field', async () => {
+    const { app, deps, cookies, project } = await projectFor('bio_prof')
+    const refused = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${project.id}/builds`,
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: { commitSha: 'main' },
+    })
+    expect([refused.statusCode, refused.json().error.code]).toEqual([
+      400,
+      'REQUEST_INVALID',
+    ])
+    expect(refused.json().error.message).toContain('commitSha')
+    await app.close()
+  })
+})
 
 describe('what the event stream carries (P4b Task 15)', () => {
   it('streams every event the delivery lifecycle records — and nothing it did not record', async () => {
@@ -50,14 +237,18 @@ describe('what the event stream carries (P4b Task 15)', () => {
     vi.spyOn(deps.driver, 'buildImage').mockRejectedValueOnce(
       Object.assign(new Error('npm ci exited 1'), { code: 'BUILD_FAILED' }),
     )
+    // Each build answers 202 while it runs (R6) and is awaited to its end before the next
+    // step, so the recorded order below is the order things happened in.
     const failedBuild = await post(`/v1/projects/${project.id}/builds`, {
       commitSha: project.spec.commitSha,
     })
-    expect(failedBuild.json().status).toBe('failed')
+    await deps.builds.idle()
+    expect(await statusOf(app, cookies, failedBuild.json().id)).toBe('failed')
     const build = await post(`/v1/projects/${project.id}/builds`, {
       commitSha: project.spec.commitSha,
     })
-    expect(build.json().status).toBe('succeeded')
+    await deps.builds.idle()
+    expect(await statusOf(app, cookies, build.json().id)).toBe('succeeded')
     const release = await post(`/v1/projects/${project.id}/releases`, {
       buildId: build.json().id,
     })
@@ -165,9 +356,13 @@ describe('the delivery routes', () => {
       cookies,
       headers: mutationHeaders(deps),
     })
-    expect(build.statusCode).toBe(201)
-    expect(build.json().status).toBe('succeeded')
-    expect(build.json().imageDigest).toMatch(/^sha256:[0-9a-f]{64}$/)
+    expect(build.statusCode).toBe(202)
+    await deps.builds.idle()
+    const built = (
+      await app.inject({ method: 'GET', url: `/v1/builds/${build.json().id}`, cookies })
+    ).json()
+    expect(built.status).toBe('succeeded')
+    expect(built.imageDigest).toMatch(/^sha256:[0-9a-f]{64}$/)
 
     const release = await app.inject({
       method: 'POST',
@@ -207,14 +402,11 @@ describe('the delivery routes', () => {
     // record is what says which instance the hostname actually reaches.
     let sicken = false
     const base = createFakeDriver()
-    const deps = {
-      ...(await testDeps()),
-      driver: {
-        ...base,
-        status: async (id: string) =>
-          sicken ? ({ id, state: 'failed', healthy: false } as const) : base.status(id),
-      },
-    }
+    const deps = await depsWithDriver({
+      ...base,
+      status: async (id: string) =>
+        sicken ? ({ id, state: 'failed', healthy: false } as const) : base.status(id),
+    })
     const app = await buildServer(deps)
     const cookies = await loginAs(deps, 'bio_prof')
     const project = (
@@ -233,6 +425,7 @@ describe('the delivery routes', () => {
       cookies,
       headers: mutationHeaders(deps),
     })
+    await deps.builds.idle()
     const release = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/releases`,
@@ -290,6 +483,7 @@ describe('the delivery routes', () => {
       cookies,
       headers: mutationHeaders(deps),
     })
+    await deps.builds.idle()
     const release = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/releases`,
@@ -329,6 +523,7 @@ describe('the delivery routes', () => {
       cookies,
       headers: mutationHeaders(deps),
     })
+    await deps.builds.idle()
 
     const otherCookies = await loginAs(deps, 'bio_student')
     const response = await app.inject({
@@ -360,7 +555,8 @@ describe('the delivery routes', () => {
       cookies,
       headers: mutationHeaders(deps),
     })
-    expect(build.statusCode).toBe(201)
+    expect(build.statusCode).toBe(202)
+    await deps.builds.idle()
 
     const logs = await app.inject({
       method: 'GET',
@@ -389,7 +585,10 @@ describe('the delivery routes', () => {
       url: `/v1/builds/${build.json().id}/logs?tail=0`,
       cookies,
     })
-    expect(nonsense.statusCode).toBe(400)
+    expect([nonsense.statusCode, nonsense.json().error.code]).toEqual([
+      400,
+      'REQUEST_INVALID',
+    ])
 
     // The IDOR shape again, on the route that returns the most text.
     const other = await app.inject({
@@ -402,10 +601,7 @@ describe('the delivery routes', () => {
   })
 
   it('lists a failed deploy’s Incident with its repair prompt, and hides it from anyone else (§14)', async () => {
-    const deps = {
-      ...(await testDeps()),
-      driver: createFakeDriver({ failInstances: true }),
-    }
+    const deps = await depsWithDriver(createFakeDriver({ failInstances: true }))
     const app = await buildServer(deps)
     const cookies = await loginAs(deps, 'bio_prof')
     const project = (
@@ -424,6 +620,7 @@ describe('the delivery routes', () => {
       cookies,
       headers: mutationHeaders(deps),
     })
+    await deps.builds.idle()
     const release = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/releases`,

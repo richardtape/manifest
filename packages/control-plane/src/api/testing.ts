@@ -27,7 +27,7 @@ import { mkdir, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { createRetirer } from '../releases/index.js'
+import { createBuildRunner, createRetirer } from '../releases/index.js'
 import type { AiKeyService } from '../ai/index.js'
 import type { ServerDeps } from './server.js'
 import { testReservedLabels } from '../projects/testing.js'
@@ -205,6 +205,12 @@ export async function testDeps(): Promise<ServerDeps> {
      * task builds. `drainMs: 0` because the fake driver counts nothing in flight.
      */
     retirer: createRetirer({ db, driver, ai, appSecrets, bus, drainMs: 0 }),
+    /**
+     * A REAL RUNNER (P5a Task 13), over the same driver and bus: a build answers 202 and
+     * runs in the background, so a test that reads a build's end awaits `builds.idle()`.
+     * A test that replaces `driver` must replace this too, or its builds run on this one.
+     */
+    builds: createBuildRunner({ db, driver, bus }),
     reservedLabels: await testReservedLabels(),
     // The production limit, so a test of the limit tests the number the boot uses.
     limits: { slugCheck: createRateLimiter({ limit: 60, windowMs: 60_000 }) },

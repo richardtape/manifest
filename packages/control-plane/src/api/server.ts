@@ -25,7 +25,7 @@ import { registerAuthRoutes } from './routes/auth.js'
 import type { SsoRegistrar } from '../sso/index.js'
 import type { SamlSp } from '../identity/index.js'
 import type { AiKeyService, ModelCatalogue } from '../ai/index.js'
-import type { Retirer } from '../releases/index.js'
+import type { BuildRunner, Retirer } from '../releases/index.js'
 import { registerDeliveryRoutes } from './routes/delivery.js'
 import { registryTokenRoutes } from './routes/registry-token.js'
 import { registerRoutes } from './contract/route.js'
@@ -78,6 +78,12 @@ export interface ServerDeps {
    * and the Docker tier wait on.
    */
   retirer: Retirer
+  /**
+   * R6: builds run here, in the background — one per process, built at boot like the
+   * retirer (P5a Decision 31). `POST /v1/projects/{projectId}/builds` calls `start` and
+   * answers 202; `idle()` is what a test waits on.
+   */
+  builds: BuildRunner
   /** §23's reserved labels, loaded once at boot (P5a Task 9). */
   reservedLabels: ReservedLabels
   /** In-process request limits, one limiter per purpose, shared by every request (P5a Task 9). */

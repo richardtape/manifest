@@ -19,7 +19,8 @@ import {
   readSpRow,
 } from '../sso/index.js'
 import { idpDatabaseUrl } from '../sso/testing.js'
-import { createRelease, deployRelease, startBuild } from './index.js'
+import { createRelease, deployRelease } from './index.js'
+import { buildToEnd } from './testing.js'
 import { disabledAiKeyService, disabledCatalogue } from '../ai/index.js'
 import { createEventBus } from '../observability/index.js'
 import { testAudience, testReservedLabels } from '../projects/testing.js'
@@ -128,14 +129,17 @@ describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
         .returning()
 
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec!.id,
-        commitSha: appSpec!.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: `/tmp/${slug}.git`,
-      })
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec!.id,
+          commitSha: appSpec!.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: `/tmp/${slug}.git`,
+        },
+      )
       const release = await createRelease(db, {
         projectId: project.id,
         buildId: build.id,

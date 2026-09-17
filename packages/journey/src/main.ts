@@ -9,6 +9,7 @@ import {
 } from '@manifest/contract'
 import { Checks, JourneyStop } from './check.js'
 import { readState, writeState, type JourneyState } from './state.js'
+import { waitFor } from './wait.js'
 
 /**
  * §22's journey, through the edge, by nothing but the generated client (P5a's acceptance).
@@ -287,6 +288,116 @@ async function step3WatchProvisioning(): Promise<void> {
   )
 }
 
+/**
+ * The bound on a build's end: past the builder's own 900 s timeout (P5a Read this first 13),
+ * so a stalled build fails this step rather than hanging the journey.
+ */
+const BUILD_ENDS_WITHIN_MS = 960_000
+
+/**
+ * §22 step 4: trigger a build; its log lines stream live, and it ends on the stream (R6).
+ * Subscribed BEFORE the build starts, so nothing it publishes can be missed.
+ */
+async function step4Build(): Promise<void> {
+  checks.step('4. Trigger a build; its logs stream live, and it ends on the stream')
+  const projectId = checks.must('a project to build', state.projectId)
+  const frames: StreamFrame[] = []
+  const stream = subscribe({
+    ...signedIn,
+    projectId,
+    onFrame: (frame) => frames.push(frame),
+  })
+  try {
+    await stream.ready
+  } catch (error) {
+    checks.ok('the stream became ready', false, (error as Error).message)
+    return
+  }
+  try {
+    const startedAt = Date.now()
+    const started = unwrap(
+      await client.POST('/v1/projects/{projectId}/builds', {
+        params: {
+          path: { projectId },
+          header: { 'Idempotency-Key': idempotencyKey() },
+        },
+        body: {},
+      }),
+      'startBuild',
+    )
+    const answeredMs = Date.now() - startedAt
+    checks.ok(
+      'the build answered at once, still running (R6)',
+      started.status === 'running' || started.status === 'pending',
+      `${started.status} after ${answeredMs} ms`,
+    )
+    state.buildId = started.id
+    // Narrowed by `type` with no cast: both end events carry their own `buildId`.
+    const ended = checks.must(
+      'and it ended on the stream',
+      await waitFor(
+        frames,
+        (f) =>
+          f.kind === 'event' &&
+          (f.type === 'build.succeeded' || f.type === 'build.failed') &&
+          f.machineDetail.buildId === started.id,
+        BUILD_ENDS_WITHIN_MS,
+      ),
+      `no build.succeeded or build.failed for ${started.id} within ${BUILD_ENDS_WITHIN_MS} ms`,
+    )
+    console.log(`  (ended ${Date.now() - startedAt} ms after it was asked for)`)
+    const lines = frames.filter((f) => f.kind === 'log' && f.buildId === started.id)
+    checks.ok(
+      'its log lines arrived while it ran, before its end',
+      lines.length > 0 && frames.indexOf(lines[0]!) < frames.indexOf(ended),
+      `${lines.length} lines`,
+    )
+    const build = unwrap(
+      await client.GET('/v1/builds/{buildId}', {
+        params: { path: { buildId: started.id } },
+      }),
+      'getBuild',
+    )
+    checks.ok(
+      'it succeeded, with a digest',
+      build.status === 'succeeded' &&
+        /^sha256:[0-9a-f]{64}$/.test(build.imageDigest ?? ''),
+      `${build.status}: ${build.error ?? ''}`,
+    )
+    checks.ok(
+      'and the build records its scan, by the real scanner (§12)',
+      build.scan !== null && build.scan.scanner.startsWith('anchore/grype:'),
+      JSON.stringify(build.scan),
+    )
+    if (build.scan !== null) {
+      console.log(
+        `  (scan: database ${build.scan.databaseAgeDays === null ? 'of unknown age' : `${build.scan.databaseAgeDays.toFixed(1)} days old`}, ` +
+          `stale ${build.scan.stale}, unfixable ${JSON.stringify(build.scan.unfixable)}, base image ${JSON.stringify(build.scan.baseImage)})`,
+      )
+    }
+    // The RUNNING system's answer, not the types: a column the representation stopped
+    // stripping would reach here while tsc stayed green.
+    checks.ok(
+      'and carries no build internal',
+      !('imageRepository' in build) && !('logsRef' in build) && !('appSpecId' in build),
+      Object.keys(build).join(','),
+    )
+    const listed = unwrap(
+      await client.GET('/v1/projects/{projectId}/builds', {
+        params: { path: { projectId } },
+      }),
+      'listBuilds',
+    )
+    checks.ok(
+      'the project’s builds list it first',
+      listed[0]?.id === started.id,
+      JSON.stringify(listed.map((b) => b.id).slice(0, 3)),
+    )
+  } finally {
+    stream.close()
+  }
+}
+
 const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
   'before-app': [
     step1SignedIn,
@@ -295,6 +406,7 @@ const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
     step2bChooseABlueprint,
     step2Create,
     step3WatchProvisioning,
+    step4Build,
   ],
   'after-app': [],
 }

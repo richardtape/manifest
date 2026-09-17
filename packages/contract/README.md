@@ -64,6 +64,24 @@ it), the `envelope` and the `operation`. `code` is `UNPARSEABLE` when the body w
 envelope at all: Caddy's empty `502` when the control plane is down, or the edge's refusal
 of a source it does not allow.
 
+## Long-running work answers 202
+
+`startBuild` — `POST /v1/projects/{projectId}/builds` — answers **`202` with the build
+`running`**, at once (Rich's R6, §22 D23.9). The build runs on; its log lines arrive as `log`
+frames on the project's event stream and its end as `build.succeeded` or `build.failed`, each
+carrying `machineDetail.buildId`. **Subscribe before you start it** if you want its lines as
+they are written. A client with no socket reads `GET /v1/builds/{buildId}` until `status` is
+`succeeded` or `failed`. A replayed `Idempotency-Key` answers the first `202` again — still
+`running` — and starts nothing; read the build for its present state. A build a restart
+interrupted ends as `build.failed` with `code: BUILD_INTERRUPTED`. **A deploy is the stated
+exception**: `POST /v1/environments/{environmentId}/deploy` answers once the new instance
+serves.
+
+A succeeded build carries **`scan`** (§12): the scanner, how old its database was and whether
+that makes the result stale, and Critical and High counts in three buckets — introduced by the
+build with a fix, introduced with none, and the base image's own. Lower severities are not
+counted. `databaseAgeDays` is `null` when the scanner could not say.
+
 ## The event stream
 
 `WS /v1/projects/{projectId}/events` is how a client learns that anything changed — builds

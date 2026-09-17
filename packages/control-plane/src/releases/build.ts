@@ -6,7 +6,9 @@ import {
   logFrame,
   makeRedactor,
   publishEvent,
+  type BuildLogWriter,
   type EventBus,
+  type Redactor,
 } from '../observability/index.js'
 import type { Driver } from '../runtime/index.js'
 
@@ -27,22 +29,83 @@ export interface StartBuildInput {
   repoPath: string
 }
 
-/**
- * Records a build, asks the driver for an image, and records the outcome. A failed
- * build is a recorded row with `status: 'failed'` and no digest — not an exception —
- * because a faculty member needs to see the failure and its logs (§14).
- */
-export async function startBuild(
-  db: Db,
-  driver: Driver,
+export interface BuildRunnerDeps {
+  db: Db
+  driver: Driver
   /**
    * D23.2's stream (P4b Task 15): `build.started`, every log line as it is written, and
    * `build.succeeded` or `build.failed`. Required, not optional — a build that records
-   * and does not publish is a stream that sits silent through the whole build.
+   * and does not publish is a stream that sits silent through the whole build. Since R6
+   * it is also the ONLY way a client learns a build ended without asking.
    */
-  bus: EventBus,
+  bus: EventBus
+}
+
+export interface BuildRunner {
+  /**
+   * Records the build and `build.started`, and returns the RUNNING row (R6). The build
+   * itself runs after this resolves; its end is `build.succeeded` or `build.failed` on
+   * the project's stream, and the row says so when it happens.
+   */
+  start(input: StartBuildInput): Promise<Build>
+  /** Resolves when no build is running — for tests and the acceptance. */
+  idle(): Promise<void>
+}
+
+/**
+ * The control plane's SECOND background work, after the retirer (P5a Decision 31, Rich's
+ * R6). One per process, built at boot, holding the driver rather than reaching for it.
+ *
+ * A build takes 17 s for the skeleton and is bounded at 900 s, so a request that awaited
+ * it held a browser tab or the CI script open for the whole build. `start` answers once
+ * the build is RECORDED — a row a client can read and an event on the stream — and the
+ * rest runs here. A restart in the middle leaves a `running` row that nothing in this
+ * process will move; `recoverAtBoot` fails it at the next boot.
+ */
+export function createBuildRunner(deps: BuildRunnerDeps): BuildRunner {
+  const inFlight = new Set<Promise<void>>()
+  return {
+    async start(input) {
+      const started = await recordBuildStart(deps, input)
+      const run: Promise<void> = finishBuild(deps, input, started)
+        .then(() => undefined)
+        .catch((error: unknown) => {
+          // `finishBuild` records a FAILED build itself; reaching here means it could not
+          // even do that — a database outage mid-build. Not swallowed: the operator's
+          // copy, with a CODE and the build id, never a message (§14). The row is left
+          // `running`, and the next boot fails it as interrupted.
+          console.error(
+            JSON.stringify({
+              level: 'error',
+              msg: 'a build could not record how it ended; the next boot will mark it interrupted',
+              buildId: started.created.id,
+              error: (error as { code?: string }).code ?? (error as Error).name,
+            }),
+          )
+        })
+        .finally(() => inFlight.delete(run))
+      inFlight.add(run)
+      return started.created
+    },
+    async idle() {
+      // A loop, not one `Promise.all`: a build started while the first batch ran is
+      // in-flight work too.
+      while (inFlight.size > 0) await Promise.all([...inFlight])
+    },
+  }
+}
+
+interface StartedBuild {
+  created: Build
+  redact: Redactor
+  log: BuildLogWriter
+}
+
+/** The half of a build a request waits for: the row, `build.started`, and the log writer. */
+async function recordBuildStart(
+  { db, bus }: BuildRunnerDeps,
   input: StartBuildInput,
-): Promise<Build> {
+): Promise<StartedBuild> {
   const [created] = await db
     .insert(builds)
     .values({
@@ -63,30 +126,53 @@ export async function startBuild(
    * it carries the entropy and pattern heuristics.
    */
   const redact = makeRedactor([])
-  const subject = `build:${created.id}`
-  await publishEvent(
-    db,
-    bus,
-    {
-      projectId: input.projectId,
-      subject,
-      type: 'build.started',
-      machineDetail: {
-        buildId: created.id,
-        commitSha: input.commitSha,
-        blueprintRef: input.blueprintRef,
+  try {
+    await publishEvent(
+      db,
+      bus,
+      {
+        projectId: input.projectId,
+        subject: `build:${created.id}`,
+        type: 'build.started',
+        machineDetail: {
+          buildId: created.id,
+          commitSha: input.commitSha,
+          blueprintRef: input.blueprintRef,
+        },
+        humanMessage: `Building ${input.projectSlug} at commit ${input.commitSha.slice(0, 7)}.`,
       },
-      humanMessage: `Building ${input.projectSlug} at commit ${input.commitSha.slice(0, 7)}.`,
-    },
-    redact,
-  )
+      redact,
+    )
+  } catch (error) {
+    // Nothing will run this build, so its row must not say `running` until a restart. The
+    // request answers the error; the row answers why, for anyone who reads it later.
+    const code = (error as { code?: string }).code ?? (error as Error).name
+    await db
+      .update(builds)
+      .set({ status: 'failed', error: `${code}: the build could not be started` })
+      .where(eq(builds.id, created.id))
+    throw error
+  }
   // Each line reaches the stream AS IT IS WRITTEN, redacted and numbered by the writer —
   // a `log` frame, never an Event: a build is hundreds of lines and `events` is an audit
   // record. The line is durable in `audit.build_logs`, which is what a late client reads.
   const log = createBuildLogWriter(db, created.id, redact, (line) =>
     bus.publish(logFrame(input.projectId, created.id, line)),
   )
+  return { created, redact, log }
+}
 
+/**
+ * The half that runs in the background: asks the driver for an image, and records the
+ * outcome. A failed build is a recorded row with `status: 'failed'` and no digest — not
+ * an exception — because a faculty member needs to see the failure and its logs (§14).
+ */
+async function finishBuild(
+  { db, driver, bus }: BuildRunnerDeps,
+  input: StartBuildInput,
+  { created, redact, log }: StartedBuild,
+): Promise<Build> {
+  const subject = `build:${created.id}`
   let done: Build
   try {
     const image = await driver.buildImage(
@@ -95,7 +181,8 @@ export async function startBuild(
       { onLog: (line) => log.write(line) },
     )
     // Every line lands BEFORE the row says succeeded. A status over a log that is
-    // still arriving is what a reader polling the row would otherwise see.
+    // still arriving is what a reader polling the row would otherwise see — and since
+    // R6 polling the row is exactly what a script does.
     await log.flush()
     const [row] = await db
       .update(builds)
@@ -106,6 +193,8 @@ export async function startBuild(
         // that was built — see the column's own note.
         imageRepository: image.repository,
         logsRef: `build:${created.id}`,
+        // §12's "recorded on the Release": on the build, which every release of it shows.
+        scan: image.scan,
       })
       .where(eq(builds.id, created.id))
       .returning()
@@ -169,7 +258,8 @@ export async function startBuild(
   }
 
   // OUTSIDE the `try`: a failure to record that the build succeeded must not re-mark a
-  // built image as a failed build. It reaches the caller instead.
+  // built image as a failed build. It reaches the runner instead, which says so on the
+  // operator's terminal — the row already says `succeeded`, which is true.
   await publishEvent(
     db,
     bus,

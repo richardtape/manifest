@@ -69,6 +69,33 @@ clear_orphan_repository() {
   fi
 }
 
+# A build answers 202 at once and ends on the event stream (Rich's R6, P5a Task 13). A
+# script holding no socket reads the build until it is terminal, bounded past the
+# builder's own 900 s timeout so a stalled build fails the script rather than hanging it.
+# Prints the build's JSON as last read; returns 0 once it has ended (succeeded OR failed —
+# the caller says which it needed), 1 if it never did, or at once if the read itself is
+# refused: an expired session or a vanished build will not end by waiting.
+wait_for_build() {
+  local id="$1" build state deadline=$((SECONDS + 960))
+  while :; do
+    build="$(api GET "/v1/builds/$id")"
+    state="$(printf '%s' "$build" | field status 2>/dev/null || echo unknown)"
+    case "$state" in
+      succeeded | failed) printf '%s' "$build"; return 0 ;;
+      running | pending) ;;
+      *)
+        # D23.7's envelope: a refusal, not a build still under way.
+        if printf '%s' "$build" | field error.code >/dev/null 2>&1; then
+          printf '%s' "$build"
+          return 1
+        fi
+        ;;
+    esac
+    if [ "$SECONDS" -ge "$deadline" ]; then printf '%s' "$build"; return 1; fi
+    sleep 2
+  done
+}
+
 environment() {
   api GET "/v1/projects/$PROJECT_ID?expand=environments" \
     | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);const e=(j.environments??[]).find(x=>x.kind===process.argv[1]);if(!e){console.error(s);process.exit(1)}console.log(e.id)})' "$1"

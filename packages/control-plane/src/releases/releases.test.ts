@@ -25,7 +25,15 @@ import type { Driver, InstanceSpec, ServiceBinding } from '../runtime/index.js'
 import { createAppSecrets, generateMasterKeypair, getSecret } from '../secrets/index.js'
 import { createServiceCredentials } from '../services/index.js'
 import { loadBlueprints } from '../blueprints/index.js'
-import { ReleaseError, createRelease, deployRelease, startBuild } from './index.js'
+import {
+  ReleaseError,
+  createBuildRunner,
+  createRelease,
+  deployRelease,
+  getBuild,
+  type Build,
+} from './index.js'
+import { buildToEnd } from './testing.js'
 import type { DeployDeps, ResolvedConfigSet } from './index.js'
 import type { SpRegistrationInput } from '../sso/index.js'
 import {
@@ -246,14 +254,17 @@ describe('builds', () => {
     await withRollback(async (db) => {
       const { project, appSpec } = await fixture(db)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       expect(build.status).toBe('succeeded')
       expect(build.imageDigest).toMatch(/^sha256:[0-9a-f]{64}$/)
     })
@@ -264,14 +275,17 @@ describe('builds', () => {
       const { project, appSpec } = await fixture(db)
       const driver = createFakeDriver()
       vi.spyOn(driver, 'buildImage').mockRejectedValueOnce(new Error('compile error'))
-      const build = await startBuild(db, driver, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       expect(build.status).toBe('failed')
       expect(build.imageDigest).toBeNull()
     })
@@ -290,15 +304,13 @@ describe('builds', () => {
   })
 
   it('stores a successful build’s log BEFORE the row says succeeded (§14)', async () => {
-    // Read straight after `startBuild` returns. Lines written by un-awaited inserts
+    // Read straight after the build ENDS. Lines written by un-awaited inserts
     // land some time later, and a status that says `succeeded` over a log that is
     // still arriving is the race pre-flight 108 named.
     await withRollback(async (db) => {
       const { project, appSpec } = await fixture(db)
-      const build = await startBuild(
-        db,
-        createFakeDriver(),
-        bus,
+      const build = await buildToEnd(
+        { db: db, driver: createFakeDriver(), bus: bus },
         buildInput(project, appSpec),
       )
       expect(build.status).toBe('succeeded')
@@ -311,10 +323,14 @@ describe('builds', () => {
   it('does not call a build finished while its log is still being written (§14)', async () => {
     // The test above cannot show this, and sitting 7 measured that it cannot: inside
     // `withRollback` one connection runs its queries in order, so the status UPDATE
-    // queues behind the log INSERT whether or not `startBuild` waits — deleting the
-    // `flush` left it green. The control plane runs on a POOL, where the two race.
-    // So this runs on the pool, with the log table locked by a second connection for
-    // a second: a build that waits for its log cannot return before the lock goes.
+    // queues behind the log INSERT whether or not the build waits — deleting the `flush`
+    // left it green. The control plane runs on a POOL, where the two race. So this runs on
+    // the pool, with the log table locked by a second connection for a second.
+    //
+    // Since R6 (P5a Task 13) the question is asked the way a client asks it: the build
+    // answers at once, and the ROW is read while its log is locked out. A row that says
+    // `succeeded` then is the race — and a script polling `GET /v1/builds/{id}` is exactly
+    // the reader that would see it.
     const admin = new pg.Pool({
       connectionString: process.env.MANIFEST_ADMIN_DATABASE_URL,
     })
@@ -323,21 +339,16 @@ describe('builds', () => {
       const { project, appSpec } = await fixture(db)
       await lock.query('BEGIN')
       await lock.query('LOCK TABLE audit.build_logs IN ACCESS EXCLUSIVE MODE')
-      const started = Date.now()
-      const finishedAt = startBuild(
-        db,
-        createFakeDriver(),
-        bus,
-        buildInput(project, appSpec),
-      ).then((build) => ({ build, at: Date.now() }))
+      const runner = createBuildRunner({ db, driver: createFakeDriver(), bus })
+      const build = await runner.start(buildInput(project, appSpec))
       await new Promise((resolve) => setTimeout(resolve, 1_000))
-      await lock.query('COMMIT')
-      const { build, at } = await finishedAt
       expect(
-        at - started,
-        'startBuild returned while its log was locked out',
-      ).toBeGreaterThanOrEqual(900)
-      expect(build.status).toBe('succeeded')
+        (await getBuild(db, build.id))!.status,
+        'the row said the build had ended while its log was locked out',
+      ).toBe('running')
+      await lock.query('COMMIT')
+      await runner.idle()
+      expect((await getBuild(db, build.id))!.status).toBe('succeeded')
       expect((await readBuildLog(db, build.id)).length).toBeGreaterThan(0)
     } finally {
       // ROLLBACK outside a transaction is a warning, not an error, so this is safe
@@ -350,8 +361,26 @@ describe('builds', () => {
     }
   })
 
+  it('a build whose start cannot be published is FAILED, not left running for ever (P5a Task 13)', async () => {
+    // Nothing runs a build whose `build.started` was refused, so a row left `running` would
+    // stay that way until a restart — and a client polling it would wait that long. A
+    // commit that is not 40 hex is the refusal the schema gives (sitting 8, finding 1).
+    await withRollback(async (db) => {
+      const { project, appSpec } = await fixture(db)
+      const runner = createBuildRunner({ db, driver: createFakeDriver(), bus })
+      await expect(
+        runner.start({ ...buildInput(project, appSpec), commitSha: 'abc123' }),
+      ).rejects.toMatchObject({ code: 'EVENT_DETAIL_INVALID' })
+      await runner.idle()
+      const rows = await db.select().from(builds).where(eq(builds.projectId, project.id))
+      expect(rows.map((r) => [r.status, r.error])).toEqual([
+        ['failed', 'EVENT_DETAIL_INVALID: the build could not be started'],
+      ])
+    })
+  })
+
   it('a FAILED build keeps its log, and the reason is its last line', async () => {
-    // The case that matters. P3 measured the alternative: `startBuild` caught the
+    // The case that matters. P3 measured the alternative: the build caught the
     // error and discarded it, the row said `failed` and nothing else, and the only
     // way to learn why was to re-run the build by hand outside the platform.
     await withRollback(async (db) => {
@@ -368,7 +397,10 @@ describe('builds', () => {
           throw new Error('npm ci exited 1')
         },
       }
-      const build = await startBuild(db, failingDriver, bus, buildInput(project, appSpec))
+      const build = await buildToEnd(
+        { db: db, driver: failingDriver, bus: bus },
+        buildInput(project, appSpec),
+      )
       expect(build.status).toBe('failed')
       const lines = await readBuildLog(db, build.id)
       expect(lines.map((l) => [l.stream, l.text])).toEqual([
@@ -393,7 +425,10 @@ describe('builds', () => {
           })
         },
       }
-      const build = await startBuild(db, refusing, bus, buildInput(project, appSpec))
+      const build = await buildToEnd(
+        { db: db, driver: refusing, bus: bus },
+        buildInput(project, appSpec),
+      )
       expect(build.status).toBe('failed')
       const lines = await readBuildLog(db, build.id)
       expect(lines.map((l) => [l.stream, l.text])).toEqual([['stderr', build.error]])
@@ -404,12 +439,10 @@ describe('builds', () => {
   it('streams build.started, each log line as it is written, and build.succeeded — the events RECORDED too (P4b Task 15)', async () => {
     await withRollback(async (db) => {
       const { project, appSpec } = await fixture(db)
-      let build: Awaited<ReturnType<typeof startBuild>> | undefined
+      let build: Build | undefined
       const frames = await streamedWhile(project.id, async () => {
-        build = await startBuild(
-          db,
-          createFakeDriver(),
-          bus,
+        build = await buildToEnd(
+          { db: db, driver: createFakeDriver(), bus: bus },
           buildInput(project, appSpec),
         )
       })
@@ -456,9 +489,12 @@ describe('builds', () => {
           return base.buildImage(src, spec)
         },
       }
-      let build: Awaited<ReturnType<typeof startBuild>> | undefined
+      let build: Build | undefined
       const frames = await streamedWhile(project.id, async () => {
-        build = await startBuild(db, chatty, bus, buildInput(project, appSpec))
+        build = await buildToEnd(
+          { db: db, driver: chatty, bus: bus },
+          buildInput(project, appSpec),
+        )
       })
       const streamed = frames.flatMap((f) => (f.kind === 'log' ? [f.text] : []))
       const stored = (await readBuildLog(db, build!.id)).map((line) => line.text)
@@ -486,7 +522,10 @@ describe('builds', () => {
           throw new Error(`npm ci exited 1 (registry token ${token})`)
         },
       }
-      const build = await startBuild(db, failingDriver, bus, buildInput(project, appSpec))
+      const build = await buildToEnd(
+        { db: db, driver: failingDriver, bus: bus },
+        buildInput(project, appSpec),
+      )
       expect(build.status).toBe('failed')
       const rows = await db.select().from(events).where(eq(events.projectId, project.id))
       const failed = rows.find((r) => r.type === 'build.failed')
@@ -535,14 +574,17 @@ describe('releases (§13)', () => {
     await withRollback(async (db) => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       const release = await createRelease(db, {
         projectId: project.id,
         buildId: build.id,
@@ -577,14 +619,17 @@ describe('releases (§13)', () => {
           return driver.ensureInstance(spec)
         },
       }
-      const build = await startBuild(db, recording, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: recording, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       const release = await createRelease(db, {
         projectId: project.id,
         buildId: build.id,
@@ -629,14 +674,17 @@ describe('releases (§13)', () => {
           return driver.ensureInstance(spec)
         },
       }
-      const build = await startBuild(db, recording, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: recording, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       const release = await createRelease(db, {
         projectId: project.id,
         buildId: build.id,
@@ -674,14 +722,17 @@ describe('releases (§13)', () => {
           return driver.ensureInstance(spec)
         },
       }
-      const build = await startBuild(db, recording, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: recording, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       const release = await createRelease(db, {
         projectId: project.id,
         buildId: build.id,
@@ -730,14 +781,17 @@ describe('releases (§13)', () => {
           return driver.ensureService(binding)
         },
       }
-      const build = await startBuild(db, recording, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: recording, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       const release = await createRelease(db, {
         projectId: project.id,
         buildId: build.id,
@@ -787,14 +841,17 @@ describe('releases (§13)', () => {
           return driver.ensureInstance(spec)
         },
       }
-      const build = await startBuild(db, recording, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: recording, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       const hostile = {
         sandbox: {
           ...withService('sandbox'),
@@ -843,14 +900,17 @@ describe('releases (§13)', () => {
           return driver.ensureInstance(spec)
         },
       }
-      const build = await startBuild(db, recording, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: recording, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       // The app declares its own PORT and MANIFEST_ENV. Neither may win: one
       // breaks routing, the other lies about where the app is running.
       const hostile = {
@@ -891,14 +951,17 @@ describe('releases (§13)', () => {
     await withRollback(async (db) => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       const release = await createRelease(db, {
         projectId: project.id,
         buildId: build.id,
@@ -924,14 +987,17 @@ describe('releases (§13)', () => {
     await withRollback(async (db) => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       const release = await createRelease(db, {
         projectId: project.id,
         buildId: build.id,
@@ -955,14 +1021,17 @@ describe('releases (§13)', () => {
     await withRollback(async (db) => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver({ capabilities: { remoteTarget: true } })
-      const build = await startBuild(db, driver, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       const release = await createRelease(db, {
         projectId: project.id,
         buildId: build.id,
@@ -1005,14 +1074,17 @@ describe('waiting for health', () => {
     driver: ReturnType<typeof createFakeDriver>,
   ) {
     const { user, project, appSpec, byKind } = await fixture(db)
-    const build = await startBuild(db, driver, bus, {
-      projectId: project.id,
-      projectSlug: project.slug,
-      appSpecId: appSpec.id,
-      commitSha: appSpec.commitSha,
-      blueprintRef: project.blueprintRef,
-      repoPath: '/tmp/chem-labs.git',
-    })
+    const build = await buildToEnd(
+      { db: db, driver: driver, bus: bus },
+      {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoPath: '/tmp/chem-labs.git',
+      },
+    )
     const release = await createRelease(db, {
       projectId: project.id,
       buildId: build.id,
@@ -1306,14 +1378,17 @@ describe('the InstanceSpec handed to the driver', () => {
     await withRollback(async (db) => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       const built = await driver.buildImage(
         { repoPath: 'file:///tmp/chem-labs.git', commitSha: appSpec.commitSha },
         { blueprintRef: project.blueprintRef, projectSlug: project.slug },
@@ -1406,14 +1481,17 @@ describe('deployRelease sets up sign-on before the app starts (§9, Task 9)', ()
           )(...args)
         })
       const sso = recordingSso(order)
-      const build = await startBuild(db, driver, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       const release = await createRelease(db, {
         projectId: project.id,
         buildId: build.id,
@@ -1447,14 +1525,17 @@ describe('deployRelease sets up sign-on before the app starts (§9, Task 9)', ()
       const order: string[] = []
       const sso = recordingSso(order)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       const release = await createRelease(db, {
         projectId: project.id,
         buildId: build.id,
@@ -1497,14 +1578,17 @@ describe('deployRelease sets up sign-on before the app starts (§9, Task 9)', ()
       const order: string[] = []
       const sso = recordingSso(order)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       const release = await createRelease(db, {
         projectId: project.id,
         buildId: build.id,
@@ -1539,14 +1623,17 @@ describe('deployRelease sets up sign-on before the app starts (§9, Task 9)', ()
       const order: string[] = []
       const sso = recordingSso(order)
       const driver = createFakeDriver()
-      const build = await startBuild(db, driver, bus, {
-        projectId: project.id,
-        projectSlug: project.slug,
-        appSpecId: appSpec.id,
-        commitSha: appSpec.commitSha,
-        blueprintRef: project.blueprintRef,
-        repoPath: '/tmp/chem-labs.git',
-      })
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
       const legacy = {
         sandbox: { ...one('sandbox'), auth: undefined },
         staging: { ...one('staging'), auth: undefined },
@@ -1657,14 +1744,17 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
     resolvedConfig: ResolvedConfigSet,
   ) {
     const { user, project, appSpec, byKind } = await fixture(db)
-    const build = await startBuild(db, driver, bus, {
-      projectId: project.id,
-      projectSlug: project.slug,
-      appSpecId: appSpec.id,
-      commitSha: appSpec.commitSha,
-      blueprintRef: project.blueprintRef,
-      repoPath: '/tmp/chem-labs.git',
-    })
+    const build = await buildToEnd(
+      { db: db, driver: driver, bus: bus },
+      {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoPath: '/tmp/chem-labs.git',
+      },
+    )
     const release = await createRelease(db, {
       projectId: project.id,
       buildId: build.id,
@@ -2213,14 +2303,17 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
     resolvedConfig: ResolvedConfigSet = RESOLVED,
   ) {
     const { user, project, appSpec, byKind } = await fixture(db)
-    const build = await startBuild(db, driver, bus, {
-      projectId: project.id,
-      projectSlug: project.slug,
-      appSpecId: appSpec.id,
-      commitSha: appSpec.commitSha,
-      blueprintRef: project.blueprintRef,
-      repoPath: '/tmp/chem-labs.git',
-    })
+    const build = await buildToEnd(
+      { db: db, driver: driver, bus: bus },
+      {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoPath: '/tmp/chem-labs.git',
+      },
+    )
     const release = await createRelease(db, {
       projectId: project.id,
       buildId: build.id,

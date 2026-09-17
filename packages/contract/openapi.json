@@ -21,6 +21,9 @@
       "name": "blueprints"
     },
     {
+      "name": "delivery"
+    },
+    {
       "name": "events"
     },
     {
@@ -144,6 +147,117 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/KnowledgePack"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/builds/{buildId}": {
+      "get": {
+        "operationId": "getBuild",
+        "tags": [
+          "delivery"
+        ],
+        "summary": "A build",
+        "description": "Its present status, image digest, the reason a failed build failed, and its scan (§12).",
+        "parameters": [
+          {
+            "name": "buildId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The build.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Build"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/builds/{buildId}/logs": {
+      "get": {
+        "operationId": "getBuildLog",
+        "tags": [
+          "delivery"
+        ],
+        "summary": "A build’s log",
+        "description": "§14: every line, redacted at capture — or the last `tail`. Lines arrive live on the project’s event stream while the build runs; this is every one of them afterwards.",
+        "parameters": [
+          {
+            "name": "buildId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "tail",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "description": "Only the last this-many lines, 1 to 10000.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The log.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuildLog"
                 }
               }
             }
@@ -418,6 +532,133 @@
           "INTERNAL",
           "NOT_FOUND",
           "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/builds": {
+      "get": {
+        "operationId": "listBuilds",
+        "tags": [
+          "delivery"
+        ],
+        "summary": "A project’s builds",
+        "description": "The newest 50, newest first.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The builds.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuildList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      },
+      "post": {
+        "operationId": "startBuild",
+        "tags": [
+          "delivery"
+        ],
+        "summary": "Build the project",
+        "description": "§22 step 4. Answers 202 at once with the build `running` (R6); its log lines arrive as `log` frames and its end as `build.succeeded` or `build.failed` on the project’s event stream. GET /v1/builds/{buildId} for the present state — a replayed Idempotency-Key answers the 202 as it was first sent.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartBuildRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "The build, started.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Build"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "BLUEPRINT_NOT_FOUND",
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "SPEC_INVALID",
+          "SPEC_NOT_FOUND",
           "UNAUTHENTICATED"
         ]
       }
@@ -1065,6 +1306,144 @@
           "$ref": "#/components/schemas/Blueprint"
         }
       },
+      "Build": {
+        "description": "A build of one commit (§13). It answers `running` when it starts, and ends as `succeeded` or `failed` on the project’s stream (R6).",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "commitSha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "succeeded",
+              "failed"
+            ]
+          },
+          "imageDigest": {
+            "description": "`sha256:…` once the build has succeeded; the image a release names.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "description": "Why a failed build failed, in words its author can act on (§14).",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scan": {
+            "description": "Null until the build succeeds, and for a build from before scans were recorded.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "description": "An instant, ISO 8601 in UTC.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "commitSha",
+          "status",
+          "imageDigest",
+          "error",
+          "scan",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "BuildList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Build"
+        }
+      },
+      "BuildLog": {
+        "description": "§14’s build log, as stored.",
+        "type": "object",
+        "properties": {
+          "buildId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "seq": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "stream": {
+                  "type": "string",
+                  "enum": [
+                    "stdout",
+                    "stderr"
+                  ]
+                },
+                "text": {
+                  "description": "Redacted at capture (§14).",
+                  "type": "string"
+                },
+                "at": {
+                  "description": "An instant, ISO 8601 in UTC.",
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                }
+              },
+              "required": [
+                "seq",
+                "stream",
+                "text",
+                "at"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "buildId",
+          "lines"
+        ],
+        "additionalProperties": false
+      },
       "ControlFrame": {
         "description": "Ends the replay: everything after it is live.",
         "type": "object",
@@ -1271,8 +1650,6 @@
           "AI_UNMAPPED",
           "AI_USER_BUDGET_EXCEEDED",
           "BLUEPRINT_NOT_FOUND",
-          "BUILD_INVALID_INPUT",
-          "BUILD_LOG_INVALID_QUERY",
           "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED",
           "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH",
           "CONFIG_INVALID",
@@ -3009,6 +3386,141 @@
           "$ref": "#/components/schemas/Project"
         }
       },
+      "ScanSummary": {
+        "description": "§12’s scan of the image a build produced (§6 `Build.scan`).",
+        "type": "object",
+        "properties": {
+          "scanner": {
+            "description": "The scanner and its version — `fake` from the in-memory driver.",
+            "type": "string"
+          },
+          "scannedAt": {
+            "description": "An instant, ISO 8601 in UTC.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "databaseAgeDays": {
+            "description": "How old the vulnerability database was, in days; null when the scanner could not say, and then `stale` is true.",
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stale": {
+            "description": "A clean result from a stale database is not evidence there is nothing to find (§12).",
+            "type": "boolean"
+          },
+          "baseImageKnown": {
+            "description": "False when the base image was not identified: every finding was attributed to the build, so `baseImage` counted nothing.",
+            "type": "boolean"
+          },
+          "fixable": {
+            "description": "Introduced by this build, with a published fix. On a fresh database a build with any is refused (§12).",
+            "type": "object",
+            "properties": {
+              "critical": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "high": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "critical",
+              "high"
+            ],
+            "additionalProperties": false
+          },
+          "unfixable": {
+            "description": "Introduced by this build, with no published fix: recorded, not blocking (§12).",
+            "type": "object",
+            "properties": {
+              "critical": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "high": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "critical",
+              "high"
+            ],
+            "additionalProperties": false
+          },
+          "baseImage": {
+            "description": "The base image’s own — the blueprint’s to fix (§20).",
+            "type": "object",
+            "properties": {
+              "critical": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "high": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "critical",
+              "high"
+            ],
+            "additionalProperties": false
+          },
+          "unfixableFindings": {
+            "description": "The unfixable findings by id, at most 50; `unfixable` counts them all.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "severity": {
+                  "type": "string"
+                },
+                "package": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "severity",
+                "package"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "scanner",
+          "scannedAt",
+          "databaseAgeDays",
+          "stale",
+          "baseImageKnown",
+          "fixable",
+          "unfixable",
+          "baseImage",
+          "unfixableFindings"
+        ],
+        "additionalProperties": false
+      },
       "SensitiveDiff": {
         "description": "D9. Reported, not yet enforced (P6).",
         "type": "object",
@@ -3135,6 +3647,17 @@
           "errors",
           "sensitiveDiff"
         ],
+        "additionalProperties": false
+      },
+      "StartBuildRequest": {
+        "type": "object",
+        "properties": {
+          "commitSha": {
+            "description": "A full commit id. Defaults to the commit of the newest validated spec.",
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          }
+        },
         "additionalProperties": false
       },
       "StreamFrame": {

@@ -1,5 +1,6 @@
 import type { AnyRoute } from '../contract/route.js'
 import { blueprintRoutes } from './blueprints.js'
+import { buildRoutes } from './builds.js'
 import { meRoutes } from './me.js'
 import { projectReadRoutes } from './project-reads.js'
 import { createProjectRoutes } from './projects.js'
@@ -16,4 +17,5 @@ export const ROUTE_DEFINITIONS: readonly AnyRoute[] = [
   ...createProjectRoutes,
   ...slugRoutes,
   ...blueprintRoutes,
+  ...buildRoutes,
 ]

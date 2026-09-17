@@ -1,9 +1,12 @@
 import { eq, inArray, ne } from 'drizzle-orm'
-import { instances, routes, type Db } from '../db/index.js'
+import { builds, instances, routes, type Db } from '../db/index.js'
+import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { canTransition, nextState, type Driver } from '../runtime/index.js'
 import type { Retirer } from './retire.js'
 
 export interface RecoveryReport {
+  /** Builds this process's predecessor was running when it stopped, now `failed` (R6). */
+  buildsInterrupted: number
   /** Route records the edge was given back. */
   routesRestored: number
   /** Ones it could not be — the hostname and the refusal's code, never a message. */
@@ -38,7 +41,47 @@ export async function recoverAtBoot(deps: {
   db: Db
   driver: Driver
   retirer: Pick<Retirer, 'schedule'>
+  /** Pass 0 publishes each interrupted build's end, as the build would have. */
+  bus: EventBus
 }): Promise<RecoveryReport> {
+  /**
+   * PASS 0 — THE BUILDS this process's predecessor was running when it stopped (P5a Task
+   * 13). A build runs in the background since R6, so a restart leaves its row `running`
+   * for ever unless boot ends it — and a client waiting on the stream for that build's
+   * end would wait for ever too. Failed, with the reason as its error, and PUBLISHED
+   * after the row says so, exactly as `finishBuild` orders it.
+   *
+   * EVERY `pending` or `running` build, which is only right because ONE control plane
+   * runs against a database: a second process booting against the same one fails the
+   * first one's builds. The Docker tier's spawned control planes do exactly that — and
+   * they truncate the tables too.
+   */
+  const unfinished = await deps.db
+    .select({ id: builds.id, projectId: builds.projectId })
+    .from(builds)
+    .where(inArray(builds.status, ['pending', 'running']))
+  for (const build of unfinished) {
+    const reason =
+      'BUILD_INTERRUPTED: the control plane stopped while this build was running; start it again'
+    await deps.db
+      .update(builds)
+      .set({ status: 'failed', error: reason })
+      .where(eq(builds.id, build.id))
+    await publishEvent(
+      deps.db,
+      deps.bus,
+      {
+        projectId: build.projectId,
+        subject: `build:${build.id}`,
+        type: 'build.failed',
+        machineDetail: { buildId: build.id, code: 'BUILD_INTERRUPTED', reason },
+        humanMessage:
+          'A build was interrupted when the platform restarted. Start it again.',
+      },
+      makeRedactor([]),
+    )
+  }
+
   const routesFailed: { hostname: string; reason: string }[] = []
   let routesRestored = 0
 
@@ -118,5 +161,11 @@ export async function recoverAtBoot(deps: {
   const scheduled = live.map((row) => row.environmentId)
   for (const environmentId of scheduled) deps.retirer.schedule(environmentId)
 
-  return { routesRestored, routesFailed, interrupted, scheduled }
+  return {
+    buildsInterrupted: unfinished.length,
+    routesRestored,
+    routesFailed,
+    interrupted,
+    scheduled,
+  }
 }
