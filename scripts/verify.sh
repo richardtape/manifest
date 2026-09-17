@@ -554,6 +554,40 @@ idp_through_the_edge() {
 }
 check "the IdP is reachable through the edge over trusted TLS"  idp_through_the_edge
 
+# SIGN-OUT (found 2026-09-16, in a browser): an app's /auth/logout sends the person to the
+# IdP's singleLogout with ReturnTo=<the app>, and SimpleSAMLphp refuses any ReturnTo whose
+# host `trusted.url.domains` does not list — `500 URL not allowed`. It listed only the IdP,
+# so no app could sign anybody out, and the IdP session survived: the next "Sign in" was
+# answered without a password, as the person who had just signed out. Both directions,
+# because the fix is an allow-list: every app zone is allowed, and nothing else is —
+# including a hostname that merely starts with an app's.
+idp_lets_an_app_sign_out() {
+  local slo="https://$IDP_HOST/module.php/saml/idp/singleLogout?ReturnTo=" url out code where failed=0 jar hop
+  jar="$(mktemp -t mf-verify-slo)"
+  for url in "https://verify-probe.staging.$ZONE" "https://verify-probe.sandbox.$ZONE" "https://verify-probe.$ZONE"; do
+    # FOLLOW THE IdP's OWN HOPS, WITH ITS COOKIE. SimpleSAMLphp answers 303 to its
+    # `core/logout-resume?id=…`, whose state lives in the session — without the cookie the
+    # resume is a 500 (measured 2026-09-16) — and only that page sends the browser home.
+    where="$slo$(printf '%s' "$url" | sed 's/:/%3A/g; s#/#%2F#g')"; : > "$jar"
+    for hop in 1 2 3 4; do
+      out=$(curl -sS --cacert "$CA_FILE" -b "$jar" -c "$jar" -o /dev/null -w '%{http_code} %{redirect_url}' "$where")
+      code=${out%% *}; where=${out#* }
+      case "$where" in "https://$IDP_HOST/"*) continue ;; *) break ;; esac
+    done
+    echo "ReturnTo=$url -> the IdP sends the browser to ${where:-nowhere} after $hop hop(s), last $code (want the app)"
+    [ "${where%/}" = "$url" ] || failed=1
+  done
+  rm -f "$jar"
+  for url in "https://evil.example" "https://verify-probe.staging.$ZONE.evil.example" "https://a.b.staging.$ZONE"; do
+    out=$(curl -sS --cacert "$CA_FILE" -w '\n%{http_code}' "$slo$(printf '%s' "$url" | sed 's/:/%3A/g; s#/#%2F#g')")
+    code=${out##*$'\n'}
+    echo "ReturnTo=$url -> $code (want refused: URL not allowed)"
+    echo "$out" | grep -q 'URL not allowed' || failed=1
+  done
+  [ "$failed" = 0 ]
+}
+check "the IdP signs an app's user out to the app, and to nowhere else"  idp_lets_an_app_sign_out
+
 # The row declares TWO attributes. Anything else released is a §9 violation, and
 # S2 measured the default as releasing all THIRTEEN the auth source produces.
 idp_enforces_attribute_release() {

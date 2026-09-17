@@ -18,7 +18,22 @@ $config = array_merge($config, [
     // Caddy terminates TLS; without this SimpleSAMLphp builds `http://` URLs
     // into the SAML flow and the browser is redirected off the trusted origin.
     'baseurlpath' => 'https://idp.manifest.internal/',
-    'trusted.url.domains' => ['idp.manifest.internal'],
+    // WHERE THE IdP MAY SEND A BROWSER — a ReturnTo after single logout above all. An app's
+    // /auth/logout sends the person here with ReturnTo=<the app>, and SimpleSAMLphp refuses a
+    // host this list does not match (`500 URL not allowed`). It listed only this IdP until
+    // 2026-09-16, so NO app could sign anybody out — and the IdP session survived, so the next
+    // sign-in at that browser was the same person with no password. Found in a browser.
+    //
+    // PATTERNS (`trusted.url.regex`), anchored ^…$ by SimpleSAMLphp and matched against the
+    // HOST alone: this IdP, and exactly §23's app hostnames — one slug label (§7's rule) in the
+    // production, staging or sandbox zone. Not `*.manifest.internal`: a hostname that merely
+    // starts with an app's (`x.staging.manifest.internal.evil.example`) and a second label
+    // (`a.b.staging.manifest.internal`) are both refused. `make verify` asserts both directions.
+    'trusted.url.domains' => [
+        'idp\.manifest\.internal',
+        '[a-z][a-z0-9-]{2,38}\.(staging\.|sandbox\.)?manifest\.internal',
+    ],
+    'trusted.url.regex' => true,
     'technicalcontact_email' => 'noreply@manifest.internal',
     'secretsalt' => getenv('SSP_SECRET_SALT') ?: 'change-me-locally',
     'auth.adminpassword' => getenv('SSP_ADMIN_PASSWORD') ?: 'change-me-locally',
