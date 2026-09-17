@@ -37,9 +37,22 @@ STATE="$WORK/state.json"
 # fields where they are.
 session_of() { awk -F'\t' 'NF==7 && $6=="manifest_session" {print $7}' "$1"; }
 
+# Quiet when it builds, and LOUD when it does not. `tsc` writes its errors to STDOUT, so the
+# plan's `build >/dev/null` threw them away: a journey that no longer type-checks against the
+# generated contract stopped this script at `make: *** Error 2` with nothing saying why
+# (P5a sitting 5, control (e)).
+build() {
+  local out
+  if ! out="$(pnpm --filter "$1" build 2>&1)"; then
+    printf '%s\n' "$out" >&2
+    fail "$1 does not build — tsc's errors are above. The journey is checked against the
+generated contract, so a call or a field the contract does not have stops here."
+  fi
+}
+
 say "0. The client and the journey, built from the checked-in document"
-pnpm --filter @manifest/contract build >/dev/null
-pnpm --filter @manifest/journey build >/dev/null
+build @manifest/contract
+build @manifest/journey
 echo "  built"
 
 say "0. Is the control plane up, through the edge?"
