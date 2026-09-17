@@ -111,6 +111,20 @@ ANSWER="$(printf '%s' "$REPLY" | field answer 2>/dev/null || true)"
   || fail "the question was embedded in the wrong number of dimensions (S3's silent failure): $REPLY"
 echo "  asked, and was answered: $(printf '%s' "$ANSWER" | tr '\n' ' ' | cut -c1-120)"
 
+say "An administrator, made out of band (§20), for the fleet (§26)"
+OP_JAR="$WORK/operator.jar"; OP_IDP_JAR="$WORK/operator-idp.jar"
+# Signed in ONCE so the users row exists, then granted, then signed in AGAIN — a session
+# carries the role it was issued with.
+idp_login "$OP_JAR" "$OP_IDP_JAR" "$ORIGIN/auth/login" operator operator \
+  "$ORIGIN/auth/saml/callback" "$CA"
+bash scripts/admin-grant.sh grant opr000001 "P5a's acceptance journey reads the fleet (§26)"
+rm -f "$OP_JAR" "$OP_IDP_JAR"
+idp_login "$OP_JAR" "$OP_IDP_JAR" "$ORIGIN/auth/login" operator operator \
+  "$ORIGIN/auth/saml/callback" "$CA"
+ADMIN_SESSION="$(session_of "$OP_JAR")"
+[ -n "$ADMIN_SESSION" ] || fail "the operator's second sign-in left no session"
+
 say "7 and after — through @manifest/contract"
 NODE_EXTRA_CA_CERTS="$CA" MANIFEST_ORIGIN="$ORIGIN" MANIFEST_SESSION="$SESSION" \
+  MANIFEST_ADMIN_SESSION="$ADMIN_SESSION" \
   node packages/journey/dist/main.js after-app "$STATE"

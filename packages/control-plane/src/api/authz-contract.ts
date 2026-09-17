@@ -471,6 +471,20 @@ const ROUTES: RouteCase[] = [
       anonymous: 401,
     },
   },
+  {
+    // §26 (P5a Task 16): platform administrators only. 403, not 404 — there is no tenant's
+    // resource to hide, and "you are not an administrator" is the true answer.
+    method: 'GET',
+    url: '/v1/fleet',
+    request: () => ({ url: '/v1/fleet' }),
+    expect: {
+      owner: 403,
+      collaborator: 403,
+      stranger: 403,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
   /**
    * The registry token realm. Unlike every other route in this table it carries NO
    * session: its caller is BuildKit or the Docker daemon speaking the distribution

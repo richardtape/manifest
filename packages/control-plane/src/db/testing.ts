@@ -92,6 +92,9 @@ const TABLES = [
   'environments',
   'project_members',
   'projects',
+  // P5a Task 16. BEFORE `users`, and named for the reason `audit.incidents` is: a role
+  // change references a user ON DELETE restrict, and manifest_app cannot truncate it.
+  'audit.role_changes',
   'users',
 ]
 

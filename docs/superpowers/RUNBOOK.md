@@ -281,7 +281,42 @@ make demo-journey           # ~1 minute; ends with `every check passed` and exit
 Every check prints `ok` or `FAIL` and the run exits 1 listing each failure. **A journey that does not build stops at step 0 and
 prints `tsc`'s errors** — the journey is type-checked against the generated contract, so a call or a field the contract does
 not have stops it there. `FAIL no step threw — [cause UNABLE_TO_GET_ISSUER_CERT_LOCALLY] TypeError: fetch failed` is a journey
-run without the platform CA. So far it runs §22 step 1 (`GET /v1/me`), step 2's list of the instructor's projects, step 2a's slug checks (`GET /v1/slugs/{slug}` for `console`, `chem`, `Journey_App` and `journey-app`), step 2b's catalogue and knowledge pack (`GET /v1/blueprints`), and step 2's creation: **it creates `journey-app` from `node-ts-mongo@1`'s `proof-app` starter, for a class, the first time, and reuses it after** — a project and a bare repository, no container. Step 3 subscribes to the project's event stream through the edge (`subscribe` in `@manifest/contract`, with the session and the console's `Origin` on the upgrade) and checks the replay carries `project.created`, `repository.seeded` and `spec.validated` in order, then the ready frame; `FAIL the stream became ready — the event stream closed before it was ready (1006)` is an upgrade the control plane refused. **Step 4 builds `journey-app`** (P5a Task 13): subscribed first, it starts a build, checks the answer came back `running` at once (R6), waits on the stream for that build's `build.succeeded` or `build.failed` — up to 960 s, past the builder's own 900 s bound — checks its log lines arrived before its end, and reads `GET /v1/builds/{buildId}` for a digest and a scan by `anchore/grype`. It prints how long the build took and what the scan said. **Step 5 releases that build and deploys it to staging** (P5a Task 14): it checks the release carries the build's digest and a real scan and names its env vars **without their values** (`COURSE_CODE`, never `CHEM_121`), reads the release back and lists the project's releases, then subscribes and deploys — the instance must be `healthy`, must carry no `driver` or `handle`, and the stream must have carried `instance.provisioning`, `instance.starting` and `instance.healthy` **in that order**. **Step 6 leaves the contract and enters the deployed app** (Decision 38): `idp_login` signs the instructor in at `journey-app.staging.manifest.internal` with CWL, writes a note through the app's own `/api/notes`, and asks `/api/ask` a question the note answers — checking the reply came back embedded in 768 dimensions (S3's silent failure). Step 7 and after run as `after-app` and have no steps yet. After `pnpm test` has emptied the tables it first removes `.manifest/repos/journey-app.git`, as the demos do for theirs (*Known gaps*).
+run without the platform CA. So far it runs §22 step 1 (`GET /v1/me`), step 2's list of the instructor's projects, step 2a's slug checks (`GET /v1/slugs/{slug}` for `console`, `chem`, `Journey_App` and `journey-app`), step 2b's catalogue and knowledge pack (`GET /v1/blueprints`), and step 2's creation: **it creates `journey-app` from `node-ts-mongo@1`'s `proof-app` starter, for a class, the first time, and reuses it after** — a project and a bare repository, no container. Step 3 subscribes to the project's event stream through the edge (`subscribe` in `@manifest/contract`, with the session and the console's `Origin` on the upgrade) and checks the replay carries `project.created`, `repository.seeded` and `spec.validated` in order, then the ready frame; `FAIL the stream became ready — the event stream closed before it was ready (1006)` is an upgrade the control plane refused. **Step 4 builds `journey-app`** (P5a Task 13): subscribed first, it starts a build, checks the answer came back `running` at once (R6), waits on the stream for that build's `build.succeeded` or `build.failed` — up to 960 s, past the builder's own 900 s bound — checks its log lines arrived before its end, and reads `GET /v1/builds/{buildId}` for a digest and a scan by `anchore/grype`. It prints how long the build took and what the scan said. **Step 5 releases that build and deploys it to staging** (P5a Task 14): it checks the release carries the build's digest and a real scan and names its env vars **without their values** (`COURSE_CODE`, never `CHEM_121`), reads the release back and lists the project's releases, then subscribes and deploys — the instance must be `healthy`, must carry no `driver` or `handle`, and the stream must have carried `instance.provisioning`, `instance.starting` and `instance.healthy` **in that order**. **Step 6 leaves the contract and enters the deployed app** (Decision 38): `idp_login` signs the instructor in at `journey-app.staging.manifest.internal` with CWL, writes a note through the app's own `/api/notes`, and asks `/api/ask` a question the note answers — checking the reply came back embedded in 768 dimensions (S3's silent failure). **Step 7 asks for production** (P5a Task 15): the deploy is refused `409 RELEASE_PRODUCTION_GATE_UNAVAILABLE`, the refusal carries §13's checklist, and `GET /v1/projects/{projectId}/launch-readiness` answers the same bytes — not ready, the candidate the release serving staging, the domain before IAM registration, scans computed from that release, and every other item saying which plan builds it. **Step 8 reads the fleet** (P5a Task 16): the instructor is refused `403`, then the script signs `operator` in, runs `scripts/admin-grant.sh grant opr000001`, signs them in AGAIN — a session carries the role it was issued with — and `GET /v1/fleet` shows `journey-app` owned by the instructor, for a class, healthy in staging on the journey's release. After `pnpm test` has emptied the tables it first removes `.manifest/repos/journey-app.git`, as the demos do for theirs (*Known gaps*).
+
+## The first administrator
+
+*Added by P5a Task 16, 2026-09-17.*
+
+§20: *"the first administrator is created by a documented out-of-band procedure, never by 'first user to log in
+wins'. Role changes are audited."* **This is that procedure.** It is out of band deliberately: it speaks to
+Postgres as the database OWNER, inside the container, so no control-plane route can change a platform role and
+no delegated token ever will (D24) — there is nothing on the network to steal that does this. At UBC the
+procedure is the same SQL run by whoever holds the database owner's credential; the script is its local form.
+
+**The person must have signed in once first** — the `users` row is created at sign-in (§9) — and the script
+refuses a PUID that has never signed in, and an empty reason, changing nothing either way.
+
+```bash
+scripts/admin-grant.sh grant  opr000001 "the first administrator for this laptop"
+scripts/admin-grant.sh revoke opr000001 "no longer needed"
+```
+
+**The change reaches them when they SIGN IN AGAIN.** Sessions are stateless and carry the role they were
+issued with, so a session minted before the grant still says `member`; the script says so on every run.
+
+Every change is appended to `audit.role_changes` — append-only by grant, like `audit.events`, so the control
+plane's own role may read and add a row and never rewrite or remove one. A grant that changes nothing records
+nothing. To read it:
+
+```bash
+docker exec manifest-postgres psql -U manifest -d manifest_control -c \
+  "SELECT u.ubc_cwl_puid, r.from_role, r.to_role, r.actor, r.reason, r.created_at
+     FROM audit.role_changes r JOIN users u ON u.id = r.user_id ORDER BY r.created_at DESC"
+```
+
+`operator` / `operator` (PUID `opr000001`) is the IdP test user `make demo-journey` makes an administrator, so
+that the student and the instructor keep proving exactly what they prove in every other demo. An administrator
+reads `GET /v1/fleet` (§26); everyone else gets `403`.
 
 ## `make demo-redeploy` — P4c's acceptance: a redeploy nobody using the app notices
 

@@ -164,6 +164,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/fleet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every app on the platform
+         * @description §26: the fleet, for platform administrators — an admin-scoped read on the one public API (D31), not a second API. Everyone else is refused 403.
+         */
+        get: operations["listFleet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me": {
         parameters: {
             query?: never;
@@ -1053,6 +1073,38 @@ export interface components {
              */
             createdAt: string;
         };
+        /** @description §26’s fleet, administrators only. Not yet: department, custom domains, AI spend this month. */
+        Fleet: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            blueprint: string;
+            starter: string | null;
+            owner: {
+                /** Format: uuid */
+                id: string;
+                displayName: string;
+                email: string;
+            };
+            audience: components["schemas"]["Audience"] | null;
+            /**
+             * Format: date-time
+             * @description An instant, ISO 8601 in UTC.
+             */
+            createdAt: string;
+            /** @description §23: holds a label reserved after it was created. Handle with the owner; never renamed automatically. */
+            slugReserved: boolean;
+            environments: {
+                /** @enum {string} */
+                kind: "sandbox" | "staging" | "production";
+                hostname: string;
+                state: string | null;
+                releaseId: string | null;
+                imageDigest: string | null;
+                lastDeployAt: string | null;
+                latestIncidentAt: string | null;
+            }[];
+        }[];
         /** @description A failed deploy, as §14 records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked. */
         Incident: {
             /** Format: uuid */
@@ -1655,6 +1707,35 @@ export interface operations {
                 };
             };
             /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listFleet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The fleet, newest project first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Fleet"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

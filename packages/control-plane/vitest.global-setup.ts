@@ -34,6 +34,7 @@ const TABLES = [
   'environments',
   'project_members',
   'projects',
+  'audit.role_changes',
   'users',
 ]
 

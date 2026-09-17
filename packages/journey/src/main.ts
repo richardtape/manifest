@@ -572,6 +572,41 @@ async function step7RequestProduction(): Promise<void> {
   )
 }
 
+/** §26: the fleet — refused to the instructor, read by an administrator made out of band. */
+async function step8Fleet(): Promise<void> {
+  checks.step('8. The fleet, as a platform administrator (§26)')
+  const refused = await client.GET('/v1/fleet')
+  checks.ok(
+    'the instructor is refused the fleet, 403',
+    refused.response.status === 403,
+    String(refused.response.status),
+  )
+  const adminSession = process.env.MANIFEST_ADMIN_SESSION
+  const admin = createManifestClient({
+    origin,
+    session: checks.must('an administrator’s session was provided', adminSession),
+  })
+  const me = unwrap(await admin.GET('/v1/me'), 'getMe')
+  checks.ok('the operator is signed in as an administrator', me.role === 'admin', me.role)
+  const fleet = unwrap(await admin.GET('/v1/fleet'), 'listFleet')
+  const entry = checks.must(
+    'journey-app is in the fleet',
+    fleet.find((e) => e.slug === 'journey-app'),
+  )
+  checks.ok(
+    'owned by the instructor, for a class',
+    entry.owner.displayName === 'Test Instructor' && entry.audience?.scale === 'class',
+    JSON.stringify(entry.owner),
+  )
+  const staging = entry.environments.find((e) => e.kind === 'staging')
+  checks.ok(
+    'its staging environment is healthy, on the journey’s release',
+    staging?.state === 'healthy' && staging.releaseId === state.releaseId,
+    JSON.stringify(staging),
+  )
+  checks.ok('and its name is not a reserved label', entry.slugReserved === false)
+}
+
 const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
   'before-app': [
     step1SignedIn,
@@ -583,7 +618,7 @@ const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
     step4Build,
     step5Deploy,
   ],
-  'after-app': [step7RequestProduction],
+  'after-app': [step7RequestProduction, step8Fleet],
 }
 
 try {

@@ -34,5 +34,15 @@ $config = [
             'sn'                   => ['Instructor'],
             'eduPersonAffiliation' => ['faculty'],
         ],
+        // P5a Task 16: a person to make a platform ADMINISTRATOR with scripts/admin-grant.sh,
+        // so the journey can read the fleet (§26) without changing what the student and the
+        // instructor prove in every other demo. Friendly names, as above.
+        'operator:operator' => [
+            'ubcEduCwlPuid'        => ['opr000001'],
+            'mail'                 => ['operator@ubc.ca'],
+            'givenName'            => ['Test'],
+            'sn'                   => ['Operator'],
+            'eduPersonAffiliation' => ['staff'],
+        ],
     ],
 ];

@@ -463,3 +463,30 @@ export const incidents = audit.table(
   // environment's incident list joins on it.
   (t) => [index('incidents_instance_idx').on(t.instanceId)],
 )
+
+/**
+ * §20: "Role changes are audited" (P5a Task 16). In the `audit` schema, append-only BY
+ * GRANT like `events`: the migration grants `manifest_app` SELECT and INSERT only, and
+ * the one writer — scripts/admin-grant.sh — runs as the database owner, out of band.
+ *
+ * Not a row in `audit.events`: that table's `project_id` is NOT NULL, and a platform role
+ * belongs to no project. `actor` is TEXT, not a users FK, because the first grant has no
+ * administrator to attribute it to — it is `bootstrap:<os user>@<host>`.
+ */
+export const roleChanges = audit.table(
+  'role_changes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    fromRole: userRole('from_role').notNull(),
+    toRole: userRole('to_role').notNull(),
+    actor: text('actor').notNull(),
+    reason: text('reason').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .default(sql`clock_timestamp()`),
+  },
+  (t) => [check('role_changes_reason_present', sql`length(trim(${t.reason})) > 0`)],
+)
