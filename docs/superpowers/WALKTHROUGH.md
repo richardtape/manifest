@@ -23,7 +23,7 @@ Manifest runs on one Mac. **Almost everything is a container**; two things run o
 | **The proof app** | `https://proof-app.staging.manifest.internal` | §16's application: CWL sign-in, private notes, an AI answer |
 | **The fixture app** | `https://fixture-app.staging.manifest.internal` | P3's trivial app — proves a build and a deploy, nothing more |
 
-**What works today** *(status, as of P5a sitting 8, 2026-09-17)*: through Manifest's API — under `/v1`, at `https://console.manifest.internal`, which only the host can reach, and which refuses a session-bearing change that does not come from that origin — create a project, push code, validate its
+**What works today** *(status, as of P5a sitting 9, 2026-09-17)*: through Manifest's API — under `/v1`, at `https://console.manifest.internal`, which only the host can reach, and which refuses a session-bearing change that does not come from that origin — create a project, push code, validate its
 `manifest.yaml`, build it through the platform's security gates, release it and deploy it
 to staging; sign a person in with practice CWL; keep each person's data theirs; answer
 questions through a per-app AI key charged to the person who asked; stream build logs and
@@ -179,7 +179,7 @@ under `/v1` (D23.8); an old path answers `404 ROUTE_NOT_FOUND`. **A deploy that 
 | `make verify` | The running platform is correct — DNS, TLS, the edge, the mirror, grants, the IdP | `make up` | ~1 min |
 | `pnpm test` — **from the repo root, run it twice** | The control plane's unit and Postgres tiers, and the generated client and the journey; a second run catches state leaks | `make up` (Postgres) | ~45 s |
 | `pnpm lint`, `pnpm typecheck`, `pnpm format:check` | The other three commit gates. Tests do not check types — `tsc` does | — | ~30 s |
-| `pnpm test:docker` | Real builds, deploys and containers | `make up` | ~13 min |
+| `pnpm test:docker` | Real builds, deploys and containers | `make up` | ~15 min |
 | `make demo`, `make demo-identity`, `make demo-ai` | The acceptances, end to end, through the real API and the edge | `make up` and the control plane | 1–3 min each |
 | `make demo-redeploy` | P4c's acceptance, **green** — a redeploy that interrupts nobody and signs nobody out | `make up` and the control plane | ~3 min |
 | `make demo-journey` | P5a's acceptance **as it grows** — §22's journey through the edge by nothing but the client generated from the OpenAPI document. Green at the steps built so far; not yet the acceptance | `make up` and the control plane | ~1 min |

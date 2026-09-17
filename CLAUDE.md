@@ -77,7 +77,7 @@ commit:** `pnpm test` (from the repo root, never with `--filter` — the two dif
 difference found a defect), `pnpm lint`, `pnpm typecheck` (every workspace package) and
 `pnpm format:check`. The last two are not optional extras: `tsc` is the only thing that sees
 a type error, and `format:check` was silently red on 29 files until 2026-09-05. Run
-`pnpm test` **twice**: a suite that is not repeatable has a state leak. **`pnpm test:docker` too** (~13 min, needs `make up`, fails rather than skips) for
+`pnpm test` **twice**: a suite that is not repeatable has a state leak. **`pnpm test:docker` too** (~15 min, needs `make up`, fails rather than skips) for
 any change to `runtime/`, `routing/`, `services/`, `build/`, `releases/`, `identity/`,
 `sso/`, `secrets/`, `projects/`, `blueprints/`, `ai/`, `observability/`, `infra/` or a
 `*.docker.test.ts` — and whenever the current plan's sittings rule says so, which wins.
