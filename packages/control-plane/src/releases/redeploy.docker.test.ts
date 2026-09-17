@@ -37,7 +37,7 @@ import { createAppSecrets, generateMasterKeypair } from '../secrets/index.js'
 import { createServiceCredentials } from '../services/index.js'
 import { createRelease, createRetirer, deployRelease, startBuild } from './index.js'
 import type { DeployDeps, Retirer } from './index.js'
-import { testReservedLabels } from '../projects/testing.js'
+import { testAudience, testReservedLabels } from '../projects/testing.js'
 
 const run = promisify(execFile)
 const engine = createEngineClient({ socketPath: resolveSocketPath() })
@@ -255,6 +255,8 @@ describeDocker('a redeploy through deployRelease (§11 Redeploys)', () => {
       slug: SLUG,
       ownerId: userId,
       blueprintRef: 'fixture-node@1',
+      starter: null,
+      audience: testAudience(userId),
     })
     project = created.project
     staging = created.environments.find((e) => e.kind === KIND)!

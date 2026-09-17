@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm'
 import { projects, users } from '../db/index.js'
 import { loadConfig } from '../config.js'
 import { createProject, getProject, listProjectsFor } from './repository.js'
-import { testReservedLabels } from './testing.js'
+import { testAudience, testReservedLabels } from './testing.js'
 
 // Each database file starts from a known slate rather than trusting whatever ran
 // before it to have cleaned up. `withRollback` isolates a test from its OWN writes
@@ -37,6 +37,8 @@ describe('project creation', () => {
           slug: 'chem-labs',
           ownerId: owner!.id,
           blueprintRef: 'fixture-node@1',
+          starter: null,
+          audience: testAudience(owner!.id),
         },
       )
 
@@ -75,6 +77,8 @@ describe('project creation', () => {
         slug: 'chem-labs',
         ownerId: owner!.id,
         blueprintRef: 'fixture-node@1',
+        starter: null,
+        audience: testAudience(owner!.id),
       })
 
       expect(
@@ -107,6 +111,8 @@ describe('project creation', () => {
             slug,
             ownerId: owner!.id,
             blueprintRef: 'fixture-node@1',
+            starter: null,
+            audience: testAudience(owner!.id),
           }),
         ).rejects.toMatchObject({ code: 'SLUG_INVALID' })
       }
@@ -124,6 +130,8 @@ describe('project creation', () => {
           slug: 'idp',
           ownerId: owner!.id,
           blueprintRef: 'fixture-node@1',
+          starter: null,
+          audience: testAudience(owner!.id),
         }),
       ).rejects.toMatchObject({ code: 'SLUG_RESERVED' })
       expect(await db.select().from(projects).where(eq(projects.slug, 'idp'))).toEqual([])

@@ -49,6 +49,12 @@ export const EVENT_TYPES = [
   'instance.retired',
   /** It could not be, and will be tried again — never a silent retry (§11). */
   'instance.retire_failed',
+  /** §22 step 3 (P5a Task 11): a project and its three environments exist. */
+  'project.created',
+  /** Its repository exists, seeded from the skeleton and the starter. */
+  'repository.seeded',
+  /** Its manifest.yaml was validated at a commit — valid or not. */
+  'spec.validated',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

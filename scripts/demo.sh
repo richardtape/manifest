@@ -66,7 +66,9 @@ WHO="$(api GET /v1/me | field puid)"
 echo "  session for $WHO (a real CWL login, not a shim)"
 
 say "2. Create the project — three environments and a provisioned bare repository"
-PROJECT="$(api POST /v1/projects "{\"slug\":\"$SLUG\",\"blueprint\":\"fixture-node@1\"}")"
+clear_orphan_repository "$SLUG"
+# §24's audience is asked at creation, and required (P5a Task 11).
+PROJECT="$(api POST /v1/projects "{\"slug\":\"$SLUG\",\"blueprint\":\"fixture-node@1\",\"audience\":{\"scale\":\"solo\",\"burst\":\"steady\"}}")"
 PROJECT_ID="$(printf '%s' "$PROJECT" | field id 2>/dev/null || true)"
 if [ -z "$PROJECT_ID" ]; then
   # Already created by an earlier run: find it rather than failing. The slug is

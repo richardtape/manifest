@@ -5,7 +5,7 @@ import type { StreamFrame } from '../observability/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { createFakeDriver } from '../runtime/index.js'
 import { buildServer } from './server.js'
-import { loginAs, mutationHeaders, testDeps } from './testing.js'
+import { loginAs, mutationHeaders, projectBody, testDeps } from './testing.js'
 import type { TestUserPuid } from '../identity/testing.js'
 
 beforeEach(resetDatabase)
@@ -18,7 +18,7 @@ async function projectFor(puid: TestUserPuid) {
   const created = await app.inject({
     method: 'POST',
     url: '/v1/projects',
-    payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
+    payload: projectBody('chem-labs'),
     cookies,
     headers: mutationHeaders(deps),
   })
@@ -51,11 +51,11 @@ describe('what the event stream carries (P4b Task 15)', () => {
       Object.assign(new Error('npm ci exited 1'), { code: 'BUILD_FAILED' }),
     )
     const failedBuild = await post(`/v1/projects/${project.id}/builds`, {
-      commitSha: project.commitSha,
+      commitSha: project.spec.commitSha,
     })
     expect(failedBuild.json().status).toBe('failed')
     const build = await post(`/v1/projects/${project.id}/builds`, {
-      commitSha: project.commitSha,
+      commitSha: project.spec.commitSha,
     })
     expect(build.json().status).toBe('succeeded')
     const release = await post(`/v1/projects/${project.id}/releases`, {
@@ -83,6 +83,9 @@ describe('what the event stream carries (P4b Task 15)', () => {
       .where(eq(events.projectId, project.id))
       .orderBy(asc(events.createdAt))
     expect(rows.map((r) => r.type)).toEqual([
+      'project.created',
+      'repository.seeded',
+      'spec.validated',
       'build.started',
       'build.failed',
       'build.started',
@@ -91,8 +94,10 @@ describe('what the event stream carries (P4b Task 15)', () => {
       'instance.failed',
       'incident.opened',
     ])
+    // Creation's three were recorded and streamed before this subscriber existed (P5a
+    // Task 11; `projects.test.ts` holds creation to publishing them); every later row reached it.
     expect(frames.filter((f) => f.kind === 'event').map((f) => f.id)).toEqual(
-      rows.map((r) => r.id),
+      rows.slice(3).map((r) => r.id),
     )
     // And the build log reached the stream while it was written — the failed build's
     // reason line included — without a single line becoming an audit row.
@@ -156,7 +161,7 @@ describe('the delivery routes', () => {
     const build = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/builds`,
-      payload: { commitSha: project.commitSha },
+      payload: { commitSha: project.spec.commitSha },
       cookies,
       headers: mutationHeaders(deps),
     })
@@ -216,7 +221,7 @@ describe('the delivery routes', () => {
       await app.inject({
         method: 'POST',
         url: '/v1/projects',
-        payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
+        payload: projectBody('chem-labs'),
         cookies,
         headers: mutationHeaders(deps),
       })
@@ -224,7 +229,7 @@ describe('the delivery routes', () => {
     const build = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/builds`,
-      payload: { commitSha: project.commitSha },
+      payload: { commitSha: project.spec.commitSha },
       cookies,
       headers: mutationHeaders(deps),
     })
@@ -281,7 +286,7 @@ describe('the delivery routes', () => {
     const build = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/builds`,
-      payload: { commitSha: project.commitSha },
+      payload: { commitSha: project.spec.commitSha },
       cookies,
       headers: mutationHeaders(deps),
     })
@@ -320,7 +325,7 @@ describe('the delivery routes', () => {
     const build = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/builds`,
-      payload: { commitSha: project.commitSha },
+      payload: { commitSha: project.spec.commitSha },
       cookies,
       headers: mutationHeaders(deps),
     })
@@ -351,7 +356,7 @@ describe('the delivery routes', () => {
     const build = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/builds`,
-      payload: { commitSha: project.commitSha },
+      payload: { commitSha: project.spec.commitSha },
       cookies,
       headers: mutationHeaders(deps),
     })
@@ -407,7 +412,7 @@ describe('the delivery routes', () => {
       await app.inject({
         method: 'POST',
         url: '/v1/projects',
-        payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
+        payload: projectBody('chem-labs'),
         cookies,
         headers: mutationHeaders(deps),
       })
@@ -415,7 +420,7 @@ describe('the delivery routes', () => {
     const build = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/builds`,
-      payload: { commitSha: project.commitSha },
+      payload: { commitSha: project.spec.commitSha },
       cookies,
       headers: mutationHeaders(deps),
     })

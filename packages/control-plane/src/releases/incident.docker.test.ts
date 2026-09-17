@@ -30,7 +30,7 @@ import {
 import { createAppSecrets, generateMasterKeypair } from '../secrets/index.js'
 import { createServiceCredentials } from '../services/index.js'
 import { createRelease, deployRelease, startBuild } from './index.js'
-import { testReservedLabels } from '../projects/testing.js'
+import { testAudience, testReservedLabels } from '../projects/testing.js'
 
 /**
  * §14's Incident, from a container that REALLY failed (P4b Task 13).
@@ -136,6 +136,8 @@ describeDocker('a failed deploy records an Incident, from a real container (§14
           slug: SLUG,
           ownerId: user!.id,
           blueprintRef: 'fixture-node@1',
+          starter: null,
+          audience: testAudience(user!.id),
         },
       )
       const staging = environments.find((e) => e.kind === KIND)!

@@ -21,10 +21,26 @@ const ENVIRONMENT_KINDS = ['sandbox', 'staging', 'production'] as const
 /** Postgres `unique_violation`. */
 const UNIQUE_VIOLATION = '23505'
 
+/**
+ * `projects.audience` as it is stored — snake_case, like every other jsonb column (§24,
+ * D29). Asked of a human at creation (P5a Task 11).
+ */
+export interface StoredAudience {
+  scale: 'solo' | 'class' | 'large_course' | 'public'
+  burst: 'steady' | 'synchronised'
+  justification: string | null
+  /** §24: "recorded with actor and timestamp on the project". */
+  set_by: string
+  set_at: string
+}
+
 export interface CreateProjectInput {
   slug: string
   ownerId: string
   blueprintRef: string
+  /** §25: the starter the first commit is seeded from; null for the skeleton alone. */
+  starter: string | null
+  audience: StoredAudience
 }
 
 /**
@@ -32,6 +48,9 @@ export interface CreateProjectInput {
  * (`checkSlug`, P5a Task 9), before anything is written — so creation cannot accept a
  * name the check refused, or refuse one it accepted. §23 depends on this holding:
  * "nothing free-text reaches a hostname".
+ *
+ * The project, its owner's membership and its three environments in ONE TRANSACTION (P5a
+ * Decision 29), so there is never a project without an owner or an environment.
  */
 export async function createProject(
   db: Db,
@@ -41,48 +60,62 @@ export async function createProject(
 ): Promise<{ project: Project; environments: Environment[] }> {
   await assertSlugAvailable(db, reserved, input.slug)
 
-  const [project] = await db
-    .insert(projects)
-    .values({
-      slug: input.slug,
-      ownerId: input.ownerId,
-      blueprintRef: input.blueprintRef,
-    })
-    .returning()
-    .catch((error: unknown) => {
-      // The slug is unique and it is also the first label of three hostnames
-      // (§23), so "that name is taken" is a normal answer, not a fault. Drizzle
-      // wraps the driver error; the pg code is on the `cause`.
-      // This is the race between the check above and this insert, and it answers what
-      // the check would have: the same code, the same sentence.
-      const cause = (error as { cause?: { code?: string } }).cause
-      if (cause?.code === UNIQUE_VIOLATION)
-        throw new SlugRefusedError(slugTaken(input.slug))
-      throw error
-    })
-  if (!project) throw new Error('project insert returned no row')
+  return db.transaction(async (tx) => {
+    const [project] = await tx
+      .insert(projects)
+      .values({
+        slug: input.slug,
+        ownerId: input.ownerId,
+        blueprintRef: input.blueprintRef,
+        starter: input.starter,
+        audience: input.audience,
+      })
+      .returning()
+      .catch((error: unknown) => {
+        // The slug is unique and it is also the first label of three hostnames
+        // (§23), so "that name is taken" is a normal answer, not a fault. Drizzle
+        // wraps the driver error; the pg code is on the `cause`.
+        // This is the race between the check above and this insert, and it answers what
+        // the check would have: the same code, the same sentence.
+        const cause = (error as { cause?: { code?: string } }).cause
+        if (cause?.code === UNIQUE_VIOLATION)
+          throw new SlugRefusedError(slugTaken(input.slug))
+        throw error
+      })
+    if (!project) throw new Error('project insert returned no row')
 
-  await db.insert(projectMembers).values({
-    projectId: project.id,
-    userId: input.ownerId,
-    role: 'owner',
+    await tx.insert(projectMembers).values({
+      projectId: project.id,
+      userId: input.ownerId,
+      role: 'owner',
+    })
+
+    // All three exist from the moment the project does. §23 requires the production
+    // canonical hostname to be permanent, and §13 requires LaunchReadiness to be
+    // visible "the moment a project is created", not at first deploy.
+    const created = await tx
+      .insert(environments)
+      .values(
+        ENVIRONMENT_KINDS.map((kind) => ({
+          projectId: project.id,
+          kind,
+          hostname: hostnameFor(config, kind, project.slug),
+        })),
+      )
+      .returning()
+
+    return { project, environments: created }
   })
+}
 
-  // All three exist from the moment the project does. §23 requires the production
-  // canonical hostname to be permanent, and §13 requires LaunchReadiness to be
-  // visible "the moment a project is created", not at first deploy.
-  const created = await db
-    .insert(environments)
-    .values(
-      ENVIRONMENT_KINDS.map((kind) => ({
-        projectId: project.id,
-        kind,
-        hostname: hostnameFor(config, kind, project.slug),
-      })),
-    )
-    .returning()
-
-  return { project, environments: created }
+/**
+ * Removes a project that never got a repository (P5a Decision 29) — and ONLY such a
+ * project: creation calls it before any event is recorded, and `audit.events` RESTRICTs
+ * the delete of a project that has one, which is the refusal this relies on never meeting.
+ * Its membership and environments go with it (`ON DELETE CASCADE`).
+ */
+export async function deleteProject(db: Db, projectId: string): Promise<void> {
+  await db.delete(projects).where(eq(projects.id, projectId))
 }
 
 export async function getProject(

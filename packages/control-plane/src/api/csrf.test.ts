@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import { resetDatabase } from '../db/testing.js'
 import { buildServer } from './server.js'
-import { loginAs, testDeps } from './testing.js'
+import { loginAs, projectBody, testDeps } from './testing.js'
 
 beforeEach(resetDatabase)
 afterAll(resetDatabase)
@@ -23,7 +23,7 @@ async function server() {
     app.inject({
       method: 'POST',
       url: '/v1/projects',
-      payload: { slug: `csrf-${randomUUID().slice(0, 6)}`, blueprint: 'fixture-node@1' },
+      payload: projectBody(`csrf-${randomUUID().slice(0, 6)}`),
       cookies,
       headers: { 'idempotency-key': randomUUID(), ...headers },
     })
@@ -60,7 +60,7 @@ describe('CSRF by Origin (§20, P5a Task 4)', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/v1/projects',
-      payload: { slug: 'csrf-nokey', blueprint: 'fixture-node@1' },
+      payload: projectBody('csrf-nokey'),
       cookies,
       headers: { origin: APP_ORIGIN },
     })
@@ -74,7 +74,7 @@ describe('CSRF by Origin (§20, P5a Task 4)', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/v1/projects',
-      payload: { slug: 'csrf-anon', blueprint: 'fixture-node@1' },
+      payload: projectBody('csrf-anon'),
       headers: { 'idempotency-key': randomUUID(), origin: APP_ORIGIN },
     })
     expect(res.statusCode).toBe(401)

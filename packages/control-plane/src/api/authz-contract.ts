@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { resetDatabase } from '../db/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
-import { loginAs, mutationHeaders } from './testing.js'
+import { loginAs, mutationHeaders, projectBody } from './testing.js'
 import type { ErrorCode } from './error-codes.js'
 
 type Actor = 'owner' | 'collaborator' | 'stranger' | 'admin' | 'anonymous'
@@ -135,7 +135,7 @@ const ROUTES: RouteCase[] = [
     url: '/v1/projects',
     request: () => ({
       url: '/v1/projects',
-      payload: { slug: `p-${randomUUID().slice(0, 8)}`, blueprint: 'fixture-node@1' },
+      payload: projectBody(`p-${randomUUID().slice(0, 8)}`),
     }),
     expect: {
       owner: 'pass',
@@ -487,7 +487,7 @@ export function describeAuthorizationContract(
       const project = await app.inject({
         method: 'POST',
         url: '/v1/projects',
-        payload: { slug: 'authz-fixture', blueprint: 'fixture-node@1' },
+        payload: projectBody('authz-fixture'),
         cookies: cookies.owner,
         headers: mutationHeaders(deps),
       })
@@ -496,7 +496,7 @@ export function describeAuthorizationContract(
       const build = await app.inject({
         method: 'POST',
         url: `/v1/projects/${body.id}/builds`,
-        payload: { commitSha: body.commitSha },
+        payload: { commitSha: body.spec.commitSha },
         cookies: cookies.owner,
         headers: mutationHeaders(deps),
       })
@@ -510,7 +510,7 @@ export function describeAuthorizationContract(
 
       fixture = {
         projectId: body.id,
-        commitSha: body.commitSha,
+        commitSha: body.spec.commitSha,
         buildId: build.json().id,
         releaseId: release.json().id,
         environmentId: {

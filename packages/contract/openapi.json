@@ -288,6 +288,76 @@
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
+      },
+      "post": {
+        "operationId": "createProject",
+        "tags": [
+          "projects"
+        ],
+        "summary": "Create a project",
+        "description": "§22 steps 2–3: a name, a blueprint, optionally a starter, and who the app is for (§24). Creates the project and its three environments, seeds a repository from the skeleton and the starter, and validates its manifest. Progress is on the project’s event stream: project.created, repository.seeded, spec.validated.",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The project, as created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedProject"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SLUG_INVALID, SLUG_RESERVED, SLUG_TAKEN, SOURCE_GIT_FAILED, STARTER_NOT_FOUND, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "AI_BACKEND_UNAVAILABLE",
+          "AI_CATALOGUE_EMPTY",
+          "BLUEPRINT_NOT_FOUND",
+          "CSRF_ORIGIN_REFUSED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "SLUG_INVALID",
+          "SLUG_RESERVED",
+          "SLUG_TAKEN",
+          "SOURCE_GIT_FAILED",
+          "STARTER_NOT_FOUND",
+          "UNAUTHENTICATED"
+        ]
       }
     },
     "/v1/projects/{projectId}": {
@@ -786,6 +856,38 @@
         ],
         "additionalProperties": false
       },
+      "AudienceInput": {
+        "type": "object",
+        "properties": {
+          "scale": {
+            "description": "§24: how many people.",
+            "type": "string",
+            "enum": [
+              "solo",
+              "class",
+              "large_course",
+              "public"
+            ]
+          },
+          "burst": {
+            "description": "§24: do they all arrive at once.",
+            "type": "string",
+            "enum": [
+              "steady",
+              "synchronised"
+            ]
+          },
+          "justification": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "scale",
+          "burst"
+        ],
+        "additionalProperties": false
+      },
       "Blueprint": {
         "description": "A blueprint as a client chooses one: what it provides and the starters it offers. Never its base image or build internals.",
         "type": "object",
@@ -891,6 +993,105 @@
           "$ref": "#/components/schemas/Blueprint"
         }
       },
+      "CreateProjectRequest": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "description": "Checked by the same function as GET /v1/slugs/{slug} (§23).",
+            "type": "string",
+            "minLength": 1
+          },
+          "blueprint": {
+            "description": "`name@major`, from GET /v1/blueprints.",
+            "type": "string",
+            "minLength": 1
+          },
+          "starter": {
+            "description": "One the blueprint offers. Without one: the skeleton and a minimal manifest.",
+            "type": "string",
+            "minLength": 1
+          },
+          "audience": {
+            "$ref": "#/components/schemas/AudienceInput"
+          }
+        },
+        "required": [
+          "slug",
+          "blueprint",
+          "audience"
+        ],
+        "additionalProperties": false
+      },
+      "CreatedProject": {
+        "description": "§22 steps 2–3: the project, its environments, and the validation of the manifest its first commit carries.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "slug": {
+            "description": "The project’s name, and the first label of every hostname it has (§23).",
+            "type": "string"
+          },
+          "blueprint": {
+            "description": "`name@major` (§25).",
+            "type": "string"
+          },
+          "starter": {
+            "description": "The starter the first commit was seeded from (§25); null for the skeleton alone.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owner": {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          "audience": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Audience"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "description": "An instant, ISO 8601 in UTC.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "environments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Environment"
+            }
+          },
+          "spec": {
+            "$ref": "#/components/schemas/SpecValidation"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "blueprint",
+          "starter",
+          "owner",
+          "audience",
+          "createdAt",
+          "environments",
+          "spec"
+        ],
+        "additionalProperties": false
+      },
       "EmptyRequest": {
         "type": "object",
         "properties": {},
@@ -985,7 +1186,6 @@
           "INTERNAL",
           "MEMBER_USER_NOT_FOUND",
           "NOT_FOUND",
-          "PROJECT_INVALID_INPUT",
           "RATE_LIMITED",
           "RELEASE_AI_BUDGET_MISSING",
           "RELEASE_AI_DISABLED",
@@ -1020,6 +1220,7 @@
           "SOURCE_PATH_ESCAPE",
           "SPEC_INVALID",
           "SPEC_NOT_FOUND",
+          "STARTER_NOT_FOUND",
           "UNAUTHENTICATED"
         ]
       },
@@ -1318,6 +1519,17 @@
             "description": "`name@major` (§25).",
             "type": "string"
           },
+          "starter": {
+            "description": "The starter the first commit was seeded from (§25); null for the skeleton alone.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "owner": {
             "$ref": "#/components/schemas/UserSummary"
           },
@@ -1349,6 +1561,7 @@
           "id",
           "slug",
           "blueprint",
+          "starter",
           "owner",
           "audience",
           "createdAt"

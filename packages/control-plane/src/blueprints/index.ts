@@ -4,3 +4,4 @@ export { checkBlueprintCompatibility, BLUEPRINT_CODES } from './compatibility.js
 export { loadBlueprints } from './registry.js'
 export type { BlueprintRegistry, KnowledgePackFile, LoadedStarter } from './registry.js'
 export { BlueprintLoadError, readTextTree } from './tree.js'
+export { renderProjectSeed, SeedError } from './seed.js'

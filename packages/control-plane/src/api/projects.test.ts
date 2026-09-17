@@ -1,7 +1,11 @@
+import { existsSync } from 'node:fs'
+import { asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { events, projects } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
+import { SourceError } from '../source/index.js'
 import { buildServer } from './server.js'
-import { loginAs, mutationHeaders, testDeps } from './testing.js'
+import { loginAs, mutationHeaders, projectBody, testDeps } from './testing.js'
 import type { TestUserPuid } from '../identity/testing.js'
 import { AI_CODES, AiError, disabledCatalogue, type ModelCatalogue } from '../ai/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
@@ -23,36 +27,260 @@ async function loggedIn(puid: TestUserPuid = 'bio_prof') {
 const create = (slug: string) => ({
   method: 'POST' as const,
   url: '/v1/projects',
-  payload: { slug, blueprint: 'fixture-node@1' },
+  payload: projectBody(slug),
 })
 
-describe('POST /v1/projects', () => {
-  it('creates a project with three environments and a seeded repository', async () => {
-    const { app, deps, session } = await loggedIn()
-    const response = await app.inject({
-      ...create('chem-labs'),
-      cookies: { manifest_session: session },
+async function signedIn(puid: TestUserPuid = 'bio_prof') {
+  const deps = await testDeps()
+  const app = await buildServer(deps)
+  const cookies = await loginAs(deps, puid)
+  const me = (await app.inject({ method: 'GET', url: '/v1/me', cookies })).json() as {
+    id: string
+  }
+  return { deps, app, cookies, me }
+}
+
+describe('POST /v1/projects (§22 steps 2–3, P5a Task 11)', () => {
+  it('creates a project from node-ts-mongo@1’s proof-app starter, for a stated audience', async () => {
+    const { deps, app, cookies, me } = await signedIn()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      cookies,
       headers: mutationHeaders(deps),
+      payload: {
+        slug: 'journey-app',
+        blueprint: 'node-ts-mongo@1',
+        starter: 'proof-app',
+        audience: {
+          scale: 'class',
+          burst: 'synchronised',
+          justification: 'CHEM 121, used live in lectures',
+        },
+      },
     })
-    expect(response.statusCode).toBe(201)
-    const body = response.json()
-    expect(body.slug).toBe('chem-labs')
-    expect(body.repositoryUrl).toMatch(/^file:\/\/.*chem-labs\.git$/)
-    expect(body.commitSha).toMatch(/^[0-9a-f]{40}$/)
-    expect(body.specValid).toBe(true)
-    expect(body.environments.map((e: { kind: string }) => e.kind).sort()).toEqual([
+    expect(res.statusCode).toBe(201)
+    const created = res.json()
+    expect(created).toMatchObject({
+      slug: 'journey-app',
+      blueprint: 'node-ts-mongo@1',
+      starter: 'proof-app',
+      owner: { id: me.id },
+      audience: {
+        scale: 'class',
+        burst: 'synchronised',
+        justification: 'CHEM 121, used live in lectures',
+        setBy: me.id,
+      },
+      spec: {
+        valid: true,
+        errors: [],
+        commitSha: expect.stringMatching(/^[0-9a-f]{40}$/),
+        sensitiveDiff: { sensitive: false, fields: [] },
+      },
+    })
+    expect(Object.keys(created).sort()).toEqual(
+      [
+        'audience',
+        'blueprint',
+        'createdAt',
+        'environments',
+        'id',
+        'owner',
+        'slug',
+        'spec',
+        'starter',
+      ].sort(),
+    )
+    expect(created.environments.map((e: { kind: string }) => e.kind).sort()).toEqual([
       'production',
       'sandbox',
       'staging',
+    ])
+    const repo = deps.source.repositoryFor('journey-app')
+    const at = (path: string) => deps.source.readFile(repo, created.spec.commitSha, path)
+    const starter = deps.blueprints.starter('node-ts-mongo@1', 'proof-app')!
+    const skeleton = deps.blueprints.skeleton('node-ts-mongo@1')!
+    expect(await at('public/index.html')).toBe(starter.files['public/index.html'])
+    expect(await at('auth/session.js')).toBe(skeleton['auth/session.js'])
+    expect(await at('server.js')).toBe(starter.files['server.js'])
+    // The name is the project's; nothing else in the author's file moved.
+    expect(await at('manifest.yaml')).toBe(
+      starter.files['manifest.yaml']!.replace(/^name: .*$/m, 'name: journey-app'),
+    )
+    // And the project reads back with its provenance.
+    const read = await app.inject({
+      method: 'GET',
+      url: `/v1/projects/${created.id}`,
+      cookies,
+    })
+    expect(read.json()).toMatchObject({
+      starter: 'proof-app',
+      audience: { scale: 'class' },
+    })
+    await app.close()
+  })
+
+  it('without a starter, seeds the skeleton and a minimal manifest', async () => {
+    const { deps, app, cookies } = await signedIn()
+    const res = await app.inject({
+      ...create('chem-labs'),
+      cookies,
+      headers: mutationHeaders(deps),
+    })
+    expect(res.statusCode).toBe(201)
+    const created = res.json()
+    expect(created).toMatchObject({ starter: null, spec: { valid: true } })
+    const repo = deps.source.repositoryFor('chem-labs')
+    expect(await deps.source.readFile(repo, created.spec.commitSha, 'server.js')).toBe(
+      deps.blueprints.skeleton('fixture-node@1')!['server.js'],
+    )
+    expect(
+      await deps.source.readFile(repo, created.spec.commitSha, 'src/index.js'),
+    ).toBeNull()
+    await app.close()
+  })
+
+  it('requires the audience question to be answered', async () => {
+    const { deps, app, cookies } = await signedIn()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
+    })
+    expect({ status: res.statusCode, code: res.json().error.code }).toEqual({
+      status: 400,
+      code: 'REQUEST_INVALID',
+    })
+    expect(res.json().error.message).toContain('audience')
+    await app.close()
+  })
+
+  it('refuses a blueprint that does not exist, naming what does', async () => {
+    const { deps, app, cookies } = await signedIn()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: projectBody('chem-labs', { blueprint: 'nope@1' }),
+    })
+    expect({ status: res.statusCode, code: res.json().error.code }).toEqual({
+      status: 400,
+      code: 'BLUEPRINT_NOT_FOUND',
+    })
+    expect(res.json().error.hint).toContain('node-ts-mongo@1')
+    await app.close()
+  })
+
+  it('refuses a starter the blueprint does not offer, and leaves no project behind', async () => {
+    const { deps, app, cookies } = await signedIn()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: projectBody('chem-labs', { starter: 'proof-app' }),
+    })
+    expect({ status: res.statusCode, code: res.json().error.code }).toEqual({
+      status: 400,
+      code: 'STARTER_NOT_FOUND',
+    })
+    expect(res.json().error.hint).toContain('offers no starters')
+    const check = await app.inject({ method: 'GET', url: '/v1/slugs/chem-labs', cookies })
+    expect(check.json().available).toBe(true)
+    await app.close()
+  })
+
+  it('leaves no project behind when its repository cannot be created (P4b finding 178)', async () => {
+    const deps = await testDeps()
+    const failing = {
+      ...deps,
+      source: {
+        ...deps.source,
+        createRepository: () =>
+          Promise.reject(new SourceError('SOURCE_GIT_FAILED', 'git init failed')),
+      },
+    }
+    const app = await buildServer(failing)
+    const cookies = await loginAs(failing, 'bio_prof')
+    const res = await app.inject({
+      ...create('chem-labs'),
+      cookies,
+      headers: mutationHeaders(failing),
+    })
+    expect({ status: res.statusCode, code: res.json().error.code }).toEqual({
+      status: 409,
+      code: 'SOURCE_GIT_FAILED',
+    })
+    const check = await app.inject({ method: 'GET', url: '/v1/slugs/chem-labs', cookies })
+    expect(check.json().available).toBe(true)
+    expect(await failing.db.select().from(projects)).toEqual([])
+    expect(await failing.db.select().from(events)).toEqual([])
+    await app.close()
+  })
+
+  it('publishes project.created, repository.seeded and spec.validated, in that order, once the repository exists', async () => {
+    const { deps, app, cookies } = await signedIn()
+    const frames: { type?: string; machineDetail?: unknown }[] = []
+    // The project id is not known until the response, so listen to every project's frames.
+    const publish = deps.bus.publish.bind(deps.bus)
+    deps.bus.publish = (frame) => {
+      frames.push(frame as never)
+      publish(frame)
+    }
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: projectBody('chem-labs'),
+    })
+    expect(res.statusCode).toBe(201)
+    const created = res.json()
+    expect(frames.map((f) => f.type)).toEqual([
+      'project.created',
+      'repository.seeded',
+      'spec.validated',
+    ])
+    expect(frames[0]!.machineDetail).toEqual({
+      slug: 'chem-labs',
+      blueprint: 'fixture-node@1',
+      starter: null,
+      audience: { scale: 'solo', burst: 'steady' },
+    })
+    expect(frames[1]!.machineDetail).toEqual({
+      commitSha: created.spec.commitSha,
+      files: Object.keys(deps.blueprints.skeleton('fixture-node@1')!).length + 1,
+      starter: null,
+    })
+    expect(frames[2]!.machineDetail).toEqual({
+      appSpecId: created.spec.appSpecId,
+      commitSha: created.spec.commitSha,
+      valid: true,
+      errorCount: 0,
+    })
+    // Recorded, not only streamed: the audit trail holds the same three.
+    const recorded = await deps.db
+      .select({ type: events.type })
+      .from(events)
+      .where(eq(events.projectId, created.id))
+      .orderBy(asc(events.createdAt))
+    expect(recorded.map((r) => r.type)).toEqual([
+      'project.created',
+      'repository.seeded',
+      'spec.validated',
     ])
     await app.close()
   })
 
   it('refuses a mutating request with no Idempotency-Key', async () => {
-    const { app, deps, session } = await loggedIn()
+    const { app, deps, cookies } = await signedIn()
     const response = await app.inject({
       ...create('chem-labs'),
-      cookies: { manifest_session: session },
+      cookies,
       // The ORIGIN is present, so the refusal is the key's and not §20's (P5a Task 4).
       headers: { origin: deps.config.sp.origin },
     })
@@ -62,49 +290,43 @@ describe('POST /v1/projects', () => {
   })
 
   it('creates one project when the same request is replayed', async () => {
-    const { app, deps, session } = await loggedIn()
+    const { app, deps, cookies } = await signedIn()
     // ONE object, so both requests carry the same key — which is the replay.
     const headers = mutationHeaders(deps)
-    const first = await app.inject({
-      ...create('chem-labs'),
-      cookies: { manifest_session: session },
-      headers,
-    })
-    const second = await app.inject({
-      ...create('chem-labs'),
-      cookies: { manifest_session: session },
-      headers,
-    })
+    const first = await app.inject({ ...create('chem-labs'), cookies, headers })
+    const second = await app.inject({ ...create('chem-labs'), cookies, headers })
+    expect(first.statusCode).toBe(201)
     expect(second.statusCode).toBe(first.statusCode)
-    expect(second.json().id).toBe(first.json().id)
-
-    const list = await app.inject({
-      method: 'GET',
-      url: '/v1/projects',
-      cookies: { manifest_session: session },
-    })
+    expect(second.json()).toEqual(first.json())
+    const list = await app.inject({ method: 'GET', url: '/v1/projects', cookies })
     expect(list.json()).toHaveLength(1)
     await app.close()
   })
 
-  it('rejects a slug §7 would not accept', async () => {
-    const { app, deps, session } = await loggedIn()
+  it('rejects a slug §7 would not accept, with the slug check’s code', async () => {
+    const { app, deps, cookies } = await signedIn()
     const response = await app.inject({
       ...create('Chem_Labs'),
-      cookies: { manifest_session: session },
+      cookies,
       headers: mutationHeaders(deps),
     })
-    expect(response.statusCode).toBe(400)
+    expect({ status: response.statusCode, code: response.json().error.code }).toEqual({
+      status: 400,
+      code: 'SLUG_INVALID',
+    })
     await app.close()
   })
 
   it('refuses an unauthenticated request', async () => {
-    const { app, deps } = await loggedIn()
+    const { app, deps } = await signedIn()
     const response = await app.inject({
       ...create('chem-labs'),
       headers: mutationHeaders(deps),
     })
-    expect(response.statusCode).toBe(401)
+    expect({ status: response.statusCode, code: response.json().error.code }).toEqual({
+      status: 401,
+      code: 'UNAUTHENTICATED',
+    })
     await app.close()
   })
 })
@@ -149,7 +371,7 @@ describe('GET /v1/projects/:id', () => {
     })
     expect(spec.statusCode).toBe(200)
     expect(spec.json().spec.name).toBe('chem-labs')
-    expect(spec.json().commitSha).toBe(created.json().commitSha)
+    expect(spec.json().commitSha).toBe(created.json().spec.commitSha)
     await app.close()
   })
 
@@ -177,7 +399,15 @@ describe('GET /v1/projects/:id', () => {
  * cannot reach a client unless a mapper names it and its schema admits it (Decision 2).
  */
 describe('project reads answer representations (P5a Task 8)', () => {
-  const PROJECT_KEYS = ['audience', 'blueprint', 'createdAt', 'id', 'owner', 'slug']
+  const PROJECT_KEYS = [
+    'audience',
+    'blueprint',
+    'createdAt',
+    'id',
+    'owner',
+    'slug',
+    'starter',
+  ]
 
   async function withCreatedProject(slug: string) {
     const deps = await testDeps()
@@ -283,13 +513,6 @@ describe('project reads answer representations (P5a Task 8)', () => {
  * functions that happen to agree today (P5a Task 9, control (b)).
  */
 describe('the slug check and creation agree (§23, P5a Task 9)', () => {
-  async function signedIn() {
-    const deps = await testDeps()
-    const app = await buildServer(deps)
-    const cookies = await loginAs(deps, 'bio_prof')
-    return { deps, app, cookies }
-  }
-
   it('GET /v1/slugs answers 200 whatever the answer, and creation refuses with the same code', async () => {
     const { deps, app, cookies } = await signedIn()
     for (const [slug, code, status] of [
@@ -307,7 +530,7 @@ describe('the slug check and creation agree (§23, P5a Task 9)', () => {
         url: '/v1/projects',
         cookies,
         headers: mutationHeaders(deps),
-        payload: { slug, blueprint: 'fixture-node@1' },
+        payload: projectBody(slug),
       })
       expect({ status: created.statusCode, code: created.json().error?.code }).toEqual({
         status,
@@ -760,8 +983,45 @@ describe('the model catalogue a spec is validated against', () => {
       headers: mutationHeaders(deps),
     })
     expect(created.statusCode).toBe(201)
-    expect(created.json().specValid).toBe(true)
+    expect(created.json().spec.valid).toBe(true)
     expect(get).not.toHaveBeenCalled()
+    await app.close()
+  })
+
+  it('a STARTER declaring a model during an outage is a 503, and creates nothing (P5a Task 11)', async () => {
+    // The proof-app starter declares two models, so creation from it is the first creation
+    // that reads the catalogue — BEFORE the project row or the repository (P4b finding 45).
+    const get = vi.fn().mockRejectedValue(
+      new AiError(AI_CODES.BACKEND_UNAVAILABLE, 0, {
+        status: 0,
+        reason: 'unreachable',
+      }),
+    )
+    const { app, deps, session } = await withCatalogue({ enabled: true, get })
+    const cookies = { manifest_session: session }
+    const refused = await app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: projectBody('journey-app', {
+        blueprint: 'node-ts-mongo@1',
+        starter: 'proof-app',
+      }),
+    })
+    expect({ status: refused.statusCode, code: refused.json().error.code }).toEqual({
+      status: 503,
+      code: 'AI_BACKEND_UNAVAILABLE',
+    })
+    expect(get).toHaveBeenCalledTimes(1)
+    const check = await app.inject({
+      method: 'GET',
+      url: '/v1/slugs/journey-app',
+      cookies,
+    })
+    expect(check.json().available).toBe(true)
+    expect(existsSync(deps.source.repositoryFor('journey-app').path)).toBe(false)
+    expect(await deps.db.select().from(events)).toEqual([])
     await app.close()
   })
 

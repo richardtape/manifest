@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { resetDatabase } from './db/testing.js'
 import { buildServer } from './api/index.js'
-import { loginAs, mutationHeaders, testDeps } from './api/testing.js'
+import { loginAs, mutationHeaders, projectBody, testDeps } from './api/testing.js'
 
 beforeEach(resetDatabase)
 // This file commits for real, so it clears up behind itself too.
@@ -34,16 +34,16 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
     const created = await app.inject({
       method: 'POST',
       url: '/v1/projects',
-      payload: { slug: 'chem-labs', blueprint: 'fixture-node@1' },
+      payload: projectBody('chem-labs'),
       cookies,
       headers: mutationHeaders(deps),
     })
     const afterCreate = performance.now()
     expect(created.statusCode).toBe(201)
     const project = created.json()
-    expect(project.specValid).toBe(true)
-    expect(project.specErrors).toEqual([])
-    expect(project.commitSha).toMatch(/^[0-9a-f]{40}$/)
+    expect(project.spec.valid).toBe(true)
+    expect(project.spec.errors).toEqual([])
+    expect(project.spec.commitSha).toMatch(/^[0-9a-f]{40}$/)
     expect(project.environments).toHaveLength(3)
 
     // The spec that was validated is the spec at that commit, read from a bare repo.
@@ -52,14 +52,14 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
       url: `/v1/projects/${project.id}/spec`,
       cookies,
     })
-    expect(spec.json().commitSha).toBe(project.commitSha)
+    expect(spec.json().commitSha).toBe(project.spec.commitSha)
     expect(spec.json().spec.name).toBe('chem-labs')
 
     // 4. Build (§22 step 4). Assert the digest, not that a build row came back.
     const build = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/builds`,
-      payload: { commitSha: project.commitSha },
+      payload: { commitSha: project.spec.commitSha },
       cookies,
       headers: mutationHeaders(deps),
     })

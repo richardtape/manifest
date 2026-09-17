@@ -72,6 +72,8 @@ idp_login "$CP_JAR" "$IDP_JAR" "$ORIGIN/auth/login" instructor instructor \
   "$ORIGIN/auth/saml/callback" "$CA"
 SESSION="$(session_of "$CP_JAR")"
 [ -n "$SESSION" ] || fail "the sign-in left no manifest_session cookie"
+# journey-app's repository, if a `pnpm test` left it without its project (P5a Task 11).
+clear_orphan_repository journey-app
 
 say "The journey, through @manifest/contract"
 # A Node process does not read the macOS keychain (S7), so it is given the platform CA —

@@ -36,7 +36,11 @@ app() {
 # both demos are re-runnable by design.
 proof_app_project() {
   local project
-  project="$(api POST /v1/projects "{\"slug\":\"$SLUG\",\"blueprint\":\"node-ts-mongo@1\"}")"
+  clear_orphan_repository "$SLUG"
+  # From node-ts-mongo@1's proof-app starter, for a stated audience (§22 step 2, §24, P5a
+  # Task 11): creation seeds the skeleton with the starter over it, exactly what
+  # proof_app_push commits, and refuses a body with no audience.
+  project="$(api POST /v1/projects "{\"slug\":\"$SLUG\",\"blueprint\":\"node-ts-mongo@1\",\"starter\":\"proof-app\",\"audience\":{\"scale\":\"class\",\"burst\":\"synchronised\",\"justification\":\"§16's proof application, used by the demos\"}}")"
   PROJECT_ID="$(printf '%s' "$project" | field id 2>/dev/null || true)"
   if [ -z "$PROJECT_ID" ]; then
     PROJECT_ID="$(api GET /v1/projects | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const p=JSON.parse(s).find(x=>x.slug===process.argv[1]);if(!p){console.error(s);process.exit(1)}console.log(p.id)})' "$SLUG")"
@@ -49,7 +53,9 @@ proof_app_project() {
 same value the control plane was started with?"
 }
 
-# Pushes the proof app: the blueprint skeleton, then the app over it.
+# Pushes the proof app: the blueprint skeleton, then the app over it. Creation now seeds
+# exactly these files (P5a Task 11), so on a new project this push's commit changes no file;
+# it is kept for the reused project and for the demos that change the app.
 proof_app_push() {
   WORK="$(mktemp -d -t mf-proof-src)"
   git clone -q "${MANIFEST_REPOS_ROOT:-$ROOT/.manifest/repos}/$SLUG.git" "$WORK"

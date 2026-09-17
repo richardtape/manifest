@@ -11,7 +11,6 @@ import { fastifyPath } from './route.js'
  * quietly outlive what it describes.
  */
 const UNCONVERTED = [
-  'POST /v1/projects',
   'POST /v1/projects/:projectId/builds',
   'GET /v1/builds/:buildId',
   'GET /v1/builds/:buildId/logs',

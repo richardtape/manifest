@@ -117,7 +117,11 @@ export interface paths {
          */
         get: operations["listProjects"];
         put?: never;
-        post?: never;
+        /**
+         * Create a project
+         * @description §22 steps 2–3: a name, a blueprint, optionally a starter, and who the app is for (§24). Creates the project and its three environments, seeds a repository from the skeleton and the starter, and validates its manifest. Progress is on the project’s event stream: project.created, repository.seeded, spec.validated.
+         */
+        post: operations["createProject"];
         delete?: never;
         options?: never;
         head?: never;
@@ -256,6 +260,19 @@ export interface components {
              */
             setAt: string;
         };
+        AudienceInput: {
+            /**
+             * @description §24: how many people.
+             * @enum {string}
+             */
+            scale: "solo" | "class" | "large_course" | "public";
+            /**
+             * @description §24: do they all arrive at once.
+             * @enum {string}
+             */
+            burst: "steady" | "synchronised";
+            justification?: string;
+        };
         /** @description A blueprint as a client chooses one: what it provides and the starters it offers. Never its base image or build internals. */
         Blueprint: {
             /** @description `name@major` — what a project pins (§25). */
@@ -278,6 +295,35 @@ export interface components {
             }[];
         };
         BlueprintList: components["schemas"]["Blueprint"][];
+        CreateProjectRequest: {
+            /** @description Checked by the same function as GET /v1/slugs/{slug} (§23). */
+            slug: string;
+            /** @description `name@major`, from GET /v1/blueprints. */
+            blueprint: string;
+            /** @description One the blueprint offers. Without one: the skeleton and a minimal manifest. */
+            starter?: string;
+            audience: components["schemas"]["AudienceInput"];
+        };
+        /** @description §22 steps 2–3: the project, its environments, and the validation of the manifest its first commit carries. */
+        CreatedProject: {
+            /** Format: uuid */
+            id: string;
+            /** @description The project’s name, and the first label of every hostname it has (§23). */
+            slug: string;
+            /** @description `name@major` (§25). */
+            blueprint: string;
+            /** @description The starter the first commit was seeded from (§25); null for the skeleton alone. */
+            starter: string | null;
+            owner: components["schemas"]["UserSummary"];
+            audience: components["schemas"]["Audience"] | null;
+            /**
+             * Format: date-time
+             * @description An instant, ISO 8601 in UTC.
+             */
+            createdAt: string;
+            environments: components["schemas"]["Environment"][];
+            spec: components["schemas"]["SpecValidation"];
+        };
         EmptyRequest: Record<string, never>;
         Environment: {
             /** Format: uuid */
@@ -298,7 +344,7 @@ export interface components {
          * @description Every code the API answers with (api/error-codes.ts). Stable: a client switches on it (§20).
          * @enum {string}
          */
-        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "BLUEPRINT_NOT_FOUND" | "BUILD_INVALID_INPUT" | "BUILD_LOG_INVALID_QUERY" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CSRF_ORIGIN_REFUSED" | "DEPLOY_INVALID_INPUT" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PROJECT_INVALID_INPUT" | "RATE_LIMITED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_INVALID_INPUT" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_NO_PUID" | "SAML_USER_UPSERT_FAILED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_FOREIGN_REPO" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_PATH_ESCAPE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "UNAUTHENTICATED";
+        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "BLUEPRINT_NOT_FOUND" | "BUILD_INVALID_INPUT" | "BUILD_LOG_INVALID_QUERY" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CSRF_ORIGIN_REFUSED" | "DEPLOY_INVALID_INPUT" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "RATE_LIMITED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_INVALID_INPUT" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_NO_PUID" | "SAML_USER_UPSERT_FAILED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_FOREIGN_REPO" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_PATH_ESCAPE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "UNAUTHENTICATED";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -378,6 +424,8 @@ export interface components {
             slug: string;
             /** @description `name@major` (§25). */
             blueprint: string;
+            /** @description The starter the first commit was seeded from (§25); null for the skeleton alone. */
+            starter: string | null;
             owner: components["schemas"]["UserSummary"];
             audience: components["schemas"]["Audience"] | null;
             /**
@@ -611,6 +659,42 @@ export interface operations {
                 };
             };
             /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createProject: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProjectRequest"];
+            };
+        };
+        responses: {
+            /** @description The project, as created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedProject"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SLUG_INVALID, SLUG_RESERVED, SLUG_TAKEN, SOURCE_GIT_FAILED, STARTER_NOT_FOUND, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

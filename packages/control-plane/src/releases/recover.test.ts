@@ -15,7 +15,7 @@ import { resetDatabase, withRollback } from '../db/testing.js'
 import { createProject } from '../projects/index.js'
 import { createFakeDriver, type FakeDriver } from '../runtime/index.js'
 import { recoverAtBoot } from './recover.js'
-import { testReservedLabels } from '../projects/testing.js'
+import { testAudience, testReservedLabels } from '../projects/testing.js'
 
 beforeAll(resetDatabase)
 
@@ -64,6 +64,8 @@ async function deployed(
       slug: `chem-labs-${unique}`,
       ownerId: owner!.id,
       blueprintRef: 'fixture-node@1',
+      starter: null,
+      audience: testAudience(owner!.id),
     },
   )
   const staging = created.find((environment) => environment.kind === 'staging')!

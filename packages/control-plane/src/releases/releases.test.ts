@@ -42,7 +42,7 @@ import {
   readBuildLog,
   type StreamFrame,
 } from '../observability/index.js'
-import { testReservedLabels } from '../projects/testing.js'
+import { testAudience, testReservedLabels } from '../projects/testing.js'
 
 /** The repository's own blueprints, resolved from THIS FILE — `pnpm test` and
  *  `pnpm --filter … test` have different working directories. */
@@ -223,6 +223,8 @@ async function fixture(db: Parameters<typeof createProject>[0]) {
       slug: 'chem-labs',
       ownerId: user!.id,
       blueprintRef: 'fixture-node@1',
+      starter: null,
+      audience: testAudience(user!.id),
     },
   )
   const [appSpec] = await db

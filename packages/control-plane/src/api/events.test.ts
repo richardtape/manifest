@@ -4,12 +4,14 @@ import pg from 'pg'
 import WebSocket from 'ws'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { asc, eq } from 'drizzle-orm'
+import { events } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { SESSION_COOKIE } from '../identity/index.js'
 import type { TestUserPuid } from '../identity/testing.js'
 import { eventFrame, recordEvent, type StreamFrame } from '../observability/index.js'
 import { buildServer } from './server.js'
-import { loginAs, mutationHeaders, testDeps } from './testing.js'
+import { loginAs, mutationHeaders, projectBody, testDeps } from './testing.js'
 
 beforeEach(resetDatabase)
 afterAll(resetDatabase)
@@ -39,11 +41,19 @@ async function streamServer() {
   const created = await app.inject({
     method: 'POST',
     url: '/v1/projects',
-    payload: { slug: `chem-${randomUUID().slice(0, 6)}`, blueprint: 'fixture-node@1' },
+    payload: projectBody(`chem-${randomUUID().slice(0, 6)}`),
     cookies: owner,
     headers: mutationHeaders(deps),
   })
   const projectId: string = created.json().id
+  // Creation records three events of its own (P5a Task 11), so every replay starts with them.
+  const creation = (
+    await deps.db
+      .select({ id: events.id, type: events.type })
+      .from(events)
+      .where(eq(events.projectId, projectId))
+      .orderBy(asc(events.createdAt))
+  ).map((row) => row.id)
   await app.listen({ port: 0, host: '127.0.0.1' })
   const { port } = app.server.address() as AddressInfo
   const urlFor = (id: string) => `ws://127.0.0.1:${port}/v1/projects/${id}/events`
@@ -70,7 +80,7 @@ async function streamServer() {
     opened.sockets.push(socket)
     return socket
   }
-  return { app, deps, owner, projectId, connect }
+  return { app, deps, owner, projectId, connect, creation }
 }
 
 /** Every frame a socket receives, from the moment it is created. */
@@ -205,7 +215,8 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
   it('replays what was recorded, marks the boundary, then streams live — to a collaborator too', async () => {
     // A client that connects during a build must see what it missed. Without the
     // boundary frame it cannot tell a replayed failure from a new one.
-    const { app, deps, owner, projectId, connect } = await streamServer()
+    const { app, deps, owner, projectId, connect, creation } = await streamServer()
+    expect(creation).toHaveLength(3)
     // The user row first: a member is added by PUID, and a PUID nobody has logged in
     // with is not a user. Asserted, because a collaborator who is secretly a stranger
     // makes this test indistinguishable from the refusal test above.
@@ -234,8 +245,8 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
     await waitUntil(() => frames.some(isReady), 'the ready frame')
     deps.bus.publish(liveFrame(projectId, 'live-1'))
     await waitUntil(() => frames.some((f) => f.id === 'live-1'), 'the live frame')
-    expect(frames.map((f) => f.id)).toEqual([recorded.id, 'ready', 'live-1'])
-    expect(frames[0]).toEqual(eventFrame(recorded))
+    expect(frames.map((f) => f.id)).toEqual([...creation, recorded.id, 'ready', 'live-1'])
+    expect(frames[3]).toEqual(eventFrame(recorded))
   })
 
   it('delivers a frame published WHILE the replay is being read — once, after the boundary', async () => {
@@ -244,7 +255,7 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
     // replay already sent. Made deterministic rather than hoped for: a second
     // connection holds `audit.events` locked, so the replay's read waits while an event
     // is recorded (invisible until COMMIT) and published, alongside one never recorded.
-    const { deps, projectId, connect } = await streamServer()
+    const { deps, projectId, connect, creation } = await streamServer()
     const admin = new pg.Pool({
       connectionString: process.env.MANIFEST_ADMIN_DATABASE_URL,
     })
@@ -281,7 +292,12 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
         () => frames.some((f) => f.id === 'live-during'),
         'the frame published during the replay',
       )
-      expect(frames.map((f) => f.id)).toEqual([during.id, 'ready', 'live-during'])
+      expect(frames.map((f) => f.id)).toEqual([
+        ...creation,
+        during.id,
+        'ready',
+        'live-during',
+      ])
     } finally {
       await lock.query('ROLLBACK')
       lock.release()
@@ -290,11 +306,11 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
   })
 
   it('does not deliver another project’s frames', async () => {
-    const { app, deps, owner, projectId, connect } = await streamServer()
+    const { app, deps, owner, projectId, connect, creation } = await streamServer()
     const other = await app.inject({
       method: 'POST',
       url: '/v1/projects',
-      payload: { slug: `other-${randomUUID().slice(0, 6)}`, blueprint: 'fixture-node@1' },
+      payload: projectBody(`other-${randomUUID().slice(0, 6)}`),
       cookies: owner,
       headers: mutationHeaders(deps),
     })
@@ -304,7 +320,8 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
     deps.bus.publish(liveFrame(other.json().id, 'theirs'))
     deps.bus.publish(liveFrame(projectId, 'ours'))
     await waitUntil(() => frames.some((f) => f.id === 'ours'), 'our frame')
-    expect(frames.map((f) => f.id)).toEqual(['ready', 'ours'])
+    // Our creation's three replayed, the other project's never.
+    expect(frames.map((f) => f.id)).toEqual([...creation, 'ready', 'ours'])
   })
 
   it('closes a socket that cannot keep up with 1013, stops sending to it, and unsubscribes it', async () => {

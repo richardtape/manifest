@@ -60,6 +60,9 @@ export const projects = pgTable(
       .notNull()
       .references(() => users.id),
     blueprintRef: text('blueprint_ref').notNull(),
+    // §25 (P5a Task 11): the starter the first commit was seeded from — provenance a
+    // console and an administrator both ask for. Null for a skeleton-only project.
+    starter: text('starter'),
     // { max_cpu, max_memory, max_services, ai_monthly_usd } — §6
     quota: jsonb('quota').notNull().default({
       max_cpu: 2,
@@ -67,7 +70,8 @@ export const projects = pgTable(
       max_services: 3,
       ai_monthly_usd: 50,
     }),
-    // Human-set, shapes production capacity only (§24, D29). Null until asked in P5.
+    // Human-set, shapes production capacity only (§24, D29). Asked at creation since P5a
+    // Task 11; null for a project created before it.
     audience: jsonb('audience'),
     visibility: text('visibility').notNull().default('private'),
     published: boolean('published').notNull().default(false),
@@ -370,7 +374,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated')`,
     ),
   ],
 )

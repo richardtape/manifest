@@ -26,7 +26,6 @@ import type { SsoRegistrar } from '../sso/index.js'
 import type { SamlSp } from '../identity/index.js'
 import type { AiKeyService, ModelCatalogue } from '../ai/index.js'
 import type { Retirer } from '../releases/index.js'
-import { registerProjectRoutes } from './routes/projects.js'
 import { registerDeliveryRoutes } from './routes/delivery.js'
 import { registryTokenRoutes } from './routes/registry-token.js'
 import { registerRoutes } from './contract/route.js'
@@ -318,7 +317,6 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
   // themselves below until their task converts them — `contract/coverage.test.ts` lists them.
   registerRoutes(app, deps, ROUTE_DEFINITIONS)
   await registerAuthRoutes(app, deps)
-  await registerProjectRoutes(app, deps)
   await registerDeliveryRoutes(app, deps)
   await registerEventRoutes(app, deps)
 

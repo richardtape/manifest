@@ -20,7 +20,7 @@ import { createFakeDriver, type Driver, type FakeDriver } from '../runtime/index
 import type { AiKeyService } from '../ai/index.js'
 import type { AppSecretResolver } from '../secrets/index.js'
 import { createRetirer, retireEnvironment, type RetirerDeps } from './retire.js'
-import { testReservedLabels } from '../projects/testing.js'
+import { testAudience, testReservedLabels } from '../projects/testing.js'
 
 beforeAll(resetDatabase)
 
@@ -104,6 +104,8 @@ async function threeInstances(
       slug: `chem-labs-${unique}`,
       ownerId: owner!.id,
       blueprintRef: 'fixture-node@1',
+      starter: null,
+      audience: testAudience(owner!.id),
     },
   )
   const staging = created.find((environment) => environment.kind === 'staging')!

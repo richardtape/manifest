@@ -22,7 +22,7 @@ import { idpDatabaseUrl } from '../sso/testing.js'
 import { createRelease, deployRelease, startBuild } from './index.js'
 import { disabledAiKeyService, disabledCatalogue } from '../ai/index.js'
 import { createEventBus } from '../observability/index.js'
-import { testReservedLabels } from '../projects/testing.js'
+import { testAudience, testReservedLabels } from '../projects/testing.js'
 
 /**
  * Task 9's composition, against the REAL registrar.
@@ -111,6 +111,8 @@ describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
           slug,
           ownerId: user!.id,
           blueprintRef: 'fixture-node@1',
+          starter: null,
+          audience: testAudience(user!.id),
         },
       )
       const staging = environments.find((e) => e.kind === 'staging')!

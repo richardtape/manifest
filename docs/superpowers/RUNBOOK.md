@@ -514,12 +514,16 @@ restarts every container on the machine, so it is a person's call rather than a 
   using it. `make reset` does clear them, because LiteLLM's database is in the Postgres
   volume it destroys. **Check:** the `/user/list` call in `make demo-ai`'s section above
   lists `mf-` users; one whose project UUID is no longer in `projects` is an orphan.
-- **After `pnpm test` or `make reset`, the first `POST /v1/projects` for a demo's slug fails
-  and still creates the project.** *Measured 2026-09-15.* Neither removes the bare source
-  repositories in `.manifest/repos`, so creating the project again finds the slug's old
-  repository and answers `SOURCE_GIT_FAILED` — with git's raw output — after the project row
-  is committed. Both demos print `reusing project` and carry on, correctly. To run a demo
-  from genuinely nothing, move `.manifest/repos/<slug>.git` aside first.
+- **After `pnpm test` or `make reset`, `.manifest/repos` still holds each demo's repository,
+  and its project is gone.** *Measured 2026-09-15; changed 2026-09-16 (P5a Task 11).* Neither
+  removes the bare source repositories, so creating the project again finds the slug's old
+  repository and answers `SOURCE_GIT_FAILED` — with git's raw output. Since P5a Task 11 that
+  creation leaves NO project behind (it used to leave the row, which the demos then reused), so
+  **every demo and `make demo-journey` first remove their own slug's repository when
+  `GET /v1/slugs/{slug}` says no project holds the name** — `clear_orphan_repository` in
+  `scripts/lib/api.sh`, which prints the path it removed. A `POST /v1/projects` of your own
+  for such a slug still answers `SOURCE_GIT_FAILED`: move `.manifest/repos/<slug>.git` aside
+  first.
 - **After `pnpm test:docker`, a demo that was deployed is no longer reachable.** *Measured
   2026-09-15.* `routes.docker.test.ts` restarts `manifest-caddy`, which drops every runtime
   route, and the tier empties the tables the control plane would re-apply them from — so each

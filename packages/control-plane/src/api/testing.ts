@@ -118,6 +118,23 @@ export function mutationHeaders(deps: ServerDeps): {
 }
 
 /**
+ * A `POST /v1/projects` body (P5a Task 11). The audience is REQUIRED — §24 asks it at
+ * creation — so every test that creates a project states one; `solo`/`steady` because no
+ * test here depends on it.
+ */
+export function projectBody(
+  slug: string,
+  options: { blueprint?: string; starter?: string } = {},
+): Record<string, unknown> {
+  return {
+    slug,
+    blueprint: options.blueprint ?? 'fixture-node@1',
+    ...(options.starter === undefined ? {} : { starter: options.starter }),
+    audience: { scale: 'solo', burst: 'steady' },
+  }
+}
+
+/**
  * The control plane's own SP, and the in-process IdP that can sign for it.
  *
  * Minted ONCE per test process for the same reason `testSamlIdp` is: two

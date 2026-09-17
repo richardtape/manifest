@@ -43,6 +43,32 @@ field() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const
 
 json() { node -e 'console.log(JSON.stringify(process.argv[1]))' "$1"; }
 
+# Removes the bare repository for slug $1 when NO PROJECT HOLDS THE NAME (P5a Task 11).
+#
+# `pnpm test` and `make reset` empty the control plane's tables and leave
+# .manifest/repos behind, so a demo's next `POST /v1/projects` finds its slug's old
+# repository. Until Task 11 that creation failed AFTER committing the project row, and
+# the demos carried on by reusing it; since Task 11 the project is deleted when its
+# repository cannot be created (Decision 29), so there is nothing to reuse, and every
+# demo after a `pnpm test` would stop at step 2.
+#
+# The proof that nothing is lost is the CONTRACT's, not a guess from the filesystem:
+# `GET /v1/slugs/{slug}` answering `available` means no project holds the name — a
+# project that does is SLUG_TAKEN, and a reserved or malformed name is never available.
+# Only then is the repository an orphan. The caller sets CP_JAR and ROOT.
+clear_orphan_repository() {
+  local slug="$1" repos="${MANIFEST_REPOS_ROOT:-$ROOT/.manifest/repos}" available
+  case "$slug" in
+    '' | *[!a-z0-9-]*) echo "clear_orphan_repository: '$slug' is not a project slug" >&2; return 1 ;;
+  esac
+  [ -d "$repos/$slug.git" ] || return 0
+  available="$(api GET "/v1/slugs/$slug" | field available)" || return 1
+  if [ "$available" = true ]; then
+    rm -rf "${repos:?}/$slug.git"
+    echo "  removed $repos/$slug.git — no project holds '$slug' (pnpm test and make reset leave repositories behind)"
+  fi
+}
+
 environment() {
   api GET "/v1/projects/$PROJECT_ID?expand=environments" \
     | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);const e=(j.environments??[]).find(x=>x.kind===process.argv[1]);if(!e){console.error(s);process.exit(1)}console.log(e.id)})' "$1"

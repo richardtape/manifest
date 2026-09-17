@@ -1,19 +1,23 @@
-import type { FastifyInstance } from 'fastify'
-import { z } from 'zod'
 import { appSpecs } from '../../db/index.js'
-import { createProject } from '../../projects/index.js'
 import type { ModelCatalogue } from '../../ai/index.js'
+import { renderProjectSeed } from '../../blueprints/index.js'
+import { makeRedactor, publishEvent } from '../../observability/index.js'
+import {
+  assertSlugAvailable,
+  createProject,
+  deleteProject,
+  projectViews,
+} from '../../projects/index.js'
 import { declaresModels, validateSpec } from '../../spec/index.js'
 import type { ValidationContext } from '../../spec/index.js'
+import { defineRoute, NO_PARAMS, NO_QUERY } from '../contract/route.js'
 import { BadRequestError } from '../errors.js'
-import { requireActor, type ServerDeps } from '../server.js'
-
-const createBody = z.object({
-  // Not §7's rule: that is `checkSlug`'s, so creation and GET /v1/slugs/{slug} refuse a
-  // name with the same code and the same sentence (§23, P5a Task 9).
-  slug: z.string().min(1),
-  blueprint: z.string().min(1),
-})
+import { toEnvironment } from '../representations/environments.js'
+import {
+  CreatedProject,
+  CreateProjectRequest,
+  toProject,
+} from '../representations/projects.js'
 
 type ModelPolicy = Pick<
   ValidationContext,
@@ -77,70 +81,109 @@ export function validationContext(
   }
 }
 
-export async function registerProjectRoutes(
-  app: FastifyInstance,
-  deps: ServerDeps,
-): Promise<void> {
-  app.post('/v1/projects', async (request, reply) => {
-    const actor = requireActor(request)
-    const parsed = createBody.safeParse(request.body)
-    if (!parsed.success) {
-      throw new BadRequestError(
-        'PROJECT_INVALID_INPUT',
-        parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '),
-        'Send `slug` and `blueprint`. GET /v1/slugs/{slug} says whether a name will be accepted.',
-      )
-    }
-    const { slug, blueprint } = parsed.data
-
-    const descriptor = deps.blueprints.resolve(blueprint)
-    if (!descriptor) {
-      throw new BadRequestError(
-        'BLUEPRINT_NOT_FOUND',
-        `no blueprint '${blueprint}'`,
-        `Available: ${deps.blueprints
-          .list()
-          .map((b) => `${b.blueprint}@${b.major_version}`)
-          .join(', ')}`,
-      )
-    }
-
-    const { status, body } = await app.idempotent(request, async () => {
-      const seeded = [
-        'manifest: 1',
-        `name: ${slug}`,
-        `blueprint: ${blueprint}`,
-        'runtime:',
-        `  port: ${descriptor.runtime.default_port}`,
-        `  health: ${descriptor.runtime.health_path}`,
-        '',
-      ].join('\n')
-      // FIRST — before the project row and the repository exist. See modelPolicy. The
-      // seeded manifest declares no model, so the catalogue is not read here at all.
-      const models = await modelPolicy(deps.catalogue, seeded)
-      const { project, environments } = await createProject(
+/**
+ * §22 steps 2–3 (P5a Task 11), in Decision 29's order: the blueprint and starter exist →
+ * the slug (§23's one function) → the seed rendered and the catalogue read if it declares
+ * a model → the rows in one transaction → the repository, and the project deleted if that
+ * fails → the spec validated and recorded → the three events, LAST.
+ */
+export const createProjectRoutes = [
+  defineRoute({
+    operationId: 'createProject',
+    method: 'POST',
+    path: '/v1/projects',
+    tag: 'projects',
+    summary: 'Create a project',
+    description:
+      '§22 steps 2–3: a name, a blueprint, optionally a starter, and who the app is for (§24). Creates the project and its three environments, seeds a repository from the skeleton and the starter, and validates its manifest. Progress is on the project’s event stream: project.created, repository.seeded, spec.validated.',
+    params: NO_PARAMS,
+    query: NO_QUERY,
+    body: CreateProjectRequest,
+    success: {
+      status: 201,
+      description: 'The project, as created.',
+      schema: CreatedProject,
+    },
+    errors: [
+      'SLUG_INVALID',
+      'SLUG_RESERVED',
+      'SLUG_TAKEN',
+      'BLUEPRINT_NOT_FOUND',
+      'STARTER_NOT_FOUND',
+      'SOURCE_GIT_FAILED',
+      'AI_BACKEND_UNAVAILABLE',
+      'AI_CATALOGUE_EMPTY',
+    ],
+    handler: async ({ deps, actor, body }) => {
+      // 1. The blueprint and the starter exist — before anything is checked against them.
+      const descriptor = deps.blueprints.resolve(body.blueprint)
+      if (descriptor === undefined) {
+        throw new BadRequestError(
+          'BLUEPRINT_NOT_FOUND',
+          `no blueprint '${body.blueprint}'`,
+          `Available: ${deps.blueprints
+            .list()
+            .map((b) => `${b.blueprint}@${b.major_version}`)
+            .join(', ')}`,
+        )
+      }
+      if (
+        body.starter !== undefined &&
+        deps.blueprints.starter(body.blueprint, body.starter) === undefined
+      ) {
+        const offered = (descriptor.starters ?? []).map((s) => s.name)
+        throw new BadRequestError(
+          'STARTER_NOT_FOUND',
+          `blueprint '${body.blueprint}' offers no starter '${body.starter}'`,
+          offered.length === 0
+            ? 'This blueprint offers no starters; leave `starter` out.'
+            : `Offered: ${offered.join(', ')}`,
+        )
+      }
+      // 2. The name — §23's one function, before the catalogue is read for it.
+      await assertSlugAvailable(deps.db, deps.reservedLabels, body.slug)
+      // 3. The seed, and the catalogue only if the seed declares a model — BEFORE anything
+      //    is written, so a gateway outage writes nothing (P4b finding 45).
+      const seed = renderProjectSeed(deps.blueprints, {
+        blueprintRef: body.blueprint,
+        slug: body.slug,
+        ...(body.starter === undefined ? {} : { starter: body.starter }),
+      })
+      const models = await modelPolicy(deps.catalogue, seed['manifest.yaml']!)
+      // 4. The rows, in one transaction.
+      const { project, environments: created } = await createProject(
         deps.db,
         deps.config,
         deps.reservedLabels,
         {
-          slug,
+          slug: body.slug,
           ownerId: actor.userId,
-          blueprintRef: blueprint,
+          blueprintRef: body.blueprint,
+          starter: body.starter ?? null,
+          audience: {
+            scale: body.audience.scale,
+            burst: body.audience.burst,
+            justification: body.audience.justification ?? null,
+            set_by: actor.userId,
+            set_at: new Date().toISOString(),
+          },
         },
       )
-
-      // §22 step 3: "repository created, manifest.yaml validated".
-      const repo = await deps.source.createRepository(slug, {
-        'manifest.yaml': seeded,
-        'src/index.js': "import http from 'node:http'\n",
-      })
-      const commitSha = await deps.source.headCommit(repo)
-      const yamlText =
-        (await deps.source.readFile(repo, commitSha, 'manifest.yaml')) ?? ''
-
+      // 5. The repository — and no project without one (P4b finding 178, Decision 29).
+      let commitSha: string
+      let yamlText: string
+      try {
+        const repo = await deps.source.createRepository(body.slug, seed)
+        commitSha = await deps.source.headCommit(repo)
+        yamlText = (await deps.source.readFile(repo, commitSha, 'manifest.yaml')) ?? ''
+      } catch (error) {
+        await deleteProject(deps.db, project.id)
+        throw error
+      }
+      // 6. What was seeded, validated and recorded.
       const result = validateSpec(
         yamlText,
-        validationContext(slug, project.quota as Record<string, unknown>, models),
+        validationContext(project.slug, project.quota as Record<string, unknown>, models),
       )
       const [appSpec] = await deps.db
         .insert(appSpecs)
@@ -153,27 +196,75 @@ export async function registerProjectRoutes(
           errors: result.valid ? [] : result.errors,
         })
         .returning()
+      if (!appSpec) throw new Error('app_specs insert returned no row')
+      // 7. The events — LAST, so no audit row exists for a project whose repository failed,
+      //    which `audit.events`' RESTRICT would stop step 5 deleting. Nothing secret exists
+      //    yet; the redactor still runs, as §14 requires of every event.
+      const redact = makeRedactor([])
+      const subject = `project:${project.slug}`
+      const files = Object.keys(seed).length
+      await publishEvent(
+        deps.db,
+        deps.bus,
+        {
+          projectId: project.id,
+          subject,
+          type: 'project.created',
+          machineDetail: {
+            slug: project.slug,
+            blueprint: body.blueprint,
+            starter: body.starter ?? null,
+            audience: { scale: body.audience.scale, burst: body.audience.burst },
+          },
+          humanMessage: `${project.slug} was created from ${body.blueprint}${body.starter === undefined ? '' : ` with the ${body.starter} starter`}.`,
+        },
+        redact,
+      )
+      await publishEvent(
+        deps.db,
+        deps.bus,
+        {
+          projectId: project.id,
+          subject,
+          type: 'repository.seeded',
+          machineDetail: { commitSha, files, starter: body.starter ?? null },
+          humanMessage: `${project.slug}'s repository was created with ${files} files.`,
+        },
+        redact,
+      )
+      const errorCount = result.valid ? 0 : result.errors.length
+      await publishEvent(
+        deps.db,
+        deps.bus,
+        {
+          projectId: project.id,
+          subject,
+          type: 'spec.validated',
+          machineDetail: {
+            appSpecId: appSpec.id,
+            commitSha,
+            valid: result.valid,
+            errorCount,
+          },
+          humanMessage: result.valid
+            ? `${project.slug}'s manifest.yaml is valid.`
+            : `${project.slug}'s manifest.yaml has ${errorCount} problem(s) to fix.`,
+        },
+        redact,
+      )
 
+      const [view] = await projectViews(deps.db, [project.id])
       return {
-        status: 201,
-        body: {
-          id: project.id,
-          slug: project.slug,
-          blueprint: project.blueprintRef,
-          repositoryUrl: repo.url,
+        ...toProject(view!),
+        environments: created.map((row) => toEnvironment(row, undefined)),
+        spec: {
+          appSpecId: appSpec.id,
           commitSha,
-          specValid: result.valid,
-          specErrors: result.valid ? [] : result.errors,
-          appSpecId: appSpec!.id,
-          environments: environments.map((e) => ({
-            id: e.id,
-            kind: e.kind,
-            hostname: e.hostname,
-          })),
+          valid: result.valid,
+          errors: result.valid ? [] : result.errors,
+          sensitiveDiff: { sensitive: false, fields: [] },
         },
       }
-    })
-
-    return reply.status(status).send(body)
-  })
-}
+    },
+  }),
+]

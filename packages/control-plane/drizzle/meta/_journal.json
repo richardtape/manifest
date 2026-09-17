@@ -71,6 +71,13 @@
       "when": 1789533475542,
       "tag": "0009_outgoing_killer_shrike",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789620320535,
+      "tag": "0010_lyrical_komodo",
+      "breakpoints": true
     }
   ]
 }

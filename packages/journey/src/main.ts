@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto'
-import { createManifestClient, ManifestApiError, unwrap } from '@manifest/contract'
+import {
+  createManifestClient,
+  idempotencyKey,
+  ManifestApiError,
+  unwrap,
+} from '@manifest/contract'
 import { Checks, JourneyStop } from './check.js'
 import { readState, writeState, type JourneyState } from './state.js'
 
@@ -137,12 +142,80 @@ async function step2bChooseABlueprint(): Promise<void> {
   )
 }
 
+/** §22 steps 2–3: name, blueprint, starter, and who it is for (§24). Re-runnable: reuses journey-app. */
+async function step2Create(): Promise<void> {
+  checks.step(
+    '2. Create a project — journey-app, from the proof-app starter, for a class',
+  )
+  if (state.projectId === undefined) {
+    const created = unwrap(
+      await client.POST('/v1/projects', {
+        params: { header: { 'Idempotency-Key': idempotencyKey() } },
+        body: {
+          slug: 'journey-app',
+          blueprint: 'node-ts-mongo@1',
+          starter: 'proof-app',
+          audience: {
+            scale: 'class',
+            burst: 'synchronised',
+            justification: 'P5a’s acceptance journey',
+          },
+        },
+      }),
+      'createProject',
+    )
+    state.projectId = created.id
+    checks.ok('created with the proof-app starter', created.starter === 'proof-app')
+    checks.ok(
+      'for a class that arrives at once',
+      created.audience?.scale === 'class' && created.audience.burst === 'synchronised',
+      JSON.stringify(created.audience),
+    )
+    checks.ok(
+      'its seeded manifest.yaml is valid',
+      created.spec.valid,
+      JSON.stringify(created.spec.errors),
+    )
+  } else {
+    console.log('  (journey-app exists from an earlier run — reused)')
+  }
+  const project = unwrap(
+    await client.GET('/v1/projects/{projectId}', {
+      params: { path: { projectId: state.projectId }, query: { expand: 'environments' } },
+    }),
+    'getProject',
+  )
+  state.projectSlug = project.slug
+  checks.ok(
+    'it reads back with its starter and its audience',
+    project.starter === 'proof-app' && project.audience?.scale === 'class',
+    JSON.stringify({ starter: project.starter, audience: project.audience }),
+  )
+  const staging = checks.must(
+    'it has a staging environment',
+    project.environments?.find((e) => e.kind === 'staging'),
+  )
+  const production = checks.must(
+    'and a production one',
+    project.environments?.find((e) => e.kind === 'production'),
+  )
+  state.stagingEnvironmentId = staging.id
+  state.productionEnvironmentId = production.id
+  state.appUrl = staging.url
+  checks.ok(
+    'staging is journey-app.staging.manifest.internal',
+    staging.hostname === 'journey-app.staging.manifest.internal',
+    staging.hostname,
+  )
+}
+
 const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
   'before-app': [
     step1SignedIn,
     step2MyProjects,
     step2aCheckTheName,
     step2bChooseABlueprint,
+    step2Create,
   ],
   'after-app': [],
 }
