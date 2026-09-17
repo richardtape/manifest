@@ -1413,7 +1413,7 @@ divergence 8 — was deliberately deferred until Task 18 measured it, and **it n
 
 *[`plans/2026-09-07-p4a-identity-secrets-injection.md`](plans/2026-09-07-p4a-identity-secrets-injection.md)
 — **15 tasks, ALL EXECUTED and green: 1–5 on 2026-09-08, 6–15 on 2026-09-09.** Not the
-current job; **§7d-2 is.** This section stays because everything under *What Tasks
+current job; **§7e is.** This section stays because everything under *What Tasks
 1–15 established* is what P4b builds on, and re-deriving it is a session.*
 
 **It ran in SEVEN AGREED SITTINGS**, settled with Rich on 2026-09-08 so a session
@@ -1639,7 +1639,7 @@ result was theirs.
 ```bash
 ./scripts/snapshot-machine.sh > /tmp/before.txt   # read-only, no sudo, no network
 make up                                            # ~1 min; re-adds the loopback alias
-make doctor && make verify                         # expect 18/0 and 47/0
+make doctor && make verify                         # expect §2's box
 pnpm test                                          # expect §2's box
 pnpm lint && pnpm --filter @manifest/control-plane typecheck && pnpm format:check
 ```
@@ -1993,7 +1993,8 @@ both P5b's; item 7 is not a spec change but work P5a does (persisting scan findi
 3. **This file's §4** — its last three entries are sitting 3's — and **§6** (how to work, and the close-out sweep every sitting owes).
 
 **How to execute it.** `superpowers:executing-plans` or `superpowers:subagent-driven-development`, **one sitting per
-session**, with a check-in at each boundary. **Sitting 4 changes only `api/`, `package.json` and `.prettierignore`, and creates
+session**, with a check-in at each boundary. **Start with the baseline in §7d's *Your first ten minutes*** — snapshot the
+machine, `make up`, doctor, verify and the four gates — and compare every number with §2's box before changing anything. **Sitting 4 changes only `api/`, `package.json` and `.prettierignore`, and creates
 `packages/contract/openapi.json`** — the plan's rule exempts it from `pnpm test:docker`, so it ends with the four gates. A Caddyfile
 edit reaches the edge through `make up`, whose reload drops every runtime route, and the Docker tier restarts the edge and
 re-registers the platform's SP row at a loopback ACS — **restart the control plane after either**; its boot puts both back.
