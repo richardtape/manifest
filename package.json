@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc -b --pretty"
+    "typecheck": "tsc -b --pretty",
+    "contract:write": "MANIFEST_CONTRACT_WRITE=1 vitest run --project unit src/api/contract/document.test.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

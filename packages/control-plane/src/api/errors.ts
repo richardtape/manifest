@@ -9,6 +9,7 @@ import { IdempotencyConflictError } from './idempotency.js'
 import { CsrfRefusedError } from './csrf.js'
 import { AiError, CatalogueError } from '../ai/index.js'
 import { ERROR_CODES } from './error-codes.js'
+import { RequestValidationError } from './contract/route.js'
 
 export interface ErrorEnvelope {
   error: {
@@ -184,6 +185,21 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
           code: error.code,
           message: error.message,
           ...(error.hint === undefined ? {} : { hint: error.hint }),
+        },
+      },
+    }
+  }
+
+  // A `/v1` request that its route's own schema refused (P5a Task 6). The zod 3 branch
+  // below stays for the routes not yet converted: a v4 error is not a v3 ZodError (M1e).
+  if (error instanceof RequestValidationError) {
+    return {
+      status: 400,
+      body: {
+        error: {
+          code: error.code,
+          message: error.message,
+          hint: 'Correct the listed fields and send the request again.',
         },
       },
     }

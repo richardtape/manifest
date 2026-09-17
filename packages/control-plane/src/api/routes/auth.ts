@@ -15,7 +15,7 @@ import {
   signSession,
   upsertUserFromAssertion,
 } from '../../identity/index.js'
-import { requireActor, type ServerDeps } from '../server.js'
+import type { ServerDeps } from '../server.js'
 
 /**
  * The SAML POST binding. The IdP auto-submits a form to the ACS, so the body is
@@ -148,11 +148,6 @@ export async function registerAuthRoutes(
       return reply.redirect(binding.returnTo, 302)
     },
   )
-
-  app.get('/v1/me', async (request) => {
-    const actor = requireActor(request)
-    return { id: actor.userId, puid: actor.puid, role: actor.platformRole }
-  })
 
   app.post(
     '/auth/logout',

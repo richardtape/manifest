@@ -2,7 +2,13 @@ import { eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db, users } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
-import { authnRequestId, testSamlIdp, type TestIdp } from '../identity/testing.js'
+import { randomUUID } from 'node:crypto'
+import {
+  authnRequestId,
+  testSamlIdp,
+  testSessionCookies,
+  type TestIdp,
+} from '../identity/testing.js'
 import { mintSpKeypair } from '../sso/index.js'
 import { buildServer } from './server.js'
 import { loginAs, testDeps } from './testing.js'
@@ -37,7 +43,49 @@ describe('auth routes', () => {
 
     const me = await app.inject({ method: 'GET', url: '/v1/me', cookies })
     expect(me.statusCode).toBe(200)
-    expect(me.json()).toMatchObject({ puid: 'bio_prof', role: 'member' })
+    // EXACTLY `Me` (P5a Task 6): the row's name and address beside the session's role,
+    // and nothing else the users table holds.
+    const [user] = await deps.db
+      .select()
+      .from(users)
+      .where(eq(users.ubcCwlPuid, 'bio_prof'))
+    expect(me.json()).toEqual({
+      id: user!.id,
+      puid: 'bio_prof',
+      displayName: 'Bio Prof',
+      email: 'bio_prof@example.ubc.ca',
+      role: 'member',
+    })
+    await app.close()
+  })
+
+  it('refuses /v1/me for a validly signed session whose user no longer exists', async () => {
+    // Sessions are stateless (brief §7 item 6): the signature outlives the row. `Me` is
+    // read from the row, so a session over nobody is authentication's refusal — not a
+    // 500 from a mapper handed `undefined`, and not a representation of nobody.
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const cookies = testSessionCookies(
+      { id: randomUUID(), ubcCwlPuid: 'departed_user', role: 'member' },
+      deps.config.sessionSecret,
+    )
+    const me = await app.inject({ method: 'GET', url: '/v1/me', cookies })
+    expect(me.statusCode).toBe(401)
+    expect(me.json().error.code).toBe('UNAUTHENTICATED')
+    await app.close()
+  })
+
+  it('refuses a query parameter /v1/me does not name, naming it', async () => {
+    // A `/v1` route's query is a strict object (P5a Task 6, `NO_QUERY`), so `?limt=` is
+    // refused rather than ignored. The route answered 200 to any query before it was a
+    // definition; this pins the change as intended.
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const cookies = await loginAs(deps, 'bio_prof')
+    const me = await app.inject({ method: 'GET', url: '/v1/me?verbose=1', cookies })
+    expect(me.statusCode).toBe(400)
+    expect(me.json().error.code).toBe('REQUEST_INVALID')
+    expect(me.json().error.message).toContain('verbose')
     await app.close()
   })
 
@@ -214,7 +262,12 @@ describe('Manifest is its own SP (§9)', () => {
       url: '/v1/me',
       cookies: { manifest_session: cookie!.value },
     })
-    expect(me.json()).toMatchObject({ puid: 'ins000001', role: 'member' })
+    expect(me.json()).toMatchObject({
+      puid: 'ins000001',
+      displayName: 'Test Instructor',
+      email: 'instructor@ubc.ca',
+      role: 'member',
+    })
     await app.close()
   })
 

@@ -24,6 +24,9 @@ import type { Retirer } from '../releases/index.js'
 import { registerProjectRoutes } from './routes/projects.js'
 import { registerDeliveryRoutes } from './routes/delivery.js'
 import { registryTokenRoutes } from './routes/registry-token.js'
+import { registerRoutes } from './contract/route.js'
+import { ROUTE_DEFINITIONS } from './routes/index.js'
+import { requireActor } from './actor.js'
 
 export interface ServerDeps {
   db: Db
@@ -101,12 +104,9 @@ declare module 'fastify' {
 
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
-export function requireActor(request: FastifyRequest): Actor & { puid: string } {
-  if (!request.actor) {
-    throw Object.assign(new Error('a session is required'), { statusCode: 401 })
-  }
-  return request.actor
-}
+// Its own module since P5a Task 6 (`actor.ts` says why); re-exported so every existing
+// `import { requireActor } from '../server.js'` keeps working.
+export { requireActor } from './actor.js'
 
 export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: false })
@@ -290,6 +290,9 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
     }),
   )
 
+  // Every `/v1` route declared through `defineRoute` (P5a Task 6). The rest still register
+  // themselves below until their task converts them — `contract/coverage.test.ts` lists them.
+  registerRoutes(app, deps, ROUTE_DEFINITIONS)
   await registerAuthRoutes(app, deps)
   await registerProjectRoutes(app, deps)
   await registerDeliveryRoutes(app, deps)

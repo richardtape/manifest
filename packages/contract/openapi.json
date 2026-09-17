@@ -1,0 +1,305 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Manifest",
+    "version": "0.1.0",
+    "description": "Manifest's public API (§22). Generated from the control plane's route definitions; do not edit. Resource routes are under /v1 (D23.8); a breaking change is a new prefix beside it. Response objects may gain fields under /v1 — a client ignores fields it does not know. Every mutation carries an Idempotency-Key, and a session-bearing mutation carries Origin (§20)."
+  },
+  "servers": [
+    {
+      "url": "https://console.manifest.internal",
+      "description": "The laptop platform (§21). The console and the API share this origin."
+    }
+  ],
+  "security": [
+    {
+      "session": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "identity"
+    }
+  ],
+  "paths": {
+    "/v1/me": {
+      "get": {
+        "operationId": "getMe",
+        "tags": [
+          "identity"
+        ],
+        "summary": "The signed-in person",
+        "description": "Who this session belongs to, and the platform role it is authorized as. Every client calls it first.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The person.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "manifest_session",
+        "description": "Set by the CWL sign-in at /auth/login (§9). Delegated tokens arrive in P5b."
+      }
+    },
+    "schemas": {
+      "EmptyRequest": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "ErrorCode": {
+        "description": "Every code the API answers with (api/error-codes.ts). Stable: a client switches on it (§20).",
+        "type": "string",
+        "enum": [
+          "AI_BACKEND_UNAVAILABLE",
+          "AI_CATALOGUE_DISABLED",
+          "AI_CATALOGUE_EMPTY",
+          "AI_KEY_EXPIRED",
+          "AI_KEY_REVOKED",
+          "AI_MODEL_NOT_PERMITTED",
+          "AI_MODEL_UNKNOWN",
+          "AI_PROJECT_BUDGET_EXCEEDED",
+          "AI_ROUTE_NOT_PERMITTED",
+          "AI_UNMAPPED",
+          "AI_USER_BUDGET_EXCEEDED",
+          "BLUEPRINT_NOT_FOUND",
+          "BUILD_INVALID_INPUT",
+          "BUILD_LOG_INVALID_QUERY",
+          "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED",
+          "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH",
+          "CONFIG_INVALID",
+          "CONFIG_LITELLM_MASTER_KEY_REQUIRED",
+          "CONFIG_MASTER_SECRET_REQUIRED",
+          "CSRF_ORIGIN_REFUSED",
+          "DEPLOY_INVALID_INPUT",
+          "EVENTS_UPGRADE_REQUIRED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "MEMBER_INVALID_INPUT",
+          "MEMBER_USER_NOT_FOUND",
+          "NOT_FOUND",
+          "PROJECT_INVALID_INPUT",
+          "PROJECT_INVALID_SLUG",
+          "PROJECT_NOT_FOUND",
+          "PROJECT_SLUG_TAKEN",
+          "RELEASE_AI_BUDGET_MISSING",
+          "RELEASE_AI_DISABLED",
+          "RELEASE_BLUEPRINT_NOT_FOUND",
+          "RELEASE_BUILD_NOT_DEPLOYABLE",
+          "RELEASE_BUILD_NOT_FOUND",
+          "RELEASE_DIGEST_MISSING",
+          "RELEASE_ENVIRONMENT_NOT_FOUND",
+          "RELEASE_IMAGE_REPOSITORY_MISSING",
+          "RELEASE_INVALID_INPUT",
+          "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER",
+          "RELEASE_MODEL_CLASSIFICATION_TOO_LOW",
+          "RELEASE_MODEL_NOT_IN_CATALOGUE",
+          "RELEASE_MODEL_UNCLASSIFIED",
+          "RELEASE_NOT_FOUND",
+          "RELEASE_PRODUCTION_GATE_UNAVAILABLE",
+          "RELEASE_PROJECT_NOT_FOUND",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "ROUTE_NOT_FOUND",
+          "SAML_ASSERTION_REJECTED",
+          "SAML_LOGIN_NOT_BOUND",
+          "SAML_NO_PUID",
+          "SAML_USER_UPSERT_FAILED",
+          "SOURCE_FOREIGN_REPO",
+          "SOURCE_GIT_FAILED",
+          "SOURCE_INVALID_SLUG",
+          "SOURCE_PATH_ESCAPE",
+          "SPEC_INVALID",
+          "SPEC_INVALID_INPUT",
+          "SPEC_NOT_FOUND",
+          "UNAUTHENTICATED"
+        ]
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/ErrorCode"
+              },
+              "message": {
+                "description": "For a person. Never parse it; switch on `code`.",
+                "type": "string"
+              },
+              "hint": {
+                "description": "What to do about it.",
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ManifestError"
+                }
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "ManifestError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ManifestErrorCode"
+          },
+          "path": {
+            "description": "Where in manifest.yaml, dotted: `services.0.type`.",
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "path",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ManifestErrorCode": {
+        "description": "A code inside `details`: §7 schema, §7 policy, or §25 blueprint compatibility.",
+        "type": "string",
+        "enum": [
+          "BLUEPRINT_AI_UNSUPPORTED",
+          "BLUEPRINT_AUTH_UNSUPPORTED",
+          "BLUEPRINT_SCHEMA_VERSION_UNSUPPORTED",
+          "BLUEPRINT_SERVICE_UNSUPPORTED",
+          "SPEC_AI_BUDGET_REQUIRED",
+          "SPEC_AI_DISABLED",
+          "SPEC_ATTRIBUTE_NOT_REGISTERED",
+          "SPEC_ATTRIBUTE_NOT_WHITELISTED",
+          "SPEC_BUILD_BLOCK_FORBIDDEN",
+          "SPEC_ENV_NAME_RESERVED",
+          "SPEC_INVALID_BLUEPRINT_REF",
+          "SPEC_INVALID_SLUG",
+          "SPEC_INVALID_VALUE",
+          "SPEC_MODEL_CLASSIFICATION_TOO_LOW",
+          "SPEC_MODEL_UNCLASSIFIED",
+          "SPEC_MODEL_UNKNOWN",
+          "SPEC_NAME_SLUG_MISMATCH",
+          "SPEC_PATH_EXPECTED",
+          "SPEC_QUOTA_EXCEEDED",
+          "SPEC_RESERVED_BLOCK_NOT_EMPTY",
+          "SPEC_SERVICE_TYPE_UNKNOWN",
+          "SPEC_UNKNOWN_KEY",
+          "SPEC_YAML_PARSE_FAILED"
+        ]
+      },
+      "Me": {
+        "description": "The person the session belongs to.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "puid": {
+            "description": "The person's ubcEduCwlPuid (§9).",
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "description": "The platform role THIS SESSION is authorized as.",
+            "type": "string",
+            "enum": [
+              "admin",
+              "member"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "puid",
+          "displayName",
+          "email",
+          "role"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "x-manifest-unversioned": [
+    {
+      "method": "GET",
+      "path": "/auth/login",
+      "why": "Browser-mediated sign-in. Its URL is part of the flow the Manifest IdP completes (§9), not a resource."
+    },
+    {
+      "method": "POST",
+      "path": "/auth/saml/callback",
+      "why": "The ACS. Its URL is registered with the IdP in the platform's SP row (§9), so a prefix change would be an IdP registration change."
+    },
+    {
+      "method": "POST",
+      "path": "/auth/logout",
+      "why": "The SLO URL registered beside the ACS (§9). Ends the browser's session; not a resource."
+    },
+    {
+      "method": "GET",
+      "path": "/internal/registry/token",
+      "why": "The registry token realm (§13). Its callers are the Docker daemon and BuildKit speaking the distribution token protocol, never a Manifest client."
+    },
+    {
+      "method": "POST",
+      "path": "/internal/registry/token",
+      "why": "The registry token realm, OAuth2 form grant. Same callers, same reason."
+    }
+  ]
+}
