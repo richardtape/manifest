@@ -23,8 +23,6 @@ docker inspect manifest-caddy >/dev/null 2>&1 || exit 0
 want=$(shasum -a 256 "$FILE" | awk '{print $1}')
 have=$(docker exec manifest-caddy cat "$MARKER" 2>/dev/null || true)
 
-[ "$want" = "$have" ] && exit 0
-
 # THE EDGE MAY NOT BE ABLE TO SEE THE FILE AT ALL. A single-file bind mount is bound to
 # the file's INODE, and an editor, a tool or `git checkout` that saves by writing a new
 # file and renaming it over the old one leaves the container on the deleted inode —
@@ -35,6 +33,13 @@ have=$(docker exec manifest-caddy cat "$MARKER" 2>/dev/null || true)
 # with what the host holds, and re-bind by restarting the edge when they differ. A
 # restart drops the runtime routes exactly as a reload does, and Caddy reads the file
 # as it starts, so no reload follows it.
+#
+# BEFORE THE MARKER CHECK, not after it. A live mount always shows the host's current
+# bytes, so the two hashes differ only when the mount is stale — and a stale mount can
+# hold content the marker already records: measured the same day, a replacing save
+# whose reload failed left the marker at the old hash, `git checkout` put that content
+# back through another replacing save, and the marker check then exited 0 with
+# `/etc/caddy/Caddyfile` still missing inside the edge.
 seen=$(docker exec manifest-caddy sha256sum /etc/caddy/Caddyfile 2>/dev/null | awk '{print $1}' || true)
 if [ "$seen" != "$want" ]; then
   echo "  the edge cannot see the current Caddyfile (a save replaced the file) — restarting it to re-bind the mount (runtime routes are re-applied by the control plane)"
@@ -51,6 +56,8 @@ if [ "$seen" != "$want" ]; then
   docker exec manifest-caddy sh -c "printf '%s' '$want' > $MARKER"
   exit 0
 fi
+
+[ "$want" = "$have" ] && exit 0
 
 echo "  Caddyfile changed — reloading the edge (runtime routes are re-applied by the control plane)"
 docker exec manifest-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
