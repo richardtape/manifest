@@ -115,6 +115,27 @@ describe('the error-code registry (§20, D23.7)', () => {
     }
     expect(wrong).toEqual([])
   })
+
+  it('reports an unregistered code on the operator’s stderr — the code, never the message', () => {
+    // The test above is the gate; this is the copy for a code that reached the wire anyway.
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      const secretish = 'the caller sent hunter2'
+      const { body } = toErrorResponse(
+        new BadRequestError('NOT_A_REGISTERED_CODE', secretish),
+      )
+      expect(body.error.code).toBe('NOT_A_REGISTERED_CODE')
+      expect(errors).toHaveBeenCalledTimes(1)
+      const line = String(errors.mock.calls[0]![0])
+      expect(JSON.parse(line)).toMatchObject({ code: 'NOT_A_REGISTERED_CODE' })
+      expect(line).not.toContain('hunter2')
+      errors.mockClear()
+      toErrorResponse(new BadRequestError('SPEC_NOT_FOUND', 'm'))
+      expect(errors).not.toHaveBeenCalled()
+    } finally {
+      errors.mockRestore()
+    }
+  })
 })
 
 /**
