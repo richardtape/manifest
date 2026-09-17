@@ -18,6 +18,9 @@ drizzle/
 .env
 .env.example
 blueprints/*/skeleton/
+# A blueprint's starters are apps laid over that skeleton, copied into a project as they
+# are (§25, P5a Task 10) — an app's tree, for the reason fixtures/ below is excluded.
+blueprints/*/starters/
 # An APP's own tree, standing in for something Manifest did not write. The same
 # reason the blueprint skeleton is excluded, and the same principle D13 enforces at
 # build time: the platform does not rewrite an application's files. It also keeps

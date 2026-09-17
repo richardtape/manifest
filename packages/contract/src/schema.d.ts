@@ -4,6 +4,66 @@
  */
 
 export interface paths {
+    "/v1/blueprints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The blueprint catalogue
+         * @description §22 step 2: what a person chooses from, with the starters each offers (§25).
+         */
+        get: operations["listBlueprints"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/blueprints/{blueprintRef}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A blueprint
+         * @description One blueprint by `name@major`.
+         */
+        get: operations["getBlueprint"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/blueprints/{blueprintRef}/knowledge-pack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A blueprint’s knowledge pack
+         * @description D25: served over the API and versioned with its blueprint, so an agent learns the conventions without running inside the platform. Each file carries its sha256.
+         */
+        get: operations["getKnowledgePack"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/environments/{environmentId}": {
         parameters: {
             query?: never;
@@ -196,6 +256,28 @@ export interface components {
              */
             setAt: string;
         };
+        /** @description A blueprint as a client chooses one: what it provides and the starters it offers. Never its base image or build internals. */
+        Blueprint: {
+            /** @description `name@major` — what a project pins (§25). */
+            ref: string;
+            name: string;
+            majorVersion: number;
+            language: string;
+            defaultPort: number;
+            healthPath: string;
+            schemaVersions: number[];
+            provides: {
+                services: string[];
+                authProviders: ("cwl" | "none")[];
+                ai: boolean;
+            };
+            /** @description §25: what `POST /v1/projects` accepts as `starter` for this blueprint. */
+            starters: {
+                name: string;
+                summary: string;
+            }[];
+        };
+        BlueprintList: components["schemas"]["Blueprint"][];
         EmptyRequest: Record<string, never>;
         Environment: {
             /** Format: uuid */
@@ -240,6 +322,18 @@ export interface components {
             /** @enum {string} */
             state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
             lastSeenAt: string | null;
+        };
+        /** @description D25: the files that teach an agent to write a valid manifest.yaml and wire the blueprint, versioned with it. */
+        KnowledgePack: {
+            blueprint: string;
+            files: {
+                path: string;
+                /** @enum {string} */
+                mediaType: "text/markdown" | "text/plain";
+                /** @description Hex SHA-256 of `content` as UTF-8. */
+                sha256: string;
+                content: string;
+            }[];
         };
         ManifestError: {
             code: components["schemas"]["ManifestErrorCode"];
@@ -347,6 +441,97 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listBlueprints: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every published blueprint. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlueprintList"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getBlueprint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                blueprintRef: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The blueprint. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Blueprint"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getKnowledgePack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                blueprintRef: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The pack. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnowledgePack"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     getEnvironment: {
         parameters: {
             query?: never;

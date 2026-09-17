@@ -91,7 +91,8 @@ front of a real IAM reviewer and a generated draft in front of the Privacy Offic
 any good. A generator whose output a reviewer rejects is worse than useless, and we
 would rather learn that in month two than in month ten.
 
-Dependency: these need `fixtures/proof-app/`'s `manifest.yaml` to exist, which is
+Dependency: these need the proof app's `manifest.yaml` to exist — since P5a Task 10
+`blueprints/node-ts-mongo/starters/proof-app/manifest.yaml`, until then `fixtures/proof-app/` — which is
 P4b (see the log below — P4a's demo will look like the trigger and is not it). Raise the *conversation* before then; submit when there is a real spec to
 submit.
 

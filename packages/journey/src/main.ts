@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { createManifestClient, ManifestApiError, unwrap } from '@manifest/contract'
 import { Checks, JourneyStop } from './check.js'
 import { readState, writeState, type JourneyState } from './state.js'
@@ -93,8 +94,56 @@ async function step2aCheckTheName(): Promise<void> {
   )
 }
 
+/** §22 step 2: choose a blueprint and a starter (§25), and read what an agent would (D25). */
+async function step2bChooseABlueprint(): Promise<void> {
+  checks.step('2b. A blueprint and a starter, from the catalogue')
+  const catalogue = unwrap(await client.GET('/v1/blueprints'), 'listBlueprints')
+  const ntm = checks.must(
+    'node-ts-mongo@1 is in the catalogue',
+    catalogue.find((b) => b.ref === 'node-ts-mongo@1'),
+    JSON.stringify(catalogue.map((b) => b.ref)),
+  )
+  checks.ok(
+    'it offers the proof-app starter',
+    ntm.starters.some((s) => s.name === 'proof-app'),
+    JSON.stringify(ntm.starters),
+  )
+  // The RUNNING system's answer again: a descriptor field the representation stopped
+  // stripping — the base image's digest above all — would reach here with tsc green.
+  checks.ok(
+    'no blueprint carries a build internal',
+    !JSON.stringify(catalogue).includes('@sha256:') &&
+      catalogue.every((b) => !('baseImage' in b) && !('runAsUid' in b)),
+    JSON.stringify(ntm),
+  )
+  const pack = unwrap(
+    await client.GET('/v1/blueprints/{blueprintRef}/knowledge-pack', {
+      params: { path: { blueprintRef: 'node-ts-mongo@1' } },
+    }),
+    'getKnowledgePack',
+  )
+  const agents = pack.files.find((f) => f.path === 'AGENTS.md')
+  checks.ok(
+    'its knowledge pack teaches manifest.yaml',
+    agents?.content.includes('manifest.yaml') === true,
+    JSON.stringify(pack.files.map((f) => f.path)),
+  )
+  checks.ok(
+    'and each file’s sha256 is the digest of what arrived',
+    pack.files.length > 0 &&
+      pack.files.every(
+        (f) => createHash('sha256').update(f.content).digest('hex') === f.sha256,
+      ),
+  )
+}
+
 const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
-  'before-app': [step1SignedIn, step2MyProjects, step2aCheckTheName],
+  'before-app': [
+    step1SignedIn,
+    step2MyProjects,
+    step2aCheckTheName,
+    step2bChooseABlueprint,
+  ],
   'after-app': [],
 }
 

@@ -33,7 +33,7 @@ const { endUserId } = (await import(END_USER)) as {
 }
 
 const PROOF_APP = fileURLToPath(
-  new URL('../../../../fixtures/proof-app/', import.meta.url),
+  new URL('../../../../blueprints/node-ts-mongo/starters/proof-app/', import.meta.url),
 )
 
 const SLUG = 'proof-app'

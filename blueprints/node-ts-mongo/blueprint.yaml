@@ -64,6 +64,17 @@ injection:
 dockerfile: ./Dockerfile.tmpl
 knowledge_pack: ./agents/
 
+# §25 Starters (P5a Task 10): complete apps a project can start from, laid over the
+# skeleton at project creation and copied once — the project owns them from then on.
+# Validated when this file is loaded, against §7 and against this descriptor, so a
+# starter that cannot pass is never offered. The proof app is the first: it is §16's,
+# which is what makes §22's step 6 — sign in, write a note, ask — reachable from a
+# project a person created in the console.
+starters:
+  - name: proof-app
+    path: ./starters/proof-app/
+    summary: CWL sign-in, a private note, and a question answered from your notes
+
 # What the skeleton installs, exactly (C6, D30). Ranges are refused by
 # descriptorSchema: §16's drift test asserts against a stated version, and a
 # range would let §8's contract drift underneath the test built to catch drift.

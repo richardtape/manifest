@@ -18,6 +18,9 @@
   ],
   "tags": [
     {
+      "name": "blueprints"
+    },
+    {
       "name": "identity"
     },
     {
@@ -25,6 +28,142 @@
     }
   ],
   "paths": {
+    "/v1/blueprints": {
+      "get": {
+        "operationId": "listBlueprints",
+        "tags": [
+          "blueprints"
+        ],
+        "summary": "The blueprint catalogue",
+        "description": "§22 step 2: what a person chooses from, with the starters each offers (§25).",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Every published blueprint.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlueprintList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/blueprints/{blueprintRef}": {
+      "get": {
+        "operationId": "getBlueprint",
+        "tags": [
+          "blueprints"
+        ],
+        "summary": "A blueprint",
+        "description": "One blueprint by `name@major`.",
+        "parameters": [
+          {
+            "name": "blueprintRef",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{2,38}@[1-9][0-9]*$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The blueprint.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Blueprint"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/blueprints/{blueprintRef}/knowledge-pack": {
+      "get": {
+        "operationId": "getKnowledgePack",
+        "tags": [
+          "blueprints"
+        ],
+        "summary": "A blueprint’s knowledge pack",
+        "description": "D25: served over the API and versioned with its blueprint, so an agent learns the conventions without running inside the platform. Each file carries its sha256.",
+        "parameters": [
+          {
+            "name": "blueprintRef",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{2,38}@[1-9][0-9]*$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The pack.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgePack"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
     "/v1/environments/{environmentId}": {
       "get": {
         "operationId": "getEnvironment",
@@ -647,6 +786,111 @@
         ],
         "additionalProperties": false
       },
+      "Blueprint": {
+        "description": "A blueprint as a client chooses one: what it provides and the starters it offers. Never its base image or build internals.",
+        "type": "object",
+        "properties": {
+          "ref": {
+            "description": "`name@major` — what a project pins (§25).",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "majorVersion": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "language": {
+            "type": "string"
+          },
+          "defaultPort": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "healthPath": {
+            "type": "string"
+          },
+          "schemaVersions": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          "provides": {
+            "type": "object",
+            "properties": {
+              "services": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "authProviders": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "cwl",
+                    "none"
+                  ]
+                }
+              },
+              "ai": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "services",
+              "authProviders",
+              "ai"
+            ],
+            "additionalProperties": false
+          },
+          "starters": {
+            "description": "§25: what `POST /v1/projects` accepts as `starter` for this blueprint.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "summary": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "summary"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "ref",
+          "name",
+          "majorVersion",
+          "language",
+          "defaultPort",
+          "healthPath",
+          "schemaVersions",
+          "provides",
+          "starters"
+        ],
+        "additionalProperties": false
+      },
+      "BlueprintList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Blueprint"
+        }
+      },
       "EmptyRequest": {
         "type": "object",
         "properties": {},
@@ -878,6 +1122,53 @@
           "kind",
           "state",
           "lastSeenAt"
+        ],
+        "additionalProperties": false
+      },
+      "KnowledgePack": {
+        "description": "D25: the files that teach an agent to write a valid manifest.yaml and wire the blueprint, versioned with it.",
+        "type": "object",
+        "properties": {
+          "blueprint": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "mediaType": {
+                  "type": "string",
+                  "enum": [
+                    "text/markdown",
+                    "text/plain"
+                  ]
+                },
+                "sha256": {
+                  "description": "Hex SHA-256 of `content` as UTF-8.",
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "content": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "mediaType",
+                "sha256",
+                "content"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "blueprint",
+          "files"
         ],
         "additionalProperties": false
       },

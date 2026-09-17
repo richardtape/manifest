@@ -33,7 +33,7 @@ const run = promisify(execFile)
  */
 const REPO_ROOT = fileURLToPath(new URL('../../../../', import.meta.url))
 const SKELETON = join(REPO_ROOT, 'blueprints/node-ts-mongo/skeleton')
-const PROOF_APP = join(REPO_ROOT, 'fixtures/proof-app')
+const PROOF_APP = join(REPO_ROOT, 'blueprints/node-ts-mongo/starters/proof-app')
 
 const SECRET = 's'.repeat(48)
 const DATABASE = 'chem_labs_staging'

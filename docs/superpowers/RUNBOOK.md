@@ -232,8 +232,8 @@ make demo-identity
 ```
 
 Eight steps: log in to **Manifest itself** with CWL (§9 — Manifest is its own Service
-Provider) · create the project · push `fixtures/proof-app` **over `node-ts-mongo@1`'s
-skeleton**, the way an agent generates an application · validate · build, release,
+Provider) · create the project · push the `proof-app` starter
+(`blueprints/node-ts-mongo/starters/proof-app`) **over `node-ts-mongo@1`'s skeleton**, the way an agent generates an application · validate · build, release,
 deploy to staging · **sign in to the deployed app as `student`**, through the edge,
 over TLS with the platform CA · write a note and read it back · **sign in as
 `instructor` and do not show them the student's note**. The proof app's third half —
@@ -251,7 +251,7 @@ It is **re-runnable**: it reuses its project and makes each run's notes unique. 
 twice. A first run that passes and a second that fails is a state leak, and that is
 exactly what its own first version had.
 
-`fixtures/proof-app/README.md` carries the attribute justifications UBC IAM will ask
+`blueprints/node-ts-mongo/starters/proof-app/README.md` carries the attribute justifications UBC IAM will ask
 for — `givenName` and `sn` are the two that are not pre-authorized.
 
 ## `make demo-journey` — P5a's acceptance, as it grows: §22 through the generated client

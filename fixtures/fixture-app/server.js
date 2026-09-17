@@ -1,6 +1,6 @@
 // P3's build target. Trivial on purpose: a health endpoint and one route that
 // writes to its own Mongo. No auth and no AI — those are P4's proof app
-// (`fixtures/proof-app/`, roadmap gap 6).
+// (`blueprints/node-ts-mongo/starters/proof-app/` since P5a Task 10, roadmap gap 6).
 //
 // It contains NO Dockerfile and NO .npmrc. D13 makes the build definition the
 // blueprint's, and this directory exists partly to prove an app cannot supply one:

@@ -55,16 +55,18 @@ proof_app_push() {
   git clone -q "${MANIFEST_REPOS_ROOT:-$ROOT/.manifest/repos}/$SLUG.git" "$WORK"
   rm -f "$WORK/src/index.js"
   # THE SKELETON FIRST. This is what an agent generating an application actually
-  # does, and it is why `fixtures/proof-app/` carries no `auth/`, no `ai/`, no
+  # does, and it is why the proof-app starter carries no `auth/`, no `ai/`, no
   # `package.json` and no lockfile of its own: §20 calls a blueprint a security
   # multiplier, so the SAML wiring, the AI component, the end-user identifier and
   # §12's pinned dependency set are written once and inherited. A forked copy of
   # any of them drifts silently.
   cp -R "$ROOT/blueprints/node-ts-mongo/skeleton/." "$WORK/"
-  # Then THE WHOLE FIXTURE over it — not a list of its files. A list is a second
-  # statement of what the proof app is, and a file added to the fixture and
-  # missed here would be tested nowhere while every step stayed green.
-  cp -R "$ROOT/fixtures/proof-app/." "$WORK/"
+  # Then THE WHOLE STARTER over it — not a list of its files. Since P5a Task 10 the
+  # proof app is node-ts-mongo@1's `proof-app` starter, and that directory is the one
+  # statement of what the proof app is: a list here would be a second, and a file
+  # added to the starter and missed here would be tested nowhere while every step
+  # stayed green.
+  cp -R "$ROOT/blueprints/node-ts-mongo/starters/proof-app/." "$WORK/"
   git -C "$WORK" add -A
   git -C "$WORK" \
     -c user.name=manifest -c user.email=manifest@localhost \

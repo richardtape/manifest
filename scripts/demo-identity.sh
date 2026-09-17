@@ -185,6 +185,7 @@ cat <<SUMMARY
   instructor in the same deployment of the same application.
 
   \`make demo-ai\` proves the third half: a question answered from a person's own
-  notes, and charged to them. \`fixtures/proof-app/README.md\` carries the
+  notes, and charged to them. \`blueprints/node-ts-mongo/starters/proof-app/README.md\`
+  carries the
   attribute justifications that P8's UBC IAM registration request needs.
 SUMMARY

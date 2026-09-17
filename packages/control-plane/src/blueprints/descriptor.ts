@@ -56,6 +56,23 @@ export const descriptorSchema = z
      * and a range would let the contract drift underneath the test built to catch drift.
      */
     pinned_dependencies: z.record(z.string().regex(/^\d+\.\d+\.\d+$/)).optional(),
+    /**
+     * §25 *Starters* (P5a Task 10): complete apps laid over the skeleton at project
+     * creation and copied once. `path` must be `./starters/<name>/` — the registry checks
+     * that the two agree, because a name that points at another starter's files is a
+     * console offering one app and seeding a different one.
+     */
+    starters: z
+      .array(
+        z
+          .object({
+            name: z.string().regex(/^[a-z][a-z0-9-]{2,38}$/),
+            path: z.string().regex(/^\.\/starters\/[a-z][a-z0-9-]{2,38}\/$/),
+            summary: z.string().min(1).max(200),
+          })
+          .strict(),
+      )
+      .optional(),
   })
   .strict()
 

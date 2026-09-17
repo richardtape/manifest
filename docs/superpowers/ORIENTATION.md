@@ -113,10 +113,12 @@ vitest.config.ts                  ROOT: fileParallelism: false — a root-level 
 .prettierrc  .prettierignore      Prettier owns packages/ ONLY — without the ignore, `pnpm format` rewrites the approved spec
 blueprints/fixture-node/          P2's minimal blueprint
 blueprints/node-ts-mongo/         THE blueprint faculty apps are generated from: descriptor, Dockerfile, skeleton
-                                  (auth/, ai/, server.js), agents/AGENTS.md — the knowledge pack
+                                  (auth/, ai/, server.js), agents/AGENTS.md — the knowledge pack — and starters/
+blueprints/node-ts-mongo/starters/proof-app/
+                                  §16's proof app, node-ts-mongo@1's first STARTER (P5a Task 10; it was
+                                  fixtures/proof-app/) — laid over the skeleton by scripts/lib/proof-app.sh
 fixtures/fixture-app/             make demo's build target — server.js at the tree root, because the blueprint's CMD
                                   is not templated
-fixtures/proof-app/               §16's proof app, laid over node-ts-mongo@1's skeleton by scripts/lib/proof-app.sh
 fixtures/saml-sp/                 a throwaway SP on the real passport-ubcshib — §16's identity-path tier
 infra/reserved-labels/            §23's reserved labels, loaded at boot
 packages/control-plane/src/       the control plane — below

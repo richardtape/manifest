@@ -172,6 +172,48 @@ const ROUTES: RouteCase[] = [
     },
   },
   {
+    // §25, D25 (P5a Task 10): a blueprint belongs to no project, so every signed-in
+    // person may read it and there is no stranger to hide it from.
+    method: 'GET',
+    url: '/v1/blueprints',
+    request: () => ({ url: '/v1/blueprints' }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
+    // §25, D25 (P5a Task 10): a blueprint belongs to no project, so every signed-in
+    // person may read it and there is no stranger to hide it from.
+    method: 'GET',
+    url: '/v1/blueprints/:blueprintRef',
+    request: () => ({ url: '/v1/blueprints/fixture-node@1' }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
+    // §25, D25 (P5a Task 10): a blueprint belongs to no project, so every signed-in
+    // person may read it and there is no stranger to hide it from.
+    method: 'GET',
+    url: '/v1/blueprints/:blueprintRef/knowledge-pack',
+    request: () => ({ url: '/v1/blueprints/fixture-node@1/knowledge-pack' }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
     method: 'GET',
     url: '/v1/projects/:projectId',
     request: (f) => ({ url: `/v1/projects/${f.projectId}` }),

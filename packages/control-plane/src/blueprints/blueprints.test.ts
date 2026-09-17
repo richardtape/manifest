@@ -1,7 +1,10 @@
-import { readdir, readFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { cp, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import {
   INJECTION_CONTRACT_VERSION,
   manifestSchema,
@@ -362,5 +365,130 @@ describe("node-ts-mongo@1's AI half (P4b Task 10)", () => {
     expect(embeds.length, 'the skeleton makes no embed() call').toBeGreaterThan(0)
     expect(chats.length, 'the skeleton makes no chat call').toBeGreaterThan(0)
     expect(broken).toEqual([])
+  })
+})
+
+const BLUEPRINTS_ROOT = fileURLToPath(new URL('../../../../blueprints', import.meta.url))
+
+/** Throwaway copies of the blueprints root, removed after each test. */
+const copies: string[] = []
+afterEach(async () => {
+  await Promise.all(
+    copies.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  )
+})
+
+/** A copy of the blueprints root, so a broken starter never touches the real one. */
+async function blueprintsCopy(): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), 'mf-blueprints-'))
+  copies.push(dir)
+  await cp(BLUEPRINTS_ROOT, dir, {
+    recursive: true,
+    filter: (src) => !src.includes('node_modules'),
+  })
+  return dir
+}
+
+/** Rewrites one file in a copy, refusing a pattern that matches nothing (ORIENTATION §4). */
+async function edit(path: string, from: string, to: string): Promise<void> {
+  const text = await readFile(path, 'utf8')
+  expect(
+    text.split(from).length - 1,
+    `'${from}' must occur exactly once in ${path}`,
+  ).toBe(1)
+  await writeFile(path, text.replace(from, to))
+}
+
+describe('starters and the knowledge pack, read at load (§25, D25 — P5a Task 10)', () => {
+  it('offers node-ts-mongo@1’s proof-app starter, laid over a skeleton that has the auth component', async () => {
+    const registry = await loadBlueprints(BLUEPRINTS_ROOT)
+    const starter = registry.starter('node-ts-mongo@1', 'proof-app')
+    expect(starter?.summary).toContain('CWL sign-in')
+    expect(Object.keys(starter!.files)).toEqual(
+      expect.arrayContaining(['manifest.yaml', 'server.js', 'public/index.html']),
+    )
+    expect(Object.keys(registry.skeleton('node-ts-mongo@1')!)).toEqual(
+      expect.arrayContaining([
+        'server.js',
+        'package.json',
+        'package-lock.json',
+        'auth/session.js',
+      ]),
+    )
+    expect(registry.starter('node-ts-mongo@1', 'no-such-starter')).toBeUndefined()
+    expect(registry.starter('fixture-node@1', 'proof-app')).toBeUndefined()
+  })
+
+  it('serves the knowledge pack with a digest a client can check', async () => {
+    const pack = (await loadBlueprints(BLUEPRINTS_ROOT)).knowledgePack('node-ts-mongo@1')!
+    const agents = pack.find((f) => f.path === 'AGENTS.md')!
+    expect(agents.mediaType).toBe('text/markdown')
+    expect(agents.content).toContain('manifest.yaml')
+    expect(agents.sha256).toBe(createHash('sha256').update(agents.content).digest('hex'))
+  })
+
+  it('refuses to load a starter whose manifest.yaml is not a valid manifest', async () => {
+    const root = await blueprintsCopy()
+    await edit(
+      join(root, 'node-ts-mongo/starters/proof-app/manifest.yaml'),
+      'manifest: 1',
+      'manifest: 7',
+    )
+    await expect(loadBlueprints(root)).rejects.toMatchObject({
+      code: 'BLUEPRINT_STARTER_INVALID',
+      message: expect.stringContaining('is not a valid manifest: manifest'),
+    })
+  })
+
+  it('refuses to load a starter the blueprint cannot deliver', async () => {
+    // §7's schema accepts any service type, so this refusal is the COMPATIBILITY check's —
+    // named by its message, because both refusals share one code.
+    const root = await blueprintsCopy()
+    await edit(
+      join(root, 'node-ts-mongo/starters/proof-app/manifest.yaml'),
+      'type: mongo',
+      'type: postgres',
+    )
+    await expect(loadBlueprints(root)).rejects.toMatchObject({
+      code: 'BLUEPRINT_STARTER_INVALID',
+      message: expect.stringContaining('cannot bind service type "postgres"'),
+    })
+  })
+
+  it('refuses a starter whose manifest pins a different blueprint from the one offering it', async () => {
+    const root = await blueprintsCopy()
+    await edit(
+      join(root, 'node-ts-mongo/starters/proof-app/manifest.yaml'),
+      'blueprint: node-ts-mongo@1',
+      'blueprint: fixture-node@1',
+    )
+    await expect(loadBlueprints(root)).rejects.toMatchObject({
+      code: 'BLUEPRINT_STARTER_INVALID',
+      message: expect.stringContaining('pins fixture-node@1'),
+    })
+  })
+
+  it('refuses a binary file in a starter', async () => {
+    const root = await blueprintsCopy()
+    await writeFile(
+      join(root, 'node-ts-mongo/starters/proof-app/public/logo.png'),
+      Buffer.from([0x89, 0x50, 0x00, 0x47]),
+    )
+    await expect(loadBlueprints(root)).rejects.toMatchObject({
+      code: 'BLUEPRINT_TREE_NOT_TEXT',
+      message: expect.stringContaining('public/logo.png'),
+    })
+  })
+
+  it('refuses a starter whose path is not ./starters/<its name>/', async () => {
+    const root = await blueprintsCopy()
+    await edit(
+      join(root, 'node-ts-mongo/blueprint.yaml'),
+      'path: ./starters/proof-app/',
+      'path: ./starters/other/',
+    )
+    await expect(loadBlueprints(root)).rejects.toMatchObject({
+      code: 'BLUEPRINT_STARTER_PATH',
+    })
   })
 })
