@@ -54,7 +54,6 @@ everything.
 - **The offline acceptance.** Turning the network off from a tool call cuts the agent off too, so `scripts/offline-acceptance.sh` is run by hand. Its step 6 runs `make demo-identity`, the step most likely to need a route out; its step 7 runs `make demo-ai`, whose open question is whether Ollama — a host application, not a container — answers with the network off. **A skipped acceptance is not a passed one.**
 - **The second-machine clean clone** — no second Mac has been available; `RUNBOOK.md`'s *Known gaps* records it.
 - **Starting the UBC external track** — its trigger, §16's proof app answering a question, fired on 2026-09-15 and was raised with Rich that day. [`docs/external-track.md`](../external-track.md).
-- **Five LiteLLM users with no project**, each holding a live, confined key — demos replaced their proof apps after a test run emptied the tables — and a sixth whose project a test run emptied while its container still serves. Deleting them is refused to an agent; §7e names them and has the commands.
 - **§8's open questions.**
 
 **The spec is current.** Every spike's and every plan's spec actions have been applied with Rich's explicit approval — most recently P5a's six (`491f8be`). **Trust the spec over the spike briefs**, which are preserved as a record of what was originally asked, and **propose any further change; never edit it** (§6).
@@ -1376,17 +1375,18 @@ and it is Rich's call; Task 13's own Step 6 runs the demos, which recreate it (t
 **Project `journey-app` exists, with its repository and no container.** The fixture app is not deployed. **The platform SP row's ACS is
 `https://console.manifest.internal/auth/saml/callback`.** The control plane is stopped and port 7100 is free; README's *Running the control
 plane* starts one, and its boot line must name the console's origin and `"reservedLabels":755`.
-**Five LiteLLM users have no project, one key each, for Rich** — `mf-ed4a233f-ef0c-4854-87a4-8a780a9d616e-staging`,
-`mf-c3eda3d7-fccd-4131-a1c3-64dae4ecfec3-staging`, `mf-eb6f6c83-a48a-4cd8-8336-c6be49979d50-staging`,
-`mf-be9ad9f3-ffa3-489a-ade9-b6064874a5bb-staging` and `mf-fc9ece9b-ef88-4bcc-857f-fe8dc824a6ae-staging`, each a proof-app project a demo
-replaced after a test run had emptied the tables. LiteLLM also holds `default_user_id`, `p4b-probe-user` and
-`mf-4009f6dd-f848-46e6-aea2-2f5a4e9ee276-staging`, whose key the running proof-app container still uses but whose project row a test run
-has removed; it becomes a sixth orphan the moment a demo replaces that container. Deleting through LiteLLM's admin API has been refused by
-the session's permission classifier as a secret-store write, so do not work around it — record the user for Rich. To remove one, from the
-repo root: `set -a; . ./.env; set +a`, read its hashed tokens with
+**LiteLLM holds no Manifest user and no key.** Rich deleted the six `mf-…` users sitting 8 left — five with no project, and
+`mf-4009f6dd-…`, whose project a test run had removed — on 2026-09-17; verified: `/user/info` answers `404` for each, `/user/list` holds
+only `default_user_id` and `p4b-probe-user`, and `/key/list` is empty. **So the running proof-app container's AI key is revoked** — harmless,
+because its hostname answers the wildcard and nothing reaches it; the first demo in Task 13's Step 6 replaces it and mints a new user.
+**Each demo after that which replaces the proof app's project leaves the previous user with no project.** Deleting one through LiteLLM's
+admin API has been refused by the session's permission classifier as a secret-store write, so do not work around it — list each for Rich,
+with its key count, in the sitting's *Machine* paragraph and here. To remove one, from the repo root: `set -a; . ./.env; set +a`, read
+its hashed tokens with
 `curl -sS -H "authorization: Bearer $LITELLM_MASTER_KEY" "http://127.0.0.1:7106/user/info?user_id=<user>"` (`keys[].token`),
 then `POST /key/delete` with `{"keys":["<token>"]}` and `POST /user/delete` with `{"user_ids":["<user>"]}`,
-both with the same header.
+both with the same header. Which key a running container holds can be checked without printing it: `docker exec <app> printenv
+LLM_API_KEY | tr -d '\n' | shasum -a 256` equals that key's `token`.
 
 ## 8. Decisions waiting on Rich
 
