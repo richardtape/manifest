@@ -309,11 +309,18 @@ describe("node-ts-mongo@1's AI half (P4b Task 10)", () => {
      * A property call only — `.embed(`, `.sendMessage(` — which is how the toolkit is
      * reached. The blueprint's own `embed(texts, puid)` is a plain call and is not the SDK.
      */
-    const skeleton = join(BLUEPRINTS, 'node-ts-mongo/skeleton')
+    const blueprint = join(BLUEPRINTS, 'node-ts-mongo')
+    // The STARTERS too (P5a Task 10): a starter's code is laid over the skeleton and
+    // becomes the app's, so a starter calling the toolkit directly would skip the very
+    // obligations the skeleton's wrappers carry — with every skeleton file clean.
+    const sources = [
+      ...(await sourcesUnder(join(blueprint, 'skeleton'))),
+      ...(await sourcesUnder(join(blueprint, 'starters'))),
+    ]
     const embeds: string[] = []
     const chats: string[] = []
     const broken: string[] = []
-    for (const file of await sourcesUnder(skeleton)) {
+    for (const file of sources) {
       const source = ts.createSourceFile(
         file,
         await readFile(file, 'utf8'),
@@ -325,7 +332,7 @@ describe("node-ts-mongo@1's AI half (P4b Task 10)", () => {
         if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
           const method = node.expression.name.text
           const line = source.getLineAndCharacterOfPosition(node.getStart()).line + 1
-          const where = `${relative(skeleton, file)}:${line} .${method}()`
+          const where = `${relative(blueprint, file)}:${line} .${method}()`
           // S3 Evidence 6: the `user` must be §10's namespaced id, never a PUID or a bare
           // hash of one — so the value must be a call to `endUserId`, written in place.
           const attributed = (v: ts.Expression): boolean =>
