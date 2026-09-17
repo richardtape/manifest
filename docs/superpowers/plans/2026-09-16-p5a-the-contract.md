@@ -9771,7 +9771,30 @@ Run against the spec, the brief and the code on 2026-09-16, after the plan was w
 
 **Machine.** `./scripts/snapshot-machine.sh` before (15:44) and after (16:40), diffed. **Removed by name after checking each:** 16 images the Docker tier and the demos built — two of them carrying a second repository name that had to be removed by `repo@digest` rather than by id (`fixture-rt`/`fixture-s6`, `saml-probe`/`saml-unsigned`), the same shape sitting 10 hit — and the fixture app `make demo` created: its three containers (`rm -f -v`, which took its database's anonymous volume), its network (`manifest-caddy` and `manifest-dns-containers` disconnected first), its `-db-data` volume, its image and `.manifest/repos/fixture-app.git`. So `make demo` starts from nothing.
 
-**ONE IMAGE WAS REMOVED THAT SHOULD NOT HAVE BEEN, and saying exactly which matters more than that it happened.** The daemon's cached pull of **`127.0.0.1:7107/base/alpine:3.22` (`sha256:2c9d26f410d032…`)** is gone. **The registry mirror is NOT touched** — that is what C1 and `make doctor` depend on, `infra/images.txt` lists `alpine:3.22`, and doctor's *every base image is in the local registry* is green (18/0), as is `make verify` (51/0). **It cannot be restored from here, and was not faked.** A host-side `docker pull 127.0.0.1:7107/base/alpine:3.22` fails with `dial tcp 127.0.0.1:7100: connect: connection refused` *while the control plane is listening on 7100*: the registry's token realm is `http://127.0.0.1:7100`, and from inside Docker Desktop's VM that is the VM's own loopback, not the host — nothing in the platform does a host-side pull, because `runtime/docker/builder.ts` mints a token and hands it to BuildKit as a credential. The Hub-named `alpine:3.22` IS still cached, as **`sha256:14358309a308…`** — a **different id**, because the mirror re-pushes — so re-tagging it would have put a wrong digest under the right name, which is a fabricated restoration and worse than the gap. It re-caches itself the next time a build pulls it, and `make seed` restores it outright. **The cause, which is the part worth carrying forward:** the two snapshots' image sections were sliced with **one file's line numbers applied to both**, so the "before" digest set was shifted and one pre-existing digest fell into the remove list. Derive each file's section from its own `=== Images` header, never by line number; the corrected comparison, run afterwards, shows exactly this one line.
+**ONE IMAGE WAS REMOVED THAT SHOULD NOT HAVE BEEN, AND IT IS BACK — and the second mistake was worse than the first.**
+The daemon's tag `127.0.0.1:7107/base/alpine:3.22` was removed in the cleanup, then **restored with
+`docker tag alpine:3.22 127.0.0.1:7107/base/alpine:3.22`**, which is exactly the line `infra/seed/mirror-images.sh` uses
+to create it. A snapshot diff by `repo:tag` is empty again, and `make doctor` (18/0) and `make verify` (51/0) were green
+before, during and after. **Nothing builds `FROM` it**: `infra/egress/Dockerfile` and `infra/dnsmasq/Dockerfile` use the
+Hub name `alpine:3.22`, and both blueprints pin `base/node` by digest — the mirrored tag is a by-product of seeding, and
+the registry copy, which is what C1 and doctor depend on, was never touched. One cosmetic difference remains and has no
+reader: `docker images --digests` shows `<none>` for that tag until it is pushed or pulled again.
+
+**The first mistake** was slicing both snapshots' image sections with one file's line numbers, so the "before" set was
+shifted and one pre-existing entry fell into the remove list. Derive each file's section from its own `=== Images`
+header — and compare by `repo:tag`, not by the digest column, for the reason below.
+
+**The second mistake was a wrong conclusion written down as fact, and it is the one worth carrying forward.** This entry
+first said the image "cannot be restored from here" and that re-tagging would be "a fabricated restoration", because
+`base/alpine:3.22` showed digest `sha256:2c9d26f410d0…` while the Hub-named `alpine:3.22` showed `sha256:14358309a308…`.
+**Two digests, one image.** `docker images --digests` prints the REGISTRY MANIFEST digest, which differs per registry
+because Docker re-serialises the manifest on push: the local registry's config blob for `2c9d26f…` has
+`rootfs.diff_ids = [sha256:03ba6f53ebfc…]` and `created 2026-06-22T19:20:11.029738351Z`, and so does the local
+`alpine:3.22`, to the nanosecond. The true fact underneath — a host-side `docker pull` of a platform image cannot
+authenticate, because the token realm `http://127.0.0.1:7100` is the VM's own loopback from inside the daemon — is real
+and is in §4; the conclusion drawn from it was not, because the way back was never a pull. **A difference between two
+identifiers is not evidence of a difference between two artefacts**, and *"I cannot fix this"* is a claim to be measured
+like any other, not inferred from one failed command.
 
 Otherwise the shape is the one every sitting since 2 has left: **the proof app and the journey app are deployed, healthy and serving** (`{"status":"ok","mongo":true}` on each) **while their project rows are gone**, because the closing `pnpm test` truncated them; the next demo recreates each. `.manifest/repos/` holds `proof-app.git` and `journey-app.git`. Each app's `-app-files` volume is its current instance's; the previous ones were drained and removed by the retirer, and **no files volume without a container was left behind** this time. The four containers that must survive are as they were (`docker-simple-saml-saml-idp-1` still `Exited (0)`). The platform SP row's ACS is `https://console.manifest.internal/auth/saml/callback`. Migration **0013** is applied, and `manifest_app` holds exactly `INSERT, SELECT` on `audit.role_changes`. `opr000001` is an administrator, granted by the last `make demo-journey`; `scripts/admin-grant.sh revoke opr000001 "<reason>"` undoes it.
 

@@ -1079,11 +1079,17 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   registry's token realm is `http://127.0.0.1:7100`, which from inside Docker Desktop's VM is the VM's own loopback, not
   the host — so the pull fails `dial tcp 127.0.0.1:7100: connect: connection refused` while 7100 is in fact listening.
   Nothing in the platform does a host-side pull: `runtime/docker/builder.ts` mints a token and hands it to BuildKit as a
-  credential. **So the daemon's cached copy of a `127.0.0.1:7107/base/*` image cannot be restored by hand** — it
-  re-caches on the next build that pulls it, and `make seed` restores it outright. The Hub-named copy is NOT the same
-  image: `alpine:3.22` is `sha256:14358309a308…` while the mirrored `base/alpine:3.22` was `sha256:2c9d26f410d0…`,
-  because the mirror re-pushes. Re-tagging one as the other puts a wrong digest under a right name. **`make doctor`
-  checks the REGISTRY, not the daemon cache**, which is the thing C1 depends on.
+  credential. **The way back is not a pull, it is `docker tag`** — `infra/seed/mirror-images.sh` creates every
+  `127.0.0.1:7107/base/<name>:<ver>` with `docker tag <hub tag> …`, so re-running that one command restores the name from
+  the Hub-named copy, offline.
+- **`docker images --digests` prints the REGISTRY MANIFEST digest, not the image id, and the same image has a different
+  one per registry.** `scripts/snapshot-machine.sh` uses that column, so a snapshot line is not something
+  `docker rmi <that value>` or `docker image inspect <that value>` can be trusted to resolve — **compare snapshots by
+  `repo:tag`, not by that digest.** Measured 2026-09-17: the mirrored `base/alpine:3.22` showed `sha256:2c9d26f410d0…`
+  (the LOCAL registry's OCI manifest) while the identical `alpine:3.22` showed `sha256:14358309a308…` (Hub's). They are
+  one image — same `rootfs.diff_ids` (`sha256:03ba6f53ebfc…`), same `created` to the nanosecond — because Docker
+  re-serialises the manifest on push. **Two different digests are not evidence of two different images**; compare
+  `RootFS.Layers` against the registry config blob's `diff_ids` before concluding anything.
 
 ### Images already pulled
 
@@ -1403,12 +1409,14 @@ volume, image and repository, so `make demo` starts from nothing. **`opr000001` 
 administrator**, granted by the last `make demo-journey`; `scripts/admin-grant.sh revoke opr000001 "<reason>"` undoes it.
 **The platform SP row's ACS is `https://console.manifest.internal/auth/saml/callback`.**
 
-**One thing is missing from this machine and cannot be restored from here**, recorded so nobody hunts it: the daemon's
-cached pull of **`127.0.0.1:7107/base/alpine:3.22` (`sha256:2c9d26f410d032…`)** was removed in sitting 11's cleanup by
-mistake. **The registry mirror is intact** — that is what C1 and `make doctor` depend on, and doctor is 18/0 — and the
-daemon re-caches it on the next build that pulls it; `make seed` restores it outright. A host-side `docker pull` cannot
-authenticate (§4), and the Hub-named `alpine:3.22` is a **different** id, so re-tagging it would be a fabricated
-restoration. Leave it.
+**One image was removed and restored during sitting 11's cleanup, and the machine is whole** — recorded only so nobody
+reads the older note: the daemon's tag `127.0.0.1:7107/base/alpine:3.22` was removed by mistake and put back with
+`docker tag alpine:3.22 127.0.0.1:7107/base/alpine:3.22`, which is exactly how `infra/seed/mirror-images.sh` creates it.
+The registry copy was never touched, `make doctor` (18/0) and `make verify` (51/0) were green throughout, and a snapshot
+diff by `repo:tag` is now empty. The one residual difference is cosmetic and has no reader: `docker images --digests`
+shows `<none>` for that tag instead of `sha256:2c9d26f410d0…`, because a freshly created tag carries no recorded registry
+manifest digest until it is pushed or pulled. **Nothing builds `FROM` it** — `infra/egress/` and `infra/dnsmasq/` use the
+Hub name `alpine:3.22`, and both blueprints pin `base/node` by digest.
 
 **LiteLLM holds NINE Manifest users, all orphaned by project, all for Rich**: **two are held by a running container and
 seven are not.** `mf-5ce93acc-c86a-4894-85e4-144c2d4b3e84-staging` is the running **journey app's** and
