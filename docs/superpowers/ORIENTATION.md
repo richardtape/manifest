@@ -2106,15 +2106,13 @@ starts it from nothing. **The platform SP row's ACS is `https://console.manifest
 is **not** running (port 7100 is free); README's *Running the control plane* starts it, and its boot line must name that origin
 and `"reservedLabels":755`. A redeploy is P4c's: `POST /v1/environments/:environmentId/deploy` returns once the new instance
 serves and the old one drains in the background.
-**Three orphans are left for Rich — LiteLLM users with no project, one key each:**
-`mf-9425a20b-036a-4158-8227-6096add8ca73-staging` (sitting 3's proof-app project),
-`mf-cd4468d1-5f71-4761-a863-6c7b53cbaf38-staging` (sitting 4's, whose container sitting 6's `make demo-redeploy` replaced) and
-`mf-0ffdf5ba-8ed1-4b52-af62-40f79063d49e-staging` (sitting 6's, replaced by its closing `make demo-identity`). LiteLLM also holds
-`mf-ed4a233f-ef0c-4854-87a4-8a780a9d616e-staging`, whose key the running proof app uses; it becomes the next orphan the next
-time a demo replaces that container. Sitting 4's attempt to delete one through LiteLLM's admin API was refused by the session's
-permission classifier as a secret-store write, so no later sitting has tried. They are unused and harmless; to remove one, from
-the repo root: `set -a; . ./.env; set +a`, read its hashed token with
-`curl -sS -H "authorization: Bearer $LITELLM_MASTER_KEY" "http://127.0.0.1:7106/user/info?user_id=<user>"`,
+**No orphans are waiting.** Rich removed the three LiteLLM users sittings 3, 4 and 6 had left without a project, the same
+day, and it was verified: `/user/info` answers `404` for each, and `/key/list` holds exactly one key. LiteLLM now holds
+`default_user_id`, `p4b-probe-user` and `mf-ed4a233f-ef0c-4854-87a4-8a780a9d616e-staging`, whose key the running proof app uses;
+that one becomes an orphan the next time a demo replaces the proof app's container. Deleting through LiteLLM's admin API has been
+refused by the session's permission classifier as a secret-store write, so do not work around it — record the user for Rich.
+To remove one, from the repo root: `set -a; . ./.env; set +a`, read its hashed tokens with
+`curl -sS -H "authorization: Bearer $LITELLM_MASTER_KEY" "http://127.0.0.1:7106/user/info?user_id=<user>"` (`keys[].token`),
 then `POST /key/delete` with `{"keys":["<token>"]}` and `POST /user/delete` with `{"user_ids":["<user>"]}`,
 both with the same header.
 
