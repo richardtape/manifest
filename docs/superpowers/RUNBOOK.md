@@ -254,6 +254,26 @@ exactly what its own first version had.
 `fixtures/proof-app/README.md` carries the attribute justifications UBC IAM will ask
 for — `givenName` and `sn` are the two that are not pre-authorized.
 
+## `make demo-journey` — P5a's acceptance, as it grows: §22 through the generated client
+
+*Added by P5a sitting 5, 2026-09-16. It grows one step per P5a task and becomes the acceptance at Task 17.*
+
+The control plane running, per README. It builds `@manifest/contract` and `packages/journey` from the checked-in
+document, checks the control plane answers through the edge, signs the instructor in with CWL through
+`infra/lib/idp-login.sh`, and runs the journey — a Node process calling `https://console.manifest.internal` through nothing but
+the generated client, under `NODE_EXTRA_CA_CERTS`.
+
+```bash
+make up
+# ... the control plane running, per README ...
+make demo-journey           # ~1 minute; ends with `every check passed` and exit 0
+```
+
+Every check prints `ok` or `FAIL` and the run exits 1 listing each failure. **A journey that does not build stops at step 0 and
+prints `tsc`'s errors** — the journey is type-checked against the generated contract, so a call or a field the contract does
+not have stops it there. `FAIL no step threw — [cause UNABLE_TO_GET_ISSUER_CERT_LOCALLY] TypeError: fetch failed` is a journey
+run without the platform CA. It changes nothing on the platform yet.
+
 ## `make demo-redeploy` — P4c's acceptance: a redeploy nobody using the app notices
 
 *Added by P4c sitting 1, 2026-09-15, before the feature it tests. Green since sitting 7, and P4c's
