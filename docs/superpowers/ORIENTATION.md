@@ -38,12 +38,12 @@ everything.
 
 **Executing a plan finds defects at a rate that has never fallen with practice** — 18 in P1's 13 tasks, 52 in P2's 21, 82 in P3's 19, 80 in P4a's 15, 140 in P4b's 16, 70 in P4c's 11, every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat a written plan as a hypothesis (§9).
 
-**The four numbers you will check first, measured 2026-09-17 on this machine, at the end of P5a sitting 10:**
+**The four numbers you will check first, measured 2026-09-17 on this machine, at the end of P5a sitting 11:**
 
 | | |
 |---|---|
-| `pnpm test` (from the **repo root**) | **995 passed, 89 files**, ~85 s — the `unit` project and `packages` (the client and the journey, which need nothing running). No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
-| `pnpm test:docker` | **170 passed, 0 SKIPPED**, 27 files, ~828 s — re-measured at the end of P5a sitting 10. Needs `make up`, and **fails rather than skips** when asked to run |
+| `pnpm test` (from the **repo root**) | **1016 passed, 91 files**, ~72 s — the `unit` project and `packages` (the client and the journey, which need nothing running). No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
+| `pnpm test:docker` | **174 passed, 0 SKIPPED**, 28 files, ~788 s — re-measured at the end of P5a sitting 11. Needs `make up`, and **fails rather than skips** when asked to run |
 | `make doctor` | **18 checks, 0 failed, 0 warnings** |
 | `make verify` | **51 checks, 0 failed, 0 warnings** |
 
@@ -54,7 +54,7 @@ everything.
 - **The offline acceptance.** Turning the network off from a tool call cuts the agent off too, so `scripts/offline-acceptance.sh` is run by hand. Its step 6 runs `make demo-identity`, the step most likely to need a route out; its step 7 runs `make demo-ai`, whose open question is whether Ollama — a host application, not a container — answers with the network off. **A skipped acceptance is not a passed one.**
 - **The second-machine clean clone** — no second Mac has been available; `RUNBOOK.md`'s *Known gaps* records it.
 - **Starting the UBC external track** — its trigger, §16's proof app answering a question, fired on 2026-09-15 and was raised with Rich that day. [`docs/external-track.md`](../external-track.md).
-- **Four orphaned LiteLLM users** — `mf-7c841b6e-4e60-4b96-9002-964cd3baa83c-staging` (**2 keys**), `mf-7a4b1cc2-273d-4f10-a238-e8f613110e80-staging`, `mf-cbd78594-72ed-4017-a085-5ed818fcc75d-staging` and `mf-8188bf7b-a1bd-46b1-9cfb-c2643caad727-staging` (one key each). A demo minted each and a `pnpm test` then removed its project. **Two are safe to delete and two are not**, and §7e has the one-line check that tells them apart: `mf-7a4b1cc2…`'s key is the running proof app's, and the SECOND key of `mf-7c841b6e…` is the running journey app's, so deleting either stops that container's AI path until the next demo redeploys it; nothing holds `mf-cbd78594…` or `mf-8188bf7b…`. (`mf-8188bf7b…` was the proof app's at the end of sitting 9 and no longer is — sitting 10's demos replaced that container.) Rich deleted the six that sitting 8 left, on 2026-09-17.
+- **Nine orphaned LiteLLM users, and Rich's to remove.** Every demo that replaces a project leaves one behind. **Two are held by a running container and seven are not**, checked rather than assumed — `mf-5ce93acc-c86a-4894-85e4-144c2d4b3e84-staging` is the running **journey app's** and `mf-6c5310dc-dae9-4173-8efd-ccfa1625c872-staging` the running **proof app's**, so deleting either stops that container's AI path until the next demo redeploys it. Nothing holds `mf-1eb9fb2f…`, `mf-65ce0172…`, `mf-7a4b1cc2…`, `mf-7c841b6e…` (**2 keys**), `mf-8188bf7b…`, `mf-cbd78594…` or `mf-f4a77ea2…`. §7e has the one-line check that tells them apart and the two-call removal recipe. Rich deleted the six sitting 8 left, on 2026-09-17.
 - **§8's open questions.**
 
 **The spec is current.** Every spike's and every plan's spec actions have been applied with Rich's explicit approval — most recently P5a's six (`491f8be`). **Trust the spec over the spike briefs**, which are preserved as a record of what was originally asked, and **propose any further change; never edit it** (§6).
@@ -186,6 +186,8 @@ Each of these was built, measured and paid for; the record is in the plan named.
 - **A session-bearing mutation or stream upgrade must carry the console's `Origin`** (`403 CSRF_ORIGIN_REFUSED`); **every mutation carries an `Idempotency-Key`** (D23.6); **every code a client can receive is in `api/error-codes.ts`**, held to the source in both directions.
 - **§13's authorization is `projects/authz.ts`**: a stranger gets `404 NOT_FOUND`, a member without the capability `403 FORBIDDEN`. **`api/authz-contract.ts` covers every registered route and asserts each refusal's code.**
 - **One event stream per project**, `WS /v1/projects/:projectId/events`, authorized before it upgrades — **and in the contract** (P5a Task 12): `openapi.json` documents it as `streamProjectEvents` with `x-manifest-websocket`, every frame is a `StreamFrame`, and `@manifest/contract`'s `subscribe` opens it. **Every event type's `machineDetail` is a strict schema in `observability/event-schemas.ts`, and `recordEvent` refuses a detail that is not its type's** (`EVENT_DETAIL_INVALID`, naming the path) — the same schemas are the document's `EventFrame`, so a key a call site adds without adding it there is refused, not streamed. **A new event type is now four edits**: `EVENT_TYPES`, the database CHECK (a migration), `EVENT_DETAIL_SCHEMAS` and `observability/testing.ts`'s `EXAMPLE_DETAILS`. `api/stream-contract.test.ts` parses every frame a whole delivery lifecycle publishes and replays.
+- **§13's first-launch checklist is COMPUTED, never stored** (P5a Task 15): `launch/readiness.ts` builds it from what the project has — the domain, IAM registration, the privacy assessment, the rehearsal, scans, admin approval, and a load rehearsal only for a `large_course` or `public` audience. **Scans is the one item P5a computes**; every other says `not_built` and names the plan that builds it, and `ready` is `false` throughout Phase 1, honestly. `GET /v1/projects/{projectId}/launch-readiness` answers it and the production deploy's `409` carries **the same bytes** — `mapError` parses the checklist through its representation, because zod emits an object's keys in SCHEMA order and a hand-built body does not (sitting 11 finding 1). `api/errors.ts`'s `ErrorEnvelope` now DERIVES from `api/representations/errors.ts`'s schema instead of restating it.
+- **The first administrator is made out of band, and role changes are audited** (§20, P5a Task 16). `scripts/admin-grant.sh grant|revoke <puid> "<reason>"` runs one transaction as the database OWNER inside the Postgres container: no control-plane route changes a platform role and no delegated token ever will (D24). It refuses a person who has never signed in and an empty reason, records nothing for a no-op, and appends to **`audit.role_changes`** (migration 0013, append-only by grant). **A session carries the role it was issued with, so the change reaches a person when they SIGN IN AGAIN.** The IdP's third test user, `operator` / `operator` (`opr000001`), is the one `make demo-journey` promotes. **`GET /v1/fleet` is §26's fleet, administrators only** — `403` for everyone else, not `404`: there is no tenant's resource to hide.
 - **One slug function, `checkSlug`**, answers `GET /v1/slugs/{slug}` and project creation with the same code, message and hint.
 - **A build answers `202` and ends on the stream** (Rich's R6, P5a Task 13): `POST /v1/projects/{projectId}/builds` records the build and `build.started` and returns it `running`; a `BuildRunner` built at boot — the control plane's second background work, after the retirer — runs it, and `build.succeeded` or `build.failed` says how it ended. **`recoverAtBoot`'s pass 0 fails every `pending` or `running` build** with `BUILD_INTERRUPTED` and publishes it, so ONE control plane runs against a database. A replayed `Idempotency-Key` answers the recorded `202` and starts nothing; `GET /v1/builds/{buildId}` has the present state, and `GET /v1/projects/{projectId}/builds` the newest 50.
 - **A blueprint is read whole at load, and a broken one refuses the boot, naming its file** (P5a Task 10): `loadBlueprints` reads each `skeleton/`, starter and knowledge pack as bounded UTF-8 text, and refuses a starter whose `manifest.yaml` fails §7, pins another blueprint, or asks for what its blueprint cannot deliver. **The proof app is `node-ts-mongo@1`'s first starter**, `blueprints/node-ts-mongo/starters/proof-app/` — it was `fixtures/proof-app/`. `GET /v1/blueprints` never carries the base image or build internals.
@@ -1039,6 +1041,49 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   two in the Docker tier moved; `releases/deploy-sso.docker.test.ts` is the only place the whole order is visible. The one
   that had been asserting the OPPOSITE property — *streams nothing about an instance when the deploy never started one* —
   now asserts that no OUTCOME streamed, which is what §14 actually wants.
+- **zod emits an object's keys in SCHEMA order, not the input's — so the same value serialises two ways depending on
+  whether it went through a representation** (P5a Task 15, finding 1). A success body is parsed on the way out and an
+  error body is built by hand, so the production refusal and `GET …/launch-readiness` carried one computed checklist as
+  two different byte strings: `builtBy` before `why` on one path and after it on the other. `toEqual` ignores key order,
+  so the whole unit tier passed; **`make demo-journey`'s `JSON.stringify` comparison is what saw it**. `mapError` parses
+  the checklist through `LaunchReadiness` now, and fails closed — it is the last thing between a failure and the wire, so
+  it drops a checklist that does not parse rather than throwing. **Anything that compares two answers for equality must
+  say which kind it means.**
+- **A `@typescript` type DERIVED from a zod schema catches what a restatement cannot, and it did so within the hour**
+  (P5a Task 15, finding 2). `api/errors.ts`'s `ErrorEnvelope` is `z.input<typeof ErrorEnvelope>` from
+  `api/representations/errors.ts` since sitting 11; the first thing `tsc` said was that an `unknown` could not be
+  assigned into it — on the exact field the two independent statements had disagreed about for six sittings.
+- **A registration-by-import side effect cannot be measured while a second importer exists** (P5a Task 15, control (d)).
+  `document.ts` imports `../representations/errors.js` so `ErrorEnvelope` reaches `components`; removing that import
+  leaves the drift test **green**, because `contract/websocket.ts` imports the same module for the stream's `426` body.
+  Both importers have to go before the test goes red. A control over a side effect must account for every path that
+  triggers it.
+- **A drizzle refusal is asserted by SQLSTATE, never by message — and the helper exists because it already cost a
+  defect** (P5a Task 16, finding 5). `rejects.toThrow(/permission denied/)` goes red against a working grant: drizzle's
+  own message is `Failed query: …` and the driver's is on `.cause`. `observability/testing.ts`'s **`expectSqlState`** is
+  the one helper for it (`42501` insufficient_privilege, `23503` foreign key); every `audit` table's tests use it, and
+  `audit.role_changes` does now too. A grant test should also assert the ROW EXISTS before asserting it cannot be
+  changed — a refusal on an empty table is a weaker statement than it looks.
+- **A platform role changes out of band or not at all** (§20, P5a Task 16). `scripts/admin-grant.sh` speaks to Postgres
+  as the database owner through `docker exec`; nothing on the network does this. **The change reaches a person only when
+  they sign in again** — sessions are stateless and carry the role they were issued with — which `make demo-journey`
+  measures by signing `operator` in, granting, and signing in a second time. `audit.role_changes` is append-only by
+  grant, and its TRUNCATE entry sits **before `users`** in both lists (`db/testing.ts` and
+  `packages/control-plane/vitest.global-setup.ts`, which is NOT at the repository root).
+- **A snapshot comparison sliced by LINE NUMBER compares the wrong sections, and the mistake is invisible until something is
+  deleted** (P5a sitting 11). `scripts/snapshot-machine.sh`'s image list grows between two runs, so the `=== Images ===`
+  section starts and ends at different lines in the two files; applying one file's line range to both shifts the "before"
+  set and puts a pre-existing digest into the remove list. **Derive each file's section from its own header**
+  (`awk '/^=== Images/{f=1;next} /^=== Networks/{f=0} f'`), never by line number, and re-diff AFTER removing anything.
+- **A host-side `docker pull` of a platform image cannot authenticate, even with the control plane running.** The
+  registry's token realm is `http://127.0.0.1:7100`, which from inside Docker Desktop's VM is the VM's own loopback, not
+  the host — so the pull fails `dial tcp 127.0.0.1:7100: connect: connection refused` while 7100 is in fact listening.
+  Nothing in the platform does a host-side pull: `runtime/docker/builder.ts` mints a token and hands it to BuildKit as a
+  credential. **So the daemon's cached copy of a `127.0.0.1:7107/base/*` image cannot be restored by hand** — it
+  re-caches on the next build that pulls it, and `make seed` restores it outright. The Hub-named copy is NOT the same
+  image: `alpine:3.22` is `sha256:14358309a308…` while the mirrored `base/alpine:3.22` was `sha256:2c9d26f410d0…`,
+  because the mirror re-pushes. Re-tagging one as the other puts a wrong digest under a right name. **`make doctor`
+  checks the REGISTRY, not the daemon cache**, which is the thing C1 depends on.
 
 ### Images already pulled
 
@@ -1259,7 +1304,7 @@ curl -s --cacert infra/ca/manifest-root.crt \
 
 ### 7e. Execute P5a — the contract (first of 1c's three plans) ← **START HERE**
 
-**P5a IS WRITTEN (2026-09-16), ITS SITTINGS 1 TO 7 RAN THE SAME DAY, SITTINGS 8, 9 AND 10 ON 2026-09-17 — YOUR TASK IS SITTING 11: TASKS 15 AND 16 (`LaunchReadiness` computed and read-only, replacing the constant the production refusal still carries; then the first administrator, made out of band by `scripts/admin-grant.sh` against a new append-only `audit.role_changes`, a third IdP test user `operator`, and §26's fleet list at `GET /v1/fleet`).**
+**P5a IS WRITTEN (2026-09-16), ITS SITTINGS 1 TO 7 RAN THE SAME DAY, SITTINGS 8 TO 11 ON 2026-09-17 — YOUR TASK IS SITTING 12, THE LAST: TASK 17, P5a's ACCEPTANCE. `make demo-journey` green THREE TIMES — at once, again on the reuse path, and once from a `make reset` machine — with its negative controls, and `make demo-journey` added to `scripts/offline-acceptance.sh` as step 8. IT IS ALONE AND LAST, and `make reset` REMOVES EVERY PROJECT ON THIS MACHINE, the demos' `proof-app` included, so RUN 3 GOES TO RICH BEFORE IT RUNS** (P4c's sitting 8 is the pattern).
 [`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md) — **17 tasks in twelve agreed sittings, one per session** (Rich, its R8). The
 sittings table at the top of the plan is the maintained copy and says which sitting is next. Do not write
 P5b or P5c: each is written only after the plan before it has executed — the 2026-09-04 lesson that a plan
@@ -1274,118 +1319,108 @@ clicked by a person in the console and run by the script, over one contract.
 
 | Plan | Scope | Its acceptance |
 |---|---|---|
-| **P5a — the contract** ← yours | public representations of every resource (today every response is a database row); route schemas as the one source; OpenAPI under `/v1`; the generated client; an error-code registry; event and frame schemas, plus the journey's missing events; **the API on the console's origin through the edge**, with CSRF and the edge refusing app and sandbox networks (and the S6 probe proving it); reserved labels and **the slug check API, `GET /v1/slugs/{slug}`**; project creation from the skeleton plus a starter (the proof app becomes `node-ts-mongo@1`'s first); the missing reads; the `LaunchReadiness` view with scan findings persisted; audience at creation; blueprints and the knowledge pack; an admin bootstrap and the fleet list | every §22 step driven, through the edge, by a script using only the generated client, with a session |
+| **P5a — the contract** ← yours | public representations of every resource; route schemas as the one source; OpenAPI under `/v1`; the generated client; an error-code registry; event and frame schemas; **the API on the console's origin through the edge**; reserved labels and the slug check API; project creation from a skeleton plus a starter; the missing reads; **the `LaunchReadiness` view** with scan findings persisted; audience at creation; blueprints and the knowledge pack; **an admin bootstrap and the fleet list** | every §22 step driven, through the edge, by a script using only the generated client, with a session |
 | P5b — delegated tokens | D24's two tables, bearer authentication, the central rule that tokens never hold the privileged four, pending actions, per-token limits, the authorization suite's new actors | a token runs the build loop and is refused the privileged four, each refusal a `PendingAction` a human confirms |
 | P5c — the clients | `manifest-mock`, `console/` with its import boundary, the CI acceptance script | the journey clicked and run headlessly over one contract |
 
 **EVERYTHING THAT WAS RICH'S IS DECIDED, AND THE SPEC ALREADY SAYS IT** (Rich, 2026-09-16; spec
-commits `1d88846`, `ecf5f29` and `5065c13`). Do not re-open any of these: **(1)** a project starts from the blueprint's
-skeleton plus a chosen *starter* (§22 step 2, §25 *Starters*); **(2)** three plans, as above;
-**(3)** the console and the API share **one origin, `console.manifest.internal`, through the edge**,
-and the edge refuses the control plane's routes to app and sandbox networks (§21, §12, §16);
-**(4)** the contract is versioned by a **`/v1` path prefix** (§22 D23.8); **(5)** no P5 acceptance
-depends on a clean machine or a second developer (§17's 1c row). Applying (3) needed **§23's reserved
-labels**, which Rich then extended the same day (spec commits `ecf5f29` and `5065c13`): **six groups
-of labels no project may take** — Manifest's own surfaces, sign-in and identity words, environment
-and infrastructure words, names software resolves unasked, UBC's campuses and shared services, and
-**every UBC faculty, department and course subject by name and abbreviation** (`chemistry`, `chem`) —
-**755 labels, already written as data in `infra/reserved-labels/`**, the academic ones generated from
-UBC's calendars by a committed script — **and a slug check API**, `GET
-/v1/slugs/{slug}`, answering exactly what project creation will, so a client can tell a person
-whether a name works while they type it. **Any further
-spec change is proposed to Rich, never edited** — the brief's §7 items 5 and 6 are still proposals,
-both P5b's; item 7 is not a spec change but work P5a does (persisting scan findings on the release). **And four more were made while P5a was written, the same day, and are in the plan's *Decisions Rich made*:** **R6** — builds answer `202` and finish on the event stream, while a deploy stays synchronous; **R7** — the client is generated by `openapi-typescript` 7.13.0 and called through `openapi-fetch` 0.17.0; **R8** — twelve sittings; **R9** — the plan's six spec actions applied before it executes (spec commit `491f8be`: §6 `Project.starter`, `Build.scan` and `RoleChange`, §20's CSRF as an `Origin` check with a sign-in bound to its browser, §22 D23.9, and provisioning on §14's stream). Do not re-open any of them.
+commits `1d88846`, `ecf5f29`, `5065c13` and `491f8be`). Do not re-open: **(1)** a project starts from the blueprint's
+skeleton plus a chosen *starter*; **(2)** three plans, as above; **(3)** the console and the API share
+**one origin, `console.manifest.internal`, through the edge**, which refuses app and sandbox networks;
+**(4)** the contract is versioned by a **`/v1` path prefix**; **(5)** no P5 acceptance depends on a clean
+machine or a second developer; and the plan's **R6** (builds answer `202` and finish on the stream, a deploy
+stays synchronous), **R7** (`openapi-typescript` 7.13.0 + `openapi-fetch` 0.17.0), **R8** (twelve sittings) and
+**R9** (the six spec actions applied before execution). **Any further spec change is proposed to Rich, never
+edited.** The brief's §7 items 5 and 6 are still proposals, both P5b's.
 
-**What sittings 1 to 10 established is in the plan's *What executing this plan found*, one dated entry each — read them; do not look for them here.** In one line each: **1** the measurements the design rests on (`spikes/p5a-baseline/`); **2** every resource route under `/v1`, served at `https://console.manifest.internal` through the edge and refused to every source but the host; **3** CSRF by `Origin`, a sign-in bound to its browser, and one registry of every error code; **4** `defineRoute` and the generated OpenAPI document with its drift test; **5** `@manifest/contract` and `make demo-journey`; **6** projects, environments, members and specs as public representations, and §23's reserved labels behind `GET /v1/slugs/{slug}`; **7** starters (the proof app is `node-ts-mongo@1`'s first) and the knowledge pack over `/v1`, and a project created from its skeleton and a starter for a stated audience; **8** every event type's `machineDetail` a strict schema `recordEvent` enforces, the same schemas the contract's `EventFrame`, the stream in `openapi.json`, `subscribe` in `@manifest/contract`, and the journey watching provisioning; **9** builds that answer `202` and end on the stream, a build a restart interrupted failed at boot, and §12's scan recorded on every build; **10** releases, deploys and Incidents as representations — so **every `/v1` route is now a definition** — with a release naming its env vars and not their values, and a deploy's states stored and streamed. Each later task a sitting's measurements changed carries a correction at its top.
+**What sittings 1 to 11 established is in the plan's *What executing this plan found*, one dated entry each — read them; do not look for them here.** In one line each: **1** the measurements the design rests on (`spikes/p5a-baseline/`); **2** every resource route under `/v1`, served at `https://console.manifest.internal` through the edge; **3** CSRF by `Origin`, a sign-in bound to its browser, one registry of every error code; **4** `defineRoute` and the generated OpenAPI document with its drift test; **5** `@manifest/contract` and `make demo-journey`; **6** projects, environments, members and specs as public representations, and §23's reserved labels behind `GET /v1/slugs/{slug}`; **7** starters and the knowledge pack over `/v1`, and a project created from its skeleton and a starter for a stated audience; **8** every event type's `machineDetail` a strict schema, the stream in `openapi.json`, `subscribe` in the client; **9** builds that answer `202` and end on the stream, and §12's scan recorded on every build; **10** releases, deploys and Incidents as representations — so **every `/v1` route is a definition** — a release naming its env vars and not their values; **11** §13's `LaunchReadiness` computed and read-only with the production refusal carrying it, and the first administrator made out of band with `audit.role_changes`, plus §26's fleet.
 
-**Read, in this order, before sitting 11:**
+**Read, in this order, before sitting 12:**
 
-1. **The plan's** *How this plan is to be executed*, *Read this first*, *Decisions Rich made*, *Decisions this plan makes* (**35** and **36** above all — what `LaunchReadiness` computes and how the first administrator is made) and **sittings 9's and 10's entries in *What executing this plan found*** — then **Tasks 15 and 16 in full**, starting with their corrections. **Task 15's sitting-10 correction is the one to read twice**: it names what Task 14 left in place for it *and the one defect Task 14 deliberately did not fix*, which Task 15 is the right place to close.
-2. **[`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md)** §8 (the traps).
-3. **This file's §4** — its last entries are sittings 3 to 10's — and **§6** (how to work, and the close-out sweep every sitting owes).
+1. **The plan's** *How this plan is to be executed*, *Read this first*, *Decisions Rich made*, and **sittings 10's and 11's entries in *What executing this plan found*** — then **Task 17 in full**. **Task 17 carries no correction**, which is itself worth knowing: sitting 11 owed it none.
+2. **[`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md)** §8 (the traps) — above all *a plan's own negative controls often cannot fail*, which sitting 11 measured **twice** in four controls.
+3. **This file's §4** — its last entries are sittings 3 to 11's — and **§6** (how to work, and the close-out sweep every sitting owes).
 
 **How to execute it.** `superpowers:executing-plans` or `superpowers:subagent-driven-development`, **one sitting per
-session**, with a check-in at each boundary. **Start with the baseline in §6's *Your first ten minutes*** — snapshot the
-machine, `make up`, doctor, verify and the four gates — and compare every number with §2's box before changing anything.
-**Sitting 11 creates `launch/` (§5's module, `readiness.ts` + `index.ts`), `api/representations/{launch,errors}.ts` —
-`ErrorEnvelope` moves out of `api/contract/schemas.ts` — and `api/routes/{launch,fleet}.ts` and `scripts/admin-grant.sh`;
-it changes `api/routes/releases.ts` (`LAUNCH_READINESS` deleted, the refusal computed), `api/contract/document.ts`,
-`infra/idp/config/authsources.php` (a third test user, `operator`) and `db/schema.ts` with **migration 0013**
-(`audit.role_changes`, append-only by grant like `audit.events`) — so it OWES `pnpm test:docker` (~14 min, `make up`
-first) as well as the four gates, and `pnpm contract:write && pnpm contract:generate`, whose drift tests are red until
-both are committed.** It needs no network. Its acceptance step runs `make demo-journey` through §22 step 7 and then
-`make demo`, `make demo-ai` and `make demo-redeploy`: `make demo-ai` needs Ollama running with `ministral-3` and
-`nomic-embed-text`, and every demo that replaces a project leaves one more LiteLLM user with no project — **record each
-for Rich; do not delete it** (below). A Caddyfile edit reaches the edge through `make up`, whose reload drops every
-runtime route, and the Docker tier restarts the edge and re-registers the platform's SP row at a loopback ACS —
-**restart the control plane after either**; its boot puts both back. Every sitting ends with the plan's four steps, the
-last of which is §6's sweep.
+session**. **Start with the baseline in §6's *Your first ten minutes*** — snapshot the machine, `make up`, doctor, verify
+and the four gates — and compare every number with §2's box before changing anything. **Sitting 12 writes no feature
+code.** It modifies `scripts/offline-acceptance.sh` (a new step 8) and writes
+`docs/superpowers/spikes/p5a-baseline/results-sitting12-<date>.txt`, so it owes the four gates but **not**
+`pnpm test:docker` — unless a defect it finds changes `src/`, which is the likely case and is what the sitting is for.
+It needs no network. **Run 3 needs `make reset`, which removes every project, container, network and volume the platform
+owns on this machine — the proof app and the journey app included. Put it to Rich and wait.** After `make reset && make up`
+the migrations must be re-applied (`pnpm --filter @manifest/control-plane db:migrate`) before the control plane will boot.
+`make demo-ai` needs Ollama running with `ministral-3` and `nomic-embed-text`. Every demo that replaces a project leaves
+one more LiteLLM user with no project — **record each for Rich; do not delete it** (below). A Caddyfile edit reaches the
+edge through `make up`, whose reload drops every runtime route, and the Docker tier restarts the edge and re-registers the
+platform's SP row at a loopback ACS — **restart the control plane after either**; its boot puts both back. Every sitting
+ends with the plan's four steps, the last of which is §6's sweep.
 
 **What will surprise you** (the plan's tasks carry each of these; they are here so none is a surprise):
 
-- **Every `/v1` route is a `defineRoute` definition** (P5a Task 14). `api/routes/delivery.ts` is deleted and
-  `coverage.test.ts`'s `UNCONVERTED` list with it, so a route registered any other way turns that test red at once.
-  `LAUNCH_READINESS` — the constant the production refusal still carries — is in **`api/routes/releases.ts`**, and
-  `ProductionGateError(launchReadiness)` is in `api/errors.ts` with its `mapError` branch.
-- **Nothing parses an ERROR body through `ErrorEnvelope`** (§4, sitting 10's finding 1), which is why the document spent
-  six sittings saying the envelope could not carry `launchReadiness` while the refusal has sent it since P2. `errors.ts`
-  holds a TypeScript `interface` and `contract/schemas.ts` a zod schema, **held equal by nothing**. Task 15 moves the
-  schema; **make the interface derive from it while you are there.**
-- **A deploy publishes three or four events, not one**: `instance.provisioning`, then — for a CWL app —
-  `sso.registered`, then `instance.starting`, then `instance.healthy` or `instance.failed` (+ `incident.opened`). Any
-  ordered assertion about a deploy's stream has to say so.
-- **A release answers `config`, not `resolvedConfig`**, with `envNames` and no values; a deploy answers an `Instance`
-  with no `driver` and no `handle`. `GET /v1/releases/{releaseId}` and `GET /v1/projects/{projectId}/releases` read them
-  back, and the journey's step 5 calls both.
-- **A handler that skips its mapper is a `500`, not a stripped `200`** — the row's `Date` fails the representation's
-  string `Timestamp` first. The stripping property is real too, and is measured on its own (sitting 10's (d2)/(e2)).
+- **A plan's own negative controls often cannot fail, and sitting 11 hit it twice in four.** Task 15's control (d) —
+  remove a registration import — stayed green because a second module imports the same file for a real use; Task 15's
+  control (a) turned only one of two tests red because the implementation had split one guard into two. **Write down the
+  edit that must turn each red, watch it, and when it does not, say so and find the control that can.**
 - **A source swap does not reach the running control plane**, which serves from `dist/`: a control watched through
   `make demo*` needs the control plane killed, rebuilt and restarted on the swap, then restored the same way.
-- **A build answers `202` and finishes in the background**: a test awaits `deps.builds.idle()` then reads
-  `GET /v1/builds/{id}`; a test needing a finished build calls `buildToEnd` (`releases/testing.ts`); a script calls
-  `wait_for_build`. A test that replaces `deps.driver` must rebuild `builds` and `retirer` from it — `depsWithDriver` in
-  `delivery.test.ts` is the pattern.
-- **A new event type is FOUR edits**: `EVENT_TYPES`, the CHECK migration, `EVENT_DETAIL_SCHEMAS` and `EXAMPLE_DETAILS`.
-  The contract's `EventFrame` union is built from the first two, so it is not a fifth.
-- **A test that expects a refusal must name the refusal's CODE**, not only its status. **`api/error-codes.ts` is held to
-  the source** in both directions — a registered code nothing throws turns `error-codes.test.ts` red, and Task 14 deleted
-  two that way. **The authorization contract suite fails for any route it does not list**, five cases each.
-- **A response schema must be a REGISTERED name** — `representation('Id', …)` — used as is. **A route change is three
-  files, in order**: the definition, then `pnpm contract:write`, then `pnpm contract:generate` — and the journey, whose
-  `tsc` build inside `make demo-journey` refuses a call or a field the regenerated contract does not have.
-  **`packages/contract/openapi.json` is generated; never edit it**, and `pnpm contract:write` truncates the control
-  plane's tables, as `pnpm test` does.
+- **`make demo-journey` has EIGHT steps** and step 8 needs `MANIFEST_ADMIN_SESSION`: the script signs `operator` in,
+  runs `scripts/admin-grant.sh grant opr000001`, and signs them in **again**, because a session carries the role it was
+  issued with. **The `rm -f` of the operator's two cookie jars between the sign-ins is load-bearing** — without it the
+  IdP serves no form and the failure reads as a missing SP row.
+- **A deploy publishes three or four events, not one**: `instance.provisioning`, then — for a CWL app — `sso.registered`,
+  then `instance.starting`, then `instance.healthy` or `instance.failed` (+ `incident.opened`).
+- **A build answers `202` and finishes in the background**: a script calls `wait_for_build`, a test awaits
+  `deps.builds.idle()`, a test needing a finished build calls `buildToEnd`.
+- **A route change is three files, in order**: the definition, then `pnpm contract:write`, then `pnpm contract:generate` —
+  and the journey, whose `tsc` build inside `make demo-journey` refuses a call or a field the regenerated contract does
+  not have. **`packages/contract/openapi.json` is generated; never edit it**, and `pnpm contract:write` truncates the
+  control plane's tables, as `pnpm test` does.
 - **A Node process does not trust the platform CA unless given it** — `fetch` fails as `fetch failed` and hides
   `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`. Pass `ca` in a test, `NODE_EXTRA_CA_CERTS` to a script.
 - **After `pnpm test:docker`, restart the control plane before any sign-in through the console**; after `pnpm test`, a
   demo app answers with nothing behind it in the database until it is redeployed, and every demo clears its own slug's
   orphaned repository first.
 - **`make demo-identity` has NINE steps**, the ninth a sign-out; **the IdP's `config.php` and `authsources.php` are
-  single-file mounts** a `git checkout` or `git pull` strands (§4) — and Task 16 edits `authsources.php`.
+  single-file mounts** a `git checkout` or `git pull` strands (§4).
+- **Comparing two snapshots by LINE NUMBER compares the wrong sections** (§4, sitting 11) — derive each file's section
+  from its own `=== Images ===` header, and re-diff after removing anything.
 
-**The state you are handed, 2026-09-17, after sitting 10.** `main`, clean. Sitting 10's commits are Task 14's **`dddd683`**
-and the sweep after it. Migration **0012** (two event types on the events CHECK) is the newest and is applied. The four gate
-numbers are §2's box — all green, `pnpm test` **995** in 89 files, `make doctor` 18/0, `make verify` 51/0 and
-`pnpm test:docker` **170**, re-measured at the end of the sitting. **The control plane WAS LEFT RUNNING on 7100** — check with
+**The state you are handed, 2026-09-17, after sitting 11.** `main`, clean. Sitting 11's commits are Task 15's **`ecf5f0a`**,
+a one-line fix **`ae96a36`**, Task 16's **`20dc5ee`** and the sweep after them. Migration **0013** (`audit.role_changes`) is
+the newest and is applied; `manifest_app` holds exactly `INSERT, SELECT` on it. The four gate numbers are §2's box — all
+green, `pnpm test` **1016** in 91 files, `make doctor` 18/0, `make verify` 51/0 and `pnpm test:docker` **174** in 28 files,
+re-measured at the end of the sitting. **`make demo-journey` is green through step 8, and `make demo`, `make demo-ai` and
+`make demo-redeploy` are green.** **The control plane WAS LEFT RUNNING on 7100** — check with
 `curl -sS -o /dev/null -w '%{http_code}' --cacert infra/ca/manifest-root.crt https://console.manifest.internal/v1/me`,
 which answers `401` when it is up; if it is not, README's *Running the control plane* is the export block, and its boot line
 must read `{"driver":"docker","origin":"https://console.manifest.internal","reservedLabels":755,…}`. (Do not start a second
 one: it would fail to bind 7100, and `recoverAtBoot`'s pass 0 would fail the first one's builds.) **The proof app and the
 journey app are deployed, healthy and serving** — `{"status":"ok","mongo":true}` on each — but **their project rows are
-gone**, because the closing `pnpm test` truncated them, so nothing in the database knows about the containers the edge is
-routing to; the next demo recreates each. `.manifest/repos/` holds `proof-app.git` and `journey-app.git`, whose projects the
-demos clear and recreate. **The fixture app `make demo` created was removed** with its containers, network, volume, image
-and repository, so `make demo` starts from nothing. **The platform SP row's ACS is
-`https://console.manifest.internal/auth/saml/callback`.**
-**LiteLLM holds FOUR Manifest users, all orphaned by project, all for Rich**:
-`mf-7c841b6e-4e60-4b96-9002-964cd3baa83c-staging` (**2 keys**), `mf-7a4b1cc2-273d-4f10-a238-e8f613110e80-staging` (1),
-`mf-cbd78594-72ed-4017-a085-5ed818fcc75d-staging` (1) and `mf-8188bf7b-a1bd-46b1-9cfb-c2643caad727-staging` (1); `/user/list`
-holds only those four, `default_user_id` and `p4b-probe-user`. **Two are safe to delete and two are not**: `mf-7a4b1cc2…`'s
-key is the key the running proof-app container holds, and the SECOND key of `mf-7c841b6e…` is the running journey app's, so
-deleting either stops that container's AI path until the next demo redeploys it; nothing holds `mf-cbd78594…` or
-`mf-8188bf7b…`. Deleting one through LiteLLM's admin API has been refused by the session's permission classifier as a
-secret-store write, so do not work around it — list each for Rich, with its key count, in the sitting's *Machine* paragraph
-and here. To remove one, from the repo root: `set -a; . ./.env; set +a`, read its hashed tokens with
+gone**, because the closing `pnpm test` truncated them; the next demo recreates each. `.manifest/repos/` holds
+`proof-app.git` and `journey-app.git`. **The fixture app `make demo` created was removed** with its containers, network,
+volume, image and repository, so `make demo` starts from nothing. **`opr000001` (`operator` / `operator`) IS an
+administrator**, granted by the last `make demo-journey`; `scripts/admin-grant.sh revoke opr000001 "<reason>"` undoes it.
+**The platform SP row's ACS is `https://console.manifest.internal/auth/saml/callback`.**
+
+**One thing is missing from this machine and cannot be restored from here**, recorded so nobody hunts it: the daemon's
+cached pull of **`127.0.0.1:7107/base/alpine:3.22` (`sha256:2c9d26f410d032…`)** was removed in sitting 11's cleanup by
+mistake. **The registry mirror is intact** — that is what C1 and `make doctor` depend on, and doctor is 18/0 — and the
+daemon re-caches it on the next build that pulls it; `make seed` restores it outright. A host-side `docker pull` cannot
+authenticate (§4), and the Hub-named `alpine:3.22` is a **different** id, so re-tagging it would be a fabricated
+restoration. Leave it.
+
+**LiteLLM holds NINE Manifest users, all orphaned by project, all for Rich**: **two are held by a running container and
+seven are not.** `mf-5ce93acc-c86a-4894-85e4-144c2d4b3e84-staging` is the running **journey app's** and
+`mf-6c5310dc-dae9-4173-8efd-ccfa1625c872-staging` the running **proof app's** — deleting either stops that container's AI
+path until the next demo redeploys it. Nothing holds `mf-1eb9fb2f-9c8f-41bf-a73d-95f0dcee0d71-staging`,
+`mf-65ce0172-edfa-407c-ad34-59974a85b08d-staging`, `mf-7a4b1cc2-273d-4f10-a238-e8f613110e80-staging`,
+`mf-7c841b6e-4e60-4b96-9002-964cd3baa83c-staging` (**2 keys**), `mf-8188bf7b-a1bd-46b1-9cfb-c2643caad727-staging`,
+`mf-cbd78594-72ed-4017-a085-5ed818fcc75d-staging` or `mf-f4a77ea2-d5f9-4937-8d7c-54251bf385cd-staging`; `/user/list` holds
+only those nine, `default_user_id` and `p4b-probe-user`. Deleting one through LiteLLM's admin API has been refused by the
+session's permission classifier as a secret-store write, so do not work around it — list each for Rich, with its key
+count, in the sitting's *Machine* paragraph and here. To remove one, from the repo root: `set -a; . ./.env; set +a`, read
+its hashed tokens with
 `curl -sS -H "authorization: Bearer $LITELLM_MASTER_KEY" "http://127.0.0.1:7106/user/info?user_id=<user>"` (`keys[].token`),
 then `POST /key/delete` with `{"keys":["<token>"]}` and `POST /user/delete` with `{"user_ids":["<user>"]}`,
 both with the same header. Which key a running container holds can be checked without printing it: `docker exec <app> printenv
