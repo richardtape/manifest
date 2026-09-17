@@ -104,15 +104,19 @@ student and the instructor, so there is something to ask about.
 
 **https://proof-app.staging.manifest.internal**
 
-1. **Sign in with CWL** as `student` / `student`.
+1. **Sign in with CWL** as `student` / `student`. The top of the page then says who is signed in —
+   *Signed in as Test Student <student@student.ubc.ca> — student.* — and offers only *Sign out*.
 2. **/api/me** — what the sign-in released about you. **/api/notes** — your notes, and only yours.
 3. In **Ask**, type *"What is my favourite element?"* — the answer comes from the student's own
    note (xenon).
-4. Go to **/auth/logout**, sign in as `instructor` / `instructor`, and ask the same question — the
-   answer comes from the instructor's note (bismuth), never the student's.
+4. **Sign out.** You land back on the page, which says *Not signed in*. **Sign in with CWL** again
+   and the IdP asks for a password — sign in as `instructor` / `instructor` in the same browser and
+   ask the same question: the answer comes from the instructor's note (bismuth), never the student's.
 
-Responses are **raw JSON** — there is no styled interface — and the page has no form for
-writing a note; the demos write them.
+Apart from that status line, responses are **raw JSON** — there is no styled interface — and the
+page has no form for writing a note; the demos write them. **Signing out worked for no app until
+2026-09-16** (the IdP refused every app's return address, and the app never answered the IdP's
+logout request); tested in Chrome that day, and `make demo-identity`'s step 9 now does the same.
 
 ### Manifest itself — the control plane
 
@@ -219,6 +223,10 @@ ORIENTATION §6 and any plan's negative controls.
   from the one that opened `/auth/login`. Start again at `/auth/login` in one browser.
 - **A sign-in to Manifest fails after `pnpm test:docker`** until the control plane is restarted: the
   tier re-registers Manifest's own SP at a loopback ACS, and the boot puts it back.
+- **Signing out ends on `URL not allowed`, or the IdP's pages answer `500` with nothing in the
+  log about SAML**, after pulling a change to `infra/idp/config/`: the IdP reads `config.php` through
+  a single-file mount, which a `git pull` or `git checkout` strands on the old file. `make up` does
+  not re-bind it. `docker restart manifest-idp`.
 - **After a reboot:** `make up`. If the host cannot reach `https://*.manifest.internal` but
   `make verify`'s container checks pass, `docker restart manifest-caddy`.
 - **Never touch Laravel Valet** — it owns `.test` and ports 53/80/443. That is why the zone is

@@ -189,7 +189,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` �
 
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
-and the current numbers are **`make doctor` 18 / 0 and `make verify` 50 / 0**
+and the current numbers are **`make doctor` 18 / 0 and `make verify` 51 / 0**
 (re-measured 2026-09-16, P5a sitting 2). ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
@@ -231,12 +231,13 @@ make up
 make demo-identity
 ```
 
-Eight steps: log in to **Manifest itself** with CWL (§9 — Manifest is its own Service
+Nine steps: log in to **Manifest itself** with CWL (§9 — Manifest is its own Service
 Provider) · create the project · push the `proof-app` starter
 (`blueprints/node-ts-mongo/starters/proof-app`) **over `node-ts-mongo@1`'s skeleton**, the way an agent generates an application · validate · build, release,
 deploy to staging · **sign in to the deployed app as `student`**, through the edge,
 over TLS with the platform CA · write a note and read it back · **sign in as
-`instructor` and do not show them the student's note**. The proof app's third half —
+`instructor` and do not show them the student's note** · **sign the student out, and sign the
+instructor in through the same two cookie jars** — a shared lab machine. The proof app's third half —
 a question answered — is `make demo-ai`'s, below. Both scripts assemble and deploy the
 proof app through one shared `scripts/lib/proof-app.sh`, so they cannot disagree about
 what the proof app is. The proof app declares `ai.models` and needs its AI half to
@@ -246,6 +247,14 @@ start, so this demo also needs LiteLLM up and the control plane's AI switched on
 the app can tell two people apart. It is checked in both directions — neither person
 sees the other's note, and each reads back their own — because "the note is absent" is
 also true of an application that returns nothing to anybody.
+
+**Step 9 is what a browser does, and until 2026-09-16 it could not pass.** Signing out must land back on the
+app, not on the IdP's `500 URL not allowed`; the app must forget the person (`/api/me` 401); and the IdP must
+forget them too — its next answer to *Sign in* is a password form, not an assertion for the person who just
+left. Each half was measured failing: the IdP trusted no app as a `ReturnTo`, and the app's `/auth/logout` —
+which is also the SingleLogoutService the platform registers — treated the IdP's own `LogoutRequest` as a new
+sign-out, so the two redirected into each other. `make verify`'s *the IdP signs an app's user out to the app,
+and to nowhere else* holds the IdP's half without an app.
 
 It is **re-runnable**: it reuses its project and makes each run's notes unique. Run it
 twice. A first run that passes and a second that fails is a state leak, and that is

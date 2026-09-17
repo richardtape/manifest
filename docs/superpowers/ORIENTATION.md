@@ -38,14 +38,14 @@ everything.
 
 **Executing a plan finds defects at a rate that has never fallen with practice** — 18 in P1's 13 tasks, 52 in P2's 21, 82 in P3's 19, 80 in P4a's 15, 140 in P4b's 16, 70 in P4c's 11, every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat a written plan as a hypothesis (§9).
 
-**The four numbers you will check first, measured 2026-09-16 on this machine, at the end of P5a sitting 7:**
+**The four numbers you will check first, measured 2026-09-16 on this machine, at the end of P5a sitting 7 and the sign-out fix after it:**
 
 | | |
 |---|---|
 | `pnpm test` (from the **repo root**) | **956 passed, 87 files**, ~57 s — the `unit` project and `packages` (the client and the journey, which need nothing running). No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
-| `pnpm test:docker` | **168 passed, 0 SKIPPED**, 27 files, ~771 s — re-measured at the end of P5a sitting 7 with the control plane running (S6 probe 15 `app=403 host=401`). Needs `make up`, and **fails rather than skips** when asked to run |
+| `pnpm test:docker` | **168 passed, 0 SKIPPED**, 27 files, ~758 s — re-measured after the sign-out fix that followed P5a sitting 7, with the control plane running (S6 probe 15 `app=403 host=401`). Needs `make up`, and **fails rather than skips** when asked to run |
 | `make doctor` | **18 checks, 0 failed, 0 warnings** |
-| `make verify` | **50 checks, 0 failed, 0 warnings** |
+| `make verify` | **51 checks, 0 failed, 0 warnings** |
 
 **A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is cheaper before you start than after. **This box is the only current one in this file**; the same four numbers are stated in `README.md` and `RUNBOOK.md`, and all three move together (§6). A plan's record carries the numbers as each sitting left them, dated, and they deliberately do not move.
 
@@ -157,6 +157,7 @@ Each of these was built, measured and paid for; the record is in the plan named.
 - **The platform's SP row is written at every boot**, through `renderSpMetadata` — the one renderer of an `entity_data` document — with its ACS from `MANIFEST_CONTROL_PLANE_ORIGIN` (default `https://console.manifest.internal`) and its keypair in `infra/sp/control-plane.{key,crt}`. The Docker tier boots control planes on 7188/7189 that re-register it at a loopback ACS: **restart the control plane after `pnpm test:docker`.**
 - **The Manifest IdP releases attributes by `core:AttributeLimit` at priority 50 on friendly names, then `core:AttributeMap` at 60 to the OIDs UBC sends — the order is load-bearing** (reversed, it releases nothing), and `make verify` asserts it. `ssp_ro` reads metadata and cannot write it; a CHECK makes a row with an empty or absent `attributes` — which S2 measured releasing everything — unrepresentable.
 - **Four settings read like controls and are not**: SimpleSAMLphp's `validate.authnrequest` (a present signature is always validated), node-saml's `wantAssertionsSigned` and `wantAuthnResponseSigned`, and the blueprint's `attributeConfig` (its bridge reads the OID first). §9's release enforcement is the control. *(P4a, measured.)*
+- **Signing out of an app ends BOTH sessions and lands back on the app** (fixed 2026-09-16, found in a browser — no app had ever signed anybody out). The IdP trusts exactly §23's app hostnames as a `ReturnTo` (`trusted.url.regex` in `infra/idp/config/config.php`; `make verify` holds both directions), and the blueprint's `cwl.logout(returnTo)` answers the IdP's own `LogoutRequest` at `auth.logout` — which is also the SingleLogoutService the platform registers — with a `LogoutResponse`, addressed through `SAML_LOGOUT_URL`, which the strategy is now given. `make demo-identity`'s step 9 signs the student out and the instructor in through the same cookie jars.
 - **The three-hop CWL sign-in is ONE function, `idp_login` in `infra/lib/idp-login.sh`.** It proves the SP row and the AuthnRequest signature; it does not prove the session authenticates anybody, so **a caller's identity check is the assertion**.
 
 **Data, secrets and audit**
@@ -198,6 +199,7 @@ Each is named in its plan's *What this plan does not build*, and none is an acci
 - **§10's per-user AI budget is validated, not enforced**, in Phase 1.
 - **`egress.allow` may still name a platform surface** — decided in §12, enforced by nothing until the roadmap's tracked hardening item.
 - **A `POST /v1/projects` for a slug whose repository outlived its project answers `SOURCE_GIT_FAILED` with git's raw output, host path included** — `pnpm test` and `make reset` leave `.manifest/repos` behind. Since P5a Task 11 it leaves no project; the demos and the journey clear their OWN slug's orphan first (`clear_orphan_repository`). A distinct code, and a message without the path, are not built. *(P4b finding 178's other half.)*
+- **An app accepts an UNSIGNED `LogoutRequest`** — passport-saml 3.2.4 checks a signature only when one is present — so a crafted link can sign somebody out of an app; the plain `GET` of `auth.logout` already could. **`make up` does not re-bind the IdP's single-file config mounts** after a `git pull` or `git checkout` replaces `config.php` or `authsources.php` (§4). Both named, not fixed.
 - **No console, no delegated tokens, no production deploy, no custom domain** — P5b, P5c and Phase 2.
 
 **Which spec sections matter, by topic:** §7 the `manifest.yaml` contract · §9 identity ·
@@ -960,6 +962,26 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   proof app moved to `starters/proof-app/` (P5a Task 10) and `pnpm format:check` went red on its `server.js` and
   `public/index.html` — `pnpm format` would have rewritten an app. `blueprints/*/starters/` is named now; a new kind of app
   directory needs the same line.
+- **The IdP's `config.php` and `authsources.php` are SINGLE-FILE bind mounts, and a replacing save strands them — the IdP then
+  runs with no config at all.** Measured 2026-09-16: a control harness restored `infra/idp/config/config.php` with `git checkout`
+  (a new inode), and `docker exec manifest-idp cat /var/simplesamlphp/config/config.php` answered *No such file or directory*.
+  **A `git pull` that changes either file does the same**, and `make up` does not notice — compose sees no service change, and
+  unlike the Caddyfile nothing compares the bytes. `docker restart manifest-idp` re-binds it; `make verify`'s IdP checks go red
+  while it is stranded. An edit made IN PLACE (the same inode, as `python`'s `write_text` does) reaches the running IdP at once:
+  SimpleSAMLphp reads its config per request.
+- **An app's sign-out is a four-hop SAML exchange, and each hop has failed silently.** `/auth/logout` → the IdP's
+  `singleLogout?ReturnTo=<app>` → its `core/logout-resume?id=…` (whose state is in the IdP session: without the cookie it is a
+  `500`) → **the app's `auth.logout` again, with `?SAMLRequest=`** — the IdP's front-channel `LogoutRequest` to the
+  SingleLogoutService the platform registered — → the app's `LogoutResponse` to `singleLogout?SAMLResponse=` → home. Measured
+  2026-09-16, first with `curl` hop by hop and then in Chrome: the IdP refused every app's `ReturnTo` (`trusted.url.domains`
+  listed only itself), then the app treated the `LogoutRequest` as a new sign-out and the two redirected forever, and with that
+  fixed the `LogoutResponse` went to `http://localhost:8080/simplesaml/…` — `passport-ubcshib`'s default `logoutUrl`, because
+  `configureCwl` passed none. **After a failed sign-out the app forgets the person and the IdP does not**, so the next *Sign in*
+  is answered with no password as the person who left. Nothing before `make demo-identity`'s step 9 ever followed a sign-out.
+- **An agent driving Chrome cannot sign anybody in.** The Claude in Chrome extension will not type a password, even a test
+  user's, and it needs a per-site permission for `idp.manifest.internal` to see the IdP's pages at all. A browser test of a CWL
+  flow is therefore shared: the person types `student` / `student` in the agent's tab and says so; the agent drives and reads the
+  app's pages. Measured 2026-09-16.
 
 ### Images already pulled
 
@@ -1302,20 +1324,27 @@ its boot puts both back. Every sitting ends with the plan's four steps, the last
 - **The proof app lives at `blueprints/node-ts-mongo/starters/proof-app/`** (it was `fixtures/proof-app/`), and `.prettierignore`
   names `blueprints/*/starters/`. A broken starter or descriptor refuses the control plane's BOOT, naming the file.
 
-**The state you are handed, 2026-09-16, after sitting 7.** `main`, clean. The code commits are Task 10's `930cbe2` with `45a5cc9`,
-`8eff3ab` and `343f189`, and Task 11's `c12c423`; everything later is documentation. Migration **0010** is applied. The four gate numbers
-are §2's box — all green, `pnpm test` 956, `make verify` 50/0 and `pnpm test:docker` 168, re-measured this sitting. **The proof app
-serves at `https://proof-app.staging.manifest.internal/` WITH its rows behind it** (project `be9ad9f3`, created from the starter):
-`make demo-identity` ran last, after the Docker tier. **Project `journey-app` exists, with its repository and no container** — the
-journey's own, reused by design. **The fixture app is not deployed**, so `make demo` starts it from nothing. **The platform SP row's ACS
-is `https://console.manifest.internal/auth/saml/callback`.** The control plane is **not** running (port 7100 is free); README's *Running
-the control plane* starts it, and its boot line must name that origin and `"reservedLabels":755`.
-**Three LiteLLM users have no project, one key each, for Rich** — `mf-ed4a233f-ef0c-4854-87a4-8a780a9d616e-staging`,
-`mf-c3eda3d7-fccd-4131-a1c3-64dae4ecfec3-staging` and `mf-eb6f6c83-a48a-4cd8-8336-c6be49979d50-staging`, each a proof-app project a demo
-replaced. LiteLLM also holds `default_user_id`, `p4b-probe-user` and `mf-be9ad9f3-ffa3-489a-ade9-b6064874a5bb-staging`, whose key the
-running proof app uses; that one becomes an orphan the next time a demo replaces the proof app's container. Deleting through LiteLLM's
-admin API has been refused by the session's permission classifier as a secret-store write, so do not work around it — record the user
-for Rich. To remove one, from the repo root: `set -a; . ./.env; set +a`, read its hashed tokens with
+**The state you are handed, 2026-09-16, after sitting 7 and the sign-out fix that followed it.** `main`, clean. Sitting 7's code
+commits are Task 10's `930cbe2` with `45a5cc9`, `8eff3ab` and `343f189`, and Task 11's `c12c423`; after it, found by Rich in a browser,
+**signing out of an app works for the first time** — `19fb279` (the IdP trusts every app hostname as a `ReturnTo`), `c306520` (the
+blueprint answers the IdP's `LogoutRequest`, with `SAML_LOGOUT_URL` given to the strategy) and `d895463` (the proof app's page says who is
+signed in) — recorded in the plan after sitting 7's entry. Migration **0010** is applied. The four gate numbers are §2's box — all green,
+`pnpm test` 956, `make verify` **51**/0 (the new sign-out check) and `pnpm test:docker` 168, re-measured after the fix. **If you pulled
+`19fb279` onto a running platform, `docker restart manifest-idp` first** — its `config.php` is a single-file mount (§4); on this machine it
+was restarted and reads the committed file. **The proof app serves at `https://proof-app.staging.manifest.internal/` WITH its rows behind
+it** (project `4009f6dd`) and a page that shows who is signed in; signing out, and signing in as somebody else in the same browser, were
+tested in Chrome. **Project `journey-app` exists, with its repository and no container.** The fixture app is not deployed. **The platform
+SP row's ACS is `https://console.manifest.internal/auth/saml/callback`.** The control plane was left running for Rich's browser testing
+from the session that did this and stops with it; README's *Running the control plane* starts one, and its boot line must name the
+console's origin and `"reservedLabels":755`.
+**Five LiteLLM users have no project, one key each, for Rich** — `mf-ed4a233f-ef0c-4854-87a4-8a780a9d616e-staging`,
+`mf-c3eda3d7-fccd-4131-a1c3-64dae4ecfec3-staging`, `mf-eb6f6c83-a48a-4cd8-8336-c6be49979d50-staging`,
+`mf-be9ad9f3-ffa3-489a-ade9-b6064874a5bb-staging` and `mf-fc9ece9b-ef88-4bcc-857f-fe8dc824a6ae-staging`, each a proof-app project a demo
+replaced after a test run had emptied the tables. LiteLLM also holds `default_user_id`, `p4b-probe-user` and
+`mf-4009f6dd-f848-46e6-aea2-2f5a4e9ee276-staging`, whose key the running proof app uses; that one becomes an orphan the next time a demo
+replaces the proof app's container. Deleting through LiteLLM's admin API has been refused by the session's permission classifier as a
+secret-store write, so do not work around it — record the user for Rich. To remove one, from the repo root: `set -a; . ./.env; set +a`,
+read its hashed tokens with
 `curl -sS -H "authorization: Bearer $LITELLM_MASTER_KEY" "http://127.0.0.1:7106/user/info?user_id=<user>"` (`keys[].token`),
 then `POST /key/delete` with `{"keys":["<token>"]}` and `POST /user/delete` with `{"user_ids":["<user>"]}`,
 both with the same header.
