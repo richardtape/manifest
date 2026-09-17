@@ -90,28 +90,43 @@ async function waitUntil(condition: () => boolean, what: string, timeoutMs = 3_0
   }
 }
 
-/** How the server ended a connection: an HTTP status before the upgrade, or a close code after it. */
+/**
+ * How the server ended a connection: an HTTP status before the upgrade, or a close code after
+ * it — or `opened`, for an upgrade that was ACCEPTED. Without that third answer an upgrade that
+ * should have been refused neither refuses nor closes, and the test dies on Vitest's 5 s
+ * timeout without saying why (P5a Task 4's control (b) read exactly that way).
+ */
 function outcomeOf(socket: WebSocket, timeoutMs = 10_000) {
-  return new Promise<{ status?: number; closeCode?: number }>((resolve, reject) => {
-    const timer = setTimeout(
-      () =>
-        reject(
-          new Error(
-            `the server neither refused nor closed the socket within ${timeoutMs} ms`,
+  return new Promise<{ status?: number; closeCode?: number; opened?: true }>(
+    (resolve, reject) => {
+      const timer = setTimeout(
+        () =>
+          reject(
+            new Error(
+              `the server neither refused nor closed the socket within ${timeoutMs} ms`,
+            ),
           ),
-        ),
-      timeoutMs,
-    )
-    socket.on('unexpected-response', (_request, response) => {
-      clearTimeout(timer)
-      resolve({ status: response.statusCode ?? 0 })
-    })
-    socket.on('close', (code) => {
-      clearTimeout(timer)
-      resolve({ closeCode: code })
-    })
-    socket.on('error', () => undefined)
-  })
+        timeoutMs,
+      )
+      socket.on('unexpected-response', (_request, response) => {
+        clearTimeout(timer)
+        resolve({ status: response.statusCode ?? 0 })
+      })
+      socket.on('close', (code) => {
+        clearTimeout(timer)
+        resolve({ closeCode: code })
+      })
+      // Only a socket that has not opened yet can report it: one a test already watched open
+      // (the 1013 test) never emits 'open' again, so its close code still decides.
+      if (socket.readyState === socket.CONNECTING) {
+        socket.on('open', () => {
+          clearTimeout(timer)
+          resolve({ opened: true })
+        })
+      }
+      socket.on('error', () => undefined)
+    },
+  )
 }
 
 const liveFrame = (
