@@ -30,7 +30,7 @@ questions through a per-app AI key charged to the person who asked; stream build
 events; record a failed deploy as an Incident; and **redeploy an app while people are using it
 without interrupting or signing out anybody** (P4c) — the new container starts
 beside the old one, takes the route only once it answers, and the old one is drained and removed,
-while sessions live in the app's own database. The API is beginning to describe itself: `packages/contract/openapi.json` is generated from the routes declared through `defineRoute` and held to them by a test — `GET /v1/me` and the project, environment, member and spec reads are declared that way, each answering a public representation rather than a database row, and the rest follow in P5a's later sittings — and `make demo-journey` calls it through a TypeScript client generated from that document. `GET /v1/slugs/{slug}` says whether a project name will work before you create it: `chem`, `console` and every other §23 reserved label are refused, with what the label stands for. `GET /v1/blueprints` lists the blueprints and the *starters* each offers — §16's proof app is `node-ts-mongo@1`'s `proof-app` — with each blueprint's knowledge pack beside it, and `POST /v1/projects` creates a project from a blueprint's skeleton and, optionally, a starter, for a stated audience (§24), saying so on the project's event stream. That stream is in the contract too: every event the platform records has a payload schema it is refused without, `openapi.json` describes the stream's messages with those schemas, and the generated client's `subscribe` opens it — `make demo-journey` watches a new project's provisioning replayed. **What does not exist yet:** a web console (P5) —
+while sessions live in the app's own database. The API describes itself: `packages/contract/openapi.json` is generated from the routes declared through `defineRoute` and held to them by a test — **every `/v1` route is declared that way**, each answering a public representation rather than a database row, so a deploy answers an instance with no driver or handle and a release shows its build's digest and scan and its env var *names* without their values — and `make demo-journey` calls it through a TypeScript client generated from that document. `GET /v1/slugs/{slug}` says whether a project name will work before you create it: `chem`, `console` and every other §23 reserved label are refused, with what the label stands for. `GET /v1/blueprints` lists the blueprints and the *starters* each offers — §16's proof app is `node-ts-mongo@1`'s `proof-app` — with each blueprint's knowledge pack beside it, and `POST /v1/projects` creates a project from a blueprint's skeleton and, optionally, a starter, for a stated audience (§24), saying so on the project's event stream. That stream is in the contract too: every event the platform records has a payload schema it is refused without, `openapi.json` describes the stream's messages with those schemas, and the generated client's `subscribe` opens it — `make demo-journey` watches a new project's provisioning replayed. **What does not exist yet:** a web console (P5) —
 everything is JSON; and production deploys (refused, with a checklist).
 
 ---
@@ -129,6 +129,9 @@ is not built yet — that is a successful sign-in, not a failed one. Then, still
 - `/v1/projects/<projectId>/builds` — a project's builds, newest first; `/v1/builds/<buildId>` — one, with
   its status, digest and §12's scan (`scan`: the scanner, how old its database was, and Critical and High
   counts that were fixable, unfixable, or the base image's own); `/v1/builds/<buildId>/logs` — its log
+- `/v1/projects/<projectId>/releases` — a project's releases, newest first; `/v1/releases/<releaseId>` — one,
+  with its build's digest and scan and, per environment, the frozen numbers and the **names** of the env
+  vars the app declares (never their values)
 - `/v1/environments/<environmentId>/incidents` — why a deploy failed, with a repair prompt
 
 The event stream (`WS /v1/projects/<projectId>/events`) needs a WebSocket client — see §4.
@@ -167,7 +170,9 @@ build runs**; it ends as `build.succeeded` or `build.failed` on the event stream
 which — `wait_for_build` in `scripts/lib/api.sh` polls it) →
 `POST /v1/projects/:id/releases` → `POST /v1/environments/:id/deploy`. Every resource route is
 under `/v1` (D23.8); an old path answers `404 ROUTE_NOT_FOUND`. **A deploy that fails is a
-`200` whose `state` is `failed`** — check for `healthy`, never just for a response.
+`200` whose `state` is `failed`** — check for `healthy`, never just for a response. A deploy
+streams `instance.provisioning`, then `instance.starting`, then `instance.healthy` or
+`instance.failed`, so a client can show the states as they happen rather than only the outcome.
 
 ---
 
