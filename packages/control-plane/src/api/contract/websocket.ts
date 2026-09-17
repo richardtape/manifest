@@ -4,8 +4,9 @@ import {
   STREAM_READY,
 } from '../../observability/index.js'
 import type { ErrorCode } from '../error-codes.js'
+import { ErrorEnvelope } from '../representations/errors.js'
 import { StreamFrame } from '../representations/events.js'
-import { ErrorEnvelope, ref, representations } from './schemas.js'
+import { ref, representations } from './schemas.js'
 
 /** The stream's path as the document writes it; Fastify's is `/v1/projects/:projectId/events`. */
 export const STREAM_PATH = '/v1/projects/{projectId}/events'

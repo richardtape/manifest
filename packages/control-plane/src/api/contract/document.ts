@@ -1,5 +1,8 @@
 import { z } from 'zod/v4'
 import type { ErrorCode } from '../error-codes.js'
+// Registers ErrorEnvelope, which every operation's `default` response names by id — and
+// which no route declares as a success schema, so nothing else imports it (P5a Task 15).
+import '../representations/errors.js'
 import { UNVERSIONED } from '../unversioned.js'
 import type { AnyRoute } from './route.js'
 import { component, ref, representations, requests } from './schemas.js'

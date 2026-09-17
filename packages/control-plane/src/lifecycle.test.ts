@@ -121,11 +121,20 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
       headers: mutationHeaders(deps),
     })
     expect(blocked.statusCode).toBe(409)
-    expect(
-      blocked
-        .json()
-        .error.launchReadiness.filter((i: { blocking: boolean }) => i.blocking),
-    ).toHaveLength(5)
+    const readiness = blocked.json().error.launchReadiness
+    expect(readiness.ready).toBe(false)
+    // Every item is either `not_built` — Manifest does not track it yet, and says which
+    // plan does — or computed from what exists. `scans` is the one P5a computes, and this
+    // release is deployed to staging, so it is `met` (P5a Decision 35).
+    const notComputed = readiness.items.filter(
+      (i: { id: string }) => i.id !== 'scans',
+    ) as { state: string }[]
+    expect(notComputed.every((i) => i.state === 'not_built' || i.state === 'met')).toBe(
+      true,
+    )
+    expect(readiness.items.find((i: { id: string }) => i.id === 'scans').state).toBe(
+      'met',
+    )
 
     await app.close()
 

@@ -82,23 +82,11 @@ export const ManifestErrorSchema = representation(
   }),
 )
 
-export const ErrorEnvelope = representation(
-  'ErrorEnvelope',
-  z.object({
-    error: z.object({
-      code: ErrorCodeSchema,
-      message: z.string().describe('For a person. Never parse it; switch on `code`.'),
-      hint: z.string().optional().describe('What to do about it.'),
-      details: z.array(ManifestErrorSchema).optional(),
-      launchReadiness: z
-        .unknown()
-        .optional()
-        .describe(
-          'On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs (§13). Typed in Task 15.',
-        ),
-    }),
-  }),
-)
+/*
+ * `ErrorEnvelope` is in `../representations/errors.ts` (P5a Task 15): it names
+ * `LaunchReadiness`, which is a representation, and a representation importing this file
+ * back would be a cycle.
+ */
 
 /** A mutation that takes no fields still takes a JSON object (Decision 4). */
 export const EmptyRequest = request('EmptyRequest', z.strictObject({}))

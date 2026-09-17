@@ -556,42 +556,37 @@ describe('the delivery routes', () => {
     await app.close()
   })
 
-  it('refuses production and says what is blocking it', async () => {
-    const { app, deps, cookies, project } = await projectFor('bio_prof')
-    const build = await app.inject({
-      method: 'POST',
-      url: `/v1/projects/${project.id}/builds`,
-      payload: { commitSha: project.spec.commitSha },
-      cookies,
-      headers: mutationHeaders(deps),
-    })
-    await deps.builds.idle()
-    const release = await app.inject({
-      method: 'POST',
-      url: `/v1/projects/${project.id}/releases`,
-      payload: { buildId: build.json().id },
-      cookies,
-      headers: mutationHeaders(deps),
-    })
+  it('refuses production with the SAME checklist GET /launch-readiness answers', async () => {
+    const { deps, app, cookies, project, release } = await releasedProject('chem-labs')
     const production = project.environments.find(
       (e: { kind: string }) => e.kind === 'production',
     )
-
-    const response = await app.inject({
+    const refused = await app.inject({
       method: 'POST',
       url: `/v1/environments/${production.id}/deploy`,
-      payload: { releaseId: release.json().id },
       cookies,
       headers: mutationHeaders(deps),
+      payload: { releaseId: release.id },
     })
-    expect(response.statusCode).toBe(409)
-    expect(response.json().error.code).toBe('RELEASE_PRODUCTION_GATE_UNAVAILABLE')
-    expect(response.json().error.launchReadiness).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ item: 'IamRegistration', blocking: true }),
-        expect.objectContaining({ item: 'PrivacyAssessment', blocking: true }),
-      ]),
+    expect(refused.statusCode, refused.body).toBe(409)
+    const read = await app.inject({
+      method: 'GET',
+      url: `/v1/projects/${project.id}/launch-readiness`,
+      cookies,
+    })
+    expect(read.statusCode, read.body).toBe(200)
+    expect(refused.json().error.launchReadiness).toEqual(read.json())
+    // BYTE for byte, not only equal as values. `toEqual` above ignores key order, and key
+    // order is exactly where the two paths diverged: the read is parsed through
+    // `LaunchReadiness` and zod emits SCHEMA order, while the refusal was built by hand
+    // and kept the literal's. Measured by `make demo-journey` 2026-09-17; `mapError`
+    // parses the checklist now, so this holds by construction.
+    expect(JSON.stringify(refused.json().error.launchReadiness)).toBe(
+      JSON.stringify(read.json()),
     )
+    // The constant this replaced stamped four items `deliveredBy: 'P4'` for things P4
+    // never delivered (brief §2.2). Nothing computed says it.
+    expect(JSON.stringify(read.json())).not.toContain('deliveredBy')
     await app.close()
   })
 

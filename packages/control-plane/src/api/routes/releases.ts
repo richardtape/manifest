@@ -8,6 +8,7 @@ import {
   releases,
   type Db,
 } from '../../db/index.js'
+import { computeLaunchReadiness } from '../../launch/index.js'
 import { incidentPrompt, listIncidents } from '../../observability/index.js'
 import { assertCapability, AuthorizationError, type Actor } from '../../projects/index.js'
 import { createRelease, deployRelease } from '../../releases/index.js'
@@ -26,34 +27,6 @@ import {
 
 const ProjectParams = z.strictObject({ projectId: z.uuid() })
 const EnvironmentParams = z.strictObject({ environmentId: z.uuid() })
-
-/**
- * §13's checklist as it stood before P5a — moved from api/routes/delivery.ts unchanged,
- * stale `deliveredBy` stamps and all, so this task changes no answer a client already
- * reads. Task 15 deletes it for the computed view.
- */
-const LAUNCH_READINESS = [
-  { item: 'IamRegistration', owner: 'UBC IAM', blocking: true, deliveredBy: 'P4' },
-  {
-    item: 'PrivacyAssessment',
-    owner: 'UBC Privacy Office',
-    blocking: true,
-    deliveredBy: 'P4',
-  },
-  {
-    item: 'PreProductionRehearsal',
-    owner: 'Manifest',
-    blocking: true,
-    deliveredBy: 'P4',
-  },
-  {
-    item: 'DependencyAndSecretScans',
-    owner: 'Manifest',
-    blocking: true,
-    deliveredBy: 'P3',
-  },
-  { item: 'AdminApproval', owner: 'platform admin', blocking: true, deliveredBy: 'P4' },
-] as const
 
 /** A release with the build it names: the digest and the scan are the build's (§12, §13). */
 async function releaseWithBuild(db: Db, releaseId: string) {
@@ -235,9 +208,13 @@ export const releaseRoutes = [
         params.environmentId,
         'release:deploy',
       )
-      // §13: not forbidden, not ready. Say which items and who owns them.
+      // §13: not forbidden, not ready. Say which items and who owns them — the SAME
+      // checklist `GET /v1/projects/{projectId}/launch-readiness` answers, computed from
+      // what exists rather than the constant this carried until P5a Task 15.
       if (environment.kind === 'production')
-        throw new ProductionGateError(LAUNCH_READINESS)
+        throw new ProductionGateError(
+          await computeLaunchReadiness(deps.db, environment.projectId),
+        )
       const instance = await deployRelease(
         deps.db,
         deps.driver,

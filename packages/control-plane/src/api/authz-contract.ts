@@ -397,6 +397,20 @@ const ROUTES: RouteCase[] = [
     },
   },
   {
+    // §13 (P5a Task 15): a project read, not a deploy one — a collaborator who cannot
+    // deploy can still see what a first launch will need.
+    method: 'GET',
+    url: '/v1/projects/:projectId/launch-readiness',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/launch-readiness` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
     method: 'POST',
     url: '/v1/environments/:environmentId/deploy',
     request: (f) => ({

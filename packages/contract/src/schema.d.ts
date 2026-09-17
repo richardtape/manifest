@@ -292,6 +292,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/projects/{projectId}/launch-readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What a first production launch still needs
+         * @description §13 and §22 step 7: the checklist, computed from what exists, surfaced from the moment a project exists. Read-only in Phase 1.
+         */
+        get: operations["getLaunchReadiness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects/{projectId}/members": {
         parameters: {
             query?: never;
@@ -579,8 +599,8 @@ export interface components {
                 /** @description What to do about it. */
                 hint?: string;
                 details?: components["schemas"]["ManifestError"][];
-                /** @description On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs (§13). Typed in Task 15. */
-                launchReadiness?: unknown;
+                /** @description On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs (§13). */
+                launchReadiness?: components["schemas"]["LaunchReadiness"];
             };
         };
         /** @description An audit Event, as recorded (§20) and redacted at capture (§14). Switch on `type`; each type has one `machineDetail` shape. Replayed on reconnect. */
@@ -1085,6 +1105,28 @@ export interface components {
                 sha256: string;
                 content: string;
             }[];
+        };
+        /** @description §13’s first-launch checklist, computed from what exists. Read-only in Phase 1; Phase 2 gates on it. */
+        LaunchReadiness: {
+            /** Format: uuid */
+            projectId: string;
+            ready: boolean;
+            candidateReleaseId: string | null;
+            items: components["schemas"]["LaunchReadinessItem"][];
+        };
+        LaunchReadinessItem: {
+            /** @enum {string} */
+            id: "domain" | "iam-registration" | "privacy-assessment" | "rehearsal" | "scans" | "admin-approval" | "load-rehearsal";
+            title: string;
+            owner: string;
+            blocking: boolean;
+            /**
+             * @description `not_built`: Manifest does not track this yet; `builtBy` names the plan.
+             * @enum {string}
+             */
+            state: "met" | "unmet" | "not_built";
+            why: string;
+            builtBy?: string;
         };
         /** @description One line of a build’s output, as it is written. Never replayed — GET /v1/builds/{buildId}/logs has them all. */
         LogFrame: {
@@ -1878,6 +1920,37 @@ export interface operations {
                 };
             };
             /** @description Refused before the upgrade, in the D23.7 envelope: UNAUTHENTICATED, NOT_FOUND (a stranger, or no such project), CSRF_ORIGIN_REFUSED, INTERNAL. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getLaunchReadiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The checklist. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LaunchReadiness"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

@@ -11,17 +11,24 @@ import { AiError, CatalogueError } from '../ai/index.js'
 import { ERROR_CODES } from './error-codes.js'
 import { RequestValidationError } from './contract/route.js'
 import { RateLimitedError } from './rate-limit.js'
+import type { ErrorEnvelopeShape } from './representations/errors.js'
+import { LaunchReadiness } from './representations/launch.js'
+import type { LaunchReadinessView } from '../launch/index.js'
 
-export interface ErrorEnvelope {
-  error: {
-    code: string
-    message: string
-    hint?: string
-    details?: ManifestError[]
-    /** §13's checklist, on RELEASE_PRODUCTION_GATE_UNAVAILABLE only (P5a Task 14). */
-    launchReadiness?: unknown
-  }
-}
+/**
+ * THE shape every failure leaves in, DERIVED from the schema the OpenAPI document is
+ * generated from (P5a Task 15) — so `mapError` below cannot build a body the contract
+ * does not describe.
+ *
+ * It was an independent `interface` until this task, held equal to the schema by nothing,
+ * and sitting 10 measured what that cost: the document said the envelope admits exactly
+ * `code`, `message`, `hint` and `details`, `additionalProperties: false`, while the
+ * production refusal had carried a fifth key since P2. Every success body is parsed
+ * through its representation on the way out (Decision 2); an error body is built by hand
+ * here and parsed by nothing, so `tsc` against the schema is the only thing between the
+ * two statements.
+ */
+export type ErrorEnvelope = ErrorEnvelopeShape
 
 export class SpecInvalidError extends Error {
   readonly code = 'SPEC_INVALID'
@@ -44,12 +51,15 @@ export class BadRequestError extends Error {
 
 /**
  * §13: a first production launch is a checklist, not a button. A 409 that carries the
- * checklist — not a refusal a client has to go and ask about (P5a Task 14; Task 15 makes
- * the checklist computed rather than a constant).
+ * checklist — not a refusal a client has to go and ask about (P5a Task 14).
+ *
+ * The checklist is `LaunchReadinessView`, not `unknown`, from Task 15: it is computed by
+ * `launch/` from what exists, and the same value `GET /v1/projects/{id}/launch-readiness`
+ * answers.
  */
 export class ProductionGateError extends Error {
   readonly code = 'RELEASE_PRODUCTION_GATE_UNAVAILABLE'
-  constructor(readonly launchReadiness: unknown) {
+  constructor(readonly launchReadiness: LaunchReadinessView) {
     super('first production launch is a checklist, not a button (§13, D19)')
     this.name = 'ProductionGateError'
   }
@@ -131,6 +141,38 @@ function frameworkRefusal(
   }
 }
 
+/**
+ * §13's checklist, THROUGH ITS REPRESENTATION — the one field of an error body that is
+ * parsed on the way out, for the reason every success body is (Decision 2).
+ *
+ * Measured by `make demo-journey` on 2026-09-17: the read answers the checklist parsed
+ * through `LaunchReadiness`, and zod emits an object's keys in SCHEMA order, so the
+ * hand-built refusal carrying the same value serialised `builtBy` before `why` and the
+ * read serialised it after. Equal as values, different as bytes — and a client that
+ * compares the two answers, or validates the envelope strictly, sees two shapes for one
+ * thing. Parsing here makes the two answers identical by construction rather than by two
+ * literals being kept in step.
+ *
+ * It FAILS CLOSED: a checklist that does not parse is dropped, and the operator hears
+ * about it, rather than a body the document says is impossible being sent. The 409 and
+ * its code still say what happened, which is what a client switches on. `mapError` is the
+ * last thing between a failure and the wire, so it must not throw on its way there.
+ */
+function checklist(
+  view: LaunchReadinessView,
+): Pick<ErrorEnvelope['error'], 'launchReadiness'> {
+  const parsed = LaunchReadiness.safeParse(view)
+  if (parsed.success) return { launchReadiness: parsed.data }
+  console.error(
+    JSON.stringify({
+      level: 'error',
+      msg: 'the launch readiness checklist is not the shape LaunchReadiness describes; the refusal was sent without it',
+      issues: parsed.error.issues.map((i) => i.path.join('.')),
+    }),
+  )
+  return {}
+}
+
 function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
   const refusal = frameworkRefusal(error)
   if (refusal !== undefined) return refusal
@@ -203,7 +245,7 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
           code: error.code,
           message: error.message,
           hint: 'These items have multi-week lead times and are tracked from project creation.',
-          launchReadiness: error.launchReadiness,
+          ...checklist(error.launchReadiness),
         },
       },
     }

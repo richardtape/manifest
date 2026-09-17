@@ -515,6 +515,63 @@ async function step5Deploy(): Promise<void> {
   }
 }
 
+/** §22 step 7: request production; see LaunchReadiness with its blocked items and why. */
+async function step7RequestProduction(): Promise<void> {
+  checks.step('7. Request production — and see what a first launch still needs')
+  const attempt = await client.POST('/v1/environments/{environmentId}/deploy', {
+    params: {
+      path: { environmentId: state.productionEnvironmentId! },
+      header: { 'Idempotency-Key': idempotencyKey() },
+    },
+    body: { releaseId: state.releaseId! },
+  })
+  checks.ok(
+    'production is refused, 409',
+    attempt.response.status === 409,
+    String(attempt.response.status),
+  )
+  const envelope = attempt.error
+  checks.ok(
+    'as RELEASE_PRODUCTION_GATE_UNAVAILABLE',
+    envelope?.error.code === 'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
+  )
+  const readiness = unwrap(
+    await client.GET('/v1/projects/{projectId}/launch-readiness', {
+      params: { path: { projectId: state.projectId! } },
+    }),
+    'getLaunchReadiness',
+  )
+  checks.ok(
+    'the refusal carries the checklist the read answers',
+    JSON.stringify(envelope?.error.launchReadiness) === JSON.stringify(readiness),
+  )
+  checks.ok('not ready — honestly, in Phase 1', readiness.ready === false)
+  checks.ok(
+    'the candidate is the release serving staging',
+    readiness.candidateReleaseId === state.releaseId,
+  )
+  const item = (id: string) => readiness.items.find((i) => i.id === id)
+  checks.ok(
+    'the domain comes first, before IAM registration (§23)',
+    readiness.items[0]?.id === 'domain' && readiness.items[1]?.id === 'iam-registration',
+  )
+  checks.ok(
+    'scans are computed from that release — met, or unmet for a stated reason',
+    item('scans')?.state === 'met' ||
+      (item('scans')?.state === 'unmet' && item('scans')!.why.includes('database')),
+    `${item('scans')?.state}: ${item('scans')?.why}`,
+  )
+  checks.ok(
+    'what Manifest does not track yet says so, and who builds it',
+    item('iam-registration')?.state === 'not_built' &&
+      item('admin-approval')?.builtBy === 'P6',
+  )
+  checks.ok(
+    'every item says why',
+    readiness.items.every((i) => i.why.length > 0),
+  )
+}
+
 const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
   'before-app': [
     step1SignedIn,
@@ -526,7 +583,7 @@ const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
     step4Build,
     step5Deploy,
   ],
-  'after-app': [],
+  'after-app': [step7RequestProduction],
 }
 
 try {
