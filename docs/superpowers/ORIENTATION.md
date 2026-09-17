@@ -2017,7 +2017,11 @@ session**, with a check-in at each boundary. **Start with the baseline in §7d's
 machine, `make up`, doctor, verify and the four gates — and compare every number with §2's box before changing anything. **Sitting 6 changes `projects/`, `api/`, `config.ts`
 and the boot, and the journey — so it OWES `pnpm test:docker` (~13 min, `make up` first) as well as the four gates, and after
 each task `pnpm contract:write && pnpm contract:generate`, whose drift tests are red until both are committed.** It needs no
-network. A Caddyfile
+network. **Task 8's Step 7 runs `make demo-redeploy`**, which needs **Ollama running on the host** (`ministral-3` and
+`nomic-embed-text`; `make up` does not start it) and **recreates the proof app's project** — so the LiteLLM user the running proof
+app holds becomes an orphan. Sitting 4's attempt to delete one through LiteLLM's admin API was refused by the session's permission
+classifier: if yours is refused too, do not work around it — record the user in the sitting's *Machine* paragraph and here, as the
+state below does. A Caddyfile
 edit reaches the edge through `make up`, whose reload drops every runtime route, and the Docker tier restarts the edge and
 re-registers the platform's SP row at a loopback ACS — **restart the control plane after either**; its boot puts both back.
 **Sitting 5 was the only one that needed the network, and it is done.**
