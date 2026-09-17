@@ -42,7 +42,7 @@
 1. the four gates from *Global Constraints*, plus `pnpm test:docker` for every sitting that touched `runtime/`, `routing/`, `releases/`, `identity/`, `projects/`, `blueprints/`, `infra/` or a `*.docker.test.ts` — which is every sitting except 1, 4 and 5;
 2. a dated entry in *What executing this plan found* — the tasks, every defect with the measurement that found it, the negative controls, and the gate numbers;
 3. **the sittings table above, updated** — mark the sitting done, move the `← next` marker, say how many findings it produced;
-4. **the close-out sweep in ORIENTATION §6**, whose first line is the roadmap ledger. The four gate numbers are stated in four documents and move together.
+4. **the close-out sweep in ORIENTATION §6**, whose first line is the roadmap ledger. The gate numbers are stated in three documents — ORIENTATION §2's box, README and RUNBOOK (CLAUDE.md has stated none since 2026-09-16) — and move together.
 
 **THIS TABLE IS A SCHEDULE, NOT A CONTRACT.** Task 1 may move task boundaries — that is its job — and if it does, re-cut the sittings before starting sitting 2 and say so in the session record. Three rules survive any re-cut: **Task 1 stays first and alone**, **Task 7 stays alone and needs the network**, and **Task 17 stays alone and last**.
 

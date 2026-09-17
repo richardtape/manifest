@@ -1288,7 +1288,7 @@ coherent. Follow them.
    | `README.md` | The status section, and the *Where to start* table's "current job" row |
    | `RUNBOOK.md` | **Added to this list 2026-09-09, having been missed once.** Its *C1's acceptance* preamble restates the CURRENT `make doctor` / `make verify` totals beside the dated 2026-09-05 ones, so it drifts every time a check lands — and it is the document a new agent opens to run the platform |
    | `WALKTHROUGH.md` | **Added 2026-09-15.** Its *What is built* status lines, and any URL, command, test user or demo that changes. It deliberately states no counts — keep it that way |
-   | `CLAUDE.md` | The *State* paragraph |
+   | `CLAUDE.md` | The *State* section — **only when a plan starts or finishes, or an item in its *Outstanding, and Rich's* line moves.** Trimmed on 2026-09-16 from ~30 KB of per-sitting history to a pointer here; it names no sitting and states no gate numbers, so a sitting leaves it alone. Keep it that way — every fact it used to repeat is in this file, the roadmap or a plan |
    | `specs/manifest-schematic.html` | **Shared outside the team.** The `Status` line in the header, the footer, and the "no user interface has been built yet" disclaimers |
    | `specs/manifest-phases.html` | **Shared outside the team.** The spike section — how many have run, what they answered, where the remaining ones sit |
    | `specs/manifest-decisions.html` | **Shared outside the team.** Drifts when a **decision** changes, not when status does — check it after any spec action is applied |
@@ -1296,14 +1296,15 @@ coherent. Follow them.
    | `docs/external-track.md` | Owners and states of the UBC items |
    | `machine-baseline-*.md` | **Do not edit these.** They are dated evidence. Re-run `scripts/snapshot-machine.sh` and add a new one |
 
-   **THE FOUR GATE NUMBERS LIVE IN FOUR DOCUMENTS**, and they move whenever a check
+   **THE GATE NUMBERS LIVE IN THREE DOCUMENTS**, and they move whenever a check
    or a test file lands — which is most sittings. `make doctor`, `make verify`,
    `pnpm test` and `pnpm test:docker` are stated in **ORIENTATION §2's numbers box**,
-   **`README.md`**, **`CLAUDE.md`** and **`RUNBOOK.md`**. One `grep` catches all four:
+   **`README.md`** and **`RUNBOOK.md`**. `CLAUDE.md` stated them too until 2026-09-16 and
+   now deliberately does not — do not add them back. One `grep` catches all three:
 
    ```bash
    grep -rn "make doctor\|pnpm test\` \|checks / 0 failed\|passed, .* files" \
-     ORIENTATION.md README.md CLAUDE.md RUNBOOK.md   # from docs/superpowers and the root
+     ORIENTATION.md README.md RUNBOOK.md   # from docs/superpowers and the root
    ```
 
    Update them together or not at all. A half-swept set is worse than a stale one,
