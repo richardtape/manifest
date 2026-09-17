@@ -39,10 +39,13 @@ MANIFEST_VERIFY_OFFLINE=1 make verify; echo "verify exit=$?"
 
 echo
 echo "=== 5. the C1 demo itself: one name, host and container, no port, no -k ==="
-curl -sS https://console.manifest.internal/ ; echo
+# edge.manifest.internal, not console.: the console refuses every source but the host
+# (P5a Task 3), so it no longer answers both sides identically. `edge` is a reserved label
+# no Caddyfile site names, so the wildcard answers it everywhere.
+curl -sS https://edge.manifest.internal/ ; echo
 docker run --rm --network manifest-platform --dns 10.89.0.53 \
   -v "$PWD/infra/ca/manifest-root.crt":/ca.crt:ro curlimages/curl:8.11.1 \
-  --cacert /ca.crt -sS https://console.manifest.internal/ ; echo
+  --cacert /ca.crt -sS https://edge.manifest.internal/ ; echo
 
 echo
 echo "=== 6. P4a's acceptance: a real CWL login, offline ==="
@@ -56,10 +59,10 @@ echo "=== 6. P4a's acceptance: a real CWL login, offline ==="
 # It needs the control plane RUNNING, which `make up` does not start — see
 # README's "Running the control plane". If it is not up, this reports that and
 # the rest of the run still stands.
-if curl -sS -m 5 -o /dev/null http://127.0.0.1:7100/v1/me 2>/dev/null; then
+if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
   make demo-identity; echo "demo-identity exit=$?"
 else
-  echo "  SKIPPED: no control plane on 7100. Start it (README: Running the"
+  echo "  SKIPPED: no control plane behind https://console.manifest.internal. Start it (README: Running the"
   echo "  control plane) and re-run this step — a skipped acceptance is not a"
   echo "  passed one, and it is the step most likely to need the network."
 fi
@@ -72,10 +75,10 @@ echo "=== 7. P4b's acceptance: the proof app answers a question, offline ==="
 # host.docker.internal:11434. If this is the step that fails, check `ollama list`
 # holds ministral-3 and nomic-embed-text before blaming the platform. It also
 # reads LiteLLM's spend log, which needs no network.
-if curl -sS -m 5 -o /dev/null http://127.0.0.1:7100/v1/me 2>/dev/null; then
+if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
   make demo-ai; echo "demo-ai exit=$?"
 else
-  echo "  SKIPPED: no control plane on 7100 — the same rule as step 6."
+  echo "  SKIPPED: no control plane behind https://console.manifest.internal — the same rule as step 6."
 fi
 
 echo

@@ -212,7 +212,9 @@ export async function testDeps(): Promise<ServerDeps> {
     samlSp: createSamlSp({
       entity: controlPlaneSpEntity({
         entityBase: 'https://manifest.internal',
-        origin: `http://127.0.0.1:${config.port}`,
+        // THE CONFIGURED ORIGIN, not a second statement of it (P5a Task 3): the ACS this
+        // SP checks must be the one the running control plane registers.
+        origin: config.sp.origin,
       }),
       idpBaseUrl: 'https://idp.test.manifest.internal',
       idpEntityId: idp.entityId,

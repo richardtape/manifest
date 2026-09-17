@@ -49,7 +49,7 @@ up: .env  ## Boot the platform. Works offline after `make seed`.
 	@bash infra/lib/ensure-app-role.sh
 	@echo
 	@echo "  platform up. Next: make doctor && make verify"
-	@echo "  edge: https://console.manifest.internal/"
+	@echo "  edge: https://edge.manifest.internal/   console and API: https://console.manifest.internal/v1/"
 
 down:  ## Stop everything. Data, seed cache and CA survive.
 	@$(COMPOSE) down

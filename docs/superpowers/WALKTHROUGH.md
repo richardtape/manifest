@@ -14,8 +14,8 @@ Manifest runs on one Mac. **Almost everything is a container**; two things run o
 
 | Piece | Where | What it is |
 |---|---|---|
-| **The edge** | `https://*.manifest.internal` (Caddy on `127.0.0.2:443`) | The only way into any app. TLS from the platform's own CA |
-| **The control plane** | `http://127.0.0.1:7100` — a Node process on the host | Manifest itself: a JSON API and one WebSocket event stream per project |
+| **The edge** | `https://*.manifest.internal` (Caddy on `127.0.0.2:443`) | The only way into any app — and into Manifest's API. TLS from the platform's own CA |
+| **The control plane** | `https://console.manifest.internal` — through the edge, to a Node process on the host (`127.0.0.1:7100`) | Manifest itself: a JSON API under `/v1` and one WebSocket event stream per project. Refused to every source but the host |
 | **The Manifest IdP** | `https://idp.manifest.internal` | A practice CWL sign-in (SimpleSAMLphp). **Test users only** |
 | **LiteLLM** | `http://127.0.0.1:7106`, dashboard at `/ui` | The AI gateway every app's key goes through |
 | **Ollama** | `http://127.0.0.1:11434` — on the host | The models LiteLLM serves: `ministral-3` and `nomic-embed-text` |
@@ -55,13 +55,13 @@ make verify      # is the running platform correct? every line PASS
 Then **start the control plane, in its own terminal**, with the commands in README's
 [*Running the control plane*](../../README.md#running-the-control-plane) — an `export`
 block, `db:migrate`, then `dev`. Leave it running. Its boot line must say
-`"driver":"docker"` and `"ai":"enabled"`.
+`"driver":"docker"`, `"origin":"https://console.manifest.internal"` and `"ai":"enabled"`.
 
 Two quick checks that it is all up:
 
 ```bash
-curl -s https://console.manifest.internal/    # manifest OK host=console.manifest.internal scheme=https …
-curl -s http://127.0.0.1:7100/v1/me           # {"error":{"code":"UNAUTHENTICATED",…}}
+curl -s https://edge.manifest.internal/            # manifest OK host=edge.manifest.internal scheme=https …
+curl -s https://console.manifest.internal/v1/me     # {"error":{"code":"UNAUTHENTICATED",…}}
 ```
 
 ---
@@ -115,7 +115,7 @@ writing a note; the demos write them.
 
 ### Manifest itself — the control plane
 
-**http://127.0.0.1:7100/auth/login** → sign in as `instructor` / `instructor` → you land on
+**https://console.manifest.internal/auth/login** → sign in as `instructor` / `instructor` → you land on
 `/v1/me`. Then, still JSON:
 
 - `/v1/projects` — your projects
@@ -136,8 +136,8 @@ identifier, never their CWL ID.
 
 - **Safari and Chrome** trust the platform's certificate, because `make host-setup` put its CA
   in the macOS keychain. **Firefox** has its own store and will warn.
-- Signing in to the control plane posts from an HTTPS page to `http://127.0.0.1:7100`, so the
-  browser may warn that the form is not secure. On this machine, continue.
+- **`https://console.manifest.internal/` itself says `manifest console: not built yet`.** The API
+  is under `/v1` on that origin; the console that will live at `/` is P5c's.
 
 ---
 
@@ -204,6 +204,11 @@ ORIENTATION §6 and any plan's negative controls.
   it holds a private key.
 - **An AI app whose gateway drops off its network can make a person wait ten minutes** before an
   error. Redeploying the app re-attaches it. RUNBOOK's *Known gaps*.
+- **`403 manifest: the control plane is not reachable from this network`** is the console's origin
+  refusing a request that did not come from the host — from a container, an app included. That is
+  §12 working. From the host, a `502` there means the control plane is not running.
+- **A sign-in to Manifest fails after `pnpm test:docker`** until the control plane is restarted: the
+  tier re-registers Manifest's own SP at a loopback ACS, and the boot puts it back.
 - **After a reboot:** `make up`. If the host cannot reach `https://*.manifest.internal` but
   `make verify`'s container checks pass, `docker restart manifest-caddy`.
 - **Never touch Laravel Valet** — it owns `.test` and ports 53/80/443. That is why the zone is

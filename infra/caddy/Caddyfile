@@ -32,6 +32,56 @@ idp.manifest.internal {
 	reverse_proxy manifest-idp:80
 }
 
+# §21 and §12 (Rich, 2026-09-16): the reference console and the API on ONE origin,
+# through the edge — refused to every source but the host.
+#
+# A SITE HERE, NOT A RUNTIME ROUTE: routes added through the admin API are lost when the
+# edge restarts (§12). An app's route comes back at the control plane's boot; the API a
+# person uses to redeploy that app must not depend on it.
+#
+# AN ALLOW-LIST OF ONE ADDRESS: the edge is attached to every app network and answers any
+# hostname asked of it by address, so name resolution is not a boundary (measured
+# 2026-09-16 from inside a deployed app, P5 brief §3). The host's requests arrive from the
+# platform network's gateway — 10.89.0.1, measured the same day, on the subnet P1 pins —
+# while app networks are subnets Docker chooses. `make verify` asserts this address is the
+# gateway, and infra/lib/common.sh's HOST_SOURCE_IP, so a moved subnet fails there first.
+#
+# INSIDE `route`, deliberately: outside one Caddy sorts `respond` ahead of
+# `reverse_proxy`, and the placeholder would answer the API's paths too.
+console.manifest.internal {
+	tls internal
+	request_body {
+		max_size 10MB
+	}
+	# §20's baseline, which the control plane does not set itself.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Content-Security-Policy "frame-ancestors 'none'"
+	}
+	route {
+		@outside not remote_ip 10.89.0.1/32
+		respond @outside "manifest: the control plane is not reachable from this network" 403
+		# The versioned API, the event stream (it upgrades through reverse_proxy — measured
+		# in P5a Task 1 M3) and the sign-in endpoints (D23.8).
+		@api path /v1/* /auth/*
+		reverse_proxy @api host.docker.internal:7100 {
+			# EVERY admin-API change reloads the edge's WHOLE config, and a reload closes
+			# every WebSocket the old config proxied with 1001 Going Away — so without this
+			# one app's deploy, anywhere on the platform, disconnects every event-stream
+			# subscriber, and the build-log lines it misses are not replayed (measured
+			# 2026-09-16, P5a sitting 2: one unrelated route PUT closed a stream in under
+			# 3 s, and `make demo-ai` failed at step 5 with 1001). This lets a stream
+			# outlive the config that opened it for an hour; a client reconnects after
+			# that, and is replayed the events (D23.2).
+			stream_close_delay 1h
+		}
+		# P5c replaces this line with the console itself.
+		respond "manifest console: not built yet — P5c serves it here. The API is under /v1/." 200
+	}
+}
+
 # §23's three platform zones, local equivalents. One wildcard certificate each,
 # because every platform hostname is exactly one label deep.
 *.manifest.internal, *.sandbox.manifest.internal, *.staging.manifest.internal {

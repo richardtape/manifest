@@ -264,7 +264,7 @@ check_node_ca() {
   [ -n "${NODE_EXTRA_CA_CERTS:-}" ] || { echo "NODE_EXTRA_CA_CERTS is unset and .env does not supply it"; return 1; }
   NODE_EXTRA_CA_CERTS="$NODE_EXTRA_CA_CERTS" node -e '
     const https=require("https");
-    https.get("https://console.manifest.internal/",r=>{console.log("node reached the edge with NODE_EXTRA_CA_CERTS="+process.env.NODE_EXTRA_CA_CERTS+", status",r.statusCode);process.exit(0)})
+    https.get("https://edge.manifest.internal/",r=>{console.log("node reached the edge with NODE_EXTRA_CA_CERTS="+process.env.NODE_EXTRA_CA_CERTS+", status",r.statusCode);process.exit(0)})
          .on("error",e=>{console.log("node failed:",e.code,"— the keychain does NOT cover Node (S7)");process.exit(1)});
   '
 }

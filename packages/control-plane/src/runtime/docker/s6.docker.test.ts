@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { get as httpsGet } from 'node:https'
 import { promisify } from 'node:util'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import type { Driver, ImageRef, InstanceSpec, ServiceHandle } from '../driver.js'
@@ -430,6 +431,74 @@ describeDocker(
         `http ${code} from its own proxy`,
         'egress.docker.test.ts, declared host',
       )
+    })
+
+    /**
+     * 15 — §12 and §16 (P5a Task 3): an app cannot reach the control plane THROUGH THE
+     * EDGE. The edge is attached to this app's network — that is how traffic reaches the
+     * app — and it answers any hostname asked of it by address: inside the app,
+     * `console.manifest.internal` does not resolve, and a request to `manifest-caddy`
+     * with that name as SNI and Host was answered anyway (P5 brief §3, 2026-09-16).
+     *
+     * The DENIAL reads the BODY, not a status: the refusal is a 403 whose body nothing
+     * else in the platform answers with. `rejectUnauthorized: false` because this probes
+     * routing — a TLS failure must not read as a refusal. Node's https ignores the proxy
+     * variables the app is given.
+     *
+     * THE POSITIVE CONTROL is the same path from the host, which the site forwards: the
+     * answer is the control plane's 401 envelope when one is running and Caddy's 502
+     * when none is — either way NOT the refusal, which is the claim.
+     *
+     * BEFORE PROBE 11, deliberately, and not after 14 where it was first written. Probe
+     * 11 forks `sleep 5 &` up to PidsLimit, and the app's PID 1 is `node`, which does
+     * not reap the orphans it adopts: they stay zombies for the container's life and
+     * hold every pid (measured 2026-09-16, P5a sitting 2 — `pids.current` 64 seventeen
+     * seconds on, 20 of 20 orphaned `sleep`s in state Z under ppid 1). So after probe
+     * 11 `docker exec … node` cannot start at all, `inApp` returns '', and this probe
+     * failed with `expected '' to be '403 …'` rather than on the hole it exists to see.
+     */
+    it('15. cannot reach the control plane through the edge, while the host can', async () => {
+      const REFUSAL = 'manifest: the control plane is not reachable from this network'
+      const fromApp = await inApp(
+        `node -e 'const h=require("node:https");h.get({host:"manifest-caddy",port:443,servername:"console.manifest.internal",headers:{host:"console.manifest.internal"},path:"/v1/me",rejectUnauthorized:false},r=>{let b="";r.on("data",d=>b+=d);r.on("end",()=>console.log(r.statusCode+" "+b))}).on("error",e=>console.log("error "+e.code))'`,
+      )
+      expect(fromApp.trim()).toBe(`403 ${REFUSAL}`)
+
+      // The app's own egress proxy (P5a Task 1, [M2g]) is the other way off an app
+      // network. Its deny-by-default filter refuses the console's name; the allowlisted
+      // IdP is the positive control, so a proxy that refuses EVERYTHING cannot pass.
+      const connect = async (target: string) =>
+        (
+          await inApp(
+            `node -e 'const h=require("node:http");const p=new URL(process.env.HTTPS_PROXY);const q=h.request({host:p.hostname,port:p.port,method:"CONNECT",path:"${target}"});q.on("connect",(r,s)=>{console.log(r.statusCode);s.destroy()});q.on("error",e=>console.log("error "+e.code));q.end()'`,
+          )
+        ).trim()
+      expect(await connect('console.manifest.internal:443')).toBe('403')
+      expect(await connect('manifest-idp:80')).toBe('200')
+
+      // THE PLATFORM CA IS PASSED, not inherited — as every other probe here passes
+      // `--cacert`. Global `fetch` trusts it only through NODE_EXTRA_CA_CERTS in the
+      // environment Vitest was STARTED with, which `pnpm test:docker` does not set, and it
+      // failed as `error fetch failed` with the cause (UNABLE_TO_GET_ISSUER_CERT_LOCALLY)
+      // hidden (P5a sitting 2). The error CODE is what this reports if it fails again.
+      const fromHost = await new Promise<string>((resolve) => {
+        const request = httpsGet(
+          'https://console.manifest.internal/v1/me',
+          { ca: readFileSync(CA_CERT), timeout: 10_000 },
+          (r) => {
+            let body = ''
+            r.on('data', (d: Buffer) => (body += d.toString()))
+            r.on('end', () => resolve(`${r.statusCode} ${body}`))
+          },
+        )
+        request.on('timeout', () => request.destroy(new Error('timed out')))
+        request.on('error', (e: NodeJS.ErrnoException) =>
+          resolve(`error ${e.code ?? e.message}`),
+        )
+      })
+      expect(fromHost).not.toContain(REFUSAL)
+      expect(fromHost).toMatch(/^(401 \{"error":\{"code":"UNAUTHENTICATED"|502 )/)
+      record('15', `app=${fromApp.trim().slice(0, 3)}`, `host=${fromHost.slice(0, 3)}`)
     })
 
     // 9 — the filesystem.

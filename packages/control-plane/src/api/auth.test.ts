@@ -27,7 +27,7 @@ const INSTRUCTOR: Record<string, string> = {
 }
 
 const SP_ENTITY = 'https://manifest.internal/sp/manifest-control-plane/platform'
-const ACS = 'http://127.0.0.1:7100/auth/saml/callback'
+const ACS = 'https://console.manifest.internal/auth/saml/callback'
 
 describe('auth routes', () => {
   it('returns the session holder from /v1/me', async () => {
@@ -155,6 +155,8 @@ describe('Manifest is its own SP (§9)', () => {
     const cookie = res.cookies.find((c) => c.name === 'manifest_session')
     expect(cookie?.httpOnly).toBe(true)
     expect(cookie?.sameSite?.toLowerCase()).toBe('lax')
+    // Secure because the ORIGIN is https (P5a Task 3), in development too.
+    expect(cookie?.secure).toBe(true)
 
     // ASSERT THE SHAPE OF THE ANSWER. "a session was minted" and "the session
     // belongs to the person the IdP asserted" are different claims.
@@ -164,6 +166,27 @@ describe('Manifest is its own SP (§9)', () => {
       cookies: { manifest_session: cookie!.value },
     })
     expect(me.json()).toMatchObject({ puid: 'ins000001', role: 'member' })
+    await app.close()
+  })
+
+  it('sets a session cookie without Secure only on a loopback http origin', async () => {
+    // The Docker tier boots control planes at loopback http origins, where a Secure
+    // cookie would never be sent back. The in-process SP in these deps still names the
+    // https ACS, so the assertion is signed for it; only the cookie flag is under test.
+    const deps = await testDeps()
+    const loopback = {
+      ...deps,
+      config: {
+        ...deps.config,
+        sp: { ...deps.config.sp, origin: 'http://127.0.0.1:7100' },
+      },
+    }
+    const app = await buildServer(loopback)
+    const idp = await testSamlIdp()
+    const { requestId } = await pendingLogin(app)
+    const res = await post(app, assertion(idp, requestId))
+    expect(res.statusCode).toBe(302)
+    expect(res.cookies.find((c) => c.name === 'manifest_session')?.secure).toBeFalsy()
     await app.close()
   })
 

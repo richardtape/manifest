@@ -19,7 +19,10 @@ make up
 make doctor && make verify
 ```
 
-Then open <https://console.manifest.internal/>. No port, no certificate warning.
+Then open <https://console.manifest.internal/>. No port, no certificate warning. It answers
+`manifest console: not built yet` — that name is the console's and the API's origin (P5a Task 3);
+the API is under `/v1`, reached once the control plane runs (README's *Running the control
+plane*), and every other source than the host is refused.
 
 `make seed` must run **before** `make host-setup`: the CA it mints is what
 `host-setup` trusts. Seed also adds the `127.0.0.2` alias itself, so Caddy can bind
@@ -338,6 +341,7 @@ drained and removed behind each redeploy, so a re-run leaves one app container, 
 - **It needs a WebSocket client and a Manifest session.** `curl` cannot speak it: a plain GET from a member answers `426 Upgrade Required` with `Upgrade: websocket`, a stranger `404`, nobody `401` — which is also the quick way to check the route is up. The session is the `manifest_session` cookie a CWL login sets, sent with the upgrade request.
 - **A connection is replayed first.** It receives the project's newest 50 events, oldest first, then `{"kind":"control","type":"manifest.stream.ready"}`, then live frames — anything before the ready frame had already happened. Build-log lines are **not** replayed; `GET /v1/builds/:buildId/logs` has them.
 - **A client that falls behind is closed with 1013** once a megabyte is queued for it, and should reconnect; the replay covers the events it missed.
+- **It is reached through the edge, at `wss://console.manifest.internal/v1/projects/:projectId/events`** (P5a Task 3), with `Origin` unchecked until Task 4. A Node client needs `NODE_EXTRA_CA_CERTS` — Node does not read the keychain. **Every edge admin change is a whole-config reload, and a reload closes every WebSocket it proxied with `1001`** unless the handler sets `stream_close_delay`; the console site sets an hour, so a deploy anywhere on the platform no longer disconnects a subscriber, but a stream older than an hour past a reload is closed with `1001` and should reconnect.
 - **Frames reach only sockets on the control plane that published them.** Restarting the control plane drops every connection; a reconnect is replayed the events, and a build that was running has its lines in its build log.
 - **Authorization is checked when the socket opens, not per frame** — removing someone from a project does not close a stream they already hold.
 

@@ -88,21 +88,25 @@ const envSchema = z.object({
   // session secret; shorter is a configuration mistake, not a preference.
   MANIFEST_SESSION_SECRET: z.string().min(32),
   /**
-   * Where the control plane actually answers, as a bare origin. Every URL the
-   * IdP is told to send a person back to is built from it (§9's D15 rule: the
-   * app supplies a path, MANIFEST supplies the origin), so it is the one place
-   * that decides the ACS URL in the platform's own SP registration.
+   * Where the control plane is reached, as a bare origin. Every URL the IdP is told to
+   * send a person back to is built from it (§9's D15 rule: the app supplies a path,
+   * MANIFEST supplies the origin), and from P5a Task 4 it is the only `Origin` a
+   * cookie-authenticated mutation is accepted from.
    *
-   * The default is loopback because §21 puts the control plane on the host on
-   * 7100, NOT behind the edge — which makes its ACS the only Manifest ACS that
-   * is not an `https://….manifest.internal` URL. At UBC it becomes
-   * `https://manifest.ubc.ca`, and that is a value change rather than a code
-   * change. `loadConfig` below checks a loopback origin's port against
-   * MANIFEST_PORT: two independent reads of one setting, because an origin that
-   * names a port nothing listens on produces a login that completes at the IdP
-   * and then hangs, which reads as an IdP fault.
+   * `https://console.manifest.internal` since P5a Task 3 (§21, Rich 2026-09-16): the
+   * console and the API share one origin, served through the edge, so the platform's own
+   * ACS is an `https://….manifest.internal` URL like every app's. At UBC it becomes the
+   * console's production origin — a value change, not a code change.
+   *
+   * `loadConfig` below still checks a LOOPBACK origin's port against MANIFEST_PORT: the
+   * Docker tier boots control planes on 7188 and 7189 at loopback origins, and an origin
+   * naming a port nothing listens on produces a login that completes at the IdP and then
+   * hangs, which reads as an IdP fault.
    */
-  MANIFEST_CONTROL_PLANE_ORIGIN: z.string().min(1).default('http://127.0.0.1:7100'),
+  MANIFEST_CONTROL_PLANE_ORIGIN: z
+    .string()
+    .min(1)
+    .default('https://console.manifest.internal'),
   /**
    * The control plane's OWN Service Provider keypair — the one that signs its
    * AuthnRequests and whose certificate its `saml20_sp_remote` row pins.

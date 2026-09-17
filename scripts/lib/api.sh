@@ -13,7 +13,13 @@
 # jq is not guaranteed on a UBC developer's Mac and C1 forbids a new prerequisite, so
 # JSON is read with node, which the toolchain already requires.
 
-API="${MANIFEST_API:-http://127.0.0.1:7100}"
+# §21 (P5a Task 3): the console and the API share one origin, through the edge. Every
+# resource path is under /v1 and the sign-in endpoints are under /auth, both on this
+# origin. The host keychain trusts the platform CA, so curl needs no --cacert here —
+# but a NODE process does not read the keychain (S7): anything that runs `node` against
+# $API needs NODE_EXTRA_CA_CERTS, as the event-stream watcher's callers pass it.
+ORIGIN="${MANIFEST_ORIGIN:-https://console.manifest.internal}"
+API="$ORIGIN"
 
 # Every mutating route requires an Idempotency-Key (D23.6) and answers 400 without
 # one. A fresh key per call: replaying the same key returns the FIRST response.

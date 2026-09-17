@@ -70,7 +70,10 @@ export async function registerAuthRoutes(
         {
           httpOnly: true,
           sameSite: 'lax',
-          secure: deps.config.env !== 'development',
+          // From the ORIGIN, not from MANIFEST_ENV (P5a Task 3): the console's origin is
+          // https in development too, and a cookie without Secure on an https origin is
+          // one a network position can read the day anything is served over plain http.
+          secure: deps.config.sp.origin.startsWith('https://'),
           path: '/',
           maxAge: SESSION_TTL_MS / 1000,
         },

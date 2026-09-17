@@ -99,11 +99,11 @@ edge_serves_container_side() {
   local out
   out=$(docker run --rm --network "$NET" --dns "$DNS_C_IP" \
         -v "$PWD/$CA_FILE":/ca.crt:ro curlimages/curl:8.11.1 \
-        --cacert /ca.crt -sS "https://console.$ZONE/" 2>&1)
+        --cacert /ca.crt -sS "https://$EDGE_PROBE_HOST/" 2>&1)
   echo "$out"
-  echo "$out" | grep -q "host=console.$ZONE"
+  echo "$out" | grep -q "host=$EDGE_PROBE_HOST"
 }
-check "a container reaches https://console.$ZONE with the platform CA"  edge_serves_container_side
+check "a container reaches https://$EDGE_PROBE_HOST with the platform CA"  edge_serves_container_side
 
 echo
 echo "Postgres — one server, three databases (§21)"
@@ -737,15 +737,15 @@ echo "C1 — host/container parity (S7 §Evidence 4, 5)"
 
 host_reaches_edge() {
   local out
-  out=$(curl -sS "https://console.$ZONE/" 2>&1)
+  out=$(curl -sS "https://$EDGE_PROBE_HOST/" 2>&1)
   echo "$out"
-  echo "$out" | grep -q "host=console.$ZONE"
+  echo "$out" | grep -q "host=$EDGE_PROBE_HOST"
 }
-check "the host reaches https://console.$ZONE with no -k and no port"  host_reaches_edge
+check "the host reaches https://$EDGE_PROBE_HOST with no -k and no port"  host_reaches_edge
 
 host_trusts_cert() {
   local r
-  r=$(curl -sS -o /dev/null -w '%{ssl_verify_result}' "https://console.$ZONE/" 2>&1)
+  r=$(curl -sS -o /dev/null -w '%{ssl_verify_result}' "https://$EDGE_PROBE_HOST/" 2>&1)
   echo "ssl_verify_result=$r (0 means the macOS keychain trusts it)"
   [ "$r" = "0" ]
 }
@@ -755,15 +755,48 @@ check "the certificate verifies against the macOS keychain"  host_trusts_cert
 parity() {
   require_ca || return 1
   local h c
-  h=$(curl -sS "https://console.$ZONE/" 2>&1 | sed 's/ remote=.*//')
+  h=$(curl -sS "https://$EDGE_PROBE_HOST/" 2>&1 | sed 's/ remote=.*//')
   c=$(docker run --rm --network "$NET" --dns "$DNS_C_IP" \
       -v "$PWD/$CA_FILE":/ca.crt:ro curlimages/curl:8.11.1 \
-      --cacert /ca.crt -sS "https://console.$ZONE/" 2>&1 | sed 's/ remote=.*//')
+      --cacert /ca.crt -sS "https://$EDGE_PROBE_HOST/" 2>&1 | sed 's/ remote=.*//')
   echo "host     : $h"
   echo "container: $c"
   [ -n "$h" ] && [ "$h" = "$c" ]
 }
 check "host and container see a byte-identical hostname and scheme"  parity
+
+# §21 and §12 (P5a Task 3): the console's origin forwards to the control plane, and
+# refuses every source but the host. Three checks, because each alone can pass for the
+# wrong reason: a site that refuses EVERYONE passes the second, a site that refuses NO
+# ONE passes the first, and a Caddyfile allowing a stale address passes both until the
+# platform network's subnet moves.
+console_serves_host() {
+  local out
+  out=$(curl -sS -w ' [%{http_code}]' "https://$CONSOLE_HOST/" 2>&1)
+  echo "$out"
+  case "$out" in "manifest console: not built yet"*"[200]") return 0 ;; *) return 1 ;; esac
+}
+check "the host reaches https://$CONSOLE_HOST and is not refused" console_serves_host
+
+console_refuses_platform_container() {
+  require_ca || return 1
+  local out
+  out=$(docker run --rm --network "$NET" --dns "$DNS_C_IP" \
+        -v "$PWD/$CA_FILE":/ca.crt:ro curlimages/curl:8.11.1 \
+        --cacert /ca.crt -sS -w ' [%{http_code}]' "https://$CONSOLE_HOST/v1/me" 2>&1)
+  echo "$out"
+  [ "$out" = "manifest: the control plane is not reachable from this network [403]" ]
+}
+check "a container on $NET is refused by https://$CONSOLE_HOST (§12)" console_refuses_platform_container
+
+console_allows_only_the_gateway() {
+  local gw allowed
+  gw=$(docker network inspect "$NET" --format '{{(index .IPAM.Config 0).Gateway}}')
+  allowed=$(sed -n 's/.*not remote_ip \([0-9.]*\)\/32.*/\1/p' infra/caddy/Caddyfile | head -1)
+  echo "platform gateway=$gw Caddyfile allows=$allowed common.sh HOST_SOURCE_IP=$HOST_SOURCE_IP"
+  [ -n "$gw" ] && [ "$gw" = "$allowed" ] && [ "$gw" = "$HOST_SOURCE_IP" ]
+}
+check "the console's one allowed source is the platform network's gateway" console_allows_only_the_gateway
 
 # All three of §23's zones, one wildcard certificate each.
 zones_serve() {

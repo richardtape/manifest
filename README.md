@@ -17,9 +17,10 @@ edge with rate-limiting and Coraza, Postgres with three databases, a private
 registry and npm mirror, a default-deny egress proxy, a rootless non-privileged
 BuildKit, LiteLLM against host Ollama, and the Manifest IdP. `make doctor` is now
 **18 checks / 0 failed** and `make verify` **47 / 0**, and both were green **with the
-network off** when P1 was executed. `https://console.manifest.internal/` returns the same hostname and
+network off** when P1 was executed. `https://console.manifest.internal/` returned the same hostname and
 scheme from the host browser and from inside a container — no port, no certificate
-warning. See [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md).
+warning. *(Since P5a Task 3 that name is the console's origin, refused to every source but
+the host, so `make verify` proves the same parity on `https://edge.manifest.internal/`.)* See [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md).
 
 **P2 is executed and green as of 2026-09-05 — all 21 tasks.** The control plane
 serves HTTP on **7100**: the `manifest.yaml` schema and its machine-actionable
@@ -166,29 +167,38 @@ pnpm --filter @manifest/control-plane db:migrate
 pnpm --filter @manifest/control-plane dev      # tsc, then node dist/index.js
 ```
 
-It listens on `http://127.0.0.1:7100` and prints one line saying which driver it
-built. **Read it** — every acceptance in P3 is meaningless if it says `fake`:
+It listens on `127.0.0.1:7100` and **is reached at `https://console.manifest.internal`**,
+through the edge (§21, P5a Task 3): the edge forwards `/v1/*` and `/auth/*` to it and refuses
+every source but the host, so a container — an app included — gets `403 manifest: the control
+plane is not reachable from this network`. It prints one line saying which driver it built
+and where it is reached. **Read it** — every acceptance in P3 is meaningless if it says
+`fake`, and a sign-in completes only at the origin it names:
 
 ```
-{"driver":"docker","port":7100,"msg":"control plane ready"}
+{"driver":"docker","port":7100,"origin":"https://console.manifest.internal","ai":"enabled",…,"msg":"control plane ready"}
 ```
+
+**Restart the control plane after `make up` applies a Caddyfile change, and after
+`pnpm test:docker`.** Either one drops the edge's runtime routes, and the Docker tier also
+re-registers the platform's SP row at a loopback ACS, so a sign-in through the console fails
+at the ACS comparison until the control plane's boot puts both back.
 
 Verified end to end on 2026-09-05:
 
 ```bash
-curl -s http://127.0.0.1:7100/v1/me
+curl -s https://console.manifest.internal/v1/me
 # {"error":{"code":"UNAUTHENTICATED","message":"a session is required","hint":"Log in first."}}
 
 # §9: Manifest is its own SP, so logging in is a real CWL round trip against the
 # Manifest IdP. `scripts/demo.sh` step 1 drives all three hops with curl; in a
-# browser, just open http://127.0.0.1:7100/auth/login and sign in as
+# browser, just open https://console.manifest.internal/auth/login and sign in as
 # `instructor` / `instructor` (D6 — the IdP serves TEST USERS ONLY).
-curl -s -o /dev/null -w '%{redirect_url}\n' http://127.0.0.1:7100/auth/login
+curl -s -o /dev/null -w '%{redirect_url}\n' https://console.manifest.internal/auth/login
 # https://idp.manifest.internal/module.php/saml/idp/singleSignOnService?SAMLRequest=…&Signature=…
 
 curl -s -b /tmp/jar -X POST -H 'content-type: application/json' \
   -H "idempotency-key: $(uuidgen)" \
-  -d '{"slug":"boot-check","blueprint":"fixture-node@1"}' http://127.0.0.1:7100/v1/projects
+  -d '{"slug":"boot-check","blueprint":"fixture-node@1"}' https://console.manifest.internal/v1/projects
 ```
 
 **`node src/index.ts` does not work**, though Node 24 strips types natively: the
@@ -205,11 +215,12 @@ own sessions in-process (`identity/testing.ts`), which needs no HTTP surface.
 **The control plane registers its own Service Provider at boot**, through the same
 `renderSpMetadata` every deployed app's row goes through — entityID
 `https://manifest.internal/sp/manifest-control-plane/platform`, ACS
-`http://127.0.0.1:7100/auth/saml/callback`. That ACS is the one Manifest ACS that is
-not an `https://….manifest.internal` URL, because §21 puts the control plane on the
-host rather than behind the edge. It is built from `MANIFEST_CONTROL_PLANE_ORIGIN`,
-which defaults to `http://127.0.0.1:7100` and becomes `https://manifest.ubc.ca` at
-UBC; `loadConfig` refuses a loopback origin whose port is not `MANIFEST_PORT`. The
+`https://console.manifest.internal/auth/saml/callback`. It is built from
+`MANIFEST_CONTROL_PLANE_ORIGIN`, which defaults to `https://console.manifest.internal` —
+the console's origin, through the edge — and becomes the console's production origin at
+UBC; `loadConfig` refuses a loopback origin whose port is not `MANIFEST_PORT` (the Docker
+tier boots control planes at loopback origins). The session cookie is `Secure` whenever the
+origin is `https`, in development too. The
 keypair it signs with is `infra/sp/control-plane.{key,crt}`, minted by `make up`,
 gitignored, and — like the IdP keypair and the envelope master key — **not removed by
 `make reset`**.

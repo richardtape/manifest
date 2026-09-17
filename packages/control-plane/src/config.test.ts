@@ -56,9 +56,9 @@ describe('configuration', () => {
     expect(config.env).toBe('development')
     expect(config.port).toBe(7100)
     // The platform's own SP origin, which every URL the IdP posts back to is
-    // built from. Loopback and 7100 by default (§21 puts the control plane on
-    // the host, not behind the edge).
-    expect(config.sp.origin).toBe('http://127.0.0.1:7100')
+    // built from. The console's origin by default, through the edge, since P5a
+    // Task 3 (§21: the console and the API share one origin).
+    expect(config.sp.origin).toBe('https://console.manifest.internal')
   })
 
   // §13's gate integrity rests on this secret, and it is optional in the schema so

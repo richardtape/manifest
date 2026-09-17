@@ -139,18 +139,24 @@ redeploy() { # $1 phase  $2 release id   -> sets DEPLOYED
   mark "$1-end"
 }
 
-say "0. Is the control plane up?"
-curl -sS -m 5 -o /dev/null "$API/v1/me" \
-  || fail "no control plane at $API. README's 'Running the control plane' has the exact
-commands — and check the boot line says {\"driver\":\"docker\"}, because every claim
-this demo makes is meaningless against the fake one."
+say "0. Is the control plane up, through the edge?"
+# The ANSWER, not that an answer arrived: through the edge a stopped control plane is
+# Caddy's empty 502, and a source the console refuses is a 403 with a body of its own —
+# `curl -o /dev/null` passed both (P5a Task 3).
+UP="$(curl -sS -m 5 "$API/v1/me" 2>&1 || true)"
+case "$UP" in
+  *'"UNAUTHENTICATED"'*) echo "  $API answered" ;;
+  *) fail "no control plane behind $API (got: ${UP:0:120}).
+README's 'Running the control plane' has the exact commands — and check the boot line
+says {\"driver\":\"docker\"} and \"origin\":\"$ORIGIN\", because every claim this demo
+makes is meaningless against the fake driver or another origin." ;;
+esac
 MASTER="$(sed -n 's/^LITELLM_MASTER_KEY=//p' .env)"
 [ -n "$MASTER" ] || fail "no LITELLM_MASTER_KEY in .env to read LiteLLM's keys with"
-echo "  $API answered"
 
 say "1. Log in to Manifest itself with CWL (§9: Manifest is its own SP)"
-idp_login "$CP_JAR" "$IDP_CP_JAR" "$API/auth/login" instructor instructor \
-  "$API/auth/saml/callback" "$CA"
+idp_login "$CP_JAR" "$IDP_CP_JAR" "$ORIGIN/auth/login" instructor instructor \
+  "$ORIGIN/auth/saml/callback" "$CA"
 
 say "2. The proof app, deployed and healthy — the instance every later phase replaces"
 proof_app_project
@@ -161,7 +167,9 @@ BASE_RELEASE="$RELEASE_ID"
 BASE_INSTANCE="$(api GET "/v1/environments/$ENV_ID" | field instance.id)"
 
 say "3. Subscribe to the project's event stream"
-node scripts/lib/event-stream.mjs watch "$API" "$PROJECT_ID" "$CP_JAR" "$FRAMES" &
+# NODE_EXTRA_CA_CERTS: the stream is wss:// through the edge since P5a Task 3, and Node
+# does not read the keychain (S7).
+NODE_EXTRA_CA_CERTS="$CA" node scripts/lib/event-stream.mjs watch "$API" "$PROJECT_ID" "$CP_JAR" "$FRAMES" &
 WATCHER=$!
 for _ in $(seq 1 40); do
   grep -qF '"manifest.stream.ready"' "$FRAMES" && break

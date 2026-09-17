@@ -307,6 +307,10 @@ console.log(
   JSON.stringify({
     driver: driver.name,
     port: config.port,
+    // Where a person reaches it (P5a Task 3): the edge's console origin by default. A
+    // demo reads this before it signs in, because a control plane booted at another
+    // origin registers an ACS the IdP will post to instead.
+    origin: config.sp.origin,
     // The other fact this file decides. Read back by boot.docker.test.ts.
     ai: catalogue.enabled ? 'enabled' : 'disabled',
     // What the recovery above did, on the one line an operator reads — and the one

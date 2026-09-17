@@ -33,12 +33,18 @@ trap 'rm -f "$JAR"' EXIT
 say()  { printf '\n\033[1m%s\033[0m\n' "$*"; }
 fail() { printf '\n\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 
-say "0. Is the control plane up?"
-curl -sS -m 5 -o /dev/null "$API/v1/me" \
-  || fail "no control plane at $API. README's 'Running the control plane' has the
-exact commands — and check the boot line says {\"driver\":\"docker\"}, because
-every claim this demo makes is meaningless against the fake one."
-echo "  $API answered"
+say "0. Is the control plane up, through the edge?"
+# The ANSWER, not that an answer arrived: through the edge a stopped control plane is
+# Caddy's empty 502, and a source the console refuses is a 403 with a body of its own —
+# `curl -o /dev/null` passed both (P5a Task 3).
+UP="$(curl -sS -m 5 "$API/v1/me" 2>&1 || true)"
+case "$UP" in
+  *'"UNAUTHENTICATED"'*) echo "  $API answered" ;;
+  *) fail "no control plane behind $API (got: ${UP:0:120}).
+README's 'Running the control plane' has the exact commands — and check the boot line
+says {\"driver\":\"docker\"} and \"origin\":\"$ORIGIN\", because every claim this demo
+makes is meaningless against the fake driver or another origin." ;;
+esac
 
 say "1. Log in with CWL, against the Manifest IdP"
 # THE REAL THING. `POST /auth/dev-login` used to be here — an unauthenticated
@@ -50,8 +56,8 @@ IDP_JAR="$(mktemp -t manifest-demo-idp-jar)"
 trap 'rm -f "$JAR" "$IDP_JAR"' EXIT
 CA="$ROOT/$CA_FILE"
 
-idp_login "$JAR" "$IDP_JAR" "$API/auth/login" instructor instructor \
-  "$API/auth/saml/callback" "$CA"
+idp_login "$JAR" "$IDP_JAR" "$ORIGIN/auth/login" instructor instructor \
+  "$ORIGIN/auth/saml/callback" "$CA"
 
 # The SHAPE of the answer, not that a request succeeded: a session cookie that
 # authenticates nobody would carry this demo three steps further before failing.

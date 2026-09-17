@@ -15,6 +15,18 @@ EDGE_IP="127.0.0.2"       # the lo0 alias Caddy binds, so Valet keeps 127.0.0.1
 # that is identical from the host, from a container and from `curl` — C1's bar.
 IDP_HOST="idp.${ZONE}"
 
+# §21 (P5a Task 3): the reference console and the API share ONE origin, through the edge.
+CONSOLE_HOST="console.${ZONE}"
+# The one source that origin accepts: the platform network's GATEWAY, which is where the
+# host's requests reach the edge from (measured 2026-09-16, P5a Task 1 M2). App networks
+# are subnets Docker chooses, so the site allows this address rather than refusing theirs.
+# `make verify` holds it equal to the network's real gateway and to the Caddyfile.
+HOST_SOURCE_IP="10.89.0.1"
+# The name `make verify` probes the edge's WILDCARD with. A reserved label (§23,
+# environments and infrastructure) that no Caddyfile site names, so the placeholder
+# answers it on every machine for ever — which `console.` stopped being in P5a Task 3.
+EDGE_PROBE_HOST="edge.${ZONE}"
+
 # The LiteLLM digest, read from infra/images.lock — the one place digests live.
 #
 # It is pinned by DIGEST rather than by tag because `ghcr.io/berriai/litellm:

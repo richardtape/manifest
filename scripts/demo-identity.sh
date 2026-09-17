@@ -55,16 +55,22 @@ trap cleanup EXIT
 say()  { printf '\n\033[1m%s\033[0m\n' "$*"; }
 fail() { printf '\n\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 
-say "0. Is the control plane up?"
-curl -sS -m 5 -o /dev/null "$API/v1/me" \
-  || fail "no control plane at $API. README's 'Running the control plane' has the
-exact commands — and check the boot line says {\"driver\":\"docker\"}, because
-every claim this demo makes is meaningless against the fake one."
-echo "  $API answered"
+say "0. Is the control plane up, through the edge?"
+# The ANSWER, not that an answer arrived: through the edge a stopped control plane is
+# Caddy's empty 502, and a source the console refuses is a 403 with a body of its own —
+# `curl -o /dev/null` passed both (P5a Task 3).
+UP="$(curl -sS -m 5 "$API/v1/me" 2>&1 || true)"
+case "$UP" in
+  *'"UNAUTHENTICATED"'*) echo "  $API answered" ;;
+  *) fail "no control plane behind $API (got: ${UP:0:120}).
+README's 'Running the control plane' has the exact commands — and check the boot line
+says {\"driver\":\"docker\"} and \"origin\":\"$ORIGIN\", because every claim this demo
+makes is meaningless against the fake driver or another origin." ;;
+esac
 
 say "1. Log in to Manifest itself with CWL (§9: Manifest is its own SP)"
-idp_login "$CP_JAR" "$IDP_CP_JAR" "$API/auth/login" instructor instructor \
-  "$API/auth/saml/callback" "$CA"
+idp_login "$CP_JAR" "$IDP_CP_JAR" "$ORIGIN/auth/login" instructor instructor \
+  "$ORIGIN/auth/saml/callback" "$CA"
 WHO="$(api GET /v1/me | field puid)"
 [ "$WHO" = ins000001 ] || fail "logged in to the control plane as '$WHO', expected ins000001"
 echo "  session for $WHO"

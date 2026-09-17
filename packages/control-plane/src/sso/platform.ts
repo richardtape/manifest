@@ -19,13 +19,13 @@ import { renderSpMetadata, upsertSpRow } from './metadata-store.js'
  * thing that differs is where the entity comes from.
  *
  * **Why the entity is built here and not by `deriveSpEntity`.** That function is
- * for APPS: it joins a Manifest §23 hostname to an app-supplied path and always
- * over `https`. The control plane is a host process on 7100 (§21) that the edge
- * does not route, so its ACS is the one Manifest ACS that is not an
- * `https://….manifest.internal` URL. Feeding it through `deriveSpEntity` would
- * mean loosening the function that exists to make a free-text ACS URL
- * impossible — §9 calls that an assertion-phishing primitive — for the benefit
- * of the single caller that does not need it.
+ * for APPS: it joins a Manifest §23 hostname to an app-supplied path. The control plane
+ * is not an app — it has no slug, no environment kind and no project row — and since
+ * P5a Task 3 its origin is `https://console.manifest.internal`, served through the edge
+ * (§21). The Docker tier still boots it at loopback origins, which `deriveSpEntity`
+ * would rightly refuse, and loosening the function that makes a free-text ACS URL
+ * impossible — §9 calls that an assertion-phishing primitive — for one caller that does
+ * not need it would be the wrong trade.
  */
 
 /** §9's `{slug}` position. Not a project; no `projects` row has this slug. */
@@ -58,8 +58,9 @@ export interface ControlPlaneSpInput {
   /** §9's `{platform-domain}` — `config.idp.spEntityBase`. */
   entityBase: string
   /**
-   * Where the control plane actually answers. `http://127.0.0.1:7100` locally,
-   * `https://manifest.ubc.ca` at UBC. A bare origin: scheme, host, no path.
+   * Where the control plane is reached. `https://console.manifest.internal` locally,
+   * through the edge (P5a Task 3), and the console's production origin at UBC. The
+   * Docker tier uses loopback origins. A bare origin: scheme, host, no path.
    */
   origin: string
 }
@@ -77,7 +78,7 @@ export function controlPlaneSpEntity(input: ControlPlaneSpInput): SpEntity {
     throw new SsoError(
       'SSO_CONTROL_PLANE_ORIGIN_INVALID',
       `'${input.origin}' is not a bare origin (MANIFEST_CONTROL_PLANE_ORIGIN, e.g. ` +
-        'http://127.0.0.1:7100 — scheme and host, no path and no trailing slash). ' +
+        'https://console.manifest.internal — scheme and host, no path and no trailing slash). ' +
         'Every URL the IdP is told to send a person to is built from this one.',
     )
   }

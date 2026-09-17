@@ -1062,6 +1062,43 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   nothing serving; `retire.test.ts` and the driver contract's serving refusal are the tests, and a
   staged boot with no `Route` record after an edge restart removed the app within a second with
   both guards gone.
+- **`console.manifest.internal` refuses every source but the host — by design.** Since P5a Task 3 it is
+  the API's origin: a Caddyfile site that forwards `/v1/*` and `/auth/*` to the control plane on the host
+  and answers everything else with `manifest console: not built yet`, inside a `route` that first refuses
+  `not remote_ip 10.89.0.1/32` with **`403 manifest: the control plane is not reachable from this
+  network`**. A container on `manifest-platform` gets that body, and so does a deployed app (S6 probe 15).
+  So **`make verify`'s edge probes moved to `edge.manifest.internal`**, a reserved label no site names,
+  which the wildcard answers everywhere — and `scripts/offline-acceptance.sh`'s C1 parity step with them.
+  **After `pnpm test:docker`, restart the control plane**: the tier re-registers the platform's SP row at a
+  loopback ACS, and a sign-in through the console then fails at `idp_login`'s ACS comparison until the
+  boot puts it back.
+- **Saving `infra/caddy/Caddyfile` can leave the edge unable to see it at all.** It is a SINGLE-FILE bind
+  mount, bound to the file's inode, and a save that writes a new file and renames it over the old one —
+  the agent's edit tool did, and so does `git checkout` — leaves `manifest-caddy` on the deleted inode:
+  measured 2026-09-16 (P5a sitting 2), `/etc/caddy/Caddyfile` was *No such file or directory* inside the
+  container and `make up` exited 1 at the reload. **`infra/lib/ensure-caddy-config.sh` now compares the
+  hash the edge reads with the host's and restarts the edge to re-bind when they differ**, then fails
+  loudly if a restart did not fix it. The same shape would hit any other single-file mount —
+  `infra/litellm/config.yaml` is one.
+- **Every Caddy admin-API change reloads the WHOLE config, and a reload closes every WebSocket the old
+  config proxied with `1001 Going Away`** — unless its `reverse_proxy` sets `stream_close_delay`.
+  Measured 2026-09-16 (P5a sitting 2): one PUT of an unrelated route closed an event stream through the
+  console in under 3 s, and `make demo-ai` failed at step 5 with `1001`, because a deploy moves routes.
+  The console site now sets `stream_close_delay 1h`, and with it the same stream survived a PUT and a
+  DELETE and `make demo-ai` was green. **An app's own WebSockets are NOT covered**: `routing/`'s runtime
+  routes carry no delay, so any deploy anywhere closes every app's proxied WebSockets — named, not fixed.
+- **An app container's PID 1 is `node`, which never reaps the orphans it adopts — and no init is set.**
+  Measured 2026-09-16 on `node:22-alpine` with `--pids-limit 64`: twenty backgrounded `sleep 2`s from an
+  exited `sh` stayed in state `Z` under ppid 1, holding their pids; after `s6.docker.test.ts` probe 11's
+  fork loop, `pids.current` was still 64 seventeen seconds on and `docker exec … node` could not start at
+  all. So **any S6 probe that execs into the app must run BEFORE probe 11** (probe 15's placement says
+  why), and an app whose children leave grandchildren behind slowly spends its `PidsLimit`. `Init: true`
+  on the container would reap them; it is not set — named, not fixed.
+- **`make demo-redeploy`'s *a question in flight when the route moved* can fail by chance.** Measured
+  2026-09-16 (P5a sitting 2): the same-release move landed at +1367 ms, in the 47 ms between one
+  question's answer (+1331) and the next one's start (+1378), so no question spanned it and the run was
+  23 of 24; the re-run was 24 of 24. Read `acrossMoveMs` in that phase's summary before treating the
+  assertion as a regression.
 - **`make verify` straight after `make reset && make up` fails *the events table is append-only by
   GRANT*** (47 checks, 1 failed) until `pnpm --filter @manifest/control-plane db:migrate` runs —
   the reset leaves the database empty. Measured 2026-09-16; not a defect in the grant.
