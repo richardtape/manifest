@@ -114,6 +114,19 @@ describe('isSensitiveDiff (§7, D9)', () => {
     expect(isSensitiveDiff(before, after)).toEqual({ sensitive: false, fields: [] })
   })
 
+  it('does not escalate on a service whose KEYS arrive in another order (P5a sitting 6)', () => {
+    // The route compares the previous spec READ BACK FROM jsonb, which stores an object's
+    // keys by length and then bytes — `{name, type, version}` — with one zod has just
+    // parsed in schema order, `{type, version, name}`. Measured: every re-validation of a
+    // manifest declaring a service reported `services` as a sensitive change.
+    const parsed = base({ services: [{ type: 'mongo', version: '7', name: 'db' }] })
+    const fromJsonb = {
+      ...parsed,
+      services: [{ name: 'db', type: 'mongo', version: '7' }],
+    } as ManifestSpec
+    expect(isSensitiveDiff(fromJsonb, parsed)).toEqual({ sensitive: false, fields: [] })
+  })
+
   it('reports every changed field, not just the first', () => {
     const after = base({
       services: [{ type: 'mongo', version: '7', name: 'db' }],

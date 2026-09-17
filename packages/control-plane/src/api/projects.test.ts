@@ -384,6 +384,50 @@ describe('POST /v1/projects/:id/spec', () => {
     await app.close()
   })
 
+  it('reports NO sensitive diff for an unchanged manifest that declares a service (P5a sitting 6)', async () => {
+    // Through the database, because that is where the shape changes: the previous spec is
+    // read back from jsonb, whose key order is not zod's.
+    const { app, deps, session } = await loggedIn()
+    const created = await app.inject({
+      ...create('chem-labs'),
+      cookies: { manifest_session: session },
+      headers: mutationHeaders(deps),
+    })
+    const projectId = created.json().id as string
+    await deps.source.commitFiles(
+      deps.source.repositoryFor('chem-labs'),
+      {
+        'manifest.yaml': [
+          'manifest: 1',
+          'name: chem-labs',
+          'blueprint: fixture-node@1',
+          'runtime:',
+          '  port: 3000',
+          '  health: /healthz',
+          'services:',
+          '  - name: db',
+          '    type: mongo',
+          '    version: "7"',
+          '',
+        ].join('\n'),
+      },
+      'feat: declare a database',
+    )
+    const validate = () =>
+      app.inject({
+        method: 'POST',
+        url: `/v1/projects/${projectId}/spec`,
+        payload: {},
+        cookies: { manifest_session: session },
+        headers: mutationHeaders(deps),
+      })
+    expect((await validate()).json().sensitiveDiff.sensitive).toBe(true)
+    const again = await validate()
+    expect(again.statusCode).toBe(201)
+    expect(again.json().sensitiveDiff).toEqual({ sensitive: false, fields: [] })
+    await app.close()
+  })
+
   it('records an INVALID manifest as a row rather than throwing it away', async () => {
     const { app, deps, session } = await loggedIn()
     const created = await app.inject({

@@ -18,7 +18,24 @@ export const SENSITIVE_FIELDS = [
 
 export type SensitiveField = (typeof SENSITIVE_FIELDS)[number]
 
-const stable = (value: unknown): string => JSON.stringify(value)
+/**
+ * A serialisation that ignores the ORDER OF AN OBJECT'S KEYS, at every depth. The route
+ * compares the previous spec as Postgres's jsonb hands it back — keys by length, then
+ * bytes, `{name, type, version}` — with one zod has just parsed in schema order,
+ * `{type, version, name}`, and a plain `JSON.stringify` called every re-validation of a
+ * manifest declaring a service a sensitive change (P5a sitting 6, measured through the
+ * route). Array order is kept: the callers sort what should not depend on it.
+ */
+const stable = (value: unknown): string =>
+  JSON.stringify(value, (_key, v: unknown) =>
+    v !== null && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(
+          Object.entries(v as Record<string, unknown>).sort(([a], [b]) =>
+            a < b ? -1 : a > b ? 1 : 0,
+          ),
+        )
+      : v,
+  )
 
 /** Order-insensitive comparison — reordering a list is not a change of intent. */
 const sameSet = (a: readonly string[], b: readonly string[]): boolean =>
