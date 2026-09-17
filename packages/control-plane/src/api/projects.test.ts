@@ -372,7 +372,7 @@ describe('the slug check and creation agree (§23, P5a Task 9)', () => {
       url: '/v1/slugs/journey-app',
       cookies,
     })
-    expect({ status: limited.statusCode, code: limited.json().error.code }).toEqual({
+    expect({ status: limited.statusCode, code: limited.json().error?.code }).toEqual({
       status: 429,
       code: 'RATE_LIMITED',
     })

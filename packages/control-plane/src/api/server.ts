@@ -3,7 +3,11 @@ import cookie from '@fastify/cookie'
 import websocket from '@fastify/websocket'
 import type { EventBus } from '../observability/index.js'
 import { registerEventRoutes } from './routes/events.js'
-import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify'
+import Fastify, {
+  type FastifyInstance,
+  type FastifyReply,
+  type FastifyRequest,
+} from 'fastify'
 import type { Db } from '../db/index.js'
 import type { Config } from '../config.js'
 import type { Driver } from '../runtime/index.js'
@@ -114,7 +118,20 @@ const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 export { requireActor } from './actor.js'
 
 export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
-  const app = Fastify({ logger: false })
+  const app = Fastify({
+    logger: false,
+    /**
+     * The two refusals Fastify's ROUTER sends itself — a malformed URL and a path parameter
+     * over its 100-character limit — never reach `setErrorHandler` unless they are handed
+     * over here. Without this both answered Fastify's own body, not the D23.7 envelope,
+     * quoting the caller's path back (P5a sitting 6, measured on GET /v1/slugs/{slug}).
+     */
+    frameworkErrors: (error, _request, reply) => {
+      const { status, body } = toErrorResponse(error)
+      // Typed loosely by Fastify here (no route, so no reply schema to resolve against).
+      void (reply as FastifyReply).status(status).send(body)
+    },
+  })
   await app.register(cookie)
   // Before any route: its `onRoute` hook is what turns a route with a `wsHandler` into
   // one that can upgrade, and a hook added after a route never sees that route.

@@ -109,7 +109,7 @@ function frameworkRefusal(
       error: {
         code: 'REQUEST_INVALID',
         message:
-          'the request could not be read as sent: an empty or malformed body, or a malformed URL',
+          'the request could not be read as sent: an empty or malformed body, or a URL the router cannot read (malformed, or a path segment over 100 characters)',
         hint: 'Send a well-formed JSON body with Content-Type: application/json.',
       },
     },

@@ -200,4 +200,30 @@ describe('the framework’s own refusals answer with registered codes (§20, D23
       await app.close()
     }
   })
+
+  /**
+   * Two refusals Fastify's ROUTER sends itself, before a route or `setErrorHandler` —
+   * unless the server passes `frameworkErrors`. Measured (P5a sitting 6): a path parameter
+   * over 100 characters answered `414 {"error":"Bad Request","code":"FST_ERR_MAX_PARAM_LENGTH",
+   * "message":"'/v1/slugs/aaaa…' is exceeding the max param length"}` — no envelope, no
+   * registered code, the caller's path quoted back — and a malformed URL the same way.
+   */
+  it('answers a URL the router cannot read in the envelope, with a registered code', async () => {
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const cookies = await loginAs(deps, 'bio_prof')
+    try {
+      for (const url of [`/v1/slugs/${'a'.repeat(101)}`, '/v1/projects/%E0%A4%A']) {
+        const res = await app.inject({ method: 'GET', url, cookies })
+        expect({ url, status: res.statusCode, body: res.json() }).toEqual({
+          url,
+          status: 400,
+          body: { error: expect.objectContaining({ code: 'REQUEST_INVALID' }) },
+        })
+        expect(res.body).not.toContain('aaaaaaaaaa')
+      }
+    } finally {
+      await app.close()
+    }
+  })
 })
