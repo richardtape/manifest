@@ -12,7 +12,7 @@
 import express from 'express'
 import passport from 'passport'
 import { MongoClient } from 'mongodb'
-import { configureCwl, logoutUrl } from './auth/ubcshib.js'
+import { configureCwl } from './auth/ubcshib.js'
 import { sessionMiddleware } from './auth/session.js'
 import { AI_ENABLED, configureAi } from './ai/llm.js'
 
@@ -131,14 +131,10 @@ if (CWL_ENABLED) {
   // endpoint it did not answer — invisible today because nothing initiates
   // IdP-side single logout, and a 404 in front of a real person the moment
   // anything does. Change it in manifest.yaml (`auth.logout`), never here.
-  app.get('/auth/logout', (req, res) => {
-    req.logout(() => {
-      // Ends the IdP's session too, and comes back to this app's own base URL —
-      // §8 injects both, so neither origin is written down here.
-      const returnTo = encodeURIComponent(required('MANIFEST_APP_URL'))
-      res.redirect(`${logoutUrl()}?ReturnTo=${returnTo}`)
-    })
-  })
+  // It is also where the IdP delivers its own LogoutRequest — `cwl.logout` answers both.
+  // Ends the IdP's session too, and comes back to this app's own base URL — §8 injects
+  // both, so neither origin is written down here.
+  app.get('/auth/logout', cwl.logout(required('MANIFEST_APP_URL')))
 }
 
 /** The signed-in user, bridged to friendly names by auth/attributes.js. */

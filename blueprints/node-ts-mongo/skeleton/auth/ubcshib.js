@@ -71,6 +71,12 @@ export function configureCwl() {
         // which 404 against the 2.x IdP Manifest runs, and that is why §8 makes
         // this variable mandatory rather than optional.
         entryPoint: required('SAML_ENTRY_POINT'),
+        // PASSED, like the entry point, and for the same reason: left out, the library
+        // takes UBC_CONFIG[env].logoutUrl — for LOCAL, a SimpleSAMLphp 1.x path on the
+        // CONTAINER'S OWN loopback — and passport-saml addresses its LogoutResponse to it,
+        // as the redirect target and as the message's Destination. Unused until the IdP's
+        // single logout could reach an app at all (2026-09-16), which is why it hid.
+        logoutUrl: required('SAML_LOGOUT_URL'),
         issuer: required('SAML_ISSUER'),
         // The REGISTERED ACS URL, injected. Not rebuilt here from
         // MANIFEST_APP_URL and a path: the IdP POSTs the assertion to whatever
@@ -140,6 +146,31 @@ export function configureCwl() {
     login: passport.authenticate('ubcshib'),
     /** Mount at `auth.callback` — a POST, because SAML uses HTTP-POST binding. */
     callback: passport.authenticate('ubcshib', { failureRedirect: '/login/failed' }),
+    /**
+     * Mount at `auth.logout`, and pass the app's own base URL (MANIFEST_APP_URL).
+     *
+     * TWO ENDPOINTS IN ONE, because the platform registers this path as the app's
+     * SingleLogoutService. A person's "Sign out" arrives with no SAML message: end the
+     * app's session and send them to the IdP, which ends ITS session and returns them to
+     * `returnTo`. On the way, the IdP delivers its own LogoutRequest HERE, as
+     * `?SAMLRequest=` — and that one must be ANSWERED: the strategy validates it,
+     * ends the session, and redirects back with a LogoutResponse, after which the IdP
+     * finishes and sends the person home. Measured 2026-09-16 in a browser: treating the
+     * IdP's request as a new "Sign out" bounced between the two forever, and before that
+     * the IdP refused every app's ReturnTo — so no app had ever signed anybody out.
+     *
+     * The strategy accepts an UNSIGNED LogoutRequest (passport-saml checks a signature
+     * only when one is present). Its worst case is signing somebody out, which the plain
+     * GET above already allows; named, not fixed.
+     */
+    logout: (returnTo) => {
+      const answerTheIdp = passport.authenticate('ubcshib')
+      const toIdp = `${logoutUrl()}?ReturnTo=${encodeURIComponent(returnTo)}`
+      return (req, res, next) => {
+        if (req.query.SAMLRequest) return answerTheIdp(req, res, next)
+        req.logout(() => res.redirect(toIdp))
+      }
+    },
   }
 }
 

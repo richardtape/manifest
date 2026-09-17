@@ -32,6 +32,31 @@ app() {
   curl "${args[@]}" "$APP_URL$path"
 }
 
+# Signs the person in jars $1 (the app's) and $2 (the IdP's) OUT, as a browser does: GET the
+# app's /auth/logout and follow every redirect, sending each host its own cookies, until one
+# answers without a redirect. Prints where it landed; fails naming the IdP's reason if a hop
+# refuses — SimpleSAMLphp refuses a ReturnTo it does not trust with `500 URL not allowed`.
+proof_app_sign_out() {
+  local app_jar="$1" idp_jar="$2" url="$APP_URL/auth/logout" jar out code next hops=0 body
+  body="$(mktemp -t mf-slo-body)"
+  while :; do
+    hops=$((hops + 1))
+    [ "$hops" -le 8 ] || { rm -f "$body"; fail "signing out took more than 8 redirects — a loop between the app and the IdP. Last: $url"; }
+    case "$url" in "https://idp.$ZONE/"*) jar="$idp_jar" ;; *) jar="$app_jar" ;; esac
+    out="$(curl -sS --cacert "$CA" -b "$jar" -c "$jar" -o "$body" -w '%{http_code} %{redirect_url}' "$url")"
+    code="${out%% *}"; next="${out#* }"
+    if [ "$code" -ge 400 ]; then
+      local why; why="$(grep -o 'URL not allowed[^<]*' "$body" | head -1)"; rm -f "$body"
+      fail "signing out stopped at $code on $url
+  ${why:-(no reason in the page; read docker logs manifest-idp)}"
+    fi
+    [ -n "$next" ] || break
+    url="$next"
+  done
+  rm -f "$body"
+  echo "$url"
+}
+
 # Creates the project — three environments and a bare repository — or reuses it:
 # both demos are re-runnable by design.
 proof_app_project() {

@@ -174,6 +174,29 @@ printf '%s' "$STU_AFTER" | grep -qF "$NOTE" \
 echo "  the instructor reads their own note and not the student's"
 echo "  the student reads their own note and not the instructor's"
 
+say "9. Sign the STUDENT out — and sign the INSTRUCTOR in, in the SAME browser"
+# What a person at a shared lab machine does. Three things must all be true, and each has
+# been false (2026-09-16): signing out must END WHERE IT STARTED — on the app, not on an IdP
+# error page (it was `500 URL not allowed`, because the IdP trusted no app's ReturnTo); the
+# APP must forget them; and the IdP must forget them too — otherwise the next "Sign in" is
+# answered with no password, as the person who just left. So the instructor signs in
+# through the student's own two cookie jars.
+LANDED="$(proof_app_sign_out "$STU_JAR" "$IDP_STU_JAR")"
+[ "${LANDED%/}" = "$APP_URL" ] || fail "signing out landed on $LANDED, not back on $APP_URL"
+[ "$(curl -sS --cacert "$CA" -b "$STU_JAR" -o /dev/null -w '%{http_code}' "$APP_URL/api/me")" = 401 ] \
+  || fail "the app still has a session for the student after signing out"
+echo "  signed out, back on $LANDED, and /api/me answers 401"
+AGAIN="$(curl -sS --cacert "$CA" -b "$STU_JAR" -c "$STU_JAR" -o /dev/null -w '%{redirect_url}' "$APP_URL/login")"
+curl -sS --cacert "$CA" -b "$IDP_STU_JAR" -c "$IDP_STU_JAR" -L "$AGAIN" | grep -q 'name="username"' \
+  || fail "THE IdP SIGNED THE STUDENT STRAIGHT BACK IN. The app forgot them, but the IdP
+session outlived the sign-out, so the next person at this browser is the student without a
+password. Its single logout did not run — read docker logs manifest-idp."
+idp_login "$STU_JAR" "$IDP_STU_JAR" "$APP_URL/login" instructor instructor \
+  "$APP_URL/auth/ubcshib/callback" "$CA"
+SAME="$(app "$STU_JAR" GET /api/me | field attributes.ubcEduCwlPuid)"
+[ "$SAME" = ins000001 ] || fail "the same browser is '$SAME' after the instructor signed in, not ins000001"
+echo "  the IdP asked for a password again, and the same browser is now the instructor"
+
 say "Done."
 cat <<SUMMARY
   $APP_URL         from your browser — no port, no -k

@@ -14,7 +14,7 @@ import { dirname, join } from 'node:path'
 import express from 'express'
 import passport from 'passport'
 import { MongoClient } from 'mongodb'
-import { configureCwl, logoutUrl } from './auth/ubcshib.js'
+import { configureCwl } from './auth/ubcshib.js'
 // Sessions in this app's own Mongo — the BLUEPRINT's module, for the reason every other
 // import from the skeleton is one: a second copy of session handling drifts.
 import { sessionMiddleware } from './auth/session.js'
@@ -114,12 +114,9 @@ if (CWL_ENABLED) {
   // The path `auth.logout` declares, which is what the platform wrote into this
   // app's SingleLogoutService. The blueprint's default is `/auth/logout`, so
   // that is the path served.
-  app.get('/auth/logout', (req, res) => {
-    req.logout(() => {
-      const returnTo = encodeURIComponent(required('MANIFEST_APP_URL'))
-      res.redirect(`${logoutUrl()}?ReturnTo=${returnTo}`)
-    })
-  })
+  // It is also where the IdP delivers its own LogoutRequest — `cwl.logout` answers both
+  // (the blueprint's auth/ubcshib.js says why).
+  app.get('/auth/logout', cwl.logout(required('MANIFEST_APP_URL')))
 }
 
 /** 401 rather than a redirect: everything below is an API a script drives. */
