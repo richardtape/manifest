@@ -1,0 +1,120 @@
+import { z } from 'zod/v4'
+import { environmentKind, instanceState } from '../db/index.js'
+import type { EventType } from './events.js'
+
+/**
+ * EVERY EVENT TYPE'S `machineDetail`, as a schema (P5a Decision 33). Enforced where events
+ * are written — `recordEvent` refuses a detail that does not parse — and published as the
+ * contract's EventFrame union, so a client switches on `type` and gets a typed payload, and
+ * the document cannot describe a shape nothing produces.
+ *
+ * **STRICT OBJECTS, so the document cannot under-describe either.** A representation's
+ * objects are `additionalProperties: false` in the document; a plain `z.object` would let a
+ * call site add a key the document says no client will ever see, and parsing would pass it.
+ * Refusing it — not stripping it, which would lose it from the audit trail with nothing
+ * saying so — makes the author of that call site add it here, where a client reads it.
+ *
+ * Validated BEFORE redaction. Redaction only rewrites strings, and nothing below constrains
+ * a string that a redactor could rewrite: an id is a UUID and a commit is hex, both of which
+ * the heuristics leave alone by design (`observability/redact.ts`). Adding an event type
+ * needs THREE things — this map, `EVENT_TYPES`, and the database's CHECK — and
+ * `events.test.ts` holds each pair equal.
+ *
+ * Read from the call sites on 2026-09-17: `sso/registration.ts`, `releases/build.ts`,
+ * `releases/release.ts`, `releases/retire.ts` and `api/routes/projects.ts`.
+ */
+const Kind = z.enum(environmentKind.enumValues)
+const Uuid = z.uuid()
+const Sha = z.string().regex(/^[0-9a-f]{40}$/)
+
+const InstanceDetail = z.strictObject({
+  instanceId: Uuid,
+  releaseId: Uuid,
+  environmentId: Uuid,
+  environment: Kind,
+  // The database's own enum, as the Instance representation reads it (P5a sitting 6).
+  state: z.enum(instanceState.enumValues),
+})
+
+/**
+ * `handle` is the driver's name for the container, which Decision 23 keeps out of an
+ * `Instance`. It is here because a container a crash or a truncated database left has NO
+ * row, and the handle is then the only thing naming what was removed — §14's trail matters
+ * most once the thing is gone. The event's `subject` carries it for the same reason.
+ */
+const RetireDetail = z.strictObject({
+  instanceId: Uuid.nullable(),
+  handle: z.string(),
+  environment: Kind,
+  drainMs: z.number().int().nonnegative(),
+})
+
+export const EVENT_DETAIL_SCHEMAS = {
+  'sso.registered': z.strictObject({
+    entityId: z.string(),
+    acsUrl: z.string(),
+    attributes: z.array(z.string()),
+    certificateFingerprint: z.string(),
+    changed: z.boolean(),
+  }),
+  'sso.acs_changed': z.strictObject({ from: z.string().nullable(), to: z.string() }),
+  'build.started': z.strictObject({
+    buildId: Uuid,
+    commitSha: Sha,
+    blueprintRef: z.string(),
+  }),
+  'build.succeeded': z.strictObject({
+    buildId: Uuid,
+    imageDigest: z.string().nullable(),
+    imageRepository: z.string().nullable(),
+  }),
+  'build.failed': z.strictObject({
+    buildId: Uuid,
+    code: z.string().nullable(),
+    reason: z
+      .string()
+      .describe(
+        'Redacted at capture (§14). For the agent; the human message is for a person.',
+      ),
+  }),
+  'instance.healthy': InstanceDetail,
+  'instance.failed': InstanceDetail.extend({ failedCheck: z.string() }),
+  'incident.opened': z.strictObject({
+    incidentId: Uuid,
+    instanceId: Uuid,
+    releaseId: Uuid,
+    environment: Kind,
+  }),
+  'ai.key_rotated': z.strictObject({
+    instanceId: Uuid,
+    environment: Kind,
+    models: z.array(z.string()),
+  }),
+  'instance.retiring': RetireDetail,
+  'instance.retired': RetireDetail,
+  'instance.retire_failed': RetireDetail.extend({
+    error: z.string().describe('A code or an error class name — never a message (§14).'),
+  }),
+  'project.created': z.strictObject({
+    slug: z.string(),
+    blueprint: z.string(),
+    starter: z.string().nullable(),
+    // §24's two answers. The same lists as the Audience representation, which this module
+    // cannot import; `api/stream-contract.test.ts` holds them equal.
+    audience: z.strictObject({
+      scale: z.enum(['solo', 'class', 'large_course', 'public']),
+      burst: z.enum(['steady', 'synchronised']),
+    }),
+  }),
+  'repository.seeded': z.strictObject({
+    commitSha: Sha,
+    files: z.number().int().positive(),
+    starter: z.string().nullable(),
+  }),
+  'spec.validated': z.strictObject({
+    appSpecId: Uuid,
+    commitSha: Sha,
+    valid: z.boolean(),
+    errorCount: z.number().int().nonnegative(),
+  }),
+} satisfies Record<EventType, z.ZodType>

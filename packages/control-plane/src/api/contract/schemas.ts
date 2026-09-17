@@ -26,6 +26,29 @@ export function request<T extends z.ZodType>(id: string, schema: T): T {
   return schema
 }
 
+export const component = (id: string): string => `#/components/schemas/${id}`
+
+/**
+ * A `$ref` to a registered schema. THE ID, not the metadata: zod 3.25.76's `registry.get`
+ * INHERITS from a schema's parent and deletes only the `id`, so a `.describe()` copy of a
+ * registered schema answers `{}` rather than `undefined` — and a check on the metadata alone
+ * emitted `"$ref": "#/components/schemas/undefined"` for it, silently (P5a sitting 4,
+ * measured).
+ */
+export function ref(
+  registry: typeof representations,
+  schema: z.ZodType,
+  what: string,
+): Record<string, unknown> {
+  const id = registry.get(schema)?.id
+  if (id === undefined) {
+    throw new Error(
+      `${what} is not registered — wrap it in representation() or request() with an id`,
+    )
+  }
+  return { $ref: component(id) }
+}
+
 export const Uuid = z.uuid()
 
 /** Never a `Date`: `z.date()` has no JSON Schema (Decision 3). Mappers call `toISOString()`. */

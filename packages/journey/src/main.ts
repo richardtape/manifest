@@ -3,7 +3,9 @@ import {
   createManifestClient,
   idempotencyKey,
   ManifestApiError,
+  subscribe,
   unwrap,
+  type StreamFrame,
 } from '@manifest/contract'
 import { Checks, JourneyStop } from './check.js'
 import { readState, writeState, type JourneyState } from './state.js'
@@ -29,7 +31,9 @@ if (
   process.exit(2)
 }
 
-const client = createManifestClient({ origin, session })
+// Narrowed by the guard above; a function below would see `string | undefined` again.
+const signedIn = { origin, session }
+const client = createManifestClient(signedIn)
 const checks = new Checks()
 const state: JourneyState = readState(statePath)
 
@@ -209,6 +213,80 @@ async function step2Create(): Promise<void> {
   )
 }
 
+/** `x-manifest-websocket.replay` in the document: how many events a new connection is sent. */
+const REPLAY = 50
+
+/**
+ * §22 step 3: watch provisioning — REPLAYED, because creation finished before anyone could
+ * subscribe (§14 carries provisioning since P5a's spec actions). Through the edge, with the
+ * session and the console's Origin on the upgrade (§20).
+ */
+async function step3WatchProvisioning(): Promise<void> {
+  checks.step('3. Watch provisioning on the project’s stream')
+  const projectId = checks.must('a project to watch', state.projectId)
+  const frames: StreamFrame[] = []
+  const stream = subscribe({
+    ...signedIn,
+    projectId,
+    onFrame: (frame) => frames.push(frame),
+  })
+  try {
+    await stream.ready
+  } catch (error) {
+    checks.ok('the stream became ready', false, (error as Error).message)
+    return
+  }
+  // What had arrived when the ready frame did: the replay, and the ready frame last.
+  const replay = [...frames]
+  stream.close()
+  checks.ok(
+    'the replay ended with the ready frame',
+    replay.at(-1)?.kind === 'control',
+    JSON.stringify(replay.at(-1)),
+  )
+  const events = replay.flatMap((f) => (f.kind === 'event' ? [f] : []))
+  checks.ok(
+    'every replayed event is this project’s',
+    events.every((f) => f.projectId === projectId),
+  )
+  const types = events.map((f) => f.type)
+  if (!types.includes('project.created') && events.length >= REPLAY) {
+    // A project built and deployed many times has pushed creation out of the newest 50;
+    // step 2 has already read it back through GET /v1/projects/{projectId}.
+    console.log(
+      `  (creation is older than the replay's ${REPLAY} newest events — step 2 read the project back instead)`,
+    )
+    return
+  }
+  const created = types.indexOf('project.created')
+  const seeded = types.indexOf('repository.seeded')
+  const validated = events.find((f) => f.type === 'spec.validated')
+  checks.ok(
+    'the replay carries project.created, repository.seeded and spec.validated, in order',
+    created >= 0 && seeded > created && types.indexOf('spec.validated') > seeded,
+    types.join(', '),
+  )
+  // Narrowed by `type` with no cast: the generated EventFrame is a union of one object type
+  // per event type, so `machineDetail` is spec.validated's own shape here.
+  checks.ok(
+    'the manifest was valid when it was seeded, and says at which commit',
+    validated?.type === 'spec.validated' &&
+      validated.machineDetail.valid &&
+      validated.machineDetail.errorCount === 0 &&
+      /^[0-9a-f]{40}$/.test(validated.machineDetail.commitSha),
+    JSON.stringify(validated?.machineDetail),
+  )
+  const creation = events.find((f) => f.type === 'project.created')
+  checks.ok(
+    'and creation says what it was made from, and for whom',
+    creation?.type === 'project.created' &&
+      creation.machineDetail.slug === 'journey-app' &&
+      creation.machineDetail.starter === 'proof-app' &&
+      creation.machineDetail.audience.scale === 'class',
+    JSON.stringify(creation?.machineDetail),
+  )
+}
+
 const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
   'before-app': [
     step1SignedIn,
@@ -216,6 +294,7 @@ const phases: Record<'before-app' | 'after-app', (() => Promise<void>)[]> = {
     step2aCheckTheName,
     step2bChooseABlueprint,
     step2Create,
+    step3WatchProvisioning,
   ],
   'after-app': [],
 }

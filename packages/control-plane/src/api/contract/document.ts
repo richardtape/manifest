@@ -2,14 +2,13 @@ import { z } from 'zod/v4'
 import type { ErrorCode } from '../error-codes.js'
 import { UNVERSIONED } from '../unversioned.js'
 import type { AnyRoute } from './route.js'
-import { representations, requests } from './schemas.js'
+import { component, ref, representations, requests } from './schemas.js'
+import { STREAM_PATH, streamPathItem } from './websocket.js'
 
 /** `@manifest/contract`'s version too; a test holds them equal from Task 7 (Decision 8). */
 export const CONTRACT_VERSION = '0.1.0'
 
 type JsonSchema = Record<string, unknown>
-
-const component = (id: string): string => `#/components/schemas/${id}`
 
 /** Codes EVERY `/v1` operation can answer, and every mutation besides. */
 const EVERY_ROUTE: readonly ErrorCode[] = [
@@ -55,26 +54,6 @@ function components(): Record<string, JsonSchema> {
       .sort()
       .map((id) => [id, strip(all[id]!)]),
   )
-}
-
-/**
- * THE ID, not the metadata. zod 3.25.76's `registry.get` INHERITS from a schema's parent
- * and deletes only the `id`, so a `.describe()` copy of a registered schema answers `{}`
- * rather than `undefined` — and a check on the metadata alone emitted
- * `"$ref": "#/components/schemas/undefined"` for it, silently (P5a sitting 4, measured).
- */
-function ref(
-  registry: typeof representations,
-  schema: z.ZodType,
-  what: string,
-): JsonSchema {
-  const id = registry.get(schema)?.id
-  if (id === undefined) {
-    throw new Error(
-      `${what} is not registered — wrap it in representation() or request() with an id`,
-    )
-  }
-  return { $ref: component(id) }
 }
 
 function parameters(route: AnyRoute): JsonSchema[] {
@@ -167,6 +146,14 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
     }
     ;(paths[route.path] ??= {})[route.method.toLowerCase()] = operation
   }
+  // D23.2's stream: documented, never defined — it upgrades, and defineRoute answers JSON
+  // (P5a Decision 34). Its path sorts among the others'.
+  paths[STREAM_PATH] = streamPathItem() as Record<string, JsonSchema>
+  const sortedPaths = Object.fromEntries(
+    Object.keys(paths)
+      .sort((a, b) => a.localeCompare(b))
+      .map((path) => [path, paths[path]!]),
+  )
 
   return {
     openapi: '3.1.0',
@@ -187,8 +174,10 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
       },
     ],
     security: [{ session: [] }],
-    tags: [...new Set(routes.map((r) => r.tag))].sort().map((name) => ({ name })),
-    paths,
+    tags: [...new Set([...routes.map((r) => r.tag), 'events'])]
+      .sort()
+      .map((name) => ({ name })),
+    paths: sortedPaths,
     components: {
       securitySchemes: {
         session: {

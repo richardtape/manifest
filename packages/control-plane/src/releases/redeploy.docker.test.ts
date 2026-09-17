@@ -29,6 +29,7 @@ import {
   destroyAppNetwork,
   dockerDriverForTests,
   egressContainer,
+  contractRepoCommit,
   ensureContractRepo,
   fixtureBareRepo,
   resolveSocketPath,
@@ -87,6 +88,7 @@ describeDocker('a redeploy through deployRelease (§11 Redeploys)', () => {
   let appSpecId: string
   /** The healthy tree, and a tree whose app exits before it listens. */
   let healthyRepo: string
+  let healthyCommit: string
   let crashingRepo: { repoPath: string; commitSha: string }
 
   const config = loadConfig({
@@ -231,6 +233,7 @@ describeDocker('a redeploy through deployRelease (§11 Redeploys)', () => {
     // this routing test measure a Mongo timeout (ORIENTATION §4).
     healthyRepo = join(tmpdir(), `mf-${SLUG}.git`)
     ensureContractRepo(healthyRepo)
+    healthyCommit = contractRepoCommit(healthyRepo)
     // …and an app that crashes before it listens, for R5. The readiness probe refuses
     // it, which is the commonest real failure and the one §14's Incident exists for.
     crashingRepo = fixtureBareRepo(join(tmpdir(), `mf-${SLUG}-crash.git`), {
@@ -321,7 +324,7 @@ describeDocker('a redeploy through deployRelease (§11 Redeploys)', () => {
   }, 300_000)
 
   it('replaces the instance under a request loop, then retires the old one with its files volume', async () => {
-    const releaseA = await releaseFrom(healthyRepo, 'abc123')
+    const releaseA = await releaseFrom(healthyRepo, healthyCommit)
     const first = await deploy(releaseA)
     expect(first.state).toBe('healthy')
     // §6's Route record — the platform's own answer to "what serves".
@@ -340,7 +343,7 @@ describeDocker('a redeploy through deployRelease (§11 Redeploys)', () => {
     // the platform's normal state.
     await startLoop()
     await new Promise((r) => setTimeout(r, 2000))
-    const releaseB = await releaseFrom(healthyRepo, 'abc123')
+    const releaseB = await releaseFrom(healthyRepo, healthyCommit)
     const second = await deploy(releaseB)
     await new Promise((r) => setTimeout(r, 1000))
     const seen = await stopLoop()
@@ -432,8 +435,8 @@ describeDocker('a redeploy through deployRelease (§11 Redeploys)', () => {
   }, 900_000)
 
   it('two deploys of one environment at once leave exactly one instance serving', async () => {
-    const releaseD = await releaseFrom(healthyRepo, 'abc123')
-    const releaseE = await releaseFrom(healthyRepo, 'abc123')
+    const releaseD = await releaseFrom(healthyRepo, healthyCommit)
+    const releaseE = await releaseFrom(healthyRepo, healthyCommit)
     const [a, b] = await Promise.all([deploy(releaseD), deploy(releaseE)])
     expect([a.state, b.state]).toEqual(['healthy', 'healthy'])
 

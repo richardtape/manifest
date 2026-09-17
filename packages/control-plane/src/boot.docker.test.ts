@@ -22,6 +22,7 @@ import {
   destroyAppNetwork,
   dockerDriverForTests,
   egressContainer,
+  contractRepoCommit,
   ensureContractRepo,
   REPO_ROOT,
   resolveSocketPath,
@@ -352,7 +353,7 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
         projectId: project.id,
         projectSlug: SLUG,
         appSpecId: spec!.id,
-        commitSha: 'abc123',
+        commitSha: contractRepoCommit(repoPath),
         blueprintRef: 'fixture-node@1',
         repoPath,
       })

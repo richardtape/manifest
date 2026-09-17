@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { events } from '../db/index.js'
 import { withProject } from '../db/testing.js'
 import {
+  EVENT_DETAIL_SCHEMAS,
   EVENT_TYPES,
   createEventBus,
   eventFrame,
@@ -12,7 +13,7 @@ import {
   type StreamFrame,
 } from './index.js'
 // Why a message match cannot stand in for this is on the helper itself.
-import { expectSqlState } from './testing.js'
+import { EXAMPLE_DETAILS, expectSqlState } from './testing.js'
 
 const IDENTITY = (value: unknown): unknown => value
 
@@ -26,7 +27,10 @@ describe('recordEvent (§14, §20)', () => {
           projectId,
           subject: 'instance:abc',
           type: 'instance.failed',
-          machineDetail: { stderr: 'connect failed: STUDENT-PII-CANARY' },
+          machineDetail: {
+            ...EXAMPLE_DETAILS['instance.failed'],
+            failedCheck: 'connect failed: STUDENT-PII-CANARY',
+          },
           humanMessage: 'Your app could not start.',
         },
         redact,
@@ -51,7 +55,7 @@ describe('recordEvent (§14, §20)', () => {
           projectId,
           subject: 'instance:abc',
           type: 'instance.failed',
-          machineDetail: {},
+          machineDetail: EXAMPLE_DETAILS['instance.failed'],
           humanMessage: 'Your app could not reach mongodb://app:hunter2xyz@db.',
         },
         makeRedactor(['hunter2xyz']),
@@ -74,7 +78,7 @@ describe('recordEvent (§14, §20)', () => {
             projectId,
             subject: 'sp:chem-labs:staging',
             type: 'sso.registered',
-            machineDetail: {},
+            machineDetail: EXAMPLE_DETAILS['sso.registered'],
             humanMessage: '   ',
           },
           IDENTITY,
@@ -94,7 +98,7 @@ describe('recordEvent (§14, §20)', () => {
             // @ts-expect-error — the point of the test is the runtime guard, which
             // is what a JS caller or a future JSON body would reach.
             type: 'sso.invented',
-            machineDetail: {},
+            machineDetail: EXAMPLE_DETAILS['sso.registered'],
             humanMessage: 'Something happened.',
           },
           IDENTITY,
@@ -111,7 +115,7 @@ describe('recordEvent (§14, §20)', () => {
           projectId,
           subject: 'sp:chem-labs:staging',
           type: 'sso.registered',
-          machineDetail: { entityId: 'https://manifest.internal/sp/chem-labs/staging' },
+          machineDetail: EXAMPLE_DETAILS['sso.registered'],
           humanMessage: 'Single sign-on was set up.',
         },
         IDENTITY,
@@ -120,6 +124,65 @@ describe('recordEvent (§14, §20)', () => {
       expect(event.createdAt).toBeInstanceOf(Date)
       expect(event.projectId).toBe(projectId)
     })
+  })
+
+  it('refuses an event whose machineDetail is not its type’s schema (P5a Task 12)', async () => {
+    await withProject(async (db, { projectId }) => {
+      await expect(
+        recordEvent(
+          db,
+          {
+            projectId,
+            subject: 'build:x',
+            type: 'build.started',
+            machineDetail: {
+              ...EXAMPLE_DETAILS['build.started'],
+              buildId: 'not-a-uuid',
+            },
+            humanMessage: 'Building.',
+          },
+          makeRedactor([]),
+        ),
+      ).rejects.toMatchObject({
+        code: 'EVENT_DETAIL_INVALID',
+        message: expect.stringContaining("'build.started'") as unknown,
+      })
+      // Refused before anything was written: the trail holds no half-described event.
+      expect(await db.select().from(events)).toEqual([])
+    })
+  })
+
+  it('refuses a field the schema does not name — the document would say it cannot exist', async () => {
+    // A representation's objects are `additionalProperties: false` in the document, so a
+    // key a call site adds without adding it to the schema is a shape the contract says no
+    // client will ever see. Stripping it would lose it from the audit trail silently;
+    // refusing it makes the call site's author say what it is.
+    await withProject(async (db, { projectId }) => {
+      await expect(
+        recordEvent(
+          db,
+          {
+            projectId,
+            subject: 'build:x',
+            type: 'build.failed',
+            machineDetail: { ...EXAMPLE_DETAILS['build.failed'], exitCode: 1 },
+            humanMessage: 'It could not be built.',
+          },
+          makeRedactor([]),
+        ),
+      ).rejects.toMatchObject({ code: 'EVENT_DETAIL_INVALID' })
+    })
+  })
+
+  it('has a detail schema for every event type, and no schema for a type that does not exist', () => {
+    expect(Object.keys(EVENT_DETAIL_SCHEMAS).sort()).toEqual([...EVENT_TYPES].sort())
+  })
+
+  it('accepts each test example — so a test borrowing one borrows a real event', () => {
+    const refused = EVENT_TYPES.filter(
+      (type) => !EVENT_DETAIL_SCHEMAS[type].safeParse(EXAMPLE_DETAILS[type]).success,
+    )
+    expect(refused).toEqual([])
   })
 })
 
@@ -148,7 +211,7 @@ describe('audit integrity (§20)', () => {
           projectId,
           subject: 's',
           type: 'sso.registered',
-          machineDetail: {},
+          machineDetail: EXAMPLE_DETAILS['sso.registered'],
           humanMessage: 'Registered.',
         },
         IDENTITY,
@@ -167,7 +230,7 @@ describe('audit integrity (§20)', () => {
           projectId,
           subject: 's',
           type: 'sso.registered',
-          machineDetail: {},
+          machineDetail: EXAMPLE_DETAILS['sso.registered'],
           humanMessage: 'Registered.',
         },
         IDENTITY,
@@ -189,7 +252,7 @@ describe('audit integrity (§20)', () => {
           projectId,
           subject: 's',
           type: 'sso.registered',
-          machineDetail: {},
+          machineDetail: EXAMPLE_DETAILS['sso.registered'],
           humanMessage: 'Registered.',
         },
         IDENTITY,
@@ -203,7 +266,7 @@ describe('audit integrity (§20)', () => {
           projectId,
           subject: 's',
           type: 'sso.registered',
-          machineDetail: {},
+          machineDetail: EXAMPLE_DETAILS['sso.registered'],
           humanMessage: 'Registered.',
         },
         IDENTITY,
@@ -264,7 +327,10 @@ describe('publishEvent — recorded, then streamed (P4b Task 15)', () => {
           projectId,
           subject: 'instance:abc',
           type: 'instance.failed',
-          machineDetail: { stderr: 'connect failed: STUDENT-PII-CANARY' },
+          machineDetail: {
+            ...EXAMPLE_DETAILS['instance.failed'],
+            failedCheck: 'connect failed: STUDENT-PII-CANARY',
+          },
           humanMessage: 'Your app could not start.',
         },
         makeRedactor(['STUDENT-PII-CANARY']),
@@ -289,7 +355,7 @@ describe('publishEvent — recorded, then streamed (P4b Task 15)', () => {
             projectId,
             subject: 's',
             type: 'sso.registered',
-            machineDetail: {},
+            machineDetail: EXAMPLE_DETAILS['sso.registered'],
             humanMessage: '   ',
           },
           IDENTITY,

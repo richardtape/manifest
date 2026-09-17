@@ -28,6 +28,7 @@ export {
   // on it measures a Mongo timeout. The blueprint skeleton serves `/healthz` on its
   // own, and this is the one function that turns it into a buildable bare repository.
   ensureContractRepo,
+  contractRepoCommit,
 } from './docker/testing.js'
 
 // `build/`'s Docker-tier suite drives the real engine (Task 12). It reaches the

@@ -63,6 +63,25 @@ describe('the OpenAPI document (§16 Contract, D23.8)', () => {
     expect(pkg.version).toBe(CONTRACT_VERSION)
   })
 
+  it('documents the event stream, and names the frame schema every message is (P5a Task 12)', () => {
+    const document = openApiDocument(ROUTE_DEFINITIONS) as {
+      paths: Record<string, { get?: Record<string, unknown> }>
+      components: { schemas: Record<string, unknown> }
+      tags: { name: string }[]
+    }
+    const stream = document.paths['/v1/projects/{projectId}/events']?.get
+    expect(stream?.['x-manifest-websocket']).toMatchObject({
+      frame: { $ref: '#/components/schemas/StreamFrame' },
+      replay: 50,
+      ready: 'manifest.stream.ready',
+    })
+    expect(stream?.operationId).toBe('streamProjectEvents')
+    expect(Object.keys(document.components.schemas)).toEqual(
+      expect.arrayContaining(['StreamFrame', 'EventFrame', 'LogFrame', 'ControlFrame']),
+    )
+    expect(document.tags.map((t) => t.name)).toContain('events')
+  })
+
   it('refuses a representation that is not registered', () => {
     const [first] = ROUTE_DEFINITIONS
     const unregistered = {

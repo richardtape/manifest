@@ -256,6 +256,20 @@ export function ensureContractRepo(repoPath = '/tmp/repo'): void {
 }
 
 /**
+ * The COMMIT the contract repository's `abc123` tag names — for a caller that records the
+ * commit where a client reads it. `startBuild` takes any tree-ish, but its `build.started`
+ * event carries a `commitSha` the contract says is 40 hex characters, because every real
+ * caller passes one (the builds route validates it, or reads the spec's); `recordEvent`
+ * refuses anything else (P5a Task 12).
+ */
+export function contractRepoCommit(repoPath = '/tmp/repo'): string {
+  return execFileSync('git', ['rev-parse', 'abc123^{commit}'], {
+    cwd: repoPath,
+    encoding: 'utf8',
+  }).trim()
+}
+
+/**
  * `fixtures/fixture-app` as a real bare repository at a real commit.
  *
  * Distinct from `ensureContractRepo`, which serves the contract suite's hardcoded

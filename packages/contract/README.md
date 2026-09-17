@@ -64,9 +64,46 @@ it), the `envelope` and the `operation`. `code` is `UNPARSEABLE` when the body w
 envelope at all: Caddy's empty `502` when the control plane is down, or the edge's refusal
 of a source it does not allow.
 
+## The event stream
+
+`WS /v1/projects/{projectId}/events` is how a client learns that anything changed — builds
+and their log lines, instance state, incidents, and every other audit event for the project
+(D23.2). OpenAPI cannot describe a WebSocket, so the document describes the handshake at
+that path and puts the conversation in `x-manifest-websocket`: every message is a
+**`StreamFrame`**, as JSON.
+
+```ts
+import { subscribe, type StreamFrame } from '@manifest/contract'
+
+const frames: StreamFrame[] = []
+const stream = subscribe({ origin, session, projectId, onFrame: (f) => frames.push(f) })
+await stream.ready // the replay has arrived
+```
+
+- **Switch on `kind`, then `type`.** `event` is an audit Event, whose `machineDetail` has
+  one shape per `type` — the generated types narrow on it, and the platform refuses to
+  record a detail that is not its type's. `log` is one line of a build's output. `control`
+  is the ready frame.
+- **Replay, then ready, then live.** A new connection is sent the project's newest 50
+  events, oldest first, then the ready frame (`manifest.stream.ready`); everything after it
+  is live. Log lines are never replayed — `GET /v1/builds/{buildId}/logs` has them.
+  `ready` resolves as the ready frame is handed to `onFrame`.
+- **The same two headers.** Outside a browser, `subscribe` sends the session and the
+  console's `Origin` on the upgrade; an upgrade that carries a session and no `Origin` is
+  refused.
+- **A refused upgrade rejects `ready`**, closing `1006`: a WebSocket client is shown no
+  HTTP status. A plain `GET` of the same URL with the same session answers the refusal
+  (`UNAUTHENTICATED`, `NOT_FOUND`) in the envelope, or `426` if nothing is wrong.
+- **Close codes.** `1001` — the edge reloaded and its grace period ran out; `1013` — the
+  client fell behind; `1011` — the stream could not be opened. **Reconnect after any of
+  them**: the replay carries the newest 50 events, so a short gap loses nothing that was
+  recorded — a client away for longer than 50 events reads the resources themselves. `4403` and
+  `4404` are refusals after the upgrade, and reconnecting will not help.
+
 Node does not read the macOS keychain, so a Node process calling
 `https://console.manifest.internal` needs `NODE_EXTRA_CA_CERTS` pointing at the platform CA
-(`infra/ca/manifest-root.crt`); without it `fetch` fails as `fetch failed`.
+(`infra/ca/manifest-root.crt`); without it `fetch` fails as `fetch failed`, and the stream
+never becomes ready.
 
 This README states no status. The plan that built the package, and what it has run, are in
 `docs/superpowers/`.

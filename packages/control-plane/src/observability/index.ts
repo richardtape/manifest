@@ -6,6 +6,7 @@ export {
   type EventInput,
   type EventType,
 } from './events.js'
+export { EVENT_DETAIL_SCHEMAS } from './event-schemas.js'
 export { makeRedactor, REDACTED, type Redactor } from './redact.js'
 export {
   MAX_BUFFERED_BYTES,

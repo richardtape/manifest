@@ -10,6 +10,7 @@ import { resetDatabase } from '../db/testing.js'
 import { SESSION_COOKIE } from '../identity/index.js'
 import type { TestUserPuid } from '../identity/testing.js'
 import { eventFrame, recordEvent, type StreamFrame } from '../observability/index.js'
+import { EXAMPLE_DETAILS } from '../observability/testing.js'
 import { buildServer } from './server.js'
 import { loginAs, mutationHeaders, projectBody, testDeps } from './testing.js'
 
@@ -235,7 +236,7 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
         projectId,
         subject: 'sp:x',
         type: 'sso.registered',
-        machineDetail: {},
+        machineDetail: EXAMPLE_DETAILS['sso.registered'],
         humanMessage: 'Set up.',
       },
       (v) => v,

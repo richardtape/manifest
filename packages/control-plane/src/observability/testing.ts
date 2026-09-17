@@ -1,4 +1,5 @@
 import { expect } from 'vitest'
+import type { EventType } from './events.js'
 
 /**
  * Asserts a query failed with a specific Postgres SQLSTATE.
@@ -34,4 +35,88 @@ export async function expectSqlState(
     if (found !== undefined) codes.push(found)
   }
   expect(codes).toContain(code)
+}
+
+/**
+ * ONE WELL-FORMED `machineDetail` PER EVENT TYPE, for a test that needs an event to exist
+ * and is not about its payload (P5a Task 12). `recordEvent` refuses a detail its type's
+ * schema does not accept, so `{}` is no longer an event. Shaped as each call site sends it
+ * — the retirer, `deployRelease`, `runBuild`, `registerServiceProvider` and creation — and
+ * `events.test.ts` holds every one to its schema, so a schema change that forgets these
+ * fails there rather than in whichever test happened to borrow one.
+ */
+const UUID = '6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f'
+const SHA = '0123456789abcdef0123456789abcdef01234567'
+export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknown> } = {
+  'sso.registered': {
+    entityId: 'https://manifest.internal/sp/chem-labs/staging',
+    acsUrl: 'https://chem-labs.staging.manifest.internal/auth/saml/callback',
+    attributes: ['displayName', 'mail'],
+    certificateFingerprint: 'AB:CD:EF',
+    changed: true,
+  },
+  'sso.acs_changed': {
+    from: 'http://127.0.0.1:7188/auth/saml/callback',
+    to: 'https://chem-labs.staging.manifest.internal/auth/saml/callback',
+  },
+  'build.started': { buildId: UUID, commitSha: SHA, blueprintRef: 'fixture-node@1' },
+  'build.succeeded': {
+    buildId: UUID,
+    imageDigest: `sha256:${'a'.repeat(64)}`,
+    imageRepository: 'manifest-registry:5000/apps/chem-labs',
+  },
+  'build.failed': { buildId: UUID, code: 'BUILD_FAILED', reason: 'npm ci exited 1' },
+  'instance.healthy': {
+    instanceId: UUID,
+    releaseId: UUID,
+    environmentId: UUID,
+    environment: 'staging',
+    state: 'healthy',
+  },
+  'instance.failed': {
+    instanceId: UUID,
+    releaseId: UUID,
+    environmentId: UUID,
+    environment: 'staging',
+    state: 'failed',
+    failedCheck: 'health: GET /healthz on port 3000 — connection refused',
+  },
+  'incident.opened': {
+    incidentId: UUID,
+    instanceId: UUID,
+    releaseId: UUID,
+    environment: 'staging',
+  },
+  'ai.key_rotated': {
+    instanceId: UUID,
+    environment: 'staging',
+    models: ['default-chat'],
+  },
+  'instance.retiring': {
+    instanceId: UUID,
+    handle: 'mf-x',
+    environment: 'staging',
+    drainMs: 0,
+  },
+  'instance.retired': {
+    instanceId: null,
+    handle: 'mf-x',
+    environment: 'staging',
+    drainMs: 0,
+  },
+  'instance.retire_failed': {
+    instanceId: UUID,
+    handle: 'mf-x',
+    environment: 'staging',
+    drainMs: 0,
+    error: 'DRIVER_UNAVAILABLE',
+  },
+  'project.created': {
+    slug: 'chem-labs',
+    blueprint: 'fixture-node@1',
+    starter: null,
+    audience: { scale: 'solo', burst: 'steady' },
+  },
+  'repository.seeded': { commitSha: SHA, files: 2, starter: null },
+  'spec.validated': { appSpecId: UUID, commitSha: SHA, valid: true, errorCount: 0 },
 }

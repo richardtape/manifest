@@ -1,4 +1,5 @@
 import { events, type Db } from '../db/index.js'
+import { EVENT_DETAIL_SCHEMAS } from './event-schemas.js'
 import type { Redactor } from './redact.js'
 
 /**
@@ -118,6 +119,25 @@ export async function recordEvent(
       'EVENT_HUMAN_MESSAGE_MISSING',
       `event '${input.type}' on '${input.subject}' has an empty human_message. ` +
         '§14: every Event carries a faculty-legible message alongside machine_detail.',
+    )
+  }
+  // P5a Decision 33: the contract's EventFrame is these schemas, so a detail that is not
+  // its type's is a frame the document says cannot exist. Refused before the INSERT and
+  // before redaction, naming the type and every path — never a value, which is exactly
+  // what redaction has not yet run over.
+  const detail = EVENT_DETAIL_SCHEMAS[input.type].safeParse(input.machineDetail)
+  if (!detail.success) {
+    throw new EventError(
+      'EVENT_DETAIL_INVALID',
+      `event '${input.type}' on '${input.subject}' carries a machineDetail its schema refuses, at: ` +
+        detail.error.issues
+          .map((i) => {
+            const at = i.path.join('.') || '(root)'
+            const keys = (i as { keys?: string[] }).keys
+            return keys === undefined ? at : `${at} (${keys.join(', ')})`
+          })
+          .join(', ') +
+        ' — observability/event-schemas.ts is the contract a client reads it by',
     )
   }
 

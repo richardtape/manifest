@@ -86,7 +86,7 @@ export async function registerEventRoutes(
           error: {
             code: 'EVENTS_UPGRADE_REQUIRED',
             message: 'this endpoint is a WebSocket stream',
-            hint: 'Connect with a WebSocket client to wss://<host>/v1/projects/<projectId>/events. D23.2: one stream per project, never polling.',
+            hint: 'Connect with a WebSocket client to wss://<host>/v1/projects/<projectId>/events. D23.2: one stream per project, never polling. The frames are StreamFrame in packages/contract/openapi.json.',
           },
         }),
     wsHandler: async (socket, request) => {

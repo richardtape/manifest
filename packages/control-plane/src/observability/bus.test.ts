@@ -9,6 +9,7 @@ import {
   type EventType,
   type StreamFrame,
 } from './index.js'
+import { EXAMPLE_DETAILS } from './testing.js'
 
 const IDENTITY = (value: unknown): unknown => value
 
@@ -92,7 +93,7 @@ describe('recentFramesFor — the replay a new connection starts with', () => {
         projectId,
         subject: 's',
         type,
-        machineDetail: { n: type },
+        machineDetail: EXAMPLE_DETAILS[type],
         humanMessage: 'Something happened.',
       },
       IDENTITY,
@@ -134,7 +135,7 @@ describe('recentFramesFor — the replay a new connection starts with', () => {
         subject: 's',
         type: 'sso.acs_changed',
         humanMessage: 'Something happened.',
-        machineDetail: { n: 'sso.acs_changed' },
+        machineDetail: EXAMPLE_DETAILS['sso.acs_changed'],
         createdAt: written[1]!.createdAt.toISOString(),
       })
     })
