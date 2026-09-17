@@ -38,12 +38,12 @@ everything.
 
 **Executing a plan finds defects at a rate that has never fallen with practice** — 18 in P1's 13 tasks, 52 in P2's 21, 82 in P3's 19, 80 in P4a's 15, 140 in P4b's 16, 70 in P4c's 11, every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat a written plan as a hypothesis (§9).
 
-**The four numbers you will check first, measured 2026-09-16 on this machine, at the end of P5a sitting 6:**
+**The four numbers you will check first, measured 2026-09-16 on this machine, at the end of P5a sitting 7:**
 
 | | |
 |---|---|
-| `pnpm test` (from the **repo root**) | **918 passed, 85 files**, ~55 s — the `unit` project and `packages` (the client and the journey, which need nothing running). No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
-| `pnpm test:docker` | **168 passed, 0 SKIPPED**, 27 files, ~755 s — re-measured at the end of P5a sitting 6 with the control plane running (S6 probe 15 `app=403 host=401`). Needs `make up`, and **fails rather than skips** when asked to run |
+| `pnpm test` (from the **repo root**) | **956 passed, 87 files**, ~57 s — the `unit` project and `packages` (the client and the journey, which need nothing running). No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
+| `pnpm test:docker` | **168 passed, 0 SKIPPED**, 27 files, ~771 s — re-measured at the end of P5a sitting 7 with the control plane running (S6 probe 15 `app=403 host=401`). Needs `make up`, and **fails rather than skips** when asked to run |
 | `make doctor` | **18 checks, 0 failed, 0 warnings** |
 | `make verify` | **50 checks, 0 failed, 0 warnings** |
 
@@ -183,6 +183,8 @@ Each of these was built, measured and paid for; the record is in the plan named.
 - **§13's authorization is `projects/authz.ts`**: a stranger gets `404 NOT_FOUND`, a member without the capability `403 FORBIDDEN`. **`api/authz-contract.ts` covers every registered route and asserts each refusal's code.**
 - **One event stream per project**, `WS /v1/projects/:projectId/events`, authorized before it upgrades.
 - **One slug function, `checkSlug`**, answers `GET /v1/slugs/{slug}` and project creation with the same code, message and hint.
+- **A blueprint is read whole at load, and a broken one refuses the boot, naming its file** (P5a Task 10): `loadBlueprints` reads each `skeleton/`, starter and knowledge pack as bounded UTF-8 text, and refuses a starter whose `manifest.yaml` fails §7, pins another blueprint, or asks for what its blueprint cannot deliver. **The proof app is `node-ts-mongo@1`'s first starter**, `blueprints/node-ts-mongo/starters/proof-app/` — it was `fixtures/proof-app/`. `GET /v1/blueprints` never carries the base image or build internals.
+- **A project is created in ONE order** (P5a Decision 29, Task 11): blueprint and starter exist → `checkSlug` → the seed rendered (skeleton, the starter over it, the manifest's `name` spliced to the slug byte for byte) and the model catalogue read only if it declares a model → project, owner and three environments in one transaction → the repository, **and the project deleted if that fails** → the spec validated and stored → `project.created`, `repository.seeded`, `spec.validated`, **last**, because `audit.events` RESTRICTs the delete. `audience` is required (§24).
 
 ### What it deliberately does not do yet
 
@@ -195,6 +197,7 @@ Each is named in its plan's *What this plan does not build*, and none is an acci
 - **Nothing notices an edge restart while the control plane runs** — that is Phase 4's reconciler; restart the control plane after `docker restart manifest-caddy` or `pnpm test:docker`.
 - **§10's per-user AI budget is validated, not enforced**, in Phase 1.
 - **`egress.allow` may still name a platform surface** — decided in §12, enforced by nothing until the roadmap's tracked hardening item.
+- **A `POST /v1/projects` for a slug whose repository outlived its project answers `SOURCE_GIT_FAILED` with git's raw output, host path included** — `pnpm test` and `make reset` leave `.manifest/repos` behind. Since P5a Task 11 it leaves no project; the demos and the journey clear their OWN slug's orphan first (`clear_orphan_repository`). A distinct code, and a message without the path, are not built. *(P4b finding 178's other half.)*
 - **No console, no delegated tokens, no production deploy, no custom domain** — P5b, P5c and Phase 2.
 
 **Which spec sections matter, by topic:** §7 the `manifest.yaml` contract · §9 identity ·
@@ -932,6 +935,31 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   mapping of `FST_ERR_BAD_URL` had never run. Measured 2026-09-16 on Fastify 5.12.3; both answer `400 REQUEST_INVALID` since
   `b043d9d`. Through the edge a malformed percent-encoding never arrives at all: Caddy's HTTP/2 resets the stream (`PROTOCOL_ERROR`,
   curl exit 92).
+- **Every project created over HTTP records THREE events before anything else happens to it** — `project.created`,
+  `repository.seeded`, `spec.validated` (P5a Task 11). So a test that counts a project's `audit.events` rows, or the frames a
+  stream replays, starts with them: `api/events.test.ts`'s `streamServer()` returns their ids as `creation`, and
+  `delivery.test.ts` compares a subscriber that joined after creation with `rows.slice(3)`. Measured 2026-09-16: five tests
+  went red the moment creation published, each on a count.
+- **After `pnpm test` or `make reset`, a demo's slug has a repository and no project — and creation no longer leaves a row
+  to reuse.** Until P5a Task 11 creation committed the project before the repository failed, and every demo printed
+  *reusing project*; since then the project is deleted (Decision 29), so the fallback finds nothing. Measured 2026-09-16
+  with the helper removed: `make demo-identity` stopped at step 2 printing `[]`. The demos and `make demo-journey` call
+  `clear_orphan_repository <slug>` (`scripts/lib/api.sh`), which removes `.manifest/repos/<slug>.git` only when
+  `GET /v1/slugs/{slug}` answers `available` — no project holds the name — and prints what it removed. A hand-written
+  creation for such a slug still gets `SOURCE_GIT_FAILED`: move the repository aside.
+- **A NUL check is not a text check, and a PNG header cannot tell you which check you have.** Latin-1 bytes carry no NUL, so a
+  reader that only refuses NUL decodes them with U+FFFD in place and seeds a different file. `blueprints/tree.ts` refuses both,
+  with a fatal `TextDecoder`. The bytes `89 50 00 47` fail BOTH checks, so a test built on them stays green with either one
+  deleted — measured 2026-09-16, the NUL check removed, 25 of 25 green. One case per refusal.
+- **A drizzle error answers `Failed query: <the SQL>` and not WHY** — the Postgres reason (a foreign key's `RESTRICT`, a
+  unique violation) is on `.cause`, and the operator line `toErrorResponse` writes prints only the message. Measured
+  2026-09-16 (P5a Task 11 control (d)): an `audit.events` row blocking a project's delete logged `Failed query: delete from
+  "projects" where "projects"."id" = $1` and nothing naming the constraint. Read `.cause.code` / `.cause.constraint` in a
+  scratch test. Named, not fixed.
+- **Prettier formats any app tree under `blueprints/` that `.prettierignore` does not name.** `skeleton/` was named; the
+  proof app moved to `starters/proof-app/` (P5a Task 10) and `pnpm format:check` went red on its `server.js` and
+  `public/index.html` — `pnpm format` would have rewritten an app. `blueprints/*/starters/` is named now; a new kind of app
+  directory needs the same line.
 
 ### Images already pulled
 
@@ -1152,7 +1180,7 @@ curl -s --cacert infra/ca/manifest-root.crt \
 
 ### 7e. Execute P5a — the contract (first of 1c's three plans) ← **START HERE**
 
-**P5a IS WRITTEN (2026-09-16) AND ITS SITTINGS 1 TO 6 ARE DONE, THE SAME DAY — YOUR TASK IS SITTING 7: TASKS 10 AND 11 (blueprints with starters — the proof app becomes `node-ts-mongo@1`'s first — and the knowledge pack over the API; then a project created from its skeleton plus a starter, for a stated audience, with its provisioning events).**
+**P5a IS WRITTEN (2026-09-16) AND ITS SITTINGS 1 TO 7 ARE DONE, THE SAME DAY — YOUR TASK IS SITTING 8: TASK 12 (the event stream in the contract — every frame and every event's `machineDetail` as a schema, enforced where events are written; the stream documented in `openapi.json`; `subscribe` in `@manifest/contract`; and the journey watching provisioning).**
 [`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md) — **17 tasks in twelve agreed sittings, one per session** (Rich, its R8). The
 sittings table at the top of the plan is the maintained copy and says which sitting is next. Do not write
 P5b or P5c: each is written only after the plan before it has executed — the 2026-09-04 lesson that a plan
@@ -1189,28 +1217,24 @@ whether a name works while they type it. **Any further
 spec change is proposed to Rich, never edited** — the brief's §7 items 5 and 6 are still proposals,
 both P5b's; item 7 is not a spec change but work P5a does (persisting scan findings on the release). **And four more were made while P5a was written, the same day, and are in the plan's *Decisions Rich made*:** **R6** — builds answer `202` and finish on the event stream, while a deploy stays synchronous; **R7** — the client is generated by `openapi-typescript` 7.13.0 and called through `openapi-fetch` 0.17.0; **R8** — twelve sittings; **R9** — the plan's six spec actions applied before it executes (spec commit `491f8be`: §6 `Project.starter`, `Build.scan` and `RoleChange`, §20's CSRF as an `Origin` check with a sign-in bound to its browser, §22 D23.9, and provisioning on §14's stream). Do not re-open any of them.
 
-**What sittings 1 to 6 established is in the plan's *What executing this plan found*, one dated entry each — read them; do not look for them here.** In one line each: **1** the measurements the design rests on (`spikes/p5a-baseline/`); **2** every resource route under `/v1`, served at `https://console.manifest.internal` through the edge and refused to every source but the host; **3** CSRF by `Origin`, a sign-in bound to its browser, and one registry of every error code; **4** `defineRoute` and the generated OpenAPI document with its drift test; **5** `@manifest/contract` and `make demo-journey`; **6** projects, environments, members and specs as public representations, and §23's reserved labels behind `GET /v1/slugs/{slug}`. Each later task a sitting's measurements changed carries a correction at its top.
+**What sittings 1 to 7 established is in the plan's *What executing this plan found*, one dated entry each — read them; do not look for them here.** In one line each: **1** the measurements the design rests on (`spikes/p5a-baseline/`); **2** every resource route under `/v1`, served at `https://console.manifest.internal` through the edge and refused to every source but the host; **3** CSRF by `Origin`, a sign-in bound to its browser, and one registry of every error code; **4** `defineRoute` and the generated OpenAPI document with its drift test; **5** `@manifest/contract` and `make demo-journey`; **6** projects, environments, members and specs as public representations, and §23's reserved labels behind `GET /v1/slugs/{slug}`; **7** starters (the proof app is `node-ts-mongo@1`'s first) and the knowledge pack over `/v1`, and a project created from its skeleton and a starter for a stated audience, publishing `project.created`, `repository.seeded` and `spec.validated`. Each later task a sitting's measurements changed carries a correction at its top.
 
-**Read, in this order, before sitting 7:**
+**Read, in this order, before sitting 8:**
 
-1. **The plan's** *How this plan is to be executed*, *Read this first*, *Decisions Rich made*, *Decisions this plan makes* (24–30 above all) and **sittings 1 to 6's entries in *What executing this plan found*** — then **Tasks 10 and 11 in full**, including the *Sitting 6 correction* and the *Task 1 correction* at the top of Task 11 (splice the slug into the starter's text; never re-stringify it).
+1. **The plan's** *How this plan is to be executed*, *Read this first*, *Decisions Rich made*, *Decisions this plan makes* (33 and 34 above all) and **sittings 1 to 7's entries in *What executing this plan found*** — then **Task 12 in full**, including the *Task 1 result* on `[M1d]` (a discriminated union is an `anyOf`, and whether the generated type narrows is for you to read in `schema.d.ts`), the *Sitting 2 correction* (a Node subscriber through the edge needs the CA and `Origin`, and an edge reload closes a stream) and the *Sitting 7 correction* (creation's three events, body and answer).
 2. **[`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md)** §8 (the traps).
-3. **This file's §4** — its last ten entries are sittings 3 to 6's — and **§6** (how to work, and the close-out sweep every sitting owes).
+3. **This file's §4** — its last fifteen entries are sittings 3 to 7's — and **§6** (how to work, and the close-out sweep every sitting owes).
 
 **How to execute it.** `superpowers:executing-plans` or `superpowers:subagent-driven-development`, **one sitting per
 session**, with a check-in at each boundary. **Start with the baseline in §6's *Your first ten minutes*** — snapshot the
-machine, `make up`, doctor, verify and the four gates — and compare every number with §2's box before changing anything. **Sitting 7 changes `blueprints/` (a starter moves
-into `node-ts-mongo@1`), `projects/`, `api/`, `observability/`, a migration (0010, applied with `db:migrate`, which reads the ADMIN
-url) and the journey — so it OWES `pnpm test:docker` (~13 min, `make up` first) as well as the four gates, and after each task
-`pnpm contract:write && pnpm contract:generate`, whose drift tests are red until both are committed.** It needs no network and no
-Ollama. **Task 10 runs `make demo-identity`, and Task 11 `make demo && make demo-identity`** — each recreates the proof app's
-project, so the LiteLLM user the running proof app holds (`mf-ed4a233f-ef0c-4854-87a4-8a780a9d616e-staging`) becomes an orphan. Sitting 4's attempt to delete one through LiteLLM's admin API was refused by the session's permission
-classifier: if yours is refused too, do not work around it — record the user in the sitting's *Machine* paragraph and here, as the
-state below does. A Caddyfile
-edit reaches the edge through `make up`, whose reload drops every runtime route, and the Docker tier restarts the edge and
-re-registers the platform's SP row at a loopback ACS — **restart the control plane after either**; its boot puts both back.
-**Sitting 5 was the only one that needed the network, and it is done.**
-Every sitting ends with the plan's four steps, the last of which is §6's sweep.
+machine, `make up`, doctor, verify and the four gates — and compare every number with §2's box before changing anything. **Sitting 8 changes
+`observability/` (`recordEvent` refuses a detail that is not its type's schema — every publisher in the codebase goes through it), `api/`
+(the stream in the document), `packages/contract` (`subscribe`) and the journey, so it OWES `pnpm test:docker` (~13 min, `make up` first; the
+task's own Step 4 runs it) as well as the four gates, and `pnpm contract:write && pnpm contract:generate`, whose drift tests are red until
+both are committed.** It adds no migration, needs no network and no Ollama. **Its Step 6 runs `make demo-journey`**, which creates or reuses
+`journey-app` — no container, so no LiteLLM user. A Caddyfile edit reaches the edge through `make up`, whose reload drops every runtime route,
+and the Docker tier restarts the edge and re-registers the platform's SP row at a loopback ACS — **restart the control plane after either**;
+its boot puts both back. Every sitting ends with the plan's four steps, the last of which is §6's sweep.
 
 **What will surprise you** (the plan's tasks carry each of these; they are here so none is a surprise):
 
@@ -1263,27 +1287,38 @@ Every sitting ends with the plan's four steps, the last of which is §6's sweep.
   and Task 11's `createProject` catch uses `slugTaken()`, the one copy of that sentence.
 - **`scripts/lib/api.sh` must be sourced into `bash`, not the agent's zsh**: its `local path=` overwrites zsh's `$path`, which is
   `$PATH`, and every later `curl` is *command not found*. `bash -c '. scripts/lib/api.sh; …'`.
+- **`POST /v1/projects` requires `audience`** (§24) and answers `CreatedProject`: the seeded commit is `created.spec.commitSha` and
+  validity `created.spec.valid` — `commitSha`, `specValid` and `repositoryUrl` are gone. A test body comes from `api/testing.ts`'s
+  `projectBody(slug, { blueprint?, starter? })`; a direct `createProject` caller passes `starter: null, audience: testAudience(ownerId)`
+  from `projects/testing.ts`. `PROJECT_INVALID_INPUT` is gone; `STARTER_NOT_FOUND` is new.
+- **Every project created over HTTP has three events before anything else** — `project.created`, `repository.seeded`,
+  `spec.validated` — so a replay, or a count of a project's events, starts with them (`streamServer()`'s `creation`, §4). Task 12's
+  journey step reads exactly these from the replay.
+- **Creation from the `proof-app` starter reads the model catalogue**, because the starter declares two models — so a gateway outage
+  is `503 AI_BACKEND_UNAVAILABLE` at creation, and a harness with no catalogue behind it cannot create one.
+- **After `pnpm test`, every demo and `make demo-journey` print `removed …/.manifest/repos/<slug>.git`** the first time — that is
+  `clear_orphan_repository` clearing a repository whose project the truncation removed, and only when the slug check says no project
+  holds the name. A `POST /v1/projects` of your own for such a slug answers `SOURCE_GIT_FAILED` and leaves nothing.
+- **The proof app lives at `blueprints/node-ts-mongo/starters/proof-app/`** (it was `fixtures/proof-app/`), and `.prettierignore`
+  names `blueprints/*/starters/`. A broken starter or descriptor refuses the control plane's BOOT, naming the file.
 
-**The state you are handed, 2026-09-16, after sitting 6.** `main`, clean. The code commits are Task 8's `ba1dda5`, the D9
-fix `4a1d8cd`, Task 9's `0246d3c` and the router-refusal fix `b043d9d`; everything later is documentation. The four gate numbers
-are §2's box — all green, `pnpm test` 918, `make verify` 50/0 and `pnpm test:docker` 168, re-measured this sitting. **The proof
-app serves at `https://proof-app.staging.manifest.internal/` WITH its rows behind it** (project `ed4a233f`): `make demo-identity`
-ran last, after the Docker tier had dropped its route and `pnpm test` its rows. **The fixture app is not deployed**, so `make demo`
-starts it from nothing. **The platform SP row's ACS is `https://console.manifest.internal/auth/saml/callback`.** The control plane
-is **not** running (port 7100 is free); README's *Running the control plane* starts it, and its boot line must name that origin
-and `"reservedLabels":755`. A redeploy is P4c's: `POST /v1/environments/:environmentId/deploy` returns once the new instance
-serves and the old one drains in the background.
-**No orphans are waiting.** Rich removed the three LiteLLM users sittings 3, 4 and 6 had left without a project, the same
-day, and it was verified: `/user/info` answers `404` for each, and `/key/list` holds exactly one key. LiteLLM now holds
-`default_user_id`, `p4b-probe-user` and `mf-ed4a233f-ef0c-4854-87a4-8a780a9d616e-staging`, whose key the running proof app uses;
-that one becomes an orphan the next time a demo replaces the proof app's container. Deleting through LiteLLM's admin API has been
-refused by the session's permission classifier as a secret-store write, so do not work around it — record the user for Rich.
-To remove one, from the repo root: `set -a; . ./.env; set +a`, read its hashed tokens with
+**The state you are handed, 2026-09-16, after sitting 7.** `main`, clean. The code commits are Task 10's `930cbe2` with `45a5cc9`,
+`8eff3ab` and `343f189`, and Task 11's `c12c423`; everything later is documentation. Migration **0010** is applied. The four gate numbers
+are §2's box — all green, `pnpm test` 956, `make verify` 50/0 and `pnpm test:docker` 168, re-measured this sitting. **The proof app
+serves at `https://proof-app.staging.manifest.internal/` WITH its rows behind it** (project `be9ad9f3`, created from the starter):
+`make demo-identity` ran last, after the Docker tier. **Project `journey-app` exists, with its repository and no container** — the
+journey's own, reused by design. **The fixture app is not deployed**, so `make demo` starts it from nothing. **The platform SP row's ACS
+is `https://console.manifest.internal/auth/saml/callback`.** The control plane is **not** running (port 7100 is free); README's *Running
+the control plane* starts it, and its boot line must name that origin and `"reservedLabels":755`.
+**Three LiteLLM users have no project, one key each, for Rich** — `mf-ed4a233f-ef0c-4854-87a4-8a780a9d616e-staging`,
+`mf-c3eda3d7-fccd-4131-a1c3-64dae4ecfec3-staging` and `mf-eb6f6c83-a48a-4cd8-8336-c6be49979d50-staging`, each a proof-app project a demo
+replaced. LiteLLM also holds `default_user_id`, `p4b-probe-user` and `mf-be9ad9f3-ffa3-489a-ade9-b6064874a5bb-staging`, whose key the
+running proof app uses; that one becomes an orphan the next time a demo replaces the proof app's container. Deleting through LiteLLM's
+admin API has been refused by the session's permission classifier as a secret-store write, so do not work around it — record the user
+for Rich. To remove one, from the repo root: `set -a; . ./.env; set +a`, read its hashed tokens with
 `curl -sS -H "authorization: Bearer $LITELLM_MASTER_KEY" "http://127.0.0.1:7106/user/info?user_id=<user>"` (`keys[].token`),
 then `POST /key/delete` with `{"keys":["<token>"]}` and `POST /user/delete` with `{"user_ids":["<user>"]}`,
 both with the same header.
-
----
 
 ## 8. Decisions waiting on Rich
 

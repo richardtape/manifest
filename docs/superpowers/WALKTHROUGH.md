@@ -23,14 +23,14 @@ Manifest runs on one Mac. **Almost everything is a container**; two things run o
 | **The proof app** | `https://proof-app.staging.manifest.internal` | §16's application: CWL sign-in, private notes, an AI answer |
 | **The fixture app** | `https://fixture-app.staging.manifest.internal` | P3's trivial app — proves a build and a deploy, nothing more |
 
-**What works today** *(status, as of P5a sitting 6, 2026-09-16)*: through Manifest's API — under `/v1`, at `https://console.manifest.internal`, which only the host can reach, and which refuses a session-bearing change that does not come from that origin — create a project, push code, validate its
+**What works today** *(status, as of P5a sitting 7, 2026-09-16)*: through Manifest's API — under `/v1`, at `https://console.manifest.internal`, which only the host can reach, and which refuses a session-bearing change that does not come from that origin — create a project, push code, validate its
 `manifest.yaml`, build it through the platform's security gates, release it and deploy it
 to staging; sign a person in with practice CWL; keep each person's data theirs; answer
 questions through a per-app AI key charged to the person who asked; stream build logs and
 events; record a failed deploy as an Incident; and **redeploy an app while people are using it
 without interrupting or signing out anybody** (P4c) — the new container starts
 beside the old one, takes the route only once it answers, and the old one is drained and removed,
-while sessions live in the app's own database. The API is beginning to describe itself: `packages/contract/openapi.json` is generated from the routes declared through `defineRoute` and held to them by a test — `GET /v1/me` and the project, environment, member and spec reads are declared that way, each answering a public representation rather than a database row, and the rest follow in P5a's later sittings — and `make demo-journey` calls it through a TypeScript client generated from that document. `GET /v1/slugs/{slug}` says whether a project name will work before you create it: `chem`, `console` and every other §23 reserved label are refused, with what the label stands for. **What does not exist yet:** a web console (P5) —
+while sessions live in the app's own database. The API is beginning to describe itself: `packages/contract/openapi.json` is generated from the routes declared through `defineRoute` and held to them by a test — `GET /v1/me` and the project, environment, member and spec reads are declared that way, each answering a public representation rather than a database row, and the rest follow in P5a's later sittings — and `make demo-journey` calls it through a TypeScript client generated from that document. `GET /v1/slugs/{slug}` says whether a project name will work before you create it: `chem`, `console` and every other §23 reserved label are refused, with what the label stands for. `GET /v1/blueprints` lists the blueprints and the *starters* each offers — §16's proof app is `node-ts-mongo@1`'s `proof-app` — with each blueprint's knowledge pack beside it, and `POST /v1/projects` creates a project from a blueprint's skeleton and, optionally, a starter, for a stated audience (§24), saying so on the project's event stream. **What does not exist yet:** a web console (P5) —
 everything is JSON; and production deploys (refused, with a checklist).
 
 ---
@@ -156,7 +156,7 @@ order, by `curl`. Its helpers are shared and should be reused, not copied:
 | `scripts/lib/proof-app.sh` | `app`, and the proof app's assemble / push / validate / build / release / deploy |
 | `scripts/lib/event-stream.mjs` | `watch` subscribes to a project's event stream with a jar's session; `expect` checks what it carried |
 
-The lifecycle, as the API sees it: `POST /v1/projects` → push to the bare repository →
+The lifecycle, as the API sees it: `POST /v1/projects` (a slug, a blueprint, optionally a starter, and a required `audience`) → push to the bare repository →
 `POST /v1/projects/:id/spec` (validate a commit) → `POST /v1/projects/:id/builds` →
 `POST /v1/projects/:id/releases` → `POST /v1/environments/:id/deploy`. Every resource route is
 under `/v1` (D23.8); an old path answers `404 ROUTE_NOT_FOUND`. **A deploy that fails is a
