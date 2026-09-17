@@ -143,7 +143,7 @@ say "0. Is the control plane up, through the edge?"
 # The ANSWER, not that an answer arrived: through the edge a stopped control plane is
 # Caddy's empty 502, and a source the console refuses is a 403 with a body of its own —
 # `curl -o /dev/null` passed both (P5a Task 3).
-UP="$(curl -sS -m 5 "$API/v1/me" 2>&1 || true)"
+UP="$(curl -sS -m 5 -w ' [%{http_code}]' "$API/v1/me" 2>&1 || true)"
 case "$UP" in
   *'"UNAUTHENTICATED"'*) echo "  $API answered" ;;
   *) fail "no control plane behind $API (got: ${UP:0:120}).
