@@ -174,10 +174,13 @@ function scansItem(
       why: 'The release serving staging was built before scans were recorded. Build and deploy it again.',
     }
   }
-  // `stale` FIRST: `databaseAgeDays` is null when the scanner did not say how old its
-  // database was, `scanImage` reads that as stale, and a comparison against null would
-  // read it as fresh (P5a Task 13).
-  if (scan.stale || scan.databaseAgeDays === null) {
+  // ONE guard, not two. `stale` is `assessScan`'s own verdict and is read FIRST; the age
+  // comparison behind it is a deliberate second opinion on a stored summary the platform
+  // wrote, never a re-derivation that could disagree — a `||` rather than a second branch,
+  // so removing this guard removes the whole check and both tests below go red. Null means
+  // the scanner did not say how old its database was, `scanImage` reads that as stale, and
+  // `null > 7` is false — so the coalesce, not a comparison against null (P5a Task 13).
+  if (scan.stale || (scan.databaseAgeDays ?? Infinity) > STALENESS_THRESHOLD_DAYS) {
     const age =
       scan.databaseAgeDays === null
         ? 'of unknown age'
@@ -186,13 +189,6 @@ function scansItem(
       ...base,
       state: 'unmet',
       why: `The release serving staging was scanned against a vulnerability database ${age}. A clean result from a stale database is not evidence (§12); rebuild once the database is refreshed.`,
-    }
-  }
-  if (scan.databaseAgeDays > STALENESS_THRESHOLD_DAYS) {
-    return {
-      ...base,
-      state: 'unmet',
-      why: `The release serving staging was scanned against a vulnerability database ${scan.databaseAgeDays} days old, more than ${STALENESS_THRESHOLD_DAYS}. A clean result from a stale database is not evidence (§12); rebuild once the database is refreshed.`,
     }
   }
   const unfixable = Object.values(scan.unfixable).reduce((a, b) => a + b, 0)
