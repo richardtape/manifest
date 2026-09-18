@@ -411,7 +411,10 @@ Three things it does that are easy to leave out:
   inspect by hand.
 - **It deletes keys before users, and re-reads the list afterwards** — asserting that every orphan is
   gone *and every held user survived*, rather than that a delete returned 200. `/key/delete` takes
-  the hashed token `/user/info` reports, so a key nobody ever saw can still go.
+  the hashed token `/user/info` reports, so a key nobody ever saw can still go. **Each delete is
+  checked by STATUS, not by curl's exit code**: `curl -sS` exits 0 on an HTTP error (§4), and both
+  endpoints answer `404` for an id that does not exist — measured — so a `|| fail` after a plain
+  call could never fire. The script's first version had exactly that defect.
 
 `default_user_id` is LiteLLM's own row and is never touched. An app that declares no models has no
 key, hashes to the empty string's digest, and is correctly not counted as holding one.

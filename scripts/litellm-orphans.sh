@@ -57,7 +57,19 @@ api() {
   curl "${args[@]}" "$LITELLM$apipath"
 }
 
-curl -sS -m 10 -o /dev/null "$LITELLM/health/liveliness" \
+# THE STATUS, because `curl -sS` EXITS 0 ON AN HTTP ERROR (ORIENTATION §4) — so a `|| fail`
+# after a plain `api POST …` can never fire, and a delete that answered 404 or 500 would be
+# reported as done. Measured 2026-09-18: `/user/delete` and `/key/delete` both answer 404 for
+# an id that does not exist, and `curl` exits 0 for both.
+api_status() {
+  local method="$1" apipath="$2" body="${3:-}"
+  local args=(-sS -m 30 -o /dev/null -w '%{http_code}' -X "$method" -H "Authorization: Bearer $LITELLM_MASTER_KEY")
+  if [ -n "$body" ]; then args+=(-H 'content-type: application/json' -d "$body"); fi
+  curl "${args[@]}" "$LITELLM$apipath" || echo 000
+}
+
+# `-f` for the same reason: without it an unhealthy LiteLLM answering 503 reads as alive.
+curl -fsS -m 10 -o /dev/null "$LITELLM/health/liveliness" \
   || fail "no LiteLLM on $LITELLM. \`make up\` first."
 
 # ---------------------------------------------------------------- what is held
@@ -160,15 +172,17 @@ for user in $ORPHANS; do
   key_count=0
   for token in $tokens; do
     key_count=$((key_count + 1))
-    api POST /key/delete "{\"keys\":[\"$token\"]}" > /dev/null \
-      || { echo "  FAILED to delete a key of $user" >&2; failed=$((failed + 1)); }
+    status="$(api_status POST /key/delete "{\"keys\":[\"$token\"]}")"
+    case "$status" in
+      2*) ;;
+      *) echo "  FAILED ($status) to delete a key of $user" >&2; failed=$((failed + 1)) ;;
+    esac
   done
-  if api POST /user/delete "{\"user_ids\":[\"$user\"]}" > /dev/null; then
-    echo "  deleted $user ($key_count key(s))"
-  else
-    echo "  FAILED to delete $user" >&2
-    failed=$((failed + 1))
-  fi
+  status="$(api_status POST /user/delete "{\"user_ids\":[\"$user\"]}")"
+  case "$status" in
+    2*) echo "  deleted $user ($key_count key(s))" ;;
+    *) echo "  FAILED ($status) to delete $user" >&2; failed=$((failed + 1)) ;;
+  esac
 done
 
 # ---------------------------------------------------------------- and check
