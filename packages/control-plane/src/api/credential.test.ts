@@ -4,7 +4,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { delegatedTokens, type Db } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { addMember } from '../projects/index.js'
-import { tokenById } from '../tokens/index.js'
+import { TOUCH_INTERVAL_MS, tokenById } from '../tokens/index.js'
 import { mintTestToken } from '../tokens/testing.js'
 import {
   projectBody,
@@ -21,6 +21,27 @@ afterAll(resetDatabase)
  * cookie or a header — which is what makes D24's central refusal possible at all
  * (Task 6).
  */
+
+/**
+ * A refusal's STATUS AND CODE TOGETHER, so neither can hide behind the other.
+ *
+ * Asserted separately, the status fires first and the code assertion is never reached —
+ * which matters because the two can disagree: `404 ROUTE_NOT_FOUND` (no such route)
+ * satisfies a status-only 404 exactly as `404 NOT_FOUND` (the authorization answer) does,
+ * and P5a sitting 6 paid for the difference. The same shape `api/authz-contract.ts` uses.
+ */
+function refusal(res: { statusCode: number; body: string }): {
+  status: number
+  code: unknown
+} {
+  let code: unknown
+  try {
+    code = (JSON.parse(res.body) as { error?: { code?: unknown } }).error?.code
+  } catch {
+    code = undefined
+  }
+  return { status: res.statusCode, code }
+}
 
 /** A `project:read` token on `ctx`'s own project, which most of these need. */
 async function readOnlyToken(ctx: TestProject): Promise<string> {
@@ -98,8 +119,7 @@ describe('the two credential classes (D24, D23.4)', () => {
         url: `/v1/projects/${ctx.otherProjectId}`,
         headers: { authorization: `Bearer ${plaintext}` },
       })
-      expect(res.statusCode).toBe(404)
-      expect(res.json().error.code).toBe('NOT_FOUND')
+      expect(refusal(res)).toEqual({ status: 404, code: 'NOT_FOUND' })
     })
   })
 
@@ -117,8 +137,7 @@ describe('the two credential classes (D24, D23.4)', () => {
         },
         payload: { commitSha: ctx.commitSha },
       })
-      expect(res.statusCode).toBe(403)
-      expect(res.json().error.code).toBe('FORBIDDEN')
+      expect(refusal(res)).toEqual({ status: 403, code: 'FORBIDDEN' })
     })
   })
 
@@ -143,8 +162,7 @@ describe('the two credential classes (D24, D23.4)', () => {
         url: `/v1/projects/${ctx.projectId}`,
         headers: { authorization: header },
       })
-      expect(res.statusCode).toBe(401)
-      expect(res.json().error.code).toBe('UNAUTHENTICATED')
+      expect(refusal(res)).toEqual({ status: 401, code: 'UNAUTHENTICATED' })
     })
   })
 
@@ -178,8 +196,7 @@ describe('the two credential classes (D24, D23.4)', () => {
         headers: { 'idempotency-key': 'j'.repeat(12) }, // NO origin
         payload: { commitSha: ctx.commitSha },
       })
-      expect(bySession.statusCode).toBe(403)
-      expect(bySession.json().error.code).toBe('CSRF_ORIGIN_REFUSED')
+      expect(refusal(bySession)).toEqual({ status: 403, code: 'CSRF_ORIGIN_REFUSED' })
     })
   })
 
@@ -195,8 +212,7 @@ describe('the two credential classes (D24, D23.4)', () => {
         cookies: owner,
         headers: { authorization: `Bearer ${plaintext}` },
       })
-      expect(res.statusCode).toBe(400)
-      expect(res.json().error.code).toBe('CREDENTIAL_AMBIGUOUS')
+      expect(refusal(res)).toEqual({ status: 400, code: 'CREDENTIAL_AMBIGUOUS' })
     })
   })
 
@@ -214,8 +230,7 @@ describe('the two credential classes (D24, D23.4)', () => {
         },
         payload: projectBody('another-app'),
       })
-      expect(res.statusCode).toBe(403)
-      expect(res.json().error.code).toBe('TOKEN_CREDENTIAL_REFUSED')
+      expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_CREDENTIAL_REFUSED' })
     })
   })
 
@@ -234,8 +249,7 @@ describe('the two credential classes (D24, D23.4)', () => {
         url: '/v1/fleet',
         headers: { authorization: `Bearer ${plaintext}` },
       })
-      expect(res.statusCode).toBe(403)
-      expect(res.json().error.code).toBe('TOKEN_CREDENTIAL_REFUSED')
+      expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_CREDENTIAL_REFUSED' })
     })
   })
 
@@ -251,8 +265,7 @@ describe('the two credential classes (D24, D23.4)', () => {
         },
         payload: { name: 'child', capabilities: ['project:read'], expiresInDays: 30 },
       })
-      expect(res.statusCode).toBe(403)
-      expect(res.json().error.code).toBe('TOKEN_CREDENTIAL_REFUSED')
+      expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_CREDENTIAL_REFUSED' })
     })
   })
 
@@ -300,8 +313,7 @@ describe('the two credential classes (D24, D23.4)', () => {
         url: `/v1/projects/${ctx.projectId}/events`,
         headers: { authorization: `Bearer ${plaintext}`, upgrade: 'websocket' },
       })
-      expect(byToken.statusCode).toBe(426)
-      expect(byToken.json().error.code).toBe('EVENTS_UPGRADE_REQUIRED')
+      expect(refusal(byToken)).toEqual({ status: 426, code: 'EVENTS_UPGRADE_REQUIRED' })
 
       const owner = await sessionFor(ctx, 'bio_prof', 'owner')
       const bySession = await ctx.app.inject({
@@ -310,8 +322,7 @@ describe('the two credential classes (D24, D23.4)', () => {
         cookies: owner,
         headers: { upgrade: 'websocket' },
       })
-      expect(bySession.statusCode).toBe(403)
-      expect(bySession.json().error.code).toBe('CSRF_ORIGIN_REFUSED')
+      expect(refusal(bySession)).toEqual({ status: 403, code: 'CSRF_ORIGIN_REFUSED' })
     })
   })
 
@@ -339,6 +350,20 @@ describe('the two credential classes (D24, D23.4)', () => {
       // rejected a database-backed rate limiter for.
       await read()
       expect((await tokenById(ctx.db, row.id))?.lastUsedAt).toEqual(stamped)
+
+      // AND IT MOVES ONCE THE STAMP IS STALE. This half is the robust one, and it is
+      // here because running the control for the half above showed it turning red on a
+      // THREE-MILLISECOND difference: two requests landing in the same millisecond would
+      // make that assertion unable to fail. Backdating past the interval is a difference
+      // no clock resolution can swallow, so "stamps" and "does not re-stamp" are both
+      // pinned rather than one of them being pinned on a good day.
+      await ctx.db
+        .update(delegatedTokens)
+        .set({ lastUsedAt: new Date(Date.now() - TOUCH_INTERVAL_MS - 60_000) })
+        .where(eq(delegatedTokens.id, row.id))
+      await read()
+      const moved = (await tokenById(ctx.db, row.id))?.lastUsedAt
+      expect(moved!.getTime()).toBeGreaterThan(Date.now() - TOUCH_INTERVAL_MS)
     })
   })
 })
