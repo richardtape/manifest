@@ -315,3 +315,163 @@ Done. A session issued before this still carries the old role — sign in again.
   ok   and its name is not a reserved label
 
 every check passed
+
+=== RUN 3 — from a `make reset` machine (journey-app created fresh) — 2026-09-17 17:25:28 ===
+ensure-cp-sp-keypair: present (infra/sp/control-plane.crt)
+ Container manifest-dns-host Running 
+ Container manifest-dns-containers Running 
+ Container manifest-verdaccio Running 
+ Container manifest-postgres Running 
+ Container manifest-caddy Running 
+ Container manifest-litellm Running 
+ Container manifest-idp Running 
+ Container manifest-egress Running 
+ Container manifest-registry Running 
+ Container manifest-postgres Waiting 
+ Container manifest-postgres Waiting 
+ Container manifest-postgres Healthy 
+ Container manifest-postgres Healthy 
+ Container manifest-litellm Waiting 
+ Container manifest-egress Waiting 
+ Container manifest-registry Waiting 
+ Container manifest-dns-host Waiting 
+ Container manifest-verdaccio Waiting 
+ Container manifest-postgres Waiting 
+ Container manifest-caddy Waiting 
+ Container manifest-idp Waiting 
+ Container manifest-dns-containers Waiting 
+ Container manifest-egress Healthy 
+ Container manifest-registry Healthy 
+ Container manifest-dns-containers Healthy 
+ Container manifest-litellm Healthy 
+ Container manifest-dns-host Healthy 
+ Container manifest-verdaccio Healthy 
+ Container manifest-caddy Healthy 
+ Container manifest-postgres Healthy 
+ Container manifest-idp Healthy 
+DO
+GRANT
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+DO
+DO
+ALTER ROLE
+GRANT
+GRANT
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ensure-app-role: manifest_app present, granted on public, no reach into audit
+
+  platform up. Next: make doctor && make verify
+  edge: https://edge.manifest.internal/   console and API: https://console.manifest.internal/v1/
+
+[1m0. The client and the journey, built from the checked-in document[0m
+  built
+
+[1m0. Is the control plane up, through the edge?[0m
+  https://console.manifest.internal answered
+
+[1m1. Sign in to Manifest with CWL, through the edge[0m
+  removed /Users/rich/Developer/manifest/.manifest/repos/journey-app.git — no project holds 'journey-app' (pnpm test and make reset leave repositories behind)
+
+[1mThe journey, through @manifest/contract[0m
+
+1. Signed in with CWL, through the edge
+  ok   GET /v1/me is the instructor
+  ok   and carries exactly the fields the contract names
+
+2. My projects
+  ok   GET /v1/projects answers a list
+  ok   no project carries a database-only field
+
+2a. The project’s name, checked while it is typed (§23)
+  ok   console is reserved for the platform
+  ok   chem says it is Chemistry
+  ok   Journey_App is SLUG_INVALID
+  ok   journey-app is free — or already ours from an earlier run
+
+2b. A blueprint and a starter, from the catalogue
+  ok   node-ts-mongo@1 is in the catalogue
+  ok   it offers the proof-app starter
+  ok   no blueprint carries a build internal
+  ok   its knowledge pack teaches manifest.yaml
+  ok   and each file’s sha256 is the digest of what arrived
+
+2. Create a project — journey-app, from the proof-app starter, for a class
+  ok   created with the proof-app starter
+  ok   for a class that arrives at once
+  ok   its seeded manifest.yaml is valid
+  ok   it reads back with its starter and its audience
+  ok   it has a staging environment
+  ok   and a production one
+  ok   staging is journey-app.staging.manifest.internal
+
+3. Watch provisioning on the project’s stream
+  ok   a project to watch
+  ok   the replay ended with the ready frame
+  ok   every replayed event is this project’s
+  ok   the replay carries project.created, repository.seeded and spec.validated, in order
+  ok   the manifest was valid when it was seeded, and says at which commit
+  ok   and creation says what it was made from, and for whom
+
+4. Trigger a build; its logs stream live, and it ends on the stream
+  ok   a project to build
+  ok   the build answered at once, still running (R6)
+  ok   and it ended on the stream
+  (ended 18089 ms after it was asked for)
+  ok   its log lines arrived while it ran, before its end
+  ok   it succeeded, with a digest
+  ok   and the build records its scan, by the real scanner (§12)
+  (scan: database 1.7 days old, stale false, unfixable {"critical":1,"high":0}, base image {"critical":5,"high":24})
+  ok   and carries no build internal
+  ok   the project’s builds list it first
+
+5. Deploy to staging; the instance’s states stream live
+  ok   the release carries its build’s digest and scan (§12, §13)
+  ok   and names its env vars without their values
+  ok   it reads back identically
+  ok   and the project’s releases list it first
+  ok   the instance is healthy
+  ok   and carries no driver internals
+  ok   provisioning, starting and healthy streamed, in that order
+  (deploy answered in 8985 ms; 11 frames seen)
+  ok   the environment serves that instance
+
+every check passed
+
+[1m6. Open the app; sign in with CWL INSIDE it; write a note; ask the LLM[0m
+  signed in inside the app as ins000001
+  wrote a note
+  asked, and was answered: Based on the note you provided, it seems you're referring to a specific observation or experience related to **bismuth (
+
+[1mAn administrator, made out of band (§20), for the fleet (§26)[0m
+NOTICE:  PUID opr000001 is now admin
+Done. A session issued before this still carries the old role — sign in again.
+
+[1m7 and after — through @manifest/contract[0m
+
+7. Request production — and see what a first launch still needs
+  ok   production is refused, 409
+  ok   as RELEASE_PRODUCTION_GATE_UNAVAILABLE
+  ok   the refusal carries the checklist the read answers
+  ok   not ready — honestly, in Phase 1
+  ok   the candidate is the release serving staging
+  ok   the domain comes first, before IAM registration (§23)
+  ok   scans are computed from that release — met, or unmet for a stated reason
+  (scans: met — Its secret and lockfile gates passed and no finding it introduced has a published fix. 1 finding(s) with no published fix are recorded on the release (§12).)
+  ok   what Manifest does not track yet says so, and who builds it
+  ok   every item says why
+
+8. The fleet, as a platform administrator (§26)
+  ok   the instructor is refused the fleet, 403
+  ok   an administrator’s session was provided
+  ok   the operator is signed in as an administrator
+  ok   journey-app is in the fleet
+  ok   owned by the instructor, for a class
+  ok   its staging environment is healthy, on the journey’s release
+  ok   and its name is not a reserved label
+
+every check passed
