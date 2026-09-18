@@ -1414,7 +1414,7 @@ curl -s --cacert infra/ca/manifest-root.crt \
 
 ### 7e. Execute P5b's sitting 8 — Task 12, `make demo-token` ← **START HERE**
 
-**P5b's sitting 7 is DONE** (2026-09-18, 13 findings, four commits, **migration 0018**).
+**P5b's sitting 7 is DONE** (2026-09-18, 13 findings, `9d05fd9` and `dfdfe94` plus its close-out, **migration 0018**).
 [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md) — 13 tasks
 in nine sittings. **Your job is sitting 8: Task 12 ALONE** — `make demo-token`, ten steps in which
 an agent holding a delegated token runs §22's build loop, is refused a privileged action, a person
