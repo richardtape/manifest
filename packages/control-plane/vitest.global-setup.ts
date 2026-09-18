@@ -32,10 +32,15 @@ const TABLES = [
   'builds',
   'app_specs',
   'environments',
-  // P5b Task 3. `pending_actions` references `delegated_tokens` ON DELETE restrict, so
-  // it is named FIRST of the two, and both before `projects` and `users`, which they
-  // cascade from — the same ordering trap `audit.role_changes` sprang in P5a sitting 11.
-  // The control for the two lists disagreeing is a SECOND `pnpm test` run, not the first.
+  // P5b Task 3, AND BELT AND BRACES RATHER THAN THE CONTROL — the same status as
+  // `routes` above, measured the same way. 2026-09-17: both tables reference `projects`,
+  // so the CASCADE on this statement already empties them with neither named — Postgres
+  // prints `truncate cascades to table "delegated_tokens"` and `"pending_actions"` — and
+  // the reverse order succeeds too, because one TRUNCATE takes them all at once. The
+  // plan's self-review expected a second `pnpm test` run to catch one list moving without
+  // the other; it does not, and cannot, so this is here only so the reset does not depend
+  // on a foreign key staying as it is. `pending_actions` is named first of the two anyway,
+  // being the referencing side, for a reader who arrives when that is no longer free.
   'pending_actions',
   'delegated_tokens',
   'project_members',
