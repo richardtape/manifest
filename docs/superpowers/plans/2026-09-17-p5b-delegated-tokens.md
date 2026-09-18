@@ -27,8 +27,8 @@
 | 1 | 1 | **The measurements this plan rests on**, before any code: whether `assertCapability` is actually central, whether `release:deploy` can tell production from staging, whether a bearer header survives the edge, what the token hash should be, and whether a stream upgrade can carry a token. **Alone, and first** | ✅ **DONE 2026-09-17 — 11 findings, 2 commits.** Corrections at the top of Tasks 2, 5, 6, 7 and 11; F1 fixed in `8d11025` |
 | 2 | 2–3 | **The privileged set named once**, with §20's alignment test, and **the two tables** with the token's shape and its `tokens/` module | ✅ **DONE 2026-09-17 — 14 findings, 3 commits.** `release:promote` separates promoting from deploying; migration **0014**; corrections at the top of Tasks 3, 4 and 5. **The token parser would have refused 47.5% of its own tokens** |
 | 3 | 4–5 | **Minting, listing and revoking** a token in an interactive session; then **bearer authentication** — one place turns either credential into an `Actor`. **It also writes `withProjectServer` and `sessionFor`**, which sitting 2 deferred to their first callers | ✅ **DONE 2026-09-17 — 15 findings, 3 commits** (`e407ae3`, `eab5466`, `d992534`). Migration **0015**. **The contract layer could not carry a bodyless mutation**, and `DELETE /v1/tokens/{tokenId}` is the first; **three controls answer `403` for the wrong reason**, so every refusal now asserts its CODE. `make demo-journey` green |
-| 4 | 6 | **The central refusal, and the `PendingAction` it creates.** The heart of D24. **Alone** | ← next |
-| 5 | 7 | **Confirm, reject, and the one-shot retry** — the loop closing. **Alone** | |
+| 4 | 6 | **The central refusal, and the `PendingAction` it creates.** The heart of D24. **Alone** | ✅ **DONE 2026-09-18 — 9 findings, 2 commits** (`11c47b9`, `f9f56f6`). Migration **0016**. The catch is OUTSIDE `app.idempotent`. **The plan's own ordering control cannot fail against any test that existed** — every test mints the privileged capability, which no real token can hold; a twelfth test asserts that case. Breaking `isPrivileged` now turns **11 tests red**, from 2. `make demo-journey` green |
+| 5 | 7 | **Confirm, reject, and the one-shot retry** — the loop closing. **Alone** | ← next |
 | 6 | 8–9 | **The queue** (§26's primary screen, as a read) and **per-token rate limits** | |
 | 7 | 10–11 | **Expiry** for both entities, and **the authorization contract suite's token actors** — the matrix roughly doubles | |
 | 8 | 12 | **`make demo-token`** — an agent runs the build loop on a token, is refused twice, a human confirms, and the retry succeeds | |
@@ -3194,3 +3194,149 @@ were not reachable through the edge until it was — and it carries a **new
 place — the union, `requireSession`, `assertCapability`'s token branch, and `isPrivileged`,
 which is **still not load-bearing**: sitting 2 measured that breaking it turns exactly one
 test red, and **Task 6 is what changes that.**
+
+### Sitting 4 — 2026-09-18 — Task 6, the central refusal — 9 findings
+
+**What it made true.** **D24's sentence is implemented.** A delegated token asking for one
+of `PRIVILEGED` is refused by `assertCapability` — the one function every project-scoped
+route already goes through — and the **single** wrapper in `api/contract/route.ts` that is
+holding the request records a `PendingAction` and answers `403 TOKEN_ACTION_PENDING` with
+that pending action in the error envelope, as a `$ref`'d representation, so an agent can
+find the thing it must wait for (D23.7). Two commits — `11c47b9`, `f9f56f6` — and migration
+**0016** (the `pending_action.created` event type). `make demo-journey` was run at the end
+and is green, all eight steps: Task 6 changes the wrapper **every** `/v1` route runs
+through, which is exactly CLAUDE.md's first *before you trust a green result* bullet.
+
+**The three checks in `assertCapability`'s token branch are ORDERED, and the order is the
+security property:** scope, then the privileged rule, then the token's own capability set.
+Scope first so a token cannot learn that another tenant's project exists — nor have a row
+written into that tenant's queue. The privileged rule **before** the token's own set,
+because D24 says *"regardless of how it was minted"*.
+
+**The catch is OUTSIDE `app.idempotent`**, which is what sitting 1's `[M5]` correction
+bought, and F3 below is the measurement that it matters.
+
+#### The finding to read if you read nothing else
+
+**F1 — the plan's own second negative control cannot fail against any test that existed,
+including the ten this task wrote.** Step 8's table says of moving the privileged check
+after the token's own capability set: *"the same test stays green for a token minted
+without the capability — so use the test that mints one WITH it"*. **The conclusion is
+backwards.** Measured: with the two swapped, **all 31 tests** in `delegation.test.ts`,
+`credential.test.ts` and `tokens.test.ts` pass.
+
+The reason is that every test here writes its token **straight to the store** holding the
+privileged capability — which is correct, and is what "however it was minted" demands —
+so not one of them exercises the branch a **real** token takes. Task 4's mint route refuses
+a privileged capability, so **no token the platform can mint can hold one**. Measured with
+a throwaway probe: swapped, a realistically-minted token asking to add a member answers
+**`403 FORBIDDEN`** instead of `403 TOKEN_ACTION_PENDING`. That is not a weakened refusal —
+it is a **dead end**: no pending action is ever written, and **D24's loop cannot start for
+any token that can actually exist**. A twelfth test, *opens the loop for a token minted
+WITHOUT the capability — which is every real token*, is the only thing that sees it, and
+**both answers are `403`**, so a status-only assertion is green through it as well — sitting
+3's F13 for the fourth time.
+
+#### Every finding
+
+| # | Finding |
+|---|---|
+| F1 | **Above.** |
+| F2 | **The plan's Step 2 prediction is wrong, and the wrong prediction hid a control that could not fail.** It says the first case *"answers `201`, because a token holding `members:manage` is currently obeyed"*. Measured: it answers **`400 MEMBER_USER_NOT_FOUND`** — `addMember` refuses a PUID that has never signed in, **after** the authorization check — so the same test's *"the member was NOT added"* assertion held for a reason with nothing to do with D24, and would have held with no central rule at all. The test now signs `bio_student` in first; the unprotected answer is then `201` and the member **is** added. Both halves measured separately with the rule deleted: `expected { status: 201 } to deeply equal { status: 403 }`, and `expected true to be false`. |
+| F3 | **Only ONE of eleven tests can see the catch being in the wrong place.** Moved inside `app.idempotent` — sitting 1's `[M5]` deadlock — ten stay green and only *stores NO idempotency record for a refusal* goes red, on `expected [ { key: 'kkkkkkkkkkkk', …(6) } ] to deeply equal []`. Its second half is an independent control that a client can see: a repeat of the key with a **different body** answers `409 IDEMPOTENCY_KEY_REUSED` when a record was stored and `403 TOKEN_ACTION_PENDING` when none was. Both directions measured. |
+| F4 | **`PendingActionList` was written here and removed: it publishes a schema no route answers.** `representation()` registers a schema and `openApiDocument` emits **every** registered one as a component, so the published contract described a list nothing returns. A schema with no caller is the same defect as a module with no caller (ORIENTATION §9, four times) and worse in a published contract, because a client can generate against it. It belongs to Task 8, with §26's queue route. |
+| F5 | **The envelope-schema control is caught by `tsc`, not by any test.** Removing `pendingAction` from `ErrorEnvelope` leaves all eleven tests green — error bodies are the one kind of body nothing parses on the way out — and `pnpm typecheck` reports two errors in `api/errors.ts`. That is P5a sitting 12's *"`tsc` refused the edit before it could run"* again, and it is the argument for `ErrorEnvelope` being **derived** from the schema (P5a sitting 11 finding 2) rather than restated. The runtime control for the same property is dropping `...question(...)` from `mapError`, which turns **six** tests red — and as a `TypeError` on a missing field, not a `500`. |
+| F6 | **The canonical key sort has no API-level control at all.** Every test through the API sends its body the same way twice, so the reuse lookup is green whether the hash sorts keys or not. `tokens/pending.test.ts` asserts it directly; removing the `.sort()` turns exactly that one test red and nothing else. It matters twice: a retry whose serialiser emits fields in another order would look like a new question, and Task 7's confirmed retry would not match the row a human answered. |
+| F7 | **§7e's named control for the scope ordering cannot see it.** *"the scope check moved after the privileged check → `answers 404 for a project the token is not scoped to` (Task 5's)"* — that test asks for `project:read`, which is never privileged, so the reorder leaves it green. Measured: `credential.test.ts` passes entirely, and only this sitting's own *answers 404, and records nothing, for a privileged action on another project* goes red. |
+| F8 | **A refusal that escapes the wrapper is now a loud refusal rather than a `500`.** `[M7]`'s point is that the event stream is registered with `app.route` directly and `registerRoutes` never wraps it. `mapError` gained a branch for a bare `TokenCapabilityRefusedError`: `403 TOKEN_ACTION_PENDING` **without** a pending action, plus an operator line naming the capability. Unreachable as the platform stands — the stream's only capability is `project:read` — and written so the day it stops being unreachable is a refusal and never a grant. |
+| F9 | **`pending_action.created` makes `api/stream-contract.test.ts` red until it is DRIVEN through the real lifecycle**, as sitting 3's F6 found for `token.minted`. Added to that lifecycle rather than to `PUBLISHED_ELSEWHERE`: the point of that test is that a REAL frame parses as the contract's `StreamFrame`, and no `post()` in it can reach this type — the token has to be written straight to the store, because no route will mint one holding a privileged capability. |
+
+**Decisions this sitting made.**
+
+- **`PENDING_ACTION_TTL_MS` is 24 hours.** Long enough that a person who is not at their
+  desk when the agent asks can answer after a night's sleep; short enough that a
+  confirmation is given against a project that still looks the way it did. §26's queue is a
+  screen somebody opens daily.
+- **The reuse lookup is (token, fingerprint, `pending`, not expired).** The expiry clause is
+  deliberate: an expired row is not an answerable question, so reusing one would leave an
+  agent waiting on something nobody can confirm. A **second token** asking the same thing
+  gets its own row — a confirmation grants one credential a retry.
+- **The fingerprint's `path` is the CONCRETE path, query string stripped**, not the route
+  template: the resource is part of the question. Its `summary` is **the route definition's
+  own**, so §26's queue and the OpenAPI document say the same thing about an operation
+  rather than two things kept in step by hand.
+- **`TokenCapabilityRefusedError` and `PendingActionRequiredError` are two classes, not one
+  with an optional field.** One means "the authorization layer refused this", true the
+  moment `assertCapability` throws; the other means "and here is the row a human answers",
+  true only after a row is written. Collapsing them would make a recorded refusal
+  indistinguishable from an unrecorded one, which is exactly what F8's branch fails closed on.
+- **`pending.ts` takes `db` and `bus`, not `ServerDeps`.** It keeps `tokens/` free of any
+  `api/` import, which is what lets `api/errors.ts` import `PendingActionRequiredError`
+  without the cycle P5a Task 6's comment warns about.
+- **The production-promotion test sends a `releaseId` that names nothing**, because the
+  capability check runs before the release is resolved — so the test asserts the ORDER as
+  well as the refusal, and with the rule removed the answer is the launch gate's `409`, not
+  a `404`. This is the alternative to adding `releaseId` to `withProjectServer` before the
+  test that needs it, which §7e warned against (sitting 2's F10).
+- **`refusal()` moved from `credential.test.ts` into `api/testing.ts`**, in the same commit
+  as its second caller. Task 7 is the third.
+- **`secret:read` is asserted as unreachable BY CONSTRUCTION, not by a check.** The plan's
+  snippet passes it to `assertCapability`, which `tsc` refuses — it is not a `Capability`
+  (sitting 2's `[M8]`). The truthful assertion is that no route can ever ask for it;
+  `quota:set`, which IS a `Capability`, is asserted against `assertCapability` directly.
+
+**§7e's diagnostic, satisfied.** Breaking `isPrivileged` to return `false` now turns
+**11 tests red across 4 files** — `delegation.test.ts` (8), `stream-contract.test.ts`,
+`tokens.test.ts` and `privileged.test.ts` — from **2 of 1088** at the end of sitting 3 and
+**1 of 1050** at the end of sitting 2. The central refusal is wired up.
+
+**Nine negative controls, each watched after the commit and restored.**
+
+| Break | What went red |
+|---|---|
+| the `isPrivileged` branch deleted from `assertCapability` | *refuses a privileged action…* — `expected { status: 201, code: undefined } to deeply equal { status: 403, … }`, **and separately** `expected true to be false` on the member being added |
+| the privileged check moved AFTER the token's own capability set | **NOTHING, until this sitting wrote the test for it** — F1. Now *opens the loop for a token minted WITHOUT the capability* — `expected { status: 403, code: 'FORBIDDEN' } to deeply equal { status: 403, code: 'TOKEN_ACTION_PENDING' }` |
+| the scope check moved after the privileged check | *answers 404, and records nothing, for a privileged action on another project* — `expected { status: 403, … } to deeply equal { status: 404, code: 'NOT_FOUND' }`. `credential.test.ts` stays entirely green (F7) |
+| `recordPendingAction`'s reuse lookup removed | *does not record a second PendingAction for an identical retry*, and `tokens/pending.test.ts`'s *reuses the row for an identical ask* |
+| the body stored in `payload` instead of its hash | *records the request's fingerprint and no more* — `expected '{"puid":"bio_student"…' to match /^[0-9a-f]{64}$/` — and *writes the fingerprint… and no body* |
+| the canonical key sort removed | `tokens/pending.test.ts`'s *is the same for the same fields in a different order* — and **nothing else** (F6) |
+| the catch moved INSIDE `app.idempotent` | *stores NO idempotency record for a refusal* — **and only that one** (F3) |
+| `pendingAction` removed from `ErrorEnvelope`'s schema | **no test at all** — `pnpm typecheck`, two errors in `api/errors.ts` (F5). Dropping `...question(...)` instead turns **six** red, as a `TypeError`, not a `500` |
+| `toPendingAction` made to answer a value the representation refuses | six red, and the operator line `a pending action is not the shape PendingAction describes; the refusal was sent without it` with `issues: ["expiresAt"]` — **fail-closed confirmed**: a refusal without the field, never a `500` |
+
+**Gate numbers at the end of this sitting.** `pnpm test` **1108 passed, 99 files** (was 1088
+in 97 — `delegation.test.ts` 12 and `tokens/pending.test.ts` 9, less one absorbed elsewhere),
+run **twice** after each commit, identical every time. `pnpm test:docker` **177 passed,
+0 skipped, 29 files**, 802 s — **unchanged, the fifth run at 177 across three sittings**,
+which was again the prediction recorded before it ran: the tier drives sessions, and this
+task refuses a credential class the tier does not present. `pnpm lint`, `pnpm typecheck`,
+`pnpm format:check` clean. `make doctor` **18/0**, `make verify` **51/0**, re-run after the
+Docker tier. `make demo-journey` green, all eight steps.
+
+**The machine was left as found** — `snapshot-machine.sh` diffed before and after, and the
+only differences are the `journey-app` instance the closing demo replaced (one container,
+one image, one volume swapped for another) and HEAD. **Five images were removed by digest**:
+the four this sitting's Docker-tier run built (`boot-recover`, `chem-labs`, `fixture-rd`,
+`redeploy-cp`) and `journey-app@a767606893e3`, which sitting 3 left **because it backed a
+running instance** — a reason this sitting's demo ended. **The `docker rmi` refusal
+ORIENTATION §2 records did not recur, for the third sitting running.** The control plane was
+killed, rebuilt and restarted so it serves this sitting's own routes, and carries a **new
+`MANIFEST_SESSION_SECRET`**. Migration **0016** is applied; **0016 is now the newest.**
+
+**LiteLLM, RE-MEASURED INDEPENDENTLY, and the previous list's held entry had gone stale for
+the FOURTH consecutive sitting.** **Twelve Manifest users, up one**, and exactly **TWO are
+held by a running container**: `mf-1db14646-…-staging` (proof-app, still) and
+**`mf-6adf7ff8-…-staging` (journey-app, NEW — this sitting's `make demo-journey`)**.
+**`mf-d10f278f-…`, which the previous list named as journey-app's and said was HELD, is now
+an orphan.** The other nine orphans: `p4b-probe-user` (no keys at all),
+`mf-217d4549-…`, `mf-4192aef8-…`, `mf-49170f5e-…`, `mf-58fcaf86-…`, `mf-af2629e6-…`,
+`mf-b27ebd54-…`, `mf-e650609e-…`, `mf-f72bd023-…`. Deleting them is Rich's — the session's
+classifier refuses it as a secret-store write. `fixture-app` hashes to `e3b0c442…`, the
+empty string, and is not a match for anything.
+
+**Left for sitting 5, deliberately:** Task 7 — confirm, reject, and the one-shot retry.
+Everything it consumes is in place: `TokenCapabilityRefusedError`, `recordPendingAction`,
+`pendingById`, `fingerprintOf`, `bodySha256`, `PENDING_ACTION_TTL_MS`, the `PendingAction`
+representation, and `TokenActor.grant`, which **Task 7 is still the only thing that may ever
+set**. The retry reuses the **same** `Idempotency-Key`, and F3 is the measurement that this
+sitting made that possible.
