@@ -10,11 +10,12 @@ import {
   listMembers,
   listProjectsFor,
   projectViews,
+  removeMember,
   servingInstanceOf,
 } from '../../projects/index.js'
 import { isSensitiveDiff, validateSpec, type ManifestSpec } from '../../spec/index.js'
 import { defineRoute, NO_BODY, NO_PARAMS, NO_QUERY } from '../contract/route.js'
-import { BadRequestError, SpecInvalidError } from '../errors.js'
+import { BadRequestError, LastOwnerError, SpecInvalidError } from '../errors.js'
 import {
   Environment,
   EnvironmentList,
@@ -31,6 +32,8 @@ import { Spec, SpecValidation, ValidateSpecRequest } from '../representations/sp
 import { modelPolicy, validationContext } from './projects.js'
 
 const ProjectParams = z.strictObject({ projectId: z.uuid() })
+/** The member routes that name a person: `userId` is the §6 `users.id`, not a PUID. */
+const MemberParams = z.strictObject({ projectId: z.uuid(), userId: z.uuid() })
 const EnvironmentParams = z.strictObject({ environmentId: z.uuid() })
 
 async function environmentsWithInstances(db: Db, projectId: string) {
@@ -220,6 +223,41 @@ export const projectReadRoutes = [
         email: user.email,
         role: body.role,
       })
+    },
+  }),
+  defineRoute({
+    operationId: 'removeMember',
+    method: 'DELETE',
+    path: '/v1/projects/{projectId}/members/{userId}',
+    tag: 'projects',
+    summary: 'Remove a member',
+    description:
+      'Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms (P5b). Idempotent — removing somebody who is not a member answers the members as they are — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.',
+    params: MemberParams,
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: {
+      status: 200,
+      description: 'The members as they now are.',
+      schema: MemberList,
+    },
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'PROJECT_LAST_OWNER',
+      // D24's central refusal, which this route does NOTHING to earn (P5b Task 8). It is
+      // the first privileged route written after Task 6 made the rule central, and
+      // `assertCapability` below is the whole of its part in it. `errors:` names the two
+      // codes because they are what a client can receive, not because this route throws
+      // them — the wrapper in `api/contract/route.ts` does.
+      'TOKEN_ACTION_PENDING',
+      'TOKEN_ACTION_REJECTED',
+    ],
+    handler: async ({ deps, actor, params }) => {
+      await assertCapability(deps.db, actor, params.projectId, 'members:manage')
+      if ((await removeMember(deps.db, params.projectId, params.userId)) === 'last owner')
+        throw new LastOwnerError()
+      return (await listMembers(deps.db, params.projectId)).map(toMember)
     },
   }),
   defineRoute({

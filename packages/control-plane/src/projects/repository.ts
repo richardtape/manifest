@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, gt, inArray, ne, or, sql } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import {
   environments,
@@ -242,6 +242,61 @@ export async function addMember(
       target: [projectMembers.projectId, projectMembers.userId],
       set: { role },
     })
+}
+
+/**
+ * Take a person off a project — §13's other half of `addMember`, and D24's fourth
+ * privileged action to become reachable (P5b Task 8).
+ *
+ * **IDEMPOTENT, like `addMember`.** Removing somebody who is not a member changes nothing
+ * and reports the same thing, because a caller who reaches this line holds
+ * `members:manage` and can already read the membership — so a refusal would hide nothing
+ * and would turn a repeated click, or two administrators acting at once, into an error for
+ * an action that achieved its goal. The asymmetry with `revokeToken`, which DOES let its
+ * route answer `404`, is deliberate: there the `404` hides which token ids exist from
+ * somebody who may not see them.
+ *
+ * **It refuses to remove the last owner** — the caller sees `PROJECT_LAST_OWNER`. A
+ * project with no owner is one nobody can grant access to, delete or deploy, and §13 has
+ * no route back: the row would have to be repaired in the database. The count and the
+ * delete are one statement so two removals racing cannot each see the other's owner.
+ */
+export async function removeMember(
+  db: Db,
+  projectId: string,
+  userId: string,
+): Promise<'removed' | 'not a member' | 'last owner'> {
+  const [target] = await db
+    .select({ role: projectMembers.role })
+    .from(projectMembers)
+    .where(
+      and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)),
+    )
+  if (target === undefined) return 'not a member'
+  const [deleted] = await db
+    .delete(projectMembers)
+    .where(
+      and(
+        eq(projectMembers.projectId, projectId),
+        eq(projectMembers.userId, userId),
+        /**
+         * THE GUARD IS IN THE DELETE, not in the read above — the same shape as
+         * `resolveAction`'s `state = 'pending'` clause, and for the same reason (sitting
+         * 5's F9). Two owners removing each other at the same moment would both pass a
+         * read-then-delete and leave the project with none; here the second `DELETE`
+         * matches no row, because the subquery counts what the first has already removed.
+         */
+        or(
+          ne(projectMembers.role, 'owner'),
+          gt(
+            sql`(select count(*) from ${projectMembers} m where m.project_id = ${projectId} and m.role = 'owner')`,
+            sql`1`,
+          ),
+        ),
+      ),
+    )
+    .returning({ userId: projectMembers.userId })
+  return deleted === undefined ? 'last owner' : 'removed'
 }
 
 export async function listEnvironments(

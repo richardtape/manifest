@@ -2,8 +2,9 @@ import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { resetDatabase } from '../db/testing.js'
+import { ensureTestUser } from '../identity/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
-import { TokenCapabilityRefusedError } from '../projects/index.js'
+import { addMember, TokenCapabilityRefusedError } from '../projects/index.js'
 import { fingerprintOf, recordPendingAction } from '../tokens/index.js'
 import { loginAs, mutationHeaders, projectBody } from './testing.js'
 import type { ErrorCode } from './error-codes.js'
@@ -81,6 +82,17 @@ interface Fixture {
   tokenId: string
   /** One PENDING question per route and per actor (P5b Task 7); see `request` above. */
   pendingActionId: Record<'confirm' | 'reject', Record<Actor, string>>
+  /**
+   * `platform_admin`'s `users.id`, made a COLLABORATOR of the fixture project purely so
+   * the removal row has somebody to remove (P5b Task 8).
+   *
+   * Not `bio_student`: every `collaborator: 'pass'` expectation in this table depends on
+   * that membership, and the owner's case here would take it away. `platform_admin`
+   * passes everywhere by their platform ROLE, not by membership, so removing them changes
+   * no other row — and the admin's own case is then the idempotent second removal, which
+   * is the same shape the `POST .../members` row above relies on.
+   */
+  removableUserId: string
 }
 
 const ALL_ACTORS: Actor[] = ['owner', 'collaborator', 'stranger', 'admin', 'anonymous']
@@ -310,6 +322,63 @@ const ROUTES: RouteCase[] = [
     expect: {
       owner: 'pass',
       collaborator: 403,
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
+    /**
+     * D24's fourth privileged action, and the first route written AFTER the rule was made
+     * central (P5b Task 8). A collaborator is refused and a stranger is hidden, exactly as
+     * on `POST .../members`, because it is the same capability.
+     *
+     * The owner's case is a real removal; the admin's is the idempotent repeat of it. A
+     * removal that finds nobody answers the same way — `api/delegation.test.ts` asserts
+     * that behaviour, this table asserts only who may ask.
+     */
+    method: 'DELETE',
+    url: '/v1/projects/:projectId/members/:userId',
+    request: (f) => ({
+      url: `/v1/projects/${f.projectId}/members/${f.removableUserId}`,
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 403,
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
+    // §26's queue. Reading it is `project:read` — a collaborator watches the queue even
+    // though answering a question needs the capability the question is about.
+    method: 'GET',
+    url: '/v1/projects/:projectId/pending-actions',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/pending-actions` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
+    /**
+     * One question, read. `confirm.anonymous` is the row deliberately: it is the one no
+     * actor in this table ever resolves — anonymous is answered 401 by the confirm row
+     * above — so this case cannot depend on whether it has run yet. A read does not
+     * consume, so `request` ignores the actor.
+     */
+    method: 'GET',
+    url: '/v1/pending-actions/:pendingActionId',
+    request: (f) => ({
+      url: `/v1/pending-actions/${f.pendingActionId.confirm.anonymous}`,
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
@@ -719,8 +788,13 @@ export function describeAuthorizationContract(
           await Promise.all(ALL_ACTORS.map(async (a) => [a, await askFor(how, a)])),
         ) as Record<Actor, string>
 
+      // The removal row's target: a member whose going changes no other expectation.
+      const removable = await ensureTestUser(deps.db, 'platform_admin')
+      await addMember(deps.db, body.id, removable.id, 'collaborator')
+
       fixture = {
         projectId: body.id,
+        removableUserId: removable.id,
         tokenId: token.json().token.id,
         pendingActionId: {
           confirm: await questions('confirm'),

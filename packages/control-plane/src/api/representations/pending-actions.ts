@@ -41,6 +41,22 @@ export const PendingAction = representation(
       createdAt: Timestamp,
       resolvedAt: Timestamp.nullable(),
       /**
+       * §26: *"how long it has waited"* is the queue's headline number, so it is computed
+       * HERE rather than by each client from `createdAt` (Task 8).
+       *
+       * Two clients subtracting two timestamps is two clock skews and two roundings, and
+       * the number a person acts on — "this agent has been blocked for six hours" — is
+       * the one the platform should be answerable for. On a resolved row it stops at
+       * `resolvedAt`, because after that it waited for nothing.
+       */
+      waitingSeconds: z
+        .number()
+        .int()
+        .nonnegative()
+        .describe(
+          'Seconds between the question being asked and it being answered — or, while it is still pending, now.',
+        ),
+      /**
        * Why a person said no, in their own words — null on a pending or a confirmed row
        * (Task 7). It is here rather than only in the event because the `403` a rejected
        * retry gets carries this representation, and D23.7's argument is that an agent
@@ -60,15 +76,26 @@ export const PendingAction = representation(
 )
 
 /**
- * **`PendingActionList` IS TASK 8'S, NOT THIS TASK'S.** It was written here first and
- * removed: `representation()` registers a schema, and `openApiDocument` emits EVERY
- * registered one as a component — so the published contract described a list no route
- * answers. A schema with no caller is the same defect as a module with no caller
- * (ORIENTATION §9, four times), and in a published contract it is worse: a client can
- * generate against it. §26's queue route brings its own.
+ * §26's queue (Task 8). **Registered in the same commit as the route that answers it** —
+ * it was written in Task 6, found to be a component of the published contract that no
+ * operation returned, and removed until now. `representation()` registers a schema and
+ * `openApiDocument` emits every registered one, so a schema with no caller is the
+ * module-with-no-caller defect (ORIENTATION §9) inside a document a client generates from.
  */
+export const PendingActionList = representation(
+  'PendingActionList',
+  z
+    .array(PendingAction)
+    .describe(
+      'The questions agents have put to the people who own this project, newest first (§26).',
+    ),
+)
 
-export function toPendingAction(row: PendingActionRow): z.input<typeof PendingAction> {
+export function toPendingAction(
+  row: PendingActionRow,
+  now: Date = new Date(),
+): z.input<typeof PendingAction> {
+  const until = row.resolvedAt ?? now
   return {
     id: row.id,
     projectId: row.projectId,
@@ -82,6 +109,10 @@ export function toPendingAction(row: PendingActionRow): z.input<typeof PendingAc
     expiresAt: row.expiresAt.toISOString(),
     createdAt: row.createdAt.toISOString(),
     resolvedAt: row.resolvedAt?.toISOString() ?? null,
+    waitingSeconds: Math.max(
+      0,
+      Math.round((until.getTime() - row.createdAt.getTime()) / 1000),
+    ),
     reason: row.reason,
     consumedAt: row.consumedAt?.toISOString() ?? null,
   }

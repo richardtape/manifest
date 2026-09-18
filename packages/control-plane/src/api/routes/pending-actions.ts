@@ -4,13 +4,14 @@ import {
   AuthorizationError,
   CAPABILITIES,
 } from '../../projects/index.js'
-import { pendingById, resolveAction } from '../../tokens/index.js'
-import { requireSession } from '../actor.js'
-import { defineRoute, NO_QUERY } from '../contract/route.js'
+import { pendingActionsFor, pendingById, resolveAction } from '../../tokens/index.js'
+import { requireActor, requireSession } from '../actor.js'
+import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
 import { EmptyRequest } from '../contract/schemas.js'
 import { PendingActionResolvedError } from '../errors.js'
 import {
   PendingAction,
+  PendingActionList,
   RejectPendingActionRequest,
   toPendingAction,
 } from '../representations/pending-actions.js'
@@ -92,6 +93,89 @@ async function answerable(
   }
   return { row, userId: actor.userId, puid: actor.puid }
 }
+
+const ProjectParams = z.strictObject({ projectId: z.uuid() })
+
+/**
+ * §26's queue, as two reads (Task 8) — *"The primary screen is the queue ... Not the fleet
+ * list."* P5c builds the screen; these are what it is built on, and they are also how an
+ * agent finds out whether its question was answered without guessing when to retry.
+ *
+ * **BOTH CREDENTIAL CLASSES MAY READ, AND THEY SEE DIFFERENT SETS.** Anyone who can read
+ * the project reads the project's queue, because that is what the screen is about; a
+ * delegated token reads only the questions IT asked. A token's authority is its own
+ * (Decision 3), and one agent reading another agent's requests — what it tried to do, on
+ * which resource, and when — is a read D24 grants nobody. The rule is stated once, in
+ * `pendingActionsFor`'s `tokenId` parameter, and both routes apply it.
+ *
+ * **`404`, NEVER `403`, for a row the caller may not see**, exactly as §13's stranger rule
+ * has it: a refusal that confirms the row exists turns the id space into an enumeration
+ * oracle, and a pending action names a project, an agent and an action.
+ */
+export const pendingActionReads = [
+  defineRoute({
+    operationId: 'listPendingActions',
+    method: 'GET',
+    path: '/v1/projects/{projectId}/pending-actions',
+    tag: 'pending-actions',
+    summary: 'The questions agents are waiting on',
+    description:
+      '§26’s queue for one project, newest first. A person who can read the project sees every question; a delegated token sees only the ones it asked itself. Answered and expired questions stay in the list — `waitingSeconds` on a resolved row is how long the agent waited for its answer.',
+    params: ProjectParams,
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: {
+      status: 200,
+      description: 'The project’s pending actions, newest first.',
+      schema: PendingActionList,
+    },
+    errors: ['NOT_FOUND'],
+    handler: async ({ deps, actor, params }) => {
+      await assertCapability(deps.db, actor, params.projectId, 'project:read')
+      const now = new Date()
+      const rows = await pendingActionsFor(
+        deps.db,
+        params.projectId,
+        actor.credential === 'token' ? actor.tokenId : undefined,
+      )
+      return rows.map((row) => toPendingAction(row, now))
+    },
+  }),
+  defineRoute({
+    operationId: 'getPendingAction',
+    method: 'GET',
+    path: '/v1/pending-actions/{pendingActionId}',
+    tag: 'pending-actions',
+    summary: 'One pending action',
+    description:
+      'What an agent asked for, and what a person decided. An agent polls its own question here rather than retrying a refused request to find out; anyone who can read the project reads the project’s. A question the caller may not see is answered 404, the same as one that does not exist.',
+    params: PendingActionParams,
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: { status: 200, description: 'The pending action.', schema: PendingAction },
+    errors: ['NOT_FOUND'],
+    handler: async ({ deps, request, params }) => {
+      const actor = requireActor(request)
+      const row = await pendingById(deps.db, params.pendingActionId)
+      // ONE `404` for "no such row" and for "not yours". Read before either check so the
+      // two are indistinguishable to a caller, which is the whole of the enumeration
+      // argument — a timing difference here is not one a client can act on.
+      const hidden = new AuthorizationError(
+        'NOT_FOUND',
+        `no pending action '${params.pendingActionId}'`,
+      )
+      if (row === undefined) throw hidden
+      if (actor.credential === 'token') {
+        // ITS OWN, and nothing else. `assertCapability` would let any token holding
+        // `project:read` on this project read every agent's questions.
+        if (row.requestedByToken !== actor.tokenId) throw hidden
+        return toPendingAction(row)
+      }
+      await assertCapability(deps.db, actor, row.projectId, 'project:read')
+      return toPendingAction(row)
+    },
+  }),
+]
 
 export const pendingActionRoutes = [
   defineRoute({

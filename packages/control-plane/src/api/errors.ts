@@ -75,6 +75,22 @@ export class PendingActionResolvedError extends Error {
 }
 
 /**
+ * §13: a project must always have an owner (P5b Task 8).
+ *
+ * 409 rather than 403: the caller holds `members:manage` and is allowed to do this — it
+ * is the project's STATE that refuses, exactly as `PendingActionResolvedError` does. A
+ * project with no owner is one nobody can grant access to, delete or deploy, and there is
+ * no route back to an owner: the row would have to be repaired in the database.
+ */
+export class LastOwnerError extends Error {
+  readonly code = 'PROJECT_LAST_OWNER'
+  constructor() {
+    super('a project must always have at least one owner (§13)')
+    this.name = 'LastOwnerError'
+  }
+}
+
+/**
  * §13: a first production launch is a checklist, not a button. A 409 that carries the
  * checklist — not a refusal a client has to go and ask about (P5a Task 14).
  *
@@ -299,6 +315,18 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
     }
   }
 
+  if (error instanceof LastOwnerError) {
+    return {
+      status: 409,
+      body: {
+        error: {
+          code: error.code,
+          message: error.message,
+          hint: 'Make somebody else an owner first, then remove this one.',
+        },
+      },
+    }
+  }
   if (error instanceof PendingActionResolvedError) {
     return {
       status: 409,

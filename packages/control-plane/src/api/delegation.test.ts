@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
 import type { LightMyRequestResponse } from 'fastify'
 import { afterAll, describe, expect, it } from 'vitest'
-import { idempotencyKeys, pendingActions, projectMembers } from '../db/index.js'
+import { idempotencyKeys, pendingActions, projectMembers, users } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import type { TestUserPuid } from '../identity/testing.js'
 import { addMember, assertCapability, CAPABILITIES } from '../projects/index.js'
@@ -73,6 +73,82 @@ function addMemberRequest(
     headers: { authorization: `Bearer ${plaintext}`, 'idempotency-key': key },
     payload: { puid: 'bio_student', role: 'collaborator' },
   }
+}
+
+/**
+ * The four helpers below are AT FILE SCOPE, not inside the confirm block that wrote them.
+ *
+ * Task 8's queue tests need `refusedOnce` to have a question to read, and a
+ * `describe('the queue (§26)')` nested inside `describe('confirming a pending action')`
+ * would be a lie about what that block contains. Hoisted rather than copied: a helper
+ * copied twice drifts twice, and `confirmed`'s assertions are the whole of sitting 5's F1.
+ */
+
+/** The whole loop's first half: the agent asks, and is refused. */
+async function refusedOnce(
+  ctx: TestProject,
+  puid: TestUserPuid = 'bio_student',
+): Promise<{
+  ask: () => Promise<LightMyRequestResponse>
+  plaintext: string
+  pendingId: string
+}> {
+  // A token minted the way a REAL one is — WITHOUT the privileged capability, which
+  // Task 4's mint route refuses. Sitting 4's F1: every other test here writes one
+  // holding `members:manage` straight to the store, which is the right thing for
+  // "however it was minted" and is not the state any token that exists is in. A
+  // confirmation must let this one through, so the GRANT is what lets it past and not
+  // the token's own set.
+  const plaintext = await tokenHolding(ctx, ['project:read'])
+  const ask = (): Promise<LightMyRequestResponse> =>
+    ctx.app.inject({
+      ...addMemberRequest(ctx.projectId, plaintext),
+      payload: { puid, role: 'collaborator' },
+    })
+  const refused = await ask()
+  expect(refusal(refused)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+  return { ask, plaintext, pendingId: refused.json().error.pendingAction.id }
+}
+
+function resolve(
+  ctx: TestProject,
+  pendingId: string,
+  how: 'confirm' | 'reject',
+  cookies: Record<string, string>,
+  payload?: Record<string, unknown>,
+): Promise<LightMyRequestResponse> {
+  return ctx.app.inject({
+    method: 'POST',
+    url: `/v1/pending-actions/${pendingId}/${how}`,
+    cookies,
+    headers: mutationHeaders(ctx.deps),
+    ...(payload === undefined ? {} : { payload }),
+  })
+}
+
+/**
+ * A confirmation that IS one, asserted at the point it is used as a precondition.
+ *
+ * **MEASURED BEFORE THE ROUTE EXISTED**, and it is sitting 4's F1 in this sitting's own
+ * tests: with `resolve` unchecked, *does not let a DIFFERENT request through* and *does
+ * not let a SECOND token through* were both GREEN against a `404 ROUTE_NOT_FOUND` — the
+ * confirmation never happened, so the request that followed was refused for the
+ * ordinary reason and the assertion below it proved nothing. A precondition that is not
+ * asserted is not a precondition.
+ */
+async function confirmed(ctx: TestProject, pendingId: string): Promise<void> {
+  const res = await resolve(ctx, pendingId, 'confirm', ctx.ownerCookies)
+  expect(refusal(res)).toEqual({ status: 200, code: undefined })
+  expect(res.json().state).toBe('confirmed')
+}
+
+async function memberPuids(ctx: TestProject): Promise<string[]> {
+  const res = await ctx.app.inject({
+    method: 'GET',
+    url: `/v1/projects/${ctx.projectId}/members`,
+    cookies: ctx.ownerCookies,
+  })
+  return (res.json() as { puid: string }[]).map((m) => m.puid)
 }
 
 describe('D24’s central refusal', () => {
@@ -358,73 +434,6 @@ describe('D24’s central refusal', () => {
  * ACTION is a new request with a fresh key, and that is where the one-shot rule bites.
  */
 describe('confirming a pending action (D24, Decision 6)', () => {
-  /** The whole loop's first half: the agent asks, and is refused. */
-  async function refusedOnce(
-    ctx: TestProject,
-    puid: TestUserPuid = 'bio_student',
-  ): Promise<{
-    ask: () => Promise<LightMyRequestResponse>
-    plaintext: string
-    pendingId: string
-  }> {
-    // A token minted the way a REAL one is — WITHOUT the privileged capability, which
-    // Task 4's mint route refuses. Sitting 4's F1: every other test here writes one
-    // holding `members:manage` straight to the store, which is the right thing for
-    // "however it was minted" and is not the state any token that exists is in. A
-    // confirmation must let this one through, so the GRANT is what lets it past and not
-    // the token's own set.
-    const plaintext = await tokenHolding(ctx, ['project:read'])
-    const ask = (): Promise<LightMyRequestResponse> =>
-      ctx.app.inject({
-        ...addMemberRequest(ctx.projectId, plaintext),
-        payload: { puid, role: 'collaborator' },
-      })
-    const refused = await ask()
-    expect(refusal(refused)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
-    return { ask, plaintext, pendingId: refused.json().error.pendingAction.id }
-  }
-
-  function resolve(
-    ctx: TestProject,
-    pendingId: string,
-    how: 'confirm' | 'reject',
-    cookies: Record<string, string>,
-    payload?: Record<string, unknown>,
-  ): Promise<LightMyRequestResponse> {
-    return ctx.app.inject({
-      method: 'POST',
-      url: `/v1/pending-actions/${pendingId}/${how}`,
-      cookies,
-      headers: mutationHeaders(ctx.deps),
-      ...(payload === undefined ? {} : { payload }),
-    })
-  }
-
-  /**
-   * A confirmation that IS one, asserted at the point it is used as a precondition.
-   *
-   * **MEASURED BEFORE THE ROUTE EXISTED**, and it is sitting 4's F1 in this sitting's own
-   * tests: with `resolve` unchecked, *does not let a DIFFERENT request through* and *does
-   * not let a SECOND token through* were both GREEN against a `404 ROUTE_NOT_FOUND` — the
-   * confirmation never happened, so the request that followed was refused for the
-   * ordinary reason and the assertion below it proved nothing. A precondition that is not
-   * asserted is not a precondition.
-   */
-  async function confirmed(ctx: TestProject, pendingId: string): Promise<void> {
-    const res = await resolve(ctx, pendingId, 'confirm', ctx.ownerCookies)
-    expect(refusal(res)).toEqual({ status: 200, code: undefined })
-    expect(res.json().state).toBe('confirmed')
-  }
-
-  async function memberPuids(ctx: TestProject): Promise<string[]> {
-    const res = await ctx.app.inject({
-      method: 'GET',
-      url: `/v1/projects/${ctx.projectId}/members`,
-      cookies: ctx.ownerCookies,
-    })
-    return (res.json() as { puid: string }[]).map((m) => m.puid)
-  }
-
   it('lets the agent’s retry through exactly once', async () => {
     await withProjectServer(async (ctx) => {
       // `bio_student` has to have signed in, or `addMember` answers 400
@@ -635,6 +644,299 @@ describe('confirming a pending action (D24, Decision 6)', () => {
       const succeeded = await ask()
       expect(refusal(succeeded)).toEqual({ status: 201, code: undefined })
       expect((await pendingById(ctx.db, pendingId))?.consumedAt).not.toBeNull()
+    })
+  })
+})
+
+/**
+ * §26's queue, as a read (P5b Task 8).
+ *
+ * *"The primary screen is the queue ... Not the fleet list."* P5c builds the screen; these
+ * two reads are what it will be built on, and they are also how an agent polls for its own
+ * answer instead of guessing when to retry.
+ *
+ * **THE TWO CREDENTIAL CLASSES SEE DIFFERENT SETS, and that is the rule rather than an
+ * accident.** Anyone who may read the project reads the project's queue — it is a screen
+ * about the project. A TOKEN reads only the questions IT asked: a token's authority is its
+ * own (§3, Task 5), and one agent enumerating another agent's requests is a read nothing
+ * in D24 grants it. The same rule, stated once, decides both routes.
+ */
+describe('the queue (§26)', () => {
+  it('lists a project’s pending actions, newest first, with how long each has waited', async () => {
+    await withProjectServer(async (ctx) => {
+      const { pendingId } = await refusedOnce(ctx)
+      const owner = await sessionFor(ctx, 'bio_prof', 'owner')
+      const res = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}/pending-actions`,
+        cookies: owner,
+      })
+      expect(refusal(res)).toEqual({ status: 200, code: undefined })
+      const [first] = res.json()
+      expect(first.id).toBe(pendingId)
+      expect(first.action).toBe('members:manage')
+      // §26: "how long it has waited" is the queue's headline number, so it is in the
+      // representation rather than computed by each client from createdAt.
+      expect(typeof first.waitingSeconds).toBe('number')
+      expect(first.summary).toContain('member')
+    })
+  })
+
+  it('puts the NEWEST question first', async () => {
+    // Asserted with two rows, because a one-row list is ordered correctly by every
+    // ordering there is — including none. The two differ in their body, so the reuse
+    // lookup gives each its own row rather than handing back the first.
+    await withProjectServer(async (ctx) => {
+      const { pendingId: older } = await refusedOnce(ctx, 'bio_student')
+      const { pendingId: newer } = await refusedOnce(ctx, 'platform_admin')
+      expect(newer).not.toBe(older)
+      const res = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}/pending-actions`,
+        cookies: ctx.ownerCookies,
+      })
+      expect((res.json() as { id: string }[]).map((row) => row.id)).toEqual([
+        newer,
+        older,
+      ])
+    })
+  })
+
+  it('lets a COLLABORATOR read the queue, because it is a screen about the project', async () => {
+    // `project:read`, not `members:manage`. Answering the question needs the capability
+    // (Task 7); seeing that it was asked does not, and a queue only owners can see is a
+    // queue nobody watches.
+    await withProjectServer(async (ctx) => {
+      await refusedOnce(ctx)
+      const collaborator = await sessionFor(ctx, 'bio_student', 'collaborator')
+      const res = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}/pending-actions`,
+        cookies: collaborator,
+      })
+      expect(refusal(res)).toEqual({ status: 200, code: undefined })
+      expect(res.json()).toHaveLength(1)
+    })
+  })
+
+  it('lets the TOKEN read its own pending action, so an agent can poll for the answer', async () => {
+    await withProjectServer(async (ctx) => {
+      const { plaintext, pendingId } = await refusedOnce(ctx)
+      const res = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/pending-actions/${pendingId}`,
+        headers: { authorization: `Bearer ${plaintext}` },
+      })
+      expect(refusal(res)).toEqual({ status: 200, code: undefined })
+      expect(res.json().state).toBe('pending')
+    })
+  })
+
+  it('shows the token only ITS OWN questions in the project’s queue', async () => {
+    // A token's authority is its own. Two agents on one project must not read each
+    // other's requests, and the list is where that would leak in bulk.
+    await withProjectServer(async (ctx) => {
+      const { pendingId: mine } = await refusedOnce(ctx, 'bio_student')
+      const { plaintext: theirs } = await refusedOnce(ctx, 'platform_admin')
+      const asOwner = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}/pending-actions`,
+        cookies: ctx.ownerCookies,
+      })
+      expect(asOwner.json()).toHaveLength(2)
+
+      const asToken = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}/pending-actions`,
+        headers: { authorization: `Bearer ${theirs}` },
+      })
+      expect(refusal(asToken)).toEqual({ status: 200, code: undefined })
+      const ids = (asToken.json() as { id: string }[]).map((row) => row.id)
+      expect(ids).toHaveLength(1)
+      expect(ids).not.toContain(mine)
+    })
+  })
+
+  it('hides ANOTHER token’s pending action from a token', async () => {
+    // 404, not 403 — the same answer a stranger gets, for the same reason: a refusal
+    // that confirms the row exists turns the id space into an enumeration oracle.
+    await withProjectServer(async (ctx) => {
+      const { pendingId } = await refusedOnce(ctx, 'bio_student')
+      const { plaintext: other } = await refusedOnce(ctx, 'platform_admin')
+      const res = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/pending-actions/${pendingId}`,
+        headers: { authorization: `Bearer ${other}` },
+      })
+      expect(refusal(res)).toEqual({ status: 404, code: 'NOT_FOUND' })
+    })
+  })
+
+  it('hides a pending action from a stranger', async () => {
+    await withProjectServer(async (ctx) => {
+      const { pendingId } = await refusedOnce(ctx)
+      const stranger = await sessionFor(ctx, 'unrelated_user')
+      const res = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/pending-actions/${pendingId}`,
+        cookies: stranger,
+      })
+      expect(refusal(res)).toEqual({ status: 404, code: 'NOT_FOUND' })
+    })
+  })
+
+  it('never carries the refused request’s body', async () => {
+    // The row exists to be read on a screen (§14, §26). `bio_student` is the PUID the
+    // refused `addMember` body named, and it appears nowhere in the answer.
+    await withProjectServer(async (ctx) => {
+      const { pendingId } = await refusedOnce(ctx)
+      const res = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/pending-actions/${pendingId}`,
+        cookies: ctx.ownerCookies,
+      })
+      expect(refusal(res)).toEqual({ status: 200, code: undefined })
+      expect(JSON.stringify(res.json())).not.toContain('bio_student')
+    })
+  })
+})
+
+/**
+ * Removing a member (§13) — and the claim Task 6 made about every route written after it.
+ *
+ * P5a's *What this plan does not build* named this route once: *"Removing a member — a
+ * privileged action with nowhere to put a pending action until P5b."* The place has
+ * existed since Task 6, so the route is small. **Its real deliverable is the last test in
+ * this block**: `DELETE /v1/projects/{projectId}/members/{userId}` is the FIRST privileged
+ * route added after D24's rule was made central, it calls `assertCapability` like every
+ * other route and does nothing else about tokens — and if "centrally, not per-route" is
+ * true, it is already enforced here. If it is not, that test is what says so.
+ */
+describe('removing a member (§13, and Task 6’s claim)', () => {
+  async function userIdOf(ctx: TestProject, puid: TestUserPuid): Promise<string> {
+    const [row] = await ctx.db.select().from(users).where(eq(users.ubcCwlPuid, puid))
+    if (row === undefined) throw new Error(`'${puid}' has never signed in`)
+    return row.id
+  }
+
+  it('lets an owner remove a collaborator', async () => {
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_student', 'collaborator')
+      expect(await memberPuids(ctx)).toContain('bio_student')
+
+      const res = await ctx.app.inject({
+        method: 'DELETE',
+        url: `/v1/projects/${ctx.projectId}/members/${await userIdOf(ctx, 'bio_student')}`,
+        cookies: ctx.ownerCookies,
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(refusal(res)).toEqual({ status: 200, code: undefined })
+      // THE ANSWER'S SHAPE, not merely its status: the body is the members as they now
+      // are, and the person asked about is not among them.
+      expect((res.json() as { puid: string }[]).map((m) => m.puid)).toEqual(['bio_prof'])
+      expect(await memberPuids(ctx)).not.toContain('bio_student')
+    })
+  })
+
+  it('is idempotent: removing somebody who is not a member answers the same way', async () => {
+    // DELETE is idempotent, and the caller holds `members:manage` — they can already
+    // read the membership, so a 404 would hide nothing and would turn the second click
+    // of a console button into an error for an action that achieved its goal. The
+    // asymmetry with `DELETE /v1/tokens/{tokenId}`, which DOES answer 404, is deliberate:
+    // there the 404 hides which token ids exist from somebody who may not see them.
+    await withProjectServer(async (ctx) => {
+      // Signed in, so the user row exists — but never added to the project.
+      await sessionFor(ctx, 'bio_student')
+      const res = await ctx.app.inject({
+        method: 'DELETE',
+        url: `/v1/projects/${ctx.projectId}/members/${await userIdOf(ctx, 'bio_student')}`,
+        cookies: ctx.ownerCookies,
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(refusal(res)).toEqual({ status: 200, code: undefined })
+      expect((res.json() as { puid: string }[]).map((m) => m.puid)).toEqual(['bio_prof'])
+    })
+  })
+
+  it('refuses the LAST owner’s removal, so a project cannot be orphaned', async () => {
+    await withProjectServer(async (ctx) => {
+      const res = await ctx.app.inject({
+        method: 'DELETE',
+        url: `/v1/projects/${ctx.projectId}/members/${ctx.userId}`,
+        cookies: ctx.ownerCookies,
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(refusal(res)).toEqual({ status: 409, code: 'PROJECT_LAST_OWNER' })
+      expect(await memberPuids(ctx)).toContain('bio_prof')
+    })
+  })
+
+  it('lets an owner go once somebody else owns the project', async () => {
+    // The guard is about the LAST owner, not about owners. Without this case the rule
+    // above is satisfied by a route that refuses every owner's removal.
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_student', 'owner')
+      const res = await ctx.app.inject({
+        method: 'DELETE',
+        url: `/v1/projects/${ctx.projectId}/members/${ctx.userId}`,
+        cookies: ctx.ownerCookies,
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(refusal(res)).toEqual({ status: 200, code: undefined })
+      expect((res.json() as { puid: string }[]).map((m) => m.puid)).toEqual([
+        'bio_student',
+      ])
+    })
+  })
+
+  /**
+   * THE POINT OF THIS TASK. This route was written after Task 6 and knows nothing about
+   * delegated tokens: it calls `assertCapability(..., 'members:manage')` like every other
+   * route and does nothing else. If D24's rule is genuinely central it is already
+   * enforced here — and if it is not, this is the test that says so.
+   *
+   * **The CODE, not the status.** `403 FORBIDDEN` and `403 TOKEN_ACTION_PENDING` are both
+   * `403`, and a status-only assertion here would pass against a route on which D24's
+   * loop cannot start at all. That confusion has bitten five sittings running.
+   */
+  it('is refused to a token with a PendingAction, WITHOUT the route doing anything', async () => {
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_student', 'collaborator')
+      const plaintext = await tokenHolding(ctx, ['members:manage'])
+      const res = await ctx.app.inject({
+        method: 'DELETE',
+        url: `/v1/projects/${ctx.projectId}/members/${await userIdOf(ctx, 'bio_student')}`,
+        headers: { authorization: `Bearer ${plaintext}`, 'idempotency-key': KEY },
+      })
+      expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+      expect(res.json().error.pendingAction.action).toBe('members:manage')
+      // And it did not happen.
+      expect(await memberPuids(ctx)).toContain('bio_student')
+    })
+  })
+
+  it('lets the confirmed retry of a REMOVAL through, exactly once', async () => {
+    // The whole loop, on a route that was written after it. `refusedOnce` drives the
+    // `addMember` half; this is the half D24's sentence is actually about — an agent
+    // asking to take something away.
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_student', 'collaborator')
+      const plaintext = await tokenHolding(ctx, ['project:read'])
+      const url = `/v1/projects/${ctx.projectId}/members/${await userIdOf(ctx, 'bio_student')}`
+      const ask = (): Promise<LightMyRequestResponse> =>
+        ctx.app.inject({
+          method: 'DELETE',
+          url,
+          headers: { authorization: `Bearer ${plaintext}`, 'idempotency-key': KEY },
+        })
+
+      const refused = await ask()
+      expect(refusal(refused)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+      await confirmed(ctx, refused.json().error.pendingAction.id)
+
+      const retry = await ask()
+      expect(refusal(retry)).toEqual({ status: 200, code: undefined })
+      expect(await memberPuids(ctx)).not.toContain('bio_student')
     })
   })
 })

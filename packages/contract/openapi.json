@@ -559,6 +559,56 @@
         ]
       }
     },
+    "/v1/pending-actions/{pendingActionId}": {
+      "get": {
+        "operationId": "getPendingAction",
+        "tags": [
+          "pending-actions"
+        ],
+        "summary": "One pending action",
+        "description": "What an agent asked for, and what a person decided. An agent polls its own question here rather than retrying a refused request to find out; anyone who can read the project reads the project’s. A question the caller may not see is answered 404, the same as one that does not exist.",
+        "parameters": [
+          {
+            "name": "pendingActionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The pending action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingAction"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
     "/v1/pending-actions/{pendingActionId}/confirm": {
       "post": {
         "operationId": "confirmPendingAction",
@@ -1302,6 +1352,135 @@
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
           "TOKEN_ACTION_PENDING",
           "TOKEN_ACTION_REJECTED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/members/{userId}": {
+      "delete": {
+        "operationId": "removeMember",
+        "tags": [
+          "projects"
+        ],
+        "summary": "Remove a member",
+        "description": "Takes a person off the project (§13). One of D24’s privileged four: a delegated token will never hold it, and asking creates a pending action a person confirms (P5b). Idempotent — removing somebody who is not a member answers the members as they are — and the LAST owner cannot be removed, because a project with no owner is one nobody can grant access to, delete or deploy.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The members as they now are.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_LAST_OWNER, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "PROJECT_LAST_OWNER",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "TOKEN_ACTION_PENDING",
+          "TOKEN_ACTION_REJECTED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/pending-actions": {
+      "get": {
+        "operationId": "listPendingActions",
+        "tags": [
+          "pending-actions"
+        ],
+        "summary": "The questions agents are waiting on",
+        "description": "§26’s queue for one project, newest first. A person who can read the project sees every question; a delegated token sees only the ones it asked itself. Answered and expired questions stay in the list — `waitingSeconds` on a resolved row is how long the agent waited for its answer.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project’s pending actions, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingActionList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
       }
@@ -2467,6 +2646,7 @@
           "MEMBER_USER_NOT_FOUND",
           "NOT_FOUND",
           "PENDING_ACTION_RESOLVED",
+          "PROJECT_LAST_OWNER",
           "RATE_LIMITED",
           "RELEASE_AI_BUDGET_MISSING",
           "RELEASE_AI_DISABLED",
@@ -5105,6 +5285,12 @@
               }
             ]
           },
+          "waitingSeconds": {
+            "description": "Seconds between the question being asked and it being answered — or, while it is still pending, now.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
           "reason": {
             "anyOf": [
               {
@@ -5142,10 +5328,18 @@
           "expiresAt",
           "createdAt",
           "resolvedAt",
+          "waitingSeconds",
           "reason",
           "consumedAt"
         ],
         "additionalProperties": false
+      },
+      "PendingActionList": {
+        "description": "The questions agents have put to the people who own this project, newest first (§26).",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/PendingAction"
+        }
       },
       "Project": {
         "type": "object",

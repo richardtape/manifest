@@ -154,6 +154,10 @@ export const ERROR_CODES = {
     'A person refused this exact request. `pendingAction.reason` is why, in their words; retrying it will not change the answer.',
   ),
   /** A pending action already has an answer, and one question has one (P5b Task 7). */
+  PROJECT_LAST_OWNER: api(
+    409,
+    'A project must always have an owner, so the last one cannot be removed.',
+  ),
   PENDING_ACTION_RESOLVED: api(
     409,
     'This pending action has already been confirmed or rejected; it cannot be answered twice.',

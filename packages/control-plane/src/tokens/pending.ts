@@ -157,6 +157,38 @@ export async function pendingById(
 }
 
 /**
+ * §26's queue for one project, newest first (Task 8).
+ *
+ * **`tokenId` NARROWS IT TO ONE AGENT'S OWN QUESTIONS, and the caller decides whether to
+ * pass it.** A person who may read the project reads the project's queue, because that is
+ * what the screen is; a delegated token reads only what IT asked, because a token's
+ * authority is its own (Decision 3) and one agent enumerating another's requests is a read
+ * D24 grants nobody. Stating the rule as a parameter here — rather than filtering in the
+ * route — keeps it one rule for both reads.
+ *
+ * Every state, not only `pending`: a queue that hides what was answered cannot show a
+ * person what they decided, and `waitingSeconds` on a resolved row is how long it took.
+ */
+export async function pendingActionsFor(
+  db: Db,
+  projectId: string,
+  tokenId?: string,
+): Promise<PendingAction[]> {
+  return db
+    .select()
+    .from(pendingActions)
+    .where(
+      tokenId === undefined
+        ? eq(pendingActions.projectId, projectId)
+        : and(
+            eq(pendingActions.projectId, projectId),
+            eq(pendingActions.requestedByToken, tokenId),
+          ),
+    )
+    .orderBy(desc(pendingActions.createdAt))
+}
+
+/**
  * How a person answered THIS exact question from THIS token, if they have (Task 7).
  *
  * NOT `findConfirmedMatch`, which is what the plan called it: it has to distinguish "no
