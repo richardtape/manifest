@@ -590,6 +590,28 @@ describe('confirming a pending action (D24, Decision 6)', () => {
     })
   })
 
+  it('cannot be confirmed once the question has expired', async () => {
+    /**
+     * Task 10 builds the sweeper that moves an expired row to `expired`; until it does —
+     * and, afterwards, in the window between a row expiring and the sweep noticing — a
+     * stale question is still `pending`. `resolutionFor` will not match an expired row, so
+     * without the route's own check a person would be told "confirmed" for an answer that
+     * can never be spent. The row is aged here rather than waited out: twenty-four hours
+     * is `PENDING_ACTION_TTL_MS`.
+     */
+    await withProjectServer(async (ctx) => {
+      const { pendingId } = await refusedOnce(ctx)
+      await ctx.db
+        .update(pendingActions)
+        .set({ expiresAt: new Date(Date.now() - 1000) })
+        .where(eq(pendingActions.id, pendingId))
+
+      const res = await resolve(ctx, pendingId, 'confirm', ctx.ownerCookies)
+      expect(refusal(res)).toEqual({ status: 409, code: 'PENDING_ACTION_RESOLVED' })
+      expect((await pendingById(ctx.db, pendingId))?.state).toBe('pending')
+    })
+  })
+
   it('leaves the confirmation usable when the RETRY’s handler fails', async () => {
     /**
      * `consumed_at` is stamped AFTER the handler resolves, never before. A handler that

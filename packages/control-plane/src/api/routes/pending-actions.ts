@@ -78,6 +78,18 @@ async function answerable(
   if (row.state !== 'pending') {
     throw new PendingActionResolvedError(row.state)
   }
+  /**
+   * **AND NOT PAST ITS OWN LIFE.** Task 10 builds the sweeper that moves an expired row to
+   * `expired`, which the line above then refuses; until it exists — and, afterwards, in
+   * the window between a row expiring and the sweep noticing — a stale question is still
+   * `pending`. Without this check a person would be told "confirmed" for an answer that
+   * can never be spent: `resolutionFor` will not match an expired row, deliberately and
+   * for the same reason `PENDING_ACTION_TTL_MS` exists. Refusing here makes the answer the
+   * person gets true, rather than merely harmless.
+   */
+  if (row.expiresAt <= new Date()) {
+    throw new PendingActionResolvedError('expired')
+  }
   return { row, userId: actor.userId, puid: actor.puid }
 }
 
