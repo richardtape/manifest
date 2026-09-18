@@ -1,6 +1,6 @@
 # Orientation — read this first
 
-**Manifest's design is finished and SEVEN implementation plans are executed — P1, P2, P3, P4a, P4b, P4c and P5a (the contract), whose acceptance passed on 2026-09-17. The next job is to WRITE P5b, and it is always §7e.** This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
+**Manifest's design is finished and SEVEN implementation plans are executed — P1, P2, P3, P4a, P4b, P4c and P5a (the contract), whose acceptance passed on 2026-09-17. P5b is written and its first sitting is the next job, which is always §7e.** This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
 
 *Last verified 2026-09-17.* **Three places state current status — §2, §7e and §8 — and a sitting's sweep REPLACES what they say; it never appends a sitting's story here** (§6). **The roadmap's ledger outranks all three.** Everything else is durable.
 
@@ -35,7 +35,7 @@ everything.
 | P4c | 2026-09-16 | A redeploy interrupts and signs out nobody | `make demo-redeploy` |
 | P5a | 2026-09-17 | The API is a published contract under `/v1`, and §22's journey runs through a generated client | `make demo-journey` |
 
-**P5a — the contract — IS EXECUTED** ([`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), 17 tasks in twelve sittings, finished 2026-09-17), the first of Phase 1c's three plans. It put the API under `/v1` at `https://console.manifest.internal` through the edge, generated an OpenAPI document from the routes and a TypeScript client from that document, and its acceptance — `make demo-journey`, §22's journey driven through nothing but that client — **ran green three times, the third from a `make reset` machine**. **No plan is in flight. The next job is to WRITE P5b** (delegated tokens and pending actions), from [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md) and P5a's *What this plan does not build* — §7e. P5c (the mock, the console, CI) is written only after P5b executes. *Sittings pace the work; they are not §17's product Phases.*
+**P5a — the contract — IS EXECUTED** ([`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), 17 tasks in twelve sittings, finished 2026-09-17), the first of Phase 1c's three plans. It put the API under `/v1` at `https://console.manifest.internal` through the edge, generated an OpenAPI document from the routes and a TypeScript client from that document, and its acceptance — `make demo-journey`, §22's journey driven through nothing but that client — **ran green three times, the third from a `make reset` machine**. **P5b — delegated tokens and pending actions — was WRITTEN the same day** ([`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md), 13 tasks in nine sittings) **and is NOT executed; its sitting 1 is the next job, and four spec actions need Rich before sitting 2** — §7e. P5c (the mock, the console, CI) is written only after P5b executes. *Sittings pace the work; they are not §17's product Phases.*
 
 **Executing a plan finds defects at a rate that has never fallen with practice** — 18 in P1's 13 tasks, 52 in P2's 21, 82 in P3's 19, 80 in P4a's 15, 140 in P4b's 16, 70 in P4c's 11, and 146 in P5a's 17 — plus 8 more found in a browser after sitting 7, which no tier had ever looked at — every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat a written plan as a hypothesis (§9).
 
@@ -1338,66 +1338,71 @@ curl -s --cacert infra/ca/manifest-root.crt \
 | **P4c** | [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md), with [its brief](plans/2026-09-15-p4c-brief.md) | `make demo-redeploy` | 70 findings in eight sittings. **Sitting 8**: four of the acceptance's nine negative controls could not fail in it — §4 says which tier sees each. |
 | **P5a** | [`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), with [the P5 brief](plans/2026-09-16-p5-brief.md) | `make demo-journey` | 146 findings in twelve sittings. **Sitting 12**, the acceptance: three of fourteen negative controls could not fail as written — including one where the journey read a *status* while the property was a *latency*, so a synchronous build passed R6's own check. **Sitting 10's finding 1** is the other one to read: the document said for six sittings that the error envelope could not carry the field the production refusal had been sending since P2, because nothing parsed an error body through its schema. |
 
-### 7e. Write P5b — delegated tokens and pending actions ← **START HERE**
+### 7e. Execute P5b's sitting 1 — Task 1, the measurements ← **START HERE**
 
-**YOUR JOB IS TO WRITE A PLAN, NOT TO EXECUTE ONE. No plan is in flight.** P5a — the contract — was executed on
-2026-09-17 and its acceptance passed; `make demo-journey` runs §22's journey through the edge by nothing but the
-generated client, and it ran green three times, the third from a `make reset` machine. **The next artefact is P5b,
-written with `superpowers:writing-plans`** from [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md) and
-**P5a's *What this plan does not build***, which is the list of what P5b owes.
+**P5b IS WRITTEN AND NOT EXECUTED.** [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md)
+— 13 tasks in nine sittings, written 2026-09-17 straight after P5a's acceptance passed. **Your job is sitting 1: Task 1,
+the measurements, alone and first.** Task 1 in full is the spec for your session; the sittings table at the top of that
+plan is the maintained copy of what is done.
 
-**Do not start executing it in the session that writes it.** That is the 2026-09-04 lesson (§9): a written plan is a
-hypothesis, and P2's and P3's self-reviews found seven defects each before anything ran. Write it, self-review it, get
-Rich's decisions on the questions it raises, and stop. The session after executes its first sitting.
+**FOUR SPEC ACTIONS ARE PROPOSED AND NEED RICH BEFORE ANY OF IT EXECUTES.** P5a's R9 established that applying them
+first is cheaper than reconciling after. They are in the plan's *Spec actions*: §6's two entities gaining the fields that
+make them usable, §20 recording that Phase 1 sessions are stateless (Rich decided this on 2026-09-17), §20 recording
+that step-up re-authentication lands with the routes it protects (decided the same day), and D24's prose about a token
+creating projects, which does not fit a project-scoped token. **Put them to him at the start of the session, not the
+end** — Task 1 measures and changes no `src/`, so it can run while they are open, but sitting 2 cannot.
 
-**What P5b is.** §17's Phase 1c is the published contract and the clients that prove it. P5a built the contract. **P5b
-is delegated tokens and pending actions (D24)**: a token an agent runs the build loop with, refused the privileged four,
-each refusal a `PendingAction` a human confirms. **P5c** — `manifest-mock`, a reference console that may import only
-the generated client, and the CI acceptance script — is written only after P5b has executed (R2).
-
-**Two of its questions are already Rich's**, and §8 holds them: the P5 brief's §7 items 5 and 6 — D24's entity fields,
-and the stateless-session divergence from §20 (a session carries the role it was issued with, so a role change reaches
-a person when they sign in again). Put them to him **while the plan is written**, the way P5a's R9 did, rather than
-after.
+**What P5b is, in one paragraph.** A second credential class beside the session cookie. `Actor` becomes a discriminated
+union on `credential`, so a route that may only be called interactively takes a `SessionActor` and `tsc` refuses a token
+at the call site. `projects/authz.ts`'s `assertCapability` — the one function 21 call sites already go through — refuses
+D24's privileged four to a token, which is how "enforced centrally at the authorization layer, not per-route" is
+achievable at all; and the single route wrapper that is holding the request records the `PendingAction`, because the
+authorization layer never sees one. A human confirms it in an interactive session, and the confirmation grants the agent
+**one** retry of that exact request — never a server-side replay, which would be a second authorization path into every
+handler.
 
 **Read, in this order, before you start:**
 
-1. **[`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md)** in full — it is what P5a, P5b and P5c are written
-   from, and its §8 *Traps* is the list of what has bitten every plan here.
-2. **P5a's *What this plan does not build*** and its **twelve sitting records** in *What executing this plan found* —
-   the most recent first. Sitting 12's is the acceptance and names the three negative controls that could not fail.
-3. **[`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md)**, or P5a itself, for the house
-   style: *Decisions this plan makes*, *Global Constraints*, a *File Structure*, and a task that names its caller.
-4. **§3's *What the platform keeps true*** — every invariant P5b must not break — **§4** (searched, not read), and
-   **§6**, which is the sweep you owe at the end even for a plan-writing sitting.
+1. **Task 1 in full**, then the plan's *How this plan is to be executed*, *Read this first*, *Decisions Rich made*,
+   *Decisions this plan makes* and *Global Constraints*. **And *The test fixtures every snippet below uses*** — the
+   existing helpers do not have the shapes you would guess, and getting that wrong was the plan's own first self-review
+   finding.
+2. **P5a's sitting 12 record** — the acceptance, and the three of fourteen negative controls that could not fail. Every
+   control in P5b names the assertion rather than the mechanism because of it.
+3. **[`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md) §8** (the traps) and §4 (the gap table).
+4. **This file's §4** — searched, not read — and **§6**, which is the sweep you owe.
 
-**What will surprise you, writing this one:**
+**What Task 1 is.** Nine measurements, no production code: whether `assertCapability` is genuinely central (the plan
+says five route modules bypass it and only `fleet.ts` must change — **verify it from the route registry, not a grep**),
+whether `release:deploy` can tell production from staging, whether an `Authorization` header survives the edge on a
+plain request **and on a WebSocket upgrade**, what a token hash costs, **whether an idempotency record is scoped to the
+actor** — the one most likely to find a defect that already exists — what the authorization matrix will cost, what the
+stream authorizes with, which privileged capabilities are reachable at all, and whether anything already reads a bearer
+header. It ends by deleting its probes and writing `spikes/p5b-baseline/README.md`, with a correction at the top of every
+task a measurement contradicts.
 
-- **A plan's negative controls are the part that decays.** P5a's acceptance found **three of fourteen that could not
-  fail**: an edit `tsc` refuses before it can run, an edit whose error arrives as a `500` before the named assertion is
-  reached, and a check that read a status where the property was a latency. **For every control, write down the edit
-  AND the assertion that must go red, and prefer a control whose assertion names the property** — not the mechanism.
-- **A module with no caller is not built** — four times here. Every P5b task names its caller, and from P5a the caller
-  of a new route is a step of `packages/journey`.
-- **A route is three files, in order**: the definition, `pnpm contract:write`, `pnpm contract:generate`. The journey's
-  `tsc` refuses a call the regenerated contract does not have. `packages/contract/openapi.json` is generated — never
-  edit it.
-- **`api/error-codes.ts`, `api/authz-contract.ts` and `observability/event-schemas.ts` each need an entry per new code,
-  route and event type**, and a new event type is **four** edits (the type list, a migration for the database CHECK,
-  the detail schema, and `observability/testing.ts`'s examples).
+**What will surprise you:**
 
-**The state you are handed, 2026-09-17, after sitting 12.** `main`, clean. Migration **0013** is the newest and is
-applied.
+- **Two of D24's four forbidden capabilities have no route in Phase 1** (`secret:read`, `quota:set`), so their controls
+  cannot fail end to end. The plan says so in advance (Decision 14) rather than leaving the acceptance to find it.
+- **A source swap does not reach the running control plane**, which serves from `dist/`. A control watched through a
+  `make demo*` needs the control plane killed, rebuilt and restarted on the swap.
+- **`pnpm test` — even one file — truncates the control plane's tables**, and `pnpm test:docker` restarts the edge and
+  re-registers the platform's SP row. Restart the control plane after either.
+- **A route change is three files, in order**: the definition, `pnpm contract:write`, `pnpm contract:generate`.
+
+**The state you are handed, 2026-09-17, after P5a's acceptance and P5b's writing.** `main`, clean. Migration **0013** is
+the newest and is applied.
 
 | | |
 |---|---|
-| The four gate numbers | §2's box — `pnpm test` **1016** in 91 files, `pnpm test:docker` **174** in 28 files (0 skipped), `make doctor` **18/0**, `make verify` **51/0**. All four measured at the end of this sitting and all four unchanged |
-| The control plane | **LEFT RUNNING on 7100.** Check: `curl -sS -o /dev/null -w '%{http_code}' --cacert infra/ca/manifest-root.crt https://console.manifest.internal/v1/me` → `401` when it is up. **Do not start a second one** — it would fail to bind 7100, and `recoverAtBoot`'s pass 0 would fail the first one's builds |
-| The demos | **All five green at the end of this sitting**: `make demo-journey` (through step 8), `make demo`, `make demo-ai` and `make demo-redeploy`. `make demo-journey` is now **step 8 of `scripts/offline-acceptance.sh`** |
-| The apps | The proof app and the journey app are **deployed, healthy and serving**, and **their project rows are gone** — the closing `pnpm test` truncated them, which is the shape every sitting since 2 has left. The next demo recreates each. `.manifest/repos/` holds `proof-app.git` and `journey-app.git` |
-| The fixture app | **STILL DEPLOYED, unlike previous sittings** — `mf-fixture-app-staging-*` plus its network, volume, image and `.manifest/repos/fixture-app.git`. Sitting 12 could not remove it: this session's classifier refused every `docker rm`/`rmi`. Harmless — `make demo` reuses it — and §2's *Outstanding* has the removal, which `make reset` also does |
-| Identity | The platform SP row's ACS is `https://console.manifest.internal/auth/saml/callback`. The IdP has **three** test users — `student`, `instructor` and `operator`, each its own password. **`operator` is not currently an administrator and does not currently exist**: the closing `pnpm test` truncated `users` and `audit.role_changes`. **This is normal and self-healing** — `make demo-journey` signs `operator` in, runs `scripts/admin-grant.sh grant opr000001`, and signs them in again |
-| LiteLLM | **Nine users, two of them held by a running container.** §2's *Outstanding* names all nine and which six are safe. **A reset does not clear them predictably** — re-measure, never copy |
+| The four gate numbers | §2's box — `pnpm test` **1016** in 91 files, `pnpm test:docker` **174** in 28 files (0 skipped), `make doctor` **18/0**, `make verify` **51/0**. All four measured at the end of P5a sitting 12 |
+| The control plane | **LEFT RUNNING on 7100.** Check: `curl -sS -o /dev/null -w '%{http_code}' --cacert infra/ca/manifest-root.crt https://console.manifest.internal/v1/me` → `401` when it is up. **Do not start a second one** |
+| The demos | **All five green**: `make demo-journey` (through step 8), `make demo`, `make demo-ai`, `make demo-redeploy`. `make demo-journey` is **step 8 of `scripts/offline-acceptance.sh`** |
+| The apps | The proof app and the journey app are **deployed, healthy and serving**, and their project rows are gone — the closing `pnpm test` truncated them, which is the shape every sitting since 2 has left. The next demo recreates each |
+| The fixture app | **STILL DEPLOYED**, unlike previous sittings — P5a sitting 12's classifier refused every `docker rm`. Harmless; §2's *Outstanding* has the removal, which `make reset` also does |
+| Identity | Three IdP test users — `student`, `instructor`, `operator`. **`operator` is not currently an administrator and does not currently exist**; `make demo-journey` recreates and re-grants. Self-healing |
+| LiteLLM | **Nine users, two held by a running container.** §2's *Outstanding* names all nine and which six are safe. **A reset does not clear them predictably** |
 
 
 ## 8. Decisions waiting on Rich
@@ -1405,6 +1410,18 @@ applied.
 Surface these; do not decide them. **When one is decided, move it to *Decided* as one line naming where the reasoning is recorded.**
 
 ### Open
+
+- **P5b's FOUR SPEC ACTIONS — RAISED 2026-09-17, and they block P5b's sitting 2, not its sitting 1.**
+  P5a's R9 established that applying a plan's spec actions before it executes is cheaper than reconciling after.
+  They are written out in [P5b's *Spec actions*](plans/2026-09-17-p5b-delegated-tokens.md): **(1)** §6's
+  `DelegatedToken` gains `token_hash`, `name` and `revoked_at` and `PendingAction` gains `expires_at` and
+  `consumed_at` — as §6 states them today neither row can be authenticated, reviewed, revoked or used once;
+  **(2)** §20 records that Phase 1 sessions are stateless signed cookies with no server-side store (**decided
+  2026-09-17, R2** — this one is a write-up of a decision already made); **(3)** §20 records that step-up
+  re-authentication lands with the routes it protects, while the privileged set it shares with D24 is defined
+  and tested from P5b (**decided 2026-09-17, R1** — likewise); **(4)** D24's prose says a delegated token may
+  "create projects", which does not fit a token scoped to one project — either the scope rule or the sentence
+  should move, and P5b implements the scope rule and flags it.
 
 - **Watching the edge's `@outside` refusal go red — RAISED 2026-09-17 (P5a sitting 12, its control (a)).** The one
   negative control of P5a's acceptance that was not watched. The session's auto-mode classifier refused the edit and

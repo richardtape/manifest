@@ -27,10 +27,11 @@ and green.** Each plan has an acceptance that passes:
 | P4c | 2026-09-16 | A redeploy interrupts and signs out nobody | `make demo-redeploy` |
 | P5a | 2026-09-17 | The API is a published contract under `/v1`, driven by a generated client | `make demo-journey` |
 
-**No plan is in flight. The next job is to WRITE P5b — delegated tokens and pending
-actions (D24)** — from `docs/superpowers/plans/2026-09-16-p5-brief.md` and P5a's *What this
-plan does not build*, with `superpowers:writing-plans`, and **not to execute it in the same
-session**. P5a — the contract — was executed in twelve sittings and finished on 2026-09-17:
+**The current plan is P5b — delegated tokens and pending actions (D24)**
+(`docs/superpowers/plans/2026-09-17-p5b-delegated-tokens.md`, 13 tasks in nine sittings,
+written 2026-09-17), the second of Phase 1c's three. **It is written and NOT executed**;
+sitting 1 is Task 1, the measurements, alone and first, and **four spec actions need Rich
+before sitting 2**. P5a — the contract — was executed in twelve sittings and finished on 2026-09-17:
 the API is under `/v1` at `https://console.manifest.internal` through the edge, an OpenAPI
 document is generated from the routes and a TypeScript client from that document
 (`packages/contract`), and `make demo-journey` drives §22's journey through nothing but that
