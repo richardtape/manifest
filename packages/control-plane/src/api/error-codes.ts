@@ -126,6 +126,12 @@ export const ERROR_CODES = {
     summary: 'A member of the project whose role does not hold this capability.',
   },
 
+  // api/actor.ts — the credential class itself being refused (D24, P5b Task 5)
+  TOKEN_CREDENTIAL_REFUSED: api(
+    403,
+    'A valid delegated token asked for something D24 reserves to an interactive session.',
+  ),
+
   // BadRequestError — every one of these is 400
   IDEMPOTENCY_KEY_REQUIRED: bad(
     'A mutation arrived without an Idempotency-Key of at least 8 characters (D23.6).',
@@ -134,6 +140,9 @@ export const ERROR_CODES = {
   MEMBER_USER_NOT_FOUND: bad('No user with this PUID has ever signed in.'),
   SPEC_NOT_FOUND: bad('The project has no validated spec yet.'),
   STARTER_NOT_FOUND: bad('The blueprint offers no starter by that name (§25).'),
+  CREDENTIAL_AMBIGUOUS: bad(
+    'The request carried both a session cookie and a delegated token; it carries one or the other.',
+  ),
   TOKEN_CAPABILITY_FORBIDDEN: bad(
     'A mint asked for one of D24’s four forbidden capabilities; the message names which.',
   ),

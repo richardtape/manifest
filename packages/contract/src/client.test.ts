@@ -79,4 +79,40 @@ describe('@manifest/contract', () => {
     }
     server.close()
   })
+
+  it('sends a delegated token as a bearer, and NO Origin with it (D24, P5b Task 5)', async () => {
+    const seen: Record<string, string | undefined>[] = []
+    const server = http.createServer((req, res) => {
+      seen.push({
+        authorization: req.headers.authorization,
+        origin: req.headers.origin,
+        cookie: req.headers.cookie,
+      })
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(JSON.stringify([]))
+    })
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    const origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`
+
+    await createManifestClient({ origin, token: 'mft_abc_def' }).GET('/v1/projects')
+    // No Origin and no cookie: §20's CSRF control protects a BROWSER credential, the API
+    // exempts a bearer request from it, and an agent claiming the console's origin would
+    // be stating something untrue about where the request came from.
+    expect(seen[0]).toEqual({
+      authorization: 'Bearer mft_abc_def',
+      origin: undefined,
+      cookie: undefined,
+    })
+    server.close()
+  })
+
+  it('refuses to carry both credentials, where the mistake is (D24)', () => {
+    expect(() =>
+      createManifestClient({
+        origin: 'https://console.manifest.internal',
+        session: 'a',
+        token: 'mft_b_c',
+      }),
+    ).toThrow(/either a session or a delegated token/)
+  })
 })

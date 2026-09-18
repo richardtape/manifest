@@ -53,20 +53,33 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'The projects I am a member of',
     description:
-      'Every project the caller owns or collaborates on, newest first — for administrators too. The fleet is GET /v1/fleet.',
+      'Every project the caller owns or collaborates on, newest first — for administrators too. A delegated token answers exactly the one project it is scoped to (D24). The fleet is GET /v1/fleet.',
     params: NO_PARAMS,
     query: NO_QUERY,
     body: NO_BODY,
     success: { status: 200, description: 'The caller’s projects.', schema: ProjectList },
     errors: [],
     handler: async ({ deps, actor }) => {
-      const mine = await listProjectsFor(deps.db, actor)
-      return (
-        await projectViews(
-          deps.db,
-          mine.map((p) => p.id),
-        )
-      ).map((view) => toProject(view))
+      /**
+       * A TOKEN ANSWERS EXACTLY ITS OWN PROJECT (Decision 12), and this is the only place
+       * that can say so.
+       *
+       * `listProjectsFor` selects by `actor.userId` alone and this route calls no
+       * `assertCapability`, so **nothing Task 6 does can scope it**: a token scoped to X,
+       * minted by somebody who is also a member of Y and Z, listed all three — measured
+       * as `[M1]`, sitting 1 finding 2. Scoping here rather than in the repository
+       * because a token's project is an API-layer fact about the credential, not a
+       * property of "the projects this person is in".
+       *
+       * A refusal was rejected: an agent listing "my projects" and getting a 403 has to
+       * learn a second code path for no benefit, and scoping behaving correctly is what
+       * a client expects.
+       */
+      const ids =
+        actor.credential === 'token'
+          ? [actor.projectId]
+          : (await listProjectsFor(deps.db, actor)).map((p) => p.id)
+      return (await projectViews(deps.db, ids)).map((view) => toProject(view))
     },
   }),
   defineRoute({

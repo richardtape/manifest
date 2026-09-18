@@ -10,6 +10,7 @@ import {
 } from '../../projects/index.js'
 import { declaresModels, validateSpec } from '../../spec/index.js'
 import type { ValidationContext } from '../../spec/index.js'
+import { requireSession } from '../actor.js'
 import { defineRoute, NO_PARAMS, NO_QUERY } from '../contract/route.js'
 import { BadRequestError } from '../errors.js'
 import { toEnvironment } from '../representations/environments.js'
@@ -95,7 +96,7 @@ export const createProjectRoutes = [
     tag: 'projects',
     summary: 'Create a project',
     description:
-      '§22 steps 2–3: a name, a blueprint, optionally a starter, and who the app is for (§24). Creates the project and its three environments, seeds a repository from the skeleton and the starter, and validates its manifest. Progress is on the project’s event stream: project.created, repository.seeded, spec.validated.',
+      '§22 steps 2–3: a name, a blueprint, optionally a starter, and who the app is for (§24). Interactive sessions only: a delegated token is scoped to one project and cannot make another (D24, P5b Decision 13), which is also what keeps §24’s audience question human-only (D29). Creates the project and its three environments, seeds a repository from the skeleton and the starter, and validates its manifest. Progress is on the project’s event stream: project.created, repository.seeded, spec.validated.',
     params: NO_PARAMS,
     query: NO_QUERY,
     body: CreateProjectRequest,
@@ -113,8 +114,26 @@ export const createProjectRoutes = [
       'SOURCE_GIT_FAILED',
       'AI_BACKEND_UNAVAILABLE',
       'AI_CATALOGUE_EMPTY',
+      'TOKEN_CREDENTIAL_REFUSED',
     ],
-    handler: async ({ deps, actor, body }) => {
+    handler: async ({ deps, request, body }) => {
+      /**
+       * INTERACTIVE ONLY (P5b Decision 13), and this refusal carries more than it looks.
+       *
+       * D24's prose says a token can "create projects", but a token is scoped to ONE
+       * project (Decision 3), so a token that created a second would either escape its
+       * scope or make something it cannot then address. **And §24's audience is stated
+       * at creation and nowhere else** — there is no route that changes one — so refusing
+       * creation to a token is what keeps D29's "the audience question is human-only"
+       * true BY CONSTRUCTION rather than by a rule somebody has to remember when the
+       * audience-change route is written. Decision 12a; `credential.test.ts` asserts it
+       * rather than leaving it to be inferred.
+       *
+       * No capability check runs on this route — there is no project yet to be a member
+       * of — so Task 6's central refusal can never see it. That is the structural reason
+       * this one is stated here and not there (`[M1]`).
+       */
+      const actor = requireSession(request)
       // 1. The blueprint and the starter exist — before anything is checked against them.
       const descriptor = deps.blueprints.resolve(body.blueprint)
       if (descriptor === undefined) {

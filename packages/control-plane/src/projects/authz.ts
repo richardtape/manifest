@@ -68,10 +68,55 @@ export function isPrivileged(capability: PrivilegedCapability): boolean {
   return PRIVILEGED.has(capability)
 }
 
-/** Who is asking. Carried from the session; never read from the request body. */
-export interface Actor {
+/**
+ * Who is asking, and with WHICH credential class (D24, P5b Decision 2). Carried from the
+ * one request hook that reads a credential; never read from the request body.
+ *
+ * A DISCRIMINATED UNION rather than an optional `token` field beside a `credential`
+ * string, so that "this route is interactive only" is a type-level property a handler
+ * states in its signature rather than a check somebody remembers. Two fields that must
+ * agree is precisely P2's `/auth/dev-login` shape, where a guard whose enabling condition
+ * was written twice was one line from an authentication bypass (ORIENTATION §9).
+ */
+export type Actor = SessionActor | TokenActor
+
+/** A person, in a browser, who signed in with CWL. */
+export interface SessionActor {
+  credential: 'session'
   userId: string
   platformRole: 'admin' | 'member'
+  /**
+   * Their `ubcEduCwlPuid`. It lives HERE, on the session member, rather than as an
+   * intersection over `Actor`: `SessionActor` was `Actor & { puid: string }` until P5b
+   * Task 5, and `Extract<Actor, { credential: 'session' }>` over a union would have
+   * dropped it silently (`[M8]`, sitting 1 finding 11).
+   */
+  puid: string
+}
+
+/** An agent, holding a delegated token (D24). */
+export interface TokenActor {
+  credential: 'token'
+  /** The person who minted it. Every row the agent writes is attributed to them. */
+  userId: string
+  tokenId: string
+  /** D24 and Decision 3: exactly ONE project. */
+  projectId: string
+  /** The explicit set it was minted with. Never one of `PRIVILEGED` (Task 6). */
+  capabilities: ReadonlySet<Capability>
+  /** §20's per-token limit, off the row. Task 9 is its only reader. */
+  rateLimit: number
+  /**
+   * Set by the route wrapper, from a `confirmed` PendingAction whose fingerprint matches
+   * THIS request (Task 7, Decision 6). Absent on every ordinary request, and nothing but
+   * that wrapper can produce it. It is the single-use permission a human granted.
+   */
+  grant?: Capability
+  /**
+   * NO `platformRole`. Decision 4: a token never carries platform-admin authority, and a
+   * field that exists and is deliberately never read is the next agent's bug. `/v1/fleet`
+   * and every other admin-scoped route takes a `SessionActor` instead.
+   */
 }
 
 const OWNER: readonly Capability[] = [
@@ -142,6 +187,36 @@ export async function assertCapability(
   projectId: string,
   capability: Capability,
 ): Promise<void> {
+  /**
+   * A TOKEN'S authority is the token's, not its minter's (D24, P5b Task 5).
+   *
+   * SCOPE FIRST, and a token addressing any other project gets the stranger's `NOT_FOUND`
+   * for the stranger's reason (Decision 3): `FORBIDDEN` would confirm the project exists
+   * and turn the id space into an enumeration oracle. No membership is consulted — the
+   * token names its project, and the row's foreign key is what makes that project real.
+   *
+   * **A token therefore outlives its minter's membership.** Removing somebody from a
+   * project does not stop a token they minted for it; revoking the token does. Phase 1
+   * accepts that deliberately — the alternative is a `project_members` read on every
+   * request a token makes, which is the per-request database cost Decision 9 rejected —
+   * and the plan that adds member removal to the console is the one that revisits it.
+   *
+   * Task 6 is where a PRIVILEGED capability stops being an ordinary `FORBIDDEN` here and
+   * becomes the refusal that records a `PendingAction`.
+   */
+  if (actor.credential === 'token') {
+    if (actor.projectId !== projectId) {
+      throw new AuthorizationError('NOT_FOUND', `no project '${projectId}'`)
+    }
+    if (!actor.capabilities.has(capability)) {
+      throw new AuthorizationError(
+        'FORBIDDEN',
+        `this delegated token was not minted with '${capability}'`,
+      )
+    }
+    return
+  }
+
   const [project] = await db
     .select({ id: projects.id })
     .from(projects)

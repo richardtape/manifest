@@ -56,8 +56,10 @@ describe('project creation', () => {
       expect(byKind.production).toBe('chem-labs.manifest.internal')
 
       const owned = await listProjectsFor(db, {
+        credential: 'session' as const,
         userId: owner!.id,
         platformRole: 'member',
+        puid: 'puid-test',
       })
       expect(owned.map((p) => p.slug)).toEqual(['chem-labs'])
     })
@@ -82,13 +84,23 @@ describe('project creation', () => {
       })
 
       expect(
-        await listProjectsFor(db, { userId: stranger!.id, platformRole: 'member' }),
+        await listProjectsFor(db, {
+          credential: 'session' as const,
+          userId: stranger!.id,
+          platformRole: 'member',
+          puid: 'puid-test',
+        }),
       ).toEqual([])
       // A platform admin's OWN list is their memberships too (P5a Decision 20): the
       // fleet is a separate, admin-scoped read, so a person's list does not change
       // shape the day they are made an administrator.
       expect(
-        await listProjectsFor(db, { userId: stranger!.id, platformRole: 'admin' }),
+        await listProjectsFor(db, {
+          credential: 'session' as const,
+          userId: stranger!.id,
+          platformRole: 'admin',
+          puid: 'puid-test',
+        }),
       ).toEqual([])
     })
   })

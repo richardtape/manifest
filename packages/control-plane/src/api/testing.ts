@@ -297,6 +297,8 @@ export interface TestProject {
   projectId: string
   /** A SECOND project, owned by `unrelated_user` — what Decision 3's scope rule is tested against. */
   otherProjectId: string
+  /** The commit its seeded manifest was validated at — what a build takes. */
+  commitSha: string
   stagingEnvironmentId: string
   productionEnvironmentId: string
 }
@@ -325,6 +327,7 @@ export async function withProjectServer(
     }
     const project = created.json() as {
       id: string
+      spec: { commitSha: string }
       environments: { id: string; kind: string }[]
     }
     const otherCookies = await loginAs(deps, 'unrelated_user')
@@ -351,6 +354,7 @@ export async function withProjectServer(
       ownerCookies,
       projectId: project.id,
       otherProjectId: (other.json() as { id: string }).id,
+      commitSha: project.spec.commitSha,
       stagingEnvironmentId: environmentId('staging'),
       productionEnvironmentId: environmentId('production'),
     })

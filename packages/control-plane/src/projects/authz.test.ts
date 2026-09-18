@@ -90,7 +90,12 @@ describe('assertCapability', () => {
       await expect(
         assertCapability(
           db,
-          { userId: owner.id, platformRole: 'member' },
+          {
+            credential: 'session' as const,
+            userId: owner.id,
+            platformRole: 'member',
+            puid: 'puid-test',
+          },
           project.id,
           'project:write',
         ),
@@ -104,7 +109,12 @@ describe('assertCapability', () => {
       try {
         await assertCapability(
           db,
-          { userId: stranger.id, platformRole: 'member' },
+          {
+            credential: 'session' as const,
+            userId: stranger.id,
+            platformRole: 'member',
+            puid: 'puid-test',
+          },
           project.id,
           'project:read',
         )
@@ -122,7 +132,12 @@ describe('assertCapability', () => {
       try {
         await assertCapability(
           db,
-          { userId: owner.id, platformRole: 'member' },
+          {
+            credential: 'session' as const,
+            userId: owner.id,
+            platformRole: 'member',
+            puid: 'puid-test',
+          },
           project.id,
           'release:approve',
         )
@@ -139,7 +154,12 @@ describe('assertCapability', () => {
       await expect(
         assertCapability(
           db,
-          { userId: owner.id, platformRole: 'member' },
+          {
+            credential: 'session' as const,
+            userId: owner.id,
+            platformRole: 'member',
+            puid: 'puid-test',
+          },
           '00000000-0000-0000-0000-000000000000',
           'project:read',
         ),

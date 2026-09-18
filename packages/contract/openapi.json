@@ -482,7 +482,7 @@
           "administration"
         ],
         "summary": "Every app on the platform",
-        "description": "§26: the fleet, for platform administrators — an admin-scoped read on the one public API (D31), not a second API. Everyone else is refused 403.",
+        "description": "§26: the fleet, for platform administrators — an admin-scoped read on the one public API (D31), not a second API. Everyone else is refused 403, and so is every delegated token however it was minted (D24): this is cross-tenant data and a token is scoped to one project.",
         "parameters": [],
         "responses": {
           "200": {
@@ -496,7 +496,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -510,6 +510,7 @@
           "FORBIDDEN",
           "INTERNAL",
           "REQUEST_INVALID",
+          "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
         ]
       }
@@ -521,7 +522,7 @@
           "identity"
         ],
         "summary": "The signed-in person",
-        "description": "Who this session belongs to, and the platform role it is authorized as. Every client calls it first.",
+        "description": "Who this session belongs to, and the platform role it is authorized as. Every client calls it first. Interactive sessions only: a delegated token carries no platform role at all (D24), so there is nothing truthful for this to answer it — an agent reads GET /v1/projects, which answers exactly the project it is scoped to.",
         "parameters": [],
         "responses": {
           "200": {
@@ -535,7 +536,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -548,6 +549,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "REQUEST_INVALID",
+          "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
         ]
       }
@@ -559,7 +561,7 @@
           "projects"
         ],
         "summary": "The projects I am a member of",
-        "description": "Every project the caller owns or collaborates on, newest first — for administrators too. The fleet is GET /v1/fleet.",
+        "description": "Every project the caller owns or collaborates on, newest first — for administrators too. A delegated token answers exactly the one project it is scoped to (D24). The fleet is GET /v1/fleet.",
         "parameters": [],
         "responses": {
           "200": {
@@ -595,7 +597,7 @@
           "projects"
         ],
         "summary": "Create a project",
-        "description": "§22 steps 2–3: a name, a blueprint, optionally a starter, and who the app is for (§24). Creates the project and its three environments, seeds a repository from the skeleton and the starter, and validates its manifest. Progress is on the project’s event stream: project.created, repository.seeded, spec.validated.",
+        "description": "§22 steps 2–3: a name, a blueprint, optionally a starter, and who the app is for (§24). Interactive sessions only: a delegated token is scoped to one project and cannot make another (D24, P5b Decision 13), which is also what keeps §24’s audience question human-only (D29). Creates the project and its three environments, seeds a repository from the skeleton and the starter, and validates its manifest. Progress is on the project’s event stream: project.created, repository.seeded, spec.validated.",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -630,7 +632,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SLUG_INVALID, SLUG_RESERVED, SLUG_TAKEN, SOURCE_GIT_FAILED, STARTER_NOT_FOUND, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SLUG_INVALID, SLUG_RESERVED, SLUG_TAKEN, SOURCE_GIT_FAILED, STARTER_NOT_FOUND, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -656,6 +658,7 @@
           "SLUG_TAKEN",
           "SOURCE_GIT_FAILED",
           "STARTER_NOT_FOUND",
+          "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
         ]
       }
@@ -1429,7 +1432,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1443,6 +1446,7 @@
           "INTERNAL",
           "NOT_FOUND",
           "REQUEST_INVALID",
+          "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
         ]
       },
@@ -1497,7 +1501,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CAPABILITY_FORBIDDEN, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CAPABILITY_FORBIDDEN, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1518,6 +1522,7 @@
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
           "TOKEN_CAPABILITY_FORBIDDEN",
+          "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
         ]
       }
@@ -1663,7 +1668,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1682,6 +1687,7 @@
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
         ]
       }
@@ -2288,6 +2294,7 @@
           "CONFIG_INVALID",
           "CONFIG_LITELLM_MASTER_KEY_REQUIRED",
           "CONFIG_MASTER_SECRET_REQUIRED",
+          "CREDENTIAL_AMBIGUOUS",
           "CSRF_ORIGIN_REFUSED",
           "EVENTS_UPGRADE_REQUIRED",
           "FORBIDDEN",
@@ -2331,6 +2338,7 @@
           "SPEC_NOT_FOUND",
           "STARTER_NOT_FOUND",
           "TOKEN_CAPABILITY_FORBIDDEN",
+          "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
         ]
       },

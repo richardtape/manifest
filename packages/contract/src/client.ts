@@ -12,9 +12,14 @@ export interface ManifestClientOptions {
   origin: string
   /**
    * The `manifest_session` cookie's VALUE, for a client that is not a browser. A browser
-   * sends its own cookie and its own Origin, and may set neither; P5b adds a token here.
+   * sends its own cookie and its own Origin, and may set neither.
    */
   session?: string
+  /**
+   * A delegated token's plaintext — `mft_<id>_<secret>` — for an agent (D24, P5b Task 5).
+   * Mutually exclusive with `session`.
+   */
+  token?: string
   fetch?: typeof globalThis.fetch
 }
 
@@ -30,6 +35,14 @@ const inBrowser = typeof (globalThis as { document?: unknown }).document !== 'un
  * per call would defeat D23.6, whose whole point is that a RETRY reuses it.
  */
 export function createManifestClient(options: ManifestClientOptions): ManifestClient {
+  // EXACTLY ONE CREDENTIAL, enforced here as well as by the server (D24): the API answers
+  // a request carrying both `400 CREDENTIAL_AMBIGUOUS`, which a caller cannot act on from
+  // the far end of a network — the mistake is in the construction, and so is this.
+  if (options.session !== undefined && options.token !== undefined) {
+    throw new Error(
+      'a Manifest client carries either a session or a delegated token, never both',
+    )
+  }
   const origin = new URL(options.origin).origin
   return createClient<paths>({
     baseUrl: origin,
@@ -38,10 +51,17 @@ export function createManifestClient(options: ManifestClientOptions): ManifestCl
       ? {}
       : {
           headers: {
-            origin,
+            // A TOKEN CLIENT SENDS NO ORIGIN. §20's CSRF control protects a browser
+            // credential, the API exempts a bearer request from it (P5b Task 5), and
+            // sending the console's origin from an agent would be stating something
+            // untrue about where the request came from.
+            ...(options.token === undefined ? { origin } : {}),
             ...(options.session === undefined
               ? {}
               : { cookie: `${SESSION_COOKIE}=${options.session}` }),
+            ...(options.token === undefined
+              ? {}
+              : { authorization: `Bearer ${options.token}` }),
           },
         }),
   })

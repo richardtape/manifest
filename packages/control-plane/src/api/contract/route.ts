@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod/v4'
-import { requireActor, type SessionActor } from '../actor.js'
+import { requireActor, type Actor } from '../actor.js'
 import type { ErrorCode } from '../error-codes.js'
 import type { ServerDeps } from '../server.js'
 
@@ -11,8 +11,13 @@ export interface RouteContext<P, Q, B> {
   deps: ServerDeps
   request: FastifyRequest
   reply: FastifyReply
-  /** Every `/v1` route requires a session (P5a); `requireActor` has already run. */
-  actor: SessionActor
+  /**
+   * Every `/v1` route requires a credential, and since P5b Task 5 there are two classes
+   * of one. A handler that needs `platformRole` or `puid` — or that D24 reserves to a
+   * person — calls `requireSession(request)` and gets a `SessionActor`; `tsc` refuses to
+   * read either field off this union, which is the whole of Decision 2.
+   */
+  actor: Actor
   params: P
   query: Q
   body: B

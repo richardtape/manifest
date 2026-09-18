@@ -30,6 +30,7 @@ import { registryTokenRoutes } from './routes/registry-token.js'
 import { registerRoutes } from './contract/route.js'
 import { ROUTE_DEFINITIONS } from './routes/index.js'
 import { requireActor } from './actor.js'
+import { readBearer, tokenActor } from '../tokens/index.js'
 
 export interface ServerDeps {
   db: Db
@@ -91,7 +92,8 @@ export interface ServerDeps {
 
 declare module 'fastify' {
   interface FastifyRequest {
-    actor?: (Actor & { puid: string }) | undefined
+    /** Either credential class (P5b Decision 2); `requireSession` narrows it. */
+    actor?: Actor | undefined
   }
   interface FastifyContextConfig {
     /** `/auth/*` opts out: logging in twice is not a domain mutation. */
@@ -174,13 +176,36 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
   })
   app.decorate('registeredRoutes', registered)
 
-  // One place turns a cookie into an actor. Routes never read the cookie.
+  /**
+   * ONE place turns a credential into an actor, and it now knows two classes (D23.4,
+   * P5b Task 5). Routes never read the cookie or the header — that property is what makes
+   * D24's central refusal possible at all, and it is why this stays ONE hook: two hooks
+   * would be two places that decide who is asking.
+   */
   app.addHook('onRequest', async (request) => {
-    const token = request.cookies[SESSION_COOKIE]
-    if (!token) return
-    const session = verifySession(token, deps.config.sessionSecret)
+    const bearer = readBearer(request.headers.authorization)
+    const cookie = request.cookies[SESSION_COOKIE]
+    // TWO CREDENTIALS IS AMBIGUOUS, and an ambiguity resolved silently is the shape every
+    // confused-deputy bug has. Refused before either is read, so the answer does not
+    // depend on which one would have won.
+    if (bearer !== undefined && cookie !== undefined) {
+      throw new BadRequestError(
+        'CREDENTIAL_AMBIGUOUS',
+        'a request carries either a session cookie or a delegated token, never both',
+        'Send the Authorization header alone for an agent, or the cookie alone for a browser.',
+      )
+    }
+    if (bearer !== undefined) {
+      // `undefined` for every bad token alike; `requireActor` answers the 401. Nothing
+      // here distinguishes unknown, wrong, revoked and expired — see `tokenActor`.
+      request.actor = await tokenActor(deps.db, bearer)
+      return
+    }
+    if (cookie === undefined) return
+    const session = verifySession(cookie, deps.config.sessionSecret)
     if (!session) return
     request.actor = {
+      credential: 'session',
       userId: session.userId,
       platformRole: session.role,
       puid: session.puid,
@@ -215,11 +240,15 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
 
   app.setErrorHandler((error, request, reply) => {
     if ((error as { statusCode?: number }).statusCode === 401) {
+      // NOT "a session is required": since P5b Task 5 the credential may be a delegated
+      // token, and telling its holder to log in is a hint they cannot act on (D23.7).
+      // Deliberately says nothing about WHICH way a token was unacceptable — `tokenActor`
+      // has the reason it must not.
       return reply.status(401).send({
         error: {
           code: 'UNAUTHENTICATED',
-          message: 'a session is required',
-          hint: 'Log in first.',
+          message: 'a valid credential is required',
+          hint: 'Sign in at /auth/login for a session, or send Authorization: Bearer <token> for an agent. A token that is unknown, revoked or expired is refused the same way.',
         },
       })
     }

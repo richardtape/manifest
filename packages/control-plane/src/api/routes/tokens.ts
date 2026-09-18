@@ -16,6 +16,7 @@ import {
   tokenById,
   tokensForProject,
 } from '../../tokens/index.js'
+import { requireSession } from '../actor.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
 import { BadRequestError } from '../errors.js'
 import {
@@ -36,9 +37,9 @@ const DAY_MS = 86_400_000
  *
  * **EVERY ROUTE HERE IS INTERACTIVE ONLY (D24).** A token cannot mint a token — that
  * would make one leaked credential a credential factory, and D24's sentence is "minted by
- * the user in an interactive session". Task 5 makes that a type error: these handlers take
- * a `SessionActor`, and `tsc` refuses a token actor at the call site. Until it lands the
- * rule is this comment, which is exactly the situation Decision 2 exists to end.
+ * the user in an interactive session". Since Task 5 that is a TYPE ERROR rather than this
+ * paragraph: each handler calls `requireSession`, and the fields it goes on to read do not
+ * exist on a token actor, so reverting one does not weaken a check — it stops compiling.
  *
  * Their caller is `packages/journey`'s token phase and `scripts/demo-token.sh` (Task 12);
  * until then `api/tokens.test.ts` drives them through `app.inject`, and that gap is
@@ -61,8 +62,14 @@ export const tokenRoutes = [
       description: 'The token, and its secret — the only time the secret exists.',
       schema: MintedToken,
     },
-    errors: ['NOT_FOUND', 'FORBIDDEN', 'TOKEN_CAPABILITY_FORBIDDEN'],
-    handler: async ({ deps, actor, params, body }) => {
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'TOKEN_CAPABILITY_FORBIDDEN',
+      'TOKEN_CREDENTIAL_REFUSED',
+    ],
+    handler: async ({ deps, request, params, body }) => {
+      const actor = requireSession(request)
       // 1. Who may mint at all. NOT_FOUND to a stranger, FORBIDDEN to a member without it.
       await assertCapability(deps.db, actor, params.projectId, 'project:write')
 
@@ -157,8 +164,9 @@ export const tokenRoutes = [
       description: 'The project’s tokens, newest first.',
       schema: TokenList,
     },
-    errors: ['NOT_FOUND'],
-    handler: async ({ deps, actor, params }) => {
+    errors: ['NOT_FOUND', 'TOKEN_CREDENTIAL_REFUSED'],
+    handler: async ({ deps, request, params }) => {
+      const actor = requireSession(request)
       // A READ, not a write: nothing here is credential material — the secret was never
       // stored and the hash is not in `Token` — and anyone who can see the project's
       // builds can already see what made them.
@@ -182,8 +190,9 @@ export const tokenRoutes = [
       description: 'The token, with its revocation stamped.',
       schema: Token,
     },
-    errors: ['NOT_FOUND'],
-    handler: async ({ deps, actor, params }) => {
+    errors: ['NOT_FOUND', 'TOKEN_CREDENTIAL_REFUSED'],
+    handler: async ({ deps, request, params }) => {
+      const actor = requireSession(request)
       // The row is read FIRST because the repository deliberately answers `false` for
       // "not yours", "not there" and "already revoked" alike; only a caller that has seen
       // the row can tell a 404 from an idempotent second revoke.

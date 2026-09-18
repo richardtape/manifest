@@ -10,6 +10,7 @@ import { CsrfRefusedError } from './csrf.js'
 import { AiError, CatalogueError } from '../ai/index.js'
 import { ERROR_CODES } from './error-codes.js'
 import { RequestValidationError } from './contract/route.js'
+import { TokenCredentialRefusedError } from './actor.js'
 import { RateLimitedError } from './rate-limit.js'
 import type { ErrorEnvelopeShape } from './representations/errors.js'
 import { LaunchReadiness } from './representations/launch.js'
@@ -187,6 +188,21 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
           ...(error.code === 'FORBIDDEN'
             ? { hint: 'Ask a project owner to grant you the role this action needs.' }
             : {}),
+        },
+      },
+    }
+  }
+
+  // D24 (P5b Task 5). 403 and not 401: the credential is valid, and this action is not
+  // one a token does. The message is the route's own, so it names what was refused.
+  if (error instanceof TokenCredentialRefusedError) {
+    return {
+      status: 403,
+      body: {
+        error: {
+          code: error.code,
+          message: error.message,
+          hint: 'Sign in to the console and do it there. An agent asks a human for the ones D24 makes pending.',
         },
       },
     }
