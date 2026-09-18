@@ -1410,7 +1410,26 @@ The sittings table at the top of that plan is the maintained copy of what is don
    `bio_student`** — `ensureTestUser` throws by name and `tsc` refuses first.
 4. **Sitting 1's entry and [`spikes/p5b-baseline/README.md`](spikes/p5b-baseline/README.md)** —
    still current.
-5. **This file's §4** — searched, not read — and **§6**, which is the sweep you owe.
+5. **This file's §4** — searched, not read — and **§6 IN FULL**. Not just its sweep table:
+   §6 is also *rule 1* (invoke `superpowers:executing-plans` or `subagent-driven-development`
+   before you touch anything) and ***Your first ten minutes***, which is the baseline every
+   session that skipped it paid for. **Read §6 before you start, not only at the end.**
+
+**How to run this sitting, in order:**
+
+1. **Baseline first** (§6's *Your first ten minutes*): `./scripts/snapshot-machine.sh` to a
+   scratch file, `make up`, `make doctor && make verify`, `pnpm test`, then lint, typecheck and
+   format:check. **Expect §2's box exactly.** A different number is signal, and finding out
+   what moved is cheaper before you start than after.
+2. **The plan's *Global Constraints*** — it is the plan that states the commit convention
+   (**after every task, on `main`, conventional messages, no branch and no push**), not this
+   file.
+3. **Task 8, then Task 9**, each by its own Steps 1–6: write the failing test, **run it and
+   watch it fail**, implement, regenerate the contract, gate, commit, then break it and watch
+   the named test go red. **Step 2 is not a formality** — it is the only thing that catches a
+   test which is green before the feature exists, and it caught two of them last sitting.
+4. **Close out** (§6's sweep), then **re-read your own §7e as a cold agent and CHECK its
+   claims**. That has found a defect four sittings running, including this one.
 
 **What sitting 5 built, which you now consume:**
 
