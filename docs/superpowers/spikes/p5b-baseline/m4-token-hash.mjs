@@ -1,0 +1,13 @@
+import { randomBytes, createHash, timingSafeEqual } from 'node:crypto'
+const secret = randomBytes(32).toString('base64url')
+console.log('secret chars', secret.length, 'entropy bits', 32 * 8)
+const h = (s) => createHash('sha256').update(s).digest('hex')
+const stored = h(secret)
+const t0 = process.hrtime.bigint()
+for (let i = 0; i < 10_000; i++) h(secret)
+console.log('sha256 per verify (us)', (Number(process.hrtime.bigint() - t0) / 10_000 / 1000).toFixed(3))
+const a = Buffer.from(stored, 'hex'), b = Buffer.from(h(secret), 'hex')
+console.log('timingSafeEqual same length', a.length === b.length, timingSafeEqual(a, b))
+const wrong = Buffer.from(h(randomBytes(32).toString('base64url')), 'hex')
+console.log('timingSafeEqual refuses a wrong secret', timingSafeEqual(a, wrong))
+console.log('token shape example length', ('mft_' + '0'.repeat(32) + '_' + secret).length)

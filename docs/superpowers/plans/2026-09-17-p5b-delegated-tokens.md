@@ -24,8 +24,8 @@
 
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
-| 1 | 1 | **The measurements this plan rests on**, before any code: whether `assertCapability` is actually central, whether `release:deploy` can tell production from staging, whether a bearer header survives the edge, what the token hash should be, and whether a stream upgrade can carry a token. **Alone, and first** | ← next |
-| 2 | 2–3 | **The privileged set named once**, with §20's alignment test, and **the two tables** with the token's shape and its `tokens/` module | |
+| 1 | 1 | **The measurements this plan rests on**, before any code: whether `assertCapability` is actually central, whether `release:deploy` can tell production from staging, whether a bearer header survives the edge, what the token hash should be, and whether a stream upgrade can carry a token. **Alone, and first** | ✅ **DONE 2026-09-17 — 11 findings.** Corrections at the top of Tasks 2, 5, 6, 7 and 11 |
+| 2 | 2–3 | **The privileged set named once**, with §20's alignment test, and **the two tables** with the token's shape and its `tokens/` module | ← next — **blocked on the four *Spec actions*** |
 | 3 | 4–5 | **Minting, listing and revoking** a token in an interactive session; then **bearer authentication** — one place turns either credential into an `Actor` | |
 | 4 | 6 | **The central refusal, and the `PendingAction` it creates.** The heart of D24. **Alone** | |
 | 5 | 7 | **Confirm, reject, and the one-shot retry** — the loop closing. **Alone** | |
@@ -49,12 +49,12 @@
 
 Read or measured on 2026-09-17, immediately after P5a's acceptance, while this plan was written. **Every item is a fact about the platform as it stands, not a prediction**, and Task 1 re-measures the ones marked *(T1)*.
 
-1. **`assertCapability` has 21 call sites and is the only project-scoped authorization function** — which is what makes D24's "enforced centrally at the authorization layer, not per-route" achievable at all. **But five `/v1` route modules never call it**: `blueprints.ts`, `fleet.ts`, `me.ts`, `projects.ts` (creation — no project exists yet to be a member of) and `slugs.ts`. Four of those are fine for a token; **`fleet.ts` is not** — it checks `actor.platformRole !== 'admin'` inline, so a token minted by an administrator would read every project on the platform if nothing else changed. *(T1 re-measures the full list from the route registry rather than from a grep.)*
+1. **[CORRECTED BY `[M1]`, 2026-09-17 — the count and the conclusion were both wrong. It is 16 non-test call sites, six modules bypass it, and THREE must change, not one. See Task 5's and Task 6's corrections.]** **`assertCapability` has 21 call sites and is the only project-scoped authorization function** — which is what makes D24's "enforced centrally at the authorization layer, not per-route" achievable at all. **But five `/v1` route modules never call it**: `blueprints.ts`, `fleet.ts`, `me.ts`, `projects.ts` (creation — no project exists yet to be a member of) and `slugs.ts`. Four of those are fine for a token; **`fleet.ts` is not** — it checks `actor.platformRole !== 'admin'` inline, so a token minted by an administrator would read every project on the platform if nothing else changed. *(T1 re-measures the full list from the route registry rather than from a grep.)*
 2. **`release:deploy` cannot tell production from staging.** One capability covers every environment; production is refused later and separately, by §13's launch gate (`409 RELEASE_PRODUCTION_GATE_UNAVAILABLE`, P5a Task 15). So **"production promotion" is not a capability today**, and D24's first forbidden item has nothing to name until this plan adds one. *(T1)*
 3. **`actor.puid` is read by no route handler** — `grep` finds it only in the `SessionActor` type, the session hook that sets it, and tests. `api/representations/members.ts` reads `puid` from a database row, not from the actor. **So turning `Actor` into a discriminated union is a cheap refactor**, not the sprawling one it looks like. *(T1)*
-4. **`secret:read` and `quota:set` have no route.** `quota:set` is a `Capability` the admin holds and nothing calls; there is no secret-read route at all. Two of D24's four forbidden capabilities are therefore **unreachable in Phase 1**, and a negative control that tries to exercise them end to end cannot fail. The two that ARE reachable are **member management** (`POST /v1/projects/{projectId}/members`) and **a deploy to a production environment** (`POST /v1/environments/{environmentId}/deploy` — the route exists and the authorization check runs before the launch gate).
-5. **The idempotency hook keys on the header alone.** `api/idempotency.ts`'s `replayOrStore` is reached from the `preHandler` after the CSRF check; **Task 1 must measure whether the stored record is scoped to the actor**, because a delegated token replaying another user's `Idempotency-Key` would otherwise read a recorded response it never made. *(T1 — this is the measurement most likely to find a defect that already exists.)*
-6. **The event stream authorizes before it upgrades** (`api/routes/events.ts`, two `assertCapability` calls) and reads the session cookie to do it. Node's `WebSocket` sends the headers it is given (P5a *Read this first* 3), so a token in an `Authorization` header can reach the upgrade — but **whether Caddy forwards `Authorization` on an upgrade is unmeasured**. *(T1)*
+4. **[SHARPENED BY `[M8]`: `secret:read` is not in the `Capability` union AT ALL — see Task 2's correction.]** **`secret:read` and `quota:set` have no route.** `quota:set` is a `Capability` the admin holds and nothing calls; there is no secret-read route at all. Two of D24's four forbidden capabilities are therefore **unreachable in Phase 1**, and a negative control that tries to exercise them end to end cannot fail. The two that ARE reachable are **member management** (`POST /v1/projects/{projectId}/members`) and **a deploy to a production environment** (`POST /v1/environments/{environmentId}/deploy` — the route exists and the authorization check runs before the launch gate).
+5. **[CORRECTED BY `[M5]`: it does NOT key on the header alone — the primary key is `(key, userId, route)`, so the predicted cross-user defect cannot happen. The real one is worse and is in Task 6's correction.]** **The idempotency hook keys on the header alone.** `api/idempotency.ts`'s `replayOrStore` is reached from the `preHandler` after the CSRF check; **Task 1 must measure whether the stored record is scoped to the actor**, because a delegated token replaying another user's `Idempotency-Key` would otherwise read a recorded response it never made. *(T1 — this is the measurement most likely to find a defect that already exists.)*
+6. **[CONFIRMED AND EXTENDED BY `[M3]`/`[M7]`: `Authorization` DOES survive the edge on an upgrade; the stream reads `requireActor`, not the cookie; but it is registered outside `registerRoutes` and applies the origin check to every upgrade. Tasks 5 and 6.]** **The event stream authorizes before it upgrades** (`api/routes/events.ts`, two `assertCapability` calls) and reads the session cookie to do it. Node's `WebSocket` sends the headers it is given (P5a *Read this first* 3), so a token in an `Authorization` header can reach the upgrade — but **whether Caddy forwards `Authorization` on an upgrade is unmeasured**. *(T1)*
 7. **`api/error-codes.ts` holds every code a client can receive, in both directions**, and `ErrorCode` is a union `tsc` checks against each route's `errors:` list. Every code this plan adds needs an entry, and a code listed that nothing throws is red.
 8. **A new event type is FOUR edits** — `EVENT_TYPES` in `observability/events.ts`, the database CHECK (a migration), `EVENT_DETAIL_SCHEMAS` in `observability/event-schemas.ts`, and `observability/testing.ts`'s `EXAMPLE_DETAILS`. `api/representations/events.ts` builds the contract's `EventFrame` from the first and third, so the document follows by construction.
 9. **`audit.role_changes` (migration 0013) is the pattern for an append-only audit table**: `GRANT SELECT, INSERT` to `manifest_app`, foreign keys `ON DELETE restrict`, and a CHECK for a non-empty reason. `observability/testing.ts`'s `expectSqlState` is how a test asserts the refusal — drizzle wraps the driver's error, so `rejects.toThrow(/permission denied/)` goes red against a working grant (P5a sitting 11 finding 5).
@@ -448,6 +448,9 @@ git commit -m "docs(p5b): the measurements this plan rests on — sitting 1"
 ---
 
 ## Task 2: The privileged set, named once — and the capability that production promotion needs
+> **Task 1 correction (2026-09-17, `[M8]`, `[M2]`).** **`secret:read` is not in the `Capability` union at all** — it is not a routeless capability, it is not a capability. So the privileged set CANNOT be written as four `Capability` values; `tsc` refuses `'secret:read'`. **Type the privileged set as a superset of `Capability`** rather than adding `secret:read` to the union: D24's list is a statement about the SPEC, not about what the code implements today, and a capability nothing grants and nothing checks is the no-caller shape ORIENTATION §9 names four times. §20's alignment test then has something real to align, which is R1's point. `quota:set` and `release:approve` ARE in the union and are held by `PLATFORM_ADMIN`, checked nowhere.
+>
+> **`[M2]` decided this task's other half: the deploy route ALREADY branches on `kind`**, at `releases.ts:214`, and the branch runs AFTER `environmentReadableBy(…, 'release:deploy')` at `:205`. So **`release:promote` hangs off the existing branch and this task adds no branch.** The existing order — authorize, then read `kind` — is what lets a new privileged capability be checked before §13's launch gate rather than after it.
 
 **What this is for.** D24's four forbidden capabilities and §20's four step-up capabilities are **the same four**, and §20 says in as many words that *"keeping the two lists aligned is a test, not a convention."* This task writes the list once and the test that holds it. It adds no token code — a token cannot yet exist — so it is the cheapest possible place to get the list right.
 
@@ -1303,6 +1306,17 @@ Add RUNBOOK's *Minting a delegated token* in the same commit — §20 asks for t
 
 ---
 ## Task 5: Bearer authentication — one place turns either credential into an `Actor`
+> **Task 1 correction (2026-09-17, `[M1]`, `[M3]`, `[M7]`, `[M9]`).** Four things, two of which add steps.
+>
+> **1. `[M3]` — `Authorization` survives the edge on BOTH a plain request and a WebSocket upgrade** (measured, with a header-less negative control). The contingency this task prepared — "a token cannot open a stream, named in *What this plan does not build*" — is **not needed**. Caddy does no header manipulation on the console site; nothing written down keeps it that way.
+>
+> **2. `[M1]` — THIS TASK GAINS A STEP: `GET /v1/projects` escapes a token's scope.** `listProjectsFor` (`projects/repository.ts:159`) selects by `actor.userId` alone, and the route calls no `assertCapability`, so Task 6's central refusal never sees it. A token scoped to project X, minted by a user who is also a member of Y and Z, **lists all three** — contradicting Decision 12, which promises it "answers exactly its own project". Scope it here; it cannot be done in `assertCapability`. `POST /v1/projects` needs its explicit Decision 13 refusal for the same structural reason (no capability check runs on it to carry one). The plan said `fleet.ts` was the only module that must change; **it is one of three.**
+>
+> **3. `[M7]` — THIS TASK GAINS A STEP: `assertSameOrigin` runs on EVERY upgrade, regardless of credential.** `routes/events.ts`'s `preValidation` applies it whenever `isUpgrade(request)`. Global Constraints says a bearer token is not a browser credential and CSRF does not apply to it — but as the code stands **a token opening a stream must also send `Origin: https://console.manifest.internal`.** Either make the check conditional on the credential class or state that a token-bearing stream sends the origin anyway; leaving it unstated produces a demo that works only because the script happened to send the header. The good news: `authorizeStream` reads `requireActor`, **not the cookie**, so the stream needs no other change.
+>
+> **4. `[M9]` — no collision.** One inbound reader of the header exists (`routes/registry-token.ts:82`) and it reads **`Basic`**, outside `/v1`: distinguished by both scheme and path. **But `observability/redact.ts:46` only redacts a secret behind the word `Bearer`** — a token logged bare, which is how a mint response or a `token_hash` would be logged, is not redacted. Do not assume the redactor covers it.
+>
+> **5. There are TWO `Actor` types.** `projects/authz.ts:19`'s `Actor` has `userId` and `platformRole` and **no `puid`**; `api/actor.ts:4` is `SessionActor = Actor & { puid: string }`, an INTERSECTION. Decision 2's `Extract<Actor, { credential: 'session' }>` applied to the `projects/` `Actor` **drops `puid`**. Either move `puid` onto the session member of the union, or keep `SessionActor` an intersection over the extracted member.
 
 **What this is for.** D23.4: *"The API is the only integration point, authentication included: an interactive session cookie for browsers, a scoped delegated token for agents."* Today one `onRequest` hook turns a cookie into an actor and routes never read the cookie. This task keeps that property with two credential classes, and makes **"interactive only" a type error rather than a habit** (Decision 2).
 
@@ -1663,6 +1677,13 @@ git commit -m "feat(api): bearer authentication — one hook, two credential cla
 ---
 
 ## Task 6: The central refusal, and the `PendingAction` it creates
+> **Task 1 correction (2026-09-17, `[M5]`, `[M1]`, `[M7]`). READ THIS BEFORE WRITING THE CATCH — as drafted, this task deadlocks D24's loop.**
+>
+> **1. THE CATCH MUST GO OUTSIDE `app.idempotent(...)`.** `registerRoutes` (`route.ts:159`) is `route.method === 'GET' ? await run() : await app.idempotent(request, run)`, and `app.idempotent` is `replayOrStore`, which **stores whatever `run` RESOLVES with** and, on a repeated key, **returns the stored response without ever calling `run`**. If the refusal is caught around `run` — the natural reading of Decision 5, and where it is easiest to write — `run` resolves with the 403 and **the refusal is cached under `(key, userId, route)`**. The human then confirms, the agent retries **with the same `Idempotency-Key`** — exactly what D23.6's own error hint instructs — and `replayOrStore` replays the cached 403 without reaching the handler. **The confirmation is never consumed, `consumed_at` is never stamped, and the agent loops for ever on a cached refusal.** Every test that mints a fresh key per request stays green. Catch outside `app.idempotent` so the refusal propagates out of `replayOrStore` as a throw and nothing is stored. **Adding `token_id` to the primary key does NOT fix this** — the 403 would cache in the token's own namespace and deadlock there. This needs its own negative control: refuse, confirm, retry with the SAME key, assert the retry reaches the handler.
+>
+> **2. "the one wrapper that runs for every `/v1` route" is not literally true.** `[M7]`: the event stream is registered with `app.route` DIRECTLY in `routes/events.ts:66` and is **absent from `ROUTE_DEFINITIONS`**, so `registerRoutes` never wraps it. Harmless today — the stream's only capability is `project:read`, which is never privileged, so the refusal cannot be thrown there — but **state the assumption where this task claims centrality.** The day a privileged capability is checked on a non-`registerRoutes` route, the refusal escapes the wrapper and becomes a 500.
+>
+> **3. `[M1]`: three route modules bypass `assertCapability` and must be handled in Task 5, not here** — `fleet.ts` (known), `project-reads.ts`'s `GET /v1/projects` (missed by the plan) and `projects.ts`'s `POST /v1/projects`. Central enforcement covers the other 22 routes; **these three are named exceptions, not oversights**, and this task should say so rather than imply the wrapper covers everything.
 
 **Why alone.** This is D24's sentence — *"enforced centrally at the authorization layer, not per-route, so a new privileged route cannot accidentally omit it"* — and it is the one design commitment in this plan that is expensive to reverse. It is also the task where a mistake is a security defect rather than a bug.
 
@@ -1924,6 +1945,9 @@ git commit -m "feat(authz): a delegated token is refused the privileged four, ce
 
 ---
 ## Task 7: Confirm, reject, and the one-shot retry
+> **Task 1 correction (2026-09-17, `[M5]`).** **The retry reuses the SAME `Idempotency-Key`** as the refused request — D23.6's error hint tells clients to reuse a key across retries of an action — so this task depends on Task 6 catching the refusal OUTSIDE `app.idempotent`. See Task 6's correction 1; if that is got wrong, this task's loop cannot close and its tests will not show it.
+>
+> **And a second-order property to state rather than leave to be discovered:** after a successful confirmed retry, the 2xx **is** stored under that key, so replaying the key returns it indefinitely with no capability check. That is not an escalation — the action was authorized once and the response is identical — but **"exactly once" describes the ACTION, not the ANSWER**, and a reader who assumes otherwise will mis-read `consumed_at`. Say it in the task and in `demo-token`'s record.
 
 **Why alone.** This is the half of D24 that makes the mechanism useful rather than a notification: *"requesting one of those produces a `PendingAction` that a human resolves in an interactive session."* Decision 6 says confirming grants a one-shot retry rather than replaying the request server-side, and **the one-shot property is the whole security argument** — a confirmed action that can be replayed for ever is a privileged capability with extra steps.
 
@@ -2484,6 +2508,9 @@ git commit -m "feat(tokens): pending actions expire, and the sweeper runs at boo
 ---
 
 ## Task 11: The authorization contract suite's token actors
+> **Task 1 correction (2026-09-17, `[M6]`). No split: keep one file.** Measured today — **38 route cases, 156 tests, 2.72–3.07 s**, ≈4.1 tests per route across the existing five actors. Doubling the actor set projects to ≈310 tests and ≈6 s, under both thresholds this task set (~400 cases, 20 s). **The margin is real but not large** — a second doubling crosses it, so say so if a later plan adds actors.
+>
+> **`[M1]`: the suite's completeness check reads the route registry, which does NOT contain the event stream** — `routes/events.ts` registers with `app.route` directly. The suite covers it today through its `426` plain-GET case (`authz-contract.ts:456`), which is deliberate and must survive the token actors: `app.inject` cannot upgrade, so `426` is the only way the matrix sees that route at all.
 
 **What this is for.** §16's suite exercises every registered route as owner, collaborator, stranger, admin and anonymous, and fails when a route is registered that it does not list. **D24 adds a credential class, so every route now has a second dimension**, and the brief said in advance that "delegated tokens add at least three actors to the matrix."
 
@@ -2712,3 +2739,78 @@ Named because the spec asks for it, or because someone will look for it.
 5. **`consumed_at` was being stamped before the handler ran**, which would burn a human's confirmation on a transient failure. Moved after the handler resolves, with a test for the failing-handler case.
 6. **Two of D24's four capabilities have no route**, so an end-to-end control for them cannot fail. Found while writing Task 13's control table; promoted to Decision 14 and stated in advance rather than left for the acceptance to discover.
 7. **`pending_actions` references `delegated_tokens` `ON DELETE restrict`**, so the two TRUNCATE lists need it ordered before both — the same trap `audit.role_changes` sprang in P5a sitting 11, and its control is a **second** `pnpm test` run, not the first.
+
+---
+
+## What executing this plan found
+
+*One dated section per sitting: the tasks, every defect with the measurement that found it, the
+negative controls, and the gate numbers at the end. Written for a reader who was not there.*
+
+### Sitting 1 — 2026-09-17 — Task 1, the measurements — 11 findings
+
+**Task 1 only, as the sittings table requires.** No `src/` change (one is owed and recorded as
+F1). Full write-up, with every command and raw answer, in
+[`../spikes/p5b-baseline/README.md`](../spikes/p5b-baseline/README.md) and
+[`results-task1-2026-09-17.txt`](../spikes/p5b-baseline/results-task1-2026-09-17.txt).
+
+**The machine:** macOS 26.6.2 (25G83), Node 24.12.0, pnpm 11.24.0, Docker Engine 29.7.2,
+Fastify 5.12.3, zod 3.25.76, Caddy v2.11.4. `git HEAD` `29b60bf`, `main`, clean.
+
+**Two of the plan's claims are false, one is understated, and one existing defect was found.**
+
+| # | Finding | Found by | Changes |
+|---|---|---|---|
+| 1 | **`db/client.ts`'s error hint tells the reader to connect as the SUPERUSER `manifest`** — the exact thing that makes §20's append-only audit grant unimplementable (README:147, ORIENTATION §3, P4a session 5). Follow the hint and you get a working platform with the audit control silently disabled | hitting the error while running `[M1]` | **F1 — a `src/` fix owed in its own commit with its own test** |
+| 2 | **`GET /v1/projects` escapes a token's scope.** `listProjectsFor` selects by `actor.userId` alone and the route calls no `assertCapability`, so a token scoped to X lists its minter's Y and Z too — contradicting Decision 12 | `[M1]` | **Task 5 gains a step** |
+| 3 | **`fleet.ts` is one of THREE modules that must change, not the only one** — with `project-reads.ts` and `projects.ts`. 16 non-test call sites, not 21; six modules bypass, not five | `[M1]` | Tasks 5, 6 |
+| 4 | **Task 6 as drafted DEADLOCKS D24's loop.** A refusal caught around `run` resolves rather than throws, so `replayOrStore` caches the 403; the confirmed retry reuses the same `Idempotency-Key` (as D23.6's own hint instructs) and replays the cached refusal for ever. `consumed_at` is never stamped, and every test using a fresh key per request stays green | `[M5]` | **Task 6 correction 1, Task 7** |
+| 5 | **Scoping the idempotency record to the token does NOT fix finding 4** — the 403 caches in the token's namespace and deadlocks there. Only catch placement fixes it | `[M5]` | Task 6 |
+| 6 | **The predicted `[M5]` defect does not exist.** The primary key is `(key, userId, route)`, so a token cannot replay *another user's* key. The real issue is that a token shares its **minter's** namespace | `[M5]` | *Read this first* 5 corrected |
+| 7 | **`secret:read` is not in the `Capability` union at all** — so Task 2 cannot write the privileged set as four `Capability` values; `tsc` refuses it | `[M8]` | **Task 2 correction** |
+| 8 | **The event stream is registered with `app.route` directly and is absent from `ROUTE_DEFINITIONS`**, so Decision 5's "the one wrapper that runs for every `/v1` route" is not literally true | `[M7]` | Task 6 correction 2, Task 11 |
+| 9 | **`assertSameOrigin` runs on every upgrade regardless of credential**, so a token-bearing stream must send the console's `Origin` unless Task 5 makes the check conditional | `[M7]` | **Task 5 gains a step** |
+| 10 | **`observability/redact.ts` only redacts a secret behind the word `Bearer`.** A token logged bare — a mint response, a `token_hash` — is not redacted | `[M9]` | Tasks 4, 5 |
+| 11 | **There are two `Actor` types.** `SessionActor` is an *intersection* adding `puid` over `projects/`'s `Actor`, which has none; Decision 2's `Extract<…>` would drop `puid` | read for `[M8]` | Task 5 |
+
+**What the measurements confirmed, and did not change:** `[M2]` — the deploy route already
+branches on `kind` after authorizing, so `release:promote` hangs off the existing branch and
+Task 2 adds none. `[M3]` — `Authorization` survives the edge on a plain request **and on a
+WebSocket upgrade**, so Task 5's stream support stays in scope and the prepared contingency is
+not needed. `[M4]` — 0.6 µs per verify on a 256-bit secret; Decision 1 stands. `[M6]` — 38
+routes, 156 tests, 2.7–3.1 s; Task 11 keeps one file. `[M9]` — the one inbound reader of the
+header is the registry realm, reading `Basic` outside `/v1`; no collision.
+
+**Negative controls.** Three, all watched:
+
+- **`[M3]`'s probe could report false.** The header-less request through the edge logged
+  `hasAuth: false` while the two header-bearing ones logged `true`. Without that the probe would
+  have been a check that cannot fail.
+- **`[M4]`'s compare refuses as well as accepts.** `timingSafeEqual` returned `true` for the
+  matching hash and `false` for a freshly generated wrong one. *(Noted for Task 5: the self-review
+  is right that replacing it with `===` leaves every test green — this control shows the compare
+  works, not that it is timing-safe.)*
+- **The `[M3]` probe was fully removed.** `git status` clean against a byte copy taken before the
+  edit, and the rebuilt binary logged **zero** probe lines afterwards.
+
+**A method finding worth carrying forward.** Task 1 Step 1 says "do not grep — read it out of the
+registered route table" and tests `handler.toString()`. **That method has a blind spot of its
+own**: four routes report `—` and are fully guarded through a local helper, including
+`POST /v1/environments/{environmentId}/deploy`. Taken at face value, the plan's own prescribed
+measurement would have reported the platform's most security-relevant route as unauthorized.
+Every `—` was resolved by reading the handler. *A better instrument is not automatically a good
+one — assert the shape of the answer.*
+
+**Gate numbers at the end of this sitting — unchanged from P5a sitting 12, as a
+documentation-only sitting should leave them:** `pnpm test` **1016 passed, 91 files**;
+`pnpm lint`, `pnpm typecheck`, `pnpm format:check` clean. `pnpm test:docker` not owed (this
+sitting touched no `src/`; the plan requires it from sitting 3). `make doctor` **18/0**,
+`make verify` **51/0**.
+
+**The machine was left as found** — `snapshot-machine.sh` diffed before and after. The control
+plane is **running on 7100** with `driver: docker`; it was stopped and restarted three times for
+`[M3]` and carries a new `MANIFEST_SESSION_SECRET`, which is generated per start, so any session
+cookie predating this sitting is void. Nothing depended on one.
+
+**Blocked, and Rich's:** the four *Spec actions*. Put to him at the start of this sitting, with a
+recommendation on each; **sitting 2 cannot start until they are applied.**

@@ -1,0 +1,330 @@
+P5b Task 1 — raw results, 2026-09-17
+macOS 26.6.2 (25G83), Node 24.12.0, pnpm 11.24.0, Docker Engine 29.7.2, git HEAD 29b60bf
+
+=============== [M1] every /v1 route, and whether its handler MENTIONS assertCapability
+$ node docs/superpowers/spikes/p5b-baseline/m1-route-registry.mjs
+route count: 25
+GET    /v1/me                                               getMe                    — platformRole INLINE
+GET    /v1/projects                                         listProjects             — 
+GET    /v1/projects/{projectId}                             getProject               assertCapability 
+GET    /v1/projects/{projectId}/environments                listEnvironments         assertCapability 
+GET    /v1/environments/{environmentId}                     getEnvironment           assertCapability 
+GET    /v1/projects/{projectId}/members                     listMembers              assertCapability 
+POST   /v1/projects/{projectId}/members                     addMember                assertCapability 
+GET    /v1/projects/{projectId}/spec                        getSpec                  assertCapability 
+POST   /v1/projects/{projectId}/spec                        validateSpec             assertCapability 
+POST   /v1/projects                                         createProject            — 
+GET    /v1/slugs/{slug}                                     checkSlug                — 
+GET    /v1/blueprints                                       listBlueprints           — 
+GET    /v1/blueprints/{blueprintRef}                        getBlueprint             — 
+GET    /v1/blueprints/{blueprintRef}/knowledge-pack         getKnowledgePack         — 
+POST   /v1/projects/{projectId}/builds                      startBuild               assertCapability 
+GET    /v1/builds/{buildId}                                 getBuild                 — 
+GET    /v1/builds/{buildId}/logs                            getBuildLog              — 
+GET    /v1/projects/{projectId}/builds                      listBuilds               assertCapability 
+POST   /v1/projects/{projectId}/releases                    createRelease            assertCapability 
+GET    /v1/releases/{releaseId}                             getRelease               assertCapability 
+GET    /v1/projects/{projectId}/releases                    listReleases             assertCapability 
+POST   /v1/environments/{environmentId}/deploy              deploy                   — 
+GET    /v1/environments/{environmentId}/incidents           listIncidents            — 
+GET    /v1/projects/{projectId}/launch-readiness            getLaunchReadiness       assertCapability 
+GET    /v1/fleet                                            listFleet                — platformRole INLINE
+
+NOTE: handler.toString() cannot see indirection. The four routes below say '—' and ARE
+guarded, through a helper. Resolved by reading each handler:
+$ grep -n 'buildReadableBy(\|environmentReadableBy(' packages/control-plane/src/api/routes/{builds,releases}.ts
+packages/control-plane/src/api/routes/builds.ts:28:async function buildReadableBy(db: Db, actor: Actor, buildId: string) {
+packages/control-plane/src/api/routes/builds.ts:126:      toBuild(await buildReadableBy(deps.db, actor, params.buildId)),
+packages/control-plane/src/api/routes/builds.ts:150:      const build = await buildReadableBy(deps.db, actor, params.buildId)
+packages/control-plane/src/api/routes/releases.ts:46:async function environmentReadableBy(
+packages/control-plane/src/api/routes/releases.ts:205:      const environment = await environmentReadableBy(
+packages/control-plane/src/api/routes/releases.ts:251:      const environment = await environmentReadableBy(
+
+$ grep -c 'await assertCapability(' (non-test)
+      16
+
+=============== [M2] can release:deploy tell production from staging?
+$ grep -n "environmentReadableBy(\|environment.kind === 'production'\|'release:deploy'" .../releases.ts
+17:import { BadRequestError, ProductionGateError } from '../errors.js'
+46:async function environmentReadableBy(
+50:  capability: 'project:read' | 'release:deploy',
+205:      const environment = await environmentReadableBy(
+209:        'release:deploy',
+214:      if (environment.kind === 'production')
+215:        throw new ProductionGateError(
+251:      const environment = await environmentReadableBy(
+
+    ],
+    handler: async ({ deps, actor, params, body }) => {
+      const environment = await environmentReadableBy(
+        deps.db,
+        actor,
+        params.environmentId,
+        'release:deploy',
+      )
+      // §13: not forbidden, not ready. Say which items and who owns them — the SAME
+      // checklist `GET /v1/projects/{projectId}/launch-readiness` answers, computed from
+      // what exists rather than the constant this carried until P5a Task 15.
+      if (environment.kind === 'production')
+        throw new ProductionGateError(
+          await computeLaunchReadiness(deps.db, environment.projectId),
+        )
+      const instance = await deployRelease(
+        deps.db,
+        deps.driver,
+
+=============== [M3] does Authorization survive the edge?
+Probe: a temporary console.error in the onRequest hook of api/server.ts, rebuilt and
+restarted; REMOVED and rebuilt afterwards (git status clean, and the new log has 0 probe lines).
+  console.error(JSON.stringify({ probe: 'M3', url, upgrade, hasAuth, hasOrigin }))
+
+$ curl --cacert infra/ca/manifest-root.crt https://console.manifest.internal/v1/me   # NO header (negative control)
+status 401 -> {"probe":"M3","url":"/v1/me","upgrade":null,"hasAuth":false,"hasOrigin":false}
+
+$ curl ... -H 'Authorization: Bearer mft_probe' https://console.manifest.internal/v1/me   # THROUGH THE EDGE
+status 401 -> {"probe":"M3","url":"/v1/me","upgrade":null,"hasAuth":true,"hasOrigin":false}
+
+$ curl -H 'Authorization: Bearer mft_probe' http://127.0.0.1:7100/v1/me   # DIRECT, control
+status 401 -> {"probe":"M3","url":"/v1/me","upgrade":null,"hasAuth":true,"hasOrigin":false}
+
+$ NODE_EXTRA_CA_CERTS=infra/ca/manifest-root.crt node .../m3-upgrade-header.mjs   # THE UPGRADE
+ERROR
+CLOSE 1006
+-> {"probe":"M3","url":"/v1/projects/00000000-0000-0000-0000-000000000000/events","upgrade":"websocket","hasAuth":true,"hasOrigin":true}
+(1006 is the preValidation hook refusing an unauthenticated stranger BEFORE the upgrade —
+ which is the route behaving correctly. The measurement is hasAuth, not the close code.)
+
+The edge does no header manipulation — no header_up block on the console site:
+	route {
+		@outside not remote_ip 10.89.0.1/32
+		respond @outside "manifest: the control plane is not reachable from this network" 403
+		# The versioned API, the event stream (it upgrades through reverse_proxy — measured
+		# in P5a Task 1 M3) and the sign-in endpoints (D23.8).
+		@api path /v1/* /auth/*
+		reverse_proxy @api host.docker.internal:7100 {
+			# EVERY admin-API change reloads the edge's WHOLE config, and a reload closes
+			# every WebSocket the old config proxied with 1001 Going Away — so without this
+			# one app's deploy, anywhere on the platform, disconnects every event-stream
+			# subscriber, and the build-log lines it misses are not replayed (measured
+			# 2026-09-16, P5a sitting 2: one unrelated route PUT closed a stream in under
+			# 3 s, and `make demo-ai` failed at step 5 with 1001). This lets a stream
+			# outlive the config that opened it for an hour; a client reconnects after
+			# that, and is replayed the events (D23.2).
+			stream_close_delay 1h
+		}
+		# P5c replaces this line with the console itself.
+
+=============== [M4] the token hash
+$ node docs/superpowers/spikes/p5b-baseline/m4-token-hash.mjs
+secret chars 43 entropy bits 256
+sha256 per verify (us) 0.599
+timingSafeEqual same length true true
+timingSafeEqual refuses a wrong secret false
+token shape example length 80
+
+=============== [M5] is an idempotency record scoped to the actor?
+$ sed -n idempotencyKeys table, db/schema.ts
+export const idempotencyKeys = pgTable(
+  'idempotency_keys',
+  {
+    key: text('key').notNull(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    route: text('route').notNull(),
+    requestHash: text('request_hash').notNull(),
+    responseStatus: integer('response_status').notNull(),
+    responseBody: jsonb('response_body').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.key, t.userId, t.route] })],
+)
+
+
+$ the lookup, api/idempotency.ts (replay happens BEFORE handler())
+export async function replayOrStore(
+  db: Db,
+  params: IdempotencyParams,
+  handler: () => Promise<StoredResponse>,
+): Promise<StoredResponse> {
+  const requestHash = hashOf(params.body)
+
+  const [existing] = await db
+    .select()
+    .from(idempotencyKeys)
+    .where(
+      and(
+        eq(idempotencyKeys.key, params.key),
+        eq(idempotencyKeys.userId, params.userId),
+        eq(idempotencyKeys.route, params.route),
+      ),
+    )
+
+  if (existing) {
+    if (existing.requestHash !== requestHash)
+      throw new IdempotencyConflictError(params.key)
+    return { status: existing.responseStatus, body: existing.responseBody }
+  }
+
+$ where userId comes from, api/server.ts app.idempotent
+  /** Wraps a mutating handler in its idempotency record. */
+  app.decorate(
+    'idempotent',
+    async (
+      request: FastifyRequest,
+      handler: () => Promise<{ status: number; body: unknown }>,
+    ) => {
+      const actor = requireActor(request)
+      return replayOrStore(
+        deps.db,
+        {
+          key: request.headers['idempotency-key'] as string,
+          userId: actor.userId,
+          route: `${request.method} ${request.routeOptions.url}`,
+          body: request.body,
+        },
+        handler,
+      )
+    },
+
+$ the nesting: api/contract/route.ts registerRoutes
+          route.method === 'GET' ? undefined : (request.body ?? {}),
+        )
+        const run = async (): Promise<{ status: number; body: unknown }> => {
+          const produced = await route.handler({
+            deps,
+            request,
+            reply,
+            actor,
+            params,
+            query,
+            body,
+          })
+          // Decision 2: the second read of "what is public". z.object STRIPS unknown keys,
+          // so a column a mapper forgot cannot leave; a wrong TYPE is a 500 here rather
+          // than a client's surprise.
+          const shaped = route.success.schema.safeParse(produced)
+          if (!shaped.success) {
+            throw new ResponseContractError(
+              route.operationId,
+              shaped.error.issues.map((i) => i.path.join('.') || '(root)'),
+            )
+          }
+          return { status: route.success.status, body: shaped.data }
+        }
+        // D23.6 on every mutation, and the stored response is the SHAPED body.
+        const result =
+          route.method === 'GET' ? await run() : await app.idempotent(request, run)
+        return reply.status(result.status).send(result.body)
+
+=============== [M6] what the authorization matrix costs
+$ grep -c 'method:' packages/control-plane/src/api/authz-contract.ts
+38
+$ pnpm exec vitest run --project unit src/api/authz-contract.test.ts
+ Test Files  1 passed (1)
+      Tests  156 passed (156)
+   Duration  2.72s (transform 238ms, setup 3ms, collect 580ms, tests 1.95s, environment 0ms, prepare 26ms)
+
+=============== [M7] what a stream upgrade authorizes with
+ */
+async function authorizeStream(
+  deps: ServerDeps,
+  request: FastifyRequest,
+): Promise<string> {
+  const actor = requireActor(request)
+  const { projectId } = request.params as { projectId: string }
+  await assertCapability(deps.db, actor, projectId, 'project:read')
+  return projectId
+}
+---- registration: app.route DIRECTLY, not defineRoute/registerRoutes ----
+export async function registerEventRoutes(
+  app: FastifyInstance,
+  deps: ServerDeps,
+): Promise<void> {
+  app.route({
+    method: 'GET',
+    url: '/v1/projects/:projectId/events',
+    preValidation: async (request) => {
+      // Cross-site WebSocket hijacking (P5a Task 4): a same-site app's page can open this
+      // stream with the member's cookie and READ it — `SameSite=Lax` does not stop it.
+      // Browsers always send Origin on a handshake. A plain GET — the authorization
+      // suite's 426 — is not an upgrade and reads nothing. First, so a refused origin
+      // learns nothing about the project either.
+      if (isUpgrade(request)) {
+        assertSameOrigin(request, deps.config.sp.origin)
+      }
+      await authorizeStream(deps, request)
+    },
+    handler: async (_request, reply) =>
+---- and it is absent from the route registry: ----
+$ grep -n events packages/control-plane/src/api/routes/index.ts
+(no match — the stream is not in ROUTE_DEFINITIONS)
+
+=============== [M8] D24's four, and which are reachable
+-- members:manage
+packages/control-plane/src/api/routes/project-reads.ts:178:      await assertCapability(deps.db, actor, params.projectId, 'members:manage')
+-- quota:set
+   (none)
+-- release:approve
+   (none)
+-- secret:read
+   (none)
+-- release:deploy
+packages/control-plane/src/api/routes/releases.ts:50:  capability: 'project:read' | 'release:deploy',
+packages/control-plane/src/api/routes/releases.ts:209:        'release:deploy',
+
+---- the Capability union (projects/authz.ts) ----
+export type Capability =
+  | 'project:read'
+  | 'project:write'
+  | 'project:delete'
+  | 'members:manage'
+  | 'build:create'
+  | 'release:create'
+  | 'release:deploy'
+  | 'release:approve'
+  | 'quota:set'
+
+
+=============== [M9] does anything already answer a bearer token?
+$ grep -rn 'headers.authorization' (non-test)
+packages/control-plane/src/api/routes/registry-token.ts:82:        (request.headers.authorization ?? '').replace(/^Basic /i, ''),
+---- it is Basic, not Bearer, and outside /v1: ----
+    // The GET + Basic form. In the distribution spec and used by other clients;
+    // NOT observed in use by anything in this platform. Ten lines, and its absence
+    // would be a silent incompatibility rather than a visible one.
+    app.get('/internal/registry/token', async (request) => {
+      const query = request.query as { scope?: string | string[] }
+      const scopes = query.scope === undefined ? [] : [query.scope].flat()
+      const basic = Buffer.from(
+        (request.headers.authorization ?? '').replace(/^Basic /i, ''),
+        'base64',
+      ).toString()
+      const index = basic.indexOf(':')
+      return issue(scopes, basic.slice(0, index), basic.slice(index + 1))
+    })
+
+---- the existing redactor already covers a Bearer token in a log line: ----
+  [/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{4,}/g, REDACTED],
+  [/\bsk-[A-Za-z0-9_-]{16,}/g, REDACTED],
+  [/(\bBearer\s+)[A-Za-z0-9._~+/=-]{16,}/gi, `$1${REDACTED}`],
+]
+
+
+---- the two Actor types (api/actor.ts) ----
+import type { FastifyRequest } from 'fastify'
+import type { Actor } from '../projects/index.js'
+
+export type SessionActor = Actor & { puid: string }
+
+/**
+ * Its own file so `api/contract/route.ts` can use it without importing `server.ts`, which
+ * imports the route definitions — a cycle that works only until something reads a value
+ * at module load (P5a Task 6).
+ */
+export function requireActor(request: FastifyRequest): SessionActor {
+  if (!request.actor) {
+    throw Object.assign(new Error('a session is required'), { statusCode: 401 })
+  }
+  return request.actor
+}
