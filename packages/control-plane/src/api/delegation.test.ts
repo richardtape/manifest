@@ -114,6 +114,32 @@ describe('D24’s central refusal', () => {
     })
   })
 
+  it('opens the loop for a token minted WITHOUT the capability — which is every real token', async () => {
+    /**
+     * **THE CASE EVERY OTHER TEST HERE MISSES, AND THE ONLY ONE A REAL TOKEN IS IN.**
+     *
+     * Task 4's mint route refuses a privileged capability, so no token that exists
+     * outside a fixture can hold `members:manage`. The tests above all write one straight
+     * to the store — which is right, because D24 says "however it was minted" — but it
+     * means they exercise the branch a real token never reaches.
+     *
+     * Measured as a control: with the privileged rule moved AFTER the token's own
+     * capability set, every one of the thirty-one tests in this file, `credential.test.ts`
+     * and `tokens.test.ts` stays green, and this request answers `403 FORBIDDEN` instead.
+     * That is not a weakened refusal — it is a DEAD END. The agent is told "no" with
+     * nothing to wait on, no pending action is ever written, and D24's loop cannot start
+     * for any token the platform can actually mint. This assertion is the only thing that
+     * sees it.
+     */
+    await withProjectServer(async (ctx) => {
+      const plaintext = await tokenHolding(ctx, ['project:read'])
+      const res = await ctx.app.inject(addMemberRequest(ctx.projectId, plaintext))
+
+      expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+      expect(res.json().error.pendingAction.action).toBe('members:manage')
+    })
+  })
+
   it('records the request’s fingerprint and no more', async () => {
     await withProjectServer(async (ctx) => {
       const plaintext = await tokenHolding(ctx, ['members:manage'])
