@@ -1311,6 +1311,25 @@ coherent. Follow them.
    because the disagreement makes every number suspect — which is exactly why §2's box
    says in its own text that it is the only current one and wins any disagreement.
 
+   **AFTER THE SWEEP, RE-READ YOUR OWN §7e AS A COLD AGENT AND CHECK ITS CLAIMS —
+   THIS HAS NOW FOUND A DEFECT THREE SITTINGS RUNNING** (`65cc59c` and `7fce531`, P5b
+   sitting 3; `b8f6111`, sitting 4). The sweep is written by the one person in the
+   project who cannot read it cold, and a handover defect costs the next sitting more
+   than a code defect, because the next agent has no way to know to doubt it.
+
+   **Check, do not re-read.** Every defect found this way was found by *verifying a
+   claim*, not by reading the prose again:
+
+   - **Count what you summarised.** Sitting 4's defect was one word — a correction
+     block called *"one paragraph"* when it had two, so the paragraph the summariser
+     did not need vanished, and it was the one that contradicted the next task's own
+     test. Open what you pointed at and count it.
+   - **Grep for every file, export and command you named**, rather than trusting that
+     you wrote it correctly an hour ago.
+   - **Re-derive every number**, rather than subtracting from the last one.
+   - **Open the next task and read it as the next agent will.** Its snippets are where
+     a wrong hand-off actually bites.
+
    **The four HTML pages are the easiest to forget and the most expensive to get
    wrong**, because Rich shares them with people outside the team and nothing in the
    build checks them. They are also the slowest to drift: their architecture stays
