@@ -1421,8 +1421,6 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
   into zombies holding pids against §12's `PidsLimit` (64 in the S6 fixture) for the container's life — measured with
   twenty orphaned `sleep`s in state `Z`, and with S6 probe 11 leaving `docker exec … node` unable to start. It changes
   every app's process tree, which is why it is asked rather than done.
-- **P5b's two spec questions, when P5b is written** — the P5 brief's §7 items 5 and 6: D24's entity fields, and the
-  stateless-session divergence from §20 (a session carries the role it was issued with).
 - **Should the blueprint base image move from `node:22-alpine` to 24?** Priced in exposure as well as effort (Grype
   v0.118.0, 2026-09-06):
 
