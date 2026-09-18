@@ -42,9 +42,10 @@ only after P5b has executed. *Sittings pace the work; they are not §17's produc
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
 turning the network off from a tool call cuts the agent off too; it now has a step 8,
 `make demo-journey`), the second-machine clean clone, starting the UBC external track (its
-trigger fired on 2026-09-15), **the one P5a negative control this machine's permission rules
-refused** (the edge's `@outside` refusal), **a Docker cleanup the same rules refused**, and
-the rest of ORIENTATION §8.
+trigger fired on 2026-09-15), **a Docker cleanup this machine's permission rules
+refused**, and the rest of ORIENTATION §8. *(The one P5a negative control those rules refused —
+the edge's `@outside` refusal — was closed on 2026-09-17 without weakening the edge, and is no
+longer outstanding.)*
 
 **Where to look:** [`WALKTHROUGH.md`](docs/superpowers/WALKTHROUGH.md) to see it run;
 [`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) to operate it and run each demo; README's
