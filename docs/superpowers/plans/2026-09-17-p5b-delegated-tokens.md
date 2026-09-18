@@ -25,8 +25,8 @@
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on**, before any code: whether `assertCapability` is actually central, whether `release:deploy` can tell production from staging, whether a bearer header survives the edge, what the token hash should be, and whether a stream upgrade can carry a token. **Alone, and first** | ✅ **DONE 2026-09-17 — 11 findings, 2 commits.** Corrections at the top of Tasks 2, 5, 6, 7 and 11; F1 fixed in `8d11025` |
-| 2 | 2–3 | **The privileged set named once**, with §20's alignment test, and **the two tables** with the token's shape and its `tokens/` module | ← next — the four *Spec actions* are **applied** (2026-09-17) |
-| 3 | 4–5 | **Minting, listing and revoking** a token in an interactive session; then **bearer authentication** — one place turns either credential into an `Actor` | |
+| 2 | 2–3 | **The privileged set named once**, with §20's alignment test, and **the two tables** with the token's shape and its `tokens/` module | ✅ **DONE 2026-09-17 — 14 findings, 3 commits.** `release:promote` separates promoting from deploying; migration **0014**; corrections at the top of Tasks 3, 4 and 5. **The token parser would have refused 47.5% of its own tokens** |
+| 3 | 4–5 | **Minting, listing and revoking** a token in an interactive session; then **bearer authentication** — one place turns either credential into an `Actor`. **It also writes `withProjectServer` and `sessionFor`**, which sitting 2 deferred to their first callers | ← next — and the first sitting that owes `pnpm test:docker` by the rule above, though sitting 2 ran it twice anyway |
 | 4 | 6 | **The central refusal, and the `PendingAction` it creates.** The heart of D24. **Alone** | |
 | 5 | 7 | **Confirm, reject, and the one-shot retry** — the loop closing. **Alone** | |
 | 6 | 8–9 | **The queue** (§26's primary screen, as a read) and **per-token rate limits** | |
@@ -448,6 +448,14 @@ git commit -m "docs(p5b): the measurements this plan rests on — sitting 1"
 ---
 
 ## Task 2: The privileged set, named once — and the capability that production promotion needs
+> **Sitting 2 note (2026-09-17, EXECUTED). Two places where the task's own body contradicted its correction.**
+>
+> **1. Step 3's code block adds `secret:read` to the `Capability` union — which the correction below forbids.** The correction won. `PrivilegedCapability = Capability | 'secret:read'` is the superset, and `PRIVILEGED`/`isPrivileged` are typed over it. **A consequence the correction did not state:** Step 1's `expect(admin.has('secret:read')).toBe(false)` does not compile either, because `capabilitiesFor` returns `ReadonlySet<Capability>`. It is asserted over the set's contents widened to `readonly string[]`, which states the stronger fact — no role *can* hold it — and says in a comment that `admin.has('secret:read')` would not compile, because that is the point.
+>
+> **2. Step 5's `environmentById` did not exist.** `environmentReadableBy(db, actor, id, capability)` read the row **and** authorized in one call, so it could not know `kind` before it had to name a capability. Split: `environmentById(db, id)` returns the row with no authorization, `environmentReadableBy(db, actor, id)` asserts `project:read` and is what the incidents route uses. No dead union member is left behind, and the deploy route now calls `assertCapability` directly — so it stops reporting `—` to `[M1]`'s registry probe.
+>
+> **3. Step 7 was checked and changed nothing:** `api/authz-contract.ts` drives `f.environmentId.staging` on all three environment routes, so the changed production expectation touches no row. The fixture carries a `production` id that no row uses. Step 6's test covers the distinction from outside instead — and its snippet's `builtProject`/`sessionFor(ctx, …)` mix does not typecheck, so it is written with `releasedProject` and the members route, which is what `delivery.test.ts` has today. The Files list's `projects/index.ts` needs no edit: it is `export * from './authz.js'`.
+>
 > **Task 1 correction (2026-09-17, `[M8]`, `[M2]`).** **`secret:read` is not in the `Capability` union at all** — it is not a routeless capability, it is not a capability. So the privileged set CANNOT be written as four `Capability` values; `tsc` refuses `'secret:read'`. **Type the privileged set as a superset of `Capability`** rather than adding `secret:read` to the union: D24's list is a statement about the SPEC, not about what the code implements today, and a capability nothing grants and nothing checks is the no-caller shape ORIENTATION §9 names four times. §20's alignment test then has something real to align, which is R1's point. `quota:set` and `release:approve` ARE in the union and are held by `PLATFORM_ADMIN`, checked nowhere.
 >
 > **`[M2]` decided this task's other half: the deploy route ALREADY branches on `kind`**, at `releases.ts:214`, and the branch runs AFTER `environmentReadableBy(…, 'release:deploy')` at `:205`. So **`release:promote` hangs off the existing branch and this task adds no branch.** The existing order — authorize, then read `kind` — is what lets a new privileged capability be checked before §13's launch gate rather than after it.
@@ -695,6 +703,17 @@ Each after the commit; `git checkout` to restore; `git status` clean after each.
 
 ---
 ## Task 3: The two tables, and the token's shape
+> **Sitting 2 correction (2026-09-17, executed). Five things; the first would have shipped a credential that authenticates half the time.**
+>
+> **1. `parseToken` MUST NOT SPLIT ON `_`.** base64url's alphabet is `[A-Za-z0-9-_]`, so **about half of all 32-byte secrets contain an underscore** — measured 974 of 2000 — and Step 3's `plaintext.split('_')` with `parts.length !== 3` **refused 47.5% of the tokens `mintToken` produces** (949 of 2000). Step 1's round-trip test mints ONE token, so it would have gone red about half the time and read as harness flakiness rather than the defect it is. It is an **anchored pattern** instead — `^mft_([0-9a-f]{32})_(.+)$` — because the id is fixed-length hex, so everything after the second separator is the secret however many separators it holds. The round-trip test mints **50**, and asserts that at least one of them held an underscore, so the risky case is known to have occurred. `[M4]` measured the hash and the token's LENGTH but never parsed a minted token back, which is how this survived Task 1.
+>
+> **2. `withRollback` TAKES ONE ARGUMENT.** Step 7's `withRollback(async (db, { userId, projectId }) => …)` does not exist: `withRollback(fn: (tx: Db) => Promise<void>)`. What the snippet wants already does — **`db/testing.ts`'s `withProject(fn: (tx, { projectId, ownerId }) => …)`** — and the field is **`ownerId`, not `userId`**.
+>
+> **3. `createToken` REQUIRES an `id`, and it must be the one `mintToken` built the plaintext from.** The token names its own row, so a row created with the column's `defaultRandom()` is a credential nothing can present. The caller generates `randomUUID()` and passes it to both. Step 7's snippet, which called `createToken` with no id, would have stored exactly that unusable row — and no test would have noticed, because nothing there authenticated.
+>
+> **4. `api/testing.ts`'s new `withProject` WOULD COLLIDE with `db/testing.ts`'s existing one.** Two modules, one name, and several test files already import from both. Renamed **`withProjectServer`** — and, with `sessionFor`, **written in sitting 3 where its first callers are**, not here: a fixture written before its first caller is a fixture nothing has exercised, which is the warning (P5a sitting 10 finding 6) this plan cites for it. See Task 4's correction.
+>
+> **5. `pending_actions` is created here with no writer until Task 6**, deliberately — one migration for both tables. `manifest_app` inherits SELECT/INSERT/UPDATE/DELETE on both from `ALTER DEFAULT PRIVILEGES` and **not** TRUNCATE (verified 2026-09-17), so the migration needs no `GRANT` and the harness keeps resetting through the admin pool.
 
 **What this is for.** §6's `DelegatedToken` and `PendingAction` rows, plus the three fields the brief's §7 item 5 proposes (`token_hash`, `name`, `revoked_at`) and the two this plan adds (`expires_at`, `consumed_at` on `PendingAction`). It also builds `tokens/token.ts` — mint, hash, parse, verify — which is pure and therefore the one part of this plan that can be tested exhaustively without a database.
 
@@ -1052,6 +1071,15 @@ git commit -m "feat(tokens): the delegated token and pending action stores, and 
 ---
 
 ## Task 4: Minting, listing and revoking a token — interactive sessions only
+> **Sitting 2 correction (2026-09-17). THIS SITTING WRITES THE TWO API FIXTURES, and every snippet below names a test user that does not exist.**
+>
+> **1. `withProjectServer` and `sessionFor` are yours to write, in `api/testing.ts`, before the first test that uses them.** Task 3 deliberately did not: a fixture written before its first caller is one nothing has exercised (P5a sitting 10 finding 6). **`withProjectServer` is the rename** — `api/testing.ts` cannot export a `withProject` while `db/testing.ts` already does, and several test files import from both. Its shape is *The test fixtures every snippet below uses*, with `userId` being the OWNER's `users.id`.
+>
+> **2. `ins000001` AND `stu000001` ARE NOT TEST USERS HERE.** They are the **IdP** puids the demos and the SAML tests sign in with (`infra/idp/config/authsources.php`). `loginAs` and `sessionFor` take a **`TestUserPuid`**, and §16's four are **`bio_prof`, `bio_student`, `unrelated_user` and `platform_admin`** — `ensureTestUser` throws by name on anything else, and `tsc` refuses it first. Read `bio_prof` for `ins000001` and `bio_student` for `stu000001` in every snippet in this plan, including *The test fixtures*' own `loginAs(deps, 'ins000001')` and Task 6's `puid: 'stu000001'`. The snippets also reference a `ctx` that their own callback destructures away; take the shape from the fixture, not from the snippet.
+>
+> **3. `revokeToken` answers `false` for "not yours", "not there" and "already revoked" alike** — deliberately, so the repository cannot tell a caller which token ids exist. **The route reads the row first** when it needs a 404 to differ from an idempotent second revoke.
+>
+> **4. `mintToken`'s id is the row's id.** Mint against a `randomUUID()` and pass that same value to `createToken` (Task 3's correction 3).
 
 **What this is for.** D24: a token is *"minted by the user in an interactive session, scoped to a project and a capability set, with an expiry."* This task builds the three routes, their representations, and the two rules that make minting safe: **a token may never be minted holding a privileged capability**, and **the plaintext is returned exactly once**.
 
@@ -1306,6 +1334,8 @@ Add RUNBOOK's *Minting a delegated token* in the same commit — §20 asks for t
 
 ---
 ## Task 5: Bearer authentication — one place turns either credential into an `Actor`
+> **Sitting 2 correction (2026-09-17). `touchToken` IS A WRITE PER REQUEST — decide it, do not inherit it.** Task 3 built `touchToken(db, id)`, and calling it on every authenticated request puts one `UPDATE` on `delegated_tokens` in front of every call a token makes. That is the exact cost **Decision 9 rejected a database-backed rate limiter for** ("a write per request, for a control that exists to shed load"), so accepting it here silently would contradict this plan's own reasoning. Either stamp only when the stored value is older than an interval — a minute is ample for what §20 wants the column for — or accept the write and say so in the record. `touchToken`'s doc comment carries the same note.
+>
 > **Task 1 correction (2026-09-17, `[M1]`, `[M3]`, `[M7]`, `[M9]`).** Four things, two of which add steps.
 >
 > **1. `[M3]` — `Authorization` survives the edge on BOTH a plain request and a WebSocket upgrade** (measured, with a header-less negative control). The contingency this task prepared — "a token cannot open a stream, named in *What this plan does not build*" — is **not needed**. Caddy does no header manipulation on the console site; nothing written down keeps it that way.
@@ -2844,3 +2874,164 @@ cookie predating this sitting is void. Nothing depended on one.
 
 **Blocked, and Rich's:** the four *Spec actions*. Put to him at the start of this sitting, with a
 recommendation on each; **sitting 2 cannot start until they are applied.**
+
+---
+
+### Sitting 2 — 2026-09-17 — Tasks 2 and 3 — 14 findings
+
+**What it made true.** Promoting a release to production is a capability of its own,
+`release:promote`, held by an owner and a platform admin and **not** a collaborator, and
+asserted by the deploy route **before** §13's launch gate — so a collaborator is refused
+without the project's readiness ever being consulted. D24's forbidden four are named once
+as `PRIVILEGED`, with the alignment test §20 asks for. `delegated_tokens` and
+`pending_actions` exist (**migration 0014**), and `tokens/` mints, hashes, parses and
+verifies a token, stores it, revokes it and stamps its use. Two commits, `d9de37d` and the
+one below it. **No route shape changed, so `packages/contract/openapi.json` is untouched —
+verified by running `pnpm contract:write` and finding the tree clean, rather than assumed.**
+
+**The headline finding is F1. It is the reason this sitting was worth its own measurements.**
+
+**F1 — the token parser would have refused 47.5% of its own tokens.** Task 3's
+`parseToken` splits the plaintext on `_` and requires exactly three parts. **base64url's
+alphabet is `[A-Za-z0-9-_]`**, so a 43-character secret contains an underscore about half
+the time: measured **974 of 2000** secrets, and **949 of 2000** (47.5%) plaintexts
+unparseable. A delegated token would have authenticated or not depending on a coin flip,
+and Task 3's own round-trip test — which mints **one** token — would have gone red about
+half the time, which reads as a flaky harness rather than a broken credential. Fixed with
+an anchored pattern (`^mft_([0-9a-f]{32})_(.+)$`); the id is fixed-length hex, so the
+secret is everything after the second separator however many it holds. **Re-measured after
+the fix: 5000 mints, 0 round-trip failures, 2438 of them holding an underscore**, and the
+test now mints 50 and asserts at least one did — so the risky case is known to have
+occurred rather than hoped for. **Why Task 1 missed it:** `[M4]` measured the hash and
+printed the token's LENGTH (`mft_ + 32 hex + _ + 43 chars`) but never parsed a minted token
+back. ORIENTATION §9's *assert the shape of the answer* applies to a measurement as much as
+to a test.
+
+**F2 — Task 2's Step 3 contradicted Task 2's own correction block.** The correction says
+type the privileged set as a superset because `secret:read` is not a `Capability`; the code
+block below it adds `'secret:read'` to the union, and the Files list says so too. The
+correction won. **A consequence neither stated:** Step 1's
+`expect(admin.has('secret:read')).toBe(false)` does not compile either, because
+`capabilitiesFor` returns `ReadonlySet<Capability>`. It now asserts over the set's contents
+widened to `readonly string[]`, which states the stronger fact — no role *can* hold it.
+
+**F3 — Step 5's `environmentById` did not exist, and the helper could not be extended.**
+`environmentReadableBy(db, actor, id, capability)` read the environment row **and**
+authorized in one call, so it had to name a capability before it could see `kind`. Split
+into `environmentById` (the row, no authorization) and `environmentReadableBy` (asserts
+`project:read`, used by the incidents route). The deploy route now calls `assertCapability`
+directly, which also means it stops reporting `—` to `[M1]`'s registry probe.
+
+**F4 — Step 7 checked, and correctly changed nothing.** `api/authz-contract.ts` drives
+`f.environmentId.staging` on all three environment routes, so the changed production
+expectation touches no row; the fixture carries a `production` id no row uses. Recorded
+because the step asked for the check to be stated rather than assumed.
+
+**F5 — `withRollback` takes ONE argument.** Task 3 Step 7's
+`withRollback(async (db, { userId, projectId }) => …)` does not exist. The fixture it
+describes already does: `db/testing.ts`'s `withProject(fn: (tx, { projectId, ownerId }))` —
+and the field is `ownerId`, not `userId`.
+
+**F6 — the new `api/testing.ts` `withProject` would have collided with `db/testing.ts`'s.**
+Same name, two modules, and several test files already import from both. Renamed
+`withProjectServer`.
+
+**F7 — `createToken` with no `id` stores a credential nothing can present.** The plaintext
+embeds the row id, so the row must be created with the id `mintToken` built it from. Made
+required rather than defaulted to the column's `defaultRandom()`. Step 7's snippet would
+have stored exactly that unusable row and no test would have caught it, because nothing
+there authenticated. A test does now: *a token's plaintext names the row it was stored as,
+and verifies against it* — mint, store, parse, look up by the parsed id, `secretMatches`,
+and the wrong secret against the right row so the check is not vacuous.
+
+**F8 — `touchToken` on every request is a write per request**, which is the cost Decision 9
+rejected a database-backed rate limiter for. Not decided here, because Task 5 is where it
+is called; written into Task 5's correction and into the function's own doc comment.
+
+**F9 — every snippet in this plan names a test user that does not exist.** `ins000001` and
+`stu000001` are the **IdP** puids the demos and SAML tests use; `loginAs`/`sessionFor` take
+a `TestUserPuid`, whose four values are `bio_prof`, `bio_student`, `unrelated_user` and
+`platform_admin`. `ensureTestUser` throws by name, and `tsc` refuses first. Corrected at
+the top of Task 4 for the whole plan.
+
+**F10 — the two API fixtures were deferred, deliberately.** Writing `withProjectServer` and
+`sessionFor` in Task 3 would have shipped fixtures whose first callers are two sittings
+away — a fixture nothing has exercised, which is the warning (P5a sitting 10 finding 6)
+this plan itself cites for them. Sitting 3 writes them beside their first use; its row in
+the sittings table says so.
+
+**F11 — a latent referential trap, documented rather than changed.**
+`pending_actions.requested_by_token` is `ON DELETE restrict` while `delegated_tokens`
+cascades from `users` and `projects`, so the first code that deletes a user or a project
+will be refused while a pending action survives. Nothing deletes either today — there is no
+`DELETE` route in the API at all, and `project:delete` has no caller — so this is a comment
+in the schema and a note for the plan that adds one, not a change here.
+
+**F12 — `projects/index.ts` needed no edit**, being `export * from './authz.js'`, though
+Task 2's Files list asks for one.
+
+**F13 — the migration needs no `GRANT`, verified.** `manifest_app` inherits
+SELECT/INSERT/UPDATE/DELETE on both new tables from `ensure-app-role.sh`'s
+`ALTER DEFAULT PRIVILEGES`, and **not** TRUNCATE — read out of
+`information_schema.table_privileges` after applying 0014, rather than inferred from the
+script. That is also the positive evidence that the harness must keep resetting through the
+admin pool.
+
+**The negative controls. Every one was watched, after the commit, and restored.**
+
+| Break | What went red |
+|---|---|
+| `'release:promote'` removed from `PRIVILEGED` | *is exactly D24's four* — `- "release:promote"` in the diff, naming the missing member; and *names every one of them as privileged* |
+| `release:promote` left in `COLLABORATOR` | *gives a collaborator neither member management nor promotion* — `expected true to be false` |
+| the deploy handler asserts `release:deploy` for every environment | *a collaborator may deploy to staging and may not promote to production* — **`expected 409 to be 403`**, with the launch-gate body in the failure message, which is the property itself: the refusal must come BEFORE readiness is consulted |
+| `isPrivileged` returns `false` always | *names every one of them as privileged* — **and nothing else in 1025 tests**, run deliberately across the whole suite. That measures the plan's own self-review finding 1: `isPrivileged` has no consumer but its own test until Task 6 |
+
+*Task 3's four controls are in the commit below; the two-TRUNCATE-list control is the
+`pnpm test` SECOND run, which is why every gate run this sitting was doubled.*
+
+**F14 — THE PLAN'S OWN TRUNCATE CONTROL CANNOT FAIL, and its ordering rule has nothing
+to bite on.** Self-review finding 7 says `pending_actions` must be ordered before
+`delegated_tokens` in both lists and that the control for one list moving without the
+other is a **second** `pnpm test` run. Both halves are false. Removing both entries from
+`vitest.global-setup.ts` alone left `pnpm test` green **twice** — 1050 in 95 files, both
+runs — so it was measured directly instead: a committed row was inserted into each table
+by hand, and the global-setup statement **with neither table named** emptied them anyway,
+printing `truncate cascades to table "delegated_tokens"` and `"pending_actions"`, because
+both reference `projects`. Truncating them in the deliberately reversed order succeeded
+too, one TRUNCATE taking every named table at once. **The entries stay, for the reason the
+`routes` entry above them stays** — so the reset does not depend on a foreign key staying
+as it is — **and the comment in both files now says that rather than claiming a control
+that does not exist** (`766ac95`). This is the fourth time in this project that a plan's
+negative control could not fail, and the first where the plan's own self-review was the
+thing that got it wrong.
+
+**Task 3's controls, each watched after the commit and restored.**
+
+| Break | What went red |
+|---|---|
+| `mintToken` returns the secret as `tokenHash` | *stores a hash, never the secret* — `expected 'OeHPBceurTgOs2Gb…' to be '785886a15508a5f4…'`; and both other hash tests |
+| `parseToken` accepts any prefix (`^[a-z]+_`) | *refuses wrong prefix without throwing* — `expected { …(2) } to be undefined` |
+| the `unique()` dropped from `token_hash` (schema **and** the live constraint) | *refuses two tokens with the same hash* — `promise resolved "{ …(11) }" instead of rejecting`. The constraint was restored and re-read from `pg_constraint` |
+| `randomBytes` replaced by a constant | *mints a different secret every time* — `expected 1 to be 50` |
+| **`pending_actions`/`delegated_tokens` removed from one TRUNCATE list only** | **NOTHING — see F14.** Green on both runs; measured by hand instead |
+
+**Gate numbers at the end of this sitting.** `pnpm test` **1050 passed, 95 files**
+(was 1019 in 92 — Task 2 added 6, Task 3 added 25), run **twice**, identical both times.
+`pnpm test:docker` **177 passed, 0 skipped, 29 files**, ~788 s — **run twice this sitting,
+after Task 2 and again after Task 3, and unchanged both times**, which was the prediction
+recorded before the first run. `pnpm lint`, `pnpm typecheck`, `pnpm format:check` clean.
+`make doctor` **18/0**, `make verify` **51/0**.
+
+**`pnpm test:docker` was run although the sittings rule does not require it until sitting
+3.** Task 2 changed `projects/authz.ts` and `api/routes/releases.ts` — both in the Docker
+tier's blast radius — and it changed **which capability a production deploy demands**,
+which is a security control the Docker tier exercises for real. Task 3 changed
+`db/schema.ts` and the shared `vitest.global-setup.ts`. Each task's own Step 8 asked for
+it; the sittings table's "sittings 3 onwards" is a floor, not a ceiling.
+
+**Left for sitting 3, deliberately:** `withProjectServer` and `sessionFor` in
+`api/testing.ts` (F10), and Task 5's decision about `touchToken`'s write per request (F8).
+
+**The machine was left as found** — `snapshot-machine.sh` diffed before and after. The
+control plane is **running on 7100** with `driver: docker`. Migration **0014** is applied;
+the control-plane database is empty, as every `pnpm test` leaves it.
