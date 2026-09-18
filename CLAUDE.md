@@ -14,7 +14,7 @@ statement of the four gate numbers; and the roadmap's ledger
 (`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every other document on
 status.*
 
-**The design is approved and complete, five spikes are done, and P1 to P4c are executed
+**The design is approved and complete, five spikes are done, and P1 to P5a are executed
 and green.** Each plan has an acceptance that passes:
 
 | Plan | Executed | What it made true | Acceptance |
@@ -25,20 +25,25 @@ and green.** Each plan has an acceptance that passes:
 | P4a | 2026-09-09 | A real CWL sign-in; secrets stored, not derived; §8's injection contract | `make demo-identity` |
 | P4b | 2026-09-15 | AI answers charged to the asker; build logs, events and Incidents | `make demo-ai` |
 | P4c | 2026-09-16 | A redeploy interrupts and signs out nobody | `make demo-redeploy` |
+| P5a | 2026-09-17 | The API is a published contract under `/v1`, driven by a generated client | `make demo-journey` |
 
-**The current plan is P5a — the contract**
-(`docs/superpowers/plans/2026-09-16-p5a-the-contract.md`, 17 tasks in twelve agreed
-sittings, one per session), the first of Phase 1c's three plans. It puts the API under
-`/v1` at `https://console.manifest.internal` through the edge, generates an OpenAPI
-document from the routes and a TypeScript client from that document (`packages/contract`),
-and ends with `make demo-journey` driving §22's journey through nothing but that client.
-P5b (delegated tokens) and P5c (the mock, the console, CI) are written only after it has
-executed. *Sittings pace the work; they are not §17's product Phases.*
+**No plan is in flight. The next job is to WRITE P5b — delegated tokens and pending
+actions (D24)** — from `docs/superpowers/plans/2026-09-16-p5-brief.md` and P5a's *What this
+plan does not build*, with `superpowers:writing-plans`, and **not to execute it in the same
+session**. P5a — the contract — was executed in twelve sittings and finished on 2026-09-17:
+the API is under `/v1` at `https://console.manifest.internal` through the edge, an OpenAPI
+document is generated from the routes and a TypeScript client from that document
+(`packages/contract`), and `make demo-journey` drives §22's journey through nothing but that
+client. Its acceptance ran green three times, the third from a `make reset` machine, and is
+now step 8 of `scripts/offline-acceptance.sh`. P5c (the mock, the console, CI) is written
+only after P5b has executed. *Sittings pace the work; they are not §17's product Phases.*
 
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
-turning the network off from a tool call cuts the agent off too), the second-machine clean
-clone, starting the UBC external track (its trigger fired on 2026-09-15), and the rest of
-ORIENTATION §8.
+turning the network off from a tool call cuts the agent off too; it now has a step 8,
+`make demo-journey`), the second-machine clean clone, starting the UBC external track (its
+trigger fired on 2026-09-15), **the one P5a negative control this machine's permission rules
+refused** (the edge's `@outside` refusal), **a Docker cleanup the same rules refused**, and
+the rest of ORIENTATION §8.
 
 **Where to look:** [`WALKTHROUGH.md`](docs/superpowers/WALKTHROUGH.md) to see it run;
 [`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) to operate it and run each demo; README's

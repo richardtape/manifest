@@ -23,7 +23,7 @@ Manifest runs on one Mac. **Almost everything is a container**; two things run o
 | **The proof app** | `https://proof-app.staging.manifest.internal` | §16's application: CWL sign-in, private notes, an AI answer |
 | **The fixture app** | `https://fixture-app.staging.manifest.internal` | P3's trivial app — proves a build and a deploy, nothing more |
 
-**What works today** *(status, as of P5a sitting 11, 2026-09-17)*: through Manifest's API — under `/v1`, at `https://console.manifest.internal`, which only the host can reach, and which refuses a session-bearing change that does not come from that origin — create a project, push code, validate its
+**What works today** *(status, as of P5a sitting 12 — the plan's acceptance, 2026-09-17, which finished P5a)*: through Manifest's API — under `/v1`, at `https://console.manifest.internal`, which only the host can reach, and which refuses a session-bearing change that does not come from that origin — create a project, push code, validate its
 `manifest.yaml`, build it through the platform's security gates, release it and deploy it
 to staging; sign a person in with practice CWL; keep each person's data theirs; answer
 questions through a per-app AI key charged to the person who asked; stream build logs and

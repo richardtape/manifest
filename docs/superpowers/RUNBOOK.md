@@ -190,10 +190,12 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` �
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 18 / 0 and `make verify` 51 / 0**
-(re-measured 2026-09-17, P5a sitting 11). ORIENTATION §2's box is the maintained copy of those; if this
+(re-measured 2026-09-17, P5a sitting 12 — its acceptance; unchanged from sitting 11). ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
-disabling Wi-Fi cuts an agent off too. The evidence is left exactly as recorded — a run is a run — and this
+disabling Wi-Fi cuts an agent off too. **It now has eight steps, not seven** — P5a
+sitting 12 added `make demo-journey` as step 8, guarded by the same control-plane
+check as steps 6 and 7. The evidence is left exactly as recorded — a run is a run — and this
 note exists so nobody reads it as today's baseline.
 
 **Offline: PASSED, 2026-09-05.** Wi-Fi disabled on `en0` (the machine's only
