@@ -383,3 +383,30 @@ export async function sessionFor(
   }
   return cookies
 }
+
+/**
+ * A refusal's STATUS AND CODE TOGETHER, so neither can hide behind the other.
+ *
+ * Asserted separately, the status fires first and the code assertion below it is never
+ * reached — which matters because the two can disagree: `404 ROUTE_NOT_FOUND` (no such
+ * route) satisfies a status-only 404 exactly as `404 NOT_FOUND` (the authorization
+ * answer) does, and P5a sitting 6 paid for the difference. Sitting 3's F13 then measured
+ * THREE of its own negative controls answering `403` for the wrong reason.
+ *
+ * Here rather than local to one test file since P5b Task 6: `credential.test.ts` wrote it
+ * first, `delegation.test.ts` needs the same shape, and Task 7 will be the third — and a
+ * helper copied three times drifts three ways. The same shape `api/authz-contract.ts`
+ * uses.
+ */
+export function refusal(res: { statusCode: number; body: string }): {
+  status: number
+  code: unknown
+} {
+  let code: unknown
+  try {
+    code = (JSON.parse(res.body) as { error?: { code?: unknown } }).error?.code
+  } catch {
+    code = undefined
+  }
+  return { status: res.statusCode, code }
+}

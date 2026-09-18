@@ -198,6 +198,9 @@ export const releaseRoutes = [
       'NOT_FOUND',
       'FORBIDDEN',
       'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
+      // D24 (P5b Task 6): a token deploying to PRODUCTION asks for `release:promote`,
+      // which is privileged — and is refused here, before the launch gate above.
+      'TOKEN_ACTION_PENDING',
       'RELEASE_NOT_FOUND',
       'RELEASE_DIGEST_MISSING',
       'RELEASE_AI_DISABLED',

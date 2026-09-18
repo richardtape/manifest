@@ -16,6 +16,8 @@ import {
   StreamFrame,
 } from './representations/events.js'
 import { Audience } from './representations/projects.js'
+import { ensureTestUser } from '../identity/testing.js'
+import { mintTestToken } from '../tokens/testing.js'
 import { buildServer } from './server.js'
 import { loginAs, mutationHeaders, projectBody, testDeps } from './testing.js'
 
@@ -80,6 +82,27 @@ describe('the stream in the contract (D23.2)', () => {
       capabilities: ['project:read'],
       expiresInDays: 30,
     })
+
+    // D24's central refusal (P5b Task 6), driven here for the same reason: the frame
+    // §26's queue is built from has to parse as the contract's StreamFrame too. The token
+    // is written STRAIGHT TO THE STORE holding a capability Task 4's mint route refuses,
+    // which is what "regardless of how it was minted" means — no route can produce this
+    // one, so no `post` above can reach this event type.
+    const { plaintext } = await mintTestToken(deps.db, {
+      userId: (await ensureTestUser(deps.db, 'bio_prof')).id,
+      projectId: project.id,
+      capabilities: ['members:manage'],
+    })
+    const pendingRefusal = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${project.id}/members`,
+      headers: {
+        authorization: `Bearer ${plaintext}`,
+        'idempotency-key': 'p'.repeat(12),
+      },
+      payload: { puid: 'bio_student', role: 'collaborator' },
+    })
+    expect(pendingRefusal.statusCode, pendingRefusal.body).toBe(403)
 
     // The unit tier's whole lifecycle, as `delivery.test.ts` drives it, plus a redeploy so
     // the retirer publishes too: a build that fails, one that succeeds, a release, a

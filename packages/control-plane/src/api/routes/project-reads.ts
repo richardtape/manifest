@@ -184,7 +184,15 @@ export const projectReadRoutes = [
     query: NO_QUERY,
     body: AddMemberRequest,
     success: { status: 201, description: 'The member, as they now are.', schema: Member },
-    errors: ['NOT_FOUND', 'FORBIDDEN', 'MEMBER_USER_NOT_FOUND'],
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'MEMBER_USER_NOT_FOUND',
+      // D24's central refusal (P5b Task 6). Listed on the two routes whose capability is
+      // one of `PRIVILEGED` rather than on every route, because only these two can answer
+      // it — `members:manage` here, `release:promote` on the production deploy.
+      'TOKEN_ACTION_PENDING',
+    ],
     handler: async ({ deps, actor, params, body }) => {
       // A collaborator reaches this line and is refused here. §13: "same as owner
       // except member management and deletion."

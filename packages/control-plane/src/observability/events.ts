@@ -62,6 +62,8 @@ export const EVENT_TYPES = [
   'spec.validated',
   /** D24 (P5b Task 4): a delegated token was minted for this project. NEVER carries the secret or its hash. */
   'token.minted',
+  /** D24 (P5b Task 6): an agent asked for one of the privileged four, and a person must answer. */
+  'pending_action.created',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

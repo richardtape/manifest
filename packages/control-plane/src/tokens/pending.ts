@@ -1,0 +1,177 @@
+import { createHash } from 'node:crypto'
+import { and, eq, gt, sql } from 'drizzle-orm'
+import { pendingActions, type Db } from '../db/index.js'
+import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
+import type { TokenCapabilityRefusedError } from '../projects/index.js'
+
+/** §6's `PendingAction`, as stored. */
+export type PendingAction = typeof pendingActions.$inferSelect
+
+/** What was asked for — never the body itself. The column's `$type` states the same. */
+export type ActionFingerprint = PendingAction['payload']
+
+/**
+ * How long a question waits for an answer before Task 10's sweeper expires it.
+ *
+ * A DECISION, not an inheritance. Long enough that a person who is not at their desk
+ * when the agent asks can still answer after a night's sleep; short enough that a
+ * confirmed action is confirmed against a project that still looks the way it did when
+ * the question was asked. Twenty-four hours is the smallest span that satisfies the
+ * first, and §26's queue is a screen somebody opens daily rather than hourly.
+ */
+export const PENDING_ACTION_TTL_MS = 86_400_000
+
+/**
+ * A stable SHA-256 of a request body, with object keys SORTED at every depth.
+ *
+ * Two agents sending the same fields in a different order are asking the same question,
+ * and `JSON.stringify` preserves insertion order — so an unsorted hash would make a
+ * retry of the identical action look like a new one, fill a person's queue with
+ * duplicates, and (Task 7) fail to match the retry the human confirmed. Arrays keep
+ * their order, because `[a, b]` and `[b, a]` are not the same request.
+ */
+function canonical(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null'
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`)
+  return `{${entries.join(',')}}`
+}
+
+export function bodySha256(body: unknown): string {
+  return createHash('sha256')
+    .update(canonical(body ?? null))
+    .digest('hex')
+}
+
+/**
+ * WHAT WAS ASKED FOR, as the row stores it: method, concrete path, a hash of the body,
+ * and a sentence for the person who reads it in a queue (§26).
+ *
+ * The path is the CONCRETE one — `/v1/projects/<uuid>/members`, query string stripped —
+ * not the route template, because the resource is part of the question: "may this agent
+ * add a member to THIS project" is not the same question as one about another. The
+ * summary is the route definition's own, so the queue and the OpenAPI document say the
+ * same thing about an operation rather than two things kept in step by hand.
+ */
+export function fingerprintOf(input: {
+  method: string
+  url: string
+  body: unknown
+  summary: string
+}): ActionFingerprint {
+  return {
+    method: input.method,
+    path: input.url.split('?')[0]!,
+    bodySha256: bodySha256(input.body),
+    summary: input.summary,
+  }
+}
+
+/**
+ * A delegated token asked for one of D24's four; this is the row a human answers.
+ *
+ * **Its only caller is `api/contract/route.ts`'s wrapper** — the one layer that sees both
+ * the refusal and the request that caused it (Decision 5). It is not exported through a
+ * route, and no handler may call it: a second caller would be per-route enforcement,
+ * which is the thing D24 forbids.
+ *
+ * **An identical ask REUSES its row rather than inserting a second.** An agent that
+ * retries on a 403 — which is what a retry loop does — must not fill a person's queue
+ * with one question asked forty times. "Identical" is this token, this fingerprint, still
+ * `pending`, and not yet expired: an expired row is not an answerable question, so
+ * reusing one would leave the agent waiting on something nobody can confirm.
+ */
+export async function recordPendingAction(
+  db: Db,
+  bus: EventBus,
+  input: {
+    error: TokenCapabilityRefusedError
+    fingerprint: ActionFingerprint
+    now?: Date
+  },
+): Promise<PendingAction> {
+  const now = input.now ?? new Date()
+  const { error, fingerprint } = input
+
+  const [existing] = await db
+    .select()
+    .from(pendingActions)
+    .where(
+      and(
+        eq(pendingActions.requestedByToken, error.tokenId),
+        eq(pendingActions.state, 'pending'),
+        gt(pendingActions.expiresAt, now),
+        // The three fields of the fingerprint, as jsonb text. Compared in SQL rather
+        // than in JavaScript so that a token with many open questions does not read them
+        // all back to find one.
+        sql`${pendingActions.payload}->>'method' = ${fingerprint.method}`,
+        sql`${pendingActions.payload}->>'path' = ${fingerprint.path}`,
+        sql`${pendingActions.payload}->>'bodySha256' = ${fingerprint.bodySha256}`,
+      ),
+    )
+  if (existing !== undefined) return existing
+
+  const [row] = await db
+    .insert(pendingActions)
+    .values({
+      projectId: error.projectId,
+      requestedByToken: error.tokenId,
+      action: error.capability,
+      payload: fingerprint,
+      expiresAt: new Date(now.getTime() + PENDING_ACTION_TTL_MS),
+    })
+    .returning()
+
+  // §14: the event names the action and who asked, and carries NEITHER the body nor its
+  // hash — a person reading the audit trail needs to know a question was asked, not what
+  // was in it. The row is where the fingerprint lives.
+  await publishEvent(
+    db,
+    bus,
+    {
+      projectId: error.projectId,
+      subject: `pending-action:${row!.id}`,
+      type: 'pending_action.created',
+      machineDetail: {
+        pendingActionId: row!.id,
+        tokenId: error.tokenId,
+        action: error.capability,
+      },
+      humanMessage: `An agent asked to ${fingerprint.summary.toLowerCase()}, which D24 reserves to a person. It is waiting for someone to confirm or reject it.`,
+    },
+    makeRedactor([]),
+  )
+
+  return row!
+}
+
+export async function pendingById(
+  db: Db,
+  id: string,
+): Promise<PendingAction | undefined> {
+  const [row] = await db.select().from(pendingActions).where(eq(pendingActions.id, id))
+  return row
+}
+
+/**
+ * The refusal as it leaves: the 403 D24 asks for, carrying the question a human answers.
+ *
+ * Thrown by the route wrapper once the row exists, and mapped by `api/errors.ts`. It is a
+ * SECOND class rather than a field on `TokenCapabilityRefusedError` because the two say
+ * different things: one is "the authorization layer refused this", which is true the
+ * moment `assertCapability` throws, and the other is "and here is the pending action that
+ * refusal created", which is only true after a row is written. Collapsing them would make
+ * a recorded refusal indistinguishable from an unrecorded one — exactly the distinction
+ * `mapError` fails closed on.
+ */
+export class PendingActionRequiredError extends Error {
+  constructor(readonly pendingAction: PendingAction) {
+    super(
+      `a delegated token may never '${pendingAction.action}' (D24); a human must confirm this action`,
+    )
+    this.name = 'PendingActionRequiredError'
+  }
+}

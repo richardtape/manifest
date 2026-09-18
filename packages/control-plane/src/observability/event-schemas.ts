@@ -128,6 +128,16 @@ export const EVENT_DETAIL_SCHEMAS = {
     capabilities: z.array(z.string()),
     expiresAt: z.iso.datetime(),
   }),
+  /**
+   * D24 (P5b Task 6). The QUESTION, not what was in it: no body, no fingerprint hash and
+   * no summary — the row carries those, and this is the audit trail a person reads.
+   * `projectId` is the event's own column, as everywhere else in this map.
+   */
+  'pending_action.created': z.strictObject({
+    pendingActionId: Uuid,
+    tokenId: Uuid,
+    action: z.string(),
+  }),
   'spec.validated': z.strictObject({
     appSpecId: Uuid,
     commitSha: Sha,

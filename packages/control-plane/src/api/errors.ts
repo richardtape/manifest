@@ -15,6 +15,12 @@ import { RateLimitedError } from './rate-limit.js'
 import type { ErrorEnvelopeShape } from './representations/errors.js'
 import { LaunchReadiness } from './representations/launch.js'
 import type { LaunchReadinessView } from '../launch/index.js'
+import { PendingActionRequiredError, type PendingAction } from '../tokens/index.js'
+import { TokenCapabilityRefusedError } from '../projects/index.js'
+import {
+  PendingAction as PendingActionSchema,
+  toPendingAction,
+} from './representations/pending-actions.js'
 
 /**
  * THE shape every failure leaves in, DERIVED from the schema the OpenAPI document is
@@ -174,6 +180,32 @@ function checklist(
   return {}
 }
 
+/**
+ * The pending action, THROUGH ITS REPRESENTATION — for the reason `checklist` above is,
+ * and the reason every success body is (Decision 2): zod emits an object's keys in SCHEMA
+ * order, so the copy `GET /v1/projects/{id}/pending-actions` answers (Task 8) and the copy
+ * this refusal carries are identical by construction rather than by two literals being
+ * kept in step.
+ *
+ * It FAILS CLOSED, and the failure is a refusal WITHOUT the question rather than a body
+ * the document says is impossible: the 403 and its code still say what happened, which is
+ * what a client switches on, and the operator hears what was dropped. `mapError` is the
+ * last thing between a failure and the wire and must not throw on its way there.
+ */
+function question(row: PendingAction): Pick<ErrorEnvelope['error'], 'pendingAction'> {
+  const parsed = PendingActionSchema.safeParse(toPendingAction(row))
+  if (parsed.success) return { pendingAction: parsed.data }
+  console.error(
+    JSON.stringify({
+      level: 'error',
+      msg: 'a pending action is not the shape PendingAction describes; the refusal was sent without it',
+      pendingActionId: row.id,
+      issues: parsed.error.issues.map((i) => i.path.join('.')),
+    }),
+  )
+  return {}
+}
+
 function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
   const refusal = frameworkRefusal(error)
   if (refusal !== undefined) return refusal
@@ -203,6 +235,57 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
           code: error.code,
           message: error.message,
           hint: 'Sign in to the console and do it there. An agent asks a human for the ones D24 makes pending.',
+        },
+      },
+    }
+  }
+
+  /**
+   * D24's CENTRAL REFUSAL (P5b Task 6), with the question it created. 403 and not 401 for
+   * the same reason as above: the credential is valid, and this particular action is one
+   * only a person may take — so the answer carries what the person must confirm.
+   */
+  if (error instanceof PendingActionRequiredError) {
+    return {
+      status: 403,
+      body: {
+        error: {
+          code: 'TOKEN_ACTION_PENDING',
+          message: error.message,
+          hint: 'A person must confirm this in the console. Retry the identical request — same body, same Idempotency-Key — once they have; the confirmation grants it exactly one retry.',
+          ...question(error.pendingAction),
+        },
+      },
+    }
+  }
+
+  /**
+   * THE SAME REFUSAL, WITH NO QUESTION RECORDED — which means the route wrapper never saw
+   * it, because the route was registered outside `registerRoutes` (`[M7]`: the event
+   * stream is the one such route today, and its only capability is `project:read`, so
+   * this branch is unreachable as the platform stands).
+   *
+   * It is here so that the day a privileged capability IS checked on such a route, the
+   * answer is a loud refusal rather than a `500 INTERNAL` — and never a grant. The
+   * operator line is what says the centrality assumption has been broken; the agent is
+   * refused either way.
+   */
+  if (error instanceof TokenCapabilityRefusedError) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        msg: "a privileged capability was refused to a token OUTSIDE the /v1 route wrapper, so no PendingAction was recorded — D24's central refusal assumes every capability check runs under registerRoutes",
+        capability: error.capability,
+        projectId: error.projectId,
+      }),
+    )
+    return {
+      status: 403,
+      body: {
+        error: {
+          code: 'TOKEN_ACTION_PENDING',
+          message: error.message,
+          hint: 'A person must do this in the console. No pending action was recorded for it; the control plane’s log says why.',
         },
       },
     }

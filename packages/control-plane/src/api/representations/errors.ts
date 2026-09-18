@@ -5,6 +5,7 @@ import {
   representation,
 } from '../contract/schemas.js'
 import { LaunchReadiness } from './launch.js'
+import { PendingAction } from './pending-actions.js'
 
 /**
  * THE shape of every failure the API answers with — the one statement of it (P5a Task 15).
@@ -27,6 +28,20 @@ export const ErrorEnvelope = representation(
       details: z.array(ManifestErrorSchema).optional(),
       launchReadiness: LaunchReadiness.optional().describe(
         'On RELEASE_PRODUCTION_GATE_UNAVAILABLE: what a first launch still needs (§13).',
+      ),
+      /**
+       * D24 (P5b Task 6, Decision 8). A `$ref` to the same representation §26's queue
+       * answers with, for the reason `launchReadiness` is one: an agent refused a
+       * privileged action must be able to find the thing it waits on from the refusal
+       * itself, and a 403 that says only "no" fails D23.7.
+       *
+       * OPTIONAL, and it can be absent on a `TOKEN_ACTION_PENDING`: `mapError` fails
+       * closed, so a refusal that could not be recorded — or one raised outside the route
+       * wrapper — is still a refusal, just one without a question attached. The operator
+       * hears about that on stderr.
+       */
+      pendingAction: PendingAction.optional().describe(
+        'On TOKEN_ACTION_PENDING: the question a person must answer before this request can succeed (D24).',
       ),
     }),
   }),

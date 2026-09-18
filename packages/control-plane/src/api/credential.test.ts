@@ -8,6 +8,7 @@ import { TOUCH_INTERVAL_MS, tokenById } from '../tokens/index.js'
 import { mintTestToken } from '../tokens/testing.js'
 import {
   projectBody,
+  refusal,
   sessionFor,
   withProjectServer,
   type TestProject,
@@ -21,27 +22,6 @@ afterAll(resetDatabase)
  * cookie or a header — which is what makes D24's central refusal possible at all
  * (Task 6).
  */
-
-/**
- * A refusal's STATUS AND CODE TOGETHER, so neither can hide behind the other.
- *
- * Asserted separately, the status fires first and the code assertion is never reached —
- * which matters because the two can disagree: `404 ROUTE_NOT_FOUND` (no such route)
- * satisfies a status-only 404 exactly as `404 NOT_FOUND` (the authorization answer) does,
- * and P5a sitting 6 paid for the difference. The same shape `api/authz-contract.ts` uses.
- */
-function refusal(res: { statusCode: number; body: string }): {
-  status: number
-  code: unknown
-} {
-  let code: unknown
-  try {
-    code = (JSON.parse(res.body) as { error?: { code?: unknown } }).error?.code
-  } catch {
-    code = undefined
-  }
-  return { status: res.statusCode, code }
-}
 
 /** A `project:read` token on `ctx`'s own project, which most of these need. */
 async function readOnlyToken(ctx: TestProject): Promise<string> {

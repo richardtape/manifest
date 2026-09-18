@@ -160,6 +160,38 @@ export class AuthorizationError extends Error {
   }
 }
 
+/**
+ * D24's central refusal: a delegated token asked for one of `PRIVILEGED`.
+ *
+ * **NOT an `AuthorizationError`.** It is not a refusal a client can correct — no role
+ * grants it, no re-mint helps, and "however it was minted" means the token's own
+ * capability set is irrelevant. It is a question that has to be put to a person, so the
+ * answer carries a `PendingAction` the human confirms, and the layer that records one is
+ * the only layer holding the request: `api/contract/route.ts`'s wrapper (P5b Decision 5).
+ *
+ * It therefore carries WHAT was refused and WHO asked, and nothing about the request —
+ * `assertCapability` cannot see one, and giving it one would put a write inside a
+ * function sixteen call sites treat as a pure check.
+ *
+ * **If this reaches `mapError` it means the wrapper never saw it** — a capability checked
+ * on a route registered outside `registerRoutes` (`[M7]`; the event stream is the one
+ * such route today, and its only capability is `project:read`). `api/errors.ts` answers
+ * it as a refusal WITHOUT a pending action and says so on the operator's stderr, so the
+ * failure mode is a loud refusal rather than a quiet 500 or, worse, a grant.
+ */
+export class TokenCapabilityRefusedError extends Error {
+  constructor(
+    readonly capability: PrivilegedCapability,
+    readonly projectId: string,
+    readonly tokenId: string,
+  ) {
+    super(
+      `a delegated token may never '${capability}' (D24); a human must confirm this action`,
+    )
+    this.name = 'TokenCapabilityRefusedError'
+  }
+}
+
 export async function membershipOf(
   db: Db,
   userId: string,
@@ -201,12 +233,26 @@ export async function assertCapability(
    * request a token makes, which is the per-request database cost Decision 9 rejected —
    * and the plan that adds member removal to the console is the one that revisits it.
    *
-   * Task 6 is where a PRIVILEGED capability stops being an ordinary `FORBIDDEN` here and
-   * becomes the refusal that records a `PendingAction`.
+   * **THE ORDER OF THE THREE CHECKS BELOW IS THE SECURITY PROPERTY**, and the next
+   * reader will want to reorder them for readability. Scope, then D24's privileged rule,
+   * then the token's own set:
+   *
+   * 1. **Scope first**, so a token cannot learn that a project it may not address exists
+   *    — not even by being told its action is privileged, and not by having a row written
+   *    into that project's queue for a person there to read.
+   * 2. **Then the privileged rule, BEFORE the token's own capability set**, because D24
+   *    says *"regardless of how it was minted"*: a token that somehow holds one of
+   *    `PRIVILEGED` is refused by this line, not by the mint route. Put after the set,
+   *    this line would be unreachable for every token minted through Task 4's route —
+   *    and every test using such a token would stay green.
+   * 3. **Then the set**, which is the ordinary `FORBIDDEN`.
    */
   if (actor.credential === 'token') {
     if (actor.projectId !== projectId) {
       throw new AuthorizationError('NOT_FOUND', `no project '${projectId}'`)
+    }
+    if (isPrivileged(capability)) {
+      throw new TokenCapabilityRefusedError(capability, projectId, actor.tokenId)
     }
     if (!actor.capabilities.has(capability)) {
       throw new AuthorizationError(

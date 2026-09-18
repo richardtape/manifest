@@ -131,6 +131,17 @@ export const ERROR_CODES = {
     403,
     'A valid delegated token asked for something D24 reserves to an interactive session.',
   ),
+  /**
+   * D24's central refusal (P5b Task 6). DISTINCT from the one above: that is "no route
+   * like this exists for a token", this is "this particular action needs a person's
+   * confirmation, and here is the pending action to wait on". A client switches on the
+   * code, and the two need different behaviour — one is a dead end, the other is a loop
+   * that closes.
+   */
+  TOKEN_ACTION_PENDING: api(
+    403,
+    'A delegated token asked for one of D24’s privileged four; `pendingAction` is the question a person must answer.',
+  ),
 
   // BadRequestError — every one of these is 400
   IDEMPOTENCY_KEY_REQUIRED: bad(

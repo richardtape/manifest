@@ -1,5 +1,11 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod/v4'
+import { TokenCapabilityRefusedError } from '../../projects/index.js'
+import {
+  fingerprintOf,
+  PendingActionRequiredError,
+  recordPendingAction,
+} from '../../tokens/index.js'
 import { requireActor, type Actor } from '../actor.js'
 import type { ErrorCode } from '../error-codes.js'
 import type { ServerDeps } from '../server.js'
@@ -175,9 +181,61 @@ export function registerRoutes(
           }
           return { status: route.success.status, body: shaped.data }
         }
-        // D23.6 on every mutation, and the stored response is the SHAPED body.
-        const result =
-          route.method === 'GET' ? await run() : await app.idempotent(request, run)
+        /**
+         * D24's central refusal, recorded HERE and nowhere else (P5b Decision 5).
+         *
+         * `assertCapability` decides — it is the one function every project-scoped route
+         * already goes through — but it cannot see a request, and the question a person
+         * answers is *what was asked for*. This wrapper is holding the request. Neither
+         * layer can do the other's half, and a route that recorded its own would be the
+         * per-route enforcement D24 forbids.
+         *
+         * **THE CATCH IS OUTSIDE `app.idempotent`, AND THAT PLACEMENT IS LOAD-BEARING.**
+         * `app.idempotent` is `replayOrStore`, which stores whatever its handler RESOLVES
+         * with and replays it for a repeated key without calling the handler again. Catch
+         * this inside `run` — the natural reading, and where it is easiest to write — and
+         * the 403 is cached under `(key, userId, route)`. The human confirms, the agent
+         * retries with the SAME `Idempotency-Key`, which is exactly what D23.6's own error
+         * hint instructs, and `replayOrStore` replays the cached refusal for ever:
+         * `consumed_at` is never stamped and the loop never closes. Every test that mints
+         * a fresh key per request stays green through it (`[M5]`, measured in sitting 1).
+         * Scoping the idempotency record to the token does NOT fix it — the refusal would
+         * simply deadlock in the token's own namespace. Only the placement does.
+         *
+         * Thrown outside, the refusal propagates out of `replayOrStore` and nothing is
+         * stored. `api/delegation.test.ts`'s *stores NO idempotency record for a refusal*
+         * is the assertion that sees this, and it is the only one that can.
+         *
+         * **This wrapper does not run for every `/v1` route** (`[M7]`): the event stream
+         * is registered with `app.route` directly in `routes/events.ts` and is absent from
+         * `ROUTE_DEFINITIONS`. Harmless as the platform stands — the stream checks only
+         * `project:read`, which is never privileged — but the assumption is stated here
+         * because it is what "centrally" rests on, and `api/errors.ts` fails closed with
+         * an operator line the day it stops holding.
+         */
+        let result: { status: number; body: unknown }
+        try {
+          result =
+            route.method === 'GET' ? await run() : await app.idempotent(request, run)
+        } catch (error) {
+          if (error instanceof TokenCapabilityRefusedError) {
+            throw new PendingActionRequiredError(
+              await recordPendingAction(deps.db, deps.bus, {
+                error,
+                fingerprint: fingerprintOf({
+                  method: request.method,
+                  url: request.url,
+                  body,
+                  // The ROUTE's own sentence, which the OpenAPI document publishes: the
+                  // queue a person reads and the contract an agent reads then say the
+                  // same thing about an operation rather than two things kept in step.
+                  summary: route.summary,
+                }),
+              }),
+            )
+          }
+          throw error
+        }
         return reply.status(result.status).send(result.body)
       },
     })
