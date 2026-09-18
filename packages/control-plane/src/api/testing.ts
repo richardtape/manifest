@@ -34,7 +34,11 @@ import { buildServer, type ServerDeps } from './server.js'
 import { resetDatabase } from '../db/testing.js'
 import { addMember } from '../projects/index.js'
 import { testReservedLabels } from '../projects/testing.js'
-import { createRateLimiter } from './rate-limit.js'
+import {
+  createKeyedRateLimiter,
+  createRateLimiter,
+  TOKEN_RATE_WINDOW_MS,
+} from './rate-limit.js'
 
 /**
  * THROWS RATHER THAN MINTING, for the reason `sso` does below. Every app the API suite
@@ -216,7 +220,10 @@ export async function testDeps(): Promise<ServerDeps> {
     builds: createBuildRunner({ db, driver, bus }),
     reservedLabels: await testReservedLabels(),
     // The production limit, so a test of the limit tests the number the boot uses.
-    limits: { slugCheck: createRateLimiter({ limit: 60, windowMs: 60_000 }) },
+    limits: {
+      slugCheck: createRateLimiter({ limit: 60, windowMs: 60_000 }),
+      tokens: createKeyedRateLimiter({ windowMs: TOKEN_RATE_WINDOW_MS }),
+    },
     ai,
     // A keypair per call, not a shared one: two tests sharing a master key can
     // read each other's secrets, and that is the test-isolation shape that made

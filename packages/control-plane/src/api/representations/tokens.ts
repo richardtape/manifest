@@ -23,7 +23,11 @@ export const Token = representation(
        * ACCEPTS is narrow; what it can ANSWER about a row already stored is not.
        */
       capabilities: z.array(z.string()),
-      rateLimit: z.int(),
+      rateLimit: z
+        .int()
+        .describe(
+          'Requests a minute this token may make, enforced in the control plane (§20, P5b Task 9). Past it, every route answers 429 RATE_LIMITED with Retry-After.',
+        ),
       expiresAt: Timestamp,
       revokedAt: Timestamp.nullable(),
       lastUsedAt: Timestamp.nullable(),

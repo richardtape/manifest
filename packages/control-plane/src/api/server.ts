@@ -17,7 +17,11 @@ import type { ServiceCredentialResolver } from '../services/index.js'
 import type { AppSecretResolver } from '../secrets/index.js'
 import { SESSION_COOKIE, verifySession } from '../identity/index.js'
 import type { Actor, ReservedLabels } from '../projects/index.js'
-import { RateLimitedError, type RateLimiter } from './rate-limit.js'
+import {
+  RateLimitedError,
+  type KeyedRateLimiter,
+  type RateLimiter,
+} from './rate-limit.js'
 import { assertSameOrigin } from './csrf.js'
 import { BadRequestError, toErrorResponse } from './errors.js'
 import { replayOrStore } from './idempotency.js'
@@ -87,7 +91,16 @@ export interface ServerDeps {
   /** §23's reserved labels, loaded once at boot (P5a Task 9). */
   reservedLabels: ReservedLabels
   /** In-process request limits, one limiter per purpose, shared by every request (P5a Task 9). */
-  limits: { slugCheck: RateLimiter }
+  limits: {
+    slugCheck: RateLimiter
+    /**
+     * §20's per-token limit (P5b Task 9). KEYED, because each token's limit is its own —
+     * one shared window would make `delegated_tokens.rate_limit` decorative. Taken in the
+     * credential hook below, so every `/v1` route inherits it exactly as D24's refusal
+     * does and no route can forget it.
+     */
+    tokens: KeyedRateLimiter
+  }
 }
 
 declare module 'fastify' {
@@ -198,7 +211,23 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
     if (bearer !== undefined) {
       // `undefined` for every bad token alike; `requireActor` answers the 401. Nothing
       // here distinguishes unknown, wrong, revoked and expired — see `tokenActor`.
-      request.actor = await tokenActor(deps.db, bearer)
+      const actor = await tokenActor(deps.db, bearer)
+      request.actor = actor
+      /**
+       * §20's per-token limit, taken HERE — after the token is verified, and before any
+       * route (P5b Task 9, Decision 9).
+       *
+       * **AFTER IS THE SECURITY PROPERTY.** Taken before, anybody who could reach the API
+       * could exhaust a token's window by sending its id with a wrong secret: a denial of
+       * service needing no credential at all. A bad token is `401` and costs its victim
+       * nothing.
+       *
+       * **BEFORE ANY ROUTE** for the reason D24's refusal is central: a limit a route has
+       * to remember is a limit the next route forgets. A session is deliberately not
+       * limited here — §20 scopes this control to tokens, because a third-party agent is
+       * code the platform did not write, running on a machine it does not control.
+       */
+      if (actor !== undefined) deps.limits.tokens.take(actor.tokenId, actor.rateLimit)
       return
     }
     if (cookie === undefined) return

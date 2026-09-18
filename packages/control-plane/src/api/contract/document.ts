@@ -18,6 +18,14 @@ const EVERY_ROUTE: readonly ErrorCode[] = [
   'UNAUTHENTICATED',
   'REQUEST_INVALID',
   'INTERNAL',
+  /**
+   * §20's per-token limit is taken in the ONE credential hook, before any route runs
+   * (P5b Task 9) — so every operation can answer it to a delegated token, and listing it
+   * per route would be forty entries that mean "the hook ran". A session is not limited
+   * here; `GET /v1/slugs/{slug}` keeps its own per-user limiter and names this code in
+   * its own `errors:` as well, which is a different control with the same answer.
+   */
+  'RATE_LIMITED',
 ]
 const EVERY_MUTATION: readonly ErrorCode[] = [
   'CSRF_ORIGIN_REFUSED',

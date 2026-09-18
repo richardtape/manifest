@@ -67,7 +67,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -79,6 +79,7 @@
         },
         "x-manifest-error-codes": [
           "INTERNAL",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -115,7 +116,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -128,6 +129,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -164,7 +166,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -177,6 +179,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -214,7 +217,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -227,6 +230,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -275,7 +279,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -288,6 +292,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -325,7 +330,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -338,6 +343,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -395,7 +401,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_PRODUCTION_GATE_UNAVAILABLE, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_PRODUCTION_GATE_UNAVAILABLE, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -413,6 +419,7 @@
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "RELEASE_AI_BUDGET_MISSING",
           "RELEASE_AI_DISABLED",
           "RELEASE_DIGEST_MISSING",
@@ -462,7 +469,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -475,6 +482,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -501,7 +509,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -514,6 +522,7 @@
         "x-manifest-error-codes": [
           "FORBIDDEN",
           "INTERNAL",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
@@ -541,7 +550,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -553,6 +562,7 @@
         },
         "x-manifest-error-codes": [
           "INTERNAL",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
@@ -591,7 +601,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -604,6 +614,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -661,7 +672,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -679,6 +690,7 @@
           "INTERNAL",
           "NOT_FOUND",
           "PENDING_ACTION_RESOLVED",
+          "RATE_LIMITED",
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
@@ -739,7 +751,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -757,6 +769,7 @@
           "INTERNAL",
           "NOT_FOUND",
           "PENDING_ACTION_RESOLVED",
+          "RATE_LIMITED",
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
@@ -786,7 +799,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -798,6 +811,7 @@
         },
         "x-manifest-error-codes": [
           "INTERNAL",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -843,7 +857,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SLUG_INVALID, SLUG_RESERVED, SLUG_TAKEN, SOURCE_GIT_FAILED, STARTER_NOT_FOUND, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SLUG_INVALID, SLUG_RESERVED, SLUG_TAKEN, SOURCE_GIT_FAILED, STARTER_NOT_FOUND, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -861,6 +875,7 @@
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
+          "RATE_LIMITED",
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
@@ -915,7 +930,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -928,6 +943,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -965,7 +981,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -978,6 +994,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -1033,7 +1050,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1051,6 +1068,7 @@
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
@@ -1092,7 +1110,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1105,6 +1123,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -1211,7 +1230,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1224,6 +1243,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -1261,7 +1281,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1274,6 +1294,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -1329,7 +1350,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_NOT_FOUND, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_NOT_FOUND, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1347,6 +1368,7 @@
           "INTERNAL",
           "MEMBER_USER_NOT_FOUND",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
@@ -1408,7 +1430,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_LAST_OWNER, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_LAST_OWNER, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1426,6 +1448,7 @@
           "INTERNAL",
           "NOT_FOUND",
           "PROJECT_LAST_OWNER",
+          "RATE_LIMITED",
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
@@ -1467,7 +1490,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1480,6 +1503,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -1517,7 +1541,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1530,6 +1554,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -1585,7 +1610,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RELEASE_BUILD_NOT_DEPLOYABLE, RELEASE_BUILD_NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SPEC_NOT_FOUND, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_BUILD_NOT_DEPLOYABLE, RELEASE_BUILD_NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SPEC_NOT_FOUND, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1603,6 +1628,7 @@
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "RELEASE_BUILD_NOT_DEPLOYABLE",
           "RELEASE_BUILD_NOT_FOUND",
           "REQUEST_BODY_TOO_LARGE",
@@ -1645,7 +1671,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1658,6 +1684,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "SPEC_INVALID",
           "SPEC_NOT_FOUND",
@@ -1715,7 +1742,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_GIT_FAILED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SOURCE_GIT_FAILED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1734,6 +1761,7 @@
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
@@ -1774,7 +1802,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1787,6 +1815,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
@@ -1843,7 +1872,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CAPABILITY_FORBIDDEN, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CAPABILITY_FORBIDDEN, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1860,6 +1889,7 @@
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
@@ -1901,7 +1931,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, REQUEST_INVALID, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1914,6 +1944,7 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_INVALID",
           "UNAUTHENTICATED"
         ]
@@ -2010,7 +2041,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2026,6 +2057,7 @@
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
           "NOT_FOUND",
+          "RATE_LIMITED",
           "REQUEST_BODY_TOO_LARGE",
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
@@ -6219,6 +6251,7 @@
             }
           },
           "rateLimit": {
+            "description": "Requests a minute this token may make, enforced in the control plane (§20, P5b Task 9). Past it, every route answers 429 RATE_LIMITED with Retry-After.",
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991

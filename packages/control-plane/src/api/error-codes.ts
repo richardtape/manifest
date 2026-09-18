@@ -97,7 +97,7 @@ export const ERROR_CODES = {
   ),
   RATE_LIMITED: api(
     429,
-    'Too many requests from this person; Retry-After says when to try again.',
+    'Too many requests from this credential; Retry-After says when to try again. A delegated token’s limit is its own, from its row (§20).',
   ),
   EVENTS_UPGRADE_REQUIRED: api(
     426,

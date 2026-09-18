@@ -1,5 +1,10 @@
 import { readFileSync } from 'node:fs'
-import { buildServer, createRateLimiter } from './api/index.js'
+import {
+  buildServer,
+  createKeyedRateLimiter,
+  createRateLimiter,
+  TOKEN_RATE_WINDOW_MS,
+} from './api/index.js'
 import { loadBlueprints } from './blueprints/index.js'
 import { loadConfig } from './config.js'
 import { db } from './db/index.js'
@@ -283,7 +288,10 @@ const app = await buildServer({
   builds,
   reservedLabels,
   // §23: the slug check is asked while a person types (P5a Decision 26).
-  limits: { slugCheck: createRateLimiter({ limit: 60, windowMs: 60_000 }) },
+  limits: {
+    slugCheck: createRateLimiter({ limit: 60, windowMs: 60_000 }),
+    tokens: createKeyedRateLimiter({ windowMs: TOKEN_RATE_WINDOW_MS }),
+  },
   samlSp: createSamlSp({
     entity: spEntity,
     idpBaseUrl: config.idp.baseUrl,
