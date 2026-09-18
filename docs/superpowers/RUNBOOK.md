@@ -377,6 +377,45 @@ docker exec manifest-postgres psql -U manifest -d manifest_control -c \
 that the student and the instructor keep proving exactly what they prove in every other demo. An administrator
 reads `GET /v1/fleet` (§26); everyone else gets `403`.
 
+## Reaping LiteLLM's orphaned users
+
+*Added 2026-09-18, after P5b sitting 8. `scripts/litellm-orphans.sh`.*
+
+Every demo that replaces a project, and every `pnpm test:docker`, mints a fresh LiteLLM user
+`mf-<projectId>-<environment>` for the new app and leaves the old one behind with no project. Nothing
+reaps them, so the list grows most sittings — it stood at **19 rows, 15 of them orphaned**, on
+2026-09-18. **An agent session cannot do the delete**: its permission classifier refuses it as a
+secret-store write, and that refusal is never worked around. So an agent lists them and hands the
+list over, and **a person runs the delete**.
+
+```bash
+bash scripts/litellm-orphans.sh            # list only; changes nothing, exits 0
+bash scripts/litellm-orphans.sh --apply    # delete each orphan's keys, then the orphan
+```
+
+**It re-derives what is orphaned on every run and never takes a list on trust.** A user is *held*
+when one of its keys is the key a container is actually running with — compared by SHA-256, so no
+secret is printed — and everything else is an orphan. Do not paste a previous sitting's list into
+it: journey-app's user moved in every one of the last eight sittings, which is why ORIENTATION §2
+says re-measure and means it.
+
+Three things it does that are easy to leave out:
+
+- **It reads STOPPED app containers too**, with `docker inspect` rather than `docker exec`. An
+  exec-based check cannot see a stopped app, would call its user an orphan, and would delete the key
+  out from under it on the next start.
+- **It refuses to delete anything if it read app containers and got NO key hashes at all** — a
+  changed container name or a failed inspect makes every user look orphaned, and a check that finds
+  nothing and a check that passes are otherwise the same observation. Watched failing on
+  2026-09-18: with the variable name broken it refuses `--apply` and exits 1, naming a container to
+  inspect by hand.
+- **It deletes keys before users, and re-reads the list afterwards** — asserting that every orphan is
+  gone *and every held user survived*, rather than that a delete returned 200. `/key/delete` takes
+  the hashed token `/user/info` reports, so a key nobody ever saw can still go.
+
+`default_user_id` is LiteLLM's own row and is never touched. An app that declares no models has no
+key, hashes to the empty string's digest, and is correctly not counted as holding one.
+
 ## Minting a delegated token
 
 *Added by P5b Task 4, 2026-09-17. `make demo-token` drives the whole thing end to end (P5b sitting 8,
