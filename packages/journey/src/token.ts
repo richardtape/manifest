@@ -271,28 +271,41 @@ async function step2Mint(): Promise<void> {
  * The negative half is the one an agent-shaped demo would leave out, and sitting 6's F5 is
  * why it cannot be: a claim that something is NOT refused is true of a platform that
  * refuses nothing. So each read here is paired with a refusal, asserted by CODE.
+ *
+ * **THIS STEP DOES NOT `unwrap`, AND THAT IS DELIBERATE.** It is the first step the agent's
+ * credential is used in, so it is where a credential that does not work shows — and
+ * `unwrap` THROWS, which ends the whole run at the first line. Measured in this task's own
+ * control (f): with the bearer withheld from the client, the run reported ONE red check,
+ * `no call refused (getProject)`, and said nothing about the three claims underneath it.
+ * Reporting instead of throwing makes a dead credential four measurements rather than one,
+ * which is what `check.ts`'s *a red run is a measurement, not the first thing that broke*
+ * asks for (P4c Decision 26). The steps after this one still `unwrap`, because a build
+ * cannot be released and a release cannot be deployed — there, stopping is the honest answer.
  */
 async function step3Scope(): Promise<void> {
   checks.step('3. The agent reads its own project — and cannot read the fleet')
   const agent = checks.must('a token to act with', state.agent)
   const projectId = checks.must('a project', state.projectId)
 
-  const project = unwrap(
-    await agent.client.GET('/v1/projects/{projectId}', {
-      params: { path: { projectId } },
-    }),
-    'getProject',
+  const read = await agent.client.GET('/v1/projects/{projectId}', {
+    params: { path: { projectId } },
+  })
+  checks.ok(
+    'it reads the project it is scoped to',
+    read.data?.slug === SLUG,
+    read.data === undefined ? describe(read) : read.data.slug,
   )
-  checks.ok('it reads the project it is scoped to', project.slug === SLUG, project.slug)
 
   // Sitting 1's F2: `listProjectsFor` selected by the ACTOR's user id and no capability
   // check ran on this route at all, so a token scoped to one project listed every project
   // its minter owned. The route scopes it now; this is the running system saying so.
-  const visible = unwrap(await agent.client.GET('/v1/projects'), 'listProjects')
+  const visible = await agent.client.GET('/v1/projects')
   checks.ok(
     'and GET /v1/projects answers it exactly its one project, never its minter’s others',
-    visible.length === 1 && visible[0]?.id === projectId,
-    JSON.stringify(visible.map((p) => p.slug)),
+    visible.data?.length === 1 && visible.data[0]?.id === projectId,
+    visible.data === undefined
+      ? describe(visible)
+      : JSON.stringify(visible.data.map((p) => p.slug)),
   )
 
   const fleet = await agent.client.GET('/v1/fleet')
