@@ -190,7 +190,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` �
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 18 / 0 and `make verify` 51 / 0**
-(re-measured 2026-09-17 at the end of **P5b sitting 2**, after that sitting's second `pnpm test:docker`; unchanged since P5a sitting 11). ORIENTATION §2's box is the maintained copy of those; if this
+(re-measured 2026-09-17 at the end of **P5b sitting 3**, after that sitting's second `pnpm test:docker`; unchanged since P5a sitting 11). ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has eight steps, not seven** — P5a

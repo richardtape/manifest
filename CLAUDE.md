@@ -29,10 +29,12 @@ and green.** Each plan has an acceptance that passes:
 
 **The current plan is P5b — delegated tokens and pending actions (D24)**
 (`docs/superpowers/plans/2026-09-17-p5b-delegated-tokens.md`, 13 tasks in nine sittings,
-written 2026-09-17), the second of Phase 1c's three. **Its first two sittings are executed**
-— the measurements, which corrected five of the plan's own tasks, then D24's privileged four
+written 2026-09-17), the second of Phase 1c's three. **Its first three sittings are executed**
+— the measurements, which corrected five of the plan's own tasks; then D24's privileged four
 named once, `release:promote` separated from `release:deploy`, and the two token tables
-(migration 0014). **Its four spec actions were approved and applied on 2026-09-17.**
+(migration 0014); then the three token routes and bearer authentication, so an agent holding
+a delegated token can now act on its one project. **Its four spec actions were approved and
+applied on 2026-09-17.**
 ORIENTATION §7e names the next job. P5a — the contract — was executed in twelve sittings and finished on 2026-09-17:
 the API is under `/v1` at `https://console.manifest.internal` through the edge, an OpenAPI
 document is generated from the routes and a TypeScript client from that document
@@ -45,8 +47,8 @@ only after P5b has executed. *Sittings pace the work; they are not §17's produc
 turning the network off from a tool call cuts the agent off too; it now has a step 8,
 `make demo-journey`), the second-machine clean clone, starting the UBC external track (its
 trigger fired on 2026-09-15), **a Docker cleanup this machine's permission rules
-refused** — though that refusal did NOT recur in P5b sitting 2, which removed the eight images
-its own Docker-tier runs built, so try it rather than assuming — and the rest of ORIENTATION §8. *(The one P5a negative control those rules refused —
+refused** — though that refusal has NOT recurred in P5b sittings 2 or 3, each of which removed
+the eight images its own Docker-tier runs built, so try it rather than assuming — and the rest of ORIENTATION §8. *(The one P5a negative control those rules refused —
 the edge's `@outside` refusal — was closed on 2026-09-17 without weakening the edge, and is no
 longer outstanding.)*
 

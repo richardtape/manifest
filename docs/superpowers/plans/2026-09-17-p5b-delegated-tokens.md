@@ -26,8 +26,8 @@
 |---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on**, before any code: whether `assertCapability` is actually central, whether `release:deploy` can tell production from staging, whether a bearer header survives the edge, what the token hash should be, and whether a stream upgrade can carry a token. **Alone, and first** | ✅ **DONE 2026-09-17 — 11 findings, 2 commits.** Corrections at the top of Tasks 2, 5, 6, 7 and 11; F1 fixed in `8d11025` |
 | 2 | 2–3 | **The privileged set named once**, with §20's alignment test, and **the two tables** with the token's shape and its `tokens/` module | ✅ **DONE 2026-09-17 — 14 findings, 3 commits.** `release:promote` separates promoting from deploying; migration **0014**; corrections at the top of Tasks 3, 4 and 5. **The token parser would have refused 47.5% of its own tokens** |
-| 3 | 4–5 | **Minting, listing and revoking** a token in an interactive session; then **bearer authentication** — one place turns either credential into an `Actor`. **It also writes `withProjectServer` and `sessionFor`**, which sitting 2 deferred to their first callers | ← next — and the first sitting that owes `pnpm test:docker` by the rule above, though sitting 2 ran it twice anyway |
-| 4 | 6 | **The central refusal, and the `PendingAction` it creates.** The heart of D24. **Alone** | |
+| 3 | 4–5 | **Minting, listing and revoking** a token in an interactive session; then **bearer authentication** — one place turns either credential into an `Actor`. **It also writes `withProjectServer` and `sessionFor`**, which sitting 2 deferred to their first callers | ✅ **DONE 2026-09-17 — 15 findings, 3 commits** (`e407ae3`, `eab5466`, `d992534`). Migration **0015**. **The contract layer could not carry a bodyless mutation**, and `DELETE /v1/tokens/{tokenId}` is the first; **three controls answer `403` for the wrong reason**, so every refusal now asserts its CODE. `make demo-journey` green |
+| 4 | 6 | **The central refusal, and the `PendingAction` it creates.** The heart of D24. **Alone** | ← next |
 | 5 | 7 | **Confirm, reject, and the one-shot retry** — the loop closing. **Alone** | |
 | 6 | 8–9 | **The queue** (§26's primary screen, as a read) and **per-token rate limits** | |
 | 7 | 10–11 | **Expiry** for both entities, and **the authorization contract suite's token actors** — the matrix roughly doubles | |
@@ -3035,3 +3035,162 @@ it; the sittings table's "sittings 3 onwards" is a floor, not a ceiling.
 **The machine was left as found** — `snapshot-machine.sh` diffed before and after. The
 control plane is **running on 7100** with `driver: docker`. Migration **0014** is applied;
 the control-plane database is empty, as every `pnpm test` leaves it.
+
+---
+
+### Sitting 3 — 2026-09-17 — Tasks 4 and 5 — 15 findings
+
+**What it made true.** A person can mint a delegated token in an interactive session,
+list a project's tokens and revoke one — and **an agent holding that token can now
+authenticate with it**. `Actor` is a discriminated union on `credential`, the one
+`onRequest` hook turns either class into one, and a route that D24 reserves to a person
+calls `requireSession` and is refused a token `403 TOKEN_CREDENTIAL_REFUSED`. A token
+reads exactly the one project it is scoped to, is refused a capability it was not minted
+with, and gets the stranger's `404` for any other project. Three commits — `e407ae3`,
+`eab5466`, `d992534` — and **migration 0015** (the `token.minted` event type). The two API
+fixtures sitting 2 deferred, `withProjectServer` and `sessionFor`, are written beside their
+first callers as F10 said they would be.
+
+**`make demo-journey` was run at the end and is green, all eight steps.** Not asked for by
+either task: Task 5 changes `/v1/me`, `GET /v1/projects` and the fleet, which are §22's
+journey, and the unit tier drives them through `app.inject` rather than through the edge and
+the generated client. CLAUDE.md's first *before you trust a green result* bullet is exactly
+this case. It found nothing, which is the result worth recording.
+
+#### The two findings to read if you read nothing else
+
+**F1 — the contract layer could not carry a bodyless mutation, and `DELETE /v1/tokens/{tokenId}`
+is the API's first one.** `registerRoutes` and `document.ts` both keyed the request body on
+`route.method === 'GET'`. So for a DELETE the wrapper handed `request.body ?? {}` — that is
+`{}` — to `NO_BODY`, which is `z.undefined()`, and the route answered **`400 REQUEST_INVALID`
+before its handler ever ran**; and `openApiDocument` looked for a registered request schema
+and threw `revokeToken's body is not registered`, so the document could not be generated at
+all. Measured both ways: the revoke test answered `400` where `404` was expected, and three
+of `document.test.ts`'s tests threw. Both now ask `readsBody(route)`, which is
+`route.body !== NO_BODY` — **the definition already stated the fact, and asking it is both
+narrower and truthful**; a DELETE that does take a body still gets one. The negative control
+is the revert, which turns *revokes a token, and a stranger cannot* red with
+`expected 400 to be 404`.
+
+**F13 — three of this sitting's negative controls produce a `403` for the WRONG REASON, and
+a status-only assertion would have stayed green through every one.** Found by running the
+controls, which is what they are for. Asserted separately, `expect(res.statusCode)` fires
+first and the code assertion below it is never reached:
+
+| The break | What a status-only assertion saw | What the code says |
+|---|---|---|
+| CSRF applied to tokens too | `403` — as expected | `CSRF_ORIGIN_REFUSED`, not `FORBIDDEN` |
+| `fleet.ts` reverted to `requireActor` | `403` — as expected | `FORBIDDEN`, not `TOKEN_CREDENTIAL_REFUSED` |
+| a token allowed to mint a token | `403` — as expected | `FORBIDDEN`, not `TOKEN_CREDENTIAL_REFUSED` |
+
+That is P5a sitting 6's lesson reproduced live — `404 ROUTE_NOT_FOUND` satisfies a status-only
+`404` exactly as the authorization `404 NOT_FOUND` does. Every refusal in
+`credential.test.ts` now asserts `{ status, code }` as one object, the shape
+`api/authz-contract.ts` already uses (`d992534`).
+
+#### Task 4 — minting, listing and revoking
+
+| # | Finding |
+|---|---|
+| F1 | **Above.** `NO_BODY` on any non-GET route was a `400` before the handler and an ungenerable document. |
+| F2 | **The plan's own Task 4 snippet reads `body.id` and `minted.id`** where `MintedToken` is `{ token, secret }` — its own Step 4 says so. Corrected to `body.token.id`. Copied as written, the list case would have failed visibly, but the revoke case would have sent `DELETE /v1/tokens/undefined` and got `400` on the uuid param while asserting `404` — which reads as an authorization defect rather than a typo. |
+| F3 | **There was no runtime capability list**, so the mint request had nothing to validate `capabilities` against. `Capability` is now derived from a `CAPABILITIES` array and `PrivilegedCapability` from `PRIVILEGED_CAPABILITIES`, the way `EventType` is derived from `EVENT_TYPES`. Without it the field would have been `string[]` on the wire: a typo mints a token that can do nothing and nothing says so, and `secret:read` and `quota:set` — two of D24's four — would have been `REQUEST_INVALID`, indistinguishable from that typo, rather than refused by name. |
+| F4 | **Task 3's repository has no way to list a project's tokens**, and Task 4's *Interfaces* list does not notice. `tokensForProject` added. |
+| F5 | **Three new routes turn `api/authz-contract.ts`'s completeness check red immediately**, though the plan assigns that file to Task 11. Three rows and a `fixture.tokenId` added; the matrix needed no other change, because every actor in it is a session. |
+| F6 | **`api/stream-contract.test.ts` asserts that its lifecycle reaches every `EVENT_TYPE`**, so a new type makes it red. `token.minted` is **driven through that real lifecycle** rather than added to `PUBLISHED_ELSEWHERE`: the point of that test is that a real frame parses as the contract's `StreamFrame`, and `api/tokens.test.ts` asserts the route's answer, not the frame the bus carries. |
+
+**Decisions.** `expiresInDays` is bounded 1–365. Minting is `project:write`; listing is
+`project:read`, because nothing in `Token` is credential material — the secret was never
+stored and the hash is not in the schema. The list shows **every** token on the project,
+revoked and expired included: §20 wants a reviewable list, and one showing only the live
+ones answers "what has been able to act here" in the present tense alone. `Token.capabilities`
+is `string[]` while `MintTokenRequest.capabilities` is the enum — a row is written once and
+read for as long as it lives, so a capability later renamed would turn every read of an old
+token into a `500`, and `tokens/testing.ts` writes rows directly. `token.minted`'s
+`machineDetail` omits `projectId`, which the plan's Step 5 asked for: the event ROW carries
+it and every other detail schema in that map leaves it to the column.
+
+**Only the person who minted a token may revoke it**, and everyone else — the platform admin
+included — gets the answer a token id that does not exist gets. A project owner revoking a
+collaborator's token is **not built**: `revokeToken` keys on `userId`, and widening it is a
+repository change plus a rule about who may revoke whose, which belongs with the console that
+would show the list (P5c). Named here rather than left to be discovered.
+
+**Seven negative controls, each watched after the commit and restored.**
+
+| Break | What went red |
+|---|---|
+| the privileged filter deleted from the mint handler | *refuses to mint a token holding a privileged capability* — `expected 201 to be 400` |
+| `secret` added to the `Token` schema and populated | *returns the plaintext exactly once* — `expected true to be false` on `'secret' in one` |
+| the minter's-own-capability check deleted | *refuses a capability the minter does not hold themselves* — `expected 201 to be 403` |
+| revoke's ownership check deleted | *revokes a token, and a stranger cannot* — `expected 200 to be 404` |
+| `expiresInDays`'s `.max()` removed | *bounds the expiry* — `expected 201 to be 400` |
+| the mint response returns the row instead of `toToken(row)` | **`expected 500 to be 201`**, as P5a sitting 10 finding 10 predicted, with `ResponseContractError` naming `token.expiresAt, token.createdAt` — a `Date` in a `Timestamp` field is a 500, not a stripped 200. **Two tests, not one.** `revokedAt` and `lastUsedAt` are null on a fresh row and pass `.nullable()`, so only the two non-null Dates fail |
+| `readsBody` reverted to `route.method !== 'GET'` (F1's fix) | *revokes a token, and a stranger cannot* — `expected 400 to be 404` |
+
+#### Task 5 — bearer authentication
+
+| # | Finding |
+|---|---|
+| F7 | **The plan's Task 5 snippets POST `payload: {}` to `/v1/projects/{id}/builds`** expecting `403` and `202`. `StartBuildRequest` requires `commitSha` and `registerRoutes` parses the body **before** the handler, so both would have been `400 REQUEST_INVALID` — the capability check the test exists for is never reached. The fixture gained `commitSha`. |
+| F8 | **FIVE OF THIS TASK'S TWELVE TESTS PASS BEFORE A LINE OF IT IS WRITTEN.** With nothing reading the header every request is `401`, so all five *answers 401 UNAUTHENTICATED for a revoked / expired / unknown / wrong-secret / malformed token* cases are green against a platform that has no bearer authentication at all. The plan's Step 2 says *"Expected: FAIL — every case 401, because nothing reads the header"* without noticing that its own `it.each` therefore **cannot fail there**. Measured; the controls below are what actually exercise them. |
+| F9 | **`[M7]`'s extra step was not needed, and the answer is ZERO lines rather than one.** `assertSameOrigin` already returns early when there is no session cookie (`carriesSession`), so a token — plain request or stream upgrade — was exempt from §20's CSRF check already. The plan's Step 5 suspected `csrf.ts` "may already express this"; it does, completely. Two tests now assert it rather than a reader reading it. |
+| F10 | **`tsc` named exactly three route modules on the union change, and `POST /v1/projects` was not one of them.** `fleet.ts`, `me.ts` and `tokens.ts` read `platformRole` or `puid` and broke; `projects.ts` reads only `actor.userId`, which both members carry, so Decision 13's refusal had to be added deliberately. **Measured as a control**: reverting it reports `0` type errors and a token creates a project, `201`. That is the limit of Decision 2 — the union catches a route that reads a session FIELD, not one that should be unreachable by a token at all — and it is stated in the route. |
+| F11 | **`GET /v1/me` becomes session-only**, which the plan does not list. `Me` carries `platformRole` and a token has none *at all* by Decision 4 — not `member`, none — so answering a default would invent an authority level for a credential that deliberately has none. An agent reads `GET /v1/projects` instead, which answers exactly its own project. |
+| F12 | **The 401 envelope said `"a session is required"` with the hint `"Log in first."`** A token holder cannot act on either (D23.7). Now `"a valid credential is required"`, naming both classes, and still saying nothing about *which* way a token was unacceptable. |
+| F13 | **Above.** Three controls produce a `403` for the wrong reason. |
+| F14 | **The touch-interval control was timing-sensitive and nearly could not fail.** Breaking it to stamp on every request turned the test red on a **three-millisecond** difference — two requests landing in the same millisecond would have made the assertion silently unable to fail. The test now also backdates the stamp past the interval and asserts it **moves**, a difference no clock resolution can swallow, so both directions are pinned rather than one of them on a good day. |
+| F15 | **`secretMatches` replaced by `===` leaves every test green — 41 of them, including `tokens/token.test.ts`'s own.** The plan predicted this control could not fail through the API; it cannot fail through the unit tier either, because `token.test.ts` asserts that `secretMatches` accepts and refuses correctly and **nothing asserts that `tokenActor` uses it**. Stated plainly rather than papered over: **the timing-safe comparison is unasserted at its call site.** The practical exposure is small — the compared value is a SHA-256 of a 256-bit CSPRNG secret, so a timing leak buys an attacker a preimage problem — which is why this is recorded as a known gap rather than fixed with a weak instrument. |
+
+**Decisions.** **`touchToken` stamps only when the stored value is older than
+`TOUCH_INTERVAL_MS` (60 s)** — sitting 2's F8 asked for this to be decided rather than
+inherited, and stamping per request is the write-per-request cost Decision 9 rejected a
+database-backed rate limiter for. A minute is chosen from what the column is *for*: §20 wants
+a reviewer to see which tokens have gone quiet, and "used within the minute" answers that as
+completely as "used 400 ms ago". The comparison is free — the row is already in hand from the
+lookup that authenticated the request.
+
+**A token outlives its minter's membership.** `assertCapability`'s token branch checks scope
+and the token's own capability set and consults no `project_members` row, so removing somebody
+from a project does not stop a token they minted for it — revoking the token does. The
+alternative is a membership read on every request an agent makes. Deliberate, and the plan
+that adds member removal to the console is the one that revisits it.
+
+**`GET /v1/projects` is scoped in the route, not the repository** — a token's project is an
+API-layer fact about the credential rather than a property of "the projects this person is
+in" — and this is the only place it *can* be done: no capability check runs on that route, so
+Task 6's central refusal will never see it (`[M1]`).
+
+**Five negative controls beyond F13's three, each watched and restored.**
+
+| Break | What went red |
+|---|---|
+| the token scope check dropped | *answers 404 for a project the token is not scoped to* — `expected 200 to be 404`. **It can only fail because the test makes the minter a member of BOTH projects**; without that line a `404` is the minter's own membership and the test passes with no scoping at all |
+| the scope refusal answers `403` | the same test — `expected { status: 403, code: 'FORBIDDEN' } to deeply equal { status: 404, code: 'NOT_FOUND' }`, the code named, which is what F13 bought |
+| `revokedAt` ignored in `tokenActor` | *answers 401 UNAUTHENTICATED for a revoked token* — `expected { status: 200, code: undefined }` |
+| the both-credentials refusal deleted | *refuses a request carrying BOTH* — `expected { status: 200, code: undefined } to deeply equal { status: 400, … }` |
+| the project-list scoping dropped | *answers a token exactly its own project* — `expected [ …(2) ] to deeply equal [ Array(1) ]` |
+| `touchToken` never re-stamping a stale token | *records last use, and not again inside the interval* — `expected 1789710627771 to be greater than 1789710687774` |
+
+**Gate numbers at the end of this sitting.** `pnpm test` **1088 passed, 97 files** (was 1050
+in 95 — Task 4 added 20, Task 5 added 18), run **twice** after each task, identical every
+time. `pnpm test:docker` **177 passed, 0 skipped, 29 files** — run **twice this sitting**,
+once after each task, 788 s and 776 s, and **unchanged from sitting 2's 177**, which is the
+answer predicted before the first run: the Docker tier drives sessions, and this sitting adds
+a credential class beside the session rather than changing it. `pnpm lint`, `pnpm typecheck`,
+`pnpm format:check` clean. `make doctor` **18/0**, `make verify` **51/0**, re-run after the
+Docker tier. `make demo-journey` green, all eight steps.
+
+**The machine was left as found** — `snapshot-machine.sh` diffed before and after, and the
+**eight images this sitting's two Docker-tier runs built were removed by digest**; the
+`docker rmi` refusal ORIENTATION §2 records did not recur, for the second sitting running.
+One image is left behind on purpose: `journey-app@a767606893e3`, which backs the instance
+`make demo-journey` deployed, replacing the one that was already there. **The control plane
+was killed, rebuilt and restarted** — it serves from `dist/`, so the sitting's own routes
+were not reachable through the edge until it was — and it carries a **new
+`MANIFEST_SESSION_SECRET`**. Migration **0015** is applied; **0015 is now the newest.**
+
+**Left for sitting 4, deliberately:** Task 6's central refusal. Everything it consumes is in
+place — the union, `requireSession`, `assertCapability`'s token branch, and `isPrivileged`,
+which is **still not load-bearing**: sitting 2 measured that breaking it turns exactly one
+test red, and **Task 6 is what changes that.**
