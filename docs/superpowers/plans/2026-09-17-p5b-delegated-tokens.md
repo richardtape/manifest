@@ -3481,6 +3481,19 @@ all), `mf-217d4549-…`, `mf-4192aef8-…`, `mf-49170f5e-…`, `mf-58fcaf86-…`
 — the session's classifier refuses it as a secret-store write. `fixture-app` hashes to
 `e3b0c442…`, the empty string, and is not a match for anything.
 
+**Three defects in this sitting's own handover, found by auditing §7e cold after the sweep was
+committed** — the step ORIENTATION §6 now requires, and the fourth sitting running in which it
+has found something. (1) Both counts in the plan-wide-correction line were **derived by
+subtracting from sitting 4's figures instead of counted**, which is the one thing §6 tells you
+not to do: the real figures over Tasks 8–13 are **10** `withProject(async …)` and **7**
+`ins000001`/`stu000001`, not 13 and 11. (2) §7e claimed `TokenActor.rateLimit` had Task 9 as
+"its only reader"; grepped, **nothing reads `actor.rateLimit` at all** — the only `.rateLimit`
+reads in `src/` are the `Token` representation's, off the ROW, and `routing/caddy.ts`'s
+unrelated edge limit. (3) Reading Task 8 as the next agent will showed that **its snippets call
+`refusedOnce(ctx)`, which is not at file scope**: it and `resolve`, `confirmed` and
+`memberPuids` all live inside `describe('confirming a pending action …')`, so a new file-scope
+`describe` cannot see them. All three are now stated in §7e.
+
 **Left for sitting 6, deliberately:** Tasks 8 and 9 — §26's queue as a read, and per-token
 rate limits. Task 8 inherits **F10's correction at the top of Task 10**, `PendingActionList`
 (sitting 4's F4 left it for the queue route that answers it), and a `reason` field the queue

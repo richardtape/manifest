@@ -1313,8 +1313,11 @@ coherent. Follow them.
    says in its own text that it is the only current one and wins any disagreement.
 
    **AFTER THE SWEEP, RE-READ YOUR OWN §7e AS A COLD AGENT AND CHECK ITS CLAIMS —
-   THIS HAS NOW FOUND A DEFECT THREE SITTINGS RUNNING** (`65cc59c` and `7fce531`, P5b
-   sitting 3; `b8f6111`, sitting 4). The sweep is written by the one person in the
+   THIS HAS NOW FOUND A DEFECT FOUR SITTINGS RUNNING** (`65cc59c` and `7fce531`, P5b
+   sitting 3; `b8f6111`, sitting 4; and sitting 5, which found TWO in its own §7e — both
+   numbers in the plan-wide-correction count, derived by subtracting from the previous
+   sitting's figures instead of counting, and a claim that a field had one reader when it
+   has none). The sweep is written by the one person in the
    project who cannot read it cold, and a handover defect costs the next sitting more
    than a code defect, because the next agent has no way to know to doubt it.
 
@@ -1400,9 +1403,10 @@ The sittings table at the top of that plan is the maintained copy of what is don
    `refusedOnce` and `confirmed()` in `delegation.test.ts` are the shape to copy. That is the
    fourth consecutive sitting in which a control could not fail as written.
 3. **The correction block at the top of TASK 4 — the PLAN-WIDE one.** Every remaining snippet
-   still names test users that do not exist and a fixture under the wrong name. Counted at the
-   end of sitting 5 by counting Tasks 8–13: **13 `withProject(async …)` that must be
-   `withProjectServer`** and **11 `ins000001` / `stu000001` that must be `bio_prof` /
+   still names test users that do not exist and a fixture under the wrong name. **Counted at the end of sitting 5 by
+   counting Tasks 8–13, not by subtracting from sitting 4's figures — which is how the first
+   draft of this line got both numbers wrong**: **10 `withProject(async …)` that must be
+   `withProjectServer`** and **7 `ins000001` / `stu000001` (5 and 2) that must be `bio_prof` /
    `bio_student`** — `ensureTestUser` throws by name and `tsc` refuses first.
 4. **Sitting 1's entry and [`spikes/p5b-baseline/README.md`](spikes/p5b-baseline/README.md)** —
    still current.
@@ -1430,6 +1434,12 @@ The sittings table at the top of that plan is the maintained copy of what is don
 
 **What will surprise you:**
 
+- **Task 8's snippets call `refusedOnce(ctx)`, and it is NOT at file scope.** Checked by
+  reading Task 8 as you will: `refusedOnce`, `resolve`, `confirmed` and `memberPuids` all live
+  INSIDE `describe('confirming a pending action (D24, Decision 6)')` in `delegation.test.ts`
+  (line 360 onwards). A new `describe('the queue (§26)')` at file scope cannot see any of them.
+  Hoist them, or nest your block — but decide which before you paste a snippet that references
+  one.
 - **A pending action reached §26's queue with no route answering it for two tasks, and a
   representation with no route is published anyway** — sitting 4's F4. `openApiDocument` emits
   EVERY registered schema. Sitting 5 found the same thing in the REQUEST registry: `EmptyRequest`
@@ -1449,9 +1459,11 @@ The sittings table at the top of that plan is the maintained copy of what is don
 - **A route change is three files, in order**: the definition, `pnpm contract:write`,
   `pnpm contract:generate`.
 - **Task 9 generalises P5a Task 9's in-process limiter**, which lives in `api/rate-limit.ts` and
-  is wired into `ServerDeps.limits`. `TokenActor.rateLimit` is already carried off the row and
-  **Task 9 is still its only reader** — a field nothing reads is the no-caller shape, so give it
-  one this sitting.
+  is wired into `ServerDeps.limits` (one field, `slugCheck`). `TokenActor.rateLimit` is carried
+  off the row by `tokens/actor.ts` and **nothing reads `actor.rateLimit` at all yet** — checked,
+  not assumed: the only `.rateLimit` reads in `src/` are the `Token` representation's, off the
+  ROW, and `routing/caddy.ts`'s unrelated edge limit. **Task 9 is its first reader**, and a
+  field nothing reads is the no-caller shape, so give it one this sitting.
 - **`pnpm test` — even one file — truncates the control plane's tables**, and `pnpm test:docker`
   restarts the edge and re-registers the platform's SP row. **Restart the control plane after
   either**; it serves from `dist/`.
