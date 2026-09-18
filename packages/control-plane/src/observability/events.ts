@@ -64,6 +64,10 @@ export const EVENT_TYPES = [
   'token.minted',
   /** D24 (P5b Task 6): an agent asked for one of the privileged four, and a person must answer. */
   'pending_action.created',
+  /** D24 (P5b Task 7): a person confirmed it, which grants that ONE request a single retry. */
+  'pending_action.confirmed',
+  /** D24 (P5b Task 7): a person refused it, in their own words. The agent is told why. */
+  'pending_action.rejected',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

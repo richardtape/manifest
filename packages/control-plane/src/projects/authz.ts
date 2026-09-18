@@ -252,7 +252,33 @@ export async function assertCapability(
       throw new AuthorizationError('NOT_FOUND', `no project '${projectId}'`)
     }
     if (isPrivileged(capability)) {
-      throw new TokenCapabilityRefusedError(capability, projectId, actor.tokenId)
+      /**
+       * Decision 6: a human confirmed THIS request, once.
+       *
+       * `grant` is set by `api/contract/route.ts`'s wrapper and by nothing else, from a
+       * `PendingAction` a person moved to `confirmed` in an interactive session whose
+       * fingerprint matches the request in hand — so it cannot be manufactured by a
+       * client, by a mint, or by a route. The wrapper stamps the row `consumed` once the
+       * handler has resolved, which is what makes it single-use.
+       *
+       * It is compared for EQUALITY with the capability being asked for, not merely
+       * tested for presence: a confirmation of one privileged action is not a
+       * confirmation of the other three, and a route that checks two capabilities gets
+       * past this line only for the one the person read.
+       */
+      if (actor.grant !== capability) {
+        throw new TokenCapabilityRefusedError(capability, projectId, actor.tokenId)
+      }
+      /**
+       * **AND IT RETURNS, rather than falling through to the token's own set.** The
+       * grant IS the authority here: no token the platform can mint holds one of
+       * `PRIVILEGED` (Task 4's route refuses it), so a confirmation that then had to be
+       * seconded by the token's capability set would let exactly nothing through —
+       * D24's loop would close for fixtures and for no real token, which is sitting 4's
+       * F1 wearing a different hat. What authorizes this request is that a person who
+       * holds the capability themselves read it and said yes.
+       */
+      return
     }
     if (!actor.capabilities.has(capability)) {
       throw new AuthorizationError(

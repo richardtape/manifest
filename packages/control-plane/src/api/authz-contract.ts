@@ -3,6 +3,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { resetDatabase } from '../db/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
+import { TokenCapabilityRefusedError } from '../projects/index.js'
+import { fingerprintOf, recordPendingAction } from '../tokens/index.js'
 import { loginAs, mutationHeaders, projectBody } from './testing.js'
 import type { ErrorCode } from './error-codes.js'
 
@@ -55,7 +57,17 @@ interface RouteCase {
    * its chainable form, so `response.statusCode` stopped existing. Three type
    * errors in the file the whole plan leans on, and no test could see them.
    */
-  request(fixture: Fixture): { url: string; payload?: Record<string, unknown> }
+  /**
+   * `actor` is here since P5b Task 7, and only the pending-action rows use it: confirming
+   * RESOLVES the row, so one row shared across the five actors would answer the fourth of
+   * them `409 PENDING_ACTION_RESOLVED` — a state refusal wearing an authorization
+   * expectation's clothes. Each actor gets its own question, so this table measures who
+   * may answer and never what has already been answered.
+   */
+  request(
+    fixture: Fixture,
+    actor: Actor,
+  ): { url: string; payload?: Record<string, unknown> }
   expect: Record<Actor, Expectation>
 }
 
@@ -67,6 +79,8 @@ interface Fixture {
   commitSha: string
   /** A delegated token the OWNER minted (P5b Task 4) — what the revoke row is aimed at. */
   tokenId: string
+  /** One PENDING question per route and per actor (P5b Task 7); see `request` above. */
+  pendingActionId: Record<'confirm' | 'reject', Record<Actor, string>>
 }
 
 const ALL_ACTORS: Actor[] = ['owner', 'collaborator', 'stranger', 'admin', 'anonymous']
@@ -535,6 +549,44 @@ const ROUTES: RouteCase[] = [
     },
   },
   /**
+   * D24's loop closing (P5b Task 7). A confirmation is not a read of the queue — it lets a
+   * delegated token past the rule D24 makes central — so the person answering must hold
+   * the capability THEMSELVES: a collaborator who may not manage members may not wave one
+   * through either, which is the `403` below, and a stranger is told the question does not
+   * exist. A token gets `TOKEN_CREDENTIAL_REFUSED` from `requireSession` and is not in
+   * this table's five actors; `api/delegation.test.ts` asserts it.
+   */
+  {
+    method: 'POST',
+    url: '/v1/pending-actions/:pendingActionId/confirm',
+    request: (f, actor) => ({
+      url: `/v1/pending-actions/${f.pendingActionId.confirm[actor]}/confirm`,
+      payload: {},
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 403,
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
+    method: 'POST',
+    url: '/v1/pending-actions/:pendingActionId/reject',
+    request: (f, actor) => ({
+      url: `/v1/pending-actions/${f.pendingActionId.reject[actor]}/reject`,
+      payload: { reason: 'not this term' },
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 403,
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  /**
    * The registry token realm. Unlike every other route in this table it carries NO
    * session: its caller is BuildKit or the Docker daemon speaking the distribution
    * token protocol, and it authenticates with the short-lived build credential in
@@ -639,9 +691,41 @@ export function describeAuthorizationContract(
         headers: mutationHeaders(deps),
       })
 
+      /**
+       * TEN pending questions — one per route, per actor — recorded the way the platform
+       * records them, through `recordPendingAction`, with a fingerprint that differs per
+       * actor so the reuse lookup gives each its own row rather than handing back the
+       * first. They are `pending` and stay that way for every actor but the two expected
+       * to resolve one.
+       */
+      const askFor = async (how: 'confirm' | 'reject', actor: Actor): Promise<string> => {
+        const row = await recordPendingAction(deps.db, deps.bus, {
+          error: new TokenCapabilityRefusedError(
+            'members:manage',
+            body.id,
+            token.json().token.id,
+          ),
+          fingerprint: fingerprintOf({
+            method: 'POST',
+            url: `/v1/projects/${body.id}/members`,
+            body: { puid: 'bio_student', role: 'collaborator', who: `${how}:${actor}` },
+            summary: 'Add or change a member',
+          }),
+        })
+        return row.id
+      }
+      const questions = async (how: 'confirm' | 'reject') =>
+        Object.fromEntries(
+          await Promise.all(ALL_ACTORS.map(async (a) => [a, await askFor(how, a)])),
+        ) as Record<Actor, string>
+
       fixture = {
         projectId: body.id,
         tokenId: token.json().token.id,
+        pendingActionId: {
+          confirm: await questions('confirm'),
+          reject: await questions('reject'),
+        },
         commitSha: body.spec.commitSha,
         buildId: build.json().id,
         releaseId: release.json().id,
@@ -696,7 +780,7 @@ export function describeAuthorizationContract(
       for (const actor of ALL_ACTORS) {
         const expected = route.expect[actor]
         it(`${route.method} ${route.url} as ${actor} → ${expected}`, async () => {
-          const { url, payload } = route.request(fixture)
+          const { url, payload } = route.request(fixture, actor)
           const actorCookies = actor === 'anonymous' ? undefined : cookies[actor]
           // Built conditionally: under exactOptionalPropertyTypes an explicit
           // `payload: undefined` is not assignable to InjectOptions' optional

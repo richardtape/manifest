@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
+import type { LightMyRequestResponse } from 'fastify'
 import { afterAll, describe, expect, it } from 'vitest'
-import { idempotencyKeys, pendingActions } from '../db/index.js'
+import { idempotencyKeys, pendingActions, projectMembers } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
+import type { TestUserPuid } from '../identity/testing.js'
 import { addMember, assertCapability, CAPABILITIES } from '../projects/index.js'
 import { TokenCapabilityRefusedError } from '../projects/index.js'
 import { pendingById } from '../tokens/index.js'
@@ -329,6 +331,288 @@ describe('D24’s central refusal', () => {
         assertCapability(ctx.db, actor, ctx.projectId, 'quota:set'),
       ).rejects.toThrow(TokenCapabilityRefusedError)
       expect(CAPABILITIES).not.toContain('secret:read')
+    })
+  })
+})
+
+/**
+ * D24's loop closing (P5b Task 7, Decision 6).
+ *
+ * *"Requesting one of those produces a `PendingAction` that a human resolves in an
+ * interactive session."* Confirming does not replay the request server-side — it grants a
+ * ONE-SHOT RETRY of that exact request, so the action executes through its normal route
+ * with its normal validation, and the one-shot property is the whole security argument: a
+ * confirmed action that can be replayed for ever is a privileged capability with extra
+ * steps.
+ *
+ * **THE RETRY REUSES THE SAME `Idempotency-Key`** (sitting 1's `[M5]`), because D23.6's
+ * own error hint tells a client to reuse a key across retries of an action. Sitting 4
+ * made that possible by catching the refusal OUTSIDE `app.idempotent`, so the refusal
+ * stores no record and the retry reaches the handler.
+ *
+ * **"EXACTLY ONCE" DESCRIBES THE ACTION, NOT THE ANSWER.** The confirmed retry's `201`
+ * *is* stored under that key, so replaying the key returns it for ever without reaching
+ * the handler or any capability check. That is not an escalation — the action was
+ * authorized once and the response is identical — and it is asserted separately below,
+ * because it is a different statement from the one-shot rule. A SECOND ATTEMPT AT THE
+ * ACTION is a new request with a fresh key, and that is where the one-shot rule bites.
+ */
+describe('confirming a pending action (D24, Decision 6)', () => {
+  /** The whole loop's first half: the agent asks, and is refused. */
+  async function refusedOnce(
+    ctx: TestProject,
+    puid: TestUserPuid = 'bio_student',
+  ): Promise<{
+    ask: () => Promise<LightMyRequestResponse>
+    plaintext: string
+    pendingId: string
+  }> {
+    // A token minted the way a REAL one is — WITHOUT the privileged capability, which
+    // Task 4's mint route refuses. Sitting 4's F1: every other test here writes one
+    // holding `members:manage` straight to the store, which is the right thing for
+    // "however it was minted" and is not the state any token that exists is in. A
+    // confirmation must let this one through, so the GRANT is what lets it past and not
+    // the token's own set.
+    const plaintext = await tokenHolding(ctx, ['project:read'])
+    const ask = (): Promise<LightMyRequestResponse> =>
+      ctx.app.inject({
+        ...addMemberRequest(ctx.projectId, plaintext),
+        payload: { puid, role: 'collaborator' },
+      })
+    const refused = await ask()
+    expect(refusal(refused)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+    return { ask, plaintext, pendingId: refused.json().error.pendingAction.id }
+  }
+
+  function resolve(
+    ctx: TestProject,
+    pendingId: string,
+    how: 'confirm' | 'reject',
+    cookies: Record<string, string>,
+    payload?: Record<string, unknown>,
+  ): Promise<LightMyRequestResponse> {
+    return ctx.app.inject({
+      method: 'POST',
+      url: `/v1/pending-actions/${pendingId}/${how}`,
+      cookies,
+      headers: mutationHeaders(ctx.deps),
+      ...(payload === undefined ? {} : { payload }),
+    })
+  }
+
+  /**
+   * A confirmation that IS one, asserted at the point it is used as a precondition.
+   *
+   * **MEASURED BEFORE THE ROUTE EXISTED**, and it is sitting 4's F1 in this sitting's own
+   * tests: with `resolve` unchecked, *does not let a DIFFERENT request through* and *does
+   * not let a SECOND token through* were both GREEN against a `404 ROUTE_NOT_FOUND` — the
+   * confirmation never happened, so the request that followed was refused for the
+   * ordinary reason and the assertion below it proved nothing. A precondition that is not
+   * asserted is not a precondition.
+   */
+  async function confirmed(ctx: TestProject, pendingId: string): Promise<void> {
+    const res = await resolve(ctx, pendingId, 'confirm', ctx.ownerCookies)
+    expect(refusal(res)).toEqual({ status: 200, code: undefined })
+    expect(res.json().state).toBe('confirmed')
+  }
+
+  async function memberPuids(ctx: TestProject): Promise<string[]> {
+    const res = await ctx.app.inject({
+      method: 'GET',
+      url: `/v1/projects/${ctx.projectId}/members`,
+      cookies: ctx.ownerCookies,
+    })
+    return (res.json() as { puid: string }[]).map((m) => m.puid)
+  }
+
+  it('lets the agent’s retry through exactly once', async () => {
+    await withProjectServer(async (ctx) => {
+      // `bio_student` has to have signed in, or `addMember` answers 400
+      // MEMBER_USER_NOT_FOUND *after* the authorization check and the confirmed retry
+      // never reaches the row it is meant to write (sitting 4's F2).
+      await sessionFor(ctx, 'bio_student')
+      const { ask, plaintext, pendingId } = await refusedOnce(ctx)
+
+      const confirmed = await resolve(ctx, pendingId, 'confirm', ctx.ownerCookies)
+      expect(refusal(confirmed)).toEqual({ status: 200, code: undefined })
+      expect(confirmed.json().state).toBe('confirmed')
+      expect(confirmed.json().consumedAt).toBeNull()
+
+      // THE SAME KEY, which is what D23.6's hint tells a client to send.
+      const retry = await ask()
+      expect(refusal(retry)).toEqual({ status: 201, code: undefined })
+      expect(await memberPuids(ctx)).toContain('bio_student')
+      expect((await pendingById(ctx.db, pendingId))?.consumedAt).not.toBeNull()
+
+      // ONCE. A second ATTEMPT at the action is a new request — a fresh key — and it is
+      // a NEW question, not the old one: the grant was spent.
+      const again = await ctx.app.inject({
+        ...addMemberRequest(ctx.projectId, plaintext, 'm'.repeat(12)),
+        payload: { puid: 'bio_student', role: 'collaborator' },
+      })
+      expect(refusal(again)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+      expect(again.json().error.pendingAction.id).not.toBe(pendingId)
+    })
+  })
+
+  it('replays the confirmed retry’s ANSWER for the same key, and runs nothing again', async () => {
+    /**
+     * **THE SECOND-ORDER PROPERTY, ASSERTED RATHER THAN LEFT TO BE DISCOVERED**
+     * (sitting 1's `[M5]` §3, sitting 4's F10). The confirmed retry's `201` is stored
+     * under its `Idempotency-Key`, so repeating that key answers `201` for ever with no
+     * capability check and no handler. "Exactly once" is a statement about the ACTION.
+     *
+     * Measured by deleting every member row between the two calls: the replay still
+     * answers `201` and the rows stay deleted, which is the proof the handler did not
+     * run. A reader who assumes otherwise mis-reads `consumed_at`.
+     */
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_student')
+      const { ask, pendingId } = await refusedOnce(ctx)
+      await confirmed(ctx, pendingId)
+      const retry = await ask()
+      expect(retry.statusCode).toBe(201)
+
+      await ctx.db
+        .delete(projectMembers)
+        .where(eq(projectMembers.projectId, ctx.projectId))
+      const replayed = await ask()
+      expect(replayed.statusCode).toBe(201)
+      expect(replayed.json()).toEqual(retry.json())
+      // Nothing ran: the answer came out of the idempotency record.
+      expect(
+        await ctx.db
+          .select()
+          .from(projectMembers)
+          .where(eq(projectMembers.projectId, ctx.projectId)),
+      ).toEqual([])
+    })
+  })
+
+  it('does not let a DIFFERENT request through on a confirmation', async () => {
+    // The confirmation is for the request a human READ, not for the capability. Matching
+    // on `action` instead of the fingerprint would make one confirmation a standing
+    // grant of `members:manage`.
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_student')
+      const { plaintext, pendingId } = await refusedOnce(ctx)
+      await confirmed(ctx, pendingId)
+
+      const different = await ctx.app.inject({
+        ...addMemberRequest(ctx.projectId, plaintext, 'j'.repeat(12)),
+        payload: { puid: 'unrelated_user', role: 'owner' },
+      })
+      expect(refusal(different)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+      expect(different.json().error.pendingAction.id).not.toBe(pendingId)
+      expect(await memberPuids(ctx)).not.toContain('unrelated_user')
+    })
+  })
+
+  it('does not let a SECOND token through on another token’s confirmation', async () => {
+    // A confirmation grants ONE credential a retry (sitting 4's decision on the reuse
+    // lookup). A match on the fingerprint alone would let any token holding the same
+    // question spend somebody else's answer.
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_student')
+      const { pendingId } = await refusedOnce(ctx)
+      await confirmed(ctx, pendingId)
+
+      const second = await tokenHolding(ctx, ['project:read'])
+      const res = await ctx.app.inject({
+        ...addMemberRequest(ctx.projectId, second, 's'.repeat(12)),
+        payload: { puid: 'bio_student', role: 'collaborator' },
+      })
+      expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+      expect(res.json().error.pendingAction.id).not.toBe(pendingId)
+      expect(await memberPuids(ctx)).not.toContain('bio_student')
+    })
+  })
+
+  it('refuses a rejected action’s retry, and says it was rejected', async () => {
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_student')
+      const { ask, pendingId } = await refusedOnce(ctx)
+      const rejected = await resolve(ctx, pendingId, 'reject', ctx.ownerCookies, {
+        reason: 'not this term',
+      })
+      expect(refusal(rejected)).toEqual({ status: 200, code: undefined })
+      expect(rejected.json().state).toBe('rejected')
+      expect(rejected.json().reason).toBe('not this term')
+
+      const retry = await ask()
+      expect(refusal(retry)).toEqual({ status: 403, code: 'TOKEN_ACTION_REJECTED' })
+      // The agent is told WHY, so it can correct itself rather than retrying for ever
+      // (D23.7) — and no second question is asked on the person's behalf.
+      expect(retry.json().error.pendingAction.reason).toBe('not this term')
+      expect(retry.json().error.pendingAction.id).toBe(pendingId)
+      expect(await memberPuids(ctx)).not.toContain('bio_student')
+    })
+  })
+
+  it('cannot be confirmed by a token, only in an interactive session', async () => {
+    // THE ENTIRE POINT OF D24. If a token could confirm its own pending action the
+    // mechanism would be a loop with no human in it.
+    await withProjectServer(async (ctx) => {
+      const { plaintext, pendingId } = await refusedOnce(ctx)
+      const res = await ctx.app.inject({
+        method: 'POST',
+        url: `/v1/pending-actions/${pendingId}/confirm`,
+        headers: { authorization: `Bearer ${plaintext}`, 'idempotency-key': KEY },
+      })
+      expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_CREDENTIAL_REFUSED' })
+      expect((await pendingById(ctx.db, pendingId))?.state).toBe('pending')
+    })
+  })
+
+  it('cannot be confirmed by someone who lacks the capability themselves', async () => {
+    await withProjectServer(async (ctx) => {
+      const { pendingId } = await refusedOnce(ctx)
+      const collaborator = await sessionFor(ctx, 'bio_student', 'collaborator')
+      const res = await resolve(ctx, pendingId, 'confirm', collaborator)
+      expect(refusal(res)).toEqual({ status: 403, code: 'FORBIDDEN' })
+      expect((await pendingById(ctx.db, pendingId))?.state).toBe('pending')
+    })
+  })
+
+  it('cannot be confirmed twice', async () => {
+    await withProjectServer(async (ctx) => {
+      const { pendingId } = await refusedOnce(ctx)
+      expect(
+        (await resolve(ctx, pendingId, 'confirm', ctx.ownerCookies)).statusCode,
+      ).toBe(200)
+      const twice = await resolve(ctx, pendingId, 'confirm', ctx.ownerCookies)
+      expect(refusal(twice)).toEqual({ status: 409, code: 'PENDING_ACTION_RESOLVED' })
+      // Nor rejected after the fact: a resolved question has one answer.
+      const then = await resolve(ctx, pendingId, 'reject', ctx.ownerCookies, {
+        reason: 'changed my mind',
+      })
+      expect(refusal(then)).toEqual({ status: 409, code: 'PENDING_ACTION_RESOLVED' })
+    })
+  })
+
+  it('leaves the confirmation usable when the RETRY’s handler fails', async () => {
+    /**
+     * `consumed_at` is stamped AFTER the handler resolves, never before. A handler that
+     * throws — a transient failure the agent did not cause — must not burn the human's
+     * decision, or a person has to be asked again for something they already answered.
+     *
+     * `platform_admin` is the one of §16's four that `withProjectServer` never signs in,
+     * so `addMember` answers `400 MEMBER_USER_NOT_FOUND` — after the authorization check,
+     * which is exactly the shape wanted here.
+     */
+    await withProjectServer(async (ctx) => {
+      const { ask, pendingId } = await refusedOnce(ctx, 'platform_admin')
+      await confirmed(ctx, pendingId)
+
+      const failed = await ask()
+      expect(refusal(failed)).toEqual({ status: 400, code: 'MEMBER_USER_NOT_FOUND' })
+      expect((await pendingById(ctx.db, pendingId))?.consumedAt).toBeNull()
+
+      // The reason it failed goes away, and the SAME confirmation still spends.
+      await sessionFor(ctx, 'platform_admin')
+      const succeeded = await ask()
+      expect(refusal(succeeded)).toEqual({ status: 201, code: undefined })
+      expect((await pendingById(ctx.db, pendingId))?.consumedAt).not.toBeNull()
     })
   })
 })

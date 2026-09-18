@@ -36,6 +36,9 @@
       "name": "launch"
     },
     {
+      "name": "pending-actions"
+    },
+    {
       "name": "projects"
     },
     {
@@ -392,7 +395,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_PRODUCTION_GATE_UNAVAILABLE, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_PRODUCTION_GATE_UNAVAILABLE, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -422,6 +425,7 @@
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
           "TOKEN_ACTION_PENDING",
+          "TOKEN_ACTION_REJECTED",
           "UNAUTHENTICATED"
         ]
       }
@@ -550,6 +554,162 @@
         "x-manifest-error-codes": [
           "INTERNAL",
           "REQUEST_INVALID",
+          "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/pending-actions/{pendingActionId}/confirm": {
+      "post": {
+        "operationId": "confirmPendingAction",
+        "tags": [
+          "pending-actions"
+        ],
+        "summary": "Confirm a pending action",
+        "description": "D24: lets the agent’s refused request through, ONCE. It grants that exact request — this token, this method, this path, this body — a single retry, which the agent makes itself; nothing is executed here on its behalf, and the retry is validated by its own route as any request is. Only a person who holds the capability themselves may confirm, and only in an interactive session.",
+        "parameters": [
+          {
+            "name": "pendingActionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The pending action, confirmed. `consumedAt` is null until the retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingAction"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "PENDING_ACTION_RESOLVED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/pending-actions/{pendingActionId}/reject": {
+      "post": {
+        "operationId": "rejectPendingAction",
+        "tags": [
+          "pending-actions"
+        ],
+        "summary": "Reject a pending action",
+        "description": "D24: refuses the agent’s request, in the person’s own words. A retry of that exact request is then answered TOKEN_ACTION_REJECTED carrying the reason, so the agent stops asking rather than looping — which is what D23.7 means by an error an agent can correct itself from.",
+        "parameters": [
+          {
+            "name": "pendingActionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectPendingActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The pending action, rejected, with the reason it carries.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingAction"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "PENDING_ACTION_RESOLVED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
           "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
         ]
@@ -1119,7 +1279,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_NOT_FOUND, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_NOT_FOUND, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1141,6 +1301,7 @@
           "REQUEST_INVALID",
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
           "TOKEN_ACTION_PENDING",
+          "TOKEN_ACTION_REJECTED",
           "UNAUTHENTICATED"
         ]
       }
@@ -2305,6 +2466,7 @@
           "INTERNAL",
           "MEMBER_USER_NOT_FOUND",
           "NOT_FOUND",
+          "PENDING_ACTION_RESOLVED",
           "RATE_LIMITED",
           "RELEASE_AI_BUDGET_MISSING",
           "RELEASE_AI_DISABLED",
@@ -2340,6 +2502,7 @@
           "SPEC_NOT_FOUND",
           "STARTER_NOT_FOUND",
           "TOKEN_ACTION_PENDING",
+          "TOKEN_ACTION_REJECTED",
           "TOKEN_CAPABILITY_FORBIDDEN",
           "TOKEN_CREDENTIAL_REFUSED",
           "UNAUTHENTICATED"
@@ -4008,6 +4171,166 @@
               "createdAt"
             ],
             "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "const": "pending_action.confirmed"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "type": "object",
+                "properties": {
+                  "pendingActionId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "tokenId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "action": {
+                    "type": "string"
+                  },
+                  "resolvedBy": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  }
+                },
+                "required": [
+                  "pendingActionId",
+                  "tokenId",
+                  "action",
+                  "resolvedBy"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "const": "pending_action.rejected"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "type": "object",
+                "properties": {
+                  "pendingActionId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "tokenId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "action": {
+                    "type": "string"
+                  },
+                  "resolvedBy": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "pendingActionId",
+                  "tokenId",
+                  "action",
+                  "resolvedBy",
+                  "reason"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
           }
         ]
       },
@@ -4782,6 +5105,16 @@
               }
             ]
           },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "consumedAt": {
             "anyOf": [
               {
@@ -4809,6 +5142,7 @@
           "expiresAt",
           "createdAt",
           "resolvedAt",
+          "reason",
           "consumedAt"
         ],
         "additionalProperties": false
@@ -4883,6 +5217,22 @@
         "items": {
           "$ref": "#/components/schemas/Project"
         }
+      },
+      "RejectPendingActionRequest": {
+        "description": "A person’s refusal of a pending action, in their own words.",
+        "type": "object",
+        "properties": {
+          "reason": {
+            "description": "Why this is refused. The agent is told, verbatim.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": false
       },
       "Release": {
         "description": "Immutable: a build, a spec and the configuration resolved for every environment (§13).",

@@ -192,6 +192,10 @@ export const projectReadRoutes = [
       // one of `PRIVILEGED` rather than on every route, because only these two can answer
       // it — `members:manage` here, `release:promote` on the production deploy.
       'TOKEN_ACTION_PENDING',
+      // And Task 7's other answer: a person already refused this exact request, so
+      // retrying it will not change anything. Listed beside it because the two are one
+      // mechanism with two outcomes, and a client switches on the difference.
+      'TOKEN_ACTION_REJECTED',
     ],
     handler: async ({ deps, actor, params, body }) => {
       // A collaborator reaches this line and is refused here. §13: "same as owner

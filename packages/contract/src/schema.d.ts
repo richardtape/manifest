@@ -204,6 +204,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/pending-actions/{pendingActionId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm a pending action
+         * @description D24: lets the agent’s refused request through, ONCE. It grants that exact request — this token, this method, this path, this body — a single retry, which the agent makes itself; nothing is executed here on its behalf, and the retry is validated by its own route as any request is. Only a person who holds the capability themselves may confirm, and only in an interactive session.
+         */
+        post: operations["confirmPendingAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pending-actions/{pendingActionId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject a pending action
+         * @description D24: refuses the agent’s request, in the person’s own words. A retry of that exact request is then answered TOKEN_ACTION_REJECTED carrying the reason, so the agent stops asking rather than looping — which is what D23.7 means by an error an agent can correct itself from.
+         */
+        post: operations["rejectPendingAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects": {
         parameters: {
             query?: never;
@@ -654,7 +694,7 @@ export interface components {
          * @description Every code the API answers with (api/error-codes.ts). Stable: a client switches on it (§20).
          * @enum {string}
          */
-        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "RATE_LIMITED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_NO_PUID" | "SAML_USER_UPSERT_FAILED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_FOREIGN_REPO" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_PATH_ESCAPE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "TOKEN_ACTION_PENDING" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "UNAUTHENTICATED";
+        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "RATE_LIMITED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_NO_PUID" | "SAML_USER_UPSERT_FAILED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_FOREIGN_REPO" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_PATH_ESCAPE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "UNAUTHENTICATED";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -1168,6 +1208,61 @@ export interface components {
              * @description An instant, ISO 8601 in UTC.
              */
             createdAt: string;
+        } | {
+            /** @constant */
+            kind: "event";
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /** @constant */
+            type: "pending_action.confirmed";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            machineDetail: {
+                /** Format: uuid */
+                pendingActionId: string;
+                /** Format: uuid */
+                tokenId: string;
+                action: string;
+                /** Format: uuid */
+                resolvedBy: string;
+            };
+            /**
+             * Format: date-time
+             * @description An instant, ISO 8601 in UTC.
+             */
+            createdAt: string;
+        } | {
+            /** @constant */
+            kind: "event";
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /** @constant */
+            type: "pending_action.rejected";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            machineDetail: {
+                /** Format: uuid */
+                pendingActionId: string;
+                /** Format: uuid */
+                tokenId: string;
+                action: string;
+                /** Format: uuid */
+                resolvedBy: string;
+                reason: string;
+            };
+            /**
+             * Format: date-time
+             * @description An instant, ISO 8601 in UTC.
+             */
+            createdAt: string;
         };
         /** @description §26’s fleet, administrators only. Not yet: department, custom domains, AI spend this month. */
         Fleet: {
@@ -1376,6 +1471,7 @@ export interface components {
              */
             createdAt: string;
             resolvedAt: string | null;
+            reason: string | null;
             consumedAt: string | null;
         };
         Project: {
@@ -1398,6 +1494,11 @@ export interface components {
             environments?: components["schemas"]["Environment"][];
         };
         ProjectList: components["schemas"]["Project"][];
+        /** @description A person’s refusal of a pending action, in their own words. */
+        RejectPendingActionRequest: {
+            /** @description Why this is refused. The agent is told, verbatim. */
+            reason: string;
+        };
         /** @description Immutable: a build, a spec and the configuration resolved for every environment (§13). */
         Release: {
             /** Format: uuid */
@@ -1839,7 +1940,7 @@ export interface operations {
                     "application/json": components["schemas"]["Instance"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_PRODUCTION_GATE_UNAVAILABLE, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_PRODUCTION_GATE_UNAVAILABLE, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -1929,6 +2030,82 @@ export interface operations {
                 };
             };
             /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    confirmPendingAction: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                pendingActionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmptyRequest"];
+            };
+        };
+        responses: {
+            /** @description The pending action, confirmed. `consumedAt` is null until the retry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingAction"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    rejectPendingAction: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                pendingActionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectPendingActionRequest"];
+            };
+        };
+        responses: {
+            /** @description The pending action, rejected, with the reason it carries. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingAction"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PENDING_ACTION_RESOLVED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2264,7 +2441,7 @@ export interface operations {
                     "application/json": components["schemas"]["Member"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_NOT_FOUND, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, MEMBER_USER_NOT_FOUND, NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

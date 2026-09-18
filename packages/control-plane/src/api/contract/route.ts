@@ -1,10 +1,17 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod/v4'
-import { TokenCapabilityRefusedError } from '../../projects/index.js'
 import {
+  CAPABILITIES,
+  TokenCapabilityRefusedError,
+  type TokenActor,
+} from '../../projects/index.js'
+import {
+  consumeAction,
   fingerprintOf,
+  PendingActionRejectedError,
   PendingActionRequiredError,
   recordPendingAction,
+  resolutionFor,
 } from '../../tokens/index.js'
 import { requireActor, type Actor } from '../actor.js'
 import type { ErrorCode } from '../error-codes.js'
@@ -159,12 +166,52 @@ export function registerRoutes(
           route.body,
           readsBody(route) ? (request.body ?? {}) : undefined,
         )
+        /**
+         * WHAT WAS ASKED FOR, computed once: the refusal below records it, and the lookup
+         * that follows matches a human's answer against it. Two statements of the same
+         * fingerprint would be two ways for a retry to stop matching the row a person
+         * confirmed — and the canonical key sort inside it has no API-level control
+         * (sitting 4's F6), so nothing would say so.
+         */
+        const fingerprint = fingerprintOf({
+          method: request.method,
+          url: request.url,
+          // The ROUTE's own sentence, which the OpenAPI document publishes: the queue a
+          // person reads and the contract an agent reads then say the same thing about
+          // an operation rather than two things kept in step.
+          summary: route.summary,
+          body,
+        })
+        /**
+         * D24's loop closing (P5b Task 7, Decision 6). Resolved HERE, before the handler,
+         * because `assertCapability` cannot see a request and the answer is about a
+         * request — the same split Decision 5 makes for the refusal.
+         *
+         * `grant` is the single-use permission this request carries, and nothing else can
+         * manufacture one: it comes from a row a person moved to `confirmed` in an
+         * interactive session, matched on this token AND this fingerprint. A rejection is
+         * carried too, and acted on only where the refusal happens, so that the
+         * authorization layer still decides and this layer still only reports.
+         */
+        const resolution =
+          actor.credential === 'token'
+            ? await resolutionFor(deps.db, actor.tokenId, fingerprint)
+            : ({ kind: 'none' } as const)
+        // `CAPABILITIES.find` rather than a cast: the column is text, and a row written
+        // by an older build could name something this build does not grant.
+        const granted =
+          resolution.kind === 'confirmed'
+            ? CAPABILITIES.find((capability) => capability === resolution.row.action)
+            : undefined
+        const scoped: Actor =
+          granted === undefined ? actor : { ...(actor as TokenActor), grant: granted }
+
         const run = async (): Promise<{ status: number; body: unknown }> => {
           const produced = await route.handler({
             deps,
             request,
             reply,
-            actor,
+            actor: scoped,
             params,
             query,
             body,
@@ -219,22 +266,35 @@ export function registerRoutes(
             route.method === 'GET' ? await run() : await app.idempotent(request, run)
         } catch (error) {
           if (error instanceof TokenCapabilityRefusedError) {
+            /**
+             * A person already answered this exact question, and the answer was no. Told
+             * so rather than asked again: a fresh row would put the same question back in
+             * their queue every time the agent retried, and D23.7's whole argument is
+             * that an agent corrects itself from the answer. Acted on HERE, after
+             * `assertCapability` has refused, so the ordering the authorization layer
+             * owns — scope, then the privileged rule — still decides what happens first.
+             */
+            if (resolution.kind === 'rejected') {
+              throw new PendingActionRejectedError(resolution.row)
+            }
             throw new PendingActionRequiredError(
-              await recordPendingAction(deps.db, deps.bus, {
-                error,
-                fingerprint: fingerprintOf({
-                  method: request.method,
-                  url: request.url,
-                  body,
-                  // The ROUTE's own sentence, which the OpenAPI document publishes: the
-                  // queue a person reads and the contract an agent reads then say the
-                  // same thing about an operation rather than two things kept in step.
-                  summary: route.summary,
-                }),
-              }),
+              await recordPendingAction(deps.db, deps.bus, { error, fingerprint }),
             )
           }
           throw error
+        }
+        /**
+         * THE GRANT IS SPENT, AND ONLY NOW — after the handler resolved (Decision 6).
+         *
+         * Stamped before it ran, a transient failure the agent did not cause would burn a
+         * person's decision and they would have to answer the same question twice; that
+         * is the case `leaves the confirmation usable when the RETRY's handler fails`
+         * holds. The cost is a window in which two identical retries in flight at once
+         * both pass — narrowed, not closed, by `consumeAction`'s own `WHERE consumed_at
+         * IS NULL`, and recorded in P5b sitting 5's findings rather than left to be found.
+         */
+        if (granted !== undefined && resolution.kind === 'confirmed') {
+          await consumeAction(deps.db, resolution.row.id)
         }
         return reply.status(result.status).send(result.body)
       },

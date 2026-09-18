@@ -2,11 +2,15 @@ import { describe, expect, it } from 'vitest'
 import { withProject } from '../db/testing.js'
 import { createEventBus } from '../observability/index.js'
 import { TokenCapabilityRefusedError } from '../projects/index.js'
+import type { Db } from '../db/index.js'
 import {
   bodySha256,
+  consumeAction,
   fingerprintOf,
   pendingById,
   recordPendingAction,
+  resolutionFor,
+  resolveAction,
   PENDING_ACTION_TTL_MS,
 } from './pending.js'
 import { mintTestToken } from './testing.js'
@@ -194,6 +198,155 @@ describe('recording a pending action (D24)', () => {
         }),
       })
       expect(second.id).not.toBe(first.id)
+    })
+  })
+})
+
+/**
+ * How a person's answer is found again (P5b Task 7).
+ *
+ * **THREE OF THE CLAUSES BELOW CANNOT BE SEEN THROUGH THE API AT ALL**, which is why they
+ * are asserted here: the expiry clause would need a test to wait twenty-four hours, and
+ * both "already spent" and "somebody else answered first" are races an `app.inject` suite
+ * runs too tidily to reach. Sitting 4's F6 is the same shape — a rule with no control is a
+ * rule that is true until somebody tidies it away.
+ */
+describe('finding a person’s answer again (P5b Task 7)', () => {
+  const ANSWER = { resolvedByPuid: 'bio_prof' }
+
+  async function asked(db: Db, projectId: string, ownerId: string, now?: Date) {
+    const bus = createEventBus()
+    const { row: token } = await mintTestToken(db, {
+      userId: ownerId,
+      projectId,
+      capabilities: ['project:read'],
+    })
+    const row = await recordPendingAction(db, bus, {
+      error: refusedFor(projectId, token.id),
+      fingerprint: fingerprintOf(ASK),
+      ...(now === undefined ? {} : { now }),
+    })
+    return { bus, token, row }
+  }
+
+  it('answers none until somebody answers, and confirmed once they have', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const { bus, token, row } = await asked(db, projectId, ownerId)
+      expect(await resolutionFor(db, token.id, fingerprintOf(ASK))).toEqual({
+        kind: 'none',
+      })
+      await resolveAction(db, bus, {
+        ...ANSWER,
+        pendingActionId: row.id,
+        resolvedBy: ownerId,
+        state: 'confirmed',
+      })
+      const found = await resolutionFor(db, token.id, fingerprintOf(ASK))
+      expect(found.kind).toBe('confirmed')
+    })
+  })
+
+  it('answers none once the grant is SPENT — which is the one-shot rule', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const { bus, token, row } = await asked(db, projectId, ownerId)
+      await resolveAction(db, bus, {
+        ...ANSWER,
+        pendingActionId: row.id,
+        resolvedBy: ownerId,
+        state: 'confirmed',
+      })
+      expect(await consumeAction(db, row.id)).toBeDefined()
+      expect(await resolutionFor(db, token.id, fingerprintOf(ASK))).toEqual({
+        kind: 'none',
+      })
+      // And it can be spent only once: the second stamp updates no row. That clause is
+      // what narrows the window two retries in flight at the same moment would open.
+      expect(await consumeAction(db, row.id)).toBeUndefined()
+    })
+  })
+
+  it('answers none for a confirmation older than the question’s own life', async () => {
+    /**
+     * **NO API-LEVEL TEST CAN SEE THIS**: it would have to wait out
+     * `PENDING_ACTION_TTL_MS`. The clause is the same argument the TTL itself makes — a
+     * confirmation is given against a project that looked a certain way, and one older
+     * than the row's life is not an answer about the project as it now is.
+     */
+    await withProject(async (db, { projectId, ownerId }) => {
+      const stale = new Date(Date.now() - PENDING_ACTION_TTL_MS - 1000)
+      const { bus, token, row } = await asked(db, projectId, ownerId, stale)
+      await resolveAction(db, bus, {
+        ...ANSWER,
+        pendingActionId: row.id,
+        resolvedBy: ownerId,
+        state: 'confirmed',
+      })
+      expect(await resolutionFor(db, token.id, fingerprintOf(ASK))).toEqual({
+        kind: 'none',
+      })
+    })
+  })
+
+  it('answers rejected, and carries the reason the agent is told', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const { bus, token, row } = await asked(db, projectId, ownerId)
+      await resolveAction(db, bus, {
+        ...ANSWER,
+        pendingActionId: row.id,
+        resolvedBy: ownerId,
+        state: 'rejected',
+        reason: 'not this term',
+      })
+      const found = await resolutionFor(db, token.id, fingerprintOf(ASK))
+      expect(found.kind).toBe('rejected')
+      expect(found.kind === 'rejected' && found.row.reason).toBe('not this term')
+    })
+  })
+
+  it('is scoped to the TOKEN, so a confirmation is not a standing grant', async () => {
+    // A confirmation grants ONE credential one retry. Matching on the fingerprint alone
+    // would let a second token asking the identical question spend somebody else's answer.
+    await withProject(async (db, { projectId, ownerId }) => {
+      const { bus, row } = await asked(db, projectId, ownerId)
+      await resolveAction(db, bus, {
+        ...ANSWER,
+        pendingActionId: row.id,
+        resolvedBy: ownerId,
+        state: 'confirmed',
+      })
+      const { row: other } = await mintTestToken(db, {
+        userId: ownerId,
+        projectId,
+        capabilities: ['project:read'],
+      })
+      expect(await resolutionFor(db, other.id, fingerprintOf(ASK))).toEqual({
+        kind: 'none',
+      })
+    })
+  })
+
+  it('refuses a second answer to one question, in the UPDATE and not in a read', async () => {
+    // Two people opening §26's queue at the same moment: the state clause lives in the
+    // WHERE, so the second updates no row and the route answers 409 rather than both
+    // winning and the last write standing.
+    await withProject(async (db, { projectId, ownerId }) => {
+      const { bus, row } = await asked(db, projectId, ownerId)
+      const first = await resolveAction(db, bus, {
+        ...ANSWER,
+        pendingActionId: row.id,
+        resolvedBy: ownerId,
+        state: 'confirmed',
+      })
+      expect(first?.state).toBe('confirmed')
+      const second = await resolveAction(db, bus, {
+        ...ANSWER,
+        pendingActionId: row.id,
+        resolvedBy: ownerId,
+        state: 'rejected',
+        reason: 'changed my mind',
+      })
+      expect(second).toBeUndefined()
+      expect((await pendingById(db, row.id))?.state).toBe('confirmed')
     })
   })
 })

@@ -1,6 +1,6 @@
 import { z } from 'zod/v4'
 import type { PendingAction as PendingActionRow } from '../../tokens/index.js'
-import { representation, Timestamp, Uuid } from '../contract/schemas.js'
+import { representation, request, Timestamp, Uuid } from '../contract/schemas.js'
 
 /**
  * §6's `PendingAction` on the wire: the question an agent's refused request put to a
@@ -41,6 +41,14 @@ export const PendingAction = representation(
       createdAt: Timestamp,
       resolvedAt: Timestamp.nullable(),
       /**
+       * Why a person said no, in their own words — null on a pending or a confirmed row
+       * (Task 7). It is here rather than only in the event because the `403` a rejected
+       * retry gets carries this representation, and D23.7's argument is that an agent
+       * corrects itself from the answer: "no, not this term" is the only thing that tells
+       * it to stop asking.
+       */
+      reason: z.string().nullable(),
+      /**
        * Decision 7: confirmed-and-used, without a fifth state. Non-null means the
        * one-shot retry the confirmation granted has been spent (Task 7).
        */
@@ -74,6 +82,27 @@ export function toPendingAction(row: PendingActionRow): z.input<typeof PendingAc
     expiresAt: row.expiresAt.toISOString(),
     createdAt: row.createdAt.toISOString(),
     resolvedAt: row.resolvedAt?.toISOString() ?? null,
+    reason: row.reason,
     consumedAt: row.consumedAt?.toISOString() ?? null,
   }
 }
+
+/**
+ * What a person says when they refuse (Task 7). REQUIRED, and that is the decision: a
+ * rejection with no reason leaves the agent knowing only that it may not, which is the
+ * dead end D23.7 exists to avoid — it would retry, or stop without being able to say why
+ * to the person who asked it to do the work.
+ */
+export const RejectPendingActionRequest = request(
+  'RejectPendingActionRequest',
+  z
+    .strictObject({
+      reason: z
+        .string()
+        .trim()
+        .min(1)
+        .max(500)
+        .describe('Why this is refused. The agent is told, verbatim.'),
+    })
+    .describe('A person’s refusal of a pending action, in their own words.'),
+)

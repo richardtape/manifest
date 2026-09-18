@@ -1,0 +1,4 @@
+ALTER TABLE "audit"."events" DROP CONSTRAINT "events_type_known";--> statement-breakpoint
+ALTER TABLE "pending_actions" ADD COLUMN "reason" text;--> statement-breakpoint
+CREATE INDEX "pending_actions_token_idx" ON "pending_actions" USING btree ("requested_by_token");--> statement-breakpoint
+ALTER TABLE "audit"."events" ADD CONSTRAINT "events_type_known" CHECK ("audit"."events"."type" IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected'));

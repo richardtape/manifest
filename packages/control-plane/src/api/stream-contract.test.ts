@@ -104,6 +104,28 @@ describe('the stream in the contract (D23.2)', () => {
     })
     expect(pendingRefusal.statusCode, pendingRefusal.body).toBe(403)
 
+    // And D24's two ANSWERS (P5b Task 7), driven the same way and for the same reason:
+    // §26's queue is built from these frames, so they have to parse as the contract's
+    // StreamFrame too. Two refusals, because one question takes one answer.
+    await post(
+      `/v1/pending-actions/${pendingRefusal.json().error.pendingAction.id}/confirm`,
+      {},
+    )
+    const secondRefusal = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${project.id}/members`,
+      headers: {
+        authorization: `Bearer ${plaintext}`,
+        'idempotency-key': 'q'.repeat(12),
+      },
+      payload: { puid: 'unrelated_user', role: 'owner' },
+    })
+    expect(secondRefusal.statusCode, secondRefusal.body).toBe(403)
+    await post(
+      `/v1/pending-actions/${secondRefusal.json().error.pendingAction.id}/reject`,
+      { reason: 'not this term' },
+    )
+
     // The unit tier's whole lifecycle, as `delivery.test.ts` drives it, plus a redeploy so
     // the retirer publishes too: a build that fails, one that succeeds, a release, a
     // healthy deploy, a second that replaces it, and one whose instance never starts.

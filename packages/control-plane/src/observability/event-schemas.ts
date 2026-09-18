@@ -138,6 +138,25 @@ export const EVENT_DETAIL_SCHEMAS = {
     tokenId: Uuid,
     action: z.string(),
   }),
+  /**
+   * D24 (P5b Task 7). `resolvedBy` is WHO answered, which is the whole point of the
+   * record: §20's audit trail has to say which person let a delegated token past D24's
+   * rule. No reason — a confirmation needs none, and the human sentence carries the rest.
+   */
+  'pending_action.confirmed': z.strictObject({
+    pendingActionId: Uuid,
+    tokenId: Uuid,
+    action: z.string(),
+    resolvedBy: Uuid,
+  }),
+  /** The other answer. `reason` is the person's own words, which is what the agent is told. */
+  'pending_action.rejected': z.strictObject({
+    pendingActionId: Uuid,
+    tokenId: Uuid,
+    action: z.string(),
+    resolvedBy: Uuid,
+    reason: z.string(),
+  }),
   'spec.validated': z.strictObject({
     appSpecId: Uuid,
     commitSha: Sha,

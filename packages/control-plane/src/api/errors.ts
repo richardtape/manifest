@@ -15,7 +15,11 @@ import { RateLimitedError } from './rate-limit.js'
 import type { ErrorEnvelopeShape } from './representations/errors.js'
 import { LaunchReadiness } from './representations/launch.js'
 import type { LaunchReadinessView } from '../launch/index.js'
-import { PendingActionRequiredError, type PendingAction } from '../tokens/index.js'
+import {
+  PendingActionRejectedError,
+  PendingActionRequiredError,
+  type PendingAction,
+} from '../tokens/index.js'
 import { TokenCapabilityRefusedError } from '../projects/index.js'
 import {
   PendingAction as PendingActionSchema,
@@ -53,6 +57,20 @@ export class BadRequestError extends Error {
   ) {
     super(message)
     this.name = 'BadRequestError'
+  }
+}
+
+/**
+ * A pending action already has an answer (P5b Task 7). 409, because the request is
+ * perfectly well formed and the STATE refuses it — the same shape as an idempotency
+ * conflict, and the answer a second person gets when they open a queue item somebody
+ * else has just resolved.
+ */
+export class PendingActionResolvedError extends Error {
+  readonly code = 'PENDING_ACTION_RESOLVED'
+  constructor(readonly state: 'confirmed' | 'rejected' | 'expired') {
+    super(`this pending action was already ${state}`)
+    this.name = 'PendingActionResolvedError'
   }
 }
 
@@ -254,6 +272,41 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
           message: error.message,
           hint: 'A person must confirm this in the console. Retry the identical request — same body, same Idempotency-Key — once they have; the confirmation grants it exactly one retry.',
           ...question(error.pendingAction),
+        },
+      },
+    }
+  }
+
+  /**
+   * THE SAME QUESTION, ALREADY ANSWERED — and the answer was no (P5b Task 7).
+   *
+   * A separate CODE from the one above, not a separate message: a client switches on the
+   * code, and the difference between them is the difference between waiting and stopping.
+   * The `pendingAction` carries the person's own reason, which is what D23.7 means by an
+   * agent correcting itself rather than surfacing a wall of text to its user.
+   */
+  if (error instanceof PendingActionRejectedError) {
+    return {
+      status: 403,
+      body: {
+        error: {
+          code: 'TOKEN_ACTION_REJECTED',
+          message: error.message,
+          hint: 'Do not retry this request. A person refused it; `pendingAction.reason` says why. Ask them, or ask for something else.',
+          ...question(error.pendingAction),
+        },
+      },
+    }
+  }
+
+  if (error instanceof PendingActionResolvedError) {
+    return {
+      status: 409,
+      body: {
+        error: {
+          code: error.code,
+          message: error.message,
+          hint: 'Reload the queue: somebody has already answered this one.',
         },
       },
     }

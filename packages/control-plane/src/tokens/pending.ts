@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { and, eq, gt, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
 import { pendingActions, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import type { TokenCapabilityRefusedError } from '../projects/index.js'
@@ -157,6 +157,153 @@ export async function pendingById(
 }
 
 /**
+ * How a person answered THIS exact question from THIS token, if they have (Task 7).
+ *
+ * NOT `findConfirmedMatch`, which is what the plan called it: it has to distinguish "no
+ * row" from "a row that was rejected", because a retry against a rejection is answered
+ * `TOKEN_ACTION_REJECTED` rather than being asked again — and a function named for one of
+ * the two answers it returns is how a cold reader ends up ignoring the other.
+ *
+ * **Keyed on the TOKEN as well as the fingerprint.** A confirmation grants one credential
+ * one retry, so a second token asking the identical question gets its own row and its own
+ * answer; matching on the fingerprint alone would let any holder spend somebody else's.
+ *
+ * **A spent confirmation and an expired one are both `none`**, which is what makes the
+ * next ask a NEW question rather than a permanent grant. The expiry clause is the same
+ * argument `PENDING_ACTION_TTL_MS` makes: a confirmation is given against a project that
+ * looked a certain way, and one older than the row's own life is not an answer to the
+ * project as it now is.
+ */
+export type ActionResolution =
+  | { kind: 'none' }
+  | { kind: 'confirmed'; row: PendingAction }
+  | { kind: 'rejected'; row: PendingAction }
+
+export async function resolutionFor(
+  db: Db,
+  tokenId: string,
+  fingerprint: ActionFingerprint,
+  now: Date = new Date(),
+): Promise<ActionResolution> {
+  const [row] = await db
+    .select()
+    .from(pendingActions)
+    .where(
+      and(
+        eq(pendingActions.requestedByToken, tokenId),
+        gt(pendingActions.expiresAt, now),
+        // The three fields of the fingerprint, as jsonb text — compared in SQL for the
+        // reason `recordPendingAction`'s lookup is: a token with many open questions must
+        // not read them all back to find one.
+        sql`${pendingActions.payload}->>'method' = ${fingerprint.method}`,
+        sql`${pendingActions.payload}->>'path' = ${fingerprint.path}`,
+        sql`${pendingActions.payload}->>'bodySha256' = ${fingerprint.bodySha256}`,
+      ),
+    )
+    .orderBy(desc(pendingActions.createdAt))
+  if (row === undefined) return { kind: 'none' }
+  if (row.state === 'rejected') return { kind: 'rejected', row }
+  if (row.state === 'confirmed' && row.consumedAt === null)
+    return { kind: 'confirmed', row }
+  return { kind: 'none' }
+}
+
+/**
+ * A person's answer, applied — and applied ONLY to a row still waiting for one.
+ *
+ * The `state = 'pending'` clause is in the UPDATE rather than in a read-then-write, so two
+ * people answering the same question at the same moment cannot both win: the second
+ * updates no row and is told the question is already resolved. `undefined` means exactly
+ * that, and the route turns it into `409 PENDING_ACTION_RESOLVED`.
+ */
+export async function resolveAction(
+  db: Db,
+  bus: EventBus,
+  input: {
+    pendingActionId: string
+    resolvedBy: string
+    state: 'confirmed' | 'rejected'
+    /** The person's own words. Required for a rejection, absent for a confirmation. */
+    reason?: string
+    /** For the human sentence only — the row records the user id. */
+    resolvedByPuid: string
+    now?: Date
+  },
+): Promise<PendingAction | undefined> {
+  const now = input.now ?? new Date()
+  const [row] = await db
+    .update(pendingActions)
+    .set({
+      state: input.state,
+      resolvedBy: input.resolvedBy,
+      resolvedAt: now,
+      ...(input.reason === undefined ? {} : { reason: input.reason }),
+    })
+    .where(
+      and(
+        eq(pendingActions.id, input.pendingActionId),
+        eq(pendingActions.state, 'pending'),
+      ),
+    )
+    .returning()
+  if (row === undefined) return undefined
+
+  // §14: who answered, and what was asked — never the body, exactly as the `created`
+  // event does not carry it. A rejection carries the person's sentence, because that
+  // sentence is the whole of what the agent and the next reader are owed.
+  await publishEvent(
+    db,
+    bus,
+    {
+      projectId: row.projectId,
+      subject: `pending-action:${row.id}`,
+      type:
+        input.state === 'confirmed'
+          ? 'pending_action.confirmed'
+          : 'pending_action.rejected',
+      machineDetail: {
+        pendingActionId: row.id,
+        tokenId: row.requestedByToken,
+        action: row.action,
+        resolvedBy: input.resolvedBy,
+        ...(input.state === 'rejected' ? { reason: input.reason ?? '' } : {}),
+      },
+      humanMessage:
+        input.state === 'confirmed'
+          ? `${input.resolvedByPuid} confirmed an agent's request to ${row.payload.summary.toLowerCase()}. It may do it once.`
+          : `${input.resolvedByPuid} refused an agent's request to ${row.payload.summary.toLowerCase()}: ${input.reason ?? ''}`,
+    },
+    makeRedactor([]),
+  )
+  return row
+}
+
+/**
+ * The one-shot retry, SPENT — stamped after the handler has resolved, never before.
+ *
+ * A handler that throws is a failure the agent did not cause, and burning a person's
+ * decision on one means asking them again for something they already answered. The cost
+ * of that ordering is a window: two identical retries in flight at once can both pass the
+ * check before either stamps. `WHERE consumed_at IS NULL` narrows it to the stamp itself
+ * and does not close it, which is a deliberate trade recorded in P5b's sitting 5 — the
+ * two requests are byte-identical by construction (the fingerprint is what matched), and
+ * D23.6 tells a client to retry an action under ONE key, which serialises the ordinary
+ * case through `replayOrStore`.
+ */
+export async function consumeAction(
+  db: Db,
+  pendingActionId: string,
+  now: Date = new Date(),
+): Promise<PendingAction | undefined> {
+  const [row] = await db
+    .update(pendingActions)
+    .set({ consumedAt: now })
+    .where(and(eq(pendingActions.id, pendingActionId), isNull(pendingActions.consumedAt)))
+    .returning()
+  return row
+}
+
+/**
  * The refusal as it leaves: the 403 D24 asks for, carrying the question a human answers.
  *
  * Thrown by the route wrapper once the row exists, and mapped by `api/errors.ts`. It is a
@@ -173,5 +320,23 @@ export class PendingActionRequiredError extends Error {
       `a delegated token may never '${pendingAction.action}' (D24); a human must confirm this action`,
     )
     this.name = 'PendingActionRequiredError'
+  }
+}
+
+/**
+ * A person said NO to this exact request, and the agent is retrying it anyway (Task 7).
+ *
+ * A THIRD class beside `TokenCapabilityRefusedError` and `PendingActionRequiredError`, for
+ * the reason those two are separate: this one means "the question was asked and answered",
+ * which is a different thing from "it is waiting" and needs a different code, because a
+ * client switches on the code and one of them is a loop that closes while the other is a
+ * dead end it must stop retrying. It carries the row so the refusal can carry the reason.
+ */
+export class PendingActionRejectedError extends Error {
+  constructor(readonly pendingAction: PendingAction) {
+    super(
+      `a person refused this request: ${pendingAction.reason ?? 'no reason was given'}`,
+    )
+    this.name = 'PendingActionRejectedError'
   }
 }

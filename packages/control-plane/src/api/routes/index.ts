@@ -4,6 +4,7 @@ import { buildRoutes } from './builds.js'
 import { fleetRoutes } from './fleet.js'
 import { launchRoutes } from './launch.js'
 import { meRoutes } from './me.js'
+import { pendingActionRoutes } from './pending-actions.js'
 import { projectReadRoutes } from './project-reads.js'
 import { createProjectRoutes } from './projects.js'
 import { releaseRoutes } from './releases.js'
@@ -26,4 +27,5 @@ export const ROUTE_DEFINITIONS: readonly AnyRoute[] = [
   ...launchRoutes,
   ...fleetRoutes,
   ...tokenRoutes,
+  ...pendingActionRoutes,
 ]

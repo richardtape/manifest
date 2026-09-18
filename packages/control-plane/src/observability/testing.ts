@@ -138,6 +138,19 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     tokenId: UUID,
     action: 'members:manage',
   },
+  'pending_action.confirmed': {
+    pendingActionId: UUID,
+    tokenId: UUID,
+    action: 'members:manage',
+    resolvedBy: UUID,
+  },
+  'pending_action.rejected': {
+    pendingActionId: UUID,
+    tokenId: UUID,
+    action: 'members:manage',
+    resolvedBy: UUID,
+    reason: 'not this term',
+  },
   'token.minted': {
     tokenId: UUID,
     capabilities: ['project:read', 'build:create'],

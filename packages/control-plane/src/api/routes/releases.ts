@@ -201,6 +201,10 @@ export const releaseRoutes = [
       // D24 (P5b Task 6): a token deploying to PRODUCTION asks for `release:promote`,
       // which is privileged — and is refused here, before the launch gate above.
       'TOKEN_ACTION_PENDING',
+      // And Task 7's other answer: a person already refused this exact request, so
+      // retrying it will not change anything. Listed beside it because the two are one
+      // mechanism with two outcomes, and a client switches on the difference.
+      'TOKEN_ACTION_REJECTED',
       'RELEASE_NOT_FOUND',
       'RELEASE_DIGEST_MISSING',
       'RELEASE_AI_DISABLED',

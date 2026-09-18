@@ -389,13 +389,33 @@ export const pendingActions = pgTable(
     state: pendingActionState('state').notNull().default('pending'),
     resolvedBy: uuid('resolved_by').references(() => users.id),
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    /**
+     * Why a person said no, in their own words (Task 7). STORED rather than only
+     * published as an event, because the refusal a retry gets carries it: D23.7's whole
+     * argument is that an agent corrects itself from the answer rather than retrying, and
+     * "no, not this term" is the only thing that tells it to stop asking. Null for a
+     * pending or a confirmed row — a confirmation needs no explanation.
+     */
+    reason: text('reason'),
     /** Task 10: an unanswered request does not wait for ever. */
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     /** Decision 7: confirmed-and-used, without a fifth state. */
     consumedAt: timestamp('consumed_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('pending_actions_project_state_idx').on(t.projectId, t.state)],
+  (t) => [
+    index('pending_actions_project_state_idx').on(t.projectId, t.state),
+    /**
+     * Task 7: EVERY request a delegated token makes reads this table, looking for an
+     * answer a person gave to this exact request. That lookup is unconditional on
+     * purpose — gating it on the route's own `errors:` list would be a second statement
+     * of "this capability is privileged", and a new privileged route that forgot the
+     * entry would be refused for ever with no way to confirm, which is the accident D24
+     * says centrality exists to prevent. The index is what makes the unconditional read
+     * cheap: it is scoped to one token's own rows, never a scan.
+     */
+    index('pending_actions_token_idx').on(t.requestedByToken),
+  ],
 )
 
 /**
@@ -475,7 +495,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected')`,
     ),
   ],
 )
