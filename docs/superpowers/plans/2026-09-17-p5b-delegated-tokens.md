@@ -25,7 +25,7 @@
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on**, before any code: whether `assertCapability` is actually central, whether `release:deploy` can tell production from staging, whether a bearer header survives the edge, what the token hash should be, and whether a stream upgrade can carry a token. **Alone, and first** | ✅ **DONE 2026-09-17 — 11 findings, 2 commits.** Corrections at the top of Tasks 2, 5, 6, 7 and 11; F1 fixed in `8d11025` |
-| 2 | 2–3 | **The privileged set named once**, with §20's alignment test, and **the two tables** with the token's shape and its `tokens/` module | ← next — **blocked on the four *Spec actions*** |
+| 2 | 2–3 | **The privileged set named once**, with §20's alignment test, and **the two tables** with the token's shape and its `tokens/` module | ← next — the four *Spec actions* are **applied** (2026-09-17) |
 | 3 | 4–5 | **Minting, listing and revoking** a token in an interactive session; then **bearer authentication** — one place turns either credential into an `Actor` | |
 | 4 | 6 | **The central refusal, and the `PendingAction` it creates.** The heart of D24. **Alone** | |
 | 5 | 7 | **Confirm, reject, and the one-shot retry** — the loop closing. **Alone** | |
@@ -2719,7 +2719,24 @@ Named because the spec asks for it, or because someone will look for it.
 
 ## Spec actions
 
-**Proposed, to be put to Rich before this plan executes** (P5a's R9 pattern: applying them first is cheaper than reconciling after).
+**✅ ALL FOUR APPROVED BY RICH AND APPLIED TO THE SPEC, 2026-09-17**, before sitting 2 — P5a's R9
+pattern held. Two were applied with a wording change Rich agreed to, and both changes matter to a
+reader of this plan:
+
+- **(2) records the divergence AND its cost, rather than re-specifying the control.** §20 still
+  states the server-side store and rotation as the design; Phase 1's departure from it is written
+  underneath, with the two consequences named — a role change reaches a person at next sign-in, and
+  a session cannot be revoked before it expires. So it stays a visible open item for the phase that
+  owes it, instead of disappearing.
+- **(4) was applied in BOTH places the claim appeared**, not the one this plan named: D24's own
+  rationale column *and* §20's credential table ("the build loop: create, read, build, …"), whose
+  "create" would otherwise have let the next reader re-derive the contradiction. `release` was added
+  to that list at the same time — a token that can build and deploy but not release cannot get from
+  a build to a running instance, which this plan's own goal assumes it can.
+  **`specs/manifest-decisions.html`, which is shared outside the team, carried the same claim in
+  plain language and was corrected with them.**
+
+*The four as proposed:*
 
 1. **§6 — `DelegatedToken` gains `token_hash`, `name` and `revoked_at`; `PendingAction` gains `expires_at` and `consumed_at`.** The brief's §7 item 5, plus `consumed_at` for Decision 7's one-shot retry. *Why:* the row as §6 states it cannot be authenticated (no hash), reviewed (no name), ended early (no revocation), or used once (no consumption stamp).
 2. **§20 — record that Phase 1 sessions are stateless signed cookies** carrying the role they were issued with, with no server-side store, and that a role change reaches a person when they sign in again. **Rich decided this on 2026-09-17 (R2).** *Why:* the spec currently describes a store that does not exist, and P5a Task 16 measured the consequence.

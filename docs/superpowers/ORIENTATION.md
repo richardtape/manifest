@@ -1338,7 +1338,7 @@ curl -s --cacert infra/ca/manifest-root.crt \
 | **P4c** | [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md), with [its brief](plans/2026-09-15-p4c-brief.md) | `make demo-redeploy` | 70 findings in eight sittings. **Sitting 8**: four of the acceptance's nine negative controls could not fail in it — §4 says which tier sees each. |
 | **P5a** | [`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), with [the P5 brief](plans/2026-09-16-p5-brief.md) | `make demo-journey` | 146 findings in twelve sittings. **Sitting 12**, the acceptance: three of fourteen negative controls could not fail as written — including one where the journey read a *status* while the property was a *latency*, so a synchronous build passed R6's own check. **Sitting 10's finding 1** is the other one to read: the document said for six sittings that the error envelope could not carry the field the production refusal had been sending since P2, because nothing parsed an error body through its schema. |
 
-### 7e. Execute P5b's sitting 2 — Tasks 2–3 ← **START HERE** (BLOCKED: four spec actions)
+### 7e. Execute P5b's sitting 2 — Tasks 2–3 ← **START HERE**
 
 **P5b's sitting 1 is DONE** (2026-09-17, 11 findings, `304feff` and `8d11025`).
 [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md) — 13 tasks
@@ -1346,14 +1346,12 @@ in nine sittings. **Your job is sitting 2: Tasks 2 and 3** — the privileged se
 §20's alignment test, and the two tables with the token's shape and its `tokens/` module. The
 sittings table at the top of that plan is the maintained copy of what is done.
 
-**YOU ARE BLOCKED UNTIL THE FOUR SPEC ACTIONS ARE APPLIED.** They were put to Rich at the start of
-sitting 1 with a recommendation on each; **all four were recommended, two with wording caveats**
-(§20's stateless-session amendment should record the divergence and its cost, not quietly
-re-specify it; D24's "create projects" needs fixing in **two** sentences — its own rationale column
-at spec line 220 and §20's credential table at line 1698 — or the next reader re-derives the same
-contradiction from the one left standing). **Check §8 for their state before you start.** Task 1
-needed none of them, which is why it ran first; Task 3 writes the two tables those actions describe
-and cannot.
+**THE FOUR SPEC ACTIONS ARE APPLIED — you are not blocked.** Rich approved all four on 2026-09-17
+and they are in the spec; §8's *Decided* has the one-line record. **The spec now says what Task 3
+builds**: `DelegatedToken` carries `name`, `token_hash` and `revoked_at`, `PendingAction` carries
+`expires_at` and `consumed_at`, §20 records both the stateless-session divergence and its cost and
+the deferral of step-up, and D24's "create projects" is reconciled — in **both** places it appeared —
+in favour of the scope rule. **Do not re-raise any of it** (§8).
 
 **Read, in this order, before you start:**
 
@@ -1409,19 +1407,6 @@ is the newest and is applied; Task 3 writes **0014**.
 Surface these; do not decide them. **When one is decided, move it to *Decided* as one line naming where the reasoning is recorded.**
 
 ### Open
-
-- **P5b's FOUR SPEC ACTIONS — RAISED 2026-09-17, PUT TO RICH WITH A RECOMMENDATION, AND NOW BLOCKING. Sitting 1 is done; sitting 2 cannot start.**
-  Rich asked for a recommendation rather than a yes/no, and it was given at the start of sitting 1: **all four**, with two wording caveats. **(2)** should record the divergence and its cost — that Phase 1 diverges deliberately from §20's store-plus-rotation design, that a role change reaches a person at next sign-in, and that a stolen cookie cannot be revoked server-side before it expires — rather than quietly replacing the stated control, so it stays a visible open item. **(4)** must fix **two** sentences, not the one the plan names: D24's rationale column (spec line 220, "create projects") **and** §20's credential table (line 1698, "the build loop: create, read, build, …"), or the next reader re-derives the same contradiction from the sentence left standing. **The exact wording was still to be drafted for approval when sitting 1 closed.**
-  P5a's R9 established that applying a plan's spec actions before it executes is cheaper than reconciling after.
-  They are written out in [P5b's *Spec actions*](plans/2026-09-17-p5b-delegated-tokens.md): **(1)** §6's
-  `DelegatedToken` gains `token_hash`, `name` and `revoked_at` and `PendingAction` gains `expires_at` and
-  `consumed_at` — as §6 states them today neither row can be authenticated, reviewed, revoked or used once;
-  **(2)** §20 records that Phase 1 sessions are stateless signed cookies with no server-side store (**decided
-  2026-09-17, R2** — this one is a write-up of a decision already made); **(3)** §20 records that step-up
-  re-authentication lands with the routes it protects, while the privileged set it shares with D24 is defined
-  and tested from P5b (**decided 2026-09-17, R1** — likewise); **(4)** D24's prose says a delegated token may
-  "create projects", which does not fit a token scoped to one project — either the scope rule or the sentence
-  should move, and P5b implements the scope rule and flags it.
 
 - **Watching the edge's `@outside` refusal go red — RAISED 2026-09-17 (P5a sitting 12, its control (a)).** The one
   negative control of P5a's acceptance that was not watched. The session's auto-mode classifier refused the edit and
@@ -1479,6 +1464,7 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 
 ### Decided — do not re-raise
 
+- **P5b's four spec actions** (2026-09-17) — **ALL FOUR APPROVED AND APPLIED**: §6's `DelegatedToken` gains `name`, `token_hash` and `revoked_at` and `PendingAction` gains `expires_at` and `consumed_at`; §20 records that Phase 1 sessions are stateless **and what that costs** (a role change reaches a person at next sign-in; a session cannot be revoked before it expires), with the store still the design and the divergence the reason to build it; §20 records that step-up lands with the routes it protects while the privileged set is named and tested from Phase 1c; and **D24's "create projects" is reconciled in BOTH places it appeared** — D24's own rationale column and §20's credential table — in favour of the scope rule. `manifest-decisions.html` carried the same claim in plain language and was corrected with them. P5b's *Spec actions*; the spec commit is named in the roadmap.
 - **`egress.allow` may not name a platform surface** (2026-09-16) — §12 applied; enforcing it is the roadmap's tracked hardening item, after P5a. Only the implementation is open.
 - **P5a's R6–R9** (2026-09-16) — builds answer `202`; `openapi-typescript` + `openapi-fetch`; twelve sittings; spec actions applied first. P5a's *Decisions Rich made*.
 - **P5's five** (2026-09-16) — starters; P5a/P5b/P5c; one console origin through the edge with §23's reserved labels and a slug check; a `/v1` prefix; no acceptance on a second machine. The P5 brief's §5; spec `1d88846`, `ecf5f29`, `5065c13`.

@@ -217,7 +217,7 @@ boundary intact even when the code inside is actively hostile.
 | D21 | **A pre-production rehearsal against UBC's staging IdP (`authentication.stg.id.ubc.ca`) is part of launch readiness**, not part of the daily build loop. | Staging on the Manifest IdP keeps iteration frictionless, but an app whose first contact with real Shibboleth is production launch day will fail on launch day. The rehearsal validates the registration, the attribute release and the certificate before anything is public. |
 | D22 | **This repo ships a `console/` — a reference console — as a Phase 1 deliverable.** It is the executable proof that the public API is complete and sufficient, not the product. It imports *only* the generated client from `contract/`, enforced by a lint boundary and a test. | Without it, the faculty journey is undemonstrable until Phase 3, and API gaps surface when the front-end team hits them rather than while they are cheap to fix. The import rule converts "is the API complete?" from an opinion into a build failure. |
 | D23 | **The public API is resource-oriented, event-streamed, and agent-framework agnostic** (§22). | These are the constraints that actually preserve front-end flexibility. In particular, no agent SDK type appears anywhere in the API surface: Vibonarium pinned `pi` to `0.79.3` and recorded that SDK's churn as a standing hazard. Manifest exposes sandbox lifecycle, `exec`, file operations and streams as primitives so any harness can drive them. |
-| D24 | **Two credential classes.** An *interactive session* (browser, CWL, CSRF, step-up re-auth) can do anything the user can. A *delegated token* (agent, CLI, CI, MCP) is scoped and may **never** carry production promotion, secret read, quota change or member management; requesting one of those creates a **pending action** a human confirms interactively. | This is what makes "bring your own agent" (§1) safe rather than a hole. Note what a delegated token *can* do: create projects, read everything, trigger builds, deploy to sandbox and staging, stream logs and events — the entire build loop. Only four things need a human. |
+| D24 | **Two credential classes.** An *interactive session* (browser, CWL, CSRF, step-up re-auth) can do anything the user can. A *delegated token* (agent, CLI, CI, MCP) is scoped and may **never** carry production promotion, secret read, quota change or member management; requesting one of those creates a **pending action** a human confirms interactively. | This is what makes "bring your own agent" (§1) safe rather than a hole. Note what a delegated token *can* do: read everything about its project, trigger builds, deploy to sandbox and staging, stream logs and events — the entire build loop. Only four things need a human. **A token is scoped to one project and so does not create projects**: a human creates the project in an interactive session and mints the token for it, which is the natural order anyway. *(Reconciled 2026-09-17: this sentence previously listed project creation, which contradicts the scope rule in the decision beside it — a project-scoped token cannot use what it creates. The scope rule wins; an unscoped "creator" token is left to the phase that needs one.)* |
 | D25 | **The agent knowledge pack is served over the API**, versioned with its blueprint — not only baked into sandbox images. | A third-party agent on someone's laptop cannot read a file inside a container it never runs. Without this, a BYO agent has no way to learn how to write a valid `manifest.yaml` or wire CWL auth, which is exactly the knowledge that makes an app work on this platform. |
 | D26 | **Every app has a permanent canonical hostname. A custom production domain is an addition to it, never a replacement.** | The canonical name is what Manifest controls, what its wildcard certificate covers, and what internal tooling, health checks and the SP `entityID` are pinned to. Letting a vanity domain *replace* it would make the identity registration (§9) a function of a field a faculty member can edit, which is precisely the assertion-phishing shape D15 exists to prevent. Keeping both means a broken or lapsed custom domain degrades to a working app on an ugly URL, rather than to an outage. |
 | D27 | **A custom domain on a CWL app must be chosen before its UBC IAM registration is submitted.** Adding or changing one afterwards is an IAM change request, not a platform setting. | The ACS URL is part of what UBC IAM registers (§9, D15), and it must contain the hostname the browser is actually on or the assertion will not be accepted. This is the ordering constraint faculty are most likely to get wrong: choosing a domain is a five-second decision in week one that costs a multi-week change request in week twelve. Manifest therefore asks for the domain *at* registration time rather than offering it as a later convenience. Apps with `auth.provider: none` have no such constraint and may change domain freely. |
@@ -333,8 +333,8 @@ admin-ui/       React admin front-end
 | **IamRegistration** | `id`, `project_id`, `entity_id`, `acs_url`, `slo_url`, `cert_fingerprint`, `cert_expires_at`, `registered_attributes`, `state` (`draft` \| `submitted` \| `active` \| `change_requested` \| `expired`), `external_ticket_ref` |
 | **PrivacyAssessment** | `id`, `project_id`, `generated_draft`, `state` (`draft` \| `submitted` \| `approved`), `reviewer`, `approved_at` |
 | **LaunchReadiness** | `project_id`, checklist state across IAM registration, PIA, rehearsal, security scan, admin approval |
-| **DelegatedToken** | `id`, `user_id`, `project_id`, `capabilities` (explicit set; never the privileged four — D24), `expires_at`, `last_used_at`, `rate_limit` |
-| **PendingAction** | `id`, `project_id`, `requested_by_token`, `action`, `payload`, `state` (`pending` \| `confirmed` \| `rejected` \| `expired`), `resolved_by`, `resolved_at` |
+| **DelegatedToken** | `id`, `user_id`, `project_id`, `name`, `token_hash`, `capabilities` (explicit set; never the privileged four — D24), `expires_at`, `revoked_at`, `last_used_at`, `rate_limit` — the plaintext exists only at minting and is never stored, so `token_hash` is what authenticates a presented token, `name` is what makes one reviewable in a list, and `revoked_at` is how one is ended **before** its expiry. Revocation is not optional for a credential an agent holds, which is why a delegated token has a server-side record where a Phase 1 session does not (§20) |
+| **PendingAction** | `id`, `project_id`, `requested_by_token`, `action`, `payload`, `state` (`pending` \| `confirmed` \| `rejected` \| `expired`), `expires_at`, `resolved_by`, `resolved_at`, `consumed_at` — `expires_at` is what makes the `expired` state reachable rather than decorative, and `consumed_at` records that a confirmation has been **spent**, so confirming grants exactly one retry rather than a standing permission. `consumed_at` is a column and not a fifth state: "confirmed but not yet retried" and "confirmed and used" are one decision at two moments |
 | **AgentSession** | `id`, `project_id`, `instance_id`, `litellm_key_id`, `expires_at` |
 | **Event** | `id`, `project_id`, `subject`, `type`, `machine_detail`, `human_message`, `created_at` |
 | **RoleChange** | `id`, `user_id`, `from_role`, `to_role`, `actor`, `reason`, `created_at` — append-only by grant, like `Event`; `actor` is text, because the first administrator's grant has no administrator to attribute it to (§20) |
@@ -1668,7 +1668,17 @@ nowhere else, and maps everything back to §3.5.
 ### Manifest's own front door
 
 - Session cookies `Secure`, `HttpOnly`, `SameSite=Lax`; server-side session store;
-  rotation on privilege change.
+  rotation on privilege change. **Phase 1 deliberately diverges: its sessions are
+  stateless signed cookies carrying the role they were issued with, and there is no
+  server-side store** (decided by Rich, 2026-09-17). Two consequences are accepted
+  rather than overlooked: **a role change reaches a person only when they sign in
+  again** — measured when the first administrator was made out of band — and **a
+  session cannot be revoked before its own expiry**. The store and its rotation
+  remain the design; the phase that needs either owes them, and this divergence is
+  the reason to build it. **Delegated tokens do not inherit the divergence** — they
+  have a server-side record with revocation from the start (§6, D24), because
+  revocation is not optional for a credential an agent holds. The asymmetry between
+  the two credential classes is deliberate.
 - CSRF protection on every state-changing route, **as an `Origin` check**: every
   mutation carrying a session cookie, and every event-stream upgrade carrying one,
   must name the console's origin. The mechanism matters here because every deployed
@@ -1687,7 +1697,13 @@ nowhere else, and maps everything back to §3.5.
   stolen admin session must not be sufficient to put an app on the public internet.
   The first four are exactly D24's forbidden delegated-token capabilities; the two
   admin actions are additionally restricted to platform admins. Keeping the two
-  lists aligned is a test, not a convention.
+  lists aligned is a test, not a convention. **The list is named once and enforced
+  from Phase 1c, with that alignment test; step-up's own second authentication round
+  trip lands with the routes it protects** (decided by Rich, 2026-09-17). The
+  privileged set is therefore defined and tested before the mechanism that will
+  guard it exists — which is the point: D24's central refusal needs the list now,
+  and a second authentication flow built ahead of the routes and the console that
+  would exercise it is a flow that ships untested.
 - Multi-factor authentication for administrators, delegated to CWL where available.
 
 ### Credential classes (D24)
@@ -1695,7 +1711,7 @@ nowhere else, and maps everything back to §3.5.
 | | Obtained by | Carries |
 |---|---|---|
 | **Interactive session** | CWL login in a browser; `Secure`/`HttpOnly`/`SameSite` cookie, CSRF-protected | everything the user is entitled to; step-up re-auth for the most privileged actions |
-| **Delegated token** | minted by the user in an interactive session, scoped to a project and a capability set, with an expiry | the build loop: create, read, build, deploy to sandbox and staging, stream events, *request* production |
+| **Delegated token** | minted by the user in an interactive session, scoped to **one** project and a capability set, with an expiry and a revocation | the build loop **inside that one project**: read, build, release, deploy to sandbox and staging, stream events, *request* production. **Not project creation**, which needs an interactive session (D24) |
 
 A delegated token can **never** hold production promotion, secret read, quota change
 or member management, regardless of how it was minted. Requesting one of those

@@ -30,8 +30,8 @@ and green.** Each plan has an acceptance that passes:
 **The current plan is P5b — delegated tokens and pending actions (D24)**
 (`docs/superpowers/plans/2026-09-17-p5b-delegated-tokens.md`, 13 tasks in nine sittings,
 written 2026-09-17), the second of Phase 1c's three. **Its sitting 1 — Task 1, the
-measurements — is executed**; it corrected five of the plan's own tasks, and **sitting 2 is
-BLOCKED until Rich's four spec actions are applied**. P5a — the contract — was executed in twelve sittings and finished on 2026-09-17:
+measurements — is executed**; it corrected five of the plan's own tasks. **Its four spec actions
+were approved and applied on 2026-09-17**, so sitting 2 — Tasks 2–3 — is the next job. P5a — the contract — was executed in twelve sittings and finished on 2026-09-17:
 the API is under `/v1` at `https://console.manifest.internal` through the edge, an OpenAPI
 document is generated from the routes and a TypeScript client from that document
 (`packages/contract`), and `make demo-journey` drives §22's journey through nothing but that
