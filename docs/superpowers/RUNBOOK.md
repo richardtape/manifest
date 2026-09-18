@@ -190,7 +190,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` �
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 18 / 0 and `make verify` 51 / 0**
-(re-measured 2026-09-18 at the end of **P5b sitting 4**, after that sitting's `pnpm test:docker`; unchanged since P5a sitting 11). ORIENTATION §2's box is the maintained copy of those; if this
+(re-measured 2026-09-18 at the end of **P5b sitting 5**, after that sitting's `pnpm test:docker`; unchanged since P5a sitting 11). ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has eight steps, not seven** — P5a
@@ -360,7 +360,8 @@ than of the mapper that fills it.
 
 - **D24's forbidden four** — `members:manage`, `release:promote`, `quota:set`, `secret:read` — are
   `400 TOKEN_CAPABILITY_FORBIDDEN`, and the message names which one you asked for. An agent that needs one
-  asks for it at the moment it needs it, and a human confirms that single action (Task 6, not built yet).
+  asks for it at the moment it needs it, and a human confirms that single action — which is built, and is
+  *Answering an agent's pending action* below.
 - **More than you hold yourself** is `403 FORBIDDEN`. A collaborator cannot mint a token that deletes the
   project, because a token delegates authority and does not create it.
 - **An expiry over 365 days**, or under one, is `400 REQUEST_INVALID` naming `expiresInDays`.
@@ -368,12 +369,79 @@ than of the mapper that fills it.
   `MintTokenRequest` in `packages/contract/openapi.json`.
 
 **Minting is interactive only.** These three routes take a session cookie; a token cannot mint a token, or
-one leaked credential would be a credential factory. Nothing else about tokens works yet — a token cannot
-*authenticate* until Task 5, which is the next sitting's work, so a token minted today is a row and a
-string rather than a usable credential.
+one leaked credential would be a credential factory.
+
+**A minted token IS a usable credential** — since P5b Task 5 (sitting 3, 2026-09-17). Send it as
+`Authorization: Bearer mft_<id>_<secret>` on any `/v1` route, with no cookie and no `Origin`: one request
+hook turns either credential class into an actor, and a request carrying both a cookie and a bearer token is
+refused `400 CREDENTIAL_AMBIGUOUS`. A token addressing a project it is not scoped to is answered `404`, the
+stranger's answer, rather than `403`.
 
 **What is not built.** A project owner cannot revoke a collaborator's token — only the person who minted it
-can — and there is no rate limit, no expiry sweeper and no pending-action queue yet. Tasks 6 to 10.
+can — and there is no rate limit and no expiry sweeper yet (Tasks 9 and 10), nor a route that LISTS a
+project's pending actions (Task 8). `make demo-token` — the whole loop driven end to end through the edge —
+is Task 12's.
+
+*This section said "a token cannot authenticate until Task 5, which is the next sitting's work" until
+2026-09-18, two sittings after that stopped being true: sittings 3 and 4 swept the gate-number line in this
+file and not the section their own work made false. Recorded as a finding in P5b sitting 5.*
+
+## Answering an agent's pending action
+
+*Added by P5b Tasks 6 and 7, 2026-09-18. `make demo-token` drives the whole loop end to end and is Task
+12's; until then this is how to run it by hand.*
+
+D24's four are refused **centrally, at the authorization layer, not per route** — so a new privileged route
+cannot accidentally omit the rule. An agent asking for one is answered `403 TOKEN_ACTION_PENDING`, and the
+envelope carries the `pendingAction` a person must answer:
+
+```json
+{ "error": { "code": "TOKEN_ACTION_PENDING",
+             "pendingAction": { "id": "…", "action": "members:manage", "state": "pending",
+                                "method": "POST", "path": "/v1/projects/…/members",
+                                "bodySha256": "…", "summary": "Add or change a member",
+                                "reason": null, "consumedAt": null } } }
+```
+
+A person then answers it **in an interactive session** — a token cannot answer its own question, or the
+mechanism would be a loop with no human in it:
+
+```bash
+# Confirm. The body is an empty object; the person must hold the capability THEMSELVES.
+curl -sS -X POST -b "$CP_JAR" -H 'Content-Type: application/json' \
+  -H "Origin: https://console.manifest.internal" -H "Idempotency-Key: $(uuidgen)" -d '{}' \
+  "https://console.manifest.internal/v1/pending-actions/$PENDING_ID/confirm"
+
+# Or refuse it, in your own words. The agent is told the reason, verbatim.
+curl -sS -X POST -b "$CP_JAR" -H 'Content-Type: application/json' \
+  -H "Origin: https://console.manifest.internal" -H "Idempotency-Key: $(uuidgen)" \
+  -d '{"reason":"not this term"}' \
+  "https://console.manifest.internal/v1/pending-actions/$PENDING_ID/reject"
+```
+
+**What a confirmation is, and what it is not.** It does not replay the request. It grants **that exact
+request** — this token, this method, this path, this body — **one retry**, which the agent then makes
+itself, through its normal route with its normal validation. Five things follow, and each of them is a test:
+
+- **The retry reuses the SAME `Idempotency-Key`**, which is what D23.6's own error hint tells a client to
+  do. The refusal deliberately stores no idempotency record, so the retry reaches the handler.
+- **"Exactly once" describes the ACTION, not the ANSWER.** The confirmed retry's `201` *is* stored under
+  that key, so replaying the key returns it for ever without reaching the handler or any capability check.
+  That is not an escalation — the action was authorized once and the answer is identical — but a reader who
+  assumes otherwise will mis-read `consumedAt`. A second *attempt at the action* is a new request with a
+  fresh key, and that one is refused again with a NEW question.
+- **A different body is a different question.** The match is on the fingerprint, so a confirmation of one
+  request is never a standing grant of the capability.
+- **A confirmation is one credential's.** A second token asking the identical thing gets its own question.
+- **A failed retry does not burn the confirmation.** `consumedAt` is stamped after the handler resolves, so
+  a transient failure the agent did not cause can be retried on the same grant.
+
+**Refusing is final for that request.** A retry after a rejection is answered `403 TOKEN_ACTION_REJECTED`
+carrying the person's own reason, rather than asking them the same thing again — which is what D23.7 means
+by an error an agent corrects itself from. **Who may answer:** whoever holds the capability themselves. A
+collaborator who may not manage members is `403 FORBIDDEN`; somebody who is not a member of the project at
+all is `404`, the same answer an id that does not exist gets. Answering twice is `409
+PENDING_ACTION_RESOLVED`. A question expires after **24 hours**.
 
 ## `make demo-redeploy` — P4c's acceptance: a redeploy nobody using the app notices
 

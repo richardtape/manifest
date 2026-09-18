@@ -28,8 +28,8 @@
 | 2 | 2–3 | **The privileged set named once**, with §20's alignment test, and **the two tables** with the token's shape and its `tokens/` module | ✅ **DONE 2026-09-17 — 14 findings, 3 commits.** `release:promote` separates promoting from deploying; migration **0014**; corrections at the top of Tasks 3, 4 and 5. **The token parser would have refused 47.5% of its own tokens** |
 | 3 | 4–5 | **Minting, listing and revoking** a token in an interactive session; then **bearer authentication** — one place turns either credential into an `Actor`. **It also writes `withProjectServer` and `sessionFor`**, which sitting 2 deferred to their first callers | ✅ **DONE 2026-09-17 — 15 findings, 3 commits** (`e407ae3`, `eab5466`, `d992534`). Migration **0015**. **The contract layer could not carry a bodyless mutation**, and `DELETE /v1/tokens/{tokenId}` is the first; **three controls answer `403` for the wrong reason**, so every refusal now asserts its CODE. `make demo-journey` green |
 | 4 | 6 | **The central refusal, and the `PendingAction` it creates.** The heart of D24. **Alone** | ✅ **DONE 2026-09-18 — 10 findings, 3 commits** (`11c47b9`, `f9f56f6`). Migration **0016**. The catch is OUTSIDE `app.idempotent`. **The plan's own ordering control cannot fail against any test that existed** — every test mints the privileged capability, which no real token can hold; a twelfth test asserts that case. Breaking `isPrivileged` now turns **11 tests red**, from 2. `make demo-journey` green |
-| 5 | 7 | **Confirm, reject, and the one-shot retry** — the loop closing. **Alone** | ← next |
-| 6 | 8–9 | **The queue** (§26's primary screen, as a read) and **per-token rate limits** | |
+| 5 | 7 | **Confirm, reject, and the one-shot retry** — the loop closing. **Alone** | ✅ **DONE 2026-09-18 — 12 findings, 2 commits** (`7465590`, `9ac051b`). Migration **0017**. The grant is what gets a token past D24's rule and nothing else can make one. **TWO of this sitting's own nine new tests were green before the route existed**, and **`recordPendingAction`'s reuse lookup is a read-then-insert — five concurrent identical asks make five rows** (F10, carried to Task 10). `make demo-journey` green |
+| 6 | 8–9 | **The queue** (§26's primary screen, as a read) and **per-token rate limits** | ← next |
 | 7 | 10–11 | **Expiry** for both entities, and **the authorization contract suite's token actors** — the matrix roughly doubles | |
 | 8 | 12 | **`make demo-token`** — an agent runs the build loop on a token, is refused twice, a human confirms, and the retry succeeds | |
 | 9 | 13 | **The acceptance**, three times, once from a `make reset` machine, with its negative controls. **Alone, and last** | |
@@ -2463,6 +2463,14 @@ git commit -m "feat(api): per-token rate limits, from the token's own row"
 
 ---
 ## Task 10: Expiry — for both entities, and at boot
+> **Sitting 5 correction (2026-09-18, F10). THIS TASK INHERITS A DEFECT IN TASK 6'S CODE, and the fix belongs here because it collides with the sweeper you are about to write.**
+>
+> `recordPendingAction`'s reuse lookup — *"an identical ask REUSES its row rather than inserting a second"* — is a **read-then-insert with no unique constraint**. **Measured with a throwaway probe on 2026-09-18**: five CONCURRENT identical `recordPendingAction` calls create **five rows**; two more, sequentially, create none. So the thing the lookup exists for — an agent in a retry loop must not fill a person's queue with one question forty times — fails for exactly the agent that retries in parallel, which is the normal shape of a retry loop.
+>
+> **The fix is a partial unique index** on `(requested_by_token, payload->>'method', payload->>'path', payload->>'bodySha256') WHERE state = 'pending'`, plus `onConflictDoNothing()` and a re-read of the winning row. **It is yours and not sitting 5's because the `WHERE state = 'pending'` predicate only works once `state` reliably reflects expiry** — without your sweeper, a stale `pending` row older than its own `expires_at` would block a fresh question about the same thing for ever, which is worse than the duplicate. Write the sweeper first, then the index, then a test that fires N identical asks with `Promise.all` and asserts ONE row.
+>
+> **The control that sees it is a concurrent one.** Every existing test in `tokens/pending.test.ts` and `api/delegation.test.ts` awaits each ask in turn and is green either way — which is why this survived Task 6's nine controls and was found only by a fixture that happened to use `Promise.all`.
+
 
 **What this is for.** §6 gives `DelegatedToken` an `expires_at` and `PendingAction` the state `expired`; D24 says a token is minted *"with an expiry."* Task 5 already refuses an expired token at authentication — **that is the control**. This task adds the sweeper that makes the *rows* honest, so a queue does not fill with questions nobody will ever answer and `GET /v1/projects/{id}/tokens` does not show a dead token as live.
 
@@ -3347,3 +3355,133 @@ Everything it consumes is in place: `TokenCapabilityRefusedError`, `recordPendin
 representation, and `TokenActor.grant`, which **Task 7 is still the only thing that may ever
 set**. The retry reuses the **same** `Idempotency-Key`, and F3 is the measurement that this
 sitting made that possible.
+
+### Sitting 5 — 2026-09-18 — Task 7, confirm, reject and the one-shot retry — 12 findings
+
+**What it made true. D24's loop closes.** `POST /v1/pending-actions/{id}/confirm` and
+`.../reject` are interactive-only, a person who holds the capability themselves answers the
+question a refused agent asked, and a confirmation grants **that exact request** — this
+token, this method, this path, this body — **one retry**, which the agent makes itself
+through its normal route with its normal validation. Two commits — `7465590`, `9ac051b` —
+and migration **0017** (`pending_actions.reason`, an index on `requested_by_token`, and the
+two new event types). `make demo-journey` green, all eight steps, run at the end because
+Task 7 changes `api/contract/route.ts`, the wrapper **every** `/v1` route runs through.
+
+**The three layers, and why each is where it is.** `assertCapability` decides and cannot see
+a request; the route wrapper is holding the request and may not decide. So the wrapper
+resolves a confirmed row against the request's fingerprint and hands the authorization layer
+a `grant`, which is the only thing that gets a token past D24's privileged rule and which
+nothing else can manufacture — it comes from a row a person moved to `confirmed` in a
+session. The routes themselves execute nothing on the agent's behalf.
+
+#### The finding to read if you read nothing else
+
+**F1 — two of this sitting's OWN nine new tests were green before the route they test
+existed.** Measured at Step 2, which is the only reason it was caught: *does not let a
+DIFFERENT request through on a confirmation* and *does not let a SECOND token through on
+another token's confirmation* both passed against a `404 ROUTE_NOT_FOUND` on their confirm
+call. The confirmation never happened, so the request that followed was refused for the
+ordinary reason and the assertion under it proved nothing at all. **A precondition that is
+not asserted is not a precondition**: a `confirmed()` helper now asserts
+`{ status: 200, code: undefined }` and `state === 'confirmed'` at every point a
+confirmation is used as one. This is sitting 4's F1 — a control whose fixture is not the
+state the test assumes — appearing in the sitting's own new tests, and it is the **fourth
+consecutive sitting** in which a control could not fail as written.
+
+#### Every finding
+
+| # | Finding |
+|---|---|
+| F1 | **Above.** |
+| F2 | **The plan's Step 3 snippet leaves the grant unable to grant anything.** It refuses unless `actor.grant === capability` and then FALLS THROUGH to the token's own capability set — and no token the platform can mint holds one of `PRIVILEGED`, because Task 4's route refuses it. A confirmed retry would have been refused `403 FORBIDDEN` one line later, so D24's loop would close for fixtures and for no token that can exist: sitting 4's F1 wearing a different hat. The branch now `return`s — the grant IS the authority, because a person who holds the capability themselves read the request and said yes. **Measured** with the `return` removed: *lets the agent's retry through exactly once* fails `expected { status: 403, code: 'FORBIDDEN' } to deeply equal { status: 201, code: undefined }`, and two more tests with it. |
+| F3 | **`findConfirmedMatch` cannot be named for one of the two answers it returns.** The plan names it that and then requires it to *"distinguish 'no row' from 'a resolved row'"*, because a retry after a rejection is answered `TOKEN_ACTION_REJECTED` rather than asked again. Renamed **`resolutionFor`**, returning a discriminated `ActionResolution` of `none | confirmed | rejected`. A function named for one of its answers is how a cold reader ends up ignoring the other. |
+| F4 | **The rejection's `reason` had nowhere to go.** The plan puts `reason` in the reject body; `pending_actions` had no column for it and `PendingAction` no field. A body field the platform discards is the no-caller shape ORIENTATION §9 names four times. Migration 0017 adds the column, the representation carries it, and the `403 TOKEN_ACTION_REJECTED` carries the representation — so the agent is told **why**, verbatim, which is what D23.7 means by an error an agent corrects itself from rather than retries. |
+| F5 | **Every request a delegated token makes now reads `pending_actions`, and that is unconditional on purpose.** The alternative is gating the lookup on the route's own `errors:` list — the only place that declares which routes can answer `TOKEN_ACTION_PENDING` — which would be a second statement of which capabilities are privileged, and a new privileged route that forgot the entry would be refused for ever with no way to confirm: exactly the accident D24 says centrality exists to prevent. Migration 0017 adds `pending_actions_token_idx` so the read is one token's own rows rather than a scan. Decision 9 rejected a per-request MEMBERSHIP read; this is a different cost and a different rule, and the trade is recorded here rather than left to be discovered. |
+| F6 | **`EmptyRequest` has been published in the contract with no caller since P5a Decision 4.** `document.ts`'s `components()` emits EVERY registered schema, so a request body no route accepts has been in the document all along — sitting 4's F4 in the *request* registry rather than the representation registry. **Measured**: `git show HEAD~1:packages/contract/openapi.json | grep -n EmptyRequest` finds exactly one line, its definition, and no `$ref` to it. `confirmPendingAction` is its first caller. |
+| F7 | **`api/authz-contract.ts`'s `request(fixture)` cannot express a route that CONSUMES its fixture.** Confirming RESOLVES the row, and the matrix runs the five actors in order against one fixture — so a shared pending action answers the fourth of them, `admin`, `409 PENDING_ACTION_RESOLVED`: a state refusal wearing an authorization expectation's clothes, and the table has no `409`. `request` now takes the actor and the fixture carries ten rows, one per route per actor. **Measured** with one shared row and a sequential fixture: `expected 409 to be less than 400` on both `confirm as admin` and `reject as admin`. |
+| F8 | **An expired-but-still-`pending` question could be confirmed, and the confirmation could never be spent.** Task 10 builds the sweeper that moves an expired row to `expired`; until it exists — and afterwards, in the window between a row expiring and the sweep noticing — `state` is still `pending`, so the route confirmed it while `resolutionFor`'s expiry clause refused to match it. Harmless, and a **lie to the person**, who was told "confirmed" for an answer nothing could use. Fixed in `9ac051b` with the route's own expiry check and a test that ages the row; measured both ways. |
+| F9 | **The plan's Step 6 control for *cannot be confirmed twice* cannot fail.** Removing the route's `state === 'pending'` guard turns **nothing** red: the real guard is the `eq(state, 'pending')` clause inside `resolveAction`'s UPDATE, which is deliberate — two people answering one queue item at the same moment cannot both win — so the second confirm updates no row and the handler answers `409` anyway. The route's read-side check is redundant defence, kept for the message it can give. **The control that works** is removing the clause from the UPDATE, which turns `tokens/pending.test.ts`'s *refuses a second answer to one question, in the UPDATE and not in a read* red on `expected { …(12) } to be undefined` — and only that one. |
+| F10 | **`recordPendingAction`'s reuse lookup is a read-then-insert with no unique constraint, so CONCURRENT identical asks each create a row.** Found because F7's fixture built its five rows with `Promise.all` and got five distinct ids where one was expected. **Measured directly with a throwaway probe**: five concurrent identical `recordPendingAction` calls → **5 rows**; two more, sequentially → still 5. This is Task 6's code, not Task 7's, and it defeats the very thing the lookup exists for — an agent that retries in parallel fills a person's queue with one question many times. **Not fixed here, deliberately**: the fix is a partial unique index on `(requested_by_token, payload->>'method', payload->>'path', payload->>'bodySha256') WHERE state = 'pending'` plus `onConflictDoNothing` and a re-read, and a *partial index on `pending`* interacts directly with Task 10's expiry sweeper — a stale pending row would otherwise block a fresh question for ever. **A correction block at the top of Task 10 now carries it.** |
+| F11 | **The RUNBOOK's *Minting a delegated token* section had been stale for two sittings.** It said *"a token cannot authenticate until Task 5, which is the next sitting's work"* — false since sitting 3 — and *"there is no … pending-action queue yet. Tasks 6 to 10"*. Sittings 3 and 4 each swept the gate-number line in that file and neither swept the section their own work made false; sitting 3 did update the event-stream section, so the miss was partial rather than total. Rewritten, with a new *Answering an agent's pending action* section, and the staleness recorded in the file itself so the next reader knows it was found rather than never noticed. |
+| F12 | **`consumed_at` after the handler leaves a concurrency window, and that is the trade the plan asks for.** Two identical retries in flight at once can both pass the grant check before either stamps. Stamping BEFORE the handler closes it and opens a worse one: a transient failure the agent did not cause burns a person's decision. `consumeAction`'s `WHERE consumed_at IS NULL` narrows it to the stamp itself. The ordinary case is serialised anyway — D23.6 tells a client to retry one action under ONE key, and `replayOrStore` answers the second from the store — and the two requests are byte-identical by construction, because the fingerprint is what matched. Named here rather than left for somebody to find. |
+
+**Decisions this sitting made.**
+
+- **The grant RETURNS from `assertCapability` rather than falling through** (F2). What
+  authorizes the request is a person's confirmation of it, not the token's own set.
+- **`resolutionFor`, not `findConfirmedMatch`** (F3), returning a three-way
+  `ActionResolution`. The rejection is carried out of the lookup and acted on **inside the
+  catch**, after `assertCapability` has refused — so the ordering the authorization layer
+  owns (scope, then the privileged rule) still decides what happens first, and this layer
+  still only reports.
+- **A rejection's reason is REQUIRED and STORED** (F4). A refusal with no reason leaves the
+  agent knowing only that it may not, which is the dead end D23.7 exists to close.
+- **The lookup is unconditional, and indexed** (F5).
+- **`TOKEN_ACTION_REJECTED` is a third code, not a third message.** A client switches on the
+  code, and the difference between it and `TOKEN_ACTION_PENDING` is the difference between
+  stopping and waiting. `PENDING_ACTION_RESOLVED` is a fourth, at 409.
+- **The confirm route takes `EmptyRequest`, not `NO_BODY`** (P5a Decision 4, and F6): a
+  mutation that takes no fields still takes a JSON object.
+- **The confirmer's checks are ordered: row, then capability, then state, then expiry.**
+  Telling somebody with no business seeing the row that it is already resolved would be the
+  enumeration oracle the 404-versus-403 rule exists to close.
+- **`api/authz-contract.ts`'s `request` takes the actor** (F7). It is Task 11's file and this
+  is a Task 7 change to it, which §7e predicted: a route registered and not listed there is
+  red immediately.
+
+**Thirteen negative controls, each watched after the commit and restored. ELEVEN went red;
+TWO could not, and both are findings.**
+
+| Break | What went red |
+|---|---|
+| `consumeAction` never called | *lets the agent's retry through exactly once* and *leaves the confirmation usable when the RETRY's handler fails* — both `expected null not to be null` |
+| `consumed_at` stamped BEFORE the handler runs | *leaves the confirmation usable…* — `expected 2026-09-18T18:04:01.216Z to be null` |
+| `resolutionFor` matches on the token alone, not the fingerprint | *does not let a DIFFERENT request through on a confirmation* — `expected { status: 201, code: undefined } to deeply equal { status: 403, … }` |
+| `resolutionFor` not scoped to the token | *does not let a SECOND token through on another token's confirmation*, and `pending.test.ts`'s *is scoped to the TOKEN* |
+| the confirmer's own `assertCapability` removed | *cannot be confirmed by someone who lacks the capability themselves* — **and four rows of the authz matrix**, collaborator and stranger on both routes |
+| **the route's `state === 'pending'` guard removed** | **NOTHING — F9.** The clause in `resolveAction`'s UPDATE is the real guard |
+| the clause removed from `resolveAction`'s UPDATE | `pending.test.ts`'s *refuses a second answer to one question, in the UPDATE and not in a read* — `expected { …(12) } to be undefined`, and only that one |
+| the grant falls through to the token's own capability set | THREE red, led by *lets the agent's retry through exactly once* — `expected { status: 403, code: 'FORBIDDEN' } to deeply equal { status: 201, code: undefined }` (F2) |
+| the rejected branch removed from the wrapper | *refuses a rejected action's retry, and says it was rejected* — `TOKEN_ACTION_PENDING` where `TOKEN_ACTION_REJECTED` belongs, **both `403`**, which is sitting 3's F13 for the fifth time |
+| the expiry clause removed from `resolutionFor` | `pending.test.ts`'s *answers none for a confirmation older than the question's own life* |
+| the route's expiry check removed | *cannot be confirmed once the question has expired* — `expected { status: 200, … } to deeply equal { status: 409, … }` |
+| **one pending row shared across the five actors in the authz matrix** | **NOTHING — F10.** `Promise.all` in the fixture created five rows where one was intended, because the reuse lookup is a read-then-insert |
+| the same, with a SEQUENTIAL fixture | `confirm as admin` and `reject as admin` — `expected 409 to be less than 400` (F7, confirmed) |
+
+**Gate numbers at the end of this sitting.** `pnpm test` **1134 passed, 99 files** (was 1108
+in 99 — 10 in `delegation.test.ts`, 6 in `tokens/pending.test.ts`, 10 new rows in the authz
+matrix), run **twice** after each commit, identical every time. `pnpm test:docker` **177
+passed, 0 skipped, 29 files**, 791.66 s — **unchanged, the SIXTH run at 177 across four
+sittings**, and again the prediction recorded before it ran: the tier drives SESSIONS, and
+the new lookup runs only for a token actor. It ran on `7465590`, which is the commit that
+touched `projects/`; `9ac051b` changes only `api/routes/pending-actions.ts` and a test, both
+outside the Docker tier's blast radius, so a second run is not owed. `pnpm lint`,
+`pnpm typecheck`, `pnpm format:check` clean. `make doctor` **18/0**, `make verify` **51/0**,
+re-run after the Docker tier. `make demo-journey` green, all eight steps.
+
+**The machine was left as found** — `snapshot-machine.sh` diffed before and after, and the
+only differences are the `journey-app` instance the closing demo replaced (one container,
+one image, one volume swapped for another) and HEAD. **Five images were removed by digest**:
+the four this sitting's Docker-tier run built (`chem-labs@54a28b3b9853`,
+`redeploy-cp@6a9ec8fd09d4`, `boot-recover@efc564c8e300`, `fixture-rd@d69694e517e9`) and
+`journey-app@34f59b854bb4`, which sitting 4 left because it backed a running instance — a
+reason this sitting's demo ended. **The `docker rmi` refusal ORIENTATION §2 records did not
+recur, for the FOURTH sitting running.** The control plane was killed, rebuilt and restarted
+so it serves this sitting's own routes, and carries a **new `MANIFEST_SESSION_SECRET`**.
+Migration **0017** is applied; **0017 is now the newest.**
+
+**LiteLLM, RE-MEASURED INDEPENDENTLY, and the previous list's held entry had gone stale for
+the FIFTH consecutive sitting.** **THIRTEEN Manifest users, up one**, and exactly **TWO are
+held by a running container**: `mf-1db14646-…-staging` (proof-app, still) and
+**`mf-9fa0019b-83d5-4a1e-ac82-4c41c1785c09-staging` (journey-app, NEW — this sitting's
+`make demo-journey`)**. **`mf-6adf7ff8-…`, which the previous list named as journey-app's
+and said was HELD, is now an orphan.** The other ten orphans: `p4b-probe-user` (no keys at
+all), `mf-217d4549-…`, `mf-4192aef8-…`, `mf-49170f5e-…`, `mf-58fcaf86-…`, `mf-af2629e6-…`,
+`mf-b27ebd54-…`, `mf-d10f278f-…`, `mf-e650609e-…`, `mf-f72bd023-…`. Deleting them is Rich's
+— the session's classifier refuses it as a secret-store write. `fixture-app` hashes to
+`e3b0c442…`, the empty string, and is not a match for anything.
+
+**Left for sitting 6, deliberately:** Tasks 8 and 9 — §26's queue as a read, and per-token
+rate limits. Task 8 inherits **F10's correction at the top of Task 10**, `PendingActionList`
+(sitting 4's F4 left it for the queue route that answers it), and a `reason` field the queue
+can now show.
