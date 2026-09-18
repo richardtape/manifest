@@ -109,6 +109,64 @@ describe('subscribe (D23.2)', () => {
     server.close()
   })
 
+  /**
+   * P5b Task 12. `make demo-token` is the first client of this package that holds a
+   * delegated token rather than a session, and the stream was the one surface it could
+   * not reach: `SubscribeOptions` had no `token`, so an agent could start a build through
+   * the generated client and then had nothing to watch it end on.
+   */
+  it('sends a delegated token as a bearer and NO origin, so an agent can watch its own build', async () => {
+    const server = await streamServer((_headers, socket, accept) => {
+      socket.write(
+        'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n' +
+          `Sec-WebSocket-Accept: ${accept}\r\n\r\n`,
+      )
+      socket.write(
+        textFrame(
+          JSON.stringify({
+            kind: 'control',
+            id: 'ready',
+            projectId: PROJECT,
+            type: 'manifest.stream.ready',
+          }),
+        ),
+      )
+      socket.on('data', (data: Buffer) => {
+        if ((data[0]! & 0x0f) === 0x8) socket.end(Buffer.from([0x88, 0]))
+      })
+    })
+    const stream = subscribe({
+      origin: server.origin,
+      token: 'mft_6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f_s3cr3t',
+      projectId: PROJECT,
+      onFrame: () => undefined,
+    })
+    await stream.ready
+    const seen = server.seen[0]!
+    expect(seen.authorization).toBe(
+      'Bearer mft_6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f_s3cr3t',
+    )
+    expect(seen.cookie, 'a bearer upgrade must carry no session').toBeUndefined()
+    // Not an oversight: §20's CSRF control keys on the session cookie, and a request
+    // carrying both a bearer and an Origin it did not come from says something untrue.
+    expect(seen.origin, 'a bearer upgrade claims no browser origin').toBeUndefined()
+    stream.close()
+    await stream.closed
+    server.close()
+  })
+
+  it('refuses to carry both a session and a token, where the caller can still see why', () => {
+    expect(() =>
+      subscribe({
+        origin: 'https://console.manifest.internal',
+        session: 'good',
+        token: 'mft_a_b',
+        projectId: PROJECT,
+        onFrame: () => undefined,
+      }),
+    ).toThrow(/either a session or a delegated token/)
+  })
+
   it('rejects `ready` when the upgrade is refused — the only way a WebSocket client learns it', async () => {
     const server = await streamServer((_headers, socket) => {
       socket.end(

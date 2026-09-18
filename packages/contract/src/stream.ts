@@ -11,6 +11,16 @@ export interface SubscribeOptions {
   origin: string
   /** The session cookie's value, for a client that is not a browser. */
   session?: string
+  /**
+   * A delegated token's plaintext — `mft_<id>_<secret>` — for an agent (D24, P5b Task 5).
+   * Mutually exclusive with `session`, for the reason `createManifestClient` states: the
+   * API answers a request carrying both `400 CREDENTIAL_AMBIGUOUS`.
+   *
+   * The stream authorizes with `project:read` like any other read, so a token holding it
+   * may watch its own project's events — which is what lets an agent see its own build
+   * end rather than poll for it (P5b Task 12).
+   */
+  token?: string
   projectId: string
   onFrame(frame: StreamFrame): void
 }
@@ -46,16 +56,33 @@ type NodeWebSocket = new (
  * the whole replay.
  */
 export function subscribe(options: SubscribeOptions): Subscription {
+  // The same rule, and the same reason, as `createManifestClient`'s: a request carrying
+  // both credentials is `400 CREDENTIAL_AMBIGUOUS`, which on an upgrade a WebSocket client
+  // is never shown — it sees close 1006 and no status. So it is refused here, where the
+  // mistake is.
+  if (options.session !== undefined && options.token !== undefined) {
+    throw new Error(
+      'a Manifest subscription carries either a session or a delegated token, never both',
+    )
+  }
   const origin = new URL(options.origin).origin
   const url = `${origin.replace(/^http/, 'ws')}/v1/projects/${encodeURIComponent(options.projectId)}/events`
   const socket = inBrowser
     ? new WebSocket(url)
     : new (WebSocket as unknown as NodeWebSocket)(url, {
         headers: {
-          origin,
+          // A TOKEN SUBSCRIPTION SENDS NO ORIGIN, exactly as a token client sends none:
+          // `assertSameOrigin` returns early unless the request carries the session
+          // cookie, so §20's CSRF control does not apply to a credential no browser sends
+          // automatically — and claiming the console's origin from an agent would state
+          // something untrue about where the handshake came from.
+          ...(options.token === undefined ? { origin } : {}),
           ...(options.session === undefined
             ? {}
             : { cookie: `${SESSION_COOKIE}=${options.session}` }),
+          ...(options.token === undefined
+            ? {}
+            : { authorization: `Bearer ${options.token}` }),
         },
       })
 

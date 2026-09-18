@@ -285,6 +285,62 @@ prints `tsc`'s errors** — the journey is type-checked against the generated co
 not have stops it there. `FAIL no step threw — [cause UNABLE_TO_GET_ISSUER_CERT_LOCALLY] TypeError: fetch failed` is a journey
 run without the platform CA. So far it runs §22 step 1 (`GET /v1/me`), step 2's list of the instructor's projects, step 2a's slug checks (`GET /v1/slugs/{slug}` for `console`, `chem`, `Journey_App` and `journey-app`), step 2b's catalogue and knowledge pack (`GET /v1/blueprints`), and step 2's creation: **it creates `journey-app` from `node-ts-mongo@1`'s `proof-app` starter, for a class, the first time, and reuses it after** — a project and a bare repository, no container. Step 3 subscribes to the project's event stream through the edge (`subscribe` in `@manifest/contract`, with the session and the console's `Origin` on the upgrade) and checks the replay carries `project.created`, `repository.seeded` and `spec.validated` in order, then the ready frame; `FAIL the stream became ready — the event stream closed before it was ready (1006)` is an upgrade the control plane refused. **Step 4 builds `journey-app`** (P5a Task 13): subscribed first, it starts a build, checks the answer came back `running` at once (R6), waits on the stream for that build's `build.succeeded` or `build.failed` — up to 960 s, past the builder's own 900 s bound — checks its log lines arrived before its end, and reads `GET /v1/builds/{buildId}` for a digest and a scan by `anchore/grype`. It prints how long the build took and what the scan said. **Step 5 releases that build and deploys it to staging** (P5a Task 14): it checks the release carries the build's digest and a real scan and names its env vars **without their values** (`COURSE_CODE`, never `CHEM_121`), reads the release back and lists the project's releases, then subscribes and deploys — the instance must be `healthy`, must carry no `driver` or `handle`, and the stream must have carried `instance.provisioning`, `instance.starting` and `instance.healthy` **in that order**. **Step 6 leaves the contract and enters the deployed app** (Decision 38): `idp_login` signs the instructor in at `journey-app.staging.manifest.internal` with CWL, writes a note through the app's own `/api/notes`, and asks `/api/ask` a question the note answers — checking the reply came back embedded in 768 dimensions (S3's silent failure). **Step 7 asks for production** (P5a Task 15): the deploy is refused `409 RELEASE_PRODUCTION_GATE_UNAVAILABLE`, the refusal carries §13's checklist, and `GET /v1/projects/{projectId}/launch-readiness` answers the same bytes — not ready, the candidate the release serving staging, the domain before IAM registration, scans computed from that release, and every other item saying which plan builds it. **Step 8 reads the fleet** (P5a Task 16): the instructor is refused `403`, then the script signs `operator` in, runs `scripts/admin-grant.sh grant opr000001`, signs them in AGAIN — a session carries the role it was issued with — and `GET /v1/fleet` shows `journey-app` owned by the instructor, for a class, healthy in staging on the journey's release. After `pnpm test` has emptied the tables it first removes `.manifest/repos/journey-app.git`, as the demos do for theirs (*Known gaps*).
 
+## `make demo-token` — P5b's acceptance: an agent runs the build loop, and a human answers it
+
+*Added by P5b sitting 8, 2026-09-18 (Task 12).*
+
+D24's loop, end to end, through the edge. The control plane running, per README. It builds
+`@manifest/contract` and `packages/journey` from the checked-in document, checks the control plane answers
+through the edge, signs the **instructor** in with CWL, signs the **student** in once as well — see below —
+and runs `packages/journey/dist/token.js`: a Node process holding two credentials, calling
+`https://console.manifest.internal` through nothing but the generated client, under `NODE_EXTRA_CA_CERTS`.
+
+```bash
+make up
+# ... the control plane running, per README ...
+make demo-token             # ~40 seconds; ends with `every check passed` and exit 0
+```
+
+It works on its own project, **`token-app`**, created from `node-ts-mongo@1`'s `proof-app` starter the first
+time and reused after — creating it is the *instructor's* job, because `POST /v1/projects` is interactive-only
+(D24's scope rule). Then, in order:
+
+1. **The instructor mints a delegated token** for the agent: `project:read`, `build:create`, `release:create`,
+   `release:deploy` — and a mint carrying `members:manage` is refused `400 TOKEN_CAPABILITY_FORBIDDEN` first,
+   so the token step 6 is refused with demonstrably *could not* have been minted differently. The secret is
+   checked to be `mft_<the row id with its dashes stripped>_<43 base64url characters>`, and the token object
+   itself is checked to carry no `secret` field at all.
+2. **The agent reads its own project** — and `GET /v1/projects` answers it exactly that one, never its
+   minter's others — and is refused `GET /v1/fleet` and `POST /v1/projects`, both `403
+   TOKEN_CREDENTIAL_REFUSED`.
+3. **The agent builds**, watching its own event stream on its own bearer, and **deploys to staging**; the app
+   then answers its own `/healthz` through the edge. **Promoting the same release to production is refused
+   `403 TOKEN_ACTION_PENDING`** — `release:promote` is privileged and `release:deploy` is not.
+4. **The agent asks to add a member** and is refused `403 TOKEN_ACTION_PENDING`, carrying the question.
+5. **The instructor reads §26's queue and confirms it** — and the agent trying to confirm its own question is
+   refused `403 TOKEN_CREDENTIAL_REFUSED` first, because a loop with no human in it is not D24's loop.
+6. **The agent retries** with the same body and the **same `Idempotency-Key`** and gets `201`; the same key
+   again replays that `201` and asks nobody anything; a **fresh** key is a new question. The instructor
+   **rejects** that one, and the agent's retry is `403 TOKEN_ACTION_REJECTED` carrying their words verbatim.
+7. **The instructor revokes the token** and the agent's next call is `401 UNAUTHENTICATED` — while the token
+   still reads `expired: false`, because a clock and a person are different answers to why a credential stopped.
+
+**Every check prints `ok` or `FAIL` and the run exits 1 listing each failure**, so a red run is a measurement
+rather than the first thing that broke. It prints, on the green path, the token's capability count and expiry,
+how long the build took, how long the question waited for a human, and each retry's status — a green
+`checks.ok` prints no detail, so the numbers a filed run is evidence for would otherwise be thrown away.
+
+**THE ONE PRECONDITION, and why the script signs a second person in.** Step 6 has the agent ask to add
+`stu000001`, and `POST /v1/projects/{id}/members` refuses `400 MEMBER_USER_NOT_FOUND` for anybody who has never
+signed in — `pnpm test` and `make reset` both empty `users`. So `scripts/demo-token.sh` signs the student in
+and throws the session away; all it needs is the row. Without it the **confirmed retry** answers `400`, which
+reads as a defect in D24's grant rather than as a missing sign-in.
+
+**What it leaves behind.** One `pending` question — the production promotion nobody answered — which is honest:
+it is what Task 10's expiry sweeper exists for, and §26's queue shows it beside the run's `confirmed` and
+`rejected` ones. A `FAIL no step threw — [cause UNABLE_TO_GET_ISSUER_CERT_LOCALLY] TypeError: fetch failed` is a
+run without the platform CA; a demo that does not build stops at step 0 and prints `tsc`'s errors.
+
 ## The first administrator
 
 *Added by P5a Task 16, 2026-09-17.*
@@ -322,8 +378,8 @@ reads `GET /v1/fleet` (§26); everyone else gets `403`.
 
 ## Minting a delegated token
 
-*Added by P5b Task 4, 2026-09-17. The demo that drives it end to end, `make demo-token`, is Task 12's and is
-not built yet.*
+*Added by P5b Task 4, 2026-09-17. `make demo-token` drives the whole thing end to end (P5b sitting 8,
+2026-09-18); this section is how to run it by hand.*
 
 D24: an agent does not hold a person's session. It holds a **delegated token** — *"minted by the user in an
 interactive session, scoped to a project and a capability set, with an expiry"* — and this is how one is made.
@@ -410,7 +466,7 @@ parallel cannot fill a person's queue with the same question forty times. It is 
 question is answered or lapsed, the same thing may be asked again.
 
 **What is not built.** A project owner cannot revoke a collaborator's token — only the person who minted it
-can. `make demo-token` — the whole loop driven end to end through the edge — is Task 12's.
+can.
 
 *This section said "a token cannot authenticate until Task 5, which is the next sitting's work" until
 2026-09-18, two sittings after that stopped being true: sittings 3 and 4 swept the gate-number line in this
@@ -418,8 +474,8 @@ file and not the section their own work made false. Recorded as a finding in P5b
 
 ## Answering an agent's pending action
 
-*Added by P5b Tasks 6 and 7, 2026-09-18. `make demo-token` drives the whole loop end to end and is Task
-12's; until then this is how to run it by hand.*
+*Added by P5b Tasks 6 and 7, 2026-09-18. `make demo-token` drives the whole loop end to end (sitting 8); this
+is how to run it by hand.*
 
 D24's four are refused **centrally, at the authorization layer, not per route** — so a new privileged route
 cannot accidentally omit the rule. An agent asking for one is answered `403 TOKEN_ACTION_PENDING`, and the
