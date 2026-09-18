@@ -303,7 +303,8 @@ make demo-token             # ~40 seconds; ends with `every check passed` and ex
 
 It works on its own project, **`token-app`**, created from `node-ts-mongo@1`'s `proof-app` starter the first
 time and reused after — creating it is the *instructor's* job, because `POST /v1/projects` is interactive-only
-(D24's scope rule). Then, in order:
+(D24's scope rule). **The run prints nine steps**; they are grouped here into seven, so the numbers below are
+not the step numbers it prints:
 
 1. **The instructor mints a delegated token** for the agent: `project:read`, `build:create`, `release:create`,
    `release:deploy` — and a mint carrying `members:manage` is refused `400 TOKEN_CAPABILITY_FORBIDDEN` first,
