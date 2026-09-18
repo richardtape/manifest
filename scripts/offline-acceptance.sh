@@ -82,4 +82,21 @@ else
 fi
 
 echo
+echo "=== 8. P5a's acceptance: §22's journey through the edge, by nothing but the generated client ==="
+# APPENDED, like step 7, and for the same reason. This one proves a DIFFERENT
+# thing offline from steps 6 and 7: not that the platform works, but that the
+# published contract does — `packages/journey` calls `@manifest/contract`, which
+# is generated from `packages/contract/openapi.json`, over the edge at
+# console.manifest.internal. Its `tsc` build runs from the checked-in types and
+# needs no registry; `make demo-journey` creates journey-app from a starter,
+# builds it, deploys it, signs in inside it with CWL, asks for production and
+# reads the fleet. If the step that needs a route out is this one, that is the
+# finding — the same rule as step 6.
+if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
+  make demo-journey; echo "demo-journey exit=$?"
+else
+  echo "  SKIPPED: no control plane behind https://console.manifest.internal — the same rule as step 6."
+fi
+
+echo
 echo "=== done. Turn the network back on. ==="

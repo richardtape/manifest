@@ -462,6 +462,7 @@ async function step5Deploy(): Promise<void> {
     return
   }
   try {
+    const deployAskedAt = Date.now()
     const instance = unwrap(
       await client.POST('/v1/environments/{environmentId}/deploy', {
         params: {
@@ -472,6 +473,7 @@ async function step5Deploy(): Promise<void> {
       }),
       'deploy',
     )
+    const deployedMs = Date.now() - deployAskedAt
     state.instanceId = instance.id
     checks.must(
       'the instance is healthy',
@@ -500,6 +502,9 @@ async function step5Deploy(): Promise<void> {
         at('instance.healthy') > at('instance.starting'),
       `${at('instance.provisioning')} ${at('instance.starting')} ${at('instance.healthy')}`,
     )
+    // A green `checks.ok` prints no detail (check.ts), so the numbers an acceptance
+    // run is filed as evidence for would otherwise be computed and thrown away.
+    console.log(`  (deploy answered in ${deployedMs} ms; ${frames.length} frames seen)`)
     const environment = unwrap(
       await client.GET('/v1/environments/{environmentId}', {
         params: { path: { environmentId: state.stagingEnvironmentId! } },
@@ -561,6 +566,9 @@ async function step7RequestProduction(): Promise<void> {
       (item('scans')?.state === 'unmet' && item('scans')!.why.includes('database')),
     `${item('scans')?.state}: ${item('scans')?.why}`,
   )
+  // Which way `scans` resolved is the one readiness item P5a computes, and the
+  // distinction control (j) turns red — so the record says it on a green run too.
+  console.log(`  (scans: ${item('scans')?.state} — ${item('scans')?.why})`)
   checks.ok(
     'what Manifest does not track yet says so, and who builds it',
     item('iam-registration')?.state === 'not_built' &&
