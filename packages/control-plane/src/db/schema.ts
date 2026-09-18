@@ -303,6 +303,101 @@ export const secrets = pgTable(
   ],
 )
 
+export const pendingActionState = pgEnum('pending_action_state', [
+  'pending',
+  'confirmed',
+  'rejected',
+  'expired',
+])
+
+/**
+ * §6's `DelegatedToken` (D24): a credential an agent holds, scoped to ONE project and an
+ * explicit capability set, revocable and expiring.
+ *
+ * `capabilities` is `string[]` and not `Capability[]` because `db/` must not import
+ * `projects/` — the dependency runs the other way, and the authorization module is what
+ * turns these strings into capabilities (P5b Task 5). The set is validated where it is
+ * written, at Task 4's mint route.
+ */
+export const delegatedTokens = pgTable(
+  'delegated_tokens',
+  {
+    /**
+     * THE TOKEN NAMES THIS ROW. The plaintext is `mft_<id without dashes>_<secret>`, so
+     * the id is not an implementation detail — `tokens/repository.ts` requires it from
+     * the caller rather than defaulting to `defaultRandom()`, because a row no plaintext
+     * names is a credential nothing can present. The default stands only as a safety net.
+     */
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** D24: scoped to ONE project (P5b Decision 3). */
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    /** A person's label for it, so a list of tokens is reviewable. */
+    name: text('name').notNull(),
+    /** sha256 of the secret, hex. THE SECRET IS NEVER STORED (P5b Decision 1). */
+    tokenHash: text('token_hash').notNull().unique(),
+    /** The explicit set D24 asks for. Never one of PRIVILEGED — Task 4 refuses it. */
+    capabilities: jsonb('capabilities').notNull().$type<string[]>(),
+    /** §20's per-token limit, generalising P5a Task 9's limiter (P5b Task 9). */
+    rateLimit: integer('rate_limit').notNull().default(600),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('delegated_tokens_user_idx').on(t.userId)],
+)
+
+/**
+ * §6's `PendingAction` (D24): the record that a delegated token asked for something
+ * privileged, which a human confirms or rejects in an interactive session (§26's queue).
+ *
+ * NOTE THE TWO REFERENTIAL ACTIONS TOGETHER. `requested_by_token` is `restrict` so that
+ * revoking a token cannot erase the record of what it asked for; `delegated_tokens`
+ * cascades from `users` and `projects`. So the first code that deletes a user or a
+ * project will be refused while a pending action survives — deliberately, and there is
+ * no such route today (nothing deletes a project; `project:delete` has no caller). The
+ * plan that adds one resolves the record's fate explicitly rather than by cascade.
+ */
+export const pendingActions = pgTable(
+  'pending_actions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    requestedByToken: uuid('requested_by_token')
+      .notNull()
+      .references(() => delegatedTokens.id, { onDelete: 'restrict' }),
+    /** The capability that was refused — one of `PRIVILEGED`. */
+    action: text('action').notNull(),
+    /**
+     * What was asked for: method, path and a sha256 of the canonical body. NOT the body
+     * itself — a refused request can carry anything, and this row is read by a person in
+     * a queue (§26). The fingerprint is what Task 7 matches a retry against.
+     */
+    payload: jsonb('payload').notNull().$type<{
+      method: string
+      path: string
+      bodySha256: string
+      summary: string
+    }>(),
+    state: pendingActionState('state').notNull().default('pending'),
+    resolvedBy: uuid('resolved_by').references(() => users.id),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    /** Task 10: an unanswered request does not wait for ever. */
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    /** Decision 7: confirmed-and-used, without a fifth state. */
+    consumedAt: timestamp('consumed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('pending_actions_project_state_idx').on(t.projectId, t.state)],
+)
+
 /**
  * §20's audit log lives in its own SCHEMA, and that is the control rather than a
  * filing decision.
