@@ -8,7 +8,15 @@ import { afterAll, beforeAll, expect, it } from 'vitest'
 import { disabledAiKeyService, disabledCatalogue } from './ai/index.js'
 import { loadBlueprints } from './blueprints/index.js'
 import { loadConfig } from './config.js'
-import { appSpecs, builds, db, events, instances, users } from './db/index.js'
+import {
+  appSpecs,
+  builds,
+  db,
+  events,
+  instances,
+  pendingActions,
+  users,
+} from './db/index.js'
 import { resetDatabase } from './db/testing.js'
 import { createEventBus } from './observability/index.js'
 import { createProject } from './projects/index.js'
@@ -34,6 +42,8 @@ import { litellmMasterKey } from './ai/testing.js'
 import { deleteSpRow, readSpRow } from './sso/index.js'
 import { idpDatabaseUrl } from './sso/testing.js'
 import { testAudience, testReservedLabels } from './projects/testing.js'
+import { bodySha256 } from './tokens/index.js'
+import { mintTestToken } from './tokens/testing.js'
 
 /** Its own SP scope. `identity/saml.docker.test.ts` records why at length. */
 const TEST_ENTITY_BASE = 'https://test-suite.manifest.internal'
@@ -192,11 +202,14 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
     routesRestored: number
     routesFailed: number
     interrupted: number
+    pendingActionsExpired: number
   }
   let serving: { id: string; handle: string }
   let retired: { id: string; handle: string }
   let interrupted: string
   let interruptedBuild: string
+  let stalePending: string
+  let freshPending: string
   let probeAfterBoot: { status: number; body: string; instance: string }
 
   /**
@@ -417,6 +430,45 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
         .returning()
     )[0]!.id
 
+    /**
+     * AND TWO QUESTIONS AN AGENT ASKED (P5b Task 10), one of which nobody answered in
+     * time. The boot is what moves it to `expired`; the fresh one is the discrimination,
+     * because "the stale row is expired" is also true of a sweep with no `expires_at`
+     * clause at all, which would quietly expire every open question on the platform.
+     */
+    const { row: agentToken } = await mintTestToken(db, {
+      userId: user!.id,
+      projectId: project.id,
+      capabilities: ['members:manage'],
+      name: 'boot-sweep',
+    })
+    const ask = async (path: string, expiresAt: Date): Promise<string> =>
+      (
+        await db
+          .insert(pendingActions)
+          .values({
+            projectId: project.id,
+            requestedByToken: agentToken.id,
+            action: 'members:manage',
+            payload: {
+              method: 'POST',
+              path,
+              bodySha256: bodySha256({ puid: 'someone' }),
+              summary: 'Add or change a member',
+            },
+            expiresAt,
+          })
+          .returning()
+      )[0]!.id
+    stalePending = await ask(
+      `/v1/projects/${project.id}/members`,
+      new Date(Date.now() - 1000),
+    )
+    freshPending = await ask(
+      `/v1/projects/${project.id}/members/other`,
+      new Date(Date.now() + 86_400_000),
+    )
+
     // AND THE EDGE FORGETS THE ROUTE, which is what `docker restart manifest-caddy`
     // does to every runtime route. The hostname now answers the wildcard.
     await removeRoute(routing, HOST, KIND)
@@ -508,6 +560,20 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
     expect(probeAfterBoot.instance).toBe(serving.id)
     expect(probeAfterBoot.body).not.toContain('manifest OK host=')
     expect(probeAfterBoot.status).toBe(200)
+  }, 120_000)
+
+  it('expires a question nobody answered, and says how many on the boot line (P5b Task 10)', async () => {
+    /**
+     * THE UNIT TIER CANNOT SEE THIS. `expirePendingActions` has its own tests in
+     * `tokens/expiry.test.ts`, and they stay green with the boot call deleted — a
+     * sweeper nothing runs is the shape ORIENTATION §9 names four times. This is the
+     * only test in the repository that fails if `src/index.ts` stops calling it.
+     */
+    expect(boot.pendingActionsExpired).toBe(1)
+    const stateOfAsk = async (id: string): Promise<string> =>
+      (await db.select().from(pendingActions).where(eq(pendingActions.id, id)))[0]!.state
+    expect(await stateOfAsk(stalePending)).toBe('expired')
+    expect(await stateOfAsk(freshPending)).toBe('pending')
   }, 120_000)
 
   it('finishes a drain a restart cut short', async () => {

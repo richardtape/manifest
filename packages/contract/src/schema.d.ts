@@ -1765,6 +1765,8 @@ export interface components {
              * @description An instant, ISO 8601 in UTC.
              */
             expiresAt: string;
+            /** @description Whether this token is past its own expiresAt. Computed by the platform; a revoked token that has not expired is not expired. */
+            expired: boolean;
             revokedAt: string | null;
             lastUsedAt: string | null;
             /**

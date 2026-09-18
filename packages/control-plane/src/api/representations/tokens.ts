@@ -29,6 +29,21 @@ export const Token = representation(
           'Requests a minute this token may make, enforced in the control plane (§20, P5b Task 9). Past it, every route answers 429 RATE_LIMITED with Retry-After.',
         ),
       expiresAt: Timestamp,
+      /**
+       * COMPUTED, NEVER STORED (Task 10) — the same rule `LaunchReadiness` follows (P5a
+       * Task 15). A stored flag would need something to write it and would be wrong
+       * between the moment a token expires and the moment that something ran; this is
+       * `expiresAt` compared with now, by the platform rather than by every client.
+       *
+       * It is NOT "this token no longer works": a revoked token does not work either,
+       * and `revokedAt` says so separately, because a clock and a person are different
+       * answers to why a credential stopped.
+       */
+      expired: z
+        .boolean()
+        .describe(
+          'Whether this token is past its own expiresAt. Computed by the platform; a revoked token that has not expired is not expired.',
+        ),
       revokedAt: Timestamp.nullable(),
       lastUsedAt: Timestamp.nullable(),
       createdAt: Timestamp,
@@ -94,7 +109,21 @@ export const MintTokenRequest = request(
   }),
 )
 
+/**
+ * **NO `now` PARAMETER, and that is deliberate** — `api/routes/tokens.ts` maps this over
+ * a list as `.map(toToken)`, and `Array.prototype.map` passes the INDEX as the second
+ * argument. Measured 2026-09-18, one minute after adding one: `now` arrived as `0`, the
+ * comparison below became `Date <= 0`, and every token in every list read
+ * `expired: false` — including one that expired an hour ago. Only the assertion about
+ * the EXPIRED token could see it; `expired: false` on a live token was green throughout.
+ *
+ * `toPendingAction` does take a `now`, because a list's `waitingSeconds` must be computed
+ * against ONE instant or two rows in one response disagree about the present; its own
+ * call site passes it explicitly for that reason. A boolean that could flip between two
+ * rows microseconds apart needs no such care, so this one reads the clock itself.
+ */
 export function toToken(row: typeof delegatedTokens.$inferSelect): z.input<typeof Token> {
+  const now = new Date()
   return {
     id: row.id,
     projectId: row.projectId,
@@ -102,6 +131,10 @@ export function toToken(row: typeof delegatedTokens.$inferSelect): z.input<typeo
     capabilities: row.capabilities,
     rateLimit: row.rateLimit,
     expiresAt: row.expiresAt.toISOString(),
+    // `<=`, matching `tokens/actor.ts`'s own refusal of an expired token and the
+    // sweeper's boundary: a token at exactly its expiry cannot authenticate, so a list
+    // that called it live would disagree with the front door about the same row.
+    expired: row.expiresAt <= now,
     revokedAt: row.revokedAt?.toISOString() ?? null,
     lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),

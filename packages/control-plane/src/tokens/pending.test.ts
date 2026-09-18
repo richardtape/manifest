@@ -1,8 +1,11 @@
+import { randomUUID } from 'node:crypto'
+import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
-import { withProject } from '../db/testing.js'
+import { resetDatabase, withProject } from '../db/testing.js'
 import { createEventBus } from '../observability/index.js'
+import { expectSqlState } from '../observability/testing.js'
 import { TokenCapabilityRefusedError } from '../projects/index.js'
-import type { Db } from '../db/index.js'
+import { db as pooled, pendingActions, projects, users, type Db } from '../db/index.js'
 import {
   bodySha256,
   consumeAction,
@@ -348,5 +351,144 @@ describe('finding a person’s answer again (P5b Task 7)', () => {
       expect(second).toBeUndefined()
       expect((await pendingById(db, row.id))?.state).toBe('confirmed')
     })
+  })
+})
+
+/**
+ * THE ONE OPEN ASK PER TOKEN AND FINGERPRINT, ENFORCED BY THE DATABASE (P5b Task 10, from
+ * sitting 5's F10).
+ *
+ * **These run on the POOL, and that is the whole point.** `withProject` — and
+ * `withRollback` under it — runs every query of a test on ONE connection inside one
+ * transaction, so five `Promise.all`'d calls queue up and execute in order: the read of
+ * each sees the insert of the one before, and the race is invisible (ORIENTATION §4, *a
+ * single-connection transaction hides an ordering race*). That is why the reuse lookup's
+ * read-then-insert survived Task 6's nine negative controls and every test in this file,
+ * and was found only by a fixture that happened to use `Promise.all` across connections.
+ * A committed fixture and `resetDatabase` in a `finally` is the pattern `releases.test.ts`
+ * uses for the same reason.
+ */
+describe('one open ask per token and fingerprint, on the pool (F10)', () => {
+  async function committedProject(): Promise<{ projectId: string; ownerId: string }> {
+    const unique = randomUUID().slice(0, 8)
+    const [owner] = await pooled
+      .insert(users)
+      .values({
+        ubcCwlPuid: `puid-${unique}`,
+        email: `owner-${unique}@example.ubc.ca`,
+        displayName: 'Test Owner',
+      })
+      .returning()
+    const [project] = await pooled
+      .insert(projects)
+      .values({
+        slug: `fixture-${unique}`,
+        ownerId: owner!.id,
+        blueprintRef: 'fixture-node@1',
+      })
+      .returning()
+    return { projectId: project!.id, ownerId: owner!.id }
+  }
+
+  /** One `pending_actions` row, written straight past `recordPendingAction`. */
+  async function insertOpenAsk(
+    where: { projectId: string; tokenId: string },
+    state: 'pending' | 'expired' = 'pending',
+  ): Promise<string> {
+    const [row] = await pooled
+      .insert(pendingActions)
+      .values({
+        projectId: where.projectId,
+        requestedByToken: where.tokenId,
+        action: 'members:manage',
+        payload: fingerprintOf(ASK),
+        expiresAt: new Date(Date.now() + PENDING_ACTION_TTL_MS),
+        state,
+      })
+      .returning({ id: pendingActions.id })
+    return row!.id
+  }
+
+  it('is the DATABASE that refuses the second open ask, and only while the first is open', async () => {
+    // The deterministic half of this pair. The `Promise.all` test above depends on five
+    // callers actually interleaving, which is a property of the pool rather than of the
+    // schema; this one asserts the guarantee itself, and its second half is what proves
+    // the index is PARTIAL — a blanket unique on the fingerprint would refuse the
+    // insert below too, and an agent whose question expired could then never ask again.
+    try {
+      const { projectId, ownerId } = await committedProject()
+      const { row: token } = await mintTestToken(pooled, {
+        userId: ownerId,
+        projectId,
+        capabilities: ['members:manage'],
+      })
+      const open = await insertOpenAsk({ projectId, tokenId: token.id })
+
+      await expectSqlState(insertOpenAsk({ projectId, tokenId: token.id }), '23505')
+
+      // Once the first is no longer open, the same question may be asked again.
+      await pooled
+        .update(pendingActions)
+        .set({ state: 'expired' })
+        .where(eq(pendingActions.id, open))
+      const second = await insertOpenAsk({ projectId, tokenId: token.id })
+      expect(second).not.toBe(open)
+    } finally {
+      await resetDatabase()
+    }
+  })
+
+  it('creates ONE row when five identical asks arrive at once, and a different ask still gets its own', async () => {
+    try {
+      const { projectId, ownerId } = await committedProject()
+      const bus = createEventBus()
+      const { row: token } = await mintTestToken(pooled, {
+        userId: ownerId,
+        projectId,
+        capabilities: ['members:manage'],
+      })
+      const ask = (fingerprint: ReturnType<typeof fingerprintOf>) =>
+        recordPendingAction(pooled, bus, {
+          error: refusedFor(projectId, token.id),
+          fingerprint,
+        })
+
+      // WARM THE POOL FIRST, or this control cannot fail. `pg.Pool` establishes a
+      // connection per acquire up to its default max of 10, and establishing one costs
+      // more than the SELECT and INSERT it is wanted for — so on a cold pool the first
+      // caller finishes both before the second has a connection to read on, the five
+      // asks serialise, and the test is green against the read-then-insert it exists to
+      // catch. Measured 2026-09-18: without these two lines it passed with no index and
+      // no conflict handling at all.
+      await Promise.all(Array.from({ length: 8 }, () => pooled.execute('select 1')))
+
+      const five = await Promise.all([1, 2, 3, 4, 5].map(() => ask(fingerprintOf(ASK))))
+
+      // Every caller must be handed the SAME row, not merely "no more than five rows":
+      // an agent retrying in parallel is told which question to wait on, and five
+      // different ids would send it to watch four rows nobody will ever answer.
+      expect(new Set(five.map((row) => row.id)).size).toBe(1)
+      expect(
+        await pooled
+          .select()
+          .from(pendingActions)
+          .where(eq(pendingActions.requestedByToken, token.id)),
+      ).toHaveLength(1)
+
+      // THE POSITIVE HALF, in the same test: a genuinely different question still gets
+      // its own row. Without it, "one row" is also true of a platform that stopped
+      // recording pending actions altogether.
+      const other = await ask(fingerprintOf({ ...ASK, url: '/v1/projects/p/members/x' }))
+      expect(other.id).not.toBe(five[0]!.id)
+      expect(
+        await pooled
+          .select()
+          .from(pendingActions)
+          .where(eq(pendingActions.requestedByToken, token.id)),
+      ).toHaveLength(2)
+    } finally {
+      // The rows above were COMMITTED, and every other test in this file assumes none are.
+      await resetDatabase()
+    }
   })
 })

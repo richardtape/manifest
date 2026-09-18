@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "pending_actions_one_open_ask_idx" ON "pending_actions" USING btree ("requested_by_token",("payload"->>'method'),("payload"->>'path'),("payload"->>'bodySha256')) WHERE "pending_actions"."state" = 'pending';

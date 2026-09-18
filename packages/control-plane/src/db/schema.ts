@@ -415,6 +415,30 @@ export const pendingActions = pgTable(
      * cheap: it is scoped to one token's own rows, never a scan.
      */
     index('pending_actions_token_idx').on(t.requestedByToken),
+    /**
+     * Task 10: ONE OPEN ASK PER TOKEN AND QUESTION, enforced here and not in the
+     * application.
+     *
+     * `recordPendingAction`'s reuse lookup was a read-then-insert, and P5b sitting 5
+     * measured what that costs: five CONCURRENT identical asks created five rows, which
+     * defeats the only thing the lookup exists for — an agent retrying on a 403 must not
+     * fill a person's queue with one question asked forty times — for exactly the agent
+     * that retries in parallel, which is what a retry loop does.
+     *
+     * **PARTIAL, on `state = 'pending'`**, because a question that expired or was
+     * answered must be askable again: a blanket unique on the fingerprint would refuse
+     * an agent's next ask for ever. That predicate is why this index could not land with
+     * sitting 5 — it is only safe once `state` reliably reflects expiry, which
+     * `tokens/expiry.ts` and `recordPendingAction`'s own scoped sweep make true.
+     */
+    uniqueIndex('pending_actions_one_open_ask_idx')
+      .on(
+        t.requestedByToken,
+        sql`(${t.payload}->>'method')`,
+        sql`(${t.payload}->>'path')`,
+        sql`(${t.payload}->>'bodySha256')`,
+      )
+      .where(sql`${t.state} = 'pending'`),
   ],
 )
 

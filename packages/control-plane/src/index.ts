@@ -13,6 +13,7 @@ import { createDockerDriver, createEngineClient } from './runtime/index.js'
 import { createLocalSourceDriver } from './source/index.js'
 import { createBuildRunner, createRetirer, recoverAtBoot } from './releases/index.js'
 import { loadReservedLabels } from './projects/index.js'
+import { expirePendingActions } from './tokens/index.js'
 import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
 import { createServiceCredentials } from './services/index.js'
 import { createSamlSp } from './identity/index.js'
@@ -317,6 +318,24 @@ const app = await buildServer({
  */
 const recovery = await recoverAtBoot({ db, driver, retirer, bus })
 
+/**
+ * §6'S FOURTH `PendingAction` STATE, APPLIED (P5b Task 10) — and this line is the caller
+ * the sweeper exists for. A module with no call site is not built, and it has shipped
+ * that way four times in this project.
+ *
+ * BEFORE `listen`, with `recoverAtBoot`, for the same reason: this process is about to
+ * serve §26's queue, and a question whose own `expiresAt` passed while nothing was
+ * running should not be shown to a person as one still waiting for them. Nothing else in
+ * the platform sweeps on a timer — the two places where an expired question would
+ * actually change an answer both compare the timestamp themselves (`answerable` refuses
+ * one, `resolutionFor` declines to match one), and `recordPendingAction` expires its own
+ * token's stale rows before it inserts, which is what keeps the partial unique index from
+ * blocking a fresh ask. So a long-running process can show a stale `pending` in the
+ * queue until its next restart; that is named in P5b's *What this plan does not build*
+ * rather than fixed with a third piece of background work.
+ */
+const pendingActionsExpired = await expirePendingActions(db)
+
 await app.listen({ port: config.port, host: '127.0.0.1' })
 
 // Which driver actually booted is the one fact this file decides, and every
@@ -346,6 +365,10 @@ console.log(
     routesRestored: recovery.routesRestored,
     routesFailed: recovery.routesFailed.length,
     interrupted: recovery.interrupted,
+    // Task 10: how many questions nobody answered in time. A sweep nobody can see is
+    // indistinguishable from one that never ran, which is what the line above says
+    // about the recovery and is why this is beside it.
+    pendingActionsExpired,
     msg: 'control plane ready',
     // How many names §23's list reserves: 0 would mean nothing is reserved.
     reservedLabels: reservedLabels.size,

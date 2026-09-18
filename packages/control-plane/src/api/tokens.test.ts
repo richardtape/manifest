@@ -1,5 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest'
 import { resetDatabase } from '../db/testing.js'
+import { revokeToken } from '../tokens/index.js'
+import { mintTestToken } from '../tokens/testing.js'
 import { mutationHeaders, sessionFor, withProjectServer } from './testing.js'
 
 afterAll(resetDatabase)
@@ -39,6 +41,49 @@ describe('minting a delegated token (D24, Task 4)', () => {
       // The read schema HAS NO `secret` FIELD (Decision 11) — not an empty one.
       expect('secret' in one).toBe(false)
       expect(JSON.stringify(listed.json())).not.toContain(body.secret)
+    })
+  })
+
+  it('says whether a token has EXPIRED, and a revocation is not an expiry', async () => {
+    // Task 10's token half. §20 asks for a list a person can review, and one that showed
+    // `expiresAt` alone would make every reviewer compare timestamps by hand — so the
+    // platform computes it, the way `LaunchReadiness` is computed rather than stored
+    // (P5a Task 15).
+    //
+    // The revoked token is the discriminating case. `expired` and `revokedAt` are two
+    // different facts about why a credential stopped working — one is a clock, the other
+    // is a person — and a client that showed "expired" for a revocation would tell an
+    // operator the wrong story about their own project.
+    await withProjectServer(async (ctx) => {
+      const owner = await sessionFor(ctx, 'bio_prof', 'owner')
+      const mint = (name: string, expiresAt: Date) =>
+        mintTestToken(ctx.db, {
+          userId: ctx.userId,
+          projectId: ctx.projectId,
+          capabilities: ['project:read'],
+          name,
+          expiresAt,
+        })
+      const day = new Date(Date.now() + 86_400_000)
+      const dead = await mint('dead', new Date(Date.now() - 1000))
+      const live = await mint('live', day)
+      const revoked = await mint('revoked', day)
+      expect(await revokeToken(ctx.db, revoked.row.id, ctx.userId)).toBe(true)
+
+      const listed = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/projects/${ctx.projectId}/tokens`,
+        cookies: owner,
+      })
+      expect(listed.statusCode).toBe(200)
+      const byId = new Map<string, { expired: boolean; revokedAt: string | null }>(
+        listed.json().map((t: { id: string }) => [t.id, t]),
+      )
+
+      expect(byId.get(dead.row.id)?.expired).toBe(true)
+      expect(byId.get(live.row.id)?.expired).toBe(false)
+      expect(byId.get(revoked.row.id)).toMatchObject({ expired: false })
+      expect(byId.get(revoked.row.id)?.revokedAt).not.toBeNull()
     })
   })
 

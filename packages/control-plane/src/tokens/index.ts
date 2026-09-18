@@ -1,4 +1,5 @@
 export * from './actor.js'
+export * from './expiry.js'
 export * from './pending.js'
 export * from './repository.js'
 export * from './token.js'

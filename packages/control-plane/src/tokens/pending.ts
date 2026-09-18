@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
 import { pendingActions, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
+import { expirePendingActions } from './expiry.js'
 import type { TokenCapabilityRefusedError } from '../projects/index.js'
 
 /** §6's `PendingAction`, as stored. */
@@ -83,6 +84,20 @@ export function fingerprintOf(input: {
  * with one question asked forty times. "Identical" is this token, this fingerprint, still
  * `pending`, and not yet expired: an expired row is not an answerable question, so
  * reusing one would leave the agent waiting on something nobody can confirm.
+ *
+ * **AND THE DATABASE IS WHAT ENFORCES THAT, not the lookup below** (Task 10, from sitting
+ * 5's F10). The lookup alone is a read-then-insert: five CONCURRENT identical asks read
+ * no row and all five insert, which is measured, and which defeats the reuse rule for
+ * exactly the agent that retries in parallel. `pending_actions_one_open_ask_idx` is a
+ * partial unique index over the token and the fingerprint `WHERE state = 'pending'`, and
+ * the loser of that race is handed the winner's row rather than an error.
+ *
+ * The index's own hazard is why the two halves of this function are in this order: a row
+ * past its own `expiresAt` that still says `pending` satisfies the index's predicate but
+ * not the lookup's, so it would block every future ask about the same thing — worse than
+ * the duplicate. **This token's stale rows are therefore expired before the insert**, by
+ * the same sweeper that runs at boot, scoped to the one token so that a request path
+ * never writes another tenant's rows.
  */
 export async function recordPendingAction(
   db: Db,
@@ -96,23 +111,37 @@ export async function recordPendingAction(
   const now = input.now ?? new Date()
   const { error, fingerprint } = input
 
-  const [existing] = await db
-    .select()
-    .from(pendingActions)
-    .where(
-      and(
-        eq(pendingActions.requestedByToken, error.tokenId),
-        eq(pendingActions.state, 'pending'),
-        gt(pendingActions.expiresAt, now),
-        // The three fields of the fingerprint, as jsonb text. Compared in SQL rather
-        // than in JavaScript so that a token with many open questions does not read them
-        // all back to find one.
-        sql`${pendingActions.payload}->>'method' = ${fingerprint.method}`,
-        sql`${pendingActions.payload}->>'path' = ${fingerprint.path}`,
-        sql`${pendingActions.payload}->>'bodySha256' = ${fingerprint.bodySha256}`,
-      ),
-    )
+  /**
+   * THE OPEN ASK, IF THERE IS ONE — stated once, because it is read twice: before the
+   * insert, and again by whoever loses the race to it. Two copies of this predicate is
+   * the shape ORIENTATION §9 names (*a guard whose enabling condition is written twice*),
+   * and here the two copies would have to agree about expiry as well as identity.
+   */
+  const openAsk = async (): Promise<PendingAction | undefined> => {
+    const [row] = await db
+      .select()
+      .from(pendingActions)
+      .where(
+        and(
+          eq(pendingActions.requestedByToken, error.tokenId),
+          eq(pendingActions.state, 'pending'),
+          gt(pendingActions.expiresAt, now),
+          // The three fields of the fingerprint, as jsonb text. Compared in SQL rather
+          // than in JavaScript so that a token with many open questions does not read
+          // them all back to find one.
+          sql`${pendingActions.payload}->>'method' = ${fingerprint.method}`,
+          sql`${pendingActions.payload}->>'path' = ${fingerprint.path}`,
+          sql`${pendingActions.payload}->>'bodySha256' = ${fingerprint.bodySha256}`,
+        ),
+      )
+    return row
+  }
+
+  const existing = await openAsk()
   if (existing !== undefined) return existing
+
+  // Before the insert, never after: see the note above. Scoped to this token.
+  await expirePendingActions(db, now, { tokenId: error.tokenId })
 
   const [row] = await db
     .insert(pendingActions)
@@ -123,20 +152,55 @@ export async function recordPendingAction(
       payload: fingerprint,
       expiresAt: new Date(now.getTime() + PENDING_ACTION_TTL_MS),
     })
+    /**
+     * No `target`: drizzle's `onConflictDoNothing` takes columns, and this index is over
+     * jsonb EXPRESSIONS, which it cannot express. The only other unique constraint on
+     * this table is the primary key over a `randomUUID()` default, so a conflict here is
+     * the open-ask index or nothing.
+     */
+    .onConflictDoNothing()
     .returning()
 
-  // §14: the event names the action and who asked, and carries NEITHER the body nor its
-  // hash — a person reading the audit trail needs to know a question was asked, not what
-  // was in it. The row is where the fingerprint lives.
+  /**
+   * THE LOSER OF THE RACE IS HANDED THE WINNER'S ROW. `onConflictDoNothing` returns no
+   * row when another caller inserted between this one's sweep and its insert, and every
+   * caller must come away with the question to wait on — four of five callers being told
+   * "no row" would be the same defect as five rows, from the other direction.
+   *
+   * The re-read cannot come away empty: under READ COMMITTED the conflicting insert is
+   * committed by the time the conflict is reported, and nothing inserts an already-stale
+   * row. If it ever does, that is a 500 with an operator line rather than a `403` naming
+   * a pending action that does not exist.
+   */
+  if (row === undefined) {
+    const winner = await openAsk()
+    if (winner === undefined) {
+      throw new Error(
+        `pending action for token ${error.tokenId} conflicted on ${fingerprint.method} ${fingerprint.path} and no open ask could be read back`,
+      )
+    }
+    return winner
+  }
+
+  /**
+   * §14: the event names the action and who asked, and carries NEITHER the body nor its
+   * hash — a person reading the audit trail needs to know a question was asked, not what
+   * was in it. The row is where the fingerprint lives.
+   *
+   * **Only the caller that WROTE the row publishes.** Reuse returns above without an
+   * event, and so does the loser of a race: five concurrent asks are one question, and
+   * five `pending_action.created` events for it would tell a person reading §14's trail
+   * that five things happened.
+   */
   await publishEvent(
     db,
     bus,
     {
       projectId: error.projectId,
-      subject: `pending-action:${row!.id}`,
+      subject: `pending-action:${row.id}`,
       type: 'pending_action.created',
       machineDetail: {
-        pendingActionId: row!.id,
+        pendingActionId: row.id,
         tokenId: error.tokenId,
         action: error.capability,
       },
@@ -145,7 +209,7 @@ export async function recordPendingAction(
     makeRedactor([]),
   )
 
-  return row!
+  return row
 }
 
 export async function pendingById(
