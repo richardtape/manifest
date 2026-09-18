@@ -2474,6 +2474,16 @@ git commit -m "feat(api): per-token rate limits, from the token's own row"
 > **The control that sees it is a concurrent one.** Every existing test in `tokens/pending.test.ts` and `api/delegation.test.ts` awaits each ask in turn and is green either way — which is why this survived Task 6's nine controls and was found only by a fixture that happened to use `Promise.all`.
 
 
+> **Sitting 6 correction (2026-09-18). THREE THINGS IN THIS TASK'S SNIPPETS DO NOT COMPILE OR DO NOT EXIST.** Found by opening this task and reading it as the next agent will, which §6 asks of every sweep.
+>
+> **1. `withRollback` takes ONE argument, not two.** Its real signature is `withRollback(fn: (tx: Db) => Promise<void>)` (`db/testing.ts:9`). All three snippets below call `withRollback(async (db, ctx) => …)`; the `ctx` is a phantom and `tsc` refuses it before a test runs.
+>
+> **2. `seedPending` does not exist** — anywhere in `src/`. It is yours to write, local to `expiry.test.ts` (Global Constraints), and it is not a one-liner: `pending_actions` has foreign keys to `projects` **and** `delegated_tokens` (`ON DELETE restrict`), so a row needs a project and a token first. That is what the phantom `ctx` was standing in for. **Either** build them inside the rollback with `mintTestToken` (`tokens/testing.ts`) over a project you insert, **or** drop `withRollback` for this file and use `withProjectServer` + `recordPendingAction`, which is how `delegation.test.ts` gets a real row — at the cost of a committed row the harness truncates rather than a rolled-back one.
+>
+> **3. `pendingById` is used in every snippet and imported in none.** It is exported from `tokens/pending.ts`.
+>
+> **Two things that are RIGHT and worth not re-deriving:** `'expired'` is already in the `pending_action_state` enum (`db/schema.ts:306`), so the sweep itself needs **no migration** — but **the partial unique index this task also owes (the F10 correction above) DOES need one**, and this task's *Files* list and its commit message mention neither. It will be **0018**.
+
 **What this is for.** §6 gives `DelegatedToken` an `expires_at` and `PendingAction` the state `expired`; D24 says a token is minted *"with an expiry."* Task 5 already refuses an expired token at authentication — **that is the control**. This task adds the sweeper that makes the *rows* honest, so a queue does not fill with questions nobody will ever answer and `GET /v1/projects/{id}/tokens` does not show a dead token as live.
 
 **Files:**
