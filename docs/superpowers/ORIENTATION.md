@@ -1,6 +1,6 @@
 # Orientation — read this first
 
-**Manifest's design is finished, six implementation plans are executed — P1, P2, P3, P4a, P4b and P4c — and the seventh, P5a (the contract), is being executed one sitting per session. The next job is always §7e.** This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
+**Manifest's design is finished, six implementation plans are executed — P1, P2, P3, P4a, P4b and P4c — and the seventh, P5a (the contract), is on its LAST sitting: Task 17, its acceptance. The next job is always §7e.** This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
 
 *Last verified 2026-09-17.* **Three places state current status — §2, §7e and §8 — and a sitting's sweep REPLACES what they say; it never appends a sitting's story here** (§6). **The roadmap's ledger outranks all three.** Everything else is durable.
 
@@ -34,9 +34,9 @@ everything.
 | P4b | 2026-09-15 | AI answers charged to the asker; build logs, events and Incidents | `make demo-ai` |
 | P4c | 2026-09-16 | A redeploy interrupts and signs out nobody | `make demo-redeploy` |
 
-**The current plan is P5a — the contract** ([`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), 17 tasks in twelve agreed sittings, one per session), the first of Phase 1c's three plans. It puts the API under `/v1` at `https://console.manifest.internal` through the edge, generates an OpenAPI document from the routes and a TypeScript client from that document, and ends with `make demo-journey` driving §22's journey through nothing but that client. **Which of its sittings are done, and which is next, is its sittings table — and §7e.** P5b (delegated tokens) and P5c (the mock, the console, CI) are written only after it executes. *Sittings pace the work; they are not §17's product Phases.*
+**The current plan is P5a — the contract** ([`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), 17 tasks in twelve agreed sittings, one per session), the first of Phase 1c's three plans. It puts the API under `/v1` at `https://console.manifest.internal` through the edge, generates an OpenAPI document from the routes and a TypeScript client from that document, and ends with `make demo-journey` driving §22's journey through nothing but that client. **Eleven of its twelve sittings are done; the twelfth is Task 17, its acceptance — §7e is your job, and the plan's sittings table is the maintained record.** Finishing it finishes the plan, so that sitting's close-out moves more than a usual one (§7e says which). P5b (delegated tokens) and P5c (the mock, the console, CI) are written only after it executes. *Sittings pace the work; they are not §17's product Phases.*
 
-**Executing a plan finds defects at a rate that has never fallen with practice** — 18 in P1's 13 tasks, 52 in P2's 21, 82 in P3's 19, 80 in P4a's 15, 140 in P4b's 16, 70 in P4c's 11, every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat a written plan as a hypothesis (§9).
+**Executing a plan finds defects at a rate that has never fallen with practice** — 18 in P1's 13 tasks, 52 in P2's 21, 82 in P3's 19, 80 in P4a's 15, 140 in P4b's 16, 70 in P4c's 11, and 138 so far in P5a's 16 — plus 8 more found in a browser after sitting 7, which no tier had ever looked at — every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat a written plan as a hypothesis (§9).
 
 **The four numbers you will check first, measured 2026-09-17 on this machine, at the end of P5a sitting 11:**
 
@@ -54,7 +54,7 @@ everything.
 - **The offline acceptance.** Turning the network off from a tool call cuts the agent off too, so `scripts/offline-acceptance.sh` is run by hand. Its step 6 runs `make demo-identity`, the step most likely to need a route out; its step 7 runs `make demo-ai`, whose open question is whether Ollama — a host application, not a container — answers with the network off. **A skipped acceptance is not a passed one.**
 - **The second-machine clean clone** — no second Mac has been available; `RUNBOOK.md`'s *Known gaps* records it.
 - **Starting the UBC external track** — its trigger, §16's proof app answering a question, fired on 2026-09-15 and was raised with Rich that day. [`docs/external-track.md`](../external-track.md).
-- **Nine orphaned LiteLLM users, and Rich's to remove.** Every demo that replaces a project leaves one behind. **Two are held by a running container and seven are not**, checked rather than assumed — `mf-5ce93acc-c86a-4894-85e4-144c2d4b3e84-staging` is the running **journey app's** and `mf-6c5310dc-dae9-4173-8efd-ccfa1625c872-staging` the running **proof app's**, so deleting either stops that container's AI path until the next demo redeploys it. Nothing holds `mf-1eb9fb2f…`, `mf-65ce0172…`, `mf-7a4b1cc2…`, `mf-7c841b6e…` (**2 keys**), `mf-8188bf7b…`, `mf-cbd78594…` or `mf-f4a77ea2…`. §7e has the one-line check that tells them apart and the two-call removal recipe. Rich deleted the six sitting 8 left, on 2026-09-17.
+- **LiteLLM's users, which only Rich can remove.** Deleting one through LiteLLM's admin API is refused by the session's permission classifier as a secret-store write, so an agent **lists them and hands them over; it never works around it**. Every demo that replaces a project leaves one more user with no project, so the list grows every sitting — **re-measure it, never copy the last sitting's**. Right now `/user/list` holds exactly four: `default_user_id`, `p4b-probe-user`, and two that are orphaned by project but **held by a running container**, so neither is safe to delete — `mf-5ce93acc-c86a-4894-85e4-144c2d4b3e84-staging` (journey-app) and `mf-6c5310dc-dae9-4173-8efd-ccfa1625c872-staging` (proof-app). Rich deleted the other seven on 2026-09-17. **Which key a container holds is checkable without printing it**: `docker exec <app> printenv LLM_API_KEY | tr -d '\n' | shasum -a 256` equals that key's `token` in `GET /user/info?user_id=<user>`.
 - **§8's open questions.**
 
 **The spec is current.** Every spike's and every plan's spec actions have been applied with Rich's explicit approval — most recently P5a's six (`491f8be`). **Trust the spec over the spike briefs**, which are preserved as a record of what was originally asked, and **propose any further change; never edit it** (§6).
@@ -139,10 +139,11 @@ packages/journey/                 §22's journey through that client — make de
 | `routing/` | §23 hostnames → Caddy routes; readiness and identity probes run from inside the edge. `caddy.ts` speaks `node:http`, not `fetch` — Caddy's admin API refuses any request carrying an `Origin` header |
 | `build/`, `services/`, `source/` | the build context, §12's gates and scan; per-app Mongo; bare git repositories (D5 driver 1) |
 | `identity/`, `sso/`, `secrets/` | sessions and Manifest's own SAML SP; per-app SP registration in the IdP; envelope encryption |
-| `projects/` | §13 authorization (`authz.ts`), the repository, reserved labels and `checkSlug` |
+| `projects/` | §13 authorization (`authz.ts`), the repository, reserved labels, `checkSlug` and §26's `fleet.ts` |
 | `releases/` | build (the `BuildRunner` a build runs on), release, deploy, retire, recover-at-boot |
 | `observability/` | events and every event type's payload schema (`event-schemas.ts`), redaction, build logs, Incidents, the event bus |
 | `ai/` | the LiteLLM admin client, D17's catalogue, app keys |
+| `launch/` | §13's first-launch checklist, computed from what exists and never stored (`readiness.ts`) |
 | `api/` | the Fastify server; `contract/` (`defineRoute`, the OpenAPI document); `representations/`; `routes/`; `error-codes.ts`; CSRF; idempotency; **`authz-contract.ts`** |
 
 **Read first:** `runtime/driver.ts` and `runtime/driver-contract.ts` — everything is built against them — then `runtime/docker/driver.ts`, `api/server.ts` for how a request becomes an actor, `projects/authz.ts`, and `api/contract/route.ts`.
@@ -890,9 +891,11 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   question's answer (+1331) and the next one's start (+1378), so no question spanned it and the run was
   23 of 24; the re-run was 24 of 24. Read `acrossMoveMs` in that phase's summary before treating the
   assertion as a regression.
-- **`make verify` straight after `make reset && make up` fails *the events table is append-only by
-  GRANT*** (47 checks, 1 failed) until `pnpm --filter @manifest/control-plane db:migrate` runs —
-  the reset leaves the database empty. Measured 2026-09-16; not a defect in the grant.
+- **`make verify` straight after `make reset && make up` fails ONE check — *the events table is append-only by
+  GRANT*** — until `pnpm --filter @manifest/control-plane db:migrate` runs, because the reset leaves the database with
+  no tables to hold a grant. Measured 2026-09-16, when it read 47 checks / 1 failed; **the total has moved since, so
+  read the failing check's NAME, not the count**. Not a defect in the grant. The control plane will not boot until the
+  migration runs either.
 - **A request carrying a Manifest session must carry `Origin: https://console.manifest.internal`** —
   every `POST`, `PUT`, `PATCH` and `DELETE`, and every event-stream upgrade — or it is `403
   CSRF_ORIGIN_REFUSED` (P5a Task 4, §20). A deployed app is same-site with the console, so a `SameSite=Lax`
@@ -1308,132 +1311,102 @@ curl -s --cacert infra/ca/manifest-root.crt \
 | **P4b** | [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) | `make demo-ai` | 140 findings in ten sittings. **Sitting 9**: the plan's stream authorized after the upgrade and could not pass its own test. **Sitting 10**: every embedding had been charged to nobody. |
 | **P4c** | [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md), with [its brief](plans/2026-09-15-p4c-brief.md) | `make demo-redeploy` | 70 findings in eight sittings. **Sitting 8**: four of the acceptance's nine negative controls could not fail in it — §4 says which tier sees each. |
 
-### 7e. Execute P5a — the contract (first of 1c's three plans) ← **START HERE**
+### 7e. Execute P5a's LAST sitting — Task 17, the acceptance ← **START HERE**
 
-**P5a IS WRITTEN (2026-09-16), ITS SITTINGS 1 TO 7 RAN THE SAME DAY, SITTINGS 8 TO 11 ON 2026-09-17 — YOUR TASK IS SITTING 12, THE LAST: TASK 17, P5a's ACCEPTANCE. `make demo-journey` green THREE TIMES — at once, again on the reuse path, and once from a `make reset` machine — with its negative controls, and `make demo-journey` added to `scripts/offline-acceptance.sh` as step 8. IT IS ALONE AND LAST, and `make reset` REMOVES EVERY PROJECT ON THIS MACHINE, the demos' `proof-app` included, so RUN 3 GOES TO RICH BEFORE IT RUNS** (P4c's sitting 8 is the pattern).
-[`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md) — **17 tasks in twelve agreed sittings, one per session** (Rich, its R8). The
-sittings table at the top of the plan is the maintained copy and says which sitting is next. Do not write
-P5b or P5c: each is written only after the plan before it has executed — the 2026-09-04 lesson that a plan
-written against an imagined predecessor pays for it in defects.
+**YOUR TASK IS SITTING 12 OF TWELVE: Task 17, P5a's acceptance. It is ALONE, it is LAST, and finishing it FINISHES THE PLAN.**
+[`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md) — **Task 17 in full is the spec for your
+session**; this section tells you what it assumes you know. The sittings table at the top of that plan is the maintained
+copy of what is done.
 
-**What 1c is.** §17's Phase 1c: the published contract and the clients that prove it — an OpenAPI
-document generated from the routes, a versioned TypeScript client, `manifest-mock`, delegated tokens
-and pending actions (D24), the knowledge pack API (D25), blueprint starters, a reference console
-that may import **only** the generated client, a read-only `LaunchReadiness` view, the audience
-question, a read-only fleet list, and a headless acceptance script. **Demo:** §22's seven-step journey,
-clicked by a person in the console and run by the script, over one contract.
+**What the task is, in one paragraph.** `make demo-journey` — §22's journey driven through the edge by nothing but the
+generated TypeScript client — must run green **three times**: once now, once again on the re-use path, and **once from a
+`make reset` machine**, with its output recorded in `docs/superpowers/spikes/p5a-baseline/results-sitting12-<date>.txt`.
+Then `make demo-journey` is added to `scripts/offline-acceptance.sh` as a step 8, and **fourteen negative controls** (the
+table in Task 17 Step 4) are broken one at a time and watched. **The journey is ALREADY GREEN through step 8** — sittings
+5 to 11 built it — so a red run is a regression to investigate, not work you are expected to do. *(Step 8 is §26's fleet,
+which is beyond §22's seven steps; P5a's acceptance is satisfied at step 7.)*
 
-| Plan | Scope | Its acceptance |
-|---|---|---|
-| **P5a — the contract** ← yours | public representations of every resource; route schemas as the one source; OpenAPI under `/v1`; the generated client; an error-code registry; event and frame schemas; **the API on the console's origin through the edge**; reserved labels and the slug check API; project creation from a skeleton plus a starter; the missing reads; **the `LaunchReadiness` view** with scan findings persisted; audience at creation; blueprints and the knowledge pack; **an admin bootstrap and the fleet list** | every §22 step driven, through the edge, by a script using only the generated client, with a session |
-| P5b — delegated tokens | D24's two tables, bearer authentication, the central rule that tokens never hold the privileged four, pending actions, per-token limits, the authorization suite's new actors | a token runs the build loop and is refused the privileged four, each refusal a `PendingAction` a human confirms |
-| P5c — the clients | `manifest-mock`, `console/` with its import boundary, the CI acceptance script | the journey clicked and run headlessly over one contract |
+**THE ONE THING THAT NEEDS RICH BEFORE YOU DO IT.** Run 3 needs `make reset`, which **removes every project, container,
+network and volume the platform owns on this machine** — the proof app and the journey app included, both of which are
+serving right now. **Put it to him and wait for an answer.** P4c's sitting 8 is the precedent. Runs 1 and 2 need no
+permission; do them first, so a refusal still leaves you two-thirds of the acceptance. After `make reset && make up` the
+order is **`pnpm --filter @manifest/control-plane db:migrate`, then start the control plane, then the demos** — the
+control plane will not boot against an unmigrated database, and `make verify` fails one check until the migration runs
+(§4; **the plan's Task 17 says `50 / 0` there and that number is stale — expect §2's box**).
 
-**EVERYTHING THAT WAS RICH'S IS DECIDED, AND THE SPEC ALREADY SAYS IT** (Rich, 2026-09-16; spec
-commits `1d88846`, `ecf5f29`, `5065c13` and `491f8be`). Do not re-open: **(1)** a project starts from the blueprint's
-skeleton plus a chosen *starter*; **(2)** three plans, as above; **(3)** the console and the API share
-**one origin, `console.manifest.internal`, through the edge**, which refuses app and sandbox networks;
-**(4)** the contract is versioned by a **`/v1` path prefix**; **(5)** no P5 acceptance depends on a clean
-machine or a second developer; and the plan's **R6** (builds answer `202` and finish on the stream, a deploy
-stays synchronous), **R7** (`openapi-typescript` 7.13.0 + `openapi-fetch` 0.17.0), **R8** (twelve sittings) and
-**R9** (the six spec actions applied before execution). **Any further spec change is proposed to Rich, never
-edited.** The brief's §7 items 5 and 6 are still proposals, both P5b's.
+**BECAUSE THIS SITTING FINISHES A PLAN, ITS CLOSE-OUT IS BIGGER THAN A NORMAL ONE.** §6's sweep still applies in full, and
+four things move that a mid-plan sitting never touches:
 
-**What sittings 1 to 11 established is in the plan's *What executing this plan found*, one dated entry each — read them; do not look for them here.** In one line each: **1** the measurements the design rests on (`spikes/p5a-baseline/`); **2** every resource route under `/v1`, served at `https://console.manifest.internal` through the edge; **3** CSRF by `Origin`, a sign-in bound to its browser, one registry of every error code; **4** `defineRoute` and the generated OpenAPI document with its drift test; **5** `@manifest/contract` and `make demo-journey`; **6** projects, environments, members and specs as public representations, and §23's reserved labels behind `GET /v1/slugs/{slug}`; **7** starters and the knowledge pack over `/v1`, and a project created from its skeleton and a starter for a stated audience; **8** every event type's `machineDetail` a strict schema, the stream in `openapi.json`, `subscribe` in the client; **9** builds that answer `202` and end on the stream, and §12's scan recorded on every build; **10** releases, deploys and Incidents as representations — so **every `/v1` route is a definition** — a release naming its env vars and not their values; **11** §13's `LaunchReadiness` computed and read-only with the production refusal carrying it, and the first administrator made out of band with `audit.role_changes`, plus §26's fleet.
+- **`CLAUDE.md`'s *State* section** — it changes **only when a plan starts or finishes**, and this finishes one. Every
+  other sitting leaves it alone, so there is no recent example to copy; read its own instructions in §6's table.
+- **§2's plan table here** gains a P5a row (executed, what it made true, its acceptance), and §2's prose stops calling
+  P5a "current".
+- **The roadmap's plan-set table and ledger** — P5a moves to executed. The ledger outranks every other document on
+  status, so it goes first.
+- **P5b becomes the next job, TO BE WRITTEN, NOT EXECUTED** — from [`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md)
+  and P5a's *What this plan does not build*, using `superpowers:writing-plans`. **Do not start writing it in this
+  session.** The rule that a plan is written only after its predecessor has executed is the 2026-09-04 lesson; this
+  section is what the next agent will read, so leave it pointing at "write P5b".
 
-**Read, in this order, before sitting 12:**
+**What 1c is**, for the paragraph you will write about it: §17's Phase 1c is the published contract and the clients that
+prove it. P5a (yours) is the contract; **P5b** is delegated tokens and pending actions (D24); **P5c** is `manifest-mock`,
+a reference console that may import only the generated client, and the CI acceptance script. Each is written only after
+the one before it has executed.
 
-1. **The plan's** *How this plan is to be executed*, *Read this first*, *Decisions Rich made*, and **sittings 10's and 11's entries in *What executing this plan found*** — then **Task 17 in full**. **Task 17 carries no correction**, which is itself worth knowing: sitting 11 owed it none.
-2. **[`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md)** §8 (the traps) — above all *a plan's own negative controls often cannot fail*, which sitting 11 measured **twice** in four controls.
-3. **This file's §4** — its last entries are sittings 3 to 11's — and **§6** (how to work, and the close-out sweep every sitting owes).
+**Read, in this order, before you start:**
 
-**How to execute it.** `superpowers:executing-plans` or `superpowers:subagent-driven-development`, **one sitting per
-session**. **Start with the baseline in §6's *Your first ten minutes*** — snapshot the machine, `make up`, doctor, verify
-and the four gates — and compare every number with §2's box before changing anything. **Sitting 12 writes no feature
-code.** It modifies `scripts/offline-acceptance.sh` (a new step 8) and writes
-`docs/superpowers/spikes/p5a-baseline/results-sitting12-<date>.txt`, so it owes the four gates but **not**
-`pnpm test:docker` — unless a defect it finds changes `src/`, which is the likely case and is what the sitting is for.
-It needs no network. **Run 3 needs `make reset`, which removes every project, container, network and volume the platform
-owns on this machine — the proof app and the journey app included. Put it to Rich and wait.** After `make reset && make up`
-the migrations must be re-applied (`pnpm --filter @manifest/control-plane db:migrate`) before the control plane will boot.
-`make demo-ai` needs Ollama running with `ministral-3` and `nomic-embed-text`. Every demo that replaces a project leaves
-one more LiteLLM user with no project — **record each for Rich; do not delete it** (below). A Caddyfile edit reaches the
-edge through `make up`, whose reload drops every runtime route, and the Docker tier restarts the edge and re-registers the
-platform's SP row at a loopback ACS — **restart the control plane after either**; its boot puts both back. Every sitting
-ends with the plan's four steps, the last of which is §6's sweep.
+1. **Task 17 in full, starting with the *Sitting 11 correction* at its top** — it names three numbers and one file format the task states from before sittings 8 to 11 ran. Then the plan's *How this plan is to be executed*, *Global Constraints* and *Decisions Rich made*.
+2. **Sittings 10's and 11's entries in *What executing this plan found*** — the two most recent, and the ones whose
+   measurements Task 17's controls lean on.
+3. **[`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md) §8** (the traps).
+4. **This file's §4** — it is meant to be searched, not read through — and **§6**, which is the sweep you owe.
 
-**What will surprise you** (the plan's tasks carry each of these; they are here so none is a surprise):
+**How to run it.** `superpowers:executing-plans` or `superpowers:subagent-driven-development`. **Start with §6's *Your
+first ten minutes*** — snapshot the machine, `make up`, doctor, verify, the four gates — and compare every number with
+§2's box **before changing anything**; a number that has moved on a clean checkout is signal. This sitting writes no
+feature code, so it owes the four gates but not `pnpm test:docker` — **unless a defect it finds changes `src/`, which is
+the likely case and is what an acceptance is for.** It needs no network.
 
-- **A plan's own negative controls often cannot fail, and sitting 11 hit it twice in four.** Task 15's control (d) —
-  remove a registration import — stayed green because a second module imports the same file for a real use; Task 15's
-  control (a) turned only one of two tests red because the implementation had split one guard into two. **Write down the
-  edit that must turn each red, watch it, and when it does not, say so and find the control that can.**
-- **A source swap does not reach the running control plane**, which serves from `dist/`: a control watched through
-  `make demo*` needs the control plane killed, rebuilt and restarted on the swap, then restored the same way.
-- **`make demo-journey` has EIGHT steps** and step 8 needs `MANIFEST_ADMIN_SESSION`: the script signs `operator` in,
-  runs `scripts/admin-grant.sh grant opr000001`, and signs them in **again**, because a session carries the role it was
-  issued with. **The `rm -f` of the operator's two cookie jars between the sign-ins is load-bearing** — without it the
-  IdP serves no form and the failure reads as a missing SP row.
-- **A deploy publishes three or four events, not one**: `instance.provisioning`, then — for a CWL app — `sso.registered`,
-  then `instance.starting`, then `instance.healthy` or `instance.failed` (+ `incident.opened`).
-- **A build answers `202` and finishes in the background**: a script calls `wait_for_build`, a test awaits
-  `deps.builds.idle()`, a test needing a finished build calls `buildToEnd`.
+**What will surprise you** — each of these has already cost this project a morning:
+
+- **A plan's own negative controls often cannot fail.** Task 17 already names **four of its fourteen** — (a), (c), (e)
+  and (k) — that a journey run from the host by a correct client cannot see, and says which tier watches each instead.
+  **Expect to find more:** sitting 11 found two of its four in that state. When a control stays green, say so in the
+  record and find the edit that *does* go red. A green control is not evidence.
+- **A source swap does not reach the running control plane**, which serves from `dist/`. A control watched through
+  `make demo*` needs the control plane killed, rebuilt and restarted on the swap, then restored the same way — otherwise
+  the demo passes and the control proves nothing.
+- **`make demo-journey` needs the control plane running and answering through the edge**, and it checks so at step 0.
+  README's *Running the control plane* is the export block; its boot line must read
+  `{"driver":"docker","origin":"https://console.manifest.internal","reservedLabels":755,…}`.
+- **After `pnpm test:docker`, restart the control plane** — the tier restarts the edge and re-registers the platform's SP
+  row at a loopback ACS. **After `pnpm test` or `pnpm contract:write`**, the control plane's tables are truncated, so a
+  deployed app answers with nothing behind it in the database until a demo redeploys it; every demo clears its own slug's
+  orphaned repository first.
 - **A route change is three files, in order**: the definition, then `pnpm contract:write`, then `pnpm contract:generate` —
   and the journey, whose `tsc` build inside `make demo-journey` refuses a call or a field the regenerated contract does
-  not have. **`packages/contract/openapi.json` is generated; never edit it**, and `pnpm contract:write` truncates the
-  control plane's tables, as `pnpm test` does.
+  not have. **`packages/contract/openapi.json` is generated; never edit it.**
+- **`make demo-journey` step 8 signs `operator` in TWICE**, either side of `scripts/admin-grant.sh`, because a session
+  carries the role it was issued with. **The `rm -f` of the operator's two cookie jars between them is load-bearing** —
+  without it the IdP serves no form and the failure reads as a missing SP row.
 - **A Node process does not trust the platform CA unless given it** — `fetch` fails as `fetch failed` and hides
   `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`. Pass `ca` in a test, `NODE_EXTRA_CA_CERTS` to a script.
-- **After `pnpm test:docker`, restart the control plane before any sign-in through the console**; after `pnpm test`, a
-  demo app answers with nothing behind it in the database until it is redeployed, and every demo clears its own slug's
-  orphaned repository first.
-- **`make demo-identity` has NINE steps**, the ninth a sign-out; **the IdP's `config.php` and `authsources.php` are
-  single-file mounts** a `git checkout` or `git pull` strands (§4).
-- **Comparing two snapshots by LINE NUMBER compares the wrong sections** (§4, sitting 11) — derive each file's section
-  from its own `=== Images ===` header, and re-diff after removing anything.
+- **Compare machine snapshots by `repo:tag`, never by the digest column** (§4), and re-diff after removing anything.
 
-**The state you are handed, 2026-09-17, after sitting 11.** `main`, clean. Sitting 11's commits are Task 15's **`ecf5f0a`**,
-a one-line fix **`ae96a36`**, Task 16's **`20dc5ee`** and the sweep after them. Migration **0013** (`audit.role_changes`) is
-the newest and is applied; `manifest_app` holds exactly `INSERT, SELECT` on it. The four gate numbers are §2's box — all
-green, `pnpm test` **1016** in 91 files, `make doctor` 18/0, `make verify` 51/0 and `pnpm test:docker` **174** in 28 files,
-re-measured at the end of the sitting. **`make demo-journey` is green through step 8, and `make demo`, `make demo-ai` and
-`make demo-redeploy` are green.** **The control plane WAS LEFT RUNNING on 7100** — check with
-`curl -sS -o /dev/null -w '%{http_code}' --cacert infra/ca/manifest-root.crt https://console.manifest.internal/v1/me`,
-which answers `401` when it is up; if it is not, README's *Running the control plane* is the export block, and its boot line
-must read `{"driver":"docker","origin":"https://console.manifest.internal","reservedLabels":755,…}`. (Do not start a second
-one: it would fail to bind 7100, and `recoverAtBoot`'s pass 0 would fail the first one's builds.) **The proof app and the
-journey app are deployed, healthy and serving** — `{"status":"ok","mongo":true}` on each — but **their project rows are
-gone**, because the closing `pnpm test` truncated them; the next demo recreates each. `.manifest/repos/` holds
-`proof-app.git` and `journey-app.git`. **The fixture app `make demo` created was removed** with its containers, network,
-volume, image and repository, so `make demo` starts from nothing. **`opr000001` (`operator` / `operator`) IS an
-administrator**, granted by the last `make demo-journey`; `scripts/admin-grant.sh revoke opr000001 "<reason>"` undoes it.
-**The platform SP row's ACS is `https://console.manifest.internal/auth/saml/callback`.**
+**The state you are handed, 2026-09-17, after sitting 11.** `main`, clean, at **`af08bd1`**. Sitting 11's commits are
+`ecf5f0a`, `ae96a36`, `20dc5ee` and the sweep. Migration **0013** (`audit.role_changes`) is the newest and is applied.
 
-**One image was removed and restored during sitting 11's cleanup, and the machine is whole** — recorded only so nobody
-reads the older note: the daemon's tag `127.0.0.1:7107/base/alpine:3.22` was removed by mistake and put back with
-`docker tag alpine:3.22 127.0.0.1:7107/base/alpine:3.22`, which is exactly how `infra/seed/mirror-images.sh` creates it.
-The registry copy was never touched, `make doctor` (18/0) and `make verify` (51/0) were green throughout, and a snapshot
-diff by `repo:tag` is now empty. The one residual difference is cosmetic and has no reader: `docker images --digests`
-shows `<none>` for that tag instead of `sha256:2c9d26f410d0…`, because a freshly created tag carries no recorded registry
-manifest digest until it is pushed or pulled. **Nothing builds `FROM` it** — `infra/egress/` and `infra/dnsmasq/` use the
-Hub name `alpine:3.22`, and both blueprints pin `base/node` by digest.
+| | |
+|---|---|
+| The four gate numbers | §2's box — `pnpm test` **1016** in 91 files, `pnpm test:docker` **174** in 28 files (0 skipped), `make doctor` **18/0**, `make verify` **51/0** |
+| The control plane | **LEFT RUNNING on 7100.** Check: `curl -sS -o /dev/null -w '%{http_code}' --cacert infra/ca/manifest-root.crt https://console.manifest.internal/v1/me` → `401` when it is up. **Do not start a second one** — it would fail to bind 7100, and `recoverAtBoot`'s pass 0 would fail the first one's builds |
+| The demos | `make demo-journey` green through **step 8**; `make demo`, `make demo-ai` and `make demo-redeploy` green |
+| The apps | The proof app and the journey app are **deployed, healthy and serving** (`{"status":"ok","mongo":true}`) **while their project rows are gone** — the closing `pnpm test` truncated them. The next demo recreates each. `.manifest/repos/` holds `proof-app.git` and `journey-app.git` |
+| The fixture app | **Removed** — containers, network, volume, image and repository — so `make demo` starts from nothing |
+| Identity | The platform SP row's ACS is `https://console.manifest.internal/auth/saml/callback`. The IdP has **three** test users — `student`, `instructor` and `operator`, each its own password. **`operator` is NOT currently an administrator, and does not currently exist**: the closing `pnpm test` truncated `users` and `audit.role_changes` along with everything else, so `users=0`. **This is normal and self-healing** — `make demo-journey` signs `operator` in (which creates the row), runs `scripts/admin-grant.sh grant opr000001`, and signs them in again. If you ever need to undo it by hand: `scripts/admin-grant.sh revoke opr000001 "<reason>"` |
+| LiteLLM | **Four users, and none is safe to delete.** `default_user_id`, `p4b-probe-user`, and two orphaned by project but **held by a running container** — `mf-5ce93acc…` (journey-app) and `mf-6c5310dc…` (proof-app). Rich removed the other seven on 2026-09-17. **Your demos will mint more**; list each for him and never delete one from a tool call (§2) |
 
-**LiteLLM holds NINE Manifest users, all orphaned by project, all for Rich**: **two are held by a running container and
-seven are not.** `mf-5ce93acc-c86a-4894-85e4-144c2d4b3e84-staging` is the running **journey app's** and
-`mf-6c5310dc-dae9-4173-8efd-ccfa1625c872-staging` the running **proof app's** — deleting either stops that container's AI
-path until the next demo redeploys it. Nothing holds `mf-1eb9fb2f-9c8f-41bf-a73d-95f0dcee0d71-staging`,
-`mf-65ce0172-edfa-407c-ad34-59974a85b08d-staging`, `mf-7a4b1cc2-273d-4f10-a238-e8f613110e80-staging`,
-`mf-7c841b6e-4e60-4b96-9002-964cd3baa83c-staging` (**2 keys**), `mf-8188bf7b-a1bd-46b1-9cfb-c2643caad727-staging`,
-`mf-cbd78594-72ed-4017-a085-5ed818fcc75d-staging` or `mf-f4a77ea2-d5f9-4937-8d7c-54251bf385cd-staging`; `/user/list` holds
-only those nine, `default_user_id` and `p4b-probe-user`. Deleting one through LiteLLM's admin API has been refused by the
-session's permission classifier as a secret-store write, so do not work around it — list each for Rich, with its key
-count, in the sitting's *Machine* paragraph and here. To remove one, from the repo root: `set -a; . ./.env; set +a`, read
-its hashed tokens with
-`curl -sS -H "authorization: Bearer $LITELLM_MASTER_KEY" "http://127.0.0.1:7106/user/info?user_id=<user>"` (`keys[].token`),
-then `POST /key/delete` with `{"keys":["<token>"]}` and `POST /user/delete` with `{"user_ids":["<user>"]}`,
-both with the same header. Which key a running container holds can be checked without printing it: `docker exec <app> printenv
-LLM_API_KEY | tr -d '\n' | shasum -a 256` equals that key's `token`.
-
+**`make reset` makes most of that table moot** — it is what run 3 is for. Say so to Rich when you ask.
 
 ## 8. Decisions waiting on Rich
 
