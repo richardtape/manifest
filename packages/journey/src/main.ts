@@ -295,6 +295,16 @@ async function step3WatchProvisioning(): Promise<void> {
 const BUILD_ENDS_WITHIN_MS = 960_000
 
 /**
+ * R6's OTHER half: `POST …/builds` answers once the build is RECORDED, not once it is
+ * built. The status alone cannot see this — a `start` that awaits the whole build still
+ * answers the row it recorded, which says `running` — so a synchronous build passed this
+ * step with only the latency changed (P5a sitting 12, control (i)). A build takes ~17 s
+ * here and the answer is well under a second; 5 s is loose enough that a slow laptop is
+ * not a failure and tight enough that awaiting the build is.
+ */
+const BUILD_ANSWERS_WITHIN_MS = 5_000
+
+/**
  * §22 step 4: trigger a build; its log lines stream live, and it ends on the stream (R6).
  * Subscribed BEFORE the build starts, so nothing it publishes can be missed.
  */
@@ -328,7 +338,8 @@ async function step4Build(): Promise<void> {
     const answeredMs = Date.now() - startedAt
     checks.ok(
       'the build answered at once, still running (R6)',
-      started.status === 'running' || started.status === 'pending',
+      (started.status === 'running' || started.status === 'pending') &&
+        answeredMs < BUILD_ANSWERS_WITHIN_MS,
       `${started.status} after ${answeredMs} ms`,
     )
     state.buildId = started.id
