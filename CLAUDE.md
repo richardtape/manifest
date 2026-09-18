@@ -51,9 +51,12 @@ only after P5b has executed. *Sittings pace the work; they are not §17's produc
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
 turning the network off from a tool call cuts the agent off too; it now has a step 8,
 `make demo-journey`), the second-machine clean clone, starting the UBC external track (its
-trigger fired on 2026-09-15), **a Docker cleanup this machine's permission rules
-refused** — though that refusal has NOT recurred in P5b sittings 2 through 6, each of which removed
-the images its own Docker-tier runs built, so try it rather than assuming — and the rest of ORIENTATION §8. *(The one P5a negative control those rules refused —
+trigger fired on 2026-09-15) and the rest of ORIENTATION §8. **Two long-standing items were
+cleared on 2026-09-18**: LiteLLM's orphaned users (19 rows to 4, and `scripts/litellm-orphans.sh`
+now does it — an agent lists, Rich applies) and P5a sitting 12's Docker cleanup (86 unheld app
+images and the fixture app; `docker images` 132 to 46). **The permission classifier is not a
+fixed rule** — it allowed all of that and then began refusing `docker volume ls` in the same
+session, so try the command rather than assuming either way. *(The one P5a negative control those rules refused —
 the edge's `@outside` refusal — was closed on 2026-09-17 without weakening the edge, and is no
 longer outstanding.)*
 
