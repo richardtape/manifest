@@ -167,10 +167,14 @@ export async function recordPendingAction(
    * caller must come away with the question to wait on — four of five callers being told
    * "no row" would be the same defect as five rows, from the other direction.
    *
-   * The re-read cannot come away empty: under READ COMMITTED the conflicting insert is
-   * committed by the time the conflict is reported, and nothing inserts an already-stale
-   * row. If it ever does, that is a 500 with an operator line rather than a `403` naming
-   * a pending action that does not exist.
+   * **It comes away empty in exactly one case, and that case is a defect above this
+   * line**: the conflict was against a row the sweep should have expired and did not.
+   * Otherwise it cannot — under READ COMMITTED the conflicting insert is committed by the
+   * time the conflict is reported, and nothing inserts an already-stale row. So the throw
+   * is not dead code, it is the diagnostic for the sweep going missing: P5b sitting 7's
+   * control (d) removed the `expirePendingActions` call above and reached this line, which
+   * named the credential and the request instead of answering a `403` that pointed at a
+   * pending action nobody could find.
    */
   if (row === undefined) {
     const winner = await openAsk()
