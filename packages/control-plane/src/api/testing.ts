@@ -1,4 +1,4 @@
-import { db } from '../db/index.js'
+import { db, type Db } from '../db/index.js'
 import { loadConfig } from '../config.js'
 import { testIssuer } from '../runtime/testing.js'
 import { createFakeDriver } from '../runtime/index.js'
@@ -29,7 +29,10 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { createBuildRunner, createRetirer } from '../releases/index.js'
 import type { AiKeyService } from '../ai/index.js'
-import type { ServerDeps } from './server.js'
+import type { FastifyInstance } from 'fastify'
+import { buildServer, type ServerDeps } from './server.js'
+import { resetDatabase } from '../db/testing.js'
+import { addMember } from '../projects/index.js'
 import { testReservedLabels } from '../projects/testing.js'
 import { createRateLimiter } from './rate-limit.js'
 
@@ -264,4 +267,115 @@ export async function testDeps(): Promise<ServerDeps> {
       certificatePem: keypair.certificatePem,
     }),
   }
+}
+
+/**
+ * A server, a project with its three environments, and a SECOND project owned by
+ * somebody else — the shape almost every token test needs (P5b Task 4).
+ *
+ * Written here, in sitting 3, rather than in Task 3 where the plan first described it:
+ * a fixture whose first caller is two sittings away is a fixture nothing has exercised,
+ * which is the warning P5a sitting 10 finding 6 paid for.
+ *
+ * NOT `withProject` — `db/testing.ts` already exports one of those, with a different
+ * shape (`(tx, { projectId, ownerId })`), and several test files import from both
+ * modules. Two fixtures with one name is how a reader ends up calling the wrong one.
+ *
+ * It resets the database first, because these writes go through a real server on the
+ * shared connection rather than a transaction anyone could roll back, and `projects_slug_key`
+ * is unique. It drains the build runner before closing: a build started by the callback
+ * runs in the background (R6), and closing under one fails it for a reason no test asked
+ * about.
+ */
+export interface TestProject {
+  app: FastifyInstance
+  deps: ServerDeps
+  db: Db
+  /** The OWNER's `users.id`: `bio_prof`, who created the project and is therefore its owner (§13). */
+  userId: string
+  ownerCookies: Record<string, string>
+  projectId: string
+  /** A SECOND project, owned by `unrelated_user` — what Decision 3's scope rule is tested against. */
+  otherProjectId: string
+  stagingEnvironmentId: string
+  productionEnvironmentId: string
+}
+
+export async function withProjectServer(
+  fn: (ctx: TestProject) => Promise<void>,
+): Promise<void> {
+  await resetDatabase()
+  const deps = await testDeps()
+  const app = await buildServer(deps)
+  try {
+    const ownerCookies = await loginAs(deps, 'bio_prof')
+    const owner = await ensureTestUser(deps.db, 'bio_prof')
+    // THROUGH THE ROUTE, not through `createProject`: the environments, the repository
+    // and the spec all come from it, and a fixture that wrote the rows by hand would be
+    // a project no deploy could use.
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      payload: projectBody(`fixture-${randomUUID().slice(0, 8)}`),
+      cookies: ownerCookies,
+      headers: mutationHeaders(deps),
+    })
+    if (created.statusCode !== 201) {
+      throw new Error(`the fixture project was not created: ${created.body}`)
+    }
+    const project = created.json() as {
+      id: string
+      environments: { id: string; kind: string }[]
+    }
+    const otherCookies = await loginAs(deps, 'unrelated_user')
+    const other = await app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      payload: projectBody(`other-${randomUUID().slice(0, 8)}`),
+      cookies: otherCookies,
+      headers: mutationHeaders(deps),
+    })
+    if (other.statusCode !== 201) {
+      throw new Error(`the fixture's second project was not created: ${other.body}`)
+    }
+    const environmentId = (kind: string): string => {
+      const found = project.environments.find((e) => e.kind === kind)
+      if (found === undefined) throw new Error(`the fixture project has no ${kind}`)
+      return found.id
+    }
+    await fn({
+      app,
+      deps,
+      db: deps.db,
+      userId: owner.id,
+      ownerCookies,
+      projectId: project.id,
+      otherProjectId: (other.json() as { id: string }).id,
+      stagingEnvironmentId: environmentId('staging'),
+      productionEnvironmentId: environmentId('production'),
+    })
+  } finally {
+    await deps.builds.idle()
+    await app.close()
+  }
+}
+
+/**
+ * A session for `puid`, added to `ctx`'s project with `role` first when one is given.
+ *
+ * With NO role the person is a STRANGER to the project, which is what the 404-versus-403
+ * distinction is tested with — so the argument is deliberately optional rather than
+ * defaulted.
+ */
+export async function sessionFor(
+  ctx: TestProject,
+  puid: TestUserPuid,
+  role?: 'owner' | 'collaborator',
+): Promise<Record<string, string>> {
+  const cookies = await loginAs(ctx.deps, puid)
+  if (role !== undefined) {
+    const user = await ensureTestUser(ctx.deps.db, puid)
+    await addMember(ctx.deps.db, ctx.projectId, user.id, role)
+  }
+  return cookies
 }

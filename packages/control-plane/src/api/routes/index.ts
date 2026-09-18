@@ -8,6 +8,7 @@ import { projectReadRoutes } from './project-reads.js'
 import { createProjectRoutes } from './projects.js'
 import { releaseRoutes } from './releases.js'
 import { slugRoutes } from './slugs.js'
+import { tokenRoutes } from './tokens.js'
 
 /**
  * EVERY `/v1` ROUTE (P5a Decision 1). `server.ts` registers this array and
@@ -24,4 +25,5 @@ export const ROUTE_DEFINITIONS: readonly AnyRoute[] = [
   ...releaseRoutes,
   ...launchRoutes,
   ...fleetRoutes,
+  ...tokenRoutes,
 ]

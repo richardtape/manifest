@@ -320,6 +320,61 @@ docker exec manifest-postgres psql -U manifest -d manifest_control -c \
 that the student and the instructor keep proving exactly what they prove in every other demo. An administrator
 reads `GET /v1/fleet` (§26); everyone else gets `403`.
 
+## Minting a delegated token
+
+*Added by P5b Task 4, 2026-09-17. The demo that drives it end to end, `make demo-token`, is Task 12's and is
+not built yet.*
+
+D24: an agent does not hold a person's session. It holds a **delegated token** — *"minted by the user in an
+interactive session, scoped to a project and a capability set, with an expiry"* — and this is how one is made.
+There is no console yet, so it is three `curl` calls against the API through the edge, as the person who owns
+the project. `scripts/lib/api.sh` is the same client every demo speaks through; `CP_JAR` is a session cookie
+jar from a CWL sign-in.
+
+```bash
+# Mint. `capabilities` is explicit: the token gets these and nothing else.
+curl -sS -b "$CP_JAR" -X POST \
+  -H 'content-type: application/json' \
+  -H "idempotency-key: $(uuidgen | tr 'A-Z' 'a-z')" \
+  -H 'origin: https://console.manifest.internal' \
+  -d '{"name":"ci","capabilities":["project:read","build:create","release:create","release:deploy"],"expiresInDays":30}' \
+  "https://console.manifest.internal/v1/projects/$PROJECT_ID/tokens"
+
+# List — every token on the project, newest first, including the revoked and the expired.
+curl -sS -b "$CP_JAR" "https://console.manifest.internal/v1/projects/$PROJECT_ID/tokens"
+
+# Revoke. Only the person who minted it may; anyone else is answered 404.
+curl -sS -b "$CP_JAR" -X DELETE \
+  -H "idempotency-key: $(uuidgen | tr 'A-Z' 'a-z')" \
+  -H 'origin: https://console.manifest.internal' \
+  "https://console.manifest.internal/v1/tokens/$TOKEN_ID"
+```
+
+**The secret is in the mint response and nowhere else.** It is `secret` in the body — `mft_<id>_<secret>` —
+and the platform stores only a SHA-256 of the second half. **Store it when you read it**: no route, no
+database query and no support request can produce it again, because it does not exist anywhere to produce.
+The list and the revoke answers have no `secret` field at all, and that is a property of the schema rather
+than of the mapper that fills it.
+
+**Four things the mint route refuses, and why:**
+
+- **D24's forbidden four** — `members:manage`, `release:promote`, `quota:set`, `secret:read` — are
+  `400 TOKEN_CAPABILITY_FORBIDDEN`, and the message names which one you asked for. An agent that needs one
+  asks for it at the moment it needs it, and a human confirms that single action (Task 6, not built yet).
+- **More than you hold yourself** is `403 FORBIDDEN`. A collaborator cannot mint a token that deletes the
+  project, because a token delegates authority and does not create it.
+- **An expiry over 365 days**, or under one, is `400 REQUEST_INVALID` naming `expiresInDays`.
+- **A capability that is not one of the platform's** is `400 REQUEST_INVALID`. The full list is
+  `MintTokenRequest` in `packages/contract/openapi.json`.
+
+**Minting is interactive only.** These three routes take a session cookie; a token cannot mint a token, or
+one leaked credential would be a credential factory. Nothing else about tokens works yet — a token cannot
+*authenticate* until Task 5, which is the next sitting's work, so a token minted today is a row and a
+string rather than a usable credential.
+
+**What is not built.** A project owner cannot revoke a collaborator's token — only the person who minted it
+can — and there is no rate limit, no expiry sweeper and no pending-action queue yet. Tasks 6 to 10.
+
 ## `make demo-redeploy` — P4c's acceptance: a redeploy nobody using the app notices
 
 *Added by P4c sitting 1, 2026-09-15, before the feature it tests. Green since sitting 7, and P4c's

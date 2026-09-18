@@ -118,6 +118,16 @@ export const EVENT_DETAIL_SCHEMAS = {
     files: z.number().int().positive(),
     starter: z.string().nullable(),
   }),
+  /**
+   * D24 (P5b Task 4). NO `projectId` — the event ROW carries it, and every other detail
+   * in this map leaves it to the column rather than storing a second copy. NO secret and
+   * NO hash: §14, and `redact.ts` would not catch either (`[M9]`).
+   */
+  'token.minted': z.strictObject({
+    tokenId: Uuid,
+    capabilities: z.array(z.string()),
+    expiresAt: z.iso.datetime(),
+  }),
   'spec.validated': z.strictObject({
     appSpecId: Uuid,
     commitSha: Sha,

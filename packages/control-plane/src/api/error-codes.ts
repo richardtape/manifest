@@ -134,6 +134,9 @@ export const ERROR_CODES = {
   MEMBER_USER_NOT_FOUND: bad('No user with this PUID has ever signed in.'),
   SPEC_NOT_FOUND: bad('The project has no validated spec yet.'),
   STARTER_NOT_FOUND: bad('The blueprint offers no starter by that name (§25).'),
+  TOKEN_CAPABILITY_FORBIDDEN: bad(
+    'A mint asked for one of D24’s four forbidden capabilities; the message names which.',
+  ),
 
   // projects/slugs.ts — §23. The check answers them in a 200; creation refuses with them.
   SLUG_INVALID: {

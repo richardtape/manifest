@@ -4,23 +4,36 @@ import { projectMembers, projects } from '../db/index.js'
 
 export type ProjectRole = 'owner' | 'collaborator'
 
-export type Capability =
-  | 'project:read'
-  | 'project:write'
-  | 'project:delete'
-  | 'members:manage'
-  | 'build:create'
-  | 'release:create'
-  | 'release:deploy'
+/**
+ * Every capability a ROLE can hold, as a value — and `Capability` is derived from it,
+ * the way `EventType` is derived from `EVENT_TYPES` (`observability/events.ts`).
+ *
+ * A LIST rather than a bare union since P5b Task 4, because the mint route's request
+ * schema has to name them: a `capabilities: string[]` on the wire would accept a typo
+ * and mint a token that can do nothing, with nothing saying so. One list keeps the
+ * document, the validator and the type from drifting — deriving the type from the array
+ * means a member added to one is added to all three.
+ */
+export const CAPABILITIES = [
+  'project:read',
+  'project:write',
+  'project:delete',
+  'members:manage',
+  'build:create',
+  'release:create',
+  'release:deploy',
   /**
    * §13 and D24: putting a release in front of real students, as distinct from
    * deploying it to staging. Separate from `release:deploy` because D24 forbids
    * exactly this one to a delegated token and permits the other — one capability
    * covering both would make the rule unstatable (P5b `[M2]`).
    */
-  | 'release:promote'
-  | 'release:approve'
-  | 'quota:set'
+  'release:promote',
+  'release:approve',
+  'quota:set',
+] as const
+
+export type Capability = (typeof CAPABILITIES)[number]
 
 /**
  * D24's forbidden set, which is §20's step-up set — a SUPERSET of `Capability`.
@@ -32,7 +45,9 @@ export type Capability =
  * SPEC; `Capability` is a statement about the routes that exist. The superset is what
  * lets `privileged.test.ts` hold the two against each other.
  */
-export type PrivilegedCapability = Capability | 'secret:read'
+export const PRIVILEGED_CAPABILITIES = [...CAPABILITIES, 'secret:read'] as const
+
+export type PrivilegedCapability = (typeof PRIVILEGED_CAPABILITIES)[number]
 
 /**
  * D24's four, and §20's step-up four. ONE list, because the spec says keeping the two

@@ -39,7 +39,7 @@ export interface RouteDefinition<
   description: string
   params: P
   query: Q
-  /** `NO_BODY` on a GET; a REGISTERED request schema on a mutation. */
+  /** `NO_BODY` on a GET or a bodyless DELETE; a REGISTERED request schema otherwise. */
   body: B
   success: { status: SuccessStatus; description: string; schema: R }
   /** Codes this operation can answer beyond the ones every route can (document.ts). */
@@ -64,6 +64,21 @@ export function defineRoute<
 export const NO_PARAMS = z.strictObject({})
 export const NO_QUERY = z.strictObject({})
 export const NO_BODY = z.undefined()
+
+/**
+ * Whether this route reads a request body at all — THE SCHEMA, not the method.
+ *
+ * It was `route.method === 'GET'` in both the wrapper below and `document.ts` until P5b
+ * Task 4 added `DELETE /v1/tokens/{tokenId}`, the API's first bodyless mutation. Keyed on
+ * the method, that route was refused `400 REQUEST_INVALID` before its handler ever ran —
+ * `request.body ?? {}` is `{}` and `NO_BODY` is `z.undefined()`, which refuses it — and
+ * the OpenAPI document could not be generated for it at all, because `ref` found no
+ * registered request schema. The definition already states the fact; asking it is both
+ * narrower and truthful, and a DELETE that DOES take a body still gets one.
+ */
+export function readsBody(route: { body: z.ZodType }): boolean {
+  return route.body !== NO_BODY
+}
 
 export function fastifyPath(path: string): string {
   return path.replace(/\{([A-Za-z][A-Za-z0-9]*)\}/g, ':$1')
@@ -131,7 +146,7 @@ export function registerRoutes(
         const body = parsePart(
           'body',
           route.body,
-          route.method === 'GET' ? undefined : (request.body ?? {}),
+          readsBody(route) ? (request.body ?? {}) : undefined,
         )
         const run = async (): Promise<{ status: number; body: unknown }> => {
           const produced = await route.handler({

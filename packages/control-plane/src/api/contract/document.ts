@@ -4,7 +4,7 @@ import type { ErrorCode } from '../error-codes.js'
 // which no route declares as a success schema, so nothing else imports it (P5a Task 15).
 import '../representations/errors.js'
 import { UNVERSIONED } from '../unversioned.js'
-import type { AnyRoute } from './route.js'
+import { readsBody, type AnyRoute } from './route.js'
 import { component, ref, representations, requests } from './schemas.js'
 import { STREAM_PATH, streamPathItem } from './websocket.js'
 
@@ -113,9 +113,8 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
       summary: route.summary,
       description: route.description,
       parameters: parameters(route),
-      ...(route.method === 'GET'
-        ? {}
-        : {
+      ...(readsBody(route)
+        ? {
             requestBody: {
               required: true,
               content: {
@@ -124,7 +123,8 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
                 },
               },
             },
-          }),
+          }
+        : {}),
       responses: {
         [String(route.success.status)]: {
           description: route.success.description,

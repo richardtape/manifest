@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, desc, eq, isNull } from 'drizzle-orm'
 import { delegatedTokens, type Db } from '../db/index.js'
 
 /** §6's `DelegatedToken`, as stored. The secret is not in it, and never was. */
@@ -49,6 +49,25 @@ export async function createToken(
 export async function tokenById(db: Db, id: string): Promise<DelegatedToken | undefined> {
   const [row] = await db.select().from(delegatedTokens).where(eq(delegatedTokens.id, id))
   return row
+}
+
+/**
+ * Every token scoped to a project, newest first — including the revoked and the expired.
+ *
+ * §20 asks for a list a person can review, and a list that hid the revoked ones would
+ * answer "what has been able to act on this project" with only the present tense. The
+ * route (Task 4) is a `project:read`, because nothing here is credential material: the
+ * secret was never stored and the hash is not in `Token`.
+ */
+export async function tokensForProject(
+  db: Db,
+  projectId: string,
+): Promise<DelegatedToken[]> {
+  return db
+    .select()
+    .from(delegatedTokens)
+    .where(eq(delegatedTokens.projectId, projectId))
+    .orderBy(desc(delegatedTokens.createdAt))
 }
 
 /**

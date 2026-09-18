@@ -65,6 +65,8 @@ interface Fixture {
   buildId: string
   releaseId: string
   commitSha: string
+  /** A delegated token the OWNER minted (P5b Task 4) — what the revoke row is aimed at. */
+  tokenId: string
 }
 
 const ALL_ACTORS: Actor[] = ['owner', 'collaborator', 'stranger', 'admin', 'anonymous']
@@ -486,6 +488,53 @@ const ROUTES: RouteCase[] = [
     },
   },
   /**
+   * D24's delegated tokens (P5b Task 4). Minting is a `project:write`, so a collaborator
+   * may mint one — bounded by what they hold themselves, which `api/tokens.test.ts`
+   * asserts; listing is a `project:read`; and both hide the project from a stranger.
+   */
+  {
+    method: 'POST',
+    url: '/v1/projects/:projectId/tokens',
+    request: (f) => ({
+      url: `/v1/projects/${f.projectId}/tokens`,
+      payload: { name: 'authz', capabilities: ['project:read'], expiresInDays: 30 },
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
+    method: 'GET',
+    url: '/v1/projects/:projectId/tokens',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/tokens` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+    },
+  },
+  {
+    // ONLY THE MINTER, and everyone else gets the answer a token id that does not exist
+    // gets — including the platform admin, who is not exempt from it. 404 rather than
+    // 403 for the same reason a stranger's project read is: a 403 would confirm the id.
+    method: 'DELETE',
+    url: '/v1/tokens/:tokenId',
+    request: (f) => ({ url: `/v1/tokens/${f.tokenId}` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 404,
+      stranger: 404,
+      admin: 404,
+      anonymous: 401,
+    },
+  },
+  /**
    * The registry token realm. Unlike every other route in this table it carries NO
    * session: its caller is BuildKit or the Docker daemon speaking the distribution
    * token protocol, and it authenticates with the short-lived build credential in
@@ -578,8 +627,21 @@ export function describeAuthorizationContract(
         headers: mutationHeaders(deps),
       })
 
+      const token = await app.inject({
+        method: 'POST',
+        url: `/v1/projects/${body.id}/tokens`,
+        payload: {
+          name: 'authz-fixture',
+          capabilities: ['project:read'],
+          expiresInDays: 30,
+        },
+        cookies: cookies.owner,
+        headers: mutationHeaders(deps),
+      })
+
       fixture = {
         projectId: body.id,
+        tokenId: token.json().token.id,
         commitSha: body.spec.commitSha,
         buildId: build.json().id,
         releaseId: release.json().id,

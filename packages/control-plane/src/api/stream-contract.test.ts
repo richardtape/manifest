@@ -71,6 +71,16 @@ describe('the stream in the contract (D23.2)', () => {
       (e: { kind: string }) => e.kind === 'staging',
     )
 
+    // D24's token.minted (P5b Task 4). Driven here rather than listed in
+    // PUBLISHED_ELSEWHERE, because the point of this test is that a REAL frame parses as
+    // the contract's StreamFrame — and `api/tokens.test.ts` asserts the route's answer,
+    // not the frame the bus carries.
+    await post(`/v1/projects/${project.id}/tokens`, {
+      name: 'stream-contract',
+      capabilities: ['project:read'],
+      expiresInDays: 30,
+    })
+
     // The unit tier's whole lifecycle, as `delivery.test.ts` drives it, plus a redeploy so
     // the retirer publishes too: a build that fails, one that succeeds, a release, a
     // healthy deploy, a second that replaces it, and one whose instance never starts.

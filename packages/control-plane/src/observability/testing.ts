@@ -133,4 +133,9 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
   },
   'repository.seeded': { commitSha: SHA, files: 2, starter: null },
   'spec.validated': { appSpecId: UUID, commitSha: SHA, valid: true, errorCount: 0 },
+  'token.minted': {
+    tokenId: UUID,
+    capabilities: ['project:read', 'build:create'],
+    expiresAt: '2026-10-17T00:00:00.000Z',
+  },
 }

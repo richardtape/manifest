@@ -60,6 +60,8 @@ export const EVENT_TYPES = [
   'repository.seeded',
   /** Its manifest.yaml was validated at a commit — valid or not. */
   'spec.validated',
+  /** D24 (P5b Task 4): a delegated token was minted for this project. NEVER carries the secret or its hash. */
+  'token.minted',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]
