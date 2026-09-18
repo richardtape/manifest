@@ -4,12 +4,37 @@ import type { FastifyInstance } from 'fastify'
 import { resetDatabase } from '../db/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
-import { addMember, TokenCapabilityRefusedError } from '../projects/index.js'
+import {
+  addMember,
+  TokenCapabilityRefusedError,
+  type Capability,
+} from '../projects/index.js'
 import { fingerprintOf, recordPendingAction } from '../tokens/index.js'
+import { mintTestToken } from '../tokens/testing.js'
 import { loginAs, mutationHeaders, projectBody } from './testing.js'
 import type { ErrorCode } from './error-codes.js'
 
-type Actor = 'owner' | 'collaborator' | 'stranger' | 'admin' | 'anonymous'
+/** A person in a browser. Five, because §16 names five. */
+type SessionActor = 'owner' | 'collaborator' | 'stranger' | 'admin' | 'anonymous'
+
+/**
+ * AN AGENT HOLDING A DELEGATED TOKEN (D24, P5b Task 11) — the second dimension every
+ * route now has. Four, each answering a different question:
+ *
+ * | Actor | What it proves |
+ * |---|---|
+ * | `token-capable` | a token holding the route's capability gets the answer an owner does — the build loop works on a token |
+ * | `token-incapable` | a token minted without it is `403 FORBIDDEN`, not `404`: it can address the project |
+ * | `token-other-project` | `404 NOT_FOUND` on EVERY project-scoped route, which is the only way to be sure no route reads the project id from somewhere other than the path (Decision 3) |
+ * | `token-privileged` | `403 TOKEN_ACTION_PENDING` on the privileged routes — a token that HOLDS one of `PRIVILEGED` is still refused, which is D24's *"regardless of how it was minted"* |
+ */
+type TokenActor =
+  'token-capable' | 'token-incapable' | 'token-other-project' | 'token-privileged'
+
+type Actor = SessionActor | TokenActor
+
+/** Every status a refusal in this table may carry. */
+type RefusalStatus = 400 | 401 | 403 | 404 | 409 | 426
 
 /**
  * What each actor should get. `pass` means "not an authorization failure".
@@ -20,8 +45,18 @@ type Actor = 'owner' | 'collaborator' | 'stranger' | 'admin' | 'anonymous'
  * is a signed assertion rather than a session. Expecting `pass` there would have
  * meant sending a valid assertion, which this suite cannot mint — and expecting
  * 401 would have made a body error indistinguishable from a refused login.
+ *
+ * **A BARE STATUS IS NO LONGER ENOUGH, and that is P5b Task 11's first change.** Until
+ * the token actors arrived, one status meant one code — `REFUSAL_CODE` below is that
+ * mapping — but D24 answers a token asking for a privileged action `403
+ * TOKEN_ACTION_PENDING` and a token on a session-only route `403
+ * TOKEN_CREDENTIAL_REFUSED`, which are the same status as `403 FORBIDDEN` and mean
+ * something a client must act on differently. So an expectation may also be an explicit
+ * (status, code) pair. **The shorthand is kept deliberately**: every row written before
+ * this change still means exactly what it meant, and the default mapping stays the
+ * documented rule rather than becoming 360 restatements of it.
  */
-type Expectation = 'pass' | 400 | 403 | 404 | 401 | 426
+type Expectation = 'pass' | RefusalStatus | { status: RefusalStatus; code: ErrorCode }
 
 /**
  * THE CODE each refusal must carry, not only its status (P5a sitting 6). A stranger's
@@ -30,12 +65,42 @@ type Expectation = 'pass' | 400 | 403 | 404 | 401 | 426
  * stranger" before either route was written. `NOT_FOUND` is the authorization answer;
  * `ROUTE_NOT_FOUND` is no route at all.
  */
-const REFUSAL_CODE: Record<Exclude<Expectation, 'pass'>, ErrorCode> = {
+const REFUSAL_CODE: Record<RefusalStatus, ErrorCode> = {
   400: 'REQUEST_INVALID',
   401: 'UNAUTHENTICATED',
   403: 'FORBIDDEN',
   404: 'NOT_FOUND',
+  // §13's launch gate (P5a Task 15), reached only by the production deploy row below —
+  // the one route in the table that authorizes `release:promote`.
+  409: 'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
   426: 'EVENTS_UPGRADE_REQUIRED',
+}
+
+/**
+ * D24's answer to an agent asking for one of `PRIVILEGED`: refused, with a question a
+ * person confirms. **The same status as `FORBIDDEN` and a different meaning** — this one
+ * is a loop that closes, that one is a dead end — which is why `Expectation` had to grow
+ * a code (sitting 4's F1 is the measurement of what a status-only assertion misses here).
+ */
+const PENDING = { status: 403, code: 'TOKEN_ACTION_PENDING' } as const
+
+/** A route D24 reserves to a person: `requireSession` refuses the credential class. */
+const SESSION_ONLY = { status: 403, code: 'TOKEN_CREDENTIAL_REFUSED' } as const
+
+function refusalOf(expected: Exclude<Expectation, 'pass'>): {
+  status: RefusalStatus
+  code: ErrorCode
+} {
+  return typeof expected === 'object'
+    ? expected
+    : { status: expected, code: REFUSAL_CODE[expected] }
+}
+
+/** For the test's own name, so a `403` row says WHICH `403` it means. */
+function describeExpectation(expected: Expectation): string {
+  if (expected === 'pass') return 'pass'
+  const { status, code } = refusalOf(expected)
+  return `${status} ${code}`
 }
 
 function codeOf(body: string): unknown {
@@ -50,6 +115,15 @@ interface RouteCase {
   method: string
   /** The registered Fastify URL, so the completeness check can match on it. */
   url: string
+  /**
+   * Distinguishes two rows that exercise ONE registered route differently — the deploy
+   * route is the first, because `POST /v1/environments/{id}/deploy` authorizes
+   * `release:deploy` for a staging environment and `release:promote` for a production
+   * one, and those are two different authorization statements (P5b Task 2). It is part
+   * of the test's NAME only; the completeness check keys on method and url, where the
+   * duplicate collapses harmlessly.
+   */
+  label?: string
   /**
    * Fills path params and body from the fixture.
    *
@@ -74,6 +148,13 @@ interface RouteCase {
 
 interface Fixture {
   projectId: string
+  /**
+   * A SECOND project, owned by the same person, that `token-other-project` is scoped to.
+   * Decision 3's scope rule is only observable against a project that really exists: a
+   * token pointed at a random uuid would get its `404` from the row's absence, which is
+   * the answer a non-existent project gets rather than the answer the scope rule gives.
+   */
+  otherProjectId: string
   environmentId: { staging: string; production: string }
   buildId: string
   releaseId: string
@@ -95,7 +176,31 @@ interface Fixture {
   removableUserId: string
 }
 
-const ALL_ACTORS: Actor[] = ['owner', 'collaborator', 'stranger', 'admin', 'anonymous']
+const SESSION_ACTORS: SessionActor[] = [
+  'owner',
+  'collaborator',
+  'stranger',
+  'admin',
+  'anonymous',
+]
+
+const TOKEN_ACTORS: TokenActor[] = [
+  'token-capable',
+  'token-incapable',
+  'token-other-project',
+  'token-privileged',
+]
+
+/**
+ * **THE TOKEN ACTORS COME LAST, and the order is load-bearing.** Two rows in this table
+ * MUTATE — `DELETE …/members/:userId` really removes `platform_admin` on the owner's
+ * case and repeats it idempotently on the admin's, and `POST …/members` re-adds
+ * `bio_student` — so the five session actors must keep running in the order they always
+ * have. None of the four token cases changes the membership graph (each is refused), but
+ * appending rather than interleaving is what makes that a fact about the order rather
+ * than a fact about the expectations.
+ */
+const ALL_ACTORS: Actor[] = [...SESSION_ACTORS, ...TOKEN_ACTORS]
 
 /**
  * Every route, and what each actor is owed. `404` for a stranger is deliberate and
@@ -113,6 +218,12 @@ const ROUTES: RouteCase[] = [
       stranger: 'pass',
       admin: 'pass',
       anonymous: 401,
+      // Decision 4: a token carries no platform role and no `puid`, so every route
+      // that reads either takes a `SessionActor` and `tsc` refuses the union.
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
     },
   },
   {
@@ -125,6 +236,10 @@ const ROUTES: RouteCase[] = [
       stranger: 'pass',
       admin: 'pass',
       anonymous: 'pass',
+      'token-capable': 'pass',
+      'token-incapable': 'pass',
+      'token-other-project': 'pass',
+      'token-privileged': 'pass',
     },
   },
   {
@@ -139,6 +254,10 @@ const ROUTES: RouteCase[] = [
       stranger: 'pass',
       admin: 'pass',
       anonymous: 'pass',
+      'token-capable': 'pass',
+      'token-incapable': 'pass',
+      'token-other-project': 'pass',
+      'token-privileged': 'pass',
     },
   },
   {
@@ -156,6 +275,11 @@ const ROUTES: RouteCase[] = [
       stranger: 400,
       admin: 400,
       anonymous: 400,
+      // The same 400 as every session: this route's credential is the assertion.
+      'token-capable': 400,
+      'token-incapable': 400,
+      'token-other-project': 400,
+      'token-privileged': 400,
     },
   },
   {
@@ -171,6 +295,14 @@ const ROUTES: RouteCase[] = [
       stranger: 'pass',
       admin: 'pass',
       anonymous: 401,
+      // Decision 13: a token is scoped to ONE project, so a token creating a second
+      // would make something it cannot then address. Decision 12a rests on this — it
+      // is how §24's audience question stays human-only, since `audience` is set
+      // here and nowhere else.
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
     },
   },
   {
@@ -183,6 +315,13 @@ const ROUTES: RouteCase[] = [
       stranger: 'pass',
       admin: 'pass',
       anonymous: 401,
+      // Decision 12: it answers a token exactly its own project — scoping behaving
+      // correctly rather than a refusal a client must special-case.
+      // `token-other-project` passes too, and sees its own one.
+      'token-capable': 'pass',
+      'token-incapable': 'pass',
+      'token-other-project': 'pass',
+      'token-privileged': 'pass',
     },
   },
   {
@@ -197,6 +336,10 @@ const ROUTES: RouteCase[] = [
       stranger: 'pass',
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 'pass',
+      'token-other-project': 'pass',
+      'token-privileged': 'pass',
     },
   },
   {
@@ -211,6 +354,10 @@ const ROUTES: RouteCase[] = [
       stranger: 'pass',
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 'pass',
+      'token-other-project': 'pass',
+      'token-privileged': 'pass',
     },
   },
   {
@@ -225,6 +372,10 @@ const ROUTES: RouteCase[] = [
       stranger: 'pass',
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 'pass',
+      'token-other-project': 'pass',
+      'token-privileged': 'pass',
     },
   },
   {
@@ -239,6 +390,10 @@ const ROUTES: RouteCase[] = [
       stranger: 'pass',
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 'pass',
+      'token-other-project': 'pass',
+      'token-privileged': 'pass',
     },
   },
   {
@@ -251,6 +406,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   {
@@ -264,6 +423,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   {
@@ -277,6 +440,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   {
@@ -289,6 +456,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   {
@@ -305,6 +476,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   {
@@ -325,6 +500,18 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      // **ALL THREE SCOPED TOKENS GET THE SAME ANSWER, and that is D24's sentence.**
+      // `assertCapability` checks scope, then the privileged rule, then the token's
+      // own set — so whether a token was minted holding `members:manage`
+      // (`token-privileged`, which no route would mint) or without it
+      // (`token-capable`) makes no difference: both are refused regardless of how
+      // it was minted, with a question a person confirms. Asserted by CODE, because
+      // `403 FORBIDDEN` is also a `403` and would satisfy a status-only expectation
+      // while D24's loop could not start at all (sitting 4's F1).
+      'token-capable': PENDING,
+      'token-incapable': PENDING,
+      'token-other-project': 404,
+      'token-privileged': PENDING,
     },
   },
   {
@@ -348,6 +535,13 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      // The same capability, so the same answer — and this is the route written
+      // AFTER the rule was made central (Task 8), which is why it is here without
+      // having done anything about tokens itself.
+      'token-capable': PENDING,
+      'token-incapable': PENDING,
+      'token-other-project': 404,
+      'token-privileged': PENDING,
     },
   },
   {
@@ -362,6 +556,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   {
@@ -382,6 +580,15 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      // **A TOKEN READS ONLY THE QUESTIONS IT ASKED** (Task 8), and every row in this
+      // fixture was asked by a different token — so all four are answered `404`,
+      // exactly as a stranger is and for the same enumeration reason. That a token
+      // CAN read its own is `api/delegation.test.ts`'s *shows the token only ITS OWN
+      // questions*; this table asserts the half that hides another agent's.
+      'token-capable': 404,
+      'token-incapable': 404,
+      'token-other-project': 404,
+      'token-privileged': 404,
     },
   },
   {
@@ -397,6 +604,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   {
@@ -411,6 +622,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   {
@@ -423,6 +638,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   {
@@ -438,6 +657,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   {
@@ -453,6 +676,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   {
@@ -467,6 +694,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   {
@@ -479,6 +710,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   {
@@ -493,11 +728,16 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   {
     method: 'POST',
     url: '/v1/environments/:environmentId/deploy',
+    label: 'staging',
     request: (f) => ({
       url: `/v1/environments/${f.environmentId.staging}/deploy`,
       payload: { releaseId: f.releaseId },
@@ -508,6 +748,56 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      // **STAGING, so this is `release:deploy` and NOT privileged** — which is the
+      // point of separating the two capabilities (Task 2, `[M2]`): an agent must be
+      // able to run the build loop to staging on its own authority. The row below
+      // is the same registered route authorizing `release:promote` instead.
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  /**
+   * **THE SAME REGISTERED ROUTE, AUTHORIZING `release:promote` INSTEAD** (P5b Task 11).
+   *
+   * `POST /v1/environments/{id}/deploy` asserts `release:deploy` for a sandbox or a
+   * staging environment and `release:promote` when the environment's `kind` is
+   * production, BEFORE §13's launch gate (Task 2). Until this row the suite deployed only
+   * to staging, so **the one route in the platform that authorizes D24's second privileged
+   * capability had no case here at all** — and `token-privileged` would have had a single
+   * capability (`members:manage`) behind all of its `TOKEN_ACTION_PENDING` expectations.
+   *
+   * The `409` is §13's gate, and it is the right `pass`-equivalent for a person: every
+   * launch-readiness item but scans answers `not_built` in Phase 1, so `ready` is `false`
+   * and the gate refuses — which means the owner's and admin's cases prove the
+   * authorization passed and the GATE stopped them, not that they were refused. The day
+   * readiness can be met this row goes red, which is a contract suite doing its job.
+   *
+   * A collaborator holds `release:deploy` and NOT `release:promote` (§13, Task 2), so
+   * theirs is the `403` that separates the two capabilities — the only assertion anywhere
+   * that a collaborator may deploy to staging and may not promote.
+   */
+  {
+    method: 'POST',
+    url: '/v1/environments/:environmentId/deploy',
+    label: 'production',
+    request: (f) => ({
+      url: `/v1/environments/${f.environmentId.production}/deploy`,
+      payload: { releaseId: f.releaseId },
+    }),
+    expect: {
+      owner: 409,
+      collaborator: 403,
+      stranger: 404,
+      admin: 409,
+      anonymous: 401,
+      // Privileged, so every scoped token is refused with a question a person answers —
+      // whatever its own capability set says, and before the launch gate is consulted.
+      'token-capable': PENDING,
+      'token-incapable': PENDING,
+      'token-other-project': 404,
+      'token-privileged': PENDING,
     },
   },
   {
@@ -520,6 +810,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   // §14's Incidents (P4b Task 13): a failed app's last 200 log lines, so a stranger's
@@ -534,6 +828,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
     },
   },
   /**
@@ -554,6 +852,16 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 426,
       anonymous: 401,
+      // The stream authorizes with `requireActor` and `project:read`, so a token
+      // reaches the same `426` a person does. It is registered OUTSIDE
+      // `registerRoutes` (`[M7]`), so a privileged capability checked here would
+      // escape the wrapper that records a `PendingAction` — harmless while the
+      // capability is `project:read`, and `api/errors.ts` fails closed with an
+      // operator line the day it is not.
+      'token-capable': 426,
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 426,
     },
   },
   {
@@ -568,6 +876,12 @@ const ROUTES: RouteCase[] = [
       stranger: 403,
       admin: 'pass',
       anonymous: 401,
+      // Decision 4: §26's fleet is cross-tenant, and a leaked project-scoped token
+      // must not become a read of every project on the platform.
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
     },
   },
   /**
@@ -588,6 +902,12 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      // D24: a token is minted *in an interactive session*. An agent minting its own
+      // successor is how a scoped credential escapes its scope and its expiry.
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
     },
   },
   {
@@ -600,6 +920,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
     },
   },
   {
@@ -615,6 +939,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 404,
       anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
     },
   },
   /**
@@ -638,6 +966,12 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      // A token confirming its own pending action would be a loop with no human in
+      // it, which is the whole of what D24 asks for (Task 7).
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
     },
   },
   {
@@ -653,6 +987,10 @@ const ROUTES: RouteCase[] = [
       stranger: 404,
       admin: 'pass',
       anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
     },
   },
   /**
@@ -679,6 +1017,12 @@ const ROUTES: RouteCase[] = [
       stranger: 'pass',
       admin: 'pass',
       anonymous: 'pass',
+      // No `requireActor`: its caller is BuildKit speaking the distribution token
+      // protocol, and the credential is in the request. A bearer changes nothing.
+      'token-capable': 'pass',
+      'token-incapable': 'pass',
+      'token-other-project': 'pass',
+      'token-privileged': 'pass',
     },
   },
   {
@@ -691,6 +1035,10 @@ const ROUTES: RouteCase[] = [
       stranger: 'pass',
       admin: 'pass',
       anonymous: 'pass',
+      'token-capable': 'pass',
+      'token-incapable': 'pass',
+      'token-other-project': 'pass',
+      'token-privileged': 'pass',
     },
   },
 ]
@@ -704,6 +1052,8 @@ export function describeAuthorizationContract(
     let deps: ServerDeps
     let fixture: Fixture
     const cookies: Partial<Record<Actor, Record<string, string>>> = {}
+    /** The four token actors' plaintexts, sent as `Authorization: Bearer`. */
+    const bearers: Partial<Record<TokenActor, string>> = {}
 
     beforeAll(async () => {
       // The suite asserts the stranger is a member of nothing, and that only holds
@@ -761,6 +1111,71 @@ export function describeAuthorizationContract(
       })
 
       /**
+       * THE SECOND PROJECT, and the four delegated tokens (P5b Task 11).
+       *
+       * All four are written with `mintTestToken` rather than through
+       * `POST /v1/projects/{id}/tokens`, and that is a decision: `token-privileged` holds
+       * one of `PRIVILEGED`, which the mint route refuses by name — a state no route can
+       * produce and the only state in which D24's *"regardless of how it was minted"* is
+       * observable (sitting 4's F1). Minting three through the route and one past it
+       * would leave the four actors differing in two ways at once. **What the route would
+       * and would not accept is `api/tokens.test.ts`'s subject; this table is about what
+       * a token may DO.**
+       *
+       * `token-capable`'s set is nonetheless exactly what the route WOULD mint for this
+       * owner: every capability `OWNER` holds that is not one of `PRIVILEGED`.
+       *
+       * **The rate limit is far above the case count on purpose** (§7e): since sitting 6
+       * every route can answer a token `429`, and the suite fires each actor at every
+       * route in one window — so a token on the 600-a-minute default would, if this table
+       * ever grew past it, start refusing later routes for a reason `Expectation` cannot
+       * express and the failures would read as authorization defects.
+       */
+      const otherProject = await app.inject({
+        method: 'POST',
+        url: '/v1/projects',
+        payload: projectBody(`authz-other-${randomUUID().slice(0, 8)}`),
+        cookies: cookies.owner,
+        headers: mutationHeaders(deps),
+      })
+      const otherProjectId = otherProject.json().id as string
+
+      const CAPABLE: Capability[] = [
+        'project:read',
+        'project:write',
+        'project:delete',
+        'build:create',
+        'release:create',
+        'release:deploy',
+      ]
+      const tokenFor = async (
+        actor: TokenActor,
+        scope: string,
+        capabilities: Capability[],
+      ): Promise<void> => {
+        const { plaintext } = await mintTestToken(deps.db, {
+          userId: (await ensureTestUser(deps.db, 'bio_prof')).id,
+          projectId: scope,
+          capabilities,
+          name: actor,
+          rateLimit: 100_000,
+        })
+        bearers[actor] = plaintext
+      }
+      await tokenFor('token-capable', body.id, CAPABLE)
+      // `project:delete` is a `Capability` NO route asserts (nothing deletes a project),
+      // which is what makes this actor incapable of every route while still able to
+      // address the project — the `403`-not-`404` distinction the row is for. An empty
+      // set would do the same and is a state the mint route refuses (`min(1)`).
+      await tokenFor('token-incapable', body.id, ['project:delete'])
+      await tokenFor('token-other-project', otherProjectId, CAPABLE)
+      await tokenFor('token-privileged', body.id, [
+        ...CAPABLE,
+        'members:manage',
+        'release:promote',
+      ])
+
+      /**
        * TEN pending questions — one per route, per actor — recorded the way the platform
        * records them, through `recordPendingAction`, with a fingerprint that differs per
        * actor so the reuse lookup gives each its own row rather than handing back the
@@ -794,6 +1209,7 @@ export function describeAuthorizationContract(
 
       fixture = {
         projectId: body.id,
+        otherProjectId,
         removableUserId: removable.id,
         tokenId: token.json().token.id,
         pendingActionId: {
@@ -853,9 +1269,24 @@ export function describeAuthorizationContract(
     for (const route of ROUTES) {
       for (const actor of ALL_ACTORS) {
         const expected = route.expect[actor]
-        it(`${route.method} ${route.url} as ${actor} → ${expected}`, async () => {
+        const label = route.label === undefined ? '' : ` (${route.label})`
+        it(`${route.method} ${route.url}${label} as ${actor} → ${describeExpectation(expected)}`, async () => {
           const { url, payload } = route.request(fixture, actor)
           const actorCookies = actor === 'anonymous' ? undefined : cookies[actor]
+          /**
+           * ONE CREDENTIAL, NEVER TWO. A request carrying both a session cookie and a
+           * bearer token is `400 CREDENTIAL_AMBIGUOUS`, refused before either is read
+           * (Task 5), so a token actor must send no cookie — which is why `bearers` is a
+           * separate map rather than a field on `cookies`.
+           *
+           * **`mutationHeaders(deps)` is reused unchanged, `Origin` and all.**
+           * `assertSameOrigin` returns early unless a session COOKIE is present
+           * (`csrf.ts`), so the console's origin on a bearer request is neither required
+           * nor refused — which is what let Task 5 add the credential class with no change
+           * to CSRF at all. §3's *"and a bearer request must not"* means *is not required
+           * to*, not *is refused if it does*.
+           */
+          const bearer = bearers[actor as TokenActor]
           // Built conditionally: under exactOptionalPropertyTypes an explicit
           // `payload: undefined` is not assignable to InjectOptions' optional
           // `payload`, and the failed overload silently turned `response` into
@@ -863,18 +1294,22 @@ export function describeAuthorizationContract(
           const response = await app.inject({
             method: route.method as 'GET',
             url,
-            headers: mutationHeaders(deps),
+            headers: {
+              ...mutationHeaders(deps),
+              ...(bearer === undefined ? {} : { authorization: `Bearer ${bearer}` }),
+            },
             ...(payload === undefined ? {} : { payload }),
-            ...(actorCookies === undefined ? {} : { cookies: actorCookies }),
+            ...(bearer !== undefined || actorCookies === undefined
+              ? {}
+              : { cookies: actorCookies }),
           })
 
           if (expected === 'pass') {
             expect(response.statusCode).toBeLessThan(400)
           } else {
-            expect({ status: response.statusCode, code: codeOf(response.body) }).toEqual({
-              status: expected,
-              code: REFUSAL_CODE[expected],
-            })
+            expect({ status: response.statusCode, code: codeOf(response.body) }).toEqual(
+              refusalOf(expected),
+            )
           }
         })
       }
