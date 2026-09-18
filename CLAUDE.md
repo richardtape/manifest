@@ -29,15 +29,18 @@ and green.** Each plan has an acceptance that passes:
 
 **The current plan is P5b — delegated tokens and pending actions (D24)**
 (`docs/superpowers/plans/2026-09-17-p5b-delegated-tokens.md`, 13 tasks in nine sittings,
-written 2026-09-17), the second of Phase 1c's three. **Its first five sittings are executed**
+written 2026-09-17), the second of Phase 1c's three. **Its first six sittings are executed**
 — the measurements, which corrected five of the plan's own tasks; then D24's privileged four
 named once, `release:promote` separated from `release:deploy`, and the two token tables
 (migration 0014); then the three token routes and bearer authentication, so an agent holding
 a delegated token can now act on its one project; then **D24's central refusal** — asking
 for one of the privileged four is refused at the authorization layer rather than per route,
-and the one wrapper holding the request records a `PendingAction` the `403` carries; and now
+and the one wrapper holding the request records a `PendingAction` the `403` carries; then
 **the loop closing**, where a person confirms or rejects that question in an interactive
-session and a confirmation lets the agent's own retry through exactly once. **Its four spec actions were approved and
+session and a confirmation lets the agent's own retry through exactly once; and now **§26's queue
+as a read**, with removing a member — D24's fourth privileged action — added as the first privileged
+route written after that rule, and **a per-token rate limit** on every request an agent makes.
+**Its four spec actions were approved and
 applied on 2026-09-17.**
 ORIENTATION §7e names the next job. P5a — the contract — was executed in twelve sittings and finished on 2026-09-17:
 the API is under `/v1` at `https://console.manifest.internal` through the edge, an OpenAPI
@@ -51,7 +54,7 @@ only after P5b has executed. *Sittings pace the work; they are not §17's produc
 turning the network off from a tool call cuts the agent off too; it now has a step 8,
 `make demo-journey`), the second-machine clean clone, starting the UBC external track (its
 trigger fired on 2026-09-15), **a Docker cleanup this machine's permission rules
-refused** — though that refusal has NOT recurred in P5b sittings 2 through 5, each of which removed
+refused** — though that refusal has NOT recurred in P5b sittings 2 through 6, each of which removed
 the images its own Docker-tier runs built, so try it rather than assuming — and the rest of ORIENTATION §8. *(The one P5a negative control those rules refused —
 the edge's `@outside` refusal — was closed on 2026-09-17 without weakening the edge, and is no
 longer outstanding.)*

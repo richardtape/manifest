@@ -29,8 +29,8 @@
 | 3 | 4–5 | **Minting, listing and revoking** a token in an interactive session; then **bearer authentication** — one place turns either credential into an `Actor`. **It also writes `withProjectServer` and `sessionFor`**, which sitting 2 deferred to their first callers | ✅ **DONE 2026-09-17 — 15 findings, 3 commits** (`e407ae3`, `eab5466`, `d992534`). Migration **0015**. **The contract layer could not carry a bodyless mutation**, and `DELETE /v1/tokens/{tokenId}` is the first; **three controls answer `403` for the wrong reason**, so every refusal now asserts its CODE. `make demo-journey` green |
 | 4 | 6 | **The central refusal, and the `PendingAction` it creates.** The heart of D24. **Alone** | ✅ **DONE 2026-09-18 — 10 findings, 3 commits** (`11c47b9`, `f9f56f6`). Migration **0016**. The catch is OUTSIDE `app.idempotent`. **The plan's own ordering control cannot fail against any test that existed** — every test mints the privileged capability, which no real token can hold; a twelfth test asserts that case. Breaking `isPrivileged` now turns **11 tests red**, from 2. `make demo-journey` green |
 | 5 | 7 | **Confirm, reject, and the one-shot retry** — the loop closing. **Alone** | ✅ **DONE 2026-09-18 — 12 findings, 2 commits** (`7465590`, `9ac051b`). Migration **0017**. The grant is what gets a token past D24's rule and nothing else can make one. **TWO of this sitting's own nine new tests were green before the route existed**, and **`recordPendingAction`'s reuse lookup is a read-then-insert — five concurrent identical asks make five rows** (F10, carried to Task 10). `make demo-journey` green |
-| 6 | 8–9 | **The queue** (§26's primary screen, as a read) and **per-token rate limits** | ← next |
-| 7 | 10–11 | **Expiry** for both entities, and **the authorization contract suite's token actors** — the matrix roughly doubles | |
+| 6 | 8–9 | **The queue** (§26's primary screen, as a read) and **per-token rate limits** | ✅ **DONE 2026-09-18 — 12 findings, 2 commits.** Three routes, and D24's fourth privileged action made reachable. **A `204` was not expressible** — `SuccessStatus` is `200 \| 201 \| 202`, so the removal answers `200` with `MemberList`. **The removal is idempotent**, which is what lets the authz matrix express it without a per-actor fixture. **TWO of Task 9's four tests were green before the limiter existed** — both were "is not limited" claims, true of a platform that limits nothing. **The roadmap's defect-rate table had no P5b rows at all**, five sittings running |
+| 7 | 10–11 | **Expiry** for both entities, and **the authorization contract suite's token actors** — the matrix roughly doubles | ← next |
 | 8 | 12 | **`make demo-token`** — an agent runs the build loop on a token, is refused twice, a human confirms, and the retry succeeds | |
 | 9 | 13 | **The acceptance**, three times, once from a `make reset` machine, with its negative controls. **Alone, and last** | |
 
@@ -1074,6 +1074,8 @@ git commit -m "feat(tokens): the delegated token and pending action stores, and 
 > **Sitting 2 correction (2026-09-17). THIS SITTING WRITES THE TWO API FIXTURES, and every snippet below names a test user that does not exist.**
 >
 > **1. `withProjectServer` and `sessionFor` are yours to write, in `api/testing.ts`, before the first test that uses them.** Task 3 deliberately did not: a fixture written before its first caller is one nothing has exercised (P5a sitting 10 finding 6). **`withProjectServer` is the rename** — `api/testing.ts` cannot export a `withProject` while `db/testing.ts` already does, and several test files import from both. Its shape is *The test fixtures every snippet below uses*, with `userId` being the OWNER's `users.id`.
+>
+> **[DISCHARGED 2026-09-18 by sitting 6. Sitting 5 counted 10 `withProject(async …)` and 7 `ins000001`/`stu000001` across Tasks 8–13; ALL of them were in Tasks 8 and 9, which sitting 6 executed. Tasks 10–13 contain none — counted by extracting lines 2465–2737 and grepping: 0, 0 and 0. Points 1 and 2 below are now history, not work; keep reading them for WHY the names are wrong, because a new test file can still reach for them.]**
 >
 > **2. `ins000001` AND `stu000001` ARE NOT TEST USERS HERE.** They are the **IdP** puids the demos and the SAML tests sign in with (`infra/idp/config/authsources.php`). `loginAs` and `sessionFor` take a **`TestUserPuid`**, and §16's four are **`bio_prof`, `bio_student`, `unrelated_user` and `platform_admin`** — `ensureTestUser` throws by name on anything else, and `tsc` refuses it first. Read `bio_prof` for `ins000001` and `bio_student` for `stu000001` in every snippet in this plan, including *The test fixtures*' own `loginAs(deps, 'ins000001')` and Task 6's `puid: 'stu000001'`. The snippets also reference a `ctx` that their own callback destructures away; take the shape from the fixture, not from the snippet.
 >
@@ -3498,3 +3500,107 @@ unrelated edge limit. (3) Reading Task 8 as the next agent will showed that **it
 rate limits. Task 8 inherits **F10's correction at the top of Task 10**, `PendingActionList`
 (sitting 4's F4 left it for the queue route that answers it), and a `reason` field the queue
 can now show.
+
+### Sitting 6 — 2026-09-18 — Tasks 8 and 9, the queue and per-token rate limits — 12 findings
+
+**What it made true.** §26's queue exists as two reads, D24's fourth privileged action —
+removing a member — is reachable for the first time, and §20's per-token rate limit has a
+reader. Two commits. **No migration**: both tasks are reads and a route over tables that
+already existed, and the limiter is in-process by Decision 9.
+
+**Task 8's real deliverable was a test, and it passed.**
+`DELETE /v1/projects/{projectId}/members/{userId}` is the first privileged route written
+**after** Task 6 made D24's refusal central. It calls `assertCapability(…, 'members:manage')`
+like every other route and does nothing whatever about delegated tokens — and an agent
+asking is answered `403 TOKEN_ACTION_PENDING`, with a `PendingAction` a person confirms, and
+the confirmed retry then removes the member exactly once. Watched failing: with the
+privileged branch removed, *is refused to a token with a PendingAction, WITHOUT the route
+doing anything* reads `expected { status: 200, code: undefined } to deeply equal
+{ status: 403, 'TOKEN_ACTION_PENDING' }`. **That is Task 6's claim, measured by a route that
+never heard of it.**
+
+#### The finding to read if you read nothing else
+
+**F5 — two of THIS sitting's four new rate-limit tests were green before the limiter
+existed**, and for a reason that generalises: both are *"is not limited"* claims — *does not
+let an UNKNOWN token spend a real one's window* and *does not limit a session* — and a claim
+that something is not refused is true of a platform that refuses nothing. Measured at Step 2:
+`Tests 2 failed | 2 passed (4)`. **A negative claim needs a positive control in the same
+test.** The unknown-token case now spends the real token's window afterwards and watches the
+third request refused; the session case mints a token in the same fixture and watches IT
+refused while the session's twenty requests all pass. Both then failed before the feature —
+`Tests 4 failed (4)` — and this is the **fifth consecutive sitting** in which a control could
+not fail as written, the second in which it was the sitting's own new tests.
+
+#### Every finding
+
+| # | Finding |
+|---|---|
+| F1 | **The plan names the wrong file for the member-removal route.** It says `api/routes/projects.ts`; that file holds only `createProject`. The member routes — `listMembers` and `addMember` — are in `api/routes/project-reads.ts`, despite its name, and the removal went there beside them. A reader following the plan would have created a second file registering a third member route. |
+| F2 | **The plan's `204` is not expressible, and making it so is new machinery for one route.** `SuccessStatus` in `api/contract/route.ts` is `200 \| 201 \| 202`, and `defineRoute` requires a `success.schema` every answer is parsed through — so a 204 would be the API's first bodyless RESPONSE and would need a `NO_RESPONSE` sentinel threaded through the wrapper and `document.ts`, which is the shape sitting 3's F1 paid for on bodyless REQUESTS. The route answers **`200` with `MemberList`** instead: every other mutation in this API answers with what it changed (`addMember` → `Member`, `revokeToken` → `Token`), and a console removing somebody then needs no second read. |
+| F3 | **A strict `404` for a non-member makes the authorization matrix inexpressible — and is not right on its own terms either.** `api/authz-contract.ts` runs five actors against one fixture in order, so the owner's removal would consume it and the admin's would then answer `404` where the table says `pass`: sitting 5's F7 exactly. Rather than bend the table, the removal is **idempotent** — the caller holds `members:manage` and can already read the membership, so a `404` hides nothing, and a repeated click or two administrators acting at once would otherwise be an error for an action that achieved its goal. The asymmetry with `DELETE /v1/tokens/{tokenId}`, where the `404` DOES hide which ids exist from a non-minter, is now stated in both files. |
+| F4 | **`assertCapability` alone could not answer who may READ a question, and the plan does not say.** Task 8's own snippets require a token to read its own pending action and a stranger to be refused, but a token holding `project:read` would read every agent's questions on the project if the check were `assertCapability` alone. The rule is now stated ONCE, as `pendingActionsFor`'s `tokenId` parameter: a session that may read the project reads the project's queue, a token reads only what it asked. Watched failing both ways — widening the single read turns *hides ANOTHER token's pending action from a token* red (`expected { status: 200 } to deeply equal { status: 404, 'NOT_FOUND' }`), and widening the list turns *shows the token only ITS OWN questions* red (`expected [ …(2) ] to have a length of 1 but got 2`). |
+| F5 | **Above.** |
+| F6 | **`RATE_LIMITED` belongs in `EVERY_ROUTE`, not on each route's `errors:`.** The limit is taken in the one `onRequest` hook, so every `/v1` operation can answer `429` to a token; listing it per route would be forty entries all meaning "the hook ran", and a new route would forget it. One line in `api/contract/document.ts`. `GET /v1/slugs/{slug}` keeps its own entry deliberately — that is a different control (per USER, P5a Task 9) with the same code. |
+| F7 | **`api/rate-limit.ts` DID need a change, which the plan predicted it would not** (*"the expected change here is none, and making one is a finding to record"*). `createRateLimiter` fixes its `limit` per instance, and §20's whole point is that each token's limit is its own — so one instance cannot express them and `delegated_tokens.rate_limit` would be decorative. Added `createKeyedRateLimiter`, whose `take(key, limit)` reads the limit per call, and `createRateLimiter` is now one line over it: **one window implementation, two surfaces.** The alternative the plan describes — a map of `RateLimiter`s built in `server.ts` — puts a second copy of the window and its eviction in a file about wiring. |
+| F8 | **`delegated_tokens.rate_limit` had no unit anywhere.** The column, the `Token` representation and the mint route all say `rateLimit: 600` and nothing said 600 of what; §20 does not either. Settled as **requests a minute**, stated in `TOKEN_RATE_WINDOW_MS`'s comment, in the representation's `describe` (so it is in the published contract) and in the RUNBOOK. A number a client must act on and cannot interpret is not a contract. |
+| F9 | **`RATE_LIMITED`'s registry summary said "from this person"**, which was true when only the slug check threw it and is now wrong for the control this task adds — a token is not a person, and two tokens the same person minted have separate windows. Rewritten, and it is contract-visible text. |
+| F10 | **The roadmap's defect-rate table has NO P5b rows at all, five sittings running** — sittings 1 to 5 (11, 14, 15, 10 and 12 findings) were never added, and there is no `P5a, total` row either, while ORIENTATION §2 says in its own words that *"the roadmap's defect-rate table has every plan and sitting"*. A close-out step silently skipped by five consecutive sittings, each of which believed it had swept. Found by reading the ledger rather than the sweep checklist. Added all six P5b rows, P5a's total, and this sitting's. |
+| F12 | **My own §7e stated two numbers I had not counted, and the check that §6 prescribes is what caught it.** The hand-off said *"7 `withProject(async …)` and 6 `ins000001`/`stu000001` remain in Tasks 10–13"*, presented as a fresh recount. The true number is **0, 0 and 0**: sitting 5's count of 10 and 7 across Tasks 8–13 was correct, and **every one of them was in Tasks 8 and 9 — the two tasks this sitting executed**. Measured by extracting lines 2465–2737 (Task 10 to *What this plan does not build*) and grepping them. The plan-wide correction at the top of Task 4 is therefore DISCHARGED and now says so. This is the **sixth consecutive sitting** in which re-reading one's own §7e as a cold agent found a defect, and the second in which the defect was a number stated without deriving it — §6's *"re-derive every number, rather than subtracting from the last one"* has a third failure mode: inventing one. |
+| F11 | **A prediction for the Docker tier was not recorded before this sitting's FIRST run**, which four previous sittings did record. Noted rather than glossed: the second run's prediction (177, unchanged) was written down first, with its reason checkable — `grep` over every `*.docker.test.ts` finds no `Authorization: Bearer` that is a Manifest delegated token (they are registry tokens and LiteLLM keys), so the limiter's `take` cannot run in that tier at all. |
+
+**Decisions this sitting made.**
+
+- **The two credential classes see different queues** (F4), stated once as a repository
+  parameter rather than twice in two routes.
+- **`waitingSeconds` is computed by the platform**, not by each client from `createdAt`.
+  §26 makes it the queue's headline number, and two clients subtracting two timestamps is
+  two clock skews; on a resolved row it stops at `resolvedAt`, because after that it waited
+  for nothing.
+- **The queue lists EVERY state, not only `pending`.** A queue that hides what was answered
+  cannot show a person what they decided, and `waitingSeconds` on a resolved row is how long
+  the agent waited.
+- **The queue names the TOKEN, not the person who minted it.** §26 asks a screen to show
+  "by whom"; `GET /v1/projects/{id}/tokens` has the token's name and its minter, so the
+  client joins two reads rather than the platform denormalising a name that can change.
+- **Removing a member answers `200` with the remaining members, and is idempotent** (F2, F3).
+- **The last-owner guard is in the DELETE's own predicate**, not in a read before it — the
+  same shape as `resolveAction`'s `state = 'pending'` clause, so two owners removing each
+  other at once cannot both win.
+- **`RATE_LIMITED` is universal in the contract** (F6), and the limit is taken **after**
+  verification (so a forged token spends nobody's window) and **before** any route (so no
+  route can forget it).
+
+**Seven negative controls for Task 8, each watched after the commit and restored; all seven
+went red on the named assertion.**
+
+| Break | What went red |
+|---|---|
+| the central refusal removed (`isPrivileged` branch) | *is refused to a token … WITHOUT the route doing anything* — `expected { status: 200, code: undefined } to deeply equal { status: 403, 'TOKEN_ACTION_PENDING' }`, and 27 others |
+| the last-owner guard removed from the DELETE's predicate | *refuses the LAST owner's removal* — `expected { status: 200 } to deeply equal { status: 409 }`, **and only that one** |
+| `waitingSeconds` dropped from the mapper | *lists a project's pending actions … with how long each has waited* — and the failure is **not** the plan's predicted `expected undefined to be 'number'`: the representation refuses on the way out, so it is a `500` plus `mapError`'s fail-closed operator line naming `issues: ["waitingSeconds"]`. P5a Task 15's fail-closed path, proving itself |
+| the single read's own-token check widened to the project | *hides ANOTHER token's pending action from a token* — `expected { status: 200 } to deeply equal { status: 404, 'NOT_FOUND' }` |
+| the list's own-token narrowing removed | *shows the token only ITS OWN questions in the project's queue* — `expected [ …(2) ] to have a length of 1 but got 2` |
+| `payload` added to the representation | *never carries the refused request's body* — `expected '{"id":"d4ab25e1…' not to contain 'bio_student'` |
+| the removal route left out of `api/authz-contract.ts` | *covers every route the server registers* — `+ "DELETE /v1/projects/:projectId/members/:userId"` |
+
+**Four negative controls for Task 9, each watched after the commit and restored; all four
+went red, and each on the ONE test named for it.**
+
+| Break | What went red |
+|---|---|
+| one shared window for every token (`take('shared', …)`) | *limits each token separately* — `expected { status: 429, 'RATE_LIMITED' } to deeply equal { status: 200, code: undefined }` |
+| the limiter keyed by USER instead of token | the same test, the same message — which is the point: two tokens one person minted are two agents |
+| the limit taken BEFORE verification | *does not let an UNKNOWN token spend a real one's window* — `expected { status: 429, 'RATE_LIMITED' } to deeply equal { … }`. **This is the control the plan asked for and the one F5 made able to fail**: before the positive half was added, the test was green with no limiter at all and would have been green with the limit taken in the wrong place too |
+| `retry-after` not set in `setErrorHandler` | *refuses past the token's own limit, and says when to retry* — `expected NaN to be greater than 0` |
+
+**What this sitting did NOT do, deliberately.**
+
+- **`recordPendingAction`'s duplicate rows are still there** (sitting 5's F10). Task 8 builds
+  the screen they show up on, and the correction block at the top of Task 10 says why the fix
+  waits: a partial unique index on `state = 'pending'` needs the expiry sweeper first, or a
+  stale pending row blocks a fresh question for ever. **Not "fixed" here with a distinct-on.**
+- **No `PendingActionList` for a token across projects, and no cross-project queue.** A token
+  is scoped to one project by Decision 3, and §26's fleet-wide view is admin-scoped and P5c's.
+- **The queue names the token, not the person.** §26 asks a screen to show "by whom"; the
+  token list carries the name and the minter, so the screen joins two reads.

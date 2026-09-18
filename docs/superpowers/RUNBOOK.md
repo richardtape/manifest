@@ -377,10 +377,18 @@ hook turns either credential class into an actor, and a request carrying both a 
 refused `400 CREDENTIAL_AMBIGUOUS`. A token addressing a project it is not scoped to is answered `404`, the
 stranger's answer, rather than `403`.
 
+**A token is rate-limited, per token, from its own row** — since P5b Task 9 (sitting 6, 2026-09-18).
+`rateLimit` on the mint and list answers is **requests a minute**, 600 by default; past it EVERY `/v1` route
+answers `429 RATE_LIMITED` with `Retry-After` in seconds. The limit is taken in the one request hook, after
+the token is verified, so a forged token cannot spend a real one's window and no route can forget the
+check. **A session is deliberately not limited** — §20 scopes this control to tokens, because a
+third-party agent is code the platform did not write; `GET /v1/slugs/{slug}` keeps its own per-user limiter
+and is unaffected.
+
 **What is not built.** A project owner cannot revoke a collaborator's token — only the person who minted it
-can — and there is no rate limit and no expiry sweeper yet (Tasks 9 and 10), nor a route that LISTS a
-project's pending actions (Task 8). `make demo-token` — the whole loop driven end to end through the edge —
-is Task 12's.
+can — and there is no expiry sweeper yet (Task 10), so a question that nobody answers stays `pending` past
+its own `expiresAt` rather than becoming `expired` (it cannot be confirmed either way). `make demo-token` —
+the whole loop driven end to end through the edge — is Task 12's.
 
 *This section said "a token cannot authenticate until Task 5, which is the next sitting's work" until
 2026-09-18, two sittings after that stopped being true: sittings 3 and 4 swept the gate-number line in this
@@ -400,7 +408,7 @@ envelope carries the `pendingAction` a person must answer:
              "pendingAction": { "id": "…", "action": "members:manage", "state": "pending",
                                 "method": "POST", "path": "/v1/projects/…/members",
                                 "bodySha256": "…", "summary": "Add or change a member",
-                                "reason": null, "consumedAt": null } } }
+                                "waitingSeconds": 0, "reason": null, "consumedAt": null } } }
 ```
 
 A person then answers it **in an interactive session** — a token cannot answer its own question, or the
@@ -435,6 +443,35 @@ itself, through its normal route with its normal validation. Five things follow,
 - **A confirmation is one credential's.** A second token asking the identical thing gets its own question.
 - **A failed retry does not burn the confirmation.** `consumedAt` is stamped after the handler resolves, so
   a transient failure the agent did not cause can be retried on the same grant.
+
+**Reading the queue** — §26's primary screen, as two reads (P5b Task 8, 2026-09-18). There is no console
+yet, so this is what P5c will be built on, and it is also how an agent polls for its own answer instead of
+retrying a refused request to find out:
+
+```bash
+# The project's queue, newest first. `waitingSeconds` is §26's headline number.
+curl -sS -b "$CP_JAR" "https://console.manifest.internal/v1/projects/$PROJECT_ID/pending-actions"
+
+# One question. The AGENT reads its own this way, with its bearer token and no cookie.
+curl -sS -H "Authorization: Bearer $TOKEN" \
+  "https://console.manifest.internal/v1/pending-actions/$PENDING_ID"
+```
+
+**The two credential classes see different sets.** Anyone who can read the project sees every question on
+it — reading is `project:read`, so a collaborator watches the queue even though answering needs the
+capability the question is about. A **token sees only what it asked itself**: one agent reading another
+agent's requests is a read D24 grants nobody, and a question that is not yours is `404`, the same answer an
+id that does not exist gets. **Neither read ever carries the refused request's body** — only its
+`bodySha256`, which is enough for an agent to recognise its own request and nothing for a person's screen to
+leak. Answered and expired questions stay in the list, because a queue that hides what was decided cannot
+show a person what they decided.
+
+**Removing a member** is D24's fourth privileged action and became reachable in the same task:
+`DELETE /v1/projects/$PROJECT_ID/members/$USER_ID`, answering `200` with the members as they now are. It is
+idempotent — removing somebody who is not a member is not an error — and the **last owner cannot be
+removed** (`409 PROJECT_LAST_OWNER`). It was written after D24's rule was made central and does nothing
+about tokens: an agent asking is answered `403 TOKEN_ACTION_PENDING` anyway, which is the whole claim of
+that rule and is what its test measures.
 
 **Refusing is final for that request.** A retry after a rejection is answered `403 TOKEN_ACTION_REJECTED`
 carrying the person's own reason, rather than asking them the same thing again — which is what D23.7 means
