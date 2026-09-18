@@ -39,23 +39,29 @@ async function releaseWithBuild(db: Db, releaseId: string) {
 }
 
 /**
- * An environment the actor may act on. The project comes from the environment ROW, never
- * from the request — the IDOR shape P2 measured on `GET /builds/:id` — so a stranger gets
- * the 404 the project itself would give them.
+ * The environment row, with no authorization of its own. The project comes from this ROW,
+ * never from the request — the IDOR shape P2 measured on `GET /builds/:id` — so every
+ * caller below authorizes against the project the environment actually belongs to, and a
+ * stranger gets the 404 the project itself would give them.
+ *
+ * Separate from `environmentReadableBy` because the deploy route's capability DEPENDS on
+ * the row: promoting to production is a different decision from deploying to staging
+ * (§13, D24), so it must read the kind before it can say what to assert (P5b Task 2).
  */
-async function environmentReadableBy(
-  db: Db,
-  actor: Actor,
-  environmentId: string,
-  capability: 'project:read' | 'release:deploy',
-) {
+async function environmentById(db: Db, environmentId: string) {
   const [row] = await db
     .select()
     .from(environments)
     .where(eq(environments.id, environmentId))
   if (row === undefined)
     throw new AuthorizationError('NOT_FOUND', `no environment '${environmentId}'`)
-  await assertCapability(db, actor, row.projectId, capability)
+  return row
+}
+
+/** An environment the actor may READ. */
+async function environmentReadableBy(db: Db, actor: Actor, environmentId: string) {
+  const row = await environmentById(db, environmentId)
+  await assertCapability(db, actor, row.projectId, 'project:read')
   return row
 }
 
@@ -202,11 +208,17 @@ export const releaseRoutes = [
       'AI_BACKEND_UNAVAILABLE',
     ],
     handler: async ({ deps, actor, params, body }) => {
-      const environment = await environmentReadableBy(
+      const environment = await environmentById(deps.db, params.environmentId)
+      // §13 and D24: promoting to production is a different decision from deploying to
+      // staging, and a different capability. The launch gate below refuses production for
+      // a second, independent reason — this check is about WHO may ask, that one is about
+      // whether the project is ready. Both must hold, and this one runs first, so a
+      // collaborator is refused before the project's readiness is ever consulted.
+      await assertCapability(
         deps.db,
         actor,
-        params.environmentId,
-        'release:deploy',
+        environment.projectId,
+        environment.kind === 'production' ? 'release:promote' : 'release:deploy',
       )
       // §13: not forbidden, not ready. Say which items and who owns them — the SAME
       // checklist `GET /v1/projects/{projectId}/launch-readiness` answers, computed from
@@ -252,7 +264,6 @@ export const releaseRoutes = [
         deps.db,
         actor,
         params.environmentId,
-        'project:read',
       )
       const [project] = await deps.db
         .select({ slug: projects.slug })

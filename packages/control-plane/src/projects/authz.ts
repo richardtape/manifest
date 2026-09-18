@@ -12,8 +12,46 @@ export type Capability =
   | 'build:create'
   | 'release:create'
   | 'release:deploy'
+  /**
+   * §13 and D24: putting a release in front of real students, as distinct from
+   * deploying it to staging. Separate from `release:deploy` because D24 forbids
+   * exactly this one to a delegated token and permits the other — one capability
+   * covering both would make the rule unstatable (P5b `[M2]`).
+   */
+  | 'release:promote'
   | 'release:approve'
   | 'quota:set'
+
+/**
+ * D24's forbidden set, which is §20's step-up set — a SUPERSET of `Capability`.
+ *
+ * `secret:read` is in D24's list and deliberately NOT in `Capability`: no route reads a
+ * secret in Phase 1 (P5b Decision 14), and adding it to the union would create a
+ * capability nothing grants and nothing checks, which is the no-caller shape ORIENTATION
+ * §9 names four times (measured as P5b `[M8]`). D24's list is a statement about the
+ * SPEC; `Capability` is a statement about the routes that exist. The superset is what
+ * lets `privileged.test.ts` hold the two against each other.
+ */
+export type PrivilegedCapability = Capability | 'secret:read'
+
+/**
+ * D24's four, and §20's step-up four. ONE list, because the spec says keeping the two
+ * aligned is a test rather than a convention — `privileged.test.ts` is that test.
+ *
+ * A delegated token may NEVER hold one of these, however it was minted (P5b Task 6).
+ * Step-up re-authentication for an interactive session is deferred (Rich, R1) and is
+ * owed by the plan that adds the routes it would protect.
+ */
+export const PRIVILEGED: ReadonlySet<PrivilegedCapability> = new Set([
+  'release:promote',
+  'secret:read',
+  'quota:set',
+  'members:manage',
+])
+
+export function isPrivileged(capability: PrivilegedCapability): boolean {
+  return PRIVILEGED.has(capability)
+}
 
 /** Who is asking. Carried from the session; never read from the request body. */
 export interface Actor {
@@ -29,11 +67,14 @@ const OWNER: readonly Capability[] = [
   'build:create',
   'release:create',
   'release:deploy',
+  'release:promote',
 ]
 
-// §13: "same as owner except member management and deletion"
+// §13: "same as owner except member management and deletion" — and not promotion,
+// which is the owner's decision about their own students (D24, P5b Task 2).
 const COLLABORATOR: readonly Capability[] = OWNER.filter(
-  (cap) => cap !== 'members:manage' && cap !== 'project:delete',
+  (cap) =>
+    cap !== 'members:manage' && cap !== 'project:delete' && cap !== 'release:promote',
 )
 
 // §13: the platform admin approves releases, sets quotas, and sees the whole fleet.

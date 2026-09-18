@@ -590,6 +590,55 @@ describe('the delivery routes', () => {
     await app.close()
   })
 
+  it('a collaborator may deploy to staging and may not promote to production', async () => {
+    // P5b Task 2. `release:deploy` and `release:promote` are different decisions (§13,
+    // D24), and this is the outside view of the difference: one client, one release, two
+    // environments, two answers. The owner's own production attempt reaches the launch
+    // gate (the test above) — this one never gets that far.
+    const { app, deps, cookies, project, release, staging } =
+      await releasedProject('chem-labs')
+    const production = project.environments.find(
+      (e: { kind: string }) => e.kind === 'production',
+    )
+    // The §6 User row has to exist before the owner can add them (MEMBER_USER_NOT_FOUND),
+    // which is what `loginAs` does on the way to a session.
+    const collaborator = await loginAs(deps, 'bio_student')
+    const added = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${project.id}/members`,
+      // The OWNER's session: `members:manage` is the owner's (§13), and it is one of
+      // D24's privileged four.
+      cookies,
+      headers: mutationHeaders(deps),
+      payload: { puid: 'bio_student', role: 'collaborator' },
+    })
+    expect(added.statusCode, added.body).toBe(201)
+
+    const toStaging = await app.inject({
+      method: 'POST',
+      url: `/v1/environments/${staging.id}/deploy`,
+      cookies: collaborator,
+      headers: mutationHeaders(deps),
+      payload: { releaseId: release.id },
+    })
+    expect(toStaging.statusCode, toStaging.body).toBe(200)
+
+    const toProduction = await app.inject({
+      method: 'POST',
+      url: `/v1/environments/${production.id}/deploy`,
+      cookies: collaborator,
+      headers: mutationHeaders(deps),
+      payload: { releaseId: release.id },
+    })
+    // FORBIDDEN, not the launch gate's 409: the collaborator is refused before the
+    // project's readiness is ever consulted. The CODE is asserted and not only the
+    // status, because a new refusal in front of this one would otherwise keep the test
+    // green for the wrong reason (ORIENTATION §4).
+    expect(toProduction.statusCode, toProduction.body).toBe(403)
+    expect(toProduction.json().error.code).toBe('FORBIDDEN')
+    await app.close()
+  })
+
   // The IDOR shape: a valid build id belonging to somebody else.
   it('hides another user’s build behind 404', async () => {
     const { app, deps, cookies, project } = await projectFor('bio_prof')
