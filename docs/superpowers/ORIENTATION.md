@@ -171,7 +171,13 @@ Each of these was built, measured and paid for; the record is in the plan named.
 - **The control plane connects as `manifest_app`, never as `manifest`**: `manifest` is `POSTGRES_USER` and so a superuser, and a superuser bypasses every grant — which made §20's append-only audit unimplementable. **Three database URLs, none derived from another**: `MANIFEST_DATABASE_URL` (the app role), `MANIFEST_ADMIN_DATABASE_URL` (migrations and the test harness's `TRUNCATE` only; `src/` never reads it) and `MANIFEST_IDP_DATABASE_URL`. `vitest.env.ts` derives all three from `.env`.
 - **`audit` is its own schema** — `events`, `build_logs` and `incidents`, append-only by grant, with foreign keys `ON DELETE RESTRICT`, because a referential action runs with the referenced table's privileges and a cascade let the application erase the trail. `recordEvent` takes its redactor as a PARAMETER, so nothing writes an unredacted row, and **every event goes through `publishEvent`**, which records it and streams it; a database CHECK closes the event types.
 - **`secrets/` is libsodium envelope encryption over a `secrets` table**; service credentials and each app's `SESSION_SECRET` are STORED, not derived; `process.env` is scrubbed at boot. Tests use `withSecretScope` (`secrets/testing.ts`). **`deriveCredentials` survives on purpose**: a service created before credentials were stored still holds the derived password, which the store adopts on first call — deleting it before every existing service has been deployed once is the trap P4a's Decision 8 describes. **`infra/secrets/master.key`, `infra/idp/cert/`, `infra/sp/` and the Caddy CA are minted by `make up`, gitignored, and NOT removed by `make reset`.**
-- **A migration is always its own file** — drizzle-kit keeps a journal and never re-runs an applied one — applied with `pnpm --filter @manifest/control-plane db:migrate`, which reads the admin URL.
+- **A migration is always its own file** — drizzle-kit keeps a journal and never re-runs an applied one — written by `pnpm --filter @manifest/control-plane db:generate` from `db/schema.ts` and applied with `db:migrate`. **`db:migrate` reads `MANIFEST_ADMIN_DATABASE_URL` FROM THE ENVIRONMENT, and nothing exports it for you**: run bare, from the root or the package, it fails `Please provide required params for Postgres driver: [x] url: undefined`, which reads like a broken config rather than a missing export. `vitest.env.ts` derives the three URLs for the TEST harness only. From the repo root:
+  ```bash
+  set -a; . ./.env; set +a
+  MANIFEST_ADMIN_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control" \
+    pnpm --filter @manifest/control-plane db:migrate
+  ```
+  README's *Running the control plane* exports it along with everything else the process needs; this is the one-line form for a migration on its own. *(Measured in P5b sitting 3, which applied 0015.)*
 
 **Build and deploy**
 
@@ -1368,9 +1374,15 @@ table at the top of that plan is the maintained copy of what is done.
 2. **P5b's *What executing this plan found*, sitting 3's entry** — 15 findings. F1 and F13 are
    the two to read: the contract layer could not carry a bodyless mutation at all, and three of
    that sitting's own negative controls answer `403` for the wrong reason.
-3. **Sitting 1's entry and [`spikes/p5b-baseline/README.md`](spikes/p5b-baseline/README.md)** —
+3. **The correction block at the top of TASK 4 — it is the PLAN-WIDE one, and Task 6's snippets
+   need it.** It says every snippet in this plan names test users that do not exist and a
+   fixture under the wrong name. Counted at the end of sitting 3, the tasks you have left still
+   carry **36 `withProject(async …)` that must be `withProjectServer`** and **33 `ins000001` /
+   `stu000001` that must be `bio_prof` / `bio_student`** — `ensureTestUser` throws by name and
+   `tsc` refuses first.
+4. **Sitting 1's entry and [`spikes/p5b-baseline/README.md`](spikes/p5b-baseline/README.md)** —
    still current, and still the source of Task 6's correction.
-4. **This file's §4** — searched, not read — and **§6**, which is the sweep you owe.
+5. **This file's §4** — searched, not read — and **§6**, which is the sweep you owe.
 
 **What sitting 3 built, which you now consume:**
 
@@ -1394,9 +1406,16 @@ table at the top of that plan is the maintained copy of what is done.
 
 **What will surprise you, and five of these are sitting 3's findings:**
 
-- **`isPrivileged` is STILL NOT LOAD-BEARING, and Task 6 is what changes that.** Sitting 2
-  measured that breaking it turns exactly one test red out of 1050 — its own. If your Task 6 is
-  finished and that is still true, the central refusal is not wired up.
+- **`isPrivileged` is only HALF load-bearing, and Task 6 is what finishes it.** Sitting 2
+  measured that breaking it turned exactly ONE test red out of 1050 — its own. **Re-measured at
+  the end of sitting 3: TWO, out of 1088** — `projects/privileged.test.ts`'s *names every one of
+  them as privileged*, and `api/tokens.test.ts`'s *refuses to mint a token holding a privileged
+  capability*, because Task 4's mint route is now a real consumer. **That second one is only the
+  mint-time refusal, which is defence in depth**; D24's rule is *"however it was minted"*, and
+  `tokens/testing.ts` deliberately writes rows the route would refuse. **So the diagnostic for
+  Task 6 is: break `isPrivileged`, and a test that authenticates a token holding a privileged
+  capability and calls a route with it must go red too. If only those two move, the central
+  refusal is not wired up.**
 - **A route's `errors:` list is checked by `tsc`, and a code listed that nothing throws is RED.**
   `api/error-codes.ts` is held to the source in both directions.
 - **`api/authz-contract.ts` goes red the moment you register a route and do not list it**, even
@@ -1410,6 +1429,15 @@ table at the top of that plan is the maintained copy of what is done.
   the second one ever.
 - **Assert `{ status, code }` as ONE object, not two assertions.** Sitting 3 found three breaks
   that answer `403` for the wrong reason; a status-only assertion is green through all of them.
+  `api/credential.test.ts`'s `refusal()` helper is the shape.
+- **`withProjectServer` HAS NO `releaseId`, and Task 6's third snippet destructures one** —
+  *refuses a production promotion to a token, before the launch gate*. Found by re-reading the
+  plan cold at the end of sitting 3, and recorded rather than fixed: adding a field to the
+  fixture before the test that needs it is the shape sitting 2's F10 deliberately avoided. Build
+  the release in that test, or extend `TestProject` **in the same commit as its first caller**.
+  `api/delivery.test.ts`'s local `builtProject` builds one — read it before reusing it, because
+  P5a sitting 10 finding 6 is that it threaded its slug to one of the two places that needed it
+  and worked for exactly one name.
 - **`pnpm test` — even one file — truncates the control plane's tables**, and `pnpm test:docker`
   restarts the edge and re-registers the platform's SP row. **Restart the control plane after
   either**; it serves from `dist/`, so a source change does not reach it until you do.
