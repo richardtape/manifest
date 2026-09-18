@@ -24,7 +24,7 @@
 
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
-| 1 | 1 | **The measurements this plan rests on**, before any code: whether `assertCapability` is actually central, whether `release:deploy` can tell production from staging, whether a bearer header survives the edge, what the token hash should be, and whether a stream upgrade can carry a token. **Alone, and first** | ✅ **DONE 2026-09-17 — 11 findings.** Corrections at the top of Tasks 2, 5, 6, 7 and 11 |
+| 1 | 1 | **The measurements this plan rests on**, before any code: whether `assertCapability` is actually central, whether `release:deploy` can tell production from staging, whether a bearer header survives the edge, what the token hash should be, and whether a stream upgrade can carry a token. **Alone, and first** | ✅ **DONE 2026-09-17 — 11 findings, 2 commits.** Corrections at the top of Tasks 2, 5, 6, 7 and 11; F1 fixed in `8d11025` |
 | 2 | 2–3 | **The privileged set named once**, with §20's alignment test, and **the two tables** with the token's shape and its `tokens/` module | ← next — **blocked on the four *Spec actions*** |
 | 3 | 4–5 | **Minting, listing and revoking** a token in an interactive session; then **bearer authentication** — one place turns either credential into an `Actor` | |
 | 4 | 6 | **The central refusal, and the `PendingAction` it creates.** The heart of D24. **Alone** | |
@@ -2761,7 +2761,7 @@ Fastify 5.12.3, zod 3.25.76, Caddy v2.11.4. `git HEAD` `29b60bf`, `main`, clean.
 
 | # | Finding | Found by | Changes |
 |---|---|---|---|
-| 1 | **`db/client.ts`'s error hint tells the reader to connect as the SUPERUSER `manifest`** — the exact thing that makes §20's append-only audit grant unimplementable (README:147, ORIENTATION §3, P4a session 5). Follow the hint and you get a working platform with the audit control silently disabled | hitting the error while running `[M1]` | **F1 — a `src/` fix owed in its own commit with its own test** |
+| 1 | **`db/client.ts`'s error hint tells the reader to connect as the SUPERUSER `manifest`** — the exact thing that makes §20's append-only audit grant unimplementable (README:147, ORIENTATION §3, P4a session 5). Follow the hint and you get a working platform with the audit control silently disabled | hitting the error while running `[M1]` | **F1 — FIXED, `8d11025`**, in its own commit with `db/client.test.ts` |
 | 2 | **`GET /v1/projects` escapes a token's scope.** `listProjectsFor` selects by `actor.userId` alone and the route calls no `assertCapability`, so a token scoped to X lists its minter's Y and Z too — contradicting Decision 12 | `[M1]` | **Task 5 gains a step** |
 | 3 | **`fleet.ts` is one of THREE modules that must change, not the only one** — with `project-reads.ts` and `projects.ts`. 16 non-test call sites, not 21; six modules bypass, not five | `[M1]` | Tasks 5, 6 |
 | 4 | **Task 6 as drafted DEADLOCKS D24's loop.** A refusal caught around `run` resolves rather than throws, so `replayOrStore` caches the 403; the confirmed retry reuses the same `Idempotency-Key` (as D23.6's own hint instructs) and replays the cached refusal for ever. `consumed_at` is never stamped, and every test using a fresh key per request stays green | `[M5]` | **Task 6 correction 1, Task 7** |
@@ -2786,6 +2786,10 @@ header is the registry realm, reading `Basic` outside `/v1`; no collision.
 - **`[M3]`'s probe could report false.** The header-less request through the edge logged
   `hasAuth: false` while the two header-bearing ones logged `true`. Without that the probe would
   have been a check that cannot fail.
+- **F1's test was watched failing.** Restoring the superuser role to the hint — the exact
+  substitution that caused the defect — turns `names 'manifest_app' in the URL it tells the reader
+  to export` red with `AssertionError: expected 'manifest' to be 'manifest_app'`, while the other
+  two assertions stay green, which is the correct discrimination. Restored, green, tree clean.
 - **`[M4]`'s compare refuses as well as accepts.** `timingSafeEqual` returned `true` for the
   matching hash and `false` for a freshly generated wrong one. *(Noted for Task 5: the self-review
   is right that replacing it with `===` leaves every test green — this control shows the compare
@@ -2801,11 +2805,20 @@ measurement would have reported the platform's most security-relevant route as u
 Every `—` was resolved by reading the handler. *A better instrument is not automatically a good
 one — assert the shape of the answer.*
 
-**Gate numbers at the end of this sitting — unchanged from P5a sitting 12, as a
-documentation-only sitting should leave them:** `pnpm test` **1016 passed, 91 files**;
-`pnpm lint`, `pnpm typecheck`, `pnpm format:check` clean. `pnpm test:docker` not owed (this
-sitting touched no `src/`; the plan requires it from sitting 3). `make doctor` **18/0**,
-`make verify` **51/0**.
+**Two commits.** `304feff` — the measurements, the baseline and the plan's corrections, with no
+`src/` change, exactly as Task 1 Step 10 expects. `8d11025` — **F1's fix**, separately, as Step 10
+requires of a `src/` change a measurement made necessary.
+
+**Gate numbers at the end of this sitting.** `pnpm test` **1019 passed, 92 files** (was 1016 in 91
+— the three F1 added), run **twice**, identical both times. `pnpm lint`, `pnpm typecheck`,
+`pnpm format:check` clean. `make doctor` **18/0**, `make verify` **51/0**, unchanged.
+
+**`pnpm test:docker` judged NOT owed, and here is the reasoning rather than the conclusion
+alone.** F1 touches `db/`, which is in neither the plan's list nor ORIENTATION's, and the changed
+bytes are a string literal on a throw path that runs only when `MANIFEST_DATABASE_URL` is absent —
+unreachable from the Docker tier, which always has it. The positive evidence that the module still
+loads is that all 1019 unit tests import it transitively and pass; had it failed to load, every one
+of them would have failed. The plan requires the Docker tier from sitting 3 onward and that stands.
 
 **The machine was left as found** — `snapshot-machine.sh` diffed before and after. The control
 plane is **running on 7100** with `driver: docker`; it was stopped and restarted three times for

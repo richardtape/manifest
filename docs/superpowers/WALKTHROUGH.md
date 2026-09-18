@@ -75,7 +75,7 @@ make demo-ai          # the fullest: the proof app, sign-in, notes AND an AI ans
 make demo-identity    # the proof app's sign-in and notes only
 make demo             # the fixture app
 make demo-redeploy    # P4c's acceptance — a redeploy nobody notices; ~3 minutes
-make demo-journey     # P5a's acceptance, growing: §22's journey through the generated client — steps 1 to 3 so far
+make demo-journey     # P5a's acceptance: §22's journey, all 8 steps, through the generated client
 ```
 
 **`make demo-redeploy` passes, and it is P4c's acceptance — green since sitting 7, and run
@@ -186,7 +186,7 @@ streams `instance.provisioning`, then `instance.starting`, then `instance.health
 | `pnpm test:docker` | Real builds, deploys and containers | `make up` | ~15 min |
 | `make demo`, `make demo-identity`, `make demo-ai` | The acceptances, end to end, through the real API and the edge | `make up` and the control plane | 1–3 min each |
 | `make demo-redeploy` | P4c's acceptance, **green** — a redeploy that interrupts nobody and signs nobody out | `make up` and the control plane | ~3 min |
-| `make demo-journey` | P5a's acceptance **as it grows** — §22's journey through the edge by nothing but the client generated from the OpenAPI document. Green at the steps built so far; not yet the acceptance | `make up` and the control plane | ~1 min |
+| `make demo-journey` | **P5a's acceptance** — §22's journey through the edge by nothing but the client generated from the OpenAPI document, **all 8 steps**: sign in, create, stream, build, release, deploy, enter the app with CWL, be refused production with §13's checklist, and read the fleet as an administrator. Green three times on 2026-09-17, the third from a `make reset` machine, and now step 8 of `scripts/offline-acceptance.sh` | `make up` and the control plane | ~4 min |
 | `scripts/offline-acceptance.sh` | C1: all of it with the network off | **a person** — turning the network off cuts an agent off too | not yet run end to end |
 
 **All four gates must be clean before a commit**, and `pnpm test:docker` too when a change

@@ -1,6 +1,6 @@
 # Orientation — read this first
 
-**Manifest's design is finished and SEVEN implementation plans are executed — P1, P2, P3, P4a, P4b, P4c and P5a (the contract), whose acceptance passed on 2026-09-17. P5b is written and its first sitting is the next job, which is always §7e.** This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
+**Manifest's design is finished and SEVEN implementation plans are executed — P1, P2, P3, P4a, P4b, P4c and P5a (the contract), whose acceptance passed on 2026-09-17. P5b is written and UNDER WAY: its sitting 1, the measurements, is done. The next job is always §7e.** This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
 
 *Last verified 2026-09-17.* **Three places state current status — §2, §7e and §8 — and a sitting's sweep REPLACES what they say; it never appends a sitting's story here** (§6). **The roadmap's ledger outranks all three.** Everything else is durable.
 
@@ -35,16 +35,16 @@ everything.
 | P4c | 2026-09-16 | A redeploy interrupts and signs out nobody | `make demo-redeploy` |
 | P5a | 2026-09-17 | The API is a published contract under `/v1`, and §22's journey runs through a generated client | `make demo-journey` |
 
-**P5a — the contract — IS EXECUTED** ([`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), 17 tasks in twelve sittings, finished 2026-09-17), the first of Phase 1c's three plans. It put the API under `/v1` at `https://console.manifest.internal` through the edge, generated an OpenAPI document from the routes and a TypeScript client from that document, and its acceptance — `make demo-journey`, §22's journey driven through nothing but that client — **ran green three times, the third from a `make reset` machine**. **P5b — delegated tokens and pending actions — was WRITTEN the same day** ([`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md), 13 tasks in nine sittings) **and is NOT executed; its sitting 1 is the next job, and four spec actions need Rich before sitting 2** — §7e. P5c (the mock, the console, CI) is written only after P5b executes. *Sittings pace the work; they are not §17's product Phases.*
+**P5a — the contract — IS EXECUTED** ([`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), 17 tasks in twelve sittings, finished 2026-09-17), the first of Phase 1c's three plans. It put the API under `/v1` at `https://console.manifest.internal` through the edge, generated an OpenAPI document from the routes and a TypeScript client from that document, and its acceptance — `make demo-journey`, §22's journey driven through nothing but that client — **ran green three times, the third from a `make reset` machine**. **P5b — delegated tokens and pending actions — was WRITTEN the same day** ([`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md), 13 tasks in nine sittings) **and its sitting 1 — Task 1, the measurements — ran on 2026-09-17 with 11 findings, correcting five of its tasks** ([`spikes/p5b-baseline/`](spikes/p5b-baseline/README.md)): a token would have escaped its scope on `GET /v1/projects`, Task 6 as drafted would have deadlocked D24's confirm-and-retry loop through the idempotency cache, and `secret:read` is not in the `Capability` union at all. **Sitting 2 is the next job and is BLOCKED on four spec actions** — §7e. P5c (the mock, the console, CI) is written only after P5b executes. *Sittings pace the work; they are not §17's product Phases.*
 
 **Executing a plan finds defects at a rate that has never fallen with practice** — 18 in P1's 13 tasks, 52 in P2's 21, 82 in P3's 19, 80 in P4a's 15, 140 in P4b's 16, 70 in P4c's 11, and 146 in P5a's 17 — plus 8 more found in a browser after sitting 7, which no tier had ever looked at — every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat a written plan as a hypothesis (§9).
 
-**The four numbers you will check first, measured 2026-09-17 on this machine, at the end of P5a sitting 12 — the plan's acceptance. All four are UNCHANGED from sitting 11:**
+**The four numbers you will check first, measured 2026-09-17 on this machine, at the end of P5b sitting 1. Only `pnpm test` moved — by the three tests F1's fix added:**
 
 | | |
 |---|---|
-| `pnpm test` (from the **repo root**) | **1016 passed, 91 files**, ~72 s — the `unit` project and `packages` (the client and the journey, which need nothing running). No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
-| `pnpm test:docker` | **174 passed, 0 SKIPPED**, 28 files, ~784 s — re-measured at the end of P5a sitting 12. Needs `make up`, and **fails rather than skips** when asked to run |
+| `pnpm test` (from the **repo root**) | **1019 passed, 92 files**, ~71 s — the `unit` project and `packages` (the client and the journey, which need nothing running). No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
+| `pnpm test:docker` | **174 passed, 0 SKIPPED**, 28 files, ~784 s — last measured at the end of P5a sitting 12 (P5b sitting 1 did not owe it). Needs `make up`, and **fails rather than skips** when asked to run |
 | `make doctor` | **18 checks, 0 failed, 0 warnings** |
 | `make verify` | **51 checks, 0 failed, 0 warnings** |
 
@@ -1322,7 +1322,7 @@ curl -s --cacert infra/ca/manifest-root.crt \
 
 ## 7. What to do next
 
-**The next job is §7e — and it is to WRITE a plan, not execute one.** Every plan written so far is executed, and each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
+**The next job is §7e — P5b's sitting 2, and it is BLOCKED on four spec actions that are Rich's (§8).** Each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
 
 ### 7a. The executed plans, and which of their records to read first
 
@@ -1338,72 +1338,71 @@ curl -s --cacert infra/ca/manifest-root.crt \
 | **P4c** | [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md), with [its brief](plans/2026-09-15-p4c-brief.md) | `make demo-redeploy` | 70 findings in eight sittings. **Sitting 8**: four of the acceptance's nine negative controls could not fail in it — §4 says which tier sees each. |
 | **P5a** | [`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), with [the P5 brief](plans/2026-09-16-p5-brief.md) | `make demo-journey` | 146 findings in twelve sittings. **Sitting 12**, the acceptance: three of fourteen negative controls could not fail as written — including one where the journey read a *status* while the property was a *latency*, so a synchronous build passed R6's own check. **Sitting 10's finding 1** is the other one to read: the document said for six sittings that the error envelope could not carry the field the production refusal had been sending since P2, because nothing parsed an error body through its schema. |
 
-### 7e. Execute P5b's sitting 1 — Task 1, the measurements ← **START HERE**
+### 7e. Execute P5b's sitting 2 — Tasks 2–3 ← **START HERE** (BLOCKED: four spec actions)
 
-**P5b IS WRITTEN AND NOT EXECUTED.** [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md)
-— 13 tasks in nine sittings, written 2026-09-17 straight after P5a's acceptance passed. **Your job is sitting 1: Task 1,
-the measurements, alone and first.** Task 1 in full is the spec for your session; the sittings table at the top of that
-plan is the maintained copy of what is done.
+**P5b's sitting 1 is DONE** (2026-09-17, 11 findings, `304feff` and `8d11025`).
+[`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md) — 13 tasks
+in nine sittings. **Your job is sitting 2: Tasks 2 and 3** — the privileged set named once with
+§20's alignment test, and the two tables with the token's shape and its `tokens/` module. The
+sittings table at the top of that plan is the maintained copy of what is done.
 
-**FOUR SPEC ACTIONS ARE PROPOSED AND NEED RICH BEFORE ANY OF IT EXECUTES.** P5a's R9 established that applying them
-first is cheaper than reconciling after. They are in the plan's *Spec actions*: §6's two entities gaining the fields that
-make them usable, §20 recording that Phase 1 sessions are stateless (Rich decided this on 2026-09-17), §20 recording
-that step-up re-authentication lands with the routes it protects (decided the same day), and D24's prose about a token
-creating projects, which does not fit a project-scoped token. **Put them to him at the start of the session, not the
-end** — Task 1 measures and changes no `src/`, so it can run while they are open, but sitting 2 cannot.
-
-**What P5b is, in one paragraph.** A second credential class beside the session cookie. `Actor` becomes a discriminated
-union on `credential`, so a route that may only be called interactively takes a `SessionActor` and `tsc` refuses a token
-at the call site. `projects/authz.ts`'s `assertCapability` — the one function 21 call sites already go through — refuses
-D24's privileged four to a token, which is how "enforced centrally at the authorization layer, not per-route" is
-achievable at all; and the single route wrapper that is holding the request records the `PendingAction`, because the
-authorization layer never sees one. A human confirms it in an interactive session, and the confirmation grants the agent
-**one** retry of that exact request — never a server-side replay, which would be a second authorization path into every
-handler.
+**YOU ARE BLOCKED UNTIL THE FOUR SPEC ACTIONS ARE APPLIED.** They were put to Rich at the start of
+sitting 1 with a recommendation on each; **all four were recommended, two with wording caveats**
+(§20's stateless-session amendment should record the divergence and its cost, not quietly
+re-specify it; D24's "create projects" needs fixing in **two** sentences — its own rationale column
+at spec line 220 and §20's credential table at line 1698 — or the next reader re-derives the same
+contradiction from the one left standing). **Check §8 for their state before you start.** Task 1
+needed none of them, which is why it ran first; Task 3 writes the two tables those actions describe
+and cannot.
 
 **Read, in this order, before you start:**
 
-1. **Task 1 in full**, then the plan's *How this plan is to be executed*, *Read this first*, *Decisions Rich made*,
-   *Decisions this plan makes* and *Global Constraints*. **And *The test fixtures every snippet below uses*** — the
-   existing helpers do not have the shapes you would guess, and getting that wrong was the plan's own first self-review
-   finding.
-2. **P5a's sitting 12 record** — the acceptance, and the three of fourteen negative controls that could not fail. Every
-   control in P5b names the assertion rather than the mechanism because of it.
-3. **[`plans/2026-09-16-p5-brief.md`](plans/2026-09-16-p5-brief.md) §8** (the traps) and §4 (the gap table).
-4. **This file's §4** — searched, not read — and **§6**, which is the sweep you owe.
+1. **[`spikes/p5b-baseline/README.md`](spikes/p5b-baseline/README.md)** — sitting 1's measurements.
+   **This is not optional background**: it corrects five of the plan's tasks, and two of the
+   plan's own stated claims are false.
+2. **Tasks 2 and 3 in full, INCLUDING the correction blocks at the top of Task 2** — and the plan's
+   *How this plan is to be executed*, *Read this first* (items 1, 4, 5 and 6 carry corrections),
+   *Decisions Rich made*, *Decisions this plan makes*, *Global Constraints*, and **_The test
+   fixtures every snippet below uses_** — the existing helpers do not have the shapes you would
+   guess, and getting that wrong was the plan's own first self-review finding.
+3. **This file's §4** — searched, not read — and **§6**, which is the sweep you owe.
 
-**What Task 1 is.** Nine measurements, no production code: whether `assertCapability` is genuinely central (the plan
-says five route modules bypass it and only `fleet.ts` must change — **verify it from the route registry, not a grep**),
-whether `release:deploy` can tell production from staging, whether an `Authorization` header survives the edge on a
-plain request **and on a WebSocket upgrade**, what a token hash costs, **whether an idempotency record is scoped to the
-actor** — the one most likely to find a defect that already exists — what the authorization matrix will cost, what the
-stream authorizes with, which privileged capabilities are reachable at all, and whether anything already reads a bearer
-header. It ends by deleting its probes and writing `spikes/p5b-baseline/README.md`, with a correction at the top of every
-task a measurement contradicts.
+**What sitting 1 changed that you must not re-derive:**
+
+- **`secret:read` is not in the `Capability` union at all.** Task 2 cannot write the privileged set
+  as four `Capability` values — `tsc` refuses it. Type it as a **superset** of `Capability`; do not
+  add `secret:read` to the union, which would create a capability nothing grants and nothing checks.
+- **The deploy route already branches on `kind`** (`releases.ts:214`, after authorizing at `:205`),
+  so `release:promote` hangs off the existing branch and **Task 2 adds no branch.**
+- **Three route modules bypass `assertCapability`, not one** — `fleet.ts`, `project-reads.ts`'s
+  `GET /v1/projects` (which escapes a token's scope) and `projects.ts`'s `POST /v1/projects`. They
+  are Task 5's, not Task 2's, but Task 6 claims a centrality that is not literally true.
+- **Task 6 is the one to read early even though it is sitting 4's.** As drafted it deadlocks D24's
+  loop through the idempotency cache. The correction is at the top of that task.
 
 **What will surprise you:**
 
-- **Two of D24's four forbidden capabilities have no route in Phase 1** (`secret:read`, `quota:set`), so their controls
-  cannot fail end to end. The plan says so in advance (Decision 14) rather than leaving the acceptance to find it.
-- **A source swap does not reach the running control plane**, which serves from `dist/`. A control watched through a
-  `make demo*` needs the control plane killed, rebuilt and restarted on the swap.
-- **`pnpm test` — even one file — truncates the control plane's tables**, and `pnpm test:docker` restarts the edge and
-  re-registers the platform's SP row. Restart the control plane after either.
-- **A route change is three files, in order**: the definition, `pnpm contract:write`, `pnpm contract:generate`.
+- **A source swap does not reach the running control plane**, which serves from `dist/`. A control
+  watched through a `make demo*` needs the control plane killed, rebuilt and restarted on the swap.
+- **`pnpm test` — even one file — truncates the control plane's tables**, and `pnpm test:docker`
+  restarts the edge and re-registers the platform's SP row. Restart the control plane after either.
+- **A route change is three files, in order**: the definition, `pnpm contract:write`,
+  `pnpm contract:generate`.
+- **`pnpm test:docker` is owed from sitting 3 onwards**, because `projects/authz.ts` is in the
+  Docker tier's blast radius. Sitting 2 does not owe it.
 
-**The state you are handed, 2026-09-17, after P5a's acceptance and P5b's writing.** `main`, clean. Migration **0013** is
-the newest and is applied.
+**The state you are handed, 2026-09-17, after P5b's sitting 1.** `main`, clean. Migration **0013**
+is the newest and is applied; Task 3 writes **0014**.
 
 | | |
 |---|---|
-| The four gate numbers | §2's box — `pnpm test` **1016** in 91 files, `pnpm test:docker` **174** in 28 files (0 skipped), `make doctor` **18/0**, `make verify` **51/0**. All four measured at the end of P5a sitting 12 |
-| The control plane | **LEFT RUNNING on 7100.** Check: `curl -sS -o /dev/null -w '%{http_code}' --cacert infra/ca/manifest-root.crt https://console.manifest.internal/v1/me` → `401` when it is up. **Do not start a second one** |
-| The demos | **All five green**: `make demo-journey` (through step 8), `make demo`, `make demo-ai`, `make demo-redeploy`. `make demo-journey` is **step 8 of `scripts/offline-acceptance.sh`** |
-| The apps | The proof app and the journey app are **deployed, healthy and serving**, and their project rows are gone — the closing `pnpm test` truncated them, which is the shape every sitting since 2 has left. The next demo recreates each |
-| The fixture app | **STILL DEPLOYED**, unlike previous sittings — P5a sitting 12's classifier refused every `docker rm`. Harmless; §2's *Outstanding* has the removal, which `make reset` also does |
-| Identity | Three IdP test users — `student`, `instructor`, `operator`. **`operator` is not currently an administrator and does not currently exist**; `make demo-journey` recreates and re-grants. Self-healing |
-| LiteLLM | **Nine users, two held by a running container.** §2's *Outstanding* names all nine and which six are safe. **A reset does not clear them predictably** |
-
+| The four gate numbers | §2's box — `pnpm test` **1019** in 92 files (up 3: F1's test), `pnpm test:docker` **174** in 28 files (0 skipped, not re-measured — not owed), `make doctor` **18/0**, `make verify` **51/0** |
+| The control plane | **LEFT RUNNING on 7100**, `driver: docker`. Check: `curl -sS -o /dev/null -w '%{http_code}' --cacert infra/ca/manifest-root.crt https://console.manifest.internal/v1/me` → `401` when it is up. **Do not start a second one.** It was restarted during `[M3]`, so it carries a **new `MANIFEST_SESSION_SECRET`** — any cookie predating this sitting is void, and nothing depended on one |
+| The demos | Not run this sitting. All five were green at P5a sitting 12; `make demo-journey` is **step 8 of `scripts/offline-acceptance.sh`** |
+| The apps | The proof app and the journey app are **deployed, healthy and serving**, and their project rows are gone — the closing `pnpm test` truncated them, which is the shape every sitting leaves. The next demo recreates each |
+| The fixture app | **STILL DEPLOYED**, as P5a sitting 12 left it. Harmless; §2's *Outstanding* has the removal, which `make reset` also does |
+| Identity | Three IdP test users — `student`, `instructor`, `operator`. **`operator` is not currently an administrator**; `make demo-journey` recreates and re-grants. Self-healing |
+| LiteLLM | **Nine users, two held by a running container** — unchanged, no demo ran. §2's *Outstanding* names all nine and which six are safe |
 
 ## 8. Decisions waiting on Rich
 
@@ -1411,7 +1410,8 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 
 ### Open
 
-- **P5b's FOUR SPEC ACTIONS — RAISED 2026-09-17, and they block P5b's sitting 2, not its sitting 1.**
+- **P5b's FOUR SPEC ACTIONS — RAISED 2026-09-17, PUT TO RICH WITH A RECOMMENDATION, AND NOW BLOCKING. Sitting 1 is done; sitting 2 cannot start.**
+  Rich asked for a recommendation rather than a yes/no, and it was given at the start of sitting 1: **all four**, with two wording caveats. **(2)** should record the divergence and its cost — that Phase 1 diverges deliberately from §20's store-plus-rotation design, that a role change reaches a person at next sign-in, and that a stolen cookie cannot be revoked server-side before it expires — rather than quietly replacing the stated control, so it stays a visible open item. **(4)** must fix **two** sentences, not the one the plan names: D24's rationale column (spec line 220, "create projects") **and** §20's credential table (line 1698, "the build loop: create, read, build, …"), or the next reader re-derives the same contradiction from the sentence left standing. **The exact wording was still to be drafted for approval when sitting 1 closed.**
   P5a's R9 established that applying a plan's spec actions before it executes is cheaper than reconciling after.
   They are written out in [P5b's *Spec actions*](plans/2026-09-17-p5b-delegated-tokens.md): **(1)** §6's
   `DelegatedToken` gains `token_hash`, `name` and `revoked_at` and `PendingAction` gains `expires_at` and
