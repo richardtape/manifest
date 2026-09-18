@@ -31,8 +31,8 @@
 | 5 | 7 | **Confirm, reject, and the one-shot retry** — the loop closing. **Alone** | ✅ **DONE 2026-09-18 — 12 findings, 2 commits** (`7465590`, `9ac051b`). Migration **0017**. The grant is what gets a token past D24's rule and nothing else can make one. **TWO of this sitting's own nine new tests were green before the route existed**, and **`recordPendingAction`'s reuse lookup is a read-then-insert — five concurrent identical asks make five rows** (F10, carried to Task 10). `make demo-journey` green |
 | 6 | 8–9 | **The queue** (§26's primary screen, as a read) and **per-token rate limits** | ✅ **DONE 2026-09-18 — 12 findings, 2 commits.** Three routes, and D24's fourth privileged action made reachable. **A `204` was not expressible** — `SuccessStatus` is `200 \| 201 \| 202`, so the removal answers `200` with `MemberList`. **The removal is idempotent**, which is what lets the authz matrix express it without a per-actor fixture. **TWO of Task 9's four tests were green before the limiter existed** — both were "is not limited" claims, true of a platform that limits nothing. **The roadmap's defect-rate table had no P5b rows at all**, five sittings running |
 | 7 | 10–11 | **Expiry** for both entities, and **the authorization contract suite's token actors** — the matrix roughly doubles | ✅ **DONE 2026-09-18 — 15 findings, 6 commits** — the two tasks are `9d05fd9` and `dfdfe94`; the rest are the close-out. Migration **0018**. Sitting 5's F10 is discharged by a partial unique index, and **a boot-only sweep does not make that index safe** — a stale `pending` row blocks the same question for ever, so the sweep also runs scoped to the token before the insert. The matrix is **361 tests in 3.5 s** (was 196), `Expectation` is now a (status, code) pair, and completeness for the actor dimension is **`tsc`**. **Adding a `now` parameter to `toToken` made every token in every list read `expired: false`** — `.map` passes the index. **The plan's own `Promise.all` control could not fail on a cold pool**, and 160 token cases passed on the first run, so the bearer was withheld: 140 go red |
-| 8 | 12 | **`make demo-token`** — an agent runs the build loop on a token, is refused twice, a human confirms, and the retry succeeds | ← next |
-| 9 | 13 | **The acceptance**, three times, once from a `make reset` machine, with its negative controls. **Alone, and last** | |
+| 8 | 12 | **`make demo-token`** — an agent runs the build loop on a token, is refused twice, a human confirms, and the retry succeeds | ✅ **DONE 2026-09-18 — 11 findings, 2 commits** (`5955dd6`, `03dedc8`). No migration. D24's loop runs end to end through the edge on its own project, `token-app`. **`subscribe` could not carry a delegated token at all** — Task 5 gave the client one and nothing gave the stream one, so an agent could start a build and had nothing to watch it end on; nothing server-side could see it. **The journey's import boundary matched English prose** in a doc comment and turned `pnpm test` red on a file with no forbidden import. **Three of the five controls answer `403` for the wrong reason**, and the no-bearer control reported ONE red check until step 3 stopped throwing — then six. `make demo-journey` green |
+| 9 | 13 | **The acceptance**, three times, once from a `make reset` machine, with its negative controls. **Alone, and last** | ← next |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -3746,3 +3746,103 @@ the `expired` test), run **twice**, identical. `pnpm lint`, `pnpm typecheck`,
 `pnpm format:check` clean. `pnpm test:docker` **178 passed, 0 skipped, 29 files** — up one,
 exactly as predicted before the run, that one being `boot.docker.test.ts`'s new test.
 `make doctor` **18/0**, `make verify` **51/0**.
+
+### Sitting 8 — 2026-09-18 — Task 12, `make demo-token` — 11 findings
+
+**What it made true.** D24's loop runs end to end through the edge. `make demo-token` signs
+the instructor in with CWL, has them mint a delegated token for `token-app`, and then lets
+an agent holding nothing but that token build the project, release it, deploy it to staging
+and be answered by the running app — while being refused the fleet, its own project
+creation, and a promotion to production. It then asks to add a member, is handed the
+question, the instructor confirms it in their own session, and the agent's own retry
+succeeds **once**; a fresh ask is **rejected** in the instructor's own words, and the token
+is revoked. Two commits, `5955dd6` and `03dedc8`. No migration.
+
+**This was the first client any route in this plan has had outside `app.inject`**, and it is
+where the two defects below were waiting — both of them in the CLIENT and in the test
+harness, neither visible to anything server-side. That is P5a sitting 10 finding 8's gap
+behaving exactly as ORIENTATION §9 says it does.
+
+#### The finding to read if you read nothing else
+
+**F1 — `subscribe` could not carry a delegated token at all.** Task 5 gave
+`createManifestClient` a `token` option, and nothing gave `subscribe` one, because until
+this task no client of `@manifest/contract` held a token. So an agent could start a build
+through the generated client and then had **nothing to watch it end on** — while the route
+had accepted a bearer all along (`WS /v1/projects/:id/events` authorizes `project:read` like
+any other read, and sitting 1's `[M3]` had already measured `Authorization` surviving the
+edge on an upgrade). **Nothing server-side could see this**: the route was right, the
+measurement was right, and the client had a hole where the second credential class belonged.
+A token subscription now sends the bearer and **no `Origin`**, mirroring the client for the
+reason the client states — `assertSameOrigin` returns early unless the request carries the
+session cookie, and claiming the console's origin from an agent would say something untrue
+about where the handshake came from.
+
+#### Every finding
+
+| # | Finding |
+|---|---|
+| F1 | **Above.** |
+| F2 | **The demo's own first assertion about the credential was wrong, and only asserting the SHAPE could have found it.** `mft_<id>_<secret>` embeds the row id **with its dashes stripped** — 32 hex characters — not the dashed uuid; ORIENTATION §3 and the RUNBOOK both write it as `mft_<id>_<secret>`, which reads as the dashed form, and the demo was written against that reading. It failed on the first run at 80 characters. The platform was right and the reader's model was wrong, which is the only way that gets found. It now asserts the RELATIONSHIP — `secret.slice(4, 36) === token.id.replaceAll('-', '')` — which is the property that makes verification one indexed lookup rather than a scan, and which a pattern match alone would not have caught. |
+| F3 | **The journey's import boundary test matches English prose.** `\bfrom\s+['"]…['"]` matched *`indistinguishable from "the token was minted without …"`* inside a doc comment, and `pnpm test` went red on a file with **no forbidden import at all**. It is §4's *a `process.env.X` scan counts COMMENTS* in another guise, and it had never bitten because no journey file had written the word *from* before a quoted string in prose. Fixed with the same scanner `spec/injection-drift.test.ts` carries, and with two assertions the test did not have: it now records which files it read imports FROM and asserts that is more than one, so a scanner that silently ate the source cannot pass with an empty violation list; and the stripper has a test of its own. **The direction of the failure is what makes it worth fixing rather than rewording** — a prose false positive costs a gate rather than a defect, but the next author's fix for it is to reword the sentence, and nothing would then teach them the boundary is a text match rather than a parse. |
+| F4 | **Control (a) is visible in THREE steps, not the one the plan predicted — and step 6's answer is the DEAD END sitting 4's F1 described.** Disabling `isPrivileged` turned four checks red across steps 2, 5 and 6, because the mint route and the production-deploy route read the same function. Step 6's refusal became **`403 FORBIDDEN`** rather than `403 TOKEN_ACTION_PENDING`: no pending action is written and D24's loop cannot start, at the same status. **A status-only assertion passes through it.** That is sitting 4's F1 reproduced end to end, in the acceptance rather than in a unit test. |
+| F5 | **Control (c) shows the same shape a second time, on a different route.** Reverting `requireSession` on confirm turned step 7 red and **not** step 6, which is exactly the discrimination Task 12's table asks for. But the agent's confirm attempt answered **`403 TOKEN_ACTION_PENDING`**, not `403 TOKEN_CREDENTIAL_REFUSED` — with the session rule gone the token reaches the capability check and is refused by D24's central rule instead. Same status, different answer, and a status-only check green throughout. Control (d) makes it three: the fleet reverted answers **`403 FORBIDDEN`**. **Three of this sitting's five controls produce a `403` for the wrong reason**, which is why every refusal in `token.ts` is asserted as a (status, code) pair. |
+| F6 | **The no-bearer control reported ONE red check, and that was a defect in the demo.** Sitting 7's F11 withheld the bearer from the matrix and counted 140 of 160 cases red; the same control here produced a single line — `no call refused (getProject)` — because step 3's first read went through `unwrap`, which THROWS and ends the run before any of the claims underneath it are made. A demo whose whole design is *a red run is a measurement, not the first thing that broke* (P4c Decision 26) held that property only for `checks.ok` and lost it at the first `unwrap`. Step 3 now reports instead of throwing, and the same control reads **six** red checks: both reads, both refusals asserted by code, the stream's upgrade, and the build that never happened. Fixed in `03dedc8`. **The steps after it still `unwrap` deliberately** — a build cannot be released and a release cannot be deployed, so stopping there is the honest answer. |
+| F7 | **A `checks.must` failure stops every later step, so a control aimed at step 8 can only be watched while step 6 passes.** Control (a) went red at step 6's `must` for the pending action, and steps 7, 8 and 9 never ran — they are MISSING from that run, not passing. It is P5a sitting 12's *a failure in phase 1 means every phase-2 measurement is missing* inside a single process. **Read which steps EXECUTED before reading which passed**, and expect a control to be watchable only on the near side of the first `must` it breaks. |
+| F8 | **`tsc` refuses the naive way to disable a branch, and the refusal is a narrowing one.** Control (b) written as `if (granted !== undefined && resolution.kind === 'confirmed' && false)` failed to compile — `Property 'row' does not exist on type '{ readonly kind: "none" }'` — because the extra conjunct destroys the discriminated-union narrowing the body depends on. The same family as P5a sitting 12's control (f), where the edit that seemed to test the router tested the type system instead. `void consumeAction; void resolution.row.id` is the form that compiles and removes the effect. |
+| F9 | **Control (b) shows the escalation, not just a missing column.** With `consumed_at` never stamped, step 8's *the grant is now spent* goes red as expected — but so does *a FRESH key is a new question*, **answering `201`**. The grant becomes a standing permission the agent can spend for ever. The demo distinguishes the two, and the stamp is what stands between one confirmation and unlimited privileged access. |
+| F10 | **The plan's Task 13 control (a) is predicted wrongly, and this sitting can say so in advance.** It says the demo's token *holds* the privileged capability so moving the privileged check after the capability set would be visible — but the demo mints through `POST /v1/projects/{id}/tokens`, which refuses a privileged capability by name, so the demo's token **cannot** hold one and that control is invisible to the acceptance exactly as controls (c), (d) and (e) are. Task 13 should record it in the *predicted invisible* group rather than under *verify which*. The demo does assert the mint refusal itself, which is what keeps *"the platform refused the agent `members:manage`"* distinguishable from *"nobody ever gave the agent `members:manage`"*. |
+| F11 | **Rejection had no end-to-end caller and now has one; the production promotion gives the sweeper something real to sweep.** Task 7 built confirm and reject together and the plan's step list for Task 12 names only confirm, so `POST …/reject` would have reached the acceptance with a unit test as its only client — §9's *a module with no call site* in its integration form. Step 8 now rejects the second ask and asserts the agent is answered `403 TOKEN_ACTION_REJECTED` carrying the person's words verbatim. Separately, step 5's production promotion leaves **one `pending` question nobody answers**, deliberately: it is what Task 10's expiry exists for, and it makes §26's queue show a `pending`, a `confirmed` and a `rejected` in one run. |
+
+**Decisions this sitting made.**
+
+- **A SIBLING ENTRY POINT, `packages/journey/src/token.ts`, not a phase of `main.ts`.** §22's
+  journey is one person with one credential, and every function in `main.ts` closes over the
+  single client that credential builds. This is the other shape — two credentials in one
+  story, where the whole point is which of them each call is made with — and threading a
+  second client through `main.ts` would have made every existing step take an argument it
+  does not use. `boundary.test.ts` reads every non-test file in `src/` and `tsc` builds the
+  whole directory, so the new entry point inherits both with no configuration. *Rejected: a
+  `token` phase in `main.ts`, which the plan offered first.*
+- **Its own project, `token-app`, created by the demo when it is absent.** Every other
+  acceptance here owns a slug — `fixture-app`, `proof-app`, `journey-app` — and a demo that
+  reached into `journey-app` would couple P5b's acceptance to P5a's and put a member on a
+  project whose own acceptance asserts its state. **Creating it is the instructor's job in
+  the story as well as in the API**: `POST /v1/projects` is interactive-only under D24's
+  scope rule, so it could not have been the agent's. *The cost is one more LiteLLM user per
+  truncation, which §2's* Outstanding *records with the rest.*
+- **The privileged ask is `POST …/members` and the student is signed in first.** §7e named
+  the trap — `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in, and
+  `pnpm test` empties `users` — and the alternative it offered, aiming at
+  `DELETE …/members/{userId}`, needs no precondition but makes step 8's success a `200` on
+  an idempotent route, where a `201` creating something is the clearer proof that the retry
+  reached the handler. So `scripts/demo-token.sh` signs the student in and throws the
+  session away; all it needs is the row.
+- **The demo asserts every refusal as a (status, code) pair.** Three of its own five
+  controls answer `403` for a different reason (F4, F5), so this is not a style preference —
+  a status-only demo would have passed all three.
+- **Two additions the plan's step list does not name**, both because the acceptance is the
+  only integration client these will ever have: the **production promotion** refused at step
+  5 (the one place `release:promote`'s privilege is visible end to end) and the
+  **rejection** at step 8 (F11).
+
+**Six negative controls, each watched after the commit and restored, and the working tree
+proved clean between each.** The control plane was killed, rebuilt from `dist/` and
+restarted for every one — a source swap that does not reach it proves nothing (P5a sitting
+12).
+
+| Break | What went red |
+|---|---|
+| `isPrivileged` always false | **Four checks, in steps 2, 5 and 6**: the mint refusal (`201`), the production promotion (`403 FORBIDDEN`), step 6's refusal (`403 FORBIDDEN` — the dead end, F4) and the question it should have carried. Steps 7–9 never ran (F7) |
+| `consumeAction` never called | **Three, in step 8**: *the grant is now spent* (`consumedAt: null`), *a FRESH key is a new question* (**`201`** — the grant never expires, F9), and the question that was therefore never created |
+| `requireSession` reverted on confirm | **One, in step 7 and NOT step 6**, exactly as the plan's table asks: *the AGENT cannot confirm its own question* — answered `403 TOKEN_ACTION_PENDING` rather than `403 TOKEN_CREDENTIAL_REFUSED` (F5) |
+| `requireSession` reverted on the fleet | **One, in step 3**: *the fleet is refused* — `403 FORBIDDEN` (F5) |
+| revocation ignored at authentication | **One, in step 9**: *the agent's next call is 401* — answered **`200`** |
+| the bearer withheld from client and stream | **Six**, after `03dedc8`: both of step 3's reads, both of its refusals, the stream's upgrade (close 1006) and step 5's missing build. **One before it** (F6) |
+
+**The gates, and the machine.** `pnpm test` **1342 passed, 101 files** (was 1339 — two
+`subscribe` tests and one boundary test), run **twice**, identical. `pnpm lint`,
+`pnpm typecheck`, `pnpm format:check` clean. `pnpm test:docker` **178 passed, 0 skipped, 29
+files** — unchanged, and Task 12 adds no Docker test. `make demo-token` green on the CREATE
+path and on the REUSE path. `make demo-journey` green, all eight steps, because this task
+changed `subscribe`, which the journey's own stream goes through.

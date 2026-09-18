@@ -29,15 +29,17 @@ and green.** Each plan has an acceptance that passes:
 
 **The current plan is P5b — delegated tokens and pending actions (D24)**
 (`docs/superpowers/plans/2026-09-17-p5b-delegated-tokens.md`, 13 tasks in nine sittings,
-written 2026-09-17), the second of Phase 1c's three. **SEVEN of its nine sittings are executed**,
-and what each made true is in **the plan's own sittings table**, which is the maintained copy —
-this file deliberately stops enumerating them, for the reason it states no gate numbers. In
-outline: an agent holding a delegated token acts on its one project, asking for one of D24's
-privileged four is refused at the authorization layer rather than per route, a person confirms or
-rejects that question and a confirmation lets the agent's own retry through exactly once, §26's
-queue is readable, every request a token makes is rate-limited, and a question nobody answers is
-swept to `expired`. **What is left is the demo and the acceptance.** **Its four spec actions were
-approved and applied on 2026-09-17.**
+written 2026-09-17), the second of Phase 1c's three. **How many of its sittings are executed, and
+what each made true, is in the plan's own sittings table — the maintained copy, and the only
+statement of it.** This file deliberately states neither, for the same reason it states no gate
+numbers: a number restated in two documents drifts, and this one drifted for two sittings before
+it was removed (P5b sitting 7's F13 and F14, sitting 8's fix). In outline, and without a count:
+an agent holding a delegated token acts on its one project, asking for one of D24's privileged
+four is refused at the authorization layer rather than per route, a person confirms or rejects
+that question and a confirmation lets the agent's own retry through exactly once, §26's queue is
+readable, every request a token makes is rate-limited, a question nobody answers is swept to
+`expired`, and `make demo-token` now runs the whole loop end to end through the edge. **Its four
+spec actions were approved and applied on 2026-09-17.**
 ORIENTATION §7e names the next job. P5a — the contract — was executed in twelve sittings and finished on 2026-09-17:
 the API is under `/v1` at `https://console.manifest.internal` through the edge, an OpenAPI
 document is generated from the routes and a TypeScript client from that document
