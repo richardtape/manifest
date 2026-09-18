@@ -1,8 +1,8 @@
 # Orientation — read this first
 
-**Manifest's design is finished and SEVEN implementation plans are executed — P1, P2, P3, P4a, P4b, P4c and P5a (the contract), whose acceptance passed on 2026-09-17. P5b is written and UNDER WAY: sittings 1 to 6 are done, so D24's privileged four are named, an agent holding a delegated token can authenticate with it, asking for one of the privileged four is refused centrally and creates a `PendingAction`, a person confirms or rejects that question and a confirmation lets the agent's own retry through exactly once, and **§26's queue is now readable and every request a token makes is rate-limited from its own row**. The next job is always §7e.** This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
+**Manifest's design is finished and SEVEN implementation plans are executed — P1, P2, P3, P4a, P4b, P4c and P5a (the contract), whose acceptance passed on 2026-09-17. P5b is written and UNDER WAY: sittings 1 to 7 are done, so D24's privileged four are named, an agent holding a delegated token can authenticate with it, asking for one of the privileged four is refused centrally and creates a `PendingAction`, a person confirms or rejects that question and a confirmation lets the agent's own retry through exactly once, §26's queue is readable, every request a token makes is rate-limited from its own row, and **a question nobody answers is swept to `expired` while the database refuses a second open ask for the same one — and §16's authorization matrix now runs four token actors beside its five session ones**. The next job is always §7e.** This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
 
-*Last verified 2026-09-18 (P5b sitting 6).* **Three places state current status — §2, §7e and §8 — and a sitting's sweep REPLACES what they say; it never appends a sitting's story here** (§6). **The roadmap's ledger outranks all three.** Everything else is durable.
+*Last verified 2026-09-18 (P5b sitting 7).* **Three places state current status — §2, §7e and §8 — and a sitting's sweep REPLACES what they say; it never appends a sitting's story here** (§6). **The roadmap's ledger outranks all three.** Everything else is durable.
 
 **Short of context? Read §7e, §2's numbers box, §6, and the newest entries at the end of §4's *Things that will cost you a morning*, in that order.** §4 is most of this file and is meant to be searched, not read through.
 
@@ -35,19 +35,19 @@ everything.
 | P4c | 2026-09-16 | A redeploy interrupts and signs out nobody | `make demo-redeploy` |
 | P5a | 2026-09-17 | The API is a published contract under `/v1`, and §22's journey runs through a generated client | `make demo-journey` |
 
-**P5a — the contract — IS EXECUTED** ([`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), 17 tasks in twelve sittings, finished 2026-09-17), the first of Phase 1c's three plans. It put the API under `/v1` at `https://console.manifest.internal` through the edge, generated an OpenAPI document from the routes and a TypeScript client from that document, and its acceptance — `make demo-journey`, §22's journey driven through nothing but that client — **ran green three times, the third from a `make reset` machine**. **P5b — delegated tokens and pending actions — was WRITTEN the same day** ([`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md), 13 tasks in nine sittings), **its four spec actions were approved by Rich and applied the same day** (§8, *Decided*), and **six sittings are done**. Sitting 1 — the measurements — ran with 11 findings and corrected five tasks ([`spikes/p5b-baseline/`](spikes/p5b-baseline/README.md)): a token would have escaped its scope on `GET /v1/projects`, Task 6 as drafted would have deadlocked D24's confirm-and-retry loop through the idempotency cache, and `secret:read` is not in the `Capability` union at all. **Sitting 2 — Tasks 2–3 — ran with 14 findings**: D24's privileged four are named once with §20's alignment test, `release:promote` separates promoting from deploying and is asserted before §13's launch gate, and migration **0014** adds `delegated_tokens` and `pending_actions` with the `tokens/` module that mints, parses and verifies a token. **It found that the plan's token parser would have refused 47.5% of its own tokens** — base64url's alphabet contains the `_` it split on — **and that the plan's own TRUNCATE negative control could not fail.** **Sitting 3 — Tasks 4–5 — ran with 15 findings**: a person mints, lists and revokes a delegated token in an interactive session, and **an agent holding one can now authenticate with it** — `Actor` is a discriminated union on `credential`, one `onRequest` hook turns either class into an actor, and `requireSession` makes an interactive-only route a `tsc` error rather than a remembered check. **It found that the contract layer could not carry a bodyless mutation at all** — `DELETE /v1/tokens/{tokenId}` is the API's first, and it was a `400` before its handler ran and an OpenAPI document that could not be generated — **and that three of its own negative controls answer `403` for the wrong reason**, so every refusal it writes now asserts its CODE. **Sitting 4 — Task 6, the central refusal, alone — ran with 10 findings (2026-09-18)**: D24's sentence is implemented — `assertCapability` refuses a token any of `PRIVILEGED`, scope first and the privileged rule before the token's own set, and the ONE route wrapper holding the request records a `PendingAction` the `403` then carries, with the catch **outside** `app.idempotent` so a confirmed retry can reach the handler (migration 0016). **It found that the plan's own ordering control could not fail against any of the 31 tests that existed** — every one of them writes a token holding the privileged capability, which no token the platform can mint can hold, so the swapped order answers a DEAD-END `403 FORBIDDEN` for every real token; a twelfth test now asserts exactly that. **Sitting 5 — Task 7, confirm, reject and the one-shot retry, alone — ran with 12 findings (2026-09-18)**: **D24's loop closes.** A person who holds the capability themselves confirms or rejects the question in an interactive session, and a confirmation grants that EXACT request — this token, this method, this path, this body — ONE retry, which the agent makes itself through its normal route; a retry after a rejection is answered `403 TOKEN_ACTION_REJECTED` carrying the person's own words, so an agent stops rather than loops (migration 0017). **It found that two of its own nine new tests were green before the route they test existed** — their confirmation 404'd, so the refusal that followed happened for the ordinary reason and the assertion under it proved nothing — and that **`recordPendingAction`'s reuse lookup is a read-then-insert: five CONCURRENT identical asks create five rows**, which defeats the very thing it exists for and is carried to Task 10, whose expiry sweeper the fix depends on. **Sitting 6 — Tasks 8 and 9 — ran with 12 findings (2026-09-18)**: §26's queue is readable as two reads, where a person who may read the project sees every question and a TOKEN sees only the ones it asked; **removing a member exists at last** — D24's fourth privileged action, and the FIRST privileged route written after Task 6, so the test that it inherits the central refusal without doing anything is the task's real deliverable, and it passes; and **§20's per-token rate limit has a reader**, taken in the one credential hook after the token is verified so a forged token spends nobody's window. **It found that two of its own four new rate-limit tests were green before the limiter existed** — both were *"is not limited"* claims, which are true of a platform that limits nothing — and, by reading the ledger rather than the sweep checklist, that **the roadmap's defect-rate table had no P5b rows at all, five sittings running**. No migration. So **sitting 7 — Tasks 10 and 11, expiry for both entities and the authorization suite's token actors — is the next job**: §7e. P5c (the mock, the console, CI) is written only after P5b executes. *Sittings pace the work; they are not §17's product Phases.*
+**P5a — the contract — IS EXECUTED** ([`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), 17 tasks in twelve sittings, finished 2026-09-17), the first of Phase 1c's three plans. It put the API under `/v1` at `https://console.manifest.internal` through the edge, generated an OpenAPI document from the routes and a TypeScript client from that document, and its acceptance — `make demo-journey`, §22's journey driven through nothing but that client — **ran green three times, the third from a `make reset` machine**. **P5b — delegated tokens and pending actions — was WRITTEN the same day** ([`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md), 13 tasks in nine sittings), **its four spec actions were approved by Rich and applied the same day** (§8, *Decided*), and **six sittings are done**. Sitting 1 — the measurements — ran with 11 findings and corrected five tasks ([`spikes/p5b-baseline/`](spikes/p5b-baseline/README.md)): a token would have escaped its scope on `GET /v1/projects`, Task 6 as drafted would have deadlocked D24's confirm-and-retry loop through the idempotency cache, and `secret:read` is not in the `Capability` union at all. **Sitting 2 — Tasks 2–3 — ran with 14 findings**: D24's privileged four are named once with §20's alignment test, `release:promote` separates promoting from deploying and is asserted before §13's launch gate, and migration **0014** adds `delegated_tokens` and `pending_actions` with the `tokens/` module that mints, parses and verifies a token. **It found that the plan's token parser would have refused 47.5% of its own tokens** — base64url's alphabet contains the `_` it split on — **and that the plan's own TRUNCATE negative control could not fail.** **Sitting 3 — Tasks 4–5 — ran with 15 findings**: a person mints, lists and revokes a delegated token in an interactive session, and **an agent holding one can now authenticate with it** — `Actor` is a discriminated union on `credential`, one `onRequest` hook turns either class into an actor, and `requireSession` makes an interactive-only route a `tsc` error rather than a remembered check. **It found that the contract layer could not carry a bodyless mutation at all** — `DELETE /v1/tokens/{tokenId}` is the API's first, and it was a `400` before its handler ran and an OpenAPI document that could not be generated — **and that three of its own negative controls answer `403` for the wrong reason**, so every refusal it writes now asserts its CODE. **Sitting 4 — Task 6, the central refusal, alone — ran with 10 findings (2026-09-18)**: D24's sentence is implemented — `assertCapability` refuses a token any of `PRIVILEGED`, scope first and the privileged rule before the token's own set, and the ONE route wrapper holding the request records a `PendingAction` the `403` then carries, with the catch **outside** `app.idempotent` so a confirmed retry can reach the handler (migration 0016). **It found that the plan's own ordering control could not fail against any of the 31 tests that existed** — every one of them writes a token holding the privileged capability, which no token the platform can mint can hold, so the swapped order answers a DEAD-END `403 FORBIDDEN` for every real token; a twelfth test now asserts exactly that. **Sitting 5 — Task 7, confirm, reject and the one-shot retry, alone — ran with 12 findings (2026-09-18)**: **D24's loop closes.** A person who holds the capability themselves confirms or rejects the question in an interactive session, and a confirmation grants that EXACT request — this token, this method, this path, this body — ONE retry, which the agent makes itself through its normal route; a retry after a rejection is answered `403 TOKEN_ACTION_REJECTED` carrying the person's own words, so an agent stops rather than loops (migration 0017). **It found that two of its own nine new tests were green before the route they test existed** — their confirmation 404'd, so the refusal that followed happened for the ordinary reason and the assertion under it proved nothing — and that **`recordPendingAction`'s reuse lookup is a read-then-insert: five CONCURRENT identical asks create five rows**, which defeats the very thing it exists for and is carried to Task 10, whose expiry sweeper the fix depends on. **Sitting 6 — Tasks 8 and 9 — ran with 12 findings (2026-09-18)**: §26's queue is readable as two reads, where a person who may read the project sees every question and a TOKEN sees only the ones it asked; **removing a member exists at last** — D24's fourth privileged action, and the FIRST privileged route written after Task 6, so the test that it inherits the central refusal without doing anything is the task's real deliverable, and it passes; and **§20's per-token rate limit has a reader**, taken in the one credential hook after the token is verified so a forged token spends nobody's window. **It found that two of its own four new rate-limit tests were green before the limiter existed** — both were *"is not limited"* claims, which are true of a platform that limits nothing — and, by reading the ledger rather than the sweep checklist, that **the roadmap's defect-rate table had no P5b rows at all, five sittings running**. No migration. **Sitting 7 — Tasks 10 and 11 — ran with 12 findings (2026-09-18)**: §6's fourth `PendingAction` state is applied by `expirePendingActions`, which `src/index.ts` calls once at boot with the count on the boot line — and `boot.docker.test.ts` is the only test in the repository that fails if that caller goes. **Sitting 5's F10 is discharged** by migration **0018**'s partial unique index over the token and the request's fingerprint `WHERE state = 'pending'`, with `onConflictDoNothing` handing the loser of a race the winner's row — **and a boot-only sweep does not make that index safe**, because a row past its own `expiresAt` that still says `pending` satisfies its predicate while the reuse lookup will not reuse it, so the sweep also runs scoped to the token on the path that inserts. §16's matrix gained D24's four token actors — **361 tests in 3.5 s**, and `Expectation` had to become a (status, code) pair first, since `FORBIDDEN`, `TOKEN_ACTION_PENDING` and `TOKEN_CREDENTIAL_REFUSED` are one status and three answers. **It found that `.map(toToken)` passes the array index as a second argument**, so giving the mapper a `now` parameter made every token in every list read `expired: false`; that **the plan's own `Promise.all` control could not fail on a cold pool**, because `pg.Pool` establishes a connection per acquire and the five asks serialise; and that **the one route authorizing `release:promote` had no case in the matrix at all**, since it only ever deployed to staging. So **sitting 8 — Task 12, `make demo-token` — is the next job**: §7e. P5c (the mock, the console, CI) is written only after P5b executes. *Sittings pace the work; they are not §17's product Phases.*
 
-**Executing a plan finds defects at a rate that has never fallen with practice** — 18 in P1's 13 tasks, 52 in P2's 21, 82 in P3's 19, 80 in P4a's 15, 140 in P4b's 16, 70 in P4c's 11, and 146 in P5a's 17 — plus 8 more found in a browser after sitting 7, which no tier had ever looked at — and **74 so far in P5b's first six sittings of nine** — every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat a written plan as a hypothesis (§9).
+**Executing a plan finds defects at a rate that has never fallen with practice** — 18 in P1's 13 tasks, 52 in P2's 21, 82 in P3's 19, 80 in P4a's 15, 140 in P4b's 16, 70 in P4c's 11, and 146 in P5a's 17 — plus 8 more found in a browser after sitting 7, which no tier had ever looked at — and **86 so far in P5b's first seven sittings of nine** — every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat a written plan as a hypothesis (§9).
 
-**The four numbers you will check first, measured 2026-09-18 on this machine, at the end of P5b sitting 5. Only `pnpm test` moved — by Task 7's 26 tests:**
+**The four numbers you will check first, measured 2026-09-18 on this machine, at the end of P5b sitting 7. BOTH test tiers moved:**
 
 | | |
 |---|---|
-| `pnpm test` (from the **repo root**) | **1167 passed, 100 files**, ~95 s — the `unit` project and `packages` (the client and the journey, which need nothing running). No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/` and `releases/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
-| `pnpm test:docker` | **177 passed, 0 SKIPPED**, 29 files, ~780 s — **unchanged, and sitting 6 ran it TWICE, so this is the SEVENTH and EIGHTH run at 177 across five sittings**. The tier drives SESSIONS: `grep` over every `*.docker.test.ts` finds no `Authorization: Bearer` that is a Manifest delegated token — they are registry tokens and LiteLLM keys — so nothing there presents the credential class sittings 3 to 6 have been building. Needs `make up`, and **fails rather than skips** when asked to run |
+| `pnpm test` (from the **repo root**) | **1339 passed, 101 files**, ~110 s — the `unit` project and `packages` (the client and the journey, which need nothing running). **Up 172 from sitting 6's 1167**, and 165 of those are one file: `api/authz-contract.test.ts` went from 196 tests to 361 when sitting 7 added D24's four token actors to §16's matrix. The other seven are the sweeper's four, two concurrency tests and the `expired` flag's. No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/`, `releases/` and `tokens/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
+| `pnpm test:docker` | **178 passed, 0 SKIPPED**, 29 files, ~810 s — **up ONE from 177, which had held for eight runs across five sittings.** The one is `boot.docker.test.ts`'s *expires a question nobody answered*, and it is the ONLY test in the repository that fails if `src/index.ts` stops calling the expiry sweeper (sitting 7). The tier still drives SESSIONS: `grep` over every `*.docker.test.ts` finds no `Authorization: Bearer` that is a Manifest delegated token — they are registry tokens and LiteLLM keys — so nothing there presents the credential class sittings 3 to 7 have been building. Needs `make up`, and **fails rather than skips** when asked to run |
 | `make doctor` | **18 checks, 0 failed, 0 warnings** |
 | `make verify` | **51 checks, 0 failed, 0 warnings** |
-| `make demo-journey` | green, all eight steps — run at the end of sitting 6, because Task 9 puts a rate limit in the ONE `onRequest` hook every request passes through |
+| `make demo-journey` | green, all eight steps — run at the end of sitting 7, because the `expired` field changed the published contract the journey's client is generated from |
 
 **A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is cheaper before you start than after. **This box is the only current one in this file**; the same four numbers are stated in `README.md` and `RUNBOOK.md`, and all three move together (§6). A plan's record carries the numbers as each sitting left them, dated, and they deliberately do not move.
 
@@ -198,11 +198,12 @@ Each of these was built, measured and paid for; the record is in the plan named.
 - **There are TWO CREDENTIAL CLASSES and ONE place that reads either** (D23.4, P5b Task 5). `api/server.ts`'s single `onRequest` hook turns a `manifest_session` cookie into a `SessionActor` and an `Authorization: Bearer` into a `TokenActor`; **no route reads a cookie or a header**, which is what makes D24's central refusal possible at all. A request carrying BOTH is `400 CREDENTIAL_AMBIGUOUS`, refused before either is read. `Actor` is a **discriminated union on `credential`**, so a route D24 reserves to a person calls `requireSession(request)` and a token gets `403 TOKEN_CREDENTIAL_REFUSED` — `/v1/me`, `/v1/fleet`, `POST /v1/projects` and all three token routes. **That is a `tsc` error rather than a remembered check only where the handler reads a session FIELD**: `POST /v1/projects` reads none, so its refusal is deliberate and measured (sitting 3, F10). **A token's authority is the token's, not its minter's**: `assertCapability` checks its scope first — any other project is the STRANGER's `404`, never `403`, so it is no more an enumeration oracle than a stranger — then its own capability set. **A token therefore outlives its minter's membership**; revoking the token is what stops it. `GET /v1/projects` answers a token exactly its one project, scoped in the route because no capability check runs there at all.
 - **A SESSION-bearing mutation or stream upgrade must carry the console's `Origin`** (`403 CSRF_ORIGIN_REFUSED`) — **and a bearer request must not**, because CSRF is a browser attack and a token is not sent automatically by one. `assertSameOrigin` keys on the COOKIE (`carriesSession`), so it exempted a token with no change at all when the class was added. **Every mutation carries an `Idempotency-Key`** (D23.6); **every code a client can receive is in `api/error-codes.ts`**, held to the source in both directions.
 - **A token is `mft_<id>_<secret>`, minted only in an interactive session, and its secret is returned exactly once** (D24, P5b Tasks 3–4). Only a SHA-256 of the secret is stored; the id is the row's, so verification is one indexed lookup. The mint response is the **one place in this API that returns a credential**, and the read schema has **no `secret` field at all** rather than an optional one. A mint is refused any of `PRIVILEGED` by name (`400 TOKEN_CAPABILITY_FORBIDDEN`), refused anything the minter does not hold themselves (`403`), and bounded at 365 days. **Every bad token — unknown, wrong secret, revoked, expired, malformed — gets the same `401`**, so a caller cannot enumerate ids or read the state of a credential they do not hold. Only the minter may revoke; everyone else gets the `404` a token id that does not exist gets.
-- **§13's authorization is `projects/authz.ts`**: a stranger gets `404 NOT_FOUND`, a member without the capability `403 FORBIDDEN`. **`api/authz-contract.ts` covers every registered route and asserts each refusal's code.** **D24's four privileged capabilities are named ONCE** as `PRIVILEGED` (P5b Task 2), which §20 requires be held to its own step-up list **by a test rather than a convention** — `projects/privileged.test.ts` is that test, and it names the four as literals so it cannot agree with the constant it checks. It is typed over `PrivilegedCapability = Capability | 'secret:read'`, a **superset**: `secret:read` is in D24's list and deliberately NOT a `Capability`, because no route reads a secret in Phase 1 and a capability nothing grants and nothing checks is the no-caller shape §9 names four times. **Promoting to production is its own capability, `release:promote`** — an owner and a platform admin hold it, a collaborator does not — **asserted by the deploy route when the environment's `kind` is production, and BEFORE §13's launch gate**, so a collaborator is refused without the project's readiness ever being consulted. `release:deploy` still covers sandbox and staging and is not privileged, which is what makes D24's rule statable at all.
+- **§13's authorization is `projects/authz.ts`**: a stranger gets `404 NOT_FOUND`, a member without the capability `403 FORBIDDEN`. **`api/authz-contract.ts` covers every registered route and asserts each refusal's code — and since P5b Task 11 it runs NINE actors, not five**: the five people (`owner`, `collaborator`, `stranger`, `admin`, `anonymous`) and four agents (`token-capable`, `token-incapable`, `token-other-project`, `token-privileged`), 40 route cases, **361 tests**. `Expectation` is `'pass' | RefusalStatus | { status, code }` — the bare status still maps through `REFUSAL_CODE`, so no row written before that change moved, but a `403` that is `TOKEN_ACTION_PENDING` rather than `FORBIDDEN` must say so, and with the privileged rows asserting a bare `403` **nine cases pass while D24's loop cannot start**. **Completeness for the actor dimension is `tsc`**, not a runtime check: `Record<Actor, Expectation>` makes a row missing a token expectation a compile error. The deploy route has TWO rows — staging asserts `release:deploy` and production `release:promote`, which is the only place either the token rule or a collaborator's inability to promote is exercised. **D24's four privileged capabilities are named ONCE** as `PRIVILEGED` (P5b Task 2), which §20 requires be held to its own step-up list **by a test rather than a convention** — `projects/privileged.test.ts` is that test, and it names the four as literals so it cannot agree with the constant it checks. It is typed over `PrivilegedCapability = Capability | 'secret:read'`, a **superset**: `secret:read` is in D24's list and deliberately NOT a `Capability`, because no route reads a secret in Phase 1 and a capability nothing grants and nothing checks is the no-caller shape §9 names four times. **Promoting to production is its own capability, `release:promote`** — an owner and a platform admin hold it, a collaborator does not — **asserted by the deploy route when the environment's `kind` is production, and BEFORE §13's launch gate**, so a collaborator is refused without the project's readiness ever being consulted. `release:deploy` still covers sandbox and staging and is not privileged, which is what makes D24's rule statable at all.
 - **D24's CENTRAL REFUSAL EXISTS, and it is two layers that cannot do each other's half** (P5b Task 6). `assertCapability`'s token branch runs **three checks in this order** — scope, then `isPrivileged(capability)`, then the token's own capability set — and the order is the security property: scope first so a token cannot learn another tenant's project exists, and the privileged rule **before** the token's own set because D24 says *"regardless of how it was minted"*. It throws `TokenCapabilityRefusedError`, which carries what was refused and nothing about the request; **the ONE wrapper in `api/contract/route.ts` that runs for every `/v1` route** is holding the request, so it records the `PendingAction` and answers `403 TOKEN_ACTION_PENDING` with that row `$ref`'d into the error envelope, so an agent can find the thing it must wait for (D23.7). **The catch is OUTSIDE `app.idempotent`**: caught inside, the 403 caches under `(key, userId, route)` and the confirmed retry — which reuses its `Idempotency-Key`, exactly as D23.6's own hint instructs — replays a cached refusal for ever, while every test minting a fresh key per request stays green. **The wrapper does not run for the event stream**, which `routes/events.ts` registers with `app.route` directly; that is harmless while the stream's only capability is `project:read`, and `mapError` fails closed with an operator line if it ever stops being. An identical ask **reuses its pending row** rather than filling a person's queue, matched on token, method, concrete path and a **key-sorted** SHA-256 of the body; **the body itself is never stored**, because a person reads that row on a screen.
 - **AND A PERSON ANSWERS THE QUESTION, WHICH IS WHAT CLOSES D24'S LOOP** (P5b Task 7). `POST /v1/pending-actions/{id}/confirm` and `.../reject` are **interactive only** — a token confirming its own pending action would be a loop with no human in it — and the person answering must hold the capability **themselves**: a collaborator who may not manage members is `403 FORBIDDEN`, a stranger `404`. **Confirming does not replay the request.** It grants that EXACT request — this token, this method, this concrete path, this key-sorted body hash — **one retry**, which the agent makes itself through its normal route with its normal validation. The wrapper resolves the confirmed row and hands `assertCapability` a `grant`; the grant **returns** rather than falling through to the token's own capability set, because no token the platform can mint holds a privileged capability, and `consumed_at` is stamped **after** the handler resolves so a transient failure does not burn a person's decision. **"Exactly once" describes the ACTION, not the ANSWER**: the confirmed retry's `2xx` is stored under its `Idempotency-Key` and replays for ever without reaching the handler — not an escalation, and a reader who assumes otherwise mis-reads `consumed_at`. A retry after a rejection is `403 TOKEN_ACTION_REJECTED` carrying the person's own reason, so an agent stops rather than loops. **An expired question cannot be answered**, and an expired confirmation cannot be spent.
 - **§26'S QUEUE IS A READ, AND THE TWO CREDENTIAL CLASSES SEE DIFFERENT SETS** (P5b Task 8). `GET /v1/projects/{projectId}/pending-actions` and `GET /v1/pending-actions/{pendingActionId}`. **A session that may read the project reads the PROJECT's queue** — it is `project:read`, so a collaborator watches it even though *answering* needs the capability the question is about — **and a token reads only the questions IT asked**, because a token's authority is its own and one agent enumerating another agent's requests is a read D24 grants nobody. The rule is stated ONCE, as `pendingActionsFor`'s `tokenId` parameter, and both routes apply it; a row the caller may not see is `404`, never `403`, for §13's enumeration reason. Every state is listed, not only `pending`, and **the body is never carried** — only `bodySha256`. `waitingSeconds` is computed by the platform (§26's headline number), from `createdAt` to `resolvedAt ?? now`.
 - **A NEW PRIVILEGED ROUTE INHERITS D24'S REFUSAL WITHOUT DOING ANYTHING, AND THAT IS NOW MEASURED** (P5b Task 8). `DELETE /v1/projects/{projectId}/members/{userId}` is the first privileged route written after Task 6 made the rule central: it calls `assertCapability(…, 'members:manage')` and does nothing else about tokens, and an agent asking is answered `403 TOKEN_ACTION_PENDING` with a row a person confirms. **Assert that by CODE** — `403 FORBIDDEN` is also a `403`, and a status-only assertion passes against a route on which D24's loop cannot start. It answers **`200` with `MemberList`** (`SuccessStatus` is `200 | 201 | 202`; a bodyless response is machinery nothing yet needs), is **idempotent** — removing a non-member is not an error, because the caller can already read the membership, unlike `DELETE /v1/tokens/{tokenId}` where the `404` hides which ids exist — and **refuses the last owner** (`409 PROJECT_LAST_OWNER`), with the guard inside the DELETE's own predicate so two owners removing each other cannot both win.
+- **A QUESTION NOBODY ANSWERS EXPIRES, AND THE DATABASE REFUSES A SECOND OPEN ASK** (§6, P5b Task 10). `tokens/expiry.ts`'s `expirePendingActions(db, now, scope?)` moves a `pending` row past its own `expiresAt` to `expired` and never touches one a person decided; `src/index.ts` calls it at boot beside `recoverAtBoot` and puts the count on the boot line, and **`boot.docker.test.ts` is the only test that fails if that caller goes** — the unit tier stays green, which is the whole risk of the task. **It is not the control that stops a lapsed question being answered**: `answerable` and `resolutionFor` both compare the TIMESTAMP, so a row the sweep has not reached is already unanswerable, and what the sweep fixes is the stored state §26's queue displays. **It does not run on a timer** — named in P5b's *What this plan does not build* — so a long-running process can show a stale `pending`. Migration **0018** adds a PARTIAL unique index over `(requested_by_token, method, path, bodySha256) WHERE state = 'pending'`, so five concurrent identical asks make ONE row (sitting 5's F10, which measured five); `recordPendingAction` tolerates the race with `onConflictDoNothing` and hands the loser the winner's row, and **only the caller that wrote the row publishes the event**. **The two halves depend on each other in one direction**: the index's predicate turns a stale `pending` row into a permanent block on the same question, so the sweep ALSO runs scoped to that one token immediately before the insert. `Token` carries a computed `expired`, and it is NOT `revokedAt !== null` — a clock and a person are different answers to why a credential stopped.
 - **EVERY REQUEST A TOKEN MAKES IS RATE-LIMITED, FROM THE TOKEN'S OWN ROW** (§20, P5b Task 9). `delegated_tokens.rate_limit` is **requests a minute** (600 by default), and that unit is now in the published contract rather than nowhere. The limit is taken in the ONE `onRequest` hook — **after** the token is verified, so nobody can exhaust a real token's window by sending its id with a wrong secret, and **before** any route, so none can forget it — and `RATE_LIMITED` is therefore in `EVERY_ROUTE` in `api/contract/document.ts`, not on each route's `errors:`. **A session is deliberately NOT limited**; `GET /v1/slugs/{slug}` keeps its own per-user limiter (P5a Task 9), a different control with the same code. `createRateLimiter` is one line over `createKeyedRateLimiter`, whose `take(key, limit)` reads the limit per call — one window implementation, two surfaces.
 
 - **Every test of the token refusal writes its token STRAIGHT TO THE STORE holding a privileged capability, and that is not a state a real token is ever in.** The mint route refuses one, so the only realistic token is one minted **without** it — and P5b sitting 4 measured that all 31 tests that existed stayed green through a reordering that answers every real token a dead-end `403 FORBIDDEN` and stops D24's loop from ever starting. **When a fixture can write a row no route would, check which of the two states your control is actually in.**
@@ -227,7 +228,8 @@ Each is named in its plan's *What this plan does not build*, and none is an acci
 - **`egress.allow` may still name a platform surface** — decided in §12, enforced by nothing until the roadmap's tracked hardening item.
 - **A `POST /v1/projects` for a slug whose repository outlived its project answers `SOURCE_GIT_FAILED` with git's raw output, host path included** — `pnpm test` and `make reset` leave `.manifest/repos` behind. Since P5a Task 11 it leaves no project; the demos and the journey clear their OWN slug's orphan first (`clear_orphan_repository`). A distinct code, and a message without the path, are not built. *(P4b finding 178's other half.)*
 - **An app accepts an UNSIGNED `LogoutRequest`** — passport-saml 3.2.4 checks a signature only when one is present — so a crafted link can sign somebody out of an app; the plain `GET` of `auth.logout` already could. **`make up` does not re-bind the IdP's single-file config mounts** after a `git pull` or `git checkout` replaces `config.php` or `authsources.php` (§4). Both named, not fixed.
-- **No console, no production deploy, no custom domain** — P5c and Phase 2. **Delegated tokens are MOSTLY BUILT** (P5b, under way through sitting 6): a token is minted, listed and revoked in an interactive session, an agent holding one authenticates with it scoped to one project and one capability set, D24's privileged four are refused centrally with a `PendingAction` a person confirms or rejects, a confirmation grants that exact request one retry, §26's queue is readable, and every request a token makes is rate-limited from its own row. What is left is **Task 10's expiry sweeper** — so a question nobody answers stays `pending` past its own `expiresAt` rather than becoming `expired`, and `recordPendingAction`'s reuse lookup is a read-then-insert whose duplicate rows the sweeper's partial index will close (sitting 5's F10) — Task 11's token actors in the authorization matrix, and Tasks 12–13's demo and acceptance. A project owner cannot revoke a collaborator's token either — only the minter can.
+- **No console, no production deploy, no custom domain** — P5c and Phase 2. **Delegated tokens are MOSTLY BUILT** (P5b, under way through sitting 7): a token is minted, listed and revoked in an interactive session, an agent holding one authenticates with it scoped to one project and one capability set, D24's privileged four are refused centrally with a `PendingAction` a person confirms or rejects, a confirmation grants that exact request one retry, §26's queue is readable, every request a token makes is rate-limited from its own row, a question nobody answers is swept to `expired` and a second open ask for the same one is refused by the database, and §16's matrix asserts all of it across four token actors. What is left is **Tasks 12–13's demo and acceptance** — `make demo-token`, an agent running the whole loop through the edge, is the first caller the token routes will have had outside `app.inject`. A project owner cannot revoke a collaborator's token either — only the minter can.
+- **NOTHING SWEEPS PENDING ACTIONS ON A TIMER** (P5b Task 10). The sweep runs at boot and, scoped to one token, before a new question is recorded — which is what the partial unique index needs. So a control plane up for a week can show §26's queue a `pending` row whose life ran out days ago. **A display staleness, not a refusal one**: `answerable` refuses a lapsed row `409 PENDING_ACTION_RESOLVED` on the timestamp, so the lie self-corrects the moment anybody acts on it. The plan that builds the queue as a SCREEN is the one that should decide whether it needs a timer.
 
 **Which spec sections matter, by topic:** §7 the `manifest.yaml` contract · §9 identity ·
 §10 AI access · §11 execution model and the `Driver` interface · §12 networking,
@@ -1114,6 +1116,32 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   re-serialises the manifest on push. **Two different digests are not evidence of two different images**; compare
   `RootFS.Layers` against the registry config blob's `diff_ids` before concluding anything.
 
+- **`Array.prototype.map` PASSES THE INDEX, so an optional second parameter on a mapper is filled with a number.**
+  Measured 2026-09-18 (P5b sitting 7, F4): `api/representations/tokens.ts`'s `toToken` was given a
+  `now: Date = new Date()` — the shape `toPendingAction` already has — and `api/routes/tokens.ts` maps it as
+  `.map(toToken)`, so `now` arrived as `0`, `row.expiresAt <= 0` was false, and **every token in every list
+  read `expired: false`, including one that had expired an hour before.** The default only applies to
+  `undefined`, and `0` is not `undefined`. A live token reading `expired: false` was green throughout; only
+  the assertion about an EXPIRED one could see it. The fix is to read the clock inside the function unless a
+  caller genuinely needs to inject one — `toPendingAction` does, because a list's `waitingSeconds` must be
+  computed against one instant, and its call site passes it explicitly for that reason.
+- **A `Promise.all` RACE TEST CANNOT FAIL ON A COLD `pg.Pool`, and it is the pool that decides — not the code
+  under test.** Measured 2026-09-18 (P5b sitting 7, F2): five concurrent `recordPendingAction` calls on the
+  pooled `db`, asserting one row, **passed against the read-then-insert it was written to catch**. `pg.Pool`
+  establishes a connection per acquire up to its default max of 10, and establishing one costs more than the
+  SELECT and INSERT it is wanted for — so the first caller finishes both before the second has a connection
+  and the five serialise. `await Promise.all(Array.from({ length: 8 }, () => db.execute('select 1')))` first,
+  and it reads **5 rows**. This is the pool-level twin of §4's *a single-connection transaction hides an
+  ordering race*: `withRollback` cannot see such a race at all, and a warm pool is what makes the pooled
+  version observable. **Prefer a deterministic constraint test beside it** — a direct second insert expected
+  to fail with SQLSTATE `23505` (`expectSqlState`) asserts the guarantee rather than the timing.
+- **A PARTIAL unique index makes a whole class of fixture uninsertable, and the feature's own tests are in
+  it.** Measured 2026-09-18: with `pending_actions_one_open_ask_idx` over a token and a request fingerprint
+  `WHERE state = 'pending'`, two `pending` rows sharing both cannot coexist — so a seed helper that reuses one
+  path, which is the obvious way to write it, fails inside the sweeper's own suite and reads as a defect in
+  the sweeper. Vary the key per seeded row by default. And **a partial index predicated on a STATE needs
+  something keeping that state honest**: a row past its own expiry still marked `pending` satisfies the
+  predicate and blocks the same insert for ever, which is worse than the duplicates the index exists to stop.
 - **A negative control that writes into a project's GIT REPOSITORY outlives its `git checkout`** (P5a sitting 12,
   control (h)). Breaking `renderProjectSeed` and running `make demo-journey` commits the broken seed into
   `.manifest/repos/<slug>.git` at project creation. Restoring the source leaves that repository, so the **next** run
@@ -1367,7 +1395,7 @@ curl -s --cacert infra/ca/manifest-root.crt \
 
 ## 7. What to do next
 
-**The next job is §7e — P5b's sitting 7, Tasks 10 and 11. Nothing blocks it.** Each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
+**The next job is §7e — P5b's sitting 8, Task 12, `make demo-token`. Nothing blocks it.** Each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
 
 ### 7a. The executed plans, and which of their records to read first
 
@@ -1382,155 +1410,139 @@ curl -s --cacert infra/ca/manifest-root.crt \
 | **P4b** | [`plans/2026-09-07-p4b-ai-events-streaming-incidents.md`](plans/2026-09-07-p4b-ai-events-streaming-incidents.md) | `make demo-ai` | 140 findings in ten sittings. **Sitting 9**: the plan's stream authorized after the upgrade and could not pass its own test. **Sitting 10**: every embedding had been charged to nobody. |
 | **P4c** | [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md), with [its brief](plans/2026-09-15-p4c-brief.md) | `make demo-redeploy` | 70 findings in eight sittings. **Sitting 8**: four of the acceptance's nine negative controls could not fail in it — §4 says which tier sees each. |
 | **P5a** | [`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), with [the P5 brief](plans/2026-09-16-p5-brief.md) | `make demo-journey` | 146 findings in twelve sittings. **Sitting 12**, the acceptance: three of fourteen negative controls could not fail as written — including one where the journey read a *status* while the property was a *latency*, so a synchronous build passed R6's own check. **Sitting 10's finding 1** is the other one to read: the document said for six sittings that the error envelope could not carry the field the production refusal had been sending since P2, because nothing parsed an error body through its schema. |
-| **P5b** | [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md) — **UNDER WAY**, sittings 1–6 done | `make demo-token`, Task 12's, not yet built | 74 findings in six sittings. **Sitting 6's F5** is the newest one to read: two of that sitting's own four new tests were green before the feature, because both were *"is not limited"* claims — and a claim that something is NOT refused is true of a platform that refuses nothing. A negative claim needs a positive control in the same test. **Sitting 4's F1** is the one to read: the plan's own negative control for the ORDER of the two token checks could not fail against any of the 31 tests that existed, because every test writes a token holding the privileged capability and **no token the platform can mint can hold one** — so the swapped order answers a dead-end `403 FORBIDDEN` for every real token, with D24's loop unable to start, and all 31 green. **Sitting 2's F1**: the plan's token parser split on `_` while base64url's alphabet contains it, so it refused 47.5% of the tokens the same file minted — and the round-trip test minted ONE token, so it would have gone red about half the time and read as a flaky harness. **Sitting 2's F14**: the plan's own TRUNCATE negative control cannot fail, because the statement's CASCADE reaches both new tables unnamed. **Sitting 3's F1**: `DELETE /v1/tokens/{tokenId}` is the API's first bodyless mutation, and the contract layer could not carry one — the route answered `400` before its handler ran and the OpenAPI document could not be generated for it at all, because both kept on `method === 'GET'` rather than on the body schema. **Sitting 3's F13**: three of that sitting's own negative controls answer `403` for the WRONG REASON, so a status-only assertion is green through all of them. |
+| **P5b** | [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md) — **UNDER WAY**, sittings 1–7 done | `make demo-token`, Task 12's, not yet built | 86 findings in seven sittings. **Sitting 7's F4 is the newest one to read**, and it is a JavaScript trap rather than a platform one: `toToken` was given an optional `now: Date = new Date()`, and `api/routes/tokens.ts` maps it as `.map(toToken)` — so `now` arrived as the ARRAY INDEX, `0`, and every token in every list read `expired: false`, including one that had expired an hour before. Only the assertion about an expired token could see it. **Sitting 7's F2** is the one after that: the plan's own `Promise.all` control for a read-then-insert **passed against the defect**, because `pg.Pool` establishes a connection per acquire and the five calls serialised — a warm pool is what makes a pooled race observable, and a deterministic SQLSTATE test belongs beside it. **Sitting 6's F5:** two of that sitting's own four new tests were green before the feature, because both were *"is not limited"* claims — and a claim that something is NOT refused is true of a platform that refuses nothing. A negative claim needs a positive control in the same test. **Sitting 4's F1** is the one to read: the plan's own negative control for the ORDER of the two token checks could not fail against any of the 31 tests that existed, because every test writes a token holding the privileged capability and **no token the platform can mint can hold one** — so the swapped order answers a dead-end `403 FORBIDDEN` for every real token, with D24's loop unable to start, and all 31 green. **Sitting 2's F1**: the plan's token parser split on `_` while base64url's alphabet contains it, so it refused 47.5% of the tokens the same file minted — and the round-trip test minted ONE token, so it would have gone red about half the time and read as a flaky harness. **Sitting 2's F14**: the plan's own TRUNCATE negative control cannot fail, because the statement's CASCADE reaches both new tables unnamed. **Sitting 3's F1**: `DELETE /v1/tokens/{tokenId}` is the API's first bodyless mutation, and the contract layer could not carry one — the route answered `400` before its handler ran and the OpenAPI document could not be generated for it at all, because both kept on `method === 'GET'` rather than on the body schema. **Sitting 3's F13**: three of that sitting's own negative controls answer `403` for the WRONG REASON, so a status-only assertion is green through all of them. |
 
-### 7e. Execute P5b's sitting 7 — Tasks 10 and 11 ← **START HERE**
+### 7e. Execute P5b's sitting 8 — Task 12, `make demo-token` ← **START HERE**
 
-**P5b's sitting 6 is DONE** (2026-09-18, 12 findings, `7268791`, `5f6ce4c`, **no migration**).
+**P5b's sitting 7 is DONE** (2026-09-18, 12 findings, `9d05fd9`, `dfdfe94`, **migration 0018**).
 [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md) — 13 tasks
-in nine sittings. **Your job is sitting 7: Tasks 10 AND 11** — expiry for both entities and at
-boot, and the authorization contract suite's token actors, where the matrix roughly doubles.
-The sittings table at the top of that plan is the maintained copy of what is done.
+in nine sittings. **Your job is sitting 8: Task 12 ALONE** — `make demo-token`, ten steps in which
+an agent holding a delegated token runs §22's build loop, is refused a privileged action, a person
+confirms it, and the agent's retry succeeds exactly once. The sittings table at the top of that
+plan is the maintained copy of what is done.
+
+**This is the first time anything in P5b runs through the edge.** Every route the last five
+sittings built has exactly one client: a test calling `app.inject`. Task 12 is *the caller* — the
+gap P5a sitting 10 finding 8 named — and this project's two worst discoveries both arrived the
+first time something ran end to end (§9). **Expect the defects to be in the integration, not in
+the tests.**
 
 **Read, in this order, before you start:**
 
-1. **BOTH correction blocks at the top of TASK 10.** The **sitting-6** one is the shorter and
-   more urgent: three things in that task's own snippets do not compile or do not exist —
-   `withRollback` takes ONE argument and every snippet passes two, `seedPending` exists
-   nowhere and is not a one-liner (`pending_actions` has foreign keys to `projects` AND
-   `delegated_tokens`), and `pendingById` is used everywhere and imported nowhere. It also
-   records what is already right: `'expired'` is in the enum, so the sweep needs no migration
-   — but the index below does, and it will be **0018**. The **sitting-5** one is why this
-   sitting is not two small tasks: Sitting 5 measured that `recordPendingAction`'s reuse lookup is a
-   **read-then-insert with no unique constraint**: five CONCURRENT identical asks create five
-   rows. The fix is a partial unique index on
-   `(requested_by_token, payload->>'method', payload->>'path', payload->>'bodySha256')
-   WHERE state = 'pending'`, plus `onConflictDoNothing()` and a re-read of the winner — and it
-   is yours because that predicate is only safe once your sweeper keeps `state` honest.
-   **Write the sweeper FIRST, then the index, then a `Promise.all` test asserting ONE row.**
-   Sitting 6 built the queue those duplicates appear on and did not paper over them.
-2. **P5b's *What executing this plan found*, sitting 6's entry** — 12 findings. **F5 is the one
-   to read**: two of that sitting's own four new tests were green before the feature, because
-   both were *"is not limited"* claims, and a claim that something is NOT refused is true of a
-   platform that refuses nothing. **A negative claim needs a positive control in the same
-   test.** That is the **fifth consecutive sitting** in which a control could not fail as
-   written. Task 10 is full of negative claims — *an expired token cannot authenticate*, *an
-   expired question cannot be confirmed* — so this is the trap sitting 7 is most likely to
-   walk into. For each one, ask what ELSE in the test proves the machinery ran at all.
-3. **The plan-wide correction at the top of TASK 4 IS DISCHARGED — there is nothing left for you
-   to apply.** Sitting 5 counted 10 `withProject(async …)` and 7 `ins000001`/`stu000001` across
-   Tasks 8–13; **every one of them was in Tasks 8 and 9**, which sitting 6 executed. Counted at
-   the end of sitting 6 by extracting lines 2465–2737 — Task 10 to *What this plan does not
-   build* — and grepping them: **0, 0 and 0.** Read the block anyway for WHY those names are
-   wrong (`ensureTestUser` throws by name, and `tsc` refuses first), because the next test file
-   you write can still reach for them; but do not go hunting for occurrences.
+1. **Task 12 in full, and its Step 4 table.** It has no correction block. Its ten steps are
+   listed in Step 1 and the numbers it must PRINT are in Step 2 — `checks.ok` prints its detail
+   only on failure, so a filed green run that printed nothing is a run nobody can check
+   (P5a sitting 12 finding 1).
+2. **P5b's *What executing this plan found*, sitting 7's entry** — 12 findings. **F4 is the one to
+   read**, and it is a JavaScript trap you can repeat this sitting: `.map(toToken)` passes the
+   ARRAY INDEX as the mapper's second argument, so an optional `now` parameter arrived as `0` and
+   every token in every list read `expired: false`. **F2 is the second**: the plan's own
+   `Promise.all` control passed against the very defect it was written for, because `pg.Pool`
+   establishes a connection per acquire and the five calls serialised. **Six consecutive sittings
+   have now found a control that could not fail as written**, and four of those were the sitting's
+   own new tests.
+3. **Sitting 6's F5 is still the rule to apply**: a claim that something is NOT refused is true of
+   a platform that refuses nothing. Task 12's step 3 has exactly that shape — *the token reads the
+   project, and CANNOT read the fleet* — and the plan already says its negative half is the one an
+   agent-shaped demo would leave out.
 4. **Sitting 1's entry and [`spikes/p5b-baseline/README.md`](spikes/p5b-baseline/README.md)** —
-   still current.
-5. **This file's §4** — searched, not read — and **§6 IN FULL**. Not just its sweep table:
-   §6 is also *rule 1* (invoke `superpowers:executing-plans` or `subagent-driven-development`
-   before you touch anything) and ***Your first ten minutes***, which is the baseline every
-   session that skipped it paid for. **Read §6 before you start, not only at the end.**
+   still current, and `[M3]` is the measurement this sitting rests on: `Authorization` survives
+   the edge on a plain request **and** on a WebSocket upgrade.
+5. **This file's §4** — searched, not read — and **§6 IN FULL**. Not just its sweep table: §6 is
+   also *rule 1* (invoke `superpowers:executing-plans` or `subagent-driven-development` before you
+   touch anything) and ***Your first ten minutes***, which is the baseline every session that
+   skipped it paid for.
 
 **How to run this sitting, in order:**
 
 1. **Baseline first** (§6's *Your first ten minutes*): `./scripts/snapshot-machine.sh` to a
    scratch file, `make up`, `make doctor && make verify`, `pnpm test`, then lint, typecheck and
-   format:check. **Expect §2's box exactly.** A different number is signal, and finding out
-   what moved is cheaper before you start than after.
+   format:check. **Expect §2's box exactly** — both test numbers moved this sitting.
 2. **The plan's *Global Constraints*** — it is the plan that states the commit convention
-   (**after every task, on `main`, conventional messages, no branch and no push**), not this
-   file.
-3. **Task 10, then Task 11**, each by its own Steps 1–6: write the failing test, **run it and
-   watch it fail**, implement, regenerate the contract, gate, commit, then break it and watch
-   the named test go red. **Step 2 is not a formality** — it caught two green-before-the-feature
-   tests last sitting and two the sitting before.
-4. **Close out** (§6's sweep), then **re-read your own §7e as a cold agent and CHECK its
-   claims**. That has now found a defect five sittings running.
+   (**after every task, on `main`, conventional messages, no branch and no push**), not this file.
+3. **Task 12 by its own Steps 1–4.** It is one task, so this sitting is one commit plus the
+   close-out. **Step 4 is five controls, each needing the control plane rebuilt and restarted**,
+   because it serves from `dist/` and a source swap that does not reach it proves nothing.
+4. **Close out** (§6's sweep), then **re-read your own §7e as a cold agent and CHECK its claims**.
+   That has now found a defect six sittings running.
 
-**What sitting 6 built, which you now consume:**
+**THE ONE THING MOST LIKELY TO COST YOU THE SITTING.** Task 12's step 6 has the agent ask to **add
+a member**, and step 8 expects the confirmed retry to answer **201**. `POST /v1/projects/{id}/members`
+refuses `400 MEMBER_USER_NOT_FOUND` — *"no user with PUID '…' has ever signed in"* — for anybody
+who has never signed in, and **`make demo-journey` signs in only the instructor and the operator**.
+So the confirmed retry will answer `400`, not `201`, and it will read as a defect in D24's grant
+rather than as a missing sign-in. **Sign the student in first** (`idp_login` in
+`infra/lib/idp-login.sh`, as `make demo-identity` step 9 does), or aim the refusal at
+`DELETE /v1/projects/{id}/members/{userId}` instead, which needs no such precondition and is
+idempotent. Sitting 4 measured this exact `400` on the same route.
 
-- **`tokens/pending.ts`'s `pendingActionsFor(db, projectId, tokenId?)`** — §26's queue for one
-  project, newest first, every state. **The `tokenId` parameter IS the rule**: a session that
-  may read the project reads the project's queue, a token reads only what it asked. Task 10's
-  sweeper must keep `state` honest for this read, because the queue is where a stale `pending`
-  row becomes visible to a person.
-- **`api/routes/pending-actions.ts`'s `pendingActionReads`** — a SECOND exported array beside
-  `pendingActionRoutes`, both listed in `routes/index.ts`. `GET /v1/projects/{projectId}/pending-actions`
-  and `GET /v1/pending-actions/{pendingActionId}`.
-- **`PendingAction` carries `waitingSeconds`** (computed, `createdAt` → `resolvedAt ?? now`) and
-  **`PendingActionList` exists at last**, registered in the same commit as its route.
-- **`DELETE /v1/projects/{projectId}/members/{userId}`**, in `routes/project-reads.ts` — NOT
-  `routes/projects.ts`, which holds only `createProject`. It answers **`200` with `MemberList`**,
-  is **idempotent**, and refuses the last owner with `409 PROJECT_LAST_OWNER`
-  (`LastOwnerError` in `api/errors.ts`). `removeMember` is in `projects/repository.ts`.
-- **`createKeyedRateLimiter` in `api/rate-limit.ts`**, whose `take(key, limit)` reads the limit
-  per call; `createRateLimiter` is one line over it. `ServerDeps.limits` now has **two** fields,
-  `slugCheck` and `tokens`, and `TOKEN_RATE_WINDOW_MS` is 60 s. **`RATE_LIMITED` is in
-  `EVERY_ROUTE` in `api/contract/document.ts`** — every operation can answer `429` to a token.
-- **`api/authz-contract.ts`'s `Fixture` gained `removableUserId`**: `platform_admin`, made a
-  collaborator of the fixture project solely to be removed. **Not `bio_student`** — every
-  `collaborator: 'pass'` row depends on that membership.
+**What sitting 7 built, which you now consume:**
+
+- **`tokens/expiry.ts`'s `expirePendingActions(db, now, scope?)`**, called at boot from
+  `src/index.ts` with `pendingActionsExpired` on the boot line, and called scoped to one token by
+  `recordPendingAction` before it inserts. **Migration 0018** adds
+  `pending_actions_one_open_ask_idx`, a PARTIAL unique index over the token and the request
+  fingerprint `WHERE state = 'pending'`.
+- **`Token` carries a computed `expired`**, which is in the published contract and therefore in
+  `@manifest/contract` — so the demo can print it at step 2 and at step 9 without comparing clocks.
+- **`api/authz-contract.ts` runs NINE actors.** If Task 12 registers a route — it should not — the
+  completeness check names it, and `tsc` will then demand four token expectations as well as five
+  session ones. `Expectation` is `'pass' | RefusalStatus | { status, code }`, and `PENDING` and
+  `SESSION_ONLY` are the two named pairs.
+- **`RouteCase` has an optional `label`**, used where two rows exercise one registered route: the
+  deploy route now has a **staging** row and a **production** row.
 
 **What will surprise you:**
 
-- **Task 11's `token-privileged` actor CANNOT BE EXPRESSED by the matrix as it stands, and this
-  is the five-sitting confusion arriving in the suite itself.** `Expectation` is a bare STATUS,
-  and `REFUSAL_CODE` maps each status to exactly one code — `403: 'FORBIDDEN'`
-  (`authz-contract.ts:33`). Task 11 wants that actor answered `403 TOKEN_ACTION_PENDING` on the
-  privileged routes, which is the same status and a different code, so **`Expectation` has to
-  become a (status, code) pair before the actor can be added** — the task's prose does not say
-  so. Do that first, in its own commit if it helps, because every existing row has to keep
-  meaning what it means.
-- **A bearer request carrying `Origin` is NOT refused, so the token actors reuse
-  `mutationHeaders(deps)` unchanged.** `assertSameOrigin` returns early unless a SESSION cookie
-  is present (`csrf.ts:40`), which is what let Task 5 add the class with no change at all.
-  §3's *"and a bearer request must not"* means *is not required to*, not *is refused if it
-  does* — checked, because the sentence reads both ways and building a second header helper on
-  the wrong reading would cost an hour.
-- **Task 11 adds token actors to a matrix whose `Expectation` type has no `429` and no `409`.**
-  Since sitting 6 **every** route can answer `429` to a token, and the suite fires five actors
-  at one fixture in order — so a token actor with a low `rateLimit`, or enough rows, refuses
-  later cases for a reason the table cannot express. Mint the suite's tokens with a rate limit
-  far above the number of cases, or the failures will read as authorization defects.
-- **`DELETE /v1/projects/:projectId/members/:userId` is in the matrix and MUTATES.** Its owner
-  case really removes `platform_admin`; its admin case is the idempotent repeat. If Task 11
-  reorders `ALL_ACTORS` or adds a row that depends on that membership, read the comment on
-  `removableUserId` first.
-- **Two of the four rate-limit tests would go green again if their positive half were removed**
-  (F5). If Task 10 or 11 touches `api/rate-limit-token.test.ts`, keep the contrast: *does not
-  limit a session* ends by watching a TOKEN refused in the same fixture.
-- **An expired token and an expired PendingAction fail in DIFFERENT layers.** `tokenActor`
-  already refuses an expired token with the same `undefined` every bad token gets (Task 5), and
-  `answerable` already refuses an expired question with `409 PENDING_ACTION_RESOLVED` (sitting
-  5's F8). **Task 10's sweeper does not create either refusal — it makes `state` tell the
-  truth.** A test that asserts "an expired token is refused" is green today, before your
-  sweeper exists; a test that asserts the ROW's `state` moved is not.
-- **A route change is three files, in order**: the definition, `pnpm contract:write`,
-  `pnpm contract:generate`.
+- **A token can hold `release:deploy` and not `release:promote`, and step 5 depends on it.** The
+  demo deploys to STAGING on the token's own authority; a production deploy is privileged and would
+  be a `403 TOKEN_ACTION_PENDING` instead. The matrix's new production row is where that is
+  asserted.
+- **The confirmed retry must reuse its `Idempotency-Key`** — D23.6's own hint says so — and that
+  works only because sitting 4 put the refusal's catch OUTSIDE `app.idempotent`. **A demo that
+  mints a fresh key per retry would pass while that placement was wrong**, which is sitting 1's
+  `[M5]`; use one key per action, as a real client would.
+- **Step 8's second retry is `403 TOKEN_ACTION_PENDING`, not a success and not a rejection** — the
+  grant was consumed, so the next ask is a NEW question. But note that the first retry's `2xx` is
+  stored under its `Idempotency-Key` and **replays for ever**: "exactly once" describes the ACTION,
+  not the ANSWER (sitting 5). A demo that re-sends the same key and gets `201` again has not found
+  a second escalation.
+- **`GET /v1/projects` answers a token exactly its own project**, and `GET /v1/fleet` answers it
+  `403 TOKEN_CREDENTIAL_REFUSED` — not `404`. Assert the CODE at step 3; `403 FORBIDDEN` is also a
+  `403` and would pass a status-only check against a route on which the rule was never applied.
+- **A bearer request must NOT carry a cookie** (`400 CREDENTIAL_AMBIGUOUS`), and it is neither
+  required to carry `Origin` nor refused for carrying one — `assertSameOrigin` returns early unless
+  a session cookie is present. `scripts/lib/api.sh`'s existing helpers send a jar; the bearer helper
+  Task 12 adds must not.
+- **A build answers `202` and ends on the stream**, so step 4 waits: `wait_for_build`
+  (`scripts/lib/api.sh`) for a script, and the journey's own client for TypeScript.
+- **After `pnpm test` the database is empty and `.manifest/repos` is not**, so the demo must call
+  `clear_orphan_repository <slug>` before creating its project, as every other demo does — a
+  creation for a slug whose repository outlived its project answers `SOURCE_GIT_FAILED` with git's
+  raw output.
 - **`pnpm test` — even one file — truncates the control plane's tables**, and `pnpm test:docker`
   restarts the edge and re-registers the platform's SP row. **Restart the control plane after
   either**; it serves from `dist/`. **Kill it by PID from `lsof -nP -iTCP:7100 -sTCP:LISTEN`** —
   `pkill -f 'control-plane/dist'` does NOT match it, and the symptom is a new process dying with
-  `EADDRINUSE` while `/v1/me` still answers `401` from the old one (measured, sitting 6).
-- **`pnpm test:docker` is owed** if you touch `projects/`, `releases/`, `identity/` or a
-  `*.docker.test.ts`. It has not moved from 177 in eight runs across five sittings.
-- **A migration needs its URL exported**: `db:migrate` reads `MANIFEST_ADMIN_DATABASE_URL` from
-  the environment and nothing exports it for you (§3's one-line form). Task 10 needs one —
-  **0018 will be the newest; 0017 is the newest today.**
+  `EADDRINUSE` while `/v1/me` still answers `401` from the old one.
+- **`pnpm test:docker` is owed**: Task 12's Step 3 lists it, and the demo exercises `releases/`
+  and `routing/` through the real driver.
+- **A route change is three files, in order**: the definition, `pnpm contract:write`,
+  `pnpm contract:generate`. Task 12 should need none of them — if it does, that is a finding.
 
-**The state you are handed, 2026-09-18, after P5b's sitting 6.** `main`, clean.
+**The state you are handed, 2026-09-18, after P5b's sitting 7.** `main`, clean.
 
 | | |
 |---|---|
-| The four gate numbers | §2's box — `pnpm test` **1167** in 100 files (up 33 tests and one file), `pnpm test:docker` **177** in 29 files (0 skipped), `make doctor` **18/0**, `make verify` **51/0**. The last two were re-run AFTER the Docker tier |
-| The control plane | **LEFT RUNNING on 7100**, `driver: docker`, **killed, rebuilt and restarted at the end of this sitting** so it serves the sitting's own routes. Check: `curl -sS -o /dev/null -w '%{http_code}' --cacert infra/ca/manifest-root.crt https://console.manifest.internal/v1/me` → `401` when it is up. **Do not start a second one.** It carries a **new `MANIFEST_SESSION_SECRET`** — any cookie predating this sitting is void |
-| The database | Migration **0017** applied; this sitting added none. **NOT empty**: the closing `make demo-journey` left `journey-app`, its three environments, its build, release and instance, and the `operator` administrator grant. Every `pnpm test` empties it again |
-| The demos | **`make demo-journey` was run at the end and is GREEN, all eight steps** — because Task 9 puts a limit in the ONE `onRequest` hook every request passes through. The other four were not run; all were green at P5a sitting 12 |
+| The four gate numbers | §2's box — `pnpm test` **1339** in 101 files (up 172, of which 165 are the matrix's new actors), `pnpm test:docker` **178** in 29 files (0 skipped, up one), `make doctor` **18/0**, `make verify` **51/0**. The last two were re-run AFTER the Docker tier |
+| The control plane | **LEFT RUNNING on 7100**, `driver: docker`, **killed, rebuilt and restarted at the end of this sitting** so it serves the sitting's own routes and sweeps pending actions at boot. Check: `curl -sS -o /dev/null -w '%{http_code}' --cacert infra/ca/manifest-root.crt https://console.manifest.internal/v1/me` → `401` when it is up. **Do not start a second one.** It carries a **new `MANIFEST_SESSION_SECRET`** — any cookie predating this sitting is void |
+| The database | Migration **0018** applied — the first migration since 0017, and the only one this sitting added. **NOT empty**: the closing `make demo-journey` left `journey-app`, its three environments, its build, release and instance, and the `operator` administrator grant. Every `pnpm test` empties it again |
+| The demos | **`make demo-journey` was run at the end and is GREEN, all eight steps** — because the `expired` field changed the contract the journey's client is generated from. The other four were not run; all were green at P5a sitting 12 |
 | The apps | The proof, journey and fixture app containers are **up and healthy**, and **`journey-app` IS reachable by name through the edge** — the demo re-registered its route after the Docker tier truncated `routes`. `proof-app` and `fixture-app` are **not**: their routes are gone and their names fall through to the wildcard. **Check the BODY, never the status** — a name nothing has ever deployed also answers `200`. Harmless: the next `make demo*` recreates each |
 | The fixture app | **STILL DEPLOYED**, as P5a sitting 12 left it. §2's *Outstanding* has the removal, which `make reset` also does |
-| Identity | Three IdP test users — `student`, `instructor`, `operator`. **`operator` IS currently an administrator**, granted by this sitting's `make demo-journey`, which recreates and re-grants. Self-healing |
-| Docker images | **Back to where the sitting started.** Its two `pnpm test:docker` runs and the closing demo built images; each was removed by digest, except the one backing the running `journey-app` instance. **The `docker rmi` refusal did not recur, for the fifth sitting running.** Sitting 12's own list is still outstanding |
-| LiteLLM | **Re-measured independently this sitting — do not copy this row.** §2's *Outstanding* has the count, which entries are held by a running container, and the command that checks a key without printing it. **The previous list's "held" entry has gone stale in every one of the last five sittings** |
+| Identity | Three IdP test users — `student`, `instructor`, `operator`. **`operator` IS currently an administrator**, granted by this sitting's `make demo-journey`, which recreates and re-grants. Self-healing. **`student` has NOT signed in on this database**, which is the trap above |
+| Docker images | **Back to where the sitting started.** Its two `pnpm test:docker` runs and the closing demo built images; each was removed by digest, except the one backing the running `journey-app` instance. **The `docker rmi` refusal did not recur, for the sixth sitting running.** P5a sitting 12's own list is still outstanding |
+| LiteLLM | **Re-measured independently this sitting — do not copy this row.** §2's *Outstanding* has the count, which entries are held by a running container, and the command that checks a key without printing it. **The previous list's "held" entry has gone stale in every one of the last six sittings** |
 
 ## 8. Decisions waiting on Rich
 

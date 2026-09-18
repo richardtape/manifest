@@ -30,8 +30,8 @@
 | 4 | 6 | **The central refusal, and the `PendingAction` it creates.** The heart of D24. **Alone** | ✅ **DONE 2026-09-18 — 10 findings, 3 commits** (`11c47b9`, `f9f56f6`). Migration **0016**. The catch is OUTSIDE `app.idempotent`. **The plan's own ordering control cannot fail against any test that existed** — every test mints the privileged capability, which no real token can hold; a twelfth test asserts that case. Breaking `isPrivileged` now turns **11 tests red**, from 2. `make demo-journey` green |
 | 5 | 7 | **Confirm, reject, and the one-shot retry** — the loop closing. **Alone** | ✅ **DONE 2026-09-18 — 12 findings, 2 commits** (`7465590`, `9ac051b`). Migration **0017**. The grant is what gets a token past D24's rule and nothing else can make one. **TWO of this sitting's own nine new tests were green before the route existed**, and **`recordPendingAction`'s reuse lookup is a read-then-insert — five concurrent identical asks make five rows** (F10, carried to Task 10). `make demo-journey` green |
 | 6 | 8–9 | **The queue** (§26's primary screen, as a read) and **per-token rate limits** | ✅ **DONE 2026-09-18 — 12 findings, 2 commits.** Three routes, and D24's fourth privileged action made reachable. **A `204` was not expressible** — `SuccessStatus` is `200 \| 201 \| 202`, so the removal answers `200` with `MemberList`. **The removal is idempotent**, which is what lets the authz matrix express it without a per-actor fixture. **TWO of Task 9's four tests were green before the limiter existed** — both were "is not limited" claims, true of a platform that limits nothing. **The roadmap's defect-rate table had no P5b rows at all**, five sittings running |
-| 7 | 10–11 | **Expiry** for both entities, and **the authorization contract suite's token actors** — the matrix roughly doubles | ← next |
-| 8 | 12 | **`make demo-token`** — an agent runs the build loop on a token, is refused twice, a human confirms, and the retry succeeds | |
+| 7 | 10–11 | **Expiry** for both entities, and **the authorization contract suite's token actors** — the matrix roughly doubles | ✅ **DONE 2026-09-18 — 12 findings, 2 commits** (`9d05fd9`, `dfdfe94`). Migration **0018**. Sitting 5's F10 is discharged by a partial unique index, and **a boot-only sweep does not make that index safe** — a stale `pending` row blocks the same question for ever, so the sweep also runs scoped to the token before the insert. The matrix is **361 tests in 3.5 s** (was 196), `Expectation` is now a (status, code) pair, and completeness for the actor dimension is **`tsc`**. **Adding a `now` parameter to `toToken` made every token in every list read `expired: false`** — `.map` passes the index. **The plan's own `Promise.all` control could not fail on a cold pool**, and 160 token cases passed on the first run, so the bearer was withheld: 140 go red |
+| 8 | 12 | **`make demo-token`** — an agent runs the build loop on a token, is refused twice, a human confirms, and the retry succeeds | ← next |
 | 9 | 13 | **The acceptance**, three times, once from a `make reset` machine, with its negative controls. **Alone, and last** | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -2769,6 +2769,7 @@ Named because the spec asks for it, or because someone will look for it.
 - **Nothing scans the control plane's own dependency tree** (ORIENTATION §8), unchanged by this plan, which adds no dependency.
 - **Rate limits are per process**, not per platform. One control plane runs against one database (P5a Task 13's `recoverAtBoot` makes that a rule), so this is exact today and becomes approximate the day it is not.
 - **An expired token's rows are not removed**, only refused; `expirePendingActions` moves pending actions, and nothing deletes a `DelegatedToken`. A row is an audit record of a credential that existed.
+- **NOTHING SWEEPS PENDING ACTIONS ON A TIMER** (sitting 7). `expirePendingActions` runs at boot and, scoped to one token, on the path that records a new question — which is what the partial unique index needs. So a control plane that has run for a week can show a stale `pending` row in §26's queue. **It is a display staleness and not a refusal one**: `answerable` refuses a row past its own `expiresAt` (`409 PENDING_ACTION_RESOLVED`) and `resolutionFor` declines to match one, both keyed on the timestamp rather than on the state, so the lie self-corrects the moment anybody acts on the row. A third piece of background work, on a timer this codebase has no precedent for, for a screen P5c has not built, is the no-caller shape §9 names four times. **The plan that builds the queue as a screen is the one that should decide whether it needs a timer.**
 - **The offline acceptance** is Rich's to run, now with step 9.
 
 ---
@@ -3614,3 +3615,131 @@ went red, and each on the ONE test named for it.**
   is scoped to one project by Decision 3, and §26's fleet-wide view is admin-scoped and P5c's.
 - **The queue names the token, not the person.** §26 asks a screen to show "by whom"; the
   token list carries the name and the minter, so the screen joins two reads.
+
+---
+
+### Sitting 7 — 2026-09-18 — Tasks 10 and 11, expiry and the token actors — 12 findings
+
+**What it made true.** §6's fourth `PendingAction` state is applied by a sweeper the boot
+calls; sitting 5's F10 is discharged by a partial unique index the database enforces; a
+token list says whether a token has expired without a client comparing clocks; and §16's
+authorization matrix has D24's second dimension — four token actors beside the five session
+ones, **361 tests in 3.5 s**, up from 196 in 2.4 s. Two commits, migration **0018**.
+
+**Task 10 turned out to be two halves that contradict each other, and the order matters.**
+The sweeper the plan describes runs once at boot. The partial unique index the F10
+correction asks for is predicated on `state = 'pending'`. Put together with nothing else,
+a row past its own `expiresAt` that still says `pending` satisfies the index and blocks
+every future ask about the same thing — *for ever*, on a process that does not restart.
+So `expirePendingActions` takes an optional `{ tokenId }` scope, stated once as a
+parameter the way `pendingActionsFor`'s `tokenId` is (sitting 6's F4), and
+`recordPendingAction` sweeps its own token's stale rows immediately before it inserts.
+**F3 is the measurement**: with the index in and that call absent, a test written two
+sittings ago goes red.
+
+#### The finding to read if you read nothing else
+
+**F4 — `.map(toToken)` passes the array index as the function's second argument.** `toToken`
+gained a `now: Date = new Date()` parameter, which is the shape `toPendingAction` already
+has, and `api/routes/tokens.ts` maps it over a list as `.map(toToken)` — so `now` arrived
+as `0`, `row.expiresAt <= 0` was false, and **every token in every list read
+`expired: false`, including one that had expired an hour earlier.** The live-token
+assertion was green throughout; only the expired one could see it. `toToken` now reads the
+clock itself and takes no parameter. **`toPendingAction` is safe only because its own call
+site passes `now` explicitly** — a list's `waitingSeconds` must be computed against one
+instant — and that is now written where somebody would otherwise "tidy" it.
+
+#### Every finding
+
+| # | Finding |
+|---|---|
+| F1 | **The sitting-6 correction was right that the snippets do not compile and wrong about the way out.** It said `withRollback` takes one argument, that the `ctx` is a phantom, and that `seedPending` therefore needs either hand-built rows inside the rollback or `withProjectServer`. But `db/testing.ts` already exports **`withProject(fn: (tx, ctx: { projectId, ownerId }) => …)`** — exactly the two-argument shape the snippets call, inserting the owner and project `pending_actions`' two foreign keys need, and already used by four test files including `tokens/pending.test.ts` next door. The snippets were calling the right fixture by the wrong name. No server, no committed rows. |
+| F2 | **The plan's own `Promise.all` control cannot fail on a cold pool.** Written exactly as the correction prescribes — five concurrent `recordPendingAction` calls on the pooled `db`, asserting ONE row — it **passed with no index and no conflict handling at all**. `pg.Pool` establishes a connection per acquire, and establishing one costs more than the SELECT and INSERT it is wanted for, so the first caller finishes both before the second has a connection to read on and the five serialise. Eight concurrent `select 1` first, and it reads **5 rows** — sitting 5's measurement reproduced. Without the warm-up the whole F10 fix would have shipped behind a green test, which is the sixth consecutive sitting in which a control could not fail as written. |
+| F3 | **A boot-only sweep does not make the partial unique index safe.** Measured by adding the index alone: the pre-existing *does not reuse a row whose expiry has passed* went red, because a stale `pending` row satisfies `WHERE state = 'pending'` and the reuse lookup deliberately will not reuse it — so the insert conflicts and the agent can never ask again. Hence the scoped sweep on the insert path, and hence the scope parameter, which the plan does not mention. |
+| F4 | **Above.** |
+| F5 | **§7e's prediction confirmed, and priced.** `Expectation` had to become a (status, code) pair before a token actor could be added, and the task's prose does not say so. **Measured as control (h): with the two member rows and the production row asserting a bare `403`, NINE cases pass** — `FORBIDDEN`, `TOKEN_ACTION_PENDING` and `TOKEN_CREDENTIAL_REFUSED` are one status and three answers, one of which is a loop that closes and one a dead end. That is sitting 4's F1 arriving in the suite itself. The status shorthand is kept, so no row written before this sitting changed meaning. |
+| F6 | **Completeness for the actor dimension is `tsc`, not the runtime check the plan asks for.** `Record<Actor, Expectation>` over nine actors makes a row missing a token expectation **`error TS2739`**, naming all four — stronger than a runtime check, and it fires before a test runs. The registered-route check still owns the route dimension, and both were watched failing. So "the completeness check must grow with them" was satisfied by widening one type rather than by writing a second check. |
+| F7 | **The one route that authorizes `release:promote` had no case in this suite at all.** The deploy row deploys to **staging**, so it has only ever asserted `release:deploy` — and D24's second privileged capability, which P5b Task 2 created specifically so the rule could be stated, was exercised by no authorization test. A **production** row was added against the same registered route (`label: 'production'`, new on `RouteCase`). It is also the only assertion anywhere that **a collaborator may deploy to staging and may not promote**. |
+| F8 | **`Expectation` had no `409`, which the production row needs** (§7e flagged it). §13's launch gate refuses a production deploy `409 RELEASE_PRODUCTION_GATE_UNAVAILABLE` throughout Phase 1 — every readiness item but scans answers `not_built` — so the owner's and admin's cases prove that authorization PASSED and the gate stopped them. The day readiness can be met that row goes red, which is a contract suite doing its job. |
+| F9 | **The plan's predicted failure message for control (a) is wrong, and the named test is right.** *never re-opens or re-decides a resolved one* fails on the sweep's COUNT (`expected 3 to be 1`) before it reaches the state assertion the plan quotes (`expected 'expired' to be 'confirmed'`). A sitting that grepped for the predicted string would not find it and might conclude the control had not fired. |
+| F10 | **The "unreachable" defensive branch in `recordPendingAction` is the diagnostic for a missing sweep.** Control (d) reached it, and it named the credential and the request: `pending action for token 5e72b6c8… conflicted on POST /v1/projects/p/members and no open ask could be read back`. This project normally calls a branch with no caller a defect; this one is the difference between an operator line and a silently wrong answer, and it is the only reason F3's failure was legible in one read. |
+| F11 | **160 token cases passed on the FIRST run, and that needed a control of its own.** 361 of 361 green first try is the shape this project distrusts, so the bearer header was withheld from the token actors: **140 of the 160 go red**, and the 20 that stay green are exactly the five routes whose rows claim the credential makes no difference — `/auth/login`, `/auth/logout`, `/auth/saml/callback` and the two registry-token endpoints. **The count is the evidence.** Without it, "the matrix is green" would have been indistinguishable from "the matrix never authenticated anybody". |
+| F12 | **The index makes a class of fixture uninsertable, and the sweeper's own tests are in it.** Two `pending` rows sharing a token, method, path and body hash can no longer coexist — so `seedPending` gives every row its own path unless one is asked for. Written the obvious way, with one path reused, the sweeper's own suite would have failed on an insert, reading as a defect in the code under test. |
+
+**Decisions this sitting made.**
+
+- **The sweeper publishes no event.** Every other `pending_action.*` event names the actor
+  who caused it; expiry is a clock passing with no actor, and a boot sweep of a month's
+  backlog would publish a burst nobody asked for. The row's own `state` is the record, and
+  an agent learns its question died the way D23.7 says it should — by asking again and
+  being handed a new one.
+- **NO PERIODIC SWEEPER, and this is the one thing left deliberately imperfect.** Boot,
+  plus the scoped sweep on the insert path. The two places where an expired question would
+  change an answer both compare the timestamp themselves — `answerable` refuses one
+  (`409 PENDING_ACTION_RESOLVED`) and `resolutionFor` declines to match one — so the
+  staleness is confined to what §26's queue *displays*, and it is bounded by process
+  uptime and self-corrects the moment somebody acts on the row. A third piece of
+  background work, on a timer this codebase has no precedent for, for a screen P5c has not
+  built, is the no-caller shape §9 names four times. **Named in *What this plan does not
+  build*.**
+- **`expirePendingActions` takes an optional scope**, so the rule is stated once for two
+  callers — sitting 6's F4 pattern.
+- **Only the caller that WROTE the row publishes `pending_action.created`.** Reuse already
+  returned without an event; the loser of a race does too. Five concurrent asks are one
+  question, and five events for it would tell a person five things happened.
+- **`toToken` takes no clock** (F4). `expired` is computed, never stored — P5a Task 15's
+  rule for `LaunchReadiness` — and it is NOT "this token no longer works": a revoked token
+  does not work either, and a clock and a person are different answers to why.
+- **All four matrix tokens are written with `mintTestToken`**, uniformly. `token-privileged`
+  holds one of `PRIVILEGED`, which the mint route refuses by name and which is the only
+  state in which D24's *"regardless of how it was minted"* is observable; minting three
+  through the route and one past it would leave the actors differing in two ways at once.
+  `token-capable`'s set is nonetheless exactly what the route would mint for that owner.
+- **`token-incapable` holds `project:delete`** — a `Capability` no route asserts — so it can
+  address the project and is refused every capability, which is the `403`-not-`404`
+  distinction the row exists for. An empty set would do the same and is a state the mint
+  route refuses (`min(1)`).
+- **The token actors are APPENDED to `ALL_ACTORS`, never interleaved.** Two rows mutate, and
+  the five session actors must keep running in the order they always have.
+- **The matrix tokens carry a rate limit of 100,000.** Since sitting 6 every route can
+  answer a token `429`, and the suite fires each actor at every route inside one window;
+  `Expectation` cannot express a `429`, so a token that started refusing later routes would
+  read as an authorization defect.
+
+**Five negative controls for Task 10, each watched after the commit and restored.**
+
+| Break | What went red |
+|---|---|
+| the `state = 'pending'` filter dropped from the sweep | *never re-opens or re-decides a resolved one* — `expected 3 to be 1`, on the COUNT rather than the state (F9), plus *is idempotent* and the scope test. Three of four |
+| the boot call removed from `src/index.ts` | **nothing in the unit tier — 46 of 46 still green**, which is the point: a sweeper nothing runs. `boot.docker.test.ts`'s *expires a question nobody answered* goes red alone, `expected +0 to be 1`. It is the only test in the repository that fails if the caller goes |
+| `expired` computed as `revokedAt !== null` | *says whether a token has EXPIRED, and a revocation is not an expiry* — `expected false to be true`, on the expired-but-not-revoked token |
+| the scoped sweep removed from `recordPendingAction` | *does not reuse a row whose expiry has passed* — the defensive branch, naming the token and the request (F3, F10) |
+| `onConflictDoNothing` removed | *creates ONE row when five identical asks arrive at once* — `duplicate key value violates unique constraint "pending_actions_one_open_ask_idx"` |
+
+**Four negative controls for Task 11, each watched after the commit and restored.**
+
+| Break | What went red |
+|---|---|
+| the bearer header not sent for the token actors | **140 of the 160 token cases** (F11), and the 20 survivors are exactly the rows that claim the credential makes no difference |
+| the privileged rows asserting a bare `403` | **NINE cases** — `expected { status: 403, …(1) } to deeply equal { status: 403, code: 'FORBIDDEN' }`. The control that prices F5 |
+| `token-other-project` expected `403` instead of `404` | that actor's case alone, on the CODE — `expected { status: 404, code: 'NOT_FOUND' } to deeply equal { status: 403, code: 'FORBIDDEN' }` |
+| one row's four token expectations removed | **`tsc`**, not a test: `error TS2739: Type '{ owner … }' is missing the following properties from type 'Record<Actor, Expectation>': "token-capable", "token-incapable", "token-other-project", "token-privileged"` (F6) |
+| the member-removal row deleted from the table | *covers every route the server registers* — `+ "DELETE /v1/projects/:projectId/members/:userId"` |
+
+**What this sitting did NOT do, deliberately.**
+
+- **No periodic expiry sweep.** Above, and in *What this plan does not build*.
+- **No `secret:read` or `quota:set` route**, so two of D24's four privileged capabilities are
+  still unexercisable end to end (Decision 14, stated in advance). The matrix now covers
+  **two** of the four — `members:manage` on both member routes, and `release:promote` on the
+  new production row.
+- **No cross-project pending-action read for a token**, and no assertion here that a token
+  can read its OWN question: that is `api/delegation.test.ts`'s *shows the token only ITS
+  OWN questions*, and this table asserts the half that hides another agent's.
+
+**Gate numbers at the end of this sitting.** `pnpm test` **1339 passed, 101 files** (was
+1167 in 100 — up 172: 165 new authorization cases, 4 sweeper tests, 2 concurrency tests and
+the `expired` test), run **twice**, identical. `pnpm lint`, `pnpm typecheck`,
+`pnpm format:check` clean. `pnpm test:docker` **178 passed, 0 skipped, 29 files** — up one,
+exactly as predicted before the run, that one being `boot.docker.test.ts`'s new test.
+`make doctor` **18/0**, `make verify` **51/0**.

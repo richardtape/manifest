@@ -190,7 +190,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` �
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 18 / 0 and `make verify` 51 / 0**
-(re-measured 2026-09-18 at the end of **P5b sitting 5**, after that sitting's `pnpm test:docker`; unchanged since P5a sitting 11). ORIENTATION §2's box is the maintained copy of those; if this
+(re-measured 2026-09-18 at the end of **P5b sitting 7**, after that sitting's `pnpm test:docker`; unchanged since P5a sitting 11). ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has eight steps, not seven** — P5a
@@ -385,10 +385,32 @@ check. **A session is deliberately not limited** — §20 scopes this control to
 third-party agent is code the platform did not write; `GET /v1/slugs/{slug}` keeps its own per-user limiter
 and is unaffected.
 
+**A token list says whether each one has EXPIRED** — since P5b Task 10 (sitting 7, 2026-09-18). `expired` on
+the mint and list answers is computed by the platform from `expiresAt`, so a reviewer of §20's list does not
+compare clocks by hand. It is **not** "this token no longer works": a revoked token does not work either, and
+`revokedAt` says so separately, because a clock and a person are different answers to why a credential
+stopped.
+
+**A question nobody answers becomes `expired`, and the boot is what moves it** — Task 10. Each is recorded
+with a life of 24 hours (`PENDING_ACTION_TTL_MS`), and `expirePendingActions` runs once at every control-plane
+boot, reporting `pendingActionsExpired` on the boot line. **Two things it is not:**
+
+- It is **not** the control that stops a lapsed question being answered. `POST …/confirm` refuses a row past
+  its own `expiresAt` with `409 PENDING_ACTION_RESOLVED` whether or not a sweep has run, and a confirmation
+  older than the row's life cannot be spent. So the sweep makes the stored state honest; it does not decide
+  anything.
+- It does **not** run on a timer. **A control plane that has been up for a week can show a question as
+  `pending` in the queue when its own `expiresAt` passed days ago** — asking to act on it is still refused,
+  with the `409` above, so it is the display that is stale and never the decision. Restarting the control
+  plane sweeps it; P5b's *What this plan does not build* says why no timer was added.
+
+**Two identical asks are one question, enforced by the database** — Task 10, migration 0018. A partial unique
+index over the token and the request's fingerprint, `WHERE state = 'pending'`, so an agent retrying in
+parallel cannot fill a person's queue with the same question forty times. It is partial deliberately: once a
+question is answered or lapsed, the same thing may be asked again.
+
 **What is not built.** A project owner cannot revoke a collaborator's token — only the person who minted it
-can — and there is no expiry sweeper yet (Task 10), so a question that nobody answers stays `pending` past
-its own `expiresAt` rather than becoming `expired` (it cannot be confirmed either way). `make demo-token` —
-the whole loop driven end to end through the edge — is Task 12's.
+can. `make demo-token` — the whole loop driven end to end through the edge — is Task 12's.
 
 *This section said "a token cannot authenticate until Task 5, which is the next sitting's work" until
 2026-09-18, two sittings after that stopped being true: sittings 3 and 4 swept the gate-number line in this
