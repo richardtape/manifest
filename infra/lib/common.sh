@@ -49,6 +49,9 @@ PORT_CONTROL_PLANE=7100
 # §21's inventory: the reference console (D22) is a HOST process, like the control plane —
 # `vite dev` while working on it, `vite preview` for the acceptance (P5c Decision 4).
 PORT_CONSOLE=7104
+# §21's inventory again: manifest-mock is a HOST process too — the published contract from
+# fixtures, so a front-end developer needs no platform at all (P5c Task 12).
+PORT_MOCK=7102
 PORT_POSTGRES=7103
 PORT_LITELLM=7106
 PORT_REGISTRY=7107

@@ -176,21 +176,32 @@ control_plane_is_ours() {
 # process name — `node` on 7104 is a guess. `vite dev` and `vite preview` both serve
 # packages/console/index.html, whose #root div and title are this application's document.
 #
-# THE MOCK ON 7102 WILL NEED THE SAME and deliberately does not have it yet: nothing runs
-# manifest-mock until P5c Task 12, and a check for a process nothing starts is the
-# no-caller shape ORIENTATION §9 names four times. Task 12 adds it, keyed on whatever the
-# mock then answers.
 console_is_ours() {
   local body
   body=$(curl -sS -m 2 "http://127.0.0.1:$PORT_CONSOLE/" 2>/dev/null) || return 1
   case "$body" in *'id="root"'*) ;; *) return 1 ;; esac
   case "$body" in *'<title>Manifest</title>'*) return 0 ;; *) return 1 ;; esac
 }
+# THE THIRD TIME, AND IT WAS PREDICTED BY NAME (P5c Task 12, 2026-09-19). The note that
+# stood here said *"THE MOCK ON 7102 WILL NEED THE SAME and deliberately does not have it
+# yet"* — and the first `make ci-acceptance` run with a mock listening read
+# **"CLAIMED BY SOMETHING ELSE: 7102"**, for the third time on this one check, after 7100
+# in 2026-09-07 and 7104 in 2026-09-18. The remedy is the same both times before: ASK IT.
+#
+# The mock is asked for a path the DOCUMENT DOES NOT DECLARE, which it answers `404` with
+# its own name in the message. `/v1/me` would not do: the mock answers that with the same
+# `UNAUTHENTICATED` envelope the control plane does, so the two would be
+# indistinguishable. A different service on 7102 stays foreign, which is the point.
+mock_is_ours() {
+  curl -sS -m 2 "http://127.0.0.1:$PORT_MOCK/v1/__doctor" 2>/dev/null \
+    | grep -q 'manifest-mock'
+}
 check_block() {
   local p busy="" foreign="" ours
   ours=" $(manifest_own_ports | tr '\n' ' ')"
   if control_plane_is_ours; then ours="$ours $PORT_CONTROL_PLANE "; fi
   if console_is_ours; then ours="$ours $PORT_CONSOLE "; fi
+  if mock_is_ours; then ours="$ours $PORT_MOCK "; fi
   for p in $(seq $PORT_BLOCK_START $PORT_BLOCK_END); do
     port_free "$p" && continue
     case "$ours" in
