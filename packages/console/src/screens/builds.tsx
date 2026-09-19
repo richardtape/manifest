@@ -330,6 +330,26 @@ function LogView({ lines }: { lines: Line[] }) {
  * it is what a deploy names. Refused unless the build SUCCEEDED, which is the platform's
  * rule and not this screen's — the button is offered and the refusal rendered, so the
  * console never teaches a rule the API does not enforce.
+ *
+ * **THE BUTTON STAYS ENABLED AND THE SCREEN EXPLAINS INSTEAD, and the difference from the
+ * privileged capabilities in `screens/tokens.tsx` is deliberate.** A privileged capability
+ * can NEVER be minted, so `disabled` there is an honest permanent statement; a `running`
+ * build becomes releasable in seconds, so disabling on it would be a transient claim that
+ * sticks if a frame is ever missed — which is exactly the failure sitting 5's F10 records
+ * for a pill driven by an event rather than by the resource.
+ *
+ * **WHY THE WAIT NEEDED EXPLAINING AT ALL, measured 2026-09-19 on a real build Rich drove**:
+ * BuildKit's last line (`#12 DONE 0.0s`) was written at 18:37:31.978 and `build.succeeded`
+ * arrived at 18:37:43.268 — **11.29 seconds later** — because `scanImage` runs INSIDE
+ * `driver.buildImage`, after BuildKit returns, and takes no `onLog`, so §12's Syft and Grype
+ * containers emit nothing at all. For eleven seconds the log's last word is **DONE** while
+ * the row is still `running` with `imageDigest: null`, and a big log ending in DONE is far
+ * louder than a small `running` pill. Pressing Release in that window is the correct thing
+ * for a person to do and is answered `409 RELEASE_BUILD_NOT_DEPLOYABLE`. **The API needs no
+ * new route for this** — `GET /v1/builds/{buildId}` already answers `status` and
+ * `imageDigest` — but the silent scan window is a finding about the platform, recorded in
+ * P5c sitting 6's record rather than fixed here, because emitting scanner progress is a
+ * change to `runtime/docker/` and this plan changes no route.
  */
 function Release({
   api,
@@ -364,7 +384,22 @@ function Release({
       <p>
         <button type="button" onClick={() => void create()} disabled={busy}>
           Release this build
-        </button>
+        </button>{' '}
+        {/*
+          READ FROM THE RESOURCE, never from the log. `build` here is `shown` — the
+          re-read `getBuild` when one exists, the `202`'s body otherwise — so this says
+          what the PLATFORM thinks, which is the only thing `createRelease` will agree
+          with. A person who presses anyway gets the refusal, which is the control.
+        */}
+        {build.status !== 'succeeded' && (
+          <span className="hint">
+            this build is <code>{build.status}</code> and has no image yet, so a release
+            will be refused.{' '}
+            <strong>The log reaching DONE is not the end of the build</strong>:
+            §12&rsquo;s vulnerability scan runs after it, silently, and takes about ten
+            seconds more. This line goes when the build succeeds.
+          </span>
+        )}
       </p>
       {release !== undefined && (
         <>
