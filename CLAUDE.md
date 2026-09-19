@@ -15,7 +15,8 @@ statement of the four gate numbers; and the roadmap's ledger
 status.*
 
 **The design is approved and complete, five spikes are done, and P1 to P5b are executed
-and green.** Each plan has an acceptance that passes:
+and green.** Each of those has an acceptance that passes; **P5c is written and has not run**,
+and its row says so:
 
 | Plan | Executed | What it made true | Acceptance |
 |---|---|---|---|
@@ -27,13 +28,17 @@ and green.** Each plan has an acceptance that passes:
 | P4c | 2026-09-16 | A redeploy interrupts and signs out nobody | `make demo-redeploy` |
 | P5a | 2026-09-17 | The API is a published contract under `/v1`, driven by a generated client | `make demo-journey` |
 | P5b | 2026-09-18 | An agent acts on a delegated token; D24's privileged four are refused centrally and a person confirms one retry | `make demo-token` |
+| P5c | *written 2026-09-18, not executed* | The clients: `manifest-mock`, `console/` behind its import boundary, the CI acceptance script | §22's journey clicked by a person **and** run headlessly, over one contract |
 
-**There is NO plan under way. The next job is to WRITE P5c** — the clients (`manifest-mock`,
-`console/`, the CI acceptance script), the last of Phase 1c's three. **ORIENTATION §7e says what
-to read and in what order**, and its author starts at the P5 brief's §10, *What P5c INHERITS*
-(`docs/superpowers/plans/2026-09-16-p5-brief.md`). **Its subsection *The one thing to get right
-first* — not its opening paragraph, which is about the brief's own stale sections — says that
-§17's Phase 1c row is NOT P5c's scope**, P5a and P5b having already shipped most of what it lists.
+**P5c IS WRITTEN AND NOT EXECUTED** (`docs/superpowers/plans/2026-09-18-p5c-the-clients.md`,
+written 2026-09-18): the clients — `manifest-mock`, `console/` behind its import boundary, and
+the CI acceptance script — **14 tasks in nine agreed sittings, none of them run.** It is the last
+plan of Phase 1c. **The next job is executing its sitting 1**, Task 1's measurements, alone and
+first; **ORIENTATION §7e says what to read and in what order.** Rich settled three things in it:
+nine sittings (the leaner of three splits, with the cost stated — sitting 5 carries both
+streaming screens); **§8's `stream_close_delay` question is answered by a MEASUREMENT in Task 1**;
+and the **clicked half of its acceptance is shared and recorded**, because an agent driving
+Chrome cannot type a password.
 
 **P5b — delegated tokens and pending actions (D24) — was executed in nine sittings and finished
 on 2026-09-18** (`docs/superpowers/plans/2026-09-17-p5b-delegated-tokens.md`, 13 tasks): an agent
