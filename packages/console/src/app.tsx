@@ -4,6 +4,7 @@ import { createApi } from './api'
 import { signIn, signOut } from './auth'
 import { href, useRoute, type Route } from './router'
 import { Blueprints } from './screens/blueprints'
+import { Project } from './screens/project'
 import { Projects } from './screens/projects'
 import { Field, Panel, Pill, Refusal, useAsync } from './ui'
 
@@ -138,6 +139,11 @@ function Screen({ route }: { route: Route }) {
       return <Projects api={api} />
     case 'blueprints':
       return <Blueprints api={api} />
+    case 'project':
+      // Keyed on the id so a move between two projects REMOUNTS rather than reusing the
+      // mounted one: the stream's effect would otherwise tear down and re-open on one
+      // component whose panels still hold the old project's rows for a frame.
+      return <Project key={route.projectId} api={api} projectId={route.projectId} />
     default:
       return (
         <p>

@@ -96,5 +96,100 @@ export function createApi(options: ApiOptions) {
         'getKnowledgePack',
       )
     },
+
+    /**
+     * `?expand=environments` is D23.1's one expansion, and the project screen always wants
+     * it: §23's three hostnames are what a person came to see.
+     */
+    async getProject(projectId: string): Promise<Schemas['Project']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}', {
+          params: { path: { projectId }, query: { expand: 'environments' } },
+        }),
+        'getProject',
+      )
+    },
+
+    async listEnvironments(projectId: string): Promise<Schemas['EnvironmentList']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/environments', {
+          params: { path: { projectId } },
+        }),
+        'listEnvironments',
+      )
+    },
+
+    async getEnvironment(environmentId: string): Promise<Schemas['Environment']> {
+      return unwrap(
+        await client.GET('/v1/environments/{environmentId}', {
+          params: { path: { environmentId } },
+        }),
+        'getEnvironment',
+      )
+    },
+
+    async getSpec(projectId: string): Promise<Schemas['Spec']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/spec', {
+          params: { path: { projectId } },
+        }),
+        'getSpec',
+      )
+    },
+
+    /** Re-reads `manifest.yaml` at the repository's HEAD and validates it (§7). */
+    async validateSpec(
+      projectId: string,
+      idempotency: string,
+    ): Promise<Schemas['SpecValidation']> {
+      return unwrap(
+        await client.POST('/v1/projects/{projectId}/spec', {
+          params: { path: { projectId }, ...key(idempotency) },
+          body: {},
+        }),
+        'validateSpec',
+      )
+    },
+
+    async listMembers(projectId: string): Promise<Schemas['MemberList']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/members', {
+          params: { path: { projectId } },
+        }),
+        'listMembers',
+      )
+    },
+
+    /**
+     * `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in — the honest
+     * behaviour, and what `<Refusal>` shows. §13's `members:manage` is D24's privileged
+     * capability, so an AGENT asking this is the question Task 11's queue renders.
+     */
+    async addMember(
+      projectId: string,
+      body: Schemas['AddMemberRequest'],
+      idempotency: string,
+    ): Promise<Schemas['Member']> {
+      return unwrap(
+        await client.POST('/v1/projects/{projectId}/members', {
+          params: { path: { projectId }, ...key(idempotency) },
+          body,
+        }),
+        'addMember',
+      )
+    },
+
+    async removeMember(
+      projectId: string,
+      userId: string,
+      idempotency: string,
+    ): Promise<Schemas['MemberList']> {
+      return unwrap(
+        await client.DELETE('/v1/projects/{projectId}/members/{userId}', {
+          params: { path: { projectId, userId }, ...key(idempotency) },
+        }),
+        'removeMember',
+      )
+    },
   } as const
 }

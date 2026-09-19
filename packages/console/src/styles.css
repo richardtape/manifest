@@ -202,3 +202,33 @@ button:disabled {
   border-radius: 4px;
   font-size: 0.85em;
 }
+
+/* §22 step 3's activity feed: newest first, one line each, the platform's own
+   `humanMessage` (§14) and never a parsed machineDetail. */
+.activity {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+}
+
+.activity li {
+  border-top: 1px solid var(--line);
+  padding: 0.3rem 0;
+}
+
+.activity time {
+  display: inline-block;
+  min-width: 5rem;
+  color: var(--quiet);
+}
+
+.panel pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 18rem;
+  overflow-y: auto;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 0.85em;
+}
