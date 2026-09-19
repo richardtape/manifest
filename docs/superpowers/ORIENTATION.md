@@ -47,7 +47,7 @@ everything.
 | `pnpm test` (from the **repo root**) | **1344 passed, 101 files**, ~110 s — the `unit` project and `packages` (the client and the journey, which need nothing running). **Up 2 from sitting 8's 1342**, both in `tokens/token.test.ts`: the assertion that the token secret's comparison is constant-time, and that scanner's own control (sitting 9). No new file. No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/`, `releases/` and `tokens/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
 | `pnpm test:docker` | **178 passed, 0 SKIPPED**, 29 files, ~790 s — **unchanged through sittings 8 and 9, neither of which adds a Docker test; 177 had held for eight runs across five sittings before sitting 7 added the one.** The one is `boot.docker.test.ts`'s *expires a question nobody answered*, and it is the ONLY test in the repository that fails if `src/index.ts` stops calling the expiry sweeper (sitting 7). The tier still drives SESSIONS: `grep` over every `*.docker.test.ts` finds no `Authorization: Bearer` that is a Manifest delegated token — they are registry tokens and LiteLLM keys — so nothing there presents the credential class sittings 3 to 7 have been building. Needs `make up`, and **fails rather than skips** when asked to run |
 | `make doctor` | **18 checks, 0 failed, 0 warnings** |
-| `make verify` | **51 checks, 0 failed, 0 warnings** — and read its *per-app resources* INFO line, which is not a check: it should be **`containers=3 networks=1 volumes=2`** for the ONE deployed app this machine now has, `token-app` (three containers, one network and two volumes per app) — it read `9/3/6` for three apps until sitting 9's `make reset`. More networks than apps means an app whose containers are gone and whose network is not; `0/0/0` is a freshly reset machine. **One `pnpm test:docker` run takes it to `networks=8` on its own** and the extra seven are dead: run `bash scripts/dead-app-resources.sh`, which re-derives them, and hand the output to Rich — an agent session's classifier refuses `docker network rm` (sitting 9, F8) |
+| `make verify` | **51 checks, 0 failed, 0 warnings** — and read its *per-app resources* INFO line, which is not a check: **it reads `containers=3 networks=8 volumes=3` today, and only the `3` is what a healthy machine would show.** One app is deployed (`token-app`: three containers, one network, two volumes), so the honest figure is `containers=3 networks=1 volumes=2` — it read `9/3/6` for three apps until sitting 9's `make reset` destroyed the other two. **The extra seven networks and one volume are DEAD and are Rich's to remove**; until he has, expect `8` and `3` and do not go looking for a fault. More networks than apps means an app whose containers are gone and whose network is not; `0/0/0` is a freshly reset machine. **One `pnpm test:docker` run takes it to `networks=8` on its own** and the extra seven are dead: run `bash scripts/dead-app-resources.sh`, which re-derives them, and hand the output to Rich — an agent session's classifier refuses `docker network rm` (sitting 9, F8) |
 | `make demo-token` | green — **P5b's acceptance, and it ran three times in sitting 9**: from a truncated database (create path, 64 checks), on the re-use path (63 — the one fewer is the create path's own check) and from an `echo reset | make reset` machine (64). ~30 s. It is step 9 of `scripts/offline-acceptance.sh` |
 | `make demo-journey` | green, all eight steps — last run at the end of sitting 8. **Sitting 9's `make reset` destroyed `journey-app`**, so the next run of it recreates the project from its starter |
 
@@ -1563,6 +1563,44 @@ came first, and why `subscribe` and `createManifestClient` both take one.
 against a machine you have not measured is the thing Task 1 exists to prevent — every plan since
 P4b has opened with a measurement sitting, and P5b's found eleven things that moved five of its
 own tasks.
+
+**How to run this sitting, in order.** *Every §7e has carried one of these, because P5b sitting 7
+found that an ordered list which omits one step omits the one the deliverable rests on.*
+
+1. **Baseline first** (§6's *Your first ten minutes*): `./scripts/snapshot-machine.sh` to a
+   scratch file, `make up`, `make doctor && make verify`, `pnpm test`, then lint, typecheck and
+   `format:check`. **Expect §2's box exactly.** You are not changing code, so you will not need
+   `pnpm test:docker` — but a number that disagrees with the box is signal before you write, not
+   after.
+2. **Read the four things above, in their order.**
+3. **Agree the sitting split with Rich BEFORE you write the tasks.** Every plan here is "N tasks
+   in N **agreed** sittings" — P4b's ten, P4c's eight, P5a's twelve, P5b's nine — and the
+   agreement is Rich's, not the plan's. Propose a split with your reasoning and wait for the
+   answer; it changes how the tasks are cut, so it is not a question you can defer. **Task 1 is
+   always a measurement sitting, alone and first**, and the plan's own acceptance is always
+   alone and last.
+4. **Write it** with `superpowers:writing-plans`. Record the spec actions it needs and **put them
+   to Rich; never edit the spec** (CLAUDE.md). A plan is a hypothesis (§9), so write the
+   measurements that would falsify it.
+5. **Close out** (§6's sweep) — **a writing sitting closes out exactly like an executing one**,
+   and §6 rule 8 means every sitting without exception. The roadmap ledger first; then this
+   file's §7e, which becomes *execute P5c's sitting 1*; §2's plan table only when P5c starts;
+   `README.md`'s current-job row; `CLAUDE.md`'s *State*. Then **re-read your own §7e as a cold
+   agent and CHECK its claims** by opening what it points at.
+
+**THE TWO RULES A PLAN-WRITING SITTING CANNOT GET FROM A PLAN**, because there is no current plan
+to state them — and both were invisible here until P5b sitting 9 went looking:
+
+- **COMMIT ON `main`. No branch, no worktree, no push.** Every sitting of every plan in this
+  project has done this, and it is stated only in each plan's *Global Constraints*, which is
+  exactly the document you do not have yet. **`superpowers:executing-plans` and
+  `using-git-worktrees` will both push you the other way** — the first says never to start on
+  `main` without consent, and that consent is given here, in this line, by Rich. Conventional
+  messages (`docs:`, `feat:`, `fix:`, `test:`, `chore:`), one commit per task, ending with the
+  attribution lines the session's own system reminder gives.
+- **Ask before `sudo`, and before touching anything outside the repository.** §6 rule 2, and
+  CLAUDE.md's *Non-negotiables* has the rest — Valet, the four containers that must survive, and
+  the two read-only repositories.
 
 **The state you are handed, 2026-09-18, after P5b's sitting 9.** `main`, clean. *Measured at
 close with `psql`, `docker`, `curl` and `git`, not written from the session's narrative — that
