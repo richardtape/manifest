@@ -54,7 +54,7 @@ turning the network off from a tool call cuts the agent off too; it now has a st
 trigger fired on 2026-09-15) and the rest of ORIENTATION §8. **Two long-standing items were
 cleared on 2026-09-18**: LiteLLM's orphaned users (19 rows to 4, and `scripts/litellm-orphans.sh`
 now does it — an agent lists, Rich applies) and P5a sitting 12's Docker cleanup (86 unheld app
-images and the fixture app; `docker images` 132 to 46). **The permission classifier is not a
+images and the fixture app; `docker system df` Images 132 to 45). **The permission classifier is not a
 fixed rule** — it allowed all of that and then began refusing `docker volume ls` in the same
 session, so try the command rather than assuming either way. *(The one P5a negative control those rules refused —
 the edge's `@outside` refusal — was closed on 2026-09-17 without weakening the edge, and is no

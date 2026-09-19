@@ -2743,7 +2743,7 @@ Remove by explicit name, after checking each, anything the runs left that the be
 
 - [ ] **Step 6: Record, sweep, commit**
 
-*What executing this plan found*: the runs, every finding, the controls with the ones that could not fail, the gate numbers, the machine. Then **the sweep** (ORIENTATION §6) — the roadmap's ledger first; this plan's sittings table; ORIENTATION §2, §3 (a token is a credential class; the privileged four), §4, §7e (**P5c is next, TO BE WRITTEN**) and §8; `README.md`; `CLAUDE.md`'s *State* (a plan finishes); `RUNBOOK.md`; `WALKTHROUGH.md`; **check** the four HTML pages and say in the record that they were checked; `docs/external-track.md`.
+*What executing this plan found*: the runs, every finding, the controls with the ones that could not fail, the gate numbers, the machine. Then **the sweep** (ORIENTATION §6) — the roadmap's ledger first; this plan's sittings table; ORIENTATION §2, §3 (a token is a credential class; the privileged four), §4, §7e (**P5c is next, TO BE WRITTEN** — and send its author to **[the P5 brief's §10, *What P5c INHERITS*](2026-09-16-p5-brief.md)**, added 2026-09-18, whose first paragraph is that §17's Phase 1c row is NOT P5c's scope) and §8; `README.md`; `CLAUDE.md`'s *State* (a plan finishes); `RUNBOOK.md`; `WALKTHROUGH.md`; **check** the four HTML pages and say in the record that they were checked; `docs/external-track.md`.
 
 ---
 
