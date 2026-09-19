@@ -70,4 +70,33 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // §22 and §16 API completeness (D22, P5c Task 3): the console is a client of the
+    // contract and may import nothing else — plus React, which renders it, and its own
+    // files. The TEST in packages/console/src/boundary.test.ts is the other half, and it
+    // covers what a lint rule cannot: a `fetch` that reaches the API without importing
+    // anything at all. Each was watched failing.
+    //
+    // `regex`, not `group`: ESLint 9's gitignore dialect cannot say "only these" — the
+    // control plane's module-boundary note above has the measurement.
+    //
+    // vite.config.ts is deliberately outside these globs: it is the build's own
+    // configuration, not the client, and it imports vite and @vitejs/plugin-react.
+    files: ['packages/console/src/**/*.ts', 'packages/console/src/**/*.tsx'],
+    ignores: ['packages/console/src/**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^(?!@manifest/contract$|react$|react-dom(/.*)?$|node:|\\./)',
+              message:
+                'The console may import only @manifest/contract, react, react-dom, node: builtins and its own ./ files (D22, §22).',
+            },
+          ],
+        },
+      ],
+    },
+  },
 )
