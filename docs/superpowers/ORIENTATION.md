@@ -1551,8 +1551,12 @@ R2) that the measurement settles it**: Task 1 Step 9 puts a runtime route in fro
 WebSocket upstream, holds a socket open through the edge, causes an unrelated config change, and
 watches — **with and without the field, which is the pair that makes it a measurement rather than
 an observation.** If the socket is cut, this plan adds the field to `routing/caddy.ts`'s
-`buildRoute` and owes `pnpm test:docker`; if it survives, §8's item closes as *measured, and not
-a problem in Phase 1*. **Either way the item stops being open, and §8 is where the answer goes.**
+`buildRoute` and owes **`pnpm test:docker` (~13 min) and a control-plane rebuild and restart** —
+the process serves from `dist/`, so a source change does not reach it and a re-measurement
+against the old binary proves nothing (§4). If it survives, §8's item closes as *measured, and
+not a problem in Phase 1*. **Either way the item stops being open, and §8 is where the answer
+goes.** It needs no spec change either way; if the measurement suggests one, **record it in the
+plan's *Spec actions* and put it to Rich — never edit the spec** (CLAUDE.md).
 
 **How to run this sitting, in order.** *Every §7e carries one of these, because P5b sitting 7
 found that an ordered list which omits one step omits the one the deliverable rests on.*
@@ -1574,6 +1578,28 @@ found that an ordered list which omits one step omits the one the deliverable re
    P5c's sitting 2*; §2's numbers box **if any gate moved**; §8 **if M8 answered it**; the plan's
    own sittings table and its *What executing this plan found*. Then **re-read your own §7e as a
    cold agent and CHECK its claims** by opening what they point at and counting.
+
+**TWO THINGS YOU NEED BEFORE STEP 1, AND NEITHER IS IN THE PLAN'S SNIPPETS.**
+
+- **`$SCRATCH` is not set for you.** Task 1 writes its snapshots, its probe page and a cookie
+  jar into `"$SCRATCH/…"` six times. **Export your own session's scratchpad directory once, at
+  the top, and check it is a directory** — an unset `$SCRATCH` turns `> "$SCRATCH/before.txt"`
+  into `> /before.txt`, which fails as a permission error at best and lands a file in the
+  filesystem root at worst. The plan's *Global Constraints* say it too; this is the copy you
+  read first.
+- **The control plane needs README's WHOLE export block, not `.env`.** `set -a; . ./.env; set +a`
+  alone leaves `MANIFEST_ADMIN_DATABASE_URL` unset — it is DERIVED in that block, not stored —
+  and `db:migrate` then fails `[x] url: undefined`, naming neither the variable nor the file
+  (P5b sitting 9, F7).
+
+**YOU WILL NEED A BROWSER IN THIS SITTING, AND §4'S WARNING DOES NOT MEAN WHAT IT LOOKS LIKE.**
+§4 says *an agent driving Chrome cannot sign anybody in* — that is about **passwords**, and
+**M2 deliberately needs none**: it loads a page on the console's origin with nobody signed in
+and reads a `401`, an `Origin` header and a WebSocket close code. So drive Chrome yourself with
+the `claude-in-chrome` tools; **invoke the `claude-in-chrome` skill before the first call**, and
+**ask Rich for the per-site permission for `console.manifest.internal` before you start**, not
+when you are half-way through. **Do not defer M2 to a shared session with Rich** — nothing in
+sitting 1 requires him at the keyboard, and the first sitting that does is Task 14's acceptance.
 
 **WHAT WILL SURPRISE YOU IN THIS SITTING, specifically.**
 
@@ -1615,7 +1641,7 @@ close.*
 | Identity | **`users` was EMPTY at P5b sitting 9's close**, so **§7e's long-standing trap is ARMED**: `POST /v1/projects/{id}/members` answers `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in. `scripts/demo-token.sh` signs the student in on every run and disarms it for itself. There is also **no administrator** until a `make demo-journey` re-grants `operator` |
 | The apps | **`token-app` only**, three containers. It is **NOT reachable as itself** — that hostname answers the edge's wildcard, which a status-only check cannot tell from the app. **Read the body, never the status** |
 | Owed to Rich | **NOTHING, as of 2026-09-18** — *checked*. Rich ran both scripts at the close of the sitting that wrote P5c: `dead-app-resources.sh` read **`none dead`** (0 networks, 0 volumes; token-app's one network and two volumes correctly KEPT) and `litellm-orphans.sh` read **0 orphaned**, with one held user, `mf-b81e4617-…-staging`. **Neither stays cleared**: one `pnpm test:docker` puts the network set back and every demo adds a LiteLLM user, so **run both bare at your close and hand the output over** rather than assuming |
-| This sitting's own footprint | **Three documents changed and one added** — *checked* (`git status --short`): `ORIENTATION.md`, the roadmap, `README.md`, `CLAUDE.md`, and `plans/2026-09-18-p5c-the-clients.md`. **No code, no dependency, no container, no route** |
+| This sitting's own footprint | **FOUR documents changed and one added, in THREE commits** — *checked* (`git diff --stat 1e36e40 HEAD`, counted rather than recalled): `ORIENTATION.md`, `plans/2026-08-29-plan-roadmap.md`, `README.md` and `CLAUDE.md`, plus the new `plans/2026-09-18-p5c-the-clients.md`. The commits are `b5b79ea` (the plan), `dbb67bf` (the sweep) and `1f2e272` (both machine cleanups re-measured clear). **No code, no dependency, no container, no route, no gate run** |
 
 ## 8. Decisions waiting on Rich
 

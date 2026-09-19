@@ -148,6 +148,21 @@ Every task's requirements implicitly include this section. Values are copied ver
 - **Never accept a check you have not watched fail.** Every task ends by breaking what it built — **after committing the task** — and naming the test that goes red, with the assertion quoted. `git checkout <path>` restores from the INDEX, so an uncommitted task is destroyed by the restore rather than the experiment.
 - **Every task names its caller.** A module with no call site is not built; it has shipped four times here.
 - **Commit after every task**, on `main` — no branch, no worktree, no push — with conventional messages (`feat:`, `fix:`, `test:`, `docs:`, `chore:`), ending with the attribution line the session's own system reminder gives.
+- **`$SCRATCH` IS YOUR OWN SESSION'S SCRATCHPAD DIRECTORY, AND YOU MUST SET IT** before running any snippet below that uses it — Task 1's snapshots, its `index.html` probe and its cookie jar all do. Your harness gives you the path; export it once, at the top of the sitting, and **check it took**:
+  ```bash
+  export SCRATCH=<your session's scratchpad directory>
+  [ -d "$SCRATCH" ] || { echo 'SCRATCH is not a directory — every snippet below will write to /'; exit 1; }
+  ```
+  **An unset `$SCRATCH` does not fail loudly**: `> "$SCRATCH/before.txt"` becomes `> /before.txt`, which is a permission error at best and a file in the filesystem root at worst. Nothing in this plan writes a temporary file into the repository.
+- **EVERY SERVER A TASK STARTS IS STOPPED BY PORT AT THE END OF THE SITTING** — 7102 (the mock), 7104 (the console, `dev` or `preview`), and Task 1's two throwaways on 7104 and 7105. **`kill %1` cannot do it**: each Bash tool call is its own shell with no job table, so a job-number kill in a later call reports *no such job* while the process keeps listening. The form that works, and that reads back:
+  ```bash
+  for PORT in 7102 7104 7105; do
+    PIDS="$(lsof -nP -iTCP:$PORT -sTCP:LISTEN -t || true)"
+    [ -n "$PIDS" ] && kill $PIDS && echo "stopped $PORT ($PIDS)"
+  done
+  lsof -nP -iTCP:7102 -iTCP:7104 -iTCP:7105 -sTCP:LISTEN || echo 'all three free'
+  ```
+  **Never kill 7100** — that is the control plane, and the state table says whether it should be running.
 - **Leave the machine as you found it.** `./scripts/snapshot-machine.sh` at the start of a sitting, the same at the end, and `diff` them. **Removing what your own sitting created is yours; removing what an earlier sitting left is Rich's** — list the exact commands and hand them over.
 
 **What this plan does not create.** No route, no migration, no spec change (Task 1's M8 may produce one — see *Spec actions*), no admin console (§26's `admin-ui/` is Phase 2), no MCP server (Phase 3), no production promotion, no CI workflow file (Decision 11), no DOM test tier (Decision 7).
@@ -254,6 +269,8 @@ block at the top of the task it contradicts.
 
 ```bash
 cd /Users/rich/Developer/manifest
+export SCRATCH=<your session's scratchpad directory>      # Global Constraints: it is NOT set for you
+[ -d "$SCRATCH" ] || echo 'SCRATCH is unset — every line below would write to /'
 ./scripts/snapshot-machine.sh > "$SCRATCH/before.txt"     # read-only, no sudo, no network
 make up                                                    # ~1 min; re-adds the 127.0.0.2 alias
 make doctor && make verify
@@ -278,6 +295,9 @@ placeholder. Replace that one line, temporarily, and measure — **then put it b
 
 ```bash
 # A trivial host server on the port §21 reserves for the console.
+# Background it so it OUTLIVES this tool call — use your harness's background mode if it has
+# one, since a child of a shell that has exited is not something a later call can find by job
+# number. Step 11 stops it by PORT, which works either way.
 (cd "$SCRATCH" && printf 'hello from 7104\n' > index.html && \
   node -e 'const h=require("node:http"),f=require("node:fs");h.createServer((q,s)=>{s.writeHead(200,{"content-type":"text/html"});s.end(f.readFileSync("index.html"))}).listen(7104,"127.0.0.1",()=>console.log("7104 up"))' &)
 
@@ -352,9 +372,16 @@ and open `https://console.manifest.internal/` in Chrome:
 M2's upgrade was refused by the route, which proves the request arrived — but Vite's HMR (and,
 in Task 12, the mock's scripted stream) needs an upgrade to reach a **host process on 7104**.
 With the temporary `reverse_proxy` in place, run a WebSocket server on 7104 and connect through
-the edge:
+the edge.
+
+**STOP STEP 2's HTTP SERVER FIRST.** 7104 holds one listener, and starting a second is
+`EADDRINUSE` — which, from a backgrounded process whose output you are not watching, looks
+exactly like a measurement that produced nothing:
 
 ```bash
+PORT_PID="$(lsof -nP -iTCP:7104 -sTCP:LISTEN -t || true)"
+[ -n "$PORT_PID" ] && kill $PORT_PID && echo "stopped the Step 2 server ($PORT_PID)"
+
 # `ws` is already in this workspace (control-plane devDependency, 8.21.3). The file must live
 # under packages/control-plane for the bare specifier to resolve, and is deleted in Step 11.
 cat > packages/control-plane/p5c-m3.mjs <<'EOF'
@@ -542,7 +569,14 @@ compilation problem to solve before it writes a fixture.
 
 ```bash
 rm -f packages/control-plane/p5c-m3.mjs packages/control-plane/p5c-m8.mjs
-kill %1 %2 2>/dev/null || true          # the 7104 and 7105 servers
+# BY PID, NEVER BY JOB NUMBER. Each Bash tool call is its own shell, so `kill %1` in a later
+# call has no job table to read and reports "no such job" while the server keeps listening —
+# and this step is the one that decides whether the machine was left as it was found.
+for PORT in 7104 7105; do
+  PIDS="$(lsof -nP -iTCP:$PORT -sTCP:LISTEN -t || true)"
+  [ -n "$PIDS" ] && kill $PIDS && echo "stopped $PORT ($PIDS)"
+done
+lsof -nP -iTCP:7104 -iTCP:7105 -sTCP:LISTEN || echo 'both ports free'
 git status --short                       # MUST be empty apart from the findings file
 git diff --stat infra/caddy/Caddyfile    # MUST be empty — the placeholder is back
 curl -sS https://console.manifest.internal/ | head -c 60   # the placeholder, byte for byte
@@ -914,7 +948,10 @@ pnpm format:check
 pnpm --filter @manifest/console build
 pnpm --filter @manifest/mock build && node packages/mock/dist/main.js &
 curl -sS http://127.0.0.1:7102/v1/me    # expect the deliberate 501 envelope
-kill %1
+# By PID, not by job number: a later Bash tool call is a different shell with no job table
+# (Task 1, Step 11). Leaving 7102 listening is a machine this sitting did not leave as it
+# found it, and the next `pnpm --filter @manifest/mock dev` fails EADDRINUSE.
+MOCK_PID="$(lsof -nP -iTCP:7102 -sTCP:LISTEN -t || true)"; [ -n "$MOCK_PID" ] && kill $MOCK_PID
 ```
 
 **Assert each gate saw the new packages, do not assume it:** `pnpm typecheck` prints one line
