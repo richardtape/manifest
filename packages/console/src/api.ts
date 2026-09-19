@@ -322,5 +322,31 @@ export function createApi(options: ApiOptions) {
         'listIncidents',
       )
     },
+
+    /**
+     * §13's first-launch checklist, COMPUTED and never stored (P5a Task 15). `ready` is
+     * `false` throughout Phase 1, honestly: every item but `scans` answers `not_built` and
+     * names in `builtBy` the plan that builds it.
+     *
+     * THE PRODUCTION DEPLOY'S `409` CARRIES THE SAME BYTES. `mapError` parses the checklist
+     * through this same representation, because zod emits an object's keys in SCHEMA order
+     * and a hand-built body does not (P5a sitting 11, finding 1). So the screen and the
+     * refusal must render through ONE component, and a difference between them is a finding
+     * rather than a rendering detail.
+     */
+    async getLaunchReadiness(projectId: string): Promise<Schemas['LaunchReadiness']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/launch-readiness', {
+          params: { path: { projectId } },
+        }),
+        'getLaunchReadiness',
+      )
+    },
+
+    /** §26's fleet, administrators only — a non-administrator is `403`, not `404`: there is
+     *  no tenant's resource to hide (P5a Task 16). */
+    async listFleet(): Promise<Schemas['Fleet']> {
+      return unwrap(await client.GET('/v1/fleet'), 'listFleet')
+    },
   } as const
 }

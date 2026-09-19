@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ManifestApiError } from '@manifest/contract'
+import { ManifestApiError, type Schemas } from '@manifest/contract'
 
 /** Every screen reads through this, so every refusal reaches one renderer. */
 export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
@@ -41,7 +41,9 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
  * envelope carrying one had ever reached a screen — the first that did was Task 8's
  * production refusal, measured carrying **6** items while the screen rendered **0**.
  * §22 step 7 is *see what a first launch still needs*, and a refusal that drops the
- * checklist is the one thing that step asks for.
+ * checklist is the one thing that step asks for. Since Task 9 it renders through
+ * `<ReadinessItems>`, which the launch panel also uses: the refusal and the panel carry the
+ * same bytes and now go through the same renderer.
  *
  * The envelope's OTHER typed extra, `pendingAction`, is deliberately NOT rendered here:
  * nothing in the console can produce one until Task 11's queue, and a renderer with no
@@ -73,29 +75,46 @@ export function Refusal({ error }: { error: unknown }) {
           ))}
         </ul>
       )}
-      {readiness !== undefined && (
-        <ul className="readiness">
-          {readiness.items.map((item) => (
-            <li key={item.id}>
-              {/*
-                THE STATE AND THE REASON, both the platform's own words. `not_built` is an
-                honest answer in Phase 1 — every item but `scans` says so and names the plan
-                that builds it (P5a Task 15) — and rendering it as "unmet" would be the
-                console inventing a judgement the API did not make.
-              */}
-              <Pill tone={item.state === 'met' ? 'good' : 'plain'}>{item.state}</Pill>{' '}
-              <strong>{item.title}</strong>
-              {item.blocking && ' — blocking'}
-              <br />
-              <span className="hint">
-                {item.why} Owner: {item.owner}.
-                {item.builtBy !== undefined && ` Built by ${item.builtBy}.`}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      {readiness !== undefined && <ReadinessItems items={readiness.items} />}
     </div>
+  )
+}
+
+/**
+ * §13's checklist, RENDERED IN EXACTLY ONE PLACE — which is the whole point of it being a
+ * component rather than two loops. The same bytes reach a person two ways: `GET
+ * /v1/projects/{id}/launch-readiness` (Task 9's panel) and the production deploy's `409
+ * RELEASE_PRODUCTION_GATE_UNAVAILABLE`, whose envelope carries the checklist and which
+ * `mapError` parses through the same representation so the two agree key for key (P5a
+ * sitting 11, finding 1). Two renderers could disagree while both looked right; one cannot,
+ * so a difference between the panel and the refusal would be a finding about the PLATFORM.
+ *
+ * `not_built` IS RENDERED AS `not_built`. Every item but `scans` answers it in Phase 1 and
+ * names the plan that builds it in `builtBy` (P5a Task 15) — that is the difference between
+ * *"this is broken"* and *"this arrives in Phase 2"*, and it is the sentence a pilot faculty
+ * member actually asks about. Rendering it as *unmet* would be the console inventing a
+ * judgement the API did not make.
+ */
+export function ReadinessItems({
+  items,
+}: {
+  items: Schemas['LaunchReadiness']['items']
+}) {
+  return (
+    <ul className="readiness">
+      {items.map((item) => (
+        <li key={item.id}>
+          <Pill tone={item.state === 'met' ? 'good' : 'plain'}>{item.state}</Pill>{' '}
+          <strong>{item.title}</strong>
+          {item.blocking && ' — blocking'}
+          <br />
+          <span className="hint">
+            {item.why} Owner: {item.owner}.
+            {item.builtBy !== undefined && ` Built by ${item.builtBy}.`}
+          </span>
+        </li>
+      ))}
+    </ul>
   )
 }
 

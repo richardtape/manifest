@@ -5,6 +5,7 @@ import { useProjectStream } from '../stream'
 import { Ago, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 import { Builds } from './builds'
 import { Deploy } from './deploy'
+import { Launch } from './launch'
 
 /**
  * §22 step 3: watch provisioning — the repository created, the `manifest.yaml` validated.
@@ -39,6 +40,11 @@ export function Project({ api, projectId }: { api: Api; projectId: string }) {
         frames={stream.frames}
         releaseTick={releaseTick}
       />
+      {/*
+        §22 STEP 7, DIRECTLY BELOW THE DEPLOY PANEL whose production button is the asking.
+        The refusal that button gets carries this same checklist, through the same renderer.
+      */}
+      <Launch api={api} projectId={projectId} />
       <SpecPanel api={api} projectId={projectId} />
       <Members api={api} projectId={projectId} />
     </>

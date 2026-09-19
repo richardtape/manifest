@@ -4,6 +4,7 @@ import { createApi } from './api'
 import { signIn, signOut } from './auth'
 import { href, useRoute, type Route } from './router'
 import { Blueprints } from './screens/blueprints'
+import { Fleet } from './screens/fleet'
 import { Project } from './screens/project'
 import { Projects } from './screens/projects'
 import { Field, Panel, Pill, Refusal, useAsync } from './ui'
@@ -139,6 +140,11 @@ function Screen({ route }: { route: Route }) {
       return <Projects api={api} />
     case 'blueprints':
       return <Blueprints api={api} />
+    // THE ROUTE IS NOT HIDDEN FOR A NON-ADMINISTRATOR, only the link is (see the nav). A
+    // person who types this path is answered `403 FORBIDDEN` by the platform and shown it,
+    // which is what proves the console enforces nothing.
+    case 'fleet':
+      return <Fleet api={api} />
     case 'project':
       // Keyed on the id so a move between two projects REMOUNTS rather than reusing the
       // mounted one: the stream's effect would otherwise tear down and re-open on one
