@@ -153,6 +153,14 @@ identifier, never their CWL ID.
   at that name, never at `127.0.0.1:7104`. The API
   is under `/v1` on the same origin. It is also where a sign-in
   lands unless it was started with `?returnTo=` — the sign-in worked.
+- **What a person can DO there today** (P5c Tasks 5 and 6): sign in with CWL and see who the
+  platform thinks they are; list their projects and **create one** — choosing a blueprint and a
+  starter, answering §24's audience question, with the name checked against §23 while it is
+  typed and every refusal shown as the API's own code, message and hint; read the blueprint
+  catalogue and a blueprint's knowledge pack; and open a project to see its three hostnames,
+  its `manifest.yaml`, its members, and **an activity feed on a live socket** — no polling, and
+  new events appear without a reload. **Building, deploying, the queue and tokens are screens a
+  later sitting of P5c builds**; until then each says so rather than showing a blank page.
 
 ---
 

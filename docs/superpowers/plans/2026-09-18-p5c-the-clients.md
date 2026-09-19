@@ -29,8 +29,8 @@
 | 1 | 1 | **The measurements this plan rests on**, before any code: whether the edge serves a host process on 7104 on the console's origin, what a real browser sends through it, whether a WebSocket upgrade survives that hop, whether a new package is even seen by the four gates, and **whether an app's own WebSocket is cut by another app's deploy** — the measurement §8's open question has never had. **Alone, and first** | **DONE 2026-09-18 — 19 findings.** All ten measurements ran; no task boundary moved. **§8's question is ANSWERED and CLOSED: the socket IS cut, and `buildRoute` now carries `stream_close_delay`.** `[M<n>]` correction blocks on Tasks 1, 2, 4, 13 and 14 |
 | 2 | 2–3 | **`packages/console` and `packages/mock` exist and all four gates see them** — the one sitting with the network on — and **the console's import boundary**, watched failing before a single screen exists | **DONE 2026-09-18 — 10 findings.** React 19.3.0 + Vite 8.3.0, `ws` 8.21.3, `ajv` 8.20.0 with `ajv-formats` 3.0.1, every version exact, `pnpm audit --prod` clean. **NOTHING AFTER THIS SITTING MAY INSTALL A PACKAGE.** Both of the task's own step orders were wrong and are corrected in place |
 | 3 | 4 | **The console is served at `console.manifest.internal`, signs a person in with CWL and knows who they are** (§22 step 1): the Caddyfile's placeholder replaced, the shell, the router, the error surface, and the one file allowed to name `fetch` | **DONE 2026-09-18 — 9 findings.** §22 step 1 CLICKED: Rich typed `instructor` and the header read **Test Instructor `ins000001`**. **The plan's claim that no gate sees the Caddyfile's console line is WRONG — `make doctor` AND `make verify` both went red** and both are fixed (F3). `signOut` never checked its answer (F4). `<Ago>` is the one shared bit still uncalled; **Task 6 owes it a caller** |
-| 4 | 5–6 | **My projects, and creating one** — the slug check while it is typed, the blueprint and starter catalogue, §24's audience (§22 step 2) — and **the project screen with its live event stream** (§22 step 3) | ← **next** |
-| 5 | 7–8 | **A build whose log lines arrive as they are written** (§22 step 4) and **a deploy to staging whose instance states arrive the same way**, with the app's URL to click and an Incident when it fails (§22 steps 5–6). **Both streaming screens; the sitting Rich was warned is the heavy one** | |
+| 4 | 5–6 | **My projects, and creating one** — the slug check while it is typed, the blueprint and starter catalogue, §24's audience (§22 step 2) — and **the project screen with its live event stream** (§22 step 3) | **DONE 2026-09-18 — 9 findings.** §22 steps 2 AND 3 CLICKED. The stream's liveness was PROVED (a `token.minted` published from a terminal arrived in the open tab; the same event on another project did not). **Two of the plan's own controls could not fail** — the idempotency row names the wrong consequence, and `stream_close_delay` did not fire, measured two ways (F7). `<Ago>` has its caller |
+| 5 | 7–8 | **A build whose log lines arrive as they are written** (§22 step 4) and **a deploy to staging whose instance states arrive the same way**, with the app's URL to click and an Incident when it fails (§22 steps 5–6). **Both streaming screens; the sitting Rich was warned is the heavy one** | ← **next** |
 | 6 | 9–10 | **Request production** — `LaunchReadiness` with its blocked items and why (§22 step 7) — **the fleet** (§26, admin only), and **delegated tokens**: minted once, listed, revoked | |
 | 7 | 11 | **§26's queue as a screen**: the question an agent asked, who asked it, how long it has waited, confirmed or rejected by a person in their own words. **The first time D24's loop is operated by a human rather than by `curl`** | |
 | 8 | 12–13 | **`manifest-mock`** — the contract served from fixtures with scripted streams, validated against the document, and the console driven against it with no platform — and **the CI acceptance script**, the operation-coverage gate and `@manifest/contract` `1.0.0` | |
@@ -2041,6 +2041,18 @@ first screen that holds a socket, and **the console never polls** (D23.2).
 > where it belongs. **Also re-watch the plan's Task 4 control that could not fail there**:
 > removing `stream_close_delay 1h` from the Caddyfile's `/v1` proxy does nothing until this
 > task holds a socket, and Task 4's record says so rather than claiming it was watched.
+>
+> **[SITTING 4] `<Ago>` HAS ITS CALLER, AND THAT SECOND CONTROL STILL HAS NOT BEEN WATCHED —
+> now for the second task running.** Sitting 4 held a socket and ran it: with the field
+> removed and the RUNNING config verified to contain zero occurrences of it, the console's
+> stream stayed `live` through a full Caddyfile reload AND through the admin-API route
+> change a deploy makes, and the socket was proved still alive afterwards. `srv0` is the
+> only server and it holds `console.manifest.internal`, so the change hit the same server.
+> **This is in tension with P5a sitting 2 and this plan's own M8, and the difference was
+> deliberately not guessed at** (sitting 4's F7). **Nothing in it argues for removing the
+> field.** Whoever needs this control should drive it as M8 did — an app's own socket
+> through a RUNTIME route, which is where the field was genuinely absent — not through the
+> console site. Do not write it down as watched until it has gone red.
 
 **Files:**
 - Create: `packages/console/src/stream.ts`, `packages/console/src/screens/project.tsx`
@@ -4140,3 +4152,202 @@ after the impostor) and the throwaway impostor server, all confirmed gone by `ls
 control plane on 7100 was left running** and was restarted after the Docker tier, which
 re-registers the platform's SP row at a loopback ACS — but §7e tells the next sitting to check
 that with `lsof` rather than believe it, because a sitting is one session.
+
+### Sitting 4 — Tasks 5 and 6, my projects and the project screen — 2026-09-18 — 9 findings
+
+*Both commits and every measurement above are 2026-09-18; the close-out sweep and the
+closing gates below crossed midnight and are **2026-09-19**. Dated apart because this
+project's rule is that a finding without a date is not reproducible, and because the next
+sitting reads the machine state, not the narrative.*
+
+**§22 STEPS 2 AND 3 ARE CLICKED.** A person signed in with CWL creates a project by typing a
+name, choosing `node-ts-mongo@1` and the `proof-app` starter and answering §24's audience
+question — with the name checked while it is typed, and every refusal rendered as the API's
+own code, message and hint — and then lands on a project screen whose Activity panel holds a
+live socket carrying the three events every project already has. Committed as `f56409b` and
+`10c9c30`.
+
+**The stream is LIVE, and that was proved rather than assumed.** `status: 'live'` only says a
+`control` frame arrived, so it is not evidence a post-replay frame reaches the screen: a
+`token.minted` published from a terminal appeared in the open tab at `0s ago` with no reload
+and no poll, and the same event on ANOTHER project did **not** appear — one stream per
+project, correctly scoped (the plan's Step 3 item 3, proved with a mint rather than a whole
+`make demo-token`, for the same claim at a fraction of the cost).
+
+#### The findings
+
+**F1 — `SlugCheck.reasons` is an array of OBJECTS, and the plan's snippet renders
+`[object Object]` where `tsc` cannot see it.** Step 2 writes
+`(check.reasons ?? []).join('; ')`. `reasons` is `{ code, message, hint }[]` (§23's
+`SlugReason`), and `Array.prototype.join` accepts any array — so this typechecks, lints,
+formats and builds, and puts `[object Object]` on the screen the first time anybody types a
+taken name. **Measured against the real API before the screen was written**: for `edge`,
+`JSON.stringify(reasons.join("; "))` is literally `"[object Object]"`. It is the same family
+as §4's *a `200` from a `*.manifest.internal` name can be the edge's wildcard* — an answer
+arrived and its SHAPE was never asserted. Every reason is now rendered as its own code,
+message and hint, which is also what §23 means by *the console never restates the slug rule*.
+
+**F2 — the ESLint boundary regex allowed `./` and not `../`, so the console's first
+subdirectory made every screen an error while the boundary TEST stayed green.**
+`^(?!@manifest/contract$|react$|react-dom(/.*)?$|node:|\./)` — `\./` requires a `.` then a
+`/`, which `'../api'` is not. Measured by writing `screens/projects.tsx` exactly as the plan
+has it: **5 errors, `'../api' import is restricted from being used by a pattern`**, on the
+two new files only. `boundary.test.ts` has allowed `./` and `../` since Task 3 and resolves
+the target to check it lands under `src/` — **so the two halves of one rule disagreed, and
+the test was the half that was right.** Widened to `\.{1,2}/`, and the widening was watched
+not to weaken anything: an `import … from '../../../control-plane/src/spec/index.js'` in a
+screen leaves **`pnpm lint` exit 0** and turns boundary test 1 red. That is sitting 2's
+control (b) again — the lint gate green, the test red — and it is why the containment check
+lives in the test.
+
+**F3 — NOTHING ASSERTED THAT THE BOUNDARY SCANNER DESCENDS, and this task is the one that
+made it matter.** `sourceFiles` recurses, and its doc comment says why — *"a scanner that
+reads one level would silently skip screens/"* — but that was a comment, not a check.
+**Measured: with the recursion replaced by `continue`, all three tests in the file stayed
+GREEN** while every file under `src/screens/` went unread — no import checked, no `fetch`
+checked, for the whole of the console a person actually uses, and for every screen the six
+remaining tasks add. It is sitting 2's F7 one level up: *a scanner that read nothing and a
+boundary that is held look identical from the outside.* A fourth test now asserts that at
+least one scanned file lives in a subdirectory, watched red (*`the scanner read no file in
+any subdirectory of src/ — did it stop recursing?: expected [] to not deeply equal []`*) and
+green.
+
+**F4 — `addMember` answers a `Member`, not a `MemberList`.** Named by `tsc` the moment the
+function was written (`TS2740: … is missing the following properties from type '…[]': length,
+pop, push, concat, and 35 more`). Worth recording only because it is **the D22 loop working
+as designed**: the console is the first client to call this route, and the generated types
+caught the mismatch before a screen rendered `.map` over an object. `removeMember` really
+does answer a `MemberList` and `validateSpec` a `SpecValidation`, both checked in the
+document rather than assumed.
+
+**F5 — `POST /v1/projects/{projectId}/spec` PUBLISHES NO EVENT, where creation publishes
+`spec.validated`.** Found by clicking *Re-validate* with the stream open and watching the
+Activity panel not move, then reading `api/routes/project-reads.ts`: the handler inserts an
+`app_specs` row and returns, with no `publishEvent` — while `api/routes/projects.ts:261`
+publishes `spec.validated` at creation, the same event type about the same fact.
+**So a re-validation is invisible to a console that never polls (D23.2).** This screen reads
+the result from the response, so the person who pressed the button sees it; a second person
+watching the same project sees nothing, and neither does any other client. **Recorded as a
+finding about the API, not fixed** — this plan changes no route, and Global Constraints say a
+route this plan needs is a finding about the API's completeness (D22). It is cheap to fix
+(one `publishEvent` beside the insert) and it belongs to whoever next opens that file.
+
+**F6 — A CADDYFILE COMMENT IS NOT A CONFIG CHANGE, and `make up` says it reloaded anyway.**
+Trying to force an edge reload with a socket open, a comment was appended to the Caddyfile
+and `make up` printed **`Caddyfile changed — reloading the edge`** — its hash is over the
+FILE — while the edge logged **`"config is unchanged"`** and did nothing, because the
+Caddyfile adapter strips comments and the adapted JSON was byte-identical. Two different
+notions of *changed*, and the script's is the one a person reads. Anything that needs a real
+reload has to change the adapted config; a response header did.
+
+**F7 — THE PLAN'S TASK 6 CONTROL ROW 1 DID NOT FIRE, MEASURED TWO WAYS, AND THE RUNNING
+CONFIG WAS VERIFIED.** With `stream_close_delay 1h` removed from the console site's `/v1/*`
+proxy, an open console stream **stayed `live`** through (a) a full Caddyfile reload via
+`make up` — a genuine one, `"servers shutting down with eternal grace period"`, not F6's
+no-op — and (b) a `PUT` of a route into `srv0` followed by a `DELETE`, which is the exact
+mechanism `routing/caddy.ts` uses on a deploy and the one P5a sitting 2 and P5c sitting 1's
+M8 both measured. **Three things were checked rather than assumed**: the running config held
+**0** occurrences of `stream_close_delay` and did carry the probe header, so the edit was
+live; **`srv0` is the ONLY server and it holds `console.manifest.internal`**, so the route
+change hit the same server the stream is proxied by; and the socket was proved still ALIVE
+afterwards by publishing a `token.minted` and watching it arrive. The hook only reconnects on
+`1013`, so a `1001` would have left `status` stuck on `closed` — it never left `live`.
+
+**This is in tension with two earlier measurements and the difference is NOT isolated.** M8
+watched an APP's socket close `1001` two milliseconds after an unrelated route insert, and
+P5a sitting 2 watched the console's own stream close in under three seconds. **Nothing here
+argues for removing the field** — M8 stands on its own evidence, in both directions — but
+Task 4's row 1 **still has not been watched**, now for a second task running, and the honest
+statement is that this route does not watch it rather than that it was watched. The
+`"eternal grace period"` line is the obvious suspect and was deliberately not chased: raising
+it would be a guess, and this project's rule is to name what was measured. **Whoever needs
+this control next should drive it as M8 did** — an app's own socket through a runtime route,
+which is where the field is genuinely absent — rather than through the console site.
+
+**F8 — THE GATES DESTROY THE CLICKED STATE, and the run order is the whole of the remedy.**
+`pnpm test` at Task 6's gate truncated the tables and took all four projects created by
+clicking with it, so the open tab's next navigation answered `NOT_FOUND` in three panels.
+ORIENTATION §4 says exactly this and the clicking had correctly been done first; what was not
+anticipated is that **the CONTROLS come after the commit, and so after the gates** — every
+one of them then needs the state rebuilt. Rebuilt here with one scripted `POST /v1/projects`.
+*It paid for itself:* the dead project gave the plan's control row 2 for free and honestly —
+a `projectId` the person may not read → **`closed 1006 — refused, or the connection
+dropped`**, with `<Refusal>` showing `NOT_FOUND` in the other three panels.
+
+**F9 — THE CLICKED HALF NEEDED NO PASSWORD, AND THAT MUST NOT BE PLANNED ON.** R3 says an
+agent driving Chrome cannot type one and the run is therefore shared. Chrome still held a
+live SimpleSAMLphp session from sitting 3, so *Sign in with CWL* completed with no prompt —
+twice, including after `pnpm test` had deleted the user row and the second sign-in recreated
+it. **The IdP session survives across sittings in the browser profile**, which is worth
+knowing for Task 14's scheduling; but it is a property of one profile at one moment, and a
+cleared profile, a different browser or a lapsed IdP session puts Rich back in the loop. Plan
+for R3; be pleased when it is not needed.
+
+#### The negative controls
+
+| Control | Watched |
+|---|---|
+| **The screens are inside the boundary's reach** | `import { z } from 'zod'` in `screens/projects.tsx` → boundary test 1 red, *`expected [ 'screens/projects.tsx: zod' ] to deeply equal []`*. Restored, green |
+| **The scanner descends** (F3, new) | recursion → `continue` → **3 of 3 green** with `screens/` unread; with the fourth assertion, red: *`the scanner read no file in any subdirectory of src/ — did it stop recursing?`*. Restored, 4 green |
+| **Widening the lint regex did not widen the boundary** (F2) | `'../../../control-plane/src/spec/index.js'` in a screen → **`pnpm lint` exit 0, zero `no-restricted-imports`**, boundary test 1 red. The lint gate is green through it, which is why the test holds containment |
+| **A blueprint ref with no major version** (the plan's Task 5 row 3) | `POST /v1/projects` with `blueprint: 'node-ts-mongo'` → **`400 BLUEPRINT_NOT_FOUND — no blueprint 'node-ts-mongo'`**, hint *`Available: fixture-node@1, node-ts-mongo@1`*. The plan predicted `400` and was right. A reserved slug is **`409`**, measured beside it |
+| **The idempotency key's reuse** (the plan's Task 5 row 1) | **COULD NOT FAIL AS THE PLAN STATES IT.** `attemptKey.current = api.newKey()` on every submit, then Create double-clicked on a fresh form → **ONE project**, no refusal shown, because the create navigates away on the first answer. `slug` is UNIQUE, so two projects are impossible by construction. What the key actually buys was then measured directly: the same key twice → **`201` twice with the SAME id**; different keys → **`201` then `409 SLUG_TAKEN`**, a refusal naming the person's own project. *The key prevents a spurious refusal, not a duplicate project* — and the plan's row named the wrong consequence |
+| **`stream_close_delay` on the console site** (the plan's Task 6 row 1) | **DID NOT FIRE — see F7.** Removed from the running config (verified: 0 occurrences), reload forced two ways including the deploy's own admin-API route change, socket proved alive afterwards. Restored: 1 occurrence back, probe header gone, Caddyfile byte-identical (`d832a952…`, inode `48091939` throughout) |
+| **A `projectId` the person may not read** (the plan's Task 6 row 2) | **`closed 1006 — refused, or the connection dropped`**, with `NOT_FOUND` in the Project, Manifest and Members panels. A WebSocket client is shown no HTTP status, which is what the hook's comment says and what the person is shown |
+| **`onFrame` keeps nothing** (the plan's Task 6 row 3) | Activity reads *“Nothing has happened to this project yet.”* while the status pill still reads **`live`** — the two are independent, which is why the screen shows both. Restored: the three creation events back |
+| **`<Refusal>` on a real envelope, on this screen** | adding `stu000001`, who has never signed in → **`MEMBER_USER_NOT_FOUND — no user with PUID 'stu000001' has ever signed in`** with its hint. The trap the plan names in *The fixtures and helpers*, armed and rendered |
+
+#### Gate numbers at the end of this sitting
+
+| Gate | Before | After |
+|---|---|---|
+| `pnpm test` | 1354 in 103 files | **1355 in 103 files** — up 1, F3's fourth boundary assertion. No new FILE: Tasks 5 and 6 add no test file, by Decision 7 |
+| `pnpm test:docker` | 178 in 29 files | **not run, and not owed.** Neither commit touches `routing/`, `infra/` or a `*.docker.test.ts` — the Caddyfile was changed only as F7's control and restored byte-identical before either commit |
+| `make doctor` | 18/0 | see *The machine* |
+| `make verify` | 51/0 | see *The machine* |
+
+`pnpm lint`, `pnpm typecheck` (`Scope: 5 of 6`) and `pnpm format:check` clean. **The baseline
+for those three was measured on a CLEAN TREE rather than inferred**: the first background run
+overlapped the first file written, so the tree was stashed (`git stash push -u`), all three
+re-run — **0, 0, 0** — and the stash popped. `pnpm test` ran **twice** at baseline, 1354 both
+times. **`vite build` was run after every commit**, because sitting 2's F4 established that
+`tsc` is blind to a whole class of thing the build sees: 27 modules, then 244.74 kB.
+
+#### Documents checked and deliberately NOT changed
+
+*§6 asks that this be said rather than assumed.* **`manifest-decisions.html` and
+`manifest-stories.html` were opened and left alone** — the first states D22 as a *decision*
+(*"a basic web console early, deliberately restricted so that it can only use what the public
+interface offers"*), which this sitting carries out rather than contradicts, and the second's
+only console mention is a story beat. **`manifest-schematic.html` and `manifest-phases.html`
+WERE changed** — three sentences — because what a person can DO at the console changed, and
+both said only that it *signs people in*. **`CLAUDE.md` was left alone deliberately**: no plan
+started or finished, no item in its *Outstanding, and Rich's* line moved, and it states no
+sitting and no gate numbers by design. **`docs/external-track.md`** — no UBC item moved.
+*No spec change, and none needed.*
+
+#### The machine
+
+Snapshotted before and after, and **the diff is uptimes and timestamps and nothing else** — no
+container, network, volume or image added or removed. This sitting ran **no Docker tier, no
+build and no deploy**, so it regenerated none of the dead-resource set the tier is now measured
+three times putting back: `make verify`'s per-app meter reads **`containers=3 networks=1
+volumes=2`** and both scripts were run bare at close, reading **`none dead`** (0 networks, 0
+volumes, token-app's one network and two volumes correctly KEPT) and **0 orphaned** (its one
+held LiteLLM user surviving). App images stand at **27 by distinct image ID** — *re-derived at
+close and reconciled across all three metrics: `docker images | grep -c '/local/'` **29** (it
+counts LINES; five repos have several `<none>` entries), `snapshot-machine.sh`'s list **28**,
+`docker images --format '{{.ID}}' | sort -u` **27**, and `grep '^local/'` **0**, because they
+are tagged `127.0.0.1:7107/local/*`.* **NOTHING IS OWED TO RICH.**
+
+**Five bare repositories this sitting created were removed at its close** — `p5c-console`,
+`p5c-doubleclick`, `p5c-idem-same`, `p5c-idem-diff` and `p5c-s4-controls` — using
+`clear_orphan_repository`, whose rule is the CONTRACT's rather than the filesystem's: it
+removes `.manifest/repos/<slug>.git` only when `GET /v1/slugs/{slug}` answers `available`, so
+no project could still hold the name. The three that pre-date this sitting — `journey-app`,
+`proof-app`, `token-app` — were untouched. *Removing what your own sitting created is yours.*
+**Every server this sitting started was stopped BY PORT**: `vite` on 7104, confirmed gone by
+`lsof`, with 7102 and 7105 confirmed free too. **The control plane on 7100 was left running**
+and was NOT restarted, because no Docker tier ran and so the platform's SP row was never
+re-registered at a loopback ACS — but §7e tells the next sitting to check that with `lsof`
+rather than believe it, because a sitting is one session.

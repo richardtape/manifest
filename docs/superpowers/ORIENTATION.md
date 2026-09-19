@@ -1,8 +1,8 @@
 # Orientation — read this first
 
-**Manifest's design is finished and EIGHT implementation plans are executed — P1, P2, P3, P4a, P4b, P4c, P5a (the contract) and P5b (delegated tokens), whose acceptance passed on 2026-09-18.** D24's whole loop runs end to end through the edge as `make demo-token` — a person mints a delegated token, an agent holding it builds and deploys a real application on its own authority, is refused the things it may not do, and gets past one of them only because a person confirmed that exact request, once. **It ran green three times, the third from a `make reset` machine, and is step 9 of the offline acceptance.** **P5c — the clients — IS WRITTEN AND NOW EXECUTING (2026-09-18): 14 tasks in nine agreed sittings, of which SITTINGS 1, 2 AND 3 ARE DONE — the measurements (19 findings), the two new packages and the console's import boundary (10), and the console SERVED and signing a person in (9). §22 STEP 1 IS CLICKED: `https://console.manifest.internal` is a real console, not a placeholder. The next job is its sitting 4 — Tasks 5 and 6 — and the next job is always §7e.** **The network-on sitting is over: nothing from here to the end of the plan may install a package.** Sitting 1 closed §8's `stream_close_delay` question, open since 2026-09-16: **an app's WebSocket IS cut by any other app's deploy**, so `buildRoute` now carries the field. This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
+**Manifest's design is finished and EIGHT implementation plans are executed — P1, P2, P3, P4a, P4b, P4c, P5a (the contract) and P5b (delegated tokens), whose acceptance passed on 2026-09-18.** D24's whole loop runs end to end through the edge as `make demo-token` — a person mints a delegated token, an agent holding it builds and deploys a real application on its own authority, is refused the things it may not do, and gets past one of them only because a person confirmed that exact request, once. **It ran green three times, the third from a `make reset` machine, and is step 9 of the offline acceptance.** **P5c — the clients — IS WRITTEN AND NOW EXECUTING (2026-09-18): 14 tasks in nine agreed sittings, of which SITTINGS 1, 2, 3 AND 4 ARE DONE — the measurements (19 findings), the two new packages and the console's import boundary (10), the console SERVED and signing a person in (9), and my projects, creating one and the project screen with its live stream (9). §22 STEPS 1, 2 AND 3 ARE CLICKED: a person signs in with CWL, creates a project by typing a name checked as they type, and watches its events arrive on a live socket. The next job is its sitting 5 — Tasks 7 and 8, the two streaming screens — and the next job is always §7e.** **The network-on sitting is over: nothing from here to the end of the plan may install a package.** Sitting 1 closed §8's `stream_close_delay` question, open since 2026-09-16: **an app's WebSocket IS cut by any other app's deploy**, so `buildRoute` now carries the field. This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
 
-*Last verified 2026-09-18 (P5c sitting 3; `pnpm test` moved to **1354 in 103 files**, `make doctor` 18/0 and `make verify` 51/0 were re-run **in both of the two states that now exist — console running and 7104 free** — and **`pnpm test:docker` WAS re-run and did not move: 178 in 29 files, 807 s**, because this sitting changed `infra/caddy/Caddyfile`).* **Three places state current status — §2, §7e and §8 — and a sitting's sweep REPLACES what they say; it never appends a sitting's story here** (§6). **The roadmap's ledger outranks all three.** Everything else is durable.
+*Last verified 2026-09-19 (P5c sitting 4, which ran on 2026-09-18 and closed out past midnight; `pnpm test` moved to **1355 in 103 files** — up 1, no new file — `make doctor` 18/0 and `make verify` 51/0 re-run at close, and **`pnpm test:docker` NOT run and NOT owed**: neither commit touches `routing/`, `infra/` or a `*.docker.test.ts`, and the Caddyfile was changed only as a negative control and restored byte-identical before either commit).* **Three places state current status — §2, §7e and §8 — and a sitting's sweep REPLACES what they say; it never appends a sitting's story here** (§6). **The roadmap's ledger outranks all three.** Everything else is durable.
 
 **Short of context? Read §7e, §2's numbers box, §6, and the newest entries at the end of §4's *Things that will cost you a morning*, in that order.** §4 is most of this file and is meant to be searched, not read through.
 
@@ -44,8 +44,8 @@ everything.
 
 | | |
 |---|---|
-| `pnpm test` (from the **repo root**) | **1354 passed, 103 files**, ~110 s — the `unit` project and `packages` (the client and the journey, which need nothing running). **Up 6 and one FILE from P5c sitting 2's 1348/102**, all of it `packages/console/src/auth.test.ts` — `signOut`'s *assert the shape of the answer* guard, in Node with no DOM (sitting 3). Sitting 2's 1348 was itself up 3 and one file, `packages/console/src/boundary.test.ts`. The 1345 itself was up 1 from P5b's 1344, in `routing/caddy.test.ts`: the assertion that `buildRoute` sets `stream_close_delay` to the NUMBER `3_600_000_000_000`, which sitting 1 added when M8 measured that an app's WebSocket is cut by any other app's deploy. **The `packages` project now names four packages, not two** — a test file in a package `vitest.workspace.ts` does not list runs under NO project and is silently not collected, which reads exactly like a passing suite (sitting 1's M4, fixed and watched in sitting 2). No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/`, `releases/` and `tokens/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
-| `pnpm test:docker` | **178 passed, 0 SKIPPED**, 29 files, **~807 s, RE-MEASURED by P5c sitting 3**, which owed the tier because it changed `infra/caddy/Caddyfile`. It did not move — this task added no Docker test. (Sitting 2 neither ran nor owed it; do not spend 13 minutes on it out of habit) — **unchanged through P5b sittings 8 and 9 and P5c sitting 1, none of which adds a Docker test** (P5c sitting 1 changed `routing/caddy.ts`, so it OWED the tier, but its assertion is a unit test); **177 had held for eight runs across five sittings before P5b sitting 7 added the one.** The one is `boot.docker.test.ts`'s *expires a question nobody answered*, and it is the ONLY test in the repository that fails if `src/index.ts` stops calling the expiry sweeper (sitting 7). The tier still drives SESSIONS: `grep` over every `*.docker.test.ts` finds no `Authorization: Bearer` that is a Manifest delegated token — they are registry tokens and LiteLLM keys — so nothing there presents the credential class sittings 3 to 7 have been building. Needs `make up`, and **fails rather than skips** when asked to run |
+| `pnpm test` (from the **repo root**) | **1355 passed, 103 files**, ~110 s — the `unit` project and `packages` (the client and the journey, which need nothing running). **Up 1 and NO new file from sitting 3's 1354/103** — `packages/console/src/boundary.test.ts`'s fourth assertion, that the scanner descends into `src/`'s subdirectories, which sitting 4 measured all three earlier tests staying green without (F3). Tasks 5 and 6 add no test FILE, by Decision 7. Sitting 3's 1354 was up 6 and one file from sitting 2's 1348/102, all of it `packages/console/src/auth.test.ts` — `signOut`'s *assert the shape of the answer* guard, in Node with no DOM. Sitting 2's 1348 was itself up 3 and one file, `packages/console/src/boundary.test.ts`. The 1345 itself was up 1 from P5b's 1344, in `routing/caddy.test.ts`: the assertion that `buildRoute` sets `stream_close_delay` to the NUMBER `3_600_000_000_000`, which sitting 1 added when M8 measured that an app's WebSocket is cut by any other app's deploy. **The `packages` project now names four packages, not two** — a test file in a package `vitest.workspace.ts` does not list runs under NO project and is silently not collected, which reads exactly like a passing suite (sitting 1's M4, fixed and watched in sitting 2). No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/`, `releases/` and `tokens/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
+| `pnpm test:docker` | **178 passed, 0 SKIPPED**, 29 files, **~807 s, last measured by P5c sitting 3**, which owed the tier because it changed `infra/caddy/Caddyfile`. **Sitting 4 neither ran nor owed it** — neither of its commits touches `routing/`, `infra/` or a `*.docker.test.ts`, and the Caddyfile it changed as a negative control was restored byte-identical before either commit. (Sitting 2 neither ran nor owed it; do not spend 13 minutes on it out of habit) — **unchanged through P5b sittings 8 and 9 and P5c sitting 1, none of which adds a Docker test** (P5c sitting 1 changed `routing/caddy.ts`, so it OWED the tier, but its assertion is a unit test); **177 had held for eight runs across five sittings before P5b sitting 7 added the one.** The one is `boot.docker.test.ts`'s *expires a question nobody answered*, and it is the ONLY test in the repository that fails if `src/index.ts` stops calling the expiry sweeper (sitting 7). The tier still drives SESSIONS: `grep` over every `*.docker.test.ts` finds no `Authorization: Bearer` that is a Manifest delegated token — they are registry tokens and LiteLLM keys — so nothing there presents the credential class sittings 3 to 7 have been building. Needs `make up`, and **fails rather than skips** when asked to run |
 | `make doctor` | **18 checks, 0 failed, 0 warnings** |
 | `make verify` | **51 checks, 0 failed, 0 warnings** — measured by P5c sitting 3 **both with `vite dev` on 7104 and with 7104 free**, because its console check was rewritten to stop depending on a developer's host process (sitting 3, F3) — and read its *per-app resources* INFO line, which is not a check: **it reads `containers=3 networks=1 volumes=2` on a machine whose dead resources have just been cleared, and `containers=3 networks=8 volumes=3` after ANY `pnpm test:docker` run — both measured again on 2026-09-18 by P5c sitting 3, in that order, which is the THIRD time the tier has been watched regenerating exactly the same seven networks and one volume.** **It reads `containers=3 networks=1 volumes=2` today**: sitting 3 ran the tier, which took it to `8`/`3`, and Rich applied both scripts at that sitting's close — re-measured clear afterwards by the scripts themselves. One app is deployed (`token-app`: three containers, one network, two volumes), so the honest figure is `containers=3 networks=1 volumes=2` — it read `9/3/6` for three apps until sitting 9's `make reset` destroyed the other two. **The extra seven networks and one volume are DEAD and are Rich's to remove**; until he has, expect `8` and `3` and do not go looking for a fault. More networks than apps means an app whose containers are gone and whose network is not; `0/0/0` is a freshly reset machine. **One `pnpm test:docker` run takes it to `networks=8` on its own** and the extra seven are dead: run `bash scripts/dead-app-resources.sh`, which re-derives them, and hand the output to Rich — an agent session's classifier refuses `docker network rm` (sitting 9, F8) |
 | `make demo-token` | green — **P5b's acceptance, and it ran three times in sitting 9**: from a truncated database (create path, 64 checks), on the re-use path (63 — the one fewer is the create path's own check) and from an `echo reset | make reset` machine (64). ~30 s. It is step 9 of `scripts/offline-acceptance.sh` |
@@ -1592,64 +1592,64 @@ curl -s --cacert infra/ca/manifest-root.crt \
 | **P4c** | [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md), with [its brief](plans/2026-09-15-p4c-brief.md) | `make demo-redeploy` | 70 findings in eight sittings. **Sitting 8**: four of the acceptance's nine negative controls could not fail in it — §4 says which tier sees each. |
 | **P5a** | [`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), with [the P5 brief](plans/2026-09-16-p5-brief.md) | `make demo-journey` | 146 findings in twelve sittings. **Sitting 12**, the acceptance: three of fourteen negative controls could not fail as written — including one where the journey read a *status* while the property was a *latency*, so a synchronous build passed R6's own check. **Sitting 10's finding 1** is the other one to read: the document said for six sittings that the error envelope could not carry the field the production refusal had been sending since P2, because nothing parsed an error body through its schema. |
 | **P5b** | [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md) — **EXECUTED 2026-09-18**, all nine sittings | `make demo-token` — green three times, the third from a `make reset` machine; step 9 of the offline acceptance | 116 findings in nine sittings. **Sitting 9's F1 is the newest one to read, and it is a lesson about PREDICTIONS**: sitting 8 predicted Task 13's control (a) would be invisible to the acceptance, and it turns three checks red — the reasoning was about the FIXTURE token, which holds the privileged capability and is refused identically either way, while every REAL token lacks it and is refused by a different rule with a different code. **Sitting 9's F3** is the second: replacing the token secret's constant-time comparison with `===` left all 1342 tests AND all nine demo steps green, so the property was asserted by nothing; it is now asserted at the source, and the first draft of that assertion could not fail. **Sitting 9's F8**: one `pnpm test:docker` run recreates exactly the seven dead app networks cleared by hand the same day. **Sitting 8's F1 is the newest one to read**, and it is what the first integration client is for: **`subscribe` could not carry a delegated token at all**, so an agent could start a build through the generated client and had nothing to watch it end on — the route had accepted a bearer all along, and nothing server-side could see the hole. **Sitting 8's F4 and F5** are the second: **three of its five negative controls answer `403` for the WRONG REASON** — the privileged rule disabled makes the refusal a dead-end `403 FORBIDDEN`, confirm reverted answers `403 TOKEN_ACTION_PENDING`, the fleet reverted answers `403 FORBIDDEN` — so a status-only demo passes all three. **Sitting 7's F4**, and it is a JavaScript trap rather than a platform one: `toToken` was given an optional `now: Date = new Date()`, and `api/routes/tokens.ts` maps it as `.map(toToken)` — so `now` arrived as the ARRAY INDEX, `0`, and every token in every list read `expired: false`, including one that had expired an hour before. Only the assertion about an expired token could see it. **Sitting 7's F2** is the one after that: the plan's own `Promise.all` control for a read-then-insert **passed against the defect**, because `pg.Pool` establishes a connection per acquire and the five calls serialised — a warm pool is what makes a pooled race observable, and a deterministic SQLSTATE test belongs beside it. **Sitting 6's F5:** two of that sitting's own four new tests were green before the feature, because both were *"is not limited"* claims — and a claim that something is NOT refused is true of a platform that refuses nothing. A negative claim needs a positive control in the same test. **Sitting 4's F1** is the one to read: the plan's own negative control for the ORDER of the two token checks could not fail against any of the 31 tests that existed, because every test writes a token holding the privileged capability and **no token the platform can mint can hold one** — so the swapped order answers a dead-end `403 FORBIDDEN` for every real token, with D24's loop unable to start, and all 31 green. **Sitting 2's F1**: the plan's token parser split on `_` while base64url's alphabet contains it, so it refused 47.5% of the tokens the same file minted — and the round-trip test minted ONE token, so it would have gone red about half the time and read as a flaky harness. **Sitting 2's F14**: the plan's own TRUNCATE negative control cannot fail, because the statement's CASCADE reaches both new tables unnamed. **Sitting 3's F1**: `DELETE /v1/tokens/{tokenId}` is the API's first bodyless mutation, and the contract layer could not carry one — the route answered `400` before its handler ran and the OpenAPI document could not be generated for it at all, because both kept on `method === 'GET'` rather than on the body schema. **Sitting 3's F13**: three of that sitting's own negative controls answer `403` for the WRONG REASON, so a status-only assertion is green through all of them. |
-### 7e. Execute P5c's sitting 4 — Tasks 5 and 6 ← **START HERE**
+### 7e. Execute P5c's sitting 5 — Tasks 7 and 8 ← **START HERE**
 
-**P5c IS EXECUTING. Sittings 1, 2 and 3 are DONE (all 2026-09-18, with 19, 10 and 9
-findings); sittings 4 to 9 have not run.** Your job is **sitting 4 — Tasks 5 AND 6, in that
+**P5c IS EXECUTING. Sittings 1, 2, 3 and 4 are DONE (2026-09-18, with 19, 10, 9 and 9
+findings); sittings 5 to 9 have not run.** Your job is **sitting 5 — Tasks 7 AND 8, in that
 order**, using `superpowers:executing-plans` or `superpowers:subagent-driven-development`.
-Task 5 is *my projects, and creating one* — the slug check while it is typed, the blueprint
-and starter catalogue, §24's audience (§22 step 2). Task 6 is *the project screen and its
-live event stream* (§22 step 3), **the first screen in this console that holds a socket**.
+Task 7 is *a build, with its log lines arriving as they are written* (§22 step 4). Task 8 is
+*deploy to staging* — instance states live, the app's URL to click, and an Incident when it
+fails (§22 steps 5–6).
+
+**THIS IS THE HEAVY SITTING, AND RICH WAS WARNED WHEN HE CHOSE IT.** R1 took the lean
+nine-sitting split over the recommended eleven, and the stated cost is exactly this: sitting 5
+carries BOTH streaming screens, and streaming is where this project's defects have historically
+been (P4b sitting 9's stream that authorized after the upgrade; P5a sitting 2's reload that
+closed every socket). **The plan says so in terms: if it runs long, stop after Task 7 and
+sweep.** §6 rule 8 is worth more than finishing a task.
 
 **THE NETWORK-ON SITTING IS OVER.** Task 2 installed everything this plan gets. **If a task
 believes it needs a package, that is a finding to record and raise, not a step to take.**
-What you have: `react` 19.3.0, `react-dom` 19.3.0, `vite` 8.3.0, `@vitejs/plugin-react` 6.1.1
-and the two `@types` in `packages/console`; `ws` 8.21.3, `ajv` 8.20.0, `ajv-formats` 3.0.1 and
-`@types/ws` 8.18.1 in `packages/mock`. All exact.
-
-**THE CONSOLE IS REAL NOW, AND THAT CHANGES YOUR BASELINE.** `https://console.manifest.internal`
-is a `reverse_proxy` to a host process on 7104, not a placeholder. **Nothing starts that
-process for you** — `make up` does not — so with 7104 free the origin answers **502**, and
-`make doctor` and `make verify` are 18/0 and 51/0 **either way**, by design (sitting 3, F3).
 
 **Read, in this order, before you run anything:**
 
 1. **The plan — [`plans/2026-09-18-p5c-the-clients.md`](plans/2026-09-18-p5c-the-clients.md)** —
    its **header, its sittings table, *Read this first*, *Decisions Rich made* and *Decisions
-   this plan makes***. *Read this first* has twenty numbered items; **items 1, 2, 5, 6, 7 and
-   8 land on this sitting** — the 34 operations and the eleven that carry an `Idempotency-Key`,
-   the stream's subscribe-then-replay-then-flush shape with its `control` frame boundary, the
-   three events every project already has before anything else happens to it, and why a
-   console that parses a frame learns nothing useful from a `zod/v4` union's refusal.
-2. **Task 5 in full, then Task 6 in full** — including **Task 6's `[SITTING 3]` block**, which
-   says that **Task 6 owes `<Ago>` its first caller** and that the `stream_close_delay` control
-   Task 4 listed *could not fail there* and must be watched HERE, where a socket finally exists.
-3. **Sitting 3's entry in the plan's *What executing this plan found*** — nine findings. **F1,
-   F3, F5 and F7 change what you do.** F1: the plan's `api.ts` snippet carries a `const key`
-   helper that `pnpm lint` refuses until a mutation calls it — **Task 5 is the task that adds
-   it**, and `api.newKey()` is already there. F3: two platform gates DO see the console, so
-   re-run them. F5: `response.ok` is the wrong check anywhere in this console. F7: `<Ago>`.
-4. **Sitting 2's entry**, for the import boundary's two rules and the `fetch` rule's character
-   class — **your screens are the first files under `src/screens/`**, and `sourceFiles()`
-   recurses deliberately.
+   this plan makes***. Of *Read this first*'s twenty numbered items, **5, 6, 7 and 19 land
+   hardest here**: the stream's subscribe-then-replay-then-flush shape with its `control` frame
+   boundary, and why a console that parses a frame learns nothing useful from a `zod/v4`
+   union's refusal.
+2. **Task 7 in full, then Task 8 in full.**
+3. **Sitting 4's entry in the plan's *What executing this plan found*** — nine findings.
+   **F5, F7 and F8 change what you do.** F5: `POST …/spec` publishes no event, so do not assume
+   a mutation announces itself — **check which of your routes publish**, because Task 7's whole
+   premise is that a build ends on the stream. F7: `stream_close_delay`'s control did NOT fire
+   and the plan's Task 6 row is wrong about it; the block at the top of Task 6 says what to do
+   if you need it. F8: **the gates destroy the clicked state**, and your controls run after the
+   commit — so plan to rebuild a project, or run the controls before the gates.
+4. **Sitting 3's entry**, for F5 (`response.ok` is the wrong check anywhere in this console)
+   and F3 (two platform gates see the Caddyfile's console line).
 5. **§4 of this file — searched, not read — and §6 IN FULL**, including the sweep table and the
    post-sweep check.
 
-**What sittings 1 to 3 measured that changes what you do.**
+**What sittings 1 to 4 measured that changes what you do.**
 
-- **Everything about the edge hop is measured and now also USED.** A real browser's `Origin`
-  arrives as `https://console.manifest.internal` unchanged; a WebSocket upgrade reaches 7104
-  with `Host` and path intact; deep paths arrive unchanged and Vite's own SPA fallback serves
-  them. `vite.config.ts` already carries `allowedHosts` and a real `hmr` block.
+- **`useProjectStream` EXISTS and is proved live** (`packages/console/src/stream.ts`). Task 6's
+  interface is what the plan promised: `{ frames, status, closeCode }`, one socket per project.
+  **Consume it; do not open a second.** Every handler inside its effect is guarded by a `live`
+  flag, for React 19 StrictMode's double-invoked effect — keep that if you touch it.
+- **`status: 'live'` is NOT evidence a live frame reaches the screen.** It only says the
+  `control` frame arrived. Sitting 4 proved liveness by publishing a `token.minted` from a
+  terminal and watching it land in the open tab — **do the same for a build's log frames rather
+  than trusting the pill.**
 - **`pnpm --filter @manifest/contract build` before anything builds or previews the console.**
-  The contract's `exports` map points `tsc` at `src/` and Vite at `dist/`, so a stale `dist/`
-  ships with every gate green (sitting 1, F3).
-- **`<Refusal>` renders `String(error)` for anything that is not a `ManifestApiError`** — which
-  is how sitting 3 saw a `SyntaxError` rather than a blank page. It also means an error whose
-  MESSAGE carries a response body would put that body on the page; §4 records exactly that trap
-  for `JSON.parse` in `ai/client.ts`. Worth knowing before Task 6 parses frames.
-- **A `zod/v4` union's refusal names no path**, so switch on `frame.kind` then `frame.type` and
-  render `humanMessage`, which §14 wrote for a person.
+  The contract's `exports` map points `tsc` at `src/` and Vite at `dist/` (sitting 1, F3).
+- **`vite build` after every commit.** `tsc` is blind to a class of thing only the build sees
+  (sitting 2, F4).
+- **`<Refusal>` renders `String(error)` for anything that is not a `ManifestApiError`**, so an
+  error whose MESSAGE carries a response body puts that body on the page.
+- **The ESLint console boundary now allows `../`** (sitting 4, F2). Screens live in
+  `src/screens/` and the boundary test asserts the scanner descends into it.
 
 **How to run this sitting, in order.** *Every §7e carries one of these, because P5b sitting 7
 found that an ordered list which omits one step omits the one the deliverable rests on.*
@@ -1657,43 +1657,49 @@ found that an ordered list which omits one step omits the one the deliverable re
 1. **Baseline first** (§6's *Your first ten minutes*): `./scripts/snapshot-machine.sh` to a
    scratch file, `make up`, `make doctor && make verify`, `pnpm test` **twice**, then
    `pnpm lint`, `pnpm typecheck`, `pnpm format:check`. **Expect §2's box exactly**, including
-   **`make verify`'s per-app INFO line reading `containers=3 networks=1 volumes=2`** — sitting 3
-   ran the Docker tier, which takes it to `8`/`3`, and Rich applied both cleanup scripts at its
-   close. A disagreement is your first finding. **If YOU run a Docker tier, expect `8`/`3`
-   afterwards and hand the scripts' output over** — but this sitting owes no tier.
+   **`make verify`'s per-app INFO line reading `containers=3 networks=1 volumes=2`**. A
+   disagreement is your first finding.
 2. **Start the control plane** — this sitting needs it. README's *Running the control plane* is
    the whole export block; `set -a; . ./.env; set +a` alone is NOT enough.
 3. **Start the console**: `pnpm --filter @manifest/contract build`, then
    `pnpm --filter @manifest/console dev`. Check `https://console.manifest.internal/` serves it
    and **read the body** — a `manifest OK host=…` body means the wildcard answered.
-4. **Read the five things above, in their order.**
-5. **Run Task 5, commit; then Task 6, commit.** One commit per task. **Neither task owes
-   `pnpm test:docker`** — they touch no `routing/`, `infra/` or `*.docker.test.ts`, and the
-   plan says only sittings 1 and 3 owe the tier. **Do not spend 13 minutes on it out of habit.**
-6. **Close out** (§6's sweep): the roadmap ledger first — **including its defect-rate table** —
+4. **Create a project to work on.** The tables are EMPTY (see the state table). Sign in and
+   click one up at `/`, or script one `POST /v1/projects`. **Do it before any Vitest run.**
+5. **Read the five things above, in their order.**
+6. **Run Task 7, commit; then Task 8, commit.** One commit per task. **Neither task owes
+   `pnpm test:docker`** — they touch no `routing/`, `infra/` or `*.docker.test.ts`. **But a
+   REAL build and a REAL deploy will run Docker**, which is not the tier: expect app
+   containers, a network, volumes and an image, and expect `make verify`'s meter to move.
+   **That is your own sitting's residue and therefore yours to clear**, unless the classifier
+   refuses — then hand the scripts' output to Rich.
+7. **Close out** (§6's sweep): the roadmap ledger first — **including its defect-rate table** —
    then this §7e, §2's numbers box, the plan's sittings table and its *What executing this plan
-   found*. **The four shared HTML pages were swept by sitting 3 and now describe a console that
-   signs a person in**; check them again only if what a person can DO changes, which Task 5
-   makes true — creating a project by clicking is new. Then **re-read your own §7e as a cold
-   agent and CHECK its claims** by opening what they point at and counting.
+   found*. **The four shared HTML pages were swept by sitting 3 and checked by sitting 4**,
+   which changed what a person can DO (create a project, watch a stream) without changing what
+   those pages CLAIM — they already say a console exists and signs a person in. **Check them
+   again**: an app a person can BUILD and DEPLOY by clicking is a different claim. Then
+   **re-read your own §7e as a cold agent and CHECK its claims** by opening what they point at
+   and counting.
 
 **WHAT WILL SURPRISE YOU IN THIS SITTING, specifically.**
 
-- **`POST /v1/projects/{id}/members` answers `400 MEMBER_USER_NOT_FOUND` for anybody who has
-  never signed in, and `pnpm test` empties `users` on every run.** Sitting 3 signed the
-  INSTRUCTOR in, and then ran `pnpm test` twice and a whole Docker tier afterwards — **so
-  treat `users` as EMPTY.**
+- **A build answers `202` and is NOT finished** (Rich's R6, P5a Task 13). The answer that
+  arrived is not the answer. A script waits with `wait_for_build`; a test awaits
+  `deps.builds.idle()`. **Your screen must wait on the STREAM**, which is the task.
+- **A real build takes minutes and needs Docker, Verdaccio and the mirror.** It is not the
+  Docker test tier, and nothing in the plan's "no tier owed" line means "no Docker".
+- **`pnpm test` TRUNCATES the tables and takes your clicked project with it** (sitting 4, F8).
+- **A deploy causes an edge config reload**, which is what `stream_close_delay` exists for —
+  and sitting 4 could not make its absence bite (F7). Do not assume either way; measure.
 - **A `200` from `console.manifest.internal` may be the edge's wildcard, not your console.**
   Body `manifest OK host=… scheme=https`. **Read the body, never the status.**
-- **The Chrome extension's network reader prints a synthetic `503` for a 204 whose page
-  navigates away** (§4, measured in sitting 3). The status the CODE saw is the true one.
-- **An agent driving Chrome cannot type a password** (§4). Task 5 needs a signed-in person to
-  create a project by clicking; either ask Rich for the one password, or drive the same calls
-  through `api.ts` in Node the way Task 12 will.
-- **A source swap does not reach a running control plane** — it serves from `dist/`. A control
-  watched through a browser needs the process killed, rebuilt and restarted, then restored.
-- **The permission classifier varies within a session** (§4) and has refused read-only `docker`
-  commands minutes after allowing destructive ones. **Do the step, then verify.**
+- **The Chrome extension prints a synthetic `503` for a 204 whose page navigates away** (§4).
+- **An agent driving Chrome cannot type a password** (§4, R3) — **but sitting 4 needed none**,
+  because Chrome still held a live IdP session from sitting 3. **That is a property of one
+  browser profile at one moment, not a rule**: plan for Rich to type it, and be pleased if the
+  session is still there.
+- **The permission classifier varies within a session** (§4). **Do the step, then verify.**
 - **`${PIPESTATUS[0]}` is empty here**: the shell is zsh (`$pipestatus[1]`, indexed from 1).
 - **`make reset` is not part of this sitting and should not be run.**
 
@@ -1707,20 +1713,20 @@ in each plan's *Global Constraints*:
 - **Ask before `sudo`, and before touching anything outside the repository.** §6 rule 2, and
   CLAUDE.md's *Non-negotiables* has the rest. Nothing in this plan needs `sudo`.
 
-**The state you are handed, 2026-09-18, at the close of P5c sitting 3.** *Written from `lsof`,
+**The state you are handed, 2026-09-19, at the close of P5c sitting 4.** *Written from `lsof`,
 `docker`, `curl`, `git` and the scripts' own output at close, not from memory of the session.*
 
 | | |
 |---|---|
-| The four gate numbers | §2's box. `pnpm test` **1354** in **103** files (up 6 and one file — `auth.test.ts`), `pnpm test:docker` **178** in **29** files (**re-measured, 807 s** — this sitting owed it), `make doctor` **18/0**, `make verify` **51/0**. **Your sitting owes NO Docker tier** |
-| The control plane | **RUNNING on 7100 when this was written — DO NOT BELIEVE THAT ROW, CHECK IT.** A sitting is one session and this is a host process, so it may not outlive the session that started it: `lsof -nP -iTCP:7100 -sTCP:LISTEN`. **Your sitting DOES need it.** README's *Running the control plane* is the whole export block — `set -a; . ./.env; set +a` alone is NOT enough, because `MANIFEST_ADMIN_DATABASE_URL` is DERIVED in that block and `db:migrate` then fails `[x] url: undefined`, naming neither the variable nor the file (P5b sitting 9, F7). **Never start a second one**, and kill the first BY PID — `pkill -f 'control-plane/dist'` does NOT match it. It was restarted after the Docker tier, which re-registers the platform SP row at a loopback ACS |
-| The console | **`infra/caddy/Caddyfile` now forwards to `host.docker.internal:7104`; the placeholder `respond` is GONE** — *checked by reading the bytes the container serves, whose sha256 matches the host's, inode `48091939` unchanged*. **Nothing was left listening on 7104** — *checked by `lsof` at close* — so `https://console.manifest.internal/` answers **502** until you start `vite`, and that is the expected reading, not a fault |
-| The console's code | **13 tracked files in `packages/console`** — *counted with `git ls-files`* — of which sitting 3 added `api.ts`, `router.ts`, `ui.tsx` and `auth.test.ts` and rewrote `app.tsx`, `auth.ts`, `styles.css` and one assertion in `boundary.test.ts`. **`<Ago>` in `ui.tsx` is the ONE exported thing with no caller**, deliberately and said so in the code; **Task 6 owes it one** |
-| The database | **NO migration since 0018** (`packages/control-plane/drizzle/0018_curvy_sister_grimm.sql` is the newest — *checked*; note the path, `drizzle/` is NOT at the repository root). **`pnpm test` ran SIX times — counted from the captured output files — and a whole Docker tier ran after the browser work**, and every one truncates, so **treat the §6 tables as EMPTY** |
-| Identity | **`users` is EMPTY for practical purposes** and the long-standing trap is ARMED: `POST /v1/projects/{id}/members` answers `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in. There is **no administrator** until a `make demo-journey` re-grants `operator`. The instructor DID sign in during this sitting — **and `pnpm test` and the Docker tier both ran afterwards** |
-| The apps | **`token-app` only, three containers** — *counted at close*. It is **NOT reachable as itself**: that hostname answers the edge's wildcard, which a status-only check cannot tell from the app |
-| **Owed to Rich** | **NOTHING — CLEARED 2026-09-18 at this sitting's close.** Sitting 3's own `pnpm test:docker` regenerated seven dead networks, one dead volume and one LiteLLM orphan (`p4b-probe-user`); **Rich ran both scripts with `--apply` and they were RE-MEASURED clear afterwards** — `dead-app-resources.sh` reads **`none dead`** (0 networks, 0 volumes, token-app's one network and two volumes correctly KEPT), `litellm-orphans.sh` reads **0 orphaned** with its one held user surviving, `make verify` is **51/0** with the meter back to `containers=3 networks=1 volumes=2`, and token-app's three containers are up and healthy. **This was the THIRD measured time the tier regenerates exactly that set; treat it as a property of the tier, not a backlog — it will come back the next time anyone runs one.** Rich runs both with `--apply`; an agent's classifier refuses `docker network rm`. **Never work from this list — run the scripts, which re-derive.** **Neither covers app images**, of which **27 stand by DISTINCT IMAGE ID** — *re-derived at close; sitting 2 inherited 23 and this sitting's own Docker tier built four more, so the number moves every tier run.* **NAME THE METRIC, because three of them disagree on this machine**: `docker images \| grep -c '/local/'` answers **29** (it counts LINES, and five repos have several `<none>` entries), `scripts/snapshot-machine.sh`'s list answers **28**, and `docker images --format '{{.ID}}' \| sort -u` answers **27**. Same shape as §2's *Outstanding* note about `docker system df` reading 46 where `docker images -q \| wc -l` reads 53. And they are tagged `127.0.0.1:7107/local/*`, so `docker images \| grep '^local/'` answers **0** and reads as *none* |
-| This sitting's own footprint | **13 files in the CODE commit (`bfc7aab`), and status documents in the one after it** — *counted with `git show --name-only`, not recalled*: `infra/caddy/Caddyfile`, `infra/lib/common.sh` (`PORT_CONSOLE=7104`), `scripts/doctor.sh`, `scripts/verify.sh`, **eight** files under `packages/console/src/` — *counted with `git show --name-only`* — and `RUNBOOK.md`. **No migration, no route, no spec change, and no change to the control plane's `src/` at all** |
+| The four gate numbers | §2's box. `pnpm test` **1355** in **103** files (up 1, no new FILE — Tasks 5 and 6 add no test file, by Decision 7), `pnpm test:docker` **178** in **29** files (**NOT re-run and NOT owed** — neither commit touches `routing/`, `infra/` or a `*.docker.test.ts`; the Caddyfile was changed as F7's control and restored byte-identical before either commit), `make doctor` **18/0**, `make verify` **51/0**. **Your sitting owes NO Docker TIER either — but Tasks 7 and 8 run real builds and deploys, which is Docker all the same** |
+| The control plane | **RUNNING on 7100 when this was written — DO NOT BELIEVE THAT ROW, CHECK IT** with `lsof -nP -iTCP:7100 -sTCP:LISTEN`. A sitting is one session and this is a host process. **Your sitting DOES need it.** README's *Running the control plane* is the whole export block — `set -a; . ./.env; set +a` alone is NOT enough, because `MANIFEST_ADMIN_DATABASE_URL` is DERIVED in that block and `db:migrate` then fails `[x] url: undefined`, naming neither the variable nor the file. **Never start a second one**, and kill the first BY PID — `pkill -f 'control-plane/dist'` does NOT match it. It was NOT restarted this sitting and did not need to be: no Docker tier ran, so the platform's SP row was never re-registered at a loopback ACS |
+| The console | **`infra/caddy/Caddyfile` is byte-identical to the commit** — sha256 `d832a9529eb9e2db668cff294ce765f942c24a256abba027bb6df41f84f67eb7`, inode `48091939` unchanged through F7's control and its restore — and the RUNNING edge config was checked back: **1 occurrence of `stream_close_delay`, 0 of the probe header**. **Nothing was left listening on 7104** — *checked by `lsof` at close* — so `https://console.manifest.internal/` answers **502** until you start `vite`, and that is expected, not a fault |
+| The console's code | **17 tracked files in `packages/console`** — *counted with `git ls-files`* — of which this sitting added `screens/projects.tsx`, `screens/blueprints.tsx`, `screens/project.tsx`, `stream.ts` and rewrote `api.ts`, `app.tsx`, `styles.css` and `boundary.test.ts`. **`api.ts` now has 15 of the contract's 34 operations.** Nothing in `ui.tsx` is uncalled any more — `<Ago>` got its caller in Task 6, as Task 4 said it owed |
+| The database | **NO migration since 0018** (`packages/control-plane/drizzle/0018_curvy_sister_grimm.sql` is the newest — *checked*; note the path, `drizzle/` is NOT at the repository root). **`pnpm test` ran SIX times — counted from the captured output files** (`test1`, `test2`, `t5a`, `t6a`, `g1`, `g2`) — and every one truncates, so **treat the §6 tables as EMPTY** |
+| Identity | **`users` is EMPTY** and the long-standing trap is ARMED: `POST /v1/projects/{id}/members` answers `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in — *watched this sitting, in a browser, for `stu000001`*. There is **no administrator** until a `make demo-journey` re-grants `operator`. The instructor signed in twice during this sitting and `pnpm test` ran afterwards both times |
+| The apps | **`token-app` only, three containers** — *counted at close*. This sitting ran NO build and NO deploy, so it added no container, network, volume or image. It is **NOT reachable as itself**: that hostname answers the edge's wildcard, which a status-only check cannot tell from the app |
+| **Owed to Rich** | **NOTHING.** This sitting ran no Docker tier and no deploy, so it regenerated none of the dead-resource set: `make verify`'s per-app meter reads **`containers=3 networks=1 volumes=2`** and both cleanup scripts were run bare at close and read **`none dead`** and **0 orphaned**. **That set comes back the moment anyone runs `pnpm test:docker` — it is a property of the tier, measured three times, not a backlog.** App images stand at **27 by DISTINCT IMAGE ID**, unchanged by this sitting — **name the metric, because three of them disagree**: `docker images \| grep -c '/local/'` answers **29** (it counts LINES; five repos have several `<none>` entries), `scripts/snapshot-machine.sh`'s list answers **28**, and `docker images --format '{{.ID}}' \| sort -u` answers **27**. They are tagged `127.0.0.1:7107/local/*`, so `docker images \| grep '^local/'` answers **0** and reads as *none*. **Never work from a list — run the scripts, which re-derive** |
+| This sitting's own footprint | **Two code commits and status documents after them.** `f56409b` — 7 files: `eslint.config.js` and six under `packages/console/src/` (`api.ts`, `app.tsx`, `boundary.test.ts`, `styles.css`, `screens/projects.tsx`, `screens/blueprints.tsx`). `10c9c30` — 5 files, all under `packages/console/src/` (`api.ts`, `app.tsx`, `styles.css`, `screens/project.tsx`, `stream.ts`). *Both counted with `git show --name-only`, not recalled.* **No migration, no route, no spec change, and no change to the control plane's `src/` at all.** Five bare repositories this sitting created under `.manifest/repos/` were removed at close, once `pnpm test` had truncated the projects holding their names |
 
 
 ## 8. Decisions waiting on Rich
