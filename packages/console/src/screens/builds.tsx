@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { LogFrame, Schemas, StreamFrame } from '@manifest/contract'
 import type { Api } from '../api'
-import { Ago, Field, Panel, Pill, Refusal, useAsync } from '../ui'
+import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 
 /**
  * §22 step 4, and D23.9: `POST …/builds` answers **202** with the build `running`. So the
@@ -163,7 +163,7 @@ export function Builds({
               <li key={b.id}>
                 <code>{b.id.slice(0, 8)}</code>{' '}
                 <Pill tone={tone(b.status)}>{b.status}</Pill>{' '}
-                <code>{b.commitSha.slice(0, 12)}</code> <Ago at={b.createdAt} />
+                <code>{b.commitSha.slice(0, 12)}</code> <Instant at={b.createdAt} />
               </li>
             ))}
           </ul>
@@ -198,7 +198,8 @@ function Build({
     <>
       <Field label="Build">
         <code>{shown.id.slice(0, 8)}</code>{' '}
-        <Pill tone={tone(shown.status)}>{shown.status}</Pill> <Ago at={shown.createdAt} />
+        <Pill tone={tone(shown.status)}>{shown.status}</Pill>{' '}
+        <Instant at={shown.createdAt} />
       </Field>
       <Field label="Commit">
         <code>{shown.commitSha.slice(0, 12)}</code>
@@ -233,7 +234,7 @@ function Scan({ scan }: { scan: Schemas['ScanSummary'] | null }) {
     <Field label="Scan">
       <ul>
         <li>
-          {scan.scanner} <Ago at={scan.scannedAt} />{' '}
+          {scan.scanner} <Instant at={scan.scannedAt} />{' '}
           <Pill tone={scan.stale ? 'bad' : 'good'}>{scan.stale ? 'stale' : 'fresh'}</Pill>{' '}
           {scan.databaseAgeDays === null
             ? 'the scanner could not say how old its database was'
@@ -368,7 +369,7 @@ function Release({
       {release !== undefined && (
         <>
           <Field label="Release">
-            <code>{release.id.slice(0, 8)}</code> <Ago at={release.createdAt} />
+            <code>{release.id.slice(0, 8)}</code> <Instant at={release.createdAt} />
           </Field>
           <Field label="Released image">
             <code>{release.imageDigest}</code>

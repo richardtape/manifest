@@ -348,5 +348,53 @@ export function createApi(options: ApiOptions) {
     async listFleet(): Promise<Schemas['Fleet']> {
       return unwrap(await client.GET('/v1/fleet'), 'listFleet')
     },
+
+    /**
+     * THE ONE CALL IN THIS API THAT RETURNS A CREDENTIAL. `MintedToken.secret` exists on
+     * this response and on no read schema at all (P5b Decision 11) — so the console shows
+     * it once and can never fetch it again.
+     *
+     * Refused `400 TOKEN_CAPABILITY_FORBIDDEN` for any of D24's privileged four by name,
+     * `403` for anything the minter does not hold themselves, and bounded at 365 days.
+     */
+    async mintToken(
+      projectId: string,
+      body: Schemas['MintTokenRequest'],
+      idempotency: string,
+    ): Promise<Schemas['MintedToken']> {
+      return unwrap(
+        await client.POST('/v1/projects/{projectId}/tokens', {
+          params: { path: { projectId }, ...key(idempotency) },
+          body,
+        }),
+        'mintToken',
+      )
+    },
+
+    /** The PROJECT's tokens, not the caller's: a token a collaborator minted is here too. */
+    async listTokens(projectId: string): Promise<Schemas['TokenList']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/tokens', {
+          params: { path: { projectId } },
+        }),
+        'listTokens',
+      )
+    },
+
+    /**
+     * Only the MINTER may revoke; everyone else gets the `404` an unknown id gets, so the
+     * refusal cannot be used to learn which token ids exist.
+     *
+     * THE API'S FIRST BODYLESS MUTATION (P5b Task 3), which the contract layer could not
+     * carry until `readsBody(route)` keyed on the schema rather than on the method.
+     */
+    async revokeToken(tokenId: string, idempotency: string): Promise<Schemas['Token']> {
+      return unwrap(
+        await client.DELETE('/v1/tokens/{tokenId}', {
+          params: { path: { tokenId }, ...key(idempotency) },
+        }),
+        'revokeToken',
+      )
+    },
   } as const
 }

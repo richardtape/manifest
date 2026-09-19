@@ -1,6 +1,6 @@
 import type { Schemas } from '@manifest/contract'
 import type { Api } from '../api'
-import { Ago, Field, Panel, Pill, Refusal, useAsync } from '../ui'
+import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 
 /**
  * §26's FLEET — every project on the platform, for the one role that is allowed to see them
@@ -75,7 +75,7 @@ function FleetProject({ project }: { project: Schemas['Fleet'][number] }) {
           : `${project.audience.scale}, ${project.audience.burst}`}
       </Field>
       <Field label="Created">
-        <Ago at={project.createdAt} />
+        <Instant at={project.createdAt} />
       </Field>
       <Field label="Environments">
         <ul>
@@ -96,7 +96,7 @@ function FleetProject({ project }: { project: Schemas['Fleet'][number] }) {
               {env.lastDeployAt !== null && (
                 <>
                   {' '}
-                  deployed <Ago at={env.lastDeployAt} />
+                  deployed <Instant at={env.lastDeployAt} />
                 </>
               )}
               {/*
@@ -109,7 +109,7 @@ function FleetProject({ project }: { project: Schemas['Fleet'][number] }) {
                 <>
                   {' '}
                   <Pill tone="bad">
-                    incident <Ago at={env.latestIncidentAt} />
+                    incident <Instant at={env.latestIncidentAt} />
                   </Pill>
                 </>
               )}

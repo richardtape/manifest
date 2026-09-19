@@ -275,3 +275,54 @@ button:disabled {
   border-top: 1px solid var(--line);
   padding: 0.35rem 0;
 }
+
+/* A project's tabs (§26's queue, D24's tokens). Real links, so a tab is a bookmarkable path
+   rather than component state — `aria-current` is the whole of the "you are here", because
+   the attribute is the accessible answer and the underline is only its rendering. */
+.tabs {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0 0;
+}
+
+.tabs a[aria-current='true'] {
+  font-weight: 600;
+  text-decoration-thickness: 2px;
+}
+
+/* D24's capability set, one per line with the privileged four's reason under them. A
+   two-column grid would put a sentence beside a checkbox and hide the ones that matter. */
+.capabilities {
+  list-style: none;
+  padding: 0;
+  margin: 0.2rem 0 0.6rem;
+}
+
+.capabilities li {
+  padding: 0.15rem 0;
+}
+
+.capabilities .hint {
+  margin-left: 1.6rem;
+  font-size: 0.9em;
+}
+
+.tokens {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tokens li {
+  border-top: 1px solid var(--line);
+  padding: 0.5rem 0;
+}
+
+/* THE ONLY TIME THE SECRET EXISTS, so it is set apart and selectable in one gesture. It is
+   deliberately NOT inside a <code> in a paragraph: a person is about to copy it, and a
+   credential that wraps mid-token gets pasted wrong. */
+.secret {
+  user-select: all;
+  border-color: var(--ink);
+  max-height: none;
+}

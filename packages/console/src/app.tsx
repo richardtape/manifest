@@ -149,7 +149,14 @@ function Screen({ route }: { route: Route }) {
       // Keyed on the id so a move between two projects REMOUNTS rather than reusing the
       // mounted one: the stream's effect would otherwise tear down and re-open on one
       // component whose panels still hold the old project's rows for a frame.
-      return <Project key={route.projectId} api={api} projectId={route.projectId} />
+      return (
+        <Project
+          key={route.projectId}
+          api={api}
+          projectId={route.projectId}
+          tab={route.tab}
+        />
+      )
     default:
       return (
         <p>

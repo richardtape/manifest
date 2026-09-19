@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import type { Schemas } from '@manifest/contract'
 import type { Api } from '../api'
+import { href, type Route } from '../router'
 import { useProjectStream } from '../stream'
-import { Ago, Field, Panel, Pill, Refusal, useAsync } from '../ui'
+import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 import { Builds } from './builds'
 import { Deploy } from './deploy'
 import { Launch } from './launch'
+import { Tokens } from './tokens'
 
 /**
  * §22 step 3: watch provisioning — the repository created, the `manifest.yaml` validated.
@@ -14,10 +16,19 @@ import { Launch } from './launch'
  * screen opens, and every later screen on a project consumes the same hook rather than
  * opening a second one.
  */
-export function Project({ api, projectId }: { api: Api; projectId: string }) {
+export function Project({
+  api,
+  projectId,
+  tab,
+}: {
+  api: Api
+  projectId: string
+  tab: Extract<Route, { name: 'project' }>['tab']
+}) {
   const project = useAsync(() => api.getProject(projectId), [projectId])
-  // ONE SOCKET FOR THE WHOLE SCREEN (D23.2). Every panel below that needs live frames is
-  // handed `stream.frames`; none of them subscribes again.
+  // ONE SOCKET FOR THE WHOLE SCREEN (D23.2), AND IT SPANS THE TABS. The hook lives here
+  // rather than in a tab, so moving between Overview and Tokens does not tear the socket
+  // down and re-open it — the replay would run again and every panel would flicker.
   const stream = useProjectStream(projectId)
   // THE ONE FACT THE STREAM CANNOT CARRY. `createRelease` publishes no event, so the Deploy
   // panel would not know a release exists until the page was reloaded; the Builds panel
@@ -25,29 +36,67 @@ export function Project({ api, projectId }: { api: Api; projectId: string }) {
   const [releaseTick, setReleaseTick] = useState(0)
   return (
     <>
-      <Overview project={project.value} error={project.error} />
-      <Activity stream={stream} />
-      <Builds
-        api={api}
-        projectId={projectId}
-        frames={stream.frames}
-        onReleased={() => setReleaseTick((t) => t + 1)}
-      />
-      <Deploy
-        api={api}
-        projectId={projectId}
-        slug={project.value?.slug}
-        frames={stream.frames}
-        releaseTick={releaseTick}
-      />
-      {/*
+      <Tabs projectId={projectId} tab={tab} />
+      {tab === 'tokens' ? (
+        <Tokens api={api} projectId={projectId} frames={stream.frames} />
+      ) : tab === 'queue' ? (
+        <p>
+          The <code>queue</code> screen is built by Task 11 of P5c.
+        </p>
+      ) : (
+        <>
+          <Overview project={project.value} error={project.error} />
+          <Activity stream={stream} />
+          <Builds
+            api={api}
+            projectId={projectId}
+            frames={stream.frames}
+            onReleased={() => setReleaseTick((t) => t + 1)}
+          />
+          <Deploy
+            api={api}
+            projectId={projectId}
+            slug={project.value?.slug}
+            frames={stream.frames}
+            releaseTick={releaseTick}
+          />
+          {/*
         §22 STEP 7, DIRECTLY BELOW THE DEPLOY PANEL whose production button is the asking.
         The refusal that button gets carries this same checklist, through the same renderer.
       */}
-      <Launch api={api} projectId={projectId} />
-      <SpecPanel api={api} projectId={projectId} />
-      <Members api={api} projectId={projectId} />
+          <Launch api={api} projectId={projectId} />
+          <SpecPanel api={api} projectId={projectId} />
+          <Members api={api} projectId={projectId} />
+        </>
+      )}
     </>
+  )
+}
+
+/**
+ * §26 puts the queue on a project; D24 puts its tokens there too. Real links (Decision 3),
+ * so a tab is a bookmarkable path rather than a piece of component state — which is what
+ * makes `?returnTo=` land a person back on the tab they were sent to.
+ */
+function Tabs({
+  projectId,
+  tab,
+}: {
+  projectId: string
+  tab: Extract<Route, { name: 'project' }>['tab']
+}) {
+  return (
+    <nav className="tabs">
+      <a {...href(`/projects/${projectId}`)} aria-current={tab === 'overview'}>
+        Overview
+      </a>{' '}
+      <a {...href(`/projects/${projectId}/queue`)} aria-current={tab === 'queue'}>
+        Queue
+      </a>{' '}
+      <a {...href(`/projects/${projectId}/tokens`)} aria-current={tab === 'tokens'}>
+        Tokens
+      </a>
+    </nav>
   )
 }
 
@@ -70,7 +119,7 @@ function Overview({
           <Field label="Starter">{project.starter ?? 'the skeleton alone'}</Field>
           <Field label="Owner">{project.owner.displayName}</Field>
           <Field label="Created">
-            <Ago at={project.createdAt} />
+            <Instant at={project.createdAt} />
           </Field>
           {/* §24, and it is NULL for a project created before the question existed. */}
           <Field label="Who it is for">
@@ -140,7 +189,7 @@ function Activity({ stream }: { stream: ReturnType<typeof useProjectStream> }) {
       <ul className="activity">
         {[...events].reverse().map((e) => (
           <li key={e.id}>
-            <Ago at={e.createdAt} /> <code>{e.type}</code> {e.humanMessage}
+            <Instant at={e.createdAt} /> <code>{e.type}</code> {e.humanMessage}
           </li>
         ))}
       </ul>

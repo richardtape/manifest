@@ -140,16 +140,32 @@ export function Pill({ tone, children }: { tone: string; children: React.ReactNo
 }
 
 /**
- * "4 minutes ago", from an ISO instant. §26's headline number is an AGE, so the console
- * has one renderer for it rather than a `Date` subtraction per screen.
+ * A RELATIVE INSTANT, IN EITHER DIRECTION — *"4m ago"* for a past one, *"in 30d"* for a
+ * future one. §26's headline number is an age, so the console has one renderer for it rather
+ * than a `Date` subtraction per screen.
+ *
+ * **IT RENDERS BOTH DIRECTIONS BECAUSE THE PAST-ONLY VERSION LIED, AND NOTHING COULD SEE
+ * IT.** This was `Ago`, which clamped the difference at zero — so a token expiring in thirty
+ * days rendered **`expires 0s ago`**, which reads as *already expired* and is the exact
+ * opposite of the truth. Measured in the browser on the first token this console ever minted
+ * (Task 10): the row said `expires 0s ago` beside a pill reading `active`, contradicting
+ * itself, with `tsc`, ESLint, Prettier and every test green — both fields are `string`, so
+ * nothing in any gate can tell a past instant from a future one.
+ *
+ * It is ONE component rather than an `Ago` and an `Until` on purpose: two would put the
+ * choice back on the caller, and the caller choosing wrongly is the defect this replaced.
+ * Task 11's `PendingAction.expiresAt` is the next future instant to reach a screen.
  */
-export function Ago({ at }: { at: string }) {
-  const seconds = Math.max(0, Math.round((Date.now() - Date.parse(at)) / 1000))
-  const text =
-    seconds < 60
-      ? `${seconds}s ago`
-      : seconds < 3600
-        ? `${Math.round(seconds / 60)}m ago`
-        : `${Math.round(seconds / 3600)}h ago`
-  return <time dateTime={at}>{text}</time>
+export function Instant({ at }: { at: string }) {
+  const seconds = Math.round((Date.parse(at) - Date.now()) / 1000)
+  const magnitude = Math.abs(seconds)
+  const size =
+    magnitude < 60
+      ? `${magnitude}s`
+      : magnitude < 3600
+        ? `${Math.round(magnitude / 60)}m`
+        : magnitude < 86400
+          ? `${Math.round(magnitude / 3600)}h`
+          : `${Math.round(magnitude / 86400)}d`
+  return <time dateTime={at}>{seconds > 0 ? `in ${size}` : `${size} ago`}</time>
 }

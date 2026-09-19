@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { EventFrame, Schemas, StreamFrame } from '@manifest/contract'
 import type { Api } from '../api'
-import { Ago, Field, Panel, Pill, Refusal, useAsync } from '../ui'
+import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 
 /**
  * §22 step 5, and the handoff to step 6 — the person opens the running app and signs in
@@ -295,7 +295,7 @@ function EnvironmentPanel({
         <ul className="activity">
           {states.map((s) => (
             <li key={s.id}>
-              <Ago at={s.at} /> <code>{s.label}</code> {s.message}
+              <Instant at={s.at} /> <code>{s.label}</code> {s.message}
             </li>
           ))}
         </ul>
@@ -325,7 +325,7 @@ function Incidents({
       {rows.map((i) => (
         <div key={i.id} className="incident">
           <Field label="Incident">
-            <Ago at={i.createdAt} /> <code>{i.exitReason}</code>
+            <Instant at={i.createdAt} /> <code>{i.exitReason}</code>
           </Field>
           <Field label="Check that failed">{i.failedCheck}</Field>
           <Field label="Since last healthy">{i.diffSinceHealthy}</Field>
