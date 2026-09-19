@@ -61,13 +61,18 @@ Phases.*
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
 turning the network off from a tool call cuts the agent off too; **it now has NINE steps**, the
 newest being `make demo-token`), the second-machine clean clone, starting the UBC external track
-(its trigger fired on 2026-09-15), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE OWED AGAIN as of the close of
-P5c sitting 1, 2026-09-18** — and that is the system working, not a regression: that sitting ran
-`pnpm test:docker`, which regenerated the dead network set, and `make verify`'s per-app line went
-from `containers=3 networks=1 volumes=2` to `containers=3 networks=8 volumes=3` in the course of
-one sitting. **This is the second time it has been measured doing exactly that** (P5b sitting 9
-was the first), so treat it as a property of the Docker tier rather than as a backlog: **none of
-these cleanups stays cleared on its own**, and every demo adds a LiteLLM user besides. **So run both scripts bare at a sitting's close and hand the output to Rich**, who
+(its trigger fired on 2026-09-15), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of 2026-09-18**,
+applied by Rich at the close of P5c sitting 1 and **re-measured by their own scripts afterwards**:
+`dead-app-resources.sh` reads `none dead` and `litellm-orphans.sh` reads 0 orphaned. **The cycle
+within that one sitting is the thing to understand, not the status**: the sitting ran
+`pnpm test:docker`, which regenerated the dead network set, taking `make verify`'s per-app line
+from `containers=3 networks=1 volumes=2` to `containers=3 networks=8 volumes=3` and back again
+after Rich applied. **This is the second time the tier has been measured putting back exactly the
+same seven networks and one volume** (P5b sitting 9 was the first), so treat it as a property of
+the Docker tier rather than as a backlog: **none of these cleanups stays cleared on its own**, and
+every demo adds a LiteLLM user besides. **One thing neither script covers is app images** — 23
+`local/*` layers stand today, which is not urgent but is nobody's job until somebody re-derives
+the held set. **So run both scripts bare at a sitting's close and hand the output to Rich**, who
 applies; never work from a written list. **The permission classifier is not a
 fixed rule** — it allowed all of that and then began refusing `docker volume ls` in the same
 session, so try the command rather than assuming either way. *(The one P5a negative control those rules refused —
