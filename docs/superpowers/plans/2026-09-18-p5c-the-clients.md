@@ -31,8 +31,8 @@
 | 3 | 4 | **The console is served at `console.manifest.internal`, signs a person in with CWL and knows who they are** (§22 step 1): the Caddyfile's placeholder replaced, the shell, the router, the error surface, and the one file allowed to name `fetch` | **DONE 2026-09-18 — 9 findings.** §22 step 1 CLICKED: Rich typed `instructor` and the header read **Test Instructor `ins000001`**. **The plan's claim that no gate sees the Caddyfile's console line is WRONG — `make doctor` AND `make verify` both went red** and both are fixed (F3). `signOut` never checked its answer (F4). `<Ago>` is the one shared bit still uncalled; **Task 6 owes it a caller** |
 | 4 | 5–6 | **My projects, and creating one** — the slug check while it is typed, the blueprint and starter catalogue, §24's audience (§22 step 2) — and **the project screen with its live event stream** (§22 step 3) | **DONE 2026-09-18 — 9 findings.** §22 steps 2 AND 3 CLICKED. The stream's liveness was PROVED (a `token.minted` published from a terminal arrived in the open tab; the same event on another project did not). **Two of the plan's own controls could not fail** — the idempotency row names the wrong consequence, and `stream_close_delay` did not fire, measured two ways (F7). `<Ago>` has its caller |
 | 5 | 7–8 | **A build whose log lines arrive as they are written** (§22 step 4) and **a deploy to staging whose instance states arrive the same way**, with the app's URL to click and an Incident when it fails (§22 steps 5–6). **Both streaming screens; the sitting Rich was warned is the heavy one** | **DONE 2026-09-18/19 — 13 findings.** §22 STEPS 4 AND 5 CLICKED, AND STEP 6 AS FAR AS THE SIGN-IN (its *write a note; ask the LLM* half is `make demo-ai`'s and Task 14's): a build watched line by line, a release, a deploy to staging with four states live, the app opened and signed in to with CWL, and a redeploy that interrupted nobody (14 consecutive `200`s from the app's own tab). **The stream alone is not the log** — `LogFrame` is never replayed, so `getBuildLog` is load-bearing and the task never mentions it. **Three of the plan's claims were wrong** (`<Refusal>` and `launchReadiness`; `{}` is not the repository's HEAD; control row 3 cannot fail) and Task 8's row 1 needed an environment whose FIRST deploy fails |
-| 6 | 9–10 | **Request production** — `LaunchReadiness` with its blocked items and why (§22 step 7) — **the fleet** (§26, admin only), and **delegated tokens**: minted once, listed, revoked |← **next** |
-| 7 | 11 | **§26's queue as a screen**: the question an agent asked, who asked it, how long it has waited, confirmed or rejected by a person in their own words. **The first time D24's loop is operated by a human rather than by `curl`** | |
+| 6 | 9–10 | **Request production** — `LaunchReadiness` with its blocked items and why (§22 step 7) — **the fleet** (§26, admin only), and **delegated tokens**: minted once, listed, revoked | **DONE 2026-09-19 — 11 findings.** §22 STEP 7 CLICKED, and an administrator read the fleet. The checklist's two paths measured **byte-identical** and now share one renderer. **`<Ago>` lied about every future instant** — a 30-day token read `expires 0s ago` with all four gates green — and is now the direction-aware `<Instant>`. The D22 finding §7e predicted is CONFIRMED: the document cannot mark D24's privileged four. Two of the plan's own control rows are weaker than they read |
+| 7 | 11 | **§26's queue as a screen**: the question an agent asked, who asked it, how long it has waited, confirmed or rejected by a person in their own words. **The first time D24's loop is operated by a human rather than by `curl`** |← **next** |
 | 8 | 12–13 | **`manifest-mock`** — the contract served from fixtures with scripted streams, validated against the document, and the console driven against it with no platform — and **the CI acceptance script**, the operation-coverage gate and `@manifest/contract` `1.0.0` | |
 | 9 | 14 | **The acceptance**: the journey clicked by a person and run headlessly by the script, over one contract, with its negative controls. **Alone, and last** | |
 
@@ -4783,3 +4783,171 @@ same question produced seven findings after sitting 4 and P5b sitting 7's F14/F1
 block regenerates `MANIFEST_SESSION_SECRET` with `openssl rand -hex 32` on every start, so
 restarting the control plane signs the browser out. Sitting 5 wrote the value once into its
 session scratchpad and sourced it from there, and a mid-sitting restart then cost no sign-ins.
+
+### Sitting 6 — Tasks 9 and 10, request production, the fleet and delegated tokens — 2026-09-19 — 11 findings
+
+**§22 STEP 7 IS CLICKED, AND D24'S CREDENTIAL CLASS IS NOW OPERABLE BY A PERSON.** A signed-in
+person reads §13's first-launch checklist with every item's state, reason, owner and the plan
+that builds it; mints a delegated token and is shown its secret exactly once; lists it, revokes
+it, and watches the platform refuse a privileged capability. An administrator, granted out of
+band, reads §26's fleet. Committed as `1623e68` and `21d3100`. No migration, no route, no spec
+change, no build and no deploy.
+
+*Seven checklist items, not six.* The project was created with a `large_course` audience
+deliberately, which is what makes §24's load-rehearsal item appear — sitting 5's production
+refusal carried six.
+
+#### The findings
+
+**F1 — `<Ago>` CLAMPED EVERY FUTURE INSTANT TO ZERO, SO THE FIRST TOKEN THIS CONSOLE EVER MINTED
+RENDERED `expires 0s ago`.** `Math.max(0, now - at)` is correct for an age and silently wrong for
+a deadline. **Measured in the browser**: a token expiring in thirty days rendered `expires 0s
+ago` — which reads as *already expired* — immediately beside a pill correctly reading `active`,
+so the row contradicted itself. **`tsc`, ESLint, Prettier and all 1355 tests were green through
+it**, and no gate here can ever see it: `expiresAt` and `createdAt` are both `string`, and
+nothing distinguishes a past instant from a future one. It is now one direction-aware
+`<Instant>` (`in 30d` / `2m ago`) rather than an `Ago` and an `Until`, **because two components
+would put the choice back on the caller and the caller choosing wrongly is the defect**. Fourteen
+call sites renamed, `tsc` finding every one. Task 11's `PendingAction.expiresAt` is the next
+future instant to reach a screen.
+
+**F2 — THE DOCUMENT CANNOT MARK D24'S PRIVILEGED FOUR, SO THE CONSOLE RESTATES A PLATFORM RULE.**
+§7e predicted this and opening the schema confirms it: `MintTokenRequest.capabilities` is a flat
+enum of all eleven capabilities, marks none of them privileged, and names the four only in its
+prose `description`, which no client can read at runtime. Of the two honest options §7e named,
+this sitting took *restate, with a comment saying it is a restatement and why*, because offering
+four checkboxes that can never work is a worse screen. **The eleven ARE held to the document by
+`tsc` in both directions** — `everyCapability` refuses a list that is missing one and a typo
+alike, **watched failing both ways** (`Argument of type '[…ten…]' is not assignable to parameter
+of type 'never'`, and `TS2820 … Did you mean "quota:set"?`), with the file restored
+byte-identically afterwards. **The four are not held by anything**, and the fix belongs to the
+document — `x-manifest-privileged` on the enum, or two enums — which this plan may not make.
+
+**F3 — `revokeToken` PUBLISHES NO EVENT**, the third instance of the shape after sitting 4's F5
+(`validateSpec`) and sitting 5's F7 (`createRelease`). `api/routes/tokens.ts` has exactly one
+`publishEvent`, in the mint handler. So a revocation made in another tab, or by another person,
+cannot reach a console that never polls (D23.2); this screen reloads its own list locally and a
+second watcher is told nothing. Recorded as a finding about the API, not fixed.
+
+**F4 — THE PRODUCTION GATE THROWS BEFORE THE RELEASE IS LOOKED UP, SO THE `409` NEEDS NO BUILD —
+BUT THE CONSOLE CANNOT REACH IT ON A FRESH PROJECT.** Read out of `api/routes/releases.ts`: the
+deploy handler asserts `release:promote`, then throws `ProductionGateError` for any production
+environment, and only then calls `deployRelease`. **Measured with a releaseId that does not
+exist**: `409 RELEASE_PRODUCTION_GATE_UNAVAILABLE` carrying the whole checklist. But the Deploy
+panel disables its button while `releaseId === ''`, which is every project with no releases — so
+the refusal is unreachable by clicking until something has been built. **That is what the Launch
+panel earns its place by fixing**, rather than duplicating.
+
+**F5 — THE TWO PATHS ARE BYTE-IDENTICAL, RE-MEASURED RATHER THAN ASSUMED.** P5a sitting 11 paid
+for this (zod emits an object's keys in schema order and a hand-built body does not), and it
+still holds: `json.dumps` of the production refusal's `launchReadiness` and of `GET
+/v1/projects/{id}/launch-readiness` compared **equal, separator for separator**. Both now render
+through one `<ReadinessItems>`, so a future divergence would be a finding about the platform
+rather than about a second loop in the console.
+
+**F6 — `Fleet` CARRIES AN INSTANT WHERE TASK 9 ASKS FOR A COUNT.** Step 3 says the table shows
+*"open incidents"*. The schema answers `latestIncidentAt` per environment, and **there is no
+open/closed state on an Incident anywhere in Phase 1** — so *"1 open"* would be a number the
+platform never computed. Rendered as what it is, an instant. The same paragraph's three genuinely
+absent columns (department, custom domains, AI spend) are named on screen as Phase 2's, which the
+schema's own description already says.
+
+**F7 — TASK 9'S CONTROL ROW 3 CANNOT FIRE, TWO WAYS OVER.** The row proposes reading `ready` from
+`items.every(i => !i.blocking)`. **(a)** On the real payload all seven items are `blocking: true`,
+so that expression is `false` and `ready` is `false` — the two agree, and the substitution changes
+nothing visible. **(b)** More importantly it is not the mistake a client would actually make: the
+platform computes `items.filter(i => i.blocking).every(i => i.state === 'met')`
+(`launch/readiness.ts:147`), and the plausible careless re-derivation is *that* formula, which
+would agree for ever until the platform's definition moved. The row is kept and `ready` is read
+from the field, but **this is a control that was never able to fail**, in the family of sitting
+5's F2.
+
+**F8 — A CONTROL'S OWN SLOPPINESS CAN MASQUERADE AS A GATE CATCHING IT.** Task 9's row 2 (render
+`state` without `why`) was applied by deleting a JSX block, and `pnpm format:check` went red —
+which reads exactly like *a gate saw the missing reasons*. It had not: **tidying the leftover
+blank line left all four gates green** on a checklist showing seven items as `not_built` with no
+reason, owner or `builtBy` at all. Decision 7's *no DOM test tier* is why, and it is the honest
+statement of this screen's coverage. **Always ask why a gate went red, never just that it did.**
+
+**F9 — THE CONSOLE'S SIGN-OUT ENDS MANIFEST'S SESSION AND LEAVES THE IdP'S ALIVE.** Measured:
+`POST /auth/logout` answered `204`, `GET /v1/me` then answered `401` — so the Manifest session
+genuinely ended — and navigating to `/auth/login` landed **straight back on the console signed in
+as the same person, with no IdP form and no password**. This is why sittings 4 and 5 rode a live
+session for free, and on a shared machine it means *Sign out* does not do what a person reading
+the word expects. Not fixed: §9's SLO is the IdP's business and the console has no affordance for
+it. **Named, and it is what makes switching user cost a password.**
+
+**F10 — CADDY'S INTERNAL PKI ISSUES A 12-HOUR LEAF, AND A TAB LEFT OPEN ACROSS A LONGER SLEEP
+SHOWS `ERR_CERT_DATE_INVALID` ON A CHAIN THAT IS ENTIRELY VALID.** The machine slept nine hours
+mid-sitting. On waking, Chrome refused `idp.manifest.internal` and then `console.manifest.internal`
+in the same tab, while `openssl s_client` and `curl --cacert` both accepted the identical chain.
+**Measured**: leaf `Sep 19 11:58:31 → 23:58:31` (**12 hours exactly**), intermediate `Sep 14
+18:55 → Sep 21 18:55` (**7 days**), root to 2036; host and container clocks agreed to the second;
+Caddy's log showed a clean renewal at 11:58:31. **Closing the tab and opening a new one cleared it
+completely** — it was Chrome's cached TLS state for the expired leaf, not the edge. **Diagnose with
+`openssl s_client` before suspecting Caddy, and open a new tab rather than debugging the platform.**
+
+**F11 — THE CHROME EXTENSION'S REDACTOR KEYS ON A RESULT FIELD'S *NAME*, NOT ONLY ITS VALUE.** A
+measurement returning `{holdsAnMftToken: false}` or `{sessionStorage: 'empty'}` comes back as
+`[BLOCKED: Sensitive key]`, which reads as a failed read rather than as a redaction — and the
+value it hid was a boolean. It correctly refused to show the token secret itself, which is the
+behaviour working; the trap is that **a carelessly NAMED field makes a successful measurement look
+broken**. Name probe fields neutrally, and have the page compute the assertion rather than
+returning material to be assessed here. Same family as sitting 3's synthetic `503`. *Two clicks by
+element `ref` also silently did nothing while the identical click by coordinate worked — noted for
+the next sitting that drives Chrome.*
+
+#### The negative controls
+
+| Control | Watched |
+|---|---|
+| **Task 9 row 1 — hide the `/fleet` ROUTE rather than the link** | Watched in **both halves without a second password**. The route left open: `/fleet` typed by hand as the instructor rendered **`FORBIDDEN — the fleet is a platform administrator's read (§26)`** with its hint, and no Fleet link in the nav. What hiding it would look like: `/projects/<id>/queue`, which has no screen, renders the console's own *"built by Task 11 of P5c"* sentence with **0 refusals** — the platform's answer never reaches the person. **That is the finding the row predicts**, and the refusal stays visible |
+| **Task 9 row 2 — render `state` without `why`** | Seven items rendered as `not_built — blocking` with **no reason, owner or `builtBy`**, and **all four gates green** once the edit's own blank line was tidied (F8). Restored by `git checkout`; tree clean |
+| **Task 9 row 3 — recompute `ready` from the items** | **COULD NOT FIRE, TWO WAYS (F7).** Both formulas answer `false` on the real payload, and the formula the row proposes is not the one a careless client would write |
+| **Task 10 row 1 — keep the secret after the panel closes** | Nothing goes red, exactly as the plan says; the comment is the only guard. Its POSITIVE half was measured instead: after dismissing and reloading, `localStorage` holds **0 keys**, `sessionStorage` 0, the URL is clean and the rendered text is clean — the secret lives in component state and nowhere else |
+| **Task 10 row 2 — `expired: revokedAt !== null`** | Run against the only state that can show it, a token **revoked and not expired**: the pill read **`expired`** while the platform answered `expired: false`, on a row simultaneously saying **`expires in 30d`**. Restored; pill back to `revoked` |
+| **Task 10 row 3 — mint a privileged capability** | Run **without touching the source**, by clearing `disabled` in the DOM as a curious person would: `400 TOKEN_CAPABILITY_FORBIDDEN — a delegated token may never hold members:manage (D24)` rendered by `<Refusal>`, and **no token created** (the project's list held only the two already minted). **The control is the platform's, which is the whole point** |
+| **The capability list is held to the document** (F2, new) | `tsc` watched failing **both** ways — one capability removed → *`is not assignable to parameter of type 'never'`*; one misspelt → *`TS2820 … Did you mean "quota:set"?`*. File restored byte-identically, hash checked |
+| **A delegated token really authenticates** (positive) | The screen's own secret, used by the page so it was never read here: `GET /v1/projects` → **`200` with exactly one project**, its own; `GET /v1/me` → **`403 TOKEN_CREDENTIAL_REFUSED`**, *"this action is only available in an interactive session (D24)"*. Authenticated, and refused that route — the right refusal |
+| **Revocation bites, and only the minter may revoke** | A second token, minted by `curl`: `200` before revoking, **`401 UNAUTHENTICATED`** after — the same `401` an unknown, expired or malformed token gets. The student, signed in separately, revoking the instructor's token → **`404 NOT_FOUND`**, never `403` |
+| **A platform role reaches a person only at the next sign-in** | The operator's session from *before* `admin-grant.sh` still read `role: member` and **`403`** on the fleet; jars removed and signed in again, `role: admin` and the fleet returned. Then, at the close, the gates' `pnpm test` truncated `users` and a fresh browser sign-in read `member` again with no Fleet link — the documented trap, seen from the console |
+
+**Every control ran AFTER its task was committed**, so `git checkout` restored exactly and
+`git status` proved it; the tree was clean after each. `grep -rn 'NEGATIVE CONTROL'
+packages/console/src` answers none.
+
+#### Gate numbers at the end of this sitting
+
+| Gate | Before | After |
+|---|---|---|
+| `pnpm test` | 1355 in 103 files | **1355 in 103 files** — unchanged, and no new test FILE: Tasks 9 and 10 add none, by Decision 7. Run twice at the baseline and twice at the close, 1355 every time |
+| `pnpm test:docker` | 178 in 29 files | **not run, and NOT owed** — both commits touch only `packages/console/src/`, and unlike sitting 5 this sitting ran no build and no deploy |
+| `make doctor` | 18/0 | **18/0** |
+| `make verify` | 51/0 | **51/0**, per-app `containers=3 networks=1 volumes=2`, runtime routes **0** — all exactly as found |
+
+`pnpm lint`, `pnpm typecheck` (`Scope: 5 of 6`) and `pnpm format:check` clean before both commits
+and at the close. **`vite build` after every change** (sitting 2's F4): 263.69 kB at the end, up
+from 255.13 kB.
+
+#### The machine
+
+Snapshotted before and after, and **the diff is the timestamp, the hostname, container uptimes and
+one gigabyte of free disk — nothing else**. No app was created or destroyed, because neither task
+builds or deploys. Both cleanup scripts were run bare at the close and **needed no `--apply`**:
+`dead-app-resources.sh` reads **`none dead`, 0 networks and 0 volumes**, and `litellm-orphans.sh`
+reads **0 orphaned**. App images stand at **29 lines / 27 distinct IDs / 0 by `^local/`** — the
+same three numbers sitting 5 left, because nothing was built. **NOTHING IS OWED TO RICH.**
+
+*A counting trap worth naming*: `docker images --format '{{.ID}}' | sort -u | wc -l` answers **69**,
+which is every image on the machine and **not** the app-image figure sitting 5 recorded. The app
+images are the ones tagged `127.0.0.1:7107/local/*`; the distinct-ID count among **those** is 27.
+This is a fourth way of counting the same thing, and it was very nearly written into this record as
+a movement that had not happened.
+
+**The hostname changed between the two snapshots** — `Richs-MBP.localdomain` → `host169-126.vpn.ubc.ca`
+— because the machine joined the UBC VPN during the sleep. Nothing broke, and §4's Cisco/dnsmasq
+note did not fire, but it is the first time a snapshot diff has shown it.
+
+**The control plane and `vite` both survived a nine-hour sleep** (pids 81557 and 65007, unchanged
+across it). That is one more data point for §4's rule and does **not** license the next sitting to
+assume it: check with `lsof`.
