@@ -4063,3 +4063,62 @@ occurrence, not by `grep -c`, which counts LINES and would answer 1 and 0 on lon
 `pnpm lint`, `pnpm typecheck` (`Scope: 5 of 6`) and `pnpm format:check` clean. **`format:check`
 caught the new test file** and nothing else did — `.test.ts` is Prettier's like any other file
 under `packages/`.
+
+#### The post-sweep check — three wrong numbers, all in this sitting's own hand-off
+
+*§6 says to re-read your own §7e as a cold agent and CHECK its claims by opening what they
+point at and counting. It has now found a defect in every P5b sitting from the third onwards
+and in all three P5c sittings.* **Three here, and every one was found by running a command:**
+
+1. **"23 `local/*` app images" — wrong, and THE FIRST CORRECTION WAS WRONG TOO.** The 23 was
+   **inherited verbatim from sitting 2's §7e**, and *this sitting's own Docker tier built four
+   more* — so the sentence was true when written, copied forward, and false by the time it was
+   copied: §6's warning about a wrong pointer being multiplied, in the direction that is not a
+   typo but DECAY. The first repair said **29**, from `docker images | grep -c '/local/'`. Then
+   the machine snapshot showed only **four** new image lines, which did not reconcile — and
+   counting three ways settled it: **29 lines** (five repos have several `<none>` entries, so
+   lines ≠ images), **28** rows in `snapshot-machine.sh`'s list, and **27 distinct image IDs**.
+   **Three metrics, three answers, one machine** — exactly what §2's *Outstanding* note already
+   records for `docker system df` (46) against `docker images -q | wc -l` (53). It now says
+   **27 by distinct image ID** and names all three. *The lesson is not "count images"; it is
+   that a number which does not reconcile with a second measurement is not yet a number.*
+2. **"`pnpm test` ran four times" — it ran SIX**, counted from the captured output files
+   (`test1`, `test2`, `t4a`, `t4b`, `g1`, `g2`), plus one `pnpm test:docker`. Estimated from
+   memory of the session, which is exactly what §6 says not to do — and the identical defect to
+   sitting 2's own post-sweep item 4.
+3. **"seven files under `packages/console/src/`" — eight.** `git show --name-only` on the task
+   commit lists `api.ts`, `app.tsx`, `auth.test.ts`, `auth.ts`, `boundary.test.ts`, `router.ts`,
+   `styles.css`, `ui.tsx`. The total of 13 changed files was right; the breakdown was not, which
+   is the kind of error that survives a sanity check on the total.
+
+**Four claims were checked and HELD**, which is worth recording because a check that only ever
+finds errors is not being run honestly: `git ls-files packages/console` really is **13**;
+`packages/control-plane/drizzle/0018_curvy_sister_grimm.sql` really is the newest migration and
+the path really is not the repository root; **7104, 7102 and 7105 are free** and 7100 is
+listening, by `lsof`; and the app containers really are **`token-app` only, exactly three**.
+
+#### Documents checked and deliberately NOT changed
+
+*§6 asks that this be said rather than assumed.* **`manifest-decisions.html` and
+`manifest-stories.html` were opened and left alone**: the first states D22 as a *decision*
+("this project builds its own basic web console early, deliberately restricted…"), which this
+sitting carries out rather than contradicts, and the second's only console mention is a story
+beat about a person who never opens it. **`manifest-schematic.html` and `manifest-phases.html`
+WERE changed** — three disclaimers and two status lines — because this sitting is the one that
+made them false. *No spec change, and none needed: §21 already places the console on 7104.*
+
+#### The machine
+
+Snapshotted before and after. **What this sitting changed and did not put back is entirely the
+Docker tier's doing**, and it is owed to Rich: **seven dead app networks, one dead volume and
+one LiteLLM orphan** (`p4b-probe-user`), named in §7e and re-derived by the two scripts run bare
+at close. **This is the third measured time `pnpm test:docker` regenerates exactly that set**
+(P5b sitting 9 and P5c sitting 1 were the first two), so it is a property of the tier rather
+than a backlog. `make verify`'s per-app meter reads **`containers=3 networks=8 volumes=3`**,
+which is the expected reading after a tier run and not a fault. **App images went 23 → 29**,
+which neither script covers. **Every server this sitting started was stopped by PORT**: `vite`
+on 7104 (three times — once for the browser work, once for the classifier's truth table, once
+after the impostor) and the throwaway impostor server, all confirmed gone by `lsof`. **The
+control plane on 7100 was left running** and was restarted after the Docker tier, which
+re-registers the platform's SP row at a loopback ACS — but §7e tells the next sitting to check
+that with `lsof` rather than believe it, because a sitting is one session.

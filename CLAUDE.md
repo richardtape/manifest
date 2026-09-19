@@ -75,8 +75,9 @@ one and they came back. **The cycle is the thing to understand, not the status**
 has been measured putting back exactly the same seven networks and one volume** (P5b sitting 9 and
 P5c sitting 1 were the first two), so treat it as a property of the Docker tier rather than as a
 backlog: **none of these cleanups stays cleared on its own**, and every demo adds a LiteLLM user
-besides. **One thing neither script covers is app images** — 23 stand
-today, which is not urgent but is nobody's job until somebody re-derives the held set. **Name the
+besides. **One thing neither script covers is app images** — 27 stand
+today by distinct image ID, a number every Docker-tier run moves, and three ways of counting
+them answer 29, 28 and 27 (ORIENTATION §7e names all three), which is not urgent but is nobody's job until somebody re-derives the held set. **Name the
 metric**: they are tagged `127.0.0.1:7107/local/*`, so `docker images | grep '^local/'` answers
 **0** and reads as *none*. **So run both scripts bare at a sitting's close and hand the output to Rich**, who
 applies; never work from a written list. **The permission classifier is not a
