@@ -118,6 +118,56 @@ page has no form for writing a note; the demos write them. **Signing out worked 
 2026-09-16** (the IdP refused every app's return address, and the app never answered the IdP's
 logout request); tested in Chrome that day, and `make demo-identity`'s step 9 now does the same.
 
+### The console — §22's journey, clicked
+
+**`make demo-console`** builds the client and the console, checks the control plane answers
+through the edge, serves the console on 7104 and prints this checklist. Then open
+**https://console.manifest.internal/**. Stop it with Ctrl-C; it stops its own preview server.
+
+**Four things to know before you start**, each of which has caught somebody:
+
+- **The build's last ten seconds are silent.** BuildKit prints `DONE` and then §12's scan runs
+  inside the build with no log line and no event, so the log looks finished while the pill still
+  reads `running` — measured at 9.7 s and 11.3 s. **Wait for the pill, not the log**; pressing
+  *Release this build* early is answered `409 RELEASE_BUILD_NOT_DEPLOYABLE`.
+- **A failed deploy is a `200`.** Its state is `failed` and *the previous instance keeps serving*,
+  so *what is serving* and *what the last attempt did* are two different questions and the screen
+  answers both.
+- **Sign the student in before anything needs a member.** `POST /v1/projects/{id}/members` answers
+  `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in, and `pnpm test` empties `users`
+  on every run.
+- **The sign-in has a ten-minute clock.** `manifest_login` carries `Max-Age=600`, so a sign-in left
+  sitting on the IdP page loses its `returnTo` and lands you on `/` instead of the screen you asked
+  for. If that happens, it is the clock, not the router.
+
+| # | Click | What must be true |
+|---|---|---|
+| 1 | open `https://console.manifest.internal/` | the sign-in screen — not a blank page, not a `502` |
+| 2 | **Sign in with CWL** (`instructor` / `instructor`) | lands back on `/`; the header reads **Instructor One** and `ins000001` |
+| 3 | type a name into **Create a project** | the availability answer changes **as you type**, and `edge` is refused as a reserved label, with the reason |
+| 4 | choose `node-ts-mongo@1` + `proof-app`, *a class*, *all at once*, **Create** | lands on the project, and **Activity already shows three events** — created, seeded, validated — from the replay |
+| 5 | **Build** | the state is `running` **at once**, and log lines arrive while it runs |
+| 6 | wait | it ends `succeeded` **with no reload**, and the scan summary is shown |
+| 7 | **Release this build**, then **Deploy to staging** | instance states arrive live: provisioning → sso.registered → starting → healthy |
+| 8 | click the staging URL, sign in inside the app (`student` / `student`) | the app knows who you are; **write a note**; **ask the LLM** and get an answer from your own note |
+| 9 | back in the console, **Request production** | `LaunchReadiness`: `ready: false`, every item with its `why`, and `builtBy` naming the plan that builds it |
+| 10 | **Tokens** → mint one | the secret is shown **once**; reload and it is gone; the privileged four cannot be ticked |
+| 11 | in a terminal, the agent asks to add `stu000001` as a member | `403 TOKEN_ACTION_PENDING` |
+| 12 | **Queue** | the question is there **within a second**, with its age and the token that asked |
+| 13 | **Confirm** | the agent's retry with the **same** key succeeds `201`, **once** |
+| 14 | the agent asks again with a **fresh** key, and you **Reject** with a reason | the agent is answered `403 TOKEN_ACTION_REJECTED` **carrying your words** |
+| 15 | navigate to `/fleet` | `403 FORBIDDEN`, rendered — the console holds no authority of its own |
+| 16 | **Sign out** | back to the sign-in screen |
+
+**Row 8 is the one that proves the journey is whole**, and rows 11–14 are D24's loop operated by a
+person rather than by `curl`.
+
+**Driving the console with no platform at all.** `manifest-mock` serves the same contract from
+fixtures in one process — no Docker, no Postgres, no control plane, and it signs its own cookie so
+nobody signs in. RUNBOOK's *Running `manifest-mock`* has the commands and, more usefully, what a
+green run against it does **not** prove: among other things it does not know §23's reserved
+labels, so row 3's refusal cannot be seen there.
+
 ### Manifest itself — the control plane
 
 **https://console.manifest.internal/auth/login?returnTo=/v1/me** → sign in as `instructor` /
