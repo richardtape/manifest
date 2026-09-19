@@ -23,7 +23,7 @@ Manifest runs on one Mac. **Almost everything is a container**; two things run o
 | **The proof app** | `https://proof-app.staging.manifest.internal` | §16's application: CWL sign-in, private notes, an AI answer |
 | **The fixture app** | `https://fixture-app.staging.manifest.internal` | P3's trivial app — proves a build and a deploy, nothing more |
 
-**What works today** *(status, as of P5b sitting 7, 2026-09-18)*: through Manifest's API — under `/v1`, at `https://console.manifest.internal`, which only the host can reach, and which refuses a session-bearing change that does not come from that origin — create a project, push code, validate its
+**What works today** *(status, as of P5b EXECUTED — 2026-09-18)*: through Manifest's API — under `/v1`, at `https://console.manifest.internal`, which only the host can reach, and which refuses a session-bearing change that does not come from that origin — create a project, push code, validate its
 `manifest.yaml`, build it through the platform's security gates, release it and deploy it
 to staging; sign a person in with practice CWL; keep each person's data theirs; answer
 questions through a per-app AI key charged to the person who asked; stream build logs and
@@ -188,7 +188,7 @@ streams `instance.provisioning`, then `instance.starting`, then `instance.health
 | `make demo`, `make demo-identity`, `make demo-ai` | The acceptances, end to end, through the real API and the edge | `make up` and the control plane | 1–3 min each |
 | `make demo-redeploy` | P4c's acceptance, **green** — a redeploy that interrupts nobody and signs nobody out | `make up` and the control plane | ~3 min |
 | `make demo-journey` | **P5a's acceptance** — §22's journey through the edge by nothing but the client generated from the OpenAPI document, **all 8 steps**: sign in, create, stream, build, release, deploy, enter the app with CWL, be refused production with §13's checklist, and read the fleet as an administrator. Green three times on 2026-09-17, the third from a `make reset` machine, and now step 8 of `scripts/offline-acceptance.sh` | `make up` and the control plane | ~4 min |
-| `make demo-token` | **P5b's acceptance** — D24's loop through the edge, on `token-app`: an instructor mints a delegated token, the agent holding it builds and deploys to staging on its own authority, is refused the fleet and a production promotion, asks to add a member and is handed a question, the instructor confirms it, and the agent's own retry succeeds **once** — then a fresh ask is rejected and the token is revoked. Its acceptance run is Task 13's | `make up` and the control plane | ~40 s |
+| `make demo-token` | **P5b's acceptance** — D24's loop through the edge, on `token-app`: an instructor mints a delegated token, the agent holding it builds and deploys to staging on its own authority, is refused the fleet and a production promotion, asks to add a member and is handed a question, the instructor confirms it, and the agent's own retry succeeds **once** — then a fresh ask is rejected and the token is revoked. **It is green from a `make reset` machine and is step 9 of the offline acceptance** (Task 13, 2026-09-18) | `make up` and the control plane | ~30 s |
 | `scripts/offline-acceptance.sh` | C1: all of it with the network off | **a person** — turning the network off cuts an agent off too | not yet run end to end |
 
 **All four gates must be clean before a commit**, and `pnpm test:docker` too when a change

@@ -1,0 +1,150 @@
+P5b Task 13 — the acceptance: raw results, 2026-09-18
+macOS 26.6.2 (25G83), Node 24.12.0, pnpm 11.24.0, Docker Engine 29.7.2, git HEAD 539467f
+
+=============== THE THREE ACCEPTANCE RUNS (make demo-token, nine steps, through the edge)
+
+--- run 1 ---
+1. Signed in as the instructor, who owns the project (§20, D24)
+2. The instructor mints a delegated token for the agent (D24)
+3. The agent reads its own project — and cannot read the fleet
+4. The agent builds — 202 at once, and it ends on the agent’s own stream
+5. The agent deploys to staging — and may not promote to production
+6. The agent asks to add a member — 403 TOKEN_ACTION_PENDING
+7. The instructor sees it in the queue, and confirms it
+8. The agent retries — it succeeds, once, and only once
+9. The instructor revokes the token, and its next call is 401
+every check passed
+  (token minted: 4 capabilities, expires 2026-09-20T00:18:40.965Z, 600 requests a minute)
+  (build ended 17079 ms after the token asked for it)
+  (deployed release 8dba68b3-8b0e-4342-aa51-6c0566ec15fd to staging at https://token-app.staging.manifest.internal)
+  (pending action c71df544-410c-4bdd-8312-b93ef19a0145 waited 43 ms for a human; the platform recorded 0 s)
+  (retry 1: 201; retry 2, same key: 201 replayed; retry 3, new key: 403 TOKEN_ACTION_PENDING)
+ok checks: 64
+
+--- run 2 ---
+1. Signed in as the instructor, who owns the project (§20, D24)
+2. The instructor mints a delegated token for the agent (D24)
+3. The agent reads its own project — and cannot read the fleet
+4. The agent builds — 202 at once, and it ends on the agent’s own stream
+5. The agent deploys to staging — and may not promote to production
+6. The agent asks to add a member — 403 TOKEN_ACTION_PENDING
+7. The instructor sees it in the queue, and confirms it
+8. The agent retries — it succeeds, once, and only once
+9. The instructor revokes the token, and its next call is 401
+every check passed
+  (token-app exists from an earlier run — reused)
+  (token minted: 4 capabilities, expires 2026-09-20T00:19:25.387Z, 600 requests a minute)
+  (build ended 16080 ms after the token asked for it)
+  (deployed release cb74490b-05be-422c-b960-4d4e36725256 to staging at https://token-app.staging.manifest.internal)
+  (pending action c4ba680a-f840-47ef-8e93-8c33d0fd5a3d waited 49 ms for a human; the platform recorded 0 s)
+  (retry 1: 201; retry 2, same key: 201 replayed; retry 3, new key: 403 TOKEN_ACTION_PENDING)
+ok checks: 63
+
+--- run 3 ---
+1. Signed in as the instructor, who owns the project (§20, D24)
+2. The instructor mints a delegated token for the agent (D24)
+3. The agent reads its own project — and cannot read the fleet
+4. The agent builds — 202 at once, and it ends on the agent’s own stream
+5. The agent deploys to staging — and may not promote to production
+6. The agent asks to add a member — 403 TOKEN_ACTION_PENDING
+7. The instructor sees it in the queue, and confirms it
+8. The agent retries — it succeeds, once, and only once
+9. The instructor revokes the token, and its next call is 401
+every check passed
+  (token minted: 4 capabilities, expires 2026-09-20T01:01:53.570Z, 600 requests a minute)
+  (build ended 18090 ms after the token asked for it)
+  (deployed release 69212b3b-52cf-4c12-9177-cda82b1dfe94 to staging at https://token-app.staging.manifest.internal)
+  (pending action cf31c68c-a52f-4e58-a4fb-d5afcb91a2be waited 53 ms for a human; the platform recorded 0 s)
+  (retry 1: 201; retry 2, same key: 201 replayed; retry 3, new key: 403 TOKEN_ACTION_PENDING)
+ok checks: 64
+
+run 1: from a database the sitting's baseline `pnpm test` had truncated (CREATE path)
+run 2: run 1's machine (RE-USE path). One check fewer: 'created token-app from the proof-app starter'
+run 3: from 'echo reset | make reset', then make up, db:migrate, the control plane (CREATE path)
+
+=============== THE TWELVE NEGATIVE CONTROLS
+
+--- control a ---
+steps that EXECUTED: 6
+  FAIL promoting the same release to production is D24’s refusal, not the launch gate — 403 FORBIDDEN
+  FAIL refused — and the code is TOKEN_ACTION_PENDING, so D24’s loop has started — 403 FORBIDDEN
+  FAIL and the refusal carries the question a person must answer (D23.7)
+3 FAILED:
+
+--- control b ---
+steps that EXECUTED: 9
+  (retry 1: 201; retry 2, same key: 201 replayed; retry 3, new key: 403 TOKEN_ACTION_PENDING)
+
+--- control e ---
+steps that EXECUTED: 9
+  (retry 1: 201; retry 2, same key: 201 replayed; retry 3, new key: 403 TOKEN_ACTION_PENDING)
+
+--- control t1 ---
+steps that EXECUTED: 6
+  FAIL promoting the same release to production is D24’s refusal, not the launch gate — 403 FORBIDDEN
+  FAIL refused — and the code is TOKEN_ACTION_PENDING, so D24’s loop has started — 403 FORBIDDEN
+  FAIL and the refusal carries the question a person must answer (D23.7)
+3 FAILED:
+
+--- control t2 ---
+steps that EXECUTED: 8
+  FAIL and the grant is now spent — consumedAt is stamped AFTER the handler resolved — {"state":"confirmed","consumedAt":null}
+  FAIL but a FRESH key is a new question — the grant was for one request, and it is spent — 201 (no envelope) 
+  FAIL the new question
+3 FAILED:
+  (retry 1: 201; retry 2, same key: 201 replayed; retry 3, new key: 201 )
+
+--- control t3 ---
+steps that EXECUTED: 9
+  FAIL the AGENT cannot confirm its own question — 403 TOKEN_CREDENTIAL_REFUSED — 403 TOKEN_ACTION_PENDING
+1 FAILED:
+  (retry 1: 201; retry 2, same key: 201 replayed; retry 3, new key: 403 TOKEN_ACTION_PENDING)
+
+--- control t4 ---
+steps that EXECUTED: 9
+  FAIL the fleet is refused — 403 TOKEN_CREDENTIAL_REFUSED, not 403 FORBIDDEN — 403 FORBIDDEN
+1 FAILED:
+  (retry 1: 201; retry 2, same key: 201 replayed; retry 3, new key: 403 TOKEN_ACTION_PENDING)
+
+--- control t5 ---
+steps that EXECUTED: 9
+  FAIL the agent’s next call is 401 UNAUTHENTICATED — the same answer any bad token gets — 200 (no envelope)
+1 FAILED:
+  (retry 1: 201; retry 2, same key: 201 replayed; retry 3, new key: 403 TOKEN_ACTION_PENDING)
+
+tier controls (vitest), each restored and the tree proved clean:
+  (a) reorder          -> delegation.test.ts 20 of 35 red; authz-contract.test.ts 6 of 361 red
+  (b) secretMatches === -> NOTHING: pnpm test 1342 passed, 101 files. Now asserted (token.test.ts)
+  (c) mint filter gone  -> tokens.test.ts 1 red: 'refuses to mint a token holding a privileged capability'
+  (d) PRIVILEGED gutted -> privileged.test.ts 2 red; delegation.test.ts 1 red ('a capability with no route')
+  (e) scope check gone  -> credential.test.ts 1 of 16 red; authz-contract.test.ts 21 of 361 red
+
+=============== THE GATES, at close
+pnpm test        1344 passed, 101 files (run twice, identical)
+pnpm test:docker 178 passed, 0 skipped, 29 files, 790.66 s
+pnpm lint / typecheck / format:check   clean
+make doctor      18 checks, 0 failed, 0 warnings
+make verify      51 checks, 0 failed, 0 warnings
+
+=============== THE MACHINE, at close (measured, not narrated)
+projects=0 users=0 routes=0 delegated_tokens=0 pending_actions=0 admins=0
+  (the gates' pnpm test ran after the last demo and truncates)
+app container: mf-token-app-staging-69212b3b-8fa6be55-app
+app container: mf-token-app-staging-db
+app container: mf-token-app-staging-egress
+runtime routes currently applied: 0 — token-app answers the edge's WILDCARD, checked
+  against a name nothing ever deployed, which answers byte-identically
+
+owed to Rich (agent refused 'docker network rm' as [Interfere With Workloads]):
+  DEAD   mf-blueprint-ntm-staging-net — no mf-blueprint-ntm-* container of any state; only the platform neighbours attached
+  DEAD   mf-chem-labs-staging-net — no mf-chem-labs-* container of any state; only the platform neighbours attached
+  DEAD   mf-fixture-rt-staging-net — no mf-fixture-rt-* container of any state; only the platform neighbours attached
+  DEAD   mf-fixture-s6-staging-net — no mf-fixture-s6-* container of any state; only the platform neighbours attached
+  DEAD   mf-fixture-s6nb-staging-net — no mf-fixture-s6nb-* container of any state; only the platform neighbours attached
+  DEAD   mf-saml-probe-staging-net — no mf-saml-probe-* container of any state; only the platform neighbours attached
+  DEAD   mf-saml-unsigned-staging-net — no mf-saml-unsigned-* container of any state; only the platform neighbours attached
+  KEEP   mf-token-app-staging-net — 3 container(s) named mf-token-app-* still exist
+  DEAD   mf-chem-labs-staging-db-data — no container of any state holds it
+  KEEP   mf-token-app-staging-69212b3b-8fa6be55-app-files — held by mf-token-app-staging-69212b3b-8fa6be55-app
+  KEEP   mf-token-app-staging-db-data — held by mf-token-app-staging-db
+Nothing was changed. 7 network(s) and 1 volume(s) are dead.

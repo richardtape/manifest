@@ -32,7 +32,7 @@
 | 6 | 8–9 | **The queue** (§26's primary screen, as a read) and **per-token rate limits** | ✅ **DONE 2026-09-18 — 12 findings, 2 commits.** Three routes, and D24's fourth privileged action made reachable. **A `204` was not expressible** — `SuccessStatus` is `200 \| 201 \| 202`, so the removal answers `200` with `MemberList`. **The removal is idempotent**, which is what lets the authz matrix express it without a per-actor fixture. **TWO of Task 9's four tests were green before the limiter existed** — both were "is not limited" claims, true of a platform that limits nothing. **The roadmap's defect-rate table had no P5b rows at all**, five sittings running |
 | 7 | 10–11 | **Expiry** for both entities, and **the authorization contract suite's token actors** — the matrix roughly doubles | ✅ **DONE 2026-09-18 — 15 findings, 6 commits** — the two tasks are `9d05fd9` and `dfdfe94`; the rest are the close-out. Migration **0018**. Sitting 5's F10 is discharged by a partial unique index, and **a boot-only sweep does not make that index safe** — a stale `pending` row blocks the same question for ever, so the sweep also runs scoped to the token before the insert. The matrix is **361 tests in 3.5 s** (was 196), `Expectation` is now a (status, code) pair, and completeness for the actor dimension is **`tsc`**. **Adding a `now` parameter to `toToken` made every token in every list read `expired: false`** — `.map` passes the index. **The plan's own `Promise.all` control could not fail on a cold pool**, and 160 token cases passed on the first run, so the bearer was withheld: 140 go red |
 | 8 | 12 | **`make demo-token`** — an agent runs the build loop on a token, is refused twice, a human confirms, and the retry succeeds | ✅ **DONE 2026-09-18 — 16 findings, 2 commits** (`5955dd6`, `03dedc8`). No migration. D24's loop runs end to end through the edge on its own project, `token-app`. **`subscribe` could not carry a delegated token at all** — Task 5 gave the client one and nothing gave the stream one, so an agent could start a build and had nothing to watch it end on; nothing server-side could see it. **The journey's import boundary matched English prose** in a doc comment and turned `pnpm test` red on a file with no forbidden import. **Three of the five controls answer `403` for the wrong reason**, and the no-bearer control reported ONE red check until step 3 stopped throwing — then six. `make demo-journey` green |
-| 9 | 13 | **The acceptance**, three times, once from a `make reset` machine, with its negative controls. **Alone, and last** | ← next |
+| 9 | 13 | **The acceptance**, three times, once from a `make reset` machine, with its negative controls. **Alone, and last** | ✅ **DONE 2026-09-18 — 7 findings, 2 commits** (`fe174ca`, `539467f`) plus the close-out. No migration. **P5b IS EXECUTED.** `make demo-token` is step 9 of the offline acceptance and ran green three times — truncated database, re-use path, and an `echo reset | make reset` machine. **Task 13's control (a) is VISIBLE, not invisible as sitting 8's F10 predicted**: a token that does NOT hold the privileged capability is refused by a different rule with a different code, and that is every real token. **Control (b) is invisible to all 1342 tests AND the acceptance**, so the secret comparison's timing-safety is now asserted at the source. **After `make reset` the host could not reach the edge while a container could** — intermittent, remedy in the RUNBOOK |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -3851,3 +3851,115 @@ restarted for every one — a source swap that does not reach it proves nothing 
 files** — unchanged, and Task 12 adds no Docker test. `make demo-token` green on the CREATE
 path and on the REUSE path. `make demo-journey` green, all eight steps, because this task
 changed `subscribe`, which the journey's own stream goes through.
+
+### Sitting 9 — 2026-09-18 — Task 13, the acceptance — 8 findings
+
+**What it made true.** P5b is EXECUTED. `make demo-token` is step 9 of
+`scripts/offline-acceptance.sh`, it ran green **three times** — from a truncated database,
+on the re-use path, and from an `echo reset | make reset` machine — and **twelve negative
+controls were watched**, five of them from Task 12's table and five from Task 13's own, each
+restored with the working tree proved clean afterwards. Two commits before the close-out,
+`fe174ca` and `539467f`. No migration.
+
+**The runs.** Each is `make demo-token`, nine steps, through the edge.
+
+| Run | Path | Checks | Wall | From |
+|---|---|---|---|---|
+| 1 | create | 64 ok | 27 s | a database this sitting's baseline `pnpm test` had truncated |
+| 2 | re-use | 63 ok | 26 s | run 1's machine — the one check fewer is *created token-app from the proof-app starter*, which only the create path makes |
+| 3 | create | 64 ok | 32 s | `echo reset | make reset`, `make up`, `db:migrate`, the control plane, then the demo |
+
+**A decision this sitting made: the controls ran BEFORE run 3, not after.** Task 13's steps
+are written runs-then-controls. Each control needs the demo to pass on the near side of the
+break it makes (sitting 8's F7), and the machine after runs 1 and 2 was exactly the state
+those runs had proved; resetting first would have bought nothing and cost a create-path run
+per control. Run 3 therefore also leaves the machine in its pristine post-reset state, which
+is the better thing to hand over. *Rejected: the literal order, which would have re-proved
+the same controls on a machine no different from the one they were watched on.*
+
+#### The finding to read if you read nothing else
+
+**F1 — Task 13's control (a) is VISIBLE, and sitting 8's F10 predicted it wrong in the
+direction that matters.** F10 said the demo's token cannot hold a privileged capability, so
+moving D24's privileged rule after the token's own capability set would be invisible to the
+acceptance, and it asked Task 13 to file (a) beside (c), (d) and (e); §7e repeated that in
+advance. Measured: the swap turns **three checks red**, in steps 5 and 6 —
+*promoting the same release to production is D24's refusal, not the launch gate* answers
+`403 FORBIDDEN`, step 6's *refused — and the code is TOKEN_ACTION_PENDING* answers
+`403 FORBIDDEN`, and the question it should have carried is never written — after which
+steps 7, 8 and 9 never run.
+
+**The reasoning was inverted.** Sitting 4's F1 found the ordering control unfailable *for a
+token that HOLDS the privileged capability*, because both orders refuse such a token
+identically. A token that does NOT hold it is refused by a **different rule with a different
+code**: the set check answers the ordinary `FORBIDDEN` and D24's loop never starts. The
+acceptance's token holds `project:read`, `build:create`, `release:create` and
+`release:deploy` — so it is precisely the case sitting 4 added its twelfth test for,
+*opens the loop for a token minted WITHOUT the capability — which is every real token*. **The
+fixtures were the blind ones and the real token is the one that sees it.** It is visible in
+the named tier too: **20 of `delegation.test.ts`'s 35 go red**, the first being that twelfth
+test, and **6 of the authz matrix's 361**.
+
+*The general form, and it is the reason this sitting exists: a prediction that a control is
+invisible is itself a claim to be measured. F10 was written by the sitting that had just
+watched five controls and was right about the other four.*
+
+#### Every finding
+
+| # | Finding |
+|---|---|
+| F1 | **Above.** |
+| F2 | **Control (a) and Task 12's *privileged branch removed* are INDISTINGUISHABLE from the acceptance** — the same three checks, in the same two steps, with the same two codes. The demo can say D24's central rule is *gone or reordered*; only `delegation.test.ts` says which. Worth stating because the two breaks have different fixes. Separately, **removing only the branch inside `assertCapability` is a SHARPER control than sitting 8's `isPrivileged` always false**, which turned four checks red across steps 2, 5 and 6 because the mint route reads the same function: isolating the central rule leaves step 2's mint refusal green, so the acceptance distinguishes *the platform refused the agent* from *nobody ever gave the agent the capability*. |
+| F3 | **Control (b) is invisible to EVERYTHING, measured rather than predicted — and timing-safety is now asserted.** Replacing `secretMatches`'s body with `hashSecret(secret) === storedHash` leaves **all 1342 unit tests green** and `make demo-token` **green through all nine steps**. Task 13 offered two answers, *record it as unasserted* or *assert timing-safety directly*; the measurement is what makes the second one obviously right, because the property is the last line between a stolen token id — which is in the plaintext, in front of the `_` — and an offline search for its secret. `tokens/token.test.ts` now asserts it at the SOURCE level, following `packages/journey/src/boundary.test.ts`: comments are stripped before the scan (this file's own prose names `timingSafeEqual`), the body must contain `hashSecret(` so a stripper that ate the source cannot pass, and the scanner's two claims are tested directly. Watched failing three ways — `timingSafeEqual` removed, a `===` fast path left in front of a still-present `timingSafeEqual`, and the scanner's own control. **The second of those is the realistic regression and only the second assertion sees it.** A wall-clock timing test is deliberately not written: a threshold on a laptop under Docker is a flake generator. |
+| F4 | **The first draft of that assertion could not fail**, and its own positive control is what caught it. `not.toMatch(/storedHash\s*[!=]==/)` was green against `hashSecret(secret) === storedHash` — the operator comes BEFORE `storedHash`, not after — so the check that was supposed to see an ordinary string comparison could not see the only form the code actually takes. It was found by the synthetic-source test written beside it, which asserts the regex DOES match the bad form; the regex now names both operand orders. **`not.toMatch` is the assertion shape most likely to pass vacuously**, and the positive control belongs in the same file, which is the structure sitting 8's F3 prescribed for a different scanner. |
+| F5 | **A tier control pointed at a path that matches no file reads exactly like a control where nothing went red.** Control (d) was first run against `src/api/privileged.test.ts`; that file is at `src/projects/privileged.test.ts`. Vitest printed `No test files found, exiting with code 1` — and the harness's output filter, which kept only failure and summary lines, **swallowed the one line that said nothing had run**, leaving an empty result under the file's name. It was noticed only because §20's alignment test going green while its set was gutted is not believable. Re-run at the right path it is **2 red in `privileged.test.ts` and 1 in `delegation.test.ts`**. Same shape as sitting 8's F3 fix and as sitting 6's F5: **a filtered run must assert that something RAN**, not merely that nothing failed. |
+| F6 | **After `make reset`, the host could not reach the edge and a container could — and it is INTERMITTENT.** Run 3's first attempt died in the demo's own preflight with `curl: (35) Recv failure: Connection reset by peer` against `https://console.manifest.internal`. `make verify` reported **11 of 51 failed, every one of them that same reset**, while *host and container see a byte-identical hostname and scheme* failed with its container half printing `manifest OK host=edge.manifest.internal scheme=https` — so Caddy was serving and only the host side of `127.0.0.2:443` was dead. The alias was present (`ensure-alias.sh` exits 0 when it is), the control plane answered `401` on `127.0.0.1:7100`, and `manifest-caddy` was up and healthy. **`docker restart manifest-caddy` cleared it completely**, after which run 3 was green and `make verify` 51/0. **NOT reproduced** by `make down && make up`, nor by `down` + a partial `compose up -d --wait registry` + `make up` — the platform network kept its id through both — so the trigger is not isolated and this is not a deterministic property of `make reset`. **What is reliable is the detection and the remedy**, and both are now in the RUNBOOK: after a reset, run `make verify` before any demo; host-side edge checks failing while the container-side one passes means restart the edge. **The demo behaved well** — its preflight asserts the ANSWER rather than that an answer arrived, so this surfaced in three seconds with a message naming the cause instead of mid-run as a confusing failure. |
+| F8 | **One `pnpm test:docker` run recreates EXACTLY the seven dead app networks and the one volume that were cleared by hand earlier the same day** — `mf-blueprint-ntm-`, `mf-chem-labs-`, `mf-fixture-rt-`, `mf-fixture-s6-`, `mf-fixture-s6nb-`, `mf-saml-probe-` and `mf-saml-unsigned-staging-net`, plus `mf-chem-labs-staging-db-data`. The before-snapshot had none of them; the after-snapshot has all eight, and the only thing in this sitting that deploys `chem-labs` or `saml-probe` is the Docker tier. **So ORIENTATION's *the list will grow again* understates it: this is not a backlog accumulating slowly, it is a fixed set the tier regenerates on every run**, and `make verify`'s per-app INFO line went `networks=1` → `networks=8` for ONE live app across a single `pnpm test:docker`. A hand-written list is therefore stale by the next run, which is why the hand-over is now a script that re-derives: **`scripts/dead-app-resources.sh`**, modelled on `scripts/litellm-orphans.sh` and following the same split — an agent runs it bare and hands the output over, Rich runs it with `--apply`. **`docker network rm` was refused again** as *[Interfere With Workloads]*, so the split is not a preference. A network is called dead only when NO container of any state is named `mf-<app>-*` **and** the only things attached are `manifest-caddy` and `manifest-dns-containers`; the stopped-container half is the one that matters, because a network removed under a stopped container leaves it unable to start (§4). Its keep branch was exercised in the same run — `mf-token-app-staging-net` and both of token-app's volumes are correctly KEPT — *and its third-party-attached branch was NOT exercised, which is stated rather than claimed.* |
+| F7 | **`db:migrate` after a reset needs the admin URL exported, and its failure names nothing.** `set -a; . ./.env; set +a` is not enough: `MANIFEST_ADMIN_DATABASE_URL` is DERIVED in README's block, not stored in `.env`, and without it `drizzle-kit migrate` fails with `[x] url: undefined` and `ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL`, which names neither the variable nor the file. Task 13's Step 3 and §7e both say the post-reset order is *`db:migrate`, then the control plane, then the demos* without saying the exports must already be in the shell. Now said, in both. |
+
+**Twelve negative controls, each watched and restored, with `git status` proved clean between
+each.** The control plane was killed by PID, rebuilt and restarted for every one of the eight
+that are under `src/` — a source swap that does not reach `dist/` proves nothing (P5a sitting
+12).
+
+*Task 12's table, re-watched against the acceptance as it now stands:*
+
+| Break | What went red |
+|---|---|
+| the privileged branch removed from `assertCapability` | **Three, in steps 5 and 6** — the production promotion (`403 FORBIDDEN`), step 6's refusal (`403 FORBIDDEN`, the dead end) and the question it should have carried. Steps 7–9 never ran |
+| `consumeAction` never called | **Three, in step 8** — *the grant is now spent* (`consumedAt: null`), *a FRESH key is a new question* (**`201`**) and the question therefore never created. The measurement line reads `retry 3, new key: 201`, which is F9's escalation in one line. Step 9 never ran |
+| `requireSession` reverted on confirm | **One, in step 7 and NOT step 6**, as the table asks — *the AGENT cannot confirm its own question*, answered `403 TOKEN_ACTION_PENDING` rather than `403 TOKEN_CREDENTIAL_REFUSED` |
+| `requireSession` reverted on the fleet | **One, in step 3** — *the fleet is refused*, answered `403 FORBIDDEN` |
+| revocation ignored at authentication | **One, in step 9** — *the agent's next call is 401*, answered **`200`** |
+
+*Task 13's own five. Four of the five predictions held; (a) did not.*
+
+| | Break | In `make demo-token` | In the tier |
+|---|---|---|---|
+| a | the privileged rule moved after the token's own set | **VISIBLE — three red** (F1), not invisible as predicted | `delegation.test.ts` **20 of 35**; the authz matrix **6 of 361** |
+| b | `secretMatches` replaced by `===` | **green, all nine steps** — as predicted | **nothing: all 1342 green.** Now asserted (F3) |
+| c | the mint-time privileged filter removed | not exercised — the demo asserts the refusal, and removing it makes the mint succeed rather than fail | `tokens.test.ts` **1 red**, the named test |
+| d | `secret:read` and `quota:set` dropped from `PRIVILEGED` | **cannot be exercised** — no route (Decision 14) | `privileged.test.ts` **2 red**, `delegation.test.ts` **1 red**, the named test (F5) |
+| e | the scope check dropped | **green, all nine steps** — as predicted | `credential.test.ts` **1 red**; the authz matrix **21 red**, every project-scoped route for `token-other-project` |
+
+**Why (e) is invisible is sharper than the plan's reason.** The plan says the demo's token
+only ever addresses its own project. The demo does also check that `GET /v1/projects` answers
+it exactly its one project — but at that moment the instructor **owns exactly one project**,
+because `pnpm test` truncated the rest, so even that check cannot discriminate. **A scope
+escape needs a SECOND project to be visible, and the gates guarantee there is not one.**
+
+**The gates, and the machine.** `pnpm test` **1344 passed, 101 files** (up 2 from 1342 — both
+the constant-time assertion and its scanner control, in an existing file), run **twice**,
+identical. `pnpm lint`, `pnpm typecheck`, `pnpm format:check` clean. `pnpm test:docker`
+**178 passed, 0 skipped, 29 files** — unchanged from sitting 8; Task 13 adds no Docker test. `make doctor` **18/0** and `make verify` **51/0**,
+both re-run after the Docker tier. `make demo-token` green three times.
+
+**The machine.** `./scripts/snapshot-machine.sh` before and after, diffed. What the sitting's
+runs LEFT that the before-snapshot did not have: **seven app networks and one volume from the
+Docker tier's throwaway apps** (F8), listed by name by `scripts/dead-app-resources.sh` and
+**handed to Rich, because `docker network rm` was refused** — and about eleven `local/*` app
+images from the same tier. What it REMOVED, by Rich's agreement for run 3's `make reset`:
+`journey-app`, the proof app and their networks, volumes and containers. **Only `token-app`
+is up**, which is what a machine reset and then driven by this plan's acceptance alone should
+look like. Nothing outside `mf-` and `manifest-` was touched, and `make verify`'s *nothing
+this platform owns has removed somebody else's containers or the CA* passes.

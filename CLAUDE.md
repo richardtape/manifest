@@ -14,7 +14,7 @@ statement of the four gate numbers; and the roadmap's ledger
 (`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every other document on
 status.*
 
-**The design is approved and complete, five spikes are done, and P1 to P5a are executed
+**The design is approved and complete, five spikes are done, and P1 to P5b are executed
 and green.** Each plan has an acceptance that passes:
 
 | Plan | Executed | What it made true | Acceptance |
@@ -26,35 +26,39 @@ and green.** Each plan has an acceptance that passes:
 | P4b | 2026-09-15 | AI answers charged to the asker; build logs, events and Incidents | `make demo-ai` |
 | P4c | 2026-09-16 | A redeploy interrupts and signs out nobody | `make demo-redeploy` |
 | P5a | 2026-09-17 | The API is a published contract under `/v1`, driven by a generated client | `make demo-journey` |
+| P5b | 2026-09-18 | An agent acts on a delegated token; D24's privileged four are refused centrally and a person confirms one retry | `make demo-token` |
 
-**The current plan is P5b — delegated tokens and pending actions (D24)**
-(`docs/superpowers/plans/2026-09-17-p5b-delegated-tokens.md`, 13 tasks in nine sittings,
-written 2026-09-17), the second of Phase 1c's three. **How many of its sittings are executed, and
-what each made true, is in the plan's own sittings table — the maintained copy, and the only
-statement of it.** This file deliberately states neither, for the same reason it states no gate
-numbers: a number restated in two documents drifts, and this one drifted for two sittings before
-it was removed (P5b sitting 7's F13 and F14, sitting 8's fix). In outline, and without a count:
-an agent holding a delegated token acts on its one project, asking for one of D24's privileged
-four is refused at the authorization layer rather than per route, a person confirms or rejects
-that question and a confirmation lets the agent's own retry through exactly once, §26's queue is
-readable, every request a token makes is rate-limited, a question nobody answers is swept to
-`expired`, and `make demo-token` now runs the whole loop end to end through the edge. **Its four
-spec actions were approved and applied on 2026-09-17.**
-ORIENTATION §7e names the next job. P5a — the contract — was executed in twelve sittings and finished on 2026-09-17:
+**There is NO plan under way. The next job is to WRITE P5c** — the clients (`manifest-mock`,
+`console/`, the CI acceptance script), the last of Phase 1c's three. **ORIENTATION §7e says what
+to read and in what order**, and its author starts at the P5 brief's §10, *What P5c INHERITS*
+(`docs/superpowers/plans/2026-09-16-p5-brief.md`), whose first paragraph is that §17's Phase 1c
+row is NOT P5c's scope — P5a and P5b have already shipped most of what it lists.
+
+**P5b — delegated tokens and pending actions (D24) — was executed in nine sittings and finished
+on 2026-09-18** (`docs/superpowers/plans/2026-09-17-p5b-delegated-tokens.md`, 13 tasks): an agent
+holding a delegated token acts on its one project, asking for one of D24's privileged four is
+refused at the authorization layer rather than per route, a person confirms or rejects that
+question and a confirmation lets the agent's own retry through exactly once, §26's queue is
+readable, every request a token makes is rate-limited, and a question nobody answers is swept to
+`expired`. Its acceptance, `make demo-token`, ran green three times — the third from a
+`make reset` machine — and is now step 9 of `scripts/offline-acceptance.sh`. **Its four spec
+actions were approved and applied on 2026-09-17.** P5a — the contract — finished on 2026-09-17:
 the API is under `/v1` at `https://console.manifest.internal` through the edge, an OpenAPI
 document is generated from the routes and a TypeScript client from that document
 (`packages/contract`), and `make demo-journey` drives §22's journey through nothing but that
-client. Its acceptance ran green three times, the third from a `make reset` machine, and is
-now step 8 of `scripts/offline-acceptance.sh`. P5c (the mock, the console, CI) is written
-only after P5b has executed. *Sittings pace the work; they are not §17's product Phases.*
+client; it is step 8 of the same script. *Sittings pace the work; they are not §17's product
+Phases.*
 
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
-turning the network off from a tool call cuts the agent off too; it now has a step 8,
-`make demo-journey`), the second-machine clean clone, starting the UBC external track (its
-trigger fired on 2026-09-15) and the rest of ORIENTATION §8. **Two long-standing items were
-cleared on 2026-09-18**: LiteLLM's orphaned users (19 rows to 4, and `scripts/litellm-orphans.sh`
-now does it — an agent lists, Rich applies) and P5a sitting 12's Docker cleanup (86 unheld app
-images and the fixture app; `docker system df` Images 132 to 45). **The permission classifier is not a
+turning the network off from a tool call cuts the agent off too; **it now has NINE steps**, the
+newest being `make demo-token`), the second-machine clean clone, starting the UBC external track
+(its trigger fired on 2026-09-15), **the dead app networks and volumes the Docker tier leaves**
+— `bash scripts/dead-app-resources.sh` re-derives them and an agent cannot apply the removal —
+and the rest of ORIENTATION §8. **Two long-standing items were cleared on 2026-09-18**: LiteLLM's
+orphaned users (`scripts/litellm-orphans.sh` now does it — an agent lists, Rich applies) and P5a
+sitting 12's Docker cleanup. **Neither stays cleared on its own**: every `pnpm test:docker`
+regenerates both, which P5b sitting 9 measured — a single run put back exactly the seven networks
+and the one volume that had been removed by hand that morning. **The permission classifier is not a
 fixed rule** — it allowed all of that and then began refusing `docker volume ls` in the same
 session, so try the command rather than assuming either way. *(The one P5a negative control those rules refused —
 the edge's `@outside` refusal — was closed on 2026-09-17 without weakening the edge, and is no

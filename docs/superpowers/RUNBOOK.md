@@ -190,11 +190,11 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` �
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 18 / 0 and `make verify` 51 / 0**
-(re-measured 2026-09-18 at the end of **P5b sitting 8**, after that sitting's `pnpm test:docker`; unchanged since P5a sitting 11). ORIENTATION §2's box is the maintained copy of those; if this
+(re-measured 2026-09-18 at the end of **P5b sitting 9**, after that sitting's `pnpm test:docker` and after a `make reset`; unchanged since P5a sitting 11). ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
-disabling Wi-Fi cuts an agent off too. **It now has eight steps, not seven** — P5a
-sitting 12 added `make demo-journey` as step 8, guarded by the same control-plane
+disabling Wi-Fi cuts an agent off too. **It now has NINE steps** — P5a sitting 12 added `make demo-journey` as step 8, and
+P5b sitting 9 added `make demo-token` as step 9, both guarded by the same control-plane
 check as steps 6 and 7. The evidence is left exactly as recorded — a run is a run — and this
 note exists so nobody reads it as today's baseline.
 
@@ -767,6 +767,20 @@ restarts every container on the machine, so it is a person's call rather than a 
 
 **Two things P4a Task 15 left open, both named rather than glossed.**
 
+- **AFTER `make reset`, CHECK THE EDGE FROM THE HOST BEFORE RUNNING ANYTHING.** *Recorded
+  2026-09-18, P5b sitting 9.* Once, after `echo reset | make reset && make up`, every host-side
+  call to `https://console.manifest.internal` and `https://edge.manifest.internal` answered
+  `curl: (35) Recv failure: Connection reset by peer` — while the SAME check from a container on
+  the platform network passed. `make verify` caught it as **11 of 51 failed**, all with that one
+  error, and its *host and container see a byte-identical hostname and scheme* check is the one
+  that names the shape. The `127.0.0.2` alias was present, the control plane answered `401` on
+  `127.0.0.1:7100`, and `manifest-caddy` was up and healthy. **`docker restart manifest-caddy`
+  cleared it.** It did not reproduce under `make down && make up`, so it is intermittent and its
+  trigger is not isolated. **The order to use after a reset:** `make up`, then export README's
+  whole block, then `pnpm --filter @manifest/control-plane db:migrate` — which fails with
+  `[x] url: undefined` if `MANIFEST_ADMIN_DATABASE_URL` is not exported, because it is derived in
+  that block and not stored in `.env` — then the control plane, **then `make verify`**, and only
+  then the demos.
 - **THE OFFLINE ACCEPTANCE OF `make demo-identity` HAS NOT BEEN RUN.** *Recorded
   2026-09-09.* It is Rich's to run, because turning the network off from an agent's
   tool call cuts the agent off too. `scripts/offline-acceptance.sh` gained a step 6
@@ -777,7 +791,11 @@ restarts every container on the machine, so it is a person's call rather than a 
   passed one.** Everything else about Task 15 is evidenced, including a run from a
   `make reset` machine. **P4b's Task 16 appended a step 7, `make demo-ai`** (2026-09-15),
   equally unrun offline; its open question is whether **Ollama** — a host application,
-  not a container — answers with the network off.
+  not a container — answers with the network off. **P5a sitting 12 appended a step 8,
+  `make demo-journey`, and P5b sitting 9 a step 9, `make demo-token`** (2026-09-18) — the
+  script now has nine steps and all four of the appended ones are unrun offline. Step 9
+  should want the network least of any of them: its credential is `node:crypto` and its
+  build comes from the same mirror step 6 already exercises.
 - **A redeploy no longer 502s the app or signs anyone out — for apps on the current blueprint.**
   *The baseline, measured 2026-09-15 under a request loop classified by body:* a same-release
   redeploy produced **7 empty 502s between +428 ms and +1,634 ms**, a new-release redeploy 6, and in
