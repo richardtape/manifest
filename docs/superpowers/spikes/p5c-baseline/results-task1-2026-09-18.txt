@@ -1,0 +1,681 @@
+P5c Task 1 — raw measurements
+Sitting 1, 2026-09-18, Richs-MacBook-Pro.local
+macOS 26.6.2 (25G83), arm64, node v24.12.0, pnpm 11.24.0, Docker 29.7.2 (build a7dcaa6), engine API 1.55
+
+================================================================================
+STEP 1 — BASELINE (the four gate numbers)
+================================================================================
+
+$ ./scripts/snapshot-machine.sh > "$SCRATCH/before.txt"
+exit=0, 219 lines
+
+$ make up
+  ... all 7 platform containers Healthy
+  ensure-app-role: manifest_app present, granted on public, no reach into audit
+
+$ make doctor
+  18 checks, 0 failed, 0 warnings
+
+$ make verify
+  51 checks, 0 failed, 0 warnings
+  INFO routing            runtime routes currently applied: 0
+  INFO per-app resources  mf- containers=3 networks=1 volumes=2
+
+$ pnpm test          (first pass)
+  Test Files  101 passed (101)
+       Tests  1344 passed (1344)
+    Duration  110.27s
+
+$ pnpm test          (second pass — repeatable, no state leak)
+  Test Files  101 passed (101)
+       Tests  1344 passed (1344)
+    Duration  107.14s
+
+$ pnpm lint
+  $ eslint .        (clean, no output)
+
+$ pnpm typecheck
+  $ pnpm -r typecheck
+  Scope: 3 of 4 workspace projects
+  packages/contract typecheck: Done
+  packages/control-plane typecheck: Done
+  packages/journey typecheck: Done
+
+$ pnpm format:check
+  All matched files use Prettier code style!
+
+--- state of the running platform, read rather than remembered ---
+
+$ lsof -nP -iTCP:7100 -sTCP:LISTEN
+  node 14881 rich 15u IPv4 TCP 127.0.0.1:7100 (LISTEN)
+
+$ curl -sS https://console.manifest.internal/v1/me
+  401 {"error":{"code":"UNAUTHENTICATED","message":"a valid credential is required","hint":"Sign in at /auth/login ..."}}
+
+$ curl -sS https://console.manifest.internal/
+  manifest console: not built yet — P5c serves it here. The API is under /v1/.
+
+================================================================================
+STEP 2 — M1: does the edge serve a host process on 7104 on the console's origin?
+================================================================================
+
+Setup: node http server bound 127.0.0.1:7104 (NOT 0.0.0.0), pid 62866, serving
+$SCRATCH/index.html for every path and logging the request line.
+Caddyfile line 81 swapped, inode-preserving (r+/ftruncate, inode 48091939 before
+AND after — a rename-over would have orphaned manifest-caddy's single-file mount):
+    respond "manifest console: not built yet ..." 200
+ -> reverse_proxy host.docker.internal:7104
+
+$ make up
+  Caddyfile changed — reloading the edge (runtime routes are re-applied by the control plane)
+  {"level":"info","msg":"using config from file","file":"/etc/caddy/Caddyfile"}
+  {"level":"info","msg":"adapted config to JSON","adapter":"caddyfile"}
+
+$ curl -sS https://console.manifest.internal/
+  status=200
+  hello from 7104
+
+$ curl -sS https://console.manifest.internal/v1/me
+  status=401
+  {"error":{"code":"UNAUTHENTICATED", ...}}        <- the API still wins
+
+$ curl -sS https://console.manifest.internal/any/deep/path
+  status=200
+  hello from 7104
+
+--- what the upstream actually received (server-side log) ---
+  [7104] GET /                host=console.manifest.internal origin=-
+  [7104] GET /any/deep/path   host=console.manifest.internal origin=-
+
+ANSWER: YES. A host process bound to 127.0.0.1 is reachable as
+host.docker.internal:7104 from the edge, exactly as the control plane is on 7100.
+The @api matcher (/v1/*, /auth/*) still wins over the catch-all, so the API and
+the console coexist on one origin with no CORS.
+
+TWO THINGS THE PLAN DID NOT ASK FOR AND THE CONSOLE NEEDS:
+  1. The edge PRESERVES Host: console.manifest.internal — it does not rewrite it
+     to the upstream's host:port. Vite's dev server rejects unknown Hosts by
+     default, so Task 2/4 must set server.allowedHosts to include it.
+  2. The path arrives UNCHANGED (/any/deep/path), so Decision 3's real-path
+     router is served correctly by the edge — but the edge does NOT do SPA
+     fallback. The trivial server faked it by serving index.html for every path;
+     `vite preview` does SPA fallback itself, so this is a note for Task 4, not
+     a change to Decision 3 or 4.
+
+================================================================================
+STEP 3 — M2: what a REAL BROWSER sends through that hop, signed out
+================================================================================
+
+Chrome, via the claude-in-chrome extension, at https://console.manifest.internal/
+with the Step 2 reverse_proxy in place and NOBODY signed in. No password involved.
+
+Page output, verbatim:
+  origin = https://console.manifest.internal
+  GET /v1/me -> 401 {"error":{"code":"UNAUTHENTICATED","message":"a valid credential is required",...}}
+  POST /v1/projects -> 401 {"error":{"code":"UNAUTHENTICATED",...}}
+  ws error event
+  ws close code=1006 reason="" wasClean=false
+
+ANSWERS, all three as the plan predicted:
+
+  1. GET /v1/me -> 401 UNAUTHENTICATED. NOT a Caddy 502, NOT the @outside 403
+     "the control plane is not reachable from this network". The browser's request
+     reached the control plane through the edge on the console's origin. The hop
+     is what this plan assumes.
+
+  2. POST /v1/projects -> 401 UNAUTHENTICATED, NOT 403 CSRF_ORIGIN_REFUSED —
+     confirming assertSameOrigin keys on the session cookie, so with no cookie the
+     origin check does not run (Read this first 3, 10).
+
+  3. WebSocket -> close code 1006, reason "", wasClean=false, preceded by an error
+     event. 1006 with no status is what a REFUSED UPGRADE looks like to a browser;
+     the browser is shown no HTTP status. NOT 4404, which would have meant it
+     upgraded first and would have contradicted Read this first 4.
+
+--- THE LITERAL Origin, captured rather than read off a screenshot ---
+
+The plan says to read the value in Chrome's Network tab. The extension's
+read_network_requests does NOT expose request headers, so instead the probe page
+POSTs to a NON-/v1 path, which the edge routes to the 7104 upstream, which logs
+the header byte-for-byte. (A same-origin GET sends no Origin; a POST does.)
+
+  [7104] POST /m2-origin-echo host=console.manifest.internal origin=https://console.manifest.internal
+
+  Origin: https://console.manifest.internal
+          ^ scheme + host, NO trailing slash, NO port.
+
+This also proves the edge passes Origin through to the upstream UNCHANGED, which
+nothing had measured. Everything in Task 4 onward depends on it.
+
+METHOD NOTE FOR LATER SITTINGS: the extension cannot show request headers. When a
+literal request header matters, echo it from an upstream you control. Do not plan
+to read it out of the Network tab.
+
+================================================================================
+STEP 4 — M3: does a WebSocket UPGRADE survive the host.docker.internal hop?
+================================================================================
+
+ws 8.21.3, resolved from packages/control-plane (confirmed, not assumed).
+Server: http + ws on 127.0.0.1:7104, logging every upgrade's headers.
+
+--- (a) a Node client through the edge ---
+$ NODE_EXTRA_CA_CERTS=infra/ca/manifest-root.crt node -e '<connect wss://console.manifest.internal/>'
+  MESSAGE hello
+  exit=0
+
+--- (b) a REAL BROWSER through the edge (not asked for; worth more) ---
+Page output:
+  ws open
+  ws message hello
+Server-side, the upgrade as received:
+  [m3] UPGRADE host=console.manifest.internal origin=https://console.manifest.internal path=/hmr-probe
+
+ANSWER: YES, in both directions.
+
+  * An upgrade reaches a host process on 7104 through the edge on the console's
+    origin. TASK 2 DOES NOT NEED server.hmr: false — the plan's fallback branch
+    is not taken. Record: HMR works through the edge.
+  * Host and PATH both arrive unchanged (/hmr-probe), so Vite's HMR endpoint and
+    the mock's scripted stream (Task 12) both reach their upstream intact.
+  * The browser sends Origin: https://console.manifest.internal ON THE UPGRADE.
+    Read this first 4 asserted this from the specification ("browsers always send
+    it") and from the route's code; this MEASURES it end to end through the edge,
+    which nothing had done. assertSameOrigin on WS /v1/projects/:id/events will
+    get the Origin it requires.
+
+================================================================================
+STEP 5 — M4: is a new package seen by the four gates at all?
+================================================================================
+
+Probe: packages/m4-probe, a package.json and src/probe.test.ts containing
+  it('is a test that must be seen to fail', () => { expect(1).toBe(2) })
+
+vitest.workspace.ts, read rather than remembered — the `packages` project:
+    root: '.',
+    include: [
+      'packages/contract/src/**/*.test.ts',
+      'packages/journey/src/**/*.test.ts',
+    ],
+  Two EXPLICIT globs. No wildcard.
+
+--- gate 1: pnpm test --- SILENTLY GREEN. THIS IS THE FINDING.
+  Test Files  101 passed (101)
+       Tests  1344 passed (1344)
+  REAL exit code: 0              (measured with $?, not through a `tail` pipe)
+  grep -c m4-probe <output>: 0   — the file was never even COLLECTED.
+  IDENTICAL to the baseline in every figure, with expect(1).toBe(2) in the tree.
+
+--- gate 2: pnpm lint --- SEES IT.
+  First run exited 0, but that was AMBIGUOUS: the probe test file contains no
+  lint error, so 0 could mean "not linted" or "linted and clean". Disambiguated
+  with a deliberate bait file (packages/m4-probe/src/lint-bait.ts, an `any`):
+    /Users/rich/.../packages/m4-probe/src/lint-bait.ts
+      2:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    ✖ 1 problem
+    pnpm lint REAL exit=1
+  So ESLint reads a new package under packages/ with no configuration.
+  (It did not flag `debugger` or the unused const — only no-explicit-any fired.)
+
+--- gate 3: pnpm typecheck --- DISCOVERS THE PACKAGE, THEN SILENTLY SKIPS IT.
+  baseline:    Scope: 3 of 4 workspace projects
+  with probe:  Scope: 4 of 5 workspace projects     <- pnpm DID discover it
+  but the packages that actually ran tsc were the same three:
+    packages/contract: Done, packages/control-plane: Done, packages/journey: Done
+  m4-probe has no `typecheck` script, so `pnpm -r typecheck` skips it without a
+  word. Confirms Read this first 15 by measurement.
+
+--- gate 4: pnpm format:check --- SEES IT, AND FAILS.
+  [warn] packages/m4-probe/package.json
+  [warn] packages/m4-probe/src/probe.test.ts
+  [warn] Code style issues found in 2 files.
+  [ELIFECYCLE] Command failed with exit code 1
+  Confirms Read this first 16: Prettier owns packages/ with no configuration.
+
+ANSWER: two of the four gates see a new package for free (lint, format:check),
+one discovers it and skips it silently (typecheck — needs a `typecheck` script),
+and ONE IS SILENTLY GREEN (test — needs a glob in vitest.workspace.ts).
+This is exactly what Read this first 14 says and why Task 2 exists. Task 2's
+control — a deliberately failing test that must be WATCHED going red — is the
+right control, and this is the before-measurement it is watched against.
+
+*** AN EXTRA FINDING THE PLAN'S STEP 5 DOES NOT ANTICIPATE ***
+The plan's cleanup line is:
+    rm -rf packages/m4-probe && git status --short   # must be clean
+It is NOT clean. Running any pnpm command with the probe present REWRITES
+pnpm-lock.yaml:
+    +  packages/m4-probe: {}
+So `rm -rf` alone leaves a modified lockfile behind, and Step 11's
+"git status --short MUST be empty apart from the findings file" then fails for a
+reason unrelated to anything measured. Restored here with:
+    git checkout pnpm-lock.yaml
+CARRIED INTO TASK 2: creating packages/console and packages/mock will change
+pnpm-lock.yaml legitimately, and that change is part of the commit.
+
+================================================================================
+STEP 6 — M5: can a browser bundle consume @manifest/contract?
+================================================================================
+
+$ pnpm --filter @manifest/contract build      -> Already up to date / tsc / Done
+
+--- the ENTRY graph (index.js, client.js, errors.js, stream.js) ---
+  index.js  -> ./client.js
+  index.js  -> ./errors.js
+  index.js  -> ./stream.js
+  client.js -> openapi-fetch
+  client.js -> ./errors.js
+  stream.js -> ./client.js
+
+EXACTLY the expected set. NO node: builtin anywhere in the entry graph.
+
+--- the one external dependency, followed one level further ---
+  openapi-fetch@0.17.0 (exact pin), dist/index.mjs:
+    import specifiers: NONE (zero imports, fully self-contained)
+    node: builtins:    NONE
+    uses the `fetch` global (6 references)
+  So the ENTIRE runtime graph a browser bundle pulls in is browser-safe and
+  needs no polyfill or shim. Vite bundles it as-is. Decision 2 and 6 stand.
+
+--- the dist/ test files, confirming the plan's warning is real ---
+  client.test.js -> node:fs/promises, node:http, openapi-typescript, vitest
+  stream.test.js -> node:crypto, node:http, vitest
+  These WOULD break a browser bundle. They are NOT in the entry graph and
+  nothing reaches them. Do not import from dist/ directly. (Read this first 13,
+  measured rather than trusted.) Note there is no dist/schema.js at all — the
+  types-only export is fully erased, as Read this first 13 says.
+
+*** A FINDING THE PLAN DOES NOT HAVE — the exports map is CONDITIONAL, and the
+*** two conditions point at DIFFERENT TREES.
+  packages/contract/package.json:
+    "exports": { ".": { "types": "./src/index.ts", "default": "./dist/index.js" } }
+
+  So for the console:
+    tsc  resolves "types"   -> packages/contract/src/index.ts   (SOURCE)
+    Vite resolves "default" -> packages/contract/dist/index.js  (BUILT)
+
+  The console therefore TYPECHECKS against contract source and BUNDLES against
+  contract dist. If dist/ is stale, the console compiles against fresh types and
+  ships stale runtime, and NOTHING reports it — tsc is green because it never
+  reads dist/, and Vite is green because it never reads src/.
+
+  WHAT THIS COSTS TASK 2/4: `pnpm --filter @manifest/contract build` must run
+  before the console is built or previewed, and Task 13's CI script must run it
+  before the acceptance. The version is 0.1.0 today, which Decision 14 moves to
+  1.0.0 in Task 13 — that bump changes dist/ and so must be followed by a build.
+
+================================================================================
+STEP 7 — M6: what ?returnTo= does, and what the console must serve
+================================================================================
+
+$ curl -sS -i -c login.jar \
+    'https://console.manifest.internal/auth/login?returnTo=/projects/deep/path'
+
+  HTTP/2 302
+  location: https://idp.manifest.internal/module.php/saml/idp/singleSignOnService
+            ?SAMLRequest=...&RelayState=uMzkR-14_EAd-Y8HdBpTeVX5s5QHLJv-
+            &SigAlg=...rsa-sha256&Signature=...
+  set-cookie: manifest_login=uMzkR-14_EAd-Y8HdBpTeVX5s5QHLJv-.L3Byb2plY3RzL2RlZXAvcGF0aA;
+              Max-Age=600; Path=/auth; HttpOnly; Secure; SameSite=None
+  via: 1.1 Caddy
+
+Cookie decoded — it is <relayState>.<base64url(returnPath)>:
+  relay state:        uMzkR-14_EAd-Y8HdBpTeVX5s5QHLJv-
+  decoded return path: "/projects/deep/path"        <- PRESERVED EXACTLY
+
+--- NEGATIVE CONTROL (not asked for by the plan; it is what makes this a
+--- measurement rather than an observation) ---
+$ curl ... '?returnTo=//evil.example.com/x'          (protocol-relative: safeReturnTo
+                                                      must refuse it, regex ^\/(?!\/)...)
+  set-cookie: manifest_login=v916cJ3PumouMlVTqiM6TMFJ3j_ZOk_f.Lw
+  decoded: "/"                                       <- REFUSED, fell back to /
+
+So the mechanism is IN FORCE, not merely permissive: it keeps a legitimate deep
+path and discards a hostile one. Both directions watched.
+
+ANSWER: the console's router MAY USE REAL PATHS. Decision 3 stands unchanged —
+a deep link survives a CWL sign-in and lands back on the page that asked for it.
+The Task 4 fallback ("carry the route in a query string on /") is NOT needed.
+
+Properties of the cookie the console must live with, recorded because Task 4
+needs them and nothing else states them:
+  Path=/auth     — it is not visible to the console's own JS (nor is it needed)
+  HttpOnly       — likewise
+  Secure         — the console must be on https, which through the edge it is
+  SameSite=None  — required, because the IdP POSTs the assertion back cross-site
+  Max-Age=600    — a sign-in that sits longer than TEN MINUTES on the IdP page
+                   loses its return path and lands on /. Worth knowing for
+                   Task 14's SHARED acceptance run, where a human types the
+                   password and may well pause.
+
+================================================================================
+STEP 8 — M7: which operations require which extra parameters
+================================================================================
+
+operations counted in openapi.json paths: 34
+
+--- the eleven Idempotency-Key headers (header:Idempotency-Key) ---
+  createProject        POST /v1/projects
+  startBuild           POST /v1/projects/{projectId}/builds
+  createRelease        POST /v1/projects/{projectId}/releases
+  validateSpec         POST /v1/projects/{projectId}/spec
+  deploy               POST /v1/environments/{environmentId}/deploy
+  addMember            POST /v1/projects/{projectId}/members
+  removeMember         DELETE /v1/projects/{projectId}/members/{userId}
+  mintToken            POST /v1/projects/{projectId}/tokens
+  revokeToken          DELETE /v1/tokens/{tokenId}
+  confirmPendingAction POST /v1/pending-actions/{pendingActionId}/confirm
+  rejectPendingAction  POST /v1/pending-actions/{pendingActionId}/reject
+                                                            = ELEVEN, exactly as
+Read this first 2 says. The client must NOT add these (D23.6): idempotencyKey()
+is called once per user ACTION at the call site, and reused on that action's retry.
+
+--- the two query parameters ---
+  getBuildLog  GET /v1/builds/{buildId}/logs   query:tail
+  getProject   GET /v1/projects/{projectId}    query:expand
+
+  11 + 2 = THIRTEEN operations carrying a header or query parameter, matching
+  Read this first 2 exactly.
+
+ANSWER: 34 operations. The count this plan was written against is CORRECT and
+no route has moved since 2026-09-18. Task 13's coverage gate is built against 34.
+
+*** BUT THE PLAN'S DECOMPOSITION OF THAT 34 IS WRONG, AND IT IS MATERIAL ***
+
+  Task 1 Step 8 says:  "34 operations (33 paths plus streamProjectEvents)"
+  Measured:            streamProjectEvents IS ONE OF THE 34 PATHS —
+                       GET /v1/projects/{projectId}/events, operationId
+                       streamProjectEvents, present in d.paths.
+
+  So it is 34 paths, one of which IS the stream. Not 33 + 1.
+
+  WHY IT MATTERS: Decision 15 defines the coverage gate as "every operation out
+  of packages/contract/openapi.json and every call out of src/api.ts (PLUS THE
+  STREAM and the two unversioned endpoints from src/auth.ts)". An author who
+  believes the stream is NOT in the document's paths will add it as a 35th
+  expected caller, and the gate will then demand a caller for an operation it
+  has already counted, or double-count it and never balance.
+
+  THE RULE FOR TASK 13: enumerate the operations from d.paths ONLY (34, stream
+  included). The two UNVERSIONED endpoints (GET /auth/login, POST /auth/logout)
+  are genuinely NOT in the document — they are outside /v1 by D23.8 — and are
+  the only things the gate adds from src/auth.ts.
+
+  Cross-check that agrees: the control plane's own
+  src/api/contract/coverage.test.ts is named "defines every /v1 route but the
+  stream, WHICH IS DOCUMENTED AND NEVER DEFINED" — documented (in the paths),
+  never defined (no route definition object). The stream's absence is from the
+  DEFINITIONS, not from the document.
+
+================================================================================
+STEP 9 — M8: R2's measurement. Is an app's WebSocket cut by an unrelated reload?
+================================================================================
+*** THIS IS THE MEASUREMENT SECTION 8's QUESTION HAS NEVER HAD (open since
+*** 2026-09-16, four plans). RICH'S R2 MAKES IT DECIDE WHETHER P5c CHANGES routing/.
+
+Setup: ws upstream on 127.0.0.1:7105. A runtime route p5c-ws-probe written
+through the Caddy admin API, shaped as routing/caddy.ts's buildRoute shapes one
+(request_body + headers/deferred + reverse_proxy + terminal:true) rather than the
+bare reverse_proxy in the plan's snippet — the question is about what the
+PLATFORM writes, so the measurement uses that shape.
+
+--- RUN A: the route exactly as buildRoute writes one TODAY (no field) ---
+  [A/no-field] ws OPEN through the edge
+  [A/no-field] unrelated route inserted (200) — config reloaded, clock started
+  [A/no-field] CLOSED code=1001 reason="" 2ms after the reload
+
+--- RUN B: the same route, with "stream_close_delay":3600000000000 ---
+  (confirmed present on the LIVE route first:
+     $ curl .../id/p5c-ws-probe -> stream_close_delay on the live route: 3600000000000)
+  [B/with-field] ws OPEN through the edge
+  [B/with-field] unrelated route inserted (200) — config reloaded, clock started
+  [B/with-field] SURVIVED 17971ms after the reload, still open
+
+--- the upstream's own view, cross-checking both runs ---
+  [m8] upstream: client connected / client gone      (run A: cut)
+  [m8] upstream: client connected / client gone      (run B: closed by exit, not by Caddy)
+
+ANSWER: THE SOCKET IS CUT. 1001 Going Away, 2ms after an unrelated route was
+inserted anywhere on the platform. The field prevents it. Proved in BOTH
+directions, which is what makes it a measurement rather than an observation.
+
+CONSEQUENCE, per R2: this plan MUST add stream_close_delay to buildRoute, assert
+it in routing/caddy.test.ts, run pnpm test:docker, and rebuild+restart the
+control plane. Section 8's item CLOSES with the value. (Done below.)
+
+*** A DEFECT IN THE PLAN'S OWN M8 SNIPPET — IT WOULD HAVE ANSWERED RICH'S
+*** QUESTION THE WRONG WAY, AND SAID SO CONFIDENTLY.
+
+The plan's snippet causes the unrelated config change with node's fetch:
+    fetch("http://127.0.0.1:7119/config/...", {method:"PUT", ...})
+      .then(()=>console.log("unrelated route inserted"));
+
+packages/control-plane/src/routing/caddy.ts documents at length, and this sitting
+re-measured, that this CANNOT WORK:
+    $ node -e 'fetch(... method:"PUT" ...)'
+      node fetch PUT -> 403 {"error":"client is not allowed to access from origin ''"}
+undici appends Origin: '' to every non-GET request; Caddy's admin listener binds a
+wildcard host, whose allowed-origin list is empty, so it refuses any Origin at all.
+(curl and node:http send exactly the headers they are given, which is why the
+control plane's own adminRequest uses node:http and NOT fetch.)
+
+So the snippet as written would have:
+  1. held the socket open,
+  2. been refused 403 by the admin API,
+  3. printed "unrelated route inserted" ANYWAY — the .then() does not check r.ok
+     or r.status, so a 403 is indistinguishable from a 200,
+  4. reached the 20s timeout and printed "SURVIVED 20s, still open",
+  5. and Section 8's item would have closed as "measured, and not a problem in
+     Phase 1" — the OPPOSITE of the truth — on a config reload that never happened.
+
+The socket would have survived because NOTHING EVER RELOADED THE EDGE.
+
+This is precisely the shape ORIENTATION section 4 and 9 keep naming: a control
+that cannot fail, reporting a green that means nothing. It is recorded here
+because the correction is not "use curl": it is ASSERT THE ADMIN CALL'S STATUS.
+The client used for this measurement does:
+    if (r.status !== 200) { console.log('ADMIN PUT FAILED ... MEASUREMENT INVALID'); process.exit(3) }
+and refuses to report SURVIVED at all unless a reload is known to have happened:
+    if (!reloadedAt) { console.log('never reloaded — MEASUREMENT INVALID'); process.exit(3) }
+
+--- cleanup, READ BACK rather than trusted ---
+  DELETE p5c-ws-probe  -> 200
+  DELETE p5c-unrelated -> 200
+  GET /id/p5c-ws-probe  -> {"error":"unknown object ID 'p5c-ws-probe'"}
+  GET /id/p5c-unrelated -> {"error":"unknown object ID 'p5c-unrelated'"}
+  routes the edge holds: count 3, ids "(none), (none), (none)" — the Caddyfile's
+  own three sites. Runtime routes back to 0, matching the Step 1 baseline.
+
+================================================================================
+STEP 10 — M9: can a 2020-12 validator read this document at all?
+================================================================================
+
+  openapi 3.1.0        info.version 0.1.0        info.title "Manifest"
+  component schemas:   52
+  $schema:             (absent)
+  jsonSchemaDialect:   (absent)
+
+keyword counts in components.schemas:
+  additionalProperties  112
+  pattern               166
+  format                158
+  const                  45
+  anyOf                  37
+  exclusiveMinimum        1
+
+NOT PRESENT — the four that would have been a problem:
+  prefixItems, unevaluatedProperties, unevaluatedItems, dependentSchemas,
+  $dynamicRef, $dynamicAnchor, $recursiveRef  -> ALL ZERO.
+
+ANSWER: openapi 3.1.0, so the schemas ARE JSON Schema 2020-12 and Decision 9 is
+right that it must be `ajv/dist/2020` and not the default export. Nothing exotic
+is in play, so TASK 12 HAS NO COMPILATION PROBLEM TO SOLVE before it writes a
+fixture. Decision 9 stands.
+
+The keyword counts also CONFIRM Decision 9's argument by measurement rather than
+by assertion: 112 additionalProperties, 166 pattern, 158 format and 45 const are
+all things `tsc` cannot see. Types alone would not hold a fixture honest; the
+document would.
+
+*** A FINDING THAT LANDS ON TASK 2, WHICH IS THE ONLY SITTING WITH THE NETWORK ON
+
+Decision 9 names `ajv`. It does NOT name `ajv-formats`. The document uses 158
+formats:
+    uuid       141
+    date-time   43
+    uri          1
+Ajv v8 does NOT implement these on its own. With `strict: true` an unknown format
+THROWS at compile time; otherwise the format assertion is silently ignored — so
+without ajv-formats the mock either fails to start or validates 185 fewer things
+than it appears to, and the second is the dangerous one.
+
+  => TASK 2 MUST INSTALL BOTH `ajv` AND `ajv-formats`. If it installs only ajv,
+     no later task may add the second (Global Constraints: no new dependency
+     after Task 2) and Task 12 would have to be rewritten or weakened.
+
+Already in the pnpm store as TRANSITIVE dependencies (so the exact versions are
+present, which matters for an offline-ish install):
+    node_modules/.pnpm/ajv@8.20.0
+    node_modules/.pnpm/ajv-formats@3.0.1_ajv@8.20.0
+    node_modules/.pnpm/ajv@6.15.0            (eslint's, draft-07 — NOT the one to use)
+But `grep '"ajv' package.json packages/*/package.json` finds NOTHING: they are
+declared by no workspace package. pnpm's strict node_modules means a transitive
+dependency does NOT resolve from packages/mock, so both must be declared there
+explicitly. Note ajv@6 is also present and is draft-07 — the exact failure
+Decision 9 warns reads like a malformed document. Pin ajv 8.x deliberately.
+
+================================================================================
+CLOSE — the nine (T1: M<n>) markers, each opened and checked
+================================================================================
+"Read this first" has twenty items; nine carry a (T1: M<n>) marker. Counted at
+close rather than remembered, and each verified against the thing it points at:
+
+  item  1  34 operations, all session-callable      -> M7   HELD (34 in d.paths)
+  item  2  13 ops carry a header/query parameter    -> M7   HELD (11 + 2)
+  item  3  createManifestClient sets NO browser hdrs -> READ THE CODE. HELD:
+           packages/contract/src/client.ts:50  `...(inBrowser ? {} : { headers: ... })`
+           The browser branch is literally `{}`. (This was the one marker the
+           sitting had INFERRED from M2's behaviour rather than opened; the
+           post-sweep check opened it.)
+  item  4  subscribe works in a browser              -> M3   HELD (ws open, hello,
+           and the upgrade carries Origin through the edge)
+  item  9  two endpoints outside /v1; ?returnTo=     -> M6   HELD (deep path kept,
+           protocol-relative refused)
+  item 11  control plane binds 127.0.0.1:7100 and
+           the edge reaches host.docker.internal     -> M1   HELD (a 127.0.0.1
+           server on 7104 is reachable the same way)
+  item 12  the Caddyfile console site carries
+           `stream_close_delay 1h`                   -> READ THE FILE. HELD —
+           it is on the @api reverse_proxy, with the P5a measurement in a comment
+  item 13  the contract's only runtime import is
+           openapi-fetch                             -> M5   HELD (and openapi-fetch
+           itself has zero imports and zero node: builtins)
+  item 14  a new package is NOT picked up by pnpm test -> M4 HELD, and it is the
+           sitting's sharpest measurement: exit 0, 1344/101, file never collected
+
+NINE MARKERS, NINE HELD. No task boundary moved; the nine-sitting split stands.
+
+================================================================================
+CLOSE — the post-sweep check (ORIENTATION section 6), and what it caught
+================================================================================
+Run by re-deriving numbers and opening what was pointed at, NOT by re-reading
+the prose. It caught one defect in this sitting's own output:
+
+  WRITTEN:  "158 formats - uuid x141, date-time x43, uri x1"
+  ARITHMETIC: 141 + 43 + 1 = 185, not 158. The sentence could not be true.
+  RE-DERIVED:
+    "format": in components.schemas       158   (uuid x114, date-time x43, uri x1)
+    "format": in the WHOLE document       185   (uuid x141, date-time x43, uri x1)
+  So the TOTAL came from one scope and the BREAKDOWN from the other.
+
+  By the time the check ran it had been copied into FIVE documents: ORIENTATION
+  section 7e, the plan's Task 2 correction block, the plan's own record, the
+  roadmap's P5c row and this spike's README. All five now state 185 and NAME
+  BOTH SCOPES, because the fix for a restated number is to say what it counts.
+  Recorded as F16 — the inherited-and-multiplied shape section 6 warns about,
+  caught inside the sitting rather than by the next one.
+
+Also re-derived at close: the findings count itself. Writing F16 made the total
+17, so every document stating "16 findings" was stale the moment it was written;
+all five were corrected, and the count was taken by `grep -c` on the record, not
+from memory.
+
+================================================================================
+CLOSE — the machine, measured rather than recalled
+================================================================================
+
+$ pnpm test:docker          (ONE clean run; see F15 for why two earlier runs were discarded)
+  Test Files  29 passed (29)
+       Tests  178 passed (178)
+    Duration  796.77s
+  EXITCODE=0, 0 failures
+
+$ make doctor   -> 18 checks, 0 failed, 0 warnings
+$ make verify   -> 51 checks, 0 failed, 0 warnings
+  INFO per-app resources  mf- containers=3 networks=8 volumes=3
+  INFO routing            runtime routes currently applied: 0
+
+--- the control plane, REBUILT and RESTARTED (owed: routing/ changed, and the
+--- process serves from dist/, so a source change does not reach it) ---
+  old pid 14881 killed BY PID (pkill -f 'control-plane/dist' does not match it)
+  $ pnpm --filter @manifest/control-plane db:migrate  -> migrations applied successfully
+  $ pnpm --filter @manifest/control-plane build       -> tsc
+  $ grep -o 'stream_close_delay: [0-9_]*' dist/routing/caddy.js
+      stream_close_delay: 3_600_000_000_000        <- the change reached dist/
+  boot line: {"driver":"docker","port":7100,"origin":"https://console.manifest.internal",
+             "ai":"enabled","buildsInterrupted":0,"routesRestored":0,"routesFailed":0,
+             "interrupted":0,"pendingActionsExpired":0,"msg":"control plane ready",
+             "reservedLabels":755,"secretsScrubbed":12}
+  new pid 53829, and https://console.manifest.internal/v1/me -> 401
+
+--- state at close, by psql / docker / curl, NOT from memory of the session ---
+  projects=0 users=0 routes=0 delegated_tokens=0 pending_actions=0
+  edge runtime routes: count 3, ids "(none), (none), (none)"  (the Caddyfile's own sites)
+  mf- containers: exactly 3, all token-app
+      mf-token-app-staging-69212b3b-8fa6be55-app / -db / -egress
+  (mid-run the tier had a 4th, mf-chem-labs-staging-egress; it cleaned it up. Measured
+   at close rather than carried forward — which is the point of measuring at close.)
+
+--- snapshot diff, before -> after: 70 lines, EVERY line attributable ---
+  timestamps and container uptimes                      (expected)
+  free disk 78Gi -> 75Gi                                (the Docker tier's images)
+  manifest-caddy "Up 10 minutes"                        (restarted by make up / the tier)
+  10 new local/* app image layers                       (the tier's throwaway apps)
+Nothing unexplained. No platform container replaced, no volume of anyone else's touched,
+all four protected containers present (make verify asserts this and passed).
+
+================================================================================
+CLOSE — OWED TO RICH (three recurring items, all re-derived, none worked from a list)
+================================================================================
+
+1. DEAD APP NETWORKS AND VOLUMES — regenerated by this sitting's pnpm test:docker,
+   exactly as ORIENTATION section 2 predicts. `bash scripts/dead-app-resources.sh`, bare:
+
+     DEAD  mf-blueprint-ntm-staging-net
+     DEAD  mf-chem-labs-staging-net
+     DEAD  mf-fixture-rt-staging-net
+     DEAD  mf-fixture-s6-staging-net
+     DEAD  mf-fixture-s6nb-staging-net
+     DEAD  mf-saml-probe-staging-net
+     DEAD  mf-saml-unsigned-staging-net
+     KEEP  mf-token-app-staging-net — 3 containers named mf-token-app-* still exist
+     DEAD  mf-chem-labs-staging-db-data
+     KEEP  mf-token-app-staging-69212b3b-8fa6be55-app-files
+     KEEP  mf-token-app-staging-db-data
+     => "7 network(s) and 1 volume(s) are dead."
+     Rich runs: bash scripts/dead-app-resources.sh --apply
+     THE SAME SEVEN AND ONE as P5b sitting 9 measured. Second independent confirmation
+     that this is a FIXED SET the Docker tier regenerates, not a growing backlog.
+
+2. LITELLM ORPHANS — `bash scripts/litellm-orphans.sh`, bare:
+     Held by a container (1), LEFT ALONE:  mf-b81e4617-...-staging
+     Orphaned (1):                         p4b-probe-user
+     Rich runs: bash scripts/litellm-orphans.sh --apply
+     (One orphan, not the 19 of P5b sitting 8 — the script re-derives every run.)
+
+3. APP IMAGES, which NEITHER script covers and which nothing tracks.
+   The tier left 10 new local/* image layers: boot-recover x2, chem-labs x2,
+   fixture-rd x3, redeploy-cp x2, token-app x1.
+   NAME THE METRIC, because the two disagree and a bare number reads as a contradiction:
+     docker images -q | wc -l   =  73
+     docker system df, Images   =  65 (29 active, 48.06GB, 3.788GB reclaimable)
+   P5b sitting 8 cleared 86 unheld local/* images this way and found the previous
+   sitting's written list had gone stale. RE-DERIVE THE HELD SET; never work from a list.

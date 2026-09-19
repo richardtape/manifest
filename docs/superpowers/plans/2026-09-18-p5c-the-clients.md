@@ -26,8 +26,8 @@
 
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
-| 1 | 1 | **The measurements this plan rests on**, before any code: whether the edge serves a host process on 7104 on the console's origin, what a real browser sends through it, whether a WebSocket upgrade survives that hop, whether a new package is even seen by the four gates, and **whether an app's own WebSocket is cut by another app's deploy** — the measurement §8's open question has never had. **Alone, and first** | ← **next** |
-| 2 | 2–3 | **`packages/console` and `packages/mock` exist and all four gates see them** — the one sitting with the network on — and **the console's import boundary**, watched failing before a single screen exists | |
+| 1 | 1 | **The measurements this plan rests on**, before any code: whether the edge serves a host process on 7104 on the console's origin, what a real browser sends through it, whether a WebSocket upgrade survives that hop, whether a new package is even seen by the four gates, and **whether an app's own WebSocket is cut by another app's deploy** — the measurement §8's open question has never had. **Alone, and first** | **DONE 2026-09-18 — 18 findings.** All ten measurements ran; no task boundary moved. **§8's question is ANSWERED and CLOSED: the socket IS cut, and `buildRoute` now carries `stream_close_delay`.** `[M<n>]` correction blocks on Tasks 1, 2, 4, 13 and 14 |
+| 2 | 2–3 | **`packages/console` and `packages/mock` exist and all four gates see them** — the one sitting with the network on — and **the console's import boundary**, watched failing before a single screen exists | ← **next** |
 | 3 | 4 | **The console is served at `console.manifest.internal`, signs a person in with CWL and knows who they are** (§22 step 1): the Caddyfile's placeholder replaced, the shell, the router, the error surface, and the one file allowed to name `fetch` | |
 | 4 | 5–6 | **My projects, and creating one** — the slug check while it is typed, the blueprint and starter catalogue, §24's audience (§22 step 2) — and **the project screen with its live event stream** (§22 step 3) | |
 | 5 | 7–8 | **A build whose log lines arrive as they are written** (§22 step 4) and **a deploy to staging whose instance states arrive the same way**, with the app's URL to click and an Incident when it fails (§22 steps 5–6). **Both streaming screens; the sitting Rich was warned is the heavy one** | |
@@ -248,6 +248,31 @@ docs/superpowers/WALKTHROUGH.md         MODIFIED (Task 14): the clicked journey
 ---
 
 ## Task 1: Measure what this plan rests on — before any of it is built
+
+> ### [M8] Correction block — EXECUTED 2026-09-18. Step 9's snippet could not have measured what it exists to measure.
+>
+> *Two paragraphs. This task is DONE; the block is kept because the defect is a reusable lesson
+> and because anyone re-running M8 from the snippet below would repeat it. Full record in
+> [`spikes/p5c-baseline/`](../spikes/p5c-baseline/README.md).*
+>
+> **Step 9's snippet causes the unrelated config change with node's `fetch`, which the Caddy
+> admin API REFUSES.** undici appends `Origin: ''` to every non-GET request; the admin listener
+> binds a wildcard host whose allowed-origin list is empty, so it answers **`403 "client is not
+> allowed to access from origin ''"`** — which is why `routing/caddy.ts`'s own `adminRequest`
+> uses `node:http` and documents this at length. The snippet's `.then(() => console.log("unrelated
+> route inserted"))` checks **neither `r.ok` nor `r.status`**, so it would have printed that line
+> on a `403`, reached its timeout, printed **`SURVIVED 20s, still open`**, and closed §8's
+> four-plan-old question as *"not a problem in Phase 1"* — **the opposite of the truth** — on a
+> config reload **that never happened**.
+>
+> **The correction is not "use `curl`". It is: assert the admin call's status, and refuse to
+> report a survival unless a reload is known to have happened.** The client used for the real
+> measurement exits `3` with `MEASUREMENT INVALID` in both cases. **The answer, measured in both
+> directions against a route shaped as `buildRoute` shapes one: WITHOUT the field
+> `CLOSED code=1001` 2 ms after the unrelated insert; WITH it `SURVIVED 17971 ms`, still open.**
+> So §8's item closes *with* the value: `buildRoute` now sets
+> `stream_close_delay: 3_600_000_000_000` (nanoseconds — `"1h"` is a different type the admin API
+> refuses), matching the hour the console's own site has carried since P5a.
 
 **ALONE, AND FIRST.** Every plan since P4b has opened with a measurement sitting, and P5b's
 found eleven things that moved five of its own tasks. **This task writes no console code.**
@@ -605,6 +630,48 @@ proved by re-reading the placeholder rather than by having edited the file back.
 ---
 
 ## Task 2: `packages/console` and `packages/mock` exist, and all four gates see them
+
+> ### [M4][M5][M9] Correction block — four things sitting 1 measured that change this task
+>
+> *FIVE paragraphs — four numbered points AND a final unnumbered one carrying the
+> before-measurement this task's own control is watched against; do not summarise away the
+> last. Written 2026-09-18 by P5c sitting 1; evidence in
+> [`spikes/p5c-baseline/`](../spikes/p5c-baseline/README.md).*
+>
+> **1. Install `ajv-formats` as well as `ajv` (M9/F4), and this is the last task that can.**
+> Decision 9 names only `ajv`. The document carries **185 format assertions** — `uuid` ×141, `date-time` ×43,
+> `uri` ×1 (counted across the whole document; **158** of them sit inside `components.schemas`, where `uuid` is ×114 — the two scopes give different totals, so state which one you mean) — and Ajv v8 implements none of them itself: under `strict: true` an unknown format
+> **throws**, otherwise the assertion is **silently ignored**, which is the dangerous one. Both
+> are already in the pnpm store transitively (`ajv@8.20.0`, `ajv-formats@3.0.1`) but are declared
+> by **no** `package.json`, and pnpm's strict `node_modules` means `packages/mock` cannot resolve
+> a transitive dependency. Declare both explicitly and **pin 8.x deliberately** — `ajv@6.15.0` is
+> also on this machine (ESLint's, draft-07), and it is the exact failure Decision 9 warns reads
+> like a malformed document.
+>
+> **2. The console's Vite config needs `server.allowedHosts` (M1/F7), and does NOT need
+> `server.hmr: false` (M3).** The edge **preserves `Host: console.manifest.internal`** rather
+> than rewriting it to the upstream, and Vite's dev server rejects unknown hosts. The plan's
+> HMR fallback branch is not taken: a WebSocket upgrade reaches a host process on 7104 through
+> the edge, measured from both a Node client and a real browser, with the path intact.
+>
+> **3. Run `pnpm --filter @manifest/contract build` before anything builds or previews the
+> console (M5/F3).** `packages/contract`'s `exports` map is conditional and the two conditions
+> point at different trees — `"types": "./src/index.ts"` (source) and `"default":
+> "./dist/index.js"` (built). The console therefore **typechecks against source and bundles
+> `dist/`**, so a stale `dist/` ships silently: `tsc` is green because it never reads `dist/`,
+> Vite is green because it never reads `src/`.
+>
+> **4. This task legitimately changes `pnpm-lock.yaml` (M4/F6)** — adding a package under
+> `packages/` rewrites it, and that belongs in the commit. (In sitting 1 the same edit was an
+> accident of the probe and was reverted.)
+>
+> **The before-measurement this task's control is watched against (M4).** With a
+> `packages/m4-probe` containing `expect(1).toBe(2)`: `pnpm test` **exit 0, 1344 passed in 101
+> files — identical to baseline, the file never collected** (`grep -c m4-probe` of the output:
+> 0); `pnpm lint` **exit 1**; `pnpm typecheck` **discovers it and silently skips it** (`Scope: 3
+> of 4` → `Scope: 4 of 5`, same three packages ran `tsc` — a package with no `typecheck` script
+> says nothing); `pnpm format:check` **exit 1**. So **two gates see a new package for free, one
+> needs a `typecheck` script, and one needs a glob in `vitest.workspace.ts`.**
 
 **THE ONE SITTING WITH THE NETWORK ON.** Nothing after this task installs a package; if a later
 task believes it needs one, that is a finding to record and raise (Global Constraints).
@@ -1221,6 +1288,49 @@ restores from the INDEX, which is exact now that the task is committed.
 ---
 
 ## Task 4: The console is served at `console.manifest.internal`, and signs a person in with CWL
+
+> ### [M1][M2][M6] Correction block — what sitting 1 measured about this exact hop
+>
+> *FIVE paragraphs — four numbered points AND a final unnumbered one on editing the
+> Caddyfile safely; do not summarise away the last. Written 2026-09-18 by P5c sitting 1; evidence in
+> [`spikes/p5c-baseline/`](../spikes/p5c-baseline/README.md). Nothing here changes the task's
+> shape — all three of its assumptions held — but two details are new and one is a trap.*
+>
+> **1. Everything this task assumes about the hop is MEASURED, not inferred.** With the
+> placeholder replaced by `reverse_proxy host.docker.internal:7104`: a host process bound to
+> **`127.0.0.1`** answers through the edge; `/v1/*` still reaches the control plane (`401
+> UNAUTHENTICATED`); a real browser's `Origin` arrives as **`https://console.manifest.internal`**
+> — scheme and host, no trailing slash, no port — **passed through the edge unchanged**; and a
+> WebSocket upgrade reaches 7104 with `Host` and path intact, carrying that same `Origin`.
+> **Deep paths arrive unchanged, so Decision 3's real-path router is correct** — but the edge does
+> **no SPA fallback**, so whatever serves the console must do it (`vite preview` does).
+>
+> **2. `?returnTo=` keeps a deep path, with the refusal watched too (M6).**
+> `returnTo=/projects/deep/path` round-trips through the `manifest_login` cookie intact;
+> `returnTo=//evil.example.com/x` is refused and falls back to `/`. **The fallback this task was
+> told it might need — carrying the route in a query string on `/` — is NOT needed.**
+>
+> **3. The trap: `manifest_login` has `Max-Age=600`.** A sign-in left sitting on the IdP page
+> **longer than ten minutes loses its return path** and lands on `/` instead of the deep link.
+> That is invisible when an agent drives the form in two seconds and very visible in **Task 14's
+> shared run, where a human is typing the password**. Its other properties, for the record:
+> `Path=/auth`, `HttpOnly`, `Secure`, `SameSite=None` (the IdP POSTs the assertion back
+> cross-site).
+>
+> **4. THIS TASK IS THE ONE THAT MAKES THE FOUR SHARED HTML PAGES LIE.** Sitting 1 checked them
+> and they are still accurate, because it wrote no console code: `manifest-schematic.html` says
+> in two places *"no user interface has been built yet"* (once under **02 — Start to finish**,
+> once in its closing note) and `manifest-phases.html` carries the same claim. **When this task
+> serves a real console at `console.manifest.internal`, all three statements become false** —
+> and these are the pages Rich shares outside the team, which nothing in the build checks.
+> Sweep them in **this** sitting's close-out, not later (ORIENTATION §6).
+>
+> **Editing the Caddyfile (measured, and it is a bind-mount trap).** It is a **single-file bind
+> mount**: an edit that writes a new file and renames it over the old one leaves `manifest-caddy`
+> on the deleted inode. Sitting 1 edited it **inode-preserving** (open `r+`, `ftruncate`, write)
+> and confirmed the inode was unchanged (`48091939`) before and after, then ran `make up` and
+> **re-read the served bytes** rather than trusting the edit. Do the same here, and prove the
+> restore by reading, never by having edited it back.
 
 **§22 step 1, clicked.** This task replaces the Caddyfile's placeholder, builds the shell — the
 router, the data layer, the refusal surface — and ends with a person signing in with CWL in a
@@ -2869,6 +2979,29 @@ the platform (the brief's §8), and the mock's own fixtures are hand-written.
 
 ## Task 13: The CI acceptance script, the coverage gate, and `@manifest/contract` 1.0.0
 
+> ### [M7][M5] Correction block — the coverage gate's arithmetic, and a build the CI script owes
+>
+> *Two paragraphs. Written 2026-09-18 by P5c sitting 1; evidence in
+> [`spikes/p5c-baseline/`](../spikes/p5c-baseline/README.md).*
+>
+> **1. The stream is ONE OF the 34 operations, not a 35th (M7/F5).** Task 1 Step 8 describes the
+> total as *"34 operations (33 paths plus `streamProjectEvents`)"*. Measured: **`streamProjectEvents`
+> is in `d.paths`** as `GET /v1/projects/{projectId}/events`. It is **34 paths, one of which is the
+> stream.** Decision 15 says the gate reads every operation from `openapi.json` *"plus the stream
+> and the two unversioned endpoints"* — read literally against the wrong decomposition, the gate
+> demands a **35th** caller and can never balance. **Enumerate from `d.paths` only — 34, stream
+> included — and add ONLY the two genuinely unversioned `/auth/` endpoints from `src/auth.ts`.**
+> The control plane's own `coverage.test.ts` is consistent with this: the stream is *"documented
+> and never defined"* — absent from the route **definitions**, present in the **document**.
+> The count itself is confirmed: **34 operations, eleven `Idempotency-Key` headers, two query
+> parameters** (`getBuildLog`'s `tail`, `getProject`'s `expand`). No route has moved.
+>
+> **2. `scripts/ci-acceptance.sh` must run `pnpm --filter @manifest/contract build` before the
+> acceptance (M5/F3).** `packages/contract`'s `exports` map sends `tsc` to `src/` and Vite to
+> `dist/`, so a stale `dist/` ships silently with every gate green. This bites hardest in **this**
+> task, because Decision 14 bumps the version to `1.0.0` here — that changes `dist/`, and the
+> acceptance must run against the built version that ships, not the previous one.
+
 **Files:**
 - Create: `scripts/ci-acceptance.sh`, `scripts/demo-console.sh`, `packages/console/src/coverage.test.ts`
 - Modify: `Makefile`, `packages/contract/package.json`, `packages/control-plane/src/api/contract/document.ts` (the version), `packages/contract/openapi.json` (generated), `docs/superpowers/RUNBOOK.md`
@@ -3021,6 +3154,25 @@ ci-acceptance: up  ## 1c's acceptance, headless: the gates and both journeys ove
 ---
 
 ## Task 14: The acceptance — the journey clicked by a person and run headlessly by the script
+
+> ### [M2][M6] Correction block — two things about driving Chrome that R3 does not cover
+>
+> *Two paragraphs. Written 2026-09-18 by P5c sitting 1, which drove Chrome for M2 and M3;
+> evidence in [`spikes/p5c-baseline/`](../spikes/p5c-baseline/README.md).*
+>
+> **1. The extension cannot show you a request header (M2/F8).** `read_network_requests` returns
+> URL, method and status — **not headers**. Sitting 1 needed the literal `Origin` and got it by
+> POSTing to a path served by an upstream it controlled, which logged the header byte-for-byte.
+> **Do not plan any check in this acceptance around reading a header out of DevTools**; if a
+> literal request header matters, echo it from something you own, or assert it server-side.
+>
+> **2. Budget the CWL sign-ins against a ten-minute clock (M6).** `manifest_login` carries
+> **`Max-Age=600`**, so a sign-in that sits on the IdP page longer than ten minutes **loses its
+> `returnTo` path and lands on `/`**. R3's shared run has Rich typing a password at each CWL
+> prompt while the agent narrates — which is exactly the arrangement that can exceed ten minutes
+> between the redirect and the POST back. **Have the page open and Rich ready before triggering
+> the redirect**, and if a deep link lands on `/` instead of the expected screen, suspect this
+> before suspecting the router.
 
 **ALONE, AND LAST.** §17's 1c demo: *"the §1 journey, clickable, run twice over one contract"*.
 §16's Acceptance tier: *"by a human in the reference console, and headlessly in CI by a script
@@ -3299,4 +3451,191 @@ reader does not mistake a fix for a mistake.*
 *One dated section per sitting: the tasks, every defect with the measurement that found it, the
 negative controls, and the gate numbers at the end. Written for a reader who was not there.*
 
-*(Empty until sitting 1 executes.)*
+### Sitting 1 — Task 1, the measurements — 2026-09-18 — 18 findings
+
+**All ten measurements ran (the baseline plus M1–M9). No task boundary moved, so the nine-sitting
+split stands.** Nine of the twenty *Read this first* items carry a `(T1: M<n>)` marker; **all
+nine were re-checked and all nine held.** The full record, with every raw command and answer, is
+[`spikes/p5c-baseline/`](../spikes/p5c-baseline/README.md). `[M<n>]` correction blocks were added
+to **Tasks 1, 2, 4, 13 and 14**.
+
+**The headline: §8's `stream_close_delay` question is ANSWERED and CLOSED, and the plan's own
+snippet for answering it would have answered it backwards.**
+
+#### The findings
+
+**F1 — Step 9's M8 snippet could not have measured what it exists to measure, and would have
+closed Rich's four-plan-old question the WRONG way.** It causes the unrelated config reload with
+node's `fetch`. undici appends `Origin: ''` to every non-GET request, and Caddy's admin listener
+binds a wildcard host whose allowed-origin list is empty, so it answers `403 "client is not
+allowed to access from origin ''"` — re-measured here, and documented at length in
+`routing/caddy.ts`, which is why the control plane's own `adminRequest` uses `node:http`. The
+snippet's `.then(() => console.log("unrelated route inserted"))` checks **neither `r.ok` nor
+`r.status`**, so it prints that line on a `403`. The run would then have reached its timeout,
+printed `SURVIVED 20s, still open`, and closed §8 as *"measured, and not a problem in Phase 1"* —
+**on a config reload that never happened.** *The correction is not "use curl": it is to assert
+the admin call's status and refuse to report a survival unless a reload is known to have
+happened.* Both guards are in the client that took the real measurement, which exits `3` with
+`MEASUREMENT INVALID` rather than reporting anything.
+
+**F2 — the socket IS cut, measured in both directions, and `buildRoute` now carries the field.**
+Against a route shaped as `buildRoute` shapes one (not the snippet's bare `reverse_proxy` — the
+question is about what the *platform* writes): without the field, `CLOSED code=1001` **2 ms**
+after an unrelated route was inserted; with `stream_close_delay: 3_600_000_000_000`, `SURVIVED
+17971 ms`, still open. So one app's deploy, anywhere on the platform, was disconnecting every
+WebSocket every other app held. `routing/caddy.ts` now sets the field and
+`routing/caddy.test.ts` asserts it. **§8's item closes with the value.**
+
+**F3 — `packages/contract`'s `exports` map sends `tsc` and Vite to DIFFERENT TREES.** It declares
+`{ "types": "./src/index.ts", "default": "./dist/index.js" }`, so the console will **typecheck
+against source and bundle `dist/`**. A stale `dist/` therefore ships with every gate green — `tsc`
+never reads `dist/`, Vite never reads `src/`, and nothing reports the divergence. Lands on Tasks
+2, 4 and 13; sharpest in 13, where Decision 14's `1.0.0` bump changes `dist/`.
+
+**F4 — Decision 9 needs `ajv-formats`, and Task 2 is the ONLY sitting that may install it.** The
+document carries **185 format assertions** (`uuid` ×141, `date-time` ×43, `uri` ×1 (counted across the whole document; **158** of them sit inside `components.schemas`, where `uuid` is ×114 — the two scopes give different totals, so state which one you mean)) and Ajv v8 implements none
+itself: under `strict: true` an unknown format throws, otherwise **the assertion is silently
+ignored** — and the silent one is the dangerous one. Both packages are in the pnpm store
+transitively but declared by no `package.json`, and pnpm's strict `node_modules` means
+`packages/mock` cannot resolve a transitive dependency. `ajv@6.15.0` (ESLint's, draft-07) is also
+present, which is exactly the trap Decision 9 warns reads like a malformed document.
+
+**F5 — "34 operations (33 paths plus `streamProjectEvents`)" is wrong, and it is Task 13's
+arithmetic.** `streamProjectEvents` **is** one of the 34 paths (`GET
+/v1/projects/{projectId}/events`, in `d.paths`). Decision 15 defines the coverage gate as every
+operation in the document *"plus the stream"*; read against the wrong decomposition the gate
+demands a 35th caller and can never balance. The **count** is confirmed correct — 34 operations,
+eleven `Idempotency-Key` headers, two query parameters — so no route has moved.
+
+**F6 — the M4 probe rewrites `pnpm-lock.yaml`, and Step 5's cleanup line does not restore it.**
+The step ends `rm -rf packages/m4-probe && git status --short  # must be clean`. It is not clean:
+any `pnpm` command run while the probe exists adds `+  packages/m4-probe: {}`. Restored with
+`git checkout pnpm-lock.yaml`. In Task 2 the same edit is legitimate and belongs in the commit.
+
+**F7 — the edge PRESERVES `Host: console.manifest.internal`** rather than rewriting it to the
+upstream, and Vite's dev server rejects unknown hosts. **Task 2/4 must set `server.allowedHosts`.**
+
+**F8 — the Chrome extension cannot show a request header.** `read_network_requests` returns URL,
+method and status only. The plan's M2 says to read the literal `Origin` in the Network tab; it
+was obtained instead by POSTing to a path served by an upstream this sitting controlled, which
+logged the header byte-for-byte: **`Origin: https://console.manifest.internal`** — scheme and
+host, no trailing slash, no port, and **passed through the edge unchanged**. *Method rule for
+every later browser sitting, Task 14 included: if a literal request header matters, echo it from
+something you own, or assert it server-side.*
+
+**F9 — ORIENTATION §2's numbers box contradicts §2's own `Outstanding` bullet.** The box says
+`make verify`'s per-app line "reads `containers=3 networks=8 volumes=3` today"; the bullet says it
+"should now read `containers=3 networks=1 volumes=2`" after Rich cleared the dead resources. The
+machine read **`1` and `2`** at this sitting's baseline, so the bullet was right and the box was
+stale. Swept. *(It read `8`/`3` again after `pnpm test:docker`, exactly as both passages predict.)*
+
+**F10 — a gate that passes on a new package proves nothing until you make it fail.** `pnpm lint`
+exited 0 on the M4 probe, which reads as "ESLint sees the package and it is clean" but is
+indistinguishable from "ESLint never looked". A bait file with a deliberate `any` settled it —
+`pnpm lint` exit 1, `@typescript-eslint/no-explicit-any`. The same ambiguity would have been
+recorded as a fact without the bait.
+
+**F11 — the browser sends `Origin` on the WebSocket UPGRADE, measured end to end for the first
+time.** *Read this first* 4 asserted it from the specification and from the route's code; M3
+measured it through the edge: `UPGRADE host=console.manifest.internal
+origin=https://console.manifest.internal path=/hmr-probe`. `assertSameOrigin` on
+`WS /v1/projects/:id/events` will get what it requires.
+
+**F12 — `manifest_login` carries `Max-Age=600`, and that is a trap for Task 14's SHARED run.** A
+sign-in left sitting on the IdP page longer than **ten minutes** loses its `returnTo` path and
+lands on `/`. Invisible when an agent drives a form in two seconds; very visible when R3 has Rich
+typing a password at each CWL prompt.
+
+**F13 — Task 2 does NOT need `server.hmr: false`.** The plan carries that as a branch to take if
+an upgrade could not reach 7104. It reaches it, from both a Node client and a real browser, with
+`Host` and path intact. The branch is not taken.
+
+**F14 — the edge does no SPA fallback.** Deep paths arrive at the upstream unchanged (good — it
+is what makes Decision 3's real-path router correct), but the trivial probe server only answered
+them because it served `index.html` for every path. `vite preview` does its own fallback, so this
+is a note for Task 4 rather than a change to any decision.
+
+**F15 — `pgrep -f "vitest.*docker"` does not match a running Docker tier, and this sitting paid
+for it.** The tier's argv is `node …/vitest 1`, with no "docker" in it, so a "has it finished?"
+check answers **no** while it is still running. Acting on that answer, this sitting started a
+**second concurrent `pnpm test:docker`** — two tiers sharing one database and one edge, each
+truncating and restarting under the other. Both runs were discarded and the tier re-run once,
+cleanly, for the number recorded below. *Use `ps aux | grep [v]itest`, or wait for the harness's
+own completion notification, which is the only reliable signal.*
+
+**F16 — the post-sweep check caught this sitting's own number, wrong in five documents at
+once.** §6's *"open what you pointed at and count it"* was run at close and re-derived the format
+figures instead of re-reading the sentence. **It had been written as "158 formats — `uuid` ×141,
+`date-time` ×43, `uri` ×1", which cannot be true: 141 + 43 + 1 = 185.** The two numbers come from
+two different scopes — `components.schemas` has **158** format assertions (`uuid` ×**114**), the
+whole document has **185** (`uuid` ×141) — and the sentence had spliced the total from one to the
+breakdown from the other. By the time the check ran it had already been copied into ORIENTATION
+§7e, the plan's Task 2 correction block, the plan's own record, the roadmap's P5c row and the
+spike README. **All five now state 185 with both scopes named**, because the fix for a restated
+number is to say which scope it counts. *This is the F13-shaped defect §6 describes — a wrong
+number inherited and multiplied — caught inside one sitting instead of by the next one, and it is
+the reason the check is worth the ten minutes.*
+
+**F17 — two of this sitting's five correction blocks miscounted themselves, which is the
+sitting-4 defect exactly.** P5b sitting 4's defect was *"a correction block called 'one
+paragraph' when it had two, so the paragraph the summariser did not need vanished — and it was
+the one that contradicted the next task's own test"*. Here, Task 2's block said *"Four
+paragraphs"* and had **five**, and Task 4's said *"Three"* and had **five**; in both cases the
+uncounted paragraph was the LAST one — Task 2's before-measurement (the figures its own control
+is watched against) and Task 4's Caddyfile bind-mount procedure. Both now state **FIVE** and say
+in terms *"do not summarise away the last"*. Found by counting the items in each block, not by
+re-reading the preamble.
+
+**F18 — `safeReturnTo` was watched refusing, not just accepting.** `returnTo=/projects/deep/path`
+round-trips intact; `returnTo=//evil.example.com/x` falls back to `/`. A measurement that only
+showed the path being kept would not have shown the mechanism was in force.
+
+#### The negative controls
+
+The plan says this task's negative controls **are** the measurements, and four were run as pairs:
+
+| Control | Watched |
+|---|---|
+| **M4** — a new package's test is silently not run | `expect(1).toBe(2)` in the tree; `pnpm test` **exit 0**, 1344/101, identical to baseline, `grep -c m4-probe` of the output **0** |
+| **M4** — is `pnpm lint`'s green real? | a deliberate `any` bait file turned it **exit 1** (F10) |
+| **M8** — the pair that makes it a measurement | **without** the field `CLOSED 1001` @2 ms; **with** it `SURVIVED 17971 ms` |
+| **M6** — is the return-path check in force? | a legitimate deep path **kept**, a protocol-relative URL **refused** to `/` |
+| **`stream_close_delay` assertion, (a)** | field removed → `expected undefined to be 3600000000000`, 1 failed / 10 passed |
+| **`stream_close_delay` assertion, (b)** | value written as `'1h'` (the Caddyfile spelling the admin API refuses) → `expected '1h' to be 3600000000000` |
+| **M1's restoration** | proved by **re-reading the placeholder through the edge**, plus `git diff --stat` empty and a byte-for-byte `diff` against a pristine copy — never by having edited it back |
+| **M8's route cleanup** | both routes `DELETE`d and **read back** (`unknown object ID` each), not trusted to their exit codes |
+
+Control (b) is the one worth keeping: a test asserting only `toBeDefined()` would have passed on a
+route the edge refuses outright.
+
+#### Gate numbers at the end of this sitting
+
+| Gate | Before | After |
+|---|---|---|
+| `pnpm test` | 1344 in 101 files | **1345 in 101 files** — up exactly 1, the `stream_close_delay` assertion. Run twice, both 1345 |
+| `pnpm test:docker` | 178 in 29 files | **178 in 29 files** — unchanged; the assertion is a unit test |
+| `make doctor` | 18/0 | **18/0** |
+| `make verify` | 51/0 | **51/0** |
+
+`pnpm lint`, `pnpm typecheck` (3 of 4 workspace projects) and `pnpm format:check` all clean.
+
+#### Documents checked and deliberately NOT changed
+
+*§6 asks that this be said rather than assumed.* **The four shared HTML pages were opened and
+are still accurate**, because this sitting wrote no console code: `manifest-schematic.html` says
+*"no user interface has been built yet"* in two places and `manifest-phases.html` in one, and all
+three remain true. **Task 4 is what makes them false** — a note to that effect is now in Task 4's
+own correction block, where the sitting that serves the console will see it.
+`manifest-decisions.html` and `manifest-stories.html` mention neither P5c nor a UI disclaimer.
+**`WALKTHROUGH.md` was opened and left alone**: its *What works today* describes user-visible
+behaviour, and nothing user-visible moved — the console's origin still answers the placeholder.
+
+#### The machine
+
+Snapshotted before and after. The Caddyfile is byte-for-byte its committed self, **proved by
+re-reading what the edge serves**; both throwaway servers stopped **by port**; both scratch
+`.mjs` files deleted; both probe routes deleted and read back; `pnpm-lock.yaml` restored; the
+control plane rebuilt and restarted, because it serves from `dist/` and a source change does not
+reach it. **`pnpm test:docker` regenerated the seven dead app networks and one volume**, exactly
+as ORIENTATION §2 predicts — `bash scripts/dead-app-resources.sh` and
+`bash scripts/litellm-orphans.sh` were run bare at the close and their output handed to Rich.

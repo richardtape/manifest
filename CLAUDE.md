@@ -28,17 +28,20 @@ and its row says so:
 | P4c | 2026-09-16 | A redeploy interrupts and signs out nobody | `make demo-redeploy` |
 | P5a | 2026-09-17 | The API is a published contract under `/v1`, driven by a generated client | `make demo-journey` |
 | P5b | 2026-09-18 | An agent acts on a delegated token; D24's privileged four are refused centrally and a person confirms one retry | `make demo-token` |
-| P5c | *written 2026-09-18, not executed* | The clients: `manifest-mock`, `console/` behind its import boundary, the CI acceptance script | §22's journey clicked by a person **and** run headlessly, over one contract |
+| P5c | *executing — sitting 1 of nine done, 2026-09-18* | The clients: `manifest-mock`, `console/` behind its import boundary, the CI acceptance script | §22's journey clicked by a person **and** run headlessly, over one contract |
 
-**P5c IS WRITTEN AND NOT EXECUTED** (`docs/superpowers/plans/2026-09-18-p5c-the-clients.md`,
+**P5c IS WRITTEN AND EXECUTING** (`docs/superpowers/plans/2026-09-18-p5c-the-clients.md`,
 written 2026-09-18): the clients — `manifest-mock`, `console/` behind its import boundary, and
-the CI acceptance script — **14 tasks in nine agreed sittings, none of them run.** It is the last
-plan of Phase 1c. **The next job is executing its sitting 1**, Task 1's measurements, alone and
-first; **ORIENTATION §7e says what to read and in what order.** Rich settled three things in it:
-nine sittings (the leaner of three splits, with the cost stated — sitting 5 carries both
-streaming screens); **§8's `stream_close_delay` question is answered by a MEASUREMENT in Task 1**;
-and the **clicked half of its acceptance is shared and recorded**, because an agent driving
-Chrome cannot type a password.
+the CI acceptance script — **14 tasks in nine agreed sittings, of which SITTING 1 IS DONE**
+(2026-09-18, 18 findings, `docs/superpowers/spikes/p5c-baseline/`). It is the last plan of
+Phase 1c. **The next job is its sitting 2**, Tasks 2 and 3 — **the ONE sitting in the plan with
+the network on**, so what it fails to install, no later sitting may add; **ORIENTATION §7e says
+what to read and in what order.** Rich settled three things in it: nine sittings (the leaner of
+three splits, with the cost stated — sitting 5 carries both streaming screens); **§8's
+`stream_close_delay` question is answered by a MEASUREMENT in Task 1** — **which has now run, and
+the answer was yes, an app's WebSocket IS cut by any other app's deploy, so `routing/caddy.ts`
+carries the field and §8's item is closed**; and the **clicked half of its acceptance is shared
+and recorded**, because an agent driving Chrome cannot type a password.
 
 **P5b — delegated tokens and pending actions (D24) — was executed in nine sittings and finished
 on 2026-09-18** (`docs/superpowers/plans/2026-09-17-p5b-delegated-tokens.md`, 13 tasks): an agent
@@ -58,12 +61,13 @@ Phases.*
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
 turning the network off from a tool call cuts the agent off too; **it now has NINE steps**, the
 newest being `make demo-token`), the second-machine clean clone, starting the UBC external track
-(its trigger fired on 2026-09-15), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE
-ALL CLEAR as of 2026-09-18**, re-measured by their own scripts: `dead-app-resources.sh` reads
-`none dead` and `litellm-orphans.sh` reads 0 orphaned. **None of them stays cleared on its own** —
-every `pnpm test:docker` regenerates the network set, which P5b sitting 9 measured putting back
-exactly the seven networks and the one volume removed by hand that morning, and every demo adds a
-LiteLLM user. **So run both scripts bare at a sitting's close and hand the output to Rich**, who
+(its trigger fired on 2026-09-15), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE OWED AGAIN as of the close of
+P5c sitting 1, 2026-09-18** — and that is the system working, not a regression: that sitting ran
+`pnpm test:docker`, which regenerated the dead network set, and `make verify`'s per-app line went
+from `containers=3 networks=1 volumes=2` to `containers=3 networks=8 volumes=3` in the course of
+one sitting. **This is the second time it has been measured doing exactly that** (P5b sitting 9
+was the first), so treat it as a property of the Docker tier rather than as a backlog: **none of
+these cleanups stays cleared on its own**, and every demo adds a LiteLLM user besides. **So run both scripts bare at a sitting's close and hand the output to Rich**, who
 applies; never work from a written list. **The permission classifier is not a
 fixed rule** — it allowed all of that and then began refusing `docker volume ls` in the same
 session, so try the command rather than assuming either way. *(The one P5a negative control those rules refused —

@@ -97,6 +97,25 @@ describe('the Caddy route shape', () => {
     // `headers.get()` on the client then returns `"edge-value, forged"`).
     expect(headers.response.deferred).toBe(true)
   })
+
+  // §8's four-plan-old question, closed by measurement on 2026-09-18 (P5c Task 1,
+  // M8): a runtime route WITHOUT this field had its WebSocket closed `1001` 2 ms
+  // after an unrelated route was inserted anywhere on the platform; WITH it the
+  // same socket survived the same reload. Every admin-API change reloads the whole
+  // config, so without this one app's deploy disconnects every other app's streams.
+  it("lets an app's stream outlive the config reload that another app's deploy causes", () => {
+    const proxy = route.handle.at(-1) as {
+      handler: string
+      stream_close_delay?: unknown
+    }
+    expect(proxy.handler).toBe('reverse_proxy')
+    // The VALUE, not merely the presence. Caddy's JSON durations are nanoseconds:
+    // a string like "1h" is a different type and the admin API refuses the whole
+    // route, so a test asserting only `toBeDefined()` would pass on a route the
+    // edge will not accept.
+    expect(proxy.stream_close_delay).toBe(3_600_000_000_000)
+    expect(typeof proxy.stream_close_delay).toBe('number')
+  })
 })
 
 describe('the Caddy admin client', () => {

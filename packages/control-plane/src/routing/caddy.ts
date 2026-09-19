@@ -97,7 +97,37 @@ export function buildRoute(input: {
           deferred: true,
         },
       },
-      { handler: 'reverse_proxy', upstreams: [{ dial: input.upstream }] },
+      {
+        handler: 'reverse_proxy',
+        upstreams: [{ dial: input.upstream }],
+        /**
+         * EVERY admin-API change reloads the edge's whole config, and a reload closes
+         * every WebSocket the old config proxied with `1001 Going Away`. Without this,
+         * ONE app's deploy — anywhere on the platform — disconnects every WebSocket
+         * every OTHER app is holding, which sits badly beside P4c's "a redeploy
+         * interrupts nobody".
+         *
+         * Measured 2026-09-18 (P5c Task 1, M8), in both directions, against a runtime
+         * route shaped exactly as this function shapes one:
+         *
+         *   without this field: CLOSED code=1001, 2 ms after an unrelated route was
+         *                       inserted
+         *   with it:            SURVIVED 17971 ms after the same insert, still open
+         *
+         * The console's own site has carried `stream_close_delay 1h` since P5a for
+         * this reason; this is the same value for the routes `routing/` writes, so
+         * an app's stream and the console's stream outlive a reload by the same hour.
+         * Caddy's JSON durations are NANOSECONDS — `"1h"` is a different type the
+         * admin API refuses, so it is spelled out here.
+         *
+         * What the hour costs: a stream opened on an old config keeps the OLD handler,
+         * and so the old upstream, alive for up to that long. That is bounded in
+         * practice by the instance itself — §11's retire has a drain bound, and once
+         * the old container is gone the held connection breaks anyway. It is recorded
+         * as the trade rather than hidden: §8's question was about this value.
+         */
+        stream_close_delay: 3_600_000_000_000,
+      },
     ],
     // terminal:true stops the wildcard behind this route from also matching.
     terminal: true,
