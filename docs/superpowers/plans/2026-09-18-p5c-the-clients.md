@@ -5576,3 +5576,145 @@ substituted into `**…**`. Both corrected.
 **The lesson worth keeping: verifying your own edits is not a cold read, and only the second kind
 finds a hand-off that is wrong about the FUTURE.** §6's post-sweep check is built on counting what
 already happened, which is why it caught the mock's file count and missed all three of these.
+
+---
+
+### Sitting 9 — Task 14, the acceptance — 2026-09-19 — **IN PROGRESS: STEPS 1, 3 (PARTLY) AND 4 ARE RUN; RICH'S HALF IS NOT**
+
+> **READ THIS BEFORE ANYTHING ELSE IN THIS SECTION.** This sitting is **NOT FINISHED** and the
+> sittings table still shows `← next` on row 9 deliberately. It is written now, mid-sitting,
+> because **two commits exist that the plan would otherwise not explain** (`0066c40`, `2d884cc`) —
+> which is exactly the unswept-sitting shape §6 rule 8 describes. **Steps 2 and 5, and negative
+> controls (b) and (e), have not run**: they need Rich at the keyboard, because the Chrome
+> extension will not type a password (R3). Do not read any of this as an acceptance.
+
+**What has run:** Step 1 in full (three `make ci-acceptance` runs), Step 3 for the four controls
+whose predictions live in the test tier, and Step 4 — decided by Rich and implemented.
+
+#### The findings
+
+**F1 — TASK 14'S STEP 1 ASKS FOR THREE MACHINE STATES AND THE SCRIPT NORMALISES ALL THREE INTO
+ONE.** Step 1's table calls run 2 *"the re-use path, where every project already exists"* and
+predicts that *"the create path has one [check] the re-use path does not"*. **Measured: there is no
+difference at all.** Three runs — the baseline machine, the same machine again, and an
+`echo reset | make reset` machine — produced **identical** summaries: `0 failed, 0 moved`,
+`demo-journey` **58** checks, `demo-token` **64** checks, and their summary blocks `diff` clean.
+The reset was real and was measured on both sides: `make verify` read `containers=0 networks=0
+volumes=0` immediately after it and `containers=6 networks=2 volumes=4` after run 3 rebuilt them.
+
+The cause is in the acceptance script's own comment, `scripts/ci-acceptance.sh:117`: *"IT RUNS
+BEFORE THE DEMOS, AND THE ORDER IS LOAD-BEARING: `pnpm test` TRUNCATES the control plane's §6
+tables... the demos would recreate their projects, and which step made the machine what it is
+would be hidden."* So **every run empties the database before its demos and every run is
+therefore the create path**; the re-use path is unreachable through this script by design. The
+three runs are not wasted — they measure something the plan does not claim, which is that the
+acceptance is **repeatable and machine-state-independent to within 7 seconds across a full
+reset** — but a future sitting should not expect a count difference, and should not go looking
+for the missing check when it fails to appear.
+
+**F2 — §7e's REASON FOR RUNNING THE RESET LAST IS WRONG, THOUGH THE ORDER IS RIGHT.** §7e says to
+put the reset run last *"because it destroys `journey-app` and `token-app`, which the clicked half
+wants standing"*. **The clicked half wants neither.** `scripts/demo-console.sh` builds the
+contract and the console, asserts the control plane answers through the edge, serves the console
+and prints the checklist — *read in full; it names no app at all* — and the checklist's own step 4
+creates `proof-app`. The order is still correct, for the reason F1 gives instead: the reset run is
+the one genuinely different machine state, so it belongs last, after the two that are not.
+**This matters because a cold agent that checked the stated reason, found it false and reordered
+the runs would destroy the comparison Step 1 exists for.**
+
+**F3 — THE RUN TIME IS ~4× SHORTER THAN BOTH DOCUMENTS SAY.** Task 14 and §7e both budget
+*"~15 minutes a run"*. Measured: **228 s, 221 s and 225 s** — under four minutes each, the reset
+run no slower than the others. Task 14's Step 1 therefore costs about twelve minutes, not
+forty-five, which is the difference between "schedule a sitting around it" and "just run it".
+
+**F4 — `README.md`'s STATUS SECTION STILL NAMES P5b's SITTING 9 AS THE NEXT JOB**, five sittings
+after P5b finished on 2026-09-18: *"**Sitting 9 — Task 13, the acceptance, alone and last — is the
+next job.**"* Found by reading README for its export block, not by sweeping it. **Same shape as
+the WALKTHROUGH staleness sitting 8 found (F14)** — a status document that survived a sweep
+because the sweeper checked the sections it had changed. Not yet fixed: it belongs to Step 5's
+sweep, and is recorded here so it cannot be lost if this sitting is picked up by someone else.
+
+**F5 — CONTROL (d) IS CAUGHT TWICE, AND THE SECOND CATCH EXPLAINS SITTING 8's F1.** Step 3's row
+(d) predicts that a mock `ME` fixture with a role the enum lacks reddens `validate.test.ts` alone.
+It does — **and `tsc` catches it independently**: `src/fixtures.ts(47,3): error TS2322: Type
+'"wizard"' is not assignable to type '"admin" | "member"'`. The prediction understates the
+coverage, and the reason is the one sitting 8's F1 identified: `Me.role` is a **closed enum** in
+the read schema, so both gates see a bad value, while `Token.capabilities` is a bare
+`array<string>`, which is why `build:run` was invisible to both. **The same experiment, opposite
+outcomes, decided entirely by the schema's shape** — which is the argument for closing that
+array that F1 could only assert.
+
+**F6 — A GATE'S OUTPUT TAILED IS A GATE WHOSE FAILURE HAS NO NAME.** `make verify` immediately
+after `make reset` reported **`51 checks, 1 failed`** — the intermittent §7e warns about from P5b
+sitting 9's F6, where the host loses the edge while a container still has it. A re-run read
+`51 checks, 0 failed` and it has not recurred, so it cleared without the documented
+`docker restart manifest-caddy` remedy. **Which check failed is not known, because the script
+that ran it piped `make verify` through `tail -12` and the `FAIL` line was above the cut.** The
+evidence is gone and cannot be recovered. This is this project's own *assert the shape of the
+answer* lesson, arrived at from the other end: a summary line is not the finding, and a step whose
+whole purpose is to say WHICH check broke must not be truncated. **Record a gate's full output to
+a file and read the file.**
+
+**F7 — TASK 14's STEP 4 PRESCRIBES AN ANSWER THAT WAS NOT IMPLEMENTABLE AS WRITTEN.** Step 4 says
+*"The answer this plan expects is a tenth step that runs `make demo-console`'s PREFLIGHT only"*,
+and its *Files* list names only `scripts/offline-acceptance.sh`. **`make demo-console` cannot be
+called by a script at all**: `scripts/demo-console.sh` ends at line 127 with
+`wait "$PREVIEW_PID"`, holding the preview server until the person is finished, so an offline run
+that invoked it unguarded would **hang for ever rather than fail**. The step needed either a new
+flag in `demo-console.sh` or the preflight duplicated — both outside the task's file list. Rich
+chose the flag on 2026-09-19 (duplication drifts), and it is `MANIFEST_CONSOLE_PREFLIGHT_ONLY`.
+
+#### Step 4, as decided and built
+
+`0066c40`. The measurement that decided it: **the nine existing steps request only
+`console.manifest.internal/v1/me` and `edge.manifest.internal/`** — counted by extracting every
+URL in the script — **so nothing offline has ever fetched the console's own document at `/`**.
+Step 8 proves the generated *contract* builds offline, but `packages/journey` is plain `tsc` over
+checked-in types; the console is Vite + React + esbuild, a different toolchain with its own
+reasons to want a registry. Both claims are falsifiable without a person, which is Step 4's own
+criterion.
+
+Measured after building it: the preflight completes in **6 s** and leaves **7104 free**.
+
+#### The negative controls
+
+Four of Step 3's six, plus one for the step Step 4 added. **(b) and (e) are clicked-only by
+design and have not run.** Every one below was watched and restored, and `git status` read clean
+after each.
+
+| | Break | Predicted | Measured |
+|---|---|---|---|
+| a | `api.ts`'s `getMe` calls `/v1/fleet` | `coverage.test.ts` 1 red, `api.test.ts` 1 red | **as predicted** — 2 files, 2 tests red; the assertion is `coverage.test.ts:117`, `expected [ 'GET /v1/me (getMe)' ] to deeply equal []` |
+| c | `DELIBERATELY_UNCALLED` given all 34 operations | **green — the defect** | **as predicted: green, 2 passed.** `checked > 30` cannot see it because `checked++` runs at line 102, *before* the exemption test at line 103. The gate is fully disarmed by its own list — Decision 15's honest limit, now measured rather than argued |
+| d | mock `ME.role: 'wizard'` | `validate.test.ts` 1 red | **red, and `tsc` too** — see F5 |
+| f | `createApi({ origin: 'http://127.0.0.1:7104' })` in `app.tsx` | tier green | **as predicted: 9 files, 42 tests green, and `typecheck` green.** A change that answers `403 CSRF_ORIGIN_REFUSED` on every mutation in a browser is invisible to the whole tier — *Read this first* 3, measured |
+| — | the tenth step's own: a console that does not compile | must fail loudly | **failed at step 0** with the `tsc` error shown and `make: *** [demo-console] Error 1` — **and 7104 was free afterwards**, so the `EXIT` trap runs on the failure path too |
+
+#### Gate numbers at this point in the sitting
+
+Unmoved from sitting 8, and checked against §2's box rather than recalled: `pnpm test` **1376** in
+**107** files (run twice at the baseline, twice more before `0066c40`, and once inside each of the
+three acceptance runs — **1376 every time**), `make doctor` **18/0**, `make verify` **51/0**,
+`pnpm lint`, `pnpm typecheck` and `pnpm format:check` all clean. **`pnpm test:docker` is NOT owed
+and was not run**: this sitting changed neither the Caddyfile nor an app route, and `scripts/` is
+not in CLAUDE.md's list.
+
+#### The machine, mid-sitting
+
+**The control plane was restarted once**, deliberately and before anybody signed in (F13's rule):
+it is **pid 70057**, started after the reset run's `db:migrate`, and it booted clean —
+`routesRestored: 0`, `pendingActionsExpired: 0`, 755 reserved labels. `journey-app` and
+`token-app` stand again from run 3 (`containers=6 networks=2 volumes=4`). **7102, 7104 and 7105
+are free.** **Both cleanup scripts read CLEAR** — `dead-app-resources.sh` *none dead*, 0 networks
+and 0 volumes; `litellm-orphans.sh` **0 orphaned** — *which is itself a measurement*: a full
+`make reset` and three whole acceptance runs left **no** debris, so the seven-networks-and-one-volume
+cycle belongs specifically to `pnpm test:docker` and not to the demos. **`users` is EMPTY**, so
+the `MEMBER_USER_NOT_FOUND` trap is armed for the clicked half.
+
+#### What is OUTSTANDING, and it is the half that matters
+
+1. **Step 2 — the clicked journey**, all sixteen rows, with Rich typing `instructor` and
+   `student`. The extension needs a per-site permission for `idp.manifest.internal` first.
+2. **Step 3's controls (b) and (e)**, both of which are only observable on screen.
+3. **Step 5 — the whole close-out sweep**, which is bigger than a sitting's because this is the
+   last plan of Phase 1c. **F4's README staleness is already known and waiting for it.**
