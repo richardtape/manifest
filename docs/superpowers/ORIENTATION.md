@@ -1692,8 +1692,11 @@ human rather than by `curl`**, and it is the last screen before the mock.
 **ONE TASK, AND IT NEEDS A SECOND ACTOR.** Every other screen in this plan reads or writes as the
 person sitting in front of it. This one renders a question **an agent asked**, so nothing appears
 until a delegated token has been refused a privileged capability — you must drive both sides.
-`scripts/demo-token.sh` does exactly that end to end and is the worked example; `make demo-token`
-runs it. **Task 10 built the screen that mints the token you will need**, so you can now do the
+**The worked example is `packages/journey/src/token.ts`, NOT the shell script** — `grep pending
+scripts/demo-token.sh` finds nothing, because the script only orchestrates. Its `step6` (around line
+495) has an agent POST `/v1/projects/{id}/members`, asserts the refusal is `403 TOKEN_ACTION_PENDING`
+and reads the question off `error.pendingAction`; its `step7Confirmed` (around line 542) lists the
+queue as the person and confirms. `make demo-token` runs the whole thing. **Task 10 built the screen that mints the token you will need**, so you can now do the
 agent's half from a token minted by clicking.
 
 > **THIS SITTING PROBABLY NEEDS RICH TO TYPE A PASSWORD, AND THE REASON IS NOW MEASURED.** The
@@ -1705,8 +1708,8 @@ agent's half from a token minted by clicking.
 > typing credentials the extension will not type (R3, §4).
 >
 > **Plan around it rather than into it.** Task 11's confirm/reject needs a person **who holds the
-> capability the question is about** — `members:manage` for the `removeMember` question
-> `demo-token.sh` uses — which a project **owner** holds and a collaborator does not. So the
+> capability the question is about** — `members:manage`, and the question the journey raises is an
+> ADD (`POST /v1/projects/{id}/members` for `stu000001`), not a remove — which a project **owner** holds and a collaborator does not. So the
 > cheapest shape is: be ONE person throughout, make that person the project's owner, and mint the
 > token as them. A second person is only needed to watch a collaborator be refused `403 FORBIDDEN`
 > at the confirm route, which is Task 11's own control row — **decide deliberately whether that
@@ -1731,8 +1734,10 @@ believes it needs a package, that is a finding to record and raise, not a step t
    envelope's `pendingAction` yet — Task 11 is its first caller and adds it *with* that caller
    (sitting 5's F6, sitting 6 left it untouched) — and `api.ts` now holds **29 of the contract's
    34 operations**, so Task 11 adds `listPendingActions`, `getPendingAction`,
-   `confirmPendingAction` and `rejectPendingAction`, leaving **one** for Task 13's coverage gate to
-   account for. *Check that arithmetic by counting, not by trusting this line.*
+   `confirmPendingAction` and `rejectPendingAction`, leaving **one**: `streamProjectEvents`, which is the WebSocket and is
+   already called — by `stream.ts`'s `subscribe`, not by `api.ts` — so Task 13's coverage gate must
+   count the stream as covered rather than exempt it. *Counted at this close with a script over
+   `openapi.json` and `api.ts`, not by arithmetic on a remembered number.*
 3. **Sitting 6's entry in the plan's *What executing this plan found*** — eleven findings.
    **F1, F2 and F7 change what you do.** F1: **`<Ago>` is now `<Instant>` and renders both
    directions** — `PendingAction.expiresAt` is a FUTURE instant and is the next one to reach a
@@ -1845,7 +1850,7 @@ in each plan's *Global Constraints*:
 | The control plane | **RUNNING on 7100 when this was written — DO NOT BELIEVE THAT ROW, CHECK IT** with `lsof -nP -iTCP:7100 -sTCP:LISTEN`. A sitting is one session and this is a host process. **Your sitting DOES need it.** It survived a nine-hour machine sleep as pid 81557, which is one more data point and **not** a licence to assume. README's *Running the control plane* is the whole export block — `set -a; . ./.env; set +a` alone is NOT enough, because `MANIFEST_ADMIN_DATABASE_URL` is DERIVED in that block. **Never start a second one**, and kill the first BY PID — `pkill -f 'control-plane/dist'` does NOT match it. **It was NOT restarted this sitting**, so its session secret is unchanged from sitting 5's |
 | The console | **`infra/caddy/Caddyfile` is untouched this sitting** — `git status` clean throughout. **`vite` WAS LEFT RUNNING on 7104** as pid 65007 — *checked by `lsof` at close* — deliberately, because it survived the sleep and the next sitting needs it; **stop it by PORT if you want a clean start**. 7102 and 7105 are free |
 | The console's code | **22 tracked files in `packages/console`** — *counted with `git ls-files`* — of which this sitting added `screens/launch.tsx` and `screens/fleet.tsx` and changed `api.ts`, `ui.tsx`, `app.tsx`, `screens/project.tsx`, `screens/tokens.tsx` (new), `screens/builds.tsx`, `screens/deploy.tsx` and `styles.css`. **`api.ts` now has 29 of the contract's 34 operations** — *counted with `grep -c 'async '`*. `<Refusal>` renders `launchReadiness` through the shared `<ReadinessItems>` and still does NOT render `pendingAction`, deliberately (Task 11 is its first caller) |
-| The database | **NO migration since 0018** (`packages/control-plane/drizzle/0018_curvy_sister_grimm.sql` is the newest — *checked*; note the path, `drizzle/` is NOT at the repository root). **`pnpm test` ran SIX times — counted from the captured output files** — and every one truncates, so **treat the §6 tables as EMPTY** |
+| The database | **NO migration since 0018** (`packages/control-plane/drizzle/0018_curvy_sister_grimm.sql` is the newest — *checked*; note the path, `drizzle/` is NOT at the repository root). **`pnpm test` ran EIGHT times — counted from the captured output files** (two at the baseline, two before each of the two commits, two at the close) — and every one truncates, so **treat the §6 tables as EMPTY** |
 | Identity | **`users` holds exactly ONE row, `opr000001`, role `member`** — *read from `/v1/me` at close*. The closing gates truncated `users` and a browser sign-in afterwards recreated the operator as a plain member, so **THERE IS NO ADMINISTRATOR** and `GET /v1/fleet` answers `403` for everyone until `scripts/admin-grant.sh` is run again. The long-standing trap is ARMED: `POST /v1/projects/{id}/members` answers `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in. **The BROWSER holds a live Manifest session AND a live IdP session, both `operator`** — signing out and in again returns operator with no password; becoming anybody else costs one |
 | The apps | **`token-app` only, three containers** — *counted at close*. This sitting deployed nothing; `make verify` reads `containers=3 networks=1 volumes=2` and *runtime routes* **0**. token-app is **NOT reachable as itself**: that hostname answers the edge's wildcard, which a status-only check cannot tell from the app |
 | **Owed to Rich** | **NOTHING.** This sitting created three projects and four delegated tokens, all of them removed by its own gates' truncation; it built no image, deployed no container and left no network, volume or runtime route. Both cleanup scripts were run bare at the close and **needed no `--apply`**: `dead-app-resources.sh` reads **`none dead`** and `litellm-orphans.sh` reads **0 orphaned**. App images stand at **29 lines / 27 distinct IDs / 0 by `^local/`**, the same three numbers sitting 5 left — **name the metric, because a fourth way of counting (`docker images --format '{{.ID}}' \| sort -u`) answers 69, which is every image on the machine and not the app figure**. **The dead-resource set still comes back the moment anyone runs `pnpm test:docker`** — a property of the tier, measured three times, not a backlog |
