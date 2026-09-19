@@ -4091,6 +4091,16 @@ and in all three P5c sittings.* **Three here, and every one was found by running
    `styles.css`, `ui.tsx`. The total of 13 changed files was right; the breakdown was not, which
    is the kind of error that survives a sanity check on the total.
 
+**A FIFTH DEFECT, found when Rich asked a follow-up question the next morning and the check was
+re-run against §2 rather than §7e**: ORIENTATION §2's P5c paragraph still read *"14 tasks in nine
+agreed sittings, of which **TWO ARE DONE** — how many is stated in this file ONCE, in the box at
+the very top"* — **a sentence stating a count while claiming not to**, stale for the whole of this
+sitting even though the box above it was swept correctly. **This is the SAME defect, in the SAME
+file, that P5b sitting 8's post-sweep check found in the P5b paragraph** (*"six sittings are done"*
+against a box saying eight), and the rule written down then — *grep for the PHRASE, never the
+number* — is what found it now. The number is gone from that sentence rather than corrected, which
+is the only repair that does not decay.
+
 **Four claims were checked and HELD**, which is worth recording because a check that only ever
 finds errors is not being run honestly: `git ls-files packages/console` really is **13**;
 `packages/control-plane/drizzle/0018_curvy_sister_grimm.sql` really is the newest migration and
@@ -4115,8 +4125,16 @@ one LiteLLM orphan** (`p4b-probe-user`), named in §7e and re-derived by the two
 at close. **This is the third measured time `pnpm test:docker` regenerates exactly that set**
 (P5b sitting 9 and P5c sitting 1 were the first two), so it is a property of the tier rather
 than a backlog. `make verify`'s per-app meter reads **`containers=3 networks=8 volumes=3`**,
-which is the expected reading after a tier run and not a fault. **App images went 23 → 29**,
-which neither script covers. **Every server this sitting started was stopped by PORT**: `vite`
+which is the expected reading after a tier run and not a fault. **App images went 23 → 29** by the lines metric
+(27 by distinct image ID), which neither script covers.
+
+**CLEARED THE SAME DAY.** Rich ran both scripts with `--apply` at this sitting's close and they
+were **re-measured by the scripts themselves**: `dead-app-resources.sh` **`none dead`** — 0
+networks, 0 volumes, token-app's one network and two volumes correctly KEPT — and
+`litellm-orphans.sh` **0 orphaned**, its one held user surviving. `make verify` was **51/0**
+afterwards with the per-app meter back to **`containers=3 networks=1 volumes=2`**, and
+token-app's three containers were up and healthy, so the applies removed nothing they should
+not have. *The set returns on the next Docker-tier run; that is the property, not the status.* **Every server this sitting started was stopped by PORT**: `vite`
 on 7104 (three times — once for the browser work, once for the classifier's truth table, once
 after the impostor) and the throwaway impostor server, all confirmed gone by `lsof`. **The
 control plane on 7100 was left running** and was restarted after the Docker tier, which
