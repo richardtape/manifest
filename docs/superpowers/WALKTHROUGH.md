@@ -23,7 +23,7 @@ Manifest runs on one Mac. **Almost everything is a container**; two things run o
 | **The proof app** | `https://proof-app.staging.manifest.internal` | §16's application: CWL sign-in, private notes, an AI answer |
 | **The fixture app** | `https://fixture-app.staging.manifest.internal` | P3's trivial app — proves a build and a deploy, nothing more |
 
-**What works today** *(status, as of P5c sitting 6 — 2026-09-19)*: through Manifest's API — under `/v1`, at `https://console.manifest.internal`, which only the host can reach, and which refuses a session-bearing change that does not come from that origin — create a project, push code, validate its
+**What works today** *(status, as of P5c sitting 7 — 2026-09-19)*: through Manifest's API — under `/v1`, at `https://console.manifest.internal`, which only the host can reach, and which refuses a session-bearing change that does not come from that origin — create a project, push code, validate its
 `manifest.yaml`, build it through the platform's security gates, release it and deploy it
 to staging; sign a person in with practice CWL; keep each person's data theirs; answer
 questions through a per-app AI key charged to the person who asked; stream build logs and
@@ -167,8 +167,11 @@ identifier, never their CWL ID.
   §14's **Incident** — the check that failed, the diff since the last healthy release, the repair
   prompt and the log tail — and says that the release before it is still serving, because it is.
   **Deploy to production is there and is refused**, with §13's checklist rendered from the
-  refusal's own envelope. **The queue and tokens are screens a later sitting of P5c builds**;
-  until then each says so rather than showing a blank page.
+  refusal's own envelope. **§26's QUEUE AND D24's TOKENS ARE BOTH SCREENS NOW.** On a project's *Tokens* tab a person
+  mints a delegated token, is shown its secret **once**, lists it and revokes it; on *Queue* they read
+  the question an agent asked — what it wanted, which token asked, how long it has waited — and
+  **confirm or reject it in their own words**. Confirming does **not** run anything: it grants that one
+  request a single retry, which the agent makes itself, and the row says so while it waits.
   - **Two traps worth knowing before you click:** *Build* builds **the commit of the manifest
     last validated**, not the repository's HEAD — press *Re-validate* first if you have pushed —
     and **a build's log lines are never replayed**, so the panel reads them back from

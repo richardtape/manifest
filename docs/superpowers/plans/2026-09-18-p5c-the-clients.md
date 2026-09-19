@@ -32,8 +32,8 @@
 | 4 | 5–6 | **My projects, and creating one** — the slug check while it is typed, the blueprint and starter catalogue, §24's audience (§22 step 2) — and **the project screen with its live event stream** (§22 step 3) | **DONE 2026-09-18 — 9 findings.** §22 steps 2 AND 3 CLICKED. The stream's liveness was PROVED (a `token.minted` published from a terminal arrived in the open tab; the same event on another project did not). **Two of the plan's own controls could not fail** — the idempotency row names the wrong consequence, and `stream_close_delay` did not fire, measured two ways (F7). `<Ago>` has its caller |
 | 5 | 7–8 | **A build whose log lines arrive as they are written** (§22 step 4) and **a deploy to staging whose instance states arrive the same way**, with the app's URL to click and an Incident when it fails (§22 steps 5–6). **Both streaming screens; the sitting Rich was warned is the heavy one** | **DONE 2026-09-18/19 — 13 findings.** §22 STEPS 4 AND 5 CLICKED, AND STEP 6 AS FAR AS THE SIGN-IN (its *write a note; ask the LLM* half is `make demo-ai`'s and Task 14's): a build watched line by line, a release, a deploy to staging with four states live, the app opened and signed in to with CWL, and a redeploy that interrupted nobody (14 consecutive `200`s from the app's own tab). **The stream alone is not the log** — `LogFrame` is never replayed, so `getBuildLog` is load-bearing and the task never mentions it. **Three of the plan's claims were wrong** (`<Refusal>` and `launchReadiness`; `{}` is not the repository's HEAD; control row 3 cannot fail) and Task 8's row 1 needed an environment whose FIRST deploy fails |
 | 6 | 9–10 | **Request production** — `LaunchReadiness` with its blocked items and why (§22 step 7) — **the fleet** (§26, admin only), and **delegated tokens**: minted once, listed, revoked | **DONE 2026-09-19 — 12 findings** (F12 found after the close, by Rich driving the console by hand). **§22 STEP 7 CLICKED, and an administrator read the fleet. The checklist's two paths measured **byte-identical** and now share one renderer. **`<Ago>` lied about every future instant** — a 30-day token read `expires 0s ago` with all four gates green — and is now the direction-aware `<Instant>`. The D22 finding §7e predicted is CONFIRMED: the document cannot mark D24's privileged four. Two of the plan's own control rows are weaker than they read |
-| 7 | 11 | **§26's queue as a screen**: the question an agent asked, who asked it, how long it has waited, confirmed or rejected by a person in their own words. **The first time D24's loop is operated by a human rather than by `curl`** |← **next** |
-| 8 | 12–13 | **`manifest-mock`** — the contract served from fixtures with scripted streams, validated against the document, and the console driven against it with no platform — and **the CI acceptance script**, the operation-coverage gate and `@manifest/contract` `1.0.0` | |
+| 7 | 11 | **§26's queue as a screen**: the question an agent asked, who asked it, how long it has waited, confirmed or rejected by a person in their own words. **The first time D24's loop is operated by a human rather than by `curl`** | **DONE 2026-09-19 — 8 findings.** D24's loop CLICKED end to end: a token minted by clicking, the agent refused `403 TOKEN_ACTION_PENDING`, the question on screen **576 ms later with no reload**, confirmed, the agent's own retry with the same key **201**, a FRESH key making a new question instead, a rejection's sentence reaching the agent verbatim, one question left waiting. **The plan and §7e were both wrong that Task 11 gives `<Refusal>`'s `pendingAction` a caller — it can never have one** (F1). `consumeAction` and `addMember` publish nothing (F3), which is what earns `getPendingAction` its caller |
+| 8 | 12–13 | **`manifest-mock`** — the contract served from fixtures with scripted streams, validated against the document, and the console driven against it with no platform — and **the CI acceptance script**, the operation-coverage gate and `@manifest/contract` `1.0.0` |← **next** |
 | 9 | 14 | **The acceptance**: the journey clicked by a person and run headlessly by the script, over one contract, with its negative controls. **Alone, and last** | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -5015,3 +5015,184 @@ to every client** — no log line, no event, nothing — so any client written a
 make the same mistake. Emitting scanner progress means threading `onLog` into `scanImage` from
 `runtime/docker/`, which owes `pnpm test:docker`; **recorded for whoever next opens §12, not done
 here.**
+
+### Sitting 7 — Task 11, §26's queue as a screen — 2026-09-19 — 8 findings
+
+**D24'S LOOP IS OPERATED BY A PERSON FOR THE FIRST TIME.** Everything P5b built was driven by
+`curl` and by `packages/journey`; this sitting put a human in it. On a project `queue-app`
+created by clicking, a delegated token was minted **by clicking** and its secret taken through
+the console's own *Copy* button; an agent holding it asked to add a member and was refused
+`403 TOKEN_ACTION_PENDING`; **the question reached the open queue 576 ms later with no reload
+and no navigation**; a person confirmed it; the agent's own retry, with the same
+`Idempotency-Key` D23.6 tells it to reuse, answered **`201`**; a retry with a **fresh** key made
+a **new question** rather than succeeding; a second question was rejected in the person's own
+words and that sentence reached the agent **verbatim** as `403 TOKEN_ACTION_REJECTED`; and a
+third was left waiting. Committed as `aec8b90`. **No migration, no route, no spec change, no
+build, no deploy, and no Docker tier owed.**
+
+*All four `PendingAction` states were on screen at once* — `pending` with its two buttons,
+`expired` with none, `rejected` carrying the person's sentence, and `confirmed` carrying
+whether the agent had spent its retry.
+
+#### The findings
+
+**F1 — `<Refusal>`'s `pendingAction` CAN NEVER HAVE A CALLER IN THIS CONSOLE, AND BOTH THE PLAN
+AND ORIENTATION §7e SAY TASK 11 IS IT.** `ui.tsx` has carried *"Task 11 adds it with its
+caller"* since Task 4, and §7e repeats it as a thing already known. It is wrong, and the reason
+is structural rather than a matter of sequencing. Traced rather than assumed: `api/errors.ts`
+puts `pendingAction` on exactly two envelopes, `TOKEN_ACTION_PENDING` and
+`TOKEN_ACTION_REJECTED`; both are raised by `api/contract/route.ts`'s wrapper; the wrapper
+reaches them only through `TokenCapabilityRefusedError`, which `projects/authz.ts` throws
+**inside `if (actor.credential === 'token')`** and nowhere else. The console holds a session and
+only a session — `createApi` has no token option at all (Decision 6) — so no refusal it can ever
+receive carries the field. **Building the renderer would have been the no-caller shape
+ORIENTATION §9 names four times, wearing the comment that exists to prevent it.** Not built;
+`ui.tsx` now states the impossibility with its trace. *The agent's half of D24's loop reads that
+field in the AGENT's client, which `packages/journey/src/token.ts` already does.*
+
+**F2 — `consumeAction` PUBLISHES NO EVENT, AND NEITHER DOES `addMember` — THE FOURTH AND FIFTH
+INSTANCES OF THE SHAPE.** After `validateSpec` (sitting 4 F5), `createRelease` (sitting 5 F7) and
+`revokeToken` (sitting 6 F3). `tokens/pending.ts` has exactly two `publishEvent` calls, in
+`recordPendingAction` and `resolveAction`; `consumeAction` only stamps `consumed_at`, and
+`api/routes/project-reads.ts` has none at all. So **the one fact a person most wants after
+confirming — *has the agent spent its one retry?* — cannot arrive on the stream**, and D23.2
+forbids the timer that would otherwise fetch it. That is what gives `getPendingAction` a real
+caller: a *Check* button on a confirmed row, pressed when a person wants to know. Watched
+working: *"granted — waiting for the agent to make its one retry"* before the retry, *"granted,
+and the agent spent its one retry 3s ago"* after it. **Recorded as a finding about the API, not
+fixed.**
+
+**F3 — THE THREE `pending_action.*` EVENTS REALLY DO PUBLISH, CHECKED RATHER THAN ASSUMED.**
+§7e told this sitting to check before assuming a screen can learn from the stream, because three
+screens before it had found the opposite. Here the answer is yes: `recordPendingAction` publishes
+`pending_action.created` and `resolveAction` publishes `.confirmed` or `.rejected`. **This is the
+first screen in P5c whose own writes reach every other watcher**, and the only one that needs no
+local-reload workaround — the reload it does keep is for the case where the socket is closed, not
+for the platform's silence.
+
+**F4 — A `403 CSRF_ORIGIN_REFUSED` STOOD IN FOR A CAPABILITY REFUSAL, IN EXACTLY THE PLACE THIS
+PROJECT ASSERTS 403s.** Proving the read/answer split, `O='-H origin:…'` then `curl … $O …` was
+written — and **zsh does not word-split an unquoted variable** (§4, already documented). The
+header never went, and the collaborator's confirm and the stranger's confirm **both answered
+`403`**, which is the exact status the collaborator's refusal was predicted to have. A
+status-only assertion would have passed, concluding the collaborator was refused for lacking
+`members:manage`. With the header inline the real answers are **`403 FORBIDDEN — role
+'collaborator' may not 'members:manage'`** and **`404 NOT_FOUND`**. *The zsh trap is old; what is
+new is that it lands as a plausible 403 rather than as an error, which is why CLAUDE.md's
+**name the refusal's CODE** is the rule that saved it.*
+
+**F5 — `<Instant>`'s UNIT BOUNDARY MAKES TWO IDENTICAL DEADLINES READ DIFFERENTLY.** Two questions
+asked 34 seconds apart, both with the same 24-hour TTL, rendered **`expires in 1d`** and
+**`expires in 24h`** on adjacent rows: `magnitude < 86400` selects hours, so 86,400 s exactly is
+`1d` and 86,366 s is `24h`. Neither is wrong and a person reading the two could reasonably infer
+a difference that does not exist. **Not fixed** — every threshold has a boundary and moving this
+one only moves the artefact — but named, because `<Instant>` is now on fourteen call sites and
+this is the first time two of them have been adjacent.
+
+**F6 — `PendingActionResolvedError`'s HINT ASSUMES A PERSON ANSWERED, AND THE SAME ERROR CARRIES
+`expired`.** Watched during F8's control: the refusal rendered
+**`PENDING_ACTION_RESOLVED — this pending action was already expired`** above the hint
+*"Reload the queue: somebody has already answered this one."* The message is right and the hint
+is wrong — nobody answered it; its life ran out. A small thing, and it is the sentence a person
+reads when the screen and the platform disagree, which is the worst moment to be told something
+untrue. **Recorded, not fixed** (it is a control-plane string and this plan changes no route).
+
+**F7 — THE REUSE FINGERPRINT DOES NOT INCLUDE THE `Idempotency-Key`, WHICH IS WHY THE PLAN'S OWN
+STEP ORDER WORKS.** `recordPendingAction` matches on token, method, concrete path and a
+key-sorted body hash — **not** the key — so an identical ask with a *fresh* key while the first
+question is still `pending` **reuses that row** and creates nothing. The plan's step 6 (*"the
+agent retries again with a fresh key → a new question"*) is therefore true only because step 4
+has already moved the first row to `confirmed`, taking it out of the partial unique index's
+`WHERE state = 'pending'` predicate. Measured both ways: a fresh key with a **different** body
+(`{role: 'owner'}`) made a new question while the first was pending, and a fresh key with the
+**same** body made a new question only after the first was confirmed. **Anyone reordering these
+steps will conclude the grant leaked.**
+
+**F8 — MINTING BY CLICKING AND *Copy* IS A WORKING PATH FOR AN AGENT'S CREDENTIAL, WHICH MATTERS
+BECAUSE OF THE EXTENSION'S REDACTOR.** Sitting 6's F11 records that the Chrome extension blocks a
+result field whose NAME looks sensitive, so a secret cannot be read off a page into an agent's
+hands. `navigator.clipboard.writeText` plus `pbpaste` is the path that works: the console's own
+*Copy* button put a well-formed 80-byte `mft_<uuid>_<secret>` on the clipboard, a terminal picked
+it up, and **the token authenticated and answered `GET /v1/projects` with exactly its one
+project**. The secret was never read into this session — only its masked shape and its behaviour.
+*This is how a future sitting gets a clicked credential to a terminal without either reading it
+or minting a second one by script.*
+
+#### The negative controls
+
+| Control | Watched |
+|---|---|
+| **Row 1 — `displayState` returns `row.state` unchanged** (Decision 8's control) | **FIRED.** A question's `expires_at` was moved two hours into the past with `psql`, leaving it stored `pending`. Intact: it rendered **`expired` with NO buttons** while a genuinely pending row beside it kept Confirm and Reject. Reverted: it rendered **`pending` with a Confirm button**, and pressing it answered **`409 PENDING_ACTION_RESOLVED — this pending action was already expired`** — a button that cannot work, exactly as the row predicts. Restored from a hashed scratchpad copy (the task was not yet committed) and the hash re-checked `OK` |
+| **Row 2 — re-read on a `setInterval` instead of on the event** | **FIRED, the way the row says to watch it.** `window.WebSocket` was wrapped to capture instances, the project screen remounted to make a new socket, and that socket closed. A **fourth** question was then created (`403 TOKEN_ACTION_PENDING`, confirmed present in `pending_actions`) and the screen still showed **3 rows 18 s later** — against **576 ms** with the socket live. There is no timer; the stream is the mechanism |
+| **Row 3 — a fresh idempotency key on the agent's retry** | **FIRED, inline as part of the loop rather than as a break.** After the confirmed retry spent the grant, the same request with a fresh key answered `403 TOKEN_ACTION_PENDING` with a **new** question id carrying the **same** body hash `0aa6131a…`. The grant is for the request, once — see F7 for why this only works in this order |
+| **A person may read without being able to answer** (positive + refusals, by CODE) | The student, made a collaborator by the agent's own confirmed retry, **read the queue `200`** and was refused at confirm **`403 FORBIDDEN — role 'collaborator' may not 'members:manage'`**; the instructor, a stranger, got **`404 NOT_FOUND`** at both. *Both refusals were first measured as `403 CSRF_ORIGIN_REFUSED` — see F4* |
+| **The clicked token really is a delegated token** (positive) | Used from a terminal, never read into this session: `GET /v1/projects` → **`200` with exactly one project**, its own |
+| **The confirmation is not a replay** (positive) | After confirming, the project's membership was unchanged and the row read *"granted — waiting for the agent to make its one retry"*; it changed only when the AGENT retried, and `consumedAt` moved only then |
+
+**The Decision 8 control ran before the commit, deliberately**, because `pnpm test` truncates
+`pending_actions` and would have taken the question with it (sitting 4's F8). The files were
+copied to the session scratchpad with `shasum -a 256` first and restored from those copies, never
+by `git checkout`, which on an uncommitted file destroys the work rather than the experiment (§4).
+`grep -rn 'NEGATIVE CONTROL' packages/console/src` answers none; `git status` was clean before the
+commit.
+
+#### Gate numbers at the end of this sitting
+
+| Gate | Before | After |
+|---|---|---|
+| `pnpm test` | 1355 in 103 files | **1355 in 103 files** — unchanged, and no new test FILE: Task 11 adds none, by Decision 7 (the console has no DOM test tier). Run twice at the baseline and twice before the commit, 1355 every time |
+| `pnpm test:docker` | 178 in 29 files | **not run, and NOT owed** — the one commit touches only `packages/console/src/`, and this sitting ran no build and no deploy |
+| `make doctor` | 18/0 | **18/0** |
+| `make verify` | 51/0 | **51/0**, per-app `containers=3 networks=1 volumes=2`, runtime routes **0** — exactly as found |
+
+`pnpm lint`, `pnpm typecheck` (`Scope: 5 of 6`) and `pnpm format:check` clean before the commit.
+**`vite build` after the change** (sitting 2's F4): **268.93 kB**, up from 263.69 kB.
+
+**`api.ts` now calls 33 of the contract's 34 operations** — *counted with a script that matches
+each operation's method and path against the file, not by adding four to a remembered 29*. The
+one remaining is `streamProjectEvents`, the WebSocket, which `stream.ts`'s `subscribe` calls, so
+**Task 13's coverage gate must count the stream as covered rather than exempt it** and
+`DELIBERATELY_UNCALLED` can still start empty (Decision 15).
+
+#### The machine
+
+Snapshotted before and after: **the diff is the timestamp and the git HEAD, and nothing else.**
+No image, container, network or volume changed, because `queue-app` was created but never built
+or deployed. The one thing this sitting left was `.manifest/repos/queue-app.git`, created at
+12:14 by the project creation and orphaned by the gates' truncation — **removed by this session,
+because it is its own**; the three repositories that predate it were left alone. Both cleanup
+scripts were run bare at the close and **needed no `--apply`**: `dead-app-resources.sh` reads
+**`none dead`, 0 networks and 0 volumes**, and `litellm-orphans.sh` reads **0 orphaned** with the
+one held user left alone. **NOTHING IS OWED TO RICH.**
+
+*A counting trap avoided*: `curl http://127.0.0.1:7119/config/apps/http/servers/` counted **3**
+routes and read like three stale runtime routes. It is not that number — it counts the
+Caddyfile's own static routes too. **`make verify`'s *runtime routes currently applied* is the
+meter**, and it reads **0**.
+
+#### The post-sweep check — three defects, all in this sitting's own §7e
+
+§6's rule held again, and for the eighth consecutive sitting from P5b's third. **All three were
+found by opening the thing pointed at and counting it, never by re-reading the sentence.**
+
+1. **"Task 12 carries a `[SITTING 1]` correction block about `ajv`" — FALSE.** Task 12 carries
+   **no** correction block at all. The `ajv` correction landed on **Task 2** (`[M4][M5][M9]`,
+   whose item 1 is *"Install `ajv-formats` as well as `ajv` (M9/F4), and this is the last task
+   that can"*), and it was honoured: `packages/mock/package.json` declares `ajv` **8.20.0** and
+   `ajv-formats` **3.0.1**, both exact. **Task 13 is the one with a block**, `[M7][M5]`, and it is
+   about the coverage gate's arithmetic — the very thing sitting 8 must get right. Sending the
+   next agent to read a block that does not exist would have cost them the one that does.
+2. **"`packages/mock` is otherwise empty" — FALSE.** `git ls-files` shows four files, and
+   `src/server.ts`'s `createMockServer` already **answers `501` to everything, deliberately**,
+   with a comment saying a mock that answers a plausible `200` to everything is the stand-in that
+   produces a real-looking failure (P4c finding 74). Task 12 therefore extends an existing caller
+   rather than starting from nothing, and that `501` is what sitting 8's first test should watch
+   stop being.
+3. **"`scripts/offline-acceptance.sh` has nine steps" — right, but not countable the obvious
+   way.** Counting its `=== n.` headings answers **10**: they run **0 to 9**, with step 0 the
+   precondition. Named in §7e rather than left to be re-derived, because Task 13's script
+   orchestrates that one and Decision 12 makes it assert counts.
+
+*The first two are the class §6 warns is worst — a wrong pointer, which the next sitting inherits
+and multiplies because it is told to trust the hand-off. Both were in sentences that read
+perfectly.*
