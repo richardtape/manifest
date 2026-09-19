@@ -4733,3 +4733,53 @@ appeared once and **failed**, because the sentences WRAP across source lines and
 been done on a whitespace-collapsed print. It is §4's own note — *a phrase that wraps a line is
 invisible to both obvious ways of counting it* — hit while sweeping the very pages that note was
 written about. Anchor on the raw lines, with their breaks.
+
+#### The cold-agent audit — asked after the sweep, and it found five more
+
+*Rich asked, as he did after sitting 4, whether "read ORIENTATION.md and proceed with the next
+sitting" would be enough for a cold agent to run sitting 6. Answering it properly means reading
+§7e as that agent and then opening Tasks 9 and 10 and TESTING them — a stronger check than §6's,
+because §6 verifies what the hand-off says and this verifies what the next sitting will hit. The
+same question produced seven findings after sitting 4 and P5b sitting 7's F14/F15. Five here:*
+
+1. **SITTING 6 NEEDS RICH TO TYPE A PASSWORD, AND NOTHING SAID SO.** Task 9's clicked half needs
+   an `operator` session; the browser profile holds an **`instructor`** IdP session that sittings
+   4 and 5 both rode for free, and switching user means ending it and typing `operator` /
+   `operator` at the IdP's form, which the extension will not do (R3). **Sittings 4 and 5 needed
+   no password only because they stayed the same person** — this is the first sitting since 3
+   that changes user, and F9 of sitting 4 warned the free ride was *"a property of one profile at
+   one moment, not a rule"*. §7e now carries it as a blockquote at the top, so it is scheduled
+   rather than discovered at Step 4.3.
+2. **BUT THE HEADLESS HALF NEEDS NOBODY, AND THERE IS A WORKED EXAMPLE NOBODY WAS POINTED AT.**
+   `scripts/demo-journey.sh` lines **117–124** already run Task 9's whole grant sequence:
+   `idp_login` as `operator`, `admin-grant.sh grant opr000001`, **`rm -f` both jars**, then
+   `idp_login` again — the jar removal being what makes the second sign-in issue a session
+   carrying the new role. **Tested this sitting**: `bash scripts/admin-grant.sh` runs from an
+   agent session with no classifier refusal, and against a never-signed-in PUID it fails
+   `ERROR: no user with PUID opr000001 has ever signed in; they must sign in once first` — the
+   ordering trap proved rather than predicted.
+3. **TASK 10 ASKS FOR SOMETHING THE DOCUMENT CANNOT GIVE IT.** Step 2(b) says the capability
+   checkboxes come from *"the document's own enum (`MintTokenRequest.capabilities`)"* and that
+   D24's privileged four are *"rendered disabled, with the reason"*. **The enum holds all eleven
+   capabilities and marks none of them privileged**; the four are named only in the schema's
+   prose `description`. So the console must **restate a platform rule**, which this plan forbids
+   elsewhere and which the control plane itself holds with a test that names the four as literals
+   (`projects/privileged.test.ts`). A D22 finding waiting to be recorded, with the two honest
+   options named in §7e. *Found by opening the schema, not by reading the task.*
+4. **ALL FIVE OF TASKS 9 AND 10's `api.ts` SNIPPETS TYPECHECK CLEAN**, pasted verbatim into
+   `packages/console/src/api.ts` with `tsc --noEmit` — and every schema name they use exists and
+   matches the document's response (`Fleet`, `LaunchReadiness`, `MintTokenRequest`, `MintedToken`,
+   `TokenList`, `Token`). **Worth recording as a negative result**: sitting 4's audit found Task
+   7's `liveBuild` did not compile, so the next agent would reasonably expect breakage here and
+   should not go looking for it. `Idempotency-Key` is required on `mintToken` and `revokeToken`
+   and **not** on `listTokens`, `getLaunchReadiness` or `listFleet`, all read from the document.
+5. **§7e SAID NO BUILD IS NEEDED WITHOUT SAYING WHAT THAT MAKES THE SCREEN SHOW.** Read out of
+   `launch/readiness.ts`: with nothing serving staging, `scans` renders **`unmet`** — *"Nothing is
+   serving in staging yet, so there is no release to launch. Deploy to staging first."* That is
+   the honest answer and not a fault, but an agent expecting the `met` branch with a real scan on
+   it would go hunting. Named, with what seeing the other branch would cost.
+
+**A sixth item is a convenience rather than a defect**, and is now in §7e: README's control-plane
+block regenerates `MANIFEST_SESSION_SECRET` with `openssl rand -hex 32` on every start, so
+restarting the control plane signs the browser out. Sitting 5 wrote the value once into its
+session scratchpad and sourced it from there, and a mid-sitting restart then cost no sign-ins.

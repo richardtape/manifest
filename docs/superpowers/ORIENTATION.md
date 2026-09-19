@@ -1662,6 +1662,25 @@ R1's lean split cost; yours is two smaller screens over routes that already exis
 task runs a build or a deploy**, so nothing here needs Docker beyond the Postgres the gates
 need — which is a container `make up` gives you.
 
+> **⚠ THIS SITTING NEEDS RICH TO TYPE A PASSWORD, AND IT IS THE FIRST SINCE SITTING 3 THAT
+> DOES. SCHEDULE IT; DO NOT DISCOVER IT AT THE END.** Task 9's clicked half needs you signed
+> in as **`operator`**, and the browser profile holds an **`instructor`** IdP session that
+> sittings 4 and 5 both rode for free. Switching user in a browser means ending that IdP
+> session and typing `operator` / `operator` at the IdP's form — **which the Chrome extension
+> will not do** (R3, §4). Sittings 4 and 5 needed no password only because they stayed the
+> same person.
+>
+> **The HEADLESS half needs nobody, and there is a worked example.**
+> `scripts/demo-journey.sh` lines **117–124** already do exactly the sequence Task 9 needs:
+> `idp_login` as `operator` so the `users` row exists, then
+> `bash scripts/admin-grant.sh grant opr000001 "<reason>"`, then **`rm -f` both cookie jars**
+> and `idp_login` again — the second sign-in is what issues a session carrying the new role.
+> **Verified this sitting**: `admin-grant.sh` runs from an agent session with no classifier
+> refusal, and against a PUID that has never signed in it fails loudly with
+> `ERROR: no user with PUID opr000001 has ever signed in; they must sign in once first` —
+> which is the ordering trap, proved rather than predicted. **So do the grant and the API-side
+> proof yourself, and ask Rich only for the click.**
+
 **THE NETWORK-ON SITTING IS OVER.** Task 2 installed everything this plan gets. **If a task
 believes it needs a package, that is a finding to record and raise, not a step to take.**
 
@@ -1677,9 +1696,14 @@ believes it needs a package, that is a finding to record and raise, not a step t
    two of Task 10's three. Item 8 is `PendingAction`'s fields, which Task 10 does not need but
    Task 11 does. **`python3 -c` over `packages/contract/openapi.json` settles any question about
    a shape in one line** — do that rather than trusting a summary, including this one.
-2. **Task 9 in full, then Task 10 in full.** Neither carries a `[SITTING n]` correction block
-   today; **sitting 5 added them to Tasks 7 and 8 and found three more claims wrong in prose
-   that had none**, so read the snippets against the document rather than pasting them.
+2. **Task 9 in full, then Task 10 in full.** Neither carries a `[SITTING n]` correction block,
+   and that is not an oversight: **all five of their `api.ts` snippets were pasted verbatim into
+   `packages/console/src/api.ts` at the close of sitting 5 and `tsc --noEmit` was CLEAN** — so
+   unlike Task 7's `liveBuild`, they compile as written. Every schema name they use exists and
+   matches the document: `Fleet`, `LaunchReadiness`, `MintTokenRequest`, `MintedToken`,
+   `TokenList`, `Token`. **What was NOT tested is their prose**, and sitting 5 found three
+   claims wrong in task prose that had no correction block — so check anything either task
+   asserts about the platform against the code, the way the item below does.
 3. **Sitting 5's entry in the plan's *What executing this plan found*** — thirteen findings.
    **F6, F7 and F11 change what you do.** F6: **`<Refusal>` now renders `launchReadiness`**, so
    Task 9's screen is not starting from nothing — read what is already there before writing a
@@ -1693,6 +1717,22 @@ believes it needs a package, that is a finding to record and raise, not a step t
    and no gate can see it) and F8 (the gates destroy the clicked state).
 5. **§4 of this file — searched, not read — and §6 IN FULL**, including the sweep table and the
    post-sweep check.
+
+**ONE THING TASK 10 ASKS FOR THAT THE DOCUMENT CANNOT GIVE IT, found by opening the schema.**
+Task 10's Step 2(b) says the capability checkboxes come from *"the document's own enum
+(`MintTokenRequest.capabilities`)"* and that D24's privileged four are *"rendered disabled, with
+the reason"*. **The enum holds all ELEVEN capabilities and marks none of them privileged** —
+`['project:read', 'project:write', 'project:delete', 'members:manage', 'build:create',
+'release:create', 'release:deploy', 'release:promote', 'release:approve', 'quota:set',
+'secret:read']` — and the four are named only in the schema's PROSE `description`. So a console
+that disables them must **restate a platform rule**, which is the thing this plan forbids
+elsewhere (*"the console never restates the slug rule"*, §23) and which the control plane
+itself holds with a test that names the four as literals so it cannot agree with the constant it
+checks (`projects/privileged.test.ts`). **That is a D22 finding about the API's completeness —
+record it, and pick one of the two honest options**: restate the four with a comment saying they
+are restated and why, or offer all eleven and let the platform's `400
+TOKEN_CAPABILITY_FORBIDDEN` teach the rule. **This plan changes no route**, so adding
+`x-manifest-privileged` to the document is not yours — it is the finding.
 
 **What sittings 1 to 5 measured that changes what you do.**
 
@@ -1764,6 +1804,18 @@ found that an ordered list which omits one step omits the one the deliverable re
 - **`ready` is `false` throughout Phase 1, honestly**, and five of the checklist's items say
   `not_built` and name the plan that builds them. **Render that as what it is** — a screen that
   shows `not_built` as *unmet* invents a judgement the API did not make (sitting 5, F6).
+- **ON A PROJECT WITH NOTHING SERVING STAGING, `scans` READS `unmet`, NOT `met`** — *"Nothing is
+  serving in staging yet, so there is no release to launch. Deploy to staging first — production
+  runs exactly what staging ran (§13)."* Read out of `launch/readiness.ts` at the close of
+  sitting 5, because §7e above tells you no build is needed and you should know what that makes
+  the screen say. **It is the honest answer and not a fault.** If you want to see the `met`
+  branch with a real scan on it you need a healthy staging deploy, which is sitting 5's ground
+  and costs you a build — decide deliberately rather than being surprised at the click.
+- **RESTARTING THE CONTROL PLANE SIGNS THE BROWSER OUT, because README's block regenerates
+  `MANIFEST_SESSION_SECRET` with `openssl rand -hex 32` on every start.** Sitting 5 wrote the
+  value once into its session scratchpad and sourced it from there, so a mid-sitting restart
+  cost no sign-ins. **Do the same if you may restart** — and you may, because the grant in Task 9
+  changes nothing about the process but a Docker-tier run would.
 - **The production refusal and `GET …/launch-readiness` carry the SAME BYTES** (P5a sitting 11),
   and that was paid for: zod emits keys in SCHEMA order and a hand-built body does not. If your
   screen and the refusal ever disagree, that is a finding, not a rendering detail.
