@@ -33,8 +33,8 @@
 | 5 | 7–8 | **A build whose log lines arrive as they are written** (§22 step 4) and **a deploy to staging whose instance states arrive the same way**, with the app's URL to click and an Incident when it fails (§22 steps 5–6). **Both streaming screens; the sitting Rich was warned is the heavy one** | **DONE 2026-09-18/19 — 13 findings.** §22 STEPS 4 AND 5 CLICKED, AND STEP 6 AS FAR AS THE SIGN-IN (its *write a note; ask the LLM* half is `make demo-ai`'s and Task 14's): a build watched line by line, a release, a deploy to staging with four states live, the app opened and signed in to with CWL, and a redeploy that interrupted nobody (14 consecutive `200`s from the app's own tab). **The stream alone is not the log** — `LogFrame` is never replayed, so `getBuildLog` is load-bearing and the task never mentions it. **Three of the plan's claims were wrong** (`<Refusal>` and `launchReadiness`; `{}` is not the repository's HEAD; control row 3 cannot fail) and Task 8's row 1 needed an environment whose FIRST deploy fails |
 | 6 | 9–10 | **Request production** — `LaunchReadiness` with its blocked items and why (§22 step 7) — **the fleet** (§26, admin only), and **delegated tokens**: minted once, listed, revoked | **DONE 2026-09-19 — 12 findings** (F12 found after the close, by Rich driving the console by hand). **§22 STEP 7 CLICKED, and an administrator read the fleet. The checklist's two paths measured **byte-identical** and now share one renderer. **`<Ago>` lied about every future instant** — a 30-day token read `expires 0s ago` with all four gates green — and is now the direction-aware `<Instant>`. The D22 finding §7e predicted is CONFIRMED: the document cannot mark D24's privileged four. Two of the plan's own control rows are weaker than they read |
 | 7 | 11 | **§26's queue as a screen**: the question an agent asked, who asked it, how long it has waited, confirmed or rejected by a person in their own words. **The first time D24's loop is operated by a human rather than by `curl`** | **DONE 2026-09-19 — 8 findings.** D24's loop CLICKED end to end: a token minted by clicking, the agent refused `403 TOKEN_ACTION_PENDING`, the question on screen **576 ms later with no reload**, confirmed, the agent's own retry with the same key **201**, a FRESH key making a new question instead, a rejection's sentence reaching the agent verbatim, one question left waiting. **The plan and §7e were both wrong that Task 11 gives `<Refusal>`'s `pendingAction` a caller — it can never have one** (F1). `consumeAction` and `addMember` publish nothing (F3), which is what earns `getPendingAction` its caller |
-| 8 | 12–13 | **`manifest-mock`** — the contract served from fixtures with scripted streams, validated against the document, and the console driven against it with no platform — and **the CI acceptance script**, the operation-coverage gate and `@manifest/contract` `1.0.0` |← **next** |
-| 9 | 14 | **The acceptance**: the journey clicked by a person and run headlessly by the script, over one contract, with its negative controls. **Alone, and last** | |
+| 8 | 12–13 | **`manifest-mock`** — the contract served from fixtures with scripted streams, validated against the document, and the console driven against it with no platform — and **the CI acceptance script**, the operation-coverage gate and `@manifest/contract` `1.0.0` | **DONE 2026-09-19 — 11 findings.** All 34 operations served from fixtures, the console's WHOLE data layer driven against them in Node, and the journey walked in a BROWSER with no platform running. D22's coverage gate is green with `DELIBERATELY_UNCALLED` **empty**, and was watched failing three ways; `make ci-acceptance` was run for real and both headless journeys are green over the **1.0.0** contract. **`make doctor` failed `CLAIMED BY SOMETHING ELSE: 7102` — the THIRD time on that check, predicted by name in `doctor.sh`'s own comment** (F9). A token fixture named a capability that does not exist and **neither `tsc` nor Ajv can see that** (F1); a fixed DEADLINE made the queue screen unreachable (F6) |
+| 9 | 14 | **The acceptance**: the journey clicked by a person and run headlessly by the script, over one contract, with its negative controls. **Alone, and last** |← **next** |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -5293,3 +5293,189 @@ Everything below was measured, not read.*
 statements of how far P5c has got all read *seven done, sitting 8 next*; the sittings table has
 exactly seven `DONE` rows and one `← next`; the four gate numbers are identical in ORIENTATION §2,
 `README.md` and `RUNBOOK.md`, and `CLAUDE.md` states none, as §6 requires.
+
+### Sitting 8 — Tasks 12 and 13, `manifest-mock` and the CI script — 2026-09-19 — 11 findings
+
+**A FRONT-END DEVELOPER NEEDS NO PLATFORM, AND 1c's ACCEPTANCE RUNS HEADLESS.**
+`packages/mock` serves all 34 operations of the published contract from hand-written
+fixtures with a scripted WebSocket, in one `node:http` process — no Docker, no Postgres, no
+control plane, no language model. The console was driven against it **in a browser** through
+Vite's proxy, the whole journey: signed in with no IdP, read the project, watched twenty log
+lines arrive, watched the build stay `running` through §12's silent scan and then go
+`succeeded`, read the deploy panel and §14's Incident, read §26's queue with all four states
+on screen, minted-token list, and the fleet's `403` carrying the hint that says how to see
+the other side. `packages/console/src/api.test.ts` drives the console's **whole data layer**
+against it in Node with no DOM. Committed as `01225cb`.
+
+`packages/console/src/coverage.test.ts` is §16's *API completeness* tier: **all 34
+operations have a caller, `DELIBERATELY_UNCALLED` is empty**, and it was watched failing
+three ways. `scripts/ci-acceptance.sh` and `scripts/demo-console.sh` are the acceptance's
+two halves, `@manifest/contract` is **1.0.0**, and `make ci-acceptance` was run for real.
+Committed as `58107aa`.
+
+**`make doctor` then failed `CLAIMED BY SOMETHING ELSE: 7102` — the third time on that one
+check — and `doctor.sh`'s own comment had named this task as the one that must fix it
+(F9).** Fixed and watched failing; committed separately.
+
+#### The findings
+
+**F1 — `build:run` IS NOT A CAPABILITY, AND NEITHER `tsc` NOR AJV CAN SEE THAT.** The
+`TOKEN` fixture listed `['project:read', 'build:run', 'release:deploy']` and every gate was
+green. The real capability is **`build:create`**. The reason nothing caught it is an
+asymmetry in the document: **`MintTokenRequest.capabilities` is a closed enum of eleven**
+(`project:read`, `project:write`, `project:delete`, `members:manage`, `build:create`,
+`release:create`, `release:deploy`, `release:promote`, `release:approve`, `quota:set`,
+`secret:read`) **while `Token.capabilities` — the READ schema — is a bare
+`{type: 'array', items: {type: 'string'}}`**. So the request side is checked and the answer
+side is not, in both directions: `tsc` types it `string[]`, and Ajv validates it against
+`string`. `validate.test.ts` now holds every token fixture to the MINT enum by hand.
+**This is a finding about the API, recorded and not fixed** — it is the second instance of
+the shape sitting 6 found (the document cannot mark D24's privileged four either, so the
+console restates them), and the fix is a route change this plan does not make.
+
+**F2 — ONE SOURCE FILE, TWO MODULE RESOLUTIONS, AND THE CORRECT AJV IMPORT IS DIFFERENT IN
+EACH.** `@manifest/mock`'s `exports` map points at its TypeScript source, so
+`packages/mock`'s own `tsc` (`moduleResolution: NodeNext`) and `packages/console`'s
+(`Bundler`, because `api.test.ts` imports the mock) both compile `validate.ts`. Measured,
+both directions:
+
+| form | NodeNext (the mock) | Bundler (the console) |
+|---|---|---|
+| `import Ajv2020 from 'ajv/dist/2020.js'` | `TS2351 … 'typeof import("…/2020")' has no construct signatures` | fine — it is the class |
+| `Ajv2020Module.default` | fine | `TS2339 Property 'default' does not exist on type 'typeof Ajv2020'` |
+| **`import { Ajv2020 } from …`** | **fine** | **fine** |
+
+Node's own ESM loader constructs the bare default happily, which is why the plan's snippet
+predicted the opposite trap — a RUNTIME *`Ajv2020 is not a constructor`* — and offered a
+cast for it. **The named import is right in both worlds and needs no cast**, because ajv's
+CommonJS sets `exports.Ajv2020` and `module.exports.Ajv2020` as well as `module.exports`.
+`ajv-formats` has no named export, so it takes the one cast in the package, with the
+measurement beside it. **The general rule: a package whose `exports` map serves TypeScript
+source is compiled by every consumer's compiler settings, not by its own.**
+
+**F3 — THE PLAN'S OWN BREAK ROW 1 IS CAUGHT BY `tsc`, SO IT DOES NOT DEMONSTRATE WHAT AJV
+ADDS.** *"change `ME.role` to `"administrator"`"* was watched turning `validate.test.ts` red
+— *`Me: /role must be equal to one of the allowed values`* — and then `pnpm --filter
+@manifest/mock typecheck` was run on the same broken file and answered
+*`TS2322: Type '"administrator"' is not assignable to type '"admin" | "member"'`*. Both
+gates catch it, so the row proves the validator is **connected to the fixtures** and nothing
+more. What Ajv adds over `tsc` is the half `tsc` is structurally blind to — `format`,
+`pattern` and `additionalProperties: false` — and that is what the file's own control
+asserts instead: `id: 'project-1'` is a perfectly good `string` to TypeScript and is refused
+by the document two ways. **A control has to break something only ONE gate can see, or it is
+measuring the wrong gate.**
+
+**F4 — THE PLAN SAYS A MISSING `Idempotency-Key` IS `400 REQUEST_INVALID`. IT IS NOT.** The
+platform answers **`400 IDEMPOTENCY_KEY_REQUIRED`**, a code of its own that is in the
+published document, from `api/server.ts`'s `preHandler` — **and it refuses a key shorter
+than eight characters**, which the plan does not mention at all. A mock answering the plan's
+code would be a fixture lying about a refusal a client switches on. The mock mirrors
+`api/idempotency.ts` on the other two rules too: a repeated key with the same body and route
+replays the FIRST response, and the same key with a DIFFERENT body is
+`409 IDEMPOTENCY_KEY_REUSED`.
+
+**F5 — A FIXTURE ANSWERED FOR EVERY ID LIES ABOUT WHICH RESOURCE IT BELONGS TO, AND ONLY A
+BROWSER SHOWED IT.** `listIncidents` returned the one `INCIDENTS` fixture whatever
+environment was asked for, so §14's Incident — whose own `environmentId` is **staging** —
+rendered on screen under **sandbox**, beside the words *never deployed*. Every test passed:
+the fixture validates, and `api.test.ts` asked for staging. The routing table now keys on its
+path parameter and answers an empty list for any other environment, which also exercises the
+console's empty-incident path. **`getPendingAction` had the same shape** (below), so it is
+not a one-off: **a mock that ignores its path parameters is a mock that answers the right
+schema about the wrong thing.**
+
+**F6 — A FIXED INSTANT IS RIGHT FOR A TIMESTAMP AND WRONG FOR A DEADLINE.** The plan's own
+fixture rule — *"fixed instants, not `new Date()`: a fixture whose value changes per run
+cannot be asserted against"* — is right, and applying it to `PendingAction.expiresAt` made
+the queue screen unreachable: measured in a browser, the only `pending` row had already
+lapsed by the wall clock, so Decision 8's `displayState` correctly rendered it **expired,
+with no buttons**, and a front-end developer driving the mock could never reach the screen
+the mock exists to develop. The deadline is now computed relative to now; every other
+instant stays fixed. The queue also carries all four states deliberately, including a row
+still stored `pending` whose life has run out — which is Decision 8's control, reproducible
+with no platform.
+
+**F7 — THE STORED LOG AND THE STREAMED LOG MUST SHARE ONE `seq` SPACE.** `getBuildLog`'s
+first two lines and the scripted stream's first two frames were written independently, so
+both claimed `seq: 1` and `seq: 2` with different text, and the console's `seq`-keyed merge
+showed one of each — *"#1 [internal] load build definition"* from the read and *"#1
+transferring dockerfile"* from the stream. Not a doubling, which would be visible: **a
+silent blend at almost the right length**, the same shape §4 already records for a missing
+`buildId` filter. One `LOG_LINES` array now feeds both.
+
+**F8 — A MOCK WHOSE BUILD ENDS WHEN ITS LOG DOES CANNOT TEACH SITTING 6's F12, WHICH IS THE
+WHOLE REASON FOR SCRIPTING THE SILENCE.** The script had the ten-second scan window from the
+start, but `GET /v1/builds/{id}` answered the finished `BUILD` fixture throughout — so on
+screen the pill read `succeeded` while the log was still arriving, which is the exact
+opposite of the platform. The mock now sets `buildSucceedsAt` when a subscription starts
+playing and answers `running` with no digest until that instant, so the http half and the
+stream half agree the way the platform's two readers of one build row do. **Watched in a
+browser**: pill `running`, *"Scan — not scanned"*, and the console's own hint *"this build
+is `running` and has no image yet, so a release will be refused"* for ten seconds after the
+log reached `DONE`, then `succeeded` with the digest and §12's scan.
+
+**F9 — `make doctor` FAILED `CLAIMED BY SOMETHING ELSE: 7102`, THE THIRD TIME ON THAT ONE
+CHECK, AND `doctor.sh` HAD PREDICTED IT BY NAME AND NAMED THIS TASK.** The comment above
+`console_is_ours` read: *"THE MOCK ON 7102 WILL NEED THE SAME and deliberately does not have
+it yet … Task 12 adds it, keyed on whatever the mock then answers."* Task 12 did not, and
+the first real `make ci-acceptance` run — with the mock left listening from the browser walk
+— failed on it. After 7100 (2026-09-07) and 7104 (2026-09-18) this is the same defect a
+third time: **`manifest_own_ports` reads PUBLISHED CONTAINER PORTS, so §21's host-resident
+processes are invisible to it and read as foreign.** `mock_is_ours` asks the mock for a path
+the DOCUMENT DOES NOT DECLARE, which it answers `404` with its own name in the message —
+**`/v1/me` would not do, because the mock answers that with the same `UNAUTHENTICATED`
+envelope the control plane does and the two would be indistinguishable.** Watched both ways:
+a throwaway server on 7102 answering a plausible `404 ROUTE_NOT_FOUND` envelope is still
+called foreign, and the real mock is recognised (18/0 either way).
+
+**F10 — `getPendingAction` IGNORED ITS PATH PARAMETER, AND THE TEST DOCUMENTED THE LIE.**
+It answered `CONFIRMED_ACTION` for any id — so `api.test.ts` asserted that asking for the
+**pending** row's id returns `confirmed`, and that assertion passed. Keying the route on its
+id turned the test red, which is how it was found. The test now asks for BOTH ids and
+asserts they differ; a mock ignoring the parameter cannot satisfy it. *F5's twin, found by a
+change rather than by a browser.*
+
+**F11 — `packages/mock`'s TEST FILES ARE NOT TYPECHECKED, AND THE CONSOLE'S ARE.** Its
+`tsconfig.json` carries `"exclude": ["src/**/*.test.ts"]` — correctly, since it emits to
+`dist/` and `packages/contract` shows what happens without it (compiled test files shipped
+in `dist/`) — so `pnpm typecheck` never sees `validate.test.ts` or `server.test.ts`, while
+`packages/console`'s `noEmit: true` config includes its tests and does. **This is why the
+Ajv interop lives in `validate.ts` rather than in the test**, as the plan drafted it: the
+risky typed code is in the half a compiler reads. Named rather than changed — giving the
+mock a second tsconfig for tests is machinery for one package. *Same family as §4's
+`packages/journey` note.*
+
+#### The negative controls
+
+| Control | Watched |
+|---|---|
+| `validator()` always returns `{ ok: true }` | **FIRED.** `validate.test.ts`'s own control: *expected true to be false*. Without it the first test passes against anything |
+| Empty the `FIXTURES` table | **FIRED.** *no fixtures were checked: expected 0 to be greater than 10* |
+| `ME.role = "administrator"` | **FIRED**, and `tsc` caught it too — see F3. It proves the validator is connected to the fixtures and nothing more |
+| Drop the CONTROL frame from the scripted stream | **FIRED.** `api.test.ts`'s *subscribes, is replayed, and is told when the replay ends* **timed out at 5000 ms** — `subscribe`'s `ready` resolves on that frame and on nothing else, which is *"status connecting for ever"* seen from Node |
+| Remove one operation from `ANSWERS` | **FIRED.** `server.test.ts`: *expected [ 'listBlueprints' ] to deeply equal []* |
+| Answer a body that is not its schema (`getMe` → `{id:'not-a-uuid', puid:'p'}`) | **FIRED.** The mock answered **500** naming the schema and every failure: *manifest-mock built a body that is not a Me: / must have required property 'displayName'; … /id must match pattern …; /id must match format "uuid"*. The outgoing validation is connected |
+| **Comment out `listFleet` in `api.ts`** (Task 13's, §7e's named control) | **FIRED**, printing exactly the predicted line: *expected [ 'GET /v1/fleet (listFleet)' ] to deeply equal []*. **The gate had never been red before this** |
+| Point `coverage.test.ts` at an EMPTY `{"paths":{}}` | **FIRED.** *no operations were read from the document: expected 0 to be greater than 30* — the vacuous-pass control |
+| Break the stream's caller (`subscribe(` → `(0, subscribe)(`) | **FIRED.** *GET /v1/projects/{projectId}/events (streamProjectEvents)* — the stream is COUNTED, not exempt |
+| **Decision 12: exit code vs count**, with `packages/mock/src/server.test.ts` renamed away | **FIRED.** `pnpm test` **exited 0** with **1369 tests in 106 files** against 1376 in 107 — a script keying on the exit code reports PASS; the count check reports MOVED. P5b sitting 9's F5, in a new place |
+| A FOREIGN server on 7102 answering a plausible `404` envelope | **FIRED.** `make doctor` **1 failed**, *CLAIMED BY SOMETHING ELSE: 7102*; the real mock restored it to 18/0. F9's control, both directions |
+
+Every break was made **after** its task was committed, and restored with `git checkout` from
+the index (§4). `git status` was clean between each; the one exception is noted in F1, where
+the fixture was copied to the scratchpad with `shasum -a 256` first because the task was not
+yet committed, and the hash re-checked after the restore.
+
+#### Gate numbers at the end of this sitting
+
+| Gate | Before | After |
+|---|---|---|
+| `pnpm test` | 1355 in 103 files | **1376 in 107 files** — up 21 and four files: `packages/mock/src/validate.test.ts` (4), `packages/mock/src/server.test.ts` (7), `packages/console/src/api.test.ts` (8) and `packages/console/src/coverage.test.ts` (2). Run twice at the baseline (1355), twice after Task 12 (1374) and twice after Task 13 (1376) |
+| `pnpm test:docker` | 178 in 29 files | see the sitting's own line below — **OWED and RUN**, because F9's repair touches `infra/lib/common.sh` and `routing/edge-source-refusal.docker.test.ts` reads that file |
+| `make doctor` | 18/0 | **18/0** — and it went to **1 failed** in between, which is F9 |
+| `make verify` | 51/0 | **51/0** |
+| `make ci-acceptance` | did not exist | **run**: `make demo-journey` and `make demo-token` both green over the 1.0.0 contract, all counts matching |
+
+`pnpm lint`, `pnpm typecheck` (`Scope: 5 of 6`) and `pnpm format:check` clean before each
+commit. **`vite build` after the change** (sitting 2's F4): **268.93 kB**, unchanged —
+this sitting adds no console source, only tests.

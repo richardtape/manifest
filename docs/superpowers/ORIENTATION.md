@@ -1,8 +1,8 @@
 # Orientation — read this first
 
-**Manifest's design is finished and EIGHT implementation plans are executed — P1, P2, P3, P4a, P4b, P4c, P5a (the contract) and P5b (delegated tokens), whose acceptance passed on 2026-09-18.** D24's whole loop runs end to end through the edge as `make demo-token` — a person mints a delegated token, an agent holding it builds and deploys a real application on its own authority, is refused the things it may not do, and gets past one of them only because a person confirmed that exact request, once. **It ran green three times, the third from a `make reset` machine, and is step 9 of the offline acceptance.** **P5c — the clients — IS WRITTEN AND NOW EXECUTING (2026-09-18): 14 tasks in nine agreed sittings, of which SITTINGS 1 TO 7 ARE DONE — the measurements (19 findings), the two new packages and the console's import boundary (10), the console SERVED and signing a person in (9), my projects, creating one and the project screen with its live stream (9), both streaming screens (13), request-production, the fleet and delegated tokens (12), and §26's QUEUE (8). §22 STEPS 1 TO 5 AND 7 ARE CLICKED, AND THE FIRST HALF OF STEP 6: a person signs in with CWL, creates a project by typing a name checked as they type, watches its events arrive on a live socket, **builds it and reads the log lines as they are written, releases it, deploys it to staging watching the instance states arrive, opens the running application and signs in to it with CWL, reads §13's first-launch checklist with every item's reason and owner, and mints, lists and revokes a delegated token whose secret is shown exactly once** — while an administrator reads §26's fleet. *§22's step 6 also says **write a note; ask the LLM**, and that half was NOT exercised — it is what `make demo-ai` covers and what Task 14's acceptance owes.* **D24'S LOOP IS NOW OPERATED BY A PERSON**: an agent is refused, the question reaches the open queue 576 ms later with no reload, a person confirms it and the agent's own retry succeeds exactly once, or rejects it and the agent is told why verbatim. The next job is its sitting 8 — Tasks 12 and 13, `manifest-mock` and the CI acceptance script — and the next job is always §7e.** **The network-on sitting is over: nothing from here to the end of the plan may install a package.** Sitting 1 closed §8's `stream_close_delay` question, open since 2026-09-16: **an app's WebSocket IS cut by any other app's deploy**, so `buildRoute` now carries the field. This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
+**Manifest's design is finished and EIGHT implementation plans are executed — P1, P2, P3, P4a, P4b, P4c, P5a (the contract) and P5b (delegated tokens), whose acceptance passed on 2026-09-18.** D24's whole loop runs end to end through the edge as `make demo-token` — a person mints a delegated token, an agent holding it builds and deploys a real application on its own authority, is refused the things it may not do, and gets past one of them only because a person confirmed that exact request, once. **It ran green three times, the third from a `make reset` machine, and is step 9 of the offline acceptance.** **P5c — the clients — IS WRITTEN AND NOW EXECUTING (2026-09-18): 14 tasks in nine agreed sittings, of which SITTINGS 1 TO 8 ARE DONE — the measurements (19 findings), the two new packages and the console's import boundary (10), the console SERVED and signing a person in (9), my projects, creating one and the project screen with its live stream (9), both streaming screens (13), request-production, the fleet and delegated tokens (12), §26's QUEUE (8), and **`manifest-mock` WITH THE CI ACCEPTANCE SCRIPT (11)**. **A FRONT-END DEVELOPER NOW NEEDS NO PLATFORM AT ALL**: one `node:http` process serves all 34 operations of the published contract from fixtures with a scripted WebSocket, and the console was driven against it in a browser — the whole journey, with no Docker, no Postgres and no control plane. **D22's question is a GATE**: `coverage.test.ts` holds every one of the 34 operations to having a caller in the console, `DELIBERATELY_UNCALLED` is EMPTY, and `@manifest/contract` is **1.0.0**. §22 STEPS 1 TO 5 AND 7 ARE CLICKED, AND THE FIRST HALF OF STEP 6: a person signs in with CWL, creates a project by typing a name checked as they type, watches its events arrive on a live socket, **builds it and reads the log lines as they are written, releases it, deploys it to staging watching the instance states arrive, opens the running application and signs in to it with CWL, reads §13's first-launch checklist with every item's reason and owner, and mints, lists and revokes a delegated token whose secret is shown exactly once** — while an administrator reads §26's fleet. *§22's step 6 also says **write a note; ask the LLM**, and that half was NOT exercised — it is what `make demo-ai` covers and what Task 14's acceptance owes.* **D24'S LOOP IS NOW OPERATED BY A PERSON**: an agent is refused, the question reaches the open queue 576 ms later with no reload, a person confirms it and the agent's own retry succeeds exactly once, or rejects it and the agent is told why verbatim. The next job is its sitting 9 — Task 14, the acceptance, ALONE AND LAST: §22's journey proved twice over one contract, clicked by a person and run headlessly. Everything that runs it already exists. The next job is always §7e.** **The network-on sitting is over: nothing from here to the end of the plan may install a package.** Sitting 1 closed §8's `stream_close_delay` question, open since 2026-09-16: **an app's WebSocket IS cut by any other app's deploy**, so `buildRoute` now carries the field. This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
 
-*Last verified 2026-09-19 (P5c sitting 7; **all four gate numbers UNCHANGED** — `pnpm test` **1355 in 103 files**, run twice at baseline and twice before the commit, with no new test file because Task 11 adds none by Decision 7; `make doctor` 18/0 and `make verify` 51/0 re-run at close, with the per-app meter and the runtime-route count both back where the sitting found them; and **`pnpm test:docker` NOT run and NOT owed**, since the one commit touches only `packages/console/src/` — and like sitting 6 this one ran no build and no deploy at all).* **Three places state current status — §2, §7e and §8 — and a sitting's sweep REPLACES what they say; it never appends a sitting's story here** (§6). **The roadmap's ledger outranks all three.** Everything else is durable.
+*Last verified 2026-09-19 (P5c sitting 8; **`pnpm test` MOVED — 1376 in 107 files, up 21 and four files, which is this sitting's four new test files; run twice after each of the two task commits. `pnpm test:docker` ****178 in 29 files, 0 skipped**, 795 s** — it was OWED and RUN, because the doctor repair touches `infra/lib/common.sh` and `routing/edge-source-refusal.docker.test.ts` reads that file. `make doctor` 18/0 and `make verify` 51/0, re-run at close — and doctor read **1 FAILED** in between, which is this sitting's F9.*)
 
 **Short of context? Read §7e, §2's numbers box, §6, and the newest entries at the end of §4's *Things that will cost you a morning*, in that order.** §4 is most of this file and is meant to be searched, not read through.
 
@@ -44,12 +44,13 @@ everything.
 
 | | |
 |---|---|
-| `pnpm test` (from the **repo root**) | **1355 passed, 103 files**, ~112 s — the `unit` project and `packages` (the client and the journey, which need nothing running). **Unmoved by sittings 5, 6 and 7, none of which adds a test file (Decision 7). Up 1 and NO new file from sitting 3's 1354/103** — `packages/console/src/boundary.test.ts`'s fourth assertion, that the scanner descends into `src/`'s subdirectories, which sitting 4 measured all three earlier tests staying green without (F3). Tasks 5 and 6 add no test FILE, by Decision 7. Sitting 3's 1354 was up 6 and one file from sitting 2's 1348/102, all of it `packages/console/src/auth.test.ts` — `signOut`'s *assert the shape of the answer* guard, in Node with no DOM. Sitting 2's 1348 was itself up 3 and one file, `packages/console/src/boundary.test.ts`. The 1345 itself was up 1 from P5b's 1344, in `routing/caddy.test.ts`: the assertion that `buildRoute` sets `stream_close_delay` to the NUMBER `3_600_000_000_000`, which sitting 1 added when M8 measured that an app's WebSocket is cut by any other app's deploy. **The `packages` project now names four packages, not two** — a test file in a package `vitest.workspace.ts` does not list runs under NO project and is silently not collected, which reads exactly like a passing suite (sitting 1's M4, fixed and watched in sitting 2). No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/`, `releases/` and `tokens/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
-| `pnpm test:docker` | **178 passed, 0 SKIPPED**, 29 files, **~807 s, last measured by P5c sitting 3**, which owed the tier because it changed `infra/caddy/Caddyfile`. **Sittings 4, 5, 6 and 7 neither ran nor owed it** — and sittings 6 and 7 ran no Docker work of any kind, where sitting 5 at least ran real builds and deploys. **Sitting 4 neither ran nor owed it** — neither of its commits touches `routing/`, `infra/` or a `*.docker.test.ts`, and the Caddyfile it changed as a negative control was restored byte-identical before either commit. (Sitting 2 neither ran nor owed it; do not spend 13 minutes on it out of habit) — **unchanged through P5b sittings 8 and 9 and P5c sitting 1, none of which adds a Docker test** (P5c sitting 1 changed `routing/caddy.ts`, so it OWED the tier, but its assertion is a unit test); **177 had held for eight runs across five sittings before P5b sitting 7 added the one.** The one is `boot.docker.test.ts`'s *expires a question nobody answered*, and it is the ONLY test in the repository that fails if `src/index.ts` stops calling the expiry sweeper (sitting 7). The tier still drives SESSIONS: `grep` over every `*.docker.test.ts` finds no `Authorization: Bearer` that is a Manifest delegated token — they are registry tokens and LiteLLM keys — so nothing there presents the credential class sittings 3 to 7 have been building. Needs `make up`, and **fails rather than skips** when asked to run |
+| `pnpm test` (from the **repo root**) | **1376 passed, 107 files**, ~115 s — the `unit` project and `packages` (the client, the journey, the CONSOLE and the MOCK, none of which need anything running). **Up 21 and FOUR FILES from sitting 7's 1355/103**, all of it P5c sitting 8: `packages/mock/src/validate.test.ts` (4 — every fixture against `openapi.json` on Ajv's 2020-12 dialect, plus the control that the validator refuses what the document refuses), `packages/mock/src/server.test.ts` (7 — every documented operation has an answer, and the refusals by CODE), `packages/console/src/api.test.ts` (8 — the console's WHOLE data layer against the mock in Node with no DOM) and `packages/console/src/coverage.test.ts` (2 — D22's *is the API complete?* as a gate). Sittings 5, 6 and 7 added none, by Decision 7 (the console has no DOM test tier); sitting 4's 1355 was up 1 and no new file from 1354/103. No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/`, `releases/` and `tokens/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
+| `pnpm test:docker` | **178 passed, 0 SKIPPED**, 29 files, **795 s, re-measured by P5c sitting 8**, which OWED the tier because its `make doctor` repair touches `infra/lib/common.sh` and `routing/edge-source-refusal.docker.test.ts` reads that file. **178 has now held for four runs across four sittings** (P5b sitting 7 added the one that took it from 177). **Sittings 4, 5, 6 and 7 neither ran nor owed it** — do not spend 13 minutes on it out of habit. The one added test is `boot.docker.test.ts`'s *expires a question nobody answered*, and it is the ONLY test in the repository that fails if `src/index.ts` stops calling the expiry sweeper. The tier still drives SESSIONS: `grep` over every `*.docker.test.ts` finds no `Authorization: Bearer` that is a Manifest delegated token. **Running it costs the machine**: it restarts the edge (dropping every runtime route, so every app hostname then answers the WILDCARD), truncates the tables, re-registers the platform's SP row at a loopback ACS — **restart the control plane afterwards** — and regenerates exactly seven dead app networks and one volume, measured four times now. Needs `make up`, and **fails rather than skips** when asked to run |
 | `make doctor` | **18 checks, 0 failed, 0 warnings** |
-| `make verify` | **51 checks, 0 failed, 0 warnings** — measured by P5c sitting 3 **both with `vite dev` on 7104 and with 7104 free**, because its console check was rewritten to stop depending on a developer's host process (sitting 3, F3) — and read its *per-app resources* INFO line, which is not a check: **it reads `containers=3 networks=1 volumes=2` on a machine whose dead resources have just been cleared, and `containers=3 networks=8 volumes=3` after ANY `pnpm test:docker` run — both measured again on 2026-09-18 by P5c sitting 3, in that order, which is the THIRD time the tier has been watched regenerating exactly the same seven networks and one volume.** **It reads `containers=3 networks=1 volumes=2` today**: sitting 3 ran the tier, which took it to `8`/`3`, and Rich applied both scripts at that sitting's close — re-measured clear afterwards by the scripts themselves. One app is deployed (`token-app`: three containers, one network, two volumes), so the honest figure is `containers=3 networks=1 volumes=2` — it read `9/3/6` for three apps until sitting 9's `make reset` destroyed the other two. **The extra seven networks and one volume are DEAD and are Rich's to remove**; until he has, expect `8` and `3` and do not go looking for a fault. More networks than apps means an app whose containers are gone and whose network is not; `0/0/0` is a freshly reset machine. **One `pnpm test:docker` run takes it to `networks=8` on its own** and the extra seven are dead: run `bash scripts/dead-app-resources.sh`, which re-derives them, and hand the output to Rich — an agent session's classifier refuses `docker network rm` (sitting 9, F8) |
+| `make verify` | **51 checks, 0 failed, 0 warnings** — measured by P5c sitting 3 **both with `vite dev` on 7104 and with 7104 free**, because its console check was rewritten to stop depending on a developer's host process (sitting 3, F3) — and read its *per-app resources* INFO line, which is not a check. **It reads `containers=6 networks=2 volumes=4` today** (P5c sitting 8's close): TWO apps are deployed, `journey-app` and `token-app`, three containers, one network and two volumes each, left by that sitting's real `make ci-acceptance` run — and **their project rows were truncated by the `pnpm test` that followed, so the containers outlive their projects**, which is ordinary here and not a fault. The rule the number follows: **one app is `containers=3 networks=1 volumes=2`**, ANY `pnpm test:docker` run adds **seven dead networks and one dead volume**, and `bash scripts/dead-app-resources.sh --apply` takes them away again. More networks than apps means an app whose containers are gone and whose network is not; `0/0/0` is a freshly reset machine. **Sitting 8 was ALLOWED `--apply` and ran it itself**, and re-measured `none dead` afterwards — the classifier refuses this in some sessions and not others, so **try the command rather than trusting any note about it** |
 | `make demo-token` | green — **P5b's acceptance, and it ran three times in sitting 9**: from a truncated database (create path, 64 checks), on the re-use path (63 — the one fewer is the create path's own check) and from an `echo reset | make reset` machine (64). ~30 s. It is step 9 of `scripts/offline-acceptance.sh` |
-| `make demo-journey` | green, all eight steps — last run at the end of sitting 8. **Sitting 9's `make reset` destroyed `journey-app`**, so the next run of it recreates the project from its starter |
+| `make demo-journey` | green, all eight steps — **last run by P5c sitting 8's real `make ci-acceptance`, over the 1.0.0 contract**. It recreated `journey-app`, whose containers still stand |
+| `make ci-acceptance` | **NEW in P5c sitting 8, and RUN**: the headless half of 1c's acceptance — `make doctor`, `make verify`, the three fast gates, `pnpm test` with its COUNT asserted, the three package builds, then `make demo-journey` and `make demo-token`. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. ~15 min. **Its four `EXPECT_` lines carry this box's numbers and move with it** |
 
 **A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is cheaper before you start than after. **This box is the only current one in this file**; the same four numbers are stated in `README.md` and `RUNBOOK.md`, and all three move together (§6). A plan's record carries the numbers as each sitting left them, dated, and they deliberately do not move.
 
@@ -233,7 +234,7 @@ Each is named in its plan's *What this plan does not build*, and none is an acci
 - **`egress.allow` may still name a platform surface** — decided in §12, enforced by nothing until the roadmap's tracked hardening item.
 - **A `POST /v1/projects` for a slug whose repository outlived its project answers `SOURCE_GIT_FAILED` with git's raw output, host path included** — `pnpm test` and `make reset` leave `.manifest/repos` behind. Since P5a Task 11 it leaves no project; the demos and the journey clear their OWN slug's orphan first (`clear_orphan_repository`). A distinct code, and a message without the path, are not built. *(P4b finding 178's other half.)*
 - **An app accepts an UNSIGNED `LogoutRequest`** — passport-saml 3.2.4 checks a signature only when one is present — so a crafted link can sign somebody out of an app; the plain `GET` of `auth.logout` already could. **`make up` does not re-bind the IdP's single-file config mounts** after a `git pull` or `git checkout` replaces `config.php` or `authsources.php` (§4). Both named, not fixed.
-- **THE CONSOLE EXISTS AND IS SERVED, and as of P5c sitting 6 (2026-09-19) §22 STEPS 1 TO 5 AND 7 ARE CLICKABLE, AND STEP 6 AS FAR AS THE SIGN-IN — sign in, create a project, watch its stream, build it and read the log as it is written, release it, deploy it to staging, open the running app and sign in INSIDE it. **Step 6's *write a note; ask the LLM* is NOT part of this**; it is `make demo-ai`'s and Task 14's.** **Sitting 6 added §22 step 7 — §13's first-launch checklist with every item's state, reason, owner and the plan that builds it — §26's fleet for an administrator, and D24's delegated tokens minted once, listed and revoked.** **SITTING 7 ADDED §26'S QUEUE, WHICH WAS THE LAST SCREEN — SO EVERY SCREEN THIS PLAN BUILDS NOW EXISTS**: a person reads the question an agent asked, who asked it, how long it has waited, and confirms or rejects it in their own words. **D24's loop is no longer `curl`.** What the console still does not have is the MOCK behind it (Task 12) and the CI script (Task 13). *The paragraph below was written at sitting 3 and its first sentence is kept because the rest of it is still true.* `https://console.manifest.internal` is a `reverse_proxy` to a host process on 7104 (§21's inventory) for every path that is not `/v1/*` or `/auth/*`; the placeholder `respond` is gone. **What a person could do at sitting 3 was sign in with CWL and see who the platform thinks they are** — name, PUID, email and platform role, from `GET /v1/me`. `/fleet` and the project's `queue` and `tokens` tabs still render *"the `<name>` screen is built by a later task of P5c"*. **Nothing starts it for you**: `vite dev`/`vite preview` on 7104 is a developer's host process, `make up` does not run it, and with 7104 free the origin answers **502** — which `make doctor` and `make verify` both tolerate by design (sitting 3, F3). **No production deploy, no custom domain.** **Delegated tokens are BUILT** (P5b, executed 2026-09-18): a token is minted, listed and revoked in an interactive session, an agent holding one authenticates with it scoped to one project and one capability set, D24's privileged four are refused centrally with a `PendingAction` a person confirms or rejects, a confirmation grants that exact request one retry, §26's queue is readable, every request a token makes is rate-limited from its own row, a question nobody answers is swept to `expired` and a second open ask for the same one is refused by the database, and §16's matrix asserts all of it across four token actors. **`make demo-token` runs the whole loop end to end through the edge** and is step 9 of the offline acceptance. **A PERSON NOW OPERATES THAT LOOP** (P5c Task 11, 2026-09-19): confirming and rejecting are a screen, clicked end to end, with the question reaching it 576 ms after the agent was refused. A project owner still cannot revoke a collaborator's token — only the minter can. **And two things about the loop reach no client at all**: `consumeAction` publishes no event, so *has the agent spent its one retry?* is answerable only by re-reading `GET /v1/pending-actions/{id}`, and `addMember` publishes none either.
+- **THE CONSOLE EXISTS AND IS SERVED, and as of P5c sitting 6 (2026-09-19) §22 STEPS 1 TO 5 AND 7 ARE CLICKABLE, AND STEP 6 AS FAR AS THE SIGN-IN — sign in, create a project, watch its stream, build it and read the log as it is written, release it, deploy it to staging, open the running app and sign in INSIDE it. **Step 6's *write a note; ask the LLM* is NOT part of this**; it is `make demo-ai`'s and Task 14's.** **Sitting 6 added §22 step 7 — §13's first-launch checklist with every item's state, reason, owner and the plan that builds it — §26's fleet for an administrator, and D24's delegated tokens minted once, listed and revoked.** **SITTING 7 ADDED §26'S QUEUE, WHICH WAS THE LAST SCREEN — SO EVERY SCREEN THIS PLAN BUILDS NOW EXISTS**: a person reads the question an agent asked, who asked it, how long it has waited, and confirms or rejects it in their own words. **D24's loop is no longer `curl`.** **SITTING 8 ADDED THE MOCK BEHIND IT AND THE CI SCRIPT, so the only thing P5c has left is the ACCEPTANCE itself.** `packages/mock` serves all 34 operations of the published contract from hand-written fixtures in one `node:http` process with a scripted WebSocket — no Docker, no Postgres, no control plane, no language model (§21: *front-end developers are not required to run the platform*) — and the console was driven against it in a browser, the whole journey. It is the one configuration in which the console is reached at `127.0.0.1:7104` rather than through the edge, because there is no CSRF origin to satisfy; RUNBOOK's *Running `manifest-mock`* has the four environment variables and what a green run against it does NOT prove. **D22's question is now a GATE**: `packages/console/src/coverage.test.ts` holds every one of the 34 operations to having a caller in `src/api.ts` (or `subscribe` in `stream.ts`, for the stream), with `DELIBERATELY_UNCALLED` **empty**. `make ci-acceptance` runs the headless half of 1c's acceptance and `make demo-console` prints the clicked half's checklist; `@manifest/contract` is **1.0.0**. *The paragraph below was written at sitting 3 and its first sentence is kept because the rest of it is still true.* `https://console.manifest.internal` is a `reverse_proxy` to a host process on 7104 (§21's inventory) for every path that is not `/v1/*` or `/auth/*`; the placeholder `respond` is gone. **What a person could do at sitting 3 was sign in with CWL and see who the platform thinks they are** — name, PUID, email and platform role, from `GET /v1/me`. `/fleet` and the project's `queue` and `tokens` tabs still render *"the `<name>` screen is built by a later task of P5c"*. **Nothing starts it for you**: `vite dev`/`vite preview` on 7104 is a developer's host process, `make up` does not run it, and with 7104 free the origin answers **502** — which `make doctor` and `make verify` both tolerate by design (sitting 3, F3). **No production deploy, no custom domain.** **Delegated tokens are BUILT** (P5b, executed 2026-09-18): a token is minted, listed and revoked in an interactive session, an agent holding one authenticates with it scoped to one project and one capability set, D24's privileged four are refused centrally with a `PendingAction` a person confirms or rejects, a confirmation grants that exact request one retry, §26's queue is readable, every request a token makes is rate-limited from its own row, a question nobody answers is swept to `expired` and a second open ask for the same one is refused by the database, and §16's matrix asserts all of it across four token actors. **`make demo-token` runs the whole loop end to end through the edge** and is step 9 of the offline acceptance. **A PERSON NOW OPERATES THAT LOOP** (P5c Task 11, 2026-09-19): confirming and rejecting are a screen, clicked end to end, with the question reaching it 576 ms after the agent was refused. A project owner still cannot revoke a collaborator's token — only the minter can. **And two things about the loop reach no client at all**: `consumeAction` publishes no event, so *has the agent spent its one retry?* is answerable only by re-reading `GET /v1/pending-actions/{id}`, and `addMember` publishes none either.
 - **NOTHING SWEEPS PENDING ACTIONS ON A TIMER, AND THE SCREEN THAT NEEDED THAT DECIDING IS NOW BUILT** (P5b Task 10; P5c Task 11). The sweep runs at boot and, scoped to one token, before a new question is recorded — which is what the partial unique index needs. So a control plane up for a week can show §26's queue a `pending` row whose life ran out days ago. **A display staleness, not a refusal one**: `answerable` refuses a lapsed row `409 PENDING_ACTION_RESOLVED` on the timestamp, so the lie self-corrects the moment anybody acts on it. **P5c HAS NOW DECIDED IT, AND THE ANSWER IS NO** (its Decision 8, 2026-09-18): `PendingAction.expiresAt` is in the representation, so the queue SCREEN renders a lapsed question as lapsed — with no confirm button — from the timestamp rather than from the stored state, and a timer would be a third piece of background work to correct a display that can correct itself. **BUILT AND WATCHED, 2026-09-19**: `screens/queue.tsx`'s `displayState` renders a `pending` row past its own `expiresAt` as `expired` with no buttons, and the control fired — reverted to the stored state, that row offered a Confirm button which answered `409 PENDING_ACTION_RESOLVED — this pending action was already expired`. *Its hint says* “somebody has already answered this one” *even when nobody did, which is recorded as P5c sitting 7's F6 and not fixed.*
 
 **Which spec sections matter, by topic:** §7 the `manifest.yaml` contract · §9 identity ·
@@ -1292,7 +1293,7 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   `<title>Manifest</title>`, which `vite dev` and `vite preview` serve identically) — **never
   by matching a process name**, because `node` on either port is a guess. Watched failing: a
   foreign server on 7104 carrying `<div id="root">` but a different title is still called
-  foreign. **`manifest-mock` on 7102 has no such check yet** and will need one at P5c Task 12.
+  foreign. **AND A THIRD TIME, ON 7102, ON 2026-09-19** — the first real `make ci-acceptance` run with a mock listening read **`CLAIMED BY SOMETHING ELSE: 7102`**, and `doctor.sh`'s own comment had PREDICTED it by name and said P5c Task 12 was the task that must fix it. Task 12 did not; the acceptance script found it. `mock_is_ours` asks the mock for a path the DOCUMENT DOES NOT DECLARE, which it answers `404` with its own name in the message — **`/v1/me` would not do, because the mock answers that with the same `UNAUTHENTICATED` envelope the control plane does and the two would be indistinguishable.** Watched failing: a throwaway server on 7102 answering a plausible `404 ROUTE_NOT_FOUND` envelope is still called foreign. **The lesson this check keeps teaching is that a prediction written in a comment is not a task**: three times now the fix has been obvious, documented in place, and done only after the check went red.
 - **A PLATFORM CHECK MUST NOT DEPEND ON A DEVELOPER'S HOST PROCESS.** `make verify`'s
   *the host reaches https://console.manifest.internal and is not refused* asserted the
   placeholder's own words until P5c sitting 3, and the console that replaced it is started by
@@ -1715,7 +1716,7 @@ curl -s --cacert infra/ca/manifest-root.crt \
 
 ## 7. What to do next
 
-**The next job is §7e — EXECUTE P5c's SITTING 8, Tasks 12 and 13. P5c's sittings 1 to 7 ran on 2026-09-18/19 with 19, 10, 9, 9, 13, 12 and 8 findings; Tasks 1 to 11 of its 14 are done, nothing is part-finished, and nothing blocks the next sitting.** Sitting 8 is `manifest-mock` — the contract served from fixtures with scripted streams, validated against the document, and the console's own data layer driven against it with no platform running — and the CI acceptance script, the operation-coverage gate and `@manifest/contract` going to **1.0.0**. **The one sitting with the network on is OVER**, so nothing from here to the end of the plan may install a package; Task 12's whole dependency list (`ws`, `ajv`, `ajv-formats`) was installed in sitting 2. *This preamble states the sitting number because §7e is the section a cold agent is sent to and the two must agree; sitting 4's audit found this line still naming sitting 4 after that sitting had committed both its tasks, because §6's sweep table names §7e and not the heading above it.* Each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
+**The next job is §7e — EXECUTE P5c's SITTING 9, Task 14, ALONE AND LAST. P5c's sittings 1 to 8 ran on 2026-09-18/19 with 19, 10, 9, 9, 13, 12, 8 and 11 findings; Tasks 1 to 13 of its 14 are done, nothing is part-finished, and nothing blocks the next sitting.** Sitting 9 is **the acceptance**: §22's journey proved twice over one contract — **clicked by a person**, because an agent driving Chrome cannot type a password (Rich's R3), and **run headlessly** by `make ci-acceptance`, which already exists and has already been run green. So this sitting builds almost nothing: it drives, it watches the negative controls, and it writes WALKTHROUGH's clicked journey. **It also FINISHES P5c and Phase 1c**, which makes its sweep bigger than a sitting's — §2's plan table, §3's *What it deliberately does not do yet*, `CLAUDE.md`'s *State* section and the four shared HTML pages all move when a plan finishes. *This preamble states the sitting number because §7e is the section a cold agent is sent to and the two must agree; sitting 4's audit found this line still naming sitting 4 after that sitting had committed both its tasks.* Each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
 
 ### 7a. The executed plans, and which of their records to read first
 
@@ -1731,162 +1732,124 @@ curl -s --cacert infra/ca/manifest-root.crt \
 | **P4c** | [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md), with [its brief](plans/2026-09-15-p4c-brief.md) | `make demo-redeploy` | 70 findings in eight sittings. **Sitting 8**: four of the acceptance's nine negative controls could not fail in it — §4 says which tier sees each. |
 | **P5a** | [`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), with [the P5 brief](plans/2026-09-16-p5-brief.md) | `make demo-journey` | 146 findings in twelve sittings. **Sitting 12**, the acceptance: three of fourteen negative controls could not fail as written — including one where the journey read a *status* while the property was a *latency*, so a synchronous build passed R6's own check. **Sitting 10's finding 1** is the other one to read: the document said for six sittings that the error envelope could not carry the field the production refusal had been sending since P2, because nothing parsed an error body through its schema. |
 | **P5b** | [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md) — **EXECUTED 2026-09-18**, all nine sittings | `make demo-token` — green three times, the third from a `make reset` machine; step 9 of the offline acceptance | 116 findings in nine sittings. **Sitting 9's F1 is the newest one to read, and it is a lesson about PREDICTIONS**: sitting 8 predicted Task 13's control (a) would be invisible to the acceptance, and it turns three checks red — the reasoning was about the FIXTURE token, which holds the privileged capability and is refused identically either way, while every REAL token lacks it and is refused by a different rule with a different code. **Sitting 9's F3** is the second: replacing the token secret's constant-time comparison with `===` left all 1342 tests AND all nine demo steps green, so the property was asserted by nothing; it is now asserted at the source, and the first draft of that assertion could not fail. **Sitting 9's F8**: one `pnpm test:docker` run recreates exactly the seven dead app networks cleared by hand the same day. **Sitting 8's F1 is the newest one to read**, and it is what the first integration client is for: **`subscribe` could not carry a delegated token at all**, so an agent could start a build through the generated client and had nothing to watch it end on — the route had accepted a bearer all along, and nothing server-side could see the hole. **Sitting 8's F4 and F5** are the second: **three of its five negative controls answer `403` for the WRONG REASON** — the privileged rule disabled makes the refusal a dead-end `403 FORBIDDEN`, confirm reverted answers `403 TOKEN_ACTION_PENDING`, the fleet reverted answers `403 FORBIDDEN` — so a status-only demo passes all three. **Sitting 7's F4**, and it is a JavaScript trap rather than a platform one: `toToken` was given an optional `now: Date = new Date()`, and `api/routes/tokens.ts` maps it as `.map(toToken)` — so `now` arrived as the ARRAY INDEX, `0`, and every token in every list read `expired: false`, including one that had expired an hour before. Only the assertion about an expired token could see it. **Sitting 7's F2** is the one after that: the plan's own `Promise.all` control for a read-then-insert **passed against the defect**, because `pg.Pool` establishes a connection per acquire and the five calls serialised — a warm pool is what makes a pooled race observable, and a deterministic SQLSTATE test belongs beside it. **Sitting 6's F5:** two of that sitting's own four new tests were green before the feature, because both were *"is not limited"* claims — and a claim that something is NOT refused is true of a platform that refuses nothing. A negative claim needs a positive control in the same test. **Sitting 4's F1** is the one to read: the plan's own negative control for the ORDER of the two token checks could not fail against any of the 31 tests that existed, because every test writes a token holding the privileged capability and **no token the platform can mint can hold one** — so the swapped order answers a dead-end `403 FORBIDDEN` for every real token, with D24's loop unable to start, and all 31 green. **Sitting 2's F1**: the plan's token parser split on `_` while base64url's alphabet contains it, so it refused 47.5% of the tokens the same file minted — and the round-trip test minted ONE token, so it would have gone red about half the time and read as a flaky harness. **Sitting 2's F14**: the plan's own TRUNCATE negative control cannot fail, because the statement's CASCADE reaches both new tables unnamed. **Sitting 3's F1**: `DELETE /v1/tokens/{tokenId}` is the API's first bodyless mutation, and the contract layer could not carry one — the route answered `400` before its handler ran and the OpenAPI document could not be generated for it at all, because both kept on `method === 'GET'` rather than on the body schema. **Sitting 3's F13**: three of that sitting's own negative controls answer `403` for the WRONG REASON, so a status-only assertion is green through all of them. |
-### 7e. Execute P5c's sitting 8 — Tasks 12 and 13, `manifest-mock` and the CI script ← **START HERE**
+### 7e. Execute P5c's sitting 9 — Task 14, the acceptance. ALONE, AND LAST ← **START HERE**
 
-**P5c IS EXECUTING. Sittings 1 to 7 are DONE (2026-09-18/19, with 19, 10, 9, 9, 13, 12 and 8
-findings); sittings 8 and 9 have not run.** Your job is **sitting 8 — Tasks 12 AND 13**, using
-`superpowers:executing-plans` or `superpowers:subagent-driven-development`. Task 12 is
-`manifest-mock`: the contract served from hand-written fixtures with scripted WebSocket streams,
-validated against `openapi.json` by Ajv, **with the console's own data layer driven against it in
-Node with no DOM**. Task 13 is `scripts/ci-acceptance.sh`, the operation-coverage gate, and
-`@manifest/contract` going to **1.0.0**.
+**P5c IS EXECUTING. Sittings 1 to 8 are DONE (2026-09-18/19, with 19, 10, 9, 9, 13, 12, 8 and
+11 findings); Tasks 1 to 13 of its 14 are done, nothing is part-finished, and nothing blocks
+you.** Your job is **sitting 9 — Task 14, alone** — the last task of the last plan of Phase 1c,
+using `superpowers:executing-plans` or `superpowers:subagent-driven-development`.
 
-**THIS IS TWO TASKS AND THE SECOND ONE HAS A GATE IN IT.** Task 13's coverage gate is D22's
-*"is the API complete?"* as a build failure, and it reads `src/api.ts`. **Its answer is already
-known and was counted at this close, not remembered: `api.ts` calls 33 of the document's 34
-operations, and the missing one is `streamProjectEvents`** — the WebSocket, which is called, by
-`stream.ts`'s `subscribe` and not by `api.ts`. **So the gate must count the stream as COVERED
-rather than exempt it**, and `DELIBERATELY_UNCALLED` can still start empty, exactly as Decision 15
-wants. Re-count it yourself before you write the gate; the script that did it is four lines of
-`python3` over `openapi.json` and `api.ts`, matching each operation's METHOD and PATH.
+**THIS SITTING IS NOT A BUILD. IT IS A MEASUREMENT, AND HALF OF IT IS RICH'S.** §22's journey
+is proved twice over one contract: **clicked by a person** and **run headlessly**. Everything
+that runs it already exists — `make demo-console` prints the checklist and serves the console,
+`make ci-acceptance` runs the headless half — so the sitting's work is *driving* them, watching
+the negative controls, recording what a person actually sees, and writing WALKTHROUGH's clicked
+journey.
 
-**NAME THE METRIC FOR `scripts/offline-acceptance.sh`, BECAUSE YOUR SCRIPT ORCHESTRATES IT.** Every
-document here says it has **nine steps**, and counting its `=== n.` headings answers **10** — it
-prints them numbered **0 to 9**, where step **0** is the precondition (*confirming the machine
-really is offline*) and steps 1–9 are the work, the ninth being `make demo-token`. Both counts are
-right under different rules and the documents mean the second. *Measured at this close, because
-the first draft of this hand-off asserted "nine" without opening the file, and §6's post-sweep
-check is what opened it.*
-
-**THE NETWORK-ON SITTING IS LONG OVER.** Task 2 installed everything this plan gets — including
-`ws` 8.21.3, `ajv` 8.20.0 and `ajv-formats` 3.0.1, which are Task 12's whole dependency list.
-**If a task believes it needs a package, that is a finding to record and raise, not a step to
-take.**
+**RICH TYPES EVERY PASSWORD (his R3).** The Chrome extension will not type one, even a test
+user's, and it needs a per-site permission for `idp.manifest.internal` to see the IdP's pages at
+all. So the clicked half is SHARED: you drive Chrome and read every page, Rich types
+`instructor` / `student` in your tab at each CWL sign-in and says so, and the run is recorded as
+a GIF. **Agree that with him before you start clicking, and plan the run so his sign-ins come in
+as few places as possible** — sitting 6 measured that *Sign out* ends Manifest's session and
+leaves the IdP's alive, so switching user is what costs a password, not signing in again.
 
 **Read, in this order, before you run anything:**
 
 1. **The plan — [`plans/2026-09-18-p5c-the-clients.md`](plans/2026-09-18-p5c-the-clients.md)** —
-   its **header, its sittings table, *Read this first*, *Decisions Rich made* and *Decisions this
-   plan makes***. Of *Read this first*'s twenty numbered items, **1, 2, 5 and 20 land hardest
-   here** — *checked by opening them and counting, not by remembering*. Item 1 is the operation
-   list the gate is about; item 2 is the thirteen operations whose header or query parameter the
-   generated types make mandatory; item 5 is the stream's subscribe-then-replay-then-flush shape,
-   which the mock has to script; item 20 is `scripts/offline-acceptance.sh`'s nine steps, which
-   the CI script orchestrates rather than replaces. **`python3 -c` over
-   `packages/contract/openapi.json` settles any question about a shape in one line** — do that
-   rather than trusting a summary, including this one.
-2. **Tasks 12 and 13 in full — AND BOTH NOW CARRY A `[SITTING 7]` BLOCK WRITTEN FOR YOU.**
-   **Task 12's says its Step 2 fixture does not compile, in two places**, measured by pasting it
-   in and running `tsc`: `Project.owner` is `UserSummary`, which is `{ id, displayName }` and has
-   **no `puid`** (`TS2353`), and `Audience` requires **five** fields — the snippet gives three,
-   missing `setBy` and `setAt` (`TS2739`). It also counts the **28 2xx response schemas** that are
-   the real size of `FIXTURES`, names them, and records that
-   `packages/console/src/api.test.ts` **may** import `@manifest/mock` because both halves of the
-   import boundary exempt `*.test.ts` — **so do not weaken the boundary** when it appears not to.
-   **Task 13's says its coverage gate is GREEN ON ARRIVAL**: sitting 7 gave the last four
-   operations their callers, so running Step 1's exact logic today reports `uncalled: []` and
-   `checked: 34`. A gate nobody has watched fail is not a gate — the block says which single call
-   to comment out and what the failure should read. **Task 12 itself carries NO OTHER block** — in particular no `ajv` one: that
-   correction landed on **Task 2**, whose `[M4][M5][M9]` block's item 1 is *"Install `ajv-formats`
-   as well as `ajv` (M9/F4), and this is the last task that can"*, and it was honoured — `ajv`
-   **8.20.0** and `ajv-formats` **3.0.1**, both exact in `packages/mock/package.json`. **Task 13
-   carries a second block too**, `[M7][M5]`, about the coverage gate's arithmetic (**the stream is
-   one OF the 34, not a 35th**) and the `@manifest/contract` build the CI script owes. **OpenAPI 3.1 is JSON Schema 2020-12**, so it is `ajv/dist/2020` and not the default
-   export — the default draft-07 `Ajv` refuses the document's schemas and the failure reads like a
-   malformed document.
-3. **Sitting 7's entry in the plan's *What executing this plan found*** — eight findings. **F1,
-   F2 and F7 change what you do.** F1: **`<Refusal>` will NEVER render the envelope's
-   `pendingAction`**, and the reason is traced there — do not put it back on a later task's list.
-   F2: `consumeAction` and `addMember` publish nothing, the fourth and fifth instances of the
-   no-event shape, so **the mock's scripted stream must not invent frames the platform does not
-   send** — a mock that publishes an event the real API never publishes is a fixture that lies,
-   which is Decision 10's whole exposure. F7: the pending-action reuse fingerprint excludes the
-   `Idempotency-Key`.
-4. **Sitting 6's entry**, for F12 (**the log reaching `DONE` is not the end of the build** — §12's
-   scan runs after it and emits nothing, 9.70–11.29 s of silence) and F1 (`<Instant>` renders both
-   directions). **A mock that scripts a build stream has to decide what to do with that window**,
-   and the honest answer is to script it: a client developed against a mock whose build ends the
-   moment the log does will make exactly the mistake Rich made by clicking.
-5. **§4 of this file — searched, not read — and §6 IN FULL**, including the sweep table and the
-   post-sweep check. Two §4 entries matter to a task that writes a server: **`pnpm test` and one
-   file both TRUNCATE the control plane's tables**, and **every server a task starts is stopped by
-   PORT at the end of the sitting** — 7102 is the mock's.
+   its **header, its sittings table, *Read this first*, *Decisions Rich made* (R3 above all) and
+   *Decisions this plan makes***. Then **Task 14 in full, including its `[M2][M6]` correction
+   block** — two paragraphs about driving Chrome that R3 does not cover.
+2. **Sitting 8's entry in *What executing this plan found*** — eleven findings. **F6 and F8
+   change what you see on screen** and F9 changes what you must not leave running. F6: the mock's
+   queue deadline is computed, not fixed, so the pending row is genuinely pending. F8: the mock
+   holds a build `running` through §12's ten-second scan, which is sitting 6's F12 made
+   reproducible. **F9: `make doctor` now recognises `manifest-mock` on 7102 — but only the REAL
+   mock**, so anything else you leave on that port fails the check.
+3. **Sitting 5's entry (F1, F10) and sitting 6's (F12)** — the three things a person clicking
+   this journey has actually been caught by: the stream alone is not the log; a failed deploy is
+   a `200` whose state is `failed` while the PREVIOUS instance keeps serving; and **the log
+   reaching `DONE` is not the end of the build**.
+4. **§4 of this file — searched, not read — and §6 IN FULL**, including the sweep table and the
+   post-sweep check. Four §4 entries matter to a sitting that clicks: **Caddy's internal CA
+   issues a 12-HOUR LEAF**, so a tab left open across a long sleep shows `ERR_CERT_DATE_INVALID`
+   on a perfectly valid chain — open a new tab rather than debugging the edge; **the extension's
+   network reader prints a synthetic `503` for a 204 whose page navigates away**; **its redactor
+   keys on a result field's NAME**, so name probe fields neutrally and have the page compute the
+   assertion; and **`computer left_click` by element `ref` has silently done nothing** where the
+   same click by coordinate worked, reporting success both times.
 
-**What sittings 1 to 7 measured that changes what you do.**
+**What sittings 1 to 8 left that changes what you do.**
 
-- **`api.ts` calls 33 of the contract's 34 operations** — *counted at this close with a script
-  over `openapi.json` and `api.ts`, not by arithmetic on a remembered number*. The one left is the
-  stream.
-- **The console's screens are ALL BUILT.** `/`, `/blueprints`, `/fleet`, and a project's
-  `Overview | Queue | Tokens`. **There is no placeholder left in `screens/project.tsx`** — sitting
-  7 replaced the last one. So Task 12's *drive the console's data layer against the mock* has a
-  complete data layer to drive.
-- **`packages/mock` IS NOT EMPTY** — *checked with `git ls-files`, because the first draft of this
-  hand-off said it was*. Sitting 2 left four files: `package.json`, `tsconfig.json`,
-  `src/main.ts` (6 lines) and `src/server.ts` (24), and **`createMockServer` answers `501` to
-  everything, deliberately** — its own comment says a mock that answers a plausible `200` to
-  everything is the stand-in that produces a real-looking failure (P4c finding 74). So Task 12
-  fills in a routing table, fixtures and the scripted stream around an existing caller, and the
-  `501` is what your first test should watch stop being. `pnpm typecheck` already says
-  `Scope: 5 of 6`.
-- **`vitest.workspace.ts`'s `packages` project names four packages**, so a test file in
-  `packages/mock/src/` IS collected. A package it did not name would be **silently not run**,
-  which reads exactly like a passing suite (sitting 1's M4).
+- **EVERY SCREEN AND BOTH SCRIPTS EXIST.** `/`, `/blueprints`, `/fleet`, and a project's
+  `Overview | Queue | Tokens`; `make demo-console`, `make ci-acceptance`, `make demo-journey`,
+  `make demo-token`. **There is nothing left to build for the journey to be clickable** — if you
+  find something, that is a finding about the plan, not a task to add.
+- **`make ci-acceptance` HAS BEEN RUN and both headless journeys were green** over the 1.0.0
+  contract. It asserts the four gate COUNTS from §2's box and reports a difference as **`MOVED`**
+  rather than as a failure (Decision 12) — **so when your sitting moves a count, update §2's box,
+  `README.md`, `RUNBOOK.md` and `scripts/ci-acceptance.sh`'s four `EXPECT_` lines together.**
+- **`@manifest/contract` IS 1.0.0**, in three files held equal by two tests, and `openapi.json`
+  is GENERATED. Regenerate with `pnpm contract:write`; never hand-edit it. **`pnpm
+  contract:write` TRUNCATES the tables** — run anything needing a demo's rows before it.
+- **THE MOCK NEEDS NO PLATFORM, AND THAT IS THE ONE TIME 7104 IS THE RIGHT ADDRESS.**
+  `pnpm --filter @manifest/mock dev` then `MANIFEST_MOCK=1 pnpm --filter @manifest/console dev`,
+  and open `http://127.0.0.1:7104/`. RUNBOOK's *Running `manifest-mock`* has the four environment
+  variables and, more usefully, **what a green run against it does NOT prove**.
 - **`pnpm --filter @manifest/contract build` before anything builds or previews the console**
   (sitting 1, F3), and **`vite build` after every commit** (sitting 2, F4) — **268.93 kB** at this
-  close, up from 263.69 kB.
-- **Decision 12: the CI script asserts test COUNTS, never exit codes alone.** The counts to write
-  into it are §2's box at the time you write it: `pnpm test` **1355 in 103 files**,
-  `pnpm test:docker` **178 in 29**, `make doctor` **18/0**, `make verify` **51/0**.
+  close, unchanged by this sitting, which added only tests.
 
 **How to run this sitting, in order.** *Every §7e carries one of these, because P5b sitting 7
 found that an ordered list which omits one step omits the one the deliverable rests on.*
 
-1. **Baseline first** (§6's *Your first ten minutes*): `./scripts/snapshot-machine.sh` to a scratch
-   file, `make up`, `make doctor && make verify`, `pnpm test` **twice**, then `pnpm lint`,
-   `pnpm typecheck`, `pnpm format:check`. **Expect §2's box exactly**, including **`make verify`'s
-   per-app INFO line reading `containers=3 networks=1 volumes=2`** and its **runtime routes reading
-   0**. A disagreement is your first finding.
-2. **Task 12 needs NO control plane and NO platform** — that is the point of it (§21: *"front-end
-   developers are not required to run the platform"*). **Task 13 DOES**, because it runs the
-   demos. Check 7100 with `lsof -nP -iTCP:7100 -sTCP:LISTEN` and start it from README's *Running
-   the control plane* — the whole export block; `set -a; . ./.env; set +a` alone is NOT enough.
-3. **Task 12: write the mock, then drive the CONSOLE's `api.ts` against it in Node.** That test is
-   the task's real deliverable — a fixture the console cannot consume must fail a test rather than
-   a demo (Decision 10). Then Task 13.
-4. **Stop the mock by PORT at your close**, and anything else you started. The form that works is
-   in the plan's *Global Constraints*; `kill %1` does not, because each Bash call is its own shell.
-5. **Task 12 owes no `pnpm test:docker`**; Task 13 owes it only if it touches `routing/`, `infra/`
-   or a `*.docker.test.ts`, and it should not.
-6. **Close out** (§6's sweep): the roadmap ledger first — **including its defect-rate table** —
+1. **Baseline first** (§6's *Your first ten minutes*): `./scripts/snapshot-machine.sh` to a
+   scratch file, `make up`, `make doctor && make verify`, `pnpm test` **twice**, then `pnpm lint`,
+   `pnpm typecheck`, `pnpm format:check`. **Expect §2's box exactly.** A disagreement is your
+   first finding.
+2. **The control plane is needed for ALL of this sitting**, unlike sitting 8's Task 12. Check
+   7100 with `lsof -nP -iTCP:7100 -sTCP:LISTEN` and start it from README's *Running the control
+   plane* — **the whole export block**; `set -a; . ./.env; set +a` alone is NOT enough, because
+   `MANIFEST_ADMIN_DATABASE_URL` is DERIVED in that block. **A source change does not reach a
+   running control plane**: it serves from `dist/`, so kill it BY PID and restart it.
+3. **Run `make ci-acceptance` FIRST, before any clicking.** It is the half that needs no human,
+   it takes about fifteen minutes, and it leaves the machine with `journey-app` and `token-app`
+   deployed — which is the state the clicked half wants anyway. **Its `pnpm test` step truncates
+   the tables**, so it must come before the clicking and not after.
+4. **Then the clicked half**: `make demo-console`, and walk its checklist with Rich. **Sign the
+   student in once before anything needs a member** — `POST /v1/projects/{id}/members` answers
+   `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in, and `pnpm test` empties
+   `users` on every run. That is the trap that costs a sitting.
+5. **WALKTHROUGH.md gains the clicked journey** (§6's sweep table: it deliberately states no
+   counts — keep it that way).
+6. **Stop every server by PORT at your close** — 7102 (the mock), 7104 (`vite dev` or `preview`).
+   The form that works is in the plan's *Global Constraints*; `kill %1` does not, because each
+   Bash call is its own shell. **Never kill 7100** without saying so in the record.
+7. **Close out** (§6's sweep): the roadmap ledger first — **including its defect-rate table** —
    then this §7e, §2's numbers box, the plan's sittings table and its *What executing this plan
-   found*. **`@manifest/contract` going to 1.0.0 is a version number in a document that is
-   generated** — regenerate, never hand-edit, and the drift test holds you to it. **The four
-   shared HTML pages were swept by sitting 3 and checked by sittings 4, 5, 6 and 7. Check them
-   again**, because Task 13 is the first thing in this plan that changes a published version
-   number. Then **re-read your own §7e as a cold agent and CHECK its claims** by opening what they
-   point at and counting.
+   found*. **P5c FINISHING means more than a sitting's sweep**: §2's plan table gains a P5c row,
+   §3's *What it deliberately does not do yet* loses the console's caveats, `CLAUDE.md`'s *State*
+   section moves (it changes only when a plan starts or finishes), and **the four shared HTML
+   pages are the ones to check hardest** — they are read by people outside the team and nothing
+   in the build checks them. Then **re-read your own §7e as a cold agent and CHECK its claims** by
+   opening what they point at and counting.
 
 **WHAT WILL SURPRISE YOU IN THIS SITTING, specifically.**
 
-- **A MOCK IS A FIXTURE THAT CAN LIE, AND ONLY TWO THINGS HOLD IT HONEST** (Decision 10): `tsc` on
-  the generated types, and **Ajv against the document**. `tsc` cannot see
-  `additionalProperties: false`, a `format` or a `pattern`, and every representation here carries
-  them — `PendingAction` alone has two `uuid` patterns and two `date-time` ones.
-- **`ajv/dist/2020`, NOT the default export.** The default draft-07 `Ajv` refuses an OpenAPI 3.1
-  document's schemas, and the failure reads like a malformed document rather than a wrong dialect.
-- **THE STREAM IS NOT A LOG.** `LogFrame` is never replayed (sitting 5's F1) — a mock that replays
-  log frames is scripting something the platform cannot do, and a client built against it breaks
-  on the real one.
-- **A BUILD'S LAST TEN SECONDS ARE SILENT** (sitting 6's F12). Script that window or a client
-  developed against the mock will press Release too early against the real platform.
-- **`pnpm test` TRUNCATES THE TABLES**, and so does one file, and so does `pnpm contract:write`.
-  Task 13 regenerates the contract; run anything needing a demo's rows before it.
-- **A `vitest run <path>` matching NO file prints `No test files found` and exits 1**, which a
-  summary-only filter swallows into something that looks like nothing failed (P5b sitting 9, F5).
-  That is Decision 12's whole reason.
+- **A GREEN `make ci-acceptance` DOES NOT PROVE THE CLICKED JOURNEY WORKS, AND THAT IS DECISION
+  7's STATED COST**: the console has no DOM test tier, so *"a refactor of a screen can break the
+  clicked demo with every gate green, and the only thing that catches it is Task 14 being
+  re-run."* You are that re-run.
+- **THE BUILD'S LAST TEN SECONDS ARE SILENT** (sitting 6, F12). Do not press *Release* when the
+  log says `DONE`; the pill and the hint say when.
+- **A FAILED DEPLOY IS A `200`** whose state is `failed`, with the previous instance still
+  serving (sitting 5, F10). *What is serving* and *what the last attempt did* are two questions.
+- **`make reset` IS NOT PART OF THIS SITTING** unless Rich asks for a from-scratch run — and if
+  he does, **`make verify` BEFORE any demo**: after a reset the host can lose the edge while a
+  container still has it, and the remedy is `docker restart manifest-caddy` (P5b sitting 9, F6).
+  `make reset` prompts, so it needs `echo reset | make reset` from a tool call.
 - **`${PIPESTATUS[0]}` is empty here**: the shell is zsh (`$pipestatus[1]`, indexed from 1).
-- **`make reset` is not part of this sitting and should not be run.**
+  `scripts/ci-acceptance.sh` has a bash shebang for exactly this reason.
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they are stated only
 in each plan's *Global Constraints*:
@@ -1898,21 +1861,22 @@ in each plan's *Global Constraints*:
 - **Ask before `sudo`, and before touching anything outside the repository.** §6 rule 2, and
   CLAUDE.md's *Non-negotiables* has the rest. Nothing in this plan needs `sudo`.
 
-**The state you are handed, 2026-09-19, at the close of P5c sitting 7.** *Written from `lsof`,
+**The state you are handed, 2026-09-19, at the close of P5c sitting 8.** *Written from `lsof`,
 `docker`, `psql`, `curl`, `git` and the scripts' own output at close, not from memory of the
 session.*
 
 | | |
 |---|---|
-| The four gate numbers | §2's box. `pnpm test` **1355** in **103** files (UNCHANGED — Task 11 adds no test file, by Decision 7; run twice at baseline and twice before the commit, 1355 every time), `pnpm test:docker` **178** in **29** files (**NOT re-run and NOT owed** — the one commit touches only `packages/console/src/`, and this sitting ran no build and no deploy), `make doctor` **18/0**, `make verify` **51/0**. **Your Task 12 owes no Docker tier either** |
-| The control plane | **RUNNING on 7100 when this was written — DO NOT BELIEVE THAT ROW, CHECK IT** with `lsof -nP -iTCP:7100 -sTCP:LISTEN`. A sitting is one session and this is a host process; it has now survived two session boundaries as pid 81557, which is data and **not** a licence to assume. **Task 12 does NOT need it; Task 13 does.** README's *Running the control plane* is the whole export block — `set -a; . ./.env; set +a` alone is NOT enough, because `MANIFEST_ADMIN_DATABASE_URL` is DERIVED in that block. **Never start a second one**, and kill the first BY PID — `pkill -f 'control-plane/dist'` does NOT match it. **It was NOT restarted this sitting** |
-| The console | **`infra/caddy/Caddyfile` is untouched this sitting** — `git status` clean throughout. **`vite` WAS LEFT RUNNING on 7104** as pid 65007 — *checked by `lsof` at close* — and it has now survived two session boundaries; **stop it by PORT if you want a clean start**, and note Task 12 needs `vite preview` rather than `dev` for nothing at all, because the mock is a separate server. **7102 and 7105 are FREE** — *checked* |
-| The console's code | **23 tracked files in `packages/console`** — *counted with `git ls-files`* — of which this sitting added `screens/queue.tsx` and changed `api.ts`, `ui.tsx`, `screens/project.tsx` and `styles.css`. **`api.ts` calls 33 of the contract's 34 operations** — *counted with a script matching each operation's method and path, not by arithmetic*. **There is no unbuilt screen left**: `screens/project.tsx` has no placeholder arm |
-| The database | **NO migration since 0018** (`packages/control-plane/drizzle/0018_curvy_sister_grimm.sql` is the newest — *checked*; note the path, `drizzle/` is NOT at the repository root). **`pnpm test` ran FOUR times — counted from the captured output files** (two at the baseline, two before the commit) — and every one truncates, so **treat the §6 tables as EMPTY** |
-| Identity | **`users` IS EMPTY and `projects` IS EMPTY** — *the final `pnpm test` ran after all of this sitting's clicking*. **THERE IS NO ADMINISTRATOR** and `GET /v1/fleet` answers `403` for everyone until somebody signs in and `scripts/admin-grant.sh` is run again — in that order, because the grant needs a `users` row. The long-standing trap is ARMED: `POST /v1/projects/{id}/members` answers `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in. **The BROWSER holds a live Manifest session AND a live IdP session, both `operator`** — signing out and in again returns operator with no password (§4, F9 measured twice now); becoming anybody else costs one |
-| The apps | **`token-app` only, three containers** — *counted at close*. This sitting deployed nothing and built nothing: `queue-app` was created by clicking and never built, so it left no image, network, volume or runtime route. Its bare repository `.manifest/repos/queue-app.git` WAS left by project creation and **this session removed it**, because it was its own; the three that predate it (`journey-app`, `proof-app`, `token-app`) were left alone. `make verify` reads `containers=3 networks=1 volumes=2` and *runtime routes* **0**. token-app is **NOT reachable as itself**: that hostname answers the edge's wildcard, which a status-only check cannot tell from the app |
-| **Owed to Rich** | **NOTHING.** Both cleanup scripts were run bare at the close and **needed no `--apply`**: `dead-app-resources.sh` reads **`none dead`**, 0 networks and 0 volumes, and `litellm-orphans.sh` reads **0 orphaned** with one held user left alone. No LiteLLM user was created, because nothing was deployed. **The dead-resource set still comes back the moment anyone runs `pnpm test:docker`** — a property of the tier, measured three times, not a backlog. **Name the metric for app images**: they are tagged `127.0.0.1:7107/local/*`, and a count by a different rule answers a different number (sitting 6 recorded 29 lines / 27 distinct IDs, and `docker images --format '{{.ID}}' \| sort -u` answers every image on the machine, not the app figure) |
-| This sitting's own footprint | **ONE code commit and status documents after it.** `aec8b90` — 5 files: `screens/queue.tsx` (new), `api.ts`, `screens/project.tsx`, `styles.css`, `ui.tsx`. *Counted with `git show --name-only`, not recalled.* **No migration, no route, no spec change, and no change to the control plane's `src/` at all** |
+| The four gate numbers | §2's box. `pnpm test` **1376** in **107** files (up 21 and four files — this sitting's four new test files; run twice after each of the two task commits), `pnpm test:docker` ****178 in 29 files, 0 skipped**, 795 s**, `make doctor` **18/0**, `make verify` **51/0**. **It was OWED and RUN this sitting**, because F9's repair touches `infra/lib/common.sh` and `routing/edge-source-refusal.docker.test.ts` reads that file |
+| The control plane | **RESTARTED THIS SITTING and running as pid 56127 when this was written — DO NOT BELIEVE THAT ROW, CHECK IT** with `lsof -nP -iTCP:7100 -sTCP:LISTEN`. A sitting is one session and this is a host process. It was restarted deliberately: it serves from `dist/`, and until it was rebuilt it was serving the 0.1.0 contract while the repository said 1.0.0. **Your sitting needs it for everything.** README's *Running the control plane* is the whole export block, and kill the old one BY PID — `pkill -f 'control-plane/dist'` does NOT match it |
+| The console and the mock | **BOTH STOPPED BY PORT at the close** — *checked with `lsof`*: 7102, 7104 and 7105 are FREE. Nothing is inherited. `infra/caddy/Caddyfile` is untouched by this sitting |
+| The console's code | **25 tracked files in `packages/console`** — *counted with `git ls-files`* — of which this sitting added `api.test.ts` and `coverage.test.ts` and changed only `vite.config.ts` (the `MANIFEST_MOCK` proxy). **No screen changed.** `api.ts` calls **33 of the contract's 34** operations and `stream.ts` calls the 34th; `coverage.test.ts` asserts exactly that, with `DELIBERATELY_UNCALLED` empty |
+| The mock | **9 tracked files in `packages/mock`**, up from four. It answers all 34 operations from fixtures and needs no platform at all. RUNBOOK's *Running `manifest-mock`* is the operator's page |
+| The database | **NO migration since 0018** (`packages/control-plane/drizzle/0018_curvy_sister_grimm.sql` is the newest — *checked*; note the path, `drizzle/` is NOT at the repository root). **`pnpm test` ran SIX times and `pnpm test:docker` once**, and every one truncates, so **treat the §6 tables as EMPTY except for what `pnpm test:docker` left** |
+| Identity | **`users` IS EMPTY and `projects` IS EMPTY** — *read with `psql` at close; the last `pnpm test` ran after everything else*. **THERE IS NO ADMINISTRATOR** and `GET /v1/fleet` answers `403` for everyone until somebody signs in and `scripts/admin-grant.sh` is run again — in that order, because the grant needs a `users` row. `delegated_tokens` and `pending_actions` are both EMPTY too. The long-standing trap is ARMED: `POST /v1/projects/{id}/members` answers `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in, so **sign the student in before anything needs a member**. **The BROWSER holds no Manifest session** — this sitting's clicking was all against the MOCK, which signs a fake cookie with no IdP at all; whether an IdP session survives is not something this sitting can tell you |
+| The apps | **`journey-app` and `token-app`, six containers** — *counted at close*. Both were deployed by this sitting's real `make ci-acceptance` run, and **their project rows were then truncated by the `pnpm test` that followed**, so the containers outlive their projects: that is this machine's ordinary state, not a fault. `make verify` reads `containers=6 networks=2 volumes=4` and *runtime routes* **0**. **Neither app is reachable as itself** — those hostnames answer the edge's WILDCARD (`manifest OK host=…`), which a status-only check cannot tell from the app, because `pnpm test:docker` restarted the edge and dropped every runtime route. Three bare repositories stand in `.manifest/repos`: `journey-app.git`, `proof-app.git` and `token-app.git`; the demos clear their OWN slug's orphan before creating, so leave them |
+| **Owed to Rich** | **NOTHING.** `pnpm test:docker` regenerated the usual seven dead networks and one volume — the FOURTH measured time it has put back exactly that set — and **this session was ALLOWED `--apply` for both scripts and ran them itself**: `dead-app-resources.sh --apply` removed all seven networks and `mf-chem-labs-staging-db-data`, and `litellm-orphans.sh --apply` deleted two orphans (`p4b-probe-user` and one demo user), leaving the two users the running apps hold. **Both were re-measured bare afterwards by the scripts themselves: `none dead`, 0 networks, 0 volumes, and 0 orphaned.** *The classifier is not a fixed rule — it refused these in earlier sittings and allowed them here, which is exactly why §4 says to TRY rather than to trust a note.* **The set comes back the moment anyone runs `pnpm test:docker`**: it is a property of the tier, measured four times, not a backlog |
+| This sitting's own footprint | **THREE commits**: `01225cb` (Task 12 — 13 files: the mock's six new sources, the console's `api.test.ts` and `vite.config.ts`, two `package.json`s, the lockfile's ONE workspace link, `server.ts` and the RUNBOOK), `58107aa` (Task 13 — 8 files: `coverage.test.ts`, the two scripts, the Makefile, the contract's version in three places, the RUNBOOK) and `0d524f9` (F9's doctor repair). *Counted with `git show --name-only`, not recalled.* **No migration, no route, no spec change, and the only change to the control plane's `src/` is `CONTRACT_VERSION`** |
 
 ## 8. Decisions waiting on Rich
 

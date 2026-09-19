@@ -65,22 +65,23 @@ Phases.*
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
 turning the network off from a tool call cuts the agent off too; **it now has NINE steps**, the
 newest being `make demo-token`), the second-machine clean clone, starting the UBC external track
-(its trigger fired on 2026-09-15), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 4**,
-applied by Rich and **re-measured by the scripts themselves afterwards**: `dead-app-resources.sh`
+(its trigger fired on 2026-09-15), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 8**,
+applied by the agent session itself and **re-measured by the scripts themselves afterwards**: `dead-app-resources.sh`
 reads `none dead` and `litellm-orphans.sh` reads 0 orphaned. They were clear at sitting 1's close
 too; sitting 2 ran no Docker tier and they stayed clear; **sitting 3 ran one and seven networks,
 one volume and one LiteLLM orphan (`p4b-probe-user`) came straight back**, and were cleared again. **The cycle is the thing to understand, not the status**: a tier run takes
 `make verify`'s per-app line from `containers=3 networks=1 volumes=2` to
-`containers=3 networks=8 volumes=3`, and an apply takes it back. **This is the THIRD time the tier
+`containers=3 networks=8 volumes=3`, and an apply takes it back. **This is the FOURTH time the tier
 has been measured putting back exactly the same seven networks and one volume** (P5b sitting 9 and
-P5c sitting 1 were the first two), so treat it as a property of the Docker tier rather than as a
+P5c sittings 1 and 8 are the others), so treat it as a property of the Docker tier rather than as a
 backlog: **none of these cleanups stays cleared on its own**, and every demo adds a LiteLLM user
 besides. **One thing neither script covers is app images** — 27 stand
 today by distinct image ID, a number every Docker-tier run moves, and three ways of counting
 them answer 29, 28 and 27 (ORIENTATION §7e names all three), which is not urgent but is nobody's job until somebody re-derives the held set. **Name the
 metric**: they are tagged `127.0.0.1:7107/local/*`, so `docker images | grep '^local/'` answers
-**0** and reads as *none*. **So run both scripts bare at a sitting's close and hand the output to Rich**, who
-applies; never work from a written list. **The permission classifier is not a
+**0** and reads as *none*. **So run both scripts bare at a sitting's close, then TRY `--apply` yourself**, and hand the output to
+Rich only when the classifier refuses you — it refused these in earlier sittings and ALLOWED both in
+P5c sitting 8, which cleared them without him. Never work from a written list. **The permission classifier is not a
 fixed rule** — it allowed all of that and then began refusing `docker volume ls` in the same
 session, so try the command rather than assuming either way. *(The one P5a negative control those rules refused —
 the edge's `@outside` refusal — was closed on 2026-09-17 without weakening the edge, and is no
