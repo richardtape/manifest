@@ -58,13 +58,13 @@ Phases.*
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
 turning the network off from a tool call cuts the agent off too; **it now has NINE steps**, the
 newest being `make demo-token`), the second-machine clean clone, starting the UBC external track
-(its trigger fired on 2026-09-15), **the dead app networks and volumes the Docker tier leaves**
-— `bash scripts/dead-app-resources.sh` re-derives them and an agent cannot apply the removal —
-and the rest of ORIENTATION §8. **Two long-standing items were cleared on 2026-09-18**: LiteLLM's
-orphaned users (`scripts/litellm-orphans.sh` now does it — an agent lists, Rich applies) and P5a
-sitting 12's Docker cleanup. **Neither stays cleared on its own**: every `pnpm test:docker`
-regenerates both, which P5b sitting 9 measured — a single run put back exactly the seven networks
-and the one volume that had been removed by hand that morning. **The permission classifier is not a
+(its trigger fired on 2026-09-15), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE
+ALL CLEAR as of 2026-09-18**, re-measured by their own scripts: `dead-app-resources.sh` reads
+`none dead` and `litellm-orphans.sh` reads 0 orphaned. **None of them stays cleared on its own** —
+every `pnpm test:docker` regenerates the network set, which P5b sitting 9 measured putting back
+exactly the seven networks and the one volume removed by hand that morning, and every demo adds a
+LiteLLM user. **So run both scripts bare at a sitting's close and hand the output to Rich**, who
+applies; never work from a written list. **The permission classifier is not a
 fixed rule** — it allowed all of that and then began refusing `docker volume ls` in the same
 session, so try the command rather than assuming either way. *(The one P5a negative control those rules refused —
 the edge's `@outside` refusal — was closed on 2026-09-17 without weakening the edge, and is no
