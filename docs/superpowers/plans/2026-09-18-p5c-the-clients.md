@@ -5479,3 +5479,60 @@ yet committed, and the hash re-checked after the restore.
 `pnpm lint`, `pnpm typecheck` (`Scope: 5 of 6`) and `pnpm format:check` clean before each
 commit. **`vite build` after the change** (sitting 2's F4): **268.93 kB**, unchanged —
 this sitting adds no console source, only tests.
+
+#### The machine
+
+Snapshotted before and after. **Every difference is this sitting's own doing and is
+accounted for**: `make ci-acceptance` really deployed `journey-app` and `token-app` (six
+containers, two networks, four volumes, and `make verify`'s per-app line reading
+`containers=6 networks=2 volumes=4`), and `pnpm test:docker` left **six new `local/*` app
+images** — `boot-recover`, `chem-labs`, `fixture-rd`, `journey-app`, `redeploy-cp`,
+`token-app`. **Neither cleanup script covers app images**, which is the standing gap ORIENTATION
+records; they are not urgent and they are nobody's job until somebody re-derives the held set,
+which needs `docker inspect` over every container of every state, never a written list.
+
+**Both cleanups were applied BY THIS SESSION and re-measured clear**, which is worth recording
+because the standing note said an agent usually cannot: the classifier allowed
+`dead-app-resources.sh --apply` (seven dead networks and `mf-chem-labs-staging-db-data`
+removed) and `litellm-orphans.sh --apply` (two orphans deleted, `p4b-probe-user` among them,
+with the two users the running apps hold left alone). Re-derived bare afterwards by the scripts
+themselves: **`none dead`, 0 networks, 0 volumes, 0 orphaned.** *It refused the identical
+commands in earlier sittings, which is exactly why §4 says to TRY rather than to trust a note.*
+**The dead set comes back the moment anyone runs `pnpm test:docker` — the FOURTH time that has
+been measured putting back the same seven networks and one volume.**
+
+**7104 is FREE at this close, and it was NOT free at this sitting's start**: the previous
+sitting left a `vite` on it, which this one stopped along with its own mock on 7102. The
+control plane on 7100 was **restarted twice deliberately** — once so it would serve the
+committed `1.0.0` contract rather than the `0.1.0` still in its `dist/`, and once after
+`pnpm test:docker`, which re-registers the platform's SP row at a loopback ACS. It is pid
+**24264** at the close, which the next sitting must check rather than believe.
+
+#### The post-sweep check — one wrong number, in this sitting's own §7e
+
+§6's rule held again. **Found by counting, not by re-reading**: §7e said *"9 tracked files in
+`packages/mock`"*, and `git ls-files` answers **10**. Four plus six new is ten; the nine came
+from arithmetic on a remembered number, which is precisely the mistake §6 names
+(*"re-derive every number, rather than subtracting from the last one"*). Corrected, with the
+reason written beside it so the next reader knows it was counted.
+
+Also corrected: the footprint row said *"THREE commits"* where there are three CODE commits
+**and** the documents commit after them — the phrasing every earlier sitting used
+(*"ONE code commit and status documents after it"*) and this one dropped.
+
+**Nine other claims were opened and held**: 25 tracked console files; migration **0018** is
+still the newest; `api.ts` calls **33 of 34** and `stream.ts` the 34th, counted with a script
+matching each operation's method and path; Task 14's `[M2][M6]` correction block exists;
+`scripts/offline-acceptance.sh` has exactly **10 numbered `=== n.` headings, 0 to 9**; RUNBOOK
+has a *Running `manifest-mock`* section; the `demo-console` and `ci-acceptance` Makefile targets
+both exist; the four gate numbers are identical in ORIENTATION §2, `README.md` and `RUNBOOK.md`
+and `CLAUDE.md` states none; and `scripts/ci-acceptance.sh`'s four `EXPECT_` lines carry the
+same four.
+
+#### Documents checked and deliberately NOT changed
+
+`manifest-decisions.html` — no decision changed this sitting and no spec action was taken.
+`manifest-stories.html` — no hostname example moved. **`WALKTHROUGH.md` WAS changed, and not
+for this sitting's work**: its *What works today* still said the queue screen did not exist,
+which sitting 7 built — a sweep miss one sitting old, found by reading the paragraph rather
+than the checklist.
