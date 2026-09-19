@@ -3,6 +3,7 @@ import type { Schemas } from '@manifest/contract'
 import type { Api } from '../api'
 import { useProjectStream } from '../stream'
 import { Ago, Field, Panel, Pill, Refusal, useAsync } from '../ui'
+import { Builds } from './builds'
 
 /**
  * §22 step 3: watch provisioning — the repository created, the `manifest.yaml` validated.
@@ -13,11 +14,14 @@ import { Ago, Field, Panel, Pill, Refusal, useAsync } from '../ui'
  */
 export function Project({ api, projectId }: { api: Api; projectId: string }) {
   const project = useAsync(() => api.getProject(projectId), [projectId])
+  // ONE SOCKET FOR THE WHOLE SCREEN (D23.2). Every panel below that needs live frames is
+  // handed `stream.frames`; none of them subscribes again.
   const stream = useProjectStream(projectId)
   return (
     <>
       <Overview project={project.value} error={project.error} />
       <Activity stream={stream} />
+      <Builds api={api} projectId={projectId} frames={stream.frames} />
       <SpecPanel api={api} projectId={projectId} />
       <Members api={api} projectId={projectId} />
     </>

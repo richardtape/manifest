@@ -232,3 +232,16 @@ button:disabled {
   border-radius: 4px;
   font-size: 0.85em;
 }
+
+/* §22 step 4's build log. It inherits `.panel pre`'s box; what it adds is a taller window,
+   because the point of this screen is watching the MIDDLE of a build, and `stderr` picked
+   out — the scanner and the builder both write there, and a failure is usually on that
+   stream. It is the one place the console uses colour to mean something. */
+.log {
+  max-height: 26rem;
+  white-space: pre-wrap;
+}
+
+.log .stderr {
+  color: var(--bad);
+}

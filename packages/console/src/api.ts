@@ -191,5 +191,99 @@ export function createApi(options: ApiOptions) {
         'removeMember',
       )
     },
+
+    /**
+     * ANSWERS `202` WITH THE BUILD `running` — THE ANSWER THAT ARRIVED IS NOT THE ANSWER
+     * (Rich's R6, P5a Task 13). The build ENDS as a `build.succeeded` or `build.failed`
+     * event on the project's stream; nothing here waits for it and no caller may treat
+     * this reply's `status` as final.
+     *
+     * `StartBuildRequest` is `{ commitSha?: string }` with nothing required — `{}` means
+     * the repository's HEAD, read from the document rather than assumed.
+     */
+    async startBuild(
+      projectId: string,
+      body: Schemas['StartBuildRequest'],
+      idempotency: string,
+    ): Promise<Schemas['Build']> {
+      return unwrap(
+        await client.POST('/v1/projects/{projectId}/builds', {
+          params: { path: { projectId }, ...key(idempotency) },
+          body,
+        }),
+        'startBuild',
+      )
+    },
+
+    /** The newest 50 (P5a Task 13). */
+    async listBuilds(projectId: string): Promise<Schemas['BuildList']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/builds', {
+          params: { path: { projectId } },
+        }),
+        'listBuilds',
+      )
+    },
+
+    async getBuild(buildId: string): Promise<Schemas['Build']> {
+      return unwrap(
+        await client.GET('/v1/builds/{buildId}', { params: { path: { buildId } } }),
+        'getBuild',
+      )
+    },
+
+    /**
+     * THE ONLY SOURCE OF LINES WRITTEN BEFORE THE SOCKET OPENED. `LogFrame` says so in the
+     * document — *"Never replayed — GET /v1/builds/{buildId}/logs has them all"* — and
+     * `recentFramesFor` confirms it: the replay reads the `events` table, which holds no
+     * log line at all. So a screen opened mid-build that consumes only the stream shows a
+     * log starting in the middle, and this read is what makes it whole.
+     *
+     * `tail` is the LAST n lines and is OPTIONAL (`required: false` in the document); the
+     * stream carries everything written after the socket opened. `exactOptionalPropertyTypes`
+     * is why the query is spread conditionally rather than passed as `undefined`.
+     */
+    async getBuildLog(buildId: string, tail?: number): Promise<Schemas['BuildLog']> {
+      return unwrap(
+        await client.GET('/v1/builds/{buildId}/logs', {
+          params: {
+            path: { buildId },
+            ...(tail === undefined ? {} : { query: { tail } }),
+          },
+        }),
+        'getBuildLog',
+      )
+    },
+
+    /** `CreateReleaseRequest` is `{ buildId, summary? }`; `buildId` is required. */
+    async createRelease(
+      projectId: string,
+      body: Schemas['CreateReleaseRequest'],
+      idempotency: string,
+    ): Promise<Schemas['Release']> {
+      return unwrap(
+        await client.POST('/v1/projects/{projectId}/releases', {
+          params: { path: { projectId }, ...key(idempotency) },
+          body,
+        }),
+        'createRelease',
+      )
+    },
+
+    async listReleases(projectId: string): Promise<Schemas['ReleaseList']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/releases', {
+          params: { path: { projectId } },
+        }),
+        'listReleases',
+      )
+    },
+
+    async getRelease(releaseId: string): Promise<Schemas['Release']> {
+      return unwrap(
+        await client.GET('/v1/releases/{releaseId}', { params: { path: { releaseId } } }),
+        'getRelease',
+      )
+    },
   } as const
 }
