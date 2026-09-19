@@ -2,7 +2,7 @@
 
 **Manifest's design is finished and EIGHT implementation plans are executed — P1, P2, P3, P4a, P4b, P4c, P5a (the contract) and P5b (delegated tokens), whose acceptance passed on 2026-09-18.** D24's whole loop runs end to end through the edge as `make demo-token` — a person mints a delegated token, an agent holding it builds and deploys a real application on its own authority, is refused the things it may not do, and gets past one of them only because a person confirmed that exact request, once. **It ran green three times, the third from a `make reset` machine, and is step 9 of the offline acceptance.** **P5c — the clients — IS WRITTEN AND NOW EXECUTING (2026-09-18): 14 tasks in nine agreed sittings, of which SITTINGS 1 TO 8 ARE DONE — the measurements (19 findings), the two new packages and the console's import boundary (10), the console SERVED and signing a person in (9), my projects, creating one and the project screen with its live stream (9), both streaming screens (13), request-production, the fleet and delegated tokens (12), §26's QUEUE (8), and **`manifest-mock` WITH THE CI ACCEPTANCE SCRIPT (11)**. **A FRONT-END DEVELOPER NOW NEEDS NO PLATFORM AT ALL**: one `node:http` process serves all 34 operations of the published contract from fixtures with a scripted WebSocket, and the console was driven against it in a browser — the whole journey, with no Docker, no Postgres and no control plane. **D22's question is a GATE**: `coverage.test.ts` holds every one of the 34 operations to having a caller in the console, `DELIBERATELY_UNCALLED` is EMPTY, and `@manifest/contract` is **1.0.0**. §22 STEPS 1 TO 5 AND 7 ARE CLICKED, AND THE FIRST HALF OF STEP 6: a person signs in with CWL, creates a project by typing a name checked as they type, watches its events arrive on a live socket, **builds it and reads the log lines as they are written, releases it, deploys it to staging watching the instance states arrive, opens the running application and signs in to it with CWL, reads §13's first-launch checklist with every item's reason and owner, and mints, lists and revokes a delegated token whose secret is shown exactly once** — while an administrator reads §26's fleet. *§22's step 6 also says **write a note; ask the LLM**, and that half was NOT exercised — it is what `make demo-ai` covers and what Task 14's acceptance owes.* **D24'S LOOP IS NOW OPERATED BY A PERSON**: an agent is refused, the question reaches the open queue 576 ms later with no reload, a person confirms it and the agent's own retry succeeds exactly once, or rejects it and the agent is told why verbatim. The next job is its sitting 9 — Task 14, the acceptance, ALONE AND LAST: §22's journey proved twice over one contract, clicked by a person and run headlessly. Everything that runs it already exists. The next job is always §7e.** **The network-on sitting is over: nothing from here to the end of the plan may install a package.** Sitting 1 closed §8's `stream_close_delay` question, open since 2026-09-16: **an app's WebSocket IS cut by any other app's deploy**, so `buildRoute` now carries the field. This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
 
-*Last verified 2026-09-19 (P5c sitting 8; **`pnpm test` MOVED — 1376 in 107 files, up 21 and four files, which is this sitting's four new test files; run twice after each of the two task commits. `pnpm test:docker` ****178 in 29 files, 0 skipped**, 795 s** — it was OWED and RUN, because the doctor repair touches `infra/lib/common.sh` and `routing/edge-source-refusal.docker.test.ts` reads that file. `make doctor` 18/0 and `make verify` 51/0, re-run at close — and doctor read **1 FAILED** in between, which is this sitting's F9.*)
+*Last verified 2026-09-19 (P5c sitting 8; **`pnpm test` MOVED — 1376 in 107 files, up 21 and four files, which is this sitting's four new test files; run twice after each of the two task commits. `pnpm test:docker` **178 in 29 files, 0 skipped**, 795 s — it was OWED and RUN, because the doctor repair touches `infra/lib/common.sh` and `routing/edge-source-refusal.docker.test.ts` reads that file. `make doctor` 18/0 and `make verify` 51/0, re-run at close — and doctor read **1 FAILED** in between, which is this sitting's F9.*)
 
 **Short of context? Read §7e, §2's numbers box, §6, and the newest entries at the end of §4's *Things that will cost you a morning*, in that order.** §4 is most of this file and is meant to be searched, not read through.
 
@@ -1390,6 +1390,19 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   `echo | openssl s_client -connect 127.0.0.2:443 -servername <host> -showcerts` before suspecting
   the edge, and open a new tab rather than debugging Caddy, `make up` or the alias. The error names
   a date, and the date is the browser's memory rather than the platform's certificate.
+- **RESTARTING THE CONTROL PLANE THE DOCUMENTED WAY SIGNS EVERYBODY OUT, AND NOTHING SAID SO
+  UNTIL NOW.** README's *Running the control plane* export block contains
+  `export MANIFEST_SESSION_SECRET=$(openssl rand -hex 32)` — **a fresh random value every time
+  it is run** — and `config.ts` takes exactly one secret (`MANIFEST_SESSION_SECRET: z.string().min(32)`,
+  `sessionSecret: string`), with no rotation list. Sessions are stateless signed cookies (§3), so
+  **every browser session in existence is invalidated the moment the process restarts**, and the
+  person is shown the sign-in screen with no explanation. Found 2026-09-19 (P5c sitting 8), which
+  restarted the control plane twice and wrote this down only when a cold-read asked what lived
+  only in that session. **This costs a PASSWORD**, which is the scarcest thing in a shared clicked
+  run (Rich's R3): plan a control-plane restart before the person signs in, never between their
+  sign-in and the screen you need them on. To keep sessions across a restart, export a STABLE
+  secret instead of the block's random one — any 32+ character string, reused — and note that
+  doing so also lets an earlier sitting's cookie survive, which is the opposite trap.
 - **THE CONSOLE'S *Sign out* ENDS MANIFEST'S SESSION AND LEAVES THE IdP'S ALIVE**, so the next
   *Sign in with CWL* returns the same person **with no form and no password**. Measured 2026-09-19
   (P5c sitting 6, F9): `POST /auth/logout` → `204`, `GET /v1/me` → `401` (the Manifest session
@@ -1811,17 +1824,26 @@ found that an ordered list which omits one step omits the one the deliverable re
    7100 with `lsof -nP -iTCP:7100 -sTCP:LISTEN` and start it from README's *Running the control
    plane* — **the whole export block**; `set -a; . ./.env; set +a` alone is NOT enough, because
    `MANIFEST_ADMIN_DATABASE_URL` is DERIVED in that block. **A source change does not reach a
-   running control plane**: it serves from `dist/`, so kill it BY PID and restart it.
-3. **Run `make ci-acceptance` FIRST, before any clicking.** It is the half that needs no human,
-   it takes about fifteen minutes, and it leaves the machine with `journey-app` and `token-app`
-   deployed — which is the state the clicked half wants anyway. **Its `pnpm test` step truncates
-   the tables**, so it must come before the clicking and not after.
+   running control plane**: it serves from `dist/`, so kill it BY PID and restart it. **AND A
+   RESTART SIGNS EVERYBODY OUT** — the block's `MANIFEST_SESSION_SECRET` is a fresh `openssl rand`
+   every run and there is one secret, no rotation (§4) — so **do every restart you are going to
+   need BEFORE Rich types a password**, or you will spend one of his sign-ins on your own tooling.
+3. **Run the headless half FIRST, and THREE TIMES — Task 14's Step 1 says from three machine
+   states**, because the three find different things: a truncated database, the re-use path, and an
+   `echo reset | make reset` machine. `make ci-acceptance` is ~15 minutes a run. **Its `pnpm test`
+   step truncates the tables**, so all of it comes before the clicking and none of it after; and
+   **put the reset run LAST**, because it destroys `journey-app` and `token-app`, which the clicked
+   half wants standing.
 4. **Then the clicked half**: `make demo-console`, and walk its checklist with Rich. **Sign the
    student in once before anything needs a member** — `POST /v1/projects/{id}/members` answers
    `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in, and `pnpm test` empties
    `users` on every run. That is the trap that costs a sitting.
 5. **WALKTHROUGH.md gains the clicked journey** (§6's sweep table: it deliberately states no
-   counts — keep it that way).
+   counts — keep it that way), **and Task 14's own Step 4 is a DECISION you owe Rich a
+   recommendation on**: whether `scripts/offline-acceptance.sh` gains a TENTH numbered step. Its
+   steps run 0 to 9 today, 0 being the precondition. Decide it with the measurement, record it
+   either way, and do not leave it unmentioned — it is the one thing in Task 14 that changes a
+   file nobody else in this plan touches.
 6. **Stop every server by PORT at your close** — 7102 (the mock), 7104 (`vite dev` or `preview`).
    The form that works is in the plan's *Global Constraints*; `kill %1` does not, because each
    Bash call is its own shell. **Never kill 7100** without saying so in the record.
@@ -1844,10 +1866,13 @@ found that an ordered list which omits one step omits the one the deliverable re
   log says `DONE`; the pill and the hint say when.
 - **A FAILED DEPLOY IS A `200`** whose state is `failed`, with the previous instance still
   serving (sitting 5, F10). *What is serving* and *what the last attempt did* are two questions.
-- **`make reset` IS NOT PART OF THIS SITTING** unless Rich asks for a from-scratch run — and if
-  he does, **`make verify` BEFORE any demo**: after a reset the host can lose the edge while a
-  container still has it, and the remedy is `docker restart manifest-caddy` (P5b sitting 9, F6).
-  `make reset` prompts, so it needs `echo reset | make reset` from a tool call.
+- **`make reset` IS PART OF THIS SITTING, and an earlier draft of this section said the opposite.**
+  Task 14's Step 1 runs the headless half **three times from three machine states**, exactly as
+  P5b's Task 13 did, and the third is an `echo reset | make reset` machine — the prompt is why it
+  needs the `echo`. **After a reset run `make verify` BEFORE any demo**: the host can lose the edge
+  while a container still has it, intermittently, and the remedy is `docker restart manifest-caddy`
+  rather than debugging the control plane (P5b sitting 9, F6). A reset also destroys `journey-app`
+  and `token-app`, so plan it as the LAST of the three runs, not the first.
 - **`${PIPESTATUS[0]}` is empty here**: the shell is zsh (`$pipestatus[1]`, indexed from 1).
   `scripts/ci-acceptance.sh` has a bash shebang for exactly this reason.
 
@@ -1867,7 +1892,7 @@ session.*
 
 | | |
 |---|---|
-| The four gate numbers | §2's box. `pnpm test` **1376** in **107** files (up 21 and four files — this sitting's four new test files; run twice after each of the two task commits), `pnpm test:docker` ****178 in 29 files, 0 skipped**, 795 s**, `make doctor` **18/0**, `make verify` **51/0**. **It was OWED and RUN this sitting**, because F9's repair touches `infra/lib/common.sh` and `routing/edge-source-refusal.docker.test.ts` reads that file |
+| The four gate numbers | §2's box. `pnpm test` **1376** in **107** files (up 21 and four files — this sitting's four new test files; run twice after each of the two task commits), `pnpm test:docker` **178 in 29 files, 0 skipped**, 795 s, `make doctor` **18/0**, `make verify` **51/0**. **It was OWED and RUN this sitting**, because F9's repair touches `infra/lib/common.sh` and `routing/edge-source-refusal.docker.test.ts` reads that file |
 | The control plane | **RESTARTED THIS SITTING and running as pid 56127 when this was written — DO NOT BELIEVE THAT ROW, CHECK IT** with `lsof -nP -iTCP:7100 -sTCP:LISTEN`. A sitting is one session and this is a host process. It was restarted deliberately: it serves from `dist/`, and until it was rebuilt it was serving the 0.1.0 contract while the repository said 1.0.0. **Your sitting needs it for everything.** README's *Running the control plane* is the whole export block, and kill the old one BY PID — `pkill -f 'control-plane/dist'` does NOT match it |
 | The console and the mock | **BOTH STOPPED BY PORT at the close** — *checked with `lsof`*: 7102, 7104 and 7105 are FREE. Nothing is inherited. `infra/caddy/Caddyfile` is untouched by this sitting |
 | The console's code | **25 tracked files in `packages/console`** — *counted with `git ls-files`* — of which this sitting added `api.test.ts` and `coverage.test.ts` and changed only `vite.config.ts` (the `MANIFEST_MOCK` proxy). **No screen changed.** `api.ts` calls **33 of the contract's 34** operations and `stream.ts` calls the 34th; `coverage.test.ts` asserts exactly that, with `DELIBERATELY_UNCALLED` empty |

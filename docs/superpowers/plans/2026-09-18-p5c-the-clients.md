@@ -5536,3 +5536,43 @@ same four.
 for this sitting's work**: its *What works today* still said the queue screen did not exist,
 which sitting 7 built — a sweep miss one sitting old, found by reading the paragraph rather
 than the checklist.
+
+##### F12, F13 and F14 — added after the close, 2026-09-19, by a cold-read of ORIENTATION
+
+*Asked by Rich, through another session: **could the next agent be told nothing but "read
+ORIENTATION.md and proceed"?** The honest answer needed a COLD READ of the finished document
+rather than a re-check of the edits, and doing one found three things the sweep had not.*
+
+**F12 — §7e's *What will surprise you* SAID `make reset` WAS NOT PART OF SITTING 9, AND TASK 14's
+STEP 1 REQUIRES IT.** Written from this sitting's own experience — nothing here needed a reset —
+and never checked against the task it hands over to. **Task 14 Step 1 runs the headless half
+three times from three machine states, exactly as P5b's Task 13 did, and the third is an
+`echo reset | make reset` machine.** A cold agent following §7e would have skipped a third of
+Step 1, or stopped to ask. Corrected, and turned into the useful form: **run the reset one LAST**,
+because a reset destroys `journey-app` and `token-app`, which the clicked half wants standing.
+*This is precisely the class §6 warns about — a hand-off written from what the sitting DID rather
+than from what the next task NEEDS — and it survived the post-sweep check because that check
+verifies claims about the PAST, by counting, and this was a claim about the future.*
+
+**F13 — RESTARTING THE CONTROL PLANE THE DOCUMENTED WAY SIGNS EVERY BROWSER SESSION OUT, AND IT
+IS WRITTEN DOWN NOWHERE.** README's *Running the control plane* block carries
+`export MANIFEST_SESSION_SECRET=$(openssl rand -hex 32)` — **a fresh random value every run** —
+and `config.ts` takes exactly one secret with no rotation list, while sessions are stateless
+signed cookies. So every existing session dies at the restart and the person is shown the
+sign-in screen with nothing saying why. **This sitting restarted the control plane TWICE** — once
+for the 1.0.0 contract, once after `pnpm test:docker` — and never noticed, because all of its own
+clicking was against the mock, which has no real sessions at all. **It lands hardest on sitting 9**,
+where a password is the scarcest resource (R3): a restart between Rich signing in and the screen
+he is needed on spends one of his sign-ins on the agent's own tooling. Now in §4, and in §7e's run
+order where a reader acts on it. *Not a defect in the platform — a stable secret is one export
+away — but a trap that had never been stated.*
+
+**F14 — TWO SMALLER ONES FROM THE SAME READ.** §7e's run order never mentioned **Task 14's Step 4**,
+which is a DECISION owed to Rich (whether `scripts/offline-acceptance.sh` gains a tenth numbered
+step) and the one thing in Task 14 that changes a file nothing else in this plan touches; and the
+*Last verified* line had a broken bold run (`****`) where a placeholder already wrapped in `**` was
+substituted into `**…**`. Both corrected.
+
+**The lesson worth keeping: verifying your own edits is not a cold read, and only the second kind
+finds a hand-off that is wrong about the FUTURE.** §6's post-sweep check is built on counting what
+already happened, which is why it caught the mock's file count and missed all three of these.
