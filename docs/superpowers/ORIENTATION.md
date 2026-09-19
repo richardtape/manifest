@@ -1775,12 +1775,23 @@ take.**
    the CI script orchestrates rather than replaces. **`python3 -c` over
    `packages/contract/openapi.json` settles any question about a shape in one line** — do that
    rather than trusting a summary, including this one.
-2. **Tasks 12 and 13 in full.** **Task 12 carries NO correction block** — *checked by opening it;
-   the `ajv` correction landed on TASK 2, whose `[M4][M5][M9]` block is at the plan's line 642 and
-   whose item 1 is* **"Install `ajv-formats` as well as `ajv` (M9/F4), and this is the last task
-   that can"** *— and it was installed, `ajv` 8.20.0 and `ajv-formats` 3.0.1, both exact.* **Task
-   13 DOES carry one**, `[M7][M5]`, about the coverage gate's arithmetic and a build the CI script
-   owes. **OpenAPI 3.1 is JSON Schema 2020-12**, so it is `ajv/dist/2020` and not the default
+2. **Tasks 12 and 13 in full — AND BOTH NOW CARRY A `[SITTING 7]` BLOCK WRITTEN FOR YOU.**
+   **Task 12's says its Step 2 fixture does not compile, in two places**, measured by pasting it
+   in and running `tsc`: `Project.owner` is `UserSummary`, which is `{ id, displayName }` and has
+   **no `puid`** (`TS2353`), and `Audience` requires **five** fields — the snippet gives three,
+   missing `setBy` and `setAt` (`TS2739`). It also counts the **28 2xx response schemas** that are
+   the real size of `FIXTURES`, names them, and records that
+   `packages/console/src/api.test.ts` **may** import `@manifest/mock` because both halves of the
+   import boundary exempt `*.test.ts` — **so do not weaken the boundary** when it appears not to.
+   **Task 13's says its coverage gate is GREEN ON ARRIVAL**: sitting 7 gave the last four
+   operations their callers, so running Step 1's exact logic today reports `uncalled: []` and
+   `checked: 34`. A gate nobody has watched fail is not a gate — the block says which single call
+   to comment out and what the failure should read. **Task 12 itself carries NO OTHER block** — in particular no `ajv` one: that
+   correction landed on **Task 2**, whose `[M4][M5][M9]` block's item 1 is *"Install `ajv-formats`
+   as well as `ajv` (M9/F4), and this is the last task that can"*, and it was honoured — `ajv`
+   **8.20.0** and `ajv-formats` **3.0.1**, both exact in `packages/mock/package.json`. **Task 13
+   carries a second block too**, `[M7][M5]`, about the coverage gate's arithmetic (**the stream is
+   one OF the 34, not a 35th**) and the `@manifest/contract` build the CI script owes. **OpenAPI 3.1 is JSON Schema 2020-12**, so it is `ajv/dist/2020` and not the default
    export — the default draft-07 `Ajv` refuses the document's schemas and the failure reads like a
    malformed document.
 3. **Sitting 7's entry in the plan's *What executing this plan found*** — eight findings. **F1,

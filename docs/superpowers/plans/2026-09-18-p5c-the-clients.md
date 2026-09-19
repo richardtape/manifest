@@ -2809,6 +2809,50 @@ are different claims (ORIENTATION §9), and only one of them is a stream.
 
 ## Task 12: `manifest-mock` — the contract from fixtures, with scripted streams
 
+> ### [SITTING 7] Correction block — STEP 2'S FIXTURE DOES NOT COMPILE, IN TWO PLACES
+>
+> *Measured at the close of sitting 7 by pasting Step 2's `ME` and `PROJECT` verbatim into
+> `packages/mock/src/` and running `pnpm --filter @manifest/mock typecheck`. `ME` is clean;
+> `PROJECT` produces two errors, and both are shapes the snippet invents.*
+>
+> **1. `owner` has no `puid`.** `Project.owner` is `$ref: UserSummary`, and `UserSummary` is
+> **`{ id, displayName }`** — both required, `additionalProperties: false`. The snippet writes
+> `owner: { id: ME.id, puid: ME.puid, displayName: ME.displayName }`, which is
+> **`TS2353 … 'puid' does not exist in type '{ id: string; displayName: string; }'`** and would
+> fail the Ajv check too. *Step 2's own prose says "Check `owner`'s fields against `UserSummary`
+> in the document before writing it" — so the task anticipated this and its own snippet still got
+> it wrong. Drop `puid`.*
+>
+> **2. `audience` needs FIVE fields, not three.** `Audience` requires
+> **`scale, burst, justification, setBy, setAt`**. The snippet gives the first three:
+> **`TS2739 … is missing the following properties …: setBy, setAt`**. `setBy` is a string and
+> `setAt` an ISO instant; `Project.audience` is `anyOf: [Audience, null]`, so `null` is also
+> valid and is what a project created before §24 existed carries.
+>
+> **Two more things counted rather than estimated, both of which save a guess:**
+>
+> - **28 of the document's 52 schemas are 2xx response schemas** — the ones the routing table can
+>   answer with, and therefore the natural size of `FIXTURES`. They are `Blueprint`,
+>   `BlueprintList`, `Build`, `BuildList`, `BuildLog`, `CreatedProject`, `Environment`,
+>   `EnvironmentList`, `Fleet`, `IncidentList`, `Instance`, `KnowledgePack`, `LaunchReadiness`,
+>   `Me`, `Member`, `MemberList`, `MintedToken`, `PendingAction`, `PendingActionList`, `Project`,
+>   `ProjectList`, `Release`, `ReleaseList`, `SlugCheck`, `Spec`, `SpecValidation`, `Token`,
+>   `TokenList`. Step 2's comment lists fixture CONSTANT names, not schema names; the `FIXTURES`
+>   table needs the schema names above, because `validate.test.ts` throws
+>   *"the document has no schema …"* for anything else. Step 1's
+>   `expect(FIXTURES.length).toBeGreaterThan(10)` is satisfiable with room to spare.
+> - **`packages/console/src/api.test.ts` MAY import `@manifest/mock`, and neither half of the
+>   import boundary will stop it.** *Checked, because the obvious worry is that it would and the
+>   obvious fix would be to weaken the boundary.* `boundary.test.ts`'s scanner skips any file
+>   ending `.test.ts`, and `eslint.config.js` carries
+>   `ignores: ['packages/console/src/**/*.test.ts']` on the same rule. **Do not weaken either.**
+>
+> *`packages/mock` is NOT empty*: sitting 2 left `package.json`, `tsconfig.json`, `src/main.ts`
+> and `src/server.ts`, and `createMockServer` already answers **`501` to everything on purpose**
+> — its comment says a mock answering a plausible `200` to everything is the stand-in that
+> produces a real-looking failure (P4c finding 74). **That `501` is what your first test should
+> watch stop being.**
+
 **§21: *"Front-end developers are not required to run the platform"*** — one process, not nine
 containers plus a language model. **§16's Contract tier: *`manifest-mock` is validated against
 the same document*, so a front-end built against the mock cannot compile against a contract the
@@ -3172,6 +3216,18 @@ it('every operation in the published contract has a caller in the console (D22)'
 
 **If this test is red, the honest fixes are two**: add the caller, or add the operation to
 `DELIBERATELY_UNCALLED` **with a reason**. **Weakening the regex is not one of them.**
+
+> **[SITTING 7] IT WILL NOT BE RED. IT PASSES THE MOMENT YOU WRITE IT, SO WATCH IT FAIL ON
+> PURPOSE.** *Measured at the close of sitting 7 by running this step's exact logic — the same
+> regex, the same `streamProjectEvents` branch — over today's `api.ts`, `stream.ts` and
+> `auth.ts`: **`uncalled` is empty, `checked` is 34**, and both `auth.ts` assertions hold.*
+> Task 11 gave the last four operations their callers, so D22's question is already answered
+> *yes* and this gate is green on arrival. **A gate that has never been red is a gate nobody has
+> seen work** (§6 rule 6, and the reason three of this plan's own control rows turned out to be
+> un-fireable). Comment out ONE call in `api.ts` — `listFleet` is the cheapest, one line, no
+> caller to break — watch this test name exactly `GET /v1/fleet (listFleet)`, and restore. Do it
+> **after** the task is committed, so `git checkout` restores from the index rather than
+> destroying the task (§4).
 
 - [ ] **Step 2: `make demo-console`**
 
@@ -5196,3 +5252,44 @@ found by opening the thing pointed at and counting it, never by re-reading the s
 *The first two are the class §6 warns is worst — a wrong pointer, which the next sitting inherits
 and multiplies because it is told to trust the hand-off. Both were in sentences that read
 perfectly.*
+
+#### The cold-agent audit for sitting 8 — two snippets that do not compile, and a gate that is green
+
+*Run at the very end of sitting 7, the way sitting 6 ran one for sitting 7. The question it
+answers is not "is the plan good" but "will a cold agent reading only ORIENTATION get this right".
+Everything below was measured, not read.*
+
+- **Task 12 Step 2's `PROJECT` fixture fails `tsc` twice**, pasted verbatim into
+  `packages/mock/src/` and compiled: `TS2353 … 'puid' does not exist in type
+  '{ id: string; displayName: string; }'` (`Project.owner` is `UserSummary`, which is two fields)
+  and `TS2739 … missing … setBy, setAt` (`Audience` requires five). `ME` is clean. **Both would
+  also fail the Ajv check Step 1 writes**, so the task's own gate catches them — a sitting late,
+  after the fixtures are written. Recorded as a `[SITTING 7]` block at the top of Task 12.
+- **Task 13 Step 1's coverage gate passes the moment it is written.** Its exact logic — the same
+  regex, the same `streamProjectEvents` branch — run over today's `api.ts`, `stream.ts` and
+  `auth.ts` reports **`uncalled: []`, `checked: 34`**, and both `auth.ts` assertions hold. The
+  step's prose says *"If this test is red…"*, which will mislead. **A gate nobody has watched fail
+  is not a gate**, and this plan has already produced three control rows that could not fire, so
+  the block names the single call to comment out (`listFleet`) and the exact line the failure
+  should print.
+- **`packages/console/src/api.test.ts` may import `@manifest/mock`.** Checked because the obvious
+  worry is that the import boundary refuses it and the obvious repair would be to weaken the
+  boundary: `boundary.test.ts`'s scanner skips `*.test.ts` and `eslint.config.js` carries
+  `ignores: ['packages/console/src/**/*.test.ts']` on the same rule.
+- **28 of the document's 52 schemas are 2xx response schemas**, enumerated in the block — the real
+  size of `FIXTURES`, where Step 2's comment lists fixture CONSTANT names rather than the document
+  schema names `validate.test.ts` looks up.
+- **The version bump has three edits and two tests holding them together**:
+  `api/contract/document.ts`'s `CONTRACT_VERSION` (`'0.1.0'` today, line 12), then
+  `pnpm contract:write` for `openapi.json`'s `info.version`, then
+  `packages/contract/package.json`. `document.test.ts` asserts the package equals
+  `CONTRACT_VERSION` and `packages/contract/src/client.test.ts` asserts the package equals the
+  document.
+- **The console's `preview` script and its 7104 port both already exist** (`vite.config.ts` sets
+  `preview.port` and `allowedHosts` as well as `server`'s), so `make demo-console` starts a server
+  that is already configured for the edge.
+
+**Consistency, checked mechanically across the documents a cold agent meets**: six independent
+statements of how far P5c has got all read *seven done, sitting 8 next*; the sittings table has
+exactly seven `DONE` rows and one `← next`; the four gate numbers are identical in ORIENTATION §2,
+`README.md` and `RUNBOOK.md`, and `CLAUDE.md` states none, as §6 requires.
