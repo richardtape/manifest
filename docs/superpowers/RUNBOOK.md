@@ -98,6 +98,76 @@ acceptance uses. Either way **stop it by port** when you are done —
 `lsof -nP -iTCP:7104 -sTCP:LISTEN -t | xargs kill` — because each shell is its own and
 `kill %1` has no job table to read.
 
+## Running `manifest-mock`
+
+*Added by P5c sitting 8, 2026-09-19 (Task 12). §21: "front-end developers are not
+required to run the platform" — one process, not nine containers plus a language model.*
+
+`packages/mock` serves the **published contract** from hand-written fixtures, with a
+scripted WebSocket stream. It needs no Docker, no Postgres, no Ollama and no control
+plane.
+
+```bash
+pnpm --filter @manifest/mock dev            # builds, then listens on 127.0.0.1:7102
+MANIFEST_MOCK=1 pnpm --filter @manifest/console dev
+open http://127.0.0.1:7104/                 # THE ONE TIME 7104 IS THE RIGHT ADDRESS
+```
+
+**This is the only configuration in which the console is reached at `127.0.0.1:7104`.**
+There is no edge, no control plane, no IdP and no CSRF origin to satisfy, so the trap the
+section above describes does not apply: `MANIFEST_MOCK=1` makes `vite.config.ts` proxy
+`/v1` and `/auth` (and the stream's upgrade, `ws: true`) to 7102. *Sign in with CWL* sets
+a fake cookie and comes straight back — a mock that made a person sign in would defeat its
+own purpose.
+
+| Variable | Default | What it changes |
+|---|---|---|
+| `MANIFEST_MOCK_PORT` | `7102` | Where it listens |
+| `MANIFEST_MOCK_ROLE` | `member` | `admin` makes §26's fleet answer `200` instead of `403 FORBIDDEN` |
+| `MANIFEST_MOCK_FAIL` | unset | `1` plays the deploy's other ending: `instance.failed` + `incident.opened` |
+| `MANIFEST_MOCK_SCAN_MS` | `10000` | §12's silent scan window (below). Shorten it in a test |
+
+**What the scripted stream does, and why each part is there.** On subscribe it replays the
+three events every project already has (`project.created`, `repository.seeded`,
+`spec.validated`), sends the **control frame** — which is the only thing `subscribe`'s
+`ready` resolves on — and then plays a build and a deploy on a timer:
+`build.started` → twenty log lines 150 ms apart → **ten seconds of silence** →
+`build.succeeded` → `instance.provisioning` → `sso.registered` → `instance.starting` →
+`instance.healthy`.
+
+**Those ten seconds are the point.** §12's scan runs inside `driver.buildImage` after
+BuildKit returns and emits nothing at all, so on the real platform the log's last word is
+`DONE` while the build row is still `running` with no digest — measured at 11.29 s and
+9.70 s (P5c sitting 6, F12), and a person who pressed *Release* in that window got
+`409 RELEASE_BUILD_NOT_DEPLOYABLE`. The mock's `GET /v1/builds/{id}` answers `running`
+for exactly that window too, so a client developed here meets the trap before a faculty
+member does. **Log frames are never replayed**, exactly as the platform never replays
+them: a screen opened mid-build must also read `GET /v1/builds/{id}/logs`.
+
+**What it does NOT prove.** A green run against the mock is never evidence about the
+platform (the P5 brief's §8). Specifically:
+
+- **Its fixtures are hand-written.** They are held honest by three things and by nothing
+  else: `tsc` against the generated types, **Ajv against `openapi.json` on its 2020-12
+  dialect** (`validate.test.ts`, and every response is validated again on its way out, so
+  a body that does not match its schema is a `500` naming the schema), and
+  `packages/console/src/api.test.ts`, which drives the console's whole data layer against
+  it. A field the platform sends and no fixture carries is invisible here.
+- **It does not enforce §20's CSRF origin check.** A browser reaching it through Vite's
+  proxy sends `Origin: http://127.0.0.1:7104`, and the platform wants the console's own
+  origin — so enforcing it would refuse every mutation the mock exists to let you make.
+  It **does** enforce the credential rules, `Idempotency-Key` (`400
+  IDEMPOTENCY_KEY_REQUIRED` under eight characters, `409 IDEMPOTENCY_KEY_REUSED` for a key
+  replayed with a different body) and the fleet's `403`.
+- **It has no state.** Every read answers a fixture; a mutation does not change what the
+  next read returns. It is a contract mock, not a simulator.
+- An operation the document declares and the mock has no answer for is **`501`** — the
+  contract has grown a route the mock has not caught up with. A path the document does not
+  declare is `404 ROUTE_NOT_FOUND`, exactly as the platform answers it.
+
+**Stop it by port** when you are done —
+`lsof -nP -iTCP:7102 -sTCP:LISTEN -t | xargs kill`.
+
 ## `make demo` — an app, from a bare repository to a URL
 
 *Added by P3 Task 17. First run green 2026-09-07.*
