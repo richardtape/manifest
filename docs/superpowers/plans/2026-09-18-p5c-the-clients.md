@@ -30,8 +30,8 @@
 | 2 | 2–3 | **`packages/console` and `packages/mock` exist and all four gates see them** — the one sitting with the network on — and **the console's import boundary**, watched failing before a single screen exists | **DONE 2026-09-18 — 10 findings.** React 19.3.0 + Vite 8.3.0, `ws` 8.21.3, `ajv` 8.20.0 with `ajv-formats` 3.0.1, every version exact, `pnpm audit --prod` clean. **NOTHING AFTER THIS SITTING MAY INSTALL A PACKAGE.** Both of the task's own step orders were wrong and are corrected in place |
 | 3 | 4 | **The console is served at `console.manifest.internal`, signs a person in with CWL and knows who they are** (§22 step 1): the Caddyfile's placeholder replaced, the shell, the router, the error surface, and the one file allowed to name `fetch` | **DONE 2026-09-18 — 9 findings.** §22 step 1 CLICKED: Rich typed `instructor` and the header read **Test Instructor `ins000001`**. **The plan's claim that no gate sees the Caddyfile's console line is WRONG — `make doctor` AND `make verify` both went red** and both are fixed (F3). `signOut` never checked its answer (F4). `<Ago>` is the one shared bit still uncalled; **Task 6 owes it a caller** |
 | 4 | 5–6 | **My projects, and creating one** — the slug check while it is typed, the blueprint and starter catalogue, §24's audience (§22 step 2) — and **the project screen with its live event stream** (§22 step 3) | **DONE 2026-09-18 — 9 findings.** §22 steps 2 AND 3 CLICKED. The stream's liveness was PROVED (a `token.minted` published from a terminal arrived in the open tab; the same event on another project did not). **Two of the plan's own controls could not fail** — the idempotency row names the wrong consequence, and `stream_close_delay` did not fire, measured two ways (F7). `<Ago>` has its caller |
-| 5 | 7–8 | **A build whose log lines arrive as they are written** (§22 step 4) and **a deploy to staging whose instance states arrive the same way**, with the app's URL to click and an Incident when it fails (§22 steps 5–6). **Both streaming screens; the sitting Rich was warned is the heavy one** | ← **next** |
-| 6 | 9–10 | **Request production** — `LaunchReadiness` with its blocked items and why (§22 step 7) — **the fleet** (§26, admin only), and **delegated tokens**: minted once, listed, revoked | |
+| 5 | 7–8 | **A build whose log lines arrive as they are written** (§22 step 4) and **a deploy to staging whose instance states arrive the same way**, with the app's URL to click and an Incident when it fails (§22 steps 5–6). **Both streaming screens; the sitting Rich was warned is the heavy one** | **DONE 2026-09-18/19 — 13 findings.** §22 STEPS 4, 5 AND 6 CLICKED: a build watched line by line, a release, a deploy to staging with four states live, the app opened and signed in to with CWL, and a redeploy that interrupted nobody (14 consecutive `200`s from the app's own tab). **The stream alone is not the log** — `LogFrame` is never replayed, so `getBuildLog` is load-bearing and the task never mentions it. **Three of the plan's claims were wrong** (`<Refusal>` and `launchReadiness`; `{}` is not the repository's HEAD; control row 3 cannot fail) and Task 8's row 1 needed an environment whose FIRST deploy fails |
+| 6 | 9–10 | **Request production** — `LaunchReadiness` with its blocked items and why (§22 step 7) — **the fleet** (§26, admin only), and **delegated tokens**: minted once, listed, revoked |← **next** |
 | 7 | 11 | **§26's queue as a screen**: the question an agent asked, who asked it, how long it has waited, confirmed or rejected by a person in their own words. **The first time D24's loop is operated by a human rather than by `curl`** | |
 | 8 | 12–13 | **`manifest-mock`** — the contract served from fixtures with scripted streams, validated against the document, and the console driven against it with no platform — and **the CI acceptance script**, the operation-coverage gate and `@manifest/contract` `1.0.0` | |
 | 9 | 14 | **The acceptance**: the journey clicked by a person and run headlessly by the script, over one contract, with its negative controls. **Alone, and last** | |
@@ -4487,3 +4487,208 @@ no project could still hold the name. The three that pre-date this sitting — `
 and was NOT restarted, because no Docker tier ran and so the platform's SP row was never
 re-registered at a loopback ACS — but §7e tells the next sitting to check that with `lsof`
 rather than believe it, because a sitting is one session.
+
+### Sitting 5 — Tasks 7 and 8, the two streaming screens — 2026-09-18/19 — 13 findings
+
+*The work ran on 2026-09-18 and the close-out crossed midnight into 2026-09-19, as sitting 4's
+did. Dated apart because a finding without a date is not reproducible.*
+
+**§22 STEPS 4, 5 AND 6 ARE CLICKED, and this is the first sitting of P5c to drive a real build
+and a real deploy.** A signed-in person presses *Build* and watches BuildKit's output arrive
+line by line while it runs; the build ends `succeeded` with no reload, carrying its image
+digest and §12's scan; they release it, deploy it to staging watching four states arrive live,
+open the app's own URL and **sign in to the running application with CWL**. Committed as
+`4b464d1` and `abe9e72`. No migration, no route, no spec change.
+
+**A redeploy interrupted nobody, watched from a browser for the first time.** With the app open
+and signed in in a second tab, a redeploy of the same release answered **14 consecutive `200`s
+as the same person** from the app's own origin. P4c has always been proved by a script; this is
+the same property seen from the client a person actually uses.
+
+#### The findings
+
+**F1 — THE STREAM ALONE IS NOT THE LOG: `LogFrame` IS NEVER REPLAYED, and Task 7 never mentions
+the read that makes the screen whole.** The document says it on `LogFrame` itself — *"Never
+replayed — GET /v1/builds/{buildId}/logs has them all"* — and `recentFramesFor` is the proof:
+the replay `select`s from the `events` table, which holds no log line. So a screen that consumes
+only the socket shows a build's log **starting from the moment it connected**, and after a
+reload shows nothing at all. **Measured in the browser: 74 log lines on screen after a page
+load, against 0 log frames delivered by the replay** (7 event rows). The screen therefore merges
+`getBuildLog` with the live frames and de-duplicates by `seq`. The task's *Interfaces* line does
+produce `getBuildLog`, but its Step 2 snippet — the one that says what the screen IS — derives
+the log from `frames` alone, so pasting it gives a panel that looks right for the one person
+watching a build start and is empty for everybody else.
+
+**F2 — TASK 7'S CONTROL ROW 3 CANNOT FAIL, TWO WAYS OVER.** The row predicts that sorting log
+lines by arrival instead of `seq` interleaves them *"only when a replay and live frames
+overlap"*. **That overlap cannot happen** — F1: the replay carries no log frame. And the weaker
+version is not observable either: **with the `.sort()` removed, the rendered log was still
+byte-for-byte in the stored log's order**, because the `Map` is filled from the stored read
+(`seq` 0…70, in order) and then from live frames, which are published in `seq` order too. The
+case the sort exists for is visible in the same measurement: `?tail=20` answers `seq` 51–70, so
+a caller passing a tail would insert 51–70 first and 0–50 behind them. **Nothing passes `tail`,
+so the sort is defensive and currently unfalsifiable** — kept, and said so here rather than left
+looking like a watched control.
+
+**F3 — THE AUTO-SCROLL DISABLED ITSELF UNDER EXACTLY THE CONDITION IT EXISTS FOR.** The obvious
+implementation — scroll to the bottom on new content, and stop when the reader scrolls away —
+stops following after the first few lines. **Measured mid-build: `scrollTop` 109.5 where the
+bottom was 921.5, with 71 lines present.** The cause is that a `scroll` event is dispatched
+ASYNCHRONOUSLY: lines committed between `scrollTop = scrollHeight` and the handler make
+`scrollHeight` grow, and the handler then reads a large gap and concludes the person scrolled
+away — after which nothing ever scrolls it back. **Reproduced directly in the page**: set to the
+bottom (921.5), append 40 lines, and what the handler would compute is **662.5**, not 0. Our own
+scroll is now recognised by the POSITION we set rather than by the gap, and only while armed, so
+a person scrolling back down re-enables the follow. Both halves watched: the gap held at 0 while
+spans grew 65 → 74, and `scrollTop` held at 0 while spans grew 44 → 71.
+
+**F4 — TASK 7'S CONTROL ROW 1 IS MUCH WEAKER THAN IT READS, because `seq` RESTARTS PER BUILD.**
+The row predicts *"the screen shows another build's lines in this build's log"*, which sounds
+like a visible doubling. It is not: `mergeLines` keys by `seq`, and two builds' frames therefore
+COLLIDE rather than accumulate. **Measured with the filter removed and two builds run in one
+session: the newest build's stored log is 71 lines, the screen showed 74, and the rendered text
+matched NEITHER build.** A silent blend, at almost the same length — and on two builds of the
+same source, almost the same text. **The count is not the tell; comparing the screen against
+`getBuildLog` is**, which is how it was watched here and how the next person should watch it.
+
+**F5 — `{}` ON `startBuild` DOES NOT BUILD THE REPOSITORY'S HEAD.** `api/routes/builds.ts` reads
+`commitSha: body.commitSha ?? spec.commitSha`, so an empty body builds **the commit of the last
+VALIDATED manifest**. Measured: a commit pushed to the project's repository and then built from
+the console produced the OLD commit; only *Re-validate* moved the spec, after which the same
+button built the new one. The plan's `[SITTING 4]` block states the other reading in terms
+(*"`{}` is valid and means the repository's HEAD"*), and the field's name invites it. The screen
+now says what it does, and a person is told to Re-validate first.
+
+**F6 — `<Refusal>` NEVER RENDERED `launchReadiness`, THOUGH ITS OWN DOC COMMENT SAID IT DID —
+AND THE PLAN BELIEVED THE COMMENT.** Task 4 wrote *"it renders the two typed extras the envelope
+can carry, so `RELEASE_PRODUCTION_GATE_UNAVAILABLE` shows what a first launch still needs"* and
+rendered neither; Task 8's Step 2 then says *"which `<Refusal>` already renders"*. **Measured:
+the production refusal's envelope carries `launchReadiness` with 6 items and the screen rendered
+0.** Nothing caught it for two sittings because no envelope carrying one had ever reached a
+screen. All six now render with their state, reason, owner and the plan that builds them —
+`not_built` shown as `not_built`, because rendering it as *unmet* would be the console inventing
+a judgement the API did not make. **The envelope's other typed extra, `pendingAction`, is
+deliberately still not rendered**: nothing can produce one until Task 11, and a renderer with no
+call site is not built.
+
+**F7 — `createRelease` PUBLISHES NO EVENT**, the second instance of sitting 4's F5 shape
+(`POST …/projects/{id}/spec`). `releases/release.ts`'s `createRelease` has no `publishEvent`;
+the file's first is in the deploy path. **So a release is invisible to a console that never
+polls (D23.2)**, and the Deploy panel could not learn that there was something new to deploy —
+found by releasing a build and watching the release list stay empty. Fixed on the console's side
+only, and the distinction is the same as sitting 4's: **the person who pressed the button is in
+this tab, so the Builds panel tells the Deploy panel; a SECOND person watching the same project
+is told nothing, and neither is any other client.** Recorded as a finding about the API, not
+fixed — this plan changes no route.
+
+**F8 — A TYPE PREDICATE OVER A FIELD NARROWS THE FIELD, NOT THE RECORD.** `isDeployState(f.type)`
+typed `(type: string): type is DeployState` leaves `f` as the whole 21-member `EventFrame` union,
+so `f.machineDetail.environmentId` is **`TS2339: Property 'environmentId' does not exist on type
+'{ entityId: string; … } | …17 more…'`** (TypeScript 5.9.3). It is the same family as sitting 4's
+audit finding about `liveBuild`'s compound `.filter`, one level out: **narrowing follows the
+value you test, and testing a field tells the compiler nothing about the object.** The predicate
+takes the frame and `Extract` names what it narrows to.
+
+**F9 — CHANGING `runtime.port` CANNOT MAKE A DEPLOY FAIL, so the documented trick does not apply
+to a real app.** ORIENTATION §4 says to point readiness at *"a port nothing is bound to"*, as the
+Docker tier does. **Measured: with `runtime.port: 3999` the deploy went `healthy`** — because §8
+injects that same port into the container, so the app listens exactly where the probe dials. The
+tier's trick works because a FIXTURE's listen port is fixed in its source while the probe's is
+not. For an app built from its manifest the lever is the health **PATH**, and only because the
+proof app is Express and 404s an unknown path: §4 already records that **both** fixture apps end
+in a catch-all `200` and could not show this at all. `health: /never-ready` produced the failure
+in one deploy.
+
+**F10 — WHAT IS SERVING AND WHAT THE LAST ATTEMPT DID ARE TWO DIFFERENT FACTS, and the screen got
+it wrong in BOTH directions before it was measured.** A deploy that never becomes ready is a
+`200` whose `state` is `failed` **and the previous instance keeps serving** (P4b Task 13).
+Measured: the screen's own stream ended `instance.failed` → `incident.opened` while
+`GET /v1/projects/{id}/environments` answered **`healthy`, on the PREVIOUS release** — two
+instance rows, both true. So a pill driven from the newest EVENT says the app is down when it is
+up; one driven from the deploy call's answer says the same to the one person who pressed the
+button; and one read once at mount is stale for everyone else — **watched reading `starting`
+while the platform said `healthy`**, after a reload landed mid-deploy. The pill is now the
+ENVIRONMENT's own instance, re-read when a frame says it moved — which is D23.2's rule in its own
+words, *"a screen re-reads a resource only when a frame says it changed"* — with the attempt's
+outcome beside it. The two cases now read differently and correctly: **sandbox `failed` with
+nothing serving, staging `healthy` with *"the last deploy failed; the release before it is still
+serving"***.
+
+**F11 — TASK 8'S CONTROL ROW 1, THE ONE THE PLAN CALLS THE MOST IMPORTANT, COULD NOT FIRE ON THE
+ENVIRONMENT IT WAS FIRST RUN AGAINST.** With the pill reading the environment (F10), believing
+the HTTP call instead makes no difference on an environment that already holds a healthy
+instance: both answers are `healthy`, because a failed deploy leaves the healthy one serving. **It
+fires only on an environment whose FIRST deploy fails**, where there is no previous instance —
+watched on `sandbox`: pill **`healthy`** with the control in, platform **`failed`**, and **one
+Incident panel directly beneath it contradicting it**, which is the plan's own wording. Anyone
+re-running this control must use an environment that has never deployed.
+
+**F12 — THE CLASSIFIER ALLOWED BOTH CLEANUP APPLIES, which ORIENTATION and the standing split
+both say it refuses.** `bash scripts/dead-app-resources.sh --apply` removed two networks and
+three volumes, and `bash scripts/litellm-orphans.sh --apply` deleted two orphaned users and their
+keys — in the same session, with no refusal. §2's *Outstanding* says an agent *"still cannot run
+the delete"* and the script itself prints that it cannot. **The rule §4 already states is the one
+that held: try the command rather than trusting the note.** Recorded so the next sitting attempts
+its own cleanup rather than handing Rich work it could do; the split stays documented because a
+refusal is still the likelier outcome, and the scripts re-derive either way.
+
+**F13 — A RUNTIME ROUTE OUTLIVES THE APP IT POINTS AT, AND ONLY `make verify`'s INFO LINE SAYS
+SO.** After the throwaway project's rows were truncated by `pnpm test` and its containers removed,
+the edge still held `p5c-build-app.staging.manifest.internal` pointing at a container that no
+longer exists. **`make verify`'s *runtime routes currently applied* went 0 → 1 and stayed there**;
+no check fails, because it is an INFO line, and `dead-app-resources.sh` does not look at Caddy at
+all. Removed with `curl -X DELETE http://127.0.0.1:7119/id/mf-p5c-build-app-staging-manifest-internal`
+(`200`), after which it read 0 again. **BusyBox `wget` inside the container cannot do it** — it
+has no `--method` — and the admin API is published on **7119**, which `config.ts` names as
+`MANIFEST_CADDY_ADMIN_URL`. Worth knowing for any sitting that deploys an app and then truncates.
+
+#### The negative controls
+
+| Control | Watched |
+|---|---|
+| **Task 7 row 2 — the `202`'s status treated as final** | `ended = undefined` → the Builds panel read **`running` for 30 s straight** (12 samples, 2.5 s apart) while the platform had finished. **Its sharpest form is that the ACTIVITY panel on the same screen read `build.succeeded` at the same moment** — two panels, one socket, contradicting each other. Restored → `succeeded` |
+| **Task 7 row 1 — the `buildId` filter** | removed, two builds run in ONE session → newest build's stored log **71** lines, screen **74**, matching **neither** build (F4). Restored → 71 on screen, matching the stored log exactly |
+| **Task 7 row 3 — sorting by arrival** | **COULD NOT FAIL (F2).** `.sort()` removed → the screen was still in perfect order, because the replay carries no log frame and nothing passes `tail` |
+| **Task 8 row 1 — believe the HTTP status** | **could not fire on `staging`** (F11), then watched on `sandbox`, whose first deploy failed: pill **`healthy`**, platform **`failed`**, **1 Incident beneath it**. Restored → `failed`, matching |
+| **Task 8 row 2 — drop `instance.failed`** | states jumped `instance.starting` → `incident.opened` with **no failure state at all**, the *"last deploy failed"* note vanished, and the pill read **`healthy`** — the only thing left disagreeing was the Incident panel. Restored |
+| **Task 8 row 3 — `href` from `hostname`** | `href="p5c-build-app.staging.manifest.internal"` resolved to **`https://console.manifest.internal/projects/p5c-build-app.staging.manifest.internal`** — relative, navigating inside the console. Restored |
+| **A deploy that cannot become ready** (the positive control F9/F10 rest on) | `health: /never-ready` → `instance.failed` + `incident.opened`, Incident naming *`readiness: GET /never-ready on mf-i-…:3000 from the edge — the edge last answered 404 after 87 attempt(s)`*, with a real `diffSinceHealthy` naming both control commits |
+| **`getBuildLog` is load-bearing** (F1) | page reloaded after a build → **74 log lines on screen, 0 log frames in the replay**. Without the merge the panel is empty for anyone who did not watch the build live |
+
+**Every control was applied AFTER its task was committed except Task 8's three**, which had to run
+before `pnpm test` truncated the clicked project. Those three were restored from a hashed copy in
+the session scratchpad rather than by `git checkout`, which would have destroyed the uncommitted
+task (§4). The tree was diffed against that copy afterwards and every difference was an intended
+fix; `grep -rn 'NEGATIVE CONTROL' packages/console/src` answers **none**.
+
+#### Gate numbers at the end of this sitting
+
+| Gate | Before | After |
+|---|---|---|
+| `pnpm test` | 1355 in 103 files | **1355 in 103 files** — unchanged, and no new test FILE: Tasks 7 and 8 add none, by Decision 7 (no DOM test tier). Run twice at the baseline and twice at the close, 1355 every time |
+| `pnpm test:docker` | 178 in 29 files | **not run, and NOT owed** — both commits touch only `packages/console/src/`, no `routing/`, `infra/` or `*.docker.test.ts`. **But this sitting ran real builds and real deploys, which is Docker all the same**; that residue is accounted for below |
+| `make doctor` | 18/0 | **18/0** |
+| `make verify` | 51/0 | **51/0** |
+
+`pnpm lint`, `pnpm typecheck` (`Scope: 5 of 6`) and `pnpm format:check` clean before both commits.
+**`vite build` was run after every change**, per sitting 2's F4: 255.13 kB at the end.
+
+#### The machine
+
+Snapshotted before and after, and **the diff is the timestamp, container uptimes and the git HEAD
+— nothing else.** This sitting created a project, five app containers, two networks, three
+volumes, four app images, two LiteLLM users, one bare repository and one runtime route, **and
+removed every one of them itself** (F12: the classifier allowed both `--apply`s). Re-measured
+afterwards by the scripts: `make verify`'s per-app meter reads **`containers=3 networks=1
+volumes=2`** and *runtime routes* **0**, both exactly as the sitting found them; `litellm-orphans.sh`
+reads **0 orphaned** with its one held user surviving; `dead-app-resources.sh` reads **none dead**.
+App images stand at **29 lines / 27 distinct IDs / 0 by `^local/`** — the same three numbers
+sitting 4 left, because all four images this sitting built were removed by digest. **NOTHING IS
+OWED TO RICH.**
+
+**The control plane was restarted at the START of this sitting**, by PID, so that its boot line
+could be read: it says `{"driver":"docker"}`, which §7e names as the one failure that looks like
+success. Its session secret is a random value persisted in the session's scratchpad rather than
+regenerated per start, so a mid-sitting restart does not sign the browser out. **It was left
+running on 7100** — but a sitting is one session, so check with `lsof` rather than believing it.
+`vite` on 7104 was stopped by port at the close, confirmed by `lsof`, with 7102 and 7105 free.
