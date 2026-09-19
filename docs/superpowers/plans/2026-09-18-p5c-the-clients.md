@@ -5678,8 +5678,8 @@ Measured after building it: the preflight completes in **6 s** and leaves **7104
 
 #### The negative controls
 
-Four of Step 3's six, plus one for the step Step 4 added. **(b) and (e) are clicked-only by
-design and have not run.** Every one below was watched and restored, and `git status` read clean
+Four of Step 3's six, plus one for the step Step 4 added. ***SUPERSEDED BELOW:*** *(e) and the
+tier half of (b) were measured later the same day against the mock — see* **The mock session**. Every one below was watched and restored, and `git status` read clean
 after each.
 
 | | Break | Predicted | Measured |
@@ -5759,3 +5759,64 @@ the `[M6]` correction block says to have the page open and Rich ready *before* t
 redirect. **This is the one place this sitting knowingly departs from "leave the machine as you
 found it", and it is recorded here so the next reader does not mistake it for a leak.** If the
 sitting is abandoned rather than resumed, 7104 must be stopped by port.
+
+#### The mock session — controls (e) and (b)'s tier half, and two more findings
+
+Rich, away for some hours, asked for as much progress as possible without him, and offered a
+forged session. **It was declined and the reason is worth keeping**: §16's Acceptance tier wants
+the journey proved by *two independent clients* — headlessly by a script and **by a human in the
+reference console** — so an agent-driven fourth run would have left P5c's acceptance unmet while
+looking complete. What was used instead is the path this plan already built for exactly this:
+**`manifest-mock`**, which signs its own cookie and needs no IdP, driven at `127.0.0.1:7104` with
+`MANIFEST_MOCK=1` (RUNBOOK's *Running `manifest-mock`*). **Nothing below is the acceptance, and
+none of it substitutes for Step 2.**
+
+**F9 — THE MOCK ANSWERS `edge is available`, AND `edge` IS A RESERVED LABEL.** The clicked
+journey's row 3 has two halves: the availability answer changes *as you type*, and **`edge` is
+refused as a reserved label, with the reason**. Typed into the console against the mock, the
+screen read **`edge is available`**. `server.ts`'s `checkSlug` says why in its own comment — *"The
+slug the fixtures already use is taken; everything else is free"* — while
+`infra/reserved-labels/labels.yaml:74` reserves `edge` as *"Manifest's edge proxy"*. **The
+contract declares three refusal codes for this route — `SLUG_INVALID`, `SLUG_RESERVED`,
+`SLUG_TAKEN` — and the fixtures carry exactly one**, `SLUG_TAKEN`, so the console's rendering of
+the other two is exercised by nothing anywhere. This is a limit of the mock rather than a defect
+in it — it is a contract mock, not a simulator — **but RUNBOOK's *What it does NOT prove* list did
+not say so**, and that list is the only place a front-end developer would look. It does now.
+**Deliberately NOT fixed by adding a fixture**: §7e says that anything found missing at this stage
+is a finding about the plan, not a task to add, and Task 14's *Files* list does not include the
+mock.
+
+**F10 — CONTROL (e) FIRES, AND `displayState` TURNS OUT TO BE LOAD-BEARING FOR THREE THINGS, NOT
+ONE.** Step 3's row (e) predicts that `displayState` returning `row.state` unchanged makes *"an
+expired question offer a **Confirm** that answers `409`"*. **Measured, both ways.** The condition
+had to be manufactured, because sitting 8's F6 deliberately gives the mock's pending row a
+deadline 24 hours out: its `expiresAt` was set to `HOURS_FROM_NOW(-2)`, which is the real-world
+case — a row lapsed by the wall clock that the boot-only sweeper has not yet moved.
+
+*With `displayState` intact:* the row whose **stored** state is `pending` rendered as
+**`expired`**, offered **no buttons**, and §26's health number read **"nothing is waiting"**.
+
+*With `displayState` reduced to `return row.state`:* the same row rendered **`pending`**, offered
+**Confirm** and **Reject** — and **contradicted itself on its own line**, reading
+`pending … expires 2h ago`. §26's health number flipped to **`42s`**, claiming something was
+waiting when nothing was.
+
+So the one function drives **the pill, the buttons and §26's number**, and Decision 8's
+justification is stronger than the control's own wording: the plan predicted a `409` a person
+would have to trigger, and the screen is visibly self-contradicting *before* anybody presses
+anything. Both files restored; `git status` clean.
+
+**CONTROL (b), TIER HALF — MEASURED, AND THE PREDICTION HOLDS.** With
+`stream_close_delay 1h` **deleted** from `infra/caddy/Caddyfile:78`, the unit tier ran
+**1376 passed in 107 files — nothing red**, exactly as *"Predicted: in the tier — nothing"* says.
+Restored, and the line is back. **Worth naming precisely, because a grep is misleading here:**
+`caddy.test.ts:116` *does* assert `stream_close_delay` — but on the **runtime routes
+`caddy.ts` generates**, not on the Caddyfile's static console site, and the two are different
+mechanisms that share a name. Of the six source files that mention the Caddyfile at all, none
+asserts line 78. **(b)'s clicked half — the stream going `closed 1001` mid-build — still needs a
+real deploy and remains outstanding.**
+
+**F4 IS FIXED.** `README.md`'s narrative paragraph no longer calls P5b's Task 13 the next job; it
+now defers to the *Where to start* table and §7e, which is the repair the same file's later
+paragraph had already made for itself after drifting the same way. *The table row at README:120
+was correct throughout — it was the prose above it that was five sittings stale.*

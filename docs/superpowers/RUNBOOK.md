@@ -161,6 +161,14 @@ platform (the P5 brief's §8). Specifically:
   replayed with a different body) and the fleet's `403`.
 - **It has no state.** Every read answers a fixture; a mutation does not change what the
   next read returns. It is a contract mock, not a simulator.
+- **It does not know §23’s reserved labels, and it answers as though they were free.**
+  `checkSlug` treats the one slug its fixtures already use as taken and *everything else* as
+  available, so `edge` — which `infra/reserved-labels/labels.yaml` reserves as "Manifest’s
+  edge proxy" — reads **`edge is available`** here and is refused by the platform. The
+  contract declares three refusal codes (`SLUG_INVALID`, `SLUG_RESERVED`, `SLUG_TAKEN`) and
+  the fixtures carry **one**, so the console’s rendering of the other two is exercised by
+  nothing. Measured in a browser, P5c sitting 9 (F9): it is the second half of the clicked
+  journey’s row 3, and the mock cannot show it.
 - An operation the document declares and the mock has no answer for is **`501`** — the
   contract has grown a route the mock has not caught up with. A path the document does not
   declare is `404 ROUTE_NOT_FOUND`, exactly as the platform answers it.
