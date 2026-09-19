@@ -1576,8 +1576,9 @@ shares these pages outside the team.
 
 **Read, in this order, before you run anything:**
 
-1. **P5c's header, its sittings table, *Read this first*, *Decisions Rich made* and *Decisions
-   this plan makes*** — all five. *Read this first* has twenty items measured from the code — *counted* — of
+1. **The plan — [`plans/2026-09-18-p5c-the-clients.md`](plans/2026-09-18-p5c-the-clients.md)** —
+   its **header, its sittings table, *Read this first*, *Decisions Rich made* and *Decisions
+   this plan makes***, all five. *Read this first* has twenty items measured from the code — *counted* — of
    which **items 3, 9, 10 and 11 land on this task**: the client sets no headers in a browser,
    the two endpoints that are outside `/v1`, that `POST /auth/logout` is NOT exempt from the
    origin check, and that the edge reaches a host process as `host.docker.internal`. (Item 4,
