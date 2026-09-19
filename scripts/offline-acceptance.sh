@@ -99,4 +99,23 @@ else
 fi
 
 echo
+echo "=== 9. P5b's acceptance: D24's loop — an agent on a delegated token, and a human who answers ==="
+# APPENDED, like steps 7 and 8, and for the same reason. What this proves offline that
+# step 8 does not: the SECOND CREDENTIAL CLASS. An instructor signs in with CWL and mints
+# a delegated token; an agent holding nothing but that token builds and deploys token-app
+# on its own authority, is refused the fleet and a production promotion, asks to add a
+# member and is handed the question; the instructor confirms it in their own session and
+# the agent's own retry succeeds exactly once. Nothing in it should want the network — the
+# token is `node:crypto` and the build comes from the same mirror step 6 uses — so if this
+# is the step that needs a route out, that IS the finding, the same rule as step 6.
+#
+# It leaves ONE `pending` question behind on purpose (the production promotion nobody
+# answers), which is what Task 10's expiry exists for. Do not read it as a leak.
+if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
+  make demo-token; echo "demo-token exit=$?"
+else
+  echo "  SKIPPED: no control plane behind https://console.manifest.internal — the same rule as step 6."
+fi
+
+echo
 echo "=== done. Turn the network back on. ==="
