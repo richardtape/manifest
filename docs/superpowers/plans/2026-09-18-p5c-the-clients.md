@@ -27,8 +27,8 @@
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on**, before any code: whether the edge serves a host process on 7104 on the console's origin, what a real browser sends through it, whether a WebSocket upgrade survives that hop, whether a new package is even seen by the four gates, and **whether an app's own WebSocket is cut by another app's deploy** — the measurement §8's open question has never had. **Alone, and first** | **DONE 2026-09-18 — 19 findings.** All ten measurements ran; no task boundary moved. **§8's question is ANSWERED and CLOSED: the socket IS cut, and `buildRoute` now carries `stream_close_delay`.** `[M<n>]` correction blocks on Tasks 1, 2, 4, 13 and 14 |
-| 2 | 2–3 | **`packages/console` and `packages/mock` exist and all four gates see them** — the one sitting with the network on — and **the console's import boundary**, watched failing before a single screen exists | ← **next** |
-| 3 | 4 | **The console is served at `console.manifest.internal`, signs a person in with CWL and knows who they are** (§22 step 1): the Caddyfile's placeholder replaced, the shell, the router, the error surface, and the one file allowed to name `fetch` | |
+| 2 | 2–3 | **`packages/console` and `packages/mock` exist and all four gates see them** — the one sitting with the network on — and **the console's import boundary**, watched failing before a single screen exists | **DONE 2026-09-18 — 10 findings.** React 19.3.0 + Vite 8.3.0, `ws` 8.21.3, `ajv` 8.20.0 with `ajv-formats` 3.0.1, every version exact, `pnpm audit --prod` clean. **NOTHING AFTER THIS SITTING MAY INSTALL A PACKAGE.** Both of the task's own step orders were wrong and are corrected in place |
+| 3 | 4 | **The console is served at `console.manifest.internal`, signs a person in with CWL and knows who they are** (§22 step 1): the Caddyfile's placeholder replaced, the shell, the router, the error surface, and the one file allowed to name `fetch` | ← **next** |
 | 4 | 5–6 | **My projects, and creating one** — the slug check while it is typed, the blueprint and starter catalogue, §24's audience (§22 step 2) — and **the project screen with its live event stream** (§22 step 3) | |
 | 5 | 7–8 | **A build whose log lines arrive as they are written** (§22 step 4) and **a deploy to staging whose instance states arrive the same way**, with the app's URL to click and an Incident when it fails (§22 steps 5–6). **Both streaming screens; the sitting Rich was warned is the heavy one** | |
 | 6 | 9–10 | **Request production** — `LaunchReadiness` with its blocked items and why (§22 step 7) — **the fleet** (§26, admin only), and **delegated tokens**: minted once, listed, revoked | |
@@ -631,6 +631,14 @@ proved by re-reading the placeholder rather than by having edited the file back.
 
 ## Task 2: `packages/console` and `packages/mock` exist, and all four gates see them
 
+> **EXECUTED 2026-09-18 (sitting 2). Two of its steps are in the wrong order and one of its
+> files does not build — see *Sitting 2* in *What executing this plan found* (F1, F4).**
+> **Step 2 cannot run before Step 3**: `pnpm --filter @manifest/console add` answers *"No
+> projects matched the filters"* until the package manifests exist, so the minimal manifests
+> are written first and `pnpm add -E` fills in the versions. **Step 6's `main.tsx` imports
+> `./styles.css`, which Step 10 then fails to build** because Task 4 was to write that file;
+> a minimal `styles.css` is created here instead.
+
 > ### [M4][M5][M9] Correction block — four things sitting 1 measured that change this task
 >
 > *FIVE paragraphs — four numbered points AND a final unnumbered one carrying the
@@ -1042,6 +1050,17 @@ green. **Name the assertion in the record**, not the mechanism.
 ---
 
 ## Task 3: The console's import boundary — and the one file allowed to call `fetch`
+
+> **EXECUTED 2026-09-18 (sitting 2). It cannot go green as written — see *Sitting 2* in
+> *What executing this plan found* (F5, F6, F7).** **Step 4 predicts one red test and two go
+> red**: the import test's *"imports were read from fewer than two files"* also fails,
+> because `main.tsx` is the only console file with an import and React 19's automatic JSX
+> runtime means `app.tsx` needs none — and **Step 5's `auth.ts` does not fix it**, because it
+> has no imports and no caller. `app.tsx` calls `signIn` and `signOut`, which is this plan's
+> own *every task names its caller* rule and the repair at once. **Step 3's `fetch` pattern
+> also misses a template literal**, which is how `auth.ts` itself names `/auth/login`; the
+> backtick is in the character class now. **TASK 4 SHOULD TIGHTEN** the *"scanner read no
+> imports at all"* control from `react` back to `@manifest/contract` once `api.ts` exists.
 
 **This task exists before any screen does**, because a boundary added after the screens is a
 boundary that has never refused anything. D22: *"If the console needs something the API does not
@@ -3664,3 +3683,199 @@ clear at its baseline, seven networks and one volume regenerated by its own `pnp
 and clear again at its close. *The figures above are what this sitting LEFT and deliberately do
 not move; this postscript is what happened next.* **23 `local/*` app image layers remain, which
 neither script covers.**
+
+### Sitting 2 — Tasks 2 and 3, the one sitting with the network on — 2026-09-18 — 10 findings
+
+**`packages/console` and `packages/mock` exist, all four gates read them, and the console's
+import boundary refuses two different things before a single screen exists.** Both tasks
+committed; every control watched in both directions. **Nothing after this sitting may install
+a package** — if a later task believes it needs one, that is a finding to record and raise.
+
+**The versions, because a finding without a version is not reproducible** (§6 rule 4, and
+Decision 2: current at install, never a remembered number). `@manifest/console` —
+**react 19.3.0**, **react-dom 19.3.0**, **@types/react 19.3.0**, **@types/react-dom 19.3.0**,
+**@vitejs/plugin-react 6.1.1**, **vite 8.3.0**. `@manifest/mock` — **ws 8.21.3**,
+**@types/ws 8.18.1**, **ajv 8.20.0**, **ajv-formats 3.0.1**. All exact. `ws` resolved to the
+control plane's own pin without being asked. **`pnpm audit --prod`: no known vulnerabilities**
+— the seven the whole workspace reports (1 critical, 1 high, 5 moderate) are the pre-existing
+`vitest`/`vite` dev-toolchain advisories ORIENTATION §4 records, and this sitting added none.
+`pnpm approve-builds` was not needed: no new dependency has an install script.
+
+#### The findings
+
+**F1 — Task 2's Step 2 cannot run, because it installs into packages Step 3 creates.**
+`pnpm --filter @manifest/console add -E react react-dom` answers **`No projects matched the
+filters in "/Users/rich/Developer/manifest"`** and installs nothing. Measured by running the
+step exactly as written before doing anything else. The order has to be: minimal manifests
+first, then `pnpm add -E`, which is also what makes Step 3's `"<as installed>"` placeholders
+reachable at all — `pnpm add` is what writes the version, so nothing in the plan ever needed
+to name one.
+
+**F2 — `pnpm add -E` does not re-pin a dependency that is already present with a range, and
+the caret it leaves is silent.** `pnpm --filter @manifest/mock add -ED 'ajv@^8' 'ajv-formats@^3'`
+wrote **`"ajv": "^8.20.0"`**: an explicit range on the command line beats `-E`. Re-running
+`add -ED ajv ajv-formats` with no range **left the caret exactly where it was**, because the
+installed version already satisfied it and pnpm had nothing to do. It took `pnpm remove`
+followed by `add -ED` to reach `"ajv": "8.20.0"`. **C6 says every pin is exact**, so this is
+the sequence that gets there — and the failure mode is a `^` nobody looks at again.
+
+**F3 — the plan's *Tech Stack* line says Vite 7; the registry offered Vite 8.3.0, and
+Decision 2 is why that is correct.** Decision 2 says in terms that no version is written into
+this plan, because a pin with no evidence behind it is how P2 came to specify Node 22 on a
+machine that has only 24 — and then the header names a major version anyway. **The decision
+wins and the header is the remembered number it warns about.** React 19 was accurate. Nothing
+was tried on Vite 7 and found wanting; the console builds, and `@vitejs/plugin-react` 6.1.1 is
+the matching plugin.
+
+**F4 — `main.tsx`'s `import './styles.css'` breaks `vite build`, and the gate that would
+catch it never reads it.** Task 2's Step 6 writes that import with a comment saying Task 4
+writes the file, and Step 10 then builds the console. Measured *after* creating a minimal
+stylesheet, by holding it aside again: **`tsc --noEmit` passes** — `vite/client`'s types
+declare `*.css` as a module whether or not the file exists — **and `vite build` dies.** This
+is sitting 1's F3 one level down: `tsc` is green because it never reads the thing, and the
+build is the only reader. A minimal `styles.css` is committed here; Task 4 fills it in.
+
+**F5 — Task 3's `fetch` pattern cannot see the construct `auth.ts` itself uses.** The plan's
+regex is `/\bfetch\s*\(|['"]\/auth\//g` — single and double quotes only — and `signIn` names
+the path in a **template literal**: `` `/auth/login?returnTo=${…}` ``. So `authSaw` counted 2
+(the `fetch(` and `'/auth/logout'`) where 3 was intended, and, the half that matters, **a
+screen navigating with ``location.href = `/auth/…` `` would evade the rule entirely** — there
+is no `fetch(` in that line to catch it. The backtick is in the character class now.
+
+**F6 — Task 3 cannot go green as written, and Step 5's `auth.ts` does not fix it.** Step 4
+predicts one red test (the `fetch` positive control, because `auth.ts` does not exist).
+**Two go red.** The import test's *`imports were read from fewer than two files: expected 1 to
+be greater than 1`* fails too, because `main.tsx` is the only console file with an import —
+under React 19's automatic JSX runtime `app.tsx` needs none. Step 5's `auth.ts` has no imports
+**and no caller**, so it leaves that assertion red. The repair is this plan's own Global
+Constraint — *every task names its caller*, a module with no call site is not built
+(ORIENTATION §9, four times) — so `app.tsx` calls `signIn` and `signOut` from the first
+commit. **The control was pointing at a real defect in the plan, not at itself.**
+
+**F7 — the boundary's *"the scanner read no imports at all"* control cannot name
+`@manifest/contract` in this sitting, and the weaker claim is written down rather than
+hidden.** The plan and the journey's copy both assert `allowed` contains `@manifest/contract`;
+no console file imports it until Task 4 writes `api.ts`, so the assertion would fail for a
+reason that has nothing to do with the boundary. It asserts `react` instead, **with a comment
+in the test telling Task 4 to tighten it back** — `react` only proves the scanner read
+something, where the contract is the import D22 is actually about.
+
+**F8 — the negative control's exit code was contaminated by an unrelated flake, and the grep
+is what settled it.** With the two globs removed, Task 2's control predicts `pnpm test`
+**green — which is the defect**. It exited **1**: `src/api/delegation.test.ts > removing a
+member > lets an owner go once somebody else owns the project` **timed out at 5000 ms** in a
+run that took **192 s** against the usual ~107 s, with the machine loaded by this sitting's
+own builds. The control's own claim held and was read from the right place —
+**`grep -c 'console/src/boundary'` of the output was `0`, the file never collected** — and the
+same test passed on the next run and on all four closing runs, so it is load, not a state
+leak. ***Assert the shape of the answer: a control whose signal is a whole suite's exit code
+borrows every flake in that suite.*** The restore direction was watched too: globs back, the
+same broken assertion collected and red (*`expected 1 to be 2`*), then fixed and green.
+
+**F9 — `${PIPESTATUS[0]}` is empty in this shell.** The Bash tool's shell is **zsh**, which
+spells it `$pipestatus[1]` and indexes from 1, so `cmd | tail; echo "exit=${PIPESTATUS[0]}"`
+prints `exit=` — which reads as a command that produced no status rather than as the wrong
+variable. Same family as §4's *zsh ties `path` to `$PATH`* and *zsh does not word-split an
+unquoted variable*. Take the status from the command itself, or do not pipe.
+
+**F10 — a gate that exits 0 on a new package is ambiguous, and BOTH of the two that "see a
+package for free" were.** Sitting 1's F10 says this of `pnpm lint`; it is equally true of
+`pnpm format:check`, and of `tsc` on a tsconfig nothing in this repository has used before.
+Three baits settled all three: an `any` in `packages/mock` → `@typescript-eslint/no-explicit-any`;
+a misformatted `.tsx`, `.css` and `.html` together → **Prettier named all three**, which is
+the check that matters because those file types are touched by no test; and a deliberate
+`TS2322` appended to `packages/console/src/boundary.test.ts` → `tsc` named it. That last one
+was worth the minute: the console's tsconfig overrides the base with `moduleResolution:
+"Bundler"` and `types: ["vite/client"]` — **it does not name the `node` types package** — while
+that test file imports three `node:` builtins, and the concern was that `tsc` was passing
+because it was not reading the file. It reads it.
+
+#### The post-sweep check — five wrong facts, all in this sitting's own hand-off
+
+*§6 says to re-read your own §7e as a cold agent and CHECK its claims by opening what they point
+at and counting. It has now found a defect in every P5b sitting from the third onwards and in
+both P5c sittings.* **Five here, and every one was found by running a command rather than by
+re-reading the sentence:**
+
+1. **"the console has 8 files" — it has 9** (`git ls-files packages/console`). Written from what
+   the Task 2 commit added, before Task 3 added `auth.ts`.
+2. **"`styles.css` is an eight-line placeholder" — it is 18** (`wc -l`). Recalled, not counted.
+3. **"`drizzle/0018_…` is the newest" — the path is
+   `packages/control-plane/drizzle/`**, and `ls drizzle/*.sql` answers *no matches found*. This
+   one was **inherited verbatim from sitting 1's §7e**, which is §6's own warning about a wrong
+   pointer being multiplied by the sitting that trusts it.
+4. **"`pnpm test` ran six times in this sitting" — it ran FOURTEEN**, counted from the captured
+   output files. The number had been estimated from memory of the session, which is exactly what
+   §6 says not to do.
+5. **"23 `local/*` app image layers" — the metric is wrong and reads as ZERO.** The images are
+   tagged **`127.0.0.1:7107/local/*`**, so `docker images | grep '^local/'` answers **0**. The
+   count of 23 is right; the name is not, and this check briefly concluded there were none. Also
+   inherited — ORIENTATION §2 spells it `local/*` too, and both now say which pattern to grep.
+
+**Two claims were checked and HELD**, which is worth recording because a check that only ever
+finds errors is not being run honestly: *Read this first* does have exactly **twenty** numbered
+items, and `manifest-schematic.html` does say *"no user interface has been built yet"* in
+**two** places with `manifest-phases.html` saying it in **one** — a first `grep -c` answered
+`1` and `0`, because it counts LINES and those files are long-line HTML. *Counting occurrences
+and counting lines are different questions, and `grep -c` answers the one you did not ask.*
+
+#### The negative controls
+
+| Control | Watched |
+|---|---|
+| **Task 2 — `pnpm test` is blind to a new package** | a failing test in the tree: **exit 0, 1345 passed in 101 files, identical to baseline**, `grep -c` of the output **0**. Reproduced this sitting's own numbers, not sitting 1's |
+| **Task 2 — the globs are what fix it** | globs added → **RED**, *`expected 'this package is in vitest.workspace.ts' to be 'not yet'`*, 102 files |
+| **Task 2 — after the commit, both directions** | globs removed → the file **not collected** (grep `0`; the suite's own exit 1 was F8's unrelated flake); globs restored → same broken assertion **red**, *`expected 1 to be 2`*; assertion fixed → **green** |
+| **Task 2 — `pnpm lint` really reads the new packages** | an `any` bait → **exit 1**, `@typescript-eslint/no-explicit-any` |
+| **Task 2 — `pnpm format:check` really reads them** | `.ts` bait → exit 1; then `.tsx`, `.css` and `.html` baits → **all three named** |
+| **Task 2 — `styles.css` is load-bearing** | held aside → `tsc --noEmit` **passes**, `vite build` **fails** (F4) |
+| **Task 3 — the lint half refuses** | `import { z } from 'zod'` in `probe.ts` → *`'zod' import is restricted from being used by a pattern. The console may import only @manifest/contract, react, react-dom, node: builtins and its own ./ files (D22, §22)`* |
+| **Task 3 (a) — a forbidden import, read twice** | `zod` in `app.tsx` → `pnpm lint` names the message **and** boundary test 1 says *`expected [ 'app.tsx: zod' ] to deeply equal []`* |
+| **Task 3 (b) — the half a lint rule cannot see** | `fetch('/v1/projects')` in `app.tsx` → **`pnpm lint` exit 0, still green**, boundary test 2 *`expected [ 'app.tsx: 1' ] to deeply equal []`*. This is the whole reason the test exists |
+| **Task 3 (c) — the positive control** | both subjects removed from `auth.ts` → *`auth.ts names neither fetch nor /auth/ — did the scanner read it?: expected 0 to be greater than 1`*. Without it, deleting the rule's subject leaves the rule green |
+| **Task 3 (d) — the stripper** | `executableSource` returns `''` → **all three tests red**, one more than the plan predicted: *`the scanner read no imports at all: expected [] to include 'react'`*, the auth positive control, and the stripper's own *`expected [] to deeply equal [ '@manifest/contract' ]`* |
+| **`tsc` reads the console's test file** | a deliberate `TS2322` → `src/boundary.test.ts(176,7): error TS2322` |
+
+Control (b) is the one to keep: `pnpm lint` is green through it, and a reviewer reading only
+the lint gate would have signed off a console that reaches the API outside the contract.
+
+#### Gate numbers at the end of this sitting
+
+| Gate | Before | After |
+|---|---|---|
+| `pnpm test` | 1345 in 101 files | **1348 in 102 files** — up 3 in 1 file, all of them `packages/console/src/boundary.test.ts`'s three. Run twice at close, both 1348 |
+| `pnpm test:docker` | 178 in 29 files | **not run, and NOT OWED** — this sitting touched no `routing/`, `infra/` or `*.docker.test.ts`, and the plan says only sittings 1 and 3 owe it. **178/29 is inherited from sitting 1, not re-measured here** |
+| `make doctor` | 18/0 | **18/0** |
+| `make verify` | 51/0 | **51/0**, per-app meter **`containers=3 networks=1 volumes=2`** — unchanged, because no Docker tier ran |
+
+`pnpm lint` and `pnpm format:check` clean. **`pnpm typecheck` is `Scope: 5 of 6` where it was
+`3 of 4`, and FIVE packages ran `tsc` where three did** — counted from its output, which is
+the assertion Task 2 exists to make.
+
+#### Documents checked and deliberately NOT changed
+
+*§6 asks that this be said rather than assumed.* **The four shared HTML pages were opened and
+are still accurate.** `manifest-schematic.html` says *"no user interface has been built yet"*
+in two places and `manifest-phases.html` in one, and **all three are still true**: this sitting
+wrote console code but nothing serves it — `https://console.manifest.internal` still answers
+the placeholder, and **Task 4 is what makes those sentences false**, as sitting 1's record
+already warns in Task 4's own correction block. `manifest-decisions.html` and
+`manifest-stories.html` mention neither P5c nor a UI disclaimer. **`WALKTHROUGH.md` was opened
+and left alone** for the same reason: its *What works today* describes user-visible behaviour,
+and nothing user-visible moved.
+
+#### The machine
+
+Snapshotted before and after; **the only differences are the timestamp, the host's own mDNS
+name, container uptimes and `git HEAD`** — no container, image, network or volume changed,
+because this sitting ran no Docker tier and started nothing that outlived a command. Ports
+**7102, 7104 and 7105 are free**, checked by `lsof` at close; the mock was started once for
+Step 10's smoke test (it answered the deliberate `501` envelope) and stopped **by port**.
+**Nothing is owed to Rich**: `scripts/dead-app-resources.sh` reads **`none dead`** — 0
+networks, 0 volumes, token-app's one network and two volumes correctly KEPT — and
+`scripts/litellm-orphans.sh` reads **0 orphaned**, the one held user surviving. Both were run
+bare. *This is the first sitting in a long while to owe nothing, and the reason is worth
+keeping: the dead set is regenerated by `pnpm test:docker`, and this sitting did not run one.*
+**23 app images still stand, which neither script covers** — and **name the metric**: they are tagged `127.0.0.1:7107/local/*`, so a `grep '^local/'` answers 0 and reads as *none*. **Nothing listens
+on 7100** — *checked by `lsof` at close, not at the baseline, where it was never looked at
+because nothing in Tasks 2 or 3 needs it* — and nothing here started a control plane.

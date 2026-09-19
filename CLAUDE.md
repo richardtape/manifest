@@ -15,7 +15,7 @@ statement of the four gate numbers; and the roadmap's ledger
 status.*
 
 **The design is approved and complete, five spikes are done, and P1 to P5b are executed
-and green.** Each of those has an acceptance that passes; **P5c is written and has not run**,
+and green.** Each of those has an acceptance that passes; **P5c is written and is executing**,
 and its row says so:
 
 | Plan | Executed | What it made true | Acceptance |
@@ -28,15 +28,19 @@ and its row says so:
 | P4c | 2026-09-16 | A redeploy interrupts and signs out nobody | `make demo-redeploy` |
 | P5a | 2026-09-17 | The API is a published contract under `/v1`, driven by a generated client | `make demo-journey` |
 | P5b | 2026-09-18 | An agent acts on a delegated token; D24's privileged four are refused centrally and a person confirms one retry | `make demo-token` |
-| P5c | *executing — sitting 1 of nine done, 2026-09-18* | The clients: `manifest-mock`, `console/` behind its import boundary, the CI acceptance script | §22's journey clicked by a person **and** run headlessly, over one contract |
+| P5c | *executing — started 2026-09-18; **ORIENTATION §7e says which sitting is next**, and this file deliberately does not* | The clients: `manifest-mock`, `console/` behind its import boundary, the CI acceptance script | §22's journey clicked by a person **and** run headlessly, over one contract |
 
 **P5c IS WRITTEN AND EXECUTING** (`docs/superpowers/plans/2026-09-18-p5c-the-clients.md`,
 written 2026-09-18): the clients — `manifest-mock`, `console/` behind its import boundary, and
-the CI acceptance script — **14 tasks in nine agreed sittings, of which SITTING 1 IS DONE**
-(2026-09-18, 19 findings, `docs/superpowers/spikes/p5c-baseline/`). It is the last plan of
-Phase 1c. **The next job is its sitting 2**, Tasks 2 and 3 — **the ONE sitting in the plan with
-the network on**, so what it fails to install, no later sitting may add; **ORIENTATION §7e says
-what to read and in what order.** Rich settled three things in it: nine sittings (the leaner of
+the CI acceptance script — **14 tasks in nine agreed sittings**, started 2026-09-18
+(`docs/superpowers/spikes/p5c-baseline/` is sitting 1's record). It is the last plan of
+Phase 1c. **HOW MANY SITTINGS ARE DONE IS NOT STATED HERE, DELIBERATELY** — §6's sweep table
+asks that this file name no sitting and no gate number, because both go stale every session,
+and it said *"sitting 1 of nine"* until P5c sitting 2 swept it. **ORIENTATION §7e names the
+next job and says what to read, in what order; the plan's own sittings table is the maintained
+copy.** One thing worth knowing here rather than there: **the one sitting with the network on
+is over** — nothing left in this plan may install a package, and if a task believes it needs
+one, that is a finding to raise. Rich settled three things in it: nine sittings (the leaner of
 three splits, with the cost stated — sitting 5 carries both streaming screens); **§8's
 `stream_close_delay` question is answered by a MEASUREMENT in Task 1** — **which has now run, and
 the answer was yes, an app's WebSocket IS cut by any other app's deploy, so `routing/caddy.ts`
@@ -62,7 +66,7 @@ Phases.*
 turning the network off from a tool call cuts the agent off too; **it now has NINE steps**, the
 newest being `make demo-token`), the second-machine clean clone, starting the UBC external track
 (its trigger fired on 2026-09-15), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of 2026-09-18**,
-applied by Rich at the close of P5c sitting 1 and **re-measured by their own scripts afterwards**:
+applied by Rich at the close of P5c sitting 1, **re-measured by their own scripts afterwards** and re-read clear at the close of sitting 2, which ran no Docker tier:
 `dead-app-resources.sh` reads `none dead` and `litellm-orphans.sh` reads 0 orphaned. **The cycle
 within that one sitting is the thing to understand, not the status**: the sitting ran
 `pnpm test:docker`, which regenerated the dead network set, taking `make verify`'s per-app line
