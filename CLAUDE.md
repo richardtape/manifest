@@ -31,8 +31,9 @@ and green.** Each plan has an acceptance that passes:
 **There is NO plan under way. The next job is to WRITE P5c** — the clients (`manifest-mock`,
 `console/`, the CI acceptance script), the last of Phase 1c's three. **ORIENTATION §7e says what
 to read and in what order**, and its author starts at the P5 brief's §10, *What P5c INHERITS*
-(`docs/superpowers/plans/2026-09-16-p5-brief.md`), whose first paragraph is that §17's Phase 1c
-row is NOT P5c's scope — P5a and P5b have already shipped most of what it lists.
+(`docs/superpowers/plans/2026-09-16-p5-brief.md`). **Its subsection *The one thing to get right
+first* — not its opening paragraph, which is about the brief's own stale sections — says that
+§17's Phase 1c row is NOT P5c's scope**, P5a and P5b having already shipped most of what it lists.
 
 **P5b — delegated tokens and pending actions (D24) — was executed in nine sittings and finished
 on 2026-09-18** (`docs/superpowers/plans/2026-09-17-p5b-delegated-tokens.md`, 13 tasks): an agent
