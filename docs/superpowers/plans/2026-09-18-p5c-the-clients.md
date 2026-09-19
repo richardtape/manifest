@@ -28,8 +28,8 @@
 |---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on**, before any code: whether the edge serves a host process on 7104 on the console's origin, what a real browser sends through it, whether a WebSocket upgrade survives that hop, whether a new package is even seen by the four gates, and **whether an app's own WebSocket is cut by another app's deploy** — the measurement §8's open question has never had. **Alone, and first** | **DONE 2026-09-18 — 19 findings.** All ten measurements ran; no task boundary moved. **§8's question is ANSWERED and CLOSED: the socket IS cut, and `buildRoute` now carries `stream_close_delay`.** `[M<n>]` correction blocks on Tasks 1, 2, 4, 13 and 14 |
 | 2 | 2–3 | **`packages/console` and `packages/mock` exist and all four gates see them** — the one sitting with the network on — and **the console's import boundary**, watched failing before a single screen exists | **DONE 2026-09-18 — 10 findings.** React 19.3.0 + Vite 8.3.0, `ws` 8.21.3, `ajv` 8.20.0 with `ajv-formats` 3.0.1, every version exact, `pnpm audit --prod` clean. **NOTHING AFTER THIS SITTING MAY INSTALL A PACKAGE.** Both of the task's own step orders were wrong and are corrected in place |
-| 3 | 4 | **The console is served at `console.manifest.internal`, signs a person in with CWL and knows who they are** (§22 step 1): the Caddyfile's placeholder replaced, the shell, the router, the error surface, and the one file allowed to name `fetch` | ← **next** |
-| 4 | 5–6 | **My projects, and creating one** — the slug check while it is typed, the blueprint and starter catalogue, §24's audience (§22 step 2) — and **the project screen with its live event stream** (§22 step 3) | |
+| 3 | 4 | **The console is served at `console.manifest.internal`, signs a person in with CWL and knows who they are** (§22 step 1): the Caddyfile's placeholder replaced, the shell, the router, the error surface, and the one file allowed to name `fetch` | **DONE 2026-09-18 — 9 findings.** §22 step 1 CLICKED: Rich typed `instructor` and the header read **Test Instructor `ins000001`**. **The plan's claim that no gate sees the Caddyfile's console line is WRONG — `make doctor` AND `make verify` both went red** and both are fixed (F3). `signOut` never checked its answer (F4). `<Ago>` is the one shared bit still uncalled; **Task 6 owes it a caller** |
+| 4 | 5–6 | **My projects, and creating one** — the slug check while it is typed, the blueprint and starter catalogue, §24's audience (§22 step 2) — and **the project screen with its live event stream** (§22 step 3) | ← **next** |
 | 5 | 7–8 | **A build whose log lines arrive as they are written** (§22 step 4) and **a deploy to staging whose instance states arrive the same way**, with the app's URL to click and an Incident when it fails (§22 steps 5–6). **Both streaming screens; the sitting Rich was warned is the heavy one** | |
 | 6 | 9–10 | **Request production** — `LaunchReadiness` with its blocked items and why (§22 step 7) — **the fleet** (§26, admin only), and **delegated tokens**: minted once, listed, revoked | |
 | 7 | 11 | **§26's queue as a screen**: the question an agent asked, who asked it, how long it has waited, confirmed or rejected by a person in their own words. **The first time D24's loop is operated by a human rather than by `curl`** | |
@@ -1330,11 +1330,16 @@ restores from the INDEX, which is exact now that the task is committed.
 > told it might need — carrying the route in a query string on `/` — is NOT needed.**
 >
 > **3. The trap: `manifest_login` has `Max-Age=600`.** A sign-in left sitting on the IdP page
-> **longer than ten minutes loses its return path** and lands on `/` instead of the deep link.
-> That is invisible when an agent drives the form in two seconds and very visible in **Task 14's
-> shared run, where a human is typing the password**. Its other properties, for the record:
-> `Path=/auth`, `HttpOnly`, `Secure`, `SameSite=None` (the IdP POSTs the assertion back
-> cross-site).
+> longer than ten minutes **FAILS — it does not fall back to `/`.** *(Corrected by sitting 3,
+> F2, read from `api/routes/auth.ts`: this sentence said "loses its return path and lands on
+> `/`", and so do sitting 1's M6 and every §7e that repeated it.)* **The one cookie carries
+> BOTH the return path and the binding nonce**, so when it expires the callback's
+> `readLoginCookie` returns `undefined` and the assertion is refused
+> **`401 SAML_LOGIN_NOT_BOUND`**, before node-saml ever sees it. The remedy is to start the
+> sign-in again. That is invisible when an agent drives the form in two seconds and very
+> visible in **Task 14's shared run, where a human is typing the password** — a refusal page,
+> not a wrong landing page. Its other properties, for the record: `Path=/auth`, `HttpOnly`,
+> `Secure`, `SameSite=None` (the IdP POSTs the assertion back cross-site).
 >
 > **4. THIS TASK IS THE ONE THAT MAKES THE FOUR SHARED HTML PAGES LIE.** Sitting 1 checked them
 > and they are still accurate, because it wrote no console code: `manifest-schematic.html` says
@@ -1437,7 +1442,11 @@ export type Api = ReturnType<typeof createApi>
 
 export function createApi(options: ApiOptions) {
   const client = createManifestClient(options)
-  const key = (k: string) => ({ header: { 'Idempotency-Key': k } })
+  // [SITTING 3] `const key = (k: string) => ({ header: { 'Idempotency-Key': k } })` stood
+  // here and DOES NOT PASS `pnpm lint` at this task: nothing calls it, and the `_`-prefix
+  // forgiveness in eslint.config.js is scoped to packages/control-plane. TASK 5 ADDS IT
+  // with the first mutation. `newKey` below is fine — a member of the returned object, not
+  // a dead local.
 
   return {
     /** The idempotency key for one user action; hold it and reuse it on a retry. */
@@ -1743,7 +1752,7 @@ git commit -m "feat(console): served at console.manifest.internal, and a CWL sig
 
 | Break | What must go red, by name |
 |---|---|
-| point the Caddyfile's console `reverse_proxy` at `host.docker.internal:7105` | the browser: `502`. **And nothing else** — no test sees the Caddyfile's console line, which is the honest statement of this task's coverage and the reason the clicked half exists |
+| point the Caddyfile's console `reverse_proxy` at `host.docker.internal:7105` | the browser: `502` — **watched**. ***"And nothing else" WAS WRONG*** (sitting 3, F3): **`make doctor` and `make verify` BOTH see this line**, and both went red the first time they ran after the change — `CLAIMED BY SOMETHING ELSE: 7104`, and a console check that asserted the placeholder's own words. Both were repaired in sitting 3 |
 | `createApi({ origin: 'https://idp.manifest.internal' })` | the browser: `GET /v1/me` fails and the sign-in screen never resolves. Names the console's dependence on one origin |
 | remove `stream_close_delay 1h` from the `/v1` proxy | **nothing, yet** — the console holds no socket until Task 6. Recorded here as a control that CANNOT FAIL at this task and is re-watched at Task 6, rather than claimed now |
 
@@ -2024,6 +2033,14 @@ git add packages/console && git commit -m "feat(console): my projects, and creat
 
 **§22 step 3 — *watch provisioning: repository created, `manifest.yaml` validated*.** This is the
 first screen that holds a socket, and **the console never polls** (D23.2).
+
+> **[SITTING 3] THIS TASK OWES `<Ago>` ITS FIRST CALLER.** Task 4 wrote the five shared bits
+> in `ui.tsx` and gave `<Panel>`, `<Field>` and `<Pill>` callers in its own commit (F7); the
+> shell had no instant to render, so **`<Ago>` is the one module in this console that still
+> has no call site** — the shape ORIENTATION §9 names four times. The event feed below is
+> where it belongs. **Also re-watch the plan's Task 4 control that could not fail there**:
+> removing `stream_close_delay 1h` from the Caddyfile's `/v1` proxy does nothing until this
+> task holds a socket, and Task 4's record says so rather than claiming it was watched.
 
 **Files:**
 - Create: `packages/console/src/stream.ts`, `packages/console/src/screens/project.tsx`
@@ -3879,3 +3896,170 @@ keeping: the dead set is regenerated by `pnpm test:docker`, and this sitting did
 **23 app images still stand, which neither script covers** — and **name the metric**: they are tagged `127.0.0.1:7107/local/*`, so a `grep '^local/'` answers 0 and reads as *none*. **Nothing listens
 on 7100** — *checked by `lsof` at close, not at the baseline, where it was never looked at
 because nothing in Tasks 2 or 3 needs it* — and nothing here started a control plane.
+
+### Sitting 3 — Task 4, the console served and a CWL sign-in — 2026-09-18 — 9 findings
+
+**§22 step 1 is CLICKED.** `https://console.manifest.internal` serves the reference console;
+Rich typed `instructor` / `instructor` at the Manifest IdP and the header came back
+**Test Instructor `ins000001`**, with the *You* panel showing the email and the `member` role
+that `GET /v1/me` returned and nothing inferred. The Caddyfile's placeholder is gone for good.
+Committed as `bfc7aab`.
+
+**Every assumption Task 1 measured held.** The edge serves a host process on 7104 on the
+console's origin, `/v1/*` still reaches the control plane, deep paths arrive unchanged and
+Vite's own SPA fallback covers them, and `allowedHosts` was needed exactly as M1 said.
+
+#### The findings
+
+**F1 — the plan's own `api.ts` snippet does not pass `pnpm lint`.** Step 2 writes
+`const key = (k: string) => ({ header: { 'Idempotency-Key': k } })` beside a `createApi`
+whose only operation is `getMe`, so nothing calls it. Measured by writing the file exactly
+as the plan has it: **`29:9 error 'key' is assigned a value but never used
+@typescript-eslint/no-unused-vars`**. The control-plane override that forgives a `_` prefix
+is scoped to `packages/control-plane/src/**`, so it does not reach the console. It is
+omitted here, which is also this plan's own Global Constraint — *a helper with no call site
+is not built* — and **Task 5 adds it with the first mutation**, which is where D23.6's key
+acquires a caller anyway.
+
+**F2 — the `Max-Age=600` consequence is stated too softly in three places, and the real one
+is a refusal.** Task 4's correction block ¶3, sitting 1's M6 and ORIENTATION §7e all say a
+sign-in left at the IdP for more than ten minutes *"loses its `returnTo` and lands on `/`"*.
+Read from `api/routes/auth.ts`: the callback does `readLoginCookie(...)` and, if the cookie
+is **absent**, throws `SamlError('SAML_LOGIN_NOT_BOUND')` **before node-saml sees the
+assertion** — the same cookie carries the binding nonce and the return path, so an expired
+one fails the whole sign-in **`401`**, it does not degrade to `/`. It matters where it was
+raised: **Task 14's shared run, where a human is typing the password**. The symptom a person
+will see is a refusal page, not a wrong landing page, and the remedy is to start the sign-in
+again.
+
+**F3 — THE PLAN'S CONTROL TABLE IS WRONG ABOUT ITS OWN COVERAGE, AND IT IS WRONG IN THE
+DIRECTION THAT COSTS A SITTING.** Row 1 says pointing the console `reverse_proxy` elsewhere
+turns the browser `502` *"**And nothing else** — no test sees the Caddyfile's console line,
+which is the honest statement of this task's coverage and the reason the clicked half
+exists."* **Two of the four platform gates see it**, and both went red the first time they
+were run after the change:
+
+- **`make doctor` — `18 checks, 1 failed`**: *ports 7100-7199 free, or held only by
+  Manifest* → **`CLAIMED BY SOMETHING ELSE: 7104`**. It reads PUBLISHED CONTAINER ports, and
+  §21 puts the console on the host.
+- **`make verify` — `51 checks, 1 failed`**: *the host reaches https://console.manifest.internal
+  and is not refused* → the check asserted the placeholder's own words,
+  `case "$out" in "manifest console: not built yet"*"[200]")`.
+
+**The first is the identical defect to one this project already fixed, seven plans ago.**
+`doctor.sh` carries a comment dated 2026-09-07 explaining that `make doctor` failed with
+*"CLAIMED BY SOMETHING ELSE: 7100"* during the platform's own documented flow, *"once there
+was a control plane worth running"*, and that the remedy is to **identify it by ASKING IT,
+not by matching a process name**. The same remedy is applied to 7104: `console_is_ours()`
+asks `127.0.0.1:7104` and requires the console's own document — `id="root"` **and**
+`<title>Manifest</title>`, both of which come from `packages/console/index.html` and are
+therefore the same under `vite dev` and `vite preview`.
+
+**The second had to keep its question while losing its string.** The check exists to tell
+three answers apart — the console site answering, the WILDCARD answering
+(`manifest OK host=…`, which returns 200 for any name and any path), and `@outside` refusing
+the host — and the placeholder text was merely how it did that. It must also **pass whether
+or not the console is running**, because `make verify` is a platform check and `vite dev` is
+a developer's host process that `make up` does not start. It now accepts `[502]` (the site
+matched and forwarded, nothing on 7104) and a `[200]` carrying the console's document, and
+refuses the other two.
+
+**`PORT_CONSOLE=7104` is now in `infra/lib/common.sh`** beside `PORT_CONTROL_PLANE`.
+**The mock on 7102 will need the same and deliberately does not have it**: nothing runs
+`manifest-mock` until Task 12, and a check for a process nothing starts is the no-caller
+shape. Task 12 owes it, keyed on whatever the mock then answers.
+
+**F4 — `signOut` did not check its answer, which is this codebase's most productive defect
+shape.** Sitting 2's `auth.ts` is `await fetch('/auth/logout', { method: 'POST' }); window.location.href = '/'`.
+A refused sign-out therefore reloads the page, `getMe` succeeds, and **the person is still
+signed in with nothing saying so** — ORIENTATION §4's swallowed catch, in the one file the
+console is allowed to call `fetch` from. Fixed, and **`response.ok` would not have been
+enough** (F5). `packages/console/src/auth.test.ts` is six tests in Node with no DOM —
+Decision 7's *"the console's CALLS are proved in Node"* half — and both directions were
+watched.
+
+**F5 — reached at `127.0.0.1:7104` the console answers its own API calls, 200, with
+`index.html`.** Measured: `GET /v1/me` on 7104 is **`200 text/html`** (Vite's SPA fallback)
+and `POST /auth/logout` is **404** (the fallback is GET-only). So on that origin there is no
+edge, no control plane and no refusal — **`403 CSRF_ORIGIN_REFUSED` is not what you get**,
+which is what the first draft of RUNBOOK's new section claimed and what the console's own
+`vite.config.ts` comment implies. What a person actually sees is
+**`Something went wrong. SyntaxError: Unexpected token '<', "<!doctype "... is not valid JSON`**
+— visible, because `<Refusal>` renders a non-`ManifestApiError` too, which is that branch
+earning its place against a real scenario rather than a contrived one. RUNBOOK now says what
+was measured. *Two consequences for later tasks:* `response.ok` is the wrong check anywhere
+in this console, and `<Refusal>` renders `String(error)`, so an error whose message carries a
+response body would put that body on the page — ORIENTATION §4 records exactly that trap for
+`JSON.parse` in `ai/client.ts`.
+
+**F6 — the extension's network reader prints a synthetic `503` for a 204 whose page navigates
+away, and 503 reads exactly like a platform fault.** The first *Sign out* click reported
+**`POST /auth/logout → 503`**. The platform was fine: `curl` answered `204` with and without
+an `Origin`, and the sign-out had worked (`/v1/me` was `401` afterwards). Four measurements
+isolate it — **the status the CODE saw was correct in every one**:
+
+| From the page | Code saw | The reader printed |
+|---|---|---|
+| `POST /auth/logout` (204), **no navigation** | 204 | **204** |
+| `POST /auth/logout` (204), then `location.href='/'` | 204 | **503** (twice) |
+| `GET /v1/me` (401), then `location.href='/'` | 401 | 401 |
+| `POST /v1/projects` (401), then `location.href='/'` | 401 | 401 |
+
+So it is neither "POST" nor "navigation" alone: it is a **bodyless 204 whose page leaves at
+once**. Same family as sitting 1's F8 (*the extension cannot show request headers*), and the
+rule is the same — **when the page navigates, read the status the code saw, never the
+reader's**. Task 14 clicks *Sign out* and will meet this.
+
+**F7 — `<Panel>`, `<Field>`, `<Pill>` and `<Ago>` are four modules with no call site, and
+three of them now have one.** The plan produces all five shared bits in Task 4 and first
+calls `<Panel>`/`<Field>` in Task 5, `<Ago>` in Task 6 and `<Pill>` in Task 8 — so as
+written this task ships four uncalled modules, against its own Global Constraint and the
+lesson ORIENTATION §9 names four times. The repair is sitting 2's own (F6, `auth.ts` given a
+caller in its first commit): the shell renders a **You** panel of what `GET /v1/me` returned,
+which is §22 step 1's actual deliverable and gives `<Panel>`, `<Field>` and `<Pill>` callers.
+**`<Ago>` is left uncalled and SAID SO** — in the code, here, and in §7e — because the shell
+has no instant to render and inventing one would be worse than naming it. **Its first caller
+is Task 6.**
+
+**F8 — the plan's `me.error` cast is weaker than the type it already has.** Step 5 writes
+`(me.error as { status?: number }).status === 401`. `unwrap` throws a `ManifestApiError`,
+which is exported from `@manifest/contract` and which the console already imports, so the
+branch is `me.error instanceof ManifestApiError && me.error.status === 401`. The cast reads
+`.status` off anything — a `TypeError` from a blocked cross-origin fetch has none, so both
+spellings happen to behave the same here, which is exactly why the weaker one would survive
+review. Watched: with the origin pointed at the IdP, the sign-in screen is gone and
+`<Refusal>` shows **`Something went wrong. TypeError: Failed to fetch`**.
+
+**F9 — the four shared HTML pages now lie, and this sitting is the one that made them.**
+`manifest-schematic.html` says *"no user interface has been built yet"* in **two** places and
+`manifest-phases.html` in **one**; all three were true at sitting 2's close and are false now.
+Swept in this sitting's close-out, as Task 4's correction block ¶4 instructed. *Counted by
+occurrence, not by `grep -c`, which counts LINES and would answer 1 and 0 on long-line HTML
+— sitting 2's post-sweep check made exactly that mistake.*
+
+#### The negative controls
+
+| Control | Watched |
+|---|---|
+| **The Caddyfile line is what serves the console** (the plan's row 1) | pointed at a dead `7105`, `make up`, → `/` **502** while `/v1/me` stayed **401**. Restored; host and container hashes agree, inode `48091939` throughout |
+| **The console catch-all must stay BELOW `@api`** — *a claim the plan asserts and nobody had measured* | a bare `reverse_proxy host.docker.internal:7104` inserted above the `@api` matcher, inside the same `route` block → **`GET /v1/me` answered `200 text/html`**: the whole API vanished behind the console and a status-only check reads it as healthy. Restored to the byte (`d832a952…`) |
+| **The origin the client is built with** (the plan's row 2) | `createApi({ origin: 'https://idp.manifest.internal' })` → the sign-in screen never appears and `<Refusal>` shows `TypeError: Failed to fetch`. Restored, and the sign-in screen came back |
+| **`stream_close_delay` on the `/v1` proxy** (the plan's row 3) | **NOT WATCHED, AND IT CANNOT BE AT THIS TASK** — the console holds no socket until Task 6. Recorded as the plan asks, rather than claimed |
+| **`signOut` asserts 204** | guard removed → **5 of 6 red**, the 204 positive control still green. Then the *obvious wrong fix*, `!response.ok`, → **exactly 1 red**: *refuses a 200, which an `ok` check would have accepted* — the case F5 measured on 7104 |
+| **The boundary's tightened positive control** | contract imports made invisible to the scanner, so `violations` stayed **empty** → *`the scanner read no imports at all: expected [ 'react', './api', './auth', …(8) ] to include '@manifest/contract'`*. This is the console ceasing to be a client of the contract with every other check green — sitting 2's F7, discharged |
+| **`console_is_ours` identifies the CONSOLE, not the port** | a foreign server on 7104 carrying `<div id="root">` but `<title>Something Else</title>` → `make doctor` **1 failed**, `CLAIMED BY SOMETHING ELSE: 7104` |
+| **The rewritten `verify` check cannot pass for the wrong reason** | the classifier **extracted verbatim from `verify.sh`** (so the harness cannot drift) and driven against five **measured** bodies: console document + `[200]` **PASS**, ` [502]` **PASS**, `manifest OK host=edge.manifest.internal scheme=https remote=10.89.0.1 [200]` **FAIL**, `manifest: the control plane is not reachable from this network [403]` **FAIL**, `hello [200]` **FAIL** |
+| **Both gates survive the console being DOWN** | `make doctor` **18/0** and `make verify` **51/0** measured twice: once with `vite dev` on 7104, once with 7104 free. `make verify` must not depend on a developer's host process |
+
+#### Gate numbers at the end of this sitting
+
+| Gate | Before | After |
+|---|---|---|
+| `pnpm test` | 1348 in 102 files | **1354 in 103 files** — up 6 in 1 file, all of them `packages/console/src/auth.test.ts`. Run twice at close, both 1354 |
+| `pnpm test:docker` | 178 in 29 files *(carried from sitting 1)* | see below — **this sitting OWED it** (it changed `infra/`) |
+| `make doctor` | 18/0 | **18/0**, re-measured with the console running and with 7104 free |
+| `make verify` | 51/0 | **51/0**, both states; per-app meter `containers=3 networks=1 volumes=2` before the Docker tier |
+
+`pnpm lint`, `pnpm typecheck` (`Scope: 5 of 6`) and `pnpm format:check` clean. **`format:check`
+caught the new test file** and nothing else did — `.test.ts` is Prettier's like any other file
+under `packages/`.
