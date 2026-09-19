@@ -31,7 +31,7 @@
 | 3 | 4 | **The console is served at `console.manifest.internal`, signs a person in with CWL and knows who they are** (§22 step 1): the Caddyfile's placeholder replaced, the shell, the router, the error surface, and the one file allowed to name `fetch` | **DONE 2026-09-18 — 9 findings.** §22 step 1 CLICKED: Rich typed `instructor` and the header read **Test Instructor `ins000001`**. **The plan's claim that no gate sees the Caddyfile's console line is WRONG — `make doctor` AND `make verify` both went red** and both are fixed (F3). `signOut` never checked its answer (F4). `<Ago>` is the one shared bit still uncalled; **Task 6 owes it a caller** |
 | 4 | 5–6 | **My projects, and creating one** — the slug check while it is typed, the blueprint and starter catalogue, §24's audience (§22 step 2) — and **the project screen with its live event stream** (§22 step 3) | **DONE 2026-09-18 — 9 findings.** §22 steps 2 AND 3 CLICKED. The stream's liveness was PROVED (a `token.minted` published from a terminal arrived in the open tab; the same event on another project did not). **Two of the plan's own controls could not fail** — the idempotency row names the wrong consequence, and `stream_close_delay` did not fire, measured two ways (F7). `<Ago>` has its caller |
 | 5 | 7–8 | **A build whose log lines arrive as they are written** (§22 step 4) and **a deploy to staging whose instance states arrive the same way**, with the app's URL to click and an Incident when it fails (§22 steps 5–6). **Both streaming screens; the sitting Rich was warned is the heavy one** | **DONE 2026-09-18/19 — 13 findings.** §22 STEPS 4 AND 5 CLICKED, AND STEP 6 AS FAR AS THE SIGN-IN (its *write a note; ask the LLM* half is `make demo-ai`'s and Task 14's): a build watched line by line, a release, a deploy to staging with four states live, the app opened and signed in to with CWL, and a redeploy that interrupted nobody (14 consecutive `200`s from the app's own tab). **The stream alone is not the log** — `LogFrame` is never replayed, so `getBuildLog` is load-bearing and the task never mentions it. **Three of the plan's claims were wrong** (`<Refusal>` and `launchReadiness`; `{}` is not the repository's HEAD; control row 3 cannot fail) and Task 8's row 1 needed an environment whose FIRST deploy fails |
-| 6 | 9–10 | **Request production** — `LaunchReadiness` with its blocked items and why (§22 step 7) — **the fleet** (§26, admin only), and **delegated tokens**: minted once, listed, revoked | **DONE 2026-09-19 — 11 findings.** §22 STEP 7 CLICKED, and an administrator read the fleet. The checklist's two paths measured **byte-identical** and now share one renderer. **`<Ago>` lied about every future instant** — a 30-day token read `expires 0s ago` with all four gates green — and is now the direction-aware `<Instant>`. The D22 finding §7e predicted is CONFIRMED: the document cannot mark D24's privileged four. Two of the plan's own control rows are weaker than they read |
+| 6 | 9–10 | **Request production** — `LaunchReadiness` with its blocked items and why (§22 step 7) — **the fleet** (§26, admin only), and **delegated tokens**: minted once, listed, revoked | **DONE 2026-09-19 — 12 findings** (F12 found after the close, by Rich driving the console by hand). **§22 STEP 7 CLICKED, and an administrator read the fleet. The checklist's two paths measured **byte-identical** and now share one renderer. **`<Ago>` lied about every future instant** — a 30-day token read `expires 0s ago` with all four gates green — and is now the direction-aware `<Instant>`. The D22 finding §7e predicted is CONFIRMED: the document cannot mark D24's privileged four. Two of the plan's own control rows are weaker than they read |
 | 7 | 11 | **§26's queue as a screen**: the question an agent asked, who asked it, how long it has waited, confirmed or rejected by a person in their own words. **The first time D24's loop is operated by a human rather than by `curl`** |← **next** |
 | 8 | 12–13 | **`manifest-mock`** — the contract served from fixtures with scripted streams, validated against the document, and the console driven against it with no platform — and **the CI acceptance script**, the operation-coverage gate and `@manifest/contract` `1.0.0` | |
 | 9 | 14 | **The acceptance**: the journey clicked by a person and run headlessly by the script, over one contract, with its negative controls. **Alone, and last** | |
@@ -4951,3 +4951,46 @@ note did not fire, but it is the first time a snapshot diff has shown it.
 **The control plane and `vite` both survived a nine-hour sleep** (pids 81557 and 65007, unchanged
 across it). That is one more data point for §4's rule and does **not** license the next sitting to
 assume it: check with `lsof`.
+
+
+##### F12 — added after the close, 2026-09-19, found by Rich driving the console by hand
+
+**THE LOG REACHING `DONE` IS NOT THE END OF THE BUILD, AND THE SCREEN SAID NOTHING ABOUT THE
+TEN SECONDS AFTER IT.** Rich built `rich-is-testing`, watched BuildKit print `#12 DONE`, pressed
+*Release this build* and was answered **`409 RELEASE_BUILD_NOT_DEPLOYABLE — build '…' is
+'running' with digest 'none'`**. **The platform was right.** `scanImage` runs INSIDE
+`driver.buildImage`, after BuildKit returns, and takes **no `onLog`** — so §12's Syft and Grype
+containers emit no log line and no event, and the build row stays `running` with
+`imageDigest: null` for the whole scan.
+
+**Measured twice**, from `audit.build_logs`' last row to the `build.succeeded` event:
+
+| build | last log line → `build.succeeded` | total |
+|---|---|---|
+| `ffcb2849` (Rich's) | **11.29 s** | 14.39 s |
+| `44cb5ab7` (reproduction) | **9.70 s** | 12.82 s |
+
+So for about ten seconds a wall of log text ends in **DONE** while a small grey pill says
+`running`, and the log is much the louder of the two. **Pressing Release in that window is the
+reasonable thing for a person to do**, which is why this is a screen defect and not a user error.
+
+**The fix explains rather than enforces, and the button stays enabled.** The difference from
+`screens/tokens.tsx`'s privileged four is deliberate and is written into the code: a privileged
+capability can NEVER be minted, so `disabled` there is an honest permanent statement; a `running`
+build becomes releasable in seconds, so disabling on it would be a transient claim that **sticks
+if a stream frame is ever missed** — the exact failure sitting 5's F10 records for a pill driven
+by an event rather than by the resource. The hint reads from `shown`, the re-read `getBuild`,
+never from the log.
+
+**Watched both ways on a real build**, sampled every 1.2 s: `#12 DONE` at 4 s with the pill
+`running` and the hint present, still both at 12 s; then the pill `succeeded`, the hint gone and
+the Image field beside it. Committed as `5d4c785`.
+
+**THERE IS NO API GAP HERE, and telling the two apart is the point.** Rich asked whether a route
+exists to say when a build is ready to release: `GET /v1/builds/{buildId}` already answers
+`status` and `imageDigest`, and `build.succeeded` is the push form. The console had both and was
+not using them to say anything. **What IS a platform finding is that the scan window is invisible
+to every client** — no log line, no event, nothing — so any client written against this API will
+make the same mistake. Emitting scanner progress means threading `onLog` into `scanImage` from
+`runtime/docker/`, which owes `pnpm test:docker`; **recorded for whoever next opens §12, not done
+here.**
