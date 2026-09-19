@@ -20,10 +20,10 @@ Caddy 2.11.4; `ws` 8.21.3; `openapi-fetch` 0.17.0; `@manifest/contract` 0.1.0.
 re-checked and all nine held.** No task boundary moved, so the nine-sitting split stands
 unchanged. What moved is smaller and sharper than P5b sitting 1's five-task shuffle.
 
-**This sitting produced 18 findings; the eight below are the ones that change what a later
-sitting does.** The full list, F1 to F18, is in the plan's
+**This sitting produced 19 findings; the eight below are the ones that change what a later
+sitting does.** The full list, F1 to F19, is in the plan's
 [*What executing this plan found*](../../plans/2026-09-18-p5c-the-clients.md#what-executing-this-plan-found)
-— the other ten are method lessons (how to catch a gate that is green because it never ran, why
+— the other eleven are method lessons (how to catch a gate that is green because it never ran, why
 a request header cannot be read from the extension, why `pgrep` will tell you a Docker tier has
 finished when it has not) and confirmations taken with controls.
 

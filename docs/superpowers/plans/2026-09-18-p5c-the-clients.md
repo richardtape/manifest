@@ -26,7 +26,7 @@
 
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
-| 1 | 1 | **The measurements this plan rests on**, before any code: whether the edge serves a host process on 7104 on the console's origin, what a real browser sends through it, whether a WebSocket upgrade survives that hop, whether a new package is even seen by the four gates, and **whether an app's own WebSocket is cut by another app's deploy** — the measurement §8's open question has never had. **Alone, and first** | **DONE 2026-09-18 — 18 findings.** All ten measurements ran; no task boundary moved. **§8's question is ANSWERED and CLOSED: the socket IS cut, and `buildRoute` now carries `stream_close_delay`.** `[M<n>]` correction blocks on Tasks 1, 2, 4, 13 and 14 |
+| 1 | 1 | **The measurements this plan rests on**, before any code: whether the edge serves a host process on 7104 on the console's origin, what a real browser sends through it, whether a WebSocket upgrade survives that hop, whether a new package is even seen by the four gates, and **whether an app's own WebSocket is cut by another app's deploy** — the measurement §8's open question has never had. **Alone, and first** | **DONE 2026-09-18 — 19 findings.** All ten measurements ran; no task boundary moved. **§8's question is ANSWERED and CLOSED: the socket IS cut, and `buildRoute` now carries `stream_close_delay`.** `[M<n>]` correction blocks on Tasks 1, 2, 4, 13 and 14 |
 | 2 | 2–3 | **`packages/console` and `packages/mock` exist and all four gates see them** — the one sitting with the network on — and **the console's import boundary**, watched failing before a single screen exists | ← **next** |
 | 3 | 4 | **The console is served at `console.manifest.internal`, signs a person in with CWL and knows who they are** (§22 step 1): the Caddyfile's placeholder replaced, the shell, the router, the error surface, and the one file allowed to name `fetch` | |
 | 4 | 5–6 | **My projects, and creating one** — the slug check while it is typed, the blueprint and starter catalogue, §24's audience (§22 step 2) — and **the project screen with its live event stream** (§22 step 3) | |
@@ -3451,7 +3451,7 @@ reader does not mistake a fix for a mistake.*
 *One dated section per sitting: the tasks, every defect with the measurement that found it, the
 negative controls, and the gate numbers at the end. Written for a reader who was not there.*
 
-### Sitting 1 — Task 1, the measurements — 2026-09-18 — 18 findings
+### Sitting 1 — Task 1, the measurements — 2026-09-18 — 19 findings
 
 **All ten measurements ran (the baseline plus M1–M9). No task boundary moved, so the nine-sitting
 split stands.** Nine of the twenty *Read this first* items carry a `(T1: M<n>)` marker; **all
@@ -3589,6 +3589,21 @@ re-reading the preamble.
 **F18 — `safeReturnTo` was watched refusing, not just accepting.** `returnTo=/projects/deep/path`
 round-trips intact; `returnTo=//evil.example.com/x` falls back to `/`. A measurement that only
 showed the path being kept would not have shown the mechanism was in force.
+
+**F19 — the hand-off asserted a live host process, and a sitting is one session. Raised by
+Rich after the close.** §7e's state table said *"The control plane: RUNNING on 7100, pid 53829"*
+as a fact the next agent could rely on — and the control plane is a **host** process started in
+the background by this session, not a container. Containers survive a session ending; a child of
+the session's shell does not reliably. **The evidence points both ways, which is the point**:
+this sitting INHERITED a live control plane (pid 14881) from the session before it, so one has
+outlived its session on this machine — and every §7e from P5b onwards has stated *"RUNNING on
+7100"* the same way, so this is an inherited defect rather than a new one. **The fix is to write
+the hand-off as what the next sitting NEEDS rather than as what happened to be running**: §7e now
+says *check with `lsof`*, gives README's export block for restarting, and says plainly that
+**sitting 2 does not need it at all** — Tasks 2 and 3 create packages, wire the gates and write
+the boundary test, and the only server involved is the mock on 7102 that the sitting starts
+itself; the four gates need **Postgres**, which is a container. Recorded durably in §4, because
+it is a property of the machine and the one-sitting-per-session model, not of this plan.
 
 #### The negative controls
 

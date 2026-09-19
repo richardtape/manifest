@@ -33,7 +33,7 @@ and its row says so:
 **P5c IS WRITTEN AND EXECUTING** (`docs/superpowers/plans/2026-09-18-p5c-the-clients.md`,
 written 2026-09-18): the clients — `manifest-mock`, `console/` behind its import boundary, and
 the CI acceptance script — **14 tasks in nine agreed sittings, of which SITTING 1 IS DONE**
-(2026-09-18, 18 findings, `docs/superpowers/spikes/p5c-baseline/`). It is the last plan of
+(2026-09-18, 19 findings, `docs/superpowers/spikes/p5c-baseline/`). It is the last plan of
 Phase 1c. **The next job is its sitting 2**, Tasks 2 and 3 — **the ONE sitting in the plan with
 the network on**, so what it fails to install, no later sitting may add; **ORIENTATION §7e says
 what to read and in what order.** Rich settled three things in it: nine sittings (the leaner of
