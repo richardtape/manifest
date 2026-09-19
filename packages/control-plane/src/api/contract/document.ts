@@ -8,8 +8,22 @@ import { readsBody, type AnyRoute } from './route.js'
 import { component, ref, representations, requests } from './schemas.js'
 import { STREAM_PATH, streamPathItem } from './websocket.js'
 
-/** `@manifest/contract`'s version too; a test holds them equal from Task 7 (Decision 8). */
-export const CONTRACT_VERSION = '0.1.0'
+/**
+ * `@manifest/contract`'s version too; a test holds them equal from P5a Task 7 (Decision 8).
+ *
+ * **`1.0.0` SINCE P5c TASK 13 (2026-09-19).** P5a Decision 8 reserved exactly this:
+ * *"The major version is the path. P5c sets `1.0.0` when the console has proved the
+ * contract."* It has — D22's reference console drives §22's whole journey through nothing
+ * but this document's generated client, and `packages/console/src/coverage.test.ts` holds
+ * every one of its 34 operations to having a caller. From here an ADDITIVE change bumps the
+ * minor; a BREAKING one is a new path prefix served beside `/v1`, never an edit to it
+ * (D23.8).
+ *
+ * Three files carry it and two tests hold them together: this constant,
+ * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,
+ * never edited) and `packages/contract/package.json`.
+ */
+export const CONTRACT_VERSION = '1.0.0'
 
 type JsonSchema = Record<string, unknown>
 

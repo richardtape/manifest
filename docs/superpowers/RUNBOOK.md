@@ -459,6 +459,57 @@ it is what Task 10's expiry sweeper exists for, and §26's queue shows it beside
 `rejected` ones. A `FAIL no step threw — [cause UNABLE_TO_GET_ISSUER_CERT_LOCALLY] TypeError: fetch failed` is a
 run without the platform CA; a demo that does not build stops at step 0 and prints `tsc`'s errors.
 
+## `make ci-acceptance` and `make demo-console` — 1c's acceptance, in two halves
+
+*Added by P5c sitting 8, 2026-09-19 (Task 13).*
+
+Phase 1c's acceptance is §22's journey proved twice over ONE contract: **clicked by a
+person** and **run headlessly**. They are two targets because the two halves fail for
+different reasons and a combined red run would not say which client broke.
+
+```bash
+make ci-acceptance      # the headless half: the gates with their COUNTS, then both journeys
+make demo-console       # the clicked half: serves the console and prints the checklist
+```
+
+**`make ci-acceptance` asserts COUNTS, not exit codes** (P5c Decision 12). `vitest run`
+against a path that matches no file prints `No test files found` and **exits 1**, and a
+summary-only filter swallows that line, leaving a result that looks exactly like nothing
+failed (P5b sitting 9, F5). So the script carries the four numbers from ORIENTATION §2's
+box and reports a difference as **`MOVED`** rather than as a failure — a test added on
+purpose must not fail the run; what must not happen is that it moves and nobody notices.
+**When it moves, update ORIENTATION §2's box, `README.md`, `RUNBOOK.md` and
+`scripts/ci-acceptance.sh` together.**
+
+Every step **reports rather than exits** (P4c Decision 26), so a red run is a measurement
+of everything that is broken rather than a stop at the first thing. It runs, in order:
+`make doctor`, `make verify`, `pnpm lint`, `pnpm typecheck`, `pnpm format:check`,
+`pnpm test`, the three package builds, then `make demo-journey` and `make demo-token`.
+
+**`pnpm test` runs BEFORE the demos and the order is load-bearing**: it TRUNCATES the
+control plane's §6 tables. The other way round it would empty the database the demos had
+just filled, and which step made the machine what it is would be hidden.
+
+**There is no CI workflow file, deliberately** (P5c Decision 11). Nothing can run this but
+a Mac with Docker Desktop, Ollama with two models, the platform CA trusted in the keychain
+and the `127.0.0.2` loopback alias. A workflow no runner executes is a module with no call
+site — this script is the caller, and the day a runner exists the workflow is three lines
+that invoke it.
+
+**What it does not cover, and where each one lives instead:**
+
+| Not covered | Where it is |
+|---|---|
+| The CLICKED journey | `make demo-console`, run by a person. The Chrome extension will not type a password, even a test user's (ORIENTATION §4) |
+| `pnpm test:docker` (~13 min) | Owed only by a change to `runtime/`, `routing/`, `services/`, `build/`, `releases/`, `identity/`, `sso/`, `secrets/`, `projects/`, `blueprints/`, `ai/`, `observability/`, `infra/` or a `*.docker.test.ts` |
+| The OFFLINE acceptance | `scripts/offline-acceptance.sh`, run by hand with the network off — its steps are numbered **0 to 9**, where 0 is the precondition. It is the only thing that runs `make demo-identity` and `make demo-ai` |
+
+**`make demo-console` signs nobody in.** It builds the contract and the console, checks
+the control plane answers `UNAUTHENTICATED` through the edge, starts `vite preview` on
+7104, waits for `https://console.manifest.internal/` to answer with **the console's own
+document** — not the wildcard's `manifest OK host=…`, which answers 200 for any name and
+any path — prints the checklist, and stops the server it started when you press Ctrl-C.
+
 ## The first administrator
 
 *Added by P5a Task 16, 2026-09-17.*
