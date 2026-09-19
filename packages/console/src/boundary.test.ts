@@ -118,12 +118,11 @@ describe('the console’s imports (D22, §22, §16 API completeness)', () => {
     // A scanner that ate the source reports no violations AND no imports; these two say
     // which it was (P5b sitting 8, F3).
     //
-    // `react` rather than `@manifest/contract`, which is what the plan wrote and what the
-    // journey's copy asserts: no console file imports the contract until Task 4 writes
-    // `api.ts`, so the plan's assertion would fail here for a reason that has nothing to do
-    // with the boundary. TASK 4 SHOULD TIGHTEN THIS TO `@manifest/contract` — it is the
-    // import D22 is actually about, and `react` only proves the scanner read something.
-    expect(allowed, 'the scanner read no imports at all').toContain('react')
+    // TIGHTENED BY TASK 4, as sitting 2's F7 asked. Until `api.ts` existed this could only
+    // assert `react`, which proves the scanner read SOMETHING; `@manifest/contract` is the
+    // import D22 is actually about — the console is a client of the published contract, and
+    // a console that had stopped importing it would satisfy every other assertion here.
+    expect(allowed, 'the scanner read no imports at all').toContain('@manifest/contract')
     expect(filesRead.size, 'imports were read from fewer than two files').toBeGreaterThan(
       1,
     )

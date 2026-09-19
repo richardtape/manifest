@@ -51,6 +51,53 @@ And two acceptances: `make demo` (P3's — an app, from a bare repository to a U
 `make demo-identity` (P4a's — a real person, signed in with CWL, whose note nobody
 else can see). Both are described below, and both need the control plane running.
 
+## Running the reference console
+
+*Added by P5c sitting 3, 2026-09-18 (Task 4). D22's reference console — the executable
+proof that the public API is complete and sufficient. It is not the product.*
+
+It is a plain React + Vite client (`packages/console`) run as a **host process on 7104**,
+exactly where §21's inventory puts it. The edge forwards everything that is not `/v1/*` or
+`/auth/*` to it, so the console and the API are **one origin**.
+
+```bash
+make up
+# ... the control plane running, per README's "Running the control plane" ...
+pnpm --filter @manifest/contract build      # the console BUNDLES dist/, and typechecks src/
+pnpm --filter @manifest/console dev         # or `preview`, after `pnpm --filter @manifest/console build`
+open https://console.manifest.internal/
+```
+
+**Reach it at `https://console.manifest.internal` and NEVER at `127.0.0.1:7104`.** The
+second address serves the same bytes and is a trap, and what it actually does is worth
+knowing because it is not a refusal — **measured 2026-09-18**: on 7104 there is no edge
+and no control plane, so **Vite answers `GET /v1/me` itself with `index.html` and `200`**
+(its SPA fallback) and a `POST /auth/logout` with `404`. The console then fails on
+`SyntaxError: Unexpected token '<' … is not valid JSON` — visible, at least, because
+`<Refusal>` renders a non-`ManifestApiError` too. Sign-in cannot work there either: the
+control plane's SAML ACS is registered at the console's origin, so the assertion never
+comes back to where the sign-in started. `403 CSRF_ORIGIN_REFUSED` (§20, P5a Task 4) is
+what a console served from some *other* origin that CAN reach the API would get; it is not
+what 7104 gives you.
+
+**Build the contract first, every time.** `packages/contract`'s `exports` map is
+conditional — `"types": "./src/index.ts"`, `"default": "./dist/index.js"` — so `tsc`
+reads the SOURCE and Vite bundles `dist/`. A stale `dist/` ships with every gate green
+(P5c sitting 1, F3).
+
+| What you see | What it is |
+|---|---|
+| `502` at `/` | Nothing is listening on 7104. The edge is fine; start the console. |
+| `manifest OK host=… scheme=https` | The request never reached the console site at all — it was answered by the wildcard. **Read the body, never the status.** |
+| *Blocked request. This host is not allowed.* | `vite.config.ts` lost `allowedHosts`. The edge **preserves** `Host: console.manifest.internal` rather than rewriting it (P5c sitting 1, M1). |
+| The sign-in screen when you were signed in | `GET /v1/me` answered `401`. `pnpm test` truncates `users` on every run, and a restart of the control plane does not restore a session. |
+
+`dev` gives HMR (its socket goes through the edge as `wss://console.manifest.internal`,
+measured in P5c sitting 1's M3); `preview` serves the production build and is what the
+acceptance uses. Either way **stop it by port** when you are done —
+`lsof -nP -iTCP:7104 -sTCP:LISTEN -t | xargs kill` — because each shell is its own and
+`kill %1` has no job table to read.
+
 ## `make demo` — an app, from a bare repository to a URL
 
 *Added by P3 Task 17. First run green 2026-09-07.*

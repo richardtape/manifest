@@ -77,8 +77,22 @@ console.manifest.internal {
 			# that, and is replayed the events (D23.2).
 			stream_close_delay 1h
 		}
-		# P5c replaces this line with the console itself.
-		respond "manifest console: not built yet — P5c serves it here. The API is under /v1/." 200
+		# P5c Task 4: the reference console, a host process on 7104 (§21's inventory), on the
+		# SAME ORIGIN as the API — so the session cookie, §20's CSRF origin and the control
+		# plane's SAML return URL are one HTTPS origin with no CORS. `vite dev` while working
+		# on it, `vite preview` for the acceptance.
+		#
+		# IT MUST STAY BELOW THE @api MATCHER AND INSIDE THIS `route` BLOCK: outside one Caddy
+		# sorts handlers itself and a catch-all would answer /v1/* too.
+		#
+		# A 502 here means nothing is listening on 7104, NOT that the edge is broken — and a
+		# `manifest OK host=… scheme=https` body means the request never reached this site at
+		# all, it was answered by the wildcard. Read the body, never the status.
+		#
+		# The edge does NO SPA fallback and it PRESERVES `Host: console.manifest.internal`
+		# (Task 1, M1) — so whatever serves 7104 owes both. `vite.config.ts` carries
+		# `allowedHosts`, and Vite's own `appType: 'spa'` serves index.html for an unknown path.
+		reverse_proxy host.docker.internal:7104
 	}
 }
 

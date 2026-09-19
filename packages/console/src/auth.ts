@@ -28,8 +28,23 @@ export function signIn(returnTo: string = location.pathname + location.search): 
  * Ends the session and reloads. `POST /auth/logout` is NOT exempt from §20's origin check —
  * only the SAML callback is — and a browser sends `Origin` itself, which is why the console
  * must be reached at `console.manifest.internal` and never at `127.0.0.1:7104`.
+ *
+ * IT ASSERTS THE SHAPE OF THE ANSWER, NOT THAT AN ANSWER ARRIVED (Task 4). The first draft
+ * awaited the POST and left for `/` whatever came back, so a refused sign-out reloaded the
+ * page, `getMe` succeeded, and the person was STILL SIGNED IN with nothing saying so — this
+ * codebase's most productive defect shape (ORIENTATION §4, the swallowed catch).
+ *
+ * `response.ok` would not be enough either. Measured 2026-09-18 at `127.0.0.1:7104`: the
+ * console's own Vite server answers every GET under `/v1` with `index.html` and **200**, and
+ * a POST under `/auth` with 404 — so an `ok` check calls a sign-out that never reached the
+ * control plane a success. The route answers **204** and nothing else.
  */
 export async function signOut(): Promise<void> {
-  await fetch('/auth/logout', { method: 'POST' })
+  const response = await fetch('/auth/logout', { method: 'POST' })
+  if (response.status !== 204) {
+    throw new Error(
+      `sign-out was refused: POST /auth/logout answered ${response.status}, not 204`,
+    )
+  }
   window.location.href = '/'
 }

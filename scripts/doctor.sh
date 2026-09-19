@@ -169,10 +169,28 @@ control_plane_is_ours() {
   curl -sS -m 2 "http://127.0.0.1:$PORT_CONTROL_PLANE/v1/me" 2>/dev/null \
     | grep -q 'UNAUTHENTICATED'
 }
+# THE SAME DEFECT, SEVEN PLANS LATER, FOR THE SAME REASON (P5c Task 4, 2026-09-18).
+# §21 puts the reference console on 7104 as a host process too, so `manifest_own_ports`
+# cannot see it either, and the first `make doctor` run after the console was served read
+# "CLAIMED BY SOMETHING ELSE: 7104". The remedy is the one above: ASK IT, do not match a
+# process name — `node` on 7104 is a guess. `vite dev` and `vite preview` both serve
+# packages/console/index.html, whose #root div and title are this application's document.
+#
+# THE MOCK ON 7102 WILL NEED THE SAME and deliberately does not have it yet: nothing runs
+# manifest-mock until P5c Task 12, and a check for a process nothing starts is the
+# no-caller shape ORIENTATION §9 names four times. Task 12 adds it, keyed on whatever the
+# mock then answers.
+console_is_ours() {
+  local body
+  body=$(curl -sS -m 2 "http://127.0.0.1:$PORT_CONSOLE/" 2>/dev/null) || return 1
+  case "$body" in *'id="root"'*) ;; *) return 1 ;; esac
+  case "$body" in *'<title>Manifest</title>'*) return 0 ;; *) return 1 ;; esac
+}
 check_block() {
   local p busy="" foreign="" ours
   ours=" $(manifest_own_ports | tr '\n' ' ')"
   if control_plane_is_ours; then ours="$ours $PORT_CONTROL_PLANE "; fi
+  if console_is_ours; then ours="$ours $PORT_CONSOLE "; fi
   for p in $(seq $PORT_BLOCK_START $PORT_BLOCK_END); do
     port_free "$p" && continue
     case "$ours" in

@@ -1,18 +1,162 @@
-/* §22's quality bar lives here, and Task 4 writes it in full: system fonts, one column,
-   about eighty lines of plain CSS. This file exists from Task 2 because `main.tsx` imports
-   it and `vite build` refuses to resolve an import of a file that is not there — a build
-   this task's own Step 10 runs. Prettier owns it, because it is under packages/. */
+/* §22's QUALITY BAR, and the whole of it: "plain but presentable — no design system, no
+   branding, system fonts, minimal CSS. Coherent enough to walk a pilot faculty member
+   through, obviously not polished enough that anyone mistakes its choices for product
+   decisions." One column, system fonts, about eighty lines. Nothing here is a product
+   decision and nothing here is reusable: the real experience is the separate front-end
+   project's job, and §26's admin console inherits the console's SHAPE, not its stylesheet.
+
+   Imported once, by main.tsx. Prettier owns this file, because it lives under packages/. */
 
 :root {
   color-scheme: light dark;
+  --ink: #1a1a1a;
+  --paper: #fff;
+  --quiet: #5a5a5a;
+  --line: #d8d8d8;
+  --bad: #a11;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e8e8e8;
+    --paper: #1b1b1d;
+    --quiet: #a0a0a0;
+    --line: #3a3a3d;
+    --bad: #f77;
+  }
 }
 
 body {
   margin: 0;
+  background: var(--paper);
+  color: var(--ink);
   font-family:
     system-ui,
     -apple-system,
     'Segoe UI',
     sans-serif;
   line-height: 1.5;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font: inherit;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+
+button:disabled {
+  color: var(--quiet);
+  cursor: default;
+}
+
+/* ONE COLUMN, and the same column for the header — so the brand lines up with the content
+   under it at every width. */
+.shell,
+.shell-header {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.shell-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+}
+
+.shell-header .brand {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.shell-header nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.shell-header .who {
+  margin-left: auto;
+  color: var(--quiet);
+}
+
+.signin {
+  max-width: 28rem;
+  padding-top: 4rem;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 1rem 1rem;
+  margin: 1rem 0;
+}
+
+.panel h2 {
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--quiet);
+}
+
+.field {
+  margin: 0.4rem 0;
+}
+
+.field .label {
+  display: inline-block;
+  min-width: 10rem;
+  color: var(--quiet);
+}
+
+.pill {
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.85em;
+}
+
+.pill-good {
+  border-color: currentcolor;
+}
+
+.pill-bad {
+  color: var(--bad);
+  border-color: currentcolor;
+}
+
+/* D23.7's refusal, rendered in one place by <Refusal>: a stable code a person can quote,
+   the message, and the hint that says what to do about it. */
+.refusal {
+  border: 1px solid var(--bad);
+  border-left-width: 4px;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  margin: 1rem 0;
+}
+
+.refusal .hint {
+  color: var(--quiet);
+}
+
+.pill-plain {
+  color: var(--quiet);
 }

@@ -46,6 +46,9 @@ LITELLM_DIGEST="$(awk '$1 ~ /berriai\/litellm/ {print $2}' "$(dirname "${BASH_SO
 export LITELLM_DIGEST
 
 PORT_CONTROL_PLANE=7100
+# §21's inventory: the reference console (D22) is a HOST process, like the control plane —
+# `vite dev` while working on it, `vite preview` for the acceptance (P5c Decision 4).
+PORT_CONSOLE=7104
 PORT_POSTGRES=7103
 PORT_LITELLM=7106
 PORT_REGISTRY=7107

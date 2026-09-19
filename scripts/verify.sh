@@ -804,11 +804,32 @@ check "host and container see a byte-identical hostname and scheme"  parity
 # wrong reason: a site that refuses EVERYONE passes the second, a site that refuses NO
 # ONE passes the first, and a Caddyfile allowing a stale address passes both until the
 # platform network's subnet moves.
+# P5c Task 4 (2026-09-18) replaced the placeholder `respond` with a `reverse_proxy` to the
+# reference console on 7104, so this check can no longer assert the placeholder's words.
+# IT KEEPS ITS ORIGINAL QUESTION — did a request from the HOST reach the console SITE,
+# rather than being refused by @outside or falling through to the wildcard — and answers it
+# WITHOUT REQUIRING THE CONSOLE PROCESS TO BE RUNNING, because `vite dev` on 7104 is a
+# developer's host process and no part of `make up`. The four answers it distinguishes:
+#
+#   [502]                          the site matched and forwarded; nothing on 7104. PASS
+#   [200] + the console's document the console is running. PASS
+#   "manifest: the control plane…" @outside REFUSED the host — the failure this exists for
+#   "manifest OK host=…"           the WILDCARD answered; this site did not match at all
+#
+# The last two are why a bare status check will not do: the wildcard answers 200 for any
+# path and any name (ORIENTATION §4), so `[200]` alone passes for the wrong reason.
 console_serves_host() {
   local out
   out=$(curl -sS -w ' [%{http_code}]' "https://$CONSOLE_HOST/" 2>&1)
   echo "$out"
-  case "$out" in "manifest console: not built yet"*"[200]") return 0 ;; *) return 1 ;; esac
+  case "$out" in
+    *"manifest OK host="*) return 1 ;;
+    *"the control plane is not reachable"*) return 1 ;;
+    *'[502]') return 0 ;;
+  esac
+  case "$out" in *'[200]') ;; *) return 1 ;; esac
+  case "$out" in *'id="root"'*) ;; *) return 1 ;; esac
+  case "$out" in *'<title>Manifest</title>'*) return 0 ;; *) return 1 ;; esac
 }
 check "the host reaches https://$CONSOLE_HOST and is not refused" console_serves_host
 
