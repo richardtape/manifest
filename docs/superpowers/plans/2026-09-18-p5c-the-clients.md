@@ -2637,6 +2637,27 @@ inventing authority.
 **The sitting this plan exists for as much as any.** `make demo-token` drives D24's whole loop
 with `curl`; this is a person seeing an agent's question, reading what it would do, and deciding.
 
+> **[SITTING 6] ONE OF STEP 1'S FOUR SNIPPETS DOES NOT COMPILE, AND IT IS `confirmPendingAction`.**
+> Measured at the close of sitting 6 by pasting all four into `packages/console/src/api.ts`
+> verbatim and running `tsc --noEmit`: three are clean and that one is
+> **`TS2345 … Property 'body' is missing in type … but required in type '{ body: {} & …}'`**.
+> `POST …/confirm` takes a **required** `EmptyRequest` body in the document — `requestBody.required`
+> is `true` with schema `EmptyRequest` — so the call needs `body: {}`, exactly as `validateSpec`
+> already passes it. **Add the one line:**
+> ```ts
+>         await client.POST('/v1/pending-actions/{pendingActionId}/confirm', {
+>           params: { path: { pendingActionId }, ...key(idempotency) },
+>           body: {},          // ← REQUIRED: EmptyRequest, and tsc refuses the call without it
+>         }),
+> ```
+> With it, `tsc --noEmit` is clean; the fix was verified and then reverted, so the tree you are
+> handed is untouched. **`rejectPendingAction` is fine** — it passes `body` already — and the two
+> GETs take none. Every schema name Step 1 uses exists and matches the document
+> (`PendingActionList`, `PendingAction`, `RejectPendingActionRequest`), and `Idempotency-Key` is
+> required on confirm and reject and **not** on the two reads. *Sitting 5's audit recorded the
+> opposite result for Tasks 9 and 10 — all five of their snippets compiled — so do not assume
+> either way; this one was tested.*
+
 **Files:**
 - Create: `packages/console/src/screens/queue.tsx`
 - Modify: `packages/console/src/api.ts`, `packages/console/src/screens/project.tsx`
