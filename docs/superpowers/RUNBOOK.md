@@ -310,9 +310,10 @@ and the current numbers are **`make doctor` 18 / 0 and `make verify` 51 / 0**
 (re-measured 2026-09-19 at the end of **P5c sitting 8**, which moved `pnpm test` and left the other three where it found them; sitting 3 measured doctor and verify **in both of the two machine states that now exist — the reference console running on 7104, and 7104 free** — and they are unchanged since P5a sitting 11. The unit tier is **1376 tests in 107 files**, up 21 and four files in sitting 8: `packages/mock/src/validate.test.ts`, `packages/mock/src/server.test.ts`, `packages/console/src/api.test.ts` and `packages/console/src/coverage.test.ts`. `pnpm test:docker` is **178 in 29 files, 0 skipped, 795 s**, run in sitting 8 because its `make doctor` repair touches `infra/lib/common.sh` and `routing/edge-source-refusal.docker.test.ts` reads that file; sittings 4 to 7 neither ran nor owed it.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
-disabling Wi-Fi cuts an agent off too. **It now has NINE steps** — P5a sitting 12 added `make demo-journey` as step 8, and
-P5b sitting 9 added `make demo-token` as step 9, both guarded by the same control-plane
-check as steps 6 and 7. The evidence is left exactly as recorded — a run is a run — and this
+disabling Wi-Fi cuts an agent off too. **It now has TEN steps** — P5a sitting 12 added `make demo-journey` as step 8,
+P5b sitting 9 added `make demo-token` as step 9, and P5c sitting 9 added the console's
+preflight as step 10 (2026-09-19), all guarded by the same control-plane check as steps 6
+and 7. The evidence is left exactly as recorded — a run is a run — and this
 note exists so nobody reads it as today's baseline.
 
 **Offline: PASSED, 2026-09-05.** Wi-Fi disabled on `en0` (the machine's only
@@ -960,8 +961,9 @@ restarts every container on the machine, so it is a person's call rather than a 
   `make reset` machine. **P4b's Task 16 appended a step 7, `make demo-ai`** (2026-09-15),
   equally unrun offline; its open question is whether **Ollama** — a host application,
   not a container — answers with the network off. **P5a sitting 12 appended a step 8,
-  `make demo-journey`, and P5b sitting 9 a step 9, `make demo-token`** (2026-09-18) — the
-  script now has nine steps and all four of the appended ones are unrun offline. Step 9
+  `make demo-journey`, P5b sitting 9 a step 9, `make demo-token` (2026-09-18), and P5c
+  sitting 9 a step 10, the console's preflight (2026-09-19)** — the
+  script now has ten steps and all five of the appended ones are unrun offline. Step 9
   should want the network least of any of them: its credential is `node:crypto` and its
   build comes from the same mirror step 6 already exercises.
 - **A redeploy no longer 502s the app or signs anyone out — for apps on the current blueprint.**

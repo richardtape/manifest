@@ -63,8 +63,9 @@ client; it is step 8 of the same script. *Sittings pace the work; they are not �
 Phases.*
 
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
-turning the network off from a tool call cuts the agent off too; **it now has NINE steps**, the
-newest being `make demo-token`), the second-machine clean clone, starting the UBC external track
+turning the network off from a tool call cuts the agent off too; **it now has TEN steps**, the
+newest being the console's preflight — that the console builds from the checked-in contract
+and the edge serves its own document, the one claim about the console a script can falsify), the second-machine clean clone, starting the UBC external track
 (its trigger fired on 2026-09-15), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 8**,
 applied by the agent session itself and **re-measured by the scripts themselves afterwards**: `dead-app-resources.sh`
 reads `none dead` and `litellm-orphans.sh` reads 0 orphaned. They were clear at sitting 1's close
