@@ -1576,7 +1576,7 @@ curl -s --cacert infra/ca/manifest-root.crt \
 
 ## 7. What to do next
 
-**The next job is §7e — EXECUTE P5c's SITTING 4, Tasks 5 and 6. P5c's sittings 1, 2 and 3 ran on 2026-09-18 with 19, 10 and 9 findings; Tasks 1 to 4 of its 14 are done, nothing is part-finished, and nothing blocks the next sitting.** **The one sitting with the network on is OVER**, so nothing from here to the end of the plan may install a package. Each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
+**The next job is §7e — EXECUTE P5c's SITTING 5, Tasks 7 and 8. P5c's sittings 1, 2, 3 and 4 ran on 2026-09-18 with 19, 10, 9 and 9 findings; Tasks 1 to 6 of its 14 are done, nothing is part-finished, and nothing blocks the next sitting.** **It is the HEAVY sitting — both streaming screens, and the first in this plan to run a real build and a real deploy.** **The one sitting with the network on is OVER**, so nothing from here to the end of the plan may install a package. Each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
 
 ### 7a. The executed plans, and which of their records to read first
 
@@ -1618,20 +1618,30 @@ believes it needs a package, that is a finding to record and raise, not a step t
    this plan makes***. Of *Read this first*'s twenty numbered items, **2, 5, 7 and 12 land
    hardest here** — *checked by opening them and reading them, not by remembering; the first
    draft of this line said 5, 6, 7 and 19, and 6 is Task 6's material and 19 is Task 13's*.
-   **Item 2 is the one that bites first**: the generated types make `?tail=` mandatory on
-   `getBuildLog` and an `Idempotency-Key` mandatory on `startBuild`, `deploy` and
-   `createRelease`, so the data layer will not compile without them. Then 5, the stream's
+   **Item 2 is the one that bites first, and read it in the DOCUMENT rather than in the
+   plan's summary of it**: `Idempotency-Key` is a **required header** on `startBuild`,
+   `deploy` and `createRelease` — all three of this sitting's mutations — so the data layer
+   will not compile without it. **`?tail=` on `getBuildLog` and `?expand=` on `getProject`
+   are NOT required**, whatever *Read this first* item 2's opening sentence suggests; an
+   earlier draft of this very line said `?tail=` was mandatory, which is what restating a
+   document instead of querying it does (§9). `python3 -c` over `packages/contract/openapi.json`
+   settles any such question in one line. Then 5, the stream's
    subscribe-then-replay-then-flush shape with its `control` frame boundary; 7, why a console
    that parses a frame learns nothing useful from a `zod/v4` union's refusal; and 12, the
    console site's own `stream_close_delay`, which sitting 4 could not make bite (F7).
-2. **Task 7 in full, then Task 8 in full.**
+2. **Task 7 in full, then Task 8 in full — including the `[SITTING 4]` correction block at
+   the top of EACH.** They are not commentary; each names a snippet that does not work.
+   **Task 7's `liveBuild` does not typecheck** (a compound `.filter` condition defeats TS
+   5.9's inferred type predicate — measured, with the one-line fix), and **two of Task 8's
+   four functions already exist in `api.ts`**, so pasting its Step 1 whole is a duplicate key.
 3. **Sitting 4's entry in the plan's *What executing this plan found*** — nine findings.
    **F5, F7 and F8 change what you do.** F5: `POST …/spec` publishes no event, so do not assume
    a mutation announces itself — **check which of your routes publish**, because Task 7's whole
    premise is that a build ends on the stream. F7: `stream_close_delay`'s control did NOT fire
    and the plan's Task 6 row is wrong about it; the block at the top of Task 6 says what to do
-   if you need it. F8: **the gates destroy the clicked state**, and your controls run after the
-   commit — so plan to rebuild a project, or run the controls before the gates.
+   if you need it. F8: **the gates destroy the clicked state** — which is why the run list below
+   puts the clicking and the controls BEFORE `pnpm test`, not after. Sitting 4 learned it the
+   expensive way and had to rebuild its project mid-sitting.
 4. **Sitting 3's entry**, for F5 (`response.ok` is the wrong check anywhere in this console)
    and F3 (two platform gates see the Caddyfile's console line).
 5. **§4 of this file — searched, not read — and §6 IN FULL**, including the sweep table and the
@@ -1656,6 +1666,35 @@ believes it needs a package, that is a finding to record and raise, not a step t
 - **The ESLint console boundary now allows `../`** (sitting 4, F2). Screens live in
   `src/screens/` and the boundary test asserts the scanner descends into it.
 
+**THIS SITTING RUNS A REAL BUILD AND A REAL DEPLOY, AND NOTHING ELSE IN P5c HAS.** Sittings 1
+to 4 touched Docker only through the test tier. Tasks 7 and 8 drive `runtime/docker` for real,
+through the console, so read this before you start:
+
+- **The boot line must say `{"driver":"docker"}`.** README's block prints it and says *read it*.
+  **A control plane on the FAKE driver will let this whole sitting pass while building nothing**
+  — that is P3's lesson, and it is the one failure here that looks like success.
+- **A first build of `node-ts-mongo@1` takes MINUTES** (the builder's own timeout is 900 s), and
+  it needs Verdaccio warm, the local registry, and the mirrored base images. `make verify`
+  asserts the mirror on every run, so a green verify is your evidence before you start.
+- **Create the project WITH the `proof-app` starter.** A skeleton-only project builds, but it
+  has no CWL sign-in — and **Task 8's step 3.2 is a person signing in INSIDE the deployed app**,
+  which needs the starter. `blueprints/node-ts-mongo/starters/proof-app/` is what `make
+  demo-token` deploys, so it is a proven build target.
+- **If a build fails, find out whether it is YOUR SCREEN or the machine before debugging the
+  screen.** `make demo` drives build → release → deploy through the real HTTP surface with no
+  console involved; if it fails too, the fault is not yours. §4's build traps are the ones to
+  search: the hung `docker-credential-desktop`, `registry garbage-collect`, the OCI `Accept`
+  header, and `npm install` warming nothing.
+- **A deploy of an app that declares models MINTS A LITELLM KEY AND USER.** proof-app declares
+  two, so expect `scripts/litellm-orphans.sh` to report one more orphan at your close than it
+  did at your start. That is yours, not a fault.
+- **Expect `make verify`'s per-app meter to MOVE** — a deployed app is three containers, one
+  network and two volumes. That is your own sitting's residue: run both cleanup scripts bare at
+  close and hand the output to Rich, who applies. **Do not leave it unnamed.**
+- **CLICK BEFORE YOU RUN THE GATES.** `pnpm test` truncates the tables and will take your
+  project, its builds and its releases with it while the CONTAINERS keep running — which is how
+  dead app resources are made (sitting 4, F8). Do the clicking and the controls first.
+
 **How to run this sitting, in order.** *Every §7e carries one of these, because P5b sitting 7
 found that an ordered list which omits one step omits the one the deliverable rests on.*
 
@@ -1665,20 +1704,28 @@ found that an ordered list which omits one step omits the one the deliverable re
    **`make verify`'s per-app INFO line reading `containers=3 networks=1 volumes=2`**. A
    disagreement is your first finding.
 2. **Start the control plane** — this sitting needs it. README's *Running the control plane* is
-   the whole export block; `set -a; . ./.env; set +a` alone is NOT enough.
+   the whole export block; `set -a; . ./.env; set +a` alone is NOT enough. **Read its boot
+   line and check it says `"driver":"docker"`** — on `fake` this whole sitting passes while
+   building nothing.
 3. **Start the console**: `pnpm --filter @manifest/contract build`, then
    `pnpm --filter @manifest/console dev`. Check `https://console.manifest.internal/` serves it
    and **read the body** — a `manifest OK host=…` body means the wildcard answered.
-4. **Create a project to work on.** The tables are EMPTY (see the state table). Sign in and
-   click one up at `/`, or script one `POST /v1/projects`. **Do it before any Vitest run.**
-5. **Read the five things above, in their order.**
-6. **Run Task 7, commit; then Task 8, commit.** One commit per task. **Neither task owes
-   `pnpm test:docker`** — they touch no `routing/`, `infra/` or `*.docker.test.ts`. **But a
-   REAL build and a REAL deploy will run Docker**, which is not the tier: expect app
-   containers, a network, volumes and an image, and expect `make verify`'s meter to move.
-   **That is your own sitting's residue and therefore yours to clear**, unless the classifier
-   refuses — then hand the scripts' output to Rich.
-7. **Close out** (§6's sweep): the roadmap ledger first — **including its defect-rate table** —
+4. **Read the five things above, in their order.**
+5. **Create a project to work on, WITH the `proof-app` starter.** The tables are EMPTY (see the
+   state table). Sign in and click one up at `/` — Task 5's screen does this, and using it is
+   a free re-test of the last sitting — or script one `POST /v1/projects`. **Do it AFTER the
+   baseline gates and before you write anything**, because every Vitest run destroys it.
+6. **Run Task 7: write it, then CLICK IT, then run its controls, then the gates, then commit.**
+   The clicking and the controls come before `pnpm test`, not after — the gates truncate the
+   tables and take your project, its builds and its releases with them while the containers
+   keep running (sitting 4, F8). **Then Task 8, the same way.** One commit per task.
+7. **Neither task owes `pnpm test:docker`** — they touch no `routing/`, `infra/` or
+   `*.docker.test.ts`. **But a REAL build and a REAL deploy ARE Docker**: expect app
+   containers, a network, volumes, an image and a LiteLLM user. **That is your own sitting's
+   residue** — run `bash scripts/dead-app-resources.sh` and `bash scripts/litellm-orphans.sh`
+   BARE at close and hand the output to Rich, who applies. An agent's classifier refuses
+   `docker network rm`.
+8. **Close out** (§6's sweep): the roadmap ledger first — **including its defect-rate table** —
    then this §7e, §2's numbers box, the plan's sittings table and its *What executing this plan
    found*. **The four shared HTML pages were swept by sitting 3 and checked by sitting 4**,
    which changed what a person can DO (create a project, watch a stream) without changing what

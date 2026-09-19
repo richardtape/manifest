@@ -2167,6 +2167,31 @@ git add packages/console && git commit -m "feat(console): the project screen and
 **§22 step 4.** A build answers `202` and ends on the stream (Rich's R6, P5a Task 13) — so this
 screen is the first place in the console where **an answer that arrived is not the answer**.
 
+> **[SITTING 4] STEP 2'S `liveBuild` SNIPPET DOES NOT TYPECHECK, AND IT IS NOT A TYPO —
+> MEASURED, NOT PREDICTED.** Pasted verbatim into `packages/console/src` on TypeScript
+> **5.9.3**, `tsc --noEmit` answers **`error TS2339: Property 'seq' does not exist on type
+> '{ kind: "event"; … } | …21 more…'`**, twice, on the `.sort((a, b) => a.seq - b.seq)` line.
+> TS 5.5+ infers a type predicate from `.filter((f) => f.kind === 'log')`, **but not from the
+> COMPOUND condition the snippet uses** — the `&& f.buildId === buildId` clause defeats the
+> inference, so `lines` stays `StreamFrame[]` and `seq` is not on every member. **The fix is
+> one explicit predicate, and it was verified clean:**
+>
+> ```ts
+> .filter((f): f is LogFrame => f.kind === 'log' && f.buildId === buildId)
+> ```
+>
+> `LogFrame` is exported from `@manifest/contract` — add it to the type import. The `ended`
+> `find` below is FINE as written and needs no predicate: narrowing inside the `&&` chain
+> works, and its result is only ever tested for truthiness. **This is the same family as
+> sitting 4's F4** (`addMember` answering a `Member`, not a `MemberList`): the generated types
+> are the thing that catches a client's mistake, so run `pnpm --filter @manifest/console
+> typecheck` as you write rather than at the end.
+>
+> **Two request bodies, read from the document so you do not have to guess:**
+> `StartBuildRequest` is `{ commitSha?: string }` with **nothing required** — `{}` is valid and
+> means the repository's HEAD — and `CreateReleaseRequest` is `{ buildId, summary? }` with
+> `buildId` **required**.
+
 **Files:**
 - Create: `packages/console/src/screens/builds.tsx`
 - Modify: `packages/console/src/api.ts`, `packages/console/src/screens/project.tsx`
@@ -2316,6 +2341,17 @@ ends.
 
 **§22 step 5, and the handoff to step 6** (the person opens the running app and signs in *inside*
 it, which is the app's own UI and not the console's).
+
+> **[SITTING 4] TWO OF STEP 1'S FOUR FUNCTIONS ALREADY EXIST — DO NOT PASTE THEM AGAIN.**
+> `listEnvironments` and `getEnvironment` are in `api.ts` already: **Task 6's own *Interfaces*
+> line produces them**, and sitting 4 wrote them there because the project screen renders §23's
+> three hostnames. The plan lists them under BOTH tasks, which is a duplicate in the plan
+> rather than a decision. Pasting Step 1 whole gives you two `listEnvironments` keys in one
+> object literal — **`tsc` says `TS1117` and ESLint says `no-dupe-keys`**, so it fails loudly
+> rather than silently, but it costs you the detour. **Task 8 adds exactly two functions:
+> `deploy` and `listIncidents`.** Its snippets for those two are correct as written.
+>
+> `DeployRequest` is `{ releaseId }`, required — read from the document.
 
 **Files:**
 - Create: `packages/console/src/screens/deploy.tsx`
@@ -4353,6 +4389,64 @@ checked* heading — so the assertion fired, the section was not written, and th
 on the next line ran anyway and shipped a message describing a section that did not exist.
 *An `&&` chain does not protect the command on the NEXT line*, and a commit message is not
 evidence of a commit's contents. Fixed by anchoring on the line number and amending.
+
+
+#### The cold-agent audit — asked after the sweep, and it found seven more
+
+*Rich asked whether "read ORIENTATION.md and proceed with the next sitting" would be enough for
+a cold agent to run sitting 5. Answering it properly meant reading §7e as that agent, then
+opening Tasks 7 and 8 and testing their snippets — which is a stronger check than §6's, because
+§6 verifies what the hand-off SAYS and this verifies what the next sitting will HIT.* **The same
+question produced P5b sitting 7's F14 and F15. It found seven here, two of them in the plan
+itself:**
+
+1. **Task 7's `liveBuild` snippet does not typecheck, and it is not a typo.** Pasted verbatim on
+   TypeScript **5.9.3**: `error TS2339: Property 'seq' does not exist on type '{ kind: "event"; … }
+   | …21 more…'`, twice. TS 5.5+ infers a type predicate from `.filter((f) => f.kind === 'log')`
+   — **but not from the COMPOUND condition the snippet uses**, because the `&& f.buildId ===
+   buildId` clause defeats the inference. Fix verified clean: `.filter((f): f is LogFrame => …)`,
+   with `LogFrame` imported from the contract. **A `[SITTING 4]` block at the top of Task 7 now
+   carries it**, with the two request-body shapes read out of the document.
+2. **Task 8's Step 1 re-adds two functions that already exist.** `listEnvironments` and
+   `getEnvironment` are produced by **Task 6's own *Interfaces* line** and were written in this
+   sitting; Task 8 lists them again. Pasting its Step 1 whole is `TS1117` plus ESLint's
+   `no-dupe-keys` — loud, not silent, but a detour. Task 8 adds exactly `deploy` and
+   `listIncidents`, and a `[SITTING 4]` block says so.
+3. **§7's own header still said "EXECUTE P5c's SITTING 4, Tasks 5 and 6" — after this sitting
+   had committed both.** §6's sweep replaced §7e and left the section header above it, and
+   **that is the exact failure §6 names**: *a stale one sends the next agent at a task that is
+   already committed.* The sweep table says "§7e and §2's numbers box" and does not mention §7's
+   own preamble, which is how it survived.
+4. **README's status paragraph said P5c had "nine agreed sittings, and none of them has run" and
+   "the next job is executing its sitting 1" — four sittings stale**, while README's own *Where
+   to start* table two paragraphs later was swept correctly every time. It even carried a
+   disclaimer pointing elsewhere for the count, *and then stated the count anyway* — the identical
+   shape sitting 3's post-sweep check found in ORIENTATION §2.
+5. **The roadmap's P5b row ended "the next job is its sitting 2" — three sittings stale.** A
+   FINISHED plan's row carrying a forward pointer decays by construction, because nothing in the
+   close-out ever revisits a finished row.
+6. **§7e's own gloss of *Read this first* item 2 was wrong, and this sitting wrote it.** It said
+   the generated types make `?tail=` mandatory on `getBuildLog`. **`tail` is `required: False`**,
+   and so is `?expand=`; only `Idempotency-Key` is required. The plan's item 2 opens *"Thirteen
+   operations carry a header or query parameter the generated types make mandatory"* and then
+   lists optional ones, and restating that sentence inherited its looseness — §9's *a document
+   that restates a number drifts from it*, one hop further out.
+7. **§7e's run list put the gates before the clicking.** Sitting 4's own F8 is that `pnpm test`
+   truncates and takes the clicked project with it, and the list still said *write it, gates,
+   commit*, with the controls after. For a sitting that BUILDS and DEPLOYS that is worse than it
+   was here: the containers survive the truncation and become dead app resources. Reordered to
+   *write → click → controls → gates → commit*, per task.
+
+**Both decaying pointers (4 and 5) were repaired by REMOVING the number rather than correcting
+it**, and each now says in place what it used to claim and for how long — the repair sitting 3
+settled on, because a corrected number decays again on the next sitting and a pointer to where
+the number lives does not. **§7e also gained a section it did not have**: what a REAL build and
+deploy need, which nothing in P5c has done before — the `{"driver":"docker"}` boot line (on
+`fake` the whole sitting passes while building nothing), that a first `node-ts-mongo@1` build
+takes minutes against a 900 s builder timeout, that the project must carry the `proof-app`
+starter or Task 8's step 3.2 has no CWL sign-in to demonstrate, that a deploy mints a LiteLLM
+user and moves `make verify`'s per-app meter, and that `make demo` is the way to tell a broken
+machine from a broken screen before debugging the screen.
 
 
 #### Documents checked and deliberately NOT changed
