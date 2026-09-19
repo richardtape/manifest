@@ -5715,9 +5715,24 @@ the `MEMBER_USER_NOT_FOUND` trap is armed for the clicked half.
 
 1. **Step 2 — the clicked journey**, all sixteen rows, with Rich typing `instructor` and
    `student`. The extension needs a per-site permission for `idp.manifest.internal` first.
-2. **Step 3's controls (b) and (e)**, both of which are only observable on screen.
+2. **Control (b)'s CLICKED half only** — the stream going `closed 1001` mid-build, which needs a
+   real deploy. *(e) is DONE (F10) and (b)'s tier half is DONE; see* **The mock session**.
+   **Five of six controls are measured.**
 3. **Step 5 — the whole close-out sweep**, which is bigger than a sitting's because this is the
-   last plan of Phase 1c. **F4's README staleness is already known and waiting for it.**
+   last plan of Phase 1c. *Partly discharged already, for the things that were false rather than
+   merely unfinished:* F4's README staleness is repaired, RUNBOOK carries the mock's newly
+   measured limit and the offline acceptance's tenth step, and WALKTHROUGH carries §22's journey
+   as a checklist a person can run alone. **What CANNOT be swept until Rich has clicked**: the
+   sittings table's row 9, the roadmap ledger's P5c row, ORIENTATION §2's plan table and §7e,
+   CLAUDE.md's *State*, and the four shared HTML pages' final pass — every one of which would be
+   claiming an acceptance that has not happened.
+
+**The machine, at the pause.** Restored for the clicked run and verified rather than assumed:
+the edge serves **the console's own document** at `https://console.manifest.internal/` (not the
+wildcard), `make doctor` reads **18/0**, the control plane is up on 7100 and the **production**
+console build is served on 7104, with **7102 and 7105 free** — the mock and its dev server were
+stopped after the session above. The console is left RUNNING on purpose, so that the ten-minute
+`Max-Age` clock starts only when Rich says he is ready.
 
 #### F8 — THE IdP SESSION DID NOT SURVIVE, AND THE ATTEMPT PROVED EVERYTHING EXCEPT THE PASSWORD
 
