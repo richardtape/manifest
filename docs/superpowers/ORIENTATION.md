@@ -1615,10 +1615,15 @@ believes it needs a package, that is a finding to record and raise, not a step t
 
 1. **The plan — [`plans/2026-09-18-p5c-the-clients.md`](plans/2026-09-18-p5c-the-clients.md)** —
    its **header, its sittings table, *Read this first*, *Decisions Rich made* and *Decisions
-   this plan makes***. Of *Read this first*'s twenty numbered items, **5, 6, 7 and 19 land
-   hardest here**: the stream's subscribe-then-replay-then-flush shape with its `control` frame
-   boundary, and why a console that parses a frame learns nothing useful from a `zod/v4`
-   union's refusal.
+   this plan makes***. Of *Read this first*'s twenty numbered items, **2, 5, 7 and 12 land
+   hardest here** — *checked by opening them and reading them, not by remembering; the first
+   draft of this line said 5, 6, 7 and 19, and 6 is Task 6's material and 19 is Task 13's*.
+   **Item 2 is the one that bites first**: the generated types make `?tail=` mandatory on
+   `getBuildLog` and an `Idempotency-Key` mandatory on `startBuild`, `deploy` and
+   `createRelease`, so the data layer will not compile without them. Then 5, the stream's
+   subscribe-then-replay-then-flush shape with its `control` frame boundary; 7, why a console
+   that parses a frame learns nothing useful from a `zod/v4` union's refusal; and 12, the
+   console site's own `stream_close_delay`, which sitting 4 could not make bite (F7).
 2. **Task 7 in full, then Task 8 in full.**
 3. **Sitting 4's entry in the plan's *What executing this plan found*** — nine findings.
    **F5, F7 and F8 change what you do.** F5: `POST …/spec` publishes no event, so do not assume

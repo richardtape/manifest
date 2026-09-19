@@ -4313,6 +4313,48 @@ re-run — **0, 0, 0** — and the stash popped. `pnpm test` ran **twice** at ba
 times. **`vite build` was run after every commit**, because sitting 2's F4 established that
 `tsc` is blind to a whole class of thing the build sees: 27 modules, then 244.74 kB.
 
+#### The post-sweep check — one wrong pointer, and nine claims that held
+
+*§6 says to re-read your own §7e as a cold agent and CHECK its claims by opening what they
+point at and counting. It has found a defect in every P5b sitting from the third onwards and
+in all four P5c sittings.* **One here, and it is the class §6 warns is worst — a wrong POINTER,
+which the next sitting inherits and multiplies:**
+
+1. **"Of *Read this first*'s twenty numbered items, 5, 6, 7 and 19 land hardest here" — two of
+   the four are wrong.** Opened and read: **item 6** is the three creation events, which is
+   Task 6's material and already done, and **item 19** is the two headless demo drivers, which
+   is Task 13's. The item that actually bites Task 7 first is **2** — the generated types make
+   `?tail=` mandatory on `getBuildLog` and an `Idempotency-Key` mandatory on `startBuild`,
+   `deploy` and `createRelease`, so the data layer will not compile without them — and **12**,
+   the console site's own `stream_close_delay`, belongs there too after F7. Corrected to
+   **2, 5, 7 and 12**, with the wrong draft named in §7e itself so the next reader can see the
+   check ran. *Found by opening the list; invisible from the sentence.*
+
+**Nine claims were checked and HELD**, which is worth recording because a check that only ever
+finds errors is not being run honestly: the plan's sittings table really does carry four
+`DONE 2026-09-18` rows reading **19, 10, 9 and 9**; `api.ts` really has **15** `async`
+operations against the document's **34**; **every export of `ui.tsx` now has a caller outside
+it** — `Ago` has 3, the fewest — and `useProjectStream` has 1; the Caddyfile really is
+`d832a952…` at inode `48091939` and clean in `git`; `pnpm test` really ran **six** times,
+counted from the captured output files; `0018_curvy_sister_grimm.sql` really is the newest
+migration; there really are **3** `mf-` containers; `git ls-files packages/console` really
+answers **17**; and the two commits really are **7** and **5** files.
+
+**A trap worth naming, because it nearly produced a tenth "finding":** the first run of the
+caller check used `grep -r --include=*.tsx`, and zsh answered `no matches found: --include=*.tsx`
+for every symbol, printing **`0 caller(s)`** six times. *A search that ate its own arguments and
+a real zero are the same observation* — the identical shape to this sitting's own F3, and to
+ORIENTATION §4's note that `grep` here is a shell function backed by `ugrep`. Re-run without the
+glob it reads 11, 26, 10, 18, 3, 9.
+
+**A second one, caught in this very check:** the edit that was to add this section asserted its
+anchor appeared once. **It appears FOUR times** — every sitting's record has a *Documents
+checked* heading — so the assertion fired, the section was not written, and the `git commit`
+on the next line ran anyway and shipped a message describing a section that did not exist.
+*An `&&` chain does not protect the command on the NEXT line*, and a commit message is not
+evidence of a commit's contents. Fixed by anchoring on the line number and amending.
+
+
 #### Documents checked and deliberately NOT changed
 
 *§6 asks that this be said rather than assumed.* **`manifest-decisions.html` and

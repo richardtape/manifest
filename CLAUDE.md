@@ -65,7 +65,7 @@ Phases.*
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
 turning the network off from a tool call cuts the agent off too; **it now has NINE steps**, the
 newest being `make demo-token`), the second-machine clean clone, starting the UBC external track
-(its trigger fired on 2026-09-15), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 3**,
+(its trigger fired on 2026-09-15), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 4**,
 applied by Rich and **re-measured by the scripts themselves afterwards**: `dead-app-resources.sh`
 reads `none dead` and `litellm-orphans.sh` reads 0 orphaned. They were clear at sitting 1's close
 too; sitting 2 ran no Docker tier and they stayed clear; **sitting 3 ran one and seven networks,
