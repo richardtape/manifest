@@ -5588,7 +5588,7 @@ already happened, which is why it caught the mock's file count and missed all th
 > controls (b) and (e), have not run**: they need Rich at the keyboard, because the Chrome
 > extension will not type a password (R3). Do not read any of this as an acceptance.
 
-**What has run:** Step 1 in full (three `make ci-acceptance` runs), Step 3 for the four controls
+**What has run:** Step 2 attempted unattended and stopped at its second row (F8), Step 1 in full (three `make ci-acceptance` runs), Step 3 for the four controls
 whose predictions live in the test tier, and Step 4 — decided by Rich and implemented.
 
 #### The findings
@@ -5718,3 +5718,44 @@ the `MEMBER_USER_NOT_FOUND` trap is armed for the clicked half.
 2. **Step 3's controls (b) and (e)**, both of which are only observable on screen.
 3. **Step 5 — the whole close-out sweep**, which is bigger than a sitting's because this is the
    last plan of Phase 1c. **F4's README staleness is already known and waiting for it.**
+
+#### F8 — THE IdP SESSION DID NOT SURVIVE, AND THE ATTEMPT PROVED EVERYTHING EXCEPT THE PASSWORD
+
+Rich asked, while away from his keyboard, whether any of Step 2 could be run without him. It was
+attempted on 2026-09-19 and it reached exactly one row.
+
+**Checklist row 1 PASSES, measured:** `https://console.manifest.internal/` served the console's own
+document through the edge and rendered the sign-in screen — *not* a blank page, *not* a 502, and
+*not* the wildcard's `manifest OK host=…`, which is the answer a status-only check cannot tell
+apart (P4b finding 193).
+
+**Row 2 stops at the password.** Clicking *Sign in with CWL* redirected to the IdP, and the tab's
+title read **`Enter your username and password`**. **Sitting 4's F9 measured the opposite** — a
+SimpleSAMLphp session that had survived in the browser profile since sitting 3, so that two CWL
+sign-ins completed with no prompt — and said in terms: *"it is a property of one profile at one
+moment... Plan for R3; be pleased when it is not needed."* **This is the first measurement of the
+other outcome, and F9's caution is now paid for.** The difference this sitting brings is that it
+ran `echo reset | make reset` and restarted the control plane before any clicking, which no
+previous clicked half had done.
+
+**What the failed attempt nevertheless PROVED, and it is most of the chain.** Reaching the IdP's
+own login form means the whole path in front of the credential works on this machine, right now:
+the edge serves the console on its own origin, the console reaches the control plane, the control
+plane's SP registration survived the reset and the restart, it issued a SAML `AuthnRequest`, and
+the IdP accepted that request and answered with its login page rather than an error. **Only the
+credential is missing.** A sitting that had found the SP registration broken would have learned it
+here; this one did not, so **the platform is verified ready for Rich's sign-in** and his session
+need not be spent diagnosing.
+
+**The per-site permission is REAL and is needed before the run, not during it.** The extension
+refused a screenshot the moment the tab was on `idp.manifest.internal`
+(*"Permission denied for this action on this domain"*), which is precisely what Task 14's Step 2
+says to ask for *"before starting, not mid-run"*. Confirmed by measurement rather than inherited
+from the task.
+
+**The machine is left ready rather than tidy, deliberately:** the console is still served on 7104
+and the tab is parked on the sign-in screen, because `manifest_login` carries `Max-Age=600` and
+the `[M6]` correction block says to have the page open and Rich ready *before* triggering the
+redirect. **This is the one place this sitting knowingly departs from "leave the machine as you
+found it", and it is recorded here so the next reader does not mistake it for a leak.** If the
+sitting is abandoned rather than resumed, 7104 must be stopped by port.
