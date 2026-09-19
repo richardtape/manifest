@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import {
   hashSecret,
@@ -81,5 +82,85 @@ describe('a delegated token’s shape (D24, Decision 1)', () => {
     ['a newline before it', `\n${TOKEN_PREFIX}_${RAW}_x`],
   ])('refuses %s without throwing', (_name, input) => {
     expect(parseToken(input)).toBeUndefined()
+  })
+})
+
+/**
+ * COMMENTS OUT, STRING BODIES KEPT — the scanner `spec/injection-drift.test.ts` and
+ * `packages/journey/src/boundary.test.ts` both carry, for the reason the latter records:
+ * a comment satisfies an English-shaped pattern, and this file's comment above
+ * `secretMatches` names `timingSafeEqual` in prose. Reading the comments would make the
+ * assertion below true of a function that no longer calls it.
+ */
+function executableSource(text: string): string {
+  let out = ''
+  let i = 0
+  while (i < text.length) {
+    const two = text.slice(i, i + 2)
+    if (two === '//') {
+      while (i < text.length && text[i] !== '\n') i++
+      continue
+    }
+    if (two === '/*') {
+      i += 2
+      while (i < text.length && text.slice(i, i + 2) !== '*/') i++
+      i += 2
+      continue
+    }
+    out += text[i]
+    i++
+  }
+  return out
+}
+
+/**
+ * WHY THIS IS A SOURCE-LEVEL TEST, which is not this codebase's habit.
+ *
+ * P5b sitting 9 measured it: replacing `secretMatches`'s body with `hashSecret(secret) ===
+ * storedHash` leaves **all 1342 unit tests green and `make demo-token` green through all
+ * nine steps**. Constant-time comparison has no observable behaviour — that is the whole
+ * point of it — so the only deterministic assertion available is about the code, and the
+ * alternative Task 13 offered was to record the property as asserted by nothing at all.
+ *
+ * It is the last line between a stolen token-id and an offline search for its secret: the
+ * id is in the plaintext in front of `_`, so an attacker who can time this call learns the
+ * stored hash a byte at a time. A timing test would be the behavioural version and is not
+ * written, because a wall-clock threshold on a laptop under Docker is a flake generator.
+ */
+describe('the secret comparison is constant-time (§14, P5b sitting 9)', () => {
+  it('compares with timingSafeEqual, and never with === on the hash', async () => {
+    const source = executableSource(
+      await readFile(new URL('./token.ts', import.meta.url), 'utf8'),
+    )
+    const start = source.indexOf('export function secretMatches')
+    expect(start, 'secretMatches was not found — has it been renamed?').toBeGreaterThan(
+      -1,
+    )
+    const body = source.slice(start, source.indexOf('\n}', start))
+
+    expect(body, 'secretMatches no longer calls timingSafeEqual').toContain(
+      'timingSafeEqual(',
+    )
+    // The positive control this test needs: a stripper that ate the file would leave an
+    // empty body, and an empty body contains no `===` either. `hashSecret` is what the
+    // function is for, so its presence says the body really was read.
+    expect(body, 'the scanner read no body at all').toContain('hashSecret(')
+    expect(body, 'the hash is compared with an ordinary string equality').not.toMatch(
+      /[!=]==\s*storedHash|storedHash\s*[!=]==/,
+    )
+  })
+
+  it('reads the code and not the sentences about it', () => {
+    const source = executableSource(
+      [
+        '/** Constant-time: it uses timingSafeEqual rather than ===. */',
+        'export function secretMatches(secret: string, storedHash: string): boolean {',
+        '  return hashSecret(secret) === storedHash // not timingSafeEqual( at all',
+        '}',
+      ].join('\n'),
+    )
+    expect(source).not.toContain('timingSafeEqual(')
+    expect(source).toContain('hashSecret(')
+    expect(source).toMatch(/[!=]==\s*storedHash|storedHash\s*[!=]==/)
   })
 })
