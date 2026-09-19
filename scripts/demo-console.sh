@@ -90,6 +90,25 @@ done
 A 502 means nothing is listening on $PORT; check the preview server above."
 echo "  $ORIGIN serves the console's own document"
 
+# P5c Task 14 Step 4, decided by Rich on 2026-09-19: the OFFLINE acceptance's tenth step
+# runs everything above this line and stops. Steps 0-3 are the half of this script that is
+# falsifiable WITHOUT A PERSON — the console builds from the checked-in contract, and the
+# edge serves the console's own document on its own origin — and nothing else in
+# scripts/offline-acceptance.sh covers either claim: measured on 2026-09-19, its nine steps
+# request only console.manifest.internal/v1/me and edge.manifest.internal/, never the
+# console's document at `/`.
+#
+# IT EXITS BEFORE THE CHECKLIST, and that is the whole reason the flag exists: this script
+# ends in `wait "$PREVIEW_PID"` because the checklist is a person's (R3), so an offline run
+# that called `make demo-console` unguarded would hang for ever rather than fail.
+# The EXIT trap stops the preview server, so this leaves nothing on $PORT.
+if [ -n "${MANIFEST_CONSOLE_PREFLIGHT_ONLY:-}" ]; then
+  echo
+  echo "  PREFLIGHT ONLY: the console built, and $ORIGIN served its own document."
+  echo "  Stopping before the checklist — that half is a person's (R3)."
+  exit 0
+fi
+
 cat <<CHECKLIST
 
 $(printf '\033[1m%s\033[0m' "The console is at $ORIGIN — §22's journey, clicked.")

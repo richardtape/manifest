@@ -118,4 +118,25 @@ else
 fi
 
 echo
+echo "=== 10. P5c's acceptance, the half a script can run: the console builds offline, and the edge serves it ==="
+# APPENDED, like steps 7, 8 and 9, and for the same reason. WHAT THIS PROVES OFFLINE THAT
+# STEPS 8 AND 9 DO NOT: the console's own BUILD and its own ORIGIN. Step 8 proves the
+# generated CONTRACT works offline, but `packages/journey` is plain `tsc` over checked-in
+# types; the console is Vite + React + esbuild, a different toolchain with its own reasons
+# to want a registry. And every step above reaches console.manifest.internal/v1/* — the
+# API — never the console's DOCUMENT at `/`, which is a separate Caddyfile site proxying
+# to a host process on 7104 (P5c Task 4). Both claims were untested offline until now.
+#
+# PREFLIGHT ONLY. `make demo-console` ends in `wait` on its preview server because its
+# checklist is a person's (R3): called unguarded it would HANG this run rather than fail
+# it. The flag stops it once the edge has answered with the console's own document — and
+# that assertion reads the BODY for `<div id="root">`, because the wildcard answers 200
+# with `manifest OK host=…` for any name (P4b finding 193).
+if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
+  MANIFEST_CONSOLE_PREFLIGHT_ONLY=1 make demo-console; echo "demo-console preflight exit=$?"
+else
+  echo "  SKIPPED: no control plane behind https://console.manifest.internal — the same rule as step 6."
+fi
+
+echo
 echo "=== done. Turn the network back on. ==="
