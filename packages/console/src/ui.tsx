@@ -45,9 +45,18 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
  * `<ReadinessItems>`, which the launch panel also uses: the refusal and the panel carry the
  * same bytes and now go through the same renderer.
  *
- * The envelope's OTHER typed extra, `pendingAction`, is deliberately NOT rendered here:
- * nothing in the console can produce one until Task 11's queue, and a renderer with no
- * call site is not built (ORIENTATION §9, four times). Task 11 adds it with its caller.
+ * **THE ENVELOPE'S OTHER TYPED EXTRA, `pendingAction`, IS NOT RENDERED HERE, AND NOW IT IS
+ * KNOWN THAT IT NEVER CAN BE.** Both this comment and the plan said Task 11's queue would
+ * be its first caller. It is not, and the reason is structural rather than a matter of
+ * sequencing: `TOKEN_ACTION_PENDING` and `TOKEN_ACTION_REJECTED` are the only two envelopes
+ * that carry the field (`api/errors.ts`), both come from `api/contract/route.ts`'s wrapper,
+ * and the wrapper reaches them only through `TokenCapabilityRefusedError` — which
+ * `assertCapability` throws **inside `if (actor.credential === 'token')`** and nowhere else.
+ * This console holds a session and only a session: `createApi` has no token option at all
+ * (Decision 6), so no refusal it can receive will ever carry a `pendingAction`. A renderer
+ * for it would be a module with no call site, which is the shape ORIENTATION §9 names four
+ * times. The agent's half of D24's loop reads the field in the AGENT's client, which
+ * `packages/journey/src/token.ts` does; the person's half is `screens/queue.tsx`.
  */
 export function Refusal({ error }: { error: unknown }) {
   if (error === undefined || error === null) return null

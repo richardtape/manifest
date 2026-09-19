@@ -318,6 +318,26 @@ button:disabled {
   padding: 0.5rem 0;
 }
 
+/* §26's QUEUE — the same list shape as .tokens, which is the point: a question an agent
+   asked and a credential it holds are the two things on a project that belong to an agent
+   rather than to a person, and they read as one family. A pending row is the only thing in
+   this console that asks a person to do something, so it carries the eye with the .pill-bad
+   its <Pill> is given and nothing else. */
+.queue {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.queue li {
+  border-top: 1px solid var(--line);
+  padding: 0.5rem 0;
+}
+
+.queue form {
+  margin-top: 0.3rem;
+}
+
 /* THE ONLY TIME THE SECRET EXISTS, so it is set apart and selectable in one gesture. It is
    deliberately NOT inside a <code> in a paragraph: a person is about to copy it, and a
    credential that wraps mid-token gets pasted wrong. */

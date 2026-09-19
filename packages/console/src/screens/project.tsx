@@ -7,6 +7,7 @@ import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 import { Builds } from './builds'
 import { Deploy } from './deploy'
 import { Launch } from './launch'
+import { Queue } from './queue'
 import { Tokens } from './tokens'
 
 /**
@@ -40,9 +41,7 @@ export function Project({
       {tab === 'tokens' ? (
         <Tokens api={api} projectId={projectId} frames={stream.frames} />
       ) : tab === 'queue' ? (
-        <p>
-          The <code>queue</code> screen is built by Task 11 of P5c.
-        </p>
+        <Queue api={api} projectId={projectId} frames={stream.frames} />
       ) : (
         <>
           <Overview project={project.value} error={project.error} />

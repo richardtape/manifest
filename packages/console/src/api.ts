@@ -396,5 +396,86 @@ export function createApi(options: ApiOptions) {
         'revokeToken',
       )
     },
+
+    /**
+     * §26's queue. A SESSION that may read the project sees EVERY question on it; a TOKEN
+     * sees only the ones it asked (P5b Task 8) — and the console is always the first, so
+     * this call always returns the project's whole queue. Newest first
+     * (`orderBy(desc(createdAt))`), every state and not only `pending`.
+     */
+    async listPendingActions(projectId: string): Promise<Schemas['PendingActionList']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/pending-actions', {
+          params: { path: { projectId } },
+        }),
+        'listPendingActions',
+      )
+    },
+
+    /**
+     * ONE question, re-read. ITS CALLER IS THE *Check* BUTTON ON A CONFIRMED ROW, and the
+     * reason that button exists is a gap: `consumeAction` publishes NO event
+     * (`tokens/pending.ts` has exactly two `publishEvent` calls, in `recordPendingAction`
+     * and `resolveAction`), and neither does `addMember` — so the one fact a person most
+     * wants after confirming, *has the agent spent its retry yet*, cannot arrive on the
+     * stream. D23.2 forbids polling, so the console asks once, when a person asks it to.
+     */
+    async getPendingAction(pendingActionId: string): Promise<Schemas['PendingAction']> {
+      return unwrap(
+        await client.GET('/v1/pending-actions/{pendingActionId}', {
+          params: { path: { pendingActionId } },
+        }),
+        'getPendingAction',
+      )
+    },
+
+    /**
+     * INTERACTIVE ONLY, and the person must hold the capability THEMSELVES — a
+     * collaborator who may not manage members is `403 FORBIDDEN`, a stranger `404`, and an
+     * agent confirming its own question `403 TOKEN_CREDENTIAL_REFUSED` (a loop with no
+     * human in it is not D24's loop).
+     *
+     * **CONFIRMING DOES NOT REPLAY THE REQUEST.** It grants that EXACT request — this
+     * token, this method, this concrete path, this key-sorted body hash — ONE retry, which
+     * the agent then makes itself. So nothing happens to the project when this returns,
+     * and the screen has to say so.
+     *
+     * `body: {}` IS REQUIRED AND `tsc` REFUSES THE CALL WITHOUT IT. The document gives
+     * this route a required `EmptyRequest` body, exactly as `validateSpec` has — measured
+     * at the close of sitting 6 by pasting this task's snippets in and compiling them
+     * (`TS2345 … Property 'body' is missing`), which is the only one of the four that
+     * failed.
+     */
+    async confirmPendingAction(
+      pendingActionId: string,
+      idempotency: string,
+    ): Promise<Schemas['PendingAction']> {
+      return unwrap(
+        await client.POST('/v1/pending-actions/{pendingActionId}/confirm', {
+          params: { path: { pendingActionId }, ...key(idempotency) },
+          body: {},
+        }),
+        'confirmPendingAction',
+      )
+    },
+
+    /**
+     * In the person's own words, which the agent is then told VERBATIM
+     * (`403 TOKEN_ACTION_REJECTED`, whose `pendingAction.reason` carries the sentence) so
+     * it stops rather than loops. `reason` is required, 1–500 characters.
+     */
+    async rejectPendingAction(
+      pendingActionId: string,
+      body: Schemas['RejectPendingActionRequest'],
+      idempotency: string,
+    ): Promise<Schemas['PendingAction']> {
+      return unwrap(
+        await client.POST('/v1/pending-actions/{pendingActionId}/reject', {
+          params: { path: { pendingActionId }, ...key(idempotency) },
+          body,
+        }),
+        'rejectPendingAction',
+      )
+    },
   } as const
 }
