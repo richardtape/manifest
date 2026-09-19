@@ -30,7 +30,7 @@
 | 2 | 2–3 | **`packages/console` and `packages/mock` exist and all four gates see them** — the one sitting with the network on — and **the console's import boundary**, watched failing before a single screen exists | **DONE 2026-09-18 — 10 findings.** React 19.3.0 + Vite 8.3.0, `ws` 8.21.3, `ajv` 8.20.0 with `ajv-formats` 3.0.1, every version exact, `pnpm audit --prod` clean. **NOTHING AFTER THIS SITTING MAY INSTALL A PACKAGE.** Both of the task's own step orders were wrong and are corrected in place |
 | 3 | 4 | **The console is served at `console.manifest.internal`, signs a person in with CWL and knows who they are** (§22 step 1): the Caddyfile's placeholder replaced, the shell, the router, the error surface, and the one file allowed to name `fetch` | **DONE 2026-09-18 — 9 findings.** §22 step 1 CLICKED: Rich typed `instructor` and the header read **Test Instructor `ins000001`**. **The plan's claim that no gate sees the Caddyfile's console line is WRONG — `make doctor` AND `make verify` both went red** and both are fixed (F3). `signOut` never checked its answer (F4). `<Ago>` is the one shared bit still uncalled; **Task 6 owes it a caller** |
 | 4 | 5–6 | **My projects, and creating one** — the slug check while it is typed, the blueprint and starter catalogue, §24's audience (§22 step 2) — and **the project screen with its live event stream** (§22 step 3) | **DONE 2026-09-18 — 9 findings.** §22 steps 2 AND 3 CLICKED. The stream's liveness was PROVED (a `token.minted` published from a terminal arrived in the open tab; the same event on another project did not). **Two of the plan's own controls could not fail** — the idempotency row names the wrong consequence, and `stream_close_delay` did not fire, measured two ways (F7). `<Ago>` has its caller |
-| 5 | 7–8 | **A build whose log lines arrive as they are written** (§22 step 4) and **a deploy to staging whose instance states arrive the same way**, with the app's URL to click and an Incident when it fails (§22 steps 5–6). **Both streaming screens; the sitting Rich was warned is the heavy one** | **DONE 2026-09-18/19 — 13 findings.** §22 STEPS 4, 5 AND 6 CLICKED: a build watched line by line, a release, a deploy to staging with four states live, the app opened and signed in to with CWL, and a redeploy that interrupted nobody (14 consecutive `200`s from the app's own tab). **The stream alone is not the log** — `LogFrame` is never replayed, so `getBuildLog` is load-bearing and the task never mentions it. **Three of the plan's claims were wrong** (`<Refusal>` and `launchReadiness`; `{}` is not the repository's HEAD; control row 3 cannot fail) and Task 8's row 1 needed an environment whose FIRST deploy fails |
+| 5 | 7–8 | **A build whose log lines arrive as they are written** (§22 step 4) and **a deploy to staging whose instance states arrive the same way**, with the app's URL to click and an Incident when it fails (§22 steps 5–6). **Both streaming screens; the sitting Rich was warned is the heavy one** | **DONE 2026-09-18/19 — 13 findings.** §22 STEPS 4 AND 5 CLICKED, AND STEP 6 AS FAR AS THE SIGN-IN (its *write a note; ask the LLM* half is `make demo-ai`'s and Task 14's): a build watched line by line, a release, a deploy to staging with four states live, the app opened and signed in to with CWL, and a redeploy that interrupted nobody (14 consecutive `200`s from the app's own tab). **The stream alone is not the log** — `LogFrame` is never replayed, so `getBuildLog` is load-bearing and the task never mentions it. **Three of the plan's claims were wrong** (`<Refusal>` and `launchReadiness`; `{}` is not the repository's HEAD; control row 3 cannot fail) and Task 8's row 1 needed an environment whose FIRST deploy fails |
 | 6 | 9–10 | **Request production** — `LaunchReadiness` with its blocked items and why (§22 step 7) — **the fleet** (§26, admin only), and **delegated tokens**: minted once, listed, revoked |← **next** |
 | 7 | 11 | **§26's queue as a screen**: the question an agent asked, who asked it, how long it has waited, confirmed or rejected by a person in their own words. **The first time D24's loop is operated by a human rather than by `curl`** | |
 | 8 | 12–13 | **`manifest-mock`** — the contract served from fixtures with scripted streams, validated against the document, and the console driven against it with no platform — and **the CI acceptance script**, the operation-coverage gate and `@manifest/contract` `1.0.0` | |
@@ -4493,8 +4493,11 @@ rather than believe it, because a sitting is one session.
 *The work ran on 2026-09-18 and the close-out crossed midnight into 2026-09-19, as sitting 4's
 did. Dated apart because a finding without a date is not reproducible.*
 
-**§22 STEPS 4, 5 AND 6 ARE CLICKED, and this is the first sitting of P5c to drive a real build
-and a real deploy.** A signed-in person presses *Build* and watches BuildKit's output arrive
+**§22 STEPS 4 AND 5 ARE CLICKED, AND STEP 6 AS FAR AS THE SIGN-IN, and this is the first sitting
+of P5c to drive a real build and a real deploy.** *Step 6 reads in full "Open the running app;
+log in with CWL inside it; write a note; ask the LLM" — the note and the question were NOT
+exercised, and are what `make demo-ai` covers and what Task 14's acceptance owes. Caught by the
+post-sweep check, against the spec rather than against the plan's paraphrase.* A signed-in person presses *Build* and watches BuildKit's output arrive
 line by line while it runs; the build ends `succeeded` with no reload, carrying its image
 digest and §12's scan; they release it, deploy it to staging watching four states arrive live,
 open the app's own URL and **sign in to the running application with CWL**. Committed as
@@ -4692,3 +4695,41 @@ success. Its session secret is a random value persisted in the session's scratch
 regenerated per start, so a mid-sitting restart does not sign the browser out. **It was left
 running on 7100** — but a sitting is one session, so check with `lsof` rather than believing it.
 `vite` on 7104 was stopped by port at the close, confirmed by `lsof`, with 7102 and 7105 free.
+
+#### The post-sweep check — one overstated claim, in six documents, and twelve that held
+
+*§6 says to re-read your own §7e as a cold agent and CHECK its claims by opening what they point
+at and counting. It has found a defect in every P5b sitting from the third onwards and in all
+five P5c sittings.* **One here, and it is the class that spreads: a claim written from the PLAN's
+paraphrase of the spec rather than from the spec:**
+
+1. **"§22 STEPS 4, 5 AND 6 ARE CLICKED" OVERSTATES STEP 6, and it had already reached six
+   documents.** Opened §22's own list in the spec: step 6 is **"Open the running app; log in with
+   CWL *inside* it; write a note; ask the LLM."** The sign-in was done and **the note and the
+   question were not** — they are what `make demo-ai` covers and what Task 14's acceptance owes.
+   The plan's own Task 8 scopes step 6 to the sign-in (*"open it and sign in inside the app with
+   CWL (§22 step 6 — the app's own UI…)"*), which is why the claim read as true: **the paraphrase
+   was accurate about the task and wrong about the step it named.** Narrowed in ORIENTATION's top
+   box, §2's P5c paragraph, §3's console entry, README's *Where to start* row, the roadmap ledger
+   and this record — each now saying in place which half was not exercised. **The two commit
+   messages still carry the wide claim and cannot be changed; this entry is the correction.**
+
+**Twelve claims were checked and HELD**, which is worth recording because a check that only ever
+finds errors is not being run honestly: `api.ts` really has **24** `async` operations against the
+document's **34**; `git ls-files packages/console` really answers **19**; the two commits really
+are **4** and **6** files; `0018_curvy_sister_grimm.sql` really is the newest migration; there
+really are **3** `mf-` containers and all three are token-app's; *Read this first* items **1, 2
+and 8** really say what §7e claims they say; `Idempotency-Key` really is required on `mintToken`
+and `revokeToken` and **not** on `listTokens`, `getLaunchReadiness` or `listFleet`; Task 9 really
+produces `getLaunchReadiness` and `listFleet` and Task 10 `mintToken`, `listTokens` and
+`revokeToken`; `24 + 2 + 3 = 29`, leaving **5**; `mintToken` really publishes `token.minted`
+(`api/routes/tokens.ts:137`); `pnpm test` really ran **five** times, counted from the captured
+output files; the third test user really is `operator` / `operator` (`opr000001`); and **Task 9's
+click steps really need no build, release or deploy**, which is the claim that would have cost the
+next sitting a wasted build if it were wrong.
+
+**A trap worth naming.** The first attempt to narrow the two shared HTML pages asserted its anchor
+appeared once and **failed**, because the sentences WRAP across source lines and the search had
+been done on a whitespace-collapsed print. It is §4's own note — *a phrase that wraps a line is
+invisible to both obvious ways of counting it* — hit while sweeping the very pages that note was
+written about. Anchor on the raw lines, with their breaks.
