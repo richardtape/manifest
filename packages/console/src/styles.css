@@ -1,0 +1,18 @@
+/* §22's quality bar lives here, and Task 4 writes it in full: system fonts, one column,
+   about eighty lines of plain CSS. This file exists from Task 2 because `main.tsx` imports
+   it and `vite build` refuses to resolve an import of a file that is not there — a build
+   this task's own Step 10 runs. Prettier owns it, because it is under packages/. */
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  line-height: 1.5;
+}

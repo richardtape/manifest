@@ -41,6 +41,10 @@ export default defineWorkspace([
       include: [
         'packages/contract/src/**/*.test.ts',
         'packages/journey/src/**/*.test.ts',
+        // P5c Task 2. A package not named here runs under NO project: its tests are
+        // silently not run, which reads exactly like a suite that passes (Task 1, M4).
+        'packages/console/src/**/*.test.ts',
+        'packages/mock/src/**/*.test.ts',
       ],
     },
   },

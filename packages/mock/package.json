@@ -1,0 +1,22 @@
+{
+  "name": "@manifest/mock",
+  "version": "0.1.0",
+  "description": "manifest-mock: the published contract served from fixtures, so a front-end team needs no platform (§16, §21).",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm run build && node dist/main.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@manifest/contract": "workspace:*",
+    "ws": "8.21.3"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.1",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1"
+  }
+}
