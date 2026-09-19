@@ -198,8 +198,10 @@ export function createApi(options: ApiOptions) {
      * event on the project's stream; nothing here waits for it and no caller may treat
      * this reply's `status` as final.
      *
-     * `StartBuildRequest` is `{ commitSha?: string }` with nothing required — `{}` means
-     * the repository's HEAD, read from the document rather than assumed.
+     * `StartBuildRequest` is `{ commitSha?: string }` with nothing required — but `{}` does
+     * NOT mean the repository's HEAD: the route reads `body.commitSha ?? spec.commitSha`,
+     * so it builds the commit of the last VALIDATED manifest. Measured, because the field's
+     * name invites the other reading and the plan states it (Task 7's correction block).
      */
     async startBuild(
       projectId: string,
@@ -283,6 +285,41 @@ export function createApi(options: ApiOptions) {
       return unwrap(
         await client.GET('/v1/releases/{releaseId}', { params: { path: { releaseId } } }),
         'getRelease',
+      )
+    },
+
+    /**
+     * ANSWERS ONCE THE INSTANCE SERVES OR HAS FAILED (D23.9's stated exception, P4c R3), so
+     * this call can take tens of seconds and carries NO timeout: abandoning it in the client
+     * would abandon a deploy that is still happening. **A deploy that never becomes ready is
+     * a `200` whose `state` is `failed`**, with an Incident, and the previous instance keeps
+     * serving (P4b Task 13) — so a caller switches on `Instance.state` and NEVER on the HTTP
+     * status. `DeployRequest` is `{ releaseId }`, required.
+     *
+     * Only `listEnvironments` and `getEnvironment` above are shared with Task 6; this task
+     * adds exactly this function and `listIncidents`.
+     */
+    async deploy(
+      environmentId: string,
+      body: Schemas['DeployRequest'],
+      idempotency: string,
+    ): Promise<Schemas['Instance']> {
+      return unwrap(
+        await client.POST('/v1/environments/{environmentId}/deploy', {
+          params: { path: { environmentId }, ...key(idempotency) },
+          body,
+        }),
+        'deploy',
+      )
+    },
+
+    /** §14's Incident, shaped as a repair prompt: why it exited, which check failed, the diff since the last healthy release and the log tail. */
+    async listIncidents(environmentId: string): Promise<Schemas['IncidentList']> {
+      return unwrap(
+        await client.GET('/v1/environments/{environmentId}/incidents', {
+          params: { path: { environmentId } },
+        }),
+        'listIncidents',
       )
     },
   } as const

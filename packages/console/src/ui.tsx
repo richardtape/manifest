@@ -28,13 +28,24 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
 /**
  * D23.7: errors are machine-actionable — a stable code and a remediation hint — and this is
  * the one place the console renders one. It shows the CODE as well as the message, because
- * the code is what a person can quote and what every test in this project asserts; and it
- * renders the two typed extras the envelope can carry, so `RELEASE_PRODUCTION_GATE_UNAVAILABLE`
- * shows what a first launch still needs and `TOKEN_ACTION_PENDING` shows the question.
+ * the code is what a person can quote and what every test in this project asserts.
  *
  * `code`, `path` and `message` on a detail are all REQUIRED by `ManifestError` in the
  * document — checked there before this was written, because `tsc` cannot tell you until the
  * build and a wrong key renders `undefined` silently.
+ *
+ * **`launchReadiness` IS RENDERED HERE BECAUSE THE DOC COMMENT ALREADY CLAIMED IT WAS.**
+ * Task 4 wrote *"it renders the two typed extras the envelope can carry"* and rendered
+ * neither; the plan's Task 8 then relied on that sentence (*"which `<Refusal>` already
+ * renders"*) rather than on the code. Nothing caught it for two sittings because no
+ * envelope carrying one had ever reached a screen — the first that did was Task 8's
+ * production refusal, measured carrying **6** items while the screen rendered **0**.
+ * §22 step 7 is *see what a first launch still needs*, and a refusal that drops the
+ * checklist is the one thing that step asks for.
+ *
+ * The envelope's OTHER typed extra, `pendingAction`, is deliberately NOT rendered here:
+ * nothing in the console can produce one until Task 11's queue, and a renderer with no
+ * call site is not built (ORIENTATION §9, four times). Task 11 adds it with its caller.
  */
 export function Refusal({ error }: { error: unknown }) {
   if (error === undefined || error === null) return null
@@ -46,6 +57,7 @@ export function Refusal({ error }: { error: unknown }) {
     )
   }
   const envelope = error.envelope?.error
+  const readiness = envelope?.launchReadiness
   return (
     <div className="refusal">
       <p>
@@ -57,6 +69,28 @@ export function Refusal({ error }: { error: unknown }) {
           {envelope.details.map((d, i) => (
             <li key={i}>
               <code>{d.code}</code> <code>{d.path}</code> {d.message}
+            </li>
+          ))}
+        </ul>
+      )}
+      {readiness !== undefined && (
+        <ul className="readiness">
+          {readiness.items.map((item) => (
+            <li key={item.id}>
+              {/*
+                THE STATE AND THE REASON, both the platform's own words. `not_built` is an
+                honest answer in Phase 1 — every item but `scans` says so and names the plan
+                that builds it (P5a Task 15) — and rendering it as "unmet" would be the
+                console inventing a judgement the API did not make.
+              */}
+              <Pill tone={item.state === 'met' ? 'good' : 'plain'}>{item.state}</Pill>{' '}
+              <strong>{item.title}</strong>
+              {item.blocking && ' — blocking'}
+              <br />
+              <span className="hint">
+                {item.why} Owner: {item.owner}.
+                {item.builtBy !== undefined && ` Built by ${item.builtBy}.`}
+              </span>
             </li>
           ))}
         </ul>

@@ -4,6 +4,7 @@ import type { Api } from '../api'
 import { useProjectStream } from '../stream'
 import { Ago, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 import { Builds } from './builds'
+import { Deploy } from './deploy'
 
 /**
  * §22 step 3: watch provisioning — the repository created, the `manifest.yaml` validated.
@@ -17,11 +18,27 @@ export function Project({ api, projectId }: { api: Api; projectId: string }) {
   // ONE SOCKET FOR THE WHOLE SCREEN (D23.2). Every panel below that needs live frames is
   // handed `stream.frames`; none of them subscribes again.
   const stream = useProjectStream(projectId)
+  // THE ONE FACT THE STREAM CANNOT CARRY. `createRelease` publishes no event, so the Deploy
+  // panel would not know a release exists until the page was reloaded; the Builds panel
+  // bumps this instead. Everything else these panels share, they share through the socket.
+  const [releaseTick, setReleaseTick] = useState(0)
   return (
     <>
       <Overview project={project.value} error={project.error} />
       <Activity stream={stream} />
-      <Builds api={api} projectId={projectId} frames={stream.frames} />
+      <Builds
+        api={api}
+        projectId={projectId}
+        frames={stream.frames}
+        onReleased={() => setReleaseTick((t) => t + 1)}
+      />
+      <Deploy
+        api={api}
+        projectId={projectId}
+        slug={project.value?.slug}
+        frames={stream.frames}
+        releaseTick={releaseTick}
+      />
       <SpecPanel api={api} projectId={projectId} />
       <Members api={api} projectId={projectId} />
     </>

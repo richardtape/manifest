@@ -76,14 +76,29 @@ function tone(status: Schemas['Build']['status']): string {
   return status === 'succeeded' ? 'good' : status === 'failed' ? 'bad' : 'plain'
 }
 
+/**
+ * `onReleased` EXISTS BECAUSE `createRelease` PUBLISHES NO EVENT. Every other thing this
+ * screen does announces itself on the stream, so the panels stay in step without talking to
+ * each other; a release does not (`releases/release.ts`'s `createRelease` has no
+ * `publishEvent`, the second instance of the shape sitting 4 recorded for
+ * `POST …/projects/{id}/spec`). The Deploy panel therefore cannot learn from the platform
+ * that there is something new to deploy.
+ *
+ * What the console CAN do without a route change is tell the panel next door, because the
+ * person who pressed the button is in this tab — which is exactly the distinction in that
+ * finding: the presser is served, a SECOND person watching the same project is not, and no
+ * other client is either. Recorded as a finding about the API, not worked around silently.
+ */
 export function Builds({
   api,
   projectId,
   frames,
+  onReleased,
 }: {
   api: Api
   projectId: string
   frames: StreamFrame[]
+  onReleased: () => void
 }) {
   const builds = useAsync(() => api.listBuilds(projectId), [projectId])
   const [started, setStarted] = useState<Schemas['Build'] | undefined>(undefined)
@@ -98,7 +113,13 @@ export function Builds({
     setBusy(true)
     setError(undefined)
     try {
-      // `{}` means the repository's HEAD — `StartBuildRequest` requires nothing.
+      // `{}` DOES NOT MEAN THE REPOSITORY'S HEAD, whatever the field's name suggests:
+      // `routes/builds.ts` reads `body.commitSha ?? spec.commitSha`, so an empty body
+      // builds the commit of the LAST VALIDATED MANIFEST. Measured — a commit pushed to
+      // the repository and then built from here produced the OLD commit, and only
+      // Re-validate moved it. The hint below says so rather than leaving a person to
+      // discover it from a build of code they had already replaced.
+      //
       // THE `202`'s `status` IS `running` AND IS NOT THE OUTCOME: <Build> below learns
       // how it ended from the stream, never from this value.
       setStarted(await api.startBuild(projectId, {}, api.newKey()))
@@ -118,13 +139,22 @@ export function Builds({
           Build
         </button>{' '}
         <span className="hint">
-          builds the repository&rsquo;s HEAD; a first build of this blueprint takes
-          minutes
+          builds the commit of the manifest last validated — press <em>Re-validate</em>{' '}
+          below first to pick up a newer one. A first build of this blueprint takes
+          minutes.
         </span>
       </p>
       <Refusal error={error} />
       {watched !== undefined && (
-        <Build api={api} build={watched} frames={frames} onReleased={builds.reload} />
+        <Build
+          api={api}
+          build={watched}
+          frames={frames}
+          onReleased={() => {
+            builds.reload()
+            onReleased()
+          }}
+        />
       )}
       {(builds.value ?? []).length > 1 && (
         <Field label="Earlier">

@@ -245,3 +245,33 @@ button:disabled {
 .log .stderr {
   color: var(--bad);
 }
+
+/* §22 step 5: one block per environment inside the Deploy panel, separated rather than
+   boxed — three of them nested inside a panel border would be a box in a box in a box. */
+.env {
+  border-top: 1px solid var(--line);
+  padding-top: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+/* §14's Incident is a REPAIR PROMPT, so it is set apart from the states above it: a person
+   arrives here because something failed, and this is the part they act on. */
+.incident {
+  border-left: 3px solid var(--bad);
+  padding-left: 0.8rem;
+  margin: 0.6rem 0;
+}
+
+/* §13's first-launch checklist, rendered inside the production refusal (§22 step 7). One
+   item per line with its reason under it, because "what a first launch still needs" is the
+   whole answer and a truncated one would send a person to ask somebody. */
+.readiness {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+}
+
+.readiness li {
+  border-top: 1px solid var(--line);
+  padding: 0.35rem 0;
+}
