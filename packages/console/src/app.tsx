@@ -3,6 +3,8 @@ import { ManifestApiError, type Schemas } from '@manifest/contract'
 import { createApi } from './api'
 import { signIn, signOut } from './auth'
 import { href, useRoute, type Route } from './router'
+import { Blueprints } from './screens/blueprints'
+import { Projects } from './screens/projects'
 import { Field, Panel, Pill, Refusal, useAsync } from './ui'
 
 /**
@@ -126,14 +128,21 @@ function You({ person }: { person: Schemas['Me'] }) {
 }
 
 /**
- * Task 5 onwards replace each arm with a screen, each reading through `api` above. Until
- * then an honest placeholder, never a blank page — a person who deep-links to
+ * Each arm reads through the ONE `api` above (Decision 6). The arms a later task builds
+ * keep an honest placeholder rather than a blank page — a person who deep-links to
  * `/projects/<id>` before Task 6 should be told which task builds it, not shown nothing.
  */
 function Screen({ route }: { route: Route }) {
-  return (
-    <p>
-      The <code>{route.name}</code> screen is built by a later task of P5c.
-    </p>
-  )
+  switch (route.name) {
+    case 'projects':
+      return <Projects api={api} />
+    case 'blueprints':
+      return <Blueprints api={api} />
+    default:
+      return (
+        <p>
+          The <code>{route.name}</code> screen is built by a later task of P5c.
+        </p>
+      )
+  }
 }

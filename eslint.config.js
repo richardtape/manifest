@@ -82,6 +82,17 @@ export default tseslint.config(
     //
     // vite.config.ts is deliberately outside these globs: it is the build's own
     // configuration, not the client, and it imports vite and @vitejs/plugin-react.
+    //
+    // `\\.{1,2}/` — BOTH `./` and `../`, widened in Task 5 (P5c sitting 4), which wrote
+    // the console's first subdirectory. `src/screens/projects.tsx` imports `../api`, and
+    // with `\\./` alone every one of those was an error while the boundary TEST — which
+    // has allowed `./` and `../` since Task 3 — was green. The two halves of one rule
+    // disagreed, and the test was the half that was right.
+    //
+    // This half cannot be more precise than that: a regex over a specifier cannot tell
+    // `../api` from `../../control-plane/src/db/index.js`. The TEST resolves each relative
+    // specifier and requires the target to land under packages/console/src, which is the
+    // containment check, and it is watched failing.
     files: ['packages/console/src/**/*.ts', 'packages/console/src/**/*.tsx'],
     ignores: ['packages/console/src/**/*.test.ts'],
     rules: {
@@ -90,7 +101,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              regex: '^(?!@manifest/contract$|react$|react-dom(/.*)?$|node:|\\./)',
+              regex: '^(?!@manifest/contract$|react$|react-dom(/.*)?$|node:|\\.{1,2}/)',
               message:
                 'The console may import only @manifest/contract, react, react-dom, node: builtins and its own ./ files (D22, §22).',
             },

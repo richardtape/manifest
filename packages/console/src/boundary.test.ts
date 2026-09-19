@@ -1,5 +1,5 @@
 import { readdir, readFile } from 'node:fs/promises'
-import { dirname, join, relative, resolve } from 'node:path'
+import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
@@ -153,6 +153,29 @@ describe('the console’s imports (D22, §22, §16 API completeness)', () => {
       authSaw,
       'auth.ts names neither fetch nor /auth/ — did the scanner read it?',
     ).toBeGreaterThan(1)
+  })
+
+  /**
+   * THE SCANNER MUST HAVE DESCENDED, and nothing asserted it until Task 5 wrote the first
+   * subdirectory. Both tests above rest on `sourceFiles`, whose doc comment says it
+   * recurses "because a scanner that reads one level would silently skip screens/" — and
+   * that was a comment, not a check.
+   *
+   * MEASURED (P5c sitting 4): with the recursion replaced by `continue`, all three tests in
+   * this file stayed GREEN while every file under src/screens/ went unread — no import
+   * checked, no `fetch` checked, for the whole of the console a person actually uses. It is
+   * the same shape as the empty violation list sitting 2's F7 guarded against, one level up:
+   * a scanner that read NO FILES and a boundary that is held look identical from the
+   * outside, so the test has to say which it was.
+   */
+  it('descends into src/ subdirectories, where every screen lives', async () => {
+    const nested = (await sourceFiles(SRC))
+      .map((f) => relative(SRC, f))
+      .filter((f) => f.includes(sep))
+    expect(
+      nested,
+      'the scanner read no file in any subdirectory of src/ — did it stop recursing?',
+    ).not.toEqual([])
   })
 
   /** The stripper's own two claims, because everything above rests on them. */

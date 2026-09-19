@@ -153,10 +153,52 @@ button:disabled {
   margin: 1rem 0;
 }
 
-.refusal .hint {
+/* Not scoped to .refusal: §23's slug reasons and D25's knowledge pack carry a hint too,
+   and every one of them comes from the API rather than from this console. */
+.hint {
   color: var(--quiet);
 }
 
 .pill-plain {
   color: var(--quiet);
+}
+
+/* §22 step 2's create form. `label` is the same column as a <Field> anywhere else, so the
+   form lines up with the panels above it without a grid. */
+.field input,
+.field select {
+  font: inherit;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+}
+
+.ok {
+  color: var(--quiet);
+}
+
+/* EVERY reason the API gave, not a summary of them (§23). */
+.reasons {
+  margin: 0.2rem 0 0.6rem 10rem;
+  padding: 0;
+  list-style: none;
+}
+
+.reasons li {
+  border-left: 3px solid var(--bad);
+  padding-left: 0.6rem;
+  margin: 0.3rem 0;
+}
+
+/* D25's knowledge pack: file bodies, so they wrap rather than stretching the one column. */
+.pack pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0.2rem 0 1rem;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 0.85em;
 }
