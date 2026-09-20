@@ -30,6 +30,13 @@ groups:
       api: "Manifest's API"
       www: "Manifest's web presence"
       manifest: "Manifest itself"
+      # MOVED HERE FROM environments-and-infrastructure IN P6a (R3). It was grouped as a
+      # platform component that merely "reads as" infrastructure while nothing served it;
+      # the listener split gives edge.manifest.internal its OWN site on the internal
+      # listener, so Manifest now genuinely serves this name and §23's rule — every named
+      # site on the edge must be reserved in the group that says Manifest serves it —
+      # puts it here. `edge-names.test.ts` is that rule, and it is what caught the move.
+      edge: "Manifest's edge proxy"
       mock: "manifest-mock, Manifest's contract fixture server"
       docs: "Manifest's documentation"
       status: "Manifest's status page"
@@ -71,7 +78,6 @@ groups:
       demo: "a demonstration environment"
       preview: "a preview environment"
       internal: "an internal service"
-      edge: "Manifest's edge proxy"
       proxy: "a proxy"
       gateway: "a gateway"
       registry: "Manifest's image registry"

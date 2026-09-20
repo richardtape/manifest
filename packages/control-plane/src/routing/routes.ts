@@ -179,9 +179,12 @@ export async function inFlightTo(
  */
 export async function upstreamsInUse(deps: RoutingDeps): Promise<Set<string>> {
   const found = new Set<string>()
-  // Both listeners are `srv0` on the laptop (§21), so the server names are deduped
-  // before they are read — otherwise every route would be counted twice, which is
-  // harmless for a Set and wasteful on every retire.
+  // THE `new Set` IS STILL RIGHT, BUT ITS REASON MOVED IN P6a (R3). It was written when
+  // both listeners were `srv0` on the laptop (§21's divergence 2), so it existed to stop
+  // the SAME server being read twice. The two names are now genuinely different — `srv0`
+  // internal, `srv1` public — so this loop does two reads rather than one, and the Set is
+  // what keeps a deployment that ever collapses them back to one name counted once.
+  // Do not delete it as dead deduplication: it is load-bearing in both configurations.
   for (const server of new Set(Object.values(deps.servers))) {
     for (const route of await deps.caddy.getRoutes(server)) {
       const upstream = upstreamOf(route)

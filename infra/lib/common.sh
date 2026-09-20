@@ -27,10 +27,25 @@ CONSOLE_HOST="console.${ZONE}"
 # are subnets Docker chooses, so the site allows this address rather than refusing theirs.
 # `make verify` holds it equal to the network's real gateway and to the Caddyfile.
 HOST_SOURCE_IP="10.89.0.1"
-# The name `make verify` probes the edge's WILDCARD with. A reserved label (§23,
-# environments and infrastructure) that no Caddyfile site names, so the placeholder
-# answers it on every machine for ever — which `console.` stopped being in P5a Task 3.
+# The name `make verify` probes the edge with, from the host and from a container, for
+# the byte-for-byte parity property §9 needs. A reserved label (§23, environments and
+# infrastructure).
+#
+# IT STOPPED BEING A WILDCARD PROBE IN P6a, exactly as `console.` did in P5a Task 3.
+# This comment used to say it is a label "that no Caddyfile site names, so the
+# placeholder answers it on every machine for ever" — and P6a gives it its OWN site on
+# srv0, because it lives in the bare production zone and the production wildcard moved
+# to the public listener (sitting 1, F3). So it is now a name pinned to the INTERNAL
+# listener by two deliberate decisions, and it can no longer stand for "a production
+# hostname" in any check. PUBLIC_PROBE_HOST below is what does that.
 EDGE_PROBE_HOST="edge.${ZONE}"
+
+# The name `make verify` probes the PRODUCTION zone with (P6a, R3). It must be a name NO
+# Caddyfile site names, so that only a wildcard can answer it — which is what makes the
+# crossover check able to fail. `cdn` is reserved (§23, environments and infrastructure),
+# so no project can ever take the slug and turn this probe into a test of an app's own
+# route, which is the "green for the wrong reason" shape this project keeps finding.
+PUBLIC_PROBE_HOST="cdn.${ZONE}"
 
 # The LiteLLM digest, read from infra/images.lock — the one place digests live.
 #

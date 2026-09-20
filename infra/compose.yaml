@@ -93,6 +93,12 @@ services:
       # property §9 needs, so an override port is not an acceptable fallback here.
       - "127.0.0.2:80:80"
       - "127.0.0.2:443:443"
+      # §12's PUBLIC listener (P6a, R3): production only, on its own address so the
+      # faculty-facing URL carries no port. `srv1` binds :8443 INSIDE the container —
+      # two servers in one container, because a second container means a second
+      # caddy-data volume, a second internal CA, and every certificate the developer
+      # trusted being wrong. The host still reaches it on 443.
+      - "127.0.0.3:443:8443"
       - "127.0.0.1:7119:2019"
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro

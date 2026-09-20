@@ -105,6 +105,84 @@ edge_serves_container_side() {
 }
 check "a container reaches https://$EDGE_PROBE_HOST with the platform CA"  edge_serves_container_side
 
+# ---------------------------------------------------------------------------
+# §12's TWO LISTENERS (P6a, R3). Until this plan both were `srv0` and the split was
+# modelled rather than enforced — §21's honest divergence 2. These three checks are
+# the first thing on this machine that could ever have caught a route bound to the
+# wrong listener.
+#
+# THEY ASSERT THE SHAPE OF THE ANSWER, NOT A STATUS. The edge's wildcard answers 200
+# for any name in the zone, so `200` proves nothing; the placeholder's own `listener=`
+# word is the only thing that distinguishes the two servers from outside.
+# ---------------------------------------------------------------------------
+
+# 1. The edge has two servers, and they are the ones config.ts names.
+check_two_servers() {
+  local keys; keys="$(curl -sS "http://127.0.0.1:$PORT_CADDY_ADMIN/config/apps/http/servers" | jq -r 'keys|join(",")')"
+  [ "$keys" = "srv0,srv1" ] || { echo "the edge has servers [$keys], want srv0,srv1"; return 1; }
+  echo "servers=$keys"
+}
+check "the edge serves two listeners, internal and public"  check_two_servers
+
+# 2. The public address answers a PRODUCTION name, and says which listener it is.
+#
+#    NOT $EDGE_PROBE_HOST. That name has its own site on srv0 (see common.sh), so it is
+#    pinned to the internal listener and cannot stand for a production hostname.
+#    $PUBLIC_PROBE_HOST is named by no site, so only a wildcard can answer it.
+check_public_listener() {
+  require_ca || return 1
+  local body; body="$(curl -sS --cacert "$CA_FILE" --resolve "$PUBLIC_PROBE_HOST:443:$PUBLIC_EDGE_IP" "https://$PUBLIC_PROBE_HOST/" 2>&1)"
+  case "$body" in *listener=public*) echo "$body"; return 0 ;; esac
+  echo "the public address answered: $body"; return 1
+}
+check "the public listener answers a production name on $PUBLIC_EDGE_IP"  check_public_listener
+
+# 3. THE ONE THAT WOULD CATCH A LEAK, and §12's claim stated as a measurement: a route
+#    bound to the wrong listener is SIMPLY UNREACHABLE. Neither cross-probe may produce a
+#    `listener=` body at all — a production name must not be served on the internal
+#    address, and a staging name must not be served on the public one.
+#
+#    ASSERTING "not answered AT ALL" RATHER THAN "not answered by the other server" is
+#    deliberate and it is what makes this able to fail. An earlier draft probed
+#    $EDGE_PROBE_HOST on the internal address and tested only for `listener=public`;
+#    because that name has its OWN srv0 site, moving the production wildcard back onto
+#    srv0 — the very leak this check exists for — left it answering `listener=internal`
+#    from its explicit site, and the check stayed GREEN through the defect.
+#
+#    WHAT "UNREACHABLE" ACTUALLY LOOKS LIKE IS `200` WITH AN EMPTY BODY — measured here
+#    in sitting 2, and it is NOT what P6a sitting 1's F3 predicted. F3 expected a TLS
+#    handshake failure, having measured `foo.notazone.test`; but Caddy's certificate cache
+#    is APP-GLOBAL, not per-server, so the `*.manifest.internal` certificate that srv1's
+#    site causes to be issued is presented by srv0 as well. The handshake therefore
+#    SUCCEEDS, srv0 matches no site for that Host, and Caddy answers an empty 200. Only a
+#    name no certificate in the whole config covers gets the `(35) tlsv1 alert` F3 saw.
+#
+#    SO A STATUS ASSERTION HERE WOULD BE GREEN ON THE LEAK AND GREEN OFF IT: `200` is the
+#    answer in both directions. The `listener=` word is the only discriminator, which is
+#    why this check reads the body and nothing else.
+#
+#    `--resolve`, not `--connect-to`: the Host header must stay the hostname or the wrong
+#    site matches, and `--resolve` is what the rest of this file already uses.
+check_no_crossover() {
+  require_ca || return 1
+  local prod_internal stg_public
+  prod_internal="$(curl -sS --cacert "$CA_FILE" --resolve "$PUBLIC_PROBE_HOST:443:$EDGE_IP" "https://$PUBLIC_PROBE_HOST/" 2>&1 || true)"
+  stg_public="$(curl -sS --cacert "$CA_FILE" --resolve "x.staging.$ZONE:443:$PUBLIC_EDGE_IP" "https://x.staging.$ZONE/" 2>&1 || true)"
+  case "$prod_internal" in
+    *listener=*) echo "a production name IS served on the internal address: $prod_internal"; return 1 ;;
+  esac
+  case "$stg_public" in
+    *listener=*) echo "a staging name IS served on the public address: $stg_public"; return 1 ;;
+  esac
+  # An empty line under each is the CORRECT answer: 200 with no body, because no site on
+  # that server matched the Host. Printed rather than summarised so a reader can see that
+  # nothing was served, instead of taking this function's word for it.
+  echo "no crossover — neither name is served by the other's listener (empty = no site matched):"
+  echo "    production on $EDGE_IP:        '$prod_internal'"
+  echo "    staging on $PUBLIC_EDGE_IP:    '$stg_public'"
+}
+check "neither listener answers for the other's zone"  check_no_crossover
+
 echo
 echo "Postgres — one server, three databases (§21)"
 
@@ -867,17 +945,42 @@ check "all three §23 platform zones serve with a trusted certificate"  zones_se
 # A name that exists in no config file, added through the admin API as the driver
 # will (§12, S1). PUT inserts; POST appends behind the wildcard, whose
 # terminal:true then swallows the new route.
-runtime_route() {
-  curl -sS -X PUT "http://127.0.0.1:$PORT_CADDY_ADMIN/config/apps/http/servers/srv0/routes/0" \
+#
+# ONE ROUTE PER LISTENER SINCE P6a (R3), and this check found the split by going red.
+# It used to add ONE route, to srv0, for a name in the BARE zone — which is the
+# PRODUCTION zone. The split sends that name to 127.0.0.3 and therefore to srv1, so the
+# route sat on a server the request never reached and the check read the wildcard's
+# placeholder instead of its own body. That is §12's claim working exactly as designed —
+# a route bound to the wrong listener is simply unreachable — but as a CHECK it has to
+# assert what the platform really does, which is `listenerFor(kind)`:
+# production → public → srv1, staging and sandbox → internal → srv0.
+#
+# Both halves matter. A staging-only version would stay green while no production route
+# could ever be reached, and a production-only version would stay green while every demo
+# on this machine broke.
+# A HELPER TAKING REAL ARGUMENTS, not a loop over "$server $host" pairs split by the
+# shell: P6a sitting 1 lost a measurement to exactly that, because an unquoted variable
+# is not word-split in every shell and both fields came back empty, printing a vacuous
+# OK for every row. Arguments cannot fail that way.
+runtime_route_on() {
+  local server="$1" host="$2" got
+  curl -sS -X PUT "http://127.0.0.1:$PORT_CADDY_ADMIN/config/apps/http/servers/$server/routes/0" \
     -H 'Content-Type: application/json' \
-    -d "{\"match\":[{\"host\":[\"late-arrival.$ZONE\"]}],\"handle\":[{\"handler\":\"static_response\",\"body\":\"runtime route OK\",\"status_code\":200}],\"terminal\":true}" \
-    >/dev/null || { echo "admin API rejected the route"; return 1; }
-  local got; got=$(curl -sS "https://late-arrival.$ZONE/" 2>&1)
-  echo "$got"
-  curl -sS -X DELETE "http://127.0.0.1:$PORT_CADDY_ADMIN/config/apps/http/servers/srv0/routes/0" >/dev/null
+    -d "{\"match\":[{\"host\":[\"$host\"]}],\"handle\":[{\"handler\":\"static_response\",\"body\":\"runtime route OK\",\"status_code\":200}],\"terminal\":true}" \
+    >/dev/null || { echo "admin API rejected the route on $server"; return 1; }
+  got=$(curl -sS "https://$host/" 2>&1)
+  echo "    $server  $host -> $got"
+  curl -sS -X DELETE "http://127.0.0.1:$PORT_CADDY_ADMIN/config/apps/http/servers/$server/routes/0" >/dev/null
   [ "$got" = "runtime route OK" ]
 }
-check "a name allocated at runtime resolves, routes and gets a certificate"  runtime_route
+
+runtime_route() {
+  local rc=0
+  runtime_route_on srv1 "late-arrival.$ZONE" || rc=1
+  runtime_route_on srv0 "late-arrival.staging.$ZONE" || rc=1
+  return "$rc"
+}
+check "a name allocated at runtime resolves, routes and gets a certificate — on both listeners"  runtime_route
 
 if [ "${MANIFEST_VERIFY_OFFLINE:-0}" = "1" ]; then
   echo

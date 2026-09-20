@@ -96,11 +96,57 @@ console.manifest.internal {
 	}
 }
 
-# §23's three platform zones, local equivalents. One wildcard certificate each,
-# because every platform hostname is exactly one label deep.
-*.manifest.internal, *.sandbox.manifest.internal, *.staging.manifest.internal {
+# Manifest's own edge probe, on the INTERNAL listener. A §23 reserved label
+# (infra/reserved-labels/labels.yaml, "Manifest's edge proxy") that lives in the BARE
+# production zone — so before P6a it was served by the `*.manifest.internal` wildcard
+# below, and moving that wildcard to :8443 would have left srv0 with no site matching
+# this Host at all.
+#
+# WITHOUT THIS SITE THE NAME ANSWERS `200` WITH AN EMPTY BODY — measured in sitting 2.
+# Sitting 1's F3 predicted a TLS handshake failure and that is not what happens: Caddy's
+# certificate cache is APP-GLOBAL, so the `*.manifest.internal` certificate the :8443
+# site below causes to be issued is presented by srv0 too. The handshake succeeds, srv0
+# matches no site, and the answer is an empty 200 — which every `make verify` check that
+# greps for `host=` would fail on, while any check reading the STATUS would pass. That is
+# the more dangerous of the two symptoms, and it is why this site exists. Task 2 pins the
+# name back to 127.0.0.2 in dnsmasq; this is the other half of the same repair.
+#
+# It belongs here rather than on the public listener for the same reason `console.` and
+# `idp.` do: it is a platform surface, not a faculty app.
+edge.manifest.internal {
+	tls internal
+	respond "manifest OK host={host} scheme={scheme} remote={remote_host} listener=internal" 200
+}
+
+# §12's PUBLIC listener. PRODUCTION ONLY, and the ONLY site bound to :8443 — which is what
+# makes "a route bound to the wrong listener is simply unreachable" true on this machine
+# rather than merely modelled (§21's divergence 2, rewritten by P6a; see Spec action 1).
+#
+# The address prefix is what puts this site on its own server: Caddy groups sites by their
+# listening address, so every site here becomes `srv1` and every site without a prefix stays
+# on `srv0`. The control plane addresses them by those names through the admin API, and
+# `MANIFEST_CADDY_SERVER_PUBLIC` is the one setting that says which is which.
+#
+# THE PRODUCTION WILDCARD MOVED HERE FROM THE srv0 BLOCK BELOW. `*.manifest.internal` is the
+# production zone (config.ts: MANIFEST_ZONE_PRODUCTION), and leaving it on srv0 would mean a
+# production hostname answering on the INTERNAL address — the exact leak this split exists to
+# refuse. `*.staging.` and `*.sandbox.` stay on srv0.
+https://*.manifest.internal:8443 {
+	tls internal
+	respond "manifest OK host={host} scheme={scheme} remote={remote_host} listener=public" 200
+}
+
+# §23's INTERNAL platform zones, local equivalents. One wildcard certificate each,
+# because every platform hostname is exactly one label deep. The production zone is NOT
+# here — it is on :8443 above.
+#
+# THE TWO PLACEHOLDERS NOW DIFFER BY ONE WORD, AND THAT WORD IS THE MEASUREMENT: a
+# response body saying `listener=internal` for a production hostname is the leak, visible
+# without reading a config. Every existing assertion in the tree matches the PREFIX
+# `manifest OK host=`, so appending it breaks none of them (checked, not assumed).
+*.sandbox.manifest.internal, *.staging.manifest.internal {
 	tls internal
 	# The placeholder C1's demo asks for. P3 replaces the reverse_proxy target
 	# per app via the admin API; this wildcard stays as the fallback.
-	respond "manifest OK host={host} scheme={scheme} remote={remote_host}" 200
+	respond "manifest OK host={host} scheme={scheme} remote={remote_host} listener=internal" 200
 }

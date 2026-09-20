@@ -155,10 +155,14 @@ const envSchema = z.object({
   // a misconfigured allowlist leaks quietly, a route on the wrong listener is
   // simply unreachable. Two settings rather than a derivation, so UBC
   // infrastructure enforces the split by configuration and not by a code change.
-  // On the laptop both listeners are loopback and Caddy names them both `srv0`
-  // (§21, honest divergence 2), so the distinction is modelled, not enforced here.
+  //
+  // BOTH WERE `srv0` UNTIL P6a (R3), and §21's divergence 2 said so — the split was
+  // modelled and never enforced on the only machine that exists. They are now two
+  // servers in ONE edge container: `srv0` on the internal address (127.0.0.2, and
+  // :443 inside the container), `srv1` on the public one (127.0.0.3, and :8443
+  // inside). One container, so one caddy-data volume and one internal CA.
   MANIFEST_CADDY_SERVER_INTERNAL: z.string().min(1).default('srv0'),
-  MANIFEST_CADDY_SERVER_PUBLIC: z.string().min(1).default('srv0'),
+  MANIFEST_CADDY_SERVER_PUBLIC: z.string().min(1).default('srv1'),
   // §12 makes the resolver per-container: dnsmasq-A's address on the platform
   // network. P1 pins it at 10.89.0.53 (infra/lib/common.sh, DNS_C_IP).
   MANIFEST_DNS_SERVER: z.string().min(1).default('10.89.0.53'),
