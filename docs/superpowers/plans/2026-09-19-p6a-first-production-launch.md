@@ -5070,3 +5070,46 @@ expect, then read which test actually failed.
 | `HEAD` moved under this sitting | **no** — `5e33eeb` at open, and this sitting's own commits on top. The second sitting in this plan where it did not |
 | the four shared HTML pages | **ALL FOUR opened and counted, and THE FIRST DRAFT OF THIS ROW WAS WRONG** — it claimed `manifest-decisions.html` mentions *"a second sign-in prompt"*, and the count is **zero**. Sitting 5's F13 is why this row gets counted rather than asserted, and it caught a fabricated claim this time rather than a lucky one. Measured: `step-up`, `stepUp`, `re-authenticat`, `ForceAuthn` and `STEP_UP` are **0** in all four. *"sign in again"* appears **three** times and none is about §20: twice in `manifest-schematic.html` about practice apps versus live CWL, once in `manifest-phases.html` about a deploy interrupting a session. **No page needed a change** |
 | `docker-simple-saml` | still clean: its only dirty path is the untracked `cert.zip` dated months before this project |
+
+#### What the post-sweep check found — TWO in §7e, and the streak since P5b's third sitting holds
+
+**Both were found by opening the thing pointed at, and neither is visible from the
+sentence** — which is the whole of what this check is for.
+
+**F16 — §7e said *"Task 10 adds `RELEASE_DIGEST_MISSING`"*, and it does not.** The code has
+been in `api/error-codes.ts` since P5a, at line 235, under family `ReleaseError`. Found by
+grepping the file rather than re-reading the hand-off. **Following the pointer then
+answered the more useful question**: every code Tasks 10 and 11 name — `NOT_FOUND`,
+`FORBIDDEN`, `TOKEN_CREDENTIAL_REFUSED`, `STEP_UP_REQUIRED`, `RELEASE_NOT_FOUND`,
+`RELEASE_DIGEST_MISSING` and `AI_BACKEND_UNAVAILABLE` — **is already registered**, so
+sitting 7 adds none and `error-codes.test.ts` should stay quiet through it. A next agent
+told to add one would have duplicated a registry entry, or spent the sitting deciding a
+family for a decision that does not arise.
+
+**F17 — §7e warned that Task 11 has "a timeout, a budget and a model name" a test could
+agree with itself about, and Task 11 has no timeout and no budget.** The 10 s timeout that
+makes *"recorded as absent"* reachable at all is `ai/client.ts`'s and already exists
+(Decision 7). **A speculative warning in a hand-off is the same defect as a wrong fact**,
+because the next sitting trusts what it is told to trust; the line now names what is
+actually in Task 11 — its `summarySource` union and `default-chat-onprem` — and says it was
+checked against the steps.
+
+**Five other claims were checked and HELD**, each by counting rather than recalling:
+
+- **`api/auth.test.ts` 22 → 30 and `api/error-codes.test.ts` 6 → 7.**
+  `git show 5e33eeb:…| grep -cE '^\s+it\('` reads **22** and **6**; the files read 30 and 7
+  now. Counted at both ends, never by subtracting from `pnpm test`'s total (sitting 4's F21
+  is why). `authz-contract.test.ts` reads **0** to that grep, because the matrix generates
+  its tests in a loop — vitest's own per-file count is the right source there, and 397 → 406
+  is one new route × nine actors exactly.
+- **Twenty migrations applied**, from `SELECT count(*) FROM drizzle.__drizzle_migrations`
+  rather than from the previous sitting's record.
+- **Every export and helper §7e names exists**, grepped one by one: `STEP_UP_COOKIE`,
+  `STEP_UP_TTL_MS`, `stepUpSession`, `isSteppedUp`, `STEP_UP_GUARDED`, `assertStepUp`,
+  `StepUpRequiredError`, `sessionActor`, `ownerSteppedUp`, and `steppedUp?: boolean` on both
+  `loginAs` and `sessionFor`.
+- **Task 10's Step 1 really does already call `assertStepUp(actor, 'release:approve')` and
+  really does already list `STEP_UP_REQUIRED`** in its `errors:` — so *"there is nothing for
+  you to wire"* is a claim about the plan's own text, read.
+- **Findings counted, not asserted:** `grep -c '^\*\*F[0-9]'` over this section reads
+  **15**, which is what the sittings table, the roadmap row and the defect-rate table say.
