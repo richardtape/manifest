@@ -1944,7 +1944,7 @@ the set is a statement about the spec, exactly as `PRIVILEGED` is.
 **THE MACHINE, as sitting 6 left it** — every number queried at the close, not recalled.
 **`make doctor` 19/0 and `make verify` 54/0** — unmoved, re-run AFTER the Docker tier and
 after both cleanup scripts. **`pnpm test` 1496 passed + 1 SKIPPED in 112 files**, run twice
-and identical. **`pnpm test:docker` 185 in 30 files, 0 skipped, 829 s** — owed, run, unmoved.
+and identical. **`pnpm test:docker` 185 in 30 files, 0 skipped, 829 s** — owed, **RUN TWICE** and unmoved both times. **No `*.docker.test.ts` confirms a pending action over HTTP either**, so that tier cannot see F12's guard any more than it can see Task 9's.
 lint, typecheck and format:check clean. **`lo0` carries `127.0.0.1`, `127.0.0.2` AND
 `127.0.0.3`.** **Twenty migrations are applied**; sitting 6 adds none. **NOTHING IS LISTENING
 ON 7100** — the control plane was started once, for the live walk and to re-register the
@@ -1953,20 +1953,18 @@ close**, so the machine matches how it was found; start it yourself with README'
 the control plane* block. **Every restart mints a new `MANIFEST_SESSION_SECRET`, so no
 cookie survives one.** **THE DATABASE IS NOT WHAT SITTING 5 LEFT**: that sitting's
 `journey-app`, its `active` IAM registration and its `approved` PIA were **truncated by this
-sitting's `pnpm test` runs**, which is ordinary and was warned of. What is there now is
-`ins000001`, `stu000001` and **one stray project row, `stepup-5795`, whose bare repository is
-gone and which could not be deleted** — `audit.events` has no cascade, because §20 makes it
-append-only (sitting 6, F15). **Any `pnpm test` truncates it**, so run the gates before you
-want rows, not after. **`make verify`'s per-app INFO line reads `containers=12 networks=4
-volumes=8`** at close, and **`runtime routes currently applied: 0`** — the Docker tier
+sitting's `pnpm test` runs**, which is ordinary and was warned of. **THE DATABASE IS EMPTY OF PROJECTS**: the sitting's final `pnpm test` truncated everything it created, and `.manifest/repos/` is back to the four bare repositories it held at open. *(F15 is worth knowing anyway: a project row **cannot be deleted** while it has events — `audit.events` has no cascade, because §20 makes it append-only — so a truncate is the only disposal route the platform has today, and `project:delete` still has no route.)* **Any `pnpm test` truncates**, so run the gates before you want rows, not after. **`make verify`'s per-app INFO line reads `containers=12 networks=4
+volumes=8`** at close, **`runtime routes currently applied: 0`** — the Docker tier
 restarts the edge and drops every route, and the boot restored none because the project rows
 were gone, so **every app hostname answers the wildcard** until something redeploys. **Both
 cleanup scripts were ALLOWED `--apply` and were run — the FOURTH consecutive sitting** —
 clearing the tier's same seven networks and one volume (**the TENTH measurement of that
 cycle**) and taking LiteLLM from 6 users to 4; `p4b-probe-user` came back again. **The app
-images keep growing and neither script covers them**: **name the metric** — `docker images -q
-| wc -l` reads **133**, `sort -u` **125**, `127.0.0.1:7107/local/*` **83**, and
-`grep '^local/'` **0**, all on the same machine at the same moment. `POST …/members` still
+images are the ONLY thing this sitting moved and left moved, and neither script covers
+them** — four per Docker-tier run, and the tier ran **twice**. **Name the metric**, because the
+obvious commands disagree by design: `docker images -q | wc -l` reads **137**, `sort -u`
+**129**, `127.0.0.1:7107/local/*` **87**, and `grep '^local/'` **0**, all on the same machine
+at the same moment. `POST …/members` still
 answers `400 MEMBER_USER_NOT_FOUND` for anybody who has not signed in to Manifest itself, and
 a role reaches a person only at their next sign-in (`scripts/admin-grant.sh`).
 

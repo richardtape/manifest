@@ -3931,6 +3931,20 @@ and `runtime_route`'s `srv1` half).
 
 #### The machine, queried at close rather than recalled
 
+> **RE-QUERIED AFTER F12's FOLLOW-UP, 2026-09-20.** The table below was written at this
+> sitting's first close; the follow-up then ran the Docker tier a second time, restarted the
+> control plane, drove D24's loop live and ran `pnpm test` twice more. **What changed:** the
+> database is now **fully truncated** — the final test run cleared `stepup-5795` and the
+> follow-up's own `confirm-9115`, and **both bare repositories were removed**, so
+> `.manifest/repos/` is back to the four it held at open. `containers=12 networks=4
+> volumes=8` and doctor 19/0, verify 54/0 all re-measured and unmoved; both cleanup scripts
+> allowed and run **again**, `p4b-probe-user` back for the second time in one sitting, 6
+> users → 4. **Port 7100 is free.** **The app images are the only thing that moved and
+> stayed moved**: `docker images -q | wc -l` **133 → 137**, unique **125 → 129**,
+> `127.0.0.1:7107/local/*` **83 → 87** — **four per Docker-tier run, and the tier ran
+> twice.** Neither cleanup script covers them, which is the standing gap CLAUDE.md names.
+
+
 `make doctor` **19/0**, `make verify` **54/0**, `pnpm test` **1390 in 108 files** twice and
 identical, `pnpm test:docker` **180 in 30 files, 0 skipped, 848 s**, lint/typecheck/format
 clean. **`lo0` carries `127.0.0.1`, `127.0.0.2` and `127.0.0.3`** — Rich ran
@@ -5018,7 +5032,7 @@ it append-only by grant. **The capability has been in `CAPABILITIES` since P5b w
 caller** — the no-caller shape ORIENTATION §9 names four times — and this records what the
 caller will have to decide when somebody writes it: a project cannot be deleted without
 either deleting audit rows, which is the control, or soft-deleting it. **Nothing was
-deleted from `audit.events`.** The stray row is named in the machine table below.
+deleted from `audit.events`.** *Postscript, after F12's follow-up: the row is gone — the final `pnpm test` TRUNCATED it, which is the disposal route the platform already has and the reason this was never urgent. The finding stands for whoever writes the delete route: `audit.events` is what they will have to decide about.*
 #### Negative controls — every one watched, and which could not fail
 
 **Task 8**, each run after the task was committed, restored with `git checkout <path>`:
@@ -5234,6 +5248,25 @@ the exact change, the branch it goes on (production only — a staging deploy is
 `release:deploy` and is deliberately unguarded), and its control. `authz.ts` records where
 all five members of the set stand, so the next reader cannot mistake the rule for the
 enforcement — or "fix" the list by deleting a member.
+
+**AND D24'S LOOP WAS DRIVEN END TO END WITH §20's NEW GUARD INSIDE IT, LIVE, THROUGH THE
+EDGE AGAINST THE REAL IdP.** The two mechanisms had never met outside the unit tier, and
+the whole question F12 asked is whether they compose.
+
+| Step | Answer |
+|---|---|
+| the owner signs in with CWL | `steppedUpAt: null` |
+| an agent holding a **real** token — minted through the route, so `project:read` only — asks to add a member | `403 TOKEN_ACTION_PENDING`, with the question, its fingerprint and its 24-hour expiry |
+| **the owner tries to confirm on an ordinary session** | **`403 STEP_UP_REQUIRED`** — *"'members:manage' needs a second authentication round trip (§20)"*, with the route to fix it in the hint |
+| the owner steps up | `steppedUpAt` stamped, `userId`, `issuedAt` and `expiresAt` all unchanged |
+| and confirms | `200`, `state: confirmed`, `consumedAt: null` |
+| **the AGENT'S OWN retry, same `Idempotency-Key`** | **`201`** — the member is added, and D24's loop closes with §20's guard inside it |
+
+**The token holds only `project:read`, which is the case that matters** (P5b sitting 9, F1):
+no token the platform can mint can hold one of D24's four, so this is the path every real
+agent takes rather than a fixture's. **The guard sits between the question and its answer
+without breaking the loop** — which is the claim F12's fix had to earn, and the one no unit
+test can make on its own.
 
 **A PROCESS FINDING, PAID FOR IN THIS FOLLOW-UP: `git checkout <path>` RESTORES FROM THE
 INDEX, AND AN UNCOMMITTED CHANGE IS DESTROYED BY THE RESTORE RATHER THAN THE EXPERIMENT.**
