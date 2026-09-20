@@ -56,7 +56,9 @@ const PIA_ARROWS: Record<PiaState, readonly PiaState[]> = {
 /**
  * The one refusal both machines make, with its message built where a person reads it.
  * The noun differs because the person reading it is an administrator looking at one of
- * two different things, not a developer reading a stack trace.
+ * two different things, not a developer reading a stack trace — so `what` carries its own
+ * article ("an IAM registration", "a privacy assessment") rather than the template
+ * prepending one, which read "a IAM registration" until control (a) printed it.
  */
 function refuseArrow(
   what: string,
@@ -66,14 +68,14 @@ function refuseArrow(
 ): never {
   throw new LaunchTransitionError(
     'LAUNCH_TRANSITION_INVALID',
-    `a ${what} cannot go from '${from}' to '${to}' — from '${from}' it can only become ` +
+    `${what} cannot go from '${from}' to '${to}' — from '${from}' it can only become ` +
       `${allowed.length === 0 ? 'nothing' : allowed.map((s) => `'${s}'`).join(' or ')}`,
   )
 }
 
 export function iamTransition(from: IamState, to: IamState): IamState {
   if (!IAM_ARROWS[from].includes(to))
-    refuseArrow('IAM registration', from, to, IAM_ARROWS[from])
+    refuseArrow('an IAM registration', from, to, IAM_ARROWS[from])
   return to
 }
 
@@ -84,6 +86,6 @@ export function iamTransition(from: IamState, to: IamState): IamState {
  */
 export function piaTransition(from: PiaState, to: PiaState): PiaState {
   if (!PIA_ARROWS[from].includes(to))
-    refuseArrow('privacy assessment', from, to, PIA_ARROWS[from])
+    refuseArrow('a privacy assessment', from, to, PIA_ARROWS[from])
   return to
 }

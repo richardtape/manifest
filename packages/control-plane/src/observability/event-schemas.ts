@@ -48,12 +48,6 @@ const InstanceDetail = z.strictObject({
 })
 
 /**
- * `handle` is the driver's name for the container, which Decision 23 keeps out of an
- * `Instance`. It is here because a container a crash or a truncated database left has NO
- * row, and the handle is then the only thing naming what was removed — §14's trail matters
- * most once the thing is gone. The event's `subject` carries it for the same reason.
- */
-/**
  * Both halves of §13's approval answer (P6a Decision 14). One shape for two types, so a
  * client switches on the TYPE rather than reading a field to find out what happened —
  * `decision` is carried as well because the audit trail is read as rows, not as a switch.
@@ -64,6 +58,12 @@ const ApprovalDetail = z.strictObject({
   decision: z.enum(approvalDecision.enumValues),
 })
 
+/**
+ * `handle` is the driver's name for the container, which Decision 23 keeps out of an
+ * `Instance`. It is here because a container a crash or a truncated database left has NO
+ * row, and the handle is then the only thing naming what was removed — §14's trail matters
+ * most once the thing is gone. The event's `subject` carries it for the same reason.
+ */
 const RetireDetail = z.strictObject({
   instanceId: Uuid.nullable(),
   handle: z.string(),
