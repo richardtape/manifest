@@ -30,6 +30,23 @@ rediscover: why `LiveSteps` exists at all (C3 makes the build log unshowable, an
 the best moment in the product), why a clock is never animated, why `TwoFacts` is two cells and not
 one number, and why `InverseSurface` is a boundary rather than a style.
 
+**Second pass on the system, 2026-09-20.** Rich named four things the prototype had and the system
+did not — the deploy screen's horizontal run of stations, the preview's browser frame, its two
+segmented controls, and the radio and checkbox cards — and asked whether interaction states were
+worth capturing. They were: **`Timeline`**, **`BrowserFrame`**, **`SegmentedControl`**, **`Choice`**
+and **`Interaction states`** bring it to sixteen components. Hover, focus, active and disabled are
+the part of a system that gets invented per screen when nobody writes it down, and focus is the
+state most often styled away — here a legal problem rather than a tidiness one. `focus-ring` is an
+**alias** of `brand` so that a brand change can never leave focus behind.
+
+**And one thing was removed.** The 4px accent stripe down the left edge of a card — on the checklist
+items, the agent's question and the change-in-progress card — is gone, at Rich's direction. With
+five state colours already in play it read as a second, competing status system, and a row of cards
+looked ragged where the stripes did not line up. **Every card now takes the same 1px border all the
+way round**, in its state's `*-border` colour. The system keeps exactly one left rule, and it is
+not a border: a 2px `border-subtle` blockquote marking a person's verbatim words, which is the
+reason somebody gave for refusing an agent, quoted back to them.
+
 ---
 
 ## 1. Three things settled before anything was drawn
