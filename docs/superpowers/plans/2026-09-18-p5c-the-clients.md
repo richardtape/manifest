@@ -6030,3 +6030,33 @@ and nine matrix rows), `pnpm test:docker` **178 in 29** run TWICE, `make doctor`
 all four places together** — ORIENTATION §2, `README.md`, `RUNBOOK.md` and
 `scripts/ci-acceptance.sh`'s `EXPECT_` lines. **The OpenAPI document was regenerated** (`unversioned.ts`
 feeds it) and the client with it.
+
+#### The post-sweep check, after the logout fix and the CLF theme — one more, in §2's own box
+
+Run again after the out-of-plan work, by opening what the documents point at rather than
+re-reading them. **It found one, which makes it every sitting since P5b's third without
+exception.**
+
+**ORIENTATION §2's *Last verified* line still read *"no gate number moved: sitting 9's only code
+change is two shell scripts, so `pnpm test:docker` was neither owed nor run."*** Both clauses
+were true when sitting 9 closed and **false within the hour**: F11's repair moved `pnpm test` to
+**1390 in 108 files**, and `pnpm test:docker` was owed and run **three times** — after the first
+logout fix, after F16, and again for the theme, whose HTML the identity tier parses. That line is
+the numbers box's own statement of authority, so it is the worst line in the file to leave wrong.
+
+**What the check CONFIRMED, tested rather than assumed:** the nine per-sitting counts
+(19, 10, 9, 9, 13, 12, 8, 11, 16) sum to **107** and divide by 14 tasks to **7.6**, which is what
+§7e, the ledger's P5c row and its defect-rate table all state; the moved gate numbers agree in
+all **four** places — `scripts/ci-acceptance.sh`'s `EXPECT_` lines, ORIENTATION §2, `README.md`
+and `RUNBOOK.md`; every claim §7e makes about the theme opens (the module directory, its README,
+`theme.use` in `config.php`, the mount in `compose.yaml`, and `error.twig` present-but-unverified);
+`docker-simple-saml` is still clean but for the untracked `cert.zip` that pre-dates this work; and
+the machine reads exactly what the table says — control plane **84455**, 7102/7104/7105 free,
+`users` **0**.
+
+**The pattern across the day is now three for three, and it is always the same shape:** a
+statement that was true when written and false when read. `users` held two rows, then none. 7104
+was free, then busy, then free. No gate number moved, then one did. **None of these is a careless
+error; each is a fact with a shelf life, written down without one.** The remedy that worked was
+mechanical rather than attentive — query the machine LAST, after the gates, and say in the table
+that this is what you did.
