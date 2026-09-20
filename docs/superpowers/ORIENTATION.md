@@ -1749,7 +1749,8 @@ curl -s --cacert infra/ca/manifest-root.crt \
 ### 7e. Write P6 — Production and approvals. PHASE 1c IS FINISHED ← **START HERE**
 
 **PHASE 1c IS COMPLETE. P5c IS EXECUTED — all 14 tasks in nine sittings, 2026-09-18/19, with
-19, 10, 9, 9, 13, 12, 8, 11 and 15 findings (106).** There is no plan executing and nothing is
+19, 10, 9, 9, 13, 12, 8, 11 and 16 findings (107) — sitting 9 gained a sixteenth when F11 was
+fixed after its close.** There is no plan executing and nothing is
 part-finished. **§16's Acceptance tier is MET**: §22's journey is proved by two independent
 clients over one contract — `make ci-acceptance` headlessly, run three times, and **a person
 clicking all sixteen rows in the console**, recorded as a GIF on 2026-09-19.
@@ -1793,6 +1794,29 @@ four that follow it, because it feeds the UBC external track.
   spaces — so the deflate stream arrived short. **The redirect binding's values are URI components,
   not form fields**, and `rawQueryValues` in `api/routes/auth.ts` decodes them accordingly.
   **Rich asked for the browser test; nothing else would have caught it.**
+- **THE IdP NOW WEARS THE UBC COMMON LOOK AND FEEL, AND THAT IS NOT COSMETIC.** Rich asked for
+  it on 2026-09-19 (out of plan, after P5c closed). `infra/idp/modules/ubc-clf-7/` is a
+  SimpleSAMLphp theme module **bind-mounted read-only like the IdP's config beside it** — so
+  changing it needs no image rebuild, no `composer` and no network. `config.php` sets
+  `'theme.use' => 'ubc-clf-7:ubc-clf-7'`, and because there is ONE IdP that one setting covers
+  **both** Manifest's own sign-in and every deployed app's CWL sign-in; both were checked in a
+  browser. **It exists so somebody can see what a real CWL sign-in WILL look like before they
+  have approvals, and it is meant to be deployed as a service** — which is why a red band says
+  `PRACTICE SIGN-IN — NOT REAL CWL` on every page the theme renders. **Read that module's
+  `README.md` before touching it**: it records where the theme came from (`docker-simple-saml`,
+  which is READ-ONLY and was not modified), every change made to it and why, and the six asset
+  files that were fetched from `cdn.ubc.ca/clf/7.0.5` with their checksums and licences.
+- **THREE THINGS ABOUT THAT THEME ARE OUTSTANDING**, and none is urgent: `core/error.twig` is
+  written but **UNVERIFIED**, because SimpleSAMLphp routes malformed state to a low-level
+  "Unhandled exception" page outside the theme system and the authproc codes that template
+  handles need a deliberately failing auth source to reach; the CLF footer still carries the
+  source's placeholder contact details (*"123 Road Name / Definitely NotaPlace"*), which is fine
+  on a laptop and not on a service other teams see; and the browser tab still reads
+  `UBC SimpleSAMLphp`, the one place the page does not identify itself. **Two defects in the
+  theme were found and fixed on the way, both inherited from the source**: its asset URLs
+  hardcoded a `/simplesaml/` prefix that 404s anywhere else, and a wrong password re-rendered the
+  form saying **nothing at all** — it had no error block, so people were bounced back with no
+  explanation.
 - **THE `LaunchReadiness` GATE IS P6's CENTRE, and its read-only half already works and is
   clicked.** Six items render with state, reason, owner and the plan that builds them; the read
   and the production refusal's `409` envelope were measured **byte-identical**. P6 adds the gate
@@ -1816,17 +1840,20 @@ console's preflight, decided by Rich on 2026-09-19 and applied); the **second-ma
 clone**; **starting the UBC external track**, whose trigger fired on 2026-09-15; and the rest of
 §8.
 
-**THE MACHINE, at the close of P5c sitting 9.** *Read from `lsof`, `docker`, `psql`, `curl` and
-the scripts' own output, not from memory.*
+**THE MACHINE, measured 2026-09-19 AFTER the last gate ran, not before.** *That ordering is
+the point: the previous version of this table said `users` held two rows and 7104 was free, and
+both were true when written and false by the time they were committed — the close-out's own
+`pnpm test` truncated one and a server left running for a browser check held the other. A state
+table is only true as of its last query, so query it last.*
 
 | | |
 |---|---|
-| The four gate numbers | §2's box. **`pnpm test` MOVED to 1390 in 108 files** — sitting 9 added `api/logout.test.ts` (5) and nine authorization-matrix rows for the new route, all of it F11's repair. `pnpm test:docker` **178** in **29** (unchanged, and run TWICE: once for the first fix, again for F16), `make doctor` **18/0**, `make verify` **51/0**. **When a count moves, ORIENTATION §2, `README.md`, `RUNBOOK.md` and `scripts/ci-acceptance.sh`'s four `EXPECT_` lines move together** |
-| The control plane | **RESTARTED ONCE, before anybody signed in** (F13's rule, obeyed) — **DO NOT BELIEVE THIS ROW, CHECK IT** with `lsof -nP -iTCP:7100 -sTCP:LISTEN`. A sitting is one session and this is a host process |
-| The console and the mock | **BOTH STOPPED BY PORT at the close.** 7102, 7104 and 7105 free — *checked* |
-| The apps | `journey-app`, `token-app` and **`p5c-acceptance`** — the project the clicked journey created, which is `node-ts-mongo@1` + the `proof-app` starter, deployed to staging and healthy. Its staging URL signs a person in with CWL and answers a question through LiteLLM |
-| Identity | **`users` IS EMPTY — checked with `count(*)`, not recalled.** The acceptance signed BOTH `ins000001` and `stu000001` in, and then the close-out's own `pnpm test` truncated the table; that is the ordinary state here, and this row said *"holds TWO rows"* until the post-sweep check queried it. **`pnpm test` empties it**, and `POST /v1/projects/{id}/members` answers `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in **to MANIFEST** (F14: signing in to a deployed APP is a different SP with a different user store, and does not count) |
-| **Owed to Rich** | **NOTHING.** Both cleanup scripts were run bare and read clear — `dead-app-resources.sh` *none dead*, 0 networks and 0 volumes; `litellm-orphans.sh` **0 orphaned**. **A full `make reset` plus three whole `ci-acceptance` runs left NO debris**, which places the seven-networks-and-one-volume cycle specifically on `pnpm test:docker` rather than on the demos |
+| The four gate numbers | §2's box: `pnpm test` **1390** in **108** files, `pnpm test:docker` **178** in **29**, `make doctor` **18/0**, `make verify` **51/0**. The unit count moved when F11's repair added `api/logout.test.ts` and nine authorization-matrix rows; **the docker tier was run THREE times** across the day and never moved |
+| The control plane | **pid 84455 on 7100 when this was written — DO NOT BELIEVE THAT, CHECK IT** with `lsof -nP -iTCP:7100 -sTCP:LISTEN`. A sitting is one session and this is a host process. It serves from `dist/`, so a source change needs a rebuild and a kill BY PID — and **a restart signs everybody out**, because the session secret is a fresh `openssl rand` each time |
+| Ports | **7102, 7104 and 7105 FREE** — *checked with `lsof` after stopping the console by port*. 7122 is the IdP's container port and is always up |
+| Identity | **`users` IS EMPTY** — *queried, not recalled*. Both test users signed in during the day; `pnpm test` truncates the table and ran last. `POST /v1/projects/{id}/members` answers `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in **to MANIFEST** — signing in to a deployed APP is a different SP with a different user store and does not count (sitting 9, F14). The cheapest repair is a sign-in at the console in an **incognito window**, which adds the row without disturbing the main one |
+| The apps | `make verify` reads **`containers=12 networks=4 volumes=8`** and **runtime routes 0**. `proof-app` was redeployed twice by `make demo-identity` — once to restore the trigger that proves F11, once after `make up` dropped the routes again. **Nothing is reachable as itself**: with 0 runtime routes every app hostname answers the edge's WILDCARD, which a status-only check cannot tell from the app |
+| **Owed to Rich** | **NOTHING.** Both scripts were run bare and then **`--apply` was tried and ALLOWED** — `dead-app-resources.sh` removed seven networks and one volume, `litellm-orphans.sh` deleted `p4b-probe-user` again. Re-measured bare afterwards by the scripts themselves: **`none dead`, 0 networks, 0 volumes, 0 orphaned.** **This is the FIFTH measured time the tier has put back exactly that set** — treat it as a property of the Docker tier, not a backlog, and note the classifier refused this in earlier sittings and allowed it here: **try the command rather than trusting either note** |
 
 **WHAT WILL SURPRISE YOU, specifically.**
 

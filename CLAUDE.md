@@ -32,7 +32,7 @@ and green — PHASE 1c IS COMPLETE.** Every one of them has an acceptance that p
 
 **P5c IS EXECUTED** (`docs/superpowers/plans/2026-09-18-p5c-the-clients.md`, written
 2026-09-18, executed 2026-09-18/19): the clients — `manifest-mock`, `console/` behind its import
-boundary, and the CI acceptance script — **14 tasks in nine sittings, 106 findings**. It was the
+boundary, and the CI acceptance script — **14 tasks in nine sittings, 107 findings**. It was the
 last plan of Phase 1c, and **Phase 1c is now complete**. **§16's Acceptance tier is MET**: §22's
 journey is proved by two independent clients over one contract — `make ci-acceptance` headlessly,
 run three times including from an `echo reset | make reset` machine, and **a person clicking all
@@ -41,10 +41,17 @@ sixteen rows** on 2026-09-19, recorded as a GIF. Rich settled three things in it
 answered by a MEASUREMENT** — an app's WebSocket IS cut by any other app's deploy, so
 `routing/caddy.ts` carries the field and §8's item is closed; and the **clicked half of its
 acceptance is shared and recorded**, because an agent driving Chrome cannot type a password.
-**Its acceptance found a live defect no gate can see, and it is recorded rather than fixed**:
-signing out of any deployed app leaves the person on a raw JSON `404`, because Manifest's own
-Single Logout URL answers `POST` only while SAML's logout binding sends `GET` — and Manifest's
-own session is not ended by the chain. **It is a decision waiting on Rich in ORIENTATION §8.**
+**Its acceptance found a live defect no gate can see, and it is now FIXED** (`b23674b`,
+2026-09-19, at Rich's direction rather than deferred to P6): signing out of any deployed app
+left the person on a raw JSON `404`, because Manifest's own Single Logout URL answered `POST`
+only while SAML's logout binding sends `GET` — and Manifest's own session was never ended by
+the chain. **Single logout now works end to end, proved in a browser against the real IdP.**
+It took TWO fixes, and the second is the one worth knowing: the first passed every test and
+was still broken, because `+` is a literal character of base64 and every FORM decoder reads it
+as a space — the redirect binding's values are URI components, not form fields. **Every test
+missed it because they all fired garbage at the route and asserted a refusal, and a route that
+refuses everything passes them all.** ORIENTATION §8 records the decision; P5c's record,
+sitting 9, has the measurements.
 
 **P5b — delegated tokens and pending actions (D24) — was executed in nine sittings and finished
 on 2026-09-18** (`docs/superpowers/plans/2026-09-17-p5b-delegated-tokens.md`, 13 tasks): an agent
@@ -71,9 +78,9 @@ reads `none dead` and `litellm-orphans.sh` reads 0 orphaned. They were clear at 
 too; sitting 2 ran no Docker tier and they stayed clear; **sitting 3 ran one and seven networks,
 one volume and one LiteLLM orphan (`p4b-probe-user`) came straight back**, and were cleared again. **The cycle is the thing to understand, not the status**: a tier run takes
 `make verify`'s per-app line from `containers=3 networks=1 volumes=2` to
-`containers=3 networks=8 volumes=3`, and an apply takes it back. **This is the FOURTH time the tier
-has been measured putting back exactly the same seven networks and one volume** (P5b sitting 9 and
-P5c sittings 1 and 8 are the others), so treat it as a property of the Docker tier rather than as a
+`containers=3 networks=8 volumes=3`, and an apply takes it back. **This is the FIFTH time the tier
+has been measured putting back exactly the same seven networks and one volume** (P5b sitting 9 and P5c sittings 1, 8 and 9 are the
+others), so treat it as a property of the Docker tier rather than as a
 backlog: **none of these cleanups stays cleared on its own**, and every demo adds a LiteLLM user
 besides. **One thing neither script covers is app images** — 27 stand
 today by distinct image ID, a number every Docker-tier run moves, and three ways of counting
@@ -146,7 +153,11 @@ For the platform itself it is `make doctor` and `make verify`.
 - **These containers must survive**: `docker-simple-saml-saml-idp-1`,
   `qdrant-local-dev`, `mongodb`, `mongo-express`.
 - **`docker-simple-saml` and `ubc-genai-toolkit` are read-only.** Both are clean and
-  must stay that way. Work on a copy.
+  must stay that way. Work on a copy. **That is exactly what the IdP's UBC CLF theme is**:
+  P5c sitting 9 copied `modules/ubc-clf-7/` OUT of `docker-simple-saml` into
+  `infra/idp/modules/`, changed it there, and left the source untouched — its only dirty
+  file is an untracked `cert.zip` dated months earlier. Check that repo is still clean
+  after any work that reads from it.
 
 ## How Rich wants this done
 
