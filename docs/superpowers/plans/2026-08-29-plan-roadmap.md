@@ -687,17 +687,18 @@ reserved as slugs. All five are applied to the spec (`1d88846`).** **P5a IS WRIT
 clickable in the console *and* driven headlessly by a script, both using nothing but
 the generated client.
 
-### Phase 2 — six plans, deliberately not written yet
+### Phase 2 — SEVEN plans since 2026-09-19, deliberately not written yet
 
-§17 lists Phase 2 as one stage. It is six independent subsystems that happen to
-share a boundary, and the writing-plans scope check is explicit that each should be
-its own plan producing working software:
+§17 lists Phase 2 as one stage. It is six independent subsystems that happen to share a boundary,
+and the writing-plans scope check is explicit that each should be its own plan producing working
+software. **P6 became P6a and P6b on 2026-09-19** — split on D9's own two clauses, *first launch*
+and *subsequent releases* — so the table below has seven rows for six subsystems:
 
 | | Plan | Covers |
 |---|---|---|
 | **P6a** | **The first production launch** ← **BRIEFED 2026-09-19, NEXT TO WRITE** | the public listener made real (§12), production environments, promotion by verified digest, the `LaunchReadiness` **gate** that blocks (P5 ships only its read-only view), `IamRegistration` and `PrivacyAssessment` **as tracked objects with manual state transitions** (Rich, 2026-09-19 — generation stays P8's), the D21 rehearsal, admin approval with step-up re-auth, gate integrity (§13), and the **`Reviewer` seam** — an interface, an honest `NullReviewer` and a NON-blocking checklist item, so code review can be built in later without unpicking anything (2026-09-19). **Demo:** an app reaches production, every blocking item honestly met |
 | **P6b** | **Subsequent releases** | D9.2: self-serve production redeploys, sensitive-diff re-escalation (`isSensitiveDiff` gets its first caller), the `diff_snapshot` and its **security-aware** AI summary carrying the reviewer's verdict, and the `auth.attributes` → IAM change-request path (§9). **Demo:** a self-serve redeploy, then a sensitive change refused until approved |
-| P7 | Custom domains | §23 end to end: `Domain` lifecycle, CNAME + TXT verification, certificate issuance, the upload path, expiry alarms, D27's ordering constraint |
+| P7 | Custom domains | §23 end to end: `Domain` lifecycle, CNAME + TXT verification, certificate issuance, the upload path, expiry alarms, D27's ordering constraint. **Depends on P6a's public listener.** *Can a custom domain be proved on this laptop? Read from the config on 2026-09-19 — see the note below the table: yes, cheaply, except for real ACME issuance* |
 | P8 | Launch package generation | §9 and D19: the IAM registration package via `saml-metadata-generator`, and the PIA draft. **The two tracked objects themselves moved to P6a on 2026-09-19** (Rich's decision, P6 brief §5 R1) — P8 GENERATES what they carry, and §9's own *"submitted by a human, with a ticket reference pasted in"* is what P6a builds first, the manual driver of the same state transition (D5, D10) |
 | P9 | Audience & capacity | §24: the tiers' production effects, pre-warming for `burst: synchronised`, the load rehearsal, upgrade requests through the admin queue |
 | P10 | Showcase & forking | §27: publishing, the fork operation, and D32's not-copied list — which is the whole of its security argument |
@@ -708,6 +709,58 @@ P9; P10 and P11 depend on P6 only. P8 should start earliest of the four that fol
 P6, because it feeds the external track below. **P6 became P6a and P6b on 2026-09-19**,
 split on D9's own two clauses (*first launch*, then *subsequent releases*) so that each
 half demos on its own; only **P6a** is a prerequisite for P7, P8 and P9.
+
+### P7's local proof — feasible and cheap, except for the half that is not
+
+*Rich asked on 2026-09-19 whether a genuinely different URL — something outside
+`.manifest.internal` — is possible locally, so that custom domains are known to be feasible
+before P7 is written. **Read from the machine's configuration that day; NOT measured.** The check
+is ten minutes and belongs in P7's Task 1, like every plan's measurements since P4c.*
+
+**Three additions, and none of them is hard.** The machine already does exactly this for one
+zone:
+
+1. **A resolver file.** `/etc/resolver/manifest.internal` is two directives — `nameserver
+   127.0.0.1` and `port 7153`. A custom zone is one more `install` line in
+   `infra/host/host-setup.sh`, plus the matching `rm` in `host-undo.sh`, which already verifies
+   its own removal.
+2. **A dnsmasq rule** on `dns-host`, beside `--address=/manifest.internal/127.0.0.2`, pointing the
+   new zone at **the public-listener alias P6a adds**. That is the correct target by construction:
+   §23 makes a custom domain production-only and public-listener-only.
+3. **Nothing at all for certificates.** Every Caddy site here is `tls internal`, and
+   `make host-setup` already trusts Caddy's CA in the System keychain — so Caddy mints a
+   browser-trusted certificate for *any* hostname on demand.
+
+**THE ONE HARD CONSTRAINT, and this project already paid for it.** `host-setup.sh`'s step 2 says
+in its own comment: *scoped to `manifest.internal` — **NOT to all of `.internal`**, which would
+break Docker's own `host.docker.internal` and `gateway.docker.internal`.* So scope any new zone to
+a **second level**, never a bare TLD. Two names on this machine are already taken: **`.test` is
+Laravel Valet's and is never to be touched**, and a `vibonarium.local` resolver exists — which is
+also the reason to **avoid `.local` entirely**, since macOS special-cases it for mDNS.
+
+**Suggested name.** A second-level zone under **`.example`**, which RFC 6761 reserves permanently
+so it can never be delegated to anyone — for instance `chem-labs.courses.example` beside the
+canonical `chem-labs.manifest.internal`. It reads like a department vanity domain in a demo and
+cannot collide with a real one. `.localprod` would work too, but an unreserved TLD is a habit that
+eventually meets a real delegation.
+
+**What this proves:** a name **outside the platform's own zone**, which the platform does not
+control by construction, arriving on the public listener; the canonical hostname still serving
+beside it (D26); the refusal of a custom domain on sandbox or staging, which §23 requires the API
+to reject rather than quietly ignore; D27's ordering constraint; and **the certificate-upload
+path**, which is fully testable locally.
+
+**What it does NOT prove, and P7 should decide what to do about it:** D28 makes verification and
+certificate issuance *the same event*, because the CNAME means the ACME challenge is reachable —
+traffic already arrives at the edge. Locally there is no ACME and no public CA; Caddy's internal
+CA simply issues. **So the real issuance path stays unexercised** unless P7 chooses to run a local
+ACME server, which is its own decision with its own cost.
+
+**And one part is honest theatre:** proof-of-control is circular, since we would own the zone
+whose control is being proved. But dnsmasq serves TXT records, so the *code path* — the platform
+asks for a token, an operator publishes it, the platform verifies it — is genuinely exercised.
+**That is the same shape as P6a's rehearsal** (P6 brief R2): it proves the mechanism, never the
+external fact, and it should be written down as such rather than discovered.
 
 ### Tracked hardening items — small, not a plan of their own
 
