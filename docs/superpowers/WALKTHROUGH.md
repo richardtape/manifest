@@ -133,9 +133,16 @@ through the edge, serves the console on 7104 and prints this checklist. Then ope
 - **A failed deploy is a `200`.** Its state is `failed` and *the previous instance keeps serving*,
   so *what is serving* and *what the last attempt did* are two different questions and the screen
   answers both.
-- **Sign the student in before anything needs a member.** `POST /v1/projects/{id}/members` answers
-  `400 MEMBER_USER_NOT_FOUND` for anybody who has never signed in, and `pnpm test` empties `users`
-  on every run.
+- **Sign the student in TO MANIFEST before anything needs a member — signing in to the app is a
+  different thing and does not count.** The app and Manifest are separate Service Providers with
+  separate user stores: `POST /v1/projects/{id}/members` reads Manifest's `users`, which only a
+  sign-in at `https://console.manifest.internal/` writes. Doing it in an **incognito window** adds
+  the row without disturbing whoever is signed in to your main window. `pnpm test` empties `users`
+  on every run, so this is needed again after any gate run (P5c sitting 9, F14).
+- **Signing out of the APP leaves you on a raw JSON 404, and does not sign you out of Manifest.**
+  The IdP's single logout calls Manifest's own SLO endpoint over a `GET`, and `/auth/logout`
+  answers only `POST`, so you get `ROUTE_NOT_FOUND`. It is cosmetic for the journey — the app's
+  session does end — but do not read it as a broken deploy (P5c sitting 9, F11).
 - **The sign-in has a ten-minute clock.** `manifest_login` carries `Max-Age=600`, so a sign-in left
   sitting on the IdP page loses its `returnTo` and lands you on `/` instead of the screen you asked
   for. If that happens, it is the clock, not the router.
@@ -143,16 +150,16 @@ through the edge, serves the console on 7104 and prints this checklist. Then ope
 | # | Click | What must be true |
 |---|---|---|
 | 1 | open `https://console.manifest.internal/` | the sign-in screen — not a blank page, not a `502` |
-| 2 | **Sign in with CWL** (`instructor` / `instructor`) | lands back on `/`; the header reads **Instructor One** and `ins000001` |
+| 2 | **Sign in with CWL** (`instructor` / `instructor`) | lands back on `/`; the header reads **Test Instructor** and `ins000001` |
 | 3 | type a name into **Create a project** | the availability answer changes **as you type**, and `edge` is refused as a reserved label, with the reason |
 | 4 | choose `node-ts-mongo@1` + `proof-app`, *a class*, *all at once*, **Create** | lands on the project, and **Activity already shows three events** — created, seeded, validated — from the replay |
 | 5 | **Build** | the state is `running` **at once**, and log lines arrive while it runs |
 | 6 | wait | it ends `succeeded` **with no reload**, and the scan summary is shown |
 | 7 | **Release this build**, then **Deploy to staging** | instance states arrive live: provisioning → sso.registered → starting → healthy |
-| 8 | click the staging URL, sign in inside the app (`student` / `student`) | the app knows who you are; **write a note**; **ask the LLM** and get an answer from your own note |
+| 8 | click the staging URL, sign in inside the app (`student` / `student`) | the app knows who you are, and says whether you are `student` or `faculty`; **ask the LLM** and get an answer. *There is no form for writing a note — `make demo-ai` writes them, so a freshly deployed app answers with `context: null`* |
 | 9 | back in the console, **Request production** | `LaunchReadiness`: `ready: false`, every item with its `why`, and `builtBy` naming the plan that builds it |
 | 10 | **Tokens** → mint one | the secret is shown **once**; reload and it is gone; the privileged four cannot be ticked |
-| 11 | in a terminal, the agent asks to add `stu000001` as a member | `403 TOKEN_ACTION_PENDING` |
+| 11 | in a terminal, the agent asks to add `stu000001` as a member | `403 TOKEN_ACTION_PENDING`. **The student must have signed in to MANIFEST, not just to the app** — see the traps above |
 | 12 | **Queue** | the question is there **within a second**, with its age and the token that asked |
 | 13 | **Confirm** | the agent's retry with the **same** key succeeds `201`, **once** |
 | 14 | the agent asks again with a **fresh** key, and you **Reject** with a reason | the agent is answered `403 TOKEN_ACTION_REJECTED` **carrying your words** |

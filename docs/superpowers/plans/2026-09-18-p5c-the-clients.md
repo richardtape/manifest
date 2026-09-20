@@ -5835,3 +5835,99 @@ real deploy and remains outstanding.**
 now defers to the *Where to start* table and §7e, which is the repair the same file's later
 paragraph had already made for itself after drifting the same way. *The table row at README:120
 was correct throughout — it was the prose above it that was five sittings stale.*
+
+---
+
+#### STEP 2 — §22's JOURNEY, CLICKED. ALL SIXTEEN ROWS, 2026-09-19
+
+**Run as R3 describes it**: the agent drove Chrome and read every page, Rich typed every
+password and said so, and the run is recorded as a GIF (`p5c-acceptance-clicked-journey.gif`,
+50 frames). **Rich offered a forged session twice and it was declined both times**; what unblocked
+it instead was his granting the extension its per-site permission, and later an incognito window
+for one sign-in (F14). **This is the human half of §16's Acceptance tier. The headless half ran
+three times earlier the same day.**
+
+| # | Row | Result |
+|---|---|---|
+| 1 | the sign-in screen | **PASS** — the console's own document through the edge, not the wildcard's `manifest OK host=`, not a 502 |
+| 2 | sign in with CWL | **PASS, with a correction** — the header read **Test Instructor** `ins000001`. **The checklist says "Instructor One", which is the MOCK's fixture name** (F12) |
+| 3 | the slug check as you type | **PASS, twice over** — `ed` answered **`SLUG_INVALID`** with the rule, and completing it to `edge` answered **`SLUG_RESERVED` — Manifest's edge proxy**, with the reason. **Both of the codes F9 found the mock cannot produce, rendering correctly here** |
+| 4 | create from blueprint + starter | **PASS** — landed on the project with the three replay events already shown, `0s ago`, under a `live` badge |
+| 5 | Build | **PASS** — `running` at once, log lines arriving as they were written |
+| 6 | the build ends | **PASS** — `succeeded` with **no reload**, digest `sha256:3a268bf1…`, and §12's scan summarised: grype v0.118.0, database 3.8 days old and `fresh`, **§12 blocks on 0 critical / 0 high**, 1 critical with no published fix, the base image's own 5 critical / 24 high |
+| 7 | Release, then Deploy to staging | **PASS** — all four states arrived live: `instance.provisioning` → `sso.registered` → `instance.starting` → `instance.healthy`, the button reading `deploying…` throughout |
+| 8 | the app knows who; write a note; ask the LLM | **PARTIAL, and the gap is the checklist's** — the app knew who **twice**, as `faculty` and then as `student`; the LLM answered (`streamedChunks: 51`, `embeddingDimensions: **768**`, `attributedTo` a hash, never a CWL ID). **"Write a note" has no user interface at all** (F13), so `context` was `null` |
+| 9 | Request production | **PASS** — `not yet`, the candidate release named, and all six items with state, reason, owner and the plan that builds them: IAM and the PIA → **P8**; the rehearsal and the administrator's approval → **P6**; two already `met` |
+| 10 | mint a token | **PASS** — shown **once** under *"COPY IT NOW"*, gone after a reload (checked), and the **privileged four un-tickable** with D24's reason beside each. The list read **`expires in 30d`** — sitting 6's F1 fix working, where `<Ago>` would have said `0s ago` |
+| 11 | the agent asks to add a member | **PASS** — `403 TOKEN_ACTION_PENDING`, naming D24, carrying a `bodySha256` **fingerprint** rather than the request's contents |
+| 12 | the Queue | **PASS** — the question there with its age, the token that asked, and §26's health number. **Liveness proved on row 14's ask instead**: a second question appeared on the already-open tab with **no reload**, `asked 0s ago` |
+| 13 | Confirm, then the agent's own retry | **PASS — after F14 cost a detour** — `201`, member created as `collaborator` |
+| 14 | a fresh key, then Reject with a reason | **PASS** — a fresh key made a **new** question rather than reusing the confirmed one, and after the rejection the agent's retry answered `403 TOKEN_ACTION_REJECTED` carrying the sentence **verbatim** |
+| 15 | `/fleet` | **PASS** — `FORBIDDEN — the fleet is a platform administrator's read (§26)`, rendered, with a hint |
+| 16 | Sign out | **PASS** — back to the sign-in screen, cleanly, and **without** triggering F11 |
+
+#### The findings the clicked run produced
+
+**F11 — MANIFEST ADVERTISES AN SLO ENDPOINT THAT ANSWERS ONLY `POST`, AND SAML's LOGOUT BINDING
+SENDS `GET`. THE WHOLE GATE SET IS GREEN THROUGH IT.** Signing out of the deployed app left the
+person on a **raw JSON 404**:
+`{"error":{"code":"ROUTE_NOT_FOUND","message":"no route GET /auth/logout", …}}`.
+
+*Measured both ways rather than inferred:* `POST /auth/logout` answers **`204`** — it is
+implemented, and it is what the console's own *Sign out* uses — while
+`GET /auth/logout?SAMLRequest=…` answers **`404`**. `sso/entity.ts:117` publishes
+`sloUrl: https://<hostname>/auth/logout` in **Manifest's own SP registration** (§9: Manifest is
+itself an SP), and `api/unversioned.ts:22` declares that path **`POST` only**, with the reason
+*"The SLO URL registered beside the ACS (§9). Ends the browser's session; not a resource."*
+SimpleSAMLphp performs single logout over the **HTTP-Redirect binding**, which is a `GET` with
+`?SAMLRequest=`. So the IdP's logout chain reaches Manifest's SP and 404s: the person sees JSON,
+and **Manifest's own session is not ended by that chain** — the console tab was still signed in
+as the instructor afterwards, which is how this was noticed.
+
+**This is Decision 7's stated cost, collected.** The console has no DOM test tier, `pnpm test`
+is 1376 green, `make doctor` 18/0, `make verify` 51/0 and three `make ci-acceptance` runs were
+clean through it, because **nothing in any tier signs out of a deployed app in a browser**. Only
+a person clicking finds it. **Recorded, not fixed** — it is a platform defect outside Task 14's
+files, and §7e's rule is that a gap found now is a finding rather than a task.
+
+**F12 — THE CHECKLIST NAMES A USER THE PLATFORM DOES NOT HAVE.** Row 2 says the header shows
+**"Instructor One"**. The platform's IdP returns **"Test Instructor"** — which is what sitting 3
+measured and recorded when Rich first signed in. **"Instructor One" is `manifest-mock`'s fixture
+name**, seen on the mock earlier this sitting. A checklist written to be run alone must name what
+the person will actually see; corrected in `WALKTHROUGH.md`.
+
+**F13 — ROW 8 ASKS FOR A CLICK THAT DOES NOT EXIST.** *"Write a note"* is in the row the task
+calls *"the one that proves §22's journey is whole"*, and **the proof app has no note-writing
+form** — `WALKTHROUGH.md` has said so all along (*"the page has no form for writing a note; the
+demos write them"*). The clicked journey can therefore prove *the LLM answers* but never
+*answered from your own notes*; `context` came back `null` against a fresh app with no notes.
+**That half belongs to `make demo-ai` and the checklist should say so**, which is what §7e
+already said about §22 step 6 — the checklist just did not inherit it.
+
+**F14 — "SIGN THE STUDENT IN BEFORE ANYTHING NEEDS A MEMBER" IS AMBIGUOUS IN THE WAY THAT COSTS
+THE SITTING.** §7e and the checklist both carry that warning, and row 8 signs the student into
+**the deployed app**. The trap fired anyway: the agent's confirmed retry answered
+**`400 MEMBER_USER_NOT_FOUND — no user with PUID 'stu000001' has ever signed in`**. *Measured:*
+`select count(*) from users` was **1** — the instructor alone — after the student had signed into
+the app. **The app and Manifest are different Service Providers with different user stores**: the
+app's sign-in populates the app's own database, while `POST /v1/projects/{id}/members` reads
+Manifest's `users`, which only Manifest's own CWL sign-in writes. The instruction reads as though
+row 8 satisfies it. **It does not, and following it exactly still hits the trap.** Discharged by
+signing the student into `https://console.manifest.internal/` in an **incognito window** — which
+creates the row without disturbing the instructor's session in the main window, and is the one
+place Rich's offer of a second browser context was the right tool.
+
+**A PROPERTY WORTH KEEPING, measured on the way:** *a confirmation's single retry is NOT spent by
+a retry that fails for an unrelated reason.* After the `400`, `pending_actions` read
+`confirmed | consumed=false`; only the later `201` set `consumed=true`. So a business-rule failure
+does not cost the agent its one grant — and the queue screen distinguishes the two states in
+words, reading *"granted — waiting for the agent to make its one retry"* and then
+*"granted, and the agent spent its one retry 26s ago"*.
+
+**F15 — THE EXTENSION'S PER-SITE PERMISSION ON `idp.manifest.internal` IS INTERMITTENT.** It
+refused a screenshot before Rich set site access to *all sites*; then worked, twice; then refused
+again on the app's SP sign-in, on the same domain in the same session, while `console` and
+`127.0.0.1` never refused once. **Task 14's instruction to ask for the permission before starting
+is right and is not sufficient** — a run must be able to proceed blind across the IdP hop, reading
+the tab's TITLE instead, which is how rows 2 and 8 were driven. Worth knowing before scheduling a
+sitting around it.
