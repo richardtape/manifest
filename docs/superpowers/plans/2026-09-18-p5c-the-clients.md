@@ -5579,14 +5579,16 @@ already happened, which is why it caught the mock's file count and missed all th
 
 ---
 
-### Sitting 9 — Task 14, the acceptance — 2026-09-19 — **IN PROGRESS: STEPS 1, 3 (PARTLY) AND 4 ARE RUN; RICH'S HALF IS NOT**
+### Sitting 9 — Task 14, the acceptance — 2026-09-19 — **DONE, 16 findings. P5c IS EXECUTED AND SO IS PHASE 1c**
 
-> **READ THIS BEFORE ANYTHING ELSE IN THIS SECTION.** This sitting is **NOT FINISHED** and the
-> sittings table still shows `← next` on row 9 deliberately. It is written now, mid-sitting,
-> because **two commits exist that the plan would otherwise not explain** (`0066c40`, `2d884cc`) —
-> which is exactly the unswept-sitting shape §6 rule 8 describes. **Steps 2 and 5, and negative
-> controls (b) and (e), have not run**: they need Rich at the keyboard, because the Chrome
-> extension will not type a password (R3). Do not read any of this as an acceptance.
+> **READ THIS SECTION IN ORDER — IT WAS WRITTEN IN THREE PASSES AND THE FIRST ONE IS NOT THE
+> OUTCOME.** The paragraphs below open mid-sitting, while steps 2 and 5 still needed Rich at the
+> keyboard, and they were kept as written rather than rewritten backwards. **The sitting then
+> FINISHED**: §22's journey was clicked, all sixteen rows (*STEP 2* below), F11 was found and then
+> fixed (*F11 IS FIXED*, the last subsection), and the sweep ran. Five of six negative controls
+> were measured; **(b)'s clicked half is the one that was not.** *This banner replaced one saying
+> the sitting was unfinished, which stayed true for about an hour and then was not — the
+> stale-by-the-hour shape this sitting's own post-sweep check found three times.*
 
 **What has run:** Step 2 attempted unattended and stopped at its second row (F8), Step 1 in full (three `make ci-acceptance` runs), Step 3 for the four controls
 whose predictions live in the test tier, and Step 4 — decided by Rich and implemented.

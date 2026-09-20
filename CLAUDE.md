@@ -16,7 +16,9 @@ status.*
 
 **The design is approved and complete, five spikes are done, and P1 to P5c are executed
 and green — PHASE 1c IS COMPLETE.** Every one of them has an acceptance that passes, and
-**no plan is executing**: the next job is to WRITE P6, which ORIENTATION §7e sets out.
+**no plan is executing**: the next job is to WRITE P6a, which ORIENTATION §7e sets out. **P6 was
+split into P6a and P6b on 2026-09-19 and P6a is BRIEFED** —
+`docs/superpowers/plans/2026-09-19-p6-brief.md` carries Rich's three decisions for it.
 
 | Plan | Executed | What it made true | Acceptance |
 |---|---|---|---|
