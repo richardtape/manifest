@@ -3174,6 +3174,36 @@ it('a production route is NOT on srv0', …)
 
 **The last is the one nothing else covers**: Task 4 proved the reachability, this proves the platform's own record.
 
+> ### Correction block — ADDED BY SITTING 6, 2026-09-20, AND DECIDED BY RICH. Task 15 owes `release:promote` its step-up call site.
+>
+> **`release:promote` IS IN `STEP_UP_GUARDED` AND NO ROUTE CALLS `assertStepUp` FOR IT.**
+> Sitting 6 built the guard and wired it to `members:manage` (Task 9) and to confirming a
+> pending action (F12). The production deploy route authorizes `release:promote` at
+> `api/routes/releases.ts` and never asks for freshness — so the set member is, today,
+> **enforced by nothing**, which is the *"reads like a control and is not"* shape this
+> project has paid for four times.
+>
+> **It is not a live hole**, and that is why it was not fixed on the spot: §13's checklist
+> refuses every production deploy until `rehearsal` and `admin-approval` exist, so the route
+> is unreachable until this task. And there is a coherent reading in which it never needs
+> one — §13 puts the human decision in the **approval** (Task 10, which does step up) and
+> makes the deploy the mechanical execution of it, so a stolen session cannot approve,
+> cannot make the checklist ready, and cannot deploy.
+>
+> **Rich chose to add the call site here anyway (2026-09-20)**, for §20's own sentence:
+> *"A stolen admin session must not be sufficient to put an app on the public internet."*
+> Defence in depth behind the approval, and it makes that sentence true of the **deploy**
+> rather than only of the decision.
+>
+> **Add to Step 2**: `assertStepUp(actor, 'release:promote')` immediately after the
+> `assertCapability` that selects `release:promote` for a production environment — and
+> **only on that branch**, because a staging deploy is `release:deploy` and is not guarded.
+> Add `'STEP_UP_REQUIRED'` to the route's `errors:` list, give the matrix's **production**
+> deploy row `STEP_UP` for `owner` and `admin`, and regenerate the contract.
+>
+> **Its control is row (e) below**, and it is cheap: the existing production-deploy rows are
+> the only ones that can see it.
+
 - [ ] **Step 4: Gates and controls**
 
 | | Control | Predicted |
@@ -3182,6 +3212,7 @@ it('a production route is NOT on srv0', …)
 | b | the check moved after `ensureInstance` | **every test above still passes** — write one that asserts no instance row exists after a refused production deploy, and watch it go red. **"Before starting anything" is a claim about SIDE EFFECTS and only a side-effect assertion can see it** |
 | c | `approvalCoversDigest` ignores `decision` | write *a REJECTED approval does not authorise a deploy* and watch it |
 | d | `listenerFor` forced to `'internal'` | *a production route is NOT on srv0* red, **and** Task 4's Docker cases red |
+| e | `assertStepUp(actor, 'release:promote')` removed (the correction block above) | **the matrix's two production-deploy rows red**, `owner` and `admin`, expecting `403 STEP_UP_REQUIRED` and getting the deploy's own answer. **Predict which answer** before running it — sitting 6's control (b) fired five red where the plan said one, and its (e) fired where the plan said none |
 
 ```bash
 git add packages/control-plane/src/releases packages/control-plane/src/api

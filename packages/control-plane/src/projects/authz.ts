@@ -100,6 +100,26 @@ export function isPrivileged(capability: PrivilegedCapability): boolean {
  * removed — and `step-up-guarded.test.ts` names the same five a second time rather than
  * deriving them from this constant, which would make the test agree with itself whatever
  * the constant said.
+ *
+ * **THIS SET IS THE RULE; A CALL SITE IS WHAT ENFORCES IT, AND THE TWO ARE NOT THE SAME
+ * THING.** `assertStepUp` is called for `members:manage` (both member routes) and, since
+ * P6a sitting 6's F12, for whichever capability a `confirm` authorizes. Where the other
+ * three stand, read as of 2026-09-20 rather than assumed:
+ *
+ *  * **`release:approve` — Task 10**, its first caller ever, and the plan's own snippet
+ *    already calls this function.
+ *  * **`release:promote` — TASK 15, decided by Rich on 2026-09-20.** The production deploy
+ *    route authorizes it and does **not** yet ask for freshness, so today this member is
+ *    enforced by nothing. It is not reachable — §13's checklist refuses every production
+ *    deploy until `rehearsal` and `admin-approval` exist — and §13's own design arguably
+ *    puts the human decision in the approval rather than the deploy. The call site is added
+ *    anyway, for §20's sentence: *"A stolen admin session must not be sufficient to put an
+ *    app on the public internet."* **Task 15 carries a correction block that says so.**
+ *  * **`secret:read` and `quota:set` — no route in Phase 1 at all** (P5b Decision 14), so
+ *    there is nothing to guard and nothing to add.
+ *
+ * **Do not "fix" this list by removing a member that has no call site.** The set is a
+ * statement about the SPEC, exactly as `PRIVILEGED` is; the gap is tracked in the plan.
  */
 export const STEP_UP_GUARDED: ReadonlySet<PrivilegedCapability> = new Set([
   'release:promote',
