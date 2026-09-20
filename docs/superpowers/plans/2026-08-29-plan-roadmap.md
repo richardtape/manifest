@@ -721,10 +721,31 @@ item in and delete its row.**
 | **`egress.allow` may not name a platform surface** — the platform zone (`*.manifest.internal`, UBC's zones) or a `manifest-*` service. Refuse at validation as `EGRESS_ALLOW_INVALID`. | §12 *Egress* (applied 2026-09-16) | `spec/` validation, reusing the reserved-label set; the syntactic check is `runtime/docker/egress.ts`'s `renderAllowlist` today | **P5a Task 9's reserved-label loader** (`projects/reserved-labels.ts`), plus the environment zones | Rich's call (2026-09-16): its own hardening item, built **after P5a executes** so the loader exists. Measured exposure: P5a Task 1 `[M2g]` — the dual-homed egress proxy tunnels raw TCP to any name it resolves on `manifest-platform`, so a declared `manifest-postgres` reaches the platform DB across the east-west boundary. Defense in depth behind the edge's source check (§21), which already refuses the console leg. |
 | **Static analysis of app code — `SemgrepReviewer`** — the second implementation of the `Reviewer` seam P6a defines. Offline (C1 forbids a cloud service), **advisory before blocking**. | **D33 and §15** (applied 2026-09-19); §12 deliberately unchanged | `build/`, beside `scan.ts` and `gates.ts` | **P6a's `Reviewer` interface**, so this is one implementation and not a new seam | Rich's call (2026-09-19): tiers 1 and 2 of the code-safety question are wanted, and this is tier 2. It is NOT P6 scope — P6a ships the seam and the honest null implementation, and §20's control map row stays *accepted, with a named plan* until something real lands. A static analyser pointed at AI-written code will find a great deal on its first run, which is why §12's own *block on what a rebuild can clear* rule applies here from the start. |
 
+### The authoring API — BRIEFED 2026-09-19, unplaced
+
+**Not in the plan set, and that is the open question.** §17 bundles authoring with sandboxes in
+Phase 3, and Phase 3 is blocked on S5 — but
+[`2026-09-19-authoring-api-brief.md`](./2026-09-19-authoring-api-brief.md) measured the split and
+found that **most of what a front end needs does not touch S5 at all**: committing files to a git
+repository and writing `manifest.yaml` are control-plane git operations, not sandbox operations.
+
+The brief's finding in one line: **an app can be deployed through the API and cannot be created
+through it.** The contract is 23 `GET`, 9 `POST`, 2 `DELETE` and **zero `PATCH`/`PUT`**; it carries
+no repository reference at all; and `validateSpec` reads `manifest.yaml` rather than writing it.
+The write primitives mostly exist and are unexposed — `commitFiles` is traversal-safe, D13's
+overwrite of an app-supplied `Dockerfile` is tested with a hostile fixture, and `exec` is
+implemented in both drivers, **called by nothing and not covered by the driver contract suite**.
+
+**Sized at 8–14 tasks for the no-S5 slice.** Five decisions are Rich's (the brief's §6), the first
+being whether it becomes its own plan and where it sits. **One ordering dependency is real**: a
+spec write path makes D9's sensitive-diff re-escalation load-bearing for the first time, and P6b
+is what builds it.
+
 ### Phases 3–5 — not planned
 
-Deliberately. Phase 3 depends on S5 and S6 outcomes that do not exist yet, and
-Phase 5 is blocked on a UBC decision — RHEL 9 VMs or Kubernetes — that has not been
+Deliberately. **Phase 3 depends on S5, which is unrun** — S6 reported on 2026-09-07 (as P3
+Task 18) and found container isolation adequate for staging and production apps, while §12 leaves
+**the sandbox question open until S5**. Phase 5 is blocked on a UBC decision — RHEL 9 VMs or Kubernetes — that has not been
 made (§19). A detailed plan written today would be substantially wrong by the time
 anyone executed it. **The spec is the durable artefact; plans are the disposable
 execution layer.** Each is written when its predecessor lands.

@@ -1812,6 +1812,18 @@ what each rejected):
   and was still broken, because **every test fired garbage at the route and a route that refuses
   everything passes them all.**
 
+**ONE THING P6b INHERITS, decided nowhere yet but measured on 2026-09-19.** Rich asked whether a
+separate front-end project could be specced against the API;
+[`plans/2026-09-19-authoring-api-brief.md`](plans/2026-09-19-authoring-api-brief.md) answers no,
+and says why: **an app can be deployed through the API and cannot be created through it** — 34
+operations, **zero `PATCH` or `PUT`**, no repository reference anywhere in the contract, and
+`validateSpec` reads `manifest.yaml` rather than writing it. That brief is not P6's work and does
+not change P6a. **It changes what P6b MEANS**: the moment a write path for `manifest.yaml` exists,
+an agent can request new `auth.attributes`, `egress.allow`, `services`, `data.classification` or
+`ai.models` — five of §7's seven sensitive fields — and **P6b's sensitive-diff re-escalation is
+the only thing that would stop it.** Today that gate has never had to refuse a hostile change,
+because nothing can make one. Write P6b's controls as though something will.
+
 **WHAT IS OUTSTANDING AND IS RICH'S**, unchanged: the **offline acceptance**
 (`scripts/offline-acceptance.sh`, now TEN steps); the **second-machine clean clone**; **starting
 the UBC external track**, whose trigger fired on 2026-09-15; and the rest of §8. **P6a's R1 makes
@@ -1844,6 +1856,16 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 
 ### Open
 
+- **Where does the AUTHORING API go, and does it precede the front-end project? — RAISED
+  2026-09-19**, when Rich asked whether the API is complete enough to spec a separate front end
+  against. It is not: an app can be **deployed** through the API and cannot be **created** through
+  it. §17 bundles authoring with sandboxes in Phase 3 and Phase 3 is blocked on **S5**, which is
+  unrun — but the brief measured the split and **most of what a front end needs does not touch S5
+  at all**. [`plans/2026-09-19-authoring-api-brief.md`](plans/2026-09-19-authoring-api-brief.md)
+  has five decisions, all Rich's: whether the no-S5 slice becomes its own plan and where it sits;
+  whether it ships before or after P6b; whether binary files matter for v1; whether the front-end
+  project is specced against the slice or waits for sandboxes; and **whether S5 gets scheduled**.
+  Sized at 8–14 tasks.
 - **Should app containers run with an init (`Init: true`)? — RAISED 2026-09-16 (P5a sitting 2).** An app's PID 1 is its
   own `node`, which never reaps the orphans it adopts, so a process an app starts that leaves children behind turns them
   into zombies holding pids against §12's `PidsLimit` (64 in the S6 fixture) for the container's life — measured with
