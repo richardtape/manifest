@@ -4471,6 +4471,10 @@ branch this sitting wrote has one in the same commit.
 | port 7100 | **nothing listening** — the control plane was never started this sitting |
 | `HEAD` moved under this sitting | **twice**, `9987484` and `ad979e7`, both a design agent's markdown |
 | the four shared HTML pages | **checked, and none needed a change**: this sitting altered no decision, no spike status, no hostname and no count they restate |
+| app images | **the snapshot diff names exactly FOUR new ones, all the Docker tier's** — `boot-recover`, `chem-labs`, `fixture-rd`, `redeploy-cp` — and **neither cleanup script covers images**. **NAME THE METRIC** (CLAUDE.md): `docker images -q \| wc -l` reads **123**, `docker images -q \| sort -u \| wc -l` reads **115**, and `docker images --format '{{.Repository}}' \| grep -c '^127.0.0.1:7107/local/'` reads **73**. `docker images \| grep '^local/'` still answers **0** and still reads as *none* |
+| protected resources | all four survivors present (`docker-simple-saml-saml-idp-1`, `qdrant-local-dev`, `mongodb`, `mongo-express`), and the CA volume — **`manifest-caddy-data`, not `caddy-data`** — confirmed by `make verify`'s own check |
+| `docker-simple-saml` | still clean: its only dirty path is the untracked `cert.zip` dated months before this project |
+| snapshot diff | `scripts/snapshot-machine.sh` before and after: **nothing but uptimes, 2 GiB of free disk, the four images above and this sitting's own `HEAD`** |
 
 #### What the post-sweep check found — TWO, and the streak since P5b's third sitting holds
 
