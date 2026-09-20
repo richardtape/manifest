@@ -1,3 +1,4 @@
+import type { FastifyRequest } from 'fastify'
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod/v4'
 import {
@@ -10,18 +11,36 @@ import {
 } from '../../db/index.js'
 import { assertLaunchable } from '../../launch/index.js'
 import { incidentPrompt, listIncidents } from '../../observability/index.js'
-import { assertCapability, AuthorizationError, type Actor } from '../../projects/index.js'
-import { createRelease, deployRelease } from '../../releases/index.js'
+import {
+  assertCapability,
+  assertStepUp,
+  AuthorizationError,
+  type Actor,
+} from '../../projects/index.js'
+import {
+  buildDiffSnapshot,
+  createRelease,
+  deployRelease,
+  latestApprovalFor,
+  recordApproval,
+  ReleaseError,
+} from '../../releases/index.js'
 import { resolveConfig, type ManifestSpec } from '../../spec/index.js'
+import { requireSession } from '../actor.js'
+import type { ServerDeps } from '../server.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
 import { BadRequestError } from '../errors.js'
 import { IncidentList, toIncident } from '../representations/incidents.js'
 import { Instance, toInstance } from '../representations/instances.js'
 import {
+  Approval,
+  ApproveReleaseRequest,
   CreateReleaseRequest,
   DeployRequest,
+  RejectReleaseRequest,
   Release,
   ReleaseList,
+  toApproval,
   toRelease,
 } from '../representations/releases.js'
 
@@ -36,6 +55,67 @@ async function releaseWithBuild(db: Db, releaseId: string) {
     .innerJoin(builds, eq(releases.buildId, builds.id))
     .where(eq(releases.id, releaseId))
   return row
+}
+
+/**
+ * §13's approval, in the four guards it needs, IN THIS ORDER — written once because
+ * `approveRelease` and `rejectRelease` are one decision with two values, and two copies of
+ * a security ordering is one copy that will be reordered.
+ *
+ * 1. **D14: an interactive session**, enforced by `requireSession`'s RETURN TYPE
+ *    (Decision 18) — `recordApproval` needs the `puid` it returns, so reverting this line
+ *    does not weaken a check, it stops compiling. It runs FIRST, before the release is
+ *    read, so every token actor gets the same answer for every release id and a token
+ *    learns nothing about which releases exist (Task 6's measured ordering).
+ * 2. **WHO may decide** — `release:approve`, held by a platform admin alone. Its FIRST
+ *    caller in this platform's life: the capability has existed since P5b and no route has
+ *    ever asserted it.
+ * 3. **§20: and they must have re-proved themselves inside `STEP_UP_TTL_MS`.** AFTER the
+ *    capability check, deliberately, so somebody who may not approve is told *that* rather
+ *    than sent on a round trip that would not help them.
+ * 4. **§13: "Approval binds to an immutable image digest."** THE BUILD's digest, read
+ *    here — not a tag, and not the release id alone, because a release row's build can be
+ *    rebuilt and a binding to a mutable thing is not a binding.
+ */
+async function decide(
+  deps: ServerDeps,
+  request: FastifyRequest,
+  releaseId: string,
+  decision: 'approved' | 'rejected',
+  reason: string | undefined,
+) {
+  const actor = requireSession(request)
+  const joined = await releaseWithBuild(deps.db, releaseId)
+  // The project comes from the release ROW, never from the request, and a release nobody
+  // may see is indistinguishable from one that does not exist — `getRelease`'s rule, for
+  // the enumeration-oracle reason `assertCapability` states.
+  if (joined === undefined)
+    throw new AuthorizationError('NOT_FOUND', `no release '${releaseId}'`)
+  await assertCapability(deps.db, actor, joined.release.projectId, 'release:approve')
+  assertStepUp(actor, 'release:approve')
+  const digest = joined.build.imageDigest
+  /**
+   * UNREACHABLE THROUGH `createRelease`, WHICH REFUSES A BUILD WITH NO DIGEST
+   * (`RELEASE_BUILD_NOT_DEPLOYABLE`) — and asserted anyway, because an approval bound to
+   * nothing would satisfy §13's gate while binding to nothing at all. `toRelease` answers
+   * `''` for the same column for the same reason; here the answer is a refusal, because
+   * this is the write.
+   */
+  if (!digest)
+    throw new ReleaseError(
+      'RELEASE_DIGEST_MISSING',
+      `release '${joined.release.id}' has no digest, so there is nothing to bind an approval to`,
+    )
+  return toApproval(
+    await recordApproval(deps.db, deps.bus, {
+      release: joined.release,
+      actor,
+      decision,
+      ...(reason === undefined ? {} : { reason }),
+      diffSnapshot: await buildDiffSnapshot(deps, joined.release, digest),
+      imageDigest: digest,
+    }),
+  )
 }
 
 /**
@@ -176,6 +256,92 @@ export const releaseRoutes = [
         .orderBy(desc(releases.createdAt))
         .limit(50)
       return rows.map((r) => toRelease(r.release, r.build))
+    },
+  }),
+  defineRoute({
+    operationId: 'approveRelease',
+    method: 'POST',
+    path: '/v1/releases/{releaseId}/approve',
+    tag: 'delivery',
+    summary: 'Approve a release for production',
+    description:
+      '§13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time. It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.',
+    params: z.strictObject({ releaseId: z.uuid() }),
+    query: NO_QUERY,
+    body: ApproveReleaseRequest,
+    success: {
+      status: 201,
+      description: 'The approval, with the diff it was made on.',
+      schema: Approval,
+    },
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'TOKEN_CREDENTIAL_REFUSED',
+      'STEP_UP_REQUIRED',
+      // **`RELEASE_NOT_FOUND` IS DELIBERATELY NOT HERE**, though the plan's snippet listed
+      // it: a release that does not exist and one this actor may not see answer the same
+      // `NOT_FOUND`, which is `getRelease`'s rule and the enumeration-oracle reason behind
+      // it. A second code for the first case would be the oracle, in the contract.
+      'RELEASE_DIGEST_MISSING',
+    ],
+    handler: ({ deps, request, params, body }) =>
+      decide(deps, request, params.releaseId, 'approved', body.reason),
+  }),
+  defineRoute({
+    operationId: 'rejectRelease',
+    method: 'POST',
+    path: '/v1/releases/{releaseId}/reject',
+    tag: 'delivery',
+    summary: 'Decline to approve a release for production',
+    description:
+      '§13, and the same four guards as approving. **The reason is REQUIRED**: a refusal a faculty member is told about, with no words in it, is a refusal nobody can act on (D23.7) — the request schema is the first half of that rule and the `approvals_rejection_has_reason` CHECK is the second.',
+    params: z.strictObject({ releaseId: z.uuid() }),
+    query: NO_QUERY,
+    body: RejectReleaseRequest,
+    success: {
+      status: 201,
+      description: 'The rejection, with the diff it was made on.',
+      schema: Approval,
+    },
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'TOKEN_CREDENTIAL_REFUSED',
+      'STEP_UP_REQUIRED',
+      'RELEASE_DIGEST_MISSING',
+    ],
+    handler: ({ deps, request, params, body }) =>
+      decide(deps, request, params.releaseId, 'rejected', body.reason),
+  }),
+  defineRoute({
+    operationId: 'getApproval',
+    method: 'GET',
+    path: '/v1/releases/{releaseId}/approval',
+    tag: 'delivery',
+    summary: 'The latest decision about a release',
+    description:
+      '§13: the newest approval or rejection, with the diff it was made on. 404 when nobody has decided yet.',
+    params: z.strictObject({ releaseId: z.uuid() }),
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: { status: 200, description: 'The latest decision.', schema: Approval },
+    errors: ['NOT_FOUND'],
+    handler: async ({ deps, actor, params }) => {
+      const joined = await releaseWithBuild(deps.db, params.releaseId)
+      if (joined === undefined)
+        throw new AuthorizationError('NOT_FOUND', `no release '${params.releaseId}'`)
+      // **`project:read`, NOT `release:approve`.** An owner must be able to see why their
+      // release was rejected, in the administrator's own words — a decision only its maker
+      // can read is not a decision anybody can act on (D23.7).
+      await assertCapability(deps.db, actor, joined.release.projectId, 'project:read')
+      const approval = await latestApprovalFor(deps.db, params.releaseId)
+      if (approval === undefined)
+        throw new AuthorizationError(
+          'NOT_FOUND',
+          `nobody has approved or rejected release '${params.releaseId}'`,
+        )
+      return toApproval(approval)
     },
   }),
   defineRoute({

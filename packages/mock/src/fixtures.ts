@@ -38,6 +38,7 @@ export const LAPSED_ACTION_ID = '88888888-8888-4888-8888-888888888884'
 export const INCIDENT_ID = '99999999-9999-4999-8999-999999999999'
 export const APP_SPEC_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 export const STUDENT_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+export const APPROVAL_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 
 export const ME: Schemas['Me'] = {
   id: USER_ID,
@@ -325,6 +326,47 @@ export const RELEASE: Schemas['Release'] = {
 }
 
 export const RELEASES: Schemas['ReleaseList'] = [RELEASE]
+
+/**
+ * §13's approval (P6a Task 10), as a console screen reads it at decision time.
+ *
+ * **THE DIFF IS POPULATED AND THE SUMMARY IS NOT.** `summarySource: 'unavailable'` is the
+ * state Decision 7 exists for — a model that could not be reached — and it is the one a
+ * screen is most likely to render wrongly, because the obvious layout has nowhere to put
+ * "there is no summary, and the diff beside it is the control". A fixture that always had
+ * a summary would hide that.
+ */
+export const APPROVAL: Schemas['Approval'] = {
+  id: APPROVAL_ID,
+  releaseId: RELEASE_ID,
+  projectId: PROJECT_ID,
+  decision: 'approved',
+  decidedBy: USER_ID,
+  decidedAt: ISO,
+  imageDigest: BUILD.imageDigest as string,
+  reason: 'the scan is clean and the egress list matches the ticket',
+  diff: {
+    imageDigest: BUILD.imageDigest as string,
+    changes: [
+      {
+        path: 'resources.memory',
+        from: '256Mi',
+        to: '512Mi',
+        summary: 'raised the memory limit from 256Mi to 512Mi',
+      },
+    ],
+    services: ['postgres@16'],
+    attributes: ['displayName', 'mail'],
+    resources: { cpu: 1, memory: '512Mi', disk: '1Gi', pids: 128 },
+    summary: null,
+    summarySource: 'unavailable',
+    review: {
+      state: 'not_performed',
+      reviewer: 'none',
+      detail: 'no code reviewer is configured (D33, §15)',
+    },
+  },
+}
 
 export const INCIDENTS: Schemas['IncidentList'] = {
   environmentId: STAGING_ID,

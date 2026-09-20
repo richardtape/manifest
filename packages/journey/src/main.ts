@@ -592,11 +592,21 @@ async function step7RequestProduction(): Promise<void> {
       item('iam-registration')?.builtBy === undefined,
     `iam: ${item('iam-registration')?.state}, pia: ${item('privacy-assessment')?.state}`,
   )
+  // P6a Task 10 moved `admin-approval` OUT of this check, the way Task 7 moved the two
+  // external records out of the one above it: approvals are a row an administrator writes
+  // now, so the item reads `unmet` with no `builtBy` on a project nobody has approved.
+  // **`rehearsal` is the last item in the checklist that Manifest genuinely does not
+  // track**, and Task 14 takes it, which will leave this check with nothing to assert.
+  checks.ok(
+    'the approval is tracked, and unmet until an administrator makes one',
+    item('admin-approval')?.state === 'unmet' &&
+      item('admin-approval')?.builtBy === undefined,
+    `admin-approval: ${item('admin-approval')?.state}, builtBy: ${item('admin-approval')?.builtBy}`,
+  )
   checks.ok(
     'what Manifest does not track yet says so, and who builds it',
-    item('rehearsal')?.state === 'not_built' &&
-      item('admin-approval')?.state === 'not_built' &&
-      item('admin-approval')?.builtBy === 'P6',
+    item('rehearsal')?.state === 'not_built' && item('rehearsal')?.builtBy === 'P6',
+    `rehearsal: ${item('rehearsal')?.state}, builtBy: ${item('rehearsal')?.builtBy}`,
   )
   checks.ok(
     'every item says why',

@@ -127,7 +127,7 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
     // WHICH ITEMS BLOCK, BY NAME (P6a Task 7). This read `not_built || met` for every
     // item but `scans` until the gate started reading real rows: the two external records
     // are now `unmet` on a project nobody has recorded them for, and `rehearsal` and
-    // `admin-approval` are the two still genuinely unbuilt. Naming them is what makes this
+    // `rehearsal` is the one still genuinely unbuilt (Task 14). Naming them is what makes this
     // assertion go red when a blocking item is added, removed or quietly satisfied — the
     // `every(...)` it replaces was true of almost any checklist.
     const byId = Object.fromEntries(
@@ -146,7 +146,10 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
       // `scans` is computed from the candidate release, and this one is deployed to
       // staging with a clean scan (P5a Decision 35).
       scans: 'met',
-      'admin-approval': 'not_built',
+      // **`unmet`, NOT `not_built`, SINCE P6a TASK 10**: approvals are a row an
+      // administrator writes, and nobody has written one for this project. `not_built`
+      // said "approvals are built with production environments" and is now false.
+      'admin-approval': 'unmet',
     })
     expect(readiness.items.find((i: { id: string }) => i.id === 'scans').state).toBe(
       'met',

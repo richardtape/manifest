@@ -812,6 +812,86 @@ const ROUTES: RouteCase[] = [
       'token-privileged': 'pass',
     },
   },
+  /**
+   * **P6a TASK 10: `release:approve`'s FIRST THREE ROUTES, and its first caller ever.**
+   *
+   * **NO ACTOR PASSES `approve` OR `reject`, AND THAT IS THE HONEST TABLE RATHER THAN A
+   * GAP.** `admin` is the only actor who holds `release:approve`, and §20 guards it — so
+   * the answer to an ordinary admin session is `STEP_UP_REQUIRED`, which is what this
+   * table's sessions are. A tenth, stepped-up actor would be a dimension every route pays
+   * for (P5b added the ninth); **the stepped-up path is asserted in `approval.test.ts`,
+   * which is where the positive control for these two routes lives.** The fixture below
+   * approves the release once, with a stepped-up admin whose 201 it asserts — so this file
+   * does hold a positive control, and `getApproval` has something to answer.
+   *
+   * `owner` and `collaborator` are `FORBIDDEN` and not `STEP_UP_REQUIRED`: the capability
+   * is checked BEFORE the freshness, so somebody who may not approve is told that rather
+   * than sent on a round trip that would not help them.
+   *
+   * The four token rows are `TOKEN_CREDENTIAL_REFUSED`, identically, for Task 6's measured
+   * reason: `requireSession` runs before the release is read, so the answer is the same for
+   * every release id and a token learns nothing about which releases exist. **`release:approve`
+   * is NOT one of D24's four**, so `token-privileged` gets no pending action either — and
+   * asserting the CODE is the only way to see that.
+   */
+  {
+    method: 'POST',
+    url: '/v1/releases/:releaseId/approve',
+    request: (f) => ({ url: `/v1/releases/${f.releaseId}/approve`, payload: {} }),
+    expect: {
+      owner: 403,
+      collaborator: 403,
+      stranger: 404,
+      admin: STEP_UP,
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
+  {
+    method: 'POST',
+    url: '/v1/releases/:releaseId/reject',
+    request: (f) => ({
+      // A REASON, because the schema requires one (D23.7) — without it every row would be
+      // `400 REQUEST_INVALID` and this table would say nothing about who may reject.
+      url: `/v1/releases/${f.releaseId}/reject`,
+      payload: { reason: 'not for this table to say' },
+    }),
+    expect: {
+      owner: 403,
+      collaborator: 403,
+      stranger: 404,
+      admin: STEP_UP,
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
+  {
+    // **`project:read`, NOT `release:approve`** — an owner must be able to see why their
+    // release was rejected, in the administrator's own words. So this row looks like
+    // `GET /v1/releases/:releaseId`'s and not like the two above it, which is the whole
+    // authorization statement: deciding is the administrator's, reading the decision is
+    // the project's.
+    method: 'GET',
+    url: '/v1/releases/:releaseId/approval',
+    request: (f) => ({ url: `/v1/releases/${f.releaseId}/approval` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
   {
     // §13 (P5a Task 15): a project read, not a deploy one — a collaborator who cannot
     // deploy can still see what a first launch will need.
@@ -1459,6 +1539,32 @@ export function describeAuthorizationContract(
         status: madeCollaborator.statusCode,
         code: codeOf(madeCollaborator.body),
       }).toEqual({ status: 201, code: undefined })
+
+      /**
+       * **THE POSITIVE CONTROL FOR THE THREE APPROVAL ROWS ABOVE** (P6a Task 10), and what
+       * gives `GET …/approval` something to answer — `pass` asserts a status below 400, and
+       * a release nobody has decided on answers `404 NOT_FOUND`.
+       *
+       * A STEPPED-UP ADMIN, and its 201 is ASSERTED, for the reason the member call above
+       * records in full: a setup call whose answer nothing reads turns a guard into
+       * twenty-nine unrelated rows failing somewhere else. **The ROWS keep ordinary
+       * sessions** — a row reading `pass` on a step-up-guarded route is a row testing a
+       * guard that is not there.
+       *
+       * It leaves `admin-approval` MET for this project, which moves no expectation:
+       * `rehearsal` is still `not_built`, so the production deploy row's `409` stands.
+       */
+      const approved = await app.inject({
+        method: 'POST',
+        url: `/v1/releases/${release.json().id}/approve`,
+        payload: { reason: 'the authorization fixture needs a decision to read' },
+        cookies: await loginAs(deps, 'platform_admin', { steppedUp: true }),
+        headers: mutationHeaders(deps),
+      })
+      expect({ status: approved.statusCode, code: codeOf(approved.body) }).toEqual({
+        status: 201,
+        code: undefined,
+      })
 
       // The stranger must be a member of nothing. Assert it rather than assume it.
       const strangerView = await app.inject({

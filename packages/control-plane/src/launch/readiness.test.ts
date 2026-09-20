@@ -163,13 +163,17 @@ describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task
         expect(item.builtBy, id).toBeUndefined()
         expect(item.why, id).toContain('administrator')
       }
-      // And these two are still genuinely unbuilt, which is why the gate above cannot
-      // open yet (Tasks 10 and 14).
-      for (const id of ['rehearsal', 'admin-approval']) {
-        const item = view.items.find((i) => i.id === id)!
-        expect(item.state, id).toBe('not_built')
-        expect(item.builtBy, id).toMatch(/^P\d$/)
-      }
+      // **`admin-approval` JOINED THEM IN P6a TASK 10**: it is now a row an administrator
+      // writes, so a project nobody has approved reads `unmet` with no `builtBy` — a
+      // `builtBy: 'P6'` back on it is the same regression as on the two above.
+      const approval = view.items.find((i) => i.id === 'admin-approval')!
+      expect(approval.state).toBe('unmet')
+      expect(approval.builtBy).toBeUndefined()
+      // And `rehearsal` alone is still genuinely unbuilt, which is why the gate above
+      // cannot open yet (Task 14).
+      const rehearsal = view.items.find((i) => i.id === 'rehearsal')!
+      expect(rehearsal.state).toBe('not_built')
+      expect(rehearsal.builtBy).toMatch(/^P\d$/)
       expect(view.items.every((i) => i.why.length > 20 && i.owner.length > 0)).toBe(true)
     })
   })

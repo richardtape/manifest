@@ -608,6 +608,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/releases/{releaseId}/approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The latest decision about a release
+         * @description §13: the newest approval or rejection, with the diff it was made on. 404 when nobody has decided yet.
+         */
+        get: operations["getApproval"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/releases/{releaseId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a release for production
+         * @description §13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time. It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.
+         */
+        post: operations["approveRelease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/releases/{releaseId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decline to approve a release for production
+         * @description §13, and the same four guards as approving. **The reason is REQUIRED**: a refusal a faculty member is told about, with no words in it, is a refusal nobody can act on (D23.7) — the request schema is the first half of that rule and the `approvals_rejection_has_reason` CHECK is the second.
+         */
+        post: operations["rejectRelease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/slugs/{slug}": {
         parameters: {
             query?: never;
@@ -657,6 +717,69 @@ export interface components {
             puid: string;
             /** @enum {string} */
             role: "owner" | "collaborator";
+        };
+        /** @description One decision about one release, kept for ever (§13). */
+        Approval: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            releaseId: string;
+            /** Format: uuid */
+            projectId: string;
+            /** @enum {string} */
+            decision: "approved" | "rejected";
+            /** Format: uuid */
+            decidedBy: string;
+            /**
+             * Format: date-time
+             * @description An instant, ISO 8601 in UTC.
+             */
+            decidedAt: string;
+            /** @description What this approval binds to (§13). */
+            imageDigest: string;
+            /** @description Required on a rejection: a refusal with no words is one nobody can act on (D23.7). */
+            reason: string | null;
+            diff: components["schemas"]["ApprovalDiff"];
+        };
+        /** @description The exact diff shown at decision time (§13). */
+        ApprovalDiff: {
+            /** @description The image this approval binds to — the same value as the approval’s. */
+            imageDigest: string;
+            changes: {
+                /** @description Where, in manifest.yaml’s own vocabulary — the file an agent edits. */
+                path: string;
+                from: string;
+                to: string;
+                /** @description One clause a faculty member can read. */
+                summary: string;
+            }[];
+            /** @description `type@version`, sorted — what this release asks the platform to run. */
+            services: string[];
+            /** @description The CWL attributes this release requests, sorted (§7). */
+            attributes: string[];
+            /** @description The production limits this release would run under. */
+            resources: {
+                cpu: number | null;
+                memory: string | null;
+                disk: string | null;
+                pids: number | null;
+            };
+            /** @description The AI-written plain-English summary of what changed. **Null is a state, not an error** (Decision 7): an approval gate that fails closed on a language model being down is an outage, not a control. `summarySource` says why. */
+            summary: string | null;
+            /**
+             * @description `llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff.
+             * @enum {string}
+             */
+            summarySource: "llm" | "unavailable" | "no-previous-release";
+            /** @description R4 (D33, §15): the code reviewer’s verdict at decision time. `not_performed` until a reviewer is configured — an honest absence rather than a stub that purports to have reviewed. */
+            review: {
+                state: string;
+                reviewer: string;
+                detail: string;
+            };
+        };
+        ApproveReleaseRequest: {
+            reason?: string;
         };
         Audience: {
             /** @enum {string} */
@@ -1806,6 +1929,9 @@ export interface components {
         /** @description A person’s refusal of a pending action, in their own words. */
         RejectPendingActionRequest: {
             /** @description Why this is refused. The agent is told, verbatim. */
+            reason: string;
+        };
+        RejectReleaseRequest: {
             reason: string;
         };
         /** @description Immutable: a build, a spec and the configuration resolved for every environment (§13). */
@@ -3196,6 +3322,113 @@ export interface operations {
                 };
             };
             /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getApproval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                releaseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The latest decision. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Approval"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    approveRelease: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                releaseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveReleaseRequest"];
+            };
+        };
+        responses: {
+            /** @description The approval, with the diff it was made on. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Approval"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    rejectRelease: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                releaseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectReleaseRequest"];
+            };
+        };
+        responses: {
+            /** @description The rejection, with the diff it was made on. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Approval"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

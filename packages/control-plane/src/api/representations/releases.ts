@@ -1,5 +1,5 @@
 import { z } from 'zod/v4'
-import type { builds, releases } from '../../db/index.js'
+import type { approvals, builds, releases } from '../../db/index.js'
 import type { ResolvedConfigSet } from '../../releases/index.js'
 import type { ScanSummary as DriverScanSummary } from '../../runtime/index.js'
 import { representation, request, Timestamp, Uuid } from '../contract/schemas.js'
@@ -110,6 +110,150 @@ export function toRelease(
       sandbox: configOf('sandbox'),
       staging: configOf('staging'),
       production: configOf('production'),
+    },
+  }
+}
+
+/**
+ * §13's `diff_snapshot`: what the administrator actually READ at the moment they decided.
+ *
+ * **RENDERED AND STORED, NEVER RECOMPUTED** (Decision 6). §13 asks for "the exact diff
+ * shown at decision time"; a diff recomputed later against a changed spec is a different
+ * claim about a different thing, and the record exists precisely to be non-repudiable.
+ */
+export const ApprovalDiff = representation(
+  'ApprovalDiff',
+  z
+    .object({
+      imageDigest: z
+        .string()
+        .describe('The image this approval binds to — the same value as the approval’s.'),
+      changes: z.array(
+        z.object({
+          path: z
+            .string()
+            .describe(
+              'Where, in manifest.yaml’s own vocabulary — the file an agent edits.',
+            ),
+          from: z.string(),
+          to: z.string(),
+          summary: z.string().describe('One clause a faculty member can read.'),
+        }),
+      ),
+      services: z
+        .array(z.string())
+        .describe('`type@version`, sorted — what this release asks the platform to run.'),
+      attributes: z
+        .array(z.string())
+        .describe('The CWL attributes this release requests, sorted (§7).'),
+      resources: z
+        .object({
+          cpu: z.number().nullable(),
+          memory: z.string().nullable(),
+          disk: z.string().nullable(),
+          pids: z.number().int().nullable(),
+        })
+        .describe('The production limits this release would run under.'),
+      summary: z
+        .string()
+        .nullable()
+        .describe(
+          'The AI-written plain-English summary of what changed. **Null is a state, not an error** (Decision 7): an approval gate that fails closed on a language model being down is an outage, not a control. `summarySource` says why.',
+        ),
+      summarySource: z
+        .enum(['llm', 'unavailable', 'no-previous-release'])
+        .describe(
+          '`llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff.',
+        ),
+      review: z
+        .object({
+          state: z.string(),
+          reviewer: z.string(),
+          detail: z.string(),
+        })
+        .describe(
+          'R4 (D33, §15): the code reviewer’s verdict at decision time. `not_performed` until a reviewer is configured — an honest absence rather than a stub that purports to have reviewed.',
+        ),
+    })
+    .describe('The exact diff shown at decision time (§13).'),
+)
+
+/**
+ * §6's `Approval`, and §13's *Integrity of the gate*: "a non-repudiable record: actor,
+ * timestamp, and the exact diff shown at decision time."
+ *
+ * **IT CARRIES THE DIGEST, WHICH IS THE BINDING.** §13: "Binding to a tag would let a later
+ * push silently replace approved content." A rebuild produces a new digest, and a new digest
+ * has no approval (Decision 11) — which the launch checklist says in words rather than
+ * reverting to its generic unmet text.
+ */
+export const Approval = representation(
+  'Approval',
+  z
+    .object({
+      id: Uuid,
+      releaseId: Uuid,
+      projectId: Uuid,
+      decision: z.enum(['approved', 'rejected']),
+      decidedBy: Uuid,
+      decidedAt: Timestamp,
+      imageDigest: z.string().describe('What this approval binds to (§13).'),
+      reason: z
+        .string()
+        .nullable()
+        .describe(
+          'Required on a rejection: a refusal with no words is one nobody can act on (D23.7).',
+        ),
+      diff: ApprovalDiff,
+    })
+    .describe('One decision about one release, kept for ever (§13).'),
+)
+
+export const ApproveReleaseRequest = request(
+  'ApproveReleaseRequest',
+  z.strictObject({ reason: z.string().max(2000).optional() }),
+)
+
+/**
+ * **`reason` IS REQUIRED HERE AND OPTIONAL ON AN APPROVAL**, and the asymmetry is the point
+ * (D23.7): the database's `approvals_rejection_has_reason` CHECK is the second half of the
+ * same rule. `min(1)` after a trim would be the third statement of it; the CHECK trims, and
+ * `records.test.ts`'s pattern is to say which of the two each test exercises.
+ */
+export const RejectReleaseRequest = request(
+  'RejectReleaseRequest',
+  z.strictObject({ reason: z.string().min(1).max(2000) }),
+)
+
+export function toApproval(row: typeof approvals.$inferSelect): z.input<typeof Approval> {
+  const diff = row.diffSnapshot
+  return {
+    id: row.id,
+    releaseId: row.releaseId,
+    projectId: row.projectId,
+    decision: row.decision,
+    decidedBy: row.decidedBy,
+    decidedAt: row.decidedAt.toISOString(),
+    imageDigest: row.imageDigest,
+    reason: row.reason,
+    diff: {
+      imageDigest: diff.imageDigest,
+      changes: diff.changes,
+      services: diff.services,
+      attributes: diff.attributes,
+      // The COLUMN is `Record<string, string | number | null>` — a jsonb shape that cannot
+      // promise four named keys — and the representation names them, so each is read and
+      // coalesced here rather than spread. A snapshot written before a key existed answers
+      // `null`, which is the same thing "this release sets no limit" means.
+      resources: {
+        cpu: (diff.resources['cpu'] as number | null | undefined) ?? null,
+        memory: (diff.resources['memory'] as string | null | undefined) ?? null,
+        disk: (diff.resources['disk'] as string | null | undefined) ?? null,
+        pids: (diff.resources['pids'] as number | null | undefined) ?? null,
+      },
+      summary: diff.summary,
+      summarySource: diff.summarySource,
+      review: diff.review,
     },
   }
 }

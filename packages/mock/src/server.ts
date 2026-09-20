@@ -180,6 +180,16 @@ const ANSWERS: Record<string, Answerer> = {
   // The one answer in this API that carries a credential, and only ever once.
   mintToken: () => created('MintedToken', f.MINTED_TOKEN),
   getRelease: () => ok('Release', f.RELEASE),
+  /**
+   * §13's approval (P6a Task 10). **All three answer the same fixture**, for the reason the
+   * two record routes above state: the mock keeps no state (P5c Decision 9), and a route
+   * that echoed the request back would let a console bug that sends the wrong decision look
+   * correct here and wrong against the platform. A screen that needs a REJECTED approval
+   * drives the platform, not this.
+   */
+  approveRelease: () => created('Approval', f.APPROVAL),
+  rejectRelease: () => created('Approval', f.APPROVAL),
+  getApproval: () => ok('Approval', f.APPROVAL),
   // The slug the fixtures already use is taken; everything else is free, so the create
   // form's check-as-you-type has both answers to render.
   checkSlug: (ctx) =>

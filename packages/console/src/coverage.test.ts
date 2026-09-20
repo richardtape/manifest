@@ -29,6 +29,14 @@ const DELIBERATELY_UNCALLED: Record<string, string> = {
   getLaunchRecords: 'P6a Task 17 — the launch screen reads it (sitting 10)',
   recordIamRegistration: 'P6a Task 17 — the records screen writes it (sitting 10)',
   recordPrivacyAssessment: 'P6a Task 17 — the records screen writes it (sitting 10)',
+  // **AND THE THREE P6a TASK 10 ADDS (sitting 7)**, for the same reason and with the same
+  // remover: Task 18 (sitting 10) builds the approvals screen that calls all three. Writing
+  // the `api.ts` functions now, three sittings before any screen imports them, is the
+  // no-caller shape ORIENTATION §9 names four times.
+  approveRelease: 'P6a Task 18 — the approvals screen calls it (sitting 10)',
+  rejectRelease: 'P6a Task 18 — the approvals screen calls it (sitting 10)',
+  getApproval:
+    'P6a Task 18 — the approvals screen reads the diff at decision time (sitting 10)',
 }
 
 /**

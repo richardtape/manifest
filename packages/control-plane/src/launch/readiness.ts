@@ -2,7 +2,11 @@ import { eq } from 'drizzle-orm'
 import { STALENESS_THRESHOLD_DAYS } from '../build/index.js'
 import { builds, environments, projects, releases, type Db } from '../db/index.js'
 import { servingInstanceOf, type StoredAudience } from '../projects/index.js'
-import type { ResolvedConfigSet } from '../releases/index.js'
+import {
+  approvalCoversDigest,
+  latestApprovalFor,
+  type ResolvedConfigSet,
+} from '../releases/index.js'
 import type { ScanSummary } from '../runtime/index.js'
 import { getIamRegistration, getPrivacyAssessment } from './records.js'
 
@@ -99,15 +103,7 @@ export async function computeLaunchReadiness(
       candidate?.build.scan as ScanSummary | null | undefined,
       candidate !== undefined,
     ),
-    {
-      id: 'admin-approval',
-      title: 'Release approved by a platform administrator',
-      owner: 'platform admin',
-      blocking: true,
-      state: 'not_built',
-      builtBy: 'P6',
-      why: 'An administrator approves the exact image digest, with step-up re-authentication (§13). Approvals are built with production environments.',
-    },
+    await approvalItem(db, candidate),
     ...(audience?.scale === 'large_course' || audience?.scale === 'public'
       ? [
           {
@@ -182,6 +178,68 @@ async function iamItem(db: Db, projectId: string, usesCwl: boolean): Promise<Lau
     owner,
     state: 'unmet',
     why: `The registration is '${row.state}'${ticket(row.externalTicketRef)} and must be 'active' before a first production launch (§9).`,
+  }
+}
+
+/**
+ * §13's fifth blocking item, and the one Task 10 bought. Until this task it read
+ * `not_built` / `builtBy: 'P6'` — *"approvals are built with production environments"* —
+ * which stopped being true the moment `POST /v1/releases/{id}/approve` existed.
+ *
+ * Five states, each a fact about a row an administrator wrote:
+ *
+ *  - `unmet` when nothing is serving staging: there is no release to approve.
+ *  - `unmet` when the candidate has never been decided on.
+ *  - `unmet` when it was REJECTED, in the administrator's own words (D23.7).
+ *  - `unmet` when it was approved and then REBUILT — Decision 11, in words.
+ *  - `met` when a live approval binds the digest that would actually be deployed.
+ *
+ * **`builtBy` is gone from this item**, and a reader who finds it again should treat that
+ * as a regression: it names the plan that will build a thing, and this thing is built.
+ */
+async function approvalItem(
+  db: Db,
+  candidate:
+    | { release: typeof releases.$inferSelect; build: typeof builds.$inferSelect }
+    | undefined,
+): Promise<LaunchItem> {
+  const base = {
+    id: 'admin-approval' as const,
+    title: 'Release approved by a platform administrator',
+    owner: 'platform admin',
+    blocking: true,
+  }
+  if (candidate === undefined)
+    return {
+      ...base,
+      state: 'unmet',
+      why: 'Nothing is serving in staging yet, so there is no release to approve. Production runs exactly what staging ran (§13).',
+    }
+  const approval = await latestApprovalFor(db, candidate.release.id)
+  if (approval === undefined)
+    return {
+      ...base,
+      state: 'unmet',
+      why: 'An administrator approves the exact image digest, with step-up re-authentication (§13, §20). This release has not been reviewed yet.',
+    }
+  if (approval.decision === 'rejected')
+    return {
+      ...base,
+      state: 'unmet',
+      why: `An administrator did not approve this release: ${approval.reason}`,
+    }
+  if (!approvalCoversDigest(approval, candidate.build.imageDigest ?? ''))
+    // DECISION 11, IN WORDS. It reads as a bug the first time somebody meets it, so the
+    // checklist explains it rather than reverting to the generic unmet text.
+    return {
+      ...base,
+      state: 'unmet',
+      why: 'This release was rebuilt since it was approved, so the approval no longer covers what would be deployed — the approval binds an image digest (§13). Approve the new build.',
+    }
+  return {
+    ...base,
+    state: 'met',
+    why: `Approved by an administrator on ${approval.decidedAt.toISOString().slice(0, 10)}, bound to image digest ${approval.imageDigest.slice(0, 19)}…`,
   }
 }
 
