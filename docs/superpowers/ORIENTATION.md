@@ -1782,7 +1782,7 @@ code and both load-bearing:
 
 1. **There are TWO unconditional production gates, not one.** The route's is
    `api/routes/releases.ts:233`; **`deployRelease` throws its own** at
-   `releases/release.ts:211`, before it reads the build, and `error-codes.ts` records the
+   `releases/release.ts:213`, before it reads the build, and `error-codes.ts` records the
    code with two families. **A plan that replaced only the outer one would ship a production
    deploy that still refuses, with every test of the new gate green.** Task 7 removes both;
    Task 1's `[M2]` confirms it before anything depends on it.
@@ -1838,7 +1838,7 @@ spec. Ask.**
   tool call**. It is bundled into one script, `infra/host/p6a-second-address.sh`; **Rich runs
   it with `! sudo bash …` in his own terminal.** Ask, and wait.
 - **D22's coverage gate is fully disarmed by its own list** — P5c sitting 9 measured that
-  with all 34 operations in `DELIBERATELY_UNCALLED` it is green. **P6a adds about a dozen
+  with all 34 operations in `DELIBERATELY_UNCALLED` it is green. **P6a adds SEVEN
   operations, so a reviewer reads that list; the gate will not.**
 
 **THE MACHINE, as this sitting left it.** *Writing the plan changed no source file, no test
