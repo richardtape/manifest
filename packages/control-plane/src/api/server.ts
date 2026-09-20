@@ -28,7 +28,7 @@ import { replayOrStore } from './idempotency.js'
 import { registerAuthRoutes } from './routes/auth.js'
 import type { SsoRegistrar } from '../sso/index.js'
 import type { SamlSp } from '../identity/index.js'
-import type { AiKeyService, ModelCatalogue } from '../ai/index.js'
+import type { AiKeyService, LiteLlmClient, ModelCatalogue } from '../ai/index.js'
 import type { BuildRunner, Retirer } from '../releases/index.js'
 import { registryTokenRoutes } from './routes/registry-token.js'
 import { registerRoutes } from './contract/route.js'
@@ -69,6 +69,21 @@ export interface ServerDeps {
    * `MANIFEST_AI_ENABLED=0`, and then every step refuses, naming the setting.
    */
   ai: AiKeyService
+  /**
+   * §10's LiteLLM ADMIN TRANSPORT ITSELF — the same client `ai` and `catalogue` are built
+   * from, handed on so the control plane can ASK the gateway a question rather than only
+   * manage keys (P6a Task 11, §13's approval summary).
+   *
+   * **A SEPARATE FIELD RATHER THAN A METHOD ON `ai`**, and the plan's own snippet assumed
+   * otherwise: `AiKeyService` is §10's key LIFECYCLE — mint, store, revoke — and it has no
+   * `post`. Folding a chat completion into it would make a key service the platform's
+   * general-purpose model client, which is the second producer `ai/client.ts`'s own doc
+   * comment exists to prevent.
+   *
+   * `undefined` under `MANIFEST_AI_ENABLED=0`, exactly as at boot, and a caller that reads
+   * it must handle that — which is Decision 7's "recorded as absent" by a different route.
+   */
+  llm: LiteLlmClient | undefined
   /**
    * D23.2's per-project fan-out (P4b Task 14): `WS /v1/projects/:projectId/events`
    * subscribes to it. ONE bus per process, built at boot, so every publisher and every

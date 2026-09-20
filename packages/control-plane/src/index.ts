@@ -191,6 +191,10 @@ const ai =
   litellm === undefined
     ? disabledAiKeyService()
     : createAiKeyService(litellm, masterKeypair)
+// AND THE TRANSPORT ITSELF (P6a Task 11): §13's approval summary asks the gateway a
+// question rather than minting a key, and `AiKeyService` models the key lifecycle alone.
+// The SAME instance, so there is one timeout, one master key and one error mapping.
+const llm = litellm
 
 // §9's SP registrar. The IdP metadata database is a SECOND connection to a
 // DIFFERENT database, constructed ONCE here — `sso/` writes SimpleSAMLphp's own
@@ -287,6 +291,7 @@ const app = await buildServer({
   sso,
   catalogue,
   ai,
+  llm,
   // The same bus the registrar above publishes to, and `WS /v1/projects/:projectId/events`
   // subscribes to.
   bus,

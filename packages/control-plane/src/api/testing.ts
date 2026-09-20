@@ -253,6 +253,17 @@ export async function testDeps(): Promise<ServerDeps> {
       tokens: createKeyedRateLimiter({ windowMs: TOKEN_RATE_WINDOW_MS }),
     },
     ai,
+    /**
+     * **UNDEFINED, AND THAT IS THE HONEST HARNESS RATHER THAN A GAP** (P6a Task 11): the
+     * unit tier has no LiteLLM, exactly as `catalogue` above says, so §13's approval
+     * summary is recorded as `unavailable` here — which is the state Decision 7 exists for
+     * and the one a route test should meet by default.
+     *
+     * A test that needs a model ANSWERING spreads its own over `testDeps()`, and
+     * `summary.test.ts` drives `summariseChanges` directly. The Docker tier has a real
+     * gateway; `ai/ai-path.docker.test.ts` is where a live call belongs.
+     */
+    llm: undefined,
     // A keypair per call, not a shared one: two tests sharing a master key can
     // read each other's secrets, and that is the test-isolation shape that made
     // P2's suite depend on the order Vitest happened to pick.

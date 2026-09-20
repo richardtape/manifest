@@ -1,6 +1,10 @@
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
+import type { LiteLlmClient } from '../ai/index.js'
 import { approvals, releases, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
+import { describeDiff } from '../spec/index.js'
+import type { ResolvedConfigSet } from './release.js'
+import { summariseChanges } from './summary.js'
 
 export type ApprovalRow = typeof approvals.$inferSelect
 export type ReleaseRow = typeof releases.$inferSelect
@@ -106,32 +110,98 @@ export function approvalCoversDigest(
 }
 
 /**
- * §13's `diff_snapshot` — **WRITTEN IN TASK 10 AS A SIGNATURE AND FILLED IN BY TASK 11**,
- * in the same sitting. Task 10's subject is the approval and its binding; what the
- * administrator READ at decision time is Task 11's, and this body is replaced there.
+ * The newest release of this project an administrator has APPROVED — what §13's diff at
+ * decision time is taken against ("since the last approved release").
  *
- * It is not a stub that purports to have rendered a diff: `changes` is empty and
- * `summarySource` says `unavailable`, which is the same shape a real snapshot takes when
- * there is nothing to compare — so nothing downstream has to special-case it, and nothing
- * here claims a diff was shown that was not.
+ * **BY APPROVAL ORDER, NOT BY RELEASE ORDER.** A release made after an approved one and
+ * never approved is not what production is running and is not what changed since; the
+ * question this answers is about decisions, so it is asked of the decisions table.
+ *
+ * **THE RELEASE IN HAND IS EXCLUDED, and that is not tidiness.** A release can be approved,
+ * rejected and approved again (there is no unique constraint on `release_id`), so without
+ * this a second approval of the same release would diff it against itself and report that
+ * nothing changed — beside a digest that had.
+ */
+export async function lastApprovedReleaseFor(
+  db: Db,
+  projectId: string,
+  excludeReleaseId: string,
+): Promise<ReleaseRow | undefined> {
+  const rows = await db
+    .select({ release: releases })
+    .from(approvals)
+    .innerJoin(releases, eq(approvals.releaseId, releases.id))
+    .where(and(eq(approvals.projectId, projectId), eq(approvals.decision, 'approved')))
+    .orderBy(desc(approvals.decidedAt), desc(approvals.id))
+  return rows.find((r) => r.release.id !== excludeReleaseId)?.release
+}
+
+export interface SnapshotDeps {
+  db: Db
+  /** §10's admin transport. Absent under `MANIFEST_AI_ENABLED=0` (Decision 7). */
+  llm: LiteLlmClient | undefined
+}
+
+/**
+ * §13: the approval record captures "image digest, `manifest.yaml` diff, services requested,
+ * CWL attributes requested, resource delta, and an AI-written plain-English summary of what
+ * changed since the last approved release."
+ *
+ * **RENDERED AT DECISION TIME AND STORED** (Decision 6). §13 says "the exact diff shown at
+ * decision time"; a diff recomputed later against a changed spec is a different claim about
+ * a different thing, and the record exists precisely to be non-repudiable.
+ *
+ * `describeDiff` runs over the FROZEN `ResolvedConfig` of each release, never over
+ * `app_specs.parsed` — a release is what §13 froze, and reading the spec back would be the
+ * second source of truth P4a deleted.
+ *
+ * **`isSensitiveDiff` IS NOT CALLED HERE.** That one answers *"does this need an approval?"*
+ * and is D9.2's re-escalation, which is P6b's; calling it now would be P6b built badly.
  */
 export async function buildDiffSnapshot(
-  _deps: unknown,
-  _release: ReleaseRow,
+  deps: SnapshotDeps,
+  release: ReleaseRow,
   digest: string,
 ): Promise<DiffSnapshot> {
-  return Promise.resolve({
+  const previous = await lastApprovedReleaseFor(deps.db, release.projectId, release.id)
+  const now = (release.resolvedConfig as ResolvedConfigSet).production
+  // A FIRST LAUNCH HAS NOTHING TO DIFF, and that is a STATE rather than an absence: §13's
+  // gate for a first launch is the whole checklist, and D9.2's re-escalation — which is
+  // what a diff is FOR — is P6b's. So the changes are empty and the summary says why,
+  // which is a different answer from "the model could not be reached".
+  const changes =
+    previous === undefined
+      ? []
+      : describeDiff((previous.resolvedConfig as ResolvedConfigSet).production, now)
+  return {
     imageDigest: digest,
-    changes: [],
-    services: [],
-    attributes: [],
-    resources: {},
-    summary: null,
-    summarySource: 'unavailable',
+    changes: changes.map((c) => ({
+      path: c.path,
+      from: c.from,
+      to: c.to,
+      summary: c.summary,
+    })),
+    // **THE `.sort()` CALLS ARE NOT COSMETIC.** A snapshot is compared by eye and by `diff`
+    // in Task 19's demo, and an unsorted list makes two identical approvals look different
+    // — the same order-insensitivity `spec/diff.ts` already applies for the same reason.
+    services: now.services.map((s) => `${s.type}@${s.version}`).sort(),
+    attributes: [...(now.auth?.attributes ?? [])].sort(),
+    resources: {
+      cpu: now.resources.cpu ?? null,
+      memory: now.resources.memory ?? null,
+      disk: now.resources.disk ?? null,
+      pids: now.resources.pids ?? null,
+    },
+    ...(previous === undefined
+      ? { summary: null, summarySource: 'no-previous-release' as const }
+      : await summariseChanges(deps.llm, changes)),
+    // R4 (D33): the reviewer's verdict AT DECISION TIME. Task 12 replaces this literal with
+    // `deps.reviewer.review(...)`, and the item's honesty is the whole point — a literal
+    // that said `clean` here would be the stub R4(b) forbids.
     review: {
       state: 'not_performed',
       reviewer: 'none',
       detail: 'no code reviewer is configured (D33, §15)',
     },
-  })
+  }
 }

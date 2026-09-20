@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
-import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { AI_CODES, AiError } from '../ai/index.js'
 import { approvals, builds, events } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 // `api/index.js`, not `api/server.js`: `module-boundaries.test.ts` allows a module's
@@ -87,6 +88,61 @@ async function servingStaging(ctx: Awaited<ReturnType<typeof releasedProject>>) 
   })
   expect(deployed.statusCode, deployed.body).toBe(200)
   expect(deployed.json().state, deployed.body).toBe('healthy')
+}
+
+/**
+ * A SECOND release of the same project, from a manifest that differs — so `describeDiff`
+ * has something to describe. Two releases of one unchanged spec diff to nothing, and a
+ * snapshot test against an empty `changes` list cannot see Decision 6 at all.
+ */
+async function secondRelease(
+  ctx: Awaited<ReturnType<typeof releasedProject>>,
+  slug: string,
+  memory: string,
+) {
+  await ctx.deps.source.commitFiles(
+    ctx.deps.source.repositoryFor(slug),
+    {
+      'manifest.yaml': [
+        'manifest: 1',
+        `name: ${slug}`,
+        'blueprint: fixture-node@1',
+        'runtime:',
+        '  port: 3000',
+        '  health: /healthz',
+        'resources:',
+        `  memory: ${memory}`,
+        '',
+      ].join('\n'),
+    },
+    'feat: more memory',
+  )
+  const pushed = await ctx.app.inject({
+    method: 'POST',
+    url: `/v1/projects/${ctx.project.id}/spec`,
+    payload: {},
+    cookies: ctx.owner,
+    headers: mutationHeaders(ctx.deps),
+  })
+  expect(pushed.json().valid, pushed.body).toBe(true)
+  const started = await ctx.app.inject({
+    method: 'POST',
+    url: `/v1/projects/${ctx.project.id}/builds`,
+    payload: {},
+    cookies: ctx.owner,
+    headers: mutationHeaders(ctx.deps),
+  })
+  expect(started.statusCode, started.body).toBe(202)
+  await ctx.deps.builds.idle()
+  const made = await ctx.app.inject({
+    method: 'POST',
+    url: `/v1/projects/${ctx.project.id}/releases`,
+    payload: { buildId: started.json().id },
+    cookies: ctx.owner,
+    headers: mutationHeaders(ctx.deps),
+  })
+  expect(made.statusCode, made.body).toBe(201)
+  return made.json()
 }
 
 const refusal = (res: { statusCode: number; body: string }) => ({
@@ -466,6 +522,153 @@ describe('§13’s checklist reads the approval (Decision 11)', () => {
     const item = view.json().items.find((i: { id: string }) => i.id === 'admin-approval')
     expect(item.state).toBe('unmet')
     expect(item.why).toContain('rebuilt since it was approved')
+    await ctx.app.close()
+  })
+})
+
+describe('§13’s diff_snapshot — rendered at decision time and STORED (P6a Task 11)', () => {
+  it('stores the RENDERED changes, the sorted lists and the resource delta', async () => {
+    /**
+     * **DECISION 6 IS INVISIBLE TO A TEST THAT ONLY CHECKS THE APPROVAL WAS RECORDED**
+     * (control c): storing `{beforeReleaseId, afterReleaseId}` and recomputing later passes
+     * every other test in this file. This one reads a STORED snapshot's `changes[0].summary`
+     * — the rendered clause, which a reference does not carry.
+     */
+    const ctx = await releasedProject('diff-labs')
+    const first = await ctx.app.inject({
+      method: 'POST',
+      url: `/v1/releases/${ctx.release.id}/approve`,
+      payload: {},
+      cookies: ctx.admin,
+      headers: mutationHeaders(ctx.deps),
+    })
+    expect(first.statusCode, first.body).toBe(201)
+    // A FIRST LAUNCH HAS NOTHING TO DIFF, and that is a STATE: not `unavailable`, which
+    // would send an administrator looking for a failure that did not happen.
+    expect(first.json().diff.summarySource).toBe('no-previous-release')
+    expect(first.json().diff.changes).toEqual([])
+
+    const next = await secondRelease(ctx, 'diff-labs', '1Gi')
+    const second = await ctx.app.inject({
+      method: 'POST',
+      url: `/v1/releases/${next.id}/approve`,
+      payload: {},
+      cookies: ctx.admin,
+      headers: mutationHeaders(ctx.deps),
+    })
+    expect(second.statusCode, second.body).toBe(201)
+    const diff = second.json().diff
+
+    const memory = (diff.changes as { path: string; summary: string; to: string }[]).find(
+      (c) => c.path === 'resources.memory',
+    )
+    expect(memory, JSON.stringify(diff.changes)).toBeDefined()
+    // THE RENDERED CLAUSE, not an id. This is the assertion a reference cannot satisfy.
+    expect(memory!.summary).toContain('memory')
+    expect(memory!.to).toBe('1Gi')
+    expect(diff.resources.memory).toBe('1Gi')
+    // SORTED, because two identical approvals must not look different to a `diff` (Task 19).
+    expect(diff.services).toEqual([...diff.services].sort())
+    expect(diff.attributes).toEqual([...diff.attributes].sort())
+    expect(diff.imageDigest).toBe(second.json().imageDigest)
+    await ctx.app.close()
+  })
+
+  it('an approval still succeeds with an UNAVAILABLE summary — end to end through the route', async () => {
+    /**
+     * **THE TEST THAT MATTERS, AND THE ONE THAT WOULD BE LEFT OUT.** `summary.test.ts`
+     * proves the function returns null when the model is down; only a route test proves the
+     * APPROVAL is still recorded, which is Decision 7's actual claim. The harness's `llm` is
+     * `undefined` by default, so this test hands the server one that REJECTS — otherwise it
+     * would be exercising "AI is switched off" and calling it "the gateway is down".
+     */
+    const ctx = await releasedProject('outage-labs')
+    const operator = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const down = await buildServer({
+      ...ctx.deps,
+      llm: {
+        get: () => Promise.reject(new Error('never')),
+        post: () =>
+          Promise.reject(
+            new AiError(AI_CODES.BACKEND_UNAVAILABLE, 0, {
+              status: 0,
+              reason: 'unreachable',
+            }),
+          ),
+      },
+    })
+    // A PREVIOUS APPROVED RELEASE, so the summary is actually attempted — without one the
+    // answer is `no-previous-release` and the gateway is never asked, which would make this
+    // test green against a `buildDiffSnapshot` that rethrows.
+    expect(
+      (
+        await down.inject({
+          method: 'POST',
+          url: `/v1/releases/${ctx.release.id}/approve`,
+          payload: {},
+          cookies: ctx.admin,
+          headers: mutationHeaders(ctx.deps),
+        })
+      ).statusCode,
+    ).toBe(201)
+    const next = await secondRelease(ctx, 'outage-labs', '1Gi')
+    const approved = await down.inject({
+      method: 'POST',
+      url: `/v1/releases/${next.id}/approve`,
+      payload: {},
+      cookies: ctx.admin,
+      headers: mutationHeaders(ctx.deps),
+    })
+
+    // 201, NOT 502. The approval is recorded; the summary is recorded as absent.
+    expect(approved.statusCode, approved.body).toBe(201)
+    expect(approved.json().diff.summary).toBeNull()
+    expect(approved.json().diff.summarySource).toBe('unavailable')
+    // AND THE DIFF IS STILL THERE — which is §13's actual control, and the reason a missing
+    // summary is not a reason to refuse.
+    expect(approved.json().diff.changes.length).toBeGreaterThan(0)
+    expect(operator).toHaveBeenCalled()
+    operator.mockRestore()
+    await down.close()
+    await ctx.app.close()
+  })
+
+  it('summarises through a model that answers, and stores its words', async () => {
+    // The positive control for the pair above, at the ROUTE rather than at the function.
+    const ctx = await releasedProject('summary-labs')
+    const up = await buildServer({
+      ...ctx.deps,
+      llm: {
+        get: () => Promise.reject(new Error('never')),
+        post: <T>() =>
+          Promise.resolve({
+            choices: [{ message: { content: 'The app asks for more memory.' } }],
+          } as T),
+      },
+    })
+    expect(
+      (
+        await up.inject({
+          method: 'POST',
+          url: `/v1/releases/${ctx.release.id}/approve`,
+          payload: {},
+          cookies: ctx.admin,
+          headers: mutationHeaders(ctx.deps),
+        })
+      ).statusCode,
+    ).toBe(201)
+    const next = await secondRelease(ctx, 'summary-labs', '1Gi')
+    const approved = await up.inject({
+      method: 'POST',
+      url: `/v1/releases/${next.id}/approve`,
+      payload: {},
+      cookies: ctx.admin,
+      headers: mutationHeaders(ctx.deps),
+    })
+    expect(approved.statusCode, approved.body).toBe(201)
+    expect(approved.json().diff.summary).toBe('The app asks for more memory.')
+    expect(approved.json().diff.summarySource).toBe('llm')
+    await up.close()
     await ctx.app.close()
   })
 })

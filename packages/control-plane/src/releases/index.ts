@@ -1,6 +1,7 @@
 export * from './build.js'
 export * from './release.js'
 export * from './approval.js'
+export * from './summary.js'
 export * from './promotion.js'
 export * from './retire.js'
 export * from './recover.js'
