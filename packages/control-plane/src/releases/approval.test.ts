@@ -231,6 +231,19 @@ describe('§13’s approval — `release:approve`’s first caller (P6a Task 10)
     })
     expect(refusal(refused)).toEqual({ status: 400, code: 'REQUEST_INVALID' })
 
+    // AND A REASON MADE OF SPACES, which is the case `min(1)` alone does NOT catch and the
+    // one control (e) is aimed at. Measured: with `.trim()` absent from the schema this
+    // request reached the database and was answered `500 INTERNAL` — a client error wearing
+    // a server error's clothes (P6a sitting 7, F3).
+    const blank = await ctx.app.inject({
+      method: 'POST',
+      url: `/v1/releases/${ctx.release.id}/reject`,
+      payload: { reason: '   ' },
+      cookies: ctx.admin,
+      headers: mutationHeaders(ctx.deps),
+    })
+    expect(refusal(blank)).toEqual({ status: 400, code: 'REQUEST_INVALID' })
+
     /**
      * **BELT AND BRACES, AND THIS LINE SAYS WHICH IS WHICH** (`records.test.ts`'s
      * pattern). The refusal above is `RejectReleaseRequest`'s `min(1)`; this is the
@@ -430,9 +443,19 @@ describe('§13’s checklist reads the approval (Decision 11)', () => {
       cookies: ctx.admin,
       headers: mutationHeaders(ctx.deps),
     })
+    /**
+     * **THE NEW DIGEST SHARES ITS FIRST NINETEEN CHARACTERS WITH THE APPROVED ONE**, and
+     * that is control (c) folded into this test rather than left to the unit one. Measured:
+     * with an unrelated `sha256:aaa…` here, `approvalCoversDigest` written as a PREFIX
+     * comparison still turns this item `unmet` and this test stays green — so the digest a
+     * rebuild is given has to be one the wrong implementation would accept.
+     */
+    const rebuilt = `${(ctx.build.imageDigest as string).slice(0, 19)}${'b'.repeat(64 - 12)}`
+    expect(rebuilt.slice(0, 19)).toBe((ctx.build.imageDigest as string).slice(0, 19))
+    expect(rebuilt).not.toBe(ctx.build.imageDigest)
     await ctx.deps.db
       .update(builds)
-      .set({ imageDigest: DIGEST })
+      .set({ imageDigest: rebuilt })
       .where(eq(builds.id, ctx.build.id))
 
     const view = await ctx.app.inject({

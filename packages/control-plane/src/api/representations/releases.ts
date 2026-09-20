@@ -217,12 +217,19 @@ export const ApproveReleaseRequest = request(
 /**
  * **`reason` IS REQUIRED HERE AND OPTIONAL ON AN APPROVAL**, and the asymmetry is the point
  * (D23.7): the database's `approvals_rejection_has_reason` CHECK is the second half of the
- * same rule. `min(1)` after a trim would be the third statement of it; the CHECK trims, and
- * `records.test.ts`'s pattern is to say which of the two each test exercises.
+ * same rule.
+ *
+ * **`.trim()` BEFORE `.min(1)`, AND IT WAS FOUND BY A NEGATIVE CONTROL** (P6a sitting 7,
+ * F3). The CHECK reads `length(trim(coalesce(reason, ''))) > 0`, so a reason made of three
+ * spaces satisfies a bare `min(1)`, reaches Postgres and is refused there — and a constraint
+ * violation surfacing through `mapError` is `500 INTERNAL`, a client error wearing a server
+ * error's clothes. The two halves must refuse the SAME set, and the schema is the half that
+ * can say `400` with a path in it. Trimming here also means the stored words are the
+ * administrator's without the whitespace around them.
  */
 export const RejectReleaseRequest = request(
   'RejectReleaseRequest',
-  z.strictObject({ reason: z.string().min(1).max(2000) }),
+  z.strictObject({ reason: z.string().trim().min(1).max(2000) }),
 )
 
 export function toApproval(row: typeof approvals.$inferSelect): z.input<typeof Approval> {
