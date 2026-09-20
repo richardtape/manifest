@@ -10,10 +10,16 @@ export type Listener = 'internal' | 'public'
  * allowlisting: a misconfigured allowlist leaks quietly, whereas a route bound to
  * the wrong listener is simply unreachable."
  *
- * On the laptop both listeners are loopback and both server names default to the
- * same Caddy server (§21, honest divergence 2), so this distinction is modelled and
- * recorded rather than enforced locally. It is two settings, not a derivation, so
- * UBC infrastructure enforces it by configuration and not by a code change.
+ * THIS IS ENFORCED ON THE LAPTOP SINCE P6a (R3), AND IT WAS NOT BEFORE. Until then
+ * both server names defaulted to the same Caddy server, so the distinction was
+ * modelled and recorded rather than enforced — §21's honest divergence 2, and this
+ * comment said so. The edge now runs two servers in one container, `srv0` on :443
+ * (internal) and `srv1` on :8443 (public), and a production route on the internal
+ * one is reachable by nobody: `routing/listener-split.docker.test.ts` is what
+ * watches that, and it is the first test here that could ever have failed for it.
+ *
+ * It is still TWO SETTINGS and not a derivation, so UBC infrastructure binds staging
+ * to an internal-only listener by configuration and not by a code change.
  */
 export function listenerFor(kind: EnvironmentKind): Listener {
   return kind === 'production' ? 'public' : 'internal'

@@ -129,10 +129,30 @@ check "the edge serves two listeners, internal and public"  check_two_servers
 #    NOT $EDGE_PROBE_HOST. That name has its own site on srv0 (see common.sh), so it is
 #    pinned to the internal listener and cannot stand for a production hostname.
 #    $PUBLIC_PROBE_HOST is named by no site, so only a wildcard can answer it.
+#
+#    IT ALSO HOLDS THE TWO HALVES OF DECISION 15 EQUAL (P6a Task 4). The split is by
+#    ADDRESS from the host and by PORT from a container: a production app's readiness
+#    probe runs inside one, where both servers sit at the edge's single address, so it
+#    reaches srv1 by naming `MANIFEST_EDGE_PUBLIC_PORT`. That default and the
+#    CONTAINER-SIDE half of compose's `127.0.0.3:443:8443` are one number in two files.
+#    Disagree, and every production deploy's probe reads the INTERNAL server, finds no
+#    route, and rolls back after fifteen seconds with a message about the wildcard —
+#    which names neither file. Two files that must agree get a check, not trust.
 check_public_listener() {
   require_ca || return 1
+  local cfg_port compose_port
+  cfg_port="$(sed -n 's/.*MANIFEST_EDGE_PUBLIC_PORT: z\.coerce\.number()\.int()\.positive()\.default(\([0-9]*\)).*/\1/p' packages/control-plane/src/config.ts)"
+  compose_port="$(sed -n 's/^[[:space:]]*-[[:space:]]*"'"$PUBLIC_EDGE_IP"':443:\([0-9]*\)".*/\1/p' infra/compose.yaml)"
+  # Emptiness is its own failure: a `sed` that matched nothing would otherwise compare
+  # '' with '' and pass. Both are asserted non-empty before they are compared.
+  [ -n "$cfg_port" ] || { echo "config.ts states no MANIFEST_EDGE_PUBLIC_PORT default"; return 1; }
+  [ -n "$compose_port" ] || { echo "compose.yaml publishes nothing on $PUBLIC_EDGE_IP:443"; return 1; }
+  [ "$cfg_port" = "$compose_port" ] || {
+    echo "the public listener's port disagrees: config.ts=$cfg_port compose.yaml=$compose_port"
+    return 1
+  }
   local body; body="$(curl -sS --cacert "$CA_FILE" --resolve "$PUBLIC_PROBE_HOST:443:$PUBLIC_EDGE_IP" "https://$PUBLIC_PROBE_HOST/" 2>&1)"
-  case "$body" in *listener=public*) echo "$body"; return 0 ;; esac
+  case "$body" in *listener=public*) echo "$body  (probe port $cfg_port = compose $compose_port)"; return 0 ;; esac
   echo "the public address answered: $body"; return 1
 }
 check "the public listener answers a production name on $PUBLIC_EDGE_IP"  check_public_listener

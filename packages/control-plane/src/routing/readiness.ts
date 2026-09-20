@@ -134,6 +134,28 @@ export async function waitForIdentity(input: {
 const PROBE_IMAGE = 'curlimages/curl:8.11.1'
 
 /**
+ * `hostname`, or `hostname:port` when a probe must name ONE of the edge's servers.
+ *
+ * §12'S SPLIT IS BY ADDRESS FROM THE HOST AND BY PORT FROM A CONTAINER (P6a
+ * Decision 15). `manifest-dns-containers` answers the edge's single address,
+ * 10.89.0.10, for the whole zone, so a container cannot pick a server by name the
+ * way the host does with 127.0.0.2 and 127.0.0.3 — it picks one by port: `:443` is
+ * `srv0`, the internal listener, and `:8443` is `srv1`, the public one.
+ *
+ * THIS IS A PORT IN A PROBE URL AND NEVER IN A PERSON'S. The faculty-facing URL is
+ * `https://<slug>.manifest.internal` with no port, which is why the host publishes
+ * `srv1` on `127.0.0.3:443` at all (infra/compose.yaml says so in its own words).
+ * Only the probe carries it, and only for production.
+ *
+ * ONE COPY, shared by both probes, for the reason `curlThroughEdge` is shared: a
+ * second place that knows how a port joins a hostname is a second place for it to
+ * drift.
+ */
+function probeAuthority(hostname: string, port: number | undefined): string {
+  return port === undefined ? hostname : `${hostname}:${port}`
+}
+
+/**
  * Runs one curl FROM A CONTAINER, through the edge, with the platform resolver, and
  * returns exactly what curl's `-w` printed.
  *
@@ -159,6 +181,10 @@ async function curlThroughEdge(
   caCertPath: string,
   writeOut: string,
   url: string,
+  // `port` is deliberately absent from this signature. It belongs to the URL, which
+  // both callers have already built with `probeAuthority`, and the container body
+  // below has no use for it — a reader looking for where the port is consumed should
+  // find it in the URL and nowhere else.
   options: { network?: string; dnsServer?: string },
 ): Promise<string> {
   // Absolute: a bind source is resolved by the DAEMON, which does not share this
@@ -246,20 +272,25 @@ async function curlThroughEdge(
  * If you are reaching for this to decide whether an app is up: you want
  * `edgeIdentityProbe` with `waitForIdentity`, or `privateProbe` if the route has not
  * moved yet.
+ *
+ * `port` is here for the same reason the function is (P6a Task 4): it is what lets
+ * the control assert that §12's split answers **200 on both listeners**, so that
+ * "the production route is on the right server" cannot be confused with "something
+ * answered". See `probeAuthority`.
  */
 export function edgeProbe(
   engine: EngineClient,
   hostname: string,
   healthPath: string,
   caCertPath: string,
-  options: { network?: string; dnsServer?: string } = {},
+  options: { network?: string; dnsServer?: string; port?: number } = {},
 ): () => Promise<number> {
   return async () => {
     const out = await curlThroughEdge(
       engine,
       caCertPath,
       '%{http_code}',
-      `https://${hostname}${healthPath}`,
+      `https://${probeAuthority(hostname, options.port)}${healthPath}`,
       options,
     )
     const code = Number.parseInt(out.trim().slice(-3), 10)
@@ -277,20 +308,34 @@ export function edgeProbe(
  *
  * Two LINES rather than one, because a single line would have to be split on a
  * separator that the header's value could contain.
+ *
+ * `port` IS §12'S PUBLIC LISTENER, AND IT IS ABSENT FOR EVERYTHING ELSE (P6a
+ * Decision 15). Every sandbox and staging app is on the internal listener, which is
+ * the edge's `:443` and needs no port; only a production app's probe carries one,
+ * and the driver spreads it for `environmentKind === 'production'` alone. Without it
+ * a production probe arrives at `manifest-caddy:443` — the INTERNAL server — finds no
+ * route there, and `waitForIdentity` refuses the wildcard's answer loudly: *"the edge
+ * answered 200 with no X-Manifest-Instance … that is the edge's wildcard, not a
+ * routed app"*. That loud refusal is what makes the port safe to get wrong.
+ *
+ * THE CERTIFICATE STILL VERIFIES. A port is not part of a certificate, the edge
+ * serves one wildcard per zone from the platform CA, and `--cacert` is unchanged —
+ * so this probe never needs `-k`, which would pass against the wrong certificate
+ * (the thing P3 Task 14 paid for).
  */
 export function edgeIdentityProbe(
   engine: EngineClient,
   hostname: string,
   healthPath: string,
   caCertPath: string,
-  options: { network?: string; dnsServer?: string } = {},
+  options: { network?: string; dnsServer?: string; port?: number } = {},
 ): () => Promise<IdentityProbeResult> {
   return async () => {
     const out = await curlThroughEdge(
       engine,
       caCertPath,
       `%{http_code}\n%header{${INSTANCE_HEADER.toLowerCase()}}\n`,
-      `https://${hostname}${healthPath}`,
+      `https://${probeAuthority(hostname, options.port)}${healthPath}`,
       options,
     )
     const [statusLine, identityLine] = out.split('\n')

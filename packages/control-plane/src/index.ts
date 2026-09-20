@@ -146,6 +146,11 @@ const driver = await createDockerDriver({
     return dir
   },
   dnsServer: config.dnsServer,
+  // §12's public listener, as a container reaches it. The readiness probe for a
+  // PRODUCTION instance carries it and nothing else does (P6a Decision 15); the
+  // other half of the pair is infra/compose.yaml's `127.0.0.3:443:8443`, and
+  // `make verify` holds the two equal.
+  publicEdgePort: config.edgePublicPort,
   // These two are NOT interchangeable, and nothing fails loudly if they are
   // swapped: `registryHost` is what the BUILDER calls the registry (reachable on
   // the internal build network) and `registryPublicHost` is what the DAEMON calls

@@ -127,6 +127,16 @@ export interface DockerDriverOptions {
   blueprintDirFor: (blueprintRef: string) => string
   /** dnsmasq-A's platform-network address. §12 makes the resolver per-container. */
   dnsServer: string
+  /**
+   * §12's PUBLIC listener, as a container reaches it (P6a Decision 15).
+   *
+   * Required rather than optional, so every construction site is a `tsc` error
+   * rather than a silently absent port: absent, a production deploy's readiness
+   * probe lands on the INTERNAL server, times out over `IDENTITY_TIMEOUT_MS`, and
+   * rolls its route back — a fifteen-second failure whose message is about the
+   * wildcard and says nothing about a port.
+   */
+  publicEdgePort: number
   /** What the BUILDER calls the registry. */
   registryHost: string
   /** What the DAEMON calls the registry. Different name, same content, by digest. */
@@ -525,6 +535,19 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
           options.caCertPath,
           {
             dnsServer: options.dnsServer,
+            /**
+             * §12's public listener, for a PRODUCTION instance and nothing else
+             * (P6a Decision 15). The probe runs from a container, where both of the
+             * edge's servers are at one address and only the port tells them apart —
+             * so without this a production probe reads `srv0`, finds no route, and
+             * `waitForIdentity` refuses the wildcard.
+             *
+             * A CONDITIONAL SPREAD, never `port: cond ? n : undefined`:
+             * `exactOptionalPropertyTypes` is on and the second form is a type error.
+             */
+            ...(spec.environmentKind === 'production'
+              ? { port: options.publicEdgePort }
+              : {}),
           },
         ),
         timeoutMs: IDENTITY_TIMEOUT_MS,

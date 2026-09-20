@@ -141,6 +141,11 @@ export function dockerDriverForTests(
       return dir
     },
     dnsServer: '10.89.0.53',
+    // §12's public listener inside the edge container (P6a Decision 15). The same
+    // literal as `MANIFEST_EDGE_PUBLIC_PORT`'s default, in the style this factory
+    // already uses for `dnsServer` and `registryPublicHost`; `config.test.ts` pins the
+    // default and `make verify` holds it equal to infra/compose.yaml's published pair.
+    publicEdgePort: 8443,
     registryHost: 'manifest-registry:5000',
     registryPublicHost: '127.0.0.1:7107',
     registryTokenKeyPem: readFileSync(keyPath, 'utf8'),
@@ -156,7 +161,13 @@ export function dockerDriverForTests(
      */
     routing: overrides.routing ?? {
       caddy: createCaddyClient('http://127.0.0.1:7119'),
-      servers: { internal: 'srv0', public: 'srv0' },
+      // `public: 'srv1'` SINCE P6a TASK 4, and it was `srv0` until then. It matters
+      // for a PRODUCTION route and for nothing else — `listenerFor` sends sandbox
+      // and staging to `internal` whatever this says — so every existing suite here
+      // is unaffected, and the first production deploy (Task 15) would otherwise have
+      // written its route to the internal server and timed out on a readiness probe
+      // that reports the wildcard. Mirrors `MANIFEST_CADDY_SERVER_PUBLIC`'s default.
+      servers: { internal: 'srv0', public: 'srv1' },
     },
     caCertPath: CA_CERT,
     // 90 s by default, which a test that WANTS the timeout cannot afford to wait.
@@ -353,10 +364,16 @@ export function fixtureBareRepo(
 
 const run = promisify(execFile)
 
-/** The real edge, as every Docker-tier suite reaches it. */
+/**
+ * The real edge, as every Docker-tier suite reaches it.
+ *
+ * `public: 'srv1'` since P6a Task 4 — the same reason as `dockerDriverForTests`
+ * above: it selects a server for PRODUCTION routes only, and leaving it at `srv0`
+ * would make the first production deploy write its route to the internal listener.
+ */
 const CONTRACT_ROUTING: RoutingDeps = {
   caddy: createCaddyClient('http://127.0.0.1:7119'),
-  servers: { internal: 'srv0', public: 'srv0' },
+  servers: { internal: 'srv0', public: 'srv1' },
 }
 
 /** How long the fixture app holds one request open for the drain tests. */

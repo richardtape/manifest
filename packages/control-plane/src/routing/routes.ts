@@ -13,7 +13,10 @@ import {
 
 export interface RoutingDeps {
   caddy: CaddyClient
-  /** Listener -> Caddy server name. Both are `srv0` on the laptop (§21). */
+  /**
+   * Listener -> Caddy server name. `srv0` internal and `srv1` public on this laptop
+   * since P6a (R3); both were `srv0` until then, and this comment said so.
+   */
   servers: Record<Listener, string>
 }
 

@@ -47,6 +47,29 @@ describe('configuration', () => {
     expect(config.caddyServers).toEqual({ internal: 'srv0', public: 'srv1' })
   })
 
+  /**
+   * P6a Decision 15. The split is by ADDRESS from the host — 127.0.0.2 and
+   * 127.0.0.3, so a faculty-facing URL carries no port — and by PORT from a
+   * container, where both servers sit at the edge's one address and only the port
+   * tells them apart. A production app's readiness probe runs from a container, so
+   * it is the one caller.
+   *
+   * The default is asserted here and `make verify` holds it equal to the
+   * container-side half of `infra/compose.yaml`'s `127.0.0.3:443:8443`, which is the
+   * other file that states this number. The override case is not decoration either:
+   * it is a `z.coerce.number()`, so it reads a STRING out of the environment, and
+   * without a test the coercion is a thing nobody has ever run.
+   */
+  it('defaults the public listener port to 8443 and coerces an operator override', () => {
+    expect(loadConfig({ ...base }).edgePublicPort).toBe(8443)
+    expect(
+      loadConfig({ ...base, MANIFEST_EDGE_PUBLIC_PORT: '9443' }).edgePublicPort,
+    ).toBe(9443)
+    expect(() => loadConfig({ ...base, MANIFEST_EDGE_PUBLIC_PORT: 'https' })).toThrow(
+      ConfigError,
+    )
+  })
+
   it('lets an operator split the two listeners without a code change', () => {
     const config = loadConfig({
       ...base,

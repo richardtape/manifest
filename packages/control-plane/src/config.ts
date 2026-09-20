@@ -163,6 +163,24 @@ const envSchema = z.object({
   // inside). One container, so one caddy-data volume and one internal CA.
   MANIFEST_CADDY_SERVER_INTERNAL: z.string().min(1).default('srv0'),
   MANIFEST_CADDY_SERVER_PUBLIC: z.string().min(1).default('srv1'),
+  /**
+   * The PUBLIC listener's port INSIDE the edge container (P6a Decision 15).
+   *
+   * THE HOST'S SPLIT IS BY ADDRESS; THE CONTAINER'S IS BY PORT. From the host the
+   * two servers are `127.0.0.2:443` and `127.0.0.3:443`, so a faculty-facing URL
+   * never carries a port — infra/compose.yaml refuses one in its own words. From a
+   * container both servers are at the edge's ONE address, because
+   * `manifest-dns-containers` answers `10.89.0.10` for the whole zone, so the only
+   * way to reach a specific server from inside is its port: `:443` is srv0 and
+   * `:8443` is srv1.
+   *
+   * The readiness probe runs from a container (S1: a host process cannot reach a
+   * container address on Docker Desktop), so a PRODUCTION app's probe is the one
+   * caller that needs this. `infra/compose.yaml`'s `127.0.0.3:443:8443` is the other
+   * half of the pair, and `make verify` holds the two equal rather than trusting two
+   * files to agree.
+   */
+  MANIFEST_EDGE_PUBLIC_PORT: z.coerce.number().int().positive().default(8443),
   // §12 makes the resolver per-container: dnsmasq-A's address on the platform
   // network. P1 pins it at 10.89.0.53 (infra/lib/common.sh, DNS_C_IP).
   MANIFEST_DNS_SERVER: z.string().min(1).default('10.89.0.53'),
@@ -284,8 +302,13 @@ export interface Config {
   registryUrl: string
   registryInternalUrl: string
   caddyAdminUrl: string
-  /** Listener -> Caddy server name. Both `srv0` locally (§21, divergence 2). */
+  /**
+   * Listener -> Caddy server name. `srv0` internal and `srv1` public since P6a (R3);
+   * both were `srv0` until then, which is what §21's divergence 2 recorded.
+   */
   caddyServers: { internal: string; public: string }
+  /** The public listener's port inside the edge container. Probes only; see the schema. */
+  edgePublicPort: number
   dnsServer: string
   /** The platform CA, absolute. Mounted into the readiness probe container. */
   caCertPath: string
@@ -449,6 +472,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       internal: raw.MANIFEST_CADDY_SERVER_INTERNAL,
       public: raw.MANIFEST_CADDY_SERVER_PUBLIC,
     },
+    edgePublicPort: raw.MANIFEST_EDGE_PUBLIC_PORT,
     dnsServer: raw.MANIFEST_DNS_SERVER,
     caCertPath: fromRepoRoot(raw.MANIFEST_CA_CERT),
     secretsMasterKeyPath: fromRepoRoot(raw.MANIFEST_SECRETS_MASTER_KEY),
