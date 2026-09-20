@@ -21,7 +21,7 @@ export const LaunchReadinessItem = representation(
     state: z
       .enum(['met', 'unmet', 'not_built'])
       .describe(
-        '`not_built`: Manifest does not track this yet; `builtBy` names the plan.',
+        '`unmet`: this item is tracked and is not satisfied — the reason says what to do. `not_built`: Manifest does not track it yet, and `builtBy` names the plan that builds it.',
       ),
     why: z.string(),
     builtBy: z.string().optional(),
@@ -38,7 +38,7 @@ export const LaunchReadiness = representation(
       items: z.array(LaunchReadinessItem),
     })
     .describe(
-      '§13’s first-launch checklist, computed from what exists. Read-only in Phase 1; Phase 2 gates on it.',
+      '§13’s first-launch checklist, computed from what exists. A production deploy is refused with this exact value until every blocking item is met.',
     ),
 )
 

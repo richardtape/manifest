@@ -4,6 +4,7 @@ import { builds, environments, projects, releases, type Db } from '../db/index.j
 import { servingInstanceOf, type StoredAudience } from '../projects/index.js'
 import type { ResolvedConfigSet } from '../releases/index.js'
 import type { ScanSummary } from '../runtime/index.js'
+import { getIamRegistration, getPrivacyAssessment } from './records.js'
 
 export type LaunchItemId =
   | 'domain'
@@ -37,10 +38,15 @@ export interface LaunchReadinessView {
 
 /**
  * §13's first-launch checklist, COMPUTED FROM WHAT EXISTS and never stored (P5a Decision
- * 35). §17 splits it: 1c ships this read-only view; Phase 2 ships the gate that blocks on
- * it. An item whose entity does not exist yet says so, and names the plan that builds it,
- * rather than inventing a status — the constant this replaces stamped four items
+ * 35). An item whose entity does not exist yet says so, and names the plan that builds
+ * it, rather than inventing a status — the constant this replaces stamped four items
  * "deliveredBy: P4" that P4 did not deliver.
+ *
+ * **IT IS NO LONGER READ-ONLY.** 1c shipped this view alone and §17 put the gate in Phase
+ * 2; P6a Task 7 built it, and `assertLaunchable` in `gate.ts` throws on this exact value.
+ * There is ONE computation and two callers, so what a person reads and what refuses them
+ * cannot disagree (Decision 2) — which means **an item added here changes what production
+ * deploys are possible**, not just what a screen shows.
  */
 export async function computeLaunchReadiness(
   db: Db,
@@ -78,33 +84,8 @@ export async function computeLaunchReadiness(
       state: 'met',
       why: 'Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.',
     },
-    usesCwl
-      ? {
-          id: 'iam-registration',
-          title: 'Registered with UBC IAM',
-          owner: 'UBC IAM, from a package Manifest generates',
-          blocking: true,
-          state: 'not_built',
-          builtBy: 'P8',
-          why: 'Every production app that signs people in with CWL needs its own IAM registration (§9, C4), with a multi-week lead time. Manifest does not track it yet.',
-        }
-      : {
-          id: 'iam-registration',
-          title: 'Registered with UBC IAM',
-          owner: 'UBC IAM',
-          blocking: true,
-          state: 'met',
-          why: 'This app does not sign people in with CWL, so it needs no IAM registration.',
-        },
-    {
-      id: 'privacy-assessment',
-      title: 'Privacy Impact Assessment approved',
-      owner: 'UBC Privacy Office, from a draft Manifest generates',
-      blocking: true,
-      state: 'not_built',
-      builtBy: 'P8',
-      why: 'A PIA is required before a production launch (§9), with a multi-week lead time. Manifest does not track it yet.',
-    },
+    await iamItem(db, projectId, usesCwl),
+    await piaItem(db, projectId),
     {
       id: 'rehearsal',
       title: 'Pre-production rehearsal passed',
@@ -147,6 +128,99 @@ export async function computeLaunchReadiness(
     ready: items.filter((i) => i.blocking).every((i) => i.state === 'met'),
     candidateReleaseId: candidate?.release.id ?? null,
     items,
+  }
+}
+
+/**
+ * §13's first blocking item, and the one R1 bought (P6a Task 7). Until this task it read
+ * `not_built` / `builtBy: 'P8'` — *"Manifest does not track it yet"* — which stopped being
+ * true the moment migration 0019 landed. Four states now, and every one of them is a fact
+ * about a row an administrator recorded from what UBC IAM said:
+ *
+ *  - `met` when the app signs nobody in with CWL — there is nothing to register.
+ *  - `met` when a recorded registration is `active`.
+ *  - `unmet` when one exists and is not yet active, naming the state and the ticket, so
+ *    the owner can chase it rather than wonder.
+ *  - `unmet` when none exists at all — **NOT `not_built`**, which said "Manifest does not
+ *    track this yet" and is now false.
+ *
+ * **`builtBy` is gone from this item**, and a reader who finds it again should treat that
+ * as a regression: it names the plan that will build a thing, and this thing is built.
+ */
+async function iamItem(db: Db, projectId: string, usesCwl: boolean): Promise<LaunchItem> {
+  const base = {
+    id: 'iam-registration' as const,
+    title: 'Registered with UBC IAM',
+    blocking: true,
+  }
+  if (!usesCwl)
+    return {
+      ...base,
+      owner: 'UBC IAM',
+      state: 'met',
+      why: 'This app does not sign people in with CWL, so it needs no IAM registration.',
+    }
+  const row = await getIamRegistration(db, projectId)
+  const owner = 'UBC IAM, recorded by a platform administrator (§9)'
+  const ticket = (ref: string | null) => (ref === null ? '' : ` (ticket ${ref})`)
+  if (row === undefined)
+    return {
+      ...base,
+      owner,
+      state: 'unmet',
+      why: 'Every production app that signs people in with CWL needs its own IAM registration (§9, C4), with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what UBC IAM said, with the ticket reference.',
+    }
+  if (row.state === 'active')
+    return {
+      ...base,
+      owner,
+      state: 'met',
+      why: `Registered as ${row.entityId}, active${ticket(row.externalTicketRef)}, releasing ${row.registeredAttributes.length} attribute(s).`,
+    }
+  return {
+    ...base,
+    owner,
+    state: 'unmet',
+    why: `The registration is '${row.state}'${ticket(row.externalTicketRef)} and must be 'active' before a first production launch (§9).`,
+  }
+}
+
+/**
+ * §13's second blocking item, the same shape over §9's three PIA states — and its `met`
+ * case NAMES THE REVIEWER AND THE DATE, because this checklist is read by a faculty
+ * member who wants to know *who* said yes and *when*, not that a boolean flipped.
+ *
+ * `approvedAt` is set when the record reaches `approved` and cleared when it leaves
+ * (sitting 4's decision 4), so a date here is always a date this state was reached on.
+ */
+async function piaItem(db: Db, projectId: string): Promise<LaunchItem> {
+  const base = {
+    id: 'privacy-assessment' as const,
+    title: 'Privacy Impact Assessment approved',
+    owner: 'UBC Privacy Office, recorded by a platform administrator (§9)',
+    blocking: true,
+  }
+  const row = await getPrivacyAssessment(db, projectId)
+  const ticket = (ref: string | null) => (ref === null ? '' : ` (ticket ${ref})`)
+  if (row === undefined)
+    return {
+      ...base,
+      state: 'unmet',
+      why: 'A Privacy Impact Assessment is required before a production launch (§9), with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what the UBC Privacy Office said, with the ticket reference.',
+    }
+  if (row.state === 'approved')
+    return {
+      ...base,
+      state: 'met',
+      why:
+        `Approved by ${row.reviewer ?? 'the UBC Privacy Office'}` +
+        `${row.approvedAt === null ? '' : ` on ${row.approvedAt.toISOString().slice(0, 10)}`}` +
+        `${ticket(row.externalTicketRef)}.`,
+    }
+  return {
+    ...base,
+    state: 'unmet',
+    why: `The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before a first production launch (§9).`,
   }
 }
 

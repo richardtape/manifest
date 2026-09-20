@@ -5606,7 +5606,7 @@
         "additionalProperties": false
       },
       "LaunchReadiness": {
-        "description": "§13’s first-launch checklist, computed from what exists. Read-only in Phase 1; Phase 2 gates on it.",
+        "description": "§13’s first-launch checklist, computed from what exists. A production deploy is refused with this exact value until every blocking item is met.",
         "type": "object",
         "properties": {
           "projectId": {
@@ -5669,7 +5669,7 @@
             "type": "boolean"
           },
           "state": {
-            "description": "`not_built`: Manifest does not track this yet; `builtBy` names the plan.",
+            "description": "`unmet`: this item is tracked and is not satisfied — the reason says what to do. `not_built`: Manifest does not track it yet, and `builtBy` names the plan that builds it.",
             "type": "string",
             "enum": [
               "met",

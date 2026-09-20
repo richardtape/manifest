@@ -886,11 +886,23 @@ const ROUTES: RouteCase[] = [
    * capability had no case here at all** — and `token-privileged` would have had a single
    * capability (`members:manage`) behind all of its `TOKEN_ACTION_PENDING` expectations.
    *
-   * The `409` is §13's gate, and it is the right `pass`-equivalent for a person: every
-   * launch-readiness item but scans answers `not_built` in Phase 1, so `ready` is `false`
-   * and the gate refuses — which means the owner's and admin's cases prove the
-   * authorization passed and the GATE stopped them, not that they were refused. The day
-   * readiness can be met this row goes red, which is a contract suite doing its job.
+   * The `409` is §13's gate, and it is the right `pass`-equivalent for a person: the
+   * owner's and admin's cases prove the authorization passed and the GATE stopped them,
+   * not that they were refused. The day readiness can be met this row goes red, which is
+   * a contract suite doing its job.
+   *
+   * **THIS ROW'S MEANING CHANGED IN P6a TASK 7 AND ITS VALUES DID NOT, WHICH IS EXACTLY
+   * HOW A SUITE STOPS TESTING WHAT IT CLAIMS.** Until that task the route refused every
+   * production deploy UNCONDITIONALLY — the `409` was a statement that the gate was shut,
+   * full stop. Now `assertLaunchable` evaluates the checklist, and this `409` says
+   * something narrower: **the project in this fixture has no IAM registration and no PIA
+   * recorded, and `rehearsal` and `admin-approval` are not built**, so `ready` is `false`
+   * and the gate refuses for a reason. Both readings produce the same two `409`s.
+   *
+   * **SO THIS ROW IS NOT COVERAGE FOR TASK 7** (`[M8]`, measured): 370 tests stayed green
+   * on both sides of the change, INCLUDING a version that left `assertLaunchable` throwing
+   * unconditionally. The gate's own behaviour is asserted in `launch/readiness.test.ts`
+   * and in `delivery.test.ts`, where the refusal's `launchReadiness` is the assertion.
    *
    * A collaborator holds `release:deploy` and NOT `release:promote` (§13, Task 2), so
    * theirs is the `403` that separates the two capabilities — the only assertion anywhere

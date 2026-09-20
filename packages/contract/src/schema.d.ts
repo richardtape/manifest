@@ -1613,7 +1613,7 @@ export interface components {
                 content: string;
             }[];
         };
-        /** @description §13’s first-launch checklist, computed from what exists. Read-only in Phase 1; Phase 2 gates on it. */
+        /** @description §13’s first-launch checklist, computed from what exists. A production deploy is refused with this exact value until every blocking item is met. */
         LaunchReadiness: {
             /** Format: uuid */
             projectId: string;
@@ -1628,7 +1628,7 @@ export interface components {
             owner: string;
             blocking: boolean;
             /**
-             * @description `not_built`: Manifest does not track this yet; `builtBy` names the plan.
+             * @description `unmet`: this item is tracked and is not satisfied — the reason says what to do. `not_built`: Manifest does not track it yet, and `builtBy` names the plan that builds it.
              * @enum {string}
              */
             state: "met" | "unmet" | "not_built";

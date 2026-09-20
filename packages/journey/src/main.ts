@@ -580,9 +580,22 @@ async function step7RequestProduction(): Promise<void> {
   // Which way `scans` resolved is the one readiness item P5a computes, and the
   // distinction control (j) turns red — so the record says it on a green run too.
   console.log(`  (scans: ${item('scans')?.state} — ${item('scans')?.why})`)
+  // P6a Task 7. The two external records are TRACKED now — migration 0019 gave them
+  // tables and an administrator records them over the API — so they are `unmet` on a
+  // project nobody has recorded them for, and no longer `not_built` with a plan's name on
+  // them. This check read `iam-registration === 'not_built'` until that task, and it is
+  // the one assertion in the whole journey that could see the difference.
+  checks.ok(
+    'the two external records are tracked, and unmet until an administrator records them',
+    item('iam-registration')?.state === 'unmet' &&
+      item('privacy-assessment')?.state === 'unmet' &&
+      item('iam-registration')?.builtBy === undefined,
+    `iam: ${item('iam-registration')?.state}, pia: ${item('privacy-assessment')?.state}`,
+  )
   checks.ok(
     'what Manifest does not track yet says so, and who builds it',
-    item('iam-registration')?.state === 'not_built' &&
+    item('rehearsal')?.state === 'not_built' &&
+      item('admin-approval')?.state === 'not_built' &&
       item('admin-approval')?.builtBy === 'P6',
   )
   checks.ok(

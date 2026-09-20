@@ -30,6 +30,7 @@ export type ErrorFamily =
   | 'SlugRefusedError'
   | 'LaunchTransitionError'
   | 'LaunchRecordError'
+  | 'ProductionGateError'
 
 interface Entry {
   status: number
@@ -111,7 +112,13 @@ export const ERROR_CODES = {
   ),
   RELEASE_PRODUCTION_GATE_UNAVAILABLE: {
     status: 409,
-    families: ['api', 'ReleaseError'],
+    // ONE family since P6a Task 7, and the change is the proof the deletion was complete:
+    // it read `['api', 'ReleaseError']` while TWO gates threw it — the route's class in
+    // `api/errors.ts` and `deployRelease`'s own `ReleaseError`, the second unreachable by
+    // any client. The class now lives in `launch/` beside `assertLaunchable`, which is
+    // the only thing that throws it, and the registry holds itself to the source in both
+    // directions — so a stale family here is a red gate.
+    families: ['ProductionGateError'],
     summary:
       'A first production launch is a checklist (§13, D19); the body carries LaunchReadiness.',
   },

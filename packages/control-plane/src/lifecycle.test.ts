@@ -121,17 +121,33 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
       headers: mutationHeaders(deps),
     })
     expect(blocked.statusCode).toBe(409)
+    expect(blocked.json().error.code).toBe('RELEASE_PRODUCTION_GATE_UNAVAILABLE')
     const readiness = blocked.json().error.launchReadiness
     expect(readiness.ready).toBe(false)
-    // Every item is either `not_built` — Manifest does not track it yet, and says which
-    // plan does — or computed from what exists. `scans` is the one P5a computes, and this
-    // release is deployed to staging, so it is `met` (P5a Decision 35).
-    const notComputed = readiness.items.filter(
-      (i: { id: string }) => i.id !== 'scans',
-    ) as { state: string }[]
-    expect(notComputed.every((i) => i.state === 'not_built' || i.state === 'met')).toBe(
-      true,
+    // WHICH ITEMS BLOCK, BY NAME (P6a Task 7). This read `not_built || met` for every
+    // item but `scans` until the gate started reading real rows: the two external records
+    // are now `unmet` on a project nobody has recorded them for, and `rehearsal` and
+    // `admin-approval` are the two still genuinely unbuilt. Naming them is what makes this
+    // assertion go red when a blocking item is added, removed or quietly satisfied — the
+    // `every(...)` it replaces was true of almost any checklist.
+    const byId = Object.fromEntries(
+      (readiness.items as { id: string; state: string }[]).map((i) => [i.id, i.state]),
     )
+    expect(byId).toEqual({
+      domain: 'met',
+      // **`met`, and the reason is worth reading**: this fixture's starter signs nobody
+      // in with CWL, so §9 says it needs no IAM registration at all — the `usesCwl`
+      // branch, not a recorded row. A project that DOES use CWL reads `unmet` here until
+      // an administrator records the registration (`launch/readiness.test.ts`).
+      'iam-registration': 'met',
+      // The PIA has no such exemption: every production app needs one.
+      'privacy-assessment': 'unmet',
+      rehearsal: 'not_built',
+      // `scans` is computed from the candidate release, and this one is deployed to
+      // staging with a clean scan (P5a Decision 35).
+      scans: 'met',
+      'admin-approval': 'not_built',
+    })
     expect(readiness.items.find((i: { id: string }) => i.id === 'scans').state).toBe(
       'met',
     )

@@ -17,6 +17,10 @@ import { LaunchReadiness } from './representations/launch.js'
 import {
   LaunchRecordError,
   LaunchTransitionError,
+  // §13's gate moved to `launch/` in P6a Task 7, with `assertLaunchable` that throws it.
+  // This file maps it by `instanceof`, exactly as it does `ReleaseError` and every other
+  // domain module's wire class.
+  ProductionGateError,
   type LaunchReadinessView,
 } from '../launch/index.js'
 import {
@@ -91,22 +95,6 @@ export class LastOwnerError extends Error {
   constructor() {
     super('a project must always have at least one owner (§13)')
     this.name = 'LastOwnerError'
-  }
-}
-
-/**
- * §13: a first production launch is a checklist, not a button. A 409 that carries the
- * checklist — not a refusal a client has to go and ask about (P5a Task 14).
- *
- * The checklist is `LaunchReadinessView`, not `unknown`, from Task 15: it is computed by
- * `launch/` from what exists, and the same value `GET /v1/projects/{id}/launch-readiness`
- * answers.
- */
-export class ProductionGateError extends Error {
-  readonly code = 'RELEASE_PRODUCTION_GATE_UNAVAILABLE'
-  constructor(readonly launchReadiness: LaunchReadinessView) {
-    super('first production launch is a checklist, not a button (§13, D19)')
-    this.name = 'ProductionGateError'
   }
 }
 

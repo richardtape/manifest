@@ -1037,7 +1037,21 @@ describe('releases (§13)', () => {
     })
   })
 
-  it('refuses production, naming the LaunchReadiness items that do not exist yet', async () => {
+  /**
+   * **THIS TEST ASSERTED THE SECOND GATE, AND P6a TASK 7 DELETED IT** (Decision 3). It
+   * read *"refuses production, naming the LaunchReadiness items that do not exist yet"*
+   * and expected `deployRelease` itself to reject with
+   * `RELEASE_PRODUCTION_GATE_UNAVAILABLE` — a refusal thrown before the build was read,
+   * behind the route's own gate, carrying no checklist and reachable by no client.
+   *
+   * There is ONE gate now, `launch/gate.ts`, and it is the deploy route's
+   * (`api/delivery.test.ts` asserts it with the checklist the refusal carries). So what
+   * belongs here is the OPPOSITE claim, and it is the one Decision 3 bought:
+   * **`deployRelease` treats production like any other environment**, which is what makes
+   * Task 15's first production deploy possible at all. Nothing in the repository walked
+   * this path before — it was unreachable — so this is also its first exercise.
+   */
+  it('deploys to production like any other environment — the gate is the route’s, not this function’s', async () => {
     await withRollback(async (db) => {
       const { user, project, appSpec, byKind } = await fixture(db)
       const driver = createFakeDriver()
@@ -1059,12 +1073,21 @@ describe('releases (§13)', () => {
         createdBy: user.id,
         resolvedConfig: RESOLVED,
       })
-      await expect(
-        deployRelease(db, driver, config, deployDeps, {
-          releaseId: release.id,
-          environmentId: byKind.production!.id,
-        }),
-      ).rejects.toMatchObject({ code: 'RELEASE_PRODUCTION_GATE_UNAVAILABLE' })
+      const instance = await deployRelease(db, driver, config, deployDeps, {
+        releaseId: release.id,
+        environmentId: byKind.production!.id,
+      })
+      // The SHAPE of the answer, not that an answer arrived: the instance is this
+      // release's, in the PRODUCTION environment, and healthy.
+      expect({
+        environmentId: instance.environmentId,
+        releaseId: instance.releaseId,
+        state: instance.state,
+      }).toEqual({
+        environmentId: byKind.production!.id,
+        releaseId: release.id,
+        state: 'healthy',
+      })
     })
   })
 

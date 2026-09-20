@@ -208,17 +208,14 @@ export async function deployRelease(
     )
   }
 
-  // Decisions item 5. The LaunchReadiness entities (§13) land in P4/P6; gating a
-  // production launch on a checklist that does not exist would be a control on paper.
-  if (environment.kind === 'production') {
-    throw new ReleaseError(
-      'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
-      'production deployment requires the §13 LaunchReadiness checklist — IamRegistration ' +
-        'active, PrivacyAssessment approved, rehearsal passed, scans clean, admin approval. ' +
-        'None of those entities exists yet: they are P6’s, and this gate stays closed ' +
-        'until they do.',
-    )
-  }
+  // REMOVED in P6a Task 7 (Decision 3). `deployRelease` refused every production deploy
+  // here, before it read the build, with a `ReleaseError` carrying no checklist — a SECOND
+  // gate behind the route's, unreachable by any client and openable by nobody. §13's gate
+  // is `launch/gate.ts` and there is one of it. The error CODE stays in `error-codes.ts`
+  // with `ProductionGateError`'s family instead of two, because that class still uses it.
+  //
+  // This is what makes `deployRelease`'s production path reachable for the first time —
+  // Task 15 is the first thing to walk it.
 
   const [build] = await db.select().from(builds).where(eq(builds.id, release.buildId))
   const digest = build?.imageDigest

@@ -4,13 +4,16 @@ import {
   appSpecs,
   builds,
   environments,
+  iamRegistrations,
   instances,
+  privacyAssessments,
   projects,
   releases,
   routes,
   type Db,
 } from '../db/index.js'
 import { withProject } from '../db/testing.js'
+import { assertLaunchable, ProductionGateError } from './gate.js'
 import { computeLaunchReadiness } from './readiness.js'
 
 /**
@@ -99,8 +102,45 @@ async function serving(
   return release!.id
 }
 
-describe('LaunchReadiness, read-only (§13, P5a Task 15)', () => {
-  it('is never ready in Phase 1, and says which plan builds each item that does not exist', async () => {
+/**
+ * The rows written DIRECTLY, not through `recordIamRegistration`: this file is about what
+ * the checklist READS, and `records.test.ts` is about how a row gets there. Going through
+ * the write path would make a readiness failure ambiguous between the two.
+ */
+async function recordIam(
+  tx: Db,
+  projectId: string,
+  ownerId: string,
+  state: 'draft' | 'submitted' | 'active' | 'change_requested' | 'expired',
+  externalTicketRef: string | null,
+): Promise<void> {
+  await tx.insert(iamRegistrations).values({
+    projectId,
+    entityId: 'https://chem-labs.manifest.internal/sp',
+    acsUrl: 'https://chem-labs.manifest.internal/auth/saml/callback',
+    sloUrl: 'https://chem-labs.manifest.internal/auth/logout',
+    registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+    state,
+    externalTicketRef,
+    recordedBy: ownerId,
+  })
+}
+
+async function recordPia(
+  tx: Db,
+  projectId: string,
+  ownerId: string,
+  state: 'draft' | 'submitted' | 'approved',
+  reviewer: string | null,
+  approvedAt: Date | null,
+): Promise<void> {
+  await tx
+    .insert(privacyAssessments)
+    .values({ projectId, state, reviewer, approvedAt, recordedBy: ownerId })
+}
+
+describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task 7)', () => {
+  it('is not ready with nothing recorded, and separates "nobody has recorded it" from "Manifest cannot see it"', async () => {
     await withProject(async (tx, { projectId }) => {
       const view = await computeLaunchReadiness(tx, projectId)
       expect(view.ready).toBe(false)
@@ -113,17 +153,108 @@ describe('LaunchReadiness, read-only (§13, P5a Task 15)', () => {
         'admin-approval',
       ])
       expect(view.items.find((i) => i.id === 'domain')).toMatchObject({ state: 'met' })
-      for (const id of [
-        'iam-registration',
-        'privacy-assessment',
-        'rehearsal',
-        'admin-approval',
-      ]) {
+      // THE TWO EXTERNAL RECORDS ARE TRACKED SINCE MIGRATION 0019, so they are `unmet`
+      // with NO `builtBy`: a row nobody has recorded yet, not a thing Manifest does not
+      // model. `builtBy` names the plan that will build a thing, and these are built — a
+      // `builtBy` back on either of them is a regression (P6a Task 7).
+      for (const id of ['iam-registration', 'privacy-assessment']) {
+        const item = view.items.find((i) => i.id === id)!
+        expect(item.state, id).toBe('unmet')
+        expect(item.builtBy, id).toBeUndefined()
+        expect(item.why, id).toContain('administrator')
+      }
+      // And these two are still genuinely unbuilt, which is why the gate above cannot
+      // open yet (Tasks 10 and 14).
+      for (const id of ['rehearsal', 'admin-approval']) {
         const item = view.items.find((i) => i.id === id)!
         expect(item.state, id).toBe('not_built')
         expect(item.builtBy, id).toMatch(/^P\d$/)
       }
       expect(view.items.every((i) => i.why.length > 20 && i.owner.length > 0)).toBe(true)
+    })
+  })
+
+  it('iam-registration: unmet while the registration is submitted, naming the state and the ticket', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await recordIam(tx, projectId, ownerId, 'submitted', 'IAM-4471')
+      const iam = (await computeLaunchReadiness(tx, projectId)).items.find(
+        (i) => i.id === 'iam-registration',
+      )!
+      expect(iam.state).toBe('unmet')
+      expect(iam.why).toContain("'submitted'")
+      expect(iam.why).toContain('IAM-4471')
+      expect(iam.why).toContain("'active'")
+    })
+  })
+
+  it('iam-registration: met when the registration is active, naming what UBC registered', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-4471')
+      const iam = (await computeLaunchReadiness(tx, projectId)).items.find(
+        (i) => i.id === 'iam-registration',
+      )!
+      expect(iam.state).toBe('met')
+      expect(iam.why).toContain('https://chem-labs.manifest.internal/sp')
+      expect(iam.why).toContain('2 attribute(s)')
+      expect(iam.why).toContain('IAM-4471')
+      expect(iam.builtBy).toBeUndefined()
+    })
+  })
+
+  it('privacy-assessment: unmet while the assessment is submitted, naming the state', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await recordPia(tx, projectId, ownerId, 'submitted', null, null)
+      const pia = (await computeLaunchReadiness(tx, projectId)).items.find(
+        (i) => i.id === 'privacy-assessment',
+      )!
+      expect(pia.state).toBe('unmet')
+      expect(pia.why).toContain("'submitted'")
+      expect(pia.why).toContain("'approved'")
+    })
+  })
+
+  /**
+   * §13's checklist is read by a faculty member, so the `met` case answers *who said yes
+   * and when* rather than flipping a boolean. A message that said only "approved" would
+   * be true and useless.
+   */
+  it('privacy-assessment: met when approved, naming the reviewer and the date', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await recordPia(
+        tx,
+        projectId,
+        ownerId,
+        'approved',
+        'UBC Privacy Office (K. Lam)',
+        new Date('2026-09-14T17:04:00.000Z'),
+      )
+      const pia = (await computeLaunchReadiness(tx, projectId)).items.find(
+        (i) => i.id === 'privacy-assessment',
+      )!
+      expect(pia.state).toBe('met')
+      expect(pia.why).toContain('K. Lam')
+      expect(pia.why).toContain('2026-09-14')
+      expect(pia.builtBy).toBeUndefined()
+    })
+  })
+
+  /**
+   * **WHAT R1 BOUGHT, MEASURED.** Both external records met and a clean scan on the
+   * release serving staging, and the checklist is still not ready — because `rehearsal`
+   * and `admin-approval` are genuinely not built. The blocking set SHRANK to exactly
+   * those two, which is the difference between a gate that reads rows and one that
+   * refuses unconditionally.
+   */
+  it('with both records met and a clean scan, exactly rehearsal and admin-approval remain', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(tx, projectId, ownerId, scan(1, false))
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-4471')
+      await recordPia(tx, projectId, ownerId, 'approved', 'K. Lam', new Date())
+      const view = await computeLaunchReadiness(tx, projectId)
+      expect(view.ready).toBe(false)
+      expect(
+        view.items.filter((i) => i.blocking && i.state !== 'met').map((i) => i.id),
+      ).toEqual(['rehearsal', 'admin-approval'])
     })
   })
 
@@ -234,6 +365,62 @@ describe('LaunchReadiness, read-only (§13, P5a Task 15)', () => {
       )!
       expect(iam.state).toBe('met')
       expect(iam.why).toContain('CWL')
+    })
+  })
+})
+
+/**
+ * **THE GATE LIVES IN THE SAME FILE AS THE VIEW ON PURPOSE** (P6a Decision 2). There is
+ * ONE computation — `assertLaunchable` calls `computeLaunchReadiness` and throws on its
+ * answer — so the thing a person reads and the thing that blocks them cannot disagree.
+ * A future edit that gives the gate its own predicate would have to move these tests
+ * away from the view's, which is the point at which somebody should stop.
+ */
+describe('the gate that BLOCKS (§13, D9.1, P6a Task 7)', () => {
+  it('refuses with the SAME view the read answers, as one object', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(tx, projectId, ownerId, scan(1, false))
+      const view = await computeLaunchReadiness(tx, projectId)
+      expect(view.ready).toBe(false)
+      const thrown = await assertLaunchable(tx, projectId).then(
+        () => undefined,
+        (e: unknown) => e,
+      )
+      expect(thrown).toBeInstanceOf(ProductionGateError)
+      const gate = thrown as ProductionGateError
+      // The CODE, never the status alone — this is the only thing the wire carries that
+      // says WHICH 409 this is.
+      expect(gate.code).toBe('RELEASE_PRODUCTION_GATE_UNAVAILABLE')
+      expect(gate.launchReadiness).toEqual(view)
+    })
+  })
+
+  /**
+   * The gate's POSITIVE direction — that it returns rather than throwing — cannot be
+   * exercised until `rehearsal` and `admin-approval` exist (Tasks 14 and 10), because no
+   * project this platform can build has all six blocking items met. It is asserted there,
+   * and `delivery.test.ts` carries the skipped end-to-end half naming the same two tasks.
+   *
+   * What CAN be asserted here is the other half of the contract: the gate reads `ready`
+   * and nothing else about the view. With five of six met it must still refuse, and the
+   * refusal must carry the view that says so — so a reader can see the one remaining item.
+   */
+  it('refuses on `ready` alone, and the refusal carries the items that say why', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(tx, projectId, ownerId, scan(1, false))
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-4471')
+      await recordPia(tx, projectId, ownerId, 'approved', 'K. Lam', new Date())
+      const gate = (await assertLaunchable(tx, projectId).then(
+        () => undefined,
+        (e: unknown) => e,
+      )) as ProductionGateError
+      expect(gate).toBeInstanceOf(ProductionGateError)
+      expect(gate.launchReadiness.ready).toBe(false)
+      expect(
+        gate.launchReadiness.items
+          .filter((i) => i.blocking && i.state !== 'met')
+          .map((i) => i.id),
+      ).toEqual(['rehearsal', 'admin-approval'])
     })
   })
 })

@@ -569,6 +569,16 @@ describe('the delivery routes', () => {
       payload: { releaseId: release.id },
     })
     expect(refused.statusCode, refused.body).toBe(409)
+    expect(refused.json().error.code).toBe('RELEASE_PRODUCTION_GATE_UNAVAILABLE')
+    // **THE PRESENCE OF THE CHECKLIST IS THE ASSERTION, not the status and not the code**
+    // (P6a sitting 1's `[M2]`). Measured before Task 7: with the route's gate commented
+    // out, a production deploy STILL answered `409 RELEASE_PRODUCTION_GATE_UNAVAILABLE` —
+    // from a SECOND gate inside `deployRelease` — and the only difference on the wire was
+    // that its envelope carried no `launchReadiness`. So a test asserting status and code
+    // is green against a change that removed only one of the two.
+    expect(
+      Object.prototype.hasOwnProperty.call(refused.json().error, 'launchReadiness'),
+    ).toBe(true)
     const read = await app.inject({
       method: 'GET',
       url: `/v1/projects/${project.id}/launch-readiness`,
@@ -588,6 +598,33 @@ describe('the delivery routes', () => {
     // never delivered (brief §2.2). Nothing computed says it.
     expect(JSON.stringify(read.json())).not.toContain('deliveredBy')
     await app.close()
+  })
+
+  /**
+   * **THE POSITIVE CONTROL FOR THE GATE, AND IT CANNOT RUN YET — which is this task's
+   * hardest honest fact** (P6a Task 7, Step 5). A refusal test beside no success test is
+   * a test of a route that refuses everything (P5c sitting 9's F16), and the route's
+   * success here needs EVERY blocking item met: an `active` IAM registration, an
+   * `approved` PIA, a clean scan on the candidate — **and `rehearsal` and
+   * `admin-approval`, which are `not_built` until Tasks 14 and 10.**
+   *
+   * The alternative was to force those two to `met` in a fixture, which would be a test
+   * of a checklist the platform will never produce. A skipped test naming the task that
+   * un-skips it is a promise a reader can check; a forced fixture is a claim nobody can.
+   *
+   * **Task 14's step 5 un-skips this**, and until then `assertLaunchable`'s returning
+   * branch is asserted by nothing — recorded as a control that cannot fail rather than
+   * discovered later.
+   *
+   * What DOES hold the route honest in the meantime is the staging deploy below: the same
+   * registered route answers `200` for a collaborator deploying to staging, so this is not
+   * a route that refuses everything.
+   */
+  it.skip('deploys to production when every blocking item is met — pending Tasks 10 and 14: admin-approval and rehearsal are not built', async () => {
+    // Written when Task 14 lands: record an active IAM registration and an approved PIA,
+    // complete the rehearsal, approve the digest, then deploy to production and expect
+    // 200 with an instance — and assert `assertLaunchable` RETURNED the view it deployed
+    // on, which is what Task 15 records.
   })
 
   it('a collaborator may deploy to staging and may not promote to production', async () => {

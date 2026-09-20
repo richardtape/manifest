@@ -4,7 +4,11 @@ import { afterAll, describe, expect, it, vi } from 'vitest'
 import { AI_CODES, AiError, CATALOGUE_CODES, CatalogueError } from '../ai/index.js'
 import { ConfigError } from '../config.js'
 import { SamlError } from '../identity/index.js'
-import { LaunchRecordError, LaunchTransitionError } from '../launch/index.js'
+import {
+  LaunchRecordError,
+  LaunchTransitionError,
+  ProductionGateError,
+} from '../launch/index.js'
 import {
   AuthorizationError,
   SLUG_CODES,
@@ -46,6 +50,7 @@ const WIRE_CLASSES = [
   'SamlError',
   'LaunchTransitionError',
   'LaunchRecordError',
+  'ProductionGateError',
 ] as const
 
 /**
@@ -112,6 +117,16 @@ describe('the error-code registry (§20, D23.7)', () => {
         new SlugRefusedError({ code: c as SlugReason['code'], message: 'm', hint: 'h' }),
       LaunchTransitionError: (c) => new LaunchTransitionError(c, 'm'),
       LaunchRecordError: (c) => new LaunchRecordError(c, 'm', 'h'),
+      // The checklist has to PARSE — `mapError` sends the refusal without it and reports
+      // on stderr when it does not, so a shape this schema refuses would make the test
+      // noisy rather than red. An empty item list is a valid `LaunchReadiness`.
+      ProductionGateError: (c) =>
+        new ProductionGateError(c, {
+          projectId: '00000000-0000-0000-0000-000000000000',
+          ready: false,
+          candidateReleaseId: null,
+          items: [],
+        }),
     }
     const wrong: string[] = []
     for (const [code, entry] of Object.entries(ERROR_CODES)) {

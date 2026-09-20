@@ -345,9 +345,18 @@ export const INCIDENTS: Schemas['IncidentList'] = {
 }
 
 /**
- * §13's checklist, COMPUTED and never stored. `ready` is `false` throughout Phase 1,
- * honestly: `scans` is the one item P5a computes and every other says `not_built` and names
- * the plan that builds it.
+ * §13's checklist, COMPUTED and never stored. `ready` is `false` here, honestly.
+ *
+ * **IT CARRIES ALL THREE ITEM STATES ON PURPOSE** (P6a Task 7): `met` for something the
+ * platform computed, `not_built` WITH a `builtBy` for something it does not track yet,
+ * and `unmet` with NO `builtBy` for a row an administrator has not recorded. The third is
+ * new — until Task 7 the two external records were `not_built` — and a console built
+ * against fixtures that never show it would not render the case the platform now sends
+ * for every production project.
+ *
+ * This is a small illustrative checklist and not the platform's six; `domain` is
+ * `not_built` here and `met` there, which is a divergence that predates Task 7 and is
+ * Task 17's to reconcile when the records screen is built.
  */
 export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
   projectId: PROJECT_ID,
@@ -373,12 +382,11 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
     },
     {
       id: 'privacy-assessment',
-      title: 'A privacy impact assessment',
-      owner: 'the faculty member',
+      title: 'Privacy Impact Assessment approved',
+      owner: 'UBC Privacy Office, recorded by a platform administrator (§9)',
       blocking: true,
-      state: 'not_built',
-      why: 'The PIA workflow is the external track.',
-      builtBy: 'the UBC external track',
+      state: 'unmet',
+      why: 'A Privacy Impact Assessment is required before a production launch (§9), with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what the UBC Privacy Office said, with the ticket reference.',
     },
   ],
 }

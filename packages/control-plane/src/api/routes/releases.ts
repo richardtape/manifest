@@ -8,13 +8,13 @@ import {
   releases,
   type Db,
 } from '../../db/index.js'
-import { computeLaunchReadiness } from '../../launch/index.js'
+import { assertLaunchable } from '../../launch/index.js'
 import { incidentPrompt, listIncidents } from '../../observability/index.js'
 import { assertCapability, AuthorizationError, type Actor } from '../../projects/index.js'
 import { createRelease, deployRelease } from '../../releases/index.js'
 import { resolveConfig, type ManifestSpec } from '../../spec/index.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
-import { BadRequestError, ProductionGateError } from '../errors.js'
+import { BadRequestError } from '../errors.js'
 import { IncidentList, toIncident } from '../representations/incidents.js'
 import { Instance, toInstance } from '../representations/instances.js'
 import {
@@ -227,13 +227,16 @@ export const releaseRoutes = [
         environment.projectId,
         environment.kind === 'production' ? 'release:promote' : 'release:deploy',
       )
-      // §13: not forbidden, not ready. Say which items and who owns them — the SAME
-      // checklist `GET /v1/projects/{projectId}/launch-readiness` answers, computed from
-      // what exists rather than the constant this carried until P5a Task 15.
+      // §13's gate, which until P6a Task 7 refused unconditionally. `assertLaunchable`
+      // throws `ProductionGateError` carrying the SAME checklist
+      // `GET /v1/projects/{projectId}/launch-readiness` answers — one computation, so the
+      // view and the gate cannot disagree (Decision 2).
+      //
+      // AFTER `assertCapability` above, deliberately and unchanged: that check is about
+      // WHO may ask, this one is about whether the project is ready, and a collaborator is
+      // refused without the project's readiness ever being consulted.
       if (environment.kind === 'production')
-        throw new ProductionGateError(
-          await computeLaunchReadiness(deps.db, environment.projectId),
-        )
+        await assertLaunchable(deps.db, environment.projectId)
       const instance = await deployRelease(
         deps.db,
         deps.driver,
