@@ -54,6 +54,23 @@ every class the bundle names exists in `bundle.css`. That check found two classe
 declared (`mf-step--done`, `mf-station--done`), now declared as real state hooks. Each preview's
 mount script is syntax-checked, and every export is required to be mounted by some preview.
 
+**Navigation became a rail, 2026-09-20.** Rich noted that there was no way to move between screens
+and asked for a left menu in UBC blue. Both halves were right. The top bar could only ever hold the
+mark and a sign-out link: walking the journey forwards worked, but coming back a week later to check
+one thing meant hunting through content for a link. For someone who meets this platform six times a
+year, **persistent navigation is the difference between finding something and giving up.**
+
+`SideNav` is 240px of `nav-surface` — an alias of `brand`, so it is UBC blue at full strength — on
+every signed-in screen. Mark, *Your apps*, *Start something new*, then the open project's six
+sections, then the person pinned to the bottom. **Screens now have no top bar at all** and begin
+with their own heading; `ProjectBar` lost its tab strip to the rail, and `AppBar` is marked
+superseded rather than deleted, in case a signed-out or embedded surface still needs one.
+
+Making the rail the brand colour does something the earlier direction could not: it answers, without
+a single decorative element, the question a faculty member has when they hand an app to two hundred
+students — *is this a real UBC service?* It is also the reason the artboards grew from 1280 to 1440,
+so that content keeps the width it was designed at.
+
 **And one thing was removed.** The 4px accent stripe down the left edge of a card — on the checklist
 items, the agent's question and the change-in-progress card — is gone, at Rich's direction. With
 five state colours already in play it read as a second, competing status system, and a row of cards
