@@ -1906,9 +1906,12 @@ minutes; it needs `make up` and **fails rather than skips**. §2's box has the c
 after both cleanup scripts. **`pnpm test` 1456 passed + 1 SKIPPED in 110 files**, run twice
 and identical. **`pnpm test:docker` 185 in 30 files, 0 skipped, 826 s** — owed, run, unmoved.
 lint, typecheck and format:check clean. **`lo0` carries `127.0.0.1`, `127.0.0.2` AND
-`127.0.0.3`.** **Twenty migrations are applied**; sitting 5 adds none. **THE CONTROL PLANE IS
-RUNNING on 7100** — but its session secret is that process's, so **restart it with README's
-block and sign in fresh** rather than trusting anything left behind. **THE DATABASE IS NOT
+`127.0.0.3`.** **Twenty migrations are applied**; sitting 5 adds none. **NOTHING IS LISTENING ON 7100** —
+the control plane was started three times during that sitting and STOPPED at its close, so the
+machine matches how it was found; start it yourself with README's *Running the control plane*
+block. **Every restart mints a new `MANIFEST_SESSION_SECRET`, so no cookie survives one** — which
+is the block working as intended, and the reason a `401` after a restart is the harness rather
+than the platform. **THE DATABASE IS NOT
 EMPTY**: `journey-app` is present and serving staging, **with an `active` IAM registration
 and an `approved` PIA recorded against it** (tickets IAM-2026-4471, PIA-2026-0912) — the
 first rows those tables have ever held outside a rolled-back test, and **any `pnpm test` will
