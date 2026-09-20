@@ -30,8 +30,8 @@
 
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
-| 1 | 1 | **The measurements this plan rests on**, before any code: whether SimpleSAMLphp honours `ForceAuthn`, what the second listener actually costs on this machine (the alias, the dnsmasq split, the probe path), whether `computeLaunchReadiness` survives being read by something that blocks, and the **two** production gates rather than one. **Alone, and first** | ← **next** |
-| 2 | 2–3 | **The second listener exists**: `127.0.0.3` on `lo0` and the dnsmasq split (Rich runs one bundled `sudo` script), then `srv1` inside the edge with the production wildcard site, and `make doctor` and `make verify` checks for both halves | |
+| 1 | 1 | **The measurements this plan rests on**, before any code: whether SimpleSAMLphp honours `ForceAuthn`, what the second listener actually costs on this machine (the alias, the dnsmasq split, the probe path), whether `computeLaunchReadiness` survives being read by something that blocks, and the **two** production gates rather than one. **Alone, and first** | **DONE 2026-09-19 — 15 findings.** All ten measurements ran. **R3 is a GO**, `ForceAuthn` **is honoured**, Decision 13 is measured. **No task boundary moved, so the eleven-sitting split stands.** Correction blocks on Tasks 1, 2, 3, 4, 5, 7 and 12 |
+| 2 | 2–3 | **The second listener exists**: `127.0.0.3` on `lo0` and the dnsmasq split (Rich runs one bundled `sudo` script), then `srv1` inside the edge with the production wildcard site, and `make doctor` and `make verify` checks for both halves. **Read both tasks' `[M5]` correction blocks first — `edge.manifest.internal` needs pinning back AND its own `srv0` site, or `make verify` goes red with a TLS error** | ← **next** |
 | 3 | 4 | **A production route goes on the public listener and staging cannot reach it** — §12's fail-closed claim watched failing on the only machine that exists, in both directions, and the readiness probe taught the production path | |
 | 4 | 5–6 | **Migration 0019** — `approvals`, `iam_registrations`, `privacy_assessments` and their state machines — and **the two external records over the API**: an administrator records a real registration and a real PIA with a pasted ticket reference | |
 | 5 | 7 | **The gate that BLOCKS.** One evaluation in `launch/`, called by the read and by the deploy route, with the **two** unconditional refusals that exist today removed — and the checklist's items reading real rows. **Alone: it is this plan's centre** | |
@@ -55,7 +55,14 @@
 
 ## Read this first — what this plan knows that the brief does not
 
-Read from the code on **2026-09-19**, at `d02fb67`, while this plan was written. **Every item is a fact about the platform as it stands, not a prediction**, and Task 1 re-measures the ones marked *(T1: M<n>)*. The brief's §2 is still true and is not repeated; these are the things reading the code for a *plan* turned up that reading it for a *brief* did not.
+**SITTING 1 CORRECTED THREE OF THE ITEMS BELOW — read this before you trust one of them.**
+**Item 16 is WRONG** (`observability/events.test.ts:283` *does* assert the CHECK against
+`EVENT_TYPES`, out of Postgres, in the unit tier — and `schema.ts` *does* express the constraint,
+so drizzle generates the rewrite itself: Task 5's block). **Item 9 is right in substance and
+wrong in trigger** (compose recreates on a service *config* change, not on any edit: Task 2's
+block). **Item 4 states only half the `iam-registration` rule** (it also needs a candidate
+release: Task 7's block). Items 1, 2, 3, 5, 6, 7, 8, 12 and 18 were each re-measured and
+**hold exactly**, line numbers included. Read from the code on **2026-09-19**, at `d02fb67`, while this plan was written. **Every item is a fact about the platform as it stands, not a prediction**, and Task 1 re-measures the ones marked *(T1: M<n>)*. The brief's §2 is still true and is not repeated; these are the things reading the code for a *plan* turned up that reading it for a *brief* did not.
 
 1. **THERE ARE TWO PRODUCTION GATES, NOT ONE, AND THE BRIEF NAMES ONLY THE OUTER ONE.** The route's is `api/routes/releases.ts:233`, and it throws `ProductionGateError` carrying the checklist. **`deployRelease` throws its own**, at `releases/release.ts:213`, before it reads the build: a `ReleaseError('RELEASE_PRODUCTION_GATE_UNAVAILABLE', …)` whose message ends *"they are P6's, and this gate stays closed until they do."* `error-codes.ts` records the code with **two families** — `['api', 'ReleaseError']` — which is the only place the duplication is visible. **A plan that replaced only the route's gate would ship a production deploy that still refuses, with the new gate's tests all green**, because every test of the new gate would be a test of a route that never reaches `deployRelease`. Task 7 removes both, and its negative control is the one that proves it. *(T1: M6.)*
 2. **`release:approve` IS NOT ONE OF D24'S PRIVILEGED FOUR, AND A PLATFORM ADMIN CAN MINT A DELEGATED TOKEN THAT HOLDS IT.** `PRIVILEGED` is `{release:promote, secret:read, quota:set, members:manage}` (`projects/authz.ts:60`), held to §20 by `privileged.test.ts` with the four written out as literals. `release:approve` is in `CAPABILITIES`, is granted to `PLATFORM_ADMIN` at `authz.ts:141`, and **is not privileged** — so `assertCapability`'s token branch falls straight through to *"does this token hold it?"*. The mint route (`api/routes/tokens.ts`) refuses only `PRIVILEGED` and caps at what the minter holds, and **a platform admin holds `release:approve`**. So the day Task 10 gives that capability its first route, an agent holding such a token could approve a production release with no person in the loop — which is D14 exactly inverted. **The control is `requireSession` on the route plus step-up, both of which a token cannot satisfy**, and Task 9 writes the test. **It is also a real asymmetry between the spec's words and the code's**, and the plan raises it as *Spec action 2* rather than papering over it. *(T1: M7.)*
@@ -296,6 +303,24 @@ docs/superpowers/WALKTHROUGH.md     MODIFIED (T19): the production launch, as a 
 ---
 
 ## Task 1: Measure what this plan rests on — before any of it is built
+
+> ### [M1] Correction block — EXECUTED 2026-09-19. Step 1 destroys the state Step 2 exists to measure.
+>
+> *Written by P6a sitting 1, which hit this in its first ten minutes; evidence in
+> [`spikes/p6a-baseline/`](../spikes/p6a-baseline/README.md).*
+>
+> **What this task said:** Step 1 takes the baseline (`pnpm test`, twice), then Step 2's `[M1]`
+> queries `select count(*) from projects` and `from users`.
+>
+> **What the measurement found:** `pnpm test` **TRUNCATES those exact tables** — Global
+> Constraints says so four lines above. So Step 2 as ordered reports what the test run left,
+> never "the state this plan starts from", and it reports it as though it were a reading.
+>
+> **What this task now does: TAKE `[M1]` FIRST, BEFORE STEP 1.** Sitting 1 did, and it cost
+> nothing that day only because the tables were already empty (0/0/0 behind twelve running app
+> containers). On any other day it would have silently substituted zeroes for the measurement.
+> The rest of Step 1 is unchanged and all four gate numbers agreed with §2's box.
+
 
 **ALONE, AND FIRST.** Every plan since P4c has opened with a measurement sitting, and it has moved task boundaries in three of the last four. **This task writes no feature code.** Its output is a findings file and, where a measurement contradicts this plan, an `[M<n>]` correction block at the top of the task it contradicts.
 
@@ -600,6 +625,31 @@ git commit -m "docs(p6a): sitting 1 — the measurements this plan rests on"
 
 ## Task 2: The second address on the host — `127.0.0.3`, and the dnsmasq split
 
+> ### [M5] Correction block — EXECUTED 2026-09-19. R3 is a GO, and the pin-back list is one name short.
+>
+> *TWO points. The first is the one that would have turned `make verify` red in this sitting;
+> evidence in [`spikes/p6a-baseline/`](../spikes/p6a-baseline/README.md), `[M5](b)` and `(d)`.*
+>
+> **1. `edge.manifest.internal` MUST BE PINNED BACK TO `127.0.0.2` TOO.** Decision 1's list is
+> `staging.`, `sandbox.`, `console.` and `idp.`. Measured on a throwaway dnsmasq carrying
+> exactly those rules, **`edge.manifest.internal` answers `127.0.0.3`** — it is a §23 reserved
+> label (`infra/reserved-labels/labels.yaml`, *"Manifest's edge proxy"*), it lives in the bare
+> production zone, and `make doctor` and `make verify` both probe it. Add it to the
+> `--address=` pin-backs beside `console.` and `idp.`. **Task 3 carries the other half of this
+> repair** — it also needs an explicit site on `srv0`. Everything else in the split works:
+> dnsmasq's more-specific rules win for all four original pin-backs, and AAAA still answers
+> `NOERROR`.
+>
+> **2. A `compose.yaml` edit only costs a recreate when it changes the service's CONFIG.**
+> *Read this first* 9 says a change "recreates `manifest-caddy` and drops every runtime route".
+> Measured both ways: a **comment** line in the `caddy:` service left the container untouched
+> (same id), `make up` took **2 s** and the runtime route **survived**; adding one **published
+> port** recreated it (new id), `make up` took **7 s** and routes went **1 → 0**. The window is
+> then closed by a control-plane restart measured at **546 ms** boot-to-ready with
+> `routesRestored: 1`. So sequence the sitting for the config changes and stop budgeting a
+> recreate for every save.
+
+
 **THIS TASK NEEDS `sudo`, AND `sudo` CANNOT PROMPT FROM A TOOL CALL.** You get `sudo: a terminal is required to read the password`. **Every privileged step in this plan is bundled into one script, `infra/host/p6a-second-address.sh`, and Rich runs it himself** with `! sudo bash infra/host/p6a-second-address.sh` in his own terminal. Write the script, ask, and wait. **Do not attempt `sudo` from a tool call, and do not work around it.**
 
 **Depends on `[M5](b)`.** If the dnsmasq pin-backs did not win, **stop and take Decision 1's fallback**, recording it — do not improvise a mechanism here.
@@ -797,6 +847,37 @@ git commit -m "feat(infra): a second loopback address and the nested-zone DNS sp
 
 ## Task 3: The second Caddy server — `srv1`, and the production wildcard site
 
+> ### [M5] Correction block — EXECUTED 2026-09-19. Moving the wildcard takes `edge.manifest.internal` with it.
+>
+> *ONE point, and it fails at the TLS handshake rather than with an HTTP status, which is the
+> expensive kind. Evidence in [`spikes/p6a-baseline/`](../spikes/p6a-baseline/README.md),
+> `[M5](a)` and `(b)`.*
+>
+> **What this task said:** move `*.manifest.internal` from the `srv0` block to the new `:8443`
+> block, leaving `*.staging.` and `*.sandbox.` on `srv0`.
+>
+> **What the measurement found:** `edge.manifest.internal` has **no explicit site** in the
+> Caddyfile — only `idp.` and `console.` do — so it is served today **by that wildcard**.
+> Containers resolve the whole zone, production included, to `10.89.0.10`, which is `srv0`. With
+> the wildcard moved, srv0 has no site matching that Host, and a container asking for one gets
+> **`curl: (35) TLS connect error … tlsv1 alert internal error`** — Caddy cannot produce a
+> certificate, so it never reaches HTTP. Measured against an unmatched Host on srv0 today, with
+> `edge.manifest.internal` answering `200` through the wildcard as the control. **`make verify`
+> has a check for exactly this** (*"a container reaches https://edge.manifest.internal with the
+> platform CA"*) and it would go red in sitting 2.
+>
+> **What this task now does:** give `edge.manifest.internal` **its own site on `srv0`**, beside
+> `console.` and `idp.`, in the same edit that moves the wildcard — it is a platform surface,
+> not a faculty app, and it belongs on the internal listener for the same reason they do. Task 2
+> pins it back in DNS. **Predict which `make verify` check moves and watch it**, per *Read this
+> first* 12.
+>
+> **The rest of this task is bought and works.** A second server in the one container: `PUT
+> /config/apps/http/servers/srv1` answered **200** (status asserted), keys read back
+> `["srv0","srv1"]`, and `srv1` genuinely listened — `manifest-caddy:8443` answered from the
+> platform network. `DELETE` restored `["srv0"]` and `:8443` then refused.
+
+
 **Files:**
 - Modify: `infra/compose.yaml` — caddy publishes `127.0.0.3:443` → container `8443`
 - Modify: `infra/caddy/Caddyfile` — a site bound to `:8443`, and the production wildcard moved to it
@@ -958,6 +1039,27 @@ git commit -m "feat(routing): a public listener on srv1, and the production zone
 
 ## Task 4: A production route goes on the public listener — and staging cannot reach it
 
+> ### [M5] Correction block — EXECUTED 2026-09-19. The probe port is real work, and nothing unit-tests two servers.
+>
+> *TWO points; evidence in [`spikes/p6a-baseline/`](../spikes/p6a-baseline/README.md), `[M5](c)`.*
+>
+> **1. Decision 15's probe port is confirmed, and so is the safety claim under it.** A container
+> on `manifest-platform` with `--dns 10.89.0.53` reaches `https://demo-app.manifest.internal/`
+> at **`10.89.0.10:443` — srv0, the internal server** — and `:8443` **is** reachable from that
+> same network. So a production probe without the port lands on the wrong listener, and
+> `waitForIdentity` refuses it loudly: `routing/readiness.ts:98-102` rejects a `200` carrying no
+> `X-Manifest-Instance` with *"that is the edge's wildcard, not a routed app"*, read and
+> confirmed. `edgeIdentityProbe`'s options object is `{ network?, dnsServer? }` — `port` joins
+> those two.
+>
+> **2. `upstreamsInUse` survives the split, but no test exercises it.** `routing/routes.ts:185`
+> iterates `new Set(Object.values(deps.servers))`, so two distinct names simply produce two
+> iterations — *Read this first* 7 confirmed. **But `routing/routes.test.ts:11` fixes
+> `SERVERS = { internal: 'srv0', public: 'srv0' }`**, so the two-server path has no unit
+> coverage at all today. Add a case with two distinct server names, or the split's one piece of
+> pure logic ships untested.
+
+
 **§12's fail-closed claim, watched failing, on the only machine that exists.** Task 3 made two servers; this task makes the platform *write to the right one* and makes the readiness probe able to see the result.
 
 **Files:**
@@ -1101,6 +1203,43 @@ git commit -m "feat(routing): production routes go on the public listener, and t
 ---
 
 ## Task 5: Migration 0019 — `approvals`, `iam_registrations`, `privacy_assessments`, and their state machines
+
+> ### [M10] Correction block — EXECUTED 2026-09-19. **Do NOT append the CHECK. Drizzle writes it, and appending breaks 0019.**
+>
+> *THE MOST EXPENSIVE CORRECTION THIS SITTING FOUND, and it is measured rather than reasoned;
+> evidence in [`spikes/p6a-baseline/`](../spikes/p6a-baseline/README.md), `[M10]`/F1.*
+>
+> **What this task said:** *"Read `drizzle/0019_*.sql`. Drizzle will NOT have written the
+> `audit.events` CHECK — it is not expressed in `schema.ts`. APPEND, in the same file:"*.
+>
+> **What the measurement found: both clauses are false.** The constraint **is** expressed in
+> `schema.ts` — `db/schema.ts:520-523`, a `check('events_type_known', …)` in the table's extra
+> config, with a comment saying it is written out there on purpose — and the drizzle snapshot
+> tracks it (`0018_snapshot.json` → `audit.events -> ['events_type_known']`). One event type was
+> added to that check and `drizzle-kit generate` was run; it emitted, unprompted:
+>
+> ```sql
+> ALTER TABLE "audit"."events" DROP CONSTRAINT "events_type_known";--> statement-breakpoint
+> ALTER TABLE "audit"."events" ADD CONSTRAINT "events_type_known" CHECK (… , 'm10.probe'));
+> ```
+>
+> **So appending would put a SECOND `ADD CONSTRAINT "events_type_known"` in a file that already
+> has one, and migration 0019 would fail to apply** with *constraint … already exists* — after
+> its three `CREATE TABLE`s had run. ORIENTATION §4 records what that costs: *"An applied
+> migration that is missing a line is REPLAYED, not patched."*
+>
+> **What this task now does:** add the five new event types to **`EVENT_TYPES` in
+> `observability/events.ts` AND to `schema.ts`'s `check(...)` list**, then run
+> `drizzle-kit generate` and **READ** the migration it writes to confirm the DROP/ADD pair is
+> there. Append nothing.
+>
+> **And *Read this first* 16's premise is wrong too, in the reassuring direction.** It says
+> *"nothing asserts the two lists agree"* and that a missing rewrite fails at runtime *"with
+> every unit test green"*. **`observability/events.test.ts:283` asserts exactly that**, reading
+> `pg_get_constraintdef` out of Postgres and comparing it with `EVENT_TYPES` — in the **unit**
+> tier, in `pnpm test`. All three lists read **21** today and two `diff`s confirmed they are
+> identical. The guard the plan asks for already exists; do not build a second one.
+
 
 **Files:**
 - Modify: `packages/control-plane/src/db/schema.ts` — three tables, two enums, one decision enum
@@ -1566,6 +1705,46 @@ git commit -m "feat(launch): an administrator records the IAM registration and t
 ---
 
 ## Task 7: The gate that BLOCKS — one evaluation, two callers, and the two gates that go
+
+> ### [M2][M4][M8] Correction block — EXECUTED 2026-09-19. Three points, and the first is this task's real negative control.
+>
+> *THREE points. The third is a control this task would otherwise have believed in; evidence in
+> [`spikes/p6a-baseline/`](../spikes/p6a-baseline/README.md), `[M2]`, `[M4]` and `[M8]`.*
+>
+> **1. THE TWO GATES ANSWER THE SAME STATUS AND THE SAME CODE — assert `launchReadiness`, never
+> the code.** Measured: with the route's gate commented out, a production deploy still answered
+> **`409 RELEASE_PRODUCTION_GATE_UNAVAILABLE`**, from `deployRelease`'s own `ReleaseError`, and
+> the only difference was that the envelope carried **no `launchReadiness`**
+> (`.error | has("launchReadiness")` → `false`; `true` again after the restore, with 6 items).
+> So a test asserting status **and code** is green against a Task 7 that removed only the outer
+> gate — *Read this first* 1's warning, confirmed, and sharper than it reads. **This task's
+> negative control asserts the PRESENCE of `launchReadiness` in the refusal.** Both line numbers
+> in *Read this first* 1 are exact: the route's gate `api/routes/releases.ts:233`,
+> `deployRelease`'s `releases/release.ts:213`, the inner one before the build is read.
+>
+> **2. Today's gate never reads `ready`, so REPLACE the condition rather than satisfying the
+> checklist.** With `computeLaunchReadiness` temporarily forced to mark all six items `met`, the
+> production deploy **still refused** — and its envelope said **`launchReadiness.ready: true`**.
+> The route keys on `environment.kind === 'production'`. That pair (ready true, still refused) is
+> the cheapest before-measurement this task has.
+>
+> **3. §16's authorization matrix CANNOT FAIL FOR THIS TASK.** The production-deploy row expects
+> `409` for `owner` and `admin` — the only two `409`s in `api/authz-contract.ts` — and those are
+> statements about the GATE, not about authorization. They pass today because the gate is
+> unconditional, and they will pass after this task because the fixture project's blocking items
+> are not met. **370 tests stay green on both sides of the change, including a version of this
+> task that left `assertLaunchable` throwing unconditionally.** Do not count the matrix as
+> coverage here.
+>
+> **Two facts this task needs when it rewires the items to read real rows.** `computeLaunchReadiness`
+> returns **SIX** items for a `class`-audience project, all `blocking: true`, with `domain` and
+> `scans` already `met`; the two rendered paths are still **byte-identical** (`jq -S . | diff`,
+> 2279 bytes each), which this task must keep. And `iam-registration` is met **only when there is
+> a candidate release AND its resolved *production* config says `auth.provider === 'none'`** —
+> with no candidate at all the item is `not_built`, deliberately, because *"the conservative
+> answer is that it will need one"*. *Read this first* 4 states only the provider half. **Keep
+> that conservative default**: "no candidate" must not become "no registration needed".
+
 
 **This plan's centre, and it gets a sitting to itself.** Until this task the platform refuses every production deploy unconditionally, in **two** places (*Read this first* 1). After it, the checklist decides.
 
@@ -2451,6 +2630,28 @@ git commit -m "feat(releases): §13's diff_snapshot, with a summary recorded as 
 ---
 
 ## Task 12: R4's `Reviewer` seam — the interface, the honest `NullReviewer`, its caller, its NON-blocking item
+
+> ### [M4] Correction block — EXECUTED 2026-09-19. Decision 13 is now MEASURED, and the new item id needs one more file.
+>
+> *TWO points; evidence in [`spikes/p6a-baseline/`](../spikes/p6a-baseline/README.md), `[M4]` Q5.*
+>
+> **1. `blocking: false` is measured, not argued — and here are the numbers to put in the test.**
+> Against a real project through the edge: with all six blocking items forced to `met` and **no**
+> seventh item, `ready` is **`true`** (the positive control — the path can say yes). Adding a
+> seventh item `{blocking: true, state: 'not_built'}` makes `ready` **`false`**. The *same* item
+> with `blocking: false` leaves `ready` **`true`**. So Decision 13's *"that test is the control
+> that keeps production reachable for ever"* is a fact about this machine, and
+> `readiness.test.ts` should assert all three rows — the middle one is what turns red if anyone
+> flips `blocking`.
+>
+> **2. `'code-review'` MUST ALSO GO IN `api/representations/launch.ts`.** `LaunchReadinessItem.id`
+> is a closed `z.enum([...])` at lines 8-15. Pushing an item with an id that is not in it made
+> the route answer **`500 INTERNAL`** with
+> `ResponseContractError: getLaunchReadiness answered a body its representation refuses, at:
+> items.6.id`. The File Structure already lists that file for this task — this names the failure
+> mode, which is a loud `500` rather than a dropped field, and it bites before any test of the
+> reviewer runs.
+
 
 **D33 and §15 are APPLIED and the spec already reads this way. Write against them; do not re-propose anything.** §15's row, verbatim: *"**Phase 2**: an interface with a null implementation, whose verdict is an honest `not_performed`, a real caller on the build/approval path, and a **non-blocking** `LaunchReadiness` item. It reviews nothing and says so (D33)."* §20's control-map row now opens ***"Still accepted under D9"*** and ends ***"until one lands nothing reviews code"*** — **nothing this task ships may make either sentence false.**
 
@@ -3367,6 +3568,174 @@ It currently reads:
 
 ## What executing this plan found
 
-*One dated section per sitting, added as it runs — the tasks, every defect with the measurement that found it, the negative controls with which of them could not fail, the gate numbers and the machine. **Nothing is written here until sitting 1 executes.***
+*One dated section per sitting, added as it runs — the tasks, every defect with the measurement that found it, the negative controls with which of them could not fail, the gate numbers and the machine. **Sitting 1 executed on 2026-09-19; its section is below.***
 
 **The honest prior, from the roadmap's defect-rate table: 8.6 (P5a), 8.9 (P5b), 7.6 (P5c) findings per task, and the rate has risen, never fallen, with practice.** At nineteen tasks that is **145–170 findings**, and P6a makes production, a second listener, a second authentication round trip and an approval record run for the first time — **four firsts, and this project's worst discoveries have all arrived at a first.** Treat this plan as a hypothesis.
+
+---
+
+### Sitting 1 — Task 1, the measurements, alone and first — 2026-09-19. **15 findings.**
+
+**All ten measurements ran. NO TASK BOUNDARY MOVED, so the eleven-sitting split stands** —
+which is itself a result, and the first time in four plans that Task 1 has not re-cut the
+schedule. The record is [`spikes/p6a-baseline/README.md`](../spikes/p6a-baseline/README.md),
+one section per measurement, with every command and its untrimmed output in
+`results-task1-2026-09-19.txt` (5,045 lines). Correction blocks landed on **Tasks 1, 2, 3, 4,
+5, 7 and 12**, and a banner on *Read this first* names its three wrong items.
+
+**THE THREE THE BRIEF NAMED AS MUST-BUY, ANSWERED:**
+
+- **`[M3]` — SimpleSAMLphp HONOURS `ForceAuthn`.** With the flag absent and a warm IdP jar,
+  hop 2 served **0 login forms** and a `SAMLResponse` straight through; with
+  `forceAuthn: true` it served **1 form and no assertion**; after the restore, 0 forms again.
+  The flag was confirmed **on the wire** by inflating the redirect binding's `SAMLRequest`
+  (`ForceAuthn="true"`, then `ABSENT`). **Task 8 stands as written, with no IdP configuration
+  step, and nothing goes to ORIENTATION §8.** §13's step-up is satisfiable in substance here,
+  not merely in shape.
+- **`[M5]` — R3 IS A GO.** Two servers in one Caddy container work (`PUT` → **200**, status
+  asserted; `["srv0","srv1"]`; `manifest-caddy:8443` answered from the platform network;
+  `DELETE` restored `["srv0"]`). The dnsmasq split works — more-specific rules win for every
+  pin-back and AAAA still answers `NOERROR`, measured on a throwaway resolver rather than the
+  real one. The container-side probe is Decision 15's known work, not a blocker. **Decision 1's
+  fallback is NOT taken and Spec action 1 stays live.**
+- **`[M4]` — Decision 13 is MEASURED.** Six blocking items forced to `met` with no seventh:
+  `ready` **`true`** (the positive control). Add a seventh `blocking: true` in `not_built`:
+  `ready` **`false`**. The same item with `blocking: false`: `ready` **`true`**. R4(c)'s trap is
+  a fact about this machine, and Task 12's block carries the three rows for `readiness.test.ts`.
+
+**THE FINDINGS.** Each names the measurement that found it.
+
+1. **F1 `[M10]` — Task 5's own step would have made migration 0019 fail to apply.** It says
+   drizzle will not have written the `audit.events` CHECK "because it is not expressed in
+   `schema.ts`". It **is** expressed there (`db/schema.ts:520-523`) and the snapshot tracks it.
+   Measured by adding one event type and running `drizzle-kit generate`: it emitted the
+   `DROP CONSTRAINT` / `ADD CONSTRAINT` pair itself, with the new type in it. **Appending would
+   have put a second `ADD CONSTRAINT "events_type_known"` in the same file**, failing after the
+   three `CREATE TABLE`s had run — and §4 records that a part-applied migration is replayed,
+   not patched. **The same item's other half is also wrong in the reassuring direction:**
+   `observability/events.test.ts:283` *does* assert the CHECK against `EVENT_TYPES`, read out of
+   Postgres, in the unit tier. All three lists read **21** and two `diff`s agree.
+2. **F3 `[M5](b)` — Task 3 as written takes `edge.manifest.internal` off the internal listener,
+   and it fails at the TLS handshake.** It is a §23 reserved label in the bare production zone
+   with **no explicit Caddyfile site** — it rides the `*.manifest.internal` wildcard that Task 3
+   moves to `srv1`. Containers resolve the whole zone to srv0, and an unmatched Host there gives
+   **`curl: (35) … tlsv1 alert internal error`**, never an HTTP status, so it reads as a
+   certificate fault. `make verify` has a check for exactly this. Repair split across Tasks 2
+   (pin it back in DNS) and 3 (give it an `srv0` site).
+3. **F7 `[M2]` — today's production refusal can assert `ready: true` while refusing.** With the
+   checklist forced all-`met`, the deploy still answered `409
+   RELEASE_PRODUCTION_GATE_UNAVAILABLE` carrying `launchReadiness.ready: true`. The route keys
+   on `environment.kind`, never on `ready`. Task 7 **replaces** the condition.
+4. **F9 `[M8]` — §16's authorization matrix cannot fail for Task 7.** Its production row expects
+   `409` for `owner` and `admin`, and those two are statements about the *gate*. They pass today
+   because the gate is unconditional and will pass afterwards because the fixture's items are
+   unmet — **370 tests green on both sides, including a Task 7 that left `assertLaunchable`
+   throwing unconditionally.**
+5. **F10 `[M2]` — the grep finds SIX non-test hits, not three.** The two the task does not
+   predict both matter: `api/authz-contract.ts:75` (`REFUSAL_CODE`'s `409`, which is `[M8]`'s
+   subject) and `api/representations/errors.ts:30`. **Both gate line numbers in *Read this
+   first* 1 are exactly right**, and the inner gate does run before the build is read.
+6. **F2 `[M4]` — a new `LaunchItemId` is refused by the representation with a `500`.**
+   `ResponseContractError: … at: items.6.id`. `LaunchReadinessItem.id` is a closed `z.enum`.
+   Task 12 must extend it; the failure is loud rather than a dropped field.
+7. **F8 `[M4]` — `iam-registration` is met only when there is ALSO a candidate release**, and
+   it reads the **production** resolved config. With no candidate, `provider` is `undefined`,
+   `usesCwl` is `true` and the item is `not_built` — deliberately, *"the conservative answer is
+   that it will need one"*. *Read this first* 4 states only the provider half; Task 7 must keep
+   that default when it rewires the item.
+8. **F4 `[M5](d)` — *Read this first* 9 is right in substance, wrong in trigger.** A **comment**
+   in the `caddy:` service left the container untouched, `make up` 2 s, routes survived; **one
+   published port** recreated it, 7 s, routes 1 → 0; a control-plane restart put them back in
+   **546 ms**. Compose recreates on a *config* change, not any edit.
+9. **F12 `[M5]` — nothing unit-tests two servers.** `upstreamsInUse` survives the split
+   (`new Set(Object.values(deps.servers))`), but `routing/routes.test.ts:11` fixes
+   `SERVERS = { internal: 'srv0', public: 'srv0' }`, so the two-server path has no coverage.
+10. **F5 `[M7]` — `pnpm contract:write` FAILS rather than writing when `ROUTE_DEFINITIONS` is
+    malformed.** A stray double comma gave `TypeError: Cannot read properties of undefined
+    (reading 'method')`, 4 failed, and `openapi.json` untouched. Worth knowing before Tasks 6, 8,
+    10 and 14 each add routes: **a red `contract:write` means the route list, not the document.**
+11. **F6 `[M1]` — Task 1's own Step 1 destroys the state Step 2 exists to measure.** `pnpm test`
+    truncates `projects` and `users`, which `[M1]` then counts. `[M1]` was taken first here; it
+    cost nothing only because the tables were already empty behind twelve running app containers.
+12. **F11 `[M8]` — the task's own snippet finds no tests.** `vitest run --project unit
+    src/api/authz-contract.ts` (no `.test`) answers *No test files found, exiting with code 1*.
+    The real figure is **370 tests** = 41 route cases × 9 actors + 1.
+13. **F13 `[M1]` — ORIENTATION §2's box carries one stale state claim.** Its per-app line says
+    `containers=6 networks=2 volumes=4`; `make verify` read **`containers=12 networks=4
+    volumes=8`** at both ends of this sitting — four apps, not two. The four *gate* numbers in
+    that box are all correct.
+14. **F14 — a measurement of mine was vacuous and I nearly reported it.** `[M5](b)`'s first pass
+    used `set -- $PAIR`; **zsh does not word-split an unquoted variable** (ORIENTATION §4 names
+    this exact trap), so the comparison was empty-against-empty and every row printed `OK`. It
+    was caught by reading the output rather than the verdict, and re-run with a shell function
+    taking real arguments. Recorded because it is the same shape as the defects this sitting
+    exists to find.
+
+15. **F15 — THE POST-SWEEP CHECK FOUND ITS DEFECT AGAIN, and it is §6's named class exactly.**
+    The first draft of §7e told the next sitting that *"`journey-app` has a staging deploy and
+    `opr000001` is a platform administrator"*. Both were true when this sitting wrote them and
+    **both were false by the time it finished**: the closing `pnpm test` runs truncated
+    `projects`, `users` and `instances` to **0/0/0**, which `psql` reported when the check
+    queried it rather than re-reading the sentence. It was written from what the sitting DID
+    rather than from a query at close — **the exact failure §6 describes** ("one of the three
+    told the next agent that `student` had signed in"), and it would have disarmed the trap
+    §7e names as most likely to cost the next sitting. §7e now states the zeroes, names the
+    command that produced them, and says the twelve app containers outlive their projects.
+    **The gates run LAST and `pnpm test` truncates, so a sitting's narrative is stale about the
+    database the moment it ends.**
+
+**WHAT WAS RE-MEASURED AND HELD**, so no one re-buys it: `[M6]` — a platform administrator
+**minted** a delegated token holding `release:approve` through the real mint route, with
+`release:promote` refused `400 TOKEN_CAPABILITY_FORBIDDEN` beside it, so *Read this first* 2,
+Decision 4, Decision 9 and **Spec action 2** are all confirmed (probe revoked immediately,
+`revoked: true`). `[M7]` — the coverage gate fires with `expected [ 'GET /v1/m7-probe
+(m7Probe)' ] to deeply equal []` and **goes green on a nonsense reason**, so a reviewer and not
+the gate reads `DELIBERATELY_UNCALLED`. `[M4]` Q6 — the two rendered paths are still
+**byte-identical**, 2279 bytes each. `[M4]` Q4 — the candidate followed *serving*, not *newest*,
+with an undeployed release as the control. `[M9]` — a production deploy would register
+`https://manifest.internal/sp/journey-app/production` at
+`https://journey-app.manifest.internal/auth/ubcshib/callback`; and **for an app with
+`auth.provider: none` the SP is skipped by the CALLER**, so `SP_ENTITY_PROVIDER_NOT_CWL` is
+unreachable from a deploy and Task 14's item has nothing to rehearse and no error to catch.
+`[M5](c)` — `waitForIdentity` refuses a `200` with no `X-Manifest-Instance`, so a mis-listened
+probe fails loudly. `[M8]` — `Expectation` already carries `{status, code}` pairs, so Task 9
+adds a const beside `PENDING`, not a `REFUSAL_CODE` row.
+
+**NEGATIVE CONTROLS — six, and all six fired.** (a) `[M3]`'s warm-jar sign-in with the flag
+absent: **0 forms**, so "a form appeared" means `ForceAuthn` and not a lost session. (b)
+`[M6]`'s `release:promote` mint: **`400 TOKEN_CAPABILITY_FORBIDDEN`**. (c) `[M7]`'s restore
+re-run: **2 passed**, 34 operations, `m7Probe` gone. (d) `[M5](a)`'s `DELETE` of `srv1`:
+**`["srv0"]`** and `:8443` refusing. **(e) and (f) were added by this sitting**, because Q5 and
+Q4 are otherwise negative claims: the all-met run **without** the seventh item read
+`ready: true`, and a created-but-undeployed release left the candidate **unchanged**. *A
+negative claim needs a positive control in the same experiment.*
+
+**EVERY TEMPORARY EDIT WAS RESTORED IN THE SAME STEP AND THE RESTORE RE-MEASURED**, never
+assumed: `db/schema.ts` + a generated `0019` and its journal entry (`[M10]`); `api/routes/me.ts`,
+`coverage.test.ts` and the regenerated contract (`[M7]`); `identity/saml.ts` (`[M3]`);
+`launch/readiness.ts` and `api/representations/launch.ts` (`[M4]`); `api/routes/releases.ts`
+(`[M2]`); `infra/compose.yaml` and a throwaway `srv1` and dnsmasq container (`[M5]`).
+**This sitting's commit is documentation only** — the spike directory and this plan.
+
+**THE GATES, at the close.** `pnpm test` **1390 passed, 108 files**, run twice (113.97 s,
+115.04 s) and identical, so the suite is repeatable; `pnpm lint`, `pnpm typecheck` and
+`pnpm format:check` all clean; `make doctor` **18 checks, 0 failed, 0 warnings**; `make verify`
+**51 checks, 0 failed, 0 warnings**. **All four agree with ORIENTATION §2's box and none moved.**
+**`pnpm test:docker` was NOT RUN and was NOT OWED** — every source file was restored and the
+commit touches no code. Sitting 2 owes it (Tasks 2 and 3 change `infra/`); budget ~13 minutes.
+
+**THE MACHINE.** macOS 26.6.2 (25G83), arm64, Node v24.12.0, pnpm 11.24.0, Docker 29.7.2
+(API 1.55, buildx v0.36.1-desktop.1), Caddy v2.11.4 / Coraza v2.6.0, OpenSSL 3.6.3, bash 3.2.57.
+`bash scripts/dead-app-resources.sh` reads **`none dead`, 0 networks and 0 volumes**.
+`bash scripts/litellm-orphans.sh` found **one** orphan from the project `make demo-journey`
+replaced; **`--apply` was ALLOWED this session and was run**, and a bare re-run reads
+**`Orphaned (0)`** with all four held users surviving. `make verify`'s per-app line reads
+`containers=12 networks=4 volumes=8` — **four** apps. The before/after `snapshot-machine.sh`
+diff is clocks, 65 → 57 GiB of disk, `manifest-caddy` recreated twice by `[M5](d)`,
+`journey-app`'s instance replaced by `[M4]` Q4, and one new app image — all of it platform
+operation rather than machine change. **The control plane was started for this sitting and
+stopped at its close, leaving 7100 free as `[M1]` found it**; it ran with a deliberately
+**stable** `MANIFEST_SESSION_SECRET` because six restarts with the README block's random one
+would have invalidated every cookie jar between measurements (§4). **The next sitting should use
+the README block as written.** A parallel session committed `45e5b9d` during this sitting and
+left two untracked files; **they were not staged.**

@@ -16,11 +16,11 @@ status.*
 
 **The design is approved and complete, five spikes are done, and P1 to P5c are executed
 and green — PHASE 1c IS COMPLETE.** Every one of them has an acceptance that passes. **P6 was
-split into P6a and P6b on 2026-09-19, and P6a — the first production launch — IS WRITTEN**
-(`docs/superpowers/plans/2026-09-19-p6a-first-production-launch.md`, 19 tasks in eleven agreed
-sittings, from `docs/superpowers/plans/2026-09-19-p6-brief.md`). **Nothing of it has executed:
-the next job is its sitting 1 — the measurements, alone and first — which ORIENTATION §7e sets
-out.** P6b is written after P6a executes. **The plan raises three spec actions and applies none**;
+split into P6a and P6b on 2026-09-19, and P6a — the first production launch — IS WRITTEN AND
+EXECUTING** (`docs/superpowers/plans/2026-09-19-p6a-first-production-launch.md`, 19 tasks in
+eleven agreed sittings, from `docs/superpowers/plans/2026-09-19-p6-brief.md`). **Its measurement
+sitting has run; ORIENTATION §7e names the exact next job, and this file states no sitting
+count.** P6b is written after P6a executes. **The plan raises three spec actions and applies none**;
 they are ORIENTATION §8's first entry and they are Rich's.
 
 | Plan | Executed | What it made true | Acceptance |
