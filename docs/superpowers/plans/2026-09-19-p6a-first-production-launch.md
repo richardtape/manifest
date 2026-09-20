@@ -35,7 +35,7 @@
 | 3 | 4 | **A production route goes on the public listener and staging cannot reach it** — §12's fail-closed claim watched failing on the only machine that exists, in both directions, and the readiness probe taught the production path | **DONE 2026-09-20 — 11 findings.** A production route is written to `srv1` and a staging route to `srv0`, read back off `X-Manifest-Instance` from a REAL route on each listener; `edgeIdentityProbe` and `edgeProbe` take a `port` and the driver passes it for production alone. `pnpm test` **1390 → 1395**, `pnpm test:docker` **180 → 185** (the predicted 180 + 5), doctor **19/0** and verify **54/0** both unmoved — the new port-equality assertion lives INSIDE check 2. **No task boundary moved.** **Its headline is about CONTROLS, not the platform: control (c) went RED rather than staying green, because the case asserts the body as well as the identity, and control (b) CANNOT FAIL AT ALL — the driver's production branch is asserted by nothing until Task 15.** `[M5]` named one hardcoded `public: 'srv0'` and there are nine; two were the Docker tier's own driver factory |
 | 4 | 5–6 | **Migration 0019** — `approvals`, `iam_registrations`, `privacy_assessments` and their state machines — and **the two external records over the API**: an administrator records a real registration and a real PIA with a pasted ticket reference | **DONE 2026-09-20 — 21 findings** (19 + 2 from the post-sweep check)**.** §13's gate now has REAL ROWS to block on, which is the whole of R1. `[M10]` is confirmed exactly: drizzle wrote the `audit.events` DROP/ADD pair unprompted and **nothing was appended**. THREE routes, not the four this task says. `launch:record` is granted to `PLATFORM_ADMIN` alone and is NOT one of D24's four — `requireSession` is the control, enforced by the matrix **and by `tsc`**. **No task boundary moved.** `pnpm test` **1395 → 1449 in 110 files**. **Its headline is that the plan's own matrix row for `token-other-project` says `404 NOT_FOUND` and the route answers `403 TOKEN_CREDENTIAL_REFUSED`** — `requireSession` runs before the project is read, which is the right order, and control (a) proves the row was written for the other one. **ALL NINE controls fired; none could not fail** |
 | 5 | 7 | **The gate that BLOCKS.** One evaluation in `launch/`, called by the read and by the deploy route, with the **two** unconditional refusals that exist today removed — and the checklist's items reading real rows. **Alone: it is this plan's centre** | **DONE 2026-09-20 — 14 findings** (12, plus 2 the post-sweep check found)**.** §13's checklist is now the thing that gates production: `assertLaunchable` in `launch/gate.ts`, ONE evaluation, two callers, and **both** unconditional refusals gone — the inner one DELETED. Measured live end to end: with nothing recorded the deploy is refused blocking on **four** items; an administrator records a real IAM registration and a real PIA over the API and the same deploy is refused blocking on **two**, `rehearsal` and `admin-approval`. `pnpm test` **1449 → 1456 passed + 1 SKIPPED in 110 files**; `pnpm test:docker` **OWED, RUN and UNMOVED at 185 in 30, 826 s**; doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is that the plan's Steps 2 and 4 CONTRADICT EACH OTHER** — the class cannot both move to `launch/` and keep the `api` family — **and that moving it would have made its code invisible to the registry**, sitting 4's F5 one sitting later. **Control (b) fired SIX red across FOUR files where the plan predicted the matrix alone and said the delivery test would stay green; control (a) could not fail against all 1456 tests, predicted in advance; control (d) is the second gate SEEN** — `409` with the same code and **no `launchReadiness`** |
-| 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | **DONE 2026-09-20 — 17 findings** (15, plus 2 the post-sweep check found)**.** §20's second round trip exists and is **proved end to end against the REAL Manifest IdP through the edge**: an ordinary session is refused `403 STEP_UP_REQUIRED`, `/auth/step-up` makes the IdP re-prompt **on a warm cookie jar** (`[M3]`'s control, re-fired live), the claim lands on the same session with `expiresAt` unchanged, the same request then answers `201`, and a step-up assertion for a DIFFERENT person is refused with the session left byte-identical. `pnpm test` **1456 → 1492 passed + 1 skipped in 112 files**; `pnpm test:docker` **OWED, RUN and UNMOVED at 185 in 30, 829 s** — and unmoved is the measurement, because **no Docker test makes a member call over HTTP or drives `/auth/step-up`, so that tier cannot see Task 9 at all**. doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is that the plan's own `assertStepUp` KILLS D24'S CONFIRM-AND-RETRY LOOP** — it refuses every token on a premise that is false, and a token carrying a human-confirmed grant reaches it; the grant is what stands in step-up's place. **Nine of ten controls fired, four of them WIDER than predicted and one — Task 8's (e), the row the plan calls its most important — where the plan says in bold that nothing would.** Control (d) **could not fail** and was fixed rather than recorded. **The guard reddened 48 tests across 7 files, not the 4 predicted, and 29 were the matrix's own fixture failing silently** |
+| 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | **DONE 2026-09-20 — 18 findings** (15, plus 3 the close-out found)**.** §20's second round trip exists and is **proved end to end against the REAL Manifest IdP through the edge**: an ordinary session is refused `403 STEP_UP_REQUIRED`, `/auth/step-up` makes the IdP re-prompt **on a warm cookie jar** (`[M3]`'s control, re-fired live), the claim lands on the same session with `expiresAt` unchanged, the same request then answers `201`, and a step-up assertion for a DIFFERENT person is refused with the session left byte-identical. `pnpm test` **1456 → 1493 passed + 1 skipped in 112 files**; `pnpm test:docker` **OWED, RUN and UNMOVED at 185 in 30, 829 s** — and unmoved is the measurement, because **no Docker test makes a member call over HTTP or drives `/auth/step-up`, so that tier cannot see Task 9 at all**. doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is that the plan's own `assertStepUp` KILLS D24'S CONFIRM-AND-RETRY LOOP** — it refuses every token on a premise that is false, and a token carrying a human-confirmed grant reaches it; the grant is what stands in step-up's place. **Nine of ten controls fired, four of them WIDER than predicted and one — Task 8's (e), the row the plan calls its most important — where the plan says in bold that nothing would.** Control (d) **could not fail** and was fixed rather than recorded. **The guard reddened 48 tests across 7 files, not the 4 predicted, and 29 were the matrix's own fixture failing silently** |
 | 7 | 10–11 | **The approval**: `release:approve`'s first caller ever, bound to an immutable digest, non-repudiable, behind step-up — and its `diff_snapshot` with the AI-written summary that is **recorded as absent rather than blocking** when the model is down | ← **next** |
 | 8 | 12–13 | **R4's `Reviewer` seam** — the interface, the honest `NullReviewer`, its real caller and its **non-blocking** checklist item — and **§7's last production clause**: `auth.attributes` ⊆ `registered_attributes`, failing at build time | |
 | 9 | 14–15 | **The D21 rehearsal as R2 redefines it**, and **the first production deploy this platform has ever done** — the digest verified before anything starts. **A first, and this project's worst discoveries have all arrived at a first** | |
@@ -4760,7 +4760,7 @@ by re-reading the sentence:
   against a fixture file rather than reasoned about — which is the whole reason
   `EXPECT_TESTS` is 1456 and not 1457.
 
-### Sitting 6 — Tasks 8 and 9, step-up re-authentication — 2026-09-20. **17 findings** (15, plus 2 the post-sweep check found).
+### Sitting 6 — Tasks 8 and 9, step-up re-authentication — 2026-09-20. **18 findings** (15, plus 3 the close-out found: two from the post-sweep check and one from the final gate run).
 
 **§20'S SECOND AUTHENTICATION ROUND TRIP EXISTS, IT GUARDS FIVE CAPABILITIES, AND IT HAS
 BEEN WALKED END TO END AGAINST THE REAL MANIFEST IdP.** `GET /auth/step-up` sends a signed
@@ -4821,7 +4821,7 @@ took the LAST id in the project body, an environment's. A `404` that reads exact
 |---|---|---|
 | `make doctor` | 19 checks, 0 failed | **19, 0 failed** — unmoved, re-run AFTER the Docker tier and after both cleanups. This sitting adds no platform check |
 | `make verify` | 54 checks, 0 failed | **54, 0 failed** — unmoved, same reason |
-| `pnpm test` | 1456 passed + 1 skipped, 110 files | **1492 passed + 1 skipped, 112 files**, run twice and identical. **Counted per file, never subtracted**: `identity/step-up.test.ts` **9 (NEW)**, `projects/step-up-guarded.test.ts` **10 (NEW)**, `api/auth.test.ts` **22 → 30 (+8)**, `api/authz-contract.test.ts` **397 → 406 (+9)**, `api/error-codes.test.ts` **6 → 7 (+1)**. **Up 36 and two files.** The skip is still `api/delivery.test.ts`'s, untouched |
+| `pnpm test` | 1456 passed + 1 skipped, 110 files | **1493 passed + 1 skipped, 112 files**, run twice and identical. **Counted per file, never subtracted**: `identity/step-up.test.ts` **9 (NEW)**, `projects/step-up-guarded.test.ts` **10 (NEW)**, `api/auth.test.ts` **22 → 30 (+8)**, `api/authz-contract.test.ts` **397 → 406 (+9)**, `api/error-codes.test.ts` **6 → 7 (+1)**. **Up 37 and two files.** The skip is still `api/delivery.test.ts`'s, untouched |
 | `pnpm test:docker` | 185 in 30 files | **185 in 30, 0 skipped, 829 s** — **OWED** (`identity/`, `sso/`, `projects/`, `api/routes/`)**, RUN and UNMOVED — and unmoved is a MEASUREMENT here**: no `*.docker.test.ts` makes a member call over HTTP (`boot.docker.test.ts` writes `pending_actions` rows straight into Postgres) and none drives `/auth/step-up`, so **that tier cannot see Task 9 at all**. Task 19's demo is the first thing that will |
 #### The findings
 
@@ -5071,7 +5071,7 @@ expect, then read which test actually failed.
 | the four shared HTML pages | **ALL FOUR opened and counted, and THE FIRST DRAFT OF THIS ROW WAS WRONG** — it claimed `manifest-decisions.html` mentions *"a second sign-in prompt"*, and the count is **zero**. Sitting 5's F13 is why this row gets counted rather than asserted, and it caught a fabricated claim this time rather than a lucky one. Measured: `step-up`, `stepUp`, `re-authenticat`, `ForceAuthn` and `STEP_UP` are **0** in all four. *"sign in again"* appears **three** times and none is about §20: twice in `manifest-schematic.html` about practice apps versus live CWL, once in `manifest-phases.html` about a deploy interrupting a session. **No page needed a change** |
 | `docker-simple-saml` | still clean: its only dirty path is the untracked `cert.zip` dated months before this project |
 
-#### What the post-sweep check found — TWO in §7e, and the streak since P5b's third sitting holds
+#### What the close-out found — THREE, and the streak since P5b's third sitting holds
 
 **Both were found by opening the thing pointed at, and neither is visible from the
 sentence** — which is the whole of what this check is for.
@@ -5094,6 +5094,28 @@ because the next sitting trusts what it is told to trust; the line now names wha
 actually in Task 11 — its `summarySource` union and `default-chat-onprem` — and says it was
 checked against the steps.
 
+**F18 — THE FINAL GATE RUN CAUGHT A PUBLISHED NUMBER THAT WAS ONE TOO LOW, IN SEVEN
+PLACES, AND THE PER-FILE BREAKDOWN BESIDE IT WAS RIGHT ALL ALONG.** `pnpm test` was measured
+at **1492** and written into ORIENTATION's top-of-file box, §2's numbers box, §7e, README,
+RUNBOOK, `scripts/ci-acceptance.sh` and this record — and the machine reads **1493**. The
+cause is exact: 1492 was measured **before** control (d)'s repair added
+*"is ten minutes, and nothing has quietly widened it"* to `identity/step-up.test.ts`, and
+the total was carried forward from that measurement instead of being re-derived.
+
+**The breakdown published beside it was correct and contradicted it**: 9 + 10 + 8 + 9 + 1 is
+**37**, and 1456 + 37 is 1493, not 1492. **So the sitting wrote down the parts, wrote down a
+total that does not match them, and shipped both** — which is why *"count per file, never
+subtract"* is only half a rule. **The other half is to add the parts up and check they equal
+the total**, and it is the half sitting 4's F21 and sitting 5's gate table do not state.
+`EXPECT_TESTS` is now 1493, with the `awk` extraction re-checked against the literal
+`Tests  1493 passed | 1 skipped (1494)` rather than reasoned about; the three surviving
+1492s are control (d)'s own measurement, which really did read 1492 at the moment it ran.
+
+**Found only because the four gates were re-run after the documentation was written.**
+A sitting that treats the gates as a pre-commit ritual rather than a close-out measurement
+would have shipped this, and `make ci-acceptance` would have read `counts moved: expected
+1492, got 1493` quietly on its next run — the failure mode sitting 3 found in that file.
+
 **Five other claims were checked and HELD**, each by counting rather than recalling:
 
 - **`api/auth.test.ts` 22 → 30 and `api/error-codes.test.ts` 6 → 7.**
@@ -5112,8 +5134,10 @@ checked against the steps.
   really does already list `STEP_UP_REQUIRED`** in its `errors:` — so *"there is nothing for
   you to wire"* is a claim about the plan's own text, read.
 - **Findings counted, not asserted:** `grep -c '^\*\*F[0-9]'` over this section read
-  **15** before this subsection existed and **17** with F16 and F17 in it — **and writing
-  them down moved a number that five documents already carried**, which is the restated-number
-  trap in its purest form. Every copy was found by grepping the PHRASE rather than the number
-  (§6), and the sittings table, the roadmap row, the defect-rate table, ORIENTATION's
-  top-of-file box and §7e all now read **17**.
+  **15** before this subsection existed, **17** with F16 and F17 in it, and **18** once F18
+  landed — **so writing the close-out's own findings down moved a number that five documents
+  already carried, TWICE.** That is the restated-number trap in its purest form, and it is
+  the argument for stating a count in as few places as possible. Every copy was found by
+  grepping the PHRASE rather than the number (§6), because the stale one carries a different
+  number by definition; the sittings table, the roadmap's two rows, the defect-rate table,
+  ORIENTATION's top-of-file box and §7e all now read **18**.

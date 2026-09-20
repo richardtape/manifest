@@ -46,12 +46,12 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # table now carries a row for it. Last moved 2026-09-20 by P6a sitting 6 (Tasks 8-9).
 #
 # EXPECT_TESTS IS THE *PASSED* COUNT AND THE SUITE HAS A SKIPPED TEST. Since sitting 6
-# `pnpm test` prints `Tests  1492 passed | 1 skipped (1493)` — the one `it.skip` is the
+# `pnpm test` prints `Tests  1493 passed | 1 skipped (1494)` — the one `it.skip` is the
 # production gate's positive control, which cannot run until Tasks 10 and 14 build
-# `admin-approval` and `rehearsal`. `awk '{print $2}'` reads 1492 from that line,
+# `admin-approval` and `rehearsal`. `awk '{print $2}'` reads 1493 from that line,
 # checked against the literal string rather than assumed; **1493 here would read MOVED on
 # every run.** When Task 14 un-skips it, this becomes 1493 and the `| 1 skipped` goes.
-EXPECT_TESTS=1492
+EXPECT_TESTS=1493
 EXPECT_FILES=112
 EXPECT_DOCTOR=19
 EXPECT_VERIFY=54
