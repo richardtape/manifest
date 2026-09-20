@@ -3933,6 +3933,23 @@ the pages stay as P5c left them. Checked rather than assumed, per §6.
 `git status` was accounted for before each of the two commits. Commits: `0d612f4` (Task 2) and
 `978df32` (Task 3).
 
+#### What the post-sweep check found — TWO, and the streak since P5b's third sitting holds
+
+**1. §7e said "11 findings" while the record, the sittings table and the roadmap all said
+12.** The record was renumbered when control (a) produced F12, and §7e — drafted earlier in
+the sitting — was not. **It survived the obvious `grep` because the number sat on its own
+line**: `grep -o 'ran on 2026-09-19 with [0-9]* findings'` matched a DIFFERENT sentence and
+reported 12, which read as agreement. It was found by opening §7e and reading its first six
+lines. **§6's rule — grep the PHRASE, never the number — needs one more clause: a phrase
+broken across a line break defeats `grep -o` too, so read the lines.**
+
+**2. §7e said `HEAD` moved under this sitting "once (`a451187`)". It moved THREE times** —
+`a451187`, `a6f2f61` and `312f083`, all a parallel design agent's, and **two of them landed
+BETWEEN this sitting's own two task commits**. Written from what the sitting noticed at its
+start rather than from `git log` at its close — the same cause §6 names for the three state
+claims that went stale within the hour. Found by counting the commits, not by re-reading the
+sentence.
+
 *One note for the next agent, checked rather than assumed: ORIENTATION's "`pnpm test` — even one
 file — truncates the control plane's tables" is true of files that USE the database.
 `packages/control-plane/vitest.setup.ts` only sets environment variables, and
