@@ -4212,3 +4212,19 @@ the test that reads the `events_type_known` constraint out of Postgres and compa
 `EVENT_TYPES`; Decision 14's five event types are quoted exactly; and the four gate numbers
 agree across ORIENTATION §2's box, README, RUNBOOK and `scripts/ci-acceptance.sh` — the fourth
 of which this sitting had to fix first (F9).*
+
+*The before/after `snapshot-machine.sh` diff is **66 lines and every one is platform operation
+rather than machine change**: clocks and uptimes, free disk **59 → 57 GiB**, `HEAD` moved, and
+**five new app image rows for four names** left by the Docker tier —
+`127.0.0.1:7107/local/boot-recover`, `chem-labs` **twice, with different digests**, `fixture-rd`
+and `redeploy-cp`. Those are the same four names sitting 2 recorded, which is the second
+measurement of the growth **neither cleanup script covers** — and the doubled `chem-labs` is why
+CLAUDE.md says to name the metric: four names are five rows, and `docker images | grep '^local/'`
+would answer 0 for all of them, because they are tagged `127.0.0.1:7107/local/*`. Nothing was
+recreated: `manifest-caddy` and `manifest-dns-host` show the uptimes `make up` gave them at the
+sitting's start, not new ones. **All four must-survive containers are present**
+(`docker-simple-saml-saml-idp-1` still `Exited (0)`, which is correct — "must survive" means do
+not delete it, not that it is up), and **`docker-simple-saml` is still clean**: its only dirty
+path is the untracked `cert.zip` dated 2026-06-22, exactly as CLAUDE.md records it. There is no
+git repository at `~/Developer/ubc-genai-toolkit` to check, and nothing in this sitting read or
+wrote it.*
