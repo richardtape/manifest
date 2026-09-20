@@ -150,6 +150,19 @@ For the platform itself it is `make doctor` and `make verify`.
   one script and ask Rich to run `! sudo bash <path>` in his terminal.
 - **Leave the machine exactly as you found it.** Snapshot before changing anything.
   Every spike so far has met this bar, and so has every plan-writing session.
+
+- **YOU ARE PROBABLY NOT THE ONLY AGENT WORKING IN THIS REPOSITORY.** Rich runs several
+  sessions at once. They should not be changing code, but they **do** add markdown files and
+  assets, and they **do commit on `main` while you are working** — P6a sitting 1 watched `HEAD`
+  move under it twice and found two untracked files that were not its own.
+  **So: NEVER `git add -A`, `git add .`, `git commit -a` or `git checkout .`** — stage the
+  paths you actually changed, by name, every time. A parallel session's file was swept into an
+  unrelated commit exactly that way on 2026-09-19.
+  **Before committing, run `git status` and account for every path**; anything you cannot
+  explain is somebody else's, and you leave it alone rather than staging, reverting or
+  stashing it. If `git log` shows commits you did not make, that is normal — build on them.
+  **Nothing is pushed**, so a surprising `HEAD` is never a conflict to resolve, only a commit
+  to land on top of. The same rule protects THEM from you.
 - **Never touch Laravel Valet.** It owns the `.test` TLD, port 53 and ports 80/443 on
   this machine and on other UBC developers' machines. This is why the platform zone
   is `*.manifest.internal` and why the edge binds the `127.0.0.2` loopback alias.

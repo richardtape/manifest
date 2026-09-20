@@ -115,7 +115,10 @@ docs/superpowers/
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
     ├── S1-controls-settled.md          scoped registry tokens; the builder's bounds
-    ├── p4c-baseline/, p5a-baseline/    the measurements P4c and P5a rest on
+    ├── p4c-, p5a-, p5b-, p5c-, p6a-baseline/   THE MEASUREMENT SITTINGS, one per plan since P4c.
+    │                                   Each README.md is one section per measurement with its raw
+    │                                   answer; the results-*.txt beside it is every command's full
+    │                                   output. Read the CURRENT plan's before its sitting 2
     ├── START-HERE.md                   the ORIGINAL spike briefing. Historical; its §6 is wrong
     └── HANDOFF-2026-08-3*.md           dated handoffs, SUPERSEDED by this file; do not act on either
 ```
@@ -1714,6 +1717,27 @@ coherent. Follow them.
    touch them — a pinned digest or a reconciliation pass is invisible to an outsider —
    but **check rather than assume**, and say in the session record that you checked.
 
+9. **YOU ARE PROBABLY NOT THE ONLY AGENT IN THIS REPOSITORY, AND THE COMMIT RULE FOLLOWS
+   FROM THAT.** Rich runs several sessions at once. They should not be touching code, but they
+   **do** add markdown files and assets and they **do commit on `main` while you work** — P6a
+   sitting 1 watched `HEAD` move under it twice (`45e5b9d`, `c68481a`) and found two untracked
+   files that were not its own.
+
+   - **Commit on `main`. No branch, no worktree, no push.** `superpowers:executing-plans` and
+     `using-git-worktrees` will both push you the other way; **Rich gives the consent, and it
+     is recorded here rather than in each plan** so that a sitting need not re-derive it.
+   - **NEVER `git add -A`, `git add .`, `git commit -a` or `git checkout .`.** Stage the paths
+     you actually changed, **by name**, every time. A parallel session's file was swept into an
+     unrelated commit exactly that way on 2026-09-19. (`git checkout <path>` on a file *you*
+     changed is fine and is how a measurement restores itself — it is the bare `.` that is
+     destructive.)
+   - **Before committing, run `git status` and account for every path.** Anything you cannot
+     explain belongs to somebody else: leave it alone — do not stage it, revert it or stash it.
+   - **A `HEAD` you did not expect is normal, not a conflict.** Nothing is pushed, so there is
+     nothing to reconcile; land on top of it. If you amend, check first that `HEAD` is still
+     your own commit.
+   - The same rule protects them from you, which is the real reason it is not negotiable.
+
 ### Your first ten minutes, in this order
 
 Establish a baseline before you change anything — every session that skipped this spent longer working out whether a red result was theirs.
@@ -1865,10 +1889,11 @@ risk* saying "the five sensitive fields" where §7 says seven. **Never edit the 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in
 each plan's *Global Constraints*:
 
-- **COMMIT ON `main`. No branch, no worktree, no push.** `superpowers:writing-plans` and
-  `using-git-worktrees` will both push you the other way; the consent is given here, by Rich.
-  **Stage the paths you actually changed** — a parallel session was committing on `main`
-  during sitting 1, and `git add -A` would have swept its files in.
+- **COMMIT ON `main`, AND STAGE YOUR OWN PATHS BY NAME — §6 RULE 9 IS THE FULL RULE AND THIS
+  LINE DELIBERATELY DOES NOT RESTATE IT.** Read it: **other agents are working in this
+  repository at the same time as you**, `HEAD` moved twice under sitting 1, and
+  `superpowers:executing-plans` and `using-git-worktrees` will both push you toward a branch
+  you must not make.
 - **Ask before `sudo`, and before touching anything outside the repository.** §6 rule 2, and
   CLAUDE.md's *Non-negotiables* has the rest.
 
