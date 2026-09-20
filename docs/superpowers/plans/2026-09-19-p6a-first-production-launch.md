@@ -35,7 +35,7 @@
 | 3 | 4 | **A production route goes on the public listener and staging cannot reach it** — §12's fail-closed claim watched failing on the only machine that exists, in both directions, and the readiness probe taught the production path | **DONE 2026-09-20 — 11 findings.** A production route is written to `srv1` and a staging route to `srv0`, read back off `X-Manifest-Instance` from a REAL route on each listener; `edgeIdentityProbe` and `edgeProbe` take a `port` and the driver passes it for production alone. `pnpm test` **1390 → 1395**, `pnpm test:docker` **180 → 185** (the predicted 180 + 5), doctor **19/0** and verify **54/0** both unmoved — the new port-equality assertion lives INSIDE check 2. **No task boundary moved.** **Its headline is about CONTROLS, not the platform: control (c) went RED rather than staying green, because the case asserts the body as well as the identity, and control (b) CANNOT FAIL AT ALL — the driver's production branch is asserted by nothing until Task 15.** `[M5]` named one hardcoded `public: 'srv0'` and there are nine; two were the Docker tier's own driver factory |
 | 4 | 5–6 | **Migration 0019** — `approvals`, `iam_registrations`, `privacy_assessments` and their state machines — and **the two external records over the API**: an administrator records a real registration and a real PIA with a pasted ticket reference | **DONE 2026-09-20 — 21 findings** (19 + 2 from the post-sweep check)**.** §13's gate now has REAL ROWS to block on, which is the whole of R1. `[M10]` is confirmed exactly: drizzle wrote the `audit.events` DROP/ADD pair unprompted and **nothing was appended**. THREE routes, not the four this task says. `launch:record` is granted to `PLATFORM_ADMIN` alone and is NOT one of D24's four — `requireSession` is the control, enforced by the matrix **and by `tsc`**. **No task boundary moved.** `pnpm test` **1395 → 1449 in 110 files**. **Its headline is that the plan's own matrix row for `token-other-project` says `404 NOT_FOUND` and the route answers `403 TOKEN_CREDENTIAL_REFUSED`** — `requireSession` runs before the project is read, which is the right order, and control (a) proves the row was written for the other one. **ALL NINE controls fired; none could not fail** |
 | 5 | 7 | **The gate that BLOCKS.** One evaluation in `launch/`, called by the read and by the deploy route, with the **two** unconditional refusals that exist today removed — and the checklist's items reading real rows. **Alone: it is this plan's centre** | **DONE 2026-09-20 — 14 findings** (12, plus 2 the post-sweep check found)**.** §13's checklist is now the thing that gates production: `assertLaunchable` in `launch/gate.ts`, ONE evaluation, two callers, and **both** unconditional refusals gone — the inner one DELETED. Measured live end to end: with nothing recorded the deploy is refused blocking on **four** items; an administrator records a real IAM registration and a real PIA over the API and the same deploy is refused blocking on **two**, `rehearsal` and `admin-approval`. `pnpm test` **1449 → 1456 passed + 1 SKIPPED in 110 files**; `pnpm test:docker` **OWED, RUN and UNMOVED at 185 in 30, 826 s**; doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is that the plan's Steps 2 and 4 CONTRADICT EACH OTHER** — the class cannot both move to `launch/` and keep the `api` family — **and that moving it would have made its code invisible to the registry**, sitting 4's F5 one sitting later. **Control (b) fired SIX red across FOUR files where the plan predicted the matrix alone and said the delivery test would stay green; control (a) could not fail against all 1456 tests, predicted in advance; control (d) is the second gate SEEN** — `409` with the same code and **no `launchReadiness`** |
-| 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | **DONE 2026-09-20 — 18 findings** (15, plus 3 the close-out found)**.** §20's second round trip exists and is **proved end to end against the REAL Manifest IdP through the edge**: an ordinary session is refused `403 STEP_UP_REQUIRED`, `/auth/step-up` makes the IdP re-prompt **on a warm cookie jar** (`[M3]`'s control, re-fired live), the claim lands on the same session with `expiresAt` unchanged, the same request then answers `201`, and a step-up assertion for a DIFFERENT person is refused with the session left byte-identical. `pnpm test` **1456 → 1496 passed + 1 skipped in 112 files**; `pnpm test:docker` **OWED, RUN and UNMOVED at 185 in 30, 829 s** — and unmoved is the measurement, because **no Docker test makes a member call over HTTP or drives `/auth/step-up`, so that tier cannot see Task 9 at all**. doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is that the plan's own `assertStepUp` KILLS D24'S CONFIRM-AND-RETRY LOOP** — it refuses every token on a premise that is false, and a token carrying a human-confirmed grant reaches it; the grant is what stands in step-up's place. **Nine of ten controls fired, four of them WIDER than predicted and one — Task 8's (e), the row the plan calls its most important — where the plan says in bold that nothing would.** Control (d) **could not fail** and was fixed rather than recorded. **The guard reddened 48 tests across 7 files, not the 4 predicted, and 29 were the matrix's own fixture failing silently.** **F12 was raised open and CLOSED the same day by Rich's decision**: confirming a pending action now requires step-up and rejecting does not, and `release:promote`'s missing call site is tracked to Task 15 with a correction block there |
+| 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | **DONE 2026-09-20 — 19 findings** (15, plus 4 the close-out found)**.** §20's second round trip exists and is **proved end to end against the REAL Manifest IdP through the edge**: an ordinary session is refused `403 STEP_UP_REQUIRED`, `/auth/step-up` makes the IdP re-prompt **on a warm cookie jar** (`[M3]`'s control, re-fired live), the claim lands on the same session with `expiresAt` unchanged, the same request then answers `201`, and a step-up assertion for a DIFFERENT person is refused with the session left byte-identical. `pnpm test` **1456 → 1496 passed + 1 skipped in 112 files**; `pnpm test:docker` **OWED, RUN and UNMOVED at 185 in 30, 829 s** — and unmoved is the measurement, because **no Docker test makes a member call over HTTP or drives `/auth/step-up`, so that tier cannot see Task 9 at all**. doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is that the plan's own `assertStepUp` KILLS D24'S CONFIRM-AND-RETRY LOOP** — it refuses every token on a premise that is false, and a token carrying a human-confirmed grant reaches it; the grant is what stands in step-up's place. **Nine of ten controls fired, four of them WIDER than predicted and one — Task 8's (e), the row the plan calls its most important — where the plan says in bold that nothing would.** Control (d) **could not fail** and was fixed rather than recorded. **The guard reddened 48 tests across 7 files, not the 4 predicted, and 29 were the matrix's own fixture failing silently.** **F12 was raised open and CLOSED the same day by Rich's decision**: confirming a pending action now requires step-up and rejecting does not, and `release:promote`'s missing call site is tracked to Task 15 with a correction block there |
 | 7 | 10–11 | **The approval**: `release:approve`'s first caller ever, bound to an immutable digest, non-repudiable, behind step-up — and its `diff_snapshot` with the AI-written summary that is **recorded as absent rather than blocking** when the model is down | ← **next** |
 | 8 | 12–13 | **R4's `Reviewer` seam** — the interface, the honest `NullReviewer`, its real caller and its **non-blocking** checklist item — and **§7's last production clause**: `auth.attributes` ⊆ `registered_attributes`, failing at build time | |
 | 9 | 14–15 | **The D21 rehearsal as R2 redefines it**, and **the first production deploy this platform has ever done** — the digest verified before anything starts. **A first, and this project's worst discoveries have all arrived at a first** | |
@@ -3895,7 +3895,7 @@ and that applies to a throwaway shell pipeline as much as to a committed script.
 
 | | Control | Predicted | Measured |
 |---|---|---|---|
-| 2a | `sudo ifconfig lo0 -alias 127.0.0.3` | doctor red: *"127.0.0.3 not on lo0"* | **RICH'S — it needs `sudo`. See below.** |
+| 2a | `sudo ifconfig lo0 -alias 127.0.0.3` | doctor red: *"127.0.0.3 not on lo0"* | **FIRED — RUN BY RICH IN HIS OWN TERMINAL, 2026-09-20, four sittings after it was owed.** `19 checks, 1 failed`, and the one is *both loopback aliases exist* — *"127.0.0.3 not on lo0 — Docker will refuse to bind Caddy"*. Restored, `19 checks, 0 failed`, *"127.0.0.2 and 127.0.0.3 present on lo0"*. **Exactly one check moved**, which is what the unprivileged stand-in could not establish |
 | 2a′ | `PUBLIC_EDGE_IP` pointed at `127.0.0.9`, unprivileged | — | **RED, both new checks**: *"127.0.0.9 not on lo0"* and *"a production name answers 127.0.0.3, want 127.0.0.9"*. Proves the check's logic; does NOT prove a real alias removal, which is why 2a is still owed |
 | 2b | console pin-back removed, `make up` | doctor red on the console half | **RED as predicted**: *"console.manifest.internal answers 127.0.0.3, want 127.0.0.2 — the console is on the PUBLIC address"* |
 | 2c | production parent rule removed, `make up` | doctor red: *"answers 127.0.0.2"* | **RED, different message** — `<nothing>`. See F4 |
@@ -3975,10 +3975,28 @@ survive" means do not delete it, not that it is up), and **both read-only reposi
 still clean**: `docker-simple-saml`'s only dirty path is the untracked `cert.zip` dated
 2026-06-22, exactly as CLAUDE.md records it.
 
-**One control is still OWED and is Rich's:** Task 2's control (a), `sudo ifconfig lo0 -alias
-127.0.0.3` with `make doctor` watched going red. An unprivileged stand-in was run instead and
-both new checks fired with the right messages, which proves the checks' LOGIC but not that a
-real alias removal is caught.
+**~~One control is still OWED and is Rich's~~ — RUN AND FIRED, 2026-09-20 (P6a sitting 6's
+follow-up).** Task 2's control (a), `sudo ifconfig lo0 -alias 127.0.0.3` with `make doctor`
+watched going red. The unprivileged stand-in run here proved the checks' LOGIC; **this proves
+a real alias removal is caught**, and it took four sittings to get a terminal to it.
+
+**It also measured something the control was not aimed at, and it is worth more than the
+control.** With `127.0.0.3` gone from `lo0` — so Caddy could not have bound it and the
+production zone was unreachable — **two checks that name `127.0.0.3` stayed GREEN**:
+*nothing but Manifest claims manifest.internal* (*"resolves to 127.0.0.3"*) and **"the
+production zone answers the public address"** (*"production=127.0.0.3 console=127.0.0.2"*).
+`check_zone_split` is two `dig` calls: it asserts what **dnsmasq answers**, never that
+anything is listening there, and that is correct for a check in doctor's *Host setup*
+section. **But its name says "answers"**, and a reader skimming a green doctor would have
+concluded production was fine while it was unreachable. **The alias check is the only thing
+in `doctor` that catches it.**
+
+**The division of labour is sound and only half of it is now measured.** `make verify`'s
+*the public listener answers a production name on 127.0.0.3* does a real
+`curl --resolve "$PUBLIC_PROBE_HOST:443:$PUBLIC_EDGE_IP"` and asserts `listener=public` in
+the BODY — so it would have gone red too. **Would have is a prediction, not a measurement**
+(this plan's own rule), and `make verify` was not run inside the window. **Cost to close it:
+one more `sudo` line and about thirty seconds.**
 
 **The four shared HTML pages were CHECKED and correctly need no change**: `grep` for
 `manifest.internal`, `caddy` and `edge proxy` finds **0** in all four, and the schematic's
@@ -4805,7 +4823,7 @@ by re-reading the sentence:
   against a fixture file rather than reasoned about — which is the whole reason
   `EXPECT_TESTS` is 1456 and not 1457.
 
-### Sitting 6 — Tasks 8 and 9, step-up re-authentication — 2026-09-20. **18 findings** (15, plus 3 the close-out found: two from the post-sweep check and one from the final gate run).
+### Sitting 6 — Tasks 8 and 9, step-up re-authentication — 2026-09-20. **19 findings** (15, plus 4 the close-out found: two from the post-sweep check, one from the final gate run, and one from Rich running Task 2's owed control).
 
 **§20'S SECOND AUTHENTICATION ROUND TRIP EXISTS, IT GUARDS FIVE CAPABILITIES, AND IT HAS
 BEEN WALKED END TO END AGAINST THE REAL MANIFEST IdP.** `GET /auth/step-up` sends a signed
@@ -5116,7 +5134,7 @@ expect, then read which test actually failed.
 | the four shared HTML pages | **ALL FOUR opened and counted, and THE FIRST DRAFT OF THIS ROW WAS WRONG** — it claimed `manifest-decisions.html` mentions *"a second sign-in prompt"*, and the count is **zero**. Sitting 5's F13 is why this row gets counted rather than asserted, and it caught a fabricated claim this time rather than a lucky one. Measured: `step-up`, `stepUp`, `re-authenticat`, `ForceAuthn` and `STEP_UP` are **0** in all four. *"sign in again"* appears **three** times and none is about §20: twice in `manifest-schematic.html` about practice apps versus live CWL, once in `manifest-phases.html` about a deploy interrupting a session. **No page needed a change** |
 | `docker-simple-saml` | still clean: its only dirty path is the untracked `cert.zip` dated months before this project |
 
-#### What the close-out found — THREE, and the streak since P5b's third sitting holds
+#### What the close-out found — FOUR, and the streak since P5b's third sitting holds
 
 **Both were found by opening the thing pointed at, and neither is visible from the
 sentence** — which is the whole of what this check is for.
@@ -5182,18 +5200,19 @@ them rather than a human remembering to.)*
   really does already list `STEP_UP_REQUIRED`** in its `errors:` — so *"there is nothing for
   you to wire"* is a claim about the plan's own text, read.
 - **Findings counted, not asserted:** `grep -c '^\*\*F[0-9]'` over this section read
-  **15** before this subsection existed, **17** with F16 and F17 in it, and **18** once F18
-  landed — **so writing the close-out's own findings down moved a number that five documents
-  already carried, TWICE.** That is the restated-number trap in its purest form, and it is
+  **15** before this subsection existed, **17** with F16 and F17 in it, **18** once F18
+  landed, and **19** once Rich ran Task 2's owed control and F19 came out of it — **so
+  writing the close-out's own findings down moved a number that five documents already
+  carried, THREE TIMES.** That is the restated-number trap in its purest form, and it is
   the argument for stating a count in as few places as possible. Every copy was found by
   grepping the PHRASE rather than the number (§6), because the stale one carries a different
   number by definition; the sittings table, the roadmap's two rows, the defect-rate table,
-  ORIENTATION's top-of-file box and §7e all now read **18**.
+  ORIENTATION's top-of-file box and §7e all now read **19**. **This moved THREE times in one sitting** — 15 → 17 → 18 → 19 — and the test count twice; **six places is too many for a number that changes as the close-out runs**, and that is worth raising as a convention rather than absorbing again.
 
 #### The follow-up Rich decided, 2026-09-20 — F12 CLOSED and the `release:promote` gap TRACKED
 
-**F12 was raised by this sitting and left open; Rich took both recommendations the same
-day, so it is closed in the same sitting that found it.** Recorded here rather than in
+**This sitting raised F12 and left it open; Rich took both recommendations the same day, so
+it is closed in the same sitting that found it.** *(That sentence deliberately does not begin with the finding's number: `grep -c '^\*\*F[0-9]'` over this section is how the count is derived, and a prose line starting `**F12` made it read 20 for 19.)* Recorded here rather than in
 sitting 7's section because the work is this sitting's and the decision is its finding's.
 
 **1. CONFIRMING A PENDING ACTION NOW REQUIRES STEP-UP. REJECTING DOES NOT.**
@@ -5267,6 +5286,39 @@ no token the platform can mint can hold one of D24's four, so this is the path e
 agent takes rather than a fixture's. **The guard sits between the question and its answer
 without breaking the loop** — which is the claim F12's fix had to earn, and the one no unit
 test can make on its own.
+
+**F19 — TASK 2's OWED CONTROL FINALLY RAN, AND IT MEASURED SOMETHING IT WAS NOT AIMED AT:
+`make doctor` CANNOT TELL YOU PRODUCTION IS REACHABLE.** Rich ran
+`sudo ifconfig lo0 -alias 127.0.0.3` in his own terminal on 2026-09-20 — four sittings after
+sitting 2 owed it. **The control fired exactly as predicted**: `19 checks, 1 failed`, the one
+being *both loopback aliases exist*; restored, 19/0. Exactly one check moved, which is what
+the unprivileged stand-in could not establish.
+
+**The finding is in the other eighteen.** With `127.0.0.3` gone from `lo0` — so Caddy could
+not have bound it and the whole production zone was unreachable — **two checks that name
+`127.0.0.3` stayed GREEN**:
+
+```
+PASS  nothing but Manifest claims manifest.internal
+        manifest.internal resolves to 127.0.0.3 (the bare zone is production, so 127.0.0.3)
+PASS  the production zone answers the public address, and the console does not
+        production=127.0.0.3  console=127.0.0.2  (nested zones, pinned back)
+```
+
+`check_zone_split` is **two `dig` calls** (`doctor.sh:292`). It asserts what **dnsmasq
+answers** and never that anything is listening there — which is correct for a check in
+doctor's *Host setup* section, and **its name says "answers"**. A reader skimming a green
+doctor would conclude production was fine while it was unreachable; **the alias check is the
+only thing in `doctor` that catches it.**
+
+**This is not a defect and it is worth knowing, which is why it is a finding rather than a
+fix.** The division of labour is sound: `doctor` asks *is the machine set up*, `verify` asks
+*does it work* — and `make verify`'s *the public listener answers a production name on
+127.0.0.3* does a real `curl --resolve "$PUBLIC_PROBE_HOST:443:$PUBLIC_EDGE_IP"` and asserts
+`listener=public` **in the body** (`verify.sh:158`), so it genuinely probes and would have
+gone red. **"Would have" is a prediction, not a measurement** — this plan's own rule, and
+sitting 6 broke it twice already — and `make verify` was not run inside the window. **The
+residue is one `sudo` line and thirty seconds**, offered to Rich and not taken yet.
 
 **A PROCESS FINDING, PAID FOR IN THIS FOLLOW-UP: `git checkout <path>` RESTORES FROM THE
 INDEX, AND AN UNCOMMITTED CHANGE IS DESTROYED BY THE RESTORE RATHER THAN THE EXPERIMENT.**
