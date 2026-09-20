@@ -30,6 +30,19 @@ export const CAPABILITIES = [
    */
   'release:promote',
   'release:approve',
+  /**
+   * §9 and R1 (P6a Task 6): recording what UBC IAM and the Privacy Office actually said.
+   * **External state Manifest tracks and drives** (D19), so it is an administrator's and
+   * not an owner's — a faculty member cannot assert that their own PIA was approved.
+   *
+   * **IT IS NOT ONE OF D24'S PRIVILEGED FOUR, AND SO `assertCapability` WILL NOT REFUSE A
+   * TOKEN THAT HOLDS IT.** Adding it to `PRIVILEGED` would be a spec change (D24 names
+   * four). The control is therefore `requireSession` on every route that asserts this,
+   * and `records.test.ts` proves a token holding `launch:record` is still refused
+   * `403 TOKEN_CREDENTIAL_REFUSED` — because a token that could satisfy the platform's
+   * own launch gate is D14 exactly inverted (P6a Decision 4).
+   */
+  'launch:record',
   'quota:set',
 ] as const
 
@@ -137,8 +150,14 @@ const COLLABORATOR: readonly Capability[] = OWNER.filter(
     cap !== 'members:manage' && cap !== 'project:delete' && cap !== 'release:promote',
 )
 
-// §13: the platform admin approves releases, sets quotas, and sees the whole fleet.
-const PLATFORM_ADMIN: readonly Capability[] = [...OWNER, 'release:approve', 'quota:set']
+// §13: the platform admin approves releases, sets quotas, and sees the whole fleet — and
+// since P6a Task 6 records what UBC IAM and the Privacy Office said (§9, R1).
+const PLATFORM_ADMIN: readonly Capability[] = [
+  ...OWNER,
+  'release:approve',
+  'launch:record',
+  'quota:set',
+]
 
 export function capabilitiesFor(
   projectRole: ProjectRole | null,

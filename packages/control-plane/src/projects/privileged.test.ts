@@ -59,10 +59,34 @@ describe('the privileged set (D24, §20)', () => {
     expect(collaborator.has('release:deploy')).toBe(true)
   })
 
-  it('gives a platform admin the two admin capabilities, and no role holds secret read', () => {
+  /**
+   * **`launch:record` IS NOT PRIVILEGED, AND THE ROUTE'S `requireSession` IS WHAT REFUSES
+   * A TOKEN** (P6a Decision 4). It is asserted HERE because this is the file a reader
+   * opens to find out what a delegated token may never do, and the honest answer for this
+   * capability is *"the privileged rule says nothing about it"* — `assertCapability`'s
+   * token branch falls straight through to *does this token hold it?*, and a platform
+   * administrator can mint a token that does.
+   *
+   * The control that makes it safe is a different one, and it is proved in
+   * `launch/records.test.ts` and `api/authz-contract.ts`: every route asserting this
+   * capability calls `requireSession` first, so a token holding `launch:record` is
+   * refused `403 TOKEN_CREDENTIAL_REFUSED` before the capability is ever read.
+   */
+  it('does NOT make launch:record privileged — requireSession is that route’s control', () => {
+    expect(isPrivileged('launch:record')).toBe(false)
+    expect([...PRIVILEGED]).not.toContain('launch:record')
+    // And a token CAN hold it, which is exactly why the routes are session-only.
+    expect(capabilitiesFor(null, 'admin').has('launch:record')).toBe(true)
+  })
+
+  it('gives a platform admin the three admin capabilities, and no role holds secret read', () => {
     const admin = capabilitiesFor(null, 'admin')
     expect(admin.has('release:approve')).toBe(true)
+    expect(admin.has('launch:record')).toBe(true)
     expect(admin.has('quota:set')).toBe(true)
+    // An OWNER does not: §9's external state is the platform's to record, not the
+    // faculty member's to assert about their own project (Decision 4).
+    expect(capabilitiesFor('owner', 'member').has('launch:record')).toBe(false)
     // `secret:read` is in D24's list and NOT in `Capability` (`[M8]`), so no role can
     // hold it. Asserted over the set's CONTENTS widened to strings, because
     // `admin.has('secret:read')` would not compile — which is the point being made.

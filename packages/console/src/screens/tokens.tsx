@@ -34,7 +34,8 @@ import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 type Capability = Schemas['MintTokenRequest']['capabilities'][number]
 
 /**
- * THE ELEVEN, HELD TO THE DOCUMENT BY `tsc` IN BOTH DIRECTIONS. A capability renamed or
+ * THE TWELVE, HELD TO THE DOCUMENT BY `tsc` IN BOTH DIRECTIONS — eleven until P6a Task 6
+ * added `launch:record`, which `tsc` caught here and `pnpm test` could not see at all. A capability renamed or
  * removed from `MintTokenRequest.capabilities` makes the array un-assignable; one ADDED makes
  * `Exclude<Capability, T[number]>` non-`never`, which collapses the parameter's type to
  * `never` and refuses the call. So this list cannot silently drift from the contract, which
@@ -56,6 +57,15 @@ const CAPABILITIES = everyCapability([
   'release:deploy',
   'release:promote',
   'release:approve',
+  /**
+   * §9 and R1 (P6a Task 6): recording what UBC IAM and the Privacy Office said. It is
+   * mintable — it is NOT one of D24's four — and a token holding it is still refused
+   * `403 TOKEN_CREDENTIAL_REFUSED`, because every route asserting it calls
+   * `requireSession` first (P6a Decision 4). **So it is offered here and it will not
+   * work**, which is the same honest shape this screen already has for the four below:
+   * the API is what says no, and the console does not pretend to know better.
+   */
+  'launch:record',
   'quota:set',
   'secret:read',
 ] as const)

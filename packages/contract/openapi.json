@@ -1249,6 +1249,216 @@
         ]
       }
     },
+    "/v1/projects/{projectId}/launch-records": {
+      "get": {
+        "operationId": "getLaunchRecords",
+        "tags": [
+          "launch"
+        ],
+        "summary": "The IAM registration and the privacy assessment, as recorded",
+        "description": "§9 and D19. Manifest tracks both; an administrator records what UBC IAM and the Privacy Office said, with the ticket reference. P8 generates what they carry. Either may be absent, which is a state and not an error.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Both records, either of which may be null.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LaunchRecords"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/launch-records/iam-registration": {
+      "post": {
+        "operationId": "recordIamRegistration",
+        "tags": [
+          "launch"
+        ],
+        "summary": "Record what UBC IAM registered",
+        "description": "§9, D19 and R1: an administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. P8 will submit these programmatically; the object and its states do not change when it does.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordIamRegistrationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The registration as it now stands.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IamRegistration"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_RECORD_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "LAUNCH_RECORD_INVALID",
+          "LAUNCH_TRANSITION_INVALID",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/launch-records/privacy-assessment": {
+      "post": {
+        "operationId": "recordPrivacyAssessment",
+        "tags": [
+          "launch"
+        ],
+        "summary": "Record what the Privacy Office said",
+        "description": "§9, D19 and R1: the same shape as the IAM registration, over §9’s three PIA states. There is deliberately no rejection state — a refused assessment goes back to `draft` with the reviewer’s note, which is what the Privacy Office actually does.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordPrivacyAssessmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The assessment as it now stands.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyAssessment"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_TRANSITION_INVALID, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "LAUNCH_TRANSITION_INVALID",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
     "/v1/projects/{projectId}/members": {
       "get": {
         "operationId": "listMembers",
@@ -2675,6 +2885,7 @@
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
+          "LAUNCH_RECORD_INVALID",
           "LAUNCH_TRANSITION_INVALID",
           "MEMBER_USER_NOT_FOUND",
           "NOT_FOUND",
@@ -5109,6 +5320,100 @@
           "additionalProperties": false
         }
       },
+      "IamRegistration": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "entityId": {
+            "description": "§9: fixed at registration and stored here rather than recomputed — which is also why a project slug is immutable after production launch.",
+            "type": "string"
+          },
+          "acsUrl": {
+            "type": "string"
+          },
+          "sloUrl": {
+            "type": "string"
+          },
+          "certFingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "certExpiresAt": {
+            "description": "D20: an unnoticed expiry silently kills login for a live course app.",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "registeredAttributes": {
+            "description": "WHAT UBC IAM ACTUALLY REGISTERED. A production build fails when a release asks for an attribute that is not in here (§7).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "submitted",
+              "active",
+              "change_requested",
+              "expired"
+            ]
+          },
+          "externalTicketRef": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "entityId",
+          "acsUrl",
+          "sloUrl",
+          "certFingerprint",
+          "certExpiresAt",
+          "registeredAttributes",
+          "state",
+          "externalTicketRef",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
       "Incident": {
         "description": "A failed deploy, as §14 records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked.",
         "type": "object",
@@ -5389,6 +5694,42 @@
         ],
         "additionalProperties": false
       },
+      "LaunchRecords": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "iamRegistration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IamRegistration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "privacyAssessment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrivacyAssessment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "projectId",
+          "iamRegistration",
+          "privacyAssessment"
+        ],
+        "additionalProperties": false
+      },
       "LogFrame": {
         "description": "One line of a build’s output, as it is written. Never replayed — GET /v1/builds/{buildId}/logs has them all.",
         "type": "object",
@@ -5601,6 +5942,7 @@
                 "release:deploy",
                 "release:promote",
                 "release:approve",
+                "launch:record",
                 "quota:set",
                 "secret:read"
               ]
@@ -5765,6 +6107,76 @@
           "$ref": "#/components/schemas/PendingAction"
         }
       },
+      "PrivacyAssessment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "submitted",
+              "approved"
+            ]
+          },
+          "reviewer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "approvedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "externalTicketRef": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "state",
+          "reviewer",
+          "approvedAt",
+          "externalTicketRef",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
       "Project": {
         "type": "object",
         "properties": {
@@ -5835,6 +6247,97 @@
         "items": {
           "$ref": "#/components/schemas/Project"
         }
+      },
+      "RecordIamRegistrationRequest": {
+        "type": "object",
+        "properties": {
+          "entityId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "acsUrl": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "sloUrl": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "registeredAttributes": {
+            "description": "Exactly the attributes UBC IAM registered, as the ticket lists them.",
+            "minItems": 1,
+            "maxItems": 64,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "state": {
+            "description": "The state this record should now be in. It is reached along §9’s arrows from wherever it is — a first write into `active` is refused exactly as a later one is.",
+            "type": "string",
+            "enum": [
+              "draft",
+              "submitted",
+              "active",
+              "change_requested",
+              "expired"
+            ]
+          },
+          "externalTicketRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "certFingerprint": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "certExpiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "entityId",
+          "acsUrl",
+          "sloUrl",
+          "registeredAttributes",
+          "state"
+        ],
+        "additionalProperties": false
+      },
+      "RecordPrivacyAssessmentRequest": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "submitted",
+              "approved"
+            ]
+          },
+          "reviewer": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "externalTicketRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "additionalProperties": false
       },
       "RejectPendingActionRequest": {
         "description": "A person’s refusal of a pending action, in their own words.",

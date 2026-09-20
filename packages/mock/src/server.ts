@@ -161,6 +161,12 @@ const ANSWERS: Record<string, Answerer> = {
     )
   },
   getLaunchReadiness: () => ok('LaunchReadiness', f.LAUNCH_READINESS),
+  getLaunchRecords: () => ok('LaunchRecords', f.LAUNCH_RECORDS),
+  // BOTH RECORD ROUTES ANSWER THE FIXTURE, NOT THE REQUEST. The mock does not keep state
+  // (P5c Decision 9), and a record route that echoed the body back would let a console bug
+  // that sends the wrong state look correct here and wrong against the platform.
+  recordIamRegistration: () => ok('IamRegistration', f.IAM_REGISTRATION),
+  recordPrivacyAssessment: () => ok('PrivacyAssessment', f.PRIVACY_ASSESSMENT),
   listMembers: () => ok('MemberList', f.MEMBERS),
   addMember: () => created('Member', f.MEMBER),
   // Idempotent, and it answers the WHOLE list (P5b Task 8).

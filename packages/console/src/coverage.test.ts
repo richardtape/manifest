@@ -17,10 +17,18 @@ import { describe, expect, it } from 'vitest'
  * and the list is where that claim is recorded.
  */
 const DELIBERATELY_UNCALLED: Record<string, string> = {
-  // Deliberately empty, like ALLOWED_UNSET and PLATFORM_ONLY in the injection-drift tier.
-  // All 34 operations are callable by a session — `listFleet` is administrators only, which
-  // is a role, not a second client (D31) — so this list starting empty is a measurement,
-  // not an aspiration.
+  // It was EMPTY through the whole of P5c, and that was a measurement: all 34 operations
+  // were callable by a session — `listFleet` is administrators only, which is a role, not
+  // a second client (D31).
+  //
+  // **THE THREE BELOW ARE TEMPORARY AND SAY WHO REMOVES THEM.** P6a Task 6 (sitting 4)
+  // adds the routes; P6a Task 17 (sitting 10) adds the records screen that calls them. The
+  // alternative was to write the three `api.ts` functions now, six sittings before any
+  // screen imports them — which is the no-caller shape ORIENTATION §9 names four times,
+  // moved into the console. An entry here is visible to a reader; an unused export is not.
+  getLaunchRecords: 'P6a Task 17 — the launch screen reads it (sitting 10)',
+  recordIamRegistration: 'P6a Task 17 — the records screen writes it (sitting 10)',
+  recordPrivacyAssessment: 'P6a Task 17 — the records screen writes it (sitting 10)',
 }
 
 /**

@@ -392,6 +392,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/projects/{projectId}/launch-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The IAM registration and the privacy assessment, as recorded
+         * @description §9 and D19. Manifest tracks both; an administrator records what UBC IAM and the Privacy Office said, with the ticket reference. P8 generates what they carry. Either may be absent, which is a state and not an error.
+         */
+        get: operations["getLaunchRecords"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/launch-records/iam-registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record what UBC IAM registered
+         * @description §9, D19 and R1: an administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. P8 will submit these programmatically; the object and its states do not change when it does.
+         */
+        post: operations["recordIamRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/launch-records/privacy-assessment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record what the Privacy Office said
+         * @description §9, D19 and R1: the same shape as the IAM registration, over §9’s three PIA states. There is deliberately no rejection state — a refused assessment goes back to `draft` with the reviewer’s note, which is what the Privacy Office actually does.
+         */
+        post: operations["recordPrivacyAssessment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects/{projectId}/members": {
         parameters: {
             query?: never;
@@ -754,7 +814,7 @@ export interface components {
          * @description Every code the API answers with (api/error-codes.ts). Stable: a client switches on it (§20).
          * @enum {string}
          */
-        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_LAST_OWNER" | "RATE_LIMITED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_USER_UPSERT_FAILED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_FOREIGN_REPO" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_PATH_ESCAPE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "UNAUTHENTICATED";
+        ErrorCode: "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "BLUEPRINT_NOT_FOUND" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INTERNAL" | "LAUNCH_RECORD_INVALID" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_LAST_OWNER" | "RATE_LIMITED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_USER_UPSERT_FAILED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_FOREIGN_REPO" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_PATH_ESCAPE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "UNAUTHENTICATED";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -1480,6 +1540,26 @@ export interface components {
                 latestIncidentAt: string | null;
             }[];
         }[];
+        IamRegistration: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            projectId: string;
+            /** @description §9: fixed at registration and stored here rather than recomputed — which is also why a project slug is immutable after production launch. */
+            entityId: string;
+            acsUrl: string;
+            sloUrl: string;
+            certFingerprint: string | null;
+            /** @description D20: an unnoticed expiry silently kills login for a live course app. */
+            certExpiresAt: string | null;
+            /** @description WHAT UBC IAM ACTUALLY REGISTERED. A production build fails when a release asks for an attribute that is not in here (§7). */
+            registeredAttributes: string[];
+            /** @enum {string} */
+            state: "draft" | "submitted" | "active" | "change_requested" | "expired";
+            externalTicketRef: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         /** @description A failed deploy, as §14 records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked. */
         Incident: {
             /** Format: uuid */
@@ -1555,6 +1635,12 @@ export interface components {
             why: string;
             builtBy?: string;
         };
+        LaunchRecords: {
+            /** Format: uuid */
+            projectId: string;
+            iamRegistration: components["schemas"]["IamRegistration"] | null;
+            privacyAssessment: components["schemas"]["PrivacyAssessment"] | null;
+        };
         /** @description One line of a build’s output, as it is written. Never replayed — GET /v1/builds/{buildId}/logs has them all. */
         LogFrame: {
             /** @constant */
@@ -1616,7 +1702,7 @@ export interface components {
             /** @description A person’s label for it, so a list of tokens is reviewable. */
             name: string;
             /** @description The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. */
-            capabilities: ("project:read" | "project:write" | "project:delete" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "quota:set" | "secret:read")[];
+            capabilities: ("project:read" | "project:write" | "project:delete" | "members:manage" | "build:create" | "release:create" | "release:deploy" | "release:promote" | "release:approve" | "launch:record" | "quota:set" | "secret:read")[];
             /** @description How long the token lives, in days. D24: a token has an expiry, and at most 365 days of one. */
             expiresInDays: number;
         };
@@ -1662,6 +1748,19 @@ export interface components {
         };
         /** @description The questions agents have put to the people who own this project, newest first (§26). */
         PendingActionList: components["schemas"]["PendingAction"][];
+        PrivacyAssessment: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            projectId: string;
+            /** @enum {string} */
+            state: "draft" | "submitted" | "approved";
+            reviewer: string | null;
+            approvedAt: string | null;
+            externalTicketRef: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         Project: {
             /** Format: uuid */
             id: string;
@@ -1682,6 +1781,28 @@ export interface components {
             environments?: components["schemas"]["Environment"][];
         };
         ProjectList: components["schemas"]["Project"][];
+        RecordIamRegistrationRequest: {
+            entityId: string;
+            acsUrl: string;
+            sloUrl: string;
+            /** @description Exactly the attributes UBC IAM registered, as the ticket lists them. */
+            registeredAttributes: string[];
+            /**
+             * @description The state this record should now be in. It is reached along §9’s arrows from wherever it is — a first write into `active` is refused exactly as a later one is.
+             * @enum {string}
+             */
+            state: "draft" | "submitted" | "active" | "change_requested" | "expired";
+            externalTicketRef?: string;
+            certFingerprint?: string;
+            /** Format: date-time */
+            certExpiresAt?: string;
+        };
+        RecordPrivacyAssessmentRequest: {
+            /** @enum {string} */
+            state: "draft" | "submitted" | "approved";
+            reviewer?: string;
+            externalTicketRef?: string;
+        };
         /** @description A person’s refusal of a pending action, in their own words. */
         RejectPendingActionRequest: {
             /** @description Why this is refused. The agent is told, verbatim. */
@@ -2595,6 +2716,113 @@ export interface operations {
                 };
             };
             /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getLaunchRecords: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Both records, either of which may be null. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LaunchRecords"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    recordIamRegistration: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordIamRegistrationRequest"];
+            };
+        };
+        responses: {
+            /** @description The registration as it now stands. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IamRegistration"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_RECORD_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    recordPrivacyAssessment: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description D23.6. One per user action, reused across retries of THAT action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordPrivacyAssessmentRequest"];
+            };
+        };
+        responses: {
+            /** @description The assessment as it now stands. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyAssessment"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_TRANSITION_INVALID, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

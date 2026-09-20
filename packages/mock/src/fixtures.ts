@@ -543,6 +543,42 @@ export const FLEET: Schemas['Fleet'] = [
  * `server.ts` names the same schema per route and validates on the way OUT as well, so the
  * two are checked from both ends.
  */
+/**
+ * §9's two external records (P6a Task 6). **BOTH PRESENT AND BOTH PART-WAY THROUGH**, so a
+ * front-end developer sees the states that actually need rendering: a registration UBC IAM
+ * has accepted, and a PIA still with the Privacy Office. A fixture with both `approved`
+ * would show the console's easy case and hide the one the screen exists for.
+ */
+export const IAM_REGISTRATION: Schemas['IamRegistration'] = {
+  id: '99999999-9999-4999-8999-999999999991',
+  projectId: PROJECT_ID,
+  entityId: 'https://manifest.internal/sp/chem-labs/production',
+  acsUrl: 'https://chem-labs.manifest.internal/auth/saml/callback',
+  sloUrl: 'https://chem-labs.manifest.internal/auth/logout',
+  certFingerprint: 'AB:CD:EF:01:23:45',
+  certExpiresAt: '2027-03-01T00:00:00.000Z',
+  registeredAttributes: ['displayName', 'mail', 'ubcEduCwlPuid'],
+  state: 'active',
+  externalTicketRef: 'IAM-2026-0412',
+  updatedAt: '2026-09-20T00:00:00.000Z',
+}
+
+export const PRIVACY_ASSESSMENT: Schemas['PrivacyAssessment'] = {
+  id: '99999999-9999-4999-8999-999999999992',
+  projectId: PROJECT_ID,
+  state: 'submitted',
+  reviewer: 'UBC Privacy Office',
+  approvedAt: null,
+  externalTicketRef: 'PIA-2026-0088',
+  updatedAt: '2026-09-20T00:00:00.000Z',
+}
+
+export const LAUNCH_RECORDS: Schemas['LaunchRecords'] = {
+  projectId: PROJECT_ID,
+  iamRegistration: IAM_REGISTRATION,
+  privacyAssessment: PRIVACY_ASSESSMENT,
+}
+
 export const FIXTURES: [string, unknown][] = [
   ['Me', ME],
   ['Me', ADMIN_ME],
@@ -582,4 +618,7 @@ export const FIXTURES: [string, unknown][] = [
   ['PendingAction', LAPSED_ACTION],
   ['PendingActionList', PENDING_ACTIONS],
   ['Fleet', FLEET],
+  ['IamRegistration', IAM_REGISTRATION],
+  ['PrivacyAssessment', PRIVACY_ASSESSMENT],
+  ['LaunchRecords', LAUNCH_RECORDS],
 ]

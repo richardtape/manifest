@@ -29,6 +29,7 @@ export type ErrorFamily =
   | 'CatalogueError'
   | 'SlugRefusedError'
   | 'LaunchTransitionError'
+  | 'LaunchRecordError'
 
 interface Entry {
   status: number
@@ -237,6 +238,12 @@ export const ERROR_CODES = {
     families: ['LaunchTransitionError'],
     summary:
       'An IAM registration or a privacy assessment was asked to make a move §9 does not have; the message names what that state CAN become.',
+  },
+  LAUNCH_RECORD_INVALID: {
+    status: 400,
+    families: ['LaunchRecordError'],
+    summary:
+      'An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.',
   },
 
   // source/ — every one is 409

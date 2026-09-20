@@ -767,6 +767,92 @@ const ROUTES: RouteCase[] = [
     },
   },
   {
+    // §9 and D19: readable by the PROJECT, not only by an administrator — §13 surfaces the
+    // checklist "the moment a project is created", and an owner who cannot see whether
+    // their PIA is in has no way to chase it.
+    method: 'GET',
+    url: '/v1/projects/:projectId/launch-records',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/launch-records` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  /**
+   * **THE TOKEN ROWS ARE THIS TASK'S AUTHORIZATION STORY** (P6a Decision 4). `launch:record`
+   * is NOT one of D24's privileged four, so `assertCapability` would let a token holding it
+   * straight through — and a platform administrator can mint one, because the mint route
+   * refuses only `PRIVILEGED`. The control is `requireSession` on the route, and it runs
+   * FIRST, before the capability and before the project is read.
+   *
+   * That order is why all four token actors get the same answer, including
+   * `token-other-project`: the refusal is about the CREDENTIAL CLASS and is identical for
+   * every project id, so a token learns nothing about which projects exist. **A token that
+   * could satisfy the platform's own launch gate is D14 exactly inverted.**
+   */
+  {
+    method: 'POST',
+    url: '/v1/projects/:projectId/launch-records/iam-registration',
+    request: (f) => ({
+      url: `/v1/projects/${f.projectId}/launch-records/iam-registration`,
+      payload: {
+        entityId: 'https://manifest.internal/sp/authz/production',
+        acsUrl: 'https://authz.manifest.internal/auth/saml/callback',
+        sloUrl: 'https://authz.manifest.internal/auth/logout',
+        registeredAttributes: ['displayName', 'mail'],
+        state: 'submitted',
+        externalTicketRef: 'IAM-AUTHZ-1',
+      },
+    }),
+    expect: {
+      // A faculty member cannot assert that their own PIA was approved (Decision 4).
+      owner: 403,
+      collaborator: 403,
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      // Refused for the credential class BEFORE any capability is read — and
+      // `token-capable` holds `launch:record`, which is what makes this row mean anything.
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      // **MEASURED, AND THE PLAN'S OWN TABLE SAID `404 NOT_FOUND` HERE.** It does not:
+      // `requireSession` runs before `assertCapability`, so the project is never read and
+      // the answer is identical for every id. That is the RIGHT order — the alternative
+      // answers `404` for another project and `TOKEN_CREDENTIAL_REFUSED` for this one,
+      // which tells a token which projects exist.
+      'token-other-project': SESSION_ONLY,
+      // NOT `TOKEN_ACTION_PENDING`: `launch:record` is not one of D24's four, so no
+      // pending action is ever created — and asserting the CODE is the only way to see it.
+      'token-privileged': SESSION_ONLY,
+    },
+  },
+  {
+    method: 'POST',
+    url: '/v1/projects/:projectId/launch-records/privacy-assessment',
+    request: (f) => ({
+      url: `/v1/projects/${f.projectId}/launch-records/privacy-assessment`,
+      payload: { state: 'submitted', externalTicketRef: 'PIA-AUTHZ-1' },
+    }),
+    expect: {
+      owner: 403,
+      collaborator: 403,
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
+  {
     method: 'POST',
     url: '/v1/environments/:environmentId/deploy',
     label: 'staging',
@@ -1179,6 +1265,12 @@ export function describeAuthorizationContract(
         'build:create',
         'release:create',
         'release:deploy',
+        // P6a Task 6: `token-capable` must HOLD `launch:record` for the two record rows to
+        // mean anything — a token refused for not holding it would prove nothing about the
+        // credential-class rule. It is mintable, because it is not one of D24's four, and
+        // no other row's expectation moves: a token holding one more capability is still
+        // capable of everything it was.
+        'launch:record',
       ]
       const tokenFor = async (
         actor: TokenActor,

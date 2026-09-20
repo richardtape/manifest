@@ -14,7 +14,11 @@ import { TokenCredentialRefusedError } from './actor.js'
 import { RateLimitedError } from './rate-limit.js'
 import type { ErrorEnvelopeShape } from './representations/errors.js'
 import { LaunchReadiness } from './representations/launch.js'
-import { LaunchTransitionError, type LaunchReadinessView } from '../launch/index.js'
+import {
+  LaunchRecordError,
+  LaunchTransitionError,
+  type LaunchReadinessView,
+} from '../launch/index.js'
 import {
   PendingActionRejectedError,
   PendingActionRequiredError,
@@ -554,6 +558,25 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
           code: error.code,
           message: error.message,
           hint: 'Move the record along the states §9 gives it, one at a time.',
+        },
+      },
+    }
+  }
+
+  /**
+   * The other `launch/` refusal (P6a Task 6), and a 400 rather than a 409: nothing about
+   * the record's STATE is in conflict — the request's own fields cannot be accepted. Two
+   * codes, two statuses, because a client switches on the code and these need different
+   * behaviour: one is "move it a step at a time", the other is "send different fields".
+   */
+  if (error instanceof LaunchRecordError) {
+    return {
+      status: 400,
+      body: {
+        error: {
+          code: error.code,
+          message: error.message,
+          ...(error.hint === undefined ? {} : { hint: error.hint }),
         },
       },
     }
