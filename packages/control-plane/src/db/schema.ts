@@ -576,8 +576,16 @@ export const approvals = pgTable(
       /** Decision 7: null when the model could not be reached. NOT an empty string. */
       summary: string | null
       summarySource: 'llm' | 'unavailable' | 'no-previous-release'
-      /** R4: the reviewer's verdict at decision time. `not_performed` until one lands. */
-      review: { state: string; reviewer: string; detail: string }
+      /**
+       * R4: the reviewer's verdict at decision time, `describeVerdict`'s one line in
+       * `detail`. `not_performed` until one lands. The three states are `launch/review.ts`'s
+       * `ReviewVerdict` union, written out because `db/` imports nothing above it.
+       */
+      review: {
+        state: 'not_performed' | 'clean' | 'findings'
+        reviewer: string
+        detail: string
+      }
     }>(),
   },
   (t) => [

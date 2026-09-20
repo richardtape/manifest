@@ -10,7 +10,8 @@ import { buildServer } from '../api/index.js'
 import { loginAs, mutationHeaders, projectBody, testDeps } from '../api/testing.js'
 import { mintTestToken } from '../tokens/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
-import { approvalCoversDigest } from './approval.js'
+import type { Reviewer, ReviewRequest } from '../launch/index.js'
+import { approvalCoversDigest, describeVerdict } from './approval.js'
 
 beforeEach(resetDatabase)
 afterAll(resetDatabase)
@@ -185,7 +186,10 @@ describe('§13’s approval — `release:approve`’s first caller (P6a Task 10)
     expect(body.reason).toContain('the ticket says')
     // The diff snapshot is STORED on the row and carries the same digest (Decision 6).
     expect(body.diff.imageDigest).toBe(ctx.build.imageDigest)
-    expect(body.diff.review.state).toBe('not_performed')
+    // R4 (P6a Task 12): the BOOT's reviewer, which the harness also uses — an honest
+    // `not_performed` that names itself, and its reason as the record's one line.
+    expect(body.diff.review).toMatchObject({ state: 'not_performed', reviewer: 'none' })
+    expect(body.diff.review.detail).toContain('No code reviewer is configured')
 
     /**
      * **THE EVENT CARRIES THE DIGEST AND NOT THE DIFF** (§14, by omission). An event goes
@@ -680,6 +684,119 @@ describe('§13’s diff_snapshot — rendered at decision time and STORED (P6a T
     expect(approved.json().diff.summarySource).toBe('llm')
     await up.close()
     await ctx.app.close()
+  })
+})
+
+/**
+ * R4's seam has ONE real caller, and this is the test that says so (P6a Task 12, control c).
+ *
+ * **Every other assertion about the review is satisfied by a LITERAL**: `NullReviewer`'s
+ * verdict is a constant, so a `buildDiffSnapshot` that went back to writing
+ * `{ state: 'not_performed', reviewer: 'none', … }` itself would keep them all green — and
+ * the seam would be a file with no caller, the shape this project has shipped four times.
+ * A reviewer with a DISTINCTIVE name, injected where `ServerDeps` is built, is the only
+ * thing a literal cannot imitate.
+ *
+ * And it RECORDS what it was asked, because `NullReviewer` reads nothing: a caller that
+ * passed the wrong commit or the wrong repository would be invisible through it.
+ */
+describe('R4’s seam — the snapshot’s review comes from the injected reviewer (P6a Task 12)', () => {
+  function recordingReviewer(): Reviewer & { asked: ReviewRequest[] } {
+    const asked: ReviewRequest[] = []
+    return {
+      name: 'recording-reviewer',
+      asked,
+      review: (request) => {
+        asked.push(request)
+        return Promise.resolve({
+          state: 'findings',
+          reviewer: 'recording-reviewer',
+          findings: [
+            {
+              severity: 'advise',
+              message: 'builds a query by concatenation',
+              path: 'server.js',
+              line: 12,
+            },
+          ],
+        })
+      },
+    }
+  }
+
+  it('stores the injected reviewer’s verdict, and asks it about THIS release’s own build', async () => {
+    const ctx = await releasedProject('review-labs')
+    const reviewer = recordingReviewer()
+    const app = await buildServer({ ...ctx.deps, reviewer })
+    const approved = await app.inject({
+      method: 'POST',
+      url: `/v1/releases/${ctx.release.id}/approve`,
+      payload: {},
+      cookies: ctx.admin,
+      headers: mutationHeaders(ctx.deps),
+    })
+    expect(approved.statusCode, approved.body).toBe(201)
+    expect(approved.json().diff.review).toEqual({
+      state: 'findings',
+      reviewer: 'recording-reviewer',
+      detail: '1 finding(s): [advise] builds a query by concatenation (server.js:12)',
+    })
+
+    // WHAT IT WAS ASKED — the half `NullReviewer` cannot see. The repository is the
+    // project's own, and the commit is the BUILD's, which is the code the approved digest
+    // was built from.
+    expect(reviewer.asked).toHaveLength(1)
+    expect(reviewer.asked[0]).toEqual({
+      projectId: ctx.project.id,
+      releaseId: ctx.release.id,
+      changes: [],
+      source: {
+        repoPath: ctx.deps.source.repositoryFor('review-labs').path,
+        commitSha: ctx.build.commitSha,
+      },
+    })
+
+    // A SECOND release, so `changes` is the diff and not the first launch's empty list —
+    // otherwise `changes: []` above would be as true of a caller that never passed them.
+    const next = await secondRelease(ctx, 'review-labs', '1Gi')
+    const again = await app.inject({
+      method: 'POST',
+      url: `/v1/releases/${next.id}/approve`,
+      payload: {},
+      cookies: ctx.admin,
+      headers: mutationHeaders(ctx.deps),
+    })
+    expect(again.statusCode, again.body).toBe(201)
+    expect(reviewer.asked).toHaveLength(2)
+    expect(reviewer.asked[1]!.releaseId).toBe(next.id)
+    expect(reviewer.asked[1]!.changes.map((c) => c.path)).toContain('resources.memory')
+    await app.close()
+    await ctx.app.close()
+  })
+})
+
+describe('describeVerdict — one line per verdict state, for the record', () => {
+  it('renders each of the three states, and never renders not_performed as clean', () => {
+    expect(
+      describeVerdict({
+        state: 'not_performed',
+        reviewer: 'none',
+        reason: 'nothing is configured',
+      }),
+    ).toBe('nothing is configured')
+    expect(describeVerdict({ state: 'clean', reviewer: 'r', checked: 14 })).toBe(
+      '14 checked, no findings',
+    )
+    expect(
+      describeVerdict({
+        state: 'findings',
+        reviewer: 'r',
+        findings: [
+          { severity: 'block', message: 'a secret', path: 'app.js' },
+          { severity: 'advise', message: 'no path' },
+        ],
+      }),
+    ).toBe('2 finding(s): [block] a secret (app.js); [advise] no path')
   })
 })
 

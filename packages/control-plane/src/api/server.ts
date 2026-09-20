@@ -30,6 +30,7 @@ import type { SsoRegistrar } from '../sso/index.js'
 import type { SamlSp } from '../identity/index.js'
 import type { AiKeyService, LiteLlmClient, ModelCatalogue } from '../ai/index.js'
 import type { BuildRunner, Retirer } from '../releases/index.js'
+import type { Reviewer } from '../launch/index.js'
 import { registryTokenRoutes } from './routes/registry-token.js'
 import { registerRoutes } from './contract/route.js'
 import { ROUTE_DEFINITIONS } from './routes/index.js'
@@ -84,6 +85,14 @@ export interface ServerDeps {
    * it must handle that — which is Decision 7's "recorded as absent" by a different route.
    */
   llm: LiteLlmClient | undefined
+  /**
+   * R4's seam (D33, §15, P6a Task 12): what reviews the code an approval would ship.
+   * `NullReviewer` at boot, whose verdict is an honest `not_performed` — **it reviews
+   * nothing and says so**, and §20's control map still reads *"until one lands nothing
+   * reviews code"*. Typed as the INTERFACE, so the day a real reviewer exists the change is
+   * the one line in `src/index.ts` that constructs it, and nothing else. That is the seam.
+   */
+  reviewer: Reviewer
   /**
    * D23.2's per-project fan-out (P4b Task 14): `WS /v1/projects/:projectId/events`
    * subscribes to it. ONE bus per process, built at boot, so every publisher and every

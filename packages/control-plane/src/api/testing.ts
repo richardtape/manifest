@@ -34,6 +34,7 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { createBuildRunner, createRetirer } from '../releases/index.js'
+import { NullReviewer } from '../launch/index.js'
 import type { AiKeyService } from '../ai/index.js'
 import type { FastifyInstance } from 'fastify'
 import { buildServer, type ServerDeps } from './server.js'
@@ -264,6 +265,13 @@ export async function testDeps(): Promise<ServerDeps> {
      * gateway; `ai/ai-path.docker.test.ts` is where a live call belongs.
      */
     llm: undefined,
+    /**
+     * THE BOOT'S OWN REVIEWER, not a stand-in (P6a Task 12): the honest `NullReviewer`,
+     * so an approval in this tier records exactly the `not_performed` verdict production
+     * records. A test that needs to see what the reviewer was ASKED spreads its own over
+     * `testDeps()` — `NullReviewer` reads nothing, so the request is invisible through it.
+     */
+    reviewer: NullReviewer,
     // A keypair per call, not a shared one: two tests sharing a master key can
     // read each other's secrets, and that is the test-isolation shape that made
     // P2's suite depend on the order Vitest happened to pick.

@@ -773,7 +773,8 @@ export interface components {
             summarySource: "llm" | "unavailable" | "no-previous-release";
             /** @description R4 (D33, §15): the code reviewer’s verdict at decision time. `not_performed` until a reviewer is configured — an honest absence rather than a stub that purports to have reviewed. */
             review: {
-                state: string;
+                /** @enum {string} */
+                state: "not_performed" | "clean" | "findings";
                 reviewer: string;
                 detail: string;
             };
@@ -1746,12 +1747,13 @@ export interface components {
         };
         LaunchReadinessItem: {
             /** @enum {string} */
-            id: "domain" | "iam-registration" | "privacy-assessment" | "rehearsal" | "scans" | "admin-approval" | "load-rehearsal";
+            id: "domain" | "iam-registration" | "privacy-assessment" | "rehearsal" | "scans" | "admin-approval" | "load-rehearsal" | "code-review";
             title: string;
             owner: string;
+            /** @description Whether this item gates production. `ready` is every BLOCKING item being met; a non-blocking item is shown and never refuses a launch (D33: `code-review`). */
             blocking: boolean;
             /**
-             * @description `unmet`: this item is tracked and is not satisfied — the reason says what to do. `not_built`: Manifest does not track it yet, and `builtBy` names the plan that builds it.
+             * @description `unmet`: this item is tracked and is not satisfied — the reason says what to do. `not_built`: Manifest does not track it yet, and `builtBy` names what builds it — a plan, or for `code-review` a tracked hardening item.
              * @enum {string}
              */
             state: "met" | "unmet" | "not_built";

@@ -1,27 +1,29 @@
 import { z } from 'zod/v4'
 import { iamRegistrationState, privacyAssessmentState } from '../../db/index.js'
-import type { IamRegistrationRow, PrivacyAssessmentRow } from '../../launch/index.js'
+import {
+  LAUNCH_ITEM_IDS,
+  type IamRegistrationRow,
+  type PrivacyAssessmentRow,
+} from '../../launch/index.js'
 import { representation, request, Uuid } from '../contract/schemas.js'
 
 export const LaunchReadinessItem = representation(
   'LaunchReadinessItem',
   z.object({
-    id: z.enum([
-      'domain',
-      'iam-registration',
-      'privacy-assessment',
-      'rehearsal',
-      'scans',
-      'admin-approval',
-      'load-rehearsal',
-    ]),
+    // `launch/`'s ONE list, not a restatement of it (P6a Task 12): an id this enum lacked
+    // was a `500` on the read and a checklist silently dropped from the `409` (`[M4]`).
+    id: z.enum(LAUNCH_ITEM_IDS),
     title: z.string(),
     owner: z.string(),
-    blocking: z.boolean(),
+    blocking: z
+      .boolean()
+      .describe(
+        'Whether this item gates production. `ready` is every BLOCKING item being met; a non-blocking item is shown and never refuses a launch (D33: `code-review`).',
+      ),
     state: z
       .enum(['met', 'unmet', 'not_built'])
       .describe(
-        '`unmet`: this item is tracked and is not satisfied — the reason says what to do. `not_built`: Manifest does not track it yet, and `builtBy` names the plan that builds it.',
+        '`unmet`: this item is tracked and is not satisfied — the reason says what to do. `not_built`: Manifest does not track it yet, and `builtBy` names what builds it — a plan, or for `code-review` a tracked hardening item.',
       ),
     why: z.string(),
     builtBy: z.string().optional(),

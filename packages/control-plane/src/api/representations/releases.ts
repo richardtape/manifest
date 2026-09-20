@@ -1,5 +1,6 @@
 import { z } from 'zod/v4'
 import type { approvals, builds, releases } from '../../db/index.js'
+import { REVIEW_STATES } from '../../launch/index.js'
 import type { ResolvedConfigSet } from '../../releases/index.js'
 import type { ScanSummary as DriverScanSummary } from '../../runtime/index.js'
 import { representation, request, Timestamp, Uuid } from '../contract/schemas.js'
@@ -167,7 +168,7 @@ export const ApprovalDiff = representation(
         ),
       review: z
         .object({
-          state: z.string(),
+          state: z.enum(REVIEW_STATES),
           reviewer: z.string(),
           detail: z.string(),
         })

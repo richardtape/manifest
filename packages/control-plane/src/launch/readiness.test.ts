@@ -14,7 +14,7 @@ import {
 } from '../db/index.js'
 import { withProject } from '../db/testing.js'
 import { assertLaunchable, ProductionGateError } from './gate.js'
-import { computeLaunchReadiness } from './readiness.js'
+import { computeLaunchReadiness, readyOf, type LaunchItem } from './readiness.js'
 
 /**
  * §12 classifies Critical and High and nothing else (P5a Task 13), so a `SeverityCounts`
@@ -151,6 +151,9 @@ describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task
         'rehearsal',
         'scans',
         'admin-approval',
+        // R4's item (P6a Task 12), LAST and NON-BLOCKING. It sits after the blocking
+        // six so no blocking item's position depends on it.
+        'code-review',
       ])
       expect(view.items.find((i) => i.id === 'domain')).toMatchObject({ state: 'met' })
       // THE TWO EXTERNAL RECORDS ARE TRACKED SINCE MIGRATION 0019, so they are `unmet`
@@ -370,6 +373,86 @@ describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task
       expect(iam.state).toBe('met')
       expect(iam.why).toContain('CWL')
     })
+  })
+})
+
+/**
+ * R4's item, `code-review` (D33, §15, P6a Task 12) — and DECISION 13's control, which is the
+ * one that keeps production reachable for ever.
+ *
+ * `ready` is every BLOCKING item being met, so a blocking item that is `not_built` makes
+ * production unreachable — R4(c)'s trap, which is R1's undone by accident. The plan's own
+ * test for it computes the view for *"a project with every blocking item met"*, and **no
+ * such project can exist until Task 14 builds `rehearsal`**, so as written it could not
+ * run. These take the REAL items `computeLaunchReadiness` produced, force every item but
+ * `code-review` to `met`, and ask `readyOf` — the derivation the view itself uses.
+ */
+describe('the code-review item — R4’s seam, NON-blocking (D33, Decision 13)', () => {
+  const met = (id: LaunchItem['id']): LaunchItem => ({
+    id,
+    title: id,
+    owner: 'test',
+    blocking: true,
+    state: 'met',
+    why: 'forced',
+  })
+  const SIX_BLOCKING_MET = (
+    [
+      'domain',
+      'iam-registration',
+      'privacy-assessment',
+      'rehearsal',
+      'scans',
+      'admin-approval',
+    ] as const
+  ).map(met)
+
+  it('reviews nothing and says so: not_built, non-blocking, naming what builds it', async () => {
+    await withProject(async (tx, { projectId }) => {
+      const item = (await computeLaunchReadiness(tx, projectId)).items.find(
+        (i) => i.id === 'code-review',
+      )!
+      expect(item).toMatchObject({ blocking: false, state: 'not_built' })
+      expect(item.builtBy).toContain('SemgrepReviewer')
+      // §20's control-map row, word for word where it matters. If this `why` and that row
+      // could be read as saying different things, the `why` is wrong.
+      expect(item.why).toContain('Nothing reviews the code the agent wrote')
+      expect(item.why).toContain('still accepted')
+      expect(item.why).toContain('containment')
+    })
+  })
+
+  it('the code-review item does not affect ready, in either direction', async () => {
+    await withProject(async (tx, { projectId }) => {
+      const view = await computeLaunchReadiness(tx, projectId)
+      const forced = view.items.map((i) =>
+        i.id === 'code-review' ? i : { ...i, state: 'met' as const },
+      )
+      // THE CONTROL THAT KEEPS PRODUCTION REACHABLE FOR EVER (control a). Flip `blocking`
+      // to `true` on the item in `readiness.ts` and this goes red — and with it, every
+      // project whose real blocking items are all met becomes unlaunchable.
+      expect(forced.find((i) => i.id === 'code-review')?.state).toBe('not_built')
+      expect(readyOf(forced)).toBe(true)
+    })
+  })
+
+  /**
+   * `[M4]`'s three rows, measured against a real project in sitting 1 and asserted here
+   * against the derivation itself. **The middle row is what makes the other two mean
+   * anything**: without it, a `readyOf` that returned `true` for every list would pass both.
+   */
+  it('six blocking met reads ready; a seventh BLOCKING not_built does not; the same item non-blocking does', () => {
+    const seventh: LaunchItem = {
+      id: 'code-review',
+      title: 'Code reviewed for safety',
+      owner: 'Manifest',
+      blocking: true,
+      state: 'not_built',
+      why: 'forced',
+    }
+    expect(readyOf(SIX_BLOCKING_MET)).toBe(true)
+    expect(readyOf([...SIX_BLOCKING_MET, seventh])).toBe(false)
+    expect(readyOf([...SIX_BLOCKING_MET, { ...seventh, blocking: false }])).toBe(true)
   })
 })
 

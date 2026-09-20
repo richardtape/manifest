@@ -150,6 +150,9 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
       // administrator writes, and nobody has written one for this project. `not_built`
       // said "approvals are built with production environments" and is now false.
       'admin-approval': 'unmet',
+      // R4's seam (P6a Task 12): NOT BUILT, and non-blocking — nothing reviews code, and
+      // this item says so without keeping anything out of production.
+      'code-review': 'not_built',
     })
     expect(readiness.items.find((i: { id: string }) => i.id === 'scans').state).toBe(
       'met',

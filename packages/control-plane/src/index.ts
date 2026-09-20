@@ -18,6 +18,7 @@ import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/i
 import { createServiceCredentials } from './services/index.js'
 import { createSamlSp } from './identity/index.js'
 import { createEventBus } from './observability/index.js'
+import { NullReviewer } from './launch/index.js'
 import {
   createAiKeyService,
   createCatalogueCache,
@@ -292,6 +293,9 @@ const app = await buildServer({
   catalogue,
   ai,
   llm,
+  // R4's seam (D33, §15). THE line that changes when a real reviewer exists, and the only
+  // one: the approval path asks `deps.reviewer`, and this one answers `not_performed`.
+  reviewer: NullReviewer,
   // The same bus the registrar above publishes to, and `WS /v1/projects/:projectId/events`
   // subscribes to.
   bus,

@@ -2724,7 +2724,12 @@
             "type": "object",
             "properties": {
               "state": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "not_performed",
+                  "clean",
+                  "findings"
+                ]
               },
               "reviewer": {
                 "type": "string"
@@ -6112,7 +6117,8 @@
               "rehearsal",
               "scans",
               "admin-approval",
-              "load-rehearsal"
+              "load-rehearsal",
+              "code-review"
             ]
           },
           "title": {
@@ -6122,10 +6128,11 @@
             "type": "string"
           },
           "blocking": {
+            "description": "Whether this item gates production. `ready` is every BLOCKING item being met; a non-blocking item is shown and never refuses a launch (D33: `code-review`).",
             "type": "boolean"
           },
           "state": {
-            "description": "`unmet`: this item is tracked and is not satisfied — the reason says what to do. `not_built`: Manifest does not track it yet, and `builtBy` names the plan that builds it.",
+            "description": "`unmet`: this item is tracked and is not satisfied — the reason says what to do. `not_built`: Manifest does not track it yet, and `builtBy` names what builds it — a plan, or for `code-review` a tracked hardening item.",
             "type": "string",
             "enum": [
               "met",

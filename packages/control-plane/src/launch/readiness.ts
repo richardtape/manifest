@@ -10,14 +10,26 @@ import {
 import type { ScanSummary } from '../runtime/index.js'
 import { getIamRegistration, getPrivacyAssessment } from './records.js'
 
-export type LaunchItemId =
-  | 'domain'
-  | 'iam-registration'
-  | 'privacy-assessment'
-  | 'rehearsal'
-  | 'scans'
-  | 'admin-approval'
-  | 'load-rehearsal'
+/**
+ * Every id §13's checklist can carry, ONCE. `api/representations/launch.ts` builds its
+ * closed `z.enum` from this list rather than restating it (P6a Task 12): `[M4]` measured
+ * that an id missing from a restated enum is a **`500 INTERNAL`** on the read — and on the
+ * production deploy's `409` it is worse, because `mapError` drops a checklist that does not
+ * parse rather than throw, so the refusal would arrive with no checklist at all. One list
+ * leaves the generated `schema.d.ts` as the only copy, and `pnpm contract:generate` owns it.
+ */
+export const LAUNCH_ITEM_IDS = [
+  'domain',
+  'iam-registration',
+  'privacy-assessment',
+  'rehearsal',
+  'scans',
+  'admin-approval',
+  'load-rehearsal',
+  'code-review',
+] as const
+
+export type LaunchItemId = (typeof LAUNCH_ITEM_IDS)[number]
 
 export interface LaunchItem {
   id: LaunchItemId
@@ -27,7 +39,10 @@ export interface LaunchItem {
   state: 'met' | 'unmet' | 'not_built'
   /** Why this state — for a faculty member, not a log line (§14). */
   why: string
-  /** For `not_built`: the plan that builds it (roadmap, Phase 2). */
+  /**
+   * For `not_built`: the plan that builds it (roadmap, Phase 2) — or, for `code-review`, the
+   * tracked hardening item, which is deliberately NOT a plan (R4e).
+   */
   builtBy?: string
 }
 
@@ -117,14 +132,65 @@ export async function computeLaunchReadiness(
           },
         ]
       : []),
+    // LAST, after every blocking item — including `load-rehearsal`, which is conditional —
+    // so the checklist reads as the things that gate production followed by the one that
+    // does not, and no blocking item's position depends on whether this one is present.
+    // A COPY, so no caller that edits the view it was handed can edit every later view.
+    { ...CODE_REVIEW_ITEM },
   ]
 
   return {
     projectId,
-    ready: items.filter((i) => i.blocking).every((i) => i.state === 'met'),
+    ready: readyOf(items),
     candidateReleaseId: candidate?.release.id ?? null,
     items,
   }
+}
+
+/**
+ * §13 and D9.1: production is reachable when EVERY BLOCKING item is met, and a
+ * non-blocking item is read by a person and ignored by the gate.
+ *
+ * **EXPORTED FOR ONE TEST, AND THAT TEST IS WHY IT IS A FUNCTION** (P6a Task 12). Decision
+ * 13 says `readiness.test.ts` must show a project with every blocking item met is still
+ * `ready` beside a `not_built` `code-review` — and no project this platform can build has
+ * every blocking item met until Task 14 builds `rehearsal`. So the test takes the REAL items
+ * `computeLaunchReadiness` produced, forces every item but `code-review` to `met`, and asks
+ * THIS function — the derivation the view itself uses, not a copy of it.
+ */
+export function readyOf(items: readonly LaunchItem[]): boolean {
+  return items.filter((i) => i.blocking).every((i) => i.state === 'met')
+}
+
+/**
+ * R4's item (D33, §15, P6a Task 12): code safety has a SEAM and nothing behind it.
+ *
+ * **Static, and deliberately so.** Nothing reviews code, whatever the project, so this item
+ * cannot say anything about one project that it does not say about every other — and an
+ * item that read the approval's stored verdict would be reading `not_performed` back out of
+ * a record the same sentence put there. When a real reviewer lands this becomes a function
+ * of that reviewer's verdict on the candidate, and becomes blocking in the same change.
+ */
+const CODE_REVIEW_ITEM: LaunchItem = {
+  id: 'code-review',
+  title: 'Code reviewed for safety',
+  owner: 'Manifest',
+  /**
+   * **`false`, AND THIS IS NOT A PREFERENCE** (D33, R4c). `ready` is derived from every
+   * BLOCKING item being met, so a blocking item in state `not_built` would make production
+   * unreachable for ever — the precise trap R1 exists to undo, reintroduced by accident. It
+   * becomes blocking when a real implementation lands, and that is a one-field change by
+   * design. `readiness.test.ts` asserts both directions.
+   */
+  blocking: false,
+  state: 'not_built',
+  builtBy: 'a tracked hardening item (SemgrepReviewer), not a plan',
+  /**
+   * §20's control-map row, word for word where it matters: the risk is STILL ACCEPTED, the
+   * control is CONTAINMENT, and until an implementation lands NOTHING REVIEWS CODE. If this
+   * sentence and that row can be read as saying different things, this sentence is wrong.
+   */
+  why: 'Nothing reviews the code the agent wrote. Manifest reviews manifest.yaml, not code (§13), and that risk is still accepted: the controls that make it tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20). A reviewer interface exists with no implementation behind it (D33, §15), so this item does not block a launch.',
 }
 
 /**

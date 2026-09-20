@@ -8,3 +8,6 @@ export * from './readiness.js'
 export * from './gate.js'
 export * from './transitions.js'
 export * from './records.js'
+// R4's seam (D33, §15, P6a Task 12). `NullReviewer` is constructed once at boot and handed
+// to the approval path as `ServerDeps.reviewer`; it reviews nothing and says so.
+export * from './review.js'

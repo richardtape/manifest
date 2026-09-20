@@ -1,8 +1,12 @@
 import { and, desc, eq } from 'drizzle-orm'
 import type { LiteLlmClient } from '../ai/index.js'
-import { approvals, releases, type Db } from '../db/index.js'
+import { approvals, builds, projects, releases, type Db } from '../db/index.js'
+// TYPES ONLY, and that is load-bearing: `launch/readiness.ts` imports this module at
+// RUNTIME, so a value imported back from `launch/` would be an import cycle.
+import type { Reviewer, ReviewVerdict } from '../launch/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
-import { describeDiff } from '../spec/index.js'
+import type { SourceDriver } from '../source/index.js'
+import { describeDiff, type SpecChange } from '../spec/index.js'
 import type { ResolvedConfigSet } from './release.js'
 import { summariseChanges } from './summary.js'
 
@@ -140,6 +144,13 @@ export interface SnapshotDeps {
   db: Db
   /** §10's admin transport. Absent under `MANIFEST_AI_ENABLED=0` (Decision 7). */
   llm: LiteLlmClient | undefined
+  /** Where a project's code lives, so the reviewer is told a real repository path. */
+  source: Pick<SourceDriver, 'repositoryFor'>
+  /**
+   * R4's seam (D33, §15). `NullReviewer` at boot, whose verdict is an honest
+   * `not_performed`; a real one is a one-line change where `ServerDeps` is built.
+   */
+  reviewer: Reviewer
 }
 
 /**
@@ -195,13 +206,77 @@ export async function buildDiffSnapshot(
     ...(previous === undefined
       ? { summary: null, summarySource: 'no-previous-release' as const }
       : await summariseChanges(deps.llm, changes)),
-    // R4 (D33): the reviewer's verdict AT DECISION TIME. Task 12 replaces this literal with
-    // `deps.reviewer.review(...)`, and the item's honesty is the whole point — a literal
-    // that said `clean` here would be the stub R4(b) forbids.
-    review: {
-      state: 'not_performed',
-      reviewer: 'none',
-      detail: 'no code reviewer is configured (D33, §15)',
+    // R4 (D33): the reviewer's verdict AT DECISION TIME, from the reviewer `ServerDeps`
+    // carries — the seam's one real caller (P6a Task 12). What it says is the reviewer's
+    // to say: `NullReviewer` answers `not_performed` and names itself, and a verdict of
+    // `clean` from a reviewer that looked at nothing is the stub R4(b) forbids.
+    review: await reviewOf(deps, release, changes),
+  }
+}
+
+/**
+ * Asks the configured reviewer about this release, and renders its verdict for the record.
+ *
+ * **THE SOURCE IS READ FROM THE RELEASE'S OWN BUILD**, not handed in by the route: the
+ * commit a reviewer reads must be the commit the approved digest was built from, and a
+ * caller that passed the wrong one would be invisible through `NullReviewer`, which reads
+ * nothing (`approval.test.ts` injects a recording reviewer for exactly that reason).
+ *
+ * **A REVIEWER THAT THROWS FAILS THE APPROVAL, LOUDLY**, and that is a decision rather than
+ * an omission: `NullReviewer` cannot throw, and whether a real reviewer's outage should be
+ * recorded as absent — Decision 7's argument for the summary — is the question the plan
+ * that lands one must answer, not one this seam answers for it by swallowing an error.
+ */
+async function reviewOf(
+  deps: SnapshotDeps,
+  release: ReleaseRow,
+  changes: readonly SpecChange[],
+): Promise<DiffSnapshot['review']> {
+  const [origin] = await deps.db
+    .select({ slug: projects.slug, commitSha: builds.commitSha })
+    .from(builds)
+    .innerJoin(projects, eq(builds.projectId, projects.id))
+    .where(eq(builds.id, release.buildId))
+  if (origin === undefined)
+    throw new Error(`release '${release.id}' has no build row to review`)
+  const verdict = await deps.reviewer.review({
+    projectId: release.projectId,
+    releaseId: release.id,
+    changes,
+    source: {
+      repoPath: deps.source.repositoryFor(origin.slug).path,
+      commitSha: origin.commitSha,
     },
+  })
+  return {
+    state: verdict.state,
+    reviewer: verdict.reviewer,
+    detail: describeVerdict(verdict),
+  }
+}
+
+/**
+ * One line for the record, per verdict state.
+ *
+ * **EXHAUSTIVE WITH NO `default`**, so a fourth state added to `ReviewVerdict` is a `tsc`
+ * error here (TS2366: the function can fall off the end) rather than a verdict stored with
+ * a detail nobody wrote. A `default` branch would compile against any union at all.
+ */
+export function describeVerdict(verdict: ReviewVerdict): string {
+  switch (verdict.state) {
+    case 'not_performed':
+      return verdict.reason
+    case 'clean':
+      return `${verdict.checked} checked, no findings`
+    case 'findings':
+      return (
+        `${verdict.findings.length} finding(s): ` +
+        verdict.findings
+          .map(
+            (f) =>
+              `[${f.severity}] ${f.message}${f.path === undefined ? '' : ` (${f.path}${f.line === undefined ? '' : `:${f.line}`})`}`,
+          )
+          .join('; ')
+      )
   }
 }
