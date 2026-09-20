@@ -4179,7 +4179,7 @@ until Task 15.** Checked rather than assumed, per §6.
 both landing before this sitting's own first commit. Neither was staged; `git status` was
 accounted for before each commit. Commits: `c31de45` (Task 4) and `f4f7d6a` (F10's repair).
 
-#### What the post-sweep check found — THREE, and the streak since P5b's third sitting holds
+#### What the post-sweep check found — FOUR, and the streak since P5b's third sitting holds
 
 **1. §7e pointed at "Task 5's `[M8]` correction block". It is `[M10]`.** Found by opening
 Task 5 and reading the block's own heading, not by re-reading the sentence — and it is the
@@ -4228,3 +4228,19 @@ not delete it, not that it is up), and **`docker-simple-saml` is still clean**: 
 path is the untracked `cert.zip` dated 2026-06-22, exactly as CLAUDE.md records it. There is no
 git repository at `~/Developer/ubc-genai-toolkit` to check, and nothing in this sitting read or
 wrote it.*
+
+**4 — and this one was found by a QUESTION rather than by the checklist: ORIENTATION's
+TOP-OF-FILE BOX still stated sitting 2's numbers.** Asked whether a cold agent could simply be
+told *"read ORIENTATION and proceed with the next sitting"*, the way to answer was to read the
+first thing such an agent sees — and the box's own dated `Last verified` line read *"AFTER P6a
+sitting 2"* with `pnpm test` **1390** and `pnpm test:docker` **180 in 30**, both moved by this
+sitting, while its P6a sentence stopped at the listener split being *built*. §2's box, README,
+RUNBOOK and `ci-acceptance.sh` had all been swept correctly. **The cause is the sweep list
+itself**: §6's `ORIENTATION.md` row said *"§7e and §2's numbers box"*, and the top-of-file box is
+neither — so a sweep that works down that row as written skips the one part of the file every
+cold reader starts at. The row now names it first, and this is the second time in one sitting
+that the sweep's own instructions were the defect (F9 was the same shape for
+`scripts/ci-acceptance.sh`). **Five copies of the gate numbers, then, not four** — and the
+lesson is the one §6 already states and this sitting proved twice: *a list of what to sweep is
+itself a thing that goes stale, and the way to test it is to follow it as written rather than to
+read it.*
