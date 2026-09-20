@@ -78,11 +78,20 @@ describe('the stream in the contract (D23.2)', () => {
       published.push(frame)
       publish(frame)
     }
-    const post = async (url: string, payload: Record<string, unknown>) => {
+    /**
+     * `steppedUp` since P6a sitting 6's F12: confirming a pending action is §20-guarded,
+     * and this suite's subject is the SHAPE of the frames the queue is built from rather
+     * than who may answer a question. `api/authz-contract.ts` owns that claim.
+     */
+    const post = async (
+      url: string,
+      payload: Record<string, unknown>,
+      as: Record<string, string> = cookies,
+    ) => {
       const response = await app.inject({
         method: 'POST',
         url,
-        cookies,
+        cookies: as,
         headers: mutationHeaders(deps),
         payload,
       })
@@ -132,6 +141,7 @@ describe('the stream in the contract (D23.2)', () => {
     await post(
       `/v1/pending-actions/${pendingRefusal.json().error.pendingAction.id}/confirm`,
       {},
+      await loginAs(deps, 'bio_prof', { steppedUp: true }),
     )
     const secondRefusal = await app.inject({
       method: 'POST',

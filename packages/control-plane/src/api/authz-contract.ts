@@ -1155,10 +1155,15 @@ const ROUTES: RouteCase[] = [
       payload: {},
     }),
     expect: {
-      owner: 'pass',
+      // **STEP_UP SINCE P6a SITTING 6's F12, WHERE BOTH WERE `pass`.** Confirming one of
+      // D24's privileged four is doing it by proxy — `assertCapability` two lines up
+      // already requires the person to hold it themselves — so §20 holds it to the same
+      // freshness. **The REJECT row below is deliberately still `pass`**, and the pair is
+      // the whole statement: the safe direction stays free.
+      owner: STEP_UP,
       collaborator: 403,
       stranger: 404,
-      admin: 'pass',
+      admin: STEP_UP,
       anonymous: 401,
       // A token confirming its own pending action would be a loop with no human in
       // it, which is the whole of what D24 asks for (Task 7).

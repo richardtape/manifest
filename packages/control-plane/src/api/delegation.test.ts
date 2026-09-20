@@ -137,7 +137,11 @@ function resolve(
  * asserted is not a precondition.
  */
 async function confirmed(ctx: TestProject, pendingId: string): Promise<void> {
-  const res = await resolve(ctx, pendingId, 'confirm', ctx.ownerCookies)
+  // STEPPED UP since P6a sitting 6's F12: confirming one of D24's privileged four is
+  // doing it by proxy, so §20 holds it to the same freshness as doing it directly.
+  // REJECTING is deliberately not guarded, which is why `rejected` below is unchanged —
+  // and that difference is asserted in `pending-actions.test.ts` rather than implied here.
+  const res = await resolve(ctx, pendingId, 'confirm', ctx.ownerSteppedUp)
   expect(refusal(res)).toEqual({ status: 200, code: undefined })
   expect(res.json().state).toBe('confirmed')
 }
@@ -446,7 +450,7 @@ describe('confirming a pending action (D24, Decision 6)', () => {
       await sessionFor(ctx, 'bio_student')
       const { ask, plaintext, pendingId } = await refusedOnce(ctx)
 
-      const confirmed = await resolve(ctx, pendingId, 'confirm', ctx.ownerCookies)
+      const confirmed = await resolve(ctx, pendingId, 'confirm', ctx.ownerSteppedUp)
       expect(refusal(confirmed)).toEqual({ status: 200, code: undefined })
       expect(confirmed.json().state).toBe('confirmed')
       expect(confirmed.json().consumedAt).toBeNull()
@@ -591,9 +595,9 @@ describe('confirming a pending action (D24, Decision 6)', () => {
     await withProjectServer(async (ctx) => {
       const { pendingId } = await refusedOnce(ctx)
       expect(
-        (await resolve(ctx, pendingId, 'confirm', ctx.ownerCookies)).statusCode,
+        (await resolve(ctx, pendingId, 'confirm', ctx.ownerSteppedUp)).statusCode,
       ).toBe(200)
-      const twice = await resolve(ctx, pendingId, 'confirm', ctx.ownerCookies)
+      const twice = await resolve(ctx, pendingId, 'confirm', ctx.ownerSteppedUp)
       expect(refusal(twice)).toEqual({ status: 409, code: 'PENDING_ACTION_RESOLVED' })
       // Nor rejected after the fact: a resolved question has one answer.
       const then = await resolve(ctx, pendingId, 'reject', ctx.ownerCookies, {
@@ -619,7 +623,7 @@ describe('confirming a pending action (D24, Decision 6)', () => {
         .set({ expiresAt: new Date(Date.now() - 1000) })
         .where(eq(pendingActions.id, pendingId))
 
-      const res = await resolve(ctx, pendingId, 'confirm', ctx.ownerCookies)
+      const res = await resolve(ctx, pendingId, 'confirm', ctx.ownerSteppedUp)
       expect(refusal(res)).toEqual({ status: 409, code: 'PENDING_ACTION_RESOLVED' })
       expect((await pendingById(ctx.db, pendingId))?.state).toBe('pending')
     })
@@ -941,6 +945,55 @@ describe('removing a member (§13, and Task 6’s claim)', () => {
       const retry = await ask()
       expect(refusal(retry)).toEqual({ status: 200, code: undefined })
       expect(await memberPuids(ctx)).not.toContain('bio_student')
+    })
+  })
+})
+
+/**
+ * §20's STEP-UP, WHERE D24's LOOP MEETS IT (P6a sitting 6, F12; Rich, 2026-09-20).
+ *
+ * The two tests below are a PAIR and neither means anything alone. Confirming is guarded
+ * because authorizing an agent to do one of D24's privileged four is doing it by proxy —
+ * `answerable()` already requires the person to hold that capability themselves, so a
+ * stolen session that could confirm would be exactly §20's *"a stolen admin session must
+ * not be sufficient"*. Rejecting is NOT guarded, because it grants nothing and stops an
+ * agent, and a person putting out a fire should not be sent on a round trip first.
+ *
+ * **A test that only asserted the refusal would be satisfied by a route that refuses
+ * everything** (P5c sitting 9, F16), and a test that only asserted the rejection would be
+ * satisfied by a platform with no guard at all.
+ */
+describe('§20’s step-up meets D24’s loop', () => {
+  it('refuses a CONFIRM from a session that has not re-proved itself', async () => {
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_student')
+      const { pendingId } = await refusedOnce(ctx)
+      const res = await resolve(ctx, pendingId, 'confirm', ctx.ownerCookies)
+      expect(refusal(res)).toEqual({ status: 403, code: 'STEP_UP_REQUIRED' })
+      // AND THE QUESTION IS UNTOUCHED — a refusal that half-happened is worse than either.
+      expect((await pendingById(ctx.db, pendingId))?.state).toBe('pending')
+    })
+  })
+
+  it('lets the SAME person confirm once they have stepped up — the positive control', async () => {
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_student')
+      const { pendingId } = await refusedOnce(ctx)
+      const res = await resolve(ctx, pendingId, 'confirm', ctx.ownerSteppedUp)
+      expect(refusal(res)).toEqual({ status: 200, code: undefined })
+      expect(res.json().state).toBe('confirmed')
+    })
+  })
+
+  it('lets an ORDINARY session reject — the safe direction stays free', async () => {
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_student')
+      const { pendingId } = await refusedOnce(ctx)
+      const res = await resolve(ctx, pendingId, 'reject', ctx.ownerCookies, {
+        reason: 'not something an agent should be doing',
+      })
+      expect(refusal(res)).toEqual({ status: 200, code: undefined })
+      expect(res.json().state).toBe('rejected')
     })
   })
 })

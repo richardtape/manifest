@@ -1,6 +1,7 @@
 import { z } from 'zod/v4'
 import {
   assertCapability,
+  assertStepUp,
   AuthorizationError,
   CAPABILITIES,
 } from '../../projects/index.js'
@@ -55,6 +56,7 @@ async function answerable(
   deps: ServerDeps,
   request: FastifyRequest,
   pendingActionId: string,
+  decision: 'confirmed' | 'rejected',
 ): Promise<{ row: PendingActionRow; userId: string; puid: string }> {
   const actor = requireSession(request)
   const row = await pendingById(deps.db, pendingActionId)
@@ -76,6 +78,28 @@ async function answerable(
     )
   }
   await assertCapability(deps.db, actor, row.projectId, action)
+  /**
+   * **AND §20's STEP-UP, ON CONFIRM ONLY** (P6a sitting 6's F12; Rich, 2026-09-20).
+   *
+   * Without this the guard is ASYMMETRIC: a person doing one of the privileged four in
+   * the console must re-prove themselves, while the same person authorizing an AGENT to
+   * do it need not — and §20's threat is *"a stolen admin session must not be sufficient
+   * to put an app on the public internet."* A stolen session needs no second credential
+   * to reach this line: it only needs a question already sitting in the queue, which is
+   * the normal state of the system for up to `PENDING_ACTION_TTL_MS`. The attacker
+   * cannot choose the action — only say yes to one an agent already asked for — which is
+   * why this was raised rather than assumed, and then decided.
+   *
+   * **NEVER ON REJECT.** Rejecting is the safe direction: it grants nothing and stops an
+   * agent. Charging a round trip for it would make the safe action as expensive as the
+   * dangerous one and turn "stop my runaway agent" into the slow path.
+   *
+   * After `assertCapability` and before the state check, which is the order every other
+   * step-up call site uses. The cost is that confirming an ALREADY-ANSWERED question
+   * sends the person on a round trip before telling them so; that is rare, harmless, and
+   * worth one consistent rule about where freshness is asked.
+   */
+  if (decision === 'confirmed') assertStepUp(actor, action)
   if (row.state !== 'pending') {
     throw new PendingActionResolvedError(row.state)
   }
@@ -202,12 +226,17 @@ export const pendingActionRoutes = [
       'FORBIDDEN',
       'TOKEN_CREDENTIAL_REFUSED',
       'PENDING_ACTION_RESOLVED',
+      // §20's step-up, on CONFIRM and not on reject (P6a sitting 6, F12). Authorizing an
+      // agent to do one of D24's privileged four is doing it by proxy, so it is held to
+      // the same freshness as doing it directly.
+      'STEP_UP_REQUIRED',
     ],
     handler: async ({ deps, request, params }) => {
       const { row, userId, puid } = await answerable(
         deps,
         request,
         params.pendingActionId,
+        'confirmed',
       )
       const confirmed = await resolveAction(deps.db, deps.bus, {
         pendingActionId: row.id,
@@ -248,6 +277,7 @@ export const pendingActionRoutes = [
         deps,
         request,
         params.pendingActionId,
+        'rejected',
       )
       const rejected = await resolveAction(deps.db, deps.bus, {
         pendingActionId: row.id,
