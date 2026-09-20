@@ -567,9 +567,19 @@ describe('§13’s diff_snapshot — rendered at decision time and STORED (P6a T
     expect(memory!.summary).toContain('memory')
     expect(memory!.to).toBe('1Gi')
     expect(diff.resources.memory).toBe('1Gi')
-    // SORTED, because two identical approvals must not look different to a `diff` (Task 19).
+    /**
+     * **SORTED — AND THIS PAIR OF ASSERTIONS CANNOT FAIL IN THIS TIER, WHICH IS ITSELF THE
+     * FINDING** (control d, P6a sitting 7). The fixture blueprint declares
+     * `auth.provider: none` and its manifest declares no services, so both lists are EMPTY
+     * here and every ordering is sorted. Removing both `.sort()` calls from
+     * `buildDiffSnapshot` leaves all sixteen tests in this file green — measured, not
+     * assumed. The lines stay as a statement of the rule; **Task 19's demo, which compares
+     * two rendered snapshots, is what would see it**, and a project with two services and
+     * two CWL attributes is what it would take to see it here.
+     */
     expect(diff.services).toEqual([...diff.services].sort())
     expect(diff.attributes).toEqual([...diff.attributes].sort())
+    expect(diff.services.length + diff.attributes.length).toBe(0)
     expect(diff.imageDigest).toBe(second.json().imageDigest)
     await ctx.app.close()
   })
