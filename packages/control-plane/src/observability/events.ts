@@ -68,6 +68,20 @@ export const EVENT_TYPES = [
   'pending_action.confirmed',
   /** D24 (P5b Task 7): a person refused it, in their own words. The agent is told why. */
   'pending_action.rejected',
+  /**
+   * §9 and R1 (P6a Task 6): an administrator recorded what UBC IAM actually registered.
+   * NEVER the attribute list — a project's stream is read by its members and the list is
+   * read through `getLaunchRecords` instead (P6a Decision 14).
+   */
+  'iam_registration.recorded',
+  /** §9 and R1 (P6a Task 6): an administrator recorded what the Privacy Office said. */
+  'privacy_assessment.recorded',
+  /** D21 as R2 redefines it (P6a Task 14): a production-shaped rehearsal ran, and passed or did not. */
+  'rehearsal.completed',
+  /** §13 (P6a Task 10): an administrator approved this release for production, bound to its digest. */
+  'release.approved',
+  /** The other answer, and a separate type so a client can switch on it rather than read a field. */
+  'release.approval_rejected',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

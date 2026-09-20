@@ -28,6 +28,7 @@ export type ErrorFamily =
   | 'AiError'
   | 'CatalogueError'
   | 'SlugRefusedError'
+  | 'LaunchTransitionError'
 
 interface Entry {
   status: number
@@ -229,6 +230,14 @@ export const ERROR_CODES = {
   RELEASE_PROJECT_NOT_FOUND: release(
     'The environment names a project that does not exist.',
   ),
+
+  // launch/ — §9's two state machines, as the arrows that exist (P6a Task 5)
+  LAUNCH_TRANSITION_INVALID: {
+    status: 409,
+    families: ['LaunchTransitionError'],
+    summary:
+      'An IAM registration or a privacy assessment was asked to make a move §9 does not have; the message names what that state CAN become.',
+  },
 
   // source/ — every one is 409
   SOURCE_FOREIGN_REPO: source('The repository reference was not made by this driver.'),

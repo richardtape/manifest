@@ -4,6 +4,7 @@ import { afterAll, describe, expect, it, vi } from 'vitest'
 import { AI_CODES, AiError, CATALOGUE_CODES, CatalogueError } from '../ai/index.js'
 import { ConfigError } from '../config.js'
 import { SamlError } from '../identity/index.js'
+import { LaunchTransitionError } from '../launch/index.js'
 import {
   AuthorizationError,
   SLUG_CODES,
@@ -43,6 +44,7 @@ const WIRE_CLASSES = [
   'SourceError',
   'ConfigError',
   'SamlError',
+  'LaunchTransitionError',
 ] as const
 
 /**
@@ -107,6 +109,7 @@ describe('the error-code registry (§20, D23.7)', () => {
       CatalogueError: (c) => new CatalogueError(c, 'm', 'h'),
       SlugRefusedError: (c) =>
         new SlugRefusedError({ code: c as SlugReason['code'], message: 'm', hint: 'h' }),
+      LaunchTransitionError: (c) => new LaunchTransitionError(c, 'm'),
     }
     const wrong: string[] = []
     for (const [code, entry] of Object.entries(ERROR_CODES)) {

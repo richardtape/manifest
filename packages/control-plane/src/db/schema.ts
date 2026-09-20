@@ -442,6 +442,158 @@ export const pendingActions = pgTable(
   ],
 )
 
+/** §9: `draft → submitted → active`, plus `change_requested` and `expired` (D19, D20). */
+export const iamRegistrationState = pgEnum('iam_registration_state', [
+  'draft',
+  'submitted',
+  'active',
+  'change_requested',
+  'expired',
+])
+
+/**
+ * §9: `draft → submitted → approved`. Three, and deliberately no rejection state — a
+ * refused PIA goes back to `draft` with the reviewer's note, which is what the Privacy
+ * Office actually does.
+ */
+export const privacyAssessmentState = pgEnum('privacy_assessment_state', [
+  'draft',
+  'submitted',
+  'approved',
+])
+
+/**
+ * §6's `IamRegistration`. **P6a tracks it; P8 GENERATES what it carries** (R1) — so
+ * `entity_id`, `acs_url`, `slo_url` and `registered_attributes` are recorded by an
+ * administrator from what UBC IAM actually registered, not derived here. §9: the entityID
+ * "is fixed at registration and stored on the IamRegistration rather than recomputed",
+ * which is also why **the project slug is immutable after production launch**.
+ */
+export const iamRegistrations = pgTable(
+  'iam_registrations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    // ONE per project (§9: one registration per production app).
+    projectId: uuid('project_id')
+      .notNull()
+      .unique()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    entityId: text('entity_id').notNull(),
+    acsUrl: text('acs_url').notNull(),
+    sloUrl: text('slo_url').notNull(),
+    certFingerprint: text('cert_fingerprint'),
+    /** D20: an unnoticed expiry silently kills login for a live course app mid-term. */
+    certExpiresAt: timestamp('cert_expires_at', { withTimezone: true }),
+    /**
+     * WHAT UBC IAM ACTUALLY REGISTERED. §7's last production clause compares a release's
+     * `auth.attributes` against this and fails the BUILD (P6a Task 13). `string[]`, not a
+     * typed union, because `db/` must not import `spec/` — the dependency runs the other
+     * way and the list is validated where it is written.
+     */
+    registeredAttributes: jsonb('registered_attributes').notNull().$type<string[]>(),
+    state: iamRegistrationState('state').notNull().default('draft'),
+    /** §15's submission-state hook: "a human submits and pastes a ticket reference". */
+    externalTicketRef: text('external_ticket_ref'),
+    recordedBy: uuid('recorded_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    /**
+     * §9 measured the fail-open case and it is not theoretical: SimpleSAMLphp treats an
+     * empty attribute list and a missing one identically and releases EVERYTHING. The same
+     * emptiness here would make Task 13's subset check vacuously true — every set is a
+     * superset of nothing — so **the database refuses the half-written row**, exactly as
+     * §9 asks registration to.
+     */
+    check(
+      'iam_registrations_attributes_present',
+      sql`jsonb_array_length(${t.registeredAttributes}) > 0`,
+    ),
+  ],
+)
+
+/** §6's `PrivacyAssessment`. P6a tracks it; P8 generates the draft (R1). */
+export const privacyAssessments = pgTable('privacy_assessments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id')
+    .notNull()
+    .unique()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  /** P8's output. Null here, always, and the column exists so P8 adds no migration. */
+  generatedDraft: jsonb('generated_draft'),
+  state: privacyAssessmentState('state').notNull().default('draft'),
+  reviewer: text('reviewer'),
+  approvedAt: timestamp('approved_at', { withTimezone: true }),
+  externalTicketRef: text('external_ticket_ref'),
+  recordedBy: uuid('recorded_by').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const approvalDecision = pgEnum('approval_decision', ['approved', 'rejected'])
+
+/**
+ * §6's `Approval`, and §13's *Integrity of the gate*: "a non-repudiable record: actor,
+ * timestamp, and the exact diff shown at decision time."
+ *
+ * **IT BINDS A DIGEST, NOT A TAG, AND NOT ONLY A RELEASE ID.** §13: "Binding to a tag would
+ * let a later push silently replace approved content." The release id alone would be a
+ * binding to a row whose build could be rebuilt — so `image_digest` is stored here, on the
+ * approval, and P6a Task 15 verifies it against the build immediately before deploying.
+ * Decision 11: a new build is a new digest and therefore has no approval.
+ *
+ * NO UNIQUE CONSTRAINT ON release_id. A release can be approved, rejected, and approved
+ * again — the queue is a history and §13 wants the record, not the latest answer. What
+ * reads it takes the newest row by `decided_at`.
+ */
+export const approvals = pgTable(
+  'approvals',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    releaseId: uuid('release_id')
+      .notNull()
+      .references(() => releases.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    decision: approvalDecision('decision').notNull(),
+    decidedBy: uuid('decided_by')
+      .notNull()
+      .references(() => users.id),
+    decidedAt: timestamp('decided_at', { withTimezone: true }).notNull().defaultNow(),
+    /** THE BINDING. Verified before anything starts (§13, P6a Task 15). */
+    imageDigest: text('image_digest').notNull(),
+    /** Why, in the administrator's own words. Required on a rejection; optional otherwise. */
+    reason: text('reason'),
+    /** Decision 6: the RENDERED diff, at decision time. Never a reference recomputed later. */
+    diffSnapshot: jsonb('diff_snapshot').notNull().$type<{
+      imageDigest: string
+      changes: { path: string; from: string; to: string; summary: string }[]
+      services: string[]
+      attributes: string[]
+      resources: Record<string, string | number | null>
+      /** Decision 7: null when the model could not be reached. NOT an empty string. */
+      summary: string | null
+      summarySource: 'llm' | 'unavailable' | 'no-previous-release'
+      /** R4: the reviewer's verdict at decision time. `not_performed` until one lands. */
+      review: { state: string; reviewer: string; detail: string }
+    }>(),
+  },
+  (t) => [
+    index('approvals_release_idx').on(t.releaseId),
+    /**
+     * The same shape `role_changes_reason_present` already uses (migration 0013), and it
+     * is here for the same reason: a refusal a person or an agent is told about, with no
+     * words in it, is a refusal nobody can act on (D23.7).
+     */
+    check(
+      'approvals_rejection_has_reason',
+      sql`${t.decision} <> 'rejected' OR length(trim(coalesce(${t.reason}, ''))) > 0`,
+    ),
+  ],
+)
+
 /**
  * §20's audit log lives in its own SCHEMA, and that is the control rather than a
  * filing decision.
@@ -519,7 +671,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected')`,
     ),
   ],
 )

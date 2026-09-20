@@ -40,6 +40,26 @@ const PUBLISHED_ELSEWHERE = {
 } as const
 
 /**
+ * Types with NO PUBLISHER ANYWHERE YET, and a second list rather than four more entries
+ * above — because the list above promises *"the test that runs each one's publisher"*, and
+ * saying that about a type nothing publishes is the kind of reassuring claim this project
+ * keeps paying for. The CHECK constraint and the document carry all five from migration
+ * 0019 (P6a Decision 14: one constraint rewrite, not three), so they exist here before
+ * their callers do.
+ *
+ * **Each entry names the task that writes its publisher, and removing the entry is that
+ * task's job**: the moment a lifecycle in this file reaches one of these, the assertion
+ * below goes red and somebody has to decide which list it belongs in.
+ */
+const NO_PUBLISHER_YET = {
+  'iam_registration.recorded': 'P6a Task 6 — launch/records.ts',
+  'privacy_assessment.recorded': 'P6a Task 6 — launch/records.ts',
+  'rehearsal.completed': 'P6a Task 14 — launch/rehearsal.ts',
+  'release.approved': 'P6a Task 10 — releases/approval.ts',
+  'release.approval_rejected': 'P6a Task 10 — releases/approval.ts',
+} as const
+
+/**
  * THE DOCUMENT DESCRIBES WHAT STREAMS (P5a Task 12). Every frame the platform publishes
  * through a whole delivery lifecycle — and every frame a reconnecting client is replayed —
  * must parse as the contract's StreamFrame. A schema nothing checks against real frames is
@@ -188,7 +208,7 @@ describe('the stream in the contract (D23.2)', () => {
       published.flatMap((f) => (f.kind === 'event' ? [f.type] : [])),
     )
     expect(EVENT_TYPES.filter((type) => !reached.has(type)).sort()).toEqual(
-      Object.keys(PUBLISHED_ELSEWHERE).sort(),
+      [...Object.keys(PUBLISHED_ELSEWHERE), ...Object.keys(NO_PUBLISHER_YET)].sort(),
     )
     await app.close()
   })

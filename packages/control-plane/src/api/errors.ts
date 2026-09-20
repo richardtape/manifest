@@ -14,7 +14,7 @@ import { TokenCredentialRefusedError } from './actor.js'
 import { RateLimitedError } from './rate-limit.js'
 import type { ErrorEnvelopeShape } from './representations/errors.js'
 import { LaunchReadiness } from './representations/launch.js'
-import type { LaunchReadinessView } from '../launch/index.js'
+import { LaunchTransitionError, type LaunchReadinessView } from '../launch/index.js'
 import {
   PendingActionRejectedError,
   PendingActionRequiredError,
@@ -536,6 +536,24 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
           code: error.code,
           message: error.message,
           hint: `Wait ${error.retryAfterSeconds} s; Retry-After says the same.`,
+        },
+      },
+    }
+  }
+
+  /**
+   * §9's arrows, refused (P6a Task 5). A state conflict, so 409 — and it carries a hint
+   * because the refusal's whole value to an administrator is *what this record can become
+   * instead*, which the message already says and a hint makes actionable at a glance.
+   */
+  if (error instanceof LaunchTransitionError) {
+    return {
+      status: 409,
+      body: {
+        error: {
+          code: error.code,
+          message: error.message,
+          hint: 'Move the record along the states §9 gives it, one at a time.',
         },
       },
     }

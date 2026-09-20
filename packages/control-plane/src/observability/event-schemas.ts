@@ -1,5 +1,11 @@
 import { z } from 'zod/v4'
-import { environmentKind, instanceState } from '../db/index.js'
+import {
+  approvalDecision,
+  environmentKind,
+  iamRegistrationState,
+  instanceState,
+  privacyAssessmentState,
+} from '../db/index.js'
 import type { EventType } from './events.js'
 
 /**
@@ -47,6 +53,17 @@ const InstanceDetail = z.strictObject({
  * row, and the handle is then the only thing naming what was removed — §14's trail matters
  * most once the thing is gone. The event's `subject` carries it for the same reason.
  */
+/**
+ * Both halves of §13's approval answer (P6a Decision 14). One shape for two types, so a
+ * client switches on the TYPE rather than reading a field to find out what happened —
+ * `decision` is carried as well because the audit trail is read as rows, not as a switch.
+ */
+const ApprovalDetail = z.strictObject({
+  releaseId: Uuid,
+  imageDigest: z.string(),
+  decision: z.enum(approvalDecision.enumValues),
+})
+
 const RetireDetail = z.strictObject({
   instanceId: Uuid.nullable(),
   handle: z.string(),
@@ -163,4 +180,41 @@ export const EVENT_DETAIL_SCHEMAS = {
     valid: z.boolean(),
     errorCount: z.number().int().nonnegative(),
   }),
+  /**
+   * §9 and R1 (P6a Task 6). **THE TICKET REFERENCE IS HERE AND THE ATTRIBUTES ARE NOT**:
+   * a list of requested CWL attributes on a project's stream is more than the stream needs
+   * to carry, so the COUNT goes here and `getLaunchRecords` is where a member reads the
+   * list itself. `projectId` is the event's own column, as everywhere else in this map.
+   */
+  'iam_registration.recorded': z.strictObject({
+    state: z.enum(iamRegistrationState.enumValues),
+    entityId: z.string(),
+    externalTicketRef: z.string().nullable(),
+    attributeCount: z.number().int().positive(),
+  }),
+  /** The same shape for the other external record. No reviewer note — §14, and the row has it. */
+  'privacy_assessment.recorded': z.strictObject({
+    state: z.enum(privacyAssessmentState.enumValues),
+    externalTicketRef: z.string().nullable(),
+  }),
+  /**
+   * D21 as R2 redefines it (P6a Task 14). The COUNT of attributes released, never the
+   * names, and never the assertion or a NameID — `launch/rehearsal.ts` holds the evidence.
+   */
+  'rehearsal.completed': z.strictObject({
+    rehearsalId: Uuid,
+    releaseId: Uuid,
+    passed: z.boolean(),
+    attributeCount: z.number().int().nonnegative(),
+  }),
+  /**
+   * §13 (P6a Task 10). **THE DIGEST, NOT THE DIFF.** The diff is on the approval row and is
+   * read through `getApproval`; an event goes on a project's stream and a manifest diff can
+   * name services, attributes and egress destinations (§14's redaction argument, applied by
+   * omission). The digest is truncated to its first 19 characters, which is enough to
+   * recognise and not enough to be mistaken for the binding itself.
+   */
+  'release.approved': ApprovalDetail,
+  /** The same detail; the reason is in the human message, in the administrator's own words. */
+  'release.approval_rejected': ApprovalDetail,
 } satisfies Record<EventType, z.ZodType>

@@ -156,4 +156,30 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     capabilities: ['project:read', 'build:create'],
     expiresAt: '2026-10-17T00:00:00.000Z',
   },
+  'iam_registration.recorded': {
+    state: 'submitted',
+    entityId: 'https://manifest.internal/sp/chem-labs/production',
+    externalTicketRef: 'IAM-2026-0412',
+    attributeCount: 2,
+  },
+  'privacy_assessment.recorded': {
+    state: 'submitted',
+    externalTicketRef: 'PIA-2026-0088',
+  },
+  'rehearsal.completed': {
+    rehearsalId: UUID,
+    releaseId: UUID,
+    passed: true,
+    attributeCount: 2,
+  },
+  'release.approved': {
+    releaseId: UUID,
+    imageDigest: `sha256:${'a'.repeat(64)}`.slice(0, 19),
+    decision: 'approved',
+  },
+  'release.approval_rejected': {
+    releaseId: UUID,
+    imageDigest: `sha256:${'a'.repeat(64)}`.slice(0, 19),
+    decision: 'rejected',
+  },
 }
