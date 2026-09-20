@@ -5580,8 +5580,15 @@ in-session); where a prediction was wrong, the row says so.
 - **THE DATABASE IS EMPTY**: `projects`, `releases`, `approvals` and `users` all read **0**,
   because the final `pnpm test` truncated them. **Twenty migrations are applied**; this
   sitting adds none. `.manifest/repos/` holds the same four bare repositories it held at open.
-- `make up` was run at open and again before the Docker tier; the snapshot at open is in
-  the session's scratchpad.
+- **`./scripts/snapshot-machine.sh` AT OPEN AND AT CLOSE, DIFFED — 64 lines, and every one
+  is accounted for**: timestamps and container uptimes; **free disk 51Gi → 50Gi**; `HEAD`
+  moving to this sitting's own commits; and **FOUR new app images**, named, all from the
+  Docker tier — `boot-recover`, `chem-labs`, `fixture-rd` and `redeploy-cp`, each tagged
+  `127.0.0.1:7107/local/…`. Nothing else moved. **The four protected containers all survive**
+  (`docker-simple-saml-saml-idp-1` is present and `Exited (0) 2 weeks ago`, exactly as at
+  open), and **both read-only repositories are untouched**: `docker-simple-saml`'s only dirty
+  path is the untracked `cert.zip` dated 22 June.
+- `make up` was run at open and again before the Docker tier.
 
 **THE POST-SWEEP CHECK FOUND TWO DEFECTS IN THIS SITTING'S OWN HAND-OFF**, and both were found
 by opening the thing pointed at rather than by re-reading the sentence.
