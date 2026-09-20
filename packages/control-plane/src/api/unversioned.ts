@@ -20,7 +20,12 @@ export const UNVERSIONED = [
   {
     method: 'POST',
     path: '/auth/logout',
-    why: "The SLO URL registered beside the ACS (§9). Ends the browser's session; not a resource.",
+    why: "The console's own sign-out. Ends the browser's session; not a resource.",
+  },
+  {
+    method: 'GET',
+    path: '/auth/logout',
+    why: "The SLO URL registered beside the ACS (§9), reached by the IdP's HTTP-Redirect binding, which is a GET. Declared POST-only until P5c sitting 9 found that single logout therefore 404'd against Manifest's own SP.",
   },
   {
     method: 'GET',

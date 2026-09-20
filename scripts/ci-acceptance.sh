@@ -38,8 +38,8 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # A MISMATCH IS REPORTED AS A NUMBER THAT MOVED, NOT AS A FAILURE. A test added on purpose
 # must not fail CI; what must not happen is that it moves and nobody notices. When it does,
 # update ORIENTATION §2's box, README, RUNBOOK and this line together (§6).
-EXPECT_TESTS=1376
-EXPECT_FILES=107
+EXPECT_TESTS=1390
+EXPECT_FILES=108
 EXPECT_DOCTOR=18
 EXPECT_VERIFY=51
 

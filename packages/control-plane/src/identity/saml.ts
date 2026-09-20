@@ -92,6 +92,24 @@ export interface SamlSp {
   loginUrl(relayState: string): Promise<string>
   /** Validates a `SAMLResponse` and returns §9's identity, or throws. */
   validate(samlResponse: string): Promise<SamlIdentity>
+  /**
+   * The IdP's OWN LogoutRequest, delivered over the HTTP-Redirect binding — which is
+   * a GET carrying `?SAMLRequest=`, not a POST. Validates its signature against
+   * `idpCert` and returns the signed LogoutResponse URL to send the browser back to.
+   *
+   * `originalQuery` is the RAW query string, because the redirect binding signs the
+   * bytes as they were sent: re-serialising a parsed object changes them and the
+   * signature stops verifying.
+   *
+   * Throws a plain `Error` — deliberately NOT a `SamlError`, which `errors.ts`
+   * answers 401 as a failed SIGN-IN, wrong for a request nobody signed in with.
+   * The caller must not end a session on a request it could not verify
+   * (P5c sitting 9, F11).
+   */
+  completeIdpLogout(
+    query: Record<string, unknown>,
+    originalQuery: string,
+  ): Promise<string>
 }
 
 /**
@@ -154,6 +172,35 @@ export function createSamlSp(config: SamlSpConfig): SamlSp {
     entity: config.entity,
     loginUrl: (relayState: string) =>
       saml.getAuthorizeUrlAsync(relayState, undefined, {}),
+    completeIdpLogout: async (
+      query: Record<string, unknown>,
+      originalQuery: string,
+    ): Promise<string> => {
+      let profile
+      try {
+        ;({ profile } = await saml.validateRedirectAsync(
+          query as Parameters<typeof saml.validateRedirectAsync>[0],
+          originalQuery,
+        ))
+      } catch (cause) {
+        // A PLAIN Error, NOT a SamlError, and the distinction is load-bearing:
+        // `errors.ts` answers every SamlError 401 with *"sign-in could not be
+        // completed — start again at /auth/login"*, which fails closed correctly
+        // for an assertion and is simply wrong here. Nobody was signing in. The
+        // route owns this refusal and answers `400 SAML_LOGOUT_REJECTED`.
+        throw new Error(
+          `the logout request was refused: ${cause instanceof Error ? cause.message : String(cause)}`,
+        )
+      }
+      if (!profile) {
+        throw new Error('the logout request carried no profile to answer')
+      }
+      // `success: true` — we have ended the session by the time this is sent. A
+      // LogoutResponse is owed either way: an IdP that gets none leaves the session
+      // it is tearing down marked as still live at every other SP.
+      const relayState = typeof query.RelayState === 'string' ? query.RelayState : ''
+      return saml.getLogoutResponseUrlAsync(profile, relayState, {}, true)
+    },
     validate: async (samlResponse: string): Promise<SamlIdentity> => {
       let profile
       try {

@@ -259,6 +259,19 @@ export const ERROR_CODES = {
     'The assertion answers a sign-in this browser did not start.',
   ),
 
+  /**
+   * SINGLE LOGOUT IS NOT SIGN-IN, and this is deliberately not `saml()`. The
+   * `SamlError` branch in `errors.ts` answers 401 with *"sign-in could not be
+   * completed — start again at /auth/login"*, which fails closed correctly for an
+   * assertion and is simply wrong for a LogoutRequest: nobody was signing in, and
+   * `/auth/login` is not where to go. The caller here is the IdP, not a person, so
+   * an unverifiable request is a malformed one (P5c sitting 9, F11).
+   */
+  SAML_LOGOUT_REJECTED: api(
+    400,
+    'The single-logout request could not be verified; the operator log says why.',
+  ),
+
   // ai/ — every one is 503, and carries nothing from the gateway (§14)
   AI_PROJECT_BUDGET_EXCEEDED: ai('The app has used its AI budget for the month.'),
   AI_USER_BUDGET_EXCEEDED: ai('The person has used their AI allowance for the month.'),

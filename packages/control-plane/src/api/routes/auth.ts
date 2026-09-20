@@ -32,6 +32,28 @@ const callbackBody = z.object({
 /** Where the browser wants to land after signing in (P5a Task 4). Checked again on use. */
 const loginQuery = z.object({ returnTo: z.string().max(512).optional() })
 
+/**
+ * The query string's values decoded as URI COMPONENTS, not as a form — see the note
+ * at the SLO route's call site. `decodeURIComponent` leaves `+` alone, which base64
+ * requires; every form decoder turns it into a space and corrupts the message.
+ */
+export function rawQueryValues(originalQuery: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const pair of originalQuery.split('&')) {
+    if (pair === '') continue
+    const eq = pair.indexOf('=')
+    const key = eq === -1 ? pair : pair.slice(0, eq)
+    const value = eq === -1 ? '' : pair.slice(eq + 1)
+    try {
+      out[decodeURIComponent(key)] = decodeURIComponent(value)
+    } catch {
+      // A malformed percent-escape is a refusal upstream, never a crash here.
+      out[key] = value
+    }
+  }
+  return out
+}
+
 export async function registerAuthRoutes(
   app: FastifyInstance,
   deps: ServerDeps,
@@ -146,6 +168,83 @@ export async function registerAuthRoutes(
       // successful login that read exactly like a failed one. `?returnTo=/v1/me` lands
       // where that said.
       return reply.redirect(binding.returnTo, 302)
+    },
+  )
+
+  /**
+   * §9's SINGLE LOGOUT endpoint, and the one `sso/platform.ts` registers as this
+   * SP's `sloUrl`. The IdP delivers a LogoutRequest over the HTTP-Redirect binding,
+   * which is a **GET** with `?SAMLRequest=` — so declaring this path `POST` only
+   * meant signing out of ANY deployed app answered `404 ROUTE_NOT_FOUND`, left a
+   * person on raw JSON, and never ended Manifest's own session (P5c sitting 9, F11).
+   * The blueprint this platform GENERATES had already learned the same lesson on
+   * 2026-09-09; `skeleton/server.js` says so in as many words.
+   *
+   * IT REQUIRES A SIGNED REQUEST AND IS NOT A SIGN-OUT LINK. A bare GET that clears
+   * a cookie is a logout-CSRF primitive any other origin can fire with an `<img>`,
+   * and §20 keeps the console's own sign-out on POST behind the Origin check for
+   * exactly that reason. This route answers the IdP, and nothing else.
+   */
+  app.get(
+    '/auth/logout',
+    { config: { idempotency: 'exempt' } },
+    async (request, reply) => {
+      const query = (request.query ?? {}) as Record<string, unknown>
+      const refusal = (hint: string) =>
+        reply.status(400).send({
+          error: {
+            code: 'SAML_LOGOUT_REJECTED',
+            message: 'the single-logout request could not be verified',
+            hint,
+          },
+        })
+
+      // ONE OPERATOR LINE PER SINGLE LOGOUT, arrival and outcome both. §4: a
+      // failure that leaves no operator line hides the next one — and F11 was
+      // invisible for exactly that reason, answering `404` with nobody watching.
+      // A LogoutRequest carries no secret; the nameID is transient by §9's row.
+      console.error(
+        `[auth] single logout: LogoutRequest ${typeof query.SAMLRequest === 'string' ? `arrived (${query.SAMLRequest.length} chars)` : 'ABSENT'}`,
+      )
+      if (typeof query.SAMLRequest !== 'string' || query.SAMLRequest.length === 0) {
+        return refusal(
+          'This is the SP’s single-logout endpoint, where the Manifest IdP delivers its LogoutRequest. A person signing out of the console uses POST /auth/logout.',
+        )
+      }
+
+      let redirectTo: string
+      try {
+        // The RAW query string: the redirect binding signs the bytes as sent.
+        const originalQuery = (request.raw.url ?? '').split('?')[1] ?? ''
+        // AND THE RAW *VALUES*, decoded as URI components rather than as a form.
+        // Fastify's query parser applies form semantics, in which `+` means SPACE —
+        // but `+` is a LITERAL character of the base64 alphabet and the redirect
+        // binding sends percent-encoded base64. `Buffer.from(x, 'base64')` then
+        // silently DROPS the spaces, leaving a SHORT deflate stream, and node-saml
+        // fails in `inflateRawAsync` with "unexpected end of file" long before it
+        // reaches the signature. Measured against the real Manifest IdP, and again
+        // offline: the same bytes sent `%2B`-encoded inflate; sent as a literal `+`
+        // they do not (P5c sitting 9, F16).
+        redirectTo = await deps.samlSp.completeIdpLogout(
+          rawQueryValues(originalQuery),
+          originalQuery,
+        )
+      } catch (cause) {
+        // `request.log` writes nothing here (§4), and a refusal that leaves no
+        // operator line hides the next one. Never with a secret in it.
+        console.error(
+          `[auth] single logout refused: ${cause instanceof Error ? cause.message : String(cause)}`,
+        )
+        return refusal(
+          'The request could not be verified against the IdP’s certificate. The control plane’s log has the reason.',
+        )
+      }
+
+      // ONLY after the request verified. A session must not be ended by a request
+      // this process could not prove came from its own IdP.
+      reply.clearCookie(SESSION_COOKIE, { path: '/' })
+      console.error('[auth] single logout: ACCEPTED — session cleared')
+      return reply.redirect(redirectTo, 302)
     },
   )
 

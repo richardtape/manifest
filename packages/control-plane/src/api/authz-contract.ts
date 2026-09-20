@@ -227,6 +227,38 @@ const ROUTES: RouteCase[] = [
     },
   },
   {
+    // §9's SLO endpoint. Open to every actor for the same reason the POST is: the
+    // IdP is the caller and it carries no Manifest credential at all. What guards
+    // it is the SIGNATURE on the LogoutRequest, checked against `idpCert`, not the
+    // authorization layer — so `pass` here means "reaches the handler", and the
+    // handler refuses an unverifiable request `400 SAML_LOGOUT_REJECTED`.
+    method: 'GET',
+    url: '/auth/logout',
+    request: () => ({ url: '/auth/logout' }),
+    // EVERY actor gets the same answer, and that is the claim worth asserting:
+    // authorization is IRRELEVANT on this route. What guards §9's SLO endpoint is
+    // the SIGNATURE on the LogoutRequest, checked against `idpCert` — so a request
+    // carrying none is `400 SAML_LOGOUT_REJECTED` for an owner, a stranger and an
+    // anonymous caller alike. **Asserted by CODE, never by status alone**: this row
+    // is the guard that would have caught F11. **Measured, because the first draft of
+    // this comment overstated it**: a DELETED route answers `404 ROUTE_NOT_FOUND`, which
+    // a status-only row catches anyway on the status. What a status-only row does NOT
+    // catch is a different `400` moving in front — swapping this code for
+    // `REQUEST_INVALID` leaves the status at 400 and was watched turning all nine rows
+    // red only because the code is asserted.
+    expect: {
+      owner: { status: 400, code: 'SAML_LOGOUT_REJECTED' } as const,
+      collaborator: { status: 400, code: 'SAML_LOGOUT_REJECTED' } as const,
+      stranger: { status: 400, code: 'SAML_LOGOUT_REJECTED' } as const,
+      admin: { status: 400, code: 'SAML_LOGOUT_REJECTED' } as const,
+      anonymous: { status: 400, code: 'SAML_LOGOUT_REJECTED' } as const,
+      'token-capable': { status: 400, code: 'SAML_LOGOUT_REJECTED' } as const,
+      'token-incapable': { status: 400, code: 'SAML_LOGOUT_REJECTED' } as const,
+      'token-other-project': { status: 400, code: 'SAML_LOGOUT_REJECTED' } as const,
+      'token-privileged': { status: 400, code: 'SAML_LOGOUT_REJECTED' } as const,
+    },
+  },
+  {
     method: 'POST',
     url: '/auth/logout',
     request: () => ({ url: '/auth/logout' }),

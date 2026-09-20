@@ -5960,3 +5960,73 @@ the clicked journey deployed a third app, still read `0 network(s) and 0 volume(
 machine, and the two defects were introduced by the close-out's own gate run and by a server left
 running for a person's convenience. **A state table is only true as of its last query — so query
 it last**, after the gates, not before them.
+
+#### F11 IS FIXED — and F16 is the defect the fix's own tests could not see
+
+**Rich directed the repair rather than deferring it to P6** (§8, *Decided*), on the grounds that
+the context was fresh. It took two fixes, and the second one only exists because **he asked
+whether we had tested it in a browser.**
+
+**THE FIRST FIX — the binding.** `GET /auth/logout` now answers the IdP's HTTP-Redirect
+LogoutRequest. It validates the signature against `idpCert` and **clears the session only after
+the request verifies**, because a session must not be ended by a request the process could not
+prove came from its own IdP. It **requires a signed request and is deliberately not a sign-out
+link**: a bare `GET` that clears a cookie is a logout-CSRF primitive any origin can fire with an
+`<img>`, which is why §20 keeps the console's own sign-out on `POST` behind the Origin check.
+
+*Three decisions made along the way, each with its reason in the code:* `SAML_LOGOUT_REJECTED` is
+registered at **400 and deliberately not through `saml()`**, because `errors.ts` answers every
+`SamlError` *401 "sign-in could not be completed — start again at /auth/login"*, which fails
+closed correctly for an assertion and is simply wrong for a logout nobody signed in with;
+`completeIdpLogout` therefore throws a **plain `Error`**, not a `SamlError`; and the authorization
+matrix declares the route **by CODE, not status** — `{ status: 400, code: 'SAML_LOGOUT_REJECTED' }`
+for all nine actors, which says the thing worth saying, that **authorization is irrelevant on this
+route and the signature is what guards it.**
+
+**THE SECOND FIX — F16, AND IT IS THE ONE TO REMEMBER.** The first fix passed every test, moved
+`make doctor` and `make verify` not at all, and **was still broken against the real IdP.** Clicking
+*Sign out* in a deployed app produced, instead of a `404`, a `400`: the route was reached and the
+request refused. The operator line said **`the logout request was refused: unexpected end of
+file`** — a zlib error, thrown in `inflateRawAsync` long before any signature was checked.
+
+**Root cause, measured rather than reasoned:** `+` is a literal character of the base64 alphabet,
+and the SAML redirect binding sends percent-encoded base64 — but **Fastify's query parser applies
+FORM semantics, in which `+` means space**, and `Buffer.from(x, 'base64')` then silently DROPS the
+spaces, leaving a deflate stream that ends early. Isolated offline in two directions: the same
+bytes sent `%2B`-encoded inflated fine and failed later at the issuer check, while sent as a
+literal `+` they failed at inflate. **The redirect binding's values are URI components, not form
+fields**; `rawQueryValues` decodes them with `decodeURIComponent`, which leaves `+` alone.
+
+**WHY EVERY TEST MISSED IT, which is the general lesson:** every test fired GARBAGE at the route
+and asserted it was refused — and **a route that refuses everything passes all of them.** The
+regression test now asserts the contrast that makes it mean something:
+`new URLSearchParams('SAMLRequest=ab+cd%2Bef').get(…)` is `ab cd+ef`, which is what the route used
+to receive, against `rawQueryValues`'s `ab+cd+ef`.
+
+**PROVED IN A BROWSER, against the real Manifest IdP**, by the original reproduction — signing out
+of a deployed app (`make demo-identity` restored one, the Docker tier having dropped every runtime
+route):
+
+| | Before | After |
+|---|---|---|
+| the page a person lands on | raw JSON `404 ROUTE_NOT_FOUND` | the app's own page |
+| Manifest's own session | **still signed in** | **signed out** |
+| the operator log | nothing at all | `LogoutRequest arrived (536 chars)` → `ACCEPTED — session cleared` |
+
+**Three negative controls, watched and restored.** (a) remove the route → `ROUTE_NOT_FOUND`, caught
+by the test's explicit `not.toBe('ROUTE_NOT_FOUND')` guard; (b) change only the refusal CODE,
+leaving the status at 400 → all nine matrix rows red, **which is what proves the code assertion is
+load-bearing**, since a status-only row would have stayed green; (c) remove the signature check →
+red, **but it reported `Unexpected end of JSON input`**, because the route then redirects `302`
+with an empty body and `res.json()` throws. **The control fired for the right reason and named the
+wrong thing**, so the test now asserts the STATUS first and that failure reads `expected 302 to be
+400`. *A comment was corrected by measurement too*: the first draft claimed a status-only row would
+let a deleted route pass, and it would not — a missing route is `404`, which a status-only row
+catches. What it misses is a different `400` moving in front, which is control (b).
+
+**Gates:** `pnpm test` **1390 in 108 files** (run twice; up 14 and one file — `api/logout.test.ts`
+and nine matrix rows), `pnpm test:docker` **178 in 29** run TWICE, `make doctor` **18/0**,
+`make verify` **51/0**, lint, typecheck and `format:check` clean. **The moved count was carried to
+all four places together** — ORIENTATION §2, `README.md`, `RUNBOOK.md` and
+`scripts/ci-acceptance.sh`'s `EXPECT_` lines. **The OpenAPI document was regenerated** (`unversioned.ts`
+feeds it) and the client with it.
