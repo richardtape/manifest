@@ -162,6 +162,21 @@ export const ERROR_CODES = {
     403,
     'A person refused this exact request. `pendingAction.reason` is why, in their words; retrying it will not change the answer.',
   ),
+  /**
+   * §20's step-up (P6a Task 9), and the FIFTH answer that is a `403` on this API — after
+   * `FORBIDDEN`, `TOKEN_CREDENTIAL_REFUSED`, `TOKEN_ACTION_PENDING` and
+   * `TOKEN_ACTION_REJECTED`. A status-only assertion passes through all five, which is
+   * why every refusal in this plan asserts its CODE.
+   *
+   * **403 and not 401**: the credential is valid and the person is who they say — they
+   * are being told this particular action needs re-proving, which is a different thing
+   * from *who are you* and needs a different client behaviour (D23.7). The HINT is the
+   * remedy, and `errors.ts` names the route to navigate to.
+   */
+  STEP_UP_REQUIRED: api(
+    403,
+    'This action needs a second authentication round trip (§20). Send the person to /auth/step-up and retry.',
+  ),
   /** A pending action already has an answer, and one question has one (P5b Task 7). */
   PROJECT_LAST_OWNER: api(
     409,

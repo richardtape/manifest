@@ -6,7 +6,13 @@ import { createLocalSourceDriver } from '../source/index.js'
 import { loadBlueprints } from '../blueprints/index.js'
 import { createServiceCredentials } from '../services/index.js'
 import { createAppSecrets, generateMasterKeypair } from '../secrets/index.js'
-import { SESSION_COOKIE, createSamlSp } from '../identity/index.js'
+import {
+  SESSION_COOKIE,
+  createSamlSp,
+  issueSession,
+  signSession,
+  stepUpSession,
+} from '../identity/index.js'
 import {
   ensureTestUser,
   testSamlIdp,
@@ -107,9 +113,31 @@ export const TEST_REPOS_ROOT = join(tmpdir(), 'manifest-test-repos')
 export async function loginAs(
   deps: ServerDeps,
   puid: TestUserPuid,
+  options: {
+    /**
+     * §20's step-up claim, already stamped (P6a Task 9). **THE ONE PLACE A TEST GETS
+     * ONE**, so the day step-up changes shape there is one line to change rather than
+     * one per caller.
+     *
+     * **A test passes this only when the step-up is NOT what it is testing** — a
+     * fixture's setup call, or a route whose subject is something else. The
+     * authorization matrix deliberately does NOT: its sessions are ordinary, so a row
+     * reading `pass` on a guarded route would be a row testing a guard that is not
+     * there. `auth.test.ts` is where the claim is earned through a real SAML round trip,
+     * and `step-up-guarded.test.ts` proves nothing else can set it on a real cookie.
+     */
+    steppedUp?: boolean
+  } = {},
 ): Promise<Record<typeof SESSION_COOKIE, string>> {
   const user = await ensureTestUser(deps.db, puid)
-  return testSessionCookies(user, deps.config.sessionSecret)
+  if (options.steppedUp !== true)
+    return testSessionCookies(user, deps.config.sessionSecret)
+  return {
+    [SESSION_COOKIE]: signSession(
+      stepUpSession(issueSession(user)),
+      deps.config.sessionSecret,
+    ),
+  }
 }
 
 /**
@@ -301,6 +329,16 @@ export interface TestProject {
   /** The OWNER's `users.id`: `bio_prof`, who created the project and is therefore its owner (§13). */
   userId: string
   ownerCookies: Record<string, string>
+  /**
+   * The SAME owner with §20's step-up claim already stamped (P6a Task 9).
+   *
+   * For the `members:manage` calls only — `assertStepUp` refuses an ordinary session on
+   * those two routes, and a test whose subject is member removal should not have to
+   * drive a SAML round trip to get there. **Everything else keeps `ownerCookies`**, so a
+   * guard accidentally added to another route turns that test red rather than being
+   * absorbed by a fixture that steps up for everything.
+   */
+  ownerSteppedUp: Record<string, string>
   projectId: string
   /** A SECOND project, owned by `unrelated_user` — what Decision 3's scope rule is tested against. */
   otherProjectId: string
@@ -318,6 +356,7 @@ export async function withProjectServer(
   const app = await buildServer(deps)
   try {
     const ownerCookies = await loginAs(deps, 'bio_prof')
+    const ownerSteppedUp = await loginAs(deps, 'bio_prof', { steppedUp: true })
     const owner = await ensureTestUser(deps.db, 'bio_prof')
     // THROUGH THE ROUTE, not through `createProject`: the environments, the repository
     // and the spec all come from it, and a fixture that wrote the rows by hand would be
@@ -359,6 +398,7 @@ export async function withProjectServer(
       db: deps.db,
       userId: owner.id,
       ownerCookies,
+      ownerSteppedUp,
       projectId: project.id,
       otherProjectId: (other.json() as { id: string }).id,
       commitSha: project.spec.commitSha,
@@ -382,8 +422,10 @@ export async function sessionFor(
   ctx: TestProject,
   puid: TestUserPuid,
   role?: 'owner' | 'collaborator',
+  /** §20's step-up, for a test whose subject is not the step-up (P6a Task 9). */
+  options: { steppedUp?: boolean } = {},
 ): Promise<Record<string, string>> {
-  const cookies = await loginAs(ctx.deps, puid)
+  const cookies = await loginAs(ctx.deps, puid, options)
   if (role !== undefined) {
     const user = await ensureTestUser(ctx.deps.db, puid)
     await addMember(ctx.deps.db, ctx.projectId, user.id, role)

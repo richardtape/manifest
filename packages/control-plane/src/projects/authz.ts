@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { projectMembers, projects } from '../db/index.js'
+import { isSteppedUp } from '../identity/index.js'
 
 export type ProjectRole = 'owner' | 'collaborator'
 
@@ -79,6 +80,114 @@ export const PRIVILEGED: ReadonlySet<PrivilegedCapability> = new Set([
 
 export function isPrivileged(capability: PrivilegedCapability): boolean {
   return PRIVILEGED.has(capability)
+}
+
+/**
+ * §20's step-up set: *"approving a release, reading a secret, changing a quota, changing
+ * project membership"*, re-proved by a second authentication round trip (P6a Task 9).
+ *
+ * **IT IS `PRIVILEGED` PLUS `release:approve`, AND THE DIFFERENCE IS REAL RATHER THAN
+ * TIDINESS.** §20's four map onto D24's four, and the code's slot for *"approving a
+ * release"* is `release:promote` — deploying to production. `release:approve` is a
+ * SEPARATE capability (§13 names the approval and the promotion separately) which is NOT
+ * in `PRIVILEGED`, is granted to a platform admin by role, and **could be minted into a
+ * delegated token by an administrator** — measured through the mint route as P6a `[M6]`.
+ * Adding it to `PRIVILEGED` would change D24's meaning and is a SPEC CHANGE, so it is not
+ * done here; this union plus `requireSession` on the route is what closes it, and the
+ * plan's Spec action 2 asks Rich whether §20 should say so.
+ *
+ * LITERALS, like `privileged.test.ts`'s D24 list, so nothing can be quietly added or
+ * removed — and `step-up-guarded.test.ts` names the same five a second time rather than
+ * deriving them from this constant, which would make the test agree with itself whatever
+ * the constant said.
+ */
+export const STEP_UP_GUARDED: ReadonlySet<PrivilegedCapability> = new Set([
+  'release:promote',
+  'release:approve',
+  'secret:read',
+  'quota:set',
+  'members:manage',
+])
+
+/**
+ * §20's step-up refusal (P6a Task 9).
+ *
+ * **IT CARRIES NO CODE AT ALL, AND `api/errors.ts` SUPPLIES ONE AT ITS `instanceof`
+ * BRANCH** — `TokenCapabilityRefusedError`'s shape, three screens below, in this same
+ * file. Both of the shapes §7e offered were measured and neither fits:
+ *
+ *  * a fixed `readonly code = '…'` here is **invisible** to `error-codes.test.ts`, whose
+ *    scan reads that pattern only under `api/` — sitting 4's F5 and sitting 5's F1;
+ *  * the code as a CONSTRUCTOR argument, with the class in `WIRE_CLASSES`, forces the
+ *    registry entry to claim **two** families. `api/authz-contract.ts`'s expectation
+ *    constants are written `{ status: 403, code: 'STEP_UP_REQUIRED' }`, the scan cannot
+ *    tell an expectation from a throw, and it lives under `api/` — so the code is found
+ *    for `api` whatever this class does. A second family that exists because a test
+ *    fixture matched a regex is exactly the signal P6a sitting 7 cleaned OUT of
+ *    `RELEASE_PRODUCTION_GATE_UNAVAILABLE`.
+ *
+ * With no code here there is one literal on the wire path, in `api/errors.ts`, the entry
+ * is a plain `api(403, …)`, and the class cannot be constructed with the wrong code.
+ *
+ * 403 and not 401: the credential is valid and the person is who they say — they are
+ * being told that this particular action needs re-proving, which is a different thing
+ * from *who are you* and needs a different client behaviour (D23.7).
+ */
+export class StepUpRequiredError extends Error {
+  constructor(readonly capability: PrivilegedCapability) {
+    super(`'${capability}' needs a second authentication round trip (§20)`)
+    this.name = 'StepUpRequiredError'
+  }
+}
+
+/**
+ * Called by a route AFTER `assertCapability`, and deliberately not inside it.
+ *
+ * `assertCapability` answers *may this actor do this?*; this answers *have they re-proved
+ * themselves recently enough?* — two different questions with two different remedies, and
+ * a client switches on the difference (D23.7). Folding it in would also make every
+ * existing call site of a guarded capability a step-up site, **including the ones a TOKEN
+ * reaches**, where the answer is D24's pending action and not a browser redirect.
+ *
+ * Freshness is asked HERE, at the moment of use, and never at issue time: a Phase 1
+ * session cannot be revoked before its own expiry (§20), so how old the claim may be when
+ * it is spent is the only lever there is.
+ */
+export function assertStepUp(
+  actor: Actor,
+  capability: PrivilegedCapability,
+  now: number = Date.now(),
+): void {
+  /**
+   * **A TOKEN, AND THE PLAN'S PREMISE ABOUT THIS LINE IS FALSE.** Task 9's snippet says
+   * *"a token never reaches here in a correct route: every step-up-guarded route either
+   * calls `requireSession` or is refused by D24's central rule first."* Measured: a token
+   * carrying a **grant** walks straight through `assertCapability` and arrives here, and
+   * refusing it unconditionally **kills D24's confirm-and-retry loop for all four
+   * privileged capabilities** — nine of P5b's tests, including *lets the agent's retry
+   * through exactly once*. A token can never step up, so "refuse every token" and "let a
+   * confirmed retry through" cannot both be true.
+   *
+   * **THE GRANT IS WHAT STANDS IN STEP-UP'S PLACE, and it is the stronger of the two.**
+   * `grant` is set only by `api/contract/route.ts`'s wrapper, from a `PendingAction` that
+   * a person **who holds this capability themselves** moved to `confirmed` **in an
+   * interactive session**, whose fingerprint matches THIS request — this token, this
+   * method, this path, this body — and it is spent once. §20 asks for a person to
+   * re-prove themselves; D24 asks for a person to read this exact request and say yes.
+   * Requiring both would mean requiring something a token cannot have.
+   *
+   * **IT FAILS CLOSED FOR EVERYTHING ELSE**, and that is not decoration: `release:approve`
+   * is step-up-guarded and is NOT one of D24's `PRIVILEGED` four, so a token holding it
+   * reaches this line with no grant at all and is refused here (*Read this first* 2).
+   * Compared for EQUALITY, like `assertCapability`'s own grant check: a confirmation of
+   * one capability is not a confirmation of another.
+   */
+  if (actor.credential !== 'session') {
+    if (actor.grant === capability) return
+    throw new StepUpRequiredError(capability)
+  }
+  if (!STEP_UP_GUARDED.has(capability)) return
+  if (!isSteppedUp(actor.steppedUpAt, now)) throw new StepUpRequiredError(capability)
 }
 
 /**

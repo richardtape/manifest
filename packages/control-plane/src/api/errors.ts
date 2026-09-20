@@ -28,7 +28,7 @@ import {
   PendingActionRequiredError,
   type PendingAction,
 } from '../tokens/index.js'
-import { TokenCapabilityRefusedError } from '../projects/index.js'
+import { StepUpRequiredError, TokenCapabilityRefusedError } from '../projects/index.js'
 import {
   PendingAction as PendingActionSchema,
   toPendingAction,
@@ -246,6 +246,31 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
           ...(error.code === 'FORBIDDEN'
             ? { hint: 'Ask a project owner to grant you the role this action needs.' }
             : {}),
+        },
+      },
+    }
+  }
+
+  /**
+   * §20's STEP-UP (P6a Task 9). 403 and not 401 for the same reason as the two below:
+   * the credential is valid, and this particular action needs re-proving.
+   *
+   * **THE HINT IS THE REMEDY**, and it names the route so a client does not have to know
+   * the flow — D23.7: *"an agent corrects itself from the answer."* The console reads it
+   * and navigates; a person reading the envelope can follow it by hand.
+   */
+  if (error instanceof StepUpRequiredError) {
+    return {
+      status: 403,
+      body: {
+        error: {
+          // THE LITERAL LIVES HERE, and nowhere else. `StepUpRequiredError` carries no
+          // code, exactly as `TokenCapabilityRefusedError` does — the class cannot then
+          // be constructed with the wrong one, and `error-codes.test.ts`'s scan finds
+          // this line under `api/` and registers the code for the `api` family.
+          code: 'STEP_UP_REQUIRED',
+          message: error.message,
+          hint: 'Navigate the browser to /auth/step-up?returnTo=<the page you are on>, complete the CWL prompt, and make this request again.',
         },
       },
     }

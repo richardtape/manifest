@@ -13,6 +13,7 @@ import {
   AuthorizationError,
   SLUG_CODES,
   SlugRefusedError,
+  StepUpRequiredError,
   type SlugReason,
 } from '../projects/index.js'
 import { ReleaseError } from '../releases/index.js'
@@ -141,6 +142,33 @@ describe('the error-code registry (§20, D23.7)', () => {
       }
     }
     expect(wrong).toEqual([])
+  })
+
+  /**
+   * §20's step-up, END TO END THROUGH THE MAPPER (P6a Task 9).
+   *
+   * `StepUpRequiredError` carries no `code` field — `errors.ts` supplies the literal at
+   * its `instanceof` branch, which is `TokenCapabilityRefusedError`'s shape and is what
+   * keeps the class from being constructed with the wrong code. The consequence is that
+   * the `make` map above cannot reach it, so the class→status link is asserted here
+   * instead of being left to the authorization matrix alone.
+   *
+   * **THE HINT IS PART OF THE ANSWER, not decoration**: D23.7 says an agent corrects
+   * itself from the answer, and the remedy for this refusal is a route the client is
+   * told by name.
+   */
+  it('answers §20’s step-up 403 STEP_UP_REQUIRED, with the route to fix it in the hint', () => {
+    const { status, body } = toErrorResponse(new StepUpRequiredError('members:manage'))
+    expect({ status, code: body.error.code }).toEqual({
+      status: 403,
+      code: 'STEP_UP_REQUIRED',
+    })
+    expect(ERROR_CODES.STEP_UP_REQUIRED.status).toBe(403)
+    expect(body.error.message).toContain('members:manage')
+    expect(body.error.hint).toContain('/auth/step-up')
+    // NOT one of the other four `403`s, which a status-only assertion could not tell it
+    // from — the fifth demonstration of P5a sitting 6's lesson in this repository.
+    expect(body.error.code).not.toBe('FORBIDDEN')
   })
 
   it('reports an unregistered code on the operator’s stderr — the code, never the message', () => {

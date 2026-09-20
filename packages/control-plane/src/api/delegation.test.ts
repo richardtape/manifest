@@ -367,7 +367,11 @@ describe('D24’s central refusal', () => {
 
   it('does not touch a session’s path at all', async () => {
     await withProjectServer(async (ctx) => {
-      const owner = await sessionFor(ctx, 'bio_prof', 'owner')
+      // STEPPED UP, because `members:manage` is §20-guarded since P6a Task 9 — and this
+      // test's subject is that a SESSION records no PendingAction, not what it takes to
+      // reach the handler. The step-up refusal would have satisfied "no rows" for the
+      // wrong reason.
+      const owner = await sessionFor(ctx, 'bio_prof', 'owner', { steppedUp: true })
       await sessionFor(ctx, 'bio_student')
       const res = await ctx.app.inject({
         method: 'POST',
@@ -827,7 +831,7 @@ describe('removing a member (§13, and Task 6’s claim)', () => {
       const res = await ctx.app.inject({
         method: 'DELETE',
         url: `/v1/projects/${ctx.projectId}/members/${await userIdOf(ctx, 'bio_student')}`,
-        cookies: ctx.ownerCookies,
+        cookies: ctx.ownerSteppedUp,
         headers: mutationHeaders(ctx.deps),
       })
       expect(refusal(res)).toEqual({ status: 200, code: undefined })
@@ -850,7 +854,7 @@ describe('removing a member (§13, and Task 6’s claim)', () => {
       const res = await ctx.app.inject({
         method: 'DELETE',
         url: `/v1/projects/${ctx.projectId}/members/${await userIdOf(ctx, 'bio_student')}`,
-        cookies: ctx.ownerCookies,
+        cookies: ctx.ownerSteppedUp,
         headers: mutationHeaders(ctx.deps),
       })
       expect(refusal(res)).toEqual({ status: 200, code: undefined })
@@ -863,7 +867,7 @@ describe('removing a member (§13, and Task 6’s claim)', () => {
       const res = await ctx.app.inject({
         method: 'DELETE',
         url: `/v1/projects/${ctx.projectId}/members/${ctx.userId}`,
-        cookies: ctx.ownerCookies,
+        cookies: ctx.ownerSteppedUp,
         headers: mutationHeaders(ctx.deps),
       })
       expect(refusal(res)).toEqual({ status: 409, code: 'PROJECT_LAST_OWNER' })
@@ -879,7 +883,7 @@ describe('removing a member (§13, and Task 6’s claim)', () => {
       const res = await ctx.app.inject({
         method: 'DELETE',
         url: `/v1/projects/${ctx.projectId}/members/${ctx.userId}`,
-        cookies: ctx.ownerCookies,
+        cookies: ctx.ownerSteppedUp,
         headers: mutationHeaders(ctx.deps),
       })
       expect(refusal(res)).toEqual({ status: 200, code: undefined })

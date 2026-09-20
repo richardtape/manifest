@@ -632,8 +632,7 @@ describe('the delivery routes', () => {
     // D24), and this is the outside view of the difference: one client, one release, two
     // environments, two answers. The owner's own production attempt reaches the launch
     // gate (the test above) — this one never gets that far.
-    const { app, deps, cookies, project, release, staging } =
-      await releasedProject('chem-labs')
+    const { app, deps, project, release, staging } = await releasedProject('chem-labs')
     const production = project.environments.find(
       (e: { kind: string }) => e.kind === 'production',
     )
@@ -643,9 +642,11 @@ describe('the delivery routes', () => {
     const added = await app.inject({
       method: 'POST',
       url: `/v1/projects/${project.id}/members`,
-      // The OWNER's session: `members:manage` is the owner's (§13), and it is one of
-      // D24's privileged four.
-      cookies,
+      // The OWNER's session, STEPPED UP: `members:manage` is the owner's (§13), it is
+      // one of D24's privileged four, and §20 guards it since P6a Task 9. This test's
+      // subject is deploy-versus-promote, so it takes the claim from `loginAs` rather
+      // than driving a SAML round trip to earn it.
+      cookies: await loginAs(deps, 'bio_prof', { steppedUp: true }),
       headers: mutationHeaders(deps),
       payload: { puid: 'bio_student', role: 'collaborator' },
     })

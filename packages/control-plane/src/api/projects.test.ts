@@ -21,7 +21,13 @@ async function loggedIn(puid: TestUserPuid = 'bio_prof') {
   const deps = await testDeps()
   const app = await buildServer(deps)
   const { manifest_session: session } = await loginAs(deps, puid)
-  return { app, deps, session }
+  /**
+   * The SAME person with §20's step-up claim stamped (P6a Task 9). `members:manage` is
+   * guarded, and the two tests below are about who may add a member rather than about
+   * the second round trip — which `auth.test.ts` and `step-up-guarded.test.ts` own.
+   */
+  const { manifest_session: steppedUp } = await loginAs(deps, puid, { steppedUp: true })
+  return { app, deps, session, steppedUp }
 }
 
 const create = (slug: string) => ({
@@ -795,7 +801,7 @@ describe('POST /v1/projects/:id/spec', () => {
 
 describe('POST /v1/projects/:id/members', () => {
   it('lets an owner add a collaborator, who can then read the project', async () => {
-    const { app, deps, session } = await loggedIn('bio_prof')
+    const { app, deps, session, steppedUp } = await loggedIn('bio_prof')
     const created = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
@@ -811,7 +817,7 @@ describe('POST /v1/projects/:id/members', () => {
       method: 'POST',
       url: `/v1/projects/${id}/members`,
       payload: { puid: 'bio_student', role: 'collaborator' },
-      cookies: { manifest_session: session },
+      cookies: { manifest_session: steppedUp },
       headers: mutationHeaders(deps),
     })
     expect(added.statusCode).toBe(201)
@@ -826,7 +832,7 @@ describe('POST /v1/projects/:id/members', () => {
   })
 
   it('refuses a collaborator with 403 — they are a member, so nothing is hidden', async () => {
-    const { app, deps, session } = await loggedIn('bio_prof')
+    const { app, deps, session, steppedUp } = await loggedIn('bio_prof')
     const created = await app.inject({
       ...create('chem-labs'),
       cookies: { manifest_session: session },
@@ -839,7 +845,7 @@ describe('POST /v1/projects/:id/members', () => {
       method: 'POST',
       url: `/v1/projects/${id}/members`,
       payload: { puid: 'bio_student', role: 'collaborator' },
-      cookies: { manifest_session: session },
+      cookies: { manifest_session: steppedUp },
       headers: mutationHeaders(deps),
     })
 

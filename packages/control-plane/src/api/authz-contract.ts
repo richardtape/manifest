@@ -87,6 +87,19 @@ const PENDING = { status: 403, code: 'TOKEN_ACTION_PENDING' } as const
 /** A route D24 reserves to a person: `requireSession` refuses the credential class. */
 const SESSION_ONLY = { status: 403, code: 'TOKEN_CREDENTIAL_REFUSED' } as const
 
+/**
+ * §20's step-up: a person who may do this and has not re-proved themselves recently
+ * enough (P6a Task 9). **THE FIFTH `403` IN THIS FILE**, after `FORBIDDEN`,
+ * `TOKEN_CREDENTIAL_REFUSED`, `TOKEN_ACTION_PENDING` and `TOKEN_ACTION_REJECTED` — so a
+ * bare `403` in a row below would be green against a route answering any of the other
+ * four, which is control (e) and the fifth demonstration of P5a sitting 6's lesson here.
+ *
+ * **The sessions this table builds are NOT stepped up**, deliberately: `loginAs` without
+ * the option. So `STEP_UP` is the honest expectation for every guarded route, and a row
+ * that says `pass` after Task 9 is a row testing a guard that is not there.
+ */
+const STEP_UP = { status: 403, code: 'STEP_UP_REQUIRED' } as const
+
 function refusalOf(expected: Exclude<Expectation, 'pass'>): {
   status: RefusalStatus
   code: ErrorCode
@@ -562,10 +575,24 @@ const ROUTES: RouteCase[] = [
       payload: { puid: 'bio_student', role: 'collaborator' },
     }),
     expect: {
-      owner: 'pass',
+      // **STEP_UP SINCE P6a TASK 9, WHERE BOTH WERE `pass`.** §20 names member
+      // management, and these sessions are ordinary ones — so the route is reached,
+      // `assertCapability` lets them through on role, and `assertStepUp` refuses. The
+      // capability answer and the freshness answer are two different refusals with two
+      // different remedies, and this row asserts which one arrives.
+      //
+      // A consequence worth knowing: **neither of this table's two mutating rows mutates
+      // any more.** The note above `ALL_ACTORS` says the token actors come last because
+      // the owner's case here really adds and the removal below really removes; both are
+      // now refused before they touch the graph, and the fixture's own setup is what
+      // makes `bio_student` a collaborator (see it, above — it steps up, and asserts).
+      owner: STEP_UP,
+      // The capability check runs FIRST, so a collaborator is still `FORBIDDEN` and
+      // never learns that a step-up would have been the next obstacle. Order asserted
+      // by two rows rather than stated in a comment.
       collaborator: 403,
       stranger: 404,
-      admin: 'pass',
+      admin: STEP_UP,
       anonymous: 401,
       // **ALL THREE SCOPED TOKENS GET THE SAME ANSWER, and that is D24's sentence.**
       // `assertCapability` checks scope, then the privileged rule, then the token's
@@ -597,10 +624,12 @@ const ROUTES: RouteCase[] = [
       url: `/v1/projects/${f.projectId}/members/${f.removableUserId}`,
     }),
     expect: {
-      owner: 'pass',
+      // The same capability, so the same guard (P6a Task 9, Decision 9) — and because
+      // both are refused, `removableUserId` is no longer removed by this table at all.
+      owner: STEP_UP,
       collaborator: 403,
       stranger: 404,
-      admin: 'pass',
+      admin: STEP_UP,
       anonymous: 401,
       // The same capability, so the same answer — and this is the route written
       // AFTER the rule was made central (Task 8), which is why it is here without
@@ -1399,17 +1428,32 @@ export function describeAuthorizationContract(
         },
       }
 
-      // Make the collaborator an actual member of the fixture project. Without
-      // this line every "collaborator → pass" expectation below is a lie that
-      // still goes green, because 404 is not 'pass' and the test would fail — but
-      // the reverse mistake (a stranger who is secretly a member) fails silently.
-      await app.inject({
+      /**
+       * Make the collaborator an actual member of the fixture project. Without this
+       * line every "collaborator → pass" expectation below is a lie that still goes
+       * green, because 404 is not 'pass' and the test would fail — but the reverse
+       * mistake (a stranger who is secretly a member) fails silently.
+       *
+       * **A STEPPED-UP OWNER, AND ITS ANSWER IS ASSERTED** (P6a Task 9). §20's guard
+       * now refuses `members:manage` from an ordinary session, so this setup call was
+       * refused `403 STEP_UP_REQUIRED` — and because nothing read its status, the
+       * failure arrived as **29 unrelated `collaborator → pass` rows answering 404**,
+       * in every part of the table but this one. The plan predicted four red rows and
+       * measured thirty-three. **The fixture is not what this table tests**, so it
+       * steps up; the ROWS keep ordinary sessions, because a row reading `pass` on a
+       * guarded route is a row testing a guard that is not there.
+       */
+      const madeCollaborator = await app.inject({
         method: 'POST',
         url: `/v1/projects/${body.id}/members`,
         payload: { puid: 'bio_student', role: 'collaborator' },
-        cookies: cookies.owner,
+        cookies: await loginAs(deps, 'bio_prof', { steppedUp: true }),
         headers: mutationHeaders(deps),
       })
+      expect({
+        status: madeCollaborator.statusCode,
+        code: codeOf(madeCollaborator.body),
+      }).toEqual({ status: 201, code: undefined })
 
       // The stranger must be a member of nothing. Assert it rather than assume it.
       const strangerView = await app.inject({

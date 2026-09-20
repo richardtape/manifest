@@ -4,6 +4,7 @@ import { appSpecs, environments, users, type Db } from '../../db/index.js'
 import {
   addMember,
   assertCapability,
+  assertStepUp,
   AuthorizationError,
   getProject,
   listEnvironments as environmentsOf,
@@ -199,11 +200,20 @@ export const projectReadRoutes = [
       // retrying it will not change anything. Listed beside it because the two are one
       // mechanism with two outcomes, and a client switches on the difference.
       'TOKEN_ACTION_REJECTED',
+      // §20's step-up (P6a Task 9). A FIFTH `403` on this route, which is why the
+      // authorization matrix's rows for it are explicit (status, code) pairs.
+      'STEP_UP_REQUIRED',
     ],
     handler: async ({ deps, actor, params, body }) => {
       // A collaborator reaches this line and is refused here. §13: "same as owner
       // except member management and deletion."
       await assertCapability(deps.db, actor, params.projectId, 'members:manage')
+      // §20 names member management in the step-up set, and P6a Decision 9 takes it from
+      // day one: adding it later is a second pass over a route P5b already tested, and
+      // doing it now gives step-up a caller whose tests already exist — so the negative
+      // control is an EXISTING passing test going red rather than a new test nobody has
+      // seen fail. AFTER `assertCapability`, never inside it (see `assertStepUp`).
+      assertStepUp(actor, 'members:manage')
       const [user] = await deps.db
         .select()
         .from(users)
@@ -252,9 +262,12 @@ export const projectReadRoutes = [
       // them — the wrapper in `api/contract/route.ts` does.
       'TOKEN_ACTION_PENDING',
       'TOKEN_ACTION_REJECTED',
+      // §20's step-up, the same capability and therefore the same guard (P6a Task 9).
+      'STEP_UP_REQUIRED',
     ],
     handler: async ({ deps, actor, params }) => {
       await assertCapability(deps.db, actor, params.projectId, 'members:manage')
+      assertStepUp(actor, 'members:manage')
       if ((await removeMember(deps.db, params.projectId, params.userId)) === 'last owner')
         throw new LastOwnerError()
       return (await listMembers(deps.db, params.projectId)).map(toMember)

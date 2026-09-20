@@ -216,7 +216,7 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
   it('replays what was recorded, marks the boundary, then streams live — to a collaborator too', async () => {
     // A client that connects during a build must see what it missed. Without the
     // boundary frame it cannot tell a replayed failure from a new one.
-    const { app, deps, owner, projectId, connect, creation } = await streamServer()
+    const { app, deps, projectId, connect, creation } = await streamServer()
     expect(creation).toHaveLength(3)
     // The user row first: a member is added by PUID, and a PUID nobody has logged in
     // with is not a user. Asserted, because a collaborator who is secretly a stranger
@@ -226,7 +226,9 @@ describe('WS /v1/projects/:projectId/events (D23.2)', () => {
       method: 'POST',
       url: `/v1/projects/${projectId}/members`,
       payload: { puid: 'bio_student', role: 'collaborator' },
-      cookies: owner,
+      // STEPPED UP: §20 guards `members:manage` since P6a Task 9, and this test is about
+      // what the STREAM replays rather than about the second round trip.
+      cookies: await loginAs(deps, 'bio_prof', { steppedUp: true }),
       headers: mutationHeaders(deps),
     })
     expect(added.statusCode).toBeLessThan(300)
