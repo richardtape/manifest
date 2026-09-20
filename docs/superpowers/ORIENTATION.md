@@ -43,17 +43,17 @@ everything.
 
 **Executing a plan finds defects at a rate that has never fallen with practice** — 18 in P1's 13 tasks, 52 in P2's 21, 82 in P3's 19, 80 in P4a's 15, 140 in P4b's 16, 70 in P4c's 11, 146 in P5a's 17 — plus 8 more found in a browser after sitting 7, which no tier had ever looked at — and **116 in P5b's 13** — every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat a written plan as a hypothesis (§9).
 
-**The four numbers you will check first, re-measured 2026-09-19 on this machine at the close of P5c sitting 7. NOTHING MOVED THIS SITTING — Task 11 adds no test file, by Decision 7 (the console has no DOM test tier), so all four are still the figures sitting 4 left:**
+**The four numbers you will check first, re-measured 2026-09-20 on this machine at the close of P6a sitting 3. THREE OF THE FOUR MOVED — `pnpm test` 1390 → 1395 and `pnpm test:docker` 180 → 185, both from Task 4's own new tests; `make doctor` and `make verify` held at 19 and 54, because Task 4 adds an assertion INSIDE an existing check rather than a check:**
 
 | | |
 |---|---|
-| `pnpm test` (from the **repo root**) | **1390 passed, 108 files**, ~115 s — the `unit` project and `packages` (the client, the journey, the CONSOLE and the MOCK, none of which need anything running). **Up 21 and FOUR FILES from sitting 7's 1355/103**, all of it P5c sitting 8: `packages/mock/src/validate.test.ts` (4 — every fixture against `openapi.json` on Ajv's 2020-12 dialect, plus the control that the validator refuses what the document refuses), `packages/mock/src/server.test.ts` (7 — every documented operation has an answer, and the refusals by CODE), `packages/console/src/api.test.ts` (8 — the console's WHOLE data layer against the mock in Node with no DOM) and `packages/console/src/coverage.test.ts` (2 — D22's *is the API complete?* as a gate). Sittings 5, 6 and 7 added none, by Decision 7 (the console has no DOM test tier); sitting 4's 1355 was up 1 and no new file from 1354/103. No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/`, `releases/` and `tokens/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
-| `pnpm test:docker` | **180 passed, 0 SKIPPED**, 30 files, **848 s, re-measured by P6a sitting 2**, which OWED the tier and added `routing/listener-split.docker.test.ts` (2 tests — §12's *a route bound to the wrong listener is simply unreachable*, the first test here that could ever have failed for that reason). Previously **178 in 29, 795 s, P5c sitting 8**, which OWED the tier because its `make doctor` repair touches `infra/lib/common.sh` and `routing/edge-source-refusal.docker.test.ts` reads that file. **178 held for four runs across four sittings before P6a sitting 2 moved it to 180.** Not every sitting owes the tier — P5c's 4 to 7 and P6a's 1 neither ran nor owed it, so **do not spend 14 minutes on it out of habit**; the plan's own sittings rule says who owes it. `boot.docker.test.ts`'s *expires a question nobody answered* is still the ONLY test in the repository that fails if `src/index.ts` stops calling the expiry sweeper. The tier still drives SESSIONS: `grep` over every `*.docker.test.ts` finds no `Authorization: Bearer` that is a Manifest delegated token. **Running it costs the machine**: it restarts the edge (dropping every runtime route, so every app hostname then answers the WILDCARD), truncates the tables, re-registers the platform's SP row at a loopback ACS — **restart the control plane afterwards** — and regenerates exactly seven dead app networks and one volume — **measured six times now**, most recently at P6a sitting 2's close. Needs `make up`, and **fails rather than skips** when asked to run |
-| `make doctor` | **19 checks, 0 failed, 0 warnings** — **up one in P6a sitting 2**, which REPLACED the single-alias check with a two-alias loop (net 0) and added *the production zone answers the public address, and the console does not*. That check asserts BOTH directions: one asserting only the production answer stays green while the console has moved to the public address |
-| `make verify` | **54 checks, 0 failed, 0 warnings** — **up three in P6a sitting 2** for §12's second listener: *the edge serves two listeners*, *the public listener answers a production name on 127.0.0.3*, and *neither listener answers for the other's zone*. Previously measured by P5c sitting 3 **both with `vite dev` on 7104 and with 7104 free**, because its console check was rewritten to stop depending on a developer's host process (sitting 3, F3) — and read its *per-app resources* INFO line, which is not a check. **It reads `containers=12 networks=4 volumes=8` today** (re-measured at P6a sitting 2's close, after that sitting's Docker-tier run took it to `12/11/9` and `dead-app-resources.sh --apply` took it back — the SIXTH measurement of that cycle): **FOUR** apps are deployed, `journey-app`, `token-app`, `p5c-acceptance` and `proof-app`, three containers, one network and two volumes each — and **their project rows are truncated by every `pnpm test`, so the containers outlive their projects**, which is ordinary here and not a fault. **This is a state claim with a shelf life: query it, do not quote it.** The rule the number follows: **one app is `containers=3 networks=1 volumes=2`**, ANY `pnpm test:docker` run adds **seven dead networks and one dead volume**, and `bash scripts/dead-app-resources.sh --apply` takes them away again. More networks than apps means an app whose containers are gone and whose network is not; `0/0/0` is a freshly reset machine. **P6a sitting 2 was ALLOWED `--apply` for BOTH cleanup scripts and ran them itself**, re-measuring `none dead` and `Orphaned (0)` with the scripts afterwards — the classifier refuses this in some sessions and not others, so **try the command rather than trusting any note about it** |
+| `pnpm test` (from the **repo root**) | **1395 passed, 108 files**, ~122 s — **up 5 and NO new file in P6a sitting 3** (Task 4): four in `routing/routes.test.ts`, which exercises two DISTINCT server names for the first time, and one in `config.test.ts` for `MANIFEST_EDGE_PUBLIC_PORT`. Before it **1390 in 108**, ~115 s — the `unit` project and `packages` (the client, the journey, the CONSOLE and the MOCK, none of which need anything running). **Up 21 and FOUR FILES from sitting 7's 1355/103**, all of it P5c sitting 8: `packages/mock/src/validate.test.ts` (4 — every fixture against `openapi.json` on Ajv's 2020-12 dialect, plus the control that the validator refuses what the document refuses), `packages/mock/src/server.test.ts` (7 — every documented operation has an answer, and the refusals by CODE), `packages/console/src/api.test.ts` (8 — the console's WHOLE data layer against the mock in Node with no DOM) and `packages/console/src/coverage.test.ts` (2 — D22's *is the API complete?* as a gate). Sittings 5, 6 and 7 added none, by Decision 7 (the console has no DOM test tier); sitting 4's 1355 was up 1 and no new file from 1354/103. No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/`, `releases/` and `tokens/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
+| `pnpm test:docker` | **185 passed, 0 SKIPPED**, 30 files, **827 s, re-measured by P6a sitting 3**, which OWED the tier and added **5 tests to `routing/listener-split.docker.test.ts` and no file** — the first tests here that put a REAL ROUTE on each listener, where sitting 2's two only proved the two servers answer differently. The predicted 180 + 5 exactly. Previously **180 in 30, 848 s, P6a sitting 2**, which added that file (2 tests — §12's *a route bound to the wrong listener is simply unreachable*, the first test here that could ever have failed for that reason); and **178 in 29, 795 s, P5c sitting 8**, which OWED the tier because its `make doctor` repair touches `infra/lib/common.sh` and `routing/edge-source-refusal.docker.test.ts` reads that file. **178 held for four runs across four sittings before P6a sitting 2 moved it to 180.** Not every sitting owes the tier — P5c's 4 to 7 and P6a's 1 neither ran nor owed it, so **do not spend 14 minutes on it out of habit**; the plan's own sittings rule says who owes it. `boot.docker.test.ts`'s *expires a question nobody answered* is still the ONLY test in the repository that fails if `src/index.ts` stops calling the expiry sweeper. The tier still drives SESSIONS: `grep` over every `*.docker.test.ts` finds no `Authorization: Bearer` that is a Manifest delegated token. **Running it costs the machine**: it restarts the edge (dropping every runtime route, so every app hostname then answers the WILDCARD), truncates the tables, re-registers the platform's SP row at a loopback ACS — **restart the control plane afterwards** — and regenerates exactly seven dead app networks and one volume — **measured six times now**, most recently at P6a sitting 2's close. Needs `make up`, and **fails rather than skips** when asked to run |
+| `make doctor` | **19 checks, 0 failed, 0 warnings** — **unmoved by P6a sitting 3**, and up one in sitting 2, which REPLACED the single-alias check with a two-alias loop (net 0) and added *the production zone answers the public address, and the console does not*. That check asserts BOTH directions: one asserting only the production answer stays green while the console has moved to the public address |
+| `make verify` | **54 checks, 0 failed, 0 warnings** — **unmoved by P6a sitting 3, which added an ASSERTION INSIDE an existing check rather than a check**: *the public listener answers a production name* now also holds `MANIFEST_EDGE_PUBLIC_PORT`'s default in `config.ts` equal to the container-side half of `infra/compose.yaml`'s `127.0.0.3:443:8443`, and prints `(probe port 8443 = compose 8443)` when it passes. Watched failing three ways. **Up three in P6a sitting 2** for §12's second listener: *the edge serves two listeners*, *the public listener answers a production name on 127.0.0.3*, and *neither listener answers for the other's zone*. Previously measured by P5c sitting 3 **both with `vite dev` on 7104 and with 7104 free**, because its console check was rewritten to stop depending on a developer's host process (sitting 3, F3) — and read its *per-app resources* INFO line, which is not a check. **It reads `containers=12 networks=4 volumes=8` today** (re-measured at P6a sitting 3's close, after that sitting's Docker-tier run took it to `12/11/9` and `dead-app-resources.sh --apply` took it back — the SEVENTH measurement of that cycle, and the seven networks and one volume were the same names again): **FOUR** apps are deployed, `journey-app`, `token-app`, `p5c-acceptance` and `proof-app`, three containers, one network and two volumes each — and **their project rows are truncated by every `pnpm test`, so the containers outlive their projects**, which is ordinary here and not a fault. **This is a state claim with a shelf life: query it, do not quote it.** The rule the number follows: **one app is `containers=3 networks=1 volumes=2`**, ANY `pnpm test:docker` run adds **seven dead networks and one dead volume**, and `bash scripts/dead-app-resources.sh --apply` takes them away again. More networks than apps means an app whose containers are gone and whose network is not; `0/0/0` is a freshly reset machine. **P6a sitting 2 was ALLOWED `--apply` for BOTH cleanup scripts and ran them itself**, re-measuring `none dead` and `Orphaned (0)` with the scripts afterwards — the classifier refuses this in some sessions and not others, so **try the command rather than trusting any note about it** |
 | `make demo-token` | green — **P5b's acceptance, and it ran three times in sitting 9**: from a truncated database (create path, 64 checks), on the re-use path (63 — the one fewer is the create path's own check) and from an `echo reset | make reset` machine (64). ~30 s. It is step 9 of `scripts/offline-acceptance.sh` |
 | `make demo-journey` | green, all eight steps — **last run by P5c sitting 8's real `make ci-acceptance`, over the 1.0.0 contract**. It recreated `journey-app`, whose containers still stand |
-| `make ci-acceptance` | **NEW in P5c sitting 8, and RUN**: the headless half of 1c's acceptance — `make doctor`, `make verify`, the three fast gates, `pnpm test` with its COUNT asserted, the three package builds, then `make demo-journey` and `make demo-token`. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. ~15 min. **Its four `EXPECT_` lines carry this box's numbers and move with it** |
+| `make ci-acceptance` | **NEW in P5c sitting 8, and RUN**: the headless half of 1c's acceptance — `make doctor`, `make verify`, the three fast gates, `pnpm test` with its COUNT asserted, the three package builds, then `make demo-journey` and `make demo-token`. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. ~15 min. **Its four `EXPECT_` lines carry this box's numbers and move with it — and they did NOT, from P6a sitting 2 until sitting 3 found them reading 18 and 51 against a machine at 19 and 54.** They are now 1395 / 108 / 19 / 54, and §6's sweep table has a row for this file so it cannot happen again |
 
 **A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is cheaper before you start than after. **This box is the only current one in this file**; the same four numbers are stated in `README.md` and `RUNBOOK.md`, and all three move together (§6). A plan's record carries the numbers as each sitting left them, dated, and they deliberately do not move.
 
@@ -1649,12 +1649,18 @@ coherent. Follow them.
    | `specs/manifest-stories.html` | **Shared outside the team.** Hostname examples, which must match §23's zone rule |
    | `docs/external-track.md` | Owners and states of the UBC items |
    | `machine-baseline-*.md` | **Do not edit these.** They are dated evidence. Re-run `scripts/snapshot-machine.sh` and add a new one |
+   | **`scripts/ci-acceptance.sh`** | **Added 2026-09-20, having gone stale the FIRST time the numbers moved.** Its four `EXPECT_` lines are the gate numbers in CODE — `EXPECT_TESTS`, `EXPECT_FILES`, `EXPECT_DOCTOR`, `EXPECT_VERIFY` — and P6a sitting 2 moved doctor to 19 and verify to 54 while this file kept 18 and 51, because every list of what to sweep named only DOCUMENTS. It reports `MOVED` rather than `FAIL`, so a stale copy is quiet: `make ci-acceptance` would have read *"counts moved: expected 18, got 19"* and nobody would have seen it until the next full run. Found by P6a sitting 3 by opening the file |
 
-   **THE GATE NUMBERS LIVE IN THREE DOCUMENTS**, and they move whenever a check
-   or a test file lands — which is most sittings. `make doctor`, `make verify`,
+   **THE GATE NUMBERS LIVE IN THREE DOCUMENTS AND ONE SCRIPT**, and they move whenever a
+   check or a test file lands — which is most sittings. `make doctor`, `make verify`,
    `pnpm test` and `pnpm test:docker` are stated in **ORIENTATION §2's numbers box**,
-   **`README.md`** and **`RUNBOOK.md`**. `CLAUDE.md` stated them too until 2026-09-16 and
-   now deliberately does not — do not add them back. One `grep` catches all three:
+   **`README.md`** and **`RUNBOOK.md`** — and **`scripts/ci-acceptance.sh`'s four `EXPECT_`
+   lines are a fourth copy, in code**, which this sentence said nothing about until
+   2026-09-20 and which was therefore stale from P6a sitting 2 until P6a sitting 3 found it.
+   `CLAUDE.md` stated them too until 2026-09-16 and
+   now deliberately does not — do not add them back. One `grep` catches the three documents,
+   and **the script needs its own**, because its numbers are bare assignments that match none
+   of these patterns: `grep -n 'EXPECT_' scripts/ci-acceptance.sh`.
 
    ```bash
    grep -rn "make doctor\|pnpm test\` \|checks / 0 failed\|passed, .* files" \
@@ -1768,7 +1774,7 @@ curl -s --cacert infra/ca/manifest-root.crt \
 
 ## 7. What to do next
 
-**The next job is §7e — EXECUTE P6a's SITTING 3, Task 4, a production route on the public listener** ([`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md), written 2026-09-19 from [the P6 brief](plans/2026-09-19-p6-brief.md): **19 tasks in eleven agreed sittings, and no task boundary has moved**). **P5c IS EXECUTED and PHASE 1c IS COMPLETE**: all 14 tasks in nine sittings on 2026-09-18/19, with 19, 10, 9, 9, 13, 12, 8, 11 and 16 findings (107). **P6a is EXECUTING and is part-finished; no task is part-finished, because this plan commits after every task.** **P6 was split into P6a and P6b on 2026-09-19, on D9's own two clauses** — first launch, then subsequent releases — and Rich settled three things that shape both (§7e). *This preamble states the job because §7e is the section a cold agent is sent to and the two must agree; it said "EXECUTE P5c's SITTING 9" for the whole of the day after that sitting closed, which is the defect this sentence exists to prevent. **It deliberately does not say how many of P6a's sittings are done** — the plan's own sittings table and the roadmap's P6a row are the maintained copies.* Each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
+**The next job is §7e — EXECUTE P6a's SITTING 4, Tasks 5 and 6, migration 0019 and the two external records** ([`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md), written 2026-09-19 from [the P6 brief](plans/2026-09-19-p6-brief.md): **19 tasks in eleven agreed sittings, and no task boundary has moved**). **P5c IS EXECUTED and PHASE 1c IS COMPLETE**: all 14 tasks in nine sittings on 2026-09-18/19, with 19, 10, 9, 9, 13, 12, 8, 11 and 16 findings (107). **P6a is EXECUTING and is part-finished; no task is part-finished, because this plan commits after every task.** **P6 was split into P6a and P6b on 2026-09-19, on D9's own two clauses** — first launch, then subsequent releases — and Rich settled three things that shape both (§7e). *This preamble states the job because §7e is the section a cold agent is sent to and the two must agree; it said "EXECUTE P5c's SITTING 9" for the whole of the day after that sitting closed, which is the defect this sentence exists to prevent. **It deliberately does not say how many of P6a's sittings are done** — the plan's own sittings table and the roadmap's P6a row are the maintained copies.* Each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
 
 ### 7a. The executed plans, and which of their records to read first
 
@@ -1784,134 +1790,153 @@ curl -s --cacert infra/ca/manifest-root.crt \
 | **P4c** | [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md), with [its brief](plans/2026-09-15-p4c-brief.md) | `make demo-redeploy` | 70 findings in eight sittings. **Sitting 8**: four of the acceptance's nine negative controls could not fail in it — §4 says which tier sees each. |
 | **P5a** | [`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), with [the P5 brief](plans/2026-09-16-p5-brief.md) | `make demo-journey` | 146 findings in twelve sittings. **Sitting 12**, the acceptance: three of fourteen negative controls could not fail as written — including one where the journey read a *status* while the property was a *latency*, so a synchronous build passed R6's own check. **Sitting 10's finding 1** is the other one to read: the document said for six sittings that the error envelope could not carry the field the production refusal had been sending since P2, because nothing parsed an error body through its schema. |
 | **P5b** | [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md) — **EXECUTED 2026-09-18**, all nine sittings | `make demo-token` — green three times, the third from a `make reset` machine; step 9 of the offline acceptance | 116 findings in nine sittings. **Sitting 9's F1 is the newest one to read, and it is a lesson about PREDICTIONS**: sitting 8 predicted Task 13's control (a) would be invisible to the acceptance, and it turns three checks red — the reasoning was about the FIXTURE token, which holds the privileged capability and is refused identically either way, while every REAL token lacks it and is refused by a different rule with a different code. **Sitting 9's F3** is the second: replacing the token secret's constant-time comparison with `===` left all 1342 tests AND all nine demo steps green, so the property was asserted by nothing; it is now asserted at the source, and the first draft of that assertion could not fail. **Sitting 9's F8**: one `pnpm test:docker` run recreates exactly the seven dead app networks cleared by hand the same day. **Sitting 8's F1 is the newest one to read**, and it is what the first integration client is for: **`subscribe` could not carry a delegated token at all**, so an agent could start a build through the generated client and had nothing to watch it end on — the route had accepted a bearer all along, and nothing server-side could see the hole. **Sitting 8's F4 and F5** are the second: **three of its five negative controls answer `403` for the WRONG REASON** — the privileged rule disabled makes the refusal a dead-end `403 FORBIDDEN`, confirm reverted answers `403 TOKEN_ACTION_PENDING`, the fleet reverted answers `403 FORBIDDEN` — so a status-only demo passes all three. **Sitting 7's F4**, and it is a JavaScript trap rather than a platform one: `toToken` was given an optional `now: Date = new Date()`, and `api/routes/tokens.ts` maps it as `.map(toToken)` — so `now` arrived as the ARRAY INDEX, `0`, and every token in every list read `expired: false`, including one that had expired an hour before. Only the assertion about an expired token could see it. **Sitting 7's F2** is the one after that: the plan's own `Promise.all` control for a read-then-insert **passed against the defect**, because `pg.Pool` establishes a connection per acquire and the five calls serialised — a warm pool is what makes a pooled race observable, and a deterministic SQLSTATE test belongs beside it. **Sitting 6's F5:** two of that sitting's own four new tests were green before the feature, because both were *"is not limited"* claims — and a claim that something is NOT refused is true of a platform that refuses nothing. A negative claim needs a positive control in the same test. **Sitting 4's F1** is the one to read: the plan's own negative control for the ORDER of the two token checks could not fail against any of the 31 tests that existed, because every test writes a token holding the privileged capability and **no token the platform can mint can hold one** — so the swapped order answers a dead-end `403 FORBIDDEN` for every real token, with D24's loop unable to start, and all 31 green. **Sitting 2's F1**: the plan's token parser split on `_` while base64url's alphabet contains it, so it refused 47.5% of the tokens the same file minted — and the round-trip test minted ONE token, so it would have gone red about half the time and read as a flaky harness. **Sitting 2's F14**: the plan's own TRUNCATE negative control cannot fail, because the statement's CASCADE reaches both new tables unnamed. **Sitting 3's F1**: `DELETE /v1/tokens/{tokenId}` is the API's first bodyless mutation, and the contract layer could not carry one — the route answered `400` before its handler ran and the OpenAPI document could not be generated for it at all, because both kept on `method === 'GET'` rather than on the body schema. **Sitting 3's F13**: three of that sitting's own negative controls answer `403` for the WRONG REASON, so a status-only assertion is green through all of them. |
-### 7e. Execute P6a's SITTING 3 — Task 4, a production route on the public listener ← **START HERE**
+### 7e. Execute P6a's SITTING 4 — Tasks 5 and 6, migration 0019 and the two external records ← **START HERE**
 
-**P6a IS EXECUTING. Sitting 2 — Tasks 2 and 3, the second listener — ran on 2026-09-19/20 with
-12 findings, and NO TASK BOUNDARY MOVED, so the eleven-sitting split still stands.**
-[`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md);
+**P6a IS EXECUTING. Sitting 3 — Task 4, the production route on the public listener — ran on
+2026-09-20 with 11 findings, and NO TASK BOUNDARY MOVED, so the eleven-sitting split still
+stands.** [`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md);
 sitting 1's measurements are [`spikes/p6a-baseline/`](spikes/p6a-baseline/README.md).
 
-**Your job is SITTING 3: Task 4, ALONE** — `edgeIdentityProbe` gains a `port`, the Docker
-driver passes it for production and only for production, `applyRoute` writes a production
-route to `srv1`, and the unit tier finally exercises two distinct server names. **Read the
-plan's header sections, then Task 4's `[M5]` CORRECTION BLOCK BEFORE ITS STEPS.** Use
-`superpowers:subagent-driven-development` or `executing-plans`. **Do not start Task 5.**
+**Your job is SITTING 4: Tasks 5 and 6** — migration **0019** adds `approvals`,
+`iam_registrations` and `privacy_assessments` with their state machines as pure functions in
+`launch/`, and then an administrator records a real IAM registration and a real PIA over the
+API with a pasted ticket reference. **Read the plan's header sections, then Task 5's `[M10]`
+CORRECTION BLOCK BEFORE ITS STEPS** — sitting 1 measured that the plan's own step would have
+made the migration **fail to apply**, because drizzle writes the `audit.events` CHECK itself.
+Use `superpowers:subagent-driven-development` or `executing-plans`. **Do not start Task 7.**
 
-**§12's LISTENER SPLIT IS NOW REAL — THIS IS WHAT SITTING 2 HANDS YOU.**
+**§12'S SPLIT IS NOW ENFORCED END TO END, WHICH IS WHAT SITTING 3 HANDS YOU.**
 
-The edge runs **two servers in one container**: `srv0` on `:443` (the internal listener —
-staging, sandbox, the console, the IdP and `edge.manifest.internal`) and `srv1` on `:8443`
-(the public listener — the production zone and nothing else). From the host they are
-`127.0.0.2:443` and `127.0.0.3:443`. From a container both are at `10.89.0.10`, on `:443`
-and `:8443` — **which is exactly why Decision 15 gives the probe a port.**
-`MANIFEST_CADDY_SERVER_PUBLIC` now defaults to **`srv1`**. **§21's honest divergence 2 no
-longer describes this machine**, so Spec action 1 is unconditional in practice — it is
-still Rich's and still not applied.
+A production route is written to `srv1` and a staging route to `srv0`, `edgeIdentityProbe` and
+`edgeProbe` take a `port`, and the Docker driver passes `config.edgePublicPort` for
+`environmentKind === 'production'` and nothing else. **The split is by ADDRESS from the host
+and by PORT from a container** (Decision 15): from the host `127.0.0.2:443` and
+`127.0.0.3:443`; from a container both are at `10.89.0.10`, `:443` internal and `:8443`
+public, because `manifest-dns-containers` answers one address for the whole zone. A
+faculty-facing URL still carries no port. `MANIFEST_EDGE_PUBLIC_PORT` defaults to **8443**,
+and `make verify`'s *the public listener answers a production name* check now holds that
+default equal to `infra/compose.yaml`'s published pair rather than trusting two files.
 
-**THE ONE THING THAT WILL COST YOU THE SITTING IF YOU MISS IT — and it corrects sitting 1.**
+**THE THING MOST LIKELY TO COST YOU THIS SITTING IS NOT THE LISTENER — IT IS THE MIGRATION.**
 
-**A name the split makes unreachable answers `200` WITH AN EMPTY BODY. It does NOT fail at
-the TLS handshake.** Sitting 1's F3 predicted a handshake error, having measured a name in
-no zone at all; sitting 2 measured the real case. **Caddy's certificate cache is APP-GLOBAL,
-not per-server** — `openssl s_client -servername` against both addresses returns the same
-`DNS:*.manifest.internal` certificate, because the one `srv1`'s site causes to be issued is
-presented by `srv0` too. So the handshake succeeds, the server matches no site, and you get
-an empty `200`. Only a name no certificate anywhere in the config covers gives the
-`(35) … tlsv1 alert internal error` F3 recorded.
+**Task 5's Step for the `audit.events` CHECK is WRONG and its correction block says so.** The
+constraint IS expressed in `schema.ts`, drizzle generates the rewrite itself, and appending a
+second `ADD CONSTRAINT` by hand makes `0019` fail to apply. `observability/events.test.ts:283`
+already asserts the CHECK against `EVENT_TYPES` out of Postgres in the unit tier, so the
+guard you want already exists — **read the generated SQL before adding anything to it**.
+Decision 14's five new types are `iam_registration.recorded`,
+`privacy_assessment.recorded`, `rehearsal.completed`, `release.approved` and
+`release.approval_rejected`.
 
-**SO A STATUS ASSERTION IS GREEN WHETHER THE SPLIT HOLDS OR LEAKS.** Task 4's control (c) —
-weakening `expect(onPublic.instance).toBe(instanceId)` to `expect(onPublic.status).toBe(200)`
-and watching it stay green with the route on the wrong server — **is now known to be a real,
-firing control rather than a hypothesis, and the plan already calls it the one that will be
-skipped. Do not skip it.** Read the `listener=` word or the `X-Manifest-Instance` header,
-never the status.
+**WHAT ELSE SITTING 3 LEFT YOU, AND TWO OF THESE ARE TRAPS FOR TASKS 14 AND 15 RATHER THAN
+FOR YOU.**
 
-**WHAT ELSE SITTING 2 LEFT YOU.**
+1. **The driver's production branch is asserted by NOTHING.** Removing the `port` spread from
+   `runtime/docker/driver.ts` leaves **1353 unit tests and all 26 driver-contract Docker tests
+   green** — measured, not assumed. No test deploys a production instance through the driver,
+   so the plan's control (b) *cannot fail*, and **Task 15 is the first thing that will ever
+   run that line.** If Task 15's deploy hangs for fifteen seconds and rolls its route back,
+   the port is where to look; the message it prints is about the wildcard and names no port.
+2. **`runtime/docker/testing.ts` now says `public: 'srv1'` in BOTH places** —
+   `dockerDriverForTests` and `CONTRACT_ROUTING` — because it said `srv0`, and that is the
+   driver Task 15 uses. **Six other fixtures still say `public: 'srv0'`**
+   (`boot.docker.test.ts`, `releases/redeploy.docker.test.ts`,
+   `runtime/docker/driver.docker.test.ts`, `runtime/docker/redeploy.docker.test.ts`,
+   `routing/routes.docker.test.ts`, `routing/readiness.docker.test.ts`). Every one is
+   staging-only today — checked, none writes a production route — so they are inert; **the
+   moment one of them touches production it is a silent leak**, and the grep is
+   `grep -rn "public: 'srv0'" packages/ --include="*.ts"` — **with the `--include`, because
+   `packages/control-plane/dist/` holds compiled copies of all six and a bare grep answers
+   twelve.**
+3. **`routing/listener-split.docker.test.ts` derives its server names from `loadConfig`**, not
+   from literals, which is what makes `MANIFEST_CADDY_SERVER_PUBLIC=srv0` turn it red. Keep
+   that if you touch the file: sitting 2 measured that a hardcoded version fires nothing.
+4. **`make verify`'s per-app INFO line read `containers=12 networks=4 volumes=8` at close**,
+   and the Docker tier took it to `12/11/9` and back — the **seventh** measurement of the
+   same seven networks and one volume. Both cleanup scripts were ALLOWED `--apply` in this
+   session and re-measured `none dead` and `Orphaned (0)` afterwards.
 
-1. **`routing/routes.test.ts:11` still fixes `SERVERS = { internal: 'srv0', public: 'srv0' }`**,
-   so the two-server path has **no unit coverage at all** — Task 4 Step 4 is where that lands.
-   `upstreamsInUse` itself was checked against the live edge and works: `srv1` answers
-   `/config/apps/http/servers/srv1/routes` with a real array, so its second read is sound.
-2. **`make verify` grew three checks and gained a repair.** `runtime_route` now adds one route
-   **per listener** (production → `srv1`, staging → `srv0`), because the old single-route
-   version put a bare-zone name on `srv0` and the split made it unreachable — §12's claim
-   watched failing for the first time here.
-3. **`PUBLIC_PROBE_HOST` (`cdn.manifest.internal`) is the production probe name**, in
-   `infra/lib/common.sh`. **`EDGE_PROBE_HOST` can no longer stand for a production hostname** —
-   `edge.` has its own `srv0` site now, exactly as `console.` got one in P5a Task 3, and the
-   constant's comment says so where it lives.
-4. **`edge` moved reserved-label groups**, from `environments-and-infrastructure` to
-   `manifest`, because `edge-names.test.ts` holds every NAMED site on the edge to being
-   reserved in the group that says Manifest serves it. No spec change; the reservation is
-   unchanged.
+**`pnpm test:docker` IS OWED BY THIS SITTING** if Task 5 or 6 touches `observability/`,
+`projects/` or a `*.docker.test.ts` — and migration 0019 touches the schema every Docker
+suite creates, so **budget the 14 minutes**. It needs `make up` and **fails rather than
+skips**. §2's box has the count. **Restart the control plane afterwards.**
 
-**`pnpm test:docker` IS OWED BY THIS SITTING** (Task 4 changes `routing/`, `runtime/` and a
-`*.docker.test.ts`), needs `make up`, and **fails rather than skips**. §2's box has the count.
-**Restart the control plane afterwards.**
+**THE MACHINE, as sitting 3 left it** — every number queried at the close, not recalled.
+**`make doctor` 19/0 and `make verify` 54/0** (both unmoved: sitting 3's new assertion lives
+INSIDE an existing check). **`pnpm test` 1395 in 108 files**, run twice and identical — **up
+5 and no new file**. **`pnpm test:docker` 185 in 30 files, 0 skipped, 827 s** — up 5, no new
+file, exactly the predicted 180 + 5. lint, typecheck and format:check clean. **`lo0` carries
+`127.0.0.1`, `127.0.0.2` AND `127.0.0.3`**. **Nothing is listening on 7100** — the control
+plane was never started this sitting, so start it yourself, and **use README's *Running the
+control plane* block as written** rather than a stable secret, because a stable secret lets an
+earlier sitting's cookie survive. **THE DATABASE IS EMPTY** — `psql` at close reads
+`projects=0 users=0 instances=0 releases=0`, because `pnpm test` truncates and the gates ran
+LAST. The twelve app containers are still up, so **the containers outlive their projects**,
+which is ordinary here. You will need `make demo-journey` (or equivalent) for any row you
+want, and remember `POST …/members` answers `400 MEMBER_USER_NOT_FOUND` for anybody who has
+not signed in to Manifest itself. **Task 6 needs the ADMINISTRATOR** — `scripts/admin-grant.sh`,
+and **a role reaches a person only at their next sign-in**.
 
-**THE MACHINE, as sitting 2 left it** — every number below was queried at the close, not
-recalled, which is §6's rule after three state claims went stale within the hour.
-**`make doctor` 19/0 and `make verify` 54/0**; `pnpm test` **1390 in 108 files**, run twice
-and identical — **unchanged, because both test files this sitting touched were EDITED, not
-added**; lint, typecheck and format:check clean. **`lo0` carries `127.0.0.1`, `127.0.0.2`
-AND `127.0.0.3`** — Rich added the third with `sudo bash infra/host/p6a-second-address.sh`,
-and `make up` re-adds both platform aliases from now on. **Nothing is listening on 7100** —
-the control plane was never started this sitting, so start it yourself, and **use README's
-*Running the control plane* block as written** rather than a stable secret, because a stable
-secret lets an earlier sitting's cookie survive. **THE DATABASE IS EMPTY** — `psql` at close reads `projects=0 users=0 instances=0 releases=0`, because `pnpm test` truncates and the gates run LAST. The twelve app containers are still up and healthy, so **the containers outlive their projects**, which is ordinary here. You will need `make demo-journey` (or equivalent) for any row you want, and remember `POST …/members` answers `400 MEMBER_USER_NOT_FOUND` for anybody who has not signed in to Manifest itself. **The machine is CLEAN**: `dead-app-resources.sh` reads `none dead` and `litellm-orphans.sh` reads `Orphaned (0)`, both re-measured by the scripts after this session was ALLOWED `--apply` for each — so try the command yourself rather than trusting any note about it. `make verify`'s per-app line reads `containers=12 networks=4 volumes=8` (four apps), having gone to `12/11/9` under this sitting's Docker-tier run and back again — **the sixth measurement of the tier regenerating exactly seven networks and one volume.**
+**ONE CONTROL IS STILL OWED, AND IT IS RICH'S** — unchanged from sitting 2. Task 2's control
+(a): `sudo ifconfig lo0 -alias 127.0.0.3`, watch `make doctor` go red, put it back. An
+unprivileged stand-in was run and proves the check's LOGIC, not that a real alias removal is
+caught. Ask Rich, or record it as still owed.
 
-**ONE CONTROL IS STILL OWED, AND IT IS RICH'S.** Task 2's control (a) — `sudo ifconfig lo0
--alias 127.0.0.3`, watch `make doctor` go red, put it back — needs `sudo` and was not run.
-An **unprivileged stand-in was**: pointing `PUBLIC_EDGE_IP` at `127.0.0.9` turned both new
-checks red with the right messages, which proves the check's logic but **not** that a real
-alias removal is caught. Ask Rich, or record it as still owed.
-
-**THE THINGS MOST LIKELY TO COST YOU, beyond the one above.**
+**THE THINGS MOST LIKELY TO COST YOU, beyond the migration.**
 
 - **P6a is a plan made almost entirely of REFUSALS.** **Every refusal asserts its CODE, never
   its status** — `403` alone is `FORBIDDEN`, `TOKEN_CREDENTIAL_REFUSED`, `TOKEN_ACTION_PENDING`,
   `TOKEN_ACTION_REJECTED` and soon `STEP_UP_REQUIRED` — and **every refusal test sits beside a
   positive control in the same file** (P5c sitting 9, F16).
-- **`infra/caddy/Caddyfile` is a SINGLE-FILE bind mount.** After any edit run `make up` and read
-  its output; after any `git checkout` of it, `docker restart manifest-caddy`.
-- **A `compose.yaml` edit only costs a recreate when it changes the service's CONFIG** — measured
-  again in sitting 2: the caddy port change recreated it in **8.5 s**, matching sitting 1's 7 s.
-  A comment costs nothing.
-- **D22's coverage gate is fully disarmed by its own list** — sitting 1 measured it going green
-  on a **nonsense reason**. P6a adds seven operations, so **a reviewer reads that list; the gate
-  will not.**
-- **A red `pnpm contract:write` means the ROUTE LIST, not the document.**
-- **`grep -c` exits 1 when it counts ZERO**, which is the success condition. It cost sitting 2 a
-  confused re-run inside a control. **Assert an exit status, never inherit one** — `host-undo.sh`
-  carries the same lesson from 2026-09-05.
+- **A TEST THAT ASSERTS TWO THINGS DISARMS ITS OWN CONTROL.** Sitting 3's Task 4 control (c)
+  asks for one assertion to be weakened and watched staying green; it went **red anyway**,
+  because the same case also asserted the response body, and the body is a second
+  discriminator. Both had to be weakened before the control fired. **When a plan names a
+  control that weakens ONE assertion, check what else in that test would catch the defect** —
+  or the control measures nothing and you will report it firing when it did not.
+- **A NEW ROUTE IS THREE FILES IN ORDER**: the definition, `pnpm contract:write`, then
+  `pnpm contract:generate` — and it must be in `ROUTE_DEFINITIONS` or it exists nowhere.
+  **A red `pnpm contract:write` means the ROUTE LIST, not the document.** Task 6 adds two
+  routes and **D22's coverage gate is fully disarmed by its own list**, so a reviewer reads
+  that list; the gate will not.
+- **`launch:record` is Decision 4's new capability**, granted to `PLATFORM_ADMIN` alone, and
+  **every route carrying it also calls `requireSession`** — because it is not one of D24's
+  privileged four, so a token could otherwise hold it. Task 6's test that a token *holding*
+  `launch:record` is still refused `403 TOKEN_CREDENTIAL_REFUSED` is the task's real
+  deliverable.
+- **`grep -c` exits 1 when it counts ZERO**, which is the success condition. **Assert an exit
+  status, never inherit one.**
 
 **RICH'S FOUR DECISIONS (brief §5) ARE SETTLED — do not re-open them**: R1 folds
-`IamRegistration` and `PrivacyAssessment` into P6a as tracked objects with manual transitions;
-R2 redefines D21's rehearsal as a local, production-shaped one, whose item's `why` **must** say
-it proves the registration's SHAPE and never UBC's acceptance of it; **R3 is DONE — sitting 2
-built it**; R4 gives code safety a **seam** now with a **NON-blocking** checklist item. **R4's
-spec action is ✅ APPROVED AND APPLIED** (D33, §15's hook row, §20's control-map row) — **do not
-propose it again.** And **Rich chose ELEVEN sittings**, the lean of three splits.
+`IamRegistration` and `PrivacyAssessment` into P6a as tracked objects with manual transitions —
+**which is exactly what this sitting builds**; R2 redefines D21's rehearsal as a local,
+production-shaped one, whose item's `why` **must** say it proves the registration's SHAPE and
+never UBC's acceptance of it; **R3 is DONE — sittings 2 and 3 built it**; R4 gives code safety
+a **seam** now with a **NON-blocking** checklist item. **R4's spec action is ✅ APPROVED AND
+APPLIED** (D33, §15's hook row, §20's control-map row) — **do not propose it again.** And
+**Rich chose ELEVEN sittings**, the lean of three splits.
 
 **THREE SPEC ACTIONS ARE PROPOSED AND NONE IS APPLIED** (the plan's *Spec actions*, and §8):
-§21's *honest divergences* item 2 — **now describing something that has actually happened, since
-sitting 2 built the split**; §20's step-up list naming `release:approve`, which sitting 1's `[M6]`
-proved real; and §13's *Residual risk* saying "the five sensitive fields" where §7 says seven.
-**Never edit the spec. Ask.**
+§21's *honest divergences* item 2 — **now describing something that has actually happened, and
+sitting 3 made it more so: the split is not merely built, it is enforced on an app's own
+route**; §20's step-up list naming `release:approve`, which sitting 1's `[M6]` proved real; and
+§13's *Residual risk* saying "the five sensitive fields" where §7 says seven. **Never edit the
+spec. Ask.**
 
 **WHAT IS OUTSTANDING AND IS RICH'S**, unchanged: the **offline acceptance**
 (`scripts/offline-acceptance.sh`, TEN steps — P6a's Task 19 makes it eleven); the
 **second-machine clean clone**; **starting the UBC external track**, whose trigger fired on
-2026-09-15 — and **P6a's R1 makes it MORE urgent, not less**. Plus the rest of §8.
+2026-09-15 — and **P6a's R1 makes it MORE urgent, not less, which this sitting's own tables
+make concrete**. Plus the rest of §8.
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in
 each plan's *Global Constraints*:
 
 - **COMMIT ON `main`, AND STAGE YOUR OWN PATHS BY NAME — §6 RULE 9 IS THE FULL RULE AND THIS
   LINE DELIBERATELY DOES NOT RESTATE IT.** Read it: **other agents are working in this
-  repository at the same time as you**. `HEAD` moved under sitting 1 twice and under sitting 2
-  **three times** — `a451187`, `a6f2f61` and `312f083`, a design agent's, two of them landing
-  BETWEEN this sitting's own two task commits — and
+  repository at the same time as you**. `HEAD` moved under sitting 1 twice, under sitting 2
+  three times and under sitting 3 **twice** — `2d128be` and `c3d29f5`, a design agent's, both
+  landing before this sitting's own first commit — and
   `superpowers:executing-plans` and `using-git-worktrees` will both push you toward a branch
   you must not make.
 - **Ask before `sudo`, and before touching anything outside the repository.** §6 rule 2, and

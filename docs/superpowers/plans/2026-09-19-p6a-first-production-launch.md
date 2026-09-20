@@ -32,8 +32,8 @@
 |---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on**, before any code: whether SimpleSAMLphp honours `ForceAuthn`, what the second listener actually costs on this machine (the alias, the dnsmasq split, the probe path), whether `computeLaunchReadiness` survives being read by something that blocks, and the **two** production gates rather than one. **Alone, and first** | **DONE 2026-09-19 — 15 findings.** All ten measurements ran. **R3 is a GO**, `ForceAuthn` **is honoured**, Decision 13 is measured. **No task boundary moved, so the eleven-sitting split stands.** Correction blocks on Tasks 1, 2, 3, 4, 5, 7 and 12 |
 | 2 | 2–3 | **The second listener exists**: `127.0.0.3` on `lo0` and the dnsmasq split (Rich runs one bundled `sudo` script), then `srv1` inside the edge with the production wildcard site, and `make doctor` and `make verify` checks for both halves | **DONE 2026-09-19 — 12 findings.** §12's split is REAL: two servers in one container, and a production name on the internal address and a staging name on the public one are both served by NOTHING, watched both ways. **§21's divergence 2 no longer describes this machine, so Spec action 1 is unconditional in practice — still Rich's, still not applied.** doctor **19/0**, verify **54/0**. **Its headline corrects sitting 1's F3: an unreachable name answers `200` WITH AN EMPTY BODY, not a TLS error, because Caddy's certificate cache is app-global — so a status assertion is green whether the split holds or leaks.** Two of the plan's own controls could not fail as written |
-| 3 | 4 | **A production route goes on the public listener and staging cannot reach it** — §12's fail-closed claim watched failing on the only machine that exists, in both directions, and the readiness probe taught the production path. **Read sitting 2's F5 before writing a single assertion: `200` is the answer in BOTH directions, which is exactly what this task's control (c) exists to prove** | ← **next** |
-| 4 | 5–6 | **Migration 0019** — `approvals`, `iam_registrations`, `privacy_assessments` and their state machines — and **the two external records over the API**: an administrator records a real registration and a real PIA with a pasted ticket reference | |
+| 3 | 4 | **A production route goes on the public listener and staging cannot reach it** — §12's fail-closed claim watched failing on the only machine that exists, in both directions, and the readiness probe taught the production path | **DONE 2026-09-20 — 11 findings.** A production route is written to `srv1` and a staging route to `srv0`, read back off `X-Manifest-Instance` from a REAL route on each listener; `edgeIdentityProbe` and `edgeProbe` take a `port` and the driver passes it for production alone. `pnpm test` **1390 → 1395**, `pnpm test:docker` **180 → 185** (the predicted 180 + 5), doctor **19/0** and verify **54/0** both unmoved — the new port-equality assertion lives INSIDE check 2. **No task boundary moved.** **Its headline is about CONTROLS, not the platform: control (c) went RED rather than staying green, because the case asserts the body as well as the identity, and control (b) CANNOT FAIL AT ALL — the driver's production branch is asserted by nothing until Task 15.** `[M5]` named one hardcoded `public: 'srv0'` and there are nine; two were the Docker tier's own driver factory |
+| 4 | 5–6 | **Migration 0019** — `approvals`, `iam_registrations`, `privacy_assessments` and their state machines — and **the two external records over the API**: an administrator records a real registration and a real PIA with a pasted ticket reference. **Read Task 5's `[M10]` correction block first: the plan's own step would make the migration FAIL TO APPLY** | ← **next** |
 | 5 | 7 | **The gate that BLOCKS.** One evaluation in `launch/`, called by the read and by the deploy route, with the **two** unconditional refusals that exist today removed — and the checklist's items reading real rows. **Alone: it is this plan's centre** | |
 | 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | |
 | 7 | 10–11 | **The approval**: `release:approve`'s first caller ever, bound to an immutable digest, non-repudiable, behind step-up — and its `diff_snapshot` with the AI-written summary that is **recorded as absent rather than blocking** when the model is down | |
@@ -3968,3 +3968,247 @@ file — truncates the control plane's tables" is true of files that USE the dat
 `edge-names.test.ts` and `reserved-labels.test.ts` import no database helper at all — so running
 those two during the Docker tier did not contaminate it. Verified by reading their imports when
 the worry arose, rather than discarding an 848-second run on a guess.*
+
+---
+
+### Sitting 3 — Task 4, a production route on the public listener, alone — 2026-09-20. **11 findings.**
+
+**§12'S CLAIM IS NOW ENFORCED ON AN APP'S OWN ROUTE, NOT JUST IN THE EDGE'S CONFIGURATION.**
+`applyRoute` writes a production route to `srv1` and a staging route to `srv0`; five new
+Docker-tier cases put a REAL route on each listener and read `X-Manifest-Instance` back, which
+is the only thing a route sets and the wildcard does not. `edgeIdentityProbe` and `edgeProbe`
+take an optional `port` through one shared `probeAuthority`, and the Docker driver passes
+`config.edgePublicPort` for `environmentKind === 'production'` and nothing else (Decision 15).
+`MANIFEST_EDGE_PUBLIC_PORT` defaults to 8443 and `make verify` holds it equal to
+`infra/compose.yaml`'s `127.0.0.3:443:8443` rather than trusting two files to agree.
+
+**THE TWO THINGS TO CARRY FORWARD, above every finding below, and both are about CONTROLS
+rather than about the platform:**
+
+1. **Control (c) went RED where the plan predicted green, and both assertions had to be
+   weakened before it fired.** The plan says to weaken `expect(onPublic.instance).toBe(…)` to
+   `expect(onPublic.status).toBe(200)` and watch it stay green with the route on the wrong
+   server. It did not: the same case also asserts `probe(...) === STUB_BODY`, and an empty-200
+   wildcard answer fails that too. With BOTH weakened it is green, exactly as predicted. **A
+   control that weakens one assertion measures nothing if a second assertion in the same test
+   catches the same defect** — and a sitting that ran it as written would have reported the
+   control firing when what fired was a different assertion.
+2. **Control (b) CANNOT FAIL, and the branch it guards is the one Task 15 depends on.**
+   Removing the `port` spread from the driver leaves **1353 unit tests and all 26
+   driver-contract Docker tests green** — measured, both tiers. Nothing deploys a production
+   instance through the driver, so the plan's *"the same test red for the same reason"* is
+   wrong twice over: the Docker test never goes through the driver, and no test exercises the
+   production branch at all. **Task 15 is the first thing that will ever run that line.**
+
+| Gate | Before | After |
+|---|---|---|
+| `make doctor` | 19 checks, 0 failed | **19 checks, 0 failed** — unmoved |
+| `make verify` | 54 checks, 0 failed | **54 checks, 0 failed** — unmoved, and that is the point: the port-equality assertion went INSIDE *the public listener answers a production name* rather than becoming check 55, because it is the same claim's second half |
+| `pnpm test` | 1390 in 108 files | **1395 in 108 files**, twice and identical — up 5, **no new file**: 4 in `routing/routes.test.ts`, 1 in `config.test.ts` |
+| `pnpm test:docker` | 180 in 30 files | **185 in 30 files, 0 skipped, 827 s** — up 5, no new file. **Predicted 180 + 5 before running it, and that is what it read** |
+
+#### The findings
+
+**F1 — the plan's Step 3 snippet asserts something sitting 2 MEASURED TO BE FALSE.** Its second
+case reads `expect(onInternal.body).toContain('listener=internal')` for a production hostname
+on the internal listener. There is no such word to find: Task 3 moved the `*.manifest.internal`
+wildcard to `srv1`, so `srv0` holds **no site at all** for a production name, matches nothing,
+and answers an **empty 200** — sitting 2's F5, which the plan's Task 4 section was never
+updated for. ORIENTATION §7e warned about the symptom in general and did not name the line.
+Written instead as the two assertions that actually fire: no instance header, and no `listener=`
+anywhere in the body. **Found by reading sitting 2's own record against the snippet before
+running it**, which is cheaper than watching it fail.
+
+**F2 — `[M5]` names ONE hardcoded `{ internal: 'srv0', public: 'srv0' }` and there are NINE,
+two of them the Docker tier's own driver.** The correction block names
+`routing/routes.test.ts:11`. `grep -rn "public: 'srv0'"` finds eight more, and the two that
+matter are in **`runtime/docker/testing.ts`** — `dockerDriverForTests`, the factory every
+Docker-tier suite builds its driver from, and `CONTRACT_ROUTING`. **That is the driver Task
+15's first production deploy will use**, so a production route would have gone to the internal
+server and the readiness probe on `:8443` would have found nothing there — control (b)'s
+failure mode, arriving by a path the plan does not consider. Both fixed. The other six
+(`boot.docker.test.ts`, `releases/redeploy.docker.test.ts`, `runtime/docker/driver.docker.test.ts`,
+`runtime/docker/redeploy.docker.test.ts`, `routing/routes.docker.test.ts`,
+`routing/readiness.docker.test.ts`) were each checked and are **staging-only** — none writes a
+production route or deploys a production instance — so `public` is never read in them and they
+were left alone. **Recorded rather than fixed, because a change nothing exercises is a change
+nothing can catch.**
+
+**F3 — three doc comments still described the pre-split world, and one is in the file the plan
+calls "unchanged".** File Structure says `routing/hostnames.ts` is *"unchanged — `listenerFor`
+already says the right thing"*. The FUNCTION does; its doc comment said *"On the laptop both
+listeners are loopback and both server names default to the same Caddy server (§21, honest
+divergence 2), so this distinction is modelled and recorded rather than enforced locally"* —
+false since sitting 2, and it is the first thing a reader of `listenerFor` sees. `RoutingDeps.servers`
+said *"Both are `srv0` on the laptop"* and `Config.caddyServers` said *"Both `srv0` locally"*.
+Sitting 2 updated the config SCHEMA's comment and not the `Config` interface's, three lines
+apart in the same file. **The plan checked the code and not the prose.** All three corrected,
+each naming what changed and when.
+
+**F4 — a test that hardcodes `srv1` cannot be turned red by control (a), which is the whole
+point of control (a).** Sitting 2's control 3c measured that with `MANIFEST_CADDY_SERVER_PUBLIC=srv0`
+nothing in `listener-split.docker.test.ts` went red, and said *"that is Task 4"*. A Task 4 test
+with two literals in it would have kept that true. So the file now derives `caddyServers` and
+`edgePublicPort` from **`loadConfig`**, with `process.env` spread LAST so the real environment
+always wins; the three settings `loadConfig` requires and this test does not read are given
+`config.test.ts`'s own fixture values. Control (a) then fires — **two cases red, not the one the
+plan predicts** (see the controls table).
+
+**F5 — the plan's Step 6 `git add` line omits the one production caller of the new setting.**
+It names `packages/control-plane/src/routing`, `runtime/docker/driver.ts`, `config.ts` and
+`scripts/verify.sh` — and leaves out **`src/index.ts`**, where `publicEdgePort` is passed to the
+driver, and `runtime/docker/testing.ts`. Staging exactly the plan's paths would have committed a
+tree that does not typecheck. §6 rule 9 says stage by name; **this is why you read the names
+rather than pasting the line.**
+
+**F6 — control (c) as the plan words it is a one-off experiment, so it is now a standing test
+as well.** A control that must be re-performed by hand is a control nobody performs again. The
+suite now asserts permanently that **`edgeProbe` — which reads a status and nothing else —
+answers 200 on BOTH listeners** for the same routed production name. A reader about to replace
+an identity assertion with a status one meets that test sitting under it. **It is also what
+gives `edgeProbe`'s new `port` a caller**, which is why the option is on both probes rather than
+only on the identity one, against this project's rule that a function with no call site is not
+built.
+
+**F7 — `deleteRoute`'s `server` argument is discarded by the real client, so the obvious unit
+test for `removeRoute` would have asserted a value the implementation throws away.** `caddy.ts`
+deletes by `@id` (`async deleteRoute(_server, routeId)`), correctly — index-based removal races.
+A draft test asserting `removeRoute` passes `srv1` was written and then dropped: it would have
+read as coverage of the listener choice while proving nothing about reachability. **The listener
+can only be got wrong on the two PUT paths**, so what is asserted instead is `restoreRouteTo`'s
+PUT branch — the rollback a failed deploy takes, where writing a production hostname's previous
+route to the internal listener would leave an app that was serving a moment ago unreachable.
+
+**F8 — `upstreamsInUse`'s two-server branch had never run, and it guards a production app from
+being retired.** `routing/routes.ts:185` iterates `new Set(Object.values(deps.servers))`, which
+was written when both names were `srv0` to stop the same server being read twice. Every test of
+it did exactly one read. `retireInstance` refuses an instance whose address is in that set, so a
+version reading only the internal listener would let a running **production** app be retired
+out from under the route serving it. Now asserted with two servers returning DIFFERENT routes
+and the read order recorded — **and with the collapsed pair asserted too**, because the dedupe
+is load-bearing in both configurations and UBC may run one.
+
+**F9 — `scripts/ci-acceptance.sh` is a FOURTH place the gate numbers live, and it went stale
+the first time they moved.** It carried `EXPECT_DOCTOR=18` and `EXPECT_VERIFY=51` against a
+machine at 19 and 54 — moved by sitting 2, which swept the three documents §6's list names.
+**§2's box says in its own text that these four lines "carry this box's numbers and move with
+it", and §6's sweep table names documents only**, so nothing pointed sitting 2 at the file.
+Worse, it is quiet: the script reports `MOVED` rather than `FAIL`, so `make ci-acceptance`
+would have printed *"counts moved: expected 18, got 19"* in a summary and passed. Fixed to
+1395/108/19/54, **and §6's table now has a row for it** with the reason, plus a second `grep`
+in §6 because bare `EXPECT_` assignments match none of the patterns the existing one uses.
+**Found by opening the file, not by re-reading the list.**
+
+**F10 — the port-equality check's first draft had a false red in it, found by watching it
+fail.** It matched the whole zod chain — `z.coerce.number().int().positive().default(8443)` —
+so reordering `.int()` and `.positive()`, a refactor that changes nothing, made it read the
+default as ABSENT and the check went red saying *"config.ts states no
+MANIFEST_EDGE_PUBLIC_PORT default"*. Loosened to the setting's NAME plus `default(<n>)`, then
+re-measured **both** ways: the reordered chain passes, and a real disagreement (8444 against
+compose's 8443) still fails with the same message. Committed separately (`f4f7d6a`) so the
+repair is legible against the thing it repairs.
+
+**F11 — the emptiness guard in that check protects against one case and not the one it looks
+like.** `[ -n "$cfg_port" ]` reads as insurance against a bad comparison, but an empty
+`cfg_port` would fail the comparison anyway — `'' != '8443'`. **The case it actually catches is
+BOTH seds returning empty**, where `'' = ''` passes and the check reports agreement between two
+files it could not read. Stated that way in the code, because the weaker reading would have
+someone delete it as redundant.
+
+#### Negative controls — every one watched, and which could not fail
+
+| | Control | Predicted | Measured |
+|---|---|---|---|
+| 4a | `MANIFEST_CADDY_SERVER_PUBLIC=srv0`, Docker tier re-run, assertions intact | the production case red, with `waitForIdentity`'s *"the edge answered 200 with no X-Manifest-Instance"* | **RED — TWO cases, not one**, and **not with that message**. `a production route is reachable … AS THE INSTANCE`: *expected undefined to be '44444444-…'*; and `the SAME hostname on the internal listener is served by nothing`: *the route must not be on the internal server: expected '44444444-…' to be undefined* — the mirror of the leak, which the plan does not predict and which is the more eloquent of the two. The predicted message belongs to `waitForIdentity`, and this test calls `edgeIdentityProbe` directly; **it will be Task 15's message, not this one's** |
+| 4b | the `port` spread removed from the driver | the same test red for the same reason | **NOTHING WENT RED. 1353 unit tests pass and all 26 driver-contract Docker tests pass.** The Docker test does not go through the driver, and **no test deploys a production instance through it at all.** The control cannot fail in this sitting, and the branch is first exercised by Task 15 — recorded in §7e as the thing to look at if that deploy hangs for fifteen seconds and rolls back |
+| 4c | `expect(onPublic.instance).toBe(instanceId)` weakened to `expect(onPublic.status).toBe(200)`, route on the wrong server | **GREEN** — the control that proves the assertion is about the shape of the answer | **RED at first, then GREEN.** Weakening only the identity assertion left the case red on the NEXT line — `expect(await probe(…)).toBe(STUB_BODY)`, which an empty-200 wildcard also fails. **Both** weakened, it is green with the route on `srv0`, exactly as predicted. So the control fires, and the test has TWO independent discriminators rather than the one the plan assumes — which is better than asked for, and means the control as WORDED does not fire. Restored and re-run: 7 passed |
+| 4d | `MANIFEST_EDGE_PUBLIC_PORT` default changed to 8444 | not in the plan — this sitting's own, for the check it added | **RED**: *"the public listener's port disagrees: config.ts=8444 compose.yaml=8443"* |
+| 4e | `.int()` and `.positive()` reordered in the zod chain | not in the plan — written to find out whether the check is brittle | **RED, and it should not have been.** F10: the check was matching the whole chain. Loosened, re-measured green on the reorder and still red on 4d |
+
+#### What this sitting decided
+
+- **`edgeProbe` gains the `port` as well as `edgeIdentityProbe`**, with its caller being the
+  standing control that a status answers 200 on both listeners (F6). *Rejected:* giving it the
+  option with no caller, which is the shape §9 names four times; and leaving it off, which
+  would have left control (c) as a hand-performed experiment.
+- **`publicEdgePort` is REQUIRED on `DockerDriverOptions`, not optional.** Every construction
+  site is then a `tsc` error rather than a silently absent port. *Rejected:* optional with a
+  default of 8443 in the driver — a second statement of the setting, and the failure it hides
+  is a fifteen-second timeout whose message names the wildcard and not a port.
+- **The port-equality assertion goes INSIDE `make verify`'s check 2 rather than becoming check
+  55** (the plan says so, and measuring it confirmed the count holds at 54). *Rejected:* a
+  separate check, which would make the same claim twice and move a number three documents and
+  one script state.
+- **`listener-split.docker.test.ts` derives its server names and port from `loadConfig`**
+  (F4). *Rejected:* two literals, which is what makes control (a) unable to fire.
+- **The two `public: 'srv0'` fixtures in `runtime/docker/testing.ts` are FIXED and the other
+  six are RECORDED** (F2). *Rejected:* fixing all eight — six are staging-only, so the change
+  would be unexercised by anything, and an unexercised change is one nothing can catch;
+  *rejected also:* recording all eight, which leaves the trap in the exact file Task 15 uses.
+- **`INTERNAL_PORT` stays a literal 443 while `PUBLIC_PORT` comes from config.** There is no
+  setting for the internal port — it is `infra/compose.yaml`'s `127.0.0.2:443:443` and the
+  address every site without a prefix binds — so deriving it would invent a setting to avoid a
+  literal.
+
+#### The machine, queried at close rather than recalled
+
+`make doctor` **19/0**, `make verify` **54/0**, `pnpm test` **1395 in 108 files** twice and
+identical, `pnpm test:docker` **185 in 30 files, 0 skipped, 827 s**, lint/typecheck/format
+clean. **`lo0` carries `127.0.0.1`, `127.0.0.2` and `127.0.0.3`.** **Nothing is listening on
+7100** — the control plane was never started this sitting. **The database is EMPTY** — `psql`
+at close reads `projects=0 users=0 instances=0 releases=0`, because `pnpm test` truncates and
+the gates ran last; the twelve app containers are still up, so the containers outlive their
+projects, which is ordinary here.
+
+**Both cleanups were run bare and then APPLIED by this session — the classifier allowed both.**
+`dead-app-resources.sh` found the documented **seven networks and one volume** put back by this
+sitting's Docker-tier run (`make verify`'s per-app line went `12/4/8` → `12/11/9` → `12/4/8`),
+and re-measuring with the script itself afterwards reads **`none dead`, 0 and 0**.
+`litellm-orphans.sh` found **one** orphan, `p4b-probe-user` — the same name P5c sitting 1 and
+P6a sitting 2 each cleared — and a bare re-run after `--apply` reads **`Orphaned (0)`** with all
+four held users surviving. **That is the SEVENTH measurement of the Docker tier regenerating
+exactly that set: a property of the tier, not a backlog.**
+
+**The four shared HTML pages were CHECKED and correctly need no change.** `grep` for
+`listener`, `127.0.0.2`, `127.0.0.3`, `srv0`, `srv1`, `manifest.internal`, `edge proxy`,
+`public listener` and `production zone` finds **0 in all four**. They describe outcomes a
+non-technical reader would recognise, and Task 4 produces none — **production is not reachable
+until Task 15.** Checked rather than assumed, per §6.
+
+**`HEAD` moved twice under this sitting** — `2d128be` and `c3d29f5`, a parallel design agent's,
+both landing before this sitting's own first commit. Neither was staged; `git status` was
+accounted for before each commit. Commits: `c31de45` (Task 4) and `f4f7d6a` (F10's repair).
+
+#### What the post-sweep check found — THREE, and the streak since P5b's third sitting holds
+
+**1. §7e pointed at "Task 5's `[M8]` correction block". It is `[M10]`.** Found by opening
+Task 5 and reading the block's own heading, not by re-reading the sentence — and it is the
+*wrong pointer* class §6 calls the strongest argument for this check, because the next sitting
+is told to read that block before its steps and would have gone looking for a marker Task 5
+does not have. **`[M8]` is a real marker elsewhere in this plan** (Task 1's Step 9, and four
+references to it), which is what made the mistake plausible.
+
+**2. The first fix for (1) was a blanket find-and-replace, and it corrupted four legitimate
+`[M10]` references into `[M8]`** — Task 1's Step 11, the correction block's own evidence line,
+F1's label and an *assumed* line. Caught immediately by reading `git diff` rather than trusting
+the replacement count, and repaired by restoring the file from the index and re-applying the two
+intended edits. **The lesson is the one this project keeps paying for in a new place: a global
+edit to a document is the same shape as `git add -A`.** A marker like `[M8]` is not a unique
+string, and the count the script printed (`replaced 8`) read as success. **Assert what you
+changed, never how many.**
+
+**3. §7e's own grep answers TWELVE, not six.** It told the next agent to run
+`grep -rn "public: 'srv0'" packages/` to find the six remaining fixtures;
+`packages/control-plane/dist/` holds a compiled copy of every one of them, so the bare grep
+answers twelve and a reader would conclude the sitting's own count was wrong. Corrected to carry
+`--include="*.ts"` and to say why. **Found by running the command as written**, which is the
+cheapest form of this check and the one most easily skipped — a grep in a hand-off is a claim
+like any other.
+
+*Also verified by opening the thing pointed at, and correct: the eleven findings are numbered
+F1–F11 with no gap and the count agrees in the record's heading, the sittings table, the
+roadmap's P6a row, the defect-rate table and §7e; `observability/events.test.ts:283` is indeed
+the test that reads the `events_type_known` constraint out of Postgres and compares it with
+`EVENT_TYPES`; Decision 14's five event types are quoted exactly; and the four gate numbers
+agree across ORIENTATION §2's box, README, RUNBOOK and `scripts/ci-acceptance.sh` — the fourth
+of which this sitting had to fix first (F9).*
