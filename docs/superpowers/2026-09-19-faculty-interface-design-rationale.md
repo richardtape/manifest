@@ -39,6 +39,21 @@ the part of a system that gets invented per screen when nobody writes it down, a
 state most often styled away — here a legal problem rather than a tidiness one. `focus-ring` is an
 **alias** of `brand` so that a brand change can never leave focus behind.
 
+**The components became real code, 2026-09-20.** Rich spotted that the cards were static and named
+the cause: no `components/bundle.js`. He was right, and it mattered more than appearance — without a
+`window.Manifest` global nothing can *import* these components, so any future canvas has to retype
+the markup, which is precisely the drift a design system exists to stop. The system now ships
+**`bundle.js`** (eighteen React components as one classic script), **`bundle.css`** (their styles,
+drawn entirely from the tokens) and **`index.d.ts`** (every prop documented). **Every preview now
+mounts a real export rather than look-alike markup**, so a preview that renders is a component that
+works — the previews are the bundle's test, not a picture of it.
+
+Verified rather than assumed: with no React available locally, a stub `createElement` renders all
+eighteen exports with representative props and checks that none throws, none emits `undefined`, and
+every class the bundle names exists in `bundle.css`. That check found two classes emitted but never
+declared (`mf-step--done`, `mf-station--done`), now declared as real state hooks. Each preview's
+mount script is syntax-checked, and every export is required to be mounted by some preview.
+
 **And one thing was removed.** The 4px accent stripe down the left edge of a card — on the checklist
 items, the agent's question and the change-in-progress card — is gone, at Rich's direction. With
 five state colours already in play it read as a second, competing status system, and a row of cards
