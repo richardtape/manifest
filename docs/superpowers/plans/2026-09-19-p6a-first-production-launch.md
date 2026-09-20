@@ -35,8 +35,8 @@
 | 3 | 4 | **A production route goes on the public listener and staging cannot reach it** — §12's fail-closed claim watched failing on the only machine that exists, in both directions, and the readiness probe taught the production path | **DONE 2026-09-20 — 11 findings.** A production route is written to `srv1` and a staging route to `srv0`, read back off `X-Manifest-Instance` from a REAL route on each listener; `edgeIdentityProbe` and `edgeProbe` take a `port` and the driver passes it for production alone. `pnpm test` **1390 → 1395**, `pnpm test:docker` **180 → 185** (the predicted 180 + 5), doctor **19/0** and verify **54/0** both unmoved — the new port-equality assertion lives INSIDE check 2. **No task boundary moved.** **Its headline is about CONTROLS, not the platform: control (c) went RED rather than staying green, because the case asserts the body as well as the identity, and control (b) CANNOT FAIL AT ALL — the driver's production branch is asserted by nothing until Task 15.** `[M5]` named one hardcoded `public: 'srv0'` and there are nine; two were the Docker tier's own driver factory |
 | 4 | 5–6 | **Migration 0019** — `approvals`, `iam_registrations`, `privacy_assessments` and their state machines — and **the two external records over the API**: an administrator records a real registration and a real PIA with a pasted ticket reference | **DONE 2026-09-20 — 21 findings** (19 + 2 from the post-sweep check)**.** §13's gate now has REAL ROWS to block on, which is the whole of R1. `[M10]` is confirmed exactly: drizzle wrote the `audit.events` DROP/ADD pair unprompted and **nothing was appended**. THREE routes, not the four this task says. `launch:record` is granted to `PLATFORM_ADMIN` alone and is NOT one of D24's four — `requireSession` is the control, enforced by the matrix **and by `tsc`**. **No task boundary moved.** `pnpm test` **1395 → 1449 in 110 files**. **Its headline is that the plan's own matrix row for `token-other-project` says `404 NOT_FOUND` and the route answers `403 TOKEN_CREDENTIAL_REFUSED`** — `requireSession` runs before the project is read, which is the right order, and control (a) proves the row was written for the other one. **ALL NINE controls fired; none could not fail** |
 | 5 | 7 | **The gate that BLOCKS.** One evaluation in `launch/`, called by the read and by the deploy route, with the **two** unconditional refusals that exist today removed — and the checklist's items reading real rows. **Alone: it is this plan's centre** | **DONE 2026-09-20 — 14 findings** (12, plus 2 the post-sweep check found)**.** §13's checklist is now the thing that gates production: `assertLaunchable` in `launch/gate.ts`, ONE evaluation, two callers, and **both** unconditional refusals gone — the inner one DELETED. Measured live end to end: with nothing recorded the deploy is refused blocking on **four** items; an administrator records a real IAM registration and a real PIA over the API and the same deploy is refused blocking on **two**, `rehearsal` and `admin-approval`. `pnpm test` **1449 → 1456 passed + 1 SKIPPED in 110 files**; `pnpm test:docker` **OWED, RUN and UNMOVED at 185 in 30, 826 s**; doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is that the plan's Steps 2 and 4 CONTRADICT EACH OTHER** — the class cannot both move to `launch/` and keep the `api` family — **and that moving it would have made its code invisible to the registry**, sitting 4's F5 one sitting later. **Control (b) fired SIX red across FOUR files where the plan predicted the matrix alone and said the delivery test would stay green; control (a) could not fail against all 1456 tests, predicted in advance; control (d) is the second gate SEEN** — `409` with the same code and **no `launchReadiness`** |
-| 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | ← **next** |
-| 7 | 10–11 | **The approval**: `release:approve`'s first caller ever, bound to an immutable digest, non-repudiable, behind step-up — and its `diff_snapshot` with the AI-written summary that is **recorded as absent rather than blocking** when the model is down | |
+| 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | **DONE 2026-09-20 — 15 findings.** §20's second round trip exists and is **proved end to end against the REAL Manifest IdP through the edge**: an ordinary session is refused `403 STEP_UP_REQUIRED`, `/auth/step-up` makes the IdP re-prompt **on a warm cookie jar** (`[M3]`'s control, re-fired live), the claim lands on the same session with `expiresAt` unchanged, the same request then answers `201`, and a step-up assertion for a DIFFERENT person is refused with the session left byte-identical. `pnpm test` **1456 → 1492 passed + 1 skipped in 112 files**; `pnpm test:docker` **OWED, RUN and UNMOVED at 185 in 30, 829 s** — and unmoved is the measurement, because **no Docker test makes a member call over HTTP or drives `/auth/step-up`, so that tier cannot see Task 9 at all**. doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is that the plan's own `assertStepUp` KILLS D24'S CONFIRM-AND-RETRY LOOP** — it refuses every token on a premise that is false, and a token carrying a human-confirmed grant reaches it; the grant is what stands in step-up's place. **Nine of ten controls fired, four of them WIDER than predicted and one — Task 8's (e), the row the plan calls its most important — where the plan says in bold that nothing would.** Control (d) **could not fail** and was fixed rather than recorded. **The guard reddened 48 tests across 7 files, not the 4 predicted, and 29 were the matrix's own fixture failing silently** |
+| 7 | 10–11 | **The approval**: `release:approve`'s first caller ever, bound to an immutable digest, non-repudiable, behind step-up — and its `diff_snapshot` with the AI-written summary that is **recorded as absent rather than blocking** when the model is down | ← **next** |
 | 8 | 12–13 | **R4's `Reviewer` seam** — the interface, the honest `NullReviewer`, its real caller and its **non-blocking** checklist item — and **§7's last production clause**: `auth.attributes` ⊆ `registered_attributes`, failing at build time | |
 | 9 | 14–15 | **The D21 rehearsal as R2 redefines it**, and **the first production deploy this platform has ever done** — the digest verified before anything starts. **A first, and this project's worst discoveries have all arrived at a first** | |
 | 10 | 16–18 | **Gate integrity asserted** (the registry's refusal, the laptop-image rule, the append-only record) and **both console tasks**: readiness with actions, the two external records, approvals and the step-up prompt | |
@@ -4759,3 +4759,314 @@ by re-reading the sentence:
   over the literal string `      Tests  1456 passed | 1 skipped (1457)` reads **1456**, run
   against a fixture file rather than reasoned about — which is the whole reason
   `EXPECT_TESTS` is 1456 and not 1457.
+
+### Sitting 6 — Tasks 8 and 9, step-up re-authentication — 2026-09-20. **15 findings.**
+
+**§20'S SECOND AUTHENTICATION ROUND TRIP EXISTS, IT GUARDS FIVE CAPABILITIES, AND IT HAS
+BEEN WALKED END TO END AGAINST THE REAL MANIFEST IdP.** `GET /auth/step-up` sends a signed
+AuthnRequest carrying `ForceAuthn="true"`, bound to the browser that started it by its own
+`manifest_stepup` cookie (Decision 17); the ACS's step-up branch validates the assertion
+with the instance that issued the request, refuses one for anybody but the person already
+in hand, and stamps `steppedUpAt` onto the existing session cookie. `assertStepUp` then
+refuses `PRIVILEGED ∪ {release:approve}` to a session that has not re-proved itself inside
+ten minutes, with `403 STEP_UP_REQUIRED` — **the API's fifth `403`**.
+
+**MEASURED LIVE, THROUGH THE EDGE, AGAINST THE REAL IdP — and this is the sitting, not the
+tests.** The plan asks only for `pnpm test:docker`; this was done because ORIENTATION's
+*Before you trust a green result* says to drive the real entry point, and because nothing
+had ever completed a second round trip on this machine.
+
+| Step | Answer |
+|---|---|
+| a real CWL sign-in as `instructor`, through the edge | `steppedUpAt: null` on the session cookie |
+| `POST /v1/projects/{id}/members` on that session | **`403 STEP_UP_REQUIRED`**, *"'members:manage' needs a second authentication round trip (§20)"*, hint naming `/auth/step-up?returnTo=` |
+| `GET /auth/step-up`, **on the same warm IdP cookie jar** | the IdP **served a login form** — which is `[M3]`'s control re-fired inside the real flow: that jar had just completed a sign-in, so without `ForceAuthn` it would have been handed an assertion straight through |
+| the assertion back through the ACS | `steppedUpAt: 1789935795666`, with `userId`, `puid`, `role`, `issuedAt` **and `expiresAt` all unchanged** — the same session, re-signed, not a new one |
+| the SAME request again | **`201`**, and `GET …/members` shows both people |
+| **the control**: a step-up in which the IdP authenticates the **student** while the browser holds the **instructor's** session | **REFUSED**, and the session cookie afterwards is **byte-identical** — still `ins000001`, still `steppedUpAt: null` |
+
+The operator log is the whole story in four lines, and §14 is respected — the puid and
+nothing else, no assertion, no cookie, no secret:
+
+```
+[auth] step-up started for ins000001
+[auth] step-up COMPLETED for ins000001
+[auth] step-up started for ins000001
+[auth] step-up REFUSED: the assertion is for a different person than the session
+```
+
+*One thing that walk is worth recording for its own sake: the first run reported `404` on
+both member calls and it was **the harness's own bug** — a greedy `sed -n 's/.*"id":"\(…\)".*/\1/p'`
+took the LAST id in the project body, an environment's. A `404` that reads exactly like
+§13's authorization refusal was a wrong path parameter.* **Assert the shape of the answer.**
+
+**THE THREE THINGS TO CARRY FORWARD.**
+
+1. **`assertStepUp` AS THE PLAN WRITES IT KILLS D24'S CONFIRM-AND-RETRY LOOP** (F8). Its
+   first line refuses every token, on a premise that is false: a token carrying a
+   human-confirmed grant reaches it. A token can never step up, so refusing every token
+   makes all four privileged capabilities unreachable **even after a person says yes**.
+   The grant is what stands in step-up's place and is the stronger control.
+2. **NEITHER SHAPE §7e OFFERS FOR THE ERROR CLASS FITS** (F9), and the reason generalises:
+   `error-codes.test.ts`'s scan **cannot tell an expectation from a throw**, because
+   `api/authz-contract.ts`'s `{ status, code: 'X' }` constants match its `code: '…'`
+   pattern and live under `api/`. The third shape — no code on the class,
+   `api/errors.ts` supplying it — is the one that fits, and it is `TokenCapabilityRefusedError`'s,
+   in the same file.
+3. **A GUARD'S BLAST RADIUS IS NOT ITS ROUTES** (F10). The plan predicted 4 red tests;
+   48 went red across 7 files, and **29 of them were a fixture whose setup call nobody
+   had ever read the answer to**.
+
+| Gate | Before | After |
+|---|---|---|
+| `make doctor` | 19 checks, 0 failed | **19, 0 failed** — unmoved, re-run AFTER the Docker tier and after both cleanups. This sitting adds no platform check |
+| `make verify` | 54 checks, 0 failed | **54, 0 failed** — unmoved, same reason |
+| `pnpm test` | 1456 passed + 1 skipped, 110 files | **1492 passed + 1 skipped, 112 files**, run twice and identical. **Counted per file, never subtracted**: `identity/step-up.test.ts` **9 (NEW)**, `projects/step-up-guarded.test.ts` **10 (NEW)**, `api/auth.test.ts` **22 → 30 (+8)**, `api/authz-contract.test.ts` **397 → 406 (+9)**, `api/error-codes.test.ts` **6 → 7 (+1)**. **Up 36 and two files.** The skip is still `api/delivery.test.ts`'s, untouched |
+| `pnpm test:docker` | 185 in 30 files | **185 in 30, 0 skipped, 829 s** — **OWED** (`identity/`, `sso/`, `projects/`, `api/routes/`)**, RUN and UNMOVED — and unmoved is a MEASUREMENT here**: no `*.docker.test.ts` makes a member call over HTTP (`boot.docker.test.ts` writes `pending_actions` rows straight into Postgres) and none drives `/auth/step-up`, so **that tier cannot see Task 9 at all**. Task 19's demo is the first thing that will |
+#### The findings
+
+**F1 — Task 8's *Files* line and its Step 2 snippet describe two different designs, and
+the object-level one is cheaper.** *Files* says *"`SamlSp` gains `stepUpUrl`"*; Step 2's
+closing line says `server.ts` builds **two** SPs (`deps.samlStepUpSp`), while the doc
+comment in that same snippet opens *"ONE SP, TWO REQUEST BUILDERS."* Two SPs would have
+duplicated the seven-field configuration at **both** construction sites — `src/index.ts`
+and `api/testing.ts` — and those seven fields are precisely the thing that must not differ
+between the instances (Decision 17: one entityID, one ACS, one keypair, so the IdP's
+registration does not change). Built as **one** `SamlSp` holding two `SAML` instances, with
+`stepUpUrl` and `validateStepUp`. No new `ServerDeps` field, nothing for the Docker tier's
+boot to learn, and node-saml's per-instance `InResponseTo` cache becomes an implementation
+detail the callback cannot get wrong.
+
+**F2 — `SessionActor` grew one field and `tsc` found seven test literals `pnpm test`
+could not.** Four in `projects/authz.test.ts`, three in `repository.test.ts`, each
+constructing a bare session actor. This is the argument for `steppedUpAt: number | null`
+over an optional property, paid back inside the hour: an optional field would have compiled
+everywhere and left seven call sites silently not stepped up. They now go through
+`sessionActor()` in `projects/testing.ts`, whose second caller is `step-up-guarded.test.ts`.
+
+**F3 — the authorization matrix's drift guard drags `authz-contract.ts` into Task 8, whose
+*Files* list does not name it.** *"covers every route the server registers"* fails the build
+for a route with no row, so `GET /auth/step-up` needed one — and the nine actors then came
+for free, including *"a token cannot start a step-up: 403 TOKEN_CREDENTIAL_REFUSED"*, which
+Task 8's step 6 asks for by name and which would otherwise have needed a project fixture in
+`auth.test.ts`. **A stranger `pass`es**, which is correct rather than a hole: stepping up
+proves who you are and authorizes nothing.
+
+**F4 — control (e) FIRED, where the plan says in bold that nothing would.** Task 8's table
+calls (e) *"the most important row"* and predicts that removing `forceAuthn: true` reddens
+nothing, because only `[M3]`'s live measurement can see it. Measured at the **whole-suite**
+scope: **one test red**, *sends ForceAuthn="true" on the step-up request*. `ForceAuthn` is
+an XML attribute on the `<AuthnRequest>`, the redirect binding deflates that document, and
+`[M3]` proved the flag by inflating it — so the same assertion is available in the unit
+tier. The invisible half is narrower than the plan says and is still real: whether the IdP
+**honours** the flag. The doc comment written from the plan's prediction was corrected at
+the source in `fbf674c`.
+
+**F5 — control (b) fired FIVE red, in Task 8 rather than Task 9, and reddened the positive
+control the plan says stays green.** The plan: *"stamps steppedUpAt … stays green and Task
+9's* a fresh sign-in is not stepped up *goes red. Predict it as Task 9's, and re-run it
+there."* Measured with `issueSession` stamping at sign-in: **5 red across 2 files**, and the
+positive control is among them — it asserts the claim is `null` **before** the step-up, so a
+session that arrives already stepped up fails at that line. Sitting 5's *thing to carry
+forward 2*, one sitting later: **a plan's prediction about which test goes red is a
+hypothesis.**
+
+**F6 — an UNVERSIONED route is still a contract change.** *Read this first* 18 says
+`GET /auth/step-up` *"is unversioned and is therefore not one"* of D22's operations, which
+is true and is not the whole story: `UNVERSIONED` is **published in the OpenAPI document**,
+so `document.test.ts` went red until `pnpm contract:write` ran. Seven lines across the two
+generated files for Task 8 and seven more for Task 9 — the unversioned entry, two SAML
+codes, `STEP_UP_REQUIRED`, and the two member operations' error lists. **No operation and no
+shape, so `@manifest/contract` stays 1.0.0** (sitting 5's F8 precedent, and the same
+reading).
+
+**F7 — a step-up must not extend a session, and the plan's *"…same options…"* hides the
+question.** The callback re-signs the session it already has, so `expiresAt` carries
+through unchanged and the browser cookie's `maxAge` must be the **remaining** life rather
+than a fresh twelve hours. Both writers of `manifest_session` now go through one local
+`sessionCookie(maxAgeSeconds)` helper, so the flags — `httpOnly`, `SameSite=Lax`, `Secure`
+from the origin, `path=/` — cannot drift between a sign-in and a step-up; only the age
+differs, which is the one thing that should.
+
+**F8 — THE SITTING'S HEADLINE: `assertStepUp` AS THE PLAN WRITES IT KILLS D24'S
+CONFIRM-AND-RETRY LOOP.** Its first line refuses every token, on the stated premise that
+*"a token NEVER reaches here in a correct route: every step-up-guarded route either calls
+`requireSession` or is refused by D24's central rule first."* **The premise is false.** A
+token carrying a human-confirmed `grant` passes `assertCapability` — that branch `return`s,
+deliberately, and P5b sitting 6's F-series is why — and arrives here. A token can never
+step up, so *"refuse every token"* and *"let a confirmed retry through"* cannot both hold.
+**Measured: `delegation.test.ts` went nine red, and FOUR of the nine are the loop itself**
+— *lets the agent's retry through exactly once*, *lets the confirmed retry of a REMOVAL
+through, exactly once*, *replays the confirmed retry's ANSWER for the same key* and
+*leaves the confirmation usable when the RETRY's handler fails*. (The other five are
+ordinary session-side member calls, F10's.) That is the property P5b spent Tasks 6, 7 and
+8 building, and the repair took the file from nine red to five. The fix is one line and it is not a weakening:
+**the grant stands in step-up's place and is the stronger of the two**, because a person who
+holds the capability themselves read THIS request — this token, this method, this path, this
+body — in an interactive session and said yes, once. Everything else still fails closed,
+which is what refuses a token holding `release:approve` (*Read this first* 2's whole point).
+
+**F9 — the error class's shape: the plan's is wrong, and BOTH of the two shapes §7e offers
+are wrong too.** §7e generalises sittings 4 and 5 as *"a new wire code is a constructor
+argument unless its class lives under `api/`"* and says to pick one of those two. Measured,
+neither fits:
+
+ * a fixed `readonly code` in `projects/` is **invisible** to `error-codes.test.ts` — the
+   plan's own Step 1 snippet, and sitting 4's F5 for the third time;
+ * the **constructor argument**, with the class in `WIRE_CLASSES`, makes the registry demand
+   a **second family it has not earned**. `api/authz-contract.ts`'s expectation constants
+   are written `{ status: 403, code: 'STEP_UP_REQUIRED' }`, the scan's `\bcode: 'CODE'`
+   pattern matches them, and they live under `api/` — so the code is found for family `api`
+   **whatever the class does**. Watched: `STEP_UP_REQUIRED: not registered for api`.
+
+**The scan cannot tell an EXPECTATION from a THROW.** The third shape is the one that fits
+and it is in the same file: `TokenCapabilityRefusedError` carries **no code at all** and
+`api/errors.ts` supplies the literal at its `instanceof` branch. One literal on the wire
+path, a plain `api(403, …)` entry, no new `ErrorFamily`, and the class cannot be constructed
+with the wrong code. Its cost is that `error-codes.test.ts`'s `make` map cannot reach the
+class, so the class→status link is asserted by a test of its own beside it — and by four
+matrix rows through the real route.
+
+**F10 — the guard reddened 48 existing tests across 7 files, not the 4 the plan predicts —
+and 29 of them were a FIXTURE failing silently.** Task 9's Step 3 says *"count how many go
+red before fixing them, and record the number: it is the measurement that the guard is in
+force."* The count is 48: 33 in the authorization matrix, 9 in `delegation.test.ts`
+(F8's), 2 in `projects.test.ts`, and one each in `delivery.test.ts`, `events.test.ts`,
+`error-codes.test.ts` and `document.test.ts`. **The matrix's 33 are the interesting ones.**
+Only 4 of them are the member rows; the other **29 are `collaborator → pass` rows answering
+`404` all over the table**, because the fixture makes `bio_student` a collaborator by
+calling `POST …/members` **through the route** — and never read the answer. §20's guard
+refused that setup call and the membership was never created. The fixture now uses a
+stepped-up owner **and asserts `201`**, so the next person to break it gets one clear
+failure rather than twenty-nine misleading ones; the ROWS keep ordinary sessions, because a
+row reading `pass` on a guarded route is a row testing a guard that is not there.
+
+**F11 — control (d) COULD NOT FAIL, and the reason is `privileged.test.ts`'s own warning
+applied to a number.** Widening `STEP_UP_TTL_MS` to a year left **1492 tests green**. Every
+test of the window builds its instants out of the same constant the function compares
+against — `steppedUpAt: NOW - STEP_UP_TTL_MS` against `now - steppedUpAt < STEP_UP_TTL_MS`
+— so the file agreed with itself whatever the number said. One literal assertion
+(`expect(STEP_UP_TTL_MS).toBe(600_000)`) fixes it, and **re-running the control with it in
+place turns exactly that test red**. The relative tests stay: they are still the right shape
+for an off-by-one, which a literal cannot see.
+
+**F12 — A PERSON CONFIRMING A PENDING ACTION DOES NOT STEP UP, AND THE GUARD IS THEREFORE
+ASYMMETRIC. NOT FIXED — raised.** After F8's repair, a person doing a guarded action in the
+console must re-authenticate; the same person authorizing an **agent** to do it, by
+confirming its pending action, need not. `answerable()` in `api/routes/pending-actions.ts`
+already resolves the capability and calls `assertCapability` — one line beside it would
+close the gap, on **confirm only** and never on reject, because rejecting is the safe
+direction and a person stopping an agent should not need a round trip.
+
+**The exposure is narrower than it first reads, and that is why this is a finding rather
+than a change.** An attacker holding only a stolen console cookie cannot use it: they would
+also need the delegated token's secret, and a pending action matches one exact request. It
+is defence in depth rather than a hole. **It is left for Task 10**, which is the sitting
+that builds the other confirm-shaped human decision — `release:approve` — explicitly behind
+step-up, and which will have to answer the same question for the approve route. Doing it
+here would also have reddened P5b's confirm tests for a reason this task did not ask about.
+
+**F13 — the plan's *Files* list points Task 9 at `api/routes/projects.ts`; `addMember` and
+`removeMember` are in `api/routes/project-reads.ts`.** Found by grepping for
+`members:manage` rather than by opening the named file. `projects.ts` holds the create route
+and the validation context, and exports `modelPolicy` / `validationContext` **to**
+`project-reads.ts` — so the name is misleading in both directions.
+
+**F14 — a doc comment in the registry sat on the wrong entry, and had since P5b Task 7.**
+`/** A pending action already has an answer, and one question has one. */` described
+`PENDING_ACTION_RESOLVED` and was written above `PROJECT_LAST_OWNER`. Noticed while adding
+`STEP_UP_REQUIRED` two entries above it; moved. Nothing can see a misplaced comment but a
+reader, which is exactly the argument for fixing it when one is passing.
+
+**F15 — `project:delete` HAS NO ROUTE, AND §20's APPEND-ONLY AUDIT LOG MEANS THE OBVIOUS
+ONE WOULD NOT WORK.** Found while clearing this sitting's own litter: the live walk
+created a project, and `DELETE FROM projects WHERE slug = …` is refused —
+`violates foreign key constraint "events_project_id_projects_id_fk" on table "events"`.
+Every other child table cascades; `audit.events` deliberately does not, because §20 makes
+it append-only by grant. **The capability has been in `CAPABILITIES` since P5b with no
+caller** — the no-caller shape ORIENTATION §9 names four times — and this records what the
+caller will have to decide when somebody writes it: a project cannot be deleted without
+either deleting audit rows, which is the control, or soft-deleting it. **Nothing was
+deleted from `audit.events`.** The stray row is named in the machine table below.
+#### Negative controls — every one watched, and which could not fail
+
+**Task 8**, each run after the task was committed, restored with `git checkout <path>`:
+
+| | Control | Predicted | Measured |
+|---|---|---|---|
+| a | the puid equality check removed | *refuses an assertion for a DIFFERENT person* red, **and nothing else in the suite sees it** | **FIRED, and the scope claim HOLDS**: run against the WHOLE unit tier, **exactly one test red** out of 1481 |
+| b | `issueSession` stamps `steppedUpAt` at sign-in | the positive control **stays green**; Task 9's *a fresh sign-in is not stepped up* goes red — *"predict it as Task 9's"* | **FIRED IN TASK 8, and WIDER — 5 red in 2 files**, the positive control among them: it asserts the claim is `null` BEFORE the step-up. **The plan's prediction is wrong twice** (F5) |
+| c | `isSteppedUp`'s `> 0` guard removed | the boundary test stays green; the `steppedUpAt: 0` case goes red | **FIRED, exactly as written**: one red, *refuses a steppedUpAt of 0*, and the boundary test green beside it |
+| d | `verifySession` trusts the claim instead of validating it | *a session cookie written before this field existed* red, with `undefined` where `null` belongs | **FIRED, and the message is the predicted one**: `expected undefined to be null`, plus *turns a non-number claim into null* |
+| e | `forceAuthn: true` removed from the step-up instance | **NOTHING GOES RED** — *"the most important row in this table"* | **FIRED: one test red at the whole-suite scope** (F4). The prediction is right about the IdP HONOURING the flag and wrong about the flag being SENT |
+
+**Task 9**, same discipline:
+
+| | Control | Predicted | Measured |
+|---|---|---|---|
+| a | `assertStepUp` removed from `addMember` | the matrix red on `owner` and `admin` for that route; **the count is the measurement** | **FIRED, exactly 2** — `POST …/members` as owner and as admin. The two `DELETE` rows stayed green, which is the control on the control: only the route edited moved |
+| b | `STEP_UP_GUARDED` loses `release:approve` | *is exactly* red **and** the asymmetry test red | **FIRED, and WIDER — 3 red**: the third is *is a strict superset of D24's privileged four*, written this sitting, which the plan did not know about |
+| c | `assertStepUp` returns early for a token instead of throwing | *refuses a TOKEN outright* red | **FIRED — 3 red**, all three token cases, including *lets a token through when a person confirmed THIS capability, and not another*, whose negative half this control removes |
+| d | `isSteppedUp`'s window widened to a year | *refuses a session stepped up longer ago* red | **COULD NOT FAIL: 1492 green, nothing red** (F11). Every test derived its instants from the constant under test. **Fixed, and re-run: one test red** |
+| e | `STEP_UP` written as a bare `403` in the matrix | **GREEN through a route that answers `FORBIDDEN` instead** — *"run it, watch it pass, restore"* | **DEMONSTRATED IN BOTH DIRECTIONS.** Rows made status-only with the route unchanged: **4 red** (a bare `403` does not match `STEP_UP_REQUIRED`). Rows status-only **and** `assertStepUp` throwing `AuthorizationError('FORBIDDEN')`: **all 406 PASS.** The guard is gone in meaning and the matrix cannot see it — the fifth demonstration of P5a sitting 6's lesson here |
+
+**NINE OF THE TEN FIRED; (d) could not fail and was FIXED rather than recorded.** Three
+fired **wider** than predicted (Task 8's b and e, Task 9's b and c) and one — Task 8's (e),
+the row the plan calls its most important — fired where the plan says in bold that nothing
+would. **Not one prediction in this sitting was exactly right about scope**, which is
+sitting 5's *thing to carry forward 2* holding for a second sitting: write down what you
+expect, then read which test actually failed.
+#### What this sitting decided
+
+1. **ONE `SamlSp` holding two `SAML` instances, not two `SamlSp`s** (F1), against Task 8's
+   Step 2 closing line and with its own doc comment. *Rejected:* `deps.samlStepUpSp` —
+   it duplicates the seven-field configuration at both construction sites, and those seven
+   fields are exactly what Decision 17 requires to be identical. *Cost:* `createSamlSp`
+   constructs two instances even where nothing steps up, which is a constructor call.
+2. **`StepUpRequiredError` carries NO code; `api/errors.ts` supplies it** (F9), against the
+   plan's Step 1 and against both shapes §7e offers. *Rejected:* a fixed `readonly code`,
+   invisible to the registry scan; the constructor argument, which makes the entry claim an
+   `api` family earned by a test fixture matching a regex. *Cost:* the `make` map cannot
+   reach the class, so the class→status link needs a test of its own — which it now has.
+3. **A token carrying a human-confirmed grant passes `assertStepUp`** (F8). *Rejected:*
+   refusing every token, which is the plan's line and which kills D24's loop; folding the
+   check into `assertCapability`, which would make every token call site a step-up site.
+   *Cost:* `assertStepUp` now knows about `grant`, which is one more thing the two
+   authorization functions share — mitigated by comparing for EQUALITY, exactly as
+   `assertCapability` does.
+4. **The authorization matrix's SESSIONS stay ordinary and its FIXTURE steps up** (F10).
+   *Rejected:* stepping up the matrix's sessions, which would make every guarded row read
+   `pass` and test a guard that is not there; dropping the fixture's route call for a direct
+   `addMember`, which would stop exercising the route the rest of the table depends on.
+5. **Task 8's route tests live in `api/auth.test.ts`, not in `identity/step-up.test.ts`.**
+   The plan's *Files* creates the latter, and it holds the pure half — `isSteppedUp`,
+   `stepUpSession`, and `verifySession`'s validation of the claim. The HTTP half needs
+   `pendingLogin`, `assertion` and `post`, which already exist inside `auth.test.ts`'s
+   `describe`; a second harness for the same ACS would be a second statement of the sign-in
+   flow. *Cost:* the step-up tests read as *"Manifest is its own SP (§9) > …"*, which is
+   accurate and not obvious from the file list.
+6. **A step-up does not extend a session** (F7): the re-signed cookie's `maxAge` is the
+   remaining life. *Rejected:* a fresh `SESSION_TTL_MS`, which `verifySession` would refuse
+   anyway and which would read as an extension to anybody watching the cookie.
+7. **F12's asymmetry is RAISED, not closed.** Step-up on the confirm route is one line and
+   it is Task 10's, with the approve route, rather than this sitting's — see F12 for the
+   exposure, which needs a token secret as well as a stolen cookie.
+
+#### The machine, queried at close rather than recalled
+
+| | |
+|---|---|
+| `make doctor` / `make verify` | **19/0 and 54/0**, both re-run AFTER the Docker tier and after both cleanups |
+| per-app resources | **`containers=12 networks=4 volumes=8`** — the Docker tier took it to `networks=11 volumes=9` and `dead-app-resources.sh --apply` took it back. **The TENTH measurement of that cycle, and the same seven networks and the same one volume again** (`mf-blueprint-ntm-`, `mf-chem-labs-`, `mf-fixture-rt-`, `mf-fixture-s6-`, `mf-fixture-s6nb-`, `mf-saml-probe-`, `mf-saml-unsigned-staging-net`, plus `mf-chem-labs-staging-db-data`). Re-measured by the script itself: `networks left: 4`, `volumes left: 8` |
+| LiteLLM | **6 users → 4.** One orphan, `p4b-probe-user`, **again** — sitting 5 recorded the same name, and ORIENTATION records it returning after P5c sitting 1 cleared it. Re-read afterwards by the script: 4 remain, every container-held user survived |
+| cleanup scripts | **BOTH were ALLOWED `--apply` in this session** and were run by the agent — the **fourth** consecutive sitting. The classifier refuses them in other sessions; try the command |
+| **app images** | **NAME THE METRIC** (CLAUDE.md): `docker images -q \| wc -l` reads **133**, `docker images -q \| sort -u \| wc -l` reads **125**, `127.0.0.1:7107/local/*` reads **83**, and `docker images \| grep '^local/'` reads **0** for the same machine. The snapshot diff attributes **four** new app images to this sitting's Docker-tier run — `boot-recover`, `chem-labs`, `fixture-rd`, `redeploy-cp` — and the rest predate it. **Still nobody's job, still growing, and neither cleanup script covers it** |
+| database | **NOT what sitting 5 left.** This sitting's `pnpm test` runs truncated `journey-app` and with it the `active` IAM registration and `approved` PIA sitting 5 recorded — **expected, and §7e warned of it**. The live walk then created `instructor`, `student` and one project, **`stepup-5795`, which could not be removed** (F15): its bare repository is gone, its row is not, and the next `pnpm test` truncates it. `users` holds `ins000001` and `stu000001` |
+| migrations | **20 applied**; this sitting adds none |
+| `lo0` | `127.0.0.1`, `127.0.0.2`, `127.0.0.3` |
+| runtime routes | **0 applied.** `make verify` read `1` at open and `0` at close: the Docker tier restarts the edge and drops every runtime route, and the control plane's boot restored none because the project rows were truncated (`routesRestored:0` on its own boot line). **So every app hostname answers the wildcard** until something redeploys — the documented cost of the tier, not a fault |
+| port 7100 | **nothing listening at close.** The control plane was started ONCE, for the live walk and to re-register the platform's SP row after the Docker tier moved it to a loopback ACS, and **stopped at the end — `before.txt` had 7100 free and so does `after.txt`** |
+| `snapshot-machine.sh` diff | **66 lines, every one accounted for**: timestamps and uptimes, 1 GiB of disk, the four new app images above, and `HEAD` + the dirty file that was this sitting's own last commit |
+| `HEAD` moved under this sitting | **no** — `5e33eeb` at open, and this sitting's own commits on top. The second sitting in this plan where it did not |
+| the four shared HTML pages | **ALL FOUR opened and counted, and THE FIRST DRAFT OF THIS ROW WAS WRONG** — it claimed `manifest-decisions.html` mentions *"a second sign-in prompt"*, and the count is **zero**. Sitting 5's F13 is why this row gets counted rather than asserted, and it caught a fabricated claim this time rather than a lucky one. Measured: `step-up`, `stepUp`, `re-authenticat`, `ForceAuthn` and `STEP_UP` are **0** in all four. *"sign in again"* appears **three** times and none is about §20: twice in `manifest-schematic.html` about practice apps versus live CWL, once in `manifest-phases.html` about a deploy interrupting a session. **No page needed a change** |
+| `docker-simple-saml` | still clean: its only dirty path is the untracked `cert.zip` dated months before this project |
