@@ -15,10 +15,13 @@ statement of the four gate numbers; and the roadmap's ledger
 status.*
 
 **The design is approved and complete, five spikes are done, and P1 to P5c are executed
-and green — PHASE 1c IS COMPLETE.** Every one of them has an acceptance that passes, and
-**no plan is executing**: the next job is to WRITE P6a, which ORIENTATION §7e sets out. **P6 was
-split into P6a and P6b on 2026-09-19 and P6a is BRIEFED** —
-`docs/superpowers/plans/2026-09-19-p6-brief.md` carries Rich's three decisions for it.
+and green — PHASE 1c IS COMPLETE.** Every one of them has an acceptance that passes. **P6 was
+split into P6a and P6b on 2026-09-19, and P6a — the first production launch — IS WRITTEN**
+(`docs/superpowers/plans/2026-09-19-p6a-first-production-launch.md`, 19 tasks in eleven agreed
+sittings, from `docs/superpowers/plans/2026-09-19-p6-brief.md`). **Nothing of it has executed:
+the next job is its sitting 1 — the measurements, alone and first — which ORIENTATION §7e sets
+out.** P6b is written after P6a executes. **The plan raises three spec actions and applies none**;
+they are ORIENTATION §8's first entry and they are Rich's.
 
 | Plan | Executed | What it made true | Acceptance |
 |---|---|---|---|
@@ -74,7 +77,8 @@ Phases.*
 turning the network off from a tool call cuts the agent off too; **it now has TEN steps**, the
 newest being the console's preflight — that the console builds from the checked-in contract
 and the edge serves its own document, the one claim about the console a script can falsify), the second-machine clean clone, starting the UBC external track
-(its trigger fired on 2026-09-15), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 8**,
+(its trigger fired on 2026-09-15, and **P6a's R1 makes it more urgent, not less** — P6a builds
+the objects a real IAM registration and PIA would populate), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 8**,
 applied by the agent session itself and **re-measured by the scripts themselves afterwards**: `dead-app-resources.sh`
 reads `none dead` and `litellm-orphans.sh` reads 0 orphaned. They were clear at sitting 1's close
 too; sitting 2 ran no Docker tier and they stayed clear; **sitting 3 ran one and seven networks,

@@ -1,8 +1,10 @@
 # Orientation — read this first
 
-**Manifest's design is finished and NINE implementation plans are executed — P1, P2, P3, P4a, P4b, P4c, P5a (the contract), P5b (delegated tokens) and P5c (the clients), whose acceptance passed on 2026-09-19. PHASE 1c IS COMPLETE.** D24's whole loop runs end to end through the edge as `make demo-token` — a person mints a delegated token, an agent holding it builds and deploys a real application on its own authority, is refused the things it may not do, and gets past one of them only because a person confirmed that exact request, once. **It ran green three times, the third from a `make reset` machine, and is step 9 of the offline acceptance.** **P5c — the clients — IS EXECUTED (2026-09-18/19): all 14 tasks in nine sittings, 106 findings — the measurements (19 findings), the two new packages and the console's import boundary (10), the console SERVED and signing a person in (9), my projects, creating one and the project screen with its live stream (9), both streaming screens (13), request-production, the fleet and delegated tokens (12), §26's QUEUE (8), and **`manifest-mock` WITH THE CI ACCEPTANCE SCRIPT (11)**. **A FRONT-END DEVELOPER NOW NEEDS NO PLATFORM AT ALL**: one `node:http` process serves all 34 operations of the published contract from fixtures with a scripted WebSocket, and the console was driven against it in a browser — the whole journey, with no Docker, no Postgres and no control plane. **D22's question is a GATE**: `coverage.test.ts` holds every one of the 34 operations to having a caller in the console, `DELIBERATELY_UNCALLED` is EMPTY, and `@manifest/contract` is **1.0.0**. **§22's JOURNEY IS CLICKED END TO END — ALL SIXTEEN ROWS, 2026-09-19**, by a person, recorded as a GIF: a person signs in with CWL, creates a project by typing a name checked as they type, watches its events arrive on a live socket, **builds it and reads the log lines as they are written, releases it, deploys it to staging watching the instance states arrive, opens the running application and signs in to it with CWL, reads §13's first-launch checklist with every item's reason and owner, and mints, lists and revokes a delegated token whose secret is shown exactly once** — while an administrator reads §26's fleet. *§22's step 6 also says **write a note**, and the acceptance found that the proof app has **no note-writing form at all** (P5c sitting 9, F13) — so the clicked journey proves that the LLM answers, never that it answered from your own notes. That half is `make demo-ai`'s, and the checklist in WALKTHROUGH now says so.* **D24'S LOOP IS NOW OPERATED BY A PERSON**: an agent is refused, the question reaches the open queue 576 ms later with no reload, a person confirms it and the agent's own retry succeeds exactly once, or rejects it and the agent is told why verbatim. **§16's ACCEPTANCE TIER IS MET**: §22's journey is proved by TWO INDEPENDENT CLIENTS over ONE contract — `make ci-acceptance` headlessly, run three times including from an `echo reset | make reset` machine, and a person clicking every row. **The next job is writing P6a — the first production launch — and it is BRIEFED ([`plans/2026-09-19-p6-brief.md`](plans/2026-09-19-p6-brief.md), 2026-09-19, which also records P6's split into P6a and P6b). The next job is always §7e.** **P5c's acceptance also found a live defect no gate could see — signing out of a deployed app landed the person on a raw JSON `404`, because Manifest's own SLO URL answered `POST` only while SAML's logout binding sends `GET` — and it IS FIXED (F11/F16, `b23674b`, at Rich's direction; §8, *Decided*). Single logout works end to end, proved in a browser against the real IdP.** Sitting 1 closed §8's `stream_close_delay` question, open since 2026-09-16: **an app's WebSocket IS cut by any other app's deploy**, so `buildRoute` now carries the field. This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
+**Manifest's design is finished and NINE implementation plans are executed — P1, P2, P3, P4a, P4b, P4c, P5a (the contract), P5b (delegated tokens) and P5c (the clients), whose acceptance passed on 2026-09-19. PHASE 1c IS COMPLETE.** D24's whole loop runs end to end through the edge as `make demo-token` — a person mints a delegated token, an agent holding it builds and deploys a real application on its own authority, is refused the things it may not do, and gets past one of them only because a person confirmed that exact request, once. **It ran green three times, the third from a `make reset` machine, and is step 9 of the offline acceptance.** **P5c — the clients — IS EXECUTED (2026-09-18/19): all 14 tasks in nine sittings, 106 findings — the measurements (19 findings), the two new packages and the console's import boundary (10), the console SERVED and signing a person in (9), my projects, creating one and the project screen with its live stream (9), both streaming screens (13), request-production, the fleet and delegated tokens (12), §26's QUEUE (8), and **`manifest-mock` WITH THE CI ACCEPTANCE SCRIPT (11)**. **A FRONT-END DEVELOPER NOW NEEDS NO PLATFORM AT ALL**: one `node:http` process serves all 34 operations of the published contract from fixtures with a scripted WebSocket, and the console was driven against it in a browser — the whole journey, with no Docker, no Postgres and no control plane. **D22's question is a GATE**: `coverage.test.ts` holds every one of the 34 operations to having a caller in the console, `DELIBERATELY_UNCALLED` is EMPTY, and `@manifest/contract` is **1.0.0**. **§22's JOURNEY IS CLICKED END TO END — ALL SIXTEEN ROWS, 2026-09-19**, by a person, recorded as a GIF: a person signs in with CWL, creates a project by typing a name checked as they type, watches its events arrive on a live socket, **builds it and reads the log lines as they are written, releases it, deploys it to staging watching the instance states arrive, opens the running application and signs in to it with CWL, reads §13's first-launch checklist with every item's reason and owner, and mints, lists and revokes a delegated token whose secret is shown exactly once** — while an administrator reads §26's fleet. *§22's step 6 also says **write a note**, and the acceptance found that the proof app has **no note-writing form at all** (P5c sitting 9, F13) — so the clicked journey proves that the LLM answers, never that it answered from your own notes. That half is `make demo-ai`'s, and the checklist in WALKTHROUGH now says so.* **D24'S LOOP IS NOW OPERATED BY A PERSON**: an agent is refused, the question reaches the open queue 576 ms later with no reload, a person confirms it and the agent's own retry succeeds exactly once, or rejects it and the agent is told why verbatim. **§16's ACCEPTANCE TIER IS MET**: §22's journey is proved by TWO INDEPENDENT CLIENTS over ONE contract — `make ci-acceptance` headlessly, run three times including from an `echo reset | make reset` machine, and a person clicking every row. **P6a — the first production launch — IS WRITTEN ([`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md), 2026-09-19: 19 tasks in eleven agreed sittings, from [the P6 brief](plans/2026-09-19-p6-brief.md), which also records P6's split into P6a and P6b). NOTHING OF IT HAS EXECUTED, and the next job is its SITTING 1 — the measurements, alone and first. The next job is always §7e.** **P5c's acceptance also found a live defect no gate could see — signing out of a deployed app landed the person on a raw JSON `404`, because Manifest's own SLO URL answered `POST` only while SAML's logout binding sends `GET` — and it IS FIXED (F11/F16, `b23674b`, at Rich's direction; §8, *Decided*). Single logout works end to end, proved in a browser against the real IdP.** Sitting 1 closed §8's `stream_close_delay` question, open since 2026-09-16: **an app's WebSocket IS cut by any other app's deploy**, so `buildRoute` now carries the field. This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
 
 *Last verified 2026-09-19, AFTER the day's last gate (P5c sitting 9 and the work that followed it — **`pnpm test` MOVED to 1390 in 108 files**, when F11's repair added `api/logout.test.ts` and nine authorization-matrix rows; `pnpm test:docker` was **owed and run THREE times** — after the first logout fix, after F16, and again for the IdP's CLF theme, which the identity tier parses the HTML of — and read **178 in 29** every time. `make doctor` 18/0 and `make verify` 51/0 throughout. *This line said "no gate number moved… neither owed nor run" until the post-sweep check read it: true when sitting 9 closed, false within the hour.* Previously (sitting 8; **`pnpm test` MOVED — 1376 in 107 files, up 21 and four files, which is this sitting's four new test files; run twice after each of the two task commits. `pnpm test:docker` **178 in 29 files, 0 skipped**, 795 s — it was OWED and RUN, because the doctor repair touches `infra/lib/common.sh` and `routing/edge-source-refusal.docker.test.ts` reads that file. `make doctor` 18/0 and `make verify` 51/0, re-run at close — and doctor read **1 FAILED** in between, which is this sitting's F9.*)
+
+*Re-verified 2026-09-19 by the sitting that WROTE P6a: **`make doctor` 18/0 and `make verify` 51/0 both hold**; `pnpm test` and `pnpm test:docker` were **neither owed nor run**, because that sitting changed no source file, no test and no config — `git status` showed markdown only, and Prettier owns `packages/` alone. So the four numbers below stand exactly as P5c sitting 9 left them.*
 
 **Short of context? Read §7e, §2's numbers box, §6, and the newest entries at the end of §4's *Things that will cost you a morning*, in that order.** §4 is most of this file and is meant to be searched, not read through.
 
@@ -59,7 +61,7 @@ everything.
 
 - **The offline acceptance.** Turning the network off from a tool call cuts the agent off too, so `scripts/offline-acceptance.sh` is run by hand. Its step 6 runs `make demo-identity`, the step most likely to need a route out; its step 7 runs `make demo-ai`, whose open question is whether Ollama — a host application, not a container — answers with the network off. **A skipped acceptance is not a passed one.**
 - **The second-machine clean clone** — no second Mac has been available; `RUNBOOK.md`'s *Known gaps* records it.
-- **Starting the UBC external track** — its trigger, §16's proof app answering a question, fired on 2026-09-15 and was raised with Rich that day. [`docs/external-track.md`](../external-track.md).
+- **Starting the UBC external track** — its trigger, §16's proof app answering a question, fired on 2026-09-15 and was raised with Rich that day. **P6a MAKES IT MORE URGENT, NOT LESS (written 2026-09-19)**: under R1 the plan builds `IamRegistration` and `PrivacyAssessment` as real rows an administrator records, so the platform is now waiting on a real registration and a real PIA rather than on code. [`docs/external-track.md`](../external-track.md).
 - **~~LiteLLM's orphaned users~~ — CLEARED 2026-09-18, and there is now a script so it stays that way.** Rich ran `bash scripts/litellm-orphans.sh --apply` **most recently at the close of P5c sitting 1, clearing one orphan (`p4b-probe-user`) and leaving 0** — and before that at the end of P5b sitting 8, where **19 rows became 4** — `default_user_id` and the three held by a running container (`mf-1db14646-…` proof-app, `mf-3a7ed662-…` token-app, `mf-4992be4b-…` journey-app). Re-measured afterwards by the same script: **0 orphaned, and all three held users survived.** `scripts/litellm-orphans.sh` (RUNBOOK, *Reaping LiteLLM's orphaned users*) **re-derives what is orphaned on every run and never reads a list**, because journey-app's user moved in every one of the last eight sittings; it reads stopped containers as well as running ones, and refuses to delete anything if it read app containers and got no key hashes at all. **An agent USUALLY cannot run the delete** — the session's permission classifier has refused it as a secret-store write — but **P5c sitting 5 was ALLOWED it, and was allowed `dead-app-resources.sh --apply` in the same session**, so the honest rule is §4's: **try the command rather than trusting this note.** The split still stands as the fallback: an agent runs it bare and hands the list over, Rich runs it with `--apply`. **The list will grow again**: every demo that replaces a project and every `pnpm test:docker` leaves one more.
 - **~~The Docker cleanup sitting 12 could not do~~ — DONE 2026-09-18, at the end of P5b sitting 8, and it turned out to be four times the size the list said.** Sitting 12's own list named 20 images; re-deriving the held set found **86 unheld `local/*` app images**, accumulated across the whole project rather than one sitting — and found that sitting 12's *"KEEP `journey-app@e288f8b3`"* had **gone stale**, because journey-app had been redeployed twice since. **Never work from that list; re-derive.** Removed: all 86 (**`docker system df` reported Images 132 → 46**, then 45 once the fixture app's own image went — **name the metric**: `docker images -q | wc -l` answers **53** for the same machine, because the two count dangling and intermediate images differently, and a number with no metric reads as a contradiction. The `fixture-rt`/`fixture-s6` two-names trap hit once and was handled by `repo@digest`), and **the fixture app `make demo` left** — its three containers with `rm -f -v`, then the network after disconnecting `manifest-caddy` and `manifest-dns-containers`, then `mf-fixture-app-staging-db-data`, its image and `.manifest/repos/fixture-app.git` — so `make demo` starts from nothing. `base/*`, every platform image and every image a container holds were untouched, and the four apps were healthy and serving afterwards. **`make doctor` 18/0 and `make verify` 51/0 were re-run after the IMAGE sweep and are owed after the fixture teardown**, which is an app rather than a platform change. **The classifier TIGHTENED MID-SESSION** (§4): it allowed 86 `docker image rm`s and the whole fixture teardown, then began refusing `docker volume ls`, `snapshot-machine.sh` and `make doctor` as *[Interfere With Workloads]* — so try, and expect the answer to change under you.
 - **~~Dead app networks and volumes~~ — CLEARED 2026-09-18, re-measured by the script, and RECURRING by construction.** Rich ran `bash scripts/dead-app-resources.sh --apply` **most recently at the close of P5c sitting 1**, and a re-measurement by the same script afterwards read **`none dead`, 0 networks and 0 volumes** — the only survivors are `mf-token-app-staging-net` and token-app's two volumes, all three correctly KEPT because containers hold them. So the seven networks and one volume P5b sitting 9 left are gone. **This does not stay cleared**: the set is regenerated by the Docker tier, and sitting 9 measured a single `pnpm test:docker` putting back exactly the same seven names and one volume. **The standing instruction is unchanged — never work from a list, run the script**, which re-derives; an agent runs it bare and hands the output over, Rich runs it with `--apply`, because the classifier refuses `docker network rm` as *[Interfere With Workloads]*. **`make verify`'s per-app INFO line is the meter** and should now read `containers=3 networks=1 volumes=2` for the one app this machine has. The seven names the tier regenerates are `mf-blueprint-ntm-`, `mf-chem-labs-`, `mf-fixture-rt-`, `mf-fixture-s6-`, `mf-fixture-s6nb-`, `mf-saml-probe-` and `mf-saml-unsigned-staging-net`, plus `mf-chem-labs-staging-db-data` — recorded as what to EXPECT after a Docker-tier run, never as a list to work from. **So this is not a backlog, it is a fixed set the Docker tier regenerates every run**: the tier removes its throwaway apps' containers and not their networks. **Never work from a list — run `bash scripts/dead-app-resources.sh`**, which re-derives, calls a network dead only when no container of ANY state is named for that app AND only `manifest-caddy` and `manifest-dns-containers` are attached, and disconnects those two before removing. An agent runs it bare and hands the output over; **Rich runs it with `--apply`, because the classifier refuses `docker network rm` as *[Interfere With Workloads]*** — refused again in sitting 9, minutes after the same session had been allowed far more. **`make verify`'s per-app INFO line is the meter**: it should read `containers=3 networks=1 volumes=2` for the one app this machine has, and a `pnpm test:docker` takes it to `networks=8`.
@@ -78,7 +80,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 |---|---|
 | **new, any role** | This file — §7e and §2 first. Then the roadmap's ledger and its *Lessons*. |
 | **executing a plan** | **The current plan, which §7e names.** Its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
-| **writing a plan** | **P6a is waiting to be written, and it is BRIEFED** — [`plans/2026-09-19-p6-brief.md`](plans/2026-09-19-p6-brief.md) (2026-09-19), which carries Rich's three decisions, the gap item by item and the traps. §7e is the hand-off. House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or any later plan. |
+| **writing a plan** | **Nothing is waiting to be written. P6a was WRITTEN on 2026-09-19 and P6b is written after it executes**, the pattern P5a, P5b and P5c used. House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or the newest, [`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md). |
 | **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md) — `make seed && make host-setup && make up`, every demo step by step, and *Known gaps*. README's *Running the control plane* is the export block to start it with. |
 | **writing code** | *The code* and *What the platform keeps true* below. **Then run `make demo` once**: it is the only thing that exercises boot, build, release, deploy and the edge through the real HTTP surface, and it is where this project's worst defects were found. |
@@ -105,7 +107,10 @@ docs/superpowers/
 │   ├── 2026-09-16-p5-brief.md                     the brief P5a, P5b and P5c are written from
 │   ├── 2026-09-16-p5a-the-contract.md             P5a — executed 2026-09-17
 │   ├── 2026-09-17-p5b-delegated-tokens.md         P5b — executed 2026-09-18
-│   └── 2026-09-18-p5c-the-clients.md              P5c ← CURRENT, executing; its own sittings table says how far
+│   ├── 2026-09-18-p5c-the-clients.md              P5c — executed 2026-09-19; PHASE 1c COMPLETE
+│   ├── 2026-09-19-p6-brief.md                     the brief P6a and P6b are written from
+│   ├── 2026-09-19-authoring-api-brief.md          UNPLACED, and NOT P6's. It changes what P6b MEANS
+│   └── 2026-09-19-p6a-first-production-launch.md  P6a ← CURRENT; its own sittings table says how far
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
     ├── S1-controls-settled.md          scoped registry tokens; the builder's bounds
@@ -1730,7 +1735,7 @@ curl -s --cacert infra/ca/manifest-root.crt \
 
 ## 7. What to do next
 
-**The next job is §7e — WRITE P6a, FROM THE BRIEF WRITTEN 2026-09-19** ([`plans/2026-09-19-p6-brief.md`](plans/2026-09-19-p6-brief.md)). **P5c IS EXECUTED and PHASE 1c IS COMPLETE**: all 14 tasks in nine sittings on 2026-09-18/19, with 19, 10, 9, 9, 13, 12, 8, 11 and 16 findings (107). Nothing is executing and nothing is part-finished. **P6 was split into P6a and P6b on 2026-09-19, on D9's own two clauses** — first launch, then subsequent releases — and Rich settled three things that shape both (§7e). *This preamble states the job because §7e is the section a cold agent is sent to and the two must agree; it said "EXECUTE P5c's SITTING 9" for the whole of the day after that sitting closed, which is the defect this sentence exists to prevent.* Each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
+**The next job is §7e — EXECUTE P6a's SITTING 1, the measurements, alone and first** ([`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md), written 2026-09-19 from [the P6 brief](plans/2026-09-19-p6-brief.md): **19 tasks in eleven agreed sittings, none of them executed**). **P5c IS EXECUTED and PHASE 1c IS COMPLETE**: all 14 tasks in nine sittings on 2026-09-18/19, with 19, 10, 9, 9, 13, 12, 8, 11 and 16 findings (107). Nothing is executing and nothing is part-finished. **P6 was split into P6a and P6b on 2026-09-19, on D9's own two clauses** — first launch, then subsequent releases — and Rich settled three things that shape both (§7e). *This preamble states the job because §7e is the section a cold agent is sent to and the two must agree; it said "EXECUTE P5c's SITTING 9" for the whole of the day after that sitting closed, which is the defect this sentence exists to prevent.* Each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
 
 ### 7a. The executed plans, and which of their records to read first
 
@@ -1746,109 +1751,123 @@ curl -s --cacert infra/ca/manifest-root.crt \
 | **P4c** | [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md), with [its brief](plans/2026-09-15-p4c-brief.md) | `make demo-redeploy` | 70 findings in eight sittings. **Sitting 8**: four of the acceptance's nine negative controls could not fail in it — §4 says which tier sees each. |
 | **P5a** | [`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), with [the P5 brief](plans/2026-09-16-p5-brief.md) | `make demo-journey` | 146 findings in twelve sittings. **Sitting 12**, the acceptance: three of fourteen negative controls could not fail as written — including one where the journey read a *status* while the property was a *latency*, so a synchronous build passed R6's own check. **Sitting 10's finding 1** is the other one to read: the document said for six sittings that the error envelope could not carry the field the production refusal had been sending since P2, because nothing parsed an error body through its schema. |
 | **P5b** | [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md) — **EXECUTED 2026-09-18**, all nine sittings | `make demo-token` — green three times, the third from a `make reset` machine; step 9 of the offline acceptance | 116 findings in nine sittings. **Sitting 9's F1 is the newest one to read, and it is a lesson about PREDICTIONS**: sitting 8 predicted Task 13's control (a) would be invisible to the acceptance, and it turns three checks red — the reasoning was about the FIXTURE token, which holds the privileged capability and is refused identically either way, while every REAL token lacks it and is refused by a different rule with a different code. **Sitting 9's F3** is the second: replacing the token secret's constant-time comparison with `===` left all 1342 tests AND all nine demo steps green, so the property was asserted by nothing; it is now asserted at the source, and the first draft of that assertion could not fail. **Sitting 9's F8**: one `pnpm test:docker` run recreates exactly the seven dead app networks cleared by hand the same day. **Sitting 8's F1 is the newest one to read**, and it is what the first integration client is for: **`subscribe` could not carry a delegated token at all**, so an agent could start a build through the generated client and had nothing to watch it end on — the route had accepted a bearer all along, and nothing server-side could see the hole. **Sitting 8's F4 and F5** are the second: **three of its five negative controls answer `403` for the WRONG REASON** — the privileged rule disabled makes the refusal a dead-end `403 FORBIDDEN`, confirm reverted answers `403 TOKEN_ACTION_PENDING`, the fleet reverted answers `403 FORBIDDEN` — so a status-only demo passes all three. **Sitting 7's F4**, and it is a JavaScript trap rather than a platform one: `toToken` was given an optional `now: Date = new Date()`, and `api/routes/tokens.ts` maps it as `.map(toToken)` — so `now` arrived as the ARRAY INDEX, `0`, and every token in every list read `expired: false`, including one that had expired an hour before. Only the assertion about an expired token could see it. **Sitting 7's F2** is the one after that: the plan's own `Promise.all` control for a read-then-insert **passed against the defect**, because `pg.Pool` establishes a connection per acquire and the five calls serialised — a warm pool is what makes a pooled race observable, and a deterministic SQLSTATE test belongs beside it. **Sitting 6's F5:** two of that sitting's own four new tests were green before the feature, because both were *"is not limited"* claims — and a claim that something is NOT refused is true of a platform that refuses nothing. A negative claim needs a positive control in the same test. **Sitting 4's F1** is the one to read: the plan's own negative control for the ORDER of the two token checks could not fail against any of the 31 tests that existed, because every test writes a token holding the privileged capability and **no token the platform can mint can hold one** — so the swapped order answers a dead-end `403 FORBIDDEN` for every real token, with D24's loop unable to start, and all 31 green. **Sitting 2's F1**: the plan's token parser split on `_` while base64url's alphabet contains it, so it refused 47.5% of the tokens the same file minted — and the round-trip test minted ONE token, so it would have gone red about half the time and read as a flaky harness. **Sitting 2's F14**: the plan's own TRUNCATE negative control cannot fail, because the statement's CASCADE reaches both new tables unnamed. **Sitting 3's F1**: `DELETE /v1/tokens/{tokenId}` is the API's first bodyless mutation, and the contract layer could not carry one — the route answered `400` before its handler ran and the OpenAPI document could not be generated for it at all, because both kept on `method === 'GET'` rather than on the body schema. **Sitting 3's F13**: three of that sitting's own negative controls answer `403` for the WRONG REASON, so a status-only assertion is green through all of them. |
-### 7e. Write P6a — the first production launch. IT IS BRIEFED ← **START HERE**
+### 7e. Execute P6a's SITTING 1 — the measurements, alone and first ← **START HERE**
 
-**PHASE 1c IS COMPLETE and nothing is executing.** P5c was executed 2026-09-18/19 — all 14 tasks
-in nine sittings, 107 findings — and §16's Acceptance tier is MET: §22's journey is proved by two
-independent clients over one contract, `make ci-acceptance` headlessly (three times) and **a
-person clicking all sixteen rows**, recorded as a GIF.
+**P6a IS WRITTEN and NOTHING OF IT HAS EXECUTED.**
+[`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md)
+— **19 tasks in ELEVEN agreed sittings**, written 2026-09-19 from
+[the P6 brief](plans/2026-09-19-p6-brief.md). Phase 1c is complete; P5c was executed
+2026-09-18/19 with 107 findings across nine sittings.
 
-**Your job is to WRITE P6a**, using `superpowers:writing-plans`. **Do not re-do the brainstorming
-— it is done and Rich's three decisions are settled.** The brief is
-[`plans/2026-09-19-p6-brief.md`](plans/2026-09-19-p6-brief.md), written 2026-09-19 at `d95d848`:
-read it **first and in full**, then the spec sections its §9 names. It already carries what
-exists, what does not, three measurements, the gap item by item, the traps, and the cut.
+**Your job is SITTING 1: Task 1, the measurements, ALONE.** Use
+`superpowers:subagent-driven-development` or `executing-plans`. **Read the plan first** —
+its *Read this first*, its *Decisions Rich made*, its *Decisions this plan makes* and its
+*Global Constraints* — then Task 1, then the brief's §3 and §8. **Do not start Task 2 in the
+same session**: the sittings table is the schedule and a session limit landing inside a task
+is the thing it exists to prevent.
 
-**P6 WAS SPLIT INTO P6a AND P6b on 2026-09-19**, on D9's own two clauses. **P6a is the first
-production launch**: the public listener made real, production deploys by verified digest, the
-three remaining readiness items made satisfiable, the gate that blocks, gate integrity. **P6b is
-subsequent releases** — D9.2's re-escalation — and is written after P6a executes, the pattern P5a,
-P5b and P5c used.
+**WHAT TASK 1 BUYS, AND WHY IT IS ALONE.** Ten measurements, three of which the brief names
+as must-buy: **whether SimpleSAMLphp honours `ForceAuthn`** (a step-up that silently reuses
+the session is a step-up that does nothing, and every test of it passes — P4a found four
+settings of exactly that shape); **what the second Caddy listener actually costs on this
+machine**, which is much harder than one more alias because the zones are NESTED and
+production is the parent, so a split by zone moves `console.` and `idp.` onto the public
+address unless each is pinned back; and **whether `computeLaunchReadiness` survives being
+read by something that blocks rather than displays.** Task 1 has moved task boundaries in
+three of the last four plans. **If it moves one here, re-cut the sittings table before
+sitting 2 and say so in the record.**
 
-**THE FOUR DECISIONS RICH MADE, 2026-09-19. Do not re-open them** (brief §5 has the reasoning and
-what each rejected):
+**THE TWO THINGS WRITING THE PLAN FOUND THAT THE BRIEF DOES NOT HAVE**, both read from the
+code and both load-bearing:
 
-1. **P6a folds in `IamRegistration` and `PrivacyAssessment` as tracked objects with manual state
-   transitions**; P8 keeps the *generation*. So the gate blocks on real rows an administrator can
-   satisfy out of band, and **P6a's demo is an app that genuinely reaches production** rather than
-   one correctly refused. The roadmap's P6a and P8 rows are already edited to match.
-2. **The D21 rehearsal is redefined as a local, production-shaped rehearsal P6a automates** — the
-   candidate digest deployed to production behind the gate, its SP registered with
-   production-shaped values, one real CWL sign-in against the Manifest IdP, pass/fail recorded with
-   evidence. C1 puts `authentication.stg.id.ubc.ca` out of reach. **The item's `why` text must say
-   it proves the registration's SHAPE and never UBC's acceptance of it.**
-3. **P6a makes the internal/public listener split real** — §12's fail-closed claim has never been
-   watched failing on the only machine that exists, and P7's custom domains need it anyway.
-4. **Code safety gets a SEAM now and implementations later.** Nothing today asserts that an app's
-   *code* is safe — §20's control map says the risk is *accepted under D9* — so P6a defines a
-   `Reviewer` interface and ships an honest `NullReviewer` whose verdict is `not_performed`, with
-   **a real caller** and a **NON-blocking** `LaunchReadiness` item. **Not a stub that purports to
-   review**: that is the *four settings that read like controls and are not* shape (P4a), and the
-   next reader would believe it. **And the item must be non-blocking** — a seventh blocking item in
-   state `not_built` would make production unreachable for ever, which is the trap R1 exists to
-   undo. P6b makes the approval summary security-aware. Semgrep is a tracked hardening item, not
-   P6 scope. **R4's spec action is ✅ APPROVED AND APPLIED (2026-09-19): D33, §15's hook row and §20's
-   control-map row — §12 and §13 deliberately untouched. The spec already reads this way, so write
-   P6a's reviewer tasks against D33 and §15 as they now stand, and do NOT re-propose it.**
+1. **There are TWO unconditional production gates, not one.** The route's is
+   `api/routes/releases.ts:233`; **`deployRelease` throws its own** at
+   `releases/release.ts:211`, before it reads the build, and `error-codes.ts` records the
+   code with two families. **A plan that replaced only the outer one would ship a production
+   deploy that still refuses, with every test of the new gate green.** Task 7 removes both;
+   Task 1's `[M2]` confirms it before anything depends on it.
+2. **`release:approve` is NOT one of D24's privileged four, and a platform admin can mint a
+   delegated token that holds it.** `PRIVILEGED` is `{release:promote, secret:read,
+   quota:set, members:manage}`; `release:approve` is a separate capability granted to
+   `PLATFORM_ADMIN`, and the mint route refuses only `PRIVILEGED`. **The day that capability
+   got its first route — Task 10 — an agent could have approved a production release with no
+   person in the loop, which is D14 exactly inverted.** The plan closes it with
+   `requireSession` plus step-up and raises the spec's wording as **Spec action 2**.
 
-**THE THREE THINGS MOST LIKELY TO COST YOU, all in the brief and all worth reading there:**
+**RICH'S FOUR DECISIONS (brief §5) ARE SETTLED — do not re-open them**: R1 folds
+`IamRegistration` and `PrivacyAssessment` into P6a as tracked objects with manual
+transitions (P8 keeps the generation), so the demo is an app that genuinely reaches
+production; R2 redefines D21's rehearsal as a local, production-shaped one P6a automates,
+and **its item's `why` must say it proves the registration's SHAPE and never UBC's
+acceptance of it**; R3 makes the internal/public listener split real; R4 gives code safety a
+**seam** now and implementations later, with a **NON-blocking** checklist item — because
+`ready` is every blocking item being met, so a seventh blocking item in `not_built` would
+make production unreachable for ever. **R4's spec action is ✅ APPROVED AND APPLIED** (D33,
+§15's hook row, §20's control-map row) — **verified against the spec on disk on 2026-09-19;
+do not propose it again.**
 
-- **The listener split is much harder than "one more alias" (brief §3.2).** The zones are NESTED
-  and **production is the parent** (`manifest.internal`), so a dnsmasq split by zone moves
-  `console.` and `idp.` onto the public address unless each is pinned back. A port in the URL is
-  explicitly not an acceptable fallback (`infra/compose.yaml:76-78`), so it needs a second `lo0`
-  alias — **`sudo`, therefore Rich's**. And the readiness probe resolves through the *container*
-  side, which answers one address for the whole zone. It fails **loudly** rather than silently,
-  because `waitForIdentity` names the wildcard — which is why this is safe to attempt at all.
-  **Task 1 measures it before any task depends on it**, and the stated fallback is asserting the
-  listener at config level, taken deliberately if the cost is too high.
-- **Step-up's SP side exists; the IdP side is unmeasured.** `@node-saml/node-saml` 5.1.0 declares
-  `forceAuthn`. Whether SimpleSAMLphp honours it is not known, and **P4a found four settings that
-  read like controls and are not** — a step-up that silently reuses the session is a step-up that
-  does nothing, and every test of it passes. Task 1.
-- **P6a is a plan almost entirely composed of refusals**, which is the worst possible ground for
-  this project's most expensive trap. Every refusal asserts its CODE, never its status. And read
-  **P5c sitting 9's F16** before writing a single refusal test: the logout fix passed every test
-  and was still broken, because **every test fired garbage at the route and a route that refuses
-  everything passes them all.**
+**AND RICH CHOSE ELEVEN SITTINGS on 2026-09-19 — the LEAN of three splits** (thirteen
+recommended, sixteen cautious), with its three costs stated and taken: **sitting 6 builds a
+second authentication round trip AND applies it to five routes**; **sitting 10 is three
+tasks including both console screens**, and P5c measured that the console is where the
+defects no gate can see live; **sitting 9 pairs the rehearsal with the first production
+deploy the rehearsal depends on.**
 
-**ONE THING P6b INHERITS, decided nowhere yet but measured on 2026-09-19.** Rich asked whether a
-separate front-end project could be specced against the API;
-[`plans/2026-09-19-authoring-api-brief.md`](plans/2026-09-19-authoring-api-brief.md) answers no,
-and says why: **an app can be deployed through the API and cannot be created through it** — 34
-operations, **zero `PATCH` or `PUT`**, no repository reference anywhere in the contract, and
-`validateSpec` reads `manifest.yaml` rather than writing it. That brief is not P6's work and does
-not change P6a. **It changes what P6b MEANS**: the moment a write path for `manifest.yaml` exists,
-an agent can request new `auth.attributes`, `egress.allow`, `services`, `data.classification` or
-`ai.models` — five of §7's seven sensitive fields — and **P6b's sensitive-diff re-escalation is
-the only thing that would stop it.** Today that gate has never had to refuse a hostile change,
-because nothing can make one. Write P6b's controls as though something will.
+**THREE SPEC ACTIONS ARE PROPOSED AND NONE IS APPLIED** (the plan's *Spec actions*, and §8
+below): §21's *honest divergences* item 2, rewritten by R3 and **conditional on the listener
+split landing**; §20's step-up list naming `release:approve`; and **§13's *Residual risk*
+saying "the five sensitive fields" where §7 says seven** — a stale number inside the spec
+itself, which matters to P6b because P6b's whole subject is that sentence. **Never edit the
+spec. Ask.**
+
+**THE THINGS MOST LIKELY TO COST YOU, beyond Task 1's three:**
+
+- **P6a is a plan made almost entirely of REFUSALS**, which is the worst possible ground for
+  this project's most expensive trap. **Every refusal asserts its CODE, never its status** —
+  `403` alone is `FORBIDDEN`, `TOKEN_CREDENTIAL_REFUSED`, `TOKEN_ACTION_PENDING`,
+  `TOKEN_ACTION_REJECTED` and now `STEP_UP_REQUIRED`. **And read P5c sitting 9's F16 before
+  writing a single refusal test**: the logout fix passed every test and was still broken,
+  because **every test fired garbage at the route and a route that refuses everything passes
+  them all.** Every refusal test in this plan sits beside a positive control in the same file.
+- **`pnpm test:docker` is owed by almost every sitting** — P6a touches `routing/`,
+  `releases/`, `identity/`, `sso/`, `infra/`, `projects/`, `launch/` and `build/`. Budget the
+  13 minutes, and **restart the control plane afterwards**.
+- **Tasks 2 and 3 change `compose.yaml`, which recreates `manifest-caddy` and drops every
+  runtime route** until the control plane boots. Sequence the sitting for it.
+- **Task 2 needs `sudo`** for the second loopback alias, and **`sudo` cannot prompt from a
+  tool call**. It is bundled into one script, `infra/host/p6a-second-address.sh`; **Rich runs
+  it with `! sudo bash …` in his own terminal.** Ask, and wait.
+- **D22's coverage gate is fully disarmed by its own list** — P5c sitting 9 measured that
+  with all 34 operations in `DELIBERATELY_UNCALLED` it is green. **P6a adds about a dozen
+  operations, so a reviewer reads that list; the gate will not.**
+
+**THE MACHINE, as this sitting left it.** *Writing the plan changed no source file, no test
+and no config — `git status` shows markdown only, and Prettier owns `packages/` alone, so
+`format:check` does not see any of it.* **`make doctor` 18/0 and `make verify` 51/0 were
+re-run on 2026-09-19 and both hold; `pnpm test` and `pnpm test:docker` were neither owed nor
+run,** so §2's box stands unchanged. **Everything else is a state claim with a shelf life and
+is deliberately not restated here** — what is listening on 7100, how many apps are deployed,
+what `make verify`'s per-app line reads, how many rows `users` holds. **Query them at the
+start of your sitting**; three separate state claims went stale within the hour on
+2026-09-19, and Task 1's `[M1]` is where you do it. *One fact worth carrying because it is a
+property rather than a reading: the control plane is a HOST process, so nothing listening on
+7100 means it is simply not started — `README.md`'s* Running the control plane *is the export
+block.*
 
 **WHAT IS OUTSTANDING AND IS RICH'S**, unchanged: the **offline acceptance**
-(`scripts/offline-acceptance.sh`, now TEN steps); the **second-machine clean clone**; **starting
-the UBC external track**, whose trigger fired on 2026-09-15; and the rest of §8. **P6a's R1 makes
-the external track more urgent, not less** — it builds the objects a real IAM registration and PIA
-would populate.
+(`scripts/offline-acceptance.sh`, TEN steps — P6a's Task 19 makes it eleven); the
+**second-machine clean clone**; **starting the UBC external track**, whose trigger fired on
+2026-09-15 — and **P6a's R1 makes it MORE urgent, not less**: P6a builds the objects a real
+IAM registration and a real PIA would populate, so the demo is now waiting on real ones. Plus
+the rest of §8.
 
-**THE MACHINE.** *Nothing in this sitting changed a source file, a test or a config, so no gate number moved and
-none was owed — verified with `git status`, which shows **six markdown files and nothing else**:
-`CLAUDE.md` and `README.md` at the root, and four under `docs/superpowers/`. Prettier owns
-`packages/` only, so `format:check` does not see any of them.* §2's box therefore
-stands as P5c sitting 9 left it: `pnpm test` **1390** in **108**, `pnpm test:docker` **178** in
-**29**, `make doctor` **18/0**, `make verify` **51/0**. **Everything else in §7e's old machine
-table was a state claim with a shelf life and is deliberately not restated here** — the control
-plane's pid, which ports are free, how many rows `users` holds and what `make verify` reads for
-per-app resources are all things to **query, not recall**, and the three-for-three lesson of
-2026-09-19 is that they go stale within the hour. Query them at the start of your sitting.
-
-**THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each
-plan's *Global Constraints*:
+**THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in
+each plan's *Global Constraints*:
 
 - **COMMIT ON `main`. No branch, no worktree, no push.** `superpowers:writing-plans` and
   `using-git-worktrees` will both push you the other way; the consent is given here, by Rich.
 - **Ask before `sudo`, and before touching anything outside the repository.** §6 rule 2, and
-  CLAUDE.md's *Non-negotiables* has the rest. **P6a needs a `sudo` step for the second loopback
-  alias** — bundle it into one script and ask.
+  CLAUDE.md's *Non-negotiables* has the rest.
 
 ## 8. Decisions waiting on Rich
 
@@ -1856,6 +1875,22 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 
 ### Open
 
+- **P6a's THREE PROPOSED SPEC ACTIONS — RAISED 2026-09-19, none applied.** The plan's own
+  *Spec actions* section has the exact wording for each; they are summarised here because §8 is
+  where a decision of Rich's lives. **(1) §21's *honest divergences* item 2**, which says both
+  Caddy listeners are on loopback with no separation to enforce — R3 makes that false in its
+  first clause and it is **rewritten rather than deleted**, stating precisely what remains
+  divergent (both addresses are still loopback on one host). **CONDITIONAL: withdrawn if Task 1's
+  `[M5]` says the split costs more than a sitting and the fallback is taken.** **(2) §20's
+  step-up list says its first four are *"exactly D24's forbidden delegated-token
+  capabilities"* — and in the code they are not**: approving a release is `release:approve`,
+  which is separate from `release:promote`, is not in `PRIVILEGED`, and **a platform admin can
+  mint a delegated token holding it** (measured through the mint route). P6a closes the hole with
+  `requireSession` plus step-up and needs no spec change to be safe; the question is whether §20
+  should say so, or whether `release:approve` should join D24's four — **the stronger control and
+  the larger change, and Rich's**. **(3) §13's *Residual risk* says *"only changes to the five
+  sensitive fields re-escalate"* while §7 says SEVEN** and `SENSITIVE_FIELDS` has seven; proposed
+  fix is to name no number. **It matters to P6b, whose whole subject is that sentence.**
 - **Where does the AUTHORING API go, and does it precede the front-end project? — RAISED
   2026-09-19**, when Rich asked whether the API is complete enough to spec a separate front end
   against. It is not: an app can be **deployed** through the API and cannot be **created** through
