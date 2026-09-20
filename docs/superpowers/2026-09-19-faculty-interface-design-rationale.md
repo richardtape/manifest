@@ -15,7 +15,20 @@ state and message vocabulary, how waiting is expressed — and then §8, the fin
 part worth reading even if nothing else here survives contact with Rich.
 
 *Second pass, 2026-09-19: sans-serif throughout, UBC Blue, a preview window, and a conversation
-list. §2 records what changed and why; §7 and §12 are new.*
+list. §2 records what changed and why; §7 and §13 are new.*
+
+**The design system:** <https://claude.ai/code/artifact/004ccdad-637d-4a42-b116-6976a386207d> — the
+prototype's tokens, language rules and components, extracted into an installable system. Rich asked
+for it on 2026-09-19 as a base to work from, having said the screens are not yet exactly what he
+wants; **that is the right order round**, because the system is the part that survives the screens
+being redrawn. It holds 46 colour tokens, 14 type styles, the spacing and radius scales, three
+shadows, the five-state vocabulary, the writing rules, and eleven components with live previews and
+guidelines. The prototype canvas now installs it, so the two are one thing.
+
+**Read it before redrawing anything.** The components carry the reasoning that is expensive to
+rediscover: why `LiveSteps` exists at all (C3 makes the build log unshowable, and the liveness is
+the best moment in the product), why a clock is never animated, why `TwoFacts` is two cells and not
+one number, and why `InverseSurface` is a boundary rather than a style.
 
 ---
 
