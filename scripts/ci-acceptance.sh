@@ -43,8 +43,15 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # THEY MOVED. P6a sitting 2 took doctor 18 -> 19 and verify 51 -> 54 and swept the three
 # DOCUMENTS; nothing pointed it at this file, because §6's sweep list names documents only.
 # Found by P6a sitting 3 by opening the file rather than by re-reading the list, and §6's
-# table now carries a row for it. Last moved 2026-09-20 by P6a sitting 3 (Task 4).
-EXPECT_TESTS=1449
+# table now carries a row for it. Last moved 2026-09-20 by P6a sitting 5 (Task 7).
+#
+# EXPECT_TESTS IS THE *PASSED* COUNT AND THE SUITE NOW HAS A SKIPPED TEST. Since Task 7
+# `pnpm test` prints `Tests  1456 passed | 1 skipped (1457)` — the one `it.skip` is the
+# production gate's positive control, which cannot run until Tasks 10 and 14 build
+# `admin-approval` and `rehearsal`. `awk '{print $2}'` still reads 1456 from that line,
+# checked against the literal string rather than assumed; **1457 here would read MOVED on
+# every run.** When Task 14 un-skips it, this becomes 1457 and the `| 1 skipped` goes.
+EXPECT_TESTS=1456
 EXPECT_FILES=110
 EXPECT_DOCTOR=19
 EXPECT_VERIFY=54

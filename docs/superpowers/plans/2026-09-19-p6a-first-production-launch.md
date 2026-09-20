@@ -34,8 +34,8 @@
 | 2 | 2–3 | **The second listener exists**: `127.0.0.3` on `lo0` and the dnsmasq split (Rich runs one bundled `sudo` script), then `srv1` inside the edge with the production wildcard site, and `make doctor` and `make verify` checks for both halves | **DONE 2026-09-19 — 12 findings.** §12's split is REAL: two servers in one container, and a production name on the internal address and a staging name on the public one are both served by NOTHING, watched both ways. **§21's divergence 2 no longer describes this machine, so Spec action 1 is unconditional in practice — still Rich's, still not applied.** doctor **19/0**, verify **54/0**. **Its headline corrects sitting 1's F3: an unreachable name answers `200` WITH AN EMPTY BODY, not a TLS error, because Caddy's certificate cache is app-global — so a status assertion is green whether the split holds or leaks.** Two of the plan's own controls could not fail as written |
 | 3 | 4 | **A production route goes on the public listener and staging cannot reach it** — §12's fail-closed claim watched failing on the only machine that exists, in both directions, and the readiness probe taught the production path | **DONE 2026-09-20 — 11 findings.** A production route is written to `srv1` and a staging route to `srv0`, read back off `X-Manifest-Instance` from a REAL route on each listener; `edgeIdentityProbe` and `edgeProbe` take a `port` and the driver passes it for production alone. `pnpm test` **1390 → 1395**, `pnpm test:docker` **180 → 185** (the predicted 180 + 5), doctor **19/0** and verify **54/0** both unmoved — the new port-equality assertion lives INSIDE check 2. **No task boundary moved.** **Its headline is about CONTROLS, not the platform: control (c) went RED rather than staying green, because the case asserts the body as well as the identity, and control (b) CANNOT FAIL AT ALL — the driver's production branch is asserted by nothing until Task 15.** `[M5]` named one hardcoded `public: 'srv0'` and there are nine; two were the Docker tier's own driver factory |
 | 4 | 5–6 | **Migration 0019** — `approvals`, `iam_registrations`, `privacy_assessments` and their state machines — and **the two external records over the API**: an administrator records a real registration and a real PIA with a pasted ticket reference | **DONE 2026-09-20 — 21 findings** (19 + 2 from the post-sweep check)**.** §13's gate now has REAL ROWS to block on, which is the whole of R1. `[M10]` is confirmed exactly: drizzle wrote the `audit.events` DROP/ADD pair unprompted and **nothing was appended**. THREE routes, not the four this task says. `launch:record` is granted to `PLATFORM_ADMIN` alone and is NOT one of D24's four — `requireSession` is the control, enforced by the matrix **and by `tsc`**. **No task boundary moved.** `pnpm test` **1395 → 1449 in 110 files**. **Its headline is that the plan's own matrix row for `token-other-project` says `404 NOT_FOUND` and the route answers `403 TOKEN_CREDENTIAL_REFUSED`** — `requireSession` runs before the project is read, which is the right order, and control (a) proves the row was written for the other one. **ALL NINE controls fired; none could not fail** |
-| 5 | 7 | **The gate that BLOCKS.** One evaluation in `launch/`, called by the read and by the deploy route, with the **two** unconditional refusals that exist today removed — and the checklist's items reading real rows. **Alone: it is this plan's centre** | ← **next** |
-| 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | |
+| 5 | 7 | **The gate that BLOCKS.** One evaluation in `launch/`, called by the read and by the deploy route, with the **two** unconditional refusals that exist today removed — and the checklist's items reading real rows. **Alone: it is this plan's centre** | **DONE 2026-09-20 — 12 findings.** §13's checklist is now the thing that gates production: `assertLaunchable` in `launch/gate.ts`, ONE evaluation, two callers, and **both** unconditional refusals gone — the inner one DELETED. Measured live end to end: with nothing recorded the deploy is refused blocking on **four** items; an administrator records a real IAM registration and a real PIA over the API and the same deploy is refused blocking on **two**, `rehearsal` and `admin-approval`. `pnpm test` **1449 → 1456 passed + 1 SKIPPED in 110 files**; `pnpm test:docker` **OWED, RUN and UNMOVED at 185 in 30, 826 s**; doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is that the plan's Steps 2 and 4 CONTRADICT EACH OTHER** — the class cannot both move to `launch/` and keep the `api` family — **and that moving it would have made its code invisible to the registry**, sitting 4's F5 one sitting later. **Control (b) fired SIX red across FOUR files where the plan predicted the matrix alone and said the delivery test would stay green; control (a) could not fail against all 1456 tests, predicted in advance; control (d) is the second gate SEEN** — `409` with the same code and **no `launchReadiness`** |
+| 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | ← **next** |
 | 7 | 10–11 | **The approval**: `release:approve`'s first caller ever, bound to an immutable digest, non-repudiable, behind step-up — and its `diff_snapshot` with the AI-written summary that is **recorded as absent rather than blocking** when the model is down | |
 | 8 | 12–13 | **R4's `Reviewer` seam** — the interface, the honest `NullReviewer`, its real caller and its **non-blocking** checklist item — and **§7's last production clause**: `auth.attributes` ⊆ `registered_attributes`, failing at build time | |
 | 9 | 14–15 | **The D21 rehearsal as R2 redefines it**, and **the first production deploy this platform has ever done** — the digest verified before anything starts. **A first, and this project's worst discoveries have all arrived at a first** | |
@@ -4505,3 +4505,208 @@ and this is that rule paying for itself in the sitting that read it.**
 `WIRE_CLASSES`, exactly three `DELIBERATELY_UNCALLED` entries, and both Docker files named as
 driving the deploy path.
 
+
+---
+
+### Sitting 5 — Task 7, the gate that BLOCKS, alone — 2026-09-20. **12 findings.**
+
+**§13's CHECKLIST IS NOW THE THING THAT GATES PRODUCTION, AND BOTH OF THE OLD
+UNCONDITIONAL REFUSALS ARE GONE.** `assertLaunchable` in `launch/gate.ts` is one
+evaluation over `computeLaunchReadiness`; the deploy route calls it and the read route
+calls the same computation, so the view a person reads and the thing that refuses them
+cannot disagree (Decision 2). The inner gate inside `deployRelease` is **deleted** rather
+than made conditional (Decision 3), which is what makes `deployRelease`'s production path
+reachable at all — Task 15 is the first thing that will walk it for real.
+
+**MEASURED LIVE, END TO END, AGAINST `journey-app` THROUGH THE EDGE — and this is the
+sitting, not the tests.**
+
+| | blocking items in the refusal | HTTP |
+|---|---|---|
+| nothing recorded | `iam-registration`, `privacy-assessment`, `rehearsal`, `admin-approval` | `409` with the checklist |
+| IAM `submitted` (ticket IAM-2026-4471) | *"The registration is 'submitted' (ticket IAM-2026-4471) and must be 'active'…"* | — |
+| IAM `active`, PIA `approved` | `rehearsal`, `admin-approval` | `409` with the checklist |
+
+The `met` messages are the point of R1, and they name what UBC said:
+*"Registered as https://journey-app.manifest.internal/sp, active (ticket IAM-2026-4471),
+releasing 3 attribute(s)."* and *"Approved by UBC Privacy Office (K. Lam) on 2026-09-20
+(ticket PIA-2026-0912)."* **The blocking set SHRANK because an administrator recorded two
+rows** — which is the difference between a gate that reads the checklist and one that
+refuses unconditionally, and it is not visible from any test.
+
+**THE THREE THINGS TO CARRY FORWARD.**
+
+1. **THE PLAN'S STEPS 2 AND 4 CANNOT BOTH BE TRUE, AND TAKING STEP 2 ALONE WOULD HAVE MADE
+   THE ERROR CODE INVISIBLE TO ITS OWN REGISTRY.** Step 2 moves `ProductionGateError` to
+   `launch/`; Step 4 says the registry entry becomes `families: ['api']`. With the class
+   out of `api/` there is no `api` family left — and worse, `error-codes.test.ts`'s scan
+   reads `readonly code = '…'` **only under `api/`**, which is sitting 4's F5 exactly one
+   sitting later. The class had a fixed `readonly code`, Task 7 deletes the `ReleaseError`
+   that was the registry's only other sighting of that code, so the naive move leaves
+   `RELEASE_PRODUCTION_GATE_UNAVAILABLE` thrown by nothing the scan can see and
+   *"registers nothing the source never throws"* goes red with nothing to point at. **The
+   code is now a constructor argument** (`new ProductionGateError('RELEASE_…', view)`),
+   `ProductionGateError` is in `WIRE_CLASSES` and `ErrorFamily`, and the entry is
+   `families: ['ProductionGateError']`.
+2. **THE PLAN'S OWN PREDICTION FOR CONTROL (b) IS WRONG IN THE DIRECTION THAT MATTERS.** It
+   says *"the byte-identical test still passes (the read is unaffected) … Predict it as the
+   matrix, not the delivery test"*. Measured: **six red across four files**, the delivery
+   test among them. The reasoning was about the comparison — the two payloads would indeed
+   still match — and the test never reaches the comparison, because it asserts
+   `statusCode === 409` first and the route now returns `200`. **A hand-off that tells the
+   next agent to expect a green test makes a real red look like an unrelated break.**
+3. **TASK 7 TOUCHES FIVE FILES ITS OWN LIST DOES NOT NAME, AND ONE OF THEM IS `make
+   demo-journey`.** `releases/releases.test.ts` held the only test of the inner gate;
+   `lifecycle.test.ts` asserted every item's state; `packages/journey/src/main.ts` asserted
+   `iam-registration === 'not_built'` — so **step 9 of the offline acceptance and a step of
+   `make ci-acceptance` would have gone red**; `packages/mock/src/fixtures.ts` carries the
+   checklist a console developer builds against; and `api/representations/launch.ts`'s two
+   `describe` strings told the published document the view was read-only.
+
+| Gate | Before | After |
+|---|---|---|
+| `make doctor` | 19 checks, 0 failed | **19, 0 failed** — unmoved, re-run after the Docker tier; this sitting adds no platform check |
+| `make verify` | 54 checks, 0 failed | **54, 0 failed** — unmoved, same reason |
+| `pnpm test` | 1449 in 110 files | **1456 passed + 1 SKIPPED in 110 files**, run twice and identical. **Counted per file, never subtracted**: `launch/readiness.test.ts` **8 → 15 (+7)**, `api/delivery.test.ts` **17 + 1 skipped** (the gate's positive control, pending Tasks 10 and 14), `releases/releases.test.ts` **62 → 62** (one test REPLACED), `api/authz-contract.test.ts` **397 → 397** and `lifecycle.test.ts` **1 → 1**. **No new file.** §2's box has never carried a skipped test before |
+| `pnpm test:docker` | 185 in 30 files | **185 in 30, 0 skipped, 826 s** — **OWED** (`releases/`, `launch/`, `api/routes/`) **, RUN and UNMOVED**. That it is unmoved is itself a measurement: the inner gate's deletion changes what `deployRelease` does for production, and **not one Docker test deploys to production** — §7e's *"`deployRelease`'s production path is exercised for the first time, which is Task 15"*, confirmed from the other end |
+
+#### The findings
+
+**F1 — the plan's Step 2 and Step 4 contradict each other, and Step 2 alone breaks the
+registry.** See *thing to carry forward* 1. The self-review's item 3 spotted that the class
+had to move and did not follow the move through to the scan; sitting 4's F5 had already
+paid for the same rule for `LaunchTransitionError`, **one sitting earlier, in the same
+module.**
+
+**F2 — `error-codes.test.ts`'s `make` map needed a checklist that PARSES, and a failure
+here would have been silent rather than red.** The map builds one instance per family and
+asserts the status. `toErrorResponse` runs the view through `LaunchReadiness.safeParse`
+and, when that fails, **sends the refusal without the checklist and writes a line to
+`console.error`** — so a malformed stub would have produced a noisy pass, not a failure.
+The stub is a valid empty-item view with a uuid `projectId`.
+
+**F3 — `releases/releases.test.ts` held the ONLY assertion that the second gate existed,
+and the plan's file list does not name it.** *"refuses production, naming the
+LaunchReadiness items that do not exist yet"* went red on the first full run —
+`promise resolved "{ …(8) }" instead of rejecting` — which is the deletion **proved rather
+than asserted**. It is replaced with the opposite claim, *"deploys to production like any
+other environment — the gate is the route's, not this function's"*, asserting the
+instance's environment, release and state rather than that an answer arrived. **That test
+is the first thing in the repository ever to walk `deployRelease`'s production path.**
+
+**F4 — `lifecycle.test.ts` could not see this task at all, and the plan does not name it
+either.** It asserted `notComputed.every(state === 'not_built' || state === 'met')` for
+every item but `scans` — **a claim true of almost any checklist**, and green before and
+after the two items changed meaning. It now names every item's state in one `toEqual`, so
+an item added, removed or quietly satisfied turns it red.
+
+**F5 — and rewriting it measured something the plan does not state: the lifecycle
+fixture's app signs nobody in with CWL, so its `iam-registration` is `met` by the `usesCwl`
+branch and not by a recorded row.** The first expectation said `unmet` and went red:
+`- "iam-registration": "unmet"` / `+ "iam-registration": "met"`. §9's exemption is real and
+it is the branch a reader meets first — the assertion now says which of the two it is
+exercising, because the same value arrives by two very different routes.
+
+**F6 — `packages/journey/src/main.ts` asserts `iam-registration === 'not_built'`, so
+`make demo-journey` would have gone red — and with it step 9 of the offline acceptance and
+a step of `make ci-acceptance`.** It is the only assertion in the whole journey that could
+see this task. It is now two checks: *"the two external records are tracked, and unmet
+until an administrator records them"* (new, and the one that proves the change from
+outside) and *"what Manifest does not track yet says so, and who builds it"*, re-keyed onto
+`rehearsal` and `admin-approval`, which genuinely are not built. Both green.
+
+**F7 — the mock's checklist fixture had no `unmet` item at all**, so a console built
+against it would never have rendered the state the platform now sends for every production
+project. `privacy-assessment` there is `unmet` with no `builtBy` and the platform's own
+wording. **A divergence that predates this task is recorded rather than quietly fixed**:
+the fixture's `domain` is `not_built` where the platform says `met`, which is Task 17's to
+reconcile when the records screen lands.
+
+**F8 — the published document said the checklist was read-only, in two places.**
+`LaunchReadiness`'s description read *"Read-only in Phase 1; Phase 2 gates on it."* and
+`LaunchReadinessItem.state`'s described `not_built` and never `unmet`. Both are now true,
+and `pnpm contract:write` + `contract:generate` moved exactly four lines across
+`openapi.json` and `schema.d.ts` — **no operation and no shape, so `@manifest/contract`
+stays 1.0.0.**
+
+**F9 — `[M4]`'s *2279 bytes* is exact, and reading it the obvious way gives a different
+number.** The before-measurement read **1879** for both paths and looked like a
+contradiction; `jq -S .` pretty-printed reads **2279** for the same two payloads, which is
+`[M4]`'s figure exactly. CLAUDE.md's *name the metric* rule, met on the first number this
+sitting wrote down. **The property is *identical*, and the byte count is a property of the
+payload** — after the two records are met the same pair reads 1781/1781 compact.
+
+**F10 — a control-plane restart invalidates every session, because README's block mints a
+new `MANIFEST_SESSION_SECRET` on each run.** Control (d) needs two restarts, and the
+sessions taken before the first one answered `401 UNAUTHENTICATED` afterwards. This is the
+block working as §7e describes — *"a stable secret lets an earlier sitting's cookie
+survive"* — seen from the other side: **any sitting that restarts the control plane mid-run
+must sign in again**, and a `401` there is the harness, not the platform.
+
+**F11 — `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is the PASSED count, and this is the
+first sitting to give the suite a skipped test.** `1457` there would read `MOVED` on every
+run. Checked against the literal line rather than reasoned about:
+`awk '{print $2}'` over `      Tests  1456 passed | 1 skipped (1457)` reads **1456**. The
+file now says so, and says that Task 14 takes it to 1457 when it un-skips the control.
+
+**F12 — `computeLaunchReadiness`'s own doc comment said §17 ships the gate in Phase 2**,
+which this task falsified in the same file. It now says the view has two callers and that
+**an item added here changes what production deploys are possible**, not just what a screen
+shows — which is the consequence of Decision 2 that a future reader most needs.
+
+#### Negative controls — every one watched, and which could not fail
+
+| | Control | Predicted | Measured |
+|---|---|---|---|
+| a | `assertLaunchable` throws unconditionally (the `ready` check removed) | **nothing can fail**: the positive test is skipped until Task 14 | **CANNOT FAIL, at the strongest scope**: the whole unit tier, **1456 passed / 1 skipped in 110 files**, green. Predicted in advance rather than discovered, and **Task 14's step 5 re-runs it** |
+| b | `assertLaunchable` returns without checking `ready` | the matrix's two production rows red; **the delivery test still passes** | **FIRED, and WIDER — 6 red in 4 files**: both matrix production rows (`owner`, `admin`), **`delivery.test.ts`'s byte-identical refusal test**, `lifecycle.test.ts`, and both new gate tests. **The plan's prediction was wrong** — see *thing to carry forward* 2 |
+| c | `iamItem` returns `met` for a `submitted` registration | `readiness.test.ts` red on *"must be 'active'"* | **FIRED, exactly one test**: *"iam-registration: unmet while the registration is submitted, naming the state and the ticket"*. The `active` tests cannot see it, correctly |
+| d | the inner gate restored **and** the outer gate made to always pass — run LIVE against `journey-app` | the deploy refuses with an envelope carrying **no** checklist | **FIRED, and it is this task's real deliverable seen**: `HTTP 409`, `{"code":"RELEASE_PRODUCTION_GATE_UNAVAILABLE","hasChecklist":false}`, with the old message *"…they are P6's, and this gate stays closed until they do."* **Same status, same code, no checklist** — so a test asserting status and code is green against a Task 7 that removed only the outer gate, `[M2]` confirmed from the other direction |
+| e | *(the conservative default, not in the plan's table)* a project with **no candidate release** must not read *no registration needed* | `iam-registration: unmet` | **HELD**: the first readiness test runs on a project with no candidate at all and asserts `unmet`; the `usesCwl` default is `provider !== 'none'`, so *no evidence* stays *it will need one* |
+
+**FOUR OF THE FIVE FIRED; (a) could not fail and was predicted not to.** The honest reading
+is that (a) is the gate's whole positive direction and there is no way to exercise it until
+`rehearsal` and `admin-approval` exist — which is also why `delivery.test.ts`'s positive
+control is `it.skip`ped with those two task numbers in its name. **What keeps the deploy
+route honest in the meantime is its own staging case**, which answers `200` for a
+collaborator in the same file: this is not a route that refuses everything.
+
+#### What this sitting decided
+
+1. **`ProductionGateError` moves to `launch/` AND takes its code as a constructor
+   argument** (F1), against the plan's Step 4. *Rejected:* keeping the class in `api/` —
+   `launch/gate.ts` would have to import `api/`, the dependency running the wrong way;
+   **extending `error-codes.test.ts`'s `readonly code` scan to `launch/`** — that weakens
+   the gate that keeps the registry honest, to accommodate one class, and sitting 4 chose
+   the constructor argument for both of `launch/`'s other wire classes.
+2. **The gate's tests live in `readiness.test.ts`, not a new `gate.test.ts`.** Decision 2's
+   whole claim is that the gate and the view are ONE computation; putting them in one file
+   means a future edit that gives the gate its own predicate has to move tests away from
+   the view's, which is the point at which somebody should stop. The file's doc comment
+   says so. *Cost:* the file name does not advertise the gate, so the `describe` does.
+3. **`readiness.test.ts` writes the two rows DIRECTLY rather than through
+   `recordIamRegistration`.** This file is about what the checklist READS; `records.test.ts`
+   is about how a row gets there. Going through the write path would make a readiness
+   failure ambiguous between the two, and would drag an `EventBus` into a pure read's test.
+4. **The obsolete inner-gate test is DELETED, not `it.skip`ped.** A skipped test is a
+   promise naming the task that un-skips it (which is what `delivery.test.ts`'s is); a
+   skipped test nobody will ever un-skip is dead code that reads like a promise.
+5. **The mock's `privacy-assessment` fixture is updated and its `domain` divergence is
+   recorded rather than fixed** (F7). Fixing `domain` is Task 17's, with the records
+   screen; changing it here would be a fixture edit no test and no reader asked for.
+
+#### The machine, queried at close rather than recalled
+
+| | |
+|---|---|
+| `make doctor` / `make verify` | **19/0 and 54/0**, both re-run AFTER the Docker tier and after the cleanups |
+| per-app resources | **`containers=12 networks=4 volumes=8`** — the Docker tier took it to `networks=11 volumes=9` and `dead-app-resources.sh --apply` took it back. **The NINTH measurement of that cycle, and the same seven networks and the same one volume again** (`mf-blueprint-ntm-`, `mf-chem-labs-`, `mf-fixture-rt-`, `mf-fixture-s6-`, `mf-fixture-s6nb-`, `mf-saml-probe-`, `mf-saml-unsigned-staging-net`, plus `mf-chem-labs-staging-db-data`). Re-measured by the script itself: `networks left: 4`, `volumes left: 8` |
+| LiteLLM | **8 users → 4.** Three orphans: `p4b-probe-user` **again**, plus a journey-app user from each of this sitting's TWO `make demo-journey` runs — the *every demo adds one* property, twice in one sitting. Re-read afterwards by the script: 4 remain, every container-held user survived |
+| cleanup scripts | **BOTH were ALLOWED `--apply` in this session** and were run by the agent — the third consecutive sitting. The classifier refuses them in other sessions; try the command |
+| database | `journey-app` is present and serving staging, with an **`active` IAM registration and an `approved` PIA recorded** (tickets IAM-2026-4471 and PIA-2026-0912) — **the first rows those tables have held outside a rolled-back test.** The four gates ran BEFORE the demo, so `pnpm test` has not truncated since |
+| migrations | **20 applied**, 0019 among them; this sitting adds none |
+| `lo0` | `127.0.0.1`, `127.0.0.2`, `127.0.0.3` |
+| port 7100 | **the control plane IS running**, restarted three times (after the Docker tier, and twice for control (d)). Each restart mints a new `MANIFEST_SESSION_SECRET`, so every session taken before it is dead (F10) |
+| `HEAD` moved under this sitting | **no** — `25dbca8` at open, and this sitting's own commits on top. The first sitting in this plan where it did not |
+| the four shared HTML pages | **checked by grepping them, and none needed a change**: none of the four mentions IAM, a PIA or the checklist's states at all, and `manifest-phases.html`'s *"the launch checklist becomes a gate that actually blocks"* is a statement about product Phase 2, which is what this plan is |
+| `docker-simple-saml` | still clean: its only dirty path is the untracked `cert.zip` dated months before this project |

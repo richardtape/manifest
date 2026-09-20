@@ -157,7 +157,7 @@ through the edge, serves the console on 7104 and prints this checklist. Then ope
 | 6 | wait | it ends `succeeded` **with no reload**, and the scan summary is shown |
 | 7 | **Release this build**, then **Deploy to staging** | instance states arrive live: provisioning → sso.registered → starting → healthy |
 | 8 | click the staging URL, sign in inside the app (`student` / `student`) | the app knows who you are, and says whether you are `student` or `faculty`; **ask the LLM** and get an answer. *There is no form for writing a note — `make demo-ai` writes them, so a freshly deployed app answers with `context: null`* |
-| 9 | back in the console, **Request production** | `LaunchReadiness`: `ready: false`, every item with its `why`, and `builtBy` naming the plan that builds it |
+| 9 | back in the console, **Request production** | `LaunchReadiness`: `ready: false`, every item with its `why`. **Since P6a Task 7 the deploy is refused BY this checklist rather than unconditionally**, and the items are in three states: `met` for what the platform computed, `unmet` for the IAM registration and the PIA — real rows an administrator records, so **no `builtBy`** — and `not_built` with a `builtBy` for `rehearsal` and `admin-approval`, which are genuinely not built |
 | 10 | **Tokens** → mint one | the secret is shown **once**; reload and it is gone; the privileged four cannot be ticked |
 | 11 | in a terminal, the agent asks to add `stu000001` as a member | `403 TOKEN_ACTION_PENDING`. **The student must have signed in to MANIFEST, not just to the app** — see the traps above |
 | 12 | **Queue** | the question is there **within a second**, with its age and the token that asked |
@@ -224,7 +224,9 @@ identifier, never their CWL ID.
   §14's **Incident** — the check that failed, the diff since the last healthy release, the repair
   prompt and the log tail — and says that the release before it is still serving, because it is.
   **Deploy to production is there and is refused**, with §13's checklist rendered from the
-  refusal's own envelope. **§26's QUEUE AND D24's TOKENS ARE BOTH SCREENS NOW.** On a project's *Tokens* tab a person
+  refusal's own envelope — and **since P6a Task 7 that refusal IS the checklist**: one evaluation
+  answers both the screen and the gate, so recording the IAM registration and the PIA visibly
+  shortens the list of what is still missing. **§26's QUEUE AND D24's TOKENS ARE BOTH SCREENS NOW.** On a project's *Tokens* tab a person
   mints a delegated token, is shown its secret **once**, lists it and revokes it; on *Queue* they read
   the question an agent asked — what it wanted, which token asked, how long it has waited — and
   **confirm or reject it in their own words**. Confirming does **not** run anything: it grants that one

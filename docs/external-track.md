@@ -37,6 +37,17 @@ including from a `make reset` machine, and the proof app's `manifest.yaml` and R
 declare its data classification, its models and what reaches them — the inputs items 3
 and 4 need. **Starting the track is Rich's call. Nothing below has been raised.**
 
+**AND SINCE 2026-09-20 ITEMS 3 AND 4 BLOCK A REAL REFUSAL RATHER THAN A FUTURE ONE.**
+P6a's sitting 4 gave `IamRegistration` and `PrivacyAssessment` real tables an administrator
+writes over the API (migration 0019, R1), and its **sitting 5 made §13's checklist the thing
+that gates a production deploy** — one evaluation, `launch/gate.ts`, called by the deploy
+route. Measured that day against a live project: with nothing recorded the checklist reads
+`iam-registration: unmet` and `privacy-assessment: unmet`, and the deploy is refused carrying
+exactly that list. **So the platform is now waiting on a real registration and a real PIA
+rather than on code** — which is what ORIENTATION §2 means by *P6a makes this track more
+urgent, not less*. Items 3 and 4's *Manifest supplies* column still says **generated**
+packages, and that stays P8's: P6a records what UBC said, it does not produce the submission.
+
 ---
 
 ## Open items
