@@ -5,14 +5,17 @@
 brief, Part 2's 34 operations, Part 3's 52 shapes and Part 6's fixtures. **Where a value is
 invented rather than read, §7 says so by name.***
 
-**The prototype:** <https://claude.ai/code/artifact/1df61167-fdf0-41bc-acbe-e60c12f51060> — fifteen
-artboards on a canvas, all of them clickable, six of them animated. Press Play on *Your apps* and
-walk the journey; the three live screens re-run themselves and each carries a *Watch again* button.
-*Putting it somewhere I can try it* has a tweak that flips the ending from success to failure.
+**The prototype:** <https://claude.ai/code/artifact/1df61167-fdf0-41bc-acbe-e60c12f51060> — seventeen
+artboards on a canvas, all clickable, six animated. Press Play on *Your apps* and walk the journey;
+the live screens re-run themselves and each carries a *Watch again* button. *Putting it somewhere I
+can try it* has a tweak that flips the ending from success to failure.
 
 This document is the written half of the brief's deliverable: the visual direction and why, the
-state and message vocabulary, how waiting is expressed — and then §7, the findings, which is the
+state and message vocabulary, how waiting is expressed — and then §8, the findings, which is the
 part worth reading even if nothing else here survives contact with Rich.
+
+*Second pass, 2026-09-19: sans-serif throughout, UBC Blue, a preview window, and a conversation
+list. §2 records what changed and why; §7 and §12 are new.*
 
 ---
 
@@ -27,6 +30,11 @@ put to Rich on 2026-09-19 and both were answered; a third was a scope question o
 | How much of the speculative authoring experience should the prototype carry (brief §7)? | **The full flow**, clearly labelled. |
 | Where does the written rationale live? | **This file**, rather than a closing section of the artifact. |
 
+**A second round, after Rich saw the first pass.** Three instructions: a sans-serif primary,
+because it read as too wordy and not app-like enough; UBC Blue `#003468` used somewhere; and two
+missing surfaces — a way to *see* the app you made, and a way to see the several conversations that
+built it. §2 covers the first two. §7 covers the preview. §9 covers conversations.
+
 **The CLF risk, restated so it is on the record.** If CLF turns out to be mandatory for a
 faculty-facing UBC service, this direction is rework, not a reskin — the type stack, the ground and
 the card geometry all go. Two things limit the damage. Every colour is a literal hex in an inline
@@ -40,39 +48,63 @@ gets no "this is a real UBC service" signal from the chrome. That is a trade Ric
 
 ## 2. The visual direction, and why this one
 
-**The premise.** A faculty member meets this platform about six times a year (brief §3), and
-carries a specific fear: that it breaks in week eight, during an assessment, in front of 200
-people. The two obvious directions both fail that person. A developer-console direction — dark,
-dense, monospaced — hands them the vocabulary C3 forbids. A consumer-SaaS direction — rounded,
-bright, gradient-washed, cheerful — is *reassuring in a way it has not earned*, and that is worse,
-because the whole product is asking for trust with student coursework on the other side of it.
+*Revised 2026-09-19 after review. The first pass was editorial — a serif display face on warm
+paper. Rich read it as too wordy and not app-like enough, and asked for a sans-serif primary and
+for UBC Blue somewhere. The direction below is the second pass, and the change was more than a
+font swap: the register moved from "well-made departmental handbook" to "a tool you use".*
 
-**What was chosen instead: an editorial, papery calm.** The register is a well-made departmental
-handbook rather than a dashboard — something that looks like it was written by people, for a
-reader, and expects to be read rather than scanned.
+**The premise is unchanged.** A faculty member meets this platform about six times a year
+(brief §3), carrying a specific fear: that it breaks in week eight, during an assessment, in front
+of 200 people. The two obvious directions still fail that person. A developer-console
+direction — dark, dense, monospaced — hands them the vocabulary C3 forbids. A consumer-SaaS
+direction — rounded, bright, gradient-washed — is *reassuring in a way it has not earned*, which is
+worse, because there is student coursework on the other side of this.
 
-- **Ground.** A warm off-white, `#F6F2EA`, with cards a half-step lighter at `#FFFCF7` and rules at
-  `#E0D8C8`. No pure white anywhere. Paper rather than screen; and the warmth lets the five state
-  colours sit on it without any of them reading as an alarm.
-- **Type.** **Fraunces** for every heading — an optical serif with real character at display size,
-  which does more work than any other single choice here: it makes the product read as
-  *institutional and human* rather than *startup*. **IBM Plex Sans** for everything else, with
-  **IBM Plex Mono** for the three things that are genuinely machine text: hostnames, the token
-  secret, and the build log. One superfamily for body and mono means the technical register is a
-  *shift within* the voice rather than an intrusion from outside it.
-- **Accents.** Cedar `#A8492A` for every action a person takes, and Lake `#1A4F5C` for structure
-  and for work in progress. Two accents, close in lightness, sharing enough chroma to read as one
-  system.
-- **No gradient washes, no left-border cards, no emoji, no Inter.** Icons are inline stroke SVG
-  and there are very few of them; most status is carried by a coloured dot and a word, because a
-  word survives being small and an icon does not.
+**What it is now: quiet institutional software.** Cool, flat, confident, and largely out of the
+way. The things that move are the things the platform is actually doing; everything else holds
+still.
 
-**One deliberate inversion.** Three surfaces go dark: the build log pane, the one-time secret, and
+- **Type.** **Instrument Sans** for everything — headings, UI and body — with **IBM Plex Mono**
+  reserved for the three things that are genuinely machine text: hostnames, the delegated key, and
+  the build log. One family rather than a display-plus-body pair is the single biggest
+  contributor to the app-like feel: an interface that changes typeface to say something important
+  reads as a document. Instrument Sans earns its place over the obvious defaults by being slightly
+  narrow with a high x-height, so headings can be set tight (−0.03em, weight 700) and still read as
+  *interface* rather than *marketing*.
+- **UBC Blue `#003468`.** It owns the brand mark, every primary action, and the focus ring. The
+  sign-in screen gives it a full-height panel, which is the one place the product is allowed to
+  make a claim about itself. Choosing it as the *action* colour rather than just chrome is
+  deliberate: it means the institution's colour is attached to the moments where the person
+  commits to something.
+- **Ground and surface.** A cool `#F4F6FA` ground with pure white cards and `#E3E8F0` rules. Flat —
+  one soft shadow in the entire system, on the preview frame, where it means *this is a different
+  thing behind glass*.
+- **Geometry.** 8px radii on controls, 12px on cards, 60px header. Tighter than the first pass by a
+  step everywhere, which is most of what "app-like" means in practice.
+- **State colours sit apart from the brand**, so that a status is never confused with an action:
+  teal `#0E6D84` for working, amber `#8A5A0B` for waiting on a person, red `#B3261E` for needs-you,
+  green `#146B3D` for steady.
+- **No gradient washes, no left-border cards, no emoji, no Inter.** Icons are inline stroke SVG and
+  there are few of them; status is a coloured dot plus a word, because a word survives being small.
+
+**The copy was cut, not just restyled.** "Too wordy" was a fair read of the first pass: it
+explained things that did not need explaining, at a length that made the screens feel like reading.
+Sixty-four strings were shortened. What survives at length is only the copy that carries a rule a
+person genuinely cannot guess — what *yes* buys an agent, why the second sign-in exists, why a
+failed deploy took nothing away. Everything else got shorter or went.
+
+**One deliberate inversion remains.** Three surfaces go dark: the build log, the one-time key, and
 the incident's repair prompt. All three are *machine text a person is being shown on purpose*, and
 the inversion marks the boundary — you have stepped out of the product's voice and into the
-machine's. It is the only place the design permits that, and it is always behind a deliberate act.
+machine's. It is always behind a deliberate act.
 
----
+**The CLF risk, restated so it is on the record.** If CLF turns out to be mandatory, this is
+rework, not a reskin. Two things limit the damage: every colour is a literal hex in an inline
+`style` attribute, so a palette swap is mechanical; and the parts carrying the product's
+weight — the live step list, the two-fact block, the launch runway, the preview frame, the one-time
+key panel — are *layouts*, which CLF has no opinion about, rather than *components*, which it does.
+The second cost has no mitigation, and UBC Blue only partly answers it: a faculty member handing an
+app to 200 students gets the colour but not the mandated chrome.
 
 ## 3. The state and message vocabulary
 
@@ -81,11 +113,11 @@ faculty-legible bar is the harder one (§12). **Five states. Every screen uses o
 
 | State | Means | Reads as | Colour |
 |---|---|---|---|
-| **Working** | Moving on its own. You may leave. | a drifting bar, a breathing dot, and an honest duration | Lake `#1A4F5C` |
+| **Working** | Moving on its own. You may leave. | a drifting bar, a breathing dot, and an honest duration | Teal `#0E6D84` |
 | **Waiting on someone** | A person or an office has it. | still, with **how long it has waited** | Amber `#8A5A0B` |
-| **Needs you** | Stuck until you act. | one clear action, and what happens if you don't | Clay `#98301F` |
-| **Steady** | It works. | a filled dot and a plain word | Moss `#2E6344` |
-| **Not yet** | Real, but no clock has started. | hatched, muted, no action implied | Neutral `#6B6355` |
+| **Needs you** | Stuck until you act. | one clear action, and what happens if you don't | Red `#B3261E` |
+| **Steady** | It works. | a filled dot and a plain word | Green `#146B3D` |
+| **Not yet** | Real, but no clock has started. | hatched, muted, no action implied | Neutral `#5C6A85` |
 
 The platform's own enums collapse into these: `pending`/`building`/`provisioning`/`starting` and a
 `running` build are all **Working**; `healthy` and a `succeeded` build are **Steady**; `failed` and
@@ -226,7 +258,36 @@ do — it is never a way to accidentally say yes."*
 
 ---
 
-## 7. What designing this found — eleven things about the API
+## 7. Seeing the app you made
+
+*Added in the second pass. The journey had a gap: step 6 is "open the running app and use it", and
+the first prototype stopped at the address, on the argument that the app is the faculty member's
+work rather than Manifest's. That was the wrong call.* **The whole product promise is that an idea
+becomes a real thing, and a link to somewhere else is a weak way to deliver that.**
+
+The preview screen is one frame with three controls and a panel beside it:
+
+- **Which address.** Your draft, the trying-out one, and the students' one — the three environments
+  that exist from the moment a project is created. The switcher is honest about the fixtures:
+  `Environment.instance` is `null` for sandbox and production, so both show a real empty state
+  rather than a mocked app. Production's says *"This is the address your students will use. It
+  stays empty until you go live."*
+- **Desktop or phone.** 390 points wide, captioned *"a phone in a lecture theatre, which is where
+  most students will open it"*. For a tool used during a seminar this is not a nicety.
+- **Reload**, because a person watching an agent work will press it.
+
+**The panel beside it carries the two facts** — what is serving and what the last attempt did —
+because a preview is exactly where a person would otherwise conclude that a failed deploy had
+broken their app. And it says who you are: *"You are signed in as yourself. A student sees the same
+pages with their own name and only their own work."* A preview that silently shows an instructor
+view is a trap.
+
+**Two honest caveats, both in the prototype's own notes.** The app inside the frame is drawn as
+markup, because this format cannot carry an `<iframe>`. And in the real product an iframe is not
+free — the app sits behind CWL, so an embedded preview needs a session that nothing in the API can
+hand it, and a cross-origin frame of a SAML-protected app is blocked by default. That is **F12**.
+
+## 8. What designing this found — thirteen things about the API
 
 The brief says a client discovering an API gap early is valuable and asks for gaps to be reported
 rather than quietly assumed. **Nothing in the prototype invents a field, a state or an endpoint**;
@@ -311,6 +372,24 @@ its design cost: `SLUG_TAKEN` can be designed against the mock and `SLUG_INVALID
 refuse a name for a reason the person cannot see. The prototype implements only the fixture-backed
 pair.
 
+**F12 — an authenticated preview has nothing behind it.** Showing a faculty member their own
+running app is the emotional payload of the whole journey (§7), and the API gives you
+`Environment.url` and nothing else. The app is behind CWL, so an embedded preview needs a session,
+and there is no operation that mints one, no preview or impersonation token, and no
+`frame-ancestors` allowance a client could rely on. In practice a real preview is either a
+popped-out tab — which is what the person could have done anyway — or a platform-side proxy that
+does not exist. *Worth considering: a short-lived, single-environment preview grant.*
+
+**F13 — a conversation is the one object with no counterpart anywhere in the API.** A faculty
+member will have several threads of work on the same app — the first build, a change that is
+waiting on their answer, a repair started from an incident, one they abandoned. Everything each of
+those *produced* is a first-class object: builds, releases, deploys, incidents, pending actions.
+**Nothing records which piece of work any of them belonged to.** So a client cannot answer "what
+was the agent doing when it asked me this?", cannot show a person the four things in flight on
+their app, and cannot say what an abandoned thread left behind. This is the gap that makes the
+authoring API brief's decisions concrete: whatever shape authoring takes, the thread has to be an
+object with an id, and `Build`, `Release` and `PendingAction` need to carry it.
+
 **Smaller notes.** `Fleet` is admin-only and unused here. `KnowledgePack` is the one piece of
 existing API that genuinely helps the speculative authoring work, and is cited on the *Plan*
 artboard. `ScanSummary` gives counts but not the policy threshold, so *"nothing needs fixing"* is a
@@ -318,7 +397,7 @@ client-side assertion about what `fixable: {critical: 0, high: 0}` means.
 
 ---
 
-## 8. The speculative authoring flow
+## 9. The speculative authoring flow
 
 Three artboards, in their own row, under an orange title, each wearing a hatched **SPECULATIVE**
 band that names the gap in one sentence and lists the operations it would need.
@@ -333,7 +412,16 @@ can answer. *"Read it as a description of the finished thing, not as instruction
 screen — the same screen the hand-made route reaches — because agreeing to a plan is precisely the
 moment `POST /v1/projects` already exists for. The seam is where the invented part ends.
 
-The third artboard is marked **speculative in half**, and it is the one I would keep if only one
+**The conversation list is the fourth artboard, and it earns its place by being the screen a
+returning user lands on.** Someone who opens this six times a year does not remember what they
+asked for in August. The list gives each thread a title, a state from the same five-state
+vocabulary, one line on what it did, and — the part that matters — **where it left the app**. An
+abandoned thread says so plainly: *"It asked you something and nobody answered within the day, so
+it stopped. Your app was left exactly as it found it."* That sentence is the whole argument for
+keeping conversations separate: you can abandon one without fear, because the interface tells you
+what abandoning costs. The screen is fully speculative and says so; its findings are **F13**.
+
+The last artboard is marked **speculative in half**, and it is the one I would keep if only one
 survived. A faculty member asks for a change; the agent makes it, builds it, deploys it to staging,
 then tries to put it live and is stopped. **Only the asking is invented.** The build, the deploy,
 the refusal, the question it raises, your answer and the single retry a yes buys are all built and
@@ -343,7 +431,7 @@ clicked today. The finding that falls out of it is worth stating plainly:
 
 ---
 
-## 9. C3 in practice
+## 10. C3 in practice
 
 Every screen was checked against *"a faculty member must never be shown infrastructure"*. What that
 cost, concretely:
@@ -370,7 +458,7 @@ turns the worst moment in the product into the shortest path out of it.
 
 ---
 
-## 10. Accessibility
+## 11. Accessibility
 
 Designed to from the start, per §9's legal requirement, rather than retrofitted:
 
@@ -392,16 +480,19 @@ Designed to from the start, per §9's legal requirement, rather than retrofitted
 
 ---
 
-## 11. What this does not cover
+## 12. What this does not cover
 
 Stated plainly so nobody assumes it was considered and rejected:
 
 - **The admin console** (brief §5) — explicitly not this job, and §12 recommends it be a separate
   effort inheriting this vocabulary.
-- **The running app itself.** Journey step 6 is opening the deployed app and signing into it. That
-  is the faculty member's app, not Manifest, so the prototype stops at the address and the *Open it*
-  button.
-- **Mobile and responsive.** Everything is drawn at 1280 desktop. The layouts are flex and grid with
+- **The app itself, as a design.** §7 gives it a frame and enough content to be legible, but what
+  the note-taking starter should actually look like is a separate piece of work — and belongs to
+  whoever designs the blueprints, not to this surface.
+- **The inside of a conversation.** §9's list links to one live thread; the full transcript view —
+  what you said, what it did, how to go back a step — is not drawn.
+- **Mobile and responsive.** Everything is drawn at 1280 desktop — except the preview's phone
+  mode, which is the one place a 390-point layout is rendered, and it is the app, not Manifest. The layouts are flex and grid with
   no fixed inner widths that would fight a narrower column, but the two-column screens need a real
   stacking pass and the build log needs a different home on a phone. Worth doing before build, not
   before a decision.
