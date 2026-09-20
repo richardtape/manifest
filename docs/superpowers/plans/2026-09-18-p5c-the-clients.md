@@ -5931,3 +5931,32 @@ again on the app's SP sign-in, on the same domain in the same session, while `co
 is right and is not sufficient** — a run must be able to proceed blind across the IdP hop, reading
 the tab's TITLE instead, which is how rows 2 and 8 were driven. Worth knowing before scheduling a
 sitting around it.
+
+#### The post-sweep check — two claims in this sitting's own §7e, and it has now found one in every sitting since P5b's third
+
+Run as §6 requires, by opening what §7e points at and counting rather than re-reading the
+sentence. **Both defects are of the same kind: a state table written from what the sitting DID
+rather than from what the machine says at the moment of writing.**
+
+1. **`users` was claimed to hold TWO rows. It held ZERO.** The row was true when the clicked
+   journey signed `ins000001` and `stu000001` in — and then the close-out's own `pnpm test` ran,
+   which truncates, and the row was stale by the time it was committed. *Queried, not recalled:*
+   `select count(*) from users` answered **0**. Corrected, and the correction says where the
+   number came from.
+2. **7104 was claimed free. It was BUSY** — the production console preview, restarted so that
+   Rich's clicked run would need no setup and then never stopped. **Fixed by making the claim
+   true rather than by rewording it**: the server was stopped by port, which is §7e's own rule 6
+   for a close, and the ports now read 7100 busy, 7102/7104/7105 free.
+
+**What the check CONFIRMED, so that the next reader knows these were tested and not assumed:** the
+nine per-sitting finding counts read off the sittings table are **19, 10, 9, 9, 13, 12, 8, 11 and
+15**, which sum to **106** and divide by 14 tasks to **7.6** — the figures §7e, the ledger and the
+defect-rate table all state; `sso/entity.ts:117` is the `sloUrl` line and `api/unversioned.ts:22`
+is the `/auth/logout` path, both as F11 cites them; and **both cleanup scripts, re-run bare after
+the clicked journey deployed a third app, still read `0 network(s) and 0 volume(s) are dead` and
+`Nothing to delete`** — so *nothing is owed to Rich* survived the acceptance itself.
+
+**The lesson this one adds to the pile:** the post-sweep check caught both because it QUERIED the
+machine, and the two defects were introduced by the close-out's own gate run and by a server left
+running for a person's convenience. **A state table is only true as of its last query — so query
+it last**, after the gates, not before them.
