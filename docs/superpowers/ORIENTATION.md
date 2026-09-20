@@ -1765,7 +1765,7 @@ three remaining readiness items made satisfiable, the gate that blocks, gate int
 subsequent releases** — D9.2's re-escalation — and is written after P6a executes, the pattern P5a,
 P5b and P5c used.
 
-**THE THREE DECISIONS RICH MADE, 2026-09-19. Do not re-open them** (brief §5 has the reasoning and
+**THE FOUR DECISIONS RICH MADE, 2026-09-19. Do not re-open them** (brief §5 has the reasoning and
 what each rejected):
 
 1. **P6a folds in `IamRegistration` and `PrivacyAssessment` as tracked objects with manual state
@@ -1779,6 +1779,17 @@ what each rejected):
    it proves the registration's SHAPE and never UBC's acceptance of it.**
 3. **P6a makes the internal/public listener split real** — §12's fail-closed claim has never been
    watched failing on the only machine that exists, and P7's custom domains need it anyway.
+4. **Code safety gets a SEAM now and implementations later.** Nothing today asserts that an app's
+   *code* is safe — §20's control map says the risk is *accepted under D9* — so P6a defines a
+   `Reviewer` interface and ships an honest `NullReviewer` whose verdict is `not_performed`, with
+   **a real caller** and a **NON-blocking** `LaunchReadiness` item. **Not a stub that purports to
+   review**: that is the *four settings that read like controls and are not* shape (P4a), and the
+   next reader would believe it. **And the item must be non-blocking** — a seventh blocking item in
+   state `not_built` would make production unreachable for ever, which is the trap R1 exists to
+   undo. P6b makes the approval summary security-aware. Semgrep is a tracked hardening item, not
+   P6 scope. **⚠ R4 NEEDS A SPEC ACTION (§12, §13, §15, §20) THAT RICH HAS NOT APPROVED — see §8.
+   Do not apply it, and do not write P6a's reviewer tasks as though §20's control map already
+   reads differently.**
 
 **THE THREE THINGS MOST LIKELY TO COST YOU, all in the brief and all worth reading there:**
 
@@ -1833,6 +1844,17 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 
 ### Open
 
+- **P6 brief R4's SPEC ACTION — does the code-safety seam go into the spec? — RAISED 2026-09-19.**
+  Rich decided R4's *substance* the same day (a `Reviewer` interface with an honest null
+  implementation in P6a, a security-aware approval summary in P6b, Semgrep as a tracked hardening
+  item), but the spec text it needs is **proposed and not applied**: §12 names the seam, §13's
+  `diff_snapshot` summary gains a security dimension with its coverage limit stated, §15 gains an
+  extension-hook row, and **§20's control map row changes** — today it reads *"Unreviewed code
+  reaching production — Accepted under D9"*, and it must end up saying *accepted, with a named
+  seam and a staged plan*, **without reading as though the risk is closed**, because until a real
+  implementation lands it is not. The full proposal is the P6 brief's §7. **Apply it before P6a's
+  tasks are written, or not at all** — P5b's four spec actions were applied before its tasks for
+  the same reason.
 - **Should app containers run with an init (`Init: true`)? — RAISED 2026-09-16 (P5a sitting 2).** An app's PID 1 is its
   own `node`, which never reaps the orphans it adopts, so a process an app starts that leaves children behind turns them
   into zombies holding pids against §12's `PidsLimit` (64 in the S6 fixture) for the container's life — measured with
