@@ -33,7 +33,7 @@
 | 1 | 1 | **The measurements this plan rests on**, before any code: whether SimpleSAMLphp honours `ForceAuthn`, what the second listener actually costs on this machine (the alias, the dnsmasq split, the probe path), whether `computeLaunchReadiness` survives being read by something that blocks, and the **two** production gates rather than one. **Alone, and first** | **DONE 2026-09-19 — 15 findings.** All ten measurements ran. **R3 is a GO**, `ForceAuthn` **is honoured**, Decision 13 is measured. **No task boundary moved, so the eleven-sitting split stands.** Correction blocks on Tasks 1, 2, 3, 4, 5, 7 and 12 |
 | 2 | 2–3 | **The second listener exists**: `127.0.0.3` on `lo0` and the dnsmasq split (Rich runs one bundled `sudo` script), then `srv1` inside the edge with the production wildcard site, and `make doctor` and `make verify` checks for both halves | **DONE 2026-09-19 — 12 findings.** §12's split is REAL: two servers in one container, and a production name on the internal address and a staging name on the public one are both served by NOTHING, watched both ways. **§21's divergence 2 no longer describes this machine, so Spec action 1 is unconditional in practice — still Rich's, still not applied.** doctor **19/0**, verify **54/0**. **Its headline corrects sitting 1's F3: an unreachable name answers `200` WITH AN EMPTY BODY, not a TLS error, because Caddy's certificate cache is app-global — so a status assertion is green whether the split holds or leaks.** Two of the plan's own controls could not fail as written |
 | 3 | 4 | **A production route goes on the public listener and staging cannot reach it** — §12's fail-closed claim watched failing on the only machine that exists, in both directions, and the readiness probe taught the production path | **DONE 2026-09-20 — 11 findings.** A production route is written to `srv1` and a staging route to `srv0`, read back off `X-Manifest-Instance` from a REAL route on each listener; `edgeIdentityProbe` and `edgeProbe` take a `port` and the driver passes it for production alone. `pnpm test` **1390 → 1395**, `pnpm test:docker` **180 → 185** (the predicted 180 + 5), doctor **19/0** and verify **54/0** both unmoved — the new port-equality assertion lives INSIDE check 2. **No task boundary moved.** **Its headline is about CONTROLS, not the platform: control (c) went RED rather than staying green, because the case asserts the body as well as the identity, and control (b) CANNOT FAIL AT ALL — the driver's production branch is asserted by nothing until Task 15.** `[M5]` named one hardcoded `public: 'srv0'` and there are nine; two were the Docker tier's own driver factory |
-| 4 | 5–6 | **Migration 0019** — `approvals`, `iam_registrations`, `privacy_assessments` and their state machines — and **the two external records over the API**: an administrator records a real registration and a real PIA with a pasted ticket reference | **DONE 2026-09-20 — 19 findings.** §13's gate now has REAL ROWS to block on, which is the whole of R1. `[M10]` is confirmed exactly: drizzle wrote the `audit.events` DROP/ADD pair unprompted and **nothing was appended**. THREE routes, not the four this task says. `launch:record` is granted to `PLATFORM_ADMIN` alone and is NOT one of D24's four — `requireSession` is the control, enforced by the matrix **and by `tsc`**. **No task boundary moved.** `pnpm test` **1395 → 1449 in 110 files**. **Its headline is that the plan's own matrix row for `token-other-project` says `404 NOT_FOUND` and the route answers `403 TOKEN_CREDENTIAL_REFUSED`** — `requireSession` runs before the project is read, which is the right order, and control (a) proves the row was written for the other one. **ALL NINE controls fired; none could not fail** |
+| 4 | 5–6 | **Migration 0019** — `approvals`, `iam_registrations`, `privacy_assessments` and their state machines — and **the two external records over the API**: an administrator records a real registration and a real PIA with a pasted ticket reference | **DONE 2026-09-20 — 21 findings** (19 + 2 from the post-sweep check)**.** §13's gate now has REAL ROWS to block on, which is the whole of R1. `[M10]` is confirmed exactly: drizzle wrote the `audit.events` DROP/ADD pair unprompted and **nothing was appended**. THREE routes, not the four this task says. `launch:record` is granted to `PLATFORM_ADMIN` alone and is NOT one of D24's four — `requireSession` is the control, enforced by the matrix **and by `tsc`**. **No task boundary moved.** `pnpm test` **1395 → 1449 in 110 files**. **Its headline is that the plan's own matrix row for `token-other-project` says `404 NOT_FOUND` and the route answers `403 TOKEN_CREDENTIAL_REFUSED`** — `requireSession` runs before the project is read, which is the right order, and control (a) proves the row was written for the other one. **ALL NINE controls fired; none could not fail** |
 | 5 | 7 | **The gate that BLOCKS.** One evaluation in `launch/`, called by the read and by the deploy route, with the **two** unconditional refusals that exist today removed — and the checklist's items reading real rows. **Alone: it is this plan's centre** | ← **next** |
 | 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | |
 | 7 | 10–11 | **The approval**: `release:approve`'s first caller ever, bound to an immutable digest, non-repudiable, behind step-up — and its `diff_snapshot` with the AI-written summary that is **recorded as absent rather than blocking** when the model is down | |
@@ -4245,7 +4245,7 @@ lesson is the one §6 already states and this sitting proved twice: *a list of w
 itself a thing that goes stale, and the way to test it is to follow it as written rather than to
 read it.*
 
-### Sitting 4 — Tasks 5 and 6, migration 0019 and the two external records — 2026-09-20. **19 findings.**
+### Sitting 4 — Tasks 5 and 6, migration 0019 and the two external records — 2026-09-20. **21 findings** (19, plus 2 the post-sweep check found).
 
 **§13'S GATE NOW HAS REAL ROWS TO BLOCK ON, WHICH IS THE WHOLE OF R1.** Migration **0019**
 adds `approvals`, `iam_registrations` and `privacy_assessments` with §9's submission states,
@@ -4285,7 +4285,7 @@ per record writes it. `launch:record` is Decision 4's new capability, granted to
 |---|---|---|
 | `make doctor` | 19 checks, 0 failed | **19 checks, 0 failed** — unmoved; this sitting adds no platform check |
 | `make verify` | 54 checks, 0 failed | **54 checks, 0 failed** — unmoved, same reason |
-| `pnpm test` | 1395 in 108 files | **1449 in 110 files**, twice and identical — up **54** and **two files**: `launch/transitions.test.ts` (13) and `launch/records.test.ts` (13), plus **28 in `api/authz-contract.test.ts`** (three routes × nine actors, and one row is the completeness check's) |
+| `pnpm test` | 1395 in 108 files | **1449 in 110 files**, twice and identical — up **54** and **two files**, and the split was COUNTED PER FILE rather than subtracted, which is how the post-sweep check found it wrong: `launch/transitions.test.ts` **13**, `launch/records.test.ts` **13**, `api/authz-contract.test.ts` **370 → 397 (+27)** — three new routes × nine actors — and `projects/privileged.test.ts` **5 → 6 (+1)** |
 | `pnpm test:docker` | 185 in 30 files | **185 in 30 files, 0 skipped, 830 s** — **OWED, RUN and UNMOVED**, and *predicted unmoved before it ran*: this sitting added no Docker test file, and migration 0019 only widens the schema every Docker suite already creates |
 
 #### The findings
@@ -4471,3 +4471,33 @@ branch this sitting wrote has one in the same commit.
 | port 7100 | **nothing listening** — the control plane was never started this sitting |
 | `HEAD` moved under this sitting | **twice**, `9987484` and `ad979e7`, both a design agent's markdown |
 | the four shared HTML pages | **checked, and none needed a change**: this sitting altered no decision, no spike status, no hostname and no count they restate |
+
+#### What the post-sweep check found — TWO, and the streak since P5b's third sitting holds
+
+**F20 — THE LIST THIS SITTING BUILT TO STAY HONEST HAD ALREADY GONE DISHONEST, AND §7e SAID IT
+HAD NOT.** Task 5 put all five new event types in `NO_PUBLISHER_YET`; **Task 6 then gave two of
+them publishers** (`recordIamRegistration` and `recordPrivacyAssessment` in `launch/records.ts`,
+with `records.test.ts` asserting both payloads) **and nothing moved them out.** So a map whose
+doc comment says *"types with NO PUBLISHER ANYWHERE YET"* named two that have one — the exact
+failure the second list exists to prevent, committed by the sitting that wrote it. Worse, §7e
+told the next agent the move had already happened. **Both fixed**: the two are now in
+`PUBLISHED_ELSEWHERE` naming `launch/records.test.ts`, `NO_PUBLISHER_YET` holds Tasks 10's and
+14's three, and §7e says so. **The assertion could not catch this** — it compares the union of
+the two maps against what the lifecycle reaches, so moving a key between them is invisible to
+it. Found only by opening the file.
+
+**F21 — a test-count attribution derived by SUBTRACTION was wrong, exactly as §6 warns.**
+This sitting first wrote *"13 + 13 + 28 in `api/authz-contract.test.ts`"*, because 1449 − 1395 =
+54 and 54 − 26 = 28. **Counted per file instead**: `authz-contract.test.ts` is **370 → 397, +27**,
+and the fifty-fourth test is **`projects/privileged.test.ts` 5 → 6** — the assertion that
+`launch:record` is NOT privileged, which is the one this sitting's Decision 4 most depends on and
+the one the wrong sum erased. Corrected in ORIENTATION's top-of-file box, §2's box, RUNBOOK and
+this record. **§6's rule is *re-derive every number rather than subtracting from the last one*,
+and this is that rule paying for itself in the sitting that read it.**
+
+**A third claim was checked and HELD**: every file, export, path and marker §7e names was opened
+— `spikes/p6a-baseline/README.md`, Task 7's `[M2][M4][M8]` block at line 1709,
+`getIamRegistration`/`getPrivacyAssessment` as exports of `launch/records.ts`, both new classes in
+`WIRE_CLASSES`, exactly three `DELIBERATELY_UNCALLED` entries, and both Docker files named as
+driving the deploy path.
+

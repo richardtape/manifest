@@ -37,6 +37,10 @@ const PUBLISHED_ELSEWHERE = {
   'sso.acs_changed': 'sso/registration.docker.test.ts — the real IdP',
   'ai.key_rotated': 'releases/releases.test.ts — a recording key service',
   'instance.retire_failed': 'releases/retire.test.ts — a driver that refuses',
+  // P6a Task 6. Their publisher is `launch/records.ts`, and the lifecycle this file drives
+  // never records an external launch object — an administrator does that, out of band.
+  'iam_registration.recorded': 'launch/records.test.ts — recordIamRegistration',
+  'privacy_assessment.recorded': 'launch/records.test.ts — recordPrivacyAssessment',
 } as const
 
 /**
@@ -52,8 +56,6 @@ const PUBLISHED_ELSEWHERE = {
  * below goes red and somebody has to decide which list it belongs in.
  */
 const NO_PUBLISHER_YET = {
-  'iam_registration.recorded': 'P6a Task 6 — launch/records.ts',
-  'privacy_assessment.recorded': 'P6a Task 6 — launch/records.ts',
   'rehearsal.completed': 'P6a Task 14 — launch/rehearsal.ts',
   'release.approved': 'P6a Task 10 — releases/approval.ts',
   'release.approval_rejected': 'P6a Task 10 — releases/approval.ts',
