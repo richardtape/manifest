@@ -141,7 +141,11 @@ check "the edge serves two listeners, internal and public"  check_two_servers
 check_public_listener() {
   require_ca || return 1
   local cfg_port compose_port
-  cfg_port="$(sed -n 's/.*MANIFEST_EDGE_PUBLIC_PORT: z\.coerce\.number()\.int()\.positive()\.default(\([0-9]*\)).*/\1/p' packages/control-plane/src/config.ts)"
+  # The whole zod chain is NOT matched, deliberately: an earlier draft spelled it out
+  # and reordering `.int()` and `.positive()` — a refactor that changes nothing — made
+  # this check read the default as absent and go red. Measured here. The setting's name
+  # and its `default(<n>)` are what this cares about.
+  cfg_port="$(sed -n 's/.*MANIFEST_EDGE_PUBLIC_PORT:.*default(\([0-9]*\)).*/\1/p' packages/control-plane/src/config.ts)"
   compose_port="$(sed -n 's/^[[:space:]]*-[[:space:]]*"'"$PUBLIC_EDGE_IP"':443:\([0-9]*\)".*/\1/p' infra/compose.yaml)"
   # Emptiness is its own failure: a `sed` that matched nothing would otherwise compare
   # '' with '' and pass. Both are asserted non-empty before they are compared.
