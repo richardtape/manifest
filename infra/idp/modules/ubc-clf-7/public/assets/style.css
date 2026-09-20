@@ -1,0 +1,90 @@
+/*
+ * This file contains the custom styles to make the SimpleSAMLphp
+ * login page look like the UBC CWL login page.
+ */
+
+/* Main content area adjustments */
+.content {
+    background-color: #fff;
+    padding: 2rem 0; /* Add vertical padding, remove horizontal */
+    box-shadow: none;
+    border-radius: 0;
+    margin: 0;
+    max-width: none;
+}
+
+#login-form-wrapper .form-horizontal .control-label {
+    width: 90px; /* Adjust label width */
+}
+
+#login-form-wrapper .form-horizontal .controls {
+    margin-left: 110px; /* Adjust control margin */
+}
+
+#login-form-wrapper input.input-xlarge {
+    background-color: #ffffdd;
+    border: 1px solid #ccc;
+}
+
+#login-form-wrapper .form-actions {
+    background-color: transparent;
+    border-top: none;
+    padding-left: 110px; /* Align with controls */
+}
+
+#login-info-wrapper .well {
+    background-color: #f0f6f9;
+    border: 1px solid #e0e8eb;
+}
+
+#login-info-wrapper .well h4 {
+    font-size: 14px;
+    margin-top: 0;
+    color: #002145;
+}
+
+#login-info-wrapper .well ul {
+    list-style: none;
+    margin-left: 0;
+}
+
+#login-info-wrapper .well ul li {
+    padding-left: 20px;
+    margin-bottom: 10px;
+}
+
+/* Override some base CLF styles for this specific page */
+#ubc7-footer {
+    margin-top: 2rem;
+}
+
+/* `.fake-cwl-make-red` WAS HERE and is deliberately gone: it styled the
+ * "DEFINITELY NOT CWL Authentication" heading, which Rich removed on 2026-09-19
+ * because the warning band above the header says it on every page instead. No
+ * template references the class any more, and a rule with no user is dead code. */
+
+/*
+ * Manifest's additions to the CLF theme (2026-09-19).
+ *
+ * `clf.css` beside this file is VENDORED UBC CLF 7 (Bootstrap 2.3.2) and is kept
+ * byte-identical to its source so it can be re-synced with a plain copy. Anything
+ * Manifest adds goes here instead.
+ */
+
+/* The practice-IdP warning band. Deliberately loud, deliberately above the UBC
+ * header: someone who lands mid-flow on any themed page should see it before they
+ * see anything that looks like a real CWL prompt. */
+#manifest-not-cwl-band {
+    background-color: #b00020;
+    color: #fff;
+    font-size: 14px;
+    line-height: 1.4;
+    padding: 10px 16px;
+    text-align: center;
+    border-bottom: 3px solid #7a0016;
+}
+
+#manifest-not-cwl-band strong {
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}

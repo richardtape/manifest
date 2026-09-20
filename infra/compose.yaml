@@ -260,6 +260,11 @@ services:
       - ./idp/metadata/saml20-idp-hosted.php:/var/simplesamlphp/metadata/saml20-idp-hosted.php:ro
       - ./idp/cert:/var/simplesamlphp/cert:ro
       - ./idp/attributemap/ubcoid.php:/var/simplesamlphp/attributemap/ubcoid.php:ro
+      # The UBC Common Look and Feel (CLF 7). MOUNTED, not baked into the image:
+      # the theme is data like the config beside it, so changing it needs no
+      # rebuild, no `composer create-project` and no network — which matters
+      # because rebuilding this image is the one step here that reaches out.
+      - ./idp/modules/ubc-clf-7:/var/simplesamlphp/modules/ubc-clf-7:ro
     ports:
       # 7122, deliberately NOT 6122 — that is the standalone docker-simple-saml
       # on this machine (§21).

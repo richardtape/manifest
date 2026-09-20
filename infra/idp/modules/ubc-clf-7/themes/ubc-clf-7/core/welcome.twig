@@ -1,0 +1,40 @@
+{#
+    WHERE A PERSON LANDS AFTER SIGNING OUT. SimpleSAMLphp has no logout PAGE as
+    such: an IdP-initiated single logout ends at `/module.php/core/welcome`, which
+    is this template. Stock, it reads "This is the front page of the SimpleSAMLphp
+    authentication software" and points at the SimpleSAMLphp documentation — true
+    of the software, useless to a faculty member who has just signed out of a
+    practice CWL, and it drops them out of the UBC look at the same time.
+
+    So this is themed AND rewritten. It says what happened, and it says again what
+    this IdP is, because somebody who arrives here out of context has no other clue.
+#}
+{% set pagetitle = 'Signed out'|trans %}
+{% extends "@core/_layout.twig" %}
+
+{% block content %}
+<div class="container">
+    <div class="row-fluid">
+        <div class="span12">
+            <h1>You are signed out</h1>
+            <p>
+                Your session with this <strong>practice</strong> sign-in service has ended.
+                Any application you signed in to through it has been told to sign you out too.
+            </p>
+        </div>
+    </div>
+    <div class="row-fluid">
+        <div class="span8">
+            <div class="well">
+                <h4>This is not real CWL</h4>
+                <p>
+                    This service exists so that an application can be built and demonstrated
+                    against a CWL-shaped sign-in <em>before</em> it has real CWL approvals. The
+                    accounts it knows are test accounts. Nothing you do here affects a real UBC
+                    account, and a real CWL password should never be typed into it.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

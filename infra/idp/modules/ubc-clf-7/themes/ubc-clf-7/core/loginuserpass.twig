@@ -1,0 +1,86 @@
+{% extends "@core/_layout.twig" %}
+
+{% block content %}
+<div class="container">
+    <div class="row-fluid">
+        <div class="span12">
+            <h1>CWL Authentication</h1>
+            <p>Login to continue to
+                <strong>
+                    {%- if SPMetadata.name is defined and SPMetadata.name is not empty -%}
+                        {{- SPMetadata.name|trans -}}
+                    {%- else -%}
+                        {{- SPMetadata.entityid -}}
+                    {%- endif -%}
+                </strong>
+            </p>
+        </div>
+    </div>
+    {#
+        WHY THIS BLOCK EXISTS. The CLF template as copied had no error handling at
+        all, so a wrong password re-rendered the form with NOTHING said about why —
+        measured 2026-09-19. SimpleSAMLphp's own `core/loginuserpass.twig` reports it
+        through `errorcode` plus the `errorcodes` title/description maps, so this is
+        that, in the CLF's own alert markup (Bootstrap 2.3.2, which `clf.css` is).
+    #}
+    {% if errorcode -%}
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="alert alert-error">
+                {% set errtitles = errorcodes['title'] %}
+                {% set errtitle = errtitles[errorcode] %}
+                <h4>{{ errtitle|trans(errorparams) }}</h4>
+                {% set errdescs = errorcodes['descr'] %}
+                {% set errdesc = errdescs[errorcode] %}
+                <p>{{ errdesc|trans(errorparams) }}</p>
+            </div>
+        </div>
+    </div>
+    {%- endif %}
+
+    <div class="row-fluid">
+        <div class="span8" id="login-form-wrapper">
+            <form action="{{ formURL }}" method="post" name="login" class="form-horizontal">
+                {%- for key, val in queryParams %}
+                    <input type="hidden" name="{{ key }}" value="{{ val }}" />
+                {%- endfor %}
+
+                <div class="control-group">
+                    <label for="username" class="control-label">Login Name</label>
+                    <div class="controls">
+                        <input type="text" id="username" name="username" value="{{ username }}" class="input-xlarge" />
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="password" class="control-label">Password</label>
+                    <div class="controls">
+                        <input type="password" id="password" name="password" class="input-xlarge" />
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </div>
+            </form>
+        </div>
+        <div class="span4" id="login-info-wrapper">
+            <div class="well">
+                <h4>Recover your CWL login or Reset your CWL password via Email</h4>
+                <p>If you have a non-UBC email address associated with your CWL account you can either:</p>
+                <ul>
+                    <li>Recover your CWL Login Name</li>
+                    <li>Reset your CWL Password</li>
+                </ul>
+            </div>
+            <div class="well">
+                <h4>Protect Your CWL account!</h4>
+                 <ul>
+                    <li>Watch out for sites or emails that pretend to be legitimate and ask for your CWL login name and password.</li>
+                    <li>Please report any suspicious requests for your CWL login name and password.</li>
+                    <li>Learn more about how to protect your devices.</li>
+                </ul>
+            </div>
+            <a href="#">Learn about the CWL Terms of Use &raquo;</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -107,5 +107,22 @@ $config = array_merge($config, [
     // and `saml` — which turns one broken thing into four.
     'module.enable' => array_merge($config['module.enable'] ?? [], [
         'exampleauth' => true,
+        // The UBC Common Look and Feel (CLF 7), bind-mounted by compose.yaml.
+        // Named here as well as carrying its own `enable` marker file, because the
+        // marker is a property of the SOURCE tree and this list is the property of
+        // THIS deployment — and one of the two is visible when reading the config.
+        'ubc-clf-7' => true,
     ]),
+
+    // WHAT A PERSON SEES WHEN THEY SIGN IN, both to Manifest itself and to any
+    // application that integrates CWL through this IdP — it is one IdP, so one
+    // setting covers both (Rich, 2026-09-19).
+    //
+    // `module:theme` — the module supplying the theme, then the theme inside it.
+    // The pages keep saying, loudly and on every page, that this is NOT real CWL:
+    // this IdP exists so people can see what a real CWL sign-in WILL look like
+    // before they have approvals, and it is deployed as a service for other teams.
+    // See `infra/idp/modules/ubc-clf-7/README.md` for where the theme came from,
+    // what was changed from that source and why.
+    'theme.use' => 'ubc-clf-7:ubc-clf-7',
 ]);

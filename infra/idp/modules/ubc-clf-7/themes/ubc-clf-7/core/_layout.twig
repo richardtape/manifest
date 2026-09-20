@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{% block page_title %}UBC SimpleSAMLphp{% endblock %}</title>
+    {# `asset()` RESOLVES THE BASE PATH ITSELF. The CLF source hardcoded
+       `/simplesaml/module.php/...`, which is correct only where SimpleSAMLphp is
+       served under /simplesaml/ — docker-simple-saml's layout. The Manifest IdP
+       serves at the ROOT of idp.manifest.internal, so those URLs 404 and the page
+       renders unstyled. This form is right in BOTH deployments.
+
+       THE PATH IS RELATIVE TO THE MODULE'S `public/`, AND `asset()` SUPPLIES THE
+       `assets/` SEGMENT ITSELF — `asset('clf.css', …)` becomes
+       `/module.php/ubc-clf-7/assets/clf.css`. Passing `assets/clf.css` here yields
+       `…/assets/assets/clf.css`, which 404s while the page still renders, just
+       unstyled — measured 2026-09-19. #}
+    <link rel="stylesheet" type="text/css" href="{{ asset('clf.css', 'ubc-clf-7') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ asset('style.css', 'ubc-clf-7') }}" />
+</head>
+<body>
+
+    {# NOT A REAL CWL. This IdP exists so people can see what a CWL sign-in WILL
+       look like before they have real approvals, and it is deployed as a service
+       for other teams — so the warning belongs on every page the theme renders,
+       not only on the login form. The red heading on the login page is kept as
+       well; this band is what someone landing on any other page sees. #}
+    <div id="manifest-not-cwl-band" role="alert">
+        <strong>PRACTICE SIGN-IN &mdash; NOT REAL CWL.</strong>
+        This is a test identity provider. Do not enter your real CWL credentials.
+    </div>
+
+    <header id="ubc7-header" class="row-fluid expand" role="banner">
+        <div class="container">
+            <div class="span1">
+                <div id="ubc7-logo">
+                    <a href="https://www.ubc.ca" title="The University of British Columbia (UBC)">The University of British Columbia</a>
+                </div>
+            </div>
+            <div class="span2">
+                <div id="ubc7-apom">
+                    <a href="https://cdn.ubc.ca/clf/ref/aplaceofmind" title="UBC a place of mind">UBC - A Place of Mind</a>
+                </div>
+            </div>
+            <div class="span9" id="ubc7-wordmark-block">
+                <div id="ubc7-wordmark">
+                    <a href="https://www.ubc.ca/" title="The University of British Columbia (UBC)">The University of British Columbia</a>
+                </div>
+                <div id="ubc7-global-utility">
+                    <button type="button" data-toggle="collapse" data-target="#ubc7-global-menu"><span>UBC Search</span></button>
+                    <noscript><a id="ubc7-global-utility-no-script" href="https://www.ubc.ca/" title="UBC Search">UBC Search</a></noscript>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+        {% block content %}
+            <p>No content available.</p>
+        {% endblock %}
+    </main>
+
+    <footer id="ubc7-footer" class="expand" role="contentinfo">
+        <div class="row-fluid expand" id="ubc7-unit-footer">
+            <div class="container">
+                <div class="span10" id="ubc7-unit-address">
+                    123 Road Name<br />
+                    Definitely NotaPlace<br />
+                    Some Area<br />
+                    A1A B1B
+                </div>
+            </div>
+        </div>
+        <div class="row-fluid expand ubc7-back-to-top">
+            <div class="container">
+                <div class="span2">
+                    <a href="#" title="Back to top">Back to top <div class="ubc7-arrow up-arrow grey"></div></a>
+                </div>
+            </div>
+        </div>
+        <div class="row-fluid expand" id="ubc7-global-footer">
+            <div class="container">
+                <div class="span5" id="ubc7-signature"><a href="https://www.ubc.ca/" title="The University of British Columbia (UBC)">The University of British Columbia</a></div>
+                <div class="span7" id="ubc7-footer-menu">
+                    <div class="row-fluid">
+                        <div class="span6">
+                            <h3>About UBC</h3>
+                            <div><a href="https://www.ubc.ca/about/contact.html">Contact UBC</a></div>
+                            <div><a href="https://www.ubc.ca/about/">About the University</a></div>
+                            <div><a href="https://www.ubc.ca/landing/news.html">News</a></div>
+                            <div><a href="https://www.ubc.ca/landing/events.html">Events</a></div>
+                            <div><a href="https://hr.ubc.ca/careers-and-job-postings">Careers</a></div>
+                            <div><a href="https://give.ubc.ca/">Make a Gift</a></div>
+                            <div><a href="https://www.ubc.ca/search/">Search UBC.ca</a></div>
+                        </div>
+                        <div class="span6">
+                            <h3>UBC Campuses</h3>
+                            <div><a href="https://www.ubc.ca/">Vancouver Campus</a></div>
+                            <div><a href="https://ok.ubc.ca/">Okanagan Campus</a></div>
+                            <h4>UBC Sites</h4>
+                            <div><a href="https://robsonsquare.ubc.ca/">Robson Square</a></div>
+                            <div><a href="https://thecdm.ca/">Centre for Digital Media</a></div>
+                            <div><a href="https://www.med.ubc.ca/about/campuses/">Faculty of Medicine Across BC</a></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row-fluid expand" id="ubc7-minimal-footer">
+            <div class="container">
+                <div class="span12">
+                    <ul>
+                        <li><a href="https://cdn.ubc.ca/clf/ref/emergency" title="Emergency Procedures">Emergency Procedures</a> <span class="divider">|</span></li>
+                        <li><a href="https://cdn.ubc.ca/clf/ref/terms" title="Terms of Use">Terms of Use</a> <span class="divider">|</span></li>
+                        <li><a href="https://cdn.ubc.ca/clf/ref/copyright" title="UBC Copyright">Copyright</a> <span class="divider">|</span></li>
+                        <li><a href="https://cdn.ubc.ca/clf/ref/accessibility" title="Accessibility">Accessibility</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+	</footer>
+
+</body>
+</html>

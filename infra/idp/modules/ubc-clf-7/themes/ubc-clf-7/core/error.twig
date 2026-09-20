@@ -1,0 +1,47 @@
+{#
+    The error page, in the CLF. SimpleSAMLphp's own `core/error.twig` extends
+    `base.twig` — the default theme's layout — so a person who hit an error mid
+    sign-in dropped out of the UBC look and into the stock SimpleSAMLphp one, which
+    on a practice IdP is exactly the moment they most need to be told where they
+    are. This is that template with its `extends` pointed at the CLF layout and its
+    body wrapped in the CLF's grid; the conditions and the table are unchanged.
+#}
+{% set pagetitle = 'An error has occurred'|trans %}
+{% extends "@core/_layout.twig" %}
+
+{% block content %}
+<div class="container">
+    <div class="row-fluid">
+        <div class="span12">
+            <h1>{{ pagetitle }}</h1>
+
+            {% if code is same as ('IDENTIFICATION_FAILURE') %}
+            <p>{{ 'The identification procesd has failed.' |trans }}</p>
+            {% elseif code is same as ('AUTHENTICATION_FAILURE') %}
+            <p>{{ 'The authentication procesd has failed.' |trans }}</p>
+            {% elseif code is same as ('AUTHORIZATION_FAILURE') %}
+            <p>{{ 'The authorization procesd has failed.' |trans }}</p>
+            {% else %}
+            <p>{{ 'There was an issue while signing you in.' |trans }}</p>
+            {% endif %}
+
+            {% if ts is defined or rp is defined or tid is defined or ctx is defined %}
+            <table id="table_with_attributes" class="table table-striped" summary="attribute overview">
+              {% if ts is defined %}
+              <tr><td>Timestamp</td><td>{{ ts }}</td></tr>
+              {% endif %}
+              {% if rp is defined %}
+              <tr><td>Service Provider</td><td>{{ rp }}</td></tr>
+              {% endif %}
+              {% if tid is defined %}
+              <tr><td>Reference code</td><td>{{ tid }}</td></tr>
+              {% endif %}
+              {% if ctx is defined %}
+              <tr><td>Context</td><td>{{ ctx }}</td></tr>
+              {% endif %}
+            </table>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
