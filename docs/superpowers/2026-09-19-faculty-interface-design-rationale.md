@@ -71,6 +71,20 @@ a single decorative element, the question a faculty member has when they hand an
 students — *is this a real UBC service?* It is also the reason the artboards grew from 1280 to 1440,
 so that content keeps the width it was designed at.
 
+**A defect I introduced, and what it taught the lint.** The rail was added to sixteen artboards by
+script, and the four speculative screens came out broken — the regex that lifted out the hatched
+band required two consecutive closing tags, found the first pair *deeper in the page*, and so
+severed each screen in half: part of the content hoisted above the rail, the rest stranded after an
+empty content column. **My structural lint passed it**, because it checked that tags balanced and
+they did. Balance is not structure. The lint now asserts that the rail's sibling content column
+actually holds the page, that nothing is stranded after it, and that a band contains no nested
+`div` — three checks that would each have caught this on its own.
+
+**And the band moved while fixing it.** It had been spanning the full width *above* the rail, which
+claims the navigation is speculative too. It isn't: the rail is real. The band now sits inside the
+content column, so the claim lands on the screen it is about — and a hatched strip no longer
+collides with a deep blue rail, which is most of why those screens looked wrong.
+
 **And one thing was removed.** The 4px accent stripe down the left edge of a card — on the checklist
 items, the agent's question and the change-in-progress card — is gone, at Rich's direction. With
 five state colours already in play it read as a second, competing status system, and a row of cards
