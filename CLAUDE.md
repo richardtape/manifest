@@ -14,9 +14,9 @@ statement of the four gate numbers; and the roadmap's ledger
 (`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every other document on
 status.*
 
-**The design is approved and complete, five spikes are done, and P1 to P5b are executed
-and green.** Each of those has an acceptance that passes; **P5c is written and is executing**,
-and its row says so:
+**The design is approved and complete, five spikes are done, and P1 to P5c are executed
+and green — PHASE 1c IS COMPLETE.** Every one of them has an acceptance that passes, and
+**no plan is executing**: the next job is to WRITE P6, which ORIENTATION §7e sets out.
 
 | Plan | Executed | What it made true | Acceptance |
 |---|---|---|---|
@@ -28,24 +28,23 @@ and its row says so:
 | P4c | 2026-09-16 | A redeploy interrupts and signs out nobody | `make demo-redeploy` |
 | P5a | 2026-09-17 | The API is a published contract under `/v1`, driven by a generated client | `make demo-journey` |
 | P5b | 2026-09-18 | An agent acts on a delegated token; D24's privileged four are refused centrally and a person confirms one retry | `make demo-token` |
-| P5c | *executing — started 2026-09-18; **ORIENTATION §7e says which sitting is next**, and this file deliberately does not* | The clients: `manifest-mock`, `console/` behind its import boundary, the CI acceptance script | §22's journey clicked by a person **and** run headlessly, over one contract |
+| P5c | 2026-09-19 | The clients: `manifest-mock`, `console/` behind its import boundary, the CI acceptance script — and Phase 1c's acceptance | §22's journey clicked by a person **and** run headlessly, over one contract |
 
-**P5c IS WRITTEN AND EXECUTING** (`docs/superpowers/plans/2026-09-18-p5c-the-clients.md`,
-written 2026-09-18): the clients — `manifest-mock`, `console/` behind its import boundary, and
-the CI acceptance script — **14 tasks in nine agreed sittings**, started 2026-09-18
-(`docs/superpowers/spikes/p5c-baseline/` is sitting 1's record). It is the last plan of
-Phase 1c. **HOW MANY SITTINGS ARE DONE IS NOT STATED HERE, DELIBERATELY** — §6's sweep table
-asks that this file name no sitting and no gate number, because both go stale every session,
-and it said *"sitting 1 of nine"* until P5c sitting 2 swept it. **ORIENTATION §7e names the
-next job and says what to read, in what order; the plan's own sittings table is the maintained
-copy.** One thing worth knowing here rather than there: **the one sitting with the network on
-is over** — nothing left in this plan may install a package, and if a task believes it needs
-one, that is a finding to raise. Rich settled three things in it: nine sittings (the leaner of
-three splits, with the cost stated — sitting 5 carries both streaming screens); **§8's
-`stream_close_delay` question is answered by a MEASUREMENT in Task 1** — **which has now run, and
-the answer was yes, an app's WebSocket IS cut by any other app's deploy, so `routing/caddy.ts`
-carries the field and §8's item is closed**; and the **clicked half of its acceptance is shared
-and recorded**, because an agent driving Chrome cannot type a password.
+**P5c IS EXECUTED** (`docs/superpowers/plans/2026-09-18-p5c-the-clients.md`, written
+2026-09-18, executed 2026-09-18/19): the clients — `manifest-mock`, `console/` behind its import
+boundary, and the CI acceptance script — **14 tasks in nine sittings, 106 findings**. It was the
+last plan of Phase 1c, and **Phase 1c is now complete**. **§16's Acceptance tier is MET**: §22's
+journey is proved by two independent clients over one contract — `make ci-acceptance` headlessly,
+run three times including from an `echo reset | make reset` machine, and **a person clicking all
+sixteen rows** on 2026-09-19, recorded as a GIF. Rich settled three things in it: nine sittings
+(the leaner of three splits, with the cost stated); **§8's `stream_close_delay` question is
+answered by a MEASUREMENT** — an app's WebSocket IS cut by any other app's deploy, so
+`routing/caddy.ts` carries the field and §8's item is closed; and the **clicked half of its
+acceptance is shared and recorded**, because an agent driving Chrome cannot type a password.
+**Its acceptance found a live defect no gate can see, and it is recorded rather than fixed**:
+signing out of any deployed app leaves the person on a raw JSON `404`, because Manifest's own
+Single Logout URL answers `POST` only while SAML's logout binding sends `GET` — and Manifest's
+own session is not ended by the chain. **It is a decision waiting on Rich in ORIENTATION §8.**
 
 **P5b — delegated tokens and pending actions (D24) — was executed in nine sittings and finished
 on 2026-09-18** (`docs/superpowers/plans/2026-09-17-p5b-delegated-tokens.md`, 13 tasks): an agent
