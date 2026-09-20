@@ -16,8 +16,9 @@ make up` brings up the whole §21 inventory — split-horizon DNS, a custom `xca
 edge with rate-limiting and Coraza, Postgres with three databases, a private
 registry and npm mirror, a default-deny egress proxy, a rootless non-privileged
 BuildKit, LiteLLM against host Ollama, and the Manifest IdP. `make doctor` is now
-**18 checks / 0 failed** and `make verify` **51 / 0**, and both were green **with the
-network off** when P1 was executed. `https://console.manifest.internal/` returned the same hostname and
+**19 checks / 0 failed** and `make verify` **54 / 0**, and both were green **with the
+network off** when P1 was executed. *(P6a sitting 2 added one doctor check and three verify
+checks for §12's second listener, 2026-09-19.)* `https://console.manifest.internal/` returned the same hostname and
 scheme from the host browser and from inside a container — no port, no certificate
 warning. *(Since P5a Task 3 that name is the console's origin, refused to every source but
 the host, so `make verify` proves the same parity on `https://edge.manifest.internal/`.)* See [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md).
@@ -32,7 +33,7 @@ and a Fastify surface with D23.6 idempotency keys and the D23.7 error envelope o
 every failure. The whole faculty lifecycle — project, spec, build, release, staging
 deploy to healthy, production correctly refused with its §13 checklist — runs against
 the fake driver in **~300 ms**, and against **real Docker** through `make demo`.
-**1390 tests with no Docker, and 178 more that need a daemon** — nothing skipped, since P4c Task 5 gave the Docker driver the fixtures for the driver contract's continuity block. See
+**1390 tests with no Docker, and 180 more that need a daemon** — nothing skipped, since P4c Task 5 gave the Docker driver the fixtures for the driver contract's continuity block. See
 [*Running the control plane*](#running-the-control-plane) below.
 
 The design is approved and complete.
@@ -117,7 +118,7 @@ this machine will do to you, and what to do next. Then:
 | Understanding what the Docker half does | ORIENTATION §3's *The code* and §7a's P3 row, then [`docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md`](docs/superpowers/plans/2026-08-31-p3-docker-driver-deploy-spine.md) — all 19 tasks executed. Read its *What executing this plan found*, Sessions 4 and 5 |
 | Running the control plane | [*Running the control plane*](#running-the-control-plane) below — `make up`, then `pnpm --filter @manifest/control-plane dev` |
 | Executing any plan | The plan itself. It is self-contained by construction; if it is not, that is a defect in the plan — fix it there |
-| **Executing P6a — the current job** | **P5c IS EXECUTED — all 14 tasks in nine sittings, 2026-09-18/19, 107 findings — and PHASE 1c IS COMPLETE** ([P5c, the clients](docs/superpowers/plans/2026-09-18-p5c-the-clients.md)). **P6a — the first production launch — IS WRITTEN: [19 tasks in eleven agreed sittings](docs/superpowers/plans/2026-09-19-p6a-first-production-launch.md) (2026-09-19), from [the P6 brief](docs/superpowers/plans/2026-09-19-p6-brief.md). IT IS EXECUTING: its sitting 1 — the measurements, alone and first — ran on 2026-09-19 with 15 findings and moved no task boundary, so the eleven-sitting split stands.** [ORIENTATION §7e](docs/superpowers/ORIENTATION.md) is the hand-off; the plan's own sittings table says how far it has got. P6 was split into P6a and P6b on D9's own two clauses. |
+| **Executing P6a — the current job** | **P5c IS EXECUTED — all 14 tasks in nine sittings, 2026-09-18/19, 107 findings — and PHASE 1c IS COMPLETE** ([P5c, the clients](docs/superpowers/plans/2026-09-18-p5c-the-clients.md)). **P6a — the first production launch — IS WRITTEN: [19 tasks in eleven agreed sittings](docs/superpowers/plans/2026-09-19-p6a-first-production-launch.md) (2026-09-19), from [the P6 brief](docs/superpowers/plans/2026-09-19-p6-brief.md). IT IS EXECUTING: the measurements moved no task boundary, so the eleven-sitting split stands, and **§12's INTERNAL/PUBLIC LISTENER SPLIT IS NOW REAL** — the edge runs two servers in one container, `srv0` on `127.0.0.2` for staging, sandbox, the console and the IdP, and `srv1` on `127.0.0.3` for the production zone and nothing else, so §21's honest divergence 2 no longer describes this machine.** [ORIENTATION §7e](docs/superpowers/ORIENTATION.md) is the hand-off; **the plan's own sittings table says how far it has got, and this row deliberately states no sitting number.** P6 was split into P6a and P6b on D9's own two clauses. |
 | Seeing the platform actually work | `make demo` (an app, from a bare repository to a URL), **`make demo-identity`** (a real CWL sign-in whose note nobody else can see), **`make demo-ai`** (the same app answering a question from the asker's own notes, charged to them) and **`make demo-redeploy`** (the same app redeployed twice and failed once while a signed-in student keeps asking, with nothing interrupted) and **`make demo-journey`** (§22's journey through the client generated from the OpenAPI document — **all eight steps**: it creates `journey-app` from a starter, builds it, deploys it, signs in inside it, asks for production and reads the fleet), after `make up` and starting the control plane. [`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) has all five, step by step |
 | Looking for what a spike proved | `docs/superpowers/spikes/S{7,2,1,3,6}-findings.md` — the answer is the first sentence of each |
 | Looking for the architecture | [`docs/superpowers/specs/2026-08-29-manifest-platform-design.md`](docs/superpowers/specs/2026-08-29-manifest-platform-design.md) — authoritative, ~2,340 lines. ORIENTATION §3 tells you which sections you actually need |

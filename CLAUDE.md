@@ -84,15 +84,20 @@ reads `none dead` and `litellm-orphans.sh` reads 0 orphaned. They were clear at 
 too; sitting 2 ran no Docker tier and they stayed clear; **sitting 3 ran one and seven networks,
 one volume and one LiteLLM orphan (`p4b-probe-user`) came straight back**, and were cleared again. **The cycle is the thing to understand, not the status**: a tier run takes
 `make verify`'s per-app line from `containers=3 networks=1 volumes=2` to
-`containers=3 networks=8 volumes=3`, and an apply takes it back. **This is the FIFTH time the tier
-has been measured putting back exactly the same seven networks and one volume** (P5b sitting 9 and P5c sittings 1, 8 and 9 are the
-others), so treat it as a property of the Docker tier rather than as a
-backlog: **none of these cleanups stays cleared on its own**, and every demo adds a LiteLLM user
-besides. **One thing neither script covers is app images** — 27 stand
-today by distinct image ID, a number every Docker-tier run moves, and three ways of counting
-them answer 29, 28 and 27 (ORIENTATION §7e names all three), which is not urgent but is nobody's job until somebody re-derives the held set. **Name the
-metric**: they are tagged `127.0.0.1:7107/local/*`, so `docker images | grep '^local/'` answers
-**0** and reads as *none*. **So run both scripts bare at a sitting's close, then TRY `--apply` yourself**, and hand the output to
+`containers=3 networks=8 volumes=3`, and an apply takes it back. **The tier has now been measured putting back exactly the same seven networks and one volume
+many times over** — ORIENTATION §2's box carries the count, and this file deliberately does not,
+because a restated number drifts and this one did — so treat it as a property of the Docker tier
+rather than as a backlog: **none of these cleanups stays cleared on its own**, and every demo adds a LiteLLM user
+besides. **One thing neither script covers is app images**, and it is nobody's job until somebody
+re-derives the held set — not urgent, but growing. **STATE NO COUNT HERE AND MEASURE IT
+YOURSELF**: every Docker-tier run and every demo moves it, so any number written down is
+wrong within the day. **And NAME THE METRIC when you do**, because the obvious commands
+disagree by design: on 2026-09-20 `docker images -q | wc -l` answered **114** while
+`docker images -q | sort -u | wc -l` answered **106** (dangling and multiply-tagged images),
+and the app images themselves are tagged `127.0.0.1:7107/local/*` — so
+`docker images | grep '^local/'` answers **0** and reads as *none* when 64 of them exist.
+ORIENTATION §2's *Outstanding* bullet on the image sweep carries the same lesson from the
+day 86 of them were removed. **So run both scripts bare at a sitting's close, then TRY `--apply` yourself**, and hand the output to
 Rich only when the classifier refuses you — it refused these in earlier sittings and ALLOWED both in
 P5c sitting 8, which cleared them without him. Never work from a written list. **The permission classifier is not a
 fixed rule** — it allowed all of that and then began refusing `docker volume ls` in the same

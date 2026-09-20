@@ -31,8 +31,8 @@
 | Sitting | Tasks | What it delivers | Status |
 |---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on**, before any code: whether SimpleSAMLphp honours `ForceAuthn`, what the second listener actually costs on this machine (the alias, the dnsmasq split, the probe path), whether `computeLaunchReadiness` survives being read by something that blocks, and the **two** production gates rather than one. **Alone, and first** | **DONE 2026-09-19 — 15 findings.** All ten measurements ran. **R3 is a GO**, `ForceAuthn` **is honoured**, Decision 13 is measured. **No task boundary moved, so the eleven-sitting split stands.** Correction blocks on Tasks 1, 2, 3, 4, 5, 7 and 12 |
-| 2 | 2–3 | **The second listener exists**: `127.0.0.3` on `lo0` and the dnsmasq split (Rich runs one bundled `sudo` script), then `srv1` inside the edge with the production wildcard site, and `make doctor` and `make verify` checks for both halves. **Read both tasks' `[M5]` correction blocks first — `edge.manifest.internal` needs pinning back AND its own `srv0` site, or `make verify` goes red with a TLS error** | ← **next** |
-| 3 | 4 | **A production route goes on the public listener and staging cannot reach it** — §12's fail-closed claim watched failing on the only machine that exists, in both directions, and the readiness probe taught the production path | |
+| 2 | 2–3 | **The second listener exists**: `127.0.0.3` on `lo0` and the dnsmasq split (Rich runs one bundled `sudo` script), then `srv1` inside the edge with the production wildcard site, and `make doctor` and `make verify` checks for both halves | **DONE 2026-09-19 — 12 findings.** §12's split is REAL: two servers in one container, and a production name on the internal address and a staging name on the public one are both served by NOTHING, watched both ways. **§21's divergence 2 no longer describes this machine, so Spec action 1 is unconditional in practice — still Rich's, still not applied.** doctor **19/0**, verify **54/0**. **Its headline corrects sitting 1's F3: an unreachable name answers `200` WITH AN EMPTY BODY, not a TLS error, because Caddy's certificate cache is app-global — so a status assertion is green whether the split holds or leaks.** Two of the plan's own controls could not fail as written |
+| 3 | 4 | **A production route goes on the public listener and staging cannot reach it** — §12's fail-closed claim watched failing on the only machine that exists, in both directions, and the readiness probe taught the production path. **Read sitting 2's F5 before writing a single assertion: `200` is the answer in BOTH directions, which is exactly what this task's control (c) exists to prove** | ← **next** |
 | 4 | 5–6 | **Migration 0019** — `approvals`, `iam_registrations`, `privacy_assessments` and their state machines — and **the two external records over the API**: an administrator records a real registration and a real PIA with a pasted ticket reference | |
 | 5 | 7 | **The gate that BLOCKS.** One evaluation in `launch/`, called by the read and by the deploy route, with the **two** unconditional refusals that exist today removed — and the checklist's items reading real rows. **Alone: it is this plan's centre** | |
 | 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | |
@@ -3739,3 +3739,203 @@ stopped at its close, leaving 7100 free as `[M1]` found it**; it ran with a deli
 would have invalidated every cookie jar between measurements (§4). **The next sitting should use
 the README block as written.** A parallel session committed `45e5b9d` during this sitting and
 left two untracked files; **they were not staged.**
+
+---
+
+### Sitting 2 — Tasks 2 and 3, the second listener — 2026-09-19. **12 findings.**
+
+**§12's LISTENER SPLIT IS REAL ON THIS MACHINE.** The edge runs two servers in one
+container — `srv0` on `:443` (internal: staging, sandbox, the console, the IdP and the edge
+probe) and `srv1` on `:8443` (public: the production zone and nothing else) — published to
+`127.0.0.2:443` and `127.0.0.3:443`. §21's honest divergence 2 no longer describes this
+machine, and **Spec action 1 is now unconditional in practice** (it is still Rich's, and is
+still not applied). A production name on the internal address and a staging name on the
+public one are both served by nothing, watched, in both directions.
+
+**THE ONE THING TO CARRY FORWARD, above every finding below:** a name the split makes
+unreachable answers **`200` with an empty body**, NOT a TLS error, because Caddy's
+certificate cache is app-global. **A status assertion is green whether the split is intact
+or leaking.** Everything Task 4 writes must read the `listener=` word.
+
+| Gate | Before | After |
+|---|---|---|
+| `make doctor` | 18 checks, 0 failed | **19 checks, 0 failed** |
+| `make verify` | 51 checks, 0 failed | **54 checks, 0 failed** |
+| `pnpm test` | 1390 in 108 files | **1390 in 108 files** — unchanged, and that is the point: both test files this sitting touched were EDITED, not added |
+| `pnpm test:docker` | 178 in 29 files | **180 in 30 files, 0 skipped, 848 s** — exactly the predicted 178 + 2 |
+
+#### The findings
+
+**F1 — `make doctor`'s `check_zone_unclaimed` probes a BARE production-zone name, and the
+split turns it red.** It reads `probe-unclaimed.$ZONE` — no environment label, therefore the
+production zone — and asserted `= $EDGE_IP`. The moment `dns-host` carried the split it read
+`manifest.internal resolves to 127.0.0.3` and failed. **The plan names the two checks Task 2
+ADDS and does not consider the one it MOVES**, though *Read this first* 12 says in terms to
+predict which check moves. Repaired to assert `PUBLIC_EDGE_IP`, with the reason in the
+comment; it still catches the thing it was written for, because Valet's `127.0.0.1` or any
+other resolver's answer is neither address. **Found by running the gate.**
+
+**F2 — the plan predicted `make doctor` would read 20 checks. It reads 19.** Task 2's Step 6
+says "beside the existing alias check" and then defines `check_aliases`, which loops over
+both addresses and therefore subsumes the single-address `check_alias` exactly. Keeping both
+would assert `127.0.0.2` twice — the "a document that restates a number drifts from it" shape
+applied to a gate — so the old check was REPLACED: 18 − 1 + 2 = 19. The new message names the
+missing address, so it is strictly the more useful of the two.
+
+**F3 — Task 2's Step 7 says `make verify` should still read 51/0, and that "a change here is
+a finding". It reads 51/2, and it cannot read anything else.** Task 2 moves the bare
+production zone to `127.0.0.3`; **nothing publishes that address until Task 3's `compose.yaml`
+port.** `zones_serve` and `runtime_route` both failed `curl: (7) Failed to connect …
+port 443`. So **Tasks 2 and 3 are only jointly consistent — the split is not a state this
+machine can rest in between them.** That is a stronger argument for their sharing a sitting
+than the schedule's, and it is the thing to know before anyone splits them.
+
+**F4 — Task 2's control (c) fires with the wrong message, and the right one is more useful.**
+Predicted: *"a production name answers 127.0.0.2, want 127.0.0.3"*. Measured: *"a production
+name answers `<nothing>`"*. **There is no fall-back to the old answer**: `--local=/manifest.internal/`
+makes dnsmasq authoritative for the zone, so removing the parent `--address=` rule leaves the
+name resolving to nothing at all. The control still fires, and it is the check's own
+`${app:-<nothing>}` default that kept the failure legible rather than printing a bare `want`.
+
+**F5 — SITTING 1's F3 PREDICTED THE WRONG SYMPTOM, AND THE REAL ONE IS MORE DANGEROUS.** F3
+said a bare-zone name left without a site on `srv0` would fail at the TLS handshake with
+`curl: (35) … tlsv1 alert internal error`. Measured here: it answers **`200` with an EMPTY
+BODY**. The mechanism, confirmed with `openssl s_client -servername` against both addresses:
+**Caddy's certificate cache is APP-GLOBAL, not per-server** — both servers present
+`DNS:*.manifest.internal`, because the certificate `srv1`'s site causes to be issued is
+available to `srv0` too. The handshake therefore succeeds, `srv0` matches no site, and Caddy
+returns an empty 200. Only a name no certificate anywhere in the config covers
+(`foo.notazone.test`) produces F3's alert. **F3 measured a name in no zone and generalised to
+a name in a zone whose wildcard had moved, and those are different cases.** Its prescribed
+repair is still right and still needed. **The consequence is the sitting's headline: a
+status-only assertion passes whether the split holds or leaks.**
+
+**F6 — the plan's own Task 3 check 3 COULD NOT FAIL, and `[M5]`'s repair is what disarmed
+it.** Step 4's `check_no_crossover` probes `edge.$ZONE` on the internal address and tests only
+for `listener=public`. But `[M5]`'s repair — in the same task — gives `edge.` its **own `srv0`
+site**, which Caddy prefers over any wildcard. So with the production wildcard moved back onto
+`srv0` — the plan's own control (b), the exact leak the check exists for — `edge.` still
+answers `listener=internal` from its explicit site and **the check stays green through the
+defect.** The plan wrote the repair and the check in one task and did not notice they collide.
+Repaired two ways: probe `PUBLIC_PROBE_HOST` (`cdn.manifest.internal`, a reserved production
+label **no site names**, so only a wildcard can answer it), and assert the **absence of
+`listener=`** rather than the presence of the wrong value — which is also what makes it
+survive F5.
+
+**F7 — `EDGE_PROBE_HOST`'s stated rationale is falsified by this task, exactly as `console.`'s
+was in P5a Task 3.** `infra/lib/common.sh` said it is *"A reserved label … that no Caddyfile
+site names, so the placeholder answers it on every machine for ever — which `console.` stopped
+being in P5a Task 3."* Task 3 gives `edge.` a site, so **`edge.` has now stopped being that
+too**, and the comment was left claiming the property that made it trustworthy. Corrected
+where the constant lives, and `PUBLIC_PROBE_HOST` added for the job `edge.` can no longer do.
+
+**F8 — `make verify`'s `runtime_route` is broken by the split, and is also its most eloquent
+demonstration.** It PUT one route to `srv0` for `late-arrival.manifest.internal` — bare,
+therefore production. Post-split that name resolves to `srv1`, so the route sat on a server the
+request never reached and the check read the wildcard instead of its own body. **That is §12's
+claim working exactly as designed, watched failing on this machine for the first time.** As a
+check it now adds one route per listener, mirroring `listenerFor`: production → `srv1`,
+staging → `srv0`. **A staging-only repair would have stayed green while no production route
+could ever be reached**, and a production-only one would have stayed green while every demo on
+this machine broke.
+
+**F9 — serving `edge.manifest.internal` forced a §23 reserved-label group move, and the test
+caught it unprompted.** `edge-names.test.ts` holds every NAMED site on the edge to being
+reserved *in the group that says Manifest serves it*. `edge` sat in
+`environments-and-infrastructure`, whose reason is that a name *"reads as"* a platform
+component — true while nothing served it. It now has its own site, so it moved to the
+`manifest` group (*"Manifest serves, or will serve, this name itself"*), where its existing
+description *"Manifest's edge proxy"* already belonged. **No spec change: the label's
+reservation is unchanged, only the reason a person asking for the slug is shown.**
+
+**F10 — `config.test.ts` is the one unit test the split necessarily moves, and its NAME
+asserted the old world.** It read *"names both listeners srv0 locally"*. A test whose title
+states a fact is a document that drifts; it now reads *"names the two listeners srv0 and
+srv1"* and says which test goes red if they are ever collapsed again.
+
+**F11 — the `grep -c` trap bit live, in this session, while running a control.** A
+`grep -c … && make up` chain silently skipped `make up`, because **`grep -c` exits 1 when it
+counts zero** — the success condition. That is the identical defect `host-undo.sh`'s own
+comment records from 2026-09-05, which is why that file asserts its exit status rather than
+inheriting one. It cost one confused re-run. **An exit status is asserted, never inherited**,
+and that applies to a throwaway shell pipeline as much as to a committed script.
+
+#### Negative controls — every one watched, and which could not fail
+
+| | Control | Predicted | Measured |
+|---|---|---|---|
+| 2a | `sudo ifconfig lo0 -alias 127.0.0.3` | doctor red: *"127.0.0.3 not on lo0"* | **RICH'S — it needs `sudo`. See below.** |
+| 2a′ | `PUBLIC_EDGE_IP` pointed at `127.0.0.9`, unprivileged | — | **RED, both new checks**: *"127.0.0.9 not on lo0"* and *"a production name answers 127.0.0.3, want 127.0.0.9"*. Proves the check's logic; does NOT prove a real alias removal, which is why 2a is still owed |
+| 2b | console pin-back removed, `make up` | doctor red on the console half | **RED as predicted**: *"console.manifest.internal answers 127.0.0.3, want 127.0.0.2 — the console is on the PUBLIC address"* |
+| 2c | production parent rule removed, `make up` | doctor red: *"answers 127.0.0.2"* | **RED, different message** — `<nothing>`. See F4 |
+| 3a | the `:8443` site removed, `make up` | verify red on *two listeners* and *the public listener answers* | **RED on both, plus TWO the plan does not name** — `zones_serve` and `runtime_route`'s `srv1` half, because nothing then serves the production zone at all (4 verify checks in total). **The Docker test went red on the PRODUCTION case ONLY**, not both: removing `srv1` does not change `srv0`'s correct handling of staging, so that case passing is right. See F12 |
+| 3b | production wildcard moved back to `srv0` | verify red on *no crossover* | **RED, and it is the finding of the sitting**: *"a production name IS served on the internal address: manifest OK host=cdn.manifest.internal … listener=internal"*. Docker test red on its first case only, as predicted. **The plan's own version of this check was run against the same leak and PASSED** — see F6 |
+| 3c | `MANIFEST_CADDY_SERVER_PUBLIC=srv0` | **nothing in this task goes red** — it is Task 4's | **NOTHING went red**, as the plan says. Confirmed by running the Docker test with the variable set: 2 passed. Task 3 makes two servers exist; nothing yet writes a route to the right one, and that is Task 4 |
+
+**F12 — control (a)'s prediction about the Docker test is wrong in a way worth knowing.** The
+plan says the new Docker test goes *"red on both cases"* when the `:8443` site is removed. It
+goes red on the **production case only**, and the staging case passing is **correct**: removing
+`srv1` does not change `srv0`'s handling of staging, and the staging case's second half — *a
+staging name is not served on the public listener* — is MORE true with no public listener at
+all. A reader who expected two failures would go looking for a defect in a passing test. The
+control fired on four `make verify` checks, two of which the plan does not name (`zones_serve`
+and `runtime_route`'s `srv1` half).
+
+#### What this sitting decided
+
+- **`check_aliases` REPLACES `check_alias` rather than sitting beside it** (F2). *Rejected:*
+  keeping both, which is what the plan's wording implies and which asserts `127.0.0.2` twice.
+  *Changing course* is three lines.
+- **`check_no_crossover` probes a name NO SITE CLAIMS, and asserts the ABSENCE of `listener=`**
+  (F6), rather than probing `edge.` for the presence of the wrong value. *Rejected:* the plan's
+  version, which was measured passing through the leak. *Changing course* would reintroduce a
+  check that cannot fail.
+- **`runtime_route` adds one route PER LISTENER** (F8) rather than moving its single route to
+  `srv1`. *Rejected:* a production-only version (green while every demo broke) and a
+  staging-only version (green while no production route could be reached).
+- **`edge` moves reserved-label GROUPS rather than the test being relaxed** (F9). *Rejected:*
+  loosening `edge-names.test.ts` to accept any reserved label, which would stop it asking §23's
+  actual question. **This is not a spec change** — the reservation is unchanged and only the
+  reason shown to a person asking for the slug moves.
+
+#### The machine, queried at close rather than recalled
+
+`make doctor` **19/0**, `make verify` **54/0**, `pnpm test` **1390 in 108 files** twice and
+identical, `pnpm test:docker` **180 in 30 files, 0 skipped, 848 s**, lint/typecheck/format
+clean. **`lo0` carries `127.0.0.1`, `127.0.0.2` and `127.0.0.3`** — Rich ran
+`sudo bash infra/host/p6a-second-address.sh` himself. The edge: `srv0 listen=:443 routes=4`,
+`srv1 listen=:8443 routes=1`. **Nothing is listening on 7100** — the control plane was never
+started this sitting. **The database is EMPTY** — `psql` at close reads `projects=0 users=0
+instances=0 releases=0`, because `pnpm test` truncates and the gates ran last; the twelve app
+containers are still up, so the containers outlive their projects, which is ordinary here.
+
+**The cleanups were run bare and then APPLIED by this session — the classifier allowed both.**
+`dead-app-resources.sh` found the documented **seven networks and one volume** put back by this
+sitting's Docker-tier run (`make verify`'s per-app line went `12/4/8` → `12/11/9` → `12/4/8`),
+and re-measuring with the script itself afterwards reads **`none dead`**. `litellm-orphans.sh`
+found **one** orphan, `p4b-probe-user` — the same name P5c sitting 1 cleared — and a bare re-run
+after `--apply` reads **`Orphaned (0)`** with all four held users surviving. **That is now the
+sixth measurement of the Docker tier regenerating exactly that set: treat it as a property of
+the tier, not a backlog.**
+
+**One control is still OWED and is Rich's:** Task 2's control (a), `sudo ifconfig lo0 -alias
+127.0.0.3` with `make doctor` watched going red. An unprivileged stand-in was run instead and
+both new checks fired with the right messages, which proves the checks' LOGIC but not that a
+real alias removal is caught.
+
+**The four shared HTML pages were CHECKED and correctly need no change**: `grep` for
+`manifest.internal`, `caddy` and `edge proxy` finds **0** in all four, and the schematic's
+`Status` line describes outcomes a non-technical reader would recognise. A second listener is
+infrastructure with no such outcome yet — **production is not reachable until Task 15** — so
+the pages stay as P5c left them. Checked rather than assumed, per §6.
+
+**A parallel session committed `a451187` during this sitting**; it was not staged, and
+`git status` was accounted for before each of the two commits. Commits: `0d612f4` (Task 2) and
+`978df32` (Task 3).
+
+*One note for the next agent, checked rather than assumed: ORIENTATION's "`pnpm test` — even one
+file — truncates the control plane's tables" is true of files that USE the database.
+`packages/control-plane/vitest.setup.ts` only sets environment variables, and
+`edge-names.test.ts` and `reserved-labels.test.ts` import no database helper at all — so running
+those two during the Docker tier did not contaminate it. Verified by reading their imports when
+the worry arose, rather than discarding an 848-second run on a guess.*

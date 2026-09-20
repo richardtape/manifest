@@ -291,6 +291,12 @@ ORIENTATION §6 and any plan's negative controls.
 - **`200` with the body `manifest OK host=…` is the edge's placeholder, not your app.** The app
   has no route. `pnpm test:docker` restarts the edge, which drops every route, so after it
   every demo URL answers this way until you run the demo again. **Read the body, not the status.**
+- **`200` with an EMPTY body means you asked the wrong listener.** Since P6a the edge runs two
+  servers: `127.0.0.2` serves staging, sandbox, the console and the IdP, and **`127.0.0.3` serves
+  the production zone and nothing else**. Ask one for the other's names and no site matches, so
+  you get an empty `200` — **not** a certificate error, because Caddy's certificate cache is
+  shared between the two servers. The placeholder now ends `listener=internal` or
+  `listener=public`, and that word is the quickest way to see which server answered you.
 - **`pnpm test` and `pnpm test:docker` empty the control plane's tables.** Demo projects vanish
   (their containers keep running), and the next demo prints `reusing project` — correctly.
 - **A redeploy no longer signs anybody out — unless the app was generated before 2026-09-16.**
