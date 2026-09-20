@@ -3918,6 +3918,18 @@ after `--apply` reads **`Orphaned (0)`** with all four held users surviving. **T
 sixth measurement of the Docker tier regenerating exactly that set: treat it as a property of
 the tier, not a backlog.**
 
+**The before/after `snapshot-machine.sh` diff is 64 lines and every one is platform operation
+rather than machine change**: clocks and uptimes, free disk **57 → 59 GiB** (the cleanups
+gave some back), `manifest-caddy` and `manifest-dns-host` recreated by the two
+`compose.yaml` config changes, `HEAD` moved, and **four new app images left by the Docker
+tier** — `boot-recover`, `chem-labs`, `fixture-rd` and `redeploy-cp`. Those four are exactly
+the growth CLAUDE.md notes **neither cleanup script covers**, and they are a reason to
+measure that set rather than quote a count for it. **All four must-survive containers are
+present** (`docker-simple-saml-saml-idp-1` still `Exited (0)`, which is correct — "must
+survive" means do not delete it, not that it is up), and **both read-only repositories are
+still clean**: `docker-simple-saml`'s only dirty path is the untracked `cert.zip` dated
+2026-06-22, exactly as CLAUDE.md records it.
+
 **One control is still OWED and is Rich's:** Task 2's control (a), `sudo ifconfig lo0 -alias
 127.0.0.3` with `make doctor` watched going red. An unprivileged stand-in was run instead and
 both new checks fired with the right messages, which proves the checks' LOGIC but not that a
