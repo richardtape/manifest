@@ -92,6 +92,33 @@ implied have already been applied to
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
 
+### Spec action raised by the P6 brief — ✅ APPROVED AND APPLIED 2026-09-19
+
+**One, and Rich chose a narrower version than was proposed.** The brief's R4 asked what asserts
+that an app's *code* is safe. Nothing does, and §20's control map said so: *"Unreviewed code
+reaching production — Accepted under D9."* The draft proposed edits to §12, §13, §15 and §20;
+**Rich took §15, §20 and a new D33**, on the argument that §12 is *Supply chain* — packages,
+lockfiles, registries, SBOM — and reviewing app source is not that, while §13 already describes
+the AI-written approval summary the change would touch.
+
+- **D33 (new)** — code review gets an **interface** in Phase 2 and implementations later, shipped
+  as a null implementation whose verdict states no review was performed, feeding a
+  **non-blocking** `LaunchReadiness` item. Rationale is D30's, applied to a second seam:
+  retrofitting it would touch the builder, the approval record and the checklist at once. And it
+  is honest by construction, because a placeholder that *appeared* to review would be another
+  setting that reads like a control and is not.
+- **§15** — the extension-hook row, which is what §15 exists for.
+- **§20** — the control-map row now opens *"Still accepted under D9"*, keeps containment as the
+  control, and ends *"until one lands nothing reviews code"*.
+
+**The four shared HTML pages were swept with it** — `manifest-decisions.html` gained a
+plain-language D33 card and every hardcoded count went **32 → 33** across all four files. That is
+the half of a spec action that gets forgotten; §6 lists it for this reason.
+
+**Implementations are NOT in P6.** P6a ships the seam; the `SemgrepReviewer` is the tracked
+hardening item above; LLM diff review comes later, and its own control is a corpus of planted
+defects, because a model that stops noticing fails silently.
+
 ### Spec action raised by executing P5a — ✅ APPLIED to §12, 2026-09-16, on Rich's instruction; tracked as its own hardening item
 
 **§12, *Egress — default deny* (and §7's `egress.allow`): an app may not egress to a platform
@@ -692,7 +719,7 @@ item in and delete its row.**
 | Item | Spec | Enforce in | Needs | Why it is not done yet |
 |---|---|---|---|---|
 | **`egress.allow` may not name a platform surface** — the platform zone (`*.manifest.internal`, UBC's zones) or a `manifest-*` service. Refuse at validation as `EGRESS_ALLOW_INVALID`. | §12 *Egress* (applied 2026-09-16) | `spec/` validation, reusing the reserved-label set; the syntactic check is `runtime/docker/egress.ts`'s `renderAllowlist` today | **P5a Task 9's reserved-label loader** (`projects/reserved-labels.ts`), plus the environment zones | Rich's call (2026-09-16): its own hardening item, built **after P5a executes** so the loader exists. Measured exposure: P5a Task 1 `[M2g]` — the dual-homed egress proxy tunnels raw TCP to any name it resolves on `manifest-platform`, so a declared `manifest-postgres` reaches the platform DB across the east-west boundary. Defense in depth behind the edge's source check (§21), which already refuses the console leg. |
-| **Static analysis of app code — `SemgrepReviewer`** — the second implementation of the `Reviewer` seam P6a defines. Offline (C1 forbids a cloud service), **advisory before blocking**. | §12 *Supply chain* (proposed 2026-09-19, **not yet applied**) | `build/`, beside `scan.ts` and `gates.ts` | **P6a's `Reviewer` interface**, so this is one implementation and not a new seam | Rich's call (2026-09-19): tiers 1 and 2 of the code-safety question are wanted, and this is tier 2. It is NOT P6 scope — P6a ships the seam and the honest null implementation, and §20's control map row stays *accepted, with a named plan* until something real lands. A static analyser pointed at AI-written code will find a great deal on its first run, which is why §12's own *block on what a rebuild can clear* rule applies here from the start. |
+| **Static analysis of app code — `SemgrepReviewer`** — the second implementation of the `Reviewer` seam P6a defines. Offline (C1 forbids a cloud service), **advisory before blocking**. | **D33 and §15** (applied 2026-09-19); §12 deliberately unchanged | `build/`, beside `scan.ts` and `gates.ts` | **P6a's `Reviewer` interface**, so this is one implementation and not a new seam | Rich's call (2026-09-19): tiers 1 and 2 of the code-safety question are wanted, and this is tier 2. It is NOT P6 scope — P6a ships the seam and the honest null implementation, and §20's control map row stays *accepted, with a named plan* until something real lands. A static analyser pointed at AI-written code will find a great deal on its first run, which is why §12's own *block on what a rebuild can clear* rule applies here from the start. |
 
 ### Phases 3–5 — not planned
 

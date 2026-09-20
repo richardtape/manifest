@@ -66,7 +66,7 @@ everything.
 - **~~Watching the edge's `@outside` refusal go red~~ — CLOSED 2026-09-17, and no longer Rich's.** P5a Task 17's control (a) asked for the refusal to be removed from `infra/caddy/Caddyfile` and the edge reloaded; that weakens a running edge, and this machine's classifier refused it twice as *[Security Weaken]*. **It is now proved two ways that do not weaken anything.** (1) `make verify`'s *the console's one allowed source is the platform network's gateway* reads the **Caddyfile on disk**, so removing the rule was watched turning it red — `platform gateway=10.89.0.1 Caddyfile allows= …` — with no `make up` and the edge never reloaded. (2) `routing/edge-source-refusal.docker.test.ts` starts a **throwaway** `manifest-caddy:local` on the platform network with and without the matcher and asserts the answer changes, so the causal link is re-proved on every `pnpm test:docker` instead of once by hand. Both of its directions were watched failing.
 - **§8's open questions.**
 
-**The spec is current.** Every spike's and every plan's spec actions have been applied with Rich's explicit approval — most recently P5a's six (`491f8be`). **Trust the spec over the spike briefs**, which are preserved as a record of what was originally asked, and **propose any further change; never edit it** (§6).
+**The spec is current.** Every spike's and every plan's spec actions have been applied with Rich's explicit approval — **most recently the P6 brief's R4 on 2026-09-19: D33, §15's extension-hook row and §20's control-map row**, with the four shared HTML pages swept to match (every count 32 → 33). Before that, P5b's four and P5a's six (`491f8be`). **Trust the spec over the spike briefs**, which are preserved as a record of what was originally asked, and **propose any further change; never edit it** (§6).
 
 ---
 
@@ -1787,9 +1787,9 @@ what each rejected):
    next reader would believe it. **And the item must be non-blocking** — a seventh blocking item in
    state `not_built` would make production unreachable for ever, which is the trap R1 exists to
    undo. P6b makes the approval summary security-aware. Semgrep is a tracked hardening item, not
-   P6 scope. **⚠ R4 NEEDS A SPEC ACTION (§12, §13, §15, §20) THAT RICH HAS NOT APPROVED — see §8.
-   Do not apply it, and do not write P6a's reviewer tasks as though §20's control map already
-   reads differently.**
+   P6 scope. **R4's spec action is ✅ APPROVED AND APPLIED (2026-09-19): D33, §15's hook row and §20's
+   control-map row — §12 and §13 deliberately untouched. The spec already reads this way, so write
+   P6a's reviewer tasks against D33 and §15 as they now stand, and do NOT re-propose it.**
 
 **THE THREE THINGS MOST LIKELY TO COST YOU, all in the brief and all worth reading there:**
 
@@ -1844,17 +1844,6 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 
 ### Open
 
-- **P6 brief R4's SPEC ACTION — does the code-safety seam go into the spec? — RAISED 2026-09-19.**
-  Rich decided R4's *substance* the same day (a `Reviewer` interface with an honest null
-  implementation in P6a, a security-aware approval summary in P6b, Semgrep as a tracked hardening
-  item), but the spec text it needs is **proposed and not applied**: §12 names the seam, §13's
-  `diff_snapshot` summary gains a security dimension with its coverage limit stated, §15 gains an
-  extension-hook row, and **§20's control map row changes** — today it reads *"Unreviewed code
-  reaching production — Accepted under D9"*, and it must end up saying *accepted, with a named
-  seam and a staged plan*, **without reading as though the risk is closed**, because until a real
-  implementation lands it is not. The full proposal is the P6 brief's §7. **Apply it before P6a's
-  tasks are written, or not at all** — P5b's four spec actions were applied before its tasks for
-  the same reason.
 - **Should app containers run with an init (`Init: true`)? — RAISED 2026-09-16 (P5a sitting 2).** An app's PID 1 is its
   own `node`, which never reaps the orphans it adopts, so a process an app starts that leaves children behind turns them
   into zombies holding pids against §12's `PidsLimit` (64 in the S6 fixture) for the container's life — measured with
@@ -1889,6 +1878,8 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 - **Starting the UBC external track (C4)** — the trigger fired 2026-09-15; see §2 and `docs/external-track.md`.
 
 ### Decided
+
+- **R4's code-safety spec action — APPROVED AND APPLIED 2026-09-19.** §4 gains **D33** (a code `Reviewer` gets an interface in Phase 2 and implementations later, shipped as a null implementation whose verdict says no review was performed, feeding a **non-blocking** checklist item); §15 gains its extension-hook row; and §20's control map row now opens *"Still accepted under D9"* and ends *"until one lands nothing reviews code"*. **§12 and §13 were deliberately not touched** — supply chain is about packages, and §13 already describes the summary. The four shared HTML pages moved with it, every count 32 → 33. Reasoning: the P6 brief's §5 R4 and §7. — do not re-raise
 
 - **The SLO binding defect (F11/F16) — FIXED ON 2026-09-19, at Rich's direction**, rather than deferred to P6. `GET /auth/logout` now answers the IdP's HTTP-Redirect LogoutRequest, and the redirect binding's values are decoded as URI components rather than form fields. The reasoning, the three negative controls and the browser proof are in P5c's record, sitting 9. — do not re-raise
 

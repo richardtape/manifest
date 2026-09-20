@@ -150,8 +150,12 @@ For the platform itself it is `make doctor` and `make verify`.
   this machine and on other UBC developers' machines. This is why the platform zone
   is `*.manifest.internal` and why the edge binds the `127.0.0.2` loopback alias.
 - **Never edit the spec directly.** `docs/superpowers/specs/2026-08-29-manifest-platform-design.md`
-  is marked *Approved design*. Record proposed changes and ask; that has been the
-  pattern four times.
+  is marked *Approved design*. Record proposed changes and ask — **every spec change this
+  project has made was approved by Rich first**, most recently **D33 on 2026-09-19**. The
+  roadmap's *Spec action(s) raised by…* sections are the list; this file deliberately states no
+  count, because a restated number drifts (ORIENTATION §9) and this one already had.
+  **A spec action is not finished when the spec changes**: the four shared HTML pages restate it
+  in plain language, and D33 moved six counts across four files.
 - **These containers must survive**: `docker-simple-saml-saml-idp-1`,
   `qdrant-local-dev`, `mongodb`, `mongo-express`.
 - **`docker-simple-saml` and `ubc-genai-toolkit` are read-only.** Both are clean and

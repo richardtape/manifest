@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Manifest — The 32 Decisions</title>
+<title>Manifest — The 33 Decisions</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <link rel="stylesheet" href="manifest.css">
 </head>
@@ -14,7 +14,7 @@
   <ol>
     <li><a href="manifest-schematic.html"><span class="n">&larr;</span>Overview</a></li>
     <li><a href="manifest-stories.html"><span class="n">A</span>Six faculty stories</a></li>
-    <li><a href="manifest-decisions.html" aria-current="true"><span class="n">B</span>The 32 decisions</a></li>
+    <li><a href="manifest-decisions.html" aria-current="true"><span class="n">B</span>The 33 decisions</a></li>
     <li><a href="manifest-phases.html"><span class="n">C</span>What gets built when</a></li>
   </ol>
 </nav>
@@ -23,7 +23,7 @@
 <header class="mast">
   <a class="back" href="manifest-schematic.html">&larr; Manifest overview</a>
   <p class="eyebrow">Reference &middot; B</p>
-  <h1>The 32 decisions</h1>
+  <h1>The 33 decisions</h1>
   <p class="lede">Every significant choice made while designing Manifest, with the reason it was
   made. <strong>Most of them are here because the obvious alternative turned out to be wrong,
   and it is worth remembering why.</strong></p>
@@ -35,10 +35,10 @@
 
 <section id="decisions" style="border-top:0">
   <p class="claim">A decision is written down when reversing it later would be expensive.
-  Small choices are not here. These 32 are.</p>
+  Small choices are not here. These 33 are.</p>
 
   <div class="filters">
-    <button class="tagbtn" type="button" data-tag="all" aria-pressed="true">all 32</button>
+    <button class="tagbtn" type="button" data-tag="all" aria-pressed="true">all 33</button>
     <button class="tagbtn" type="button" data-tag="Safety" aria-pressed="false">safety</button>
     <button class="tagbtn" type="button" data-tag="Signing in" aria-pressed="false">signing in</button>
     <button class="tagbtn" type="button" data-tag="Running apps" aria-pressed="false">running apps</button>
@@ -212,8 +212,13 @@
 <p class="dwhy">Forking is the platform&rsquo;s best answer to forty people building the same marking tool, so it has to be safe enough to encourage. Everything on the not-copied list belongs to one person, one group of students and one purpose: copying a sign-in registration would put two different applications behind one identity at UBC, and copying a size setting would quietly size a fourteen-person tool for nine hundred. What you do inherit is the expensive part &mdash; the design, the code, and a privacy draft a reviewer has already accepted for a very similar app.</p>
 <span class="dtag">Safety</span></div></article>
 
+<article class="d" data-tag="Safety"><div class="did">D33</div><div>
+<p class="dwhat">Nothing yet reads the code an AI wrote looking for security problems, and the platform says so plainly instead of implying otherwise. What gets built now is the socket a checker will one day plug into, plus a report that honestly reads &ldquo;no review was performed&rdquo;. The launch checklist shows that item, and it does not block anything, because an empty socket has not made anybody safer.</p>
+<p class="dwhy">Two kinds of checking already run on every single build and will stop a release: one looks for known problems in the ready-made components an app borrows, the other looks for passwords accidentally left in the code. Reading the app&rsquo;s own logic is a harder problem, and doing it badly is worse than not doing it at all &mdash; a checker that quietly approves everything is more dangerous than a visibly empty space, because people stop looking. So the space is left empty and labelled, and the wiring around it is built now: adding it later would mean reworking the build process, the approval record and the launch checklist at the same time. Meanwhile the real protection is containment &mdash; an app can only reach what it has declared, can only talk to what it is allowed to, and runs with the fewest privileges that work.</p>
+<span class="dtag">Safety</span></div></article>
+
   </div>
-  <p class="dcount" id="dcount">Showing all 32 decisions.</p>
+  <p class="dcount" id="dcount">Showing all 33 decisions.</p>
 
   <p class="foot">Decisions D1&ndash;D32 correspond to &sect;4 of
   <code>2026-08-29-manifest-platform-design.md</code>, rewritten here in plain language.
