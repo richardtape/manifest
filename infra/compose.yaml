@@ -62,7 +62,22 @@ services:
       - --local=/manifest.internal/
       # The host's answer differs from the containers' answer. That difference IS
       # the split horizon, and it is the entire point of running two processes.
-      - --address=/manifest.internal/127.0.0.2
+      #
+      # §12's TWO LISTENERS, made real on the host (P6a, R3). The zones are NESTED and
+      # PRODUCTION IS THE PARENT — `manifest.internal` contains `staging.` and `sandbox.`
+      # AND `console.` AND `idp.` AND `edge.` — so the parent rule below would move the
+      # console, the IdP and the edge probe onto the public address if the more-specific
+      # rules did not pin them back. A plan that says "point the production zone at the
+      # new alias" takes the console down; measured on a throwaway resolver before this
+      # file was touched (P6a sitting 1, `[M5](b)`), which is also where `edge.` was
+      # found missing from the list (F3) — it is a §23 reserved label living in the BARE
+      # production zone, and `make doctor` and `make verify` both probe it.
+      - --address=/manifest.internal/127.0.0.3
+      - --address=/staging.manifest.internal/127.0.0.2
+      - --address=/sandbox.manifest.internal/127.0.0.2
+      - --address=/console.manifest.internal/127.0.0.2
+      - --address=/idp.manifest.internal/127.0.0.2
+      - --address=/edge.manifest.internal/127.0.0.2
 
   caddy:
     build: { context: ./caddy }

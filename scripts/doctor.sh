@@ -241,12 +241,20 @@ echo
 echo "Zone"
 # Valet answers for ALL of .test. If something already owns our zone, names
 # resolve, DNS looks healthy, and requests land on the wrong web server.
+#
+# THE ADDRESS THIS EXPECTS MOVED IN P6a (R3), and this check found it by going red.
+# `probe-unclaimed` has no environment label, so it is a name in the BARE zone — which
+# is the PRODUCTION zone (config.ts: MANIFEST_ZONE_PRODUCTION) — and the split sends
+# the production zone to PUBLIC_EDGE_IP. It answered 127.0.0.2 before the split and
+# answers 127.0.0.3 after it, and both are correct for their own day. The check still
+# does its original job: anything that is not one of Manifest's own two addresses —
+# Valet's 127.0.0.1, or another resolver's answer — fails it.
 check_zone_unclaimed() {
   local got
   got=$(dscacheutil -q host -a name "probe-unclaimed.$ZONE" 2>/dev/null | awk '/ip_address/{print $2}' | head -1)
   if [ -z "$got" ]; then echo "nothing answers for $ZONE yet (correct before host-setup)"; return 0; fi
-  echo "$ZONE resolves to $got"
-  [ "$got" = "$EDGE_IP" ]
+  echo "$ZONE resolves to $got (the bare zone is production, so $PUBLIC_EDGE_IP)"
+  [ "$got" = "$PUBLIC_EDGE_IP" ]
 }
 check "nothing but Manifest claims $ZONE"  check_zone_unclaimed
 
@@ -262,12 +270,34 @@ check_resolver() {
 }
 check "/etc/resolver/$ZONE installed and correct"  check_resolver
 
-check_alias() {
-  ifconfig lo0 | grep -q "inet $EDGE_IP" \
-    || { echo "$EDGE_IP not on lo0 — Docker will refuse to bind Caddy. Lost on every reboot; \`make up\` re-adds it."; return 1; }
-  echo "$EDGE_IP present on lo0"
+# BOTH aliases since P6a (R3). This REPLACES the single-address check rather than
+# sitting beside it: the loop subsumes it exactly, and two checks asserting the same
+# fact about EDGE_IP is the "a document that restates a number drifts from it" shape
+# applied to a gate. The message names the missing address, so it is strictly the
+# more useful of the two.
+check_aliases() {
+  for ip in "$EDGE_IP" "$PUBLIC_EDGE_IP"; do
+    ifconfig lo0 | grep -q "inet $ip" \
+      || { echo "$ip not on lo0 — Docker will refuse to bind Caddy. Lost on every reboot; \`make up\` re-adds it."; return 1; }
+  done
+  echo "$EDGE_IP and $PUBLIC_EDGE_IP present on lo0"
 }
-check "the $EDGE_IP loopback alias exists"  check_alias
+check "both loopback aliases exist"  check_aliases
+
+# The split's HOST answer — the half that would take the console down if it regressed.
+# BOTH DIRECTIONS MATTER AND THE SECOND EARNS ITS PLACE: a check that only asserts the
+# production answer stays green while the console has moved to the public address.
+# `split-probe` is a name no Caddyfile site and no app owns, so it reads the zone's
+# parent rule rather than anything's configuration.
+check_zone_split() {
+  local app internal
+  app="$(dig +short "split-probe.$ZONE" @127.0.0.1 -p "$PORT_DNS" | head -1)"
+  internal="$(dig +short "$CONSOLE_HOST" @127.0.0.1 -p "$PORT_DNS" | head -1)"
+  [ "$app" = "$PUBLIC_EDGE_IP" ] || { echo "a production name answers ${app:-<nothing>}, want $PUBLIC_EDGE_IP"; return 1; }
+  [ "$internal" = "$EDGE_IP" ] || { echo "$CONSOLE_HOST answers ${internal:-<nothing>}, want $EDGE_IP — the console is on the PUBLIC address"; return 1; }
+  echo "production=$app  console=$internal  (nested zones, pinned back)"
+}
+check "the production zone answers the public address, and the console does not"  check_zone_split
 
 check_ca_keychain() {
   local n

@@ -25,13 +25,13 @@ the API is under `/v1`, reached once the control plane runs (README's *Running t
 plane*), and every other source than the host is refused.
 
 `make seed` must run **before** `make host-setup`: the CA it mints is what
-`host-setup` trusts. Seed also adds the `127.0.0.2` alias itself, so Caddy can bind
+`host-setup` trusts. Seed also adds the loopback aliases itself, so Caddy can bind
 80/443 the first time — that is what removes S7's run-the-script-twice dance.
 
 ## Every day
 
 ```bash
-make up        # re-adds the 127.0.0.2 alias if a reboot removed it
+make up        # re-adds the 127.0.0.2 and 127.0.0.3 aliases if a reboot removed them
 make down      # stops everything, including the profiled builder
 ```
 
@@ -40,7 +40,7 @@ make down      # stops everything, including the profiled builder
 | | |
 |---|---|
 | `make seed` | The only step that needs network. Pulls and **pushes** base images into the local registry, warms the npm mirror, mints the CA, pulls the Ollama models. |
-| `make up` | Boots the platform and waits for every healthcheck. Re-adds the loopback alias, prompting for `sudo` **only** when it is genuinely missing. |
+| `make up` | Boots the platform and waits for every healthcheck. Re-adds **both** loopback aliases, prompting for `sudo` **only** when one is genuinely missing. |
 | `make down` | Stops everything. Data, the seed cache and the CA all survive. |
 | `make reset` | Destroys project data, the databases and the registry's contents. **Keeps** the Caddy CA, the npm mirror cache, `infra/images.lock` and the Ollama models, and re-pushes the base images from the local daemon — so the machine stays offline-capable. |
 
@@ -301,14 +301,46 @@ Three things, all reversible with `make host-undo`:
 
 1. `/etc/resolver/manifest.internal` — scoped to our zone only, never all of
    `.internal`, which would break Docker's own `host.docker.internal`.
-2. A `127.0.0.2` alias on `lo0`.
+2. **Two** aliases on `lo0`: `127.0.0.2` and, since P6a, `127.0.0.3`.
 3. Caddy's CA root trusted in the System keychain.
+
+### The second address, `127.0.0.3` (P6a, R3)
+
+§12 splits the edge into two listeners, and **a second address is what makes that real
+on this machine**. `127.0.0.2` carries the internal listener — staging, sandbox, the
+console and the IdP — and **`127.0.0.3` carries the public one, which serves the
+production zone and nothing else**. The two are separate Caddy *servers*, `srv0` and
+`srv1`, inside the one `manifest-caddy` container, so there is still exactly one
+`caddy-data` volume and one internal CA.
+
+**Why an address rather than a port:** the faculty-facing URL has to stay
+`https://<slug>.manifest.internal` with no port, or the byte-for-byte host/container
+hostname parity §9 needs is broken — `infra/compose.yaml` refuses a port in that URL in
+its own words.
+
+**The zones are nested and production is the parent.** `manifest.internal` *contains*
+`staging.`, `sandbox.`, `console.`, `idp.` and `edge.`, so `dns-host` pins those five
+back to `127.0.0.2` with more-specific `--address=` rules. Without the pin-backs the
+console and the IdP move to the public address and the console goes down. `make doctor`
+checks both directions of this — that a production name answers `127.0.0.3` **and** that
+the console does not.
+
+**Adding it needs `sudo` once:**
+
+```bash
+sudo bash infra/host/p6a-second-address.sh
+```
+
+It is additive, it does not touch Valet, and after that `make up` re-adds both aliases
+on every start because neither survives a reboot. **`make host-undo` removes both and
+asserts both removals.**
 
 **Laravel Valet is never touched.** It keeps `.test`, port 53, and `127.0.0.1:80`
 and `:443`. Verified during P1's execution rather than assumed: Valet's config files
 were unmodified (mtime 2026-07-03), its dnsmasq was the same process throughout, and
-Manifest binds only `127.0.0.2:80/443`, `127.0.0.1:7119` and `127.0.0.1:7153` — never
-53, never `127.0.0.1:80/443`. Its nginx still answers on `127.0.0.1:443`.
+Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
+`127.0.0.1:7153` — never 53, never `127.0.0.1:80/443`. Its nginx still answers on
+`127.0.0.1:443`.
 
 ## C1's acceptance — what was actually run
 

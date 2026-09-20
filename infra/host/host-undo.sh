@@ -10,7 +10,9 @@ cd "$(dirname "$0")/../.."
 . infra/lib/common.sh
 
 rm -f "/etc/resolver/$ZONE"
-ifconfig lo0 -alias "$EDGE_IP" 2>/dev/null
+# BOTH aliases since P6a (R3). If only one were removed the machine would not be as
+# it was found, and a stray 127.0.0.3 is invisible until something tries to bind it.
+for ip in "$EDGE_IP" "$PUBLIC_EDGE_IP"; do ifconfig lo0 -alias "$ip" 2>/dev/null; done
 
 # Remove by COMMON NAME first — authoritative, and does not need the file to
 # still exist. The file-based call is belt-and-braces.
@@ -34,11 +36,13 @@ else
   echo "removed        /etc/resolver/$ZONE"
 fi
 
-if ifconfig lo0 | grep -q "inet $EDGE_IP"; then
-  echo "STILL PRESENT  $EDGE_IP on lo0"; failed=1
-else
-  echo "removed        $EDGE_IP from lo0"
-fi
+for ip in "$EDGE_IP" "$PUBLIC_EDGE_IP"; do
+  if ifconfig lo0 | grep -q "inet $ip"; then
+    echo "STILL PRESENT  $ip on lo0"; failed=1
+  else
+    echo "removed        $ip from lo0"
+  fi
+done
 
 roots=$(security find-certificate -a -c "Caddy Local Authority" \
         /Library/Keychains/System.keychain 2>/dev/null | grep -c keychain)

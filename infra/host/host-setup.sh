@@ -11,13 +11,17 @@ cd "$(dirname "$0")/../.."
 
 [ "$(id -u)" -eq 0 ] || { echo "run via: make host-setup"; exit 1; }
 
-# 1. The loopback alias. LOST ON EVERY REBOOT — `make up` re-adds it.
-if ifconfig lo0 | grep -q "inet $EDGE_IP"; then
-  echo "1/3  $EDGE_IP already on lo0"
-else
-  ifconfig lo0 alias "$EDGE_IP" up
-  echo "1/3  added $EDGE_IP to lo0"
-fi
+# 1. The loopback aliases — BOTH of them since P6a (R3): EDGE_IP carries §12's
+#    internal listener and PUBLIC_EDGE_IP the public one. LOST ON EVERY REBOOT —
+#    `make up` re-adds them. Valet keeps 127.0.0.1 and is untouched by either.
+for ip in "$EDGE_IP" "$PUBLIC_EDGE_IP"; do
+  if ifconfig lo0 | grep -q "inet $ip"; then
+    echo "1/3  $ip already on lo0"
+  else
+    ifconfig lo0 alias "$ip" up
+    echo "1/3  added $ip to lo0"
+  fi
+done
 
 # 2. The resolver, scoped to manifest.internal — NOT to all of .internal, which
 #    would break Docker's own host.docker.internal and gateway.docker.internal.

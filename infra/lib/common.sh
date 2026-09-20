@@ -9,7 +9,12 @@ NET_BUILD="manifest-build-internal"
 CADDY_IP="10.89.0.10"     # the edge, on the platform network
 DNS_C_IP="10.89.0.53"     # dnsmasq answering CONTAINERS
 DNS_H_IP="10.89.0.54"     # dnsmasq answering the HOST
-EDGE_IP="127.0.0.2"       # the lo0 alias Caddy binds, so Valet keeps 127.0.0.1
+EDGE_IP="127.0.0.2"       # the lo0 alias Caddy's INTERNAL listener binds, so Valet keeps 127.0.0.1
+# §12's public listener, made real (P6a, R3). Production only. A SECOND ADDRESS rather than a
+# port, because infra/compose.yaml says in terms that a port in the URL breaks the byte-for-byte
+# hostname parity §9 needs — so the faculty-facing URL stays https://<slug>.manifest.internal.
+# Additive, like EDGE_IP: Valet keeps 127.0.0.1 and `make host-undo` removes both.
+PUBLIC_EDGE_IP="127.0.0.3"
 
 # The Manifest IdP's ONE name. SAML is browser-mediated, so the IdP needs a URL
 # that is identical from the host, from a container and from `curl` — C1's bar.
