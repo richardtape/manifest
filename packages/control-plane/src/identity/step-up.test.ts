@@ -29,6 +29,25 @@ describe('§20’s step-up claim (P6a Task 8)', () => {
   })
 
   /**
+   * **TEN MINUTES, AS A LITERAL — and this assertion exists because a control could not
+   * fail without it.**
+   *
+   * Task 9's control (d) widens the window to a year and predicts *refuses a session
+   * stepped up longer ago* goes red. Measured: **1492 tests green, nothing red**, because
+   * every other test here builds its instants out of `STEP_UP_TTL_MS` and then compares
+   * them against a function that uses the same constant — so the file agrees with itself
+   * whatever the number says. It is `privileged.test.ts`'s *"deriving them from the
+   * constant under test"* warning, applied to a number instead of a set.
+   *
+   * The relative tests below are still the right shape for a boundary; this is the one
+   * that pins the value. Decision 8's reasoning for ten: long enough to read a release
+   * diff and decide, short enough that a stolen cookie is rarely stepped up.
+   */
+  it('is ten minutes, and nothing has quietly widened it', () => {
+    expect(STEP_UP_TTL_MS).toBe(600_000)
+  })
+
+  /**
    * THE BOUNDARY, both sides of it. An off-by-one here is a step-up that lives a
    * millisecond too long, and `<=` versus `<` is exactly the edit nothing else would
    * catch.
