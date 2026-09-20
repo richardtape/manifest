@@ -40,6 +40,8 @@ async function serving(
   projectId: string,
   ownerId: string,
   buildScan: unknown,
+  /** The CWL attributes the candidate release asks for — FROZEN in its resolved config. */
+  attributes: string[] = [],
 ): Promise<string> {
   await tx.insert(environments).values({
     projectId,
@@ -72,7 +74,7 @@ async function serving(
     })
     .returning()
   const resolved = {
-    auth: { provider: 'cwl', attributes: [] },
+    auth: { provider: 'cwl', attributes },
     ai: { models: [] },
     env: [],
     services: [],
@@ -205,6 +207,41 @@ describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task
       expect(iam.why).toContain('2 attribute(s)')
       expect(iam.why).toContain('IAM-4471')
       expect(iam.builtBy).toBeUndefined()
+    })
+  })
+
+  /**
+   * **THE ORDER §9 MAKES NORMAL, AND THE ONE THE BUILD-TIME CHECK CANNOT SEE** (P6a Task 13).
+   * A registration takes weeks, so a faculty member builds for staging long before IAM
+   * answers — and a build with no registration to read is not checked. When the
+   * administrator then records an `active` registration, the release serving staging was
+   * built before it existed, and §13 promotes it without rebuilding. So the ITEM compares
+   * what the candidate asks for with what UBC registered; `active` alone is not `met`.
+   */
+  it('iam-registration: unmet when the release serving staging asks for an attribute UBC did not register', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(tx, projectId, ownerId, scan(1, false), ['ubcEduCwlPuid', 'sn'])
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-4471')
+      const iam = (await computeLaunchReadiness(tx, projectId)).items.find(
+        (i) => i.id === 'iam-registration',
+      )!
+      expect(iam.state).toBe('unmet')
+      expect(iam.why).toContain('sn')
+      expect(iam.why).toContain('Registered: mail, ubcEduCwlPuid')
+      expect(iam.why).toContain('IAM-4471')
+    })
+  })
+
+  it('iam-registration: met when the release serving staging asks for a subset of what UBC registered', async () => {
+    // The positive control for the test above, with a CANDIDATE — the `met when active` test
+    // has none, so it would pass against an item that refused every release it could see.
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(tx, projectId, ownerId, scan(1, false), ['mail'])
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-4471')
+      const iam = (await computeLaunchReadiness(tx, projectId)).items.find(
+        (i) => i.id === 'iam-registration',
+      )!
+      expect(iam.state).toBe('met')
     })
   })
 

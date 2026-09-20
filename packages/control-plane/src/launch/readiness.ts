@@ -8,6 +8,7 @@ import {
   type ResolvedConfigSet,
 } from '../releases/index.js'
 import type { ScanSummary } from '../runtime/index.js'
+import { unregisteredAttributes } from '../spec/index.js'
 import { getIamRegistration, getPrivacyAssessment } from './records.js'
 
 /**
@@ -86,8 +87,10 @@ export async function computeLaunchReadiness(
           .from(releases)
           .innerJoin(builds, eq(releases.buildId, builds.id))
           .where(eq(releases.id, serving.releaseId))
-  const provider = (candidate?.release.resolvedConfig as ResolvedConfigSet | undefined)
-    ?.production.auth.provider
+  const candidateAuth = (
+    candidate?.release.resolvedConfig as ResolvedConfigSet | undefined
+  )?.production.auth
+  const provider = candidateAuth?.provider
   // No candidate means no answer yet, and the conservative answer is that it will need
   // one: an IAM registration has a multi-week lead time, so reporting "not needed" on no
   // evidence is the expensive direction to be wrong in.
@@ -103,7 +106,7 @@ export async function computeLaunchReadiness(
       state: 'met',
       why: 'Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.',
     },
-    await iamItem(db, projectId, usesCwl),
+    await iamItem(db, projectId, usesCwl, candidateAuth?.attributes ?? []),
     await piaItem(db, projectId),
     {
       id: 'rehearsal',
@@ -196,11 +199,13 @@ const CODE_REVIEW_ITEM: LaunchItem = {
 /**
  * §13's first blocking item, and the one R1 bought (P6a Task 7). Until this task it read
  * `not_built` / `builtBy: 'P8'` — *"Manifest does not track it yet"* — which stopped being
- * true the moment migration 0019 landed. Four states now, and every one of them is a fact
+ * true the moment migration 0019 landed. Five states now, and every one of them is a fact
  * about a row an administrator recorded from what UBC IAM said:
  *
  *  - `met` when the app signs nobody in with CWL — there is nothing to register.
- *  - `met` when a recorded registration is `active`.
+ *  - `met` when a recorded registration is `active` AND the candidate release asks for a
+ *    subset of what it registered (§7's last production clause, P6a Task 13).
+ *  - `unmet` when it is `active` and the candidate asks for more, naming what is missing.
  *  - `unmet` when one exists and is not yet active, naming the state and the ticket, so
  *    the owner can chase it rather than wonder.
  *  - `unmet` when none exists at all — **NOT `not_built`**, which said "Manifest does not
@@ -209,7 +214,13 @@ const CODE_REVIEW_ITEM: LaunchItem = {
  * **`builtBy` is gone from this item**, and a reader who finds it again should treat that
  * as a regression: it names the plan that will build a thing, and this thing is built.
  */
-async function iamItem(db: Db, projectId: string, usesCwl: boolean): Promise<LaunchItem> {
+async function iamItem(
+  db: Db,
+  projectId: string,
+  usesCwl: boolean,
+  /** What the CANDIDATE release asks for — its frozen config, never the latest spec. */
+  requested: readonly string[],
+): Promise<LaunchItem> {
   const base = {
     id: 'iam-registration' as const,
     title: 'Registered with UBC IAM',
@@ -232,13 +243,31 @@ async function iamItem(db: Db, projectId: string, usesCwl: boolean): Promise<Lau
       state: 'unmet',
       why: 'Every production app that signs people in with CWL needs its own IAM registration (§9, C4), with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what UBC IAM said, with the ticket reference.',
     }
-  if (row.state === 'active')
+  if (row.state === 'active') {
+    /**
+     * **`active` IS NOT ENOUGH — THE CANDIDATE MUST ASK FOR A SUBSET OF IT** (§7, §9, P6a
+     * Task 13). `finishBuild` refuses drift, but only when a registration exists at build
+     * time, and §9 makes the other order the normal one: a faculty member builds for staging
+     * for the weeks IAM takes, the administrator records the answer, and the release serving
+     * staging — built before the registration existed, so never checked — is what §13 would
+     * promote without rebuilding. Measured `met` for a candidate asking for `sn` against a
+     * registration of `[ubcEduCwlPuid, mail]` before this branch existed.
+     */
+    const missing = unregisteredAttributes(requested, row.registeredAttributes)
+    if (missing.length > 0)
+      return {
+        ...base,
+        owner,
+        state: 'unmet',
+        why: `The release serving staging asks for CWL attribute(s) UBC IAM did not register: ${missing.join(', ')}. Registered: ${[...row.registeredAttributes].sort().join(', ')}. A production release may request only what was registered (§7, §9), or students hit a broken login on launch day — raise an IAM change request${row.externalTicketRef === null ? '' : ` against ${row.externalTicketRef}`}, or remove the attribute(s) from auth.attributes and build again.`,
+      }
     return {
       ...base,
       owner,
       state: 'met',
       why: `Registered as ${row.entityId}, active${ticket(row.externalTicketRef)}, releasing ${row.registeredAttributes.length} attribute(s).`,
     }
+  }
   return {
     ...base,
     owner,

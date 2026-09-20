@@ -10,6 +10,11 @@ export { CLASSIFICATION_RANK, SLUG, AUTH_PATH, manifestSchema } from './schema.j
 export { toMebibytes, POLICY_CODES } from './policy.js'
 export { SPEC_CODES } from './errors.js'
 export {
+  AttributeDriftError,
+  assertRegisteredAttributes,
+  unregisteredAttributes,
+} from './registered-attributes.js'
+export {
   DESCRIBED_PATHS,
   describeDiff,
   isSensitiveDiff,

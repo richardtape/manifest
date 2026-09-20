@@ -29,8 +29,6 @@ export interface ValidationContext {
     maxServices: number
     aiMonthlyUsd: number
   }
-  /** Present only when validating a release bound for production (§9). */
-  registeredAttributes?: readonly string[]
 }
 
 export const POLICY_CODES = {
@@ -38,6 +36,14 @@ export const POLICY_CODES = {
   NAME_SLUG_MISMATCH: 'SPEC_NAME_SLUG_MISMATCH',
   SERVICE_TYPE_UNKNOWN: 'SPEC_SERVICE_TYPE_UNKNOWN',
   ATTRIBUTE_NOT_WHITELISTED: 'SPEC_ATTRIBUTE_NOT_WHITELISTED',
+  /**
+   * §7's last production clause. **Thrown at BUILD time by `AttributeDriftError`
+   * (`registered-attributes.ts`), not returned by validation** — since P6a Task 13, which
+   * found the validation branch that used to return it unreachable: its context field was
+   * optional and no caller of `validateSpec` had ever passed it. It stays here, and in the
+   * contract's `ManifestErrorCode`, because it is the name this rule has been published
+   * under since P2.
+   */
   ATTRIBUTE_NOT_REGISTERED: 'SPEC_ATTRIBUTE_NOT_REGISTERED',
   MODEL_UNKNOWN: 'SPEC_MODEL_UNKNOWN',
   MODEL_UNCLASSIFIED: 'SPEC_MODEL_UNCLASSIFIED',
@@ -123,17 +129,6 @@ export function checkPolicy(spec: ManifestSpec, ctx: ValidationContext): Manifes
         hint:
           `Permitted attributes: ${ctx.attributeWhitelist.join(', ')}. ` +
           'Note that "uid" is not a UBC attribute — the identifier is ubcEduCwlPuid.',
-      })
-    }
-    if (ctx.registeredAttributes && !ctx.registeredAttributes.includes(attr)) {
-      errors.push({
-        code: POLICY_CODES.ATTRIBUTE_NOT_REGISTERED,
-        path: `auth.attributes.${i}`,
-        message: `"${attr}" is not registered with UBC IAM for this app`,
-        hint:
-          'A production release may only request attributes UBC IAM has registered. ' +
-          'Raise an IAM change request, or remove the attribute. Failing here at build time ' +
-          'is deliberate — the alternative is a broken login on launch day.',
       })
     }
   })

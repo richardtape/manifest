@@ -141,10 +141,21 @@ describe('policy validation (§7)', () => {
     expect(errorPaths(text)).toContain('services')
   })
 
-  it('rejects attributes not registered with UBC IAM, for a production release (§9)', () => {
+  /**
+   * §7's last production clause is NOT a validation rule (P6a Task 13). It was one here,
+   * behind a context field no caller of `validateSpec` ever passed, so the test that fed it
+   * one was the only thing that had ever reached it. It is now enforced where the
+   * registration is actually read — a running build — by `spec/registered-attributes.ts`,
+   * and `releases/build-attributes.test.ts` is what proves the build obeys it.
+   */
+  it('does not judge registered attributes: validation has no registration to read', () => {
     const text = yaml(`auth:\n  provider: cwl\n  attributes: [ubcEduCwlPuid, sn]`)
-    const codes = errorCodes(text, { ...ctx, registeredAttributes: ['ubcEduCwlPuid'] })
-    expect(codes).toContain('SPEC_ATTRIBUTE_NOT_REGISTERED')
+    expect(errorCodes(text)).not.toContain('SPEC_ATTRIBUTE_NOT_REGISTERED')
+    // The positive control: the SAME manifest with an attribute UBC does not release at
+    // all IS refused here, so the assertion above is about registration and not about a
+    // validator that refuses nothing.
+    const bad = yaml(`auth:\n  provider: cwl\n  attributes: [ubcEduCwlPuid, uid]`)
+    expect(errorCodes(bad)).toContain('SPEC_ATTRIBUTE_NOT_WHITELISTED')
   })
 
   /**

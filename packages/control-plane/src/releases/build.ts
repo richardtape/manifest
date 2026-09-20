@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
-import { builds } from '../db/index.js'
+import { appSpecs, builds, iamRegistrations } from '../db/index.js'
 import {
   createBuildLogWriter,
   logFrame,
@@ -11,6 +11,7 @@ import {
   type Redactor,
 } from '../observability/index.js'
 import type { Driver } from '../runtime/index.js'
+import { assertRegisteredAttributes, type ManifestSpec } from '../spec/index.js'
 
 export type Build = typeof builds.$inferSelect
 
@@ -175,6 +176,7 @@ async function finishBuild(
   const subject = `build:${created.id}`
   let done: Build
   try {
+    await assertAttributesRegistered(db, input)
     const image = await driver.buildImage(
       { repoPath: input.repoPath, commitSha: input.commitSha },
       { blueprintRef: input.blueprintRef, projectSlug: input.projectSlug },
@@ -277,6 +279,60 @@ async function finishBuild(
     redact,
   )
   return done
+}
+
+/**
+ * §7's last production clause and §9: *"If the agent adds an attribute IAM never registered,
+ * the build fails with a plain message and a pre-generated change request, long before a
+ * student would have hit a broken login"* (P6a Task 13).
+ *
+ * **INSIDE `finishBuild`'s `try`, BEFORE THE DRIVER**, so the refusal is a RECORDED FAILED
+ * BUILD whose log's last line is the reason — what a faculty member can read (§14) — rather
+ * than a 4xx on a request nobody keeps, and so no BuildKit run is spent on an image that
+ * could never be launched.
+ *
+ * **EVERY BUILD, NOT ONLY ONES BOUND FOR PRODUCTION**, because a release is promoted and
+ * never rebuilt (§13): the digest that reaches production is one this function already made.
+ * A check at the production deploy would refuse the very thing *promotion never rebuilds*
+ * exists to guarantee, after staging had run it for weeks.
+ *
+ * **NO REGISTRATION MEANS NO CHECK HERE, AND THE CHECKLIST IS THE OTHER HALF.** A CWL app
+ * with no registration cannot reach production at all — §13's `iam-registration` item is
+ * `unmet` (P6a Task 7) — and refusing its builds until IAM answers would stop a faculty
+ * member building for staging for the weeks §9 says a registration takes. **And when the
+ * registration arrives AFTER the build, which is §9's normal order, this function never saw
+ * it**: so that item also compares the CANDIDATE release's attributes with what UBC
+ * registered, and is `unmet` on drift (`launch/readiness.ts`, sitting 8's F7).
+ *
+ * **ONLY A CWL APP REQUESTS ANYTHING.** The schema lets `auth.attributes` stand beside
+ * `provider: none`, and no Service Provider is registered for such an app, so no attribute
+ * is ever released to it; its list is inert and is not drift.
+ *
+ * **`iam_registrations` IS READ HERE THROUGH `db/`, NOT THROUGH `launch/`'s
+ * `getIamRegistration`**, and that is a decision: `launch/readiness.ts` imports `releases/`
+ * at runtime, so the reverse import would be this codebase's third runtime module cycle.
+ * `project_id` is UNIQUE on that table, so this select cannot mean anything but what the
+ * getter means.
+ */
+async function assertAttributesRegistered(db: Db, input: StartBuildInput): Promise<void> {
+  const [registration] = await db
+    .select({
+      attributes: iamRegistrations.registeredAttributes,
+      ticketRef: iamRegistrations.externalTicketRef,
+    })
+    .from(iamRegistrations)
+    .where(eq(iamRegistrations.projectId, input.projectId))
+  if (registration === undefined) return
+  const [spec] = await db
+    .select({ parsed: appSpecs.parsed })
+    .from(appSpecs)
+    .where(eq(appSpecs.id, input.appSpecId))
+  const auth = (spec?.parsed as Partial<ManifestSpec> | undefined)?.auth
+  assertRegisteredAttributes(
+    auth?.provider === 'cwl' ? auth.attributes : [],
+    registration.attributes,
+    { slug: input.projectSlug, ticketRef: registration.ticketRef },
+  )
 }
 
 export async function getBuild(db: Db, buildId: string): Promise<Build | undefined> {
