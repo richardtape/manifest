@@ -99,11 +99,16 @@ export interface SamlSp {
    * assertion straight through (0 forms, 1 assertion), over the SAME cookie jar. The
    * control is what makes "a form appeared" mean the flag rather than a lost session.
    *
-   * **AND THE FLAG IS THE ONLY THING NO TEST HERE CAN SEE.** A step-up with
-   * `forceAuthn` removed still redirects, still comes back, still stamps the claim and
-   * still passes every test in this repository — the IdP simply does not re-prompt.
-   * `[M3]`'s measurement is the whole of the evidence, and Task 8's control (e) records
-   * that it cannot be reproduced in the unit tier.
+   * **TWO DIFFERENT CLAIMS, AND ONLY ONE OF THEM IS INVISIBLE HERE.** Task 8's control
+   * (e) predicted that removing this flag would redden nothing; **measured, it reddens
+   * exactly one test** — *sends ForceAuthn="true" on the step-up request*, which inflates
+   * the redirect binding and reads the attribute off the XML, the same way `[M3]` did.
+   * So the unit tier CAN see whether the flag is SENT.
+   *
+   * What it cannot see is whether the IdP HONOURS it: a step-up against an IdP that
+   * ignored `ForceAuthn` would redirect, come back, stamp the claim and pass every test
+   * in this repository. **`[M3]` is the whole of the evidence for that half**, and P4a's
+   * *four settings that read like controls and are not* is why both halves are needed.
    */
   stepUpUrl(relayState: string): Promise<string>
   /** Validates a `SAMLResponse` and returns §9's identity, or throws. */
