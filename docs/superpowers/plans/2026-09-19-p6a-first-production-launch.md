@@ -5534,8 +5534,9 @@ nowhere to put *"there is no summary, and the diff beside it is the control."*
 #### The negative controls — nine run, SIX fired, THREE could not fail
 
 **Every one was committed first, broken, watched, and restored with `git checkout <path>`
-by name.** *Predictions were written down before the run* (`$SCRATCH/task10-predictions.md`
-in-session); where a prediction was wrong, the row says so.
+by name.** *Predictions were written down before the run, in the session's own scratchpad — which the
+next agent cannot open, so the **Measured** column carries them*: where a prediction was
+wrong, the row says what was predicted and what happened.
 
 | | Control | Predicted | **Measured** |
 |---|---|---|---|
