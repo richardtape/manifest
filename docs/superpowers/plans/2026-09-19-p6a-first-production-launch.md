@@ -38,8 +38,8 @@
 | 4 | 5–6 | **Migration 0019** — `approvals`, `iam_registrations`, `privacy_assessments` and their state machines — and **the two external records over the API**: an administrator records a real registration and a real PIA with a pasted ticket reference | **DONE 2026-09-20.** §13's gate now has REAL ROWS to block on, which is the whole of R1. `[M10]` is confirmed exactly: drizzle wrote the `audit.events` DROP/ADD pair unprompted and **nothing was appended**. THREE routes, not the four this task says. `launch:record` is granted to `PLATFORM_ADMIN` alone and is NOT one of D24's four — `requireSession` is the control, enforced by the matrix **and by `tsc`**. **No task boundary moved.** `pnpm test` **1395 → 1449 in 110 files**. **Its headline is that the plan's own matrix row for `token-other-project` says `404 NOT_FOUND` and the route answers `403 TOKEN_CREDENTIAL_REFUSED`** — `requireSession` runs before the project is read, which is the right order, and control (a) proves the row was written for the other one. **ALL NINE controls fired; none could not fail** |
 | 5 | 7 | **The gate that BLOCKS.** One evaluation in `launch/`, called by the read and by the deploy route, with the **two** unconditional refusals that exist today removed — and the checklist's items reading real rows. **Alone: it is this plan's centre** | **DONE 2026-09-20.** §13's checklist is now the thing that gates production: `assertLaunchable` in `launch/gate.ts`, ONE evaluation, two callers, and **both** unconditional refusals gone — the inner one DELETED. Measured live end to end: with nothing recorded the deploy is refused blocking on **four** items; an administrator records a real IAM registration and a real PIA over the API and the same deploy is refused blocking on **two**, `rehearsal` and `admin-approval`. `pnpm test` **1449 → 1456 passed + 1 SKIPPED in 110 files**; `pnpm test:docker` **OWED, RUN and UNMOVED at 185 in 30, 826 s**; doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is that the plan's Steps 2 and 4 CONTRADICT EACH OTHER** — the class cannot both move to `launch/` and keep the `api` family — **and that moving it would have made its code invisible to the registry**, sitting 4's F5 one sitting later. **Control (b) fired SIX red across FOUR files where the plan predicted the matrix alone and said the delivery test would stay green; control (a) could not fail against all 1456 tests, predicted in advance; control (d) is the second gate SEEN** — `409` with the same code and **no `launchReadiness`** |
 | 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | **DONE 2026-09-20.** §20's second round trip exists and is **proved end to end against the REAL Manifest IdP through the edge**: an ordinary session is refused `403 STEP_UP_REQUIRED`, `/auth/step-up` makes the IdP re-prompt **on a warm cookie jar** (`[M3]`'s control, re-fired live), the claim lands on the same session with `expiresAt` unchanged, the same request then answers `201`, and a step-up assertion for a DIFFERENT person is refused with the session left byte-identical. `pnpm test` **1456 → 1496 passed + 1 skipped in 112 files**; `pnpm test:docker` **OWED, RUN and UNMOVED at 185 in 30, 829 s** — and unmoved is the measurement, because **no Docker test makes a member call over HTTP or drives `/auth/step-up`, so that tier cannot see Task 9 at all**. doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is that the plan's own `assertStepUp` KILLS D24'S CONFIRM-AND-RETRY LOOP** — it refuses every token on a premise that is false, and a token carrying a human-confirmed grant reaches it; the grant is what stands in step-up's place. **Nine of ten controls fired, four of them WIDER than predicted and one — Task 8's (e), the row the plan calls its most important — where the plan says in bold that nothing would.** Control (d) **could not fail** and was fixed rather than recorded. **The guard reddened 48 tests across 7 files, not the 4 predicted, and 29 were the matrix's own fixture failing silently.** **F12 was raised open and CLOSED the same day by Rich's decision**: confirming a pending action now requires step-up and rejecting does not, and `release:promote`'s missing call site is tracked to Task 15 with a correction block there |
-| 7 | 10–11 | **The approval**: `release:approve`'s first caller ever, bound to an immutable digest, non-repudiable, behind step-up — and its `diff_snapshot` with the AI-written summary that is **recorded as absent rather than blocking** when the model is down | ← **next** |
-| 8 | 12–13 | **R4's `Reviewer` seam** — the interface, the honest `NullReviewer`, its real caller and its **non-blocking** checklist item — and **§7's last production clause**: `auth.attributes` ⊆ `registered_attributes`, failing at build time | |
+| 7 | 10–11 | **The approval**: `release:approve`'s first caller ever, bound to an immutable digest, non-repudiable, behind step-up — and its `diff_snapshot` with the AI-written summary that is **recorded as absent rather than blocking** when the model is down | **DONE 2026-09-20.** `release:approve` has a caller: three routes, four guards in order, the BUILD's digest bound, insert-only, and §13's `admin-approval` item reading the row instead of saying `not_built`. Decision 7 is DRIVEN — a server whose LiteLLM client rejects every call answers the approval **`201` with `summary: null`, `summarySource: 'unavailable'` and the diff still in the record**, and the control for it answers `503 AI_BACKEND_UNAVAILABLE`. `pnpm test` **1496 → 1544 passed + 1 SKIPPED in 114 files**; `pnpm test:docker` **OWED and RUN**; doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is the CONTROLS: nine run, six fired, THREE could not fail — and two of those three paid for themselves.** Task 10's (e) could not fail, and writing the case it was aimed at found a **live defect**: a rejection reason made of spaces was answered `500 INTERNAL` by a database CHECK rather than `400` by the schema (F3, fixed). Task 11's (c) could not fail against the test the plan names for it (F6). **The plan passes `deps.ai` to `summariseChanges` and `deps.ai` has no `post`** — it is §10's key lifecycle, so `ServerDeps` gains `llm` (F1). **Decision 11's rebuild branch is unreachable through the platform** and the test says so (F5). **Control (b) does NOT make `[M6]`'s finding live**: `tsc` refuses it, and forced past, `assertStepUp` still refuses the token (F8) |
+| 8 | 12–13 | **R4's `Reviewer` seam** — the interface, the honest `NullReviewer`, its real caller and its **non-blocking** checklist item — and **§7's last production clause**: `auth.attributes` ⊆ `registered_attributes`, failing at build time | ← **next** |
 | 9 | 14–15 | **The D21 rehearsal as R2 redefines it**, and **the first production deploy this platform has ever done** — the digest verified before anything starts. **A first, and this project's worst discoveries have all arrived at a first** | |
 | 10 | 16–18 | **Gate integrity asserted** (the registry's refusal, the laptop-image rule, the append-only record) and **both console tasks**: readiness with actions, the two external records, approvals and the step-up prompt | |
 | 11 | 19 | **The acceptance**: `make demo-production` — an app reaches production with every blocking item honestly met — its offline-acceptance step, its `ci-acceptance` step, and its negative controls. **Alone, and last** | |
@@ -2654,6 +2654,36 @@ git commit -m "feat(releases): §13's diff_snapshot, with a summary recorded as 
 > mode, which is a loud `500` rather than a dropped field, and it bites before any test of the
 > reviewer runs.
 
+
+> ### Sitting 7 correction block — EXECUTED 2026-09-20. What Task 12 INHERITS, and one thing its *Files* list gets wrong.
+>
+> *FOUR points, all measured while building Tasks 10 and 11.*
+>
+> **1. `buildDiffSnapshot` IS IN `releases/approval.ts`, NOT IN `launch/`, and its `review`
+> literal is at the END of the returned object.** Replacing it with `deps.reviewer.review(...)`
+> is a one-place change. **Its deps parameter is `SnapshotDeps = { db, llm }`** — add `reviewer`
+> there, and the route passes the whole `ServerDeps`, so a `reviewer` field on `ServerDeps`
+> satisfies it structurally with nothing to thread.
+>
+> **2. `ServerDeps` GAINED `llm` IN SITTING 7, AND `deps.ai` IS NOT AN LLM CLIENT.** `ai` is
+> `AiKeyService` — §10's mint/store/revoke lifecycle — and has no `post`. Task 11's own snippet
+> got this wrong (sitting 7, F1). If Task 12 wants a model, it is `deps.llm`, which is
+> `LiteLlmClient | undefined`. `api/testing.ts` sets it to `undefined`, deliberately.
+>
+> **3. THE ITEM ID ENUM IS IN THREE PLACES, NOT TWO.** `[M4]`'s point 2 names
+> `api/representations/launch.ts`. It is ALSO `LaunchItemId` in `launch/readiness.ts:13`, which
+> `tsc` catches — and, since P5c, `packages/contract/src/schema.d.ts`, which is GENERATED, so
+> `pnpm contract:write && pnpm contract:generate` is owed by this task even though it adds no
+> route. Sitting 4 measured the same thing for event types: **published surface changes without
+> a route.**
+>
+> **4. `readiness.test.ts`'s *"is not ready with nothing recorded"* NOW ASSERTS THE ITEM LIST BY
+> NAME, and it will go red when `code-review` lands.** Its `items.map(i => i.id)` is an exact
+> `toEqual` of six ids. So will `lifecycle.test.ts`'s `byId` map, which is an exact `toEqual` of
+> six, and `packages/journey/src/main.ts`'s readiness check — **and that last one is NOT a Vitest
+> file**, so `pnpm test` cannot see it and only `make demo-journey` will (sitting 7, F11).
+> `packages/mock/src/fixtures.ts`'s `LAUNCH_READINESS` holds three items and is a subset by
+> design, so it does not move.
 
 **D33 and §15 are APPLIED and the spec already reads this way. Write against them; do not re-propose anything.** §15's row, verbatim: *"**Phase 2**: an interface with a null implementation, whose verdict is an honest `not_performed`, a real caller on the build/approval path, and a **non-blocking** `LaunchReadiness` item. It reviews nothing and says so (D33)."* §20's control-map row now opens ***"Still accepted under D9"*** and ends ***"until one lands nothing reviews code"*** — **nothing this task ships may make either sentence false.**
 
@@ -5342,3 +5372,238 @@ The plan's *Global Constraints* say exactly that, and this follow-up did it anyw
 a negative control over an **uncommitted** guard and reverting it wholesale. Nothing was lost
 but the time to retype it, and the rule is now paid for rather than read: **commit the task,
 then break it.** The second control was run after the commit and restored cleanly.
+
+### Sitting 7 — Tasks 10 and 11, the approval and its diff snapshot — 2026-09-20
+
+**`release:approve` HAS A CALLER. It has existed as a capability since P5b and no route had
+ever asserted it; three routes now do.** `POST /v1/releases/{id}/approve`, `.../reject` and
+`GET .../approval`. An approval binds the BUILD's immutable image digest, records who
+decided and when, stores the exact diff shown at decision time, and is refused to anybody
+who is not a platform administrator, to any administrator who has not re-proved themselves
+inside ten minutes, and to every delegated token whatever it holds. §13's checklist item
+`admin-approval` reads the row instead of saying `not_built`.
+
+**AND THE SUMMARY IS RECORDED AS ABSENT RATHER THAN BLOCKING** (Decision 7), driven rather
+than reasoned about: a server built with a LiteLLM client that rejects every call answers
+the approval **`201` with `summary: null`, `summarySource: 'unavailable'` and the diff still
+in the record** — and the control for it answers `503 AI_BACKEND_UNAVAILABLE`, which is the
+shape Decision 7 exists to refuse, seen on the wire.
+
+**THE HEADLINE IS THE CONTROLS, NOT THE FEATURE.** Nine were run across the two tasks.
+**Three of them could not fail as written, and two of those three paid for themselves
+immediately**: Task 10's control (e) could not fail, and writing the case it was actually
+aimed at found a LIVE DEFECT — a rejection reason made of spaces is answered `500 INTERNAL`
+by a database CHECK rather than `400` by the schema (F3, fixed in its own commit). Task 11's
+control (c) could not fail against the test the plan names for it, and only the unit test
+the plan separately told me to write saw it (F6).
+
+#### The decisions this sitting made
+
+**1. `ServerDeps` gains `llm`, because `deps.ai` is a KEY SERVICE** (F1). *Rejected:* a
+`post` method on `AiKeyService` — that makes §10's key lifecycle the platform's
+general-purpose model client, which is the second producer `ai/client.ts`'s own doc comment
+exists to prevent; building a second client in the route, which would be a second timeout
+and a second master key. *Changing course* is one field.
+
+**2. `buildDiffSnapshot` is written in Task 10 as a working signature with an EMPTY diff,
+and filled in by Task 11.** The plan says to write the signature in Task 10 and the body in
+Task 11; `approvals.diff_snapshot` is `NOT NULL`, so Task 10 needs a value. It returns the
+shape a real snapshot takes when there is nothing to compare, so nothing downstream
+special-cases it and nothing claims a diff was shown that was not. *Rejected:* committing
+Task 10 with a function that throws, which would make its own tests untestable.
+
+**3. The approve, reject and read routes answer `NOT_FOUND`, and `RELEASE_NOT_FOUND` is
+dropped from the `errors:` list the plan's snippet gives** (F12). A release that does not
+exist and one this actor may not see must answer identically — `getRelease`'s rule, for the
+enumeration-oracle reason `assertCapability` states. Two codes for those two cases would put
+the oracle in the published contract. `RELEASE_DIGEST_MISSING` stays, because the route
+genuinely throws it.
+
+**4. `@manifest/contract` stays `1.0.0` although three operations landed.** Sitting 4 added
+three operations and did not move it; P6a has not shipped, the console cannot call these
+until Task 18, and a version that moves twice inside one plan says less than one that moves
+when the plan does. *Changing course* is one line in two files, held equal by
+`document.test.ts`.
+
+#### The findings
+
+**F1 — the plan passes `deps.ai` to `summariseChanges`, and `deps.ai` has no `post`.**
+Task 11's snippet reads `await summariseChanges(deps.ai, changes)`; `ServerDeps.ai` is an
+`AiKeyService` — §10's `mintAppKey` / `storeInstanceKey` / `revokeInstanceKey` lifecycle
+(`ai/keys.ts:258`) — and the `LiteLlmClient` it is built FROM was handed only to
+`createAiKeyService` and `createCatalogueCache` at boot (`src/index.ts:67`). Nothing on
+`ServerDeps` could talk to the gateway. Found by reading `ai/keys.ts` before writing the
+code rather than by `tsc`, which would have said only that `post` does not exist.
+`ServerDeps.llm` is the same instance, `undefined` under `MANIFEST_AI_ENABLED=0`.
+
+**F2 — the plan's `AiError` construction does not compile.** Its Task 11 test snippet writes
+`new AiError('AI_BACKEND_UNAVAILABLE', 'gateway down')`; the real constructor is
+`(code, status, detail)` (`ai/errors.ts:60`). A small one, recorded because a test written
+from the snippet is the first thing the next reader would try.
+
+**F3 — A LIVE DEFECT: a rejection reason made of spaces was answered `500 INTERNAL`.**
+`approvals_rejection_has_reason` is `length(trim(coalesce(reason, ''))) > 0` and the request
+schema was `z.string().min(1)`, so `{ reason: '   ' }` satisfied the schema, reached
+Postgres and was refused there — and a constraint violation through `mapError` is a `500`.
+A client error wearing a server error's clothes. **Fixed** (`66f4bc1`): the schema trims
+before it counts, so both halves refuse the same set and the half that can answer `400` with
+a path in it does. `openapi.json` is UNCHANGED — `.trim()` is a transform with no JSON
+Schema form — so a client validating against the document still accepts `'   '` and is
+refused; that is the same shape as any server-side normalisation and is recorded rather
+than escalated.
+
+**F4 — CONTROL (e) COULD NOT FAIL AS WRITTEN, AND THAT IS HOW F3 WAS FOUND.** The control is
+*"the rejection-reason CHECK dropped and the schema loosened → the reason test red"*. The
+test sent `payload: {}`, which `strictObject` refuses whatever `min(1)` says — so removing
+`min(1)` left it green against all thirteen tests. The test now sends BOTH `{}` (the field
+is required) and `{ reason: '   ' }` (it is non-empty), and the control fires.
+
+**F5 — Decision 11's rebuild branch is UNREACHABLE through the platform, and the test says
+so.** A release's `build_id` is immutable and `builds.image_digest` is written exactly once,
+by `finishBuild` when a build succeeds; `build.ts`'s other two updates and `recover.ts`'s
+write `status` and `error` only. So the digest under an approved release cannot move: a
+rebuild is a NEW build, a NEW release, and a checklist reading *"has not been reviewed
+yet"*, never *"was rebuilt"*. The test writes the digest directly, which is what a
+rebuild-in-place would do, and says in its own comment that this is a state no route
+produces. **The branch stays**, because §13's binding is the claim and because Task 15 gives
+`approvalCoversDigest` a reachable caller: the digest verified against the image immediately
+before a production deploy starts, where the two are read separately.
+
+**F6 — CONTROL (c) COULD NOT FAIL AGAINST THE TEST THE PLAN NAMES FOR IT.** The plan predicts
+that comparing `slice(0, 19)` turns *"a rebuild invalidates the approval"* red. It did not:
+the test substituted `sha256:aaa…`, which differs from the real digest at the first
+character, so a prefix comparison catches it too. **Only the unit test the plan separately
+told me to write saw the defect.** The checklist test now substitutes a digest that shares
+its first nineteen characters with the approved one and differs after, so both go red — and
+the assertion that they share a prefix is written into the test, because a future edit to
+that literal would silently disarm it again.
+
+**F7 — CONTROL (d) OF TASK 11 CANNOT FAIL IN THIS TIER, exactly as predicted, and the reason
+is worth the line.** Removing both `.sort()` calls leaves all sixteen tests in
+`approval.test.ts` green: the fixture blueprint declares `auth.provider: none` and its
+manifest declares no services, so **both sorted lists are EMPTY** and every ordering is
+sorted. `expect(diff.services.length + diff.attributes.length).toBe(0)` is now in the test
+beside the two assertions, so a reader can see why they prove nothing. **Task 19's demo,
+which compares two rendered snapshots, is what would see it.**
+
+**F8 — CONTROL (b) DOES NOT MAKE `[M6]`'s FINDING LIVE: the token is still refused, by
+`assertStepUp`.** The plan predicts *"an agent could approve a production release"*. Two
+things happened instead. First, `tsc` refused the change outright —
+`Type 'Actor' is not assignable to type '{ userId: string; puid: string }'. Property 'puid'
+is missing in type 'TokenActor'` — which is **Decision 18's claim measured**: reverting
+`requireSession` to `requireActor` does not weaken a check, it stops compiling. Forced past
+with a cast, the token is refused **`403 STEP_UP_REQUIRED`** rather than approving, because
+`assertStepUp`'s first line refuses a credential class with no grant, and `release:approve`
+is not one of D24's four so no grant can exist. **Sitting 6's *belt and braces* is now
+measured rather than argued.** The code would be misleading — it tells a credential that can
+never step up to go and step up — but the action is refused by two independent controls.
+
+**F9 — Task 10's control (d) could not be written as the obvious mistake, because the schema
+refuses it.** `onConflictDoUpdate({ target: approvals.releaseId })` fails at the database:
+there is no unique constraint on `release_id`, which is migration 0019's own statement of
+the insert-only rule (*"NO UNIQUE CONSTRAINT ON release_id"*). The control was written as
+`update-if-one-exists` instead, which is what the mistake would actually look like — and it
+then fired exactly as predicted: *"a rejection is readable … with the administrator's
+words"* stayed green and only the two-rows test went red.
+
+**F10 — `module-boundaries.test.ts` caught an import no prediction named.** A route test
+living in `releases/` must reach `api/` through `api/index.js`, not `api/server.js`:
+`PUBLIC_ENTRIES` is `index` and `testing` and nothing else. One unpredicted red test, found
+by the gate rather than by review, which is the gate doing its job.
+
+**F11 — the journey script asserted `admin-approval` was `not_built`, and `pnpm test` CANNOT
+SEE IT.** `packages/journey/src/main.ts:598` is not a Vitest file: it runs under
+`make demo-journey` and `make ci-acceptance`. A green `pnpm test` would have shipped a
+sitting whose acceptance script fails on the next full run. Found by grepping the item id
+across the repository rather than by any gate. **The same grep found the mock** (F13).
+
+**F12 — `RELEASE_NOT_FOUND` in the plan's `errors:` list would put an enumeration oracle in
+the contract.** The plan's Task 10 snippet lists both `NOT_FOUND` and `RELEASE_NOT_FOUND`.
+`deployRelease` throws `RELEASE_NOT_FOUND` because it is reached only after the route has
+already authorized the environment; these three routes read the release FIRST, so a distinct
+code for *"no such release"* tells a stranger which release ids exist. Dropped, with the
+reason at the line, and `getRelease`'s existing `NOT_FOUND` is the precedent.
+
+**F13 — the mock's drift guard fired, and it is a real guard.**
+`packages/mock/src/server.test.ts`'s *"has an entry for every operation the contract
+declares"* went red the moment `contract:write` ran. Three handlers and an `APPROVAL`
+fixture, whose `summarySource` is **`unavailable` with a populated diff** — deliberately the
+state a console screen is most likely to render wrongly, because the obvious layout has
+nowhere to put *"there is no summary, and the diff beside it is the control."*
+
+#### The negative controls — nine run, SIX fired, THREE could not fail
+
+**Every one was committed first, broken, watched, and restored with `git checkout <path>`
+by name.** *Predictions were written down before the run* (`$SCRATCH/task10-predictions.md`
+in-session); where a prediction was wrong, the row says so.
+
+| | Control | Predicted | **Measured** |
+|---|---|---|---|
+| T10 a | `assertStepUp` removed from `decide` | the step-up test red; **the matrix's `admin` row** red | **FIRED, one row wider: 3 red.** `approval.test.ts`'s step-up test, and the matrix's `admin` row on **both** approve AND reject — the plan says "row", singular, and one helper guards two routes |
+| T10 b | `requireSession` → `requireActor` | the token test red, and **`[M6]`'s finding live: an agent could approve** | **FIRED, AND THE PREDICTION'S SECOND HALF IS FALSE — F8.** `tsc` refused it first (Decision 18, measured). Forced past: **9 red** (4 token actors × 2 routes, plus the file test) and **the token is still refused**, `403 STEP_UP_REQUIRED`, by `assertStepUp`'s own first line |
+| T10 c | `approvalCoversDigest` compares `slice(0, 19)` | *a rebuild invalidates the approval* red | **COULD NOT FAIL against that test — F6.** Only the unit test the plan separately asks for saw it. Test strengthened to a digest sharing nineteen characters; **both** red after |
+| T10 d | `recordApproval` updates instead of inserting | *a rejection is readable …* survives; the two-rows test red | **FIRED EXACTLY.** The obvious spelling (`onConflictDoUpdate`) could not even run — F9 |
+| T10 e | the rejection-reason CHECK dropped and the schema loosened | the reason test red | **COULD NOT FAIL — F4 — and finding out why produced F3, a live `500`.** Fires now |
+| T11 a | the `catch` rethrows instead of recording | *records the summary as ABSENT* red **and** the end-to-end approval test red | **FIRED EXACTLY, both.** The route answered **`503 AI_BACKEND_UNAVAILABLE`** — Decision 7's refused shape, on the wire |
+| T11 b | `summarySource` always `'llm'` | *records it as absent when the model answers an empty string* red | **FIRED EXACTLY**, one test, `{ summary: '', summarySource: 'llm' }` |
+| T11 c | `buildDiffSnapshot` stores `{beforeReleaseId, afterReleaseId}` | **every other test passes**; the new snapshot test red | **FIRED EXACTLY, and the prediction's first half is the finding**: 15 of 16 green, including every approval test. Decision 6 is invisible to a test that only checks the approval was recorded |
+| T11 d | the `.sort()` on `attributes` removed | **nothing goes red** — a control that cannot fail in this tier | **CONFIRMED, and the reason is now IN the test — F7.** Both lists are EMPTY in this fixture, so every ordering is sorted. Removing **both** sorts leaves all 16 green |
+
+| Gate | Before | After |
+|---|---|---|
+| `make doctor` | 19 checks, 0 failed | **19, 0 failed** — unmoved, re-run AFTER the Docker tier and after both cleanups. This sitting adds no platform check |
+| `make verify` | 54 checks, 0 failed | **54, 0 failed** — unmoved, same reason |
+| `pnpm test` | 1496 passed + 1 skipped, 112 files | **1544 passed + 1 skipped, 114 files**, run twice and identical. **Counted per file, never subtracted**: `releases/approval.test.ts` **16 (NEW)**, `releases/summary.test.ts` **5 (NEW)**, `api/authz-contract.test.ts` **406 → 433 (+27)** — three new routes × nine actors. **Up 48 and two files.** The skip is still `api/delivery.test.ts`'s and **still cannot run**: Task 10 built `admin-approval`, `rehearsal` is Task 14's |
+| `pnpm test:docker` | 185 in 30 files | **185 in 30, 0 skipped, 823 s** — **OWED** (`releases/`, `api/routes/`, `ai/`)**, RUN and UNMOVED — and unmoved is a MEASUREMENT for the third sitting running.** Checked rather than asserted: grepping all 30 `*.docker.test.ts` for `approve`/`approval`/`summariseChanges`/`diffSnapshot` returns exactly ONE hit, and it is a test NAME — `instances.docker.test.ts:87`, *"runs the image by DIGEST, which is what an approval binds to"*. **No Docker test drives an approval.** Task 19's demo is the first thing that will |
+| `pnpm lint` / `typecheck` / `format:check` | clean | clean. **`tsc` earned its place twice**: it refused control (b) outright (F8) and it is what forced `ServerDeps.llm` to be a real field rather than a hope (F1) |
+
+**THE MACHINE AT CLOSE — every number queried, not recalled.**
+
+- **`make doctor` 19/0 and `make verify` 54/0**, re-run after the Docker tier AND after both
+  cleanup scripts.
+- **`make verify`'s per-app INFO line reads `containers=12 networks=4 volumes=8`**, and
+  **`runtime routes currently applied: 0`** — the Docker tier restarts the edge and drops
+  every route, and the boot restored none because the project rows are gone, so **every app
+  hostname answers the wildcard** until something redeploys.
+- **BOTH CLEANUP SCRIPTS WERE ALLOWED `--apply` AND WERE RUN — THE FIFTH CONSECUTIVE
+  SITTING.** The Docker tier put back the tier's same **seven networks and one volume**
+  (`networks=11 volumes=9` before, `4` and `8` after — **the ELEVENTH measurement of that
+  cycle**) and LiteLLM went from **6 users to 4**: **`p4b-probe-user` came back again.** Both
+  re-measured bare afterwards: `none dead`, `Nothing to delete.`
+- **The app images are the only thing this sitting moved and left moved**, and neither script
+  covers them. **Name the metric**, because the obvious commands disagree by design:
+  `docker images -q | wc -l` reads **141**, `sort -u` **133**, `127.0.0.1:7107/local/*`
+  **91**, and `grep '^local/'` **0** — all on the same machine at the same moment.
+- **NOTHING IS LISTENING ON 7100.** The control plane was never started this sitting: every
+  test drives Fastify in process through `app.inject`, and the one live thing — the Docker
+  tier — spawns its own. **`lsof -iTCP:7100 -sTCP:LISTEN` returns nothing.**
+- **THE DATABASE IS EMPTY**: `projects`, `releases`, `approvals` and `users` all read **0**,
+  because the final `pnpm test` truncated them. **Twenty migrations are applied**; this
+  sitting adds none. `.manifest/repos/` holds the same four bare repositories it held at open.
+- `make up` was run at open and again before the Docker tier; the snapshot at open is in
+  the session's scratchpad.
+
+**THE POST-SWEEP CHECK FOUND TWO DEFECTS IN THIS SITTING'S OWN HAND-OFF**, and both were found
+by opening the thing pointed at rather than by re-reading the sentence.
+
+**F14 — §7e's item 4 said FOUR things assert the checklist's item list by name, and named
+`api/delivery.test.ts` as one.** It asserts no such thing: it compares the refusal's checklist
+with the read's **byte for byte** and asserts the absence of `deliveredBy`, both of which hold
+for any item list. The count is **THREE**, and §7e now also names the two things that will NOT
+move, so the next sitting does not go looking for them. **A hand-off that over-predicts red
+tests costs the next sitting the same way one that under-predicts does**: it makes them doubt a
+green gate.
+
+**F15 — §7e said `rehearsal` is the ONLY item left in `not_built`, and `grep "state:
+'not_built'" launch/readiness.ts` returns TWO.** The second is `load-rehearsal`, which is P9's
+and appears only for a `large_course` or `public` audience. The claim is now *"the only
+UNCONDITIONAL item"*, with the grep beside it — **and the same wrong sentence had already been
+written into `packages/journey/src/main.ts`'s comment** by this sitting, which is exactly the
+*a wrong pointer is inherited and multiplied by the next sitting* shape ORIENTATION §6 names,
+caught one hour rather than one sitting later. Fixed in both places.
+
+**AND THE FOUR HTML PAGES WERE CHECKED AND DELIBERATELY NOT CHANGED.** They are shared outside
+the team and describe what a *person* can do. Sitting 7 adds an API capability with **no
+screen** — the approvals screen is Task 18's — so nothing an outsider could click has moved,
+and `manifest-decisions.html` drifts only when a decision changes and none did. Saying that
+here is the requirement (§6), not skipping them silently.

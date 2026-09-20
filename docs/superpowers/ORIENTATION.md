@@ -1,18 +1,26 @@
 # Orientation — read this first
 
-**Manifest's design is finished and NINE implementation plans are executed — P1, P2, P3, P4a, P4b, P4c, P5a (the contract), P5b (delegated tokens) and P5c (the clients), whose acceptance passed on 2026-09-19. PHASE 1c IS COMPLETE.** D24's whole loop runs end to end through the edge as `make demo-token` — a person mints a delegated token, an agent holding it builds and deploys a real application on its own authority, is refused the things it may not do, and gets past one of them only because a person confirmed that exact request, once. **It ran green three times, the third from a `make reset` machine, and is step 9 of the offline acceptance.** **P5c — the clients — IS EXECUTED (2026-09-18/19): all 14 tasks in nine sittings, 107 findings — the measurements (19 findings), the two new packages and the console's import boundary (10), the console SERVED and signing a person in (9), my projects, creating one and the project screen with its live stream (9), both streaming screens (13), request-production, the fleet and delegated tokens (12), §26's QUEUE (8), and **`manifest-mock` WITH THE CI ACCEPTANCE SCRIPT (11)**. **A FRONT-END DEVELOPER NOW NEEDS NO PLATFORM AT ALL**: one `node:http` process serves all 34 operations of the published contract from fixtures with a scripted WebSocket, and the console was driven against it in a browser — the whole journey, with no Docker, no Postgres and no control plane. **D22's question is a GATE**: `coverage.test.ts` holds every one of the 34 operations to having a caller in the console, `DELIBERATELY_UNCALLED` is EMPTY, and `@manifest/contract` is **1.0.0**. **§22's JOURNEY IS CLICKED END TO END — ALL SIXTEEN ROWS, 2026-09-19**, by a person, recorded as a GIF: a person signs in with CWL, creates a project by typing a name checked as they type, watches its events arrive on a live socket, **builds it and reads the log lines as they are written, releases it, deploys it to staging watching the instance states arrive, opens the running application and signs in to it with CWL, reads §13's first-launch checklist with every item's reason and owner, and mints, lists and revokes a delegated token whose secret is shown exactly once** — while an administrator reads §26's fleet. *§22's step 6 also says **write a note**, and the acceptance found that the proof app has **no note-writing form at all** (P5c sitting 9, F13) — so the clicked journey proves that the LLM answers, never that it answered from your own notes. That half is `make demo-ai`'s, and the checklist in WALKTHROUGH now says so.* **D24'S LOOP IS NOW OPERATED BY A PERSON**: an agent is refused, the question reaches the open queue 576 ms later with no reload, a person confirms it and the agent's own retry succeeds exactly once, or rejects it and the agent is told why verbatim. **§16's ACCEPTANCE TIER IS MET**: §22's journey is proved by TWO INDEPENDENT CLIENTS over ONE contract — `make ci-acceptance` headlessly, run three times including from an `echo reset | make reset` machine, and a person clicking every row. **P6a — the first production launch — IS WRITTEN ([`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md), 2026-09-19: 19 tasks in eleven agreed sittings, from [the P6 brief](plans/2026-09-19-p6-brief.md), which also records P6's split into P6a and P6b). **ITS MEASUREMENTS ARE DONE, §12's LISTENER SPLIT IS BUILT, A PRODUCTION ROUTE NOW GOES ON IT, §13's GATE HAS REAL ROWS TO BLOCK ON, **THE CHECKLIST IS THE THING THAT GATES PRODUCTION** AND — SINCE 2026-09-20 — **§20's STEP-UP RE-AUTHENTICATION IS REAL AND HAS BEEN WALKED AGAINST THE LIVE IdP**: an ordinary session is refused `403 STEP_UP_REQUIRED` with the remedy in its hint, `GET /auth/step-up` makes the Manifest IdP re-prompt **on a cookie jar that had just signed in**, the claim lands on the SAME session with its expiry unchanged, the same request then answers `201` — and a step-up assertion for a DIFFERENT person is refused with the session left byte-identical** — how many sittings that is, is stated in the plan's own sittings table and nowhere here. **Migration 0019 adds `approvals`, `iam_registrations` and `privacy_assessments`, §9's two state machines are pure table-driven functions, and an administrator records a real IAM registration and a real PIA over the API with a pasted ticket reference — which is R1, and is what makes P6a's demo an app that genuinely reaches production rather than one correctly refused. **AND THOSE ROWS NOW BLOCK**: `assertLaunchable` in `launch/gate.ts` is ONE evaluation the deploy route calls and the read renders, so the view a person reads and the thing that refuses them cannot disagree — and **BOTH** of the old unconditional production refusals are gone, the one inside `deployRelease` DELETED. Measured live against `journey-app`: with nothing recorded the deploy is refused blocking on FOUR items; an administrator records the two external records and the same deploy is refused blocking on TWO, `rehearsal` and `admin-approval`. **The blocking set shrank because somebody recorded what UBC said** — and no test can see that.** ([`spikes/p6a-baseline/`](spikes/p6a-baseline/README.md)): **SimpleSAMLphp HONOURS `ForceAuthn`**, **R3's listener split was a GO and HAS NOW LANDED**, and **Decision 13 is measured rather than argued**. **THE EDGE NOW RUNS TWO SERVERS IN ONE CONTAINER** — `srv0` on `127.0.0.2` for staging, sandbox, the console and the IdP, `srv1` on `127.0.0.3` for the production zone and nothing else — so §12's *"a route bound to the wrong listener is simply unreachable"* is a thing this machine can be watched doing, and §21's honest divergence 2 no longer describes it. **The most expensive finding so far is sitting 2's F5, and it corrects sitting 1**: a name the split makes unreachable answers **`200` with an EMPTY BODY**, not the TLS handshake error sitting 1 predicted, because Caddy's certificate cache is app-global — **so a status assertion is green whether the split holds or leaks.** **The next job is always §7e.** **P5c's acceptance also found a live defect no gate could see — signing out of a deployed app landed the person on a raw JSON `404`, because Manifest's own SLO URL answered `POST` only while SAML's logout binding sends `GET` — and it IS FIXED (F11/F16, `b23674b`, at Rich's direction; §8, *Decided*). Single logout works end to end, proved in a browser against the real IdP.** Sitting 1 closed §8's `stream_close_delay` question, open since 2026-09-16: **an app's WebSocket IS cut by any other app's deploy**, so `buildRoute` now carries the field. This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
+**Manifest's design is finished and NINE implementation plans are executed — P1, P2, P3, P4a, P4b, P4c, P5a (the contract), P5b (delegated tokens) and P5c (the clients), whose acceptance passed on 2026-09-19. PHASE 1c IS COMPLETE.** D24's whole loop runs end to end through the edge as `make demo-token` — a person mints a delegated token, an agent holding it builds and deploys a real application on its own authority, is refused the things it may not do, and gets past one of them only because a person confirmed that exact request, once. **It ran green three times, the third from a `make reset` machine, and is step 9 of the offline acceptance.** **P5c — the clients — IS EXECUTED (2026-09-18/19): all 14 tasks in nine sittings, 107 findings — the measurements (19 findings), the two new packages and the console's import boundary (10), the console SERVED and signing a person in (9), my projects, creating one and the project screen with its live stream (9), both streaming screens (13), request-production, the fleet and delegated tokens (12), §26's QUEUE (8), and **`manifest-mock` WITH THE CI ACCEPTANCE SCRIPT (11)**. **A FRONT-END DEVELOPER NOW NEEDS NO PLATFORM AT ALL**: one `node:http` process serves all 34 operations of the published contract from fixtures with a scripted WebSocket, and the console was driven against it in a browser — the whole journey, with no Docker, no Postgres and no control plane. **D22's question is a GATE**: `coverage.test.ts` holds every one of the 34 operations to having a caller in the console, `DELIBERATELY_UNCALLED` is EMPTY, and `@manifest/contract` is **1.0.0**. **§22's JOURNEY IS CLICKED END TO END — ALL SIXTEEN ROWS, 2026-09-19**, by a person, recorded as a GIF: a person signs in with CWL, creates a project by typing a name checked as they type, watches its events arrive on a live socket, **builds it and reads the log lines as they are written, releases it, deploys it to staging watching the instance states arrive, opens the running application and signs in to it with CWL, reads §13's first-launch checklist with every item's reason and owner, and mints, lists and revokes a delegated token whose secret is shown exactly once** — while an administrator reads §26's fleet. *§22's step 6 also says **write a note**, and the acceptance found that the proof app has **no note-writing form at all** (P5c sitting 9, F13) — so the clicked journey proves that the LLM answers, never that it answered from your own notes. That half is `make demo-ai`'s, and the checklist in WALKTHROUGH now says so.* **D24'S LOOP IS NOW OPERATED BY A PERSON**: an agent is refused, the question reaches the open queue 576 ms later with no reload, a person confirms it and the agent's own retry succeeds exactly once, or rejects it and the agent is told why verbatim. **§16's ACCEPTANCE TIER IS MET**: §22's journey is proved by TWO INDEPENDENT CLIENTS over ONE contract — `make ci-acceptance` headlessly, run three times including from an `echo reset | make reset` machine, and a person clicking every row. **P6a — the first production launch — IS WRITTEN ([`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md), 2026-09-19: 19 tasks in eleven agreed sittings, from [the P6 brief](plans/2026-09-19-p6-brief.md), which also records P6's split into P6a and P6b). **ITS MEASUREMENTS ARE DONE, §12's LISTENER SPLIT IS BUILT, A PRODUCTION ROUTE NOW GOES ON IT, §13's GATE HAS REAL ROWS TO BLOCK ON, **THE CHECKLIST IS THE THING THAT GATES PRODUCTION** AND — SINCE 2026-09-20 — **§20's STEP-UP RE-AUTHENTICATION IS REAL AND HAS BEEN WALKED AGAINST THE LIVE IdP**: an ordinary session is refused `403 STEP_UP_REQUIRED` with the remedy in its hint, `GET /auth/step-up` makes the Manifest IdP re-prompt **on a cookie jar that had just signed in**, the claim lands on the SAME session with its expiry unchanged, the same request then answers `201` — and a step-up assertion for a DIFFERENT person is refused with the session left byte-identical**. **AND SINCE 2026-09-20 `release:approve` HAS A CALLER — its first in this platform's life**: an administrator approves a release for production behind step-up, the approval binds the BUILD's immutable image digest, stores the exact diff shown at decision time, and is refused to every delegated token whatever it holds; §13's `admin-approval` checklist item reads that row instead of saying `not_built`. **A summary the model cannot produce is recorded as ABSENT rather than blocking the approval** (Decision 7), driven live: a server whose LiteLLM client rejects every call still answers `201`, with `summary: null` and the diff intact — an approval gate that fails closed on a language model being down is an outage, not a control. — how many sittings that is, is stated in the plan's own sittings table and nowhere here. **Migration 0019 adds `approvals`, `iam_registrations` and `privacy_assessments`, §9's two state machines are pure table-driven functions, and an administrator records a real IAM registration and a real PIA over the API with a pasted ticket reference — which is R1, and is what makes P6a's demo an app that genuinely reaches production rather than one correctly refused. **AND THOSE ROWS NOW BLOCK**: `assertLaunchable` in `launch/gate.ts` is ONE evaluation the deploy route calls and the read renders, so the view a person reads and the thing that refuses them cannot disagree — and **BOTH** of the old unconditional production refusals are gone, the one inside `deployRelease` DELETED. Measured live against `journey-app`: with nothing recorded the deploy is refused blocking on FOUR items; an administrator records the two external records and the same deploy is refused blocking on TWO, `rehearsal` and `admin-approval`. **The blocking set shrank because somebody recorded what UBC said** — and no test can see that.** ([`spikes/p6a-baseline/`](spikes/p6a-baseline/README.md)): **SimpleSAMLphp HONOURS `ForceAuthn`**, **R3's listener split was a GO and HAS NOW LANDED**, and **Decision 13 is measured rather than argued**. **THE EDGE NOW RUNS TWO SERVERS IN ONE CONTAINER** — `srv0` on `127.0.0.2` for staging, sandbox, the console and the IdP, `srv1` on `127.0.0.3` for the production zone and nothing else — so §12's *"a route bound to the wrong listener is simply unreachable"* is a thing this machine can be watched doing, and §21's honest divergence 2 no longer describes it. **The most expensive finding so far is sitting 2's F5, and it corrects sitting 1**: a name the split makes unreachable answers **`200` with an EMPTY BODY**, not the TLS handshake error sitting 1 predicted, because Caddy's certificate cache is app-global — **so a status assertion is green whether the split holds or leaks.** **The next job is always §7e.** **P5c's acceptance also found a live defect no gate could see — signing out of a deployed app landed the person on a raw JSON `404`, because Manifest's own SLO URL answered `POST` only while SAML's logout binding sends `GET` — and it IS FIXED (F11/F16, `b23674b`, at Rich's direction; §8, *Decided*). Single logout works end to end, proved in a browser against the real IdP.** Sitting 1 closed §8's `stream_close_delay` question, open since 2026-09-16: **an app's WebSocket IS cut by any other app's deploy**, so `buildRoute` now carries the field. This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
 
-*Last verified 2026-09-20, AFTER P6a sitting 6 — which moved ONE of the four: `pnpm test`
+*Last verified 2026-09-20, AFTER P6a sitting 7 — which moved ONE of the four: `pnpm test`
+**1496 → 1544 passed + 1 SKIPPED in 114 files**, twice and identical, **up 48 and TWO new files**,
+counted per file rather than subtracted: `releases/approval.test.ts` **16 (NEW)**,
+`releases/summary.test.ts` **5 (NEW)** and `api/authz-contract.test.ts` **406 → 433 (+27)** —
+three new routes × nine actors. The one skip is still `api/delivery.test.ts`'s and **still cannot
+run**: Task 10 built `admin-approval`, `rehearsal` is Task 14's — **`scripts/ci-acceptance.sh`'s
+`EXPECT_TESTS` is the PASSED count, so it reads 1544 and not 1545.** **`pnpm test:docker` was OWED,
+RUN and UNMOVED at 185 in 30, 0 skipped, 823 s** — and unmoved is itself the measurement for the
+THIRD sitting running, **checked rather than asserted**: grepping all thirty `*.docker.test.ts` for
+`approve`/`approval`/`summariseChanges`/`diffSnapshot` returns exactly ONE hit and it is a test
+NAME. **`make doctor` 19/0 and `make verify` 54/0 did NOT move**: the sitting adds no platform
+check. Previously (P6a sitting 6 — which moved ONE of the four: `pnpm test`
 **1456 → 1496 passed + 1 SKIPPED in 112 files**, twice and identical, **up 40 and TWO new files**,
 counted per file rather than subtracted: `identity/step-up.test.ts` **9 (NEW)**,
 `projects/step-up-guarded.test.ts` **10 (NEW)**, `api/auth.test.ts` **22 → 30 (+8)**,
-`api/authz-contract.test.ts` **397 → 406 (+9)** and `api/error-codes.test.ts` **6 → 7 (+1)**. The
-one skip is still `api/delivery.test.ts`'s, untouched — **`scripts/ci-acceptance.sh`'s
-`EXPECT_TESTS` is the PASSED count, so it reads 1496 and not 1497.** **`pnpm test:docker` was OWED,
-RUN and UNMOVED at 185 in 30, 0 skipped, 829 s** — and unmoved is itself the measurement: **no
-`*.docker.test.ts` makes a member call over HTTP or drives `/auth/step-up`, so that tier cannot see
-Task 9 at all.** **`make doctor` 19/0 and `make verify` 54/0 did NOT move**: the sitting adds no
-platform check. Previously (P6a sitting 5 — which moved ONE of the four and gave the
+`api/authz-contract.test.ts` **397 → 406 (+9)** and `api/error-codes.test.ts` **6 → 7 (+1)**.
+**`pnpm test:docker` was OWED, RUN and UNMOVED at 185 in 30, 0 skipped, 829 s** — no
+`*.docker.test.ts` makes a member call over HTTP or drives `/auth/step-up`. **`make doctor` 19/0 and
+`make verify` 54/0 did NOT move**.) Previously (P6a sitting 5 — which moved ONE of the four and gave the
 suite its FIRST SKIPPED TEST: `pnpm test` **1449 → 1456 passed + 1 SKIPPED in 110 files**, twice
 and identical, **up 7 and NO new file**: `launch/readiness.test.ts` **8 → 15 (+7)**,
 `api/delivery.test.ts` **17 passed + 1 skipped** — the production gate's positive control, which
@@ -65,17 +73,17 @@ everything.
 
 **Executing a plan finds defects at a rate that has never fallen with practice** — 18 in P1's 13 tasks, 52 in P2's 21, 82 in P3's 19, 80 in P4a's 15, 140 in P4b's 16, 70 in P4c's 11, 146 in P5a's 17 — plus 8 more found in a browser after sitting 7, which no tier had ever looked at — and **116 in P5b's 13** — every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat a written plan as a hypothesis (§9).
 
-**The four numbers you will check first, re-measured 2026-09-20 on this machine at the close of P6a sitting 6. ONE OF THE FOUR MOVED — `pnpm test` 1456 → 1496 passed (plus the same one skipped), in 112 files, up 40 and two new files. `pnpm test:docker` was OWED, RUN and UNMOVED at 185 — and that is a coverage statement, not a formality: no Docker test makes a member call over HTTP or drives `/auth/step-up`. `make doctor` and `make verify` held at 19 and 54, because the sitting changes refusals and adds no platform check:**
+**The four numbers you will check first, re-measured 2026-09-20 on this machine at the close of P6a sitting 7. ONE OF THE FOUR MOVED — `pnpm test` 1496 → 1544 passed (plus the same one skipped), in 114 files, up 48 and two new files. `pnpm test:docker` was OWED, RUN and UNMOVED at 185 for the THIRD sitting running — and that is a coverage statement, not a formality, and this time it was CHECKED rather than asserted: grepping all thirty `*.docker.test.ts` for the approval returns one hit and it is a test NAME. `make doctor` and `make verify` held at 19 and 54, because the sitting adds refusals and no platform check:**
 
 | | |
 |---|---|
-| `pnpm test` (from the **repo root**) | **1496 passed + 1 SKIPPED, 112 files**, ~125 s — **up 40 and TWO new files in P6a sitting 6** (Tasks 8–9): `identity/step-up.test.ts` **9 (NEW)** — the claim, its ten-minute window and `verifySession` validating rather than trusting it; `projects/step-up-guarded.test.ts` **10 (NEW)** — the guarded set as literals, both positive controls, and the token cases; `api/auth.test.ts` **22 → 30 (+8)**, the `ForceAuthn` round trip against the in-process IdP; `api/authz-contract.test.ts` **397 → 406 (+9)**, `GET /auth/step-up`'s nine actors; and `api/error-codes.test.ts` **6 → 7 (+1)**. **The one skip is unchanged** — `api/delivery.test.ts`'s production-gate positive control, which **cannot run until Tasks 10 and 14** and names them — and `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is the *passed* count, so it reads **1496**; 1497 there would report `MOVED` on every run. Before it **1456 passed + 1 skipped, 110 files** — up 7 and no new file in P6a sitting 5 (Task 7): `launch/readiness.test.ts` **8 → 15**, and `api/delivery.test.ts` gained the skip. Before it **1449 passed, 110 files**, ~120 s — up 54 and TWO new files in P6a sitting 4 (Tasks 5–6): `launch/transitions.test.ts` (13 — §9's two state machines, including the counted control that names 8 allowed arrows and 17 refused), `launch/records.test.ts` (13 — the two external records, each refusal beside a positive control), **+27 in `api/authz-contract.test.ts`** (370 → 397 — three new routes × nine actors) and **+1 in `projects/privileged.test.ts`** (5 → 6). Before it **1395 in 108**, ~122 s — up 5 and no new file in sitting 3 (Task 4): four in `routing/routes.test.ts`, which exercises two DISTINCT server names for the first time, and one in `config.test.ts` for `MANIFEST_EDGE_PUBLIC_PORT`. Before that **1390 in 108**, ~115 s — the `unit` project and `packages` (the client, the journey, the CONSOLE and the MOCK, none of which need anything running). **Up 21 and FOUR FILES from sitting 7's 1355/103**, all of it P5c sitting 8: `packages/mock/src/validate.test.ts` (4 — every fixture against `openapi.json` on Ajv's 2020-12 dialect, plus the control that the validator refuses what the document refuses), `packages/mock/src/server.test.ts` (7 — every documented operation has an answer, and the refusals by CODE), `packages/console/src/api.test.ts` (8 — the console's WHOLE data layer against the mock in Node with no DOM) and `packages/console/src/coverage.test.ts` (2 — D22's *is the API complete?* as a gate). Sittings 5, 6 and 7 added none, by Decision 7 (the console has no DOM test tier); sitting 4's 1355 was up 1 and no new file from 1354/103. No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/`, `releases/` and `tokens/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
+| `pnpm test` (from the **repo root**) | **1544 passed + 1 SKIPPED, 114 files**, ~130 s — **up 48 and TWO new files in P6a sitting 7** (Tasks 10–11): `releases/approval.test.ts` **16 (NEW)** — the approval, its four guards each asserted by CODE, the insert-only record, Decision 6's stored diff and Decision 7's absent summary end to end; `releases/summary.test.ts` **5 (NEW)** — what the model is ASKED as well as what it answers, and the three ways a summary comes back absent; and `api/authz-contract.test.ts` **406 → 433 (+27)**, three new routes × nine actors. **The one skip is unchanged and STILL cannot run** — `api/delivery.test.ts`'s production-gate positive control: Task 10 built `admin-approval`, and `rehearsal` is **Task 14's**, which is what un-skips it — so `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` reads **1544**. Before it **1496 passed + 1 skipped, 112 files** — up 40 and TWO new files in P6a sitting 6 (Tasks 8–9): `identity/step-up.test.ts` **9 (NEW)** — the claim, its ten-minute window and `verifySession` validating rather than trusting it; `projects/step-up-guarded.test.ts` **10 (NEW)** — the guarded set as literals, both positive controls, and the token cases; `api/auth.test.ts` **22 → 30 (+8)**, the `ForceAuthn` round trip against the in-process IdP; `api/authz-contract.test.ts` **397 → 406 (+9)**, `GET /auth/step-up`'s nine actors; and `api/error-codes.test.ts` **6 → 7 (+1)**. **The one skip is unchanged** — `api/delivery.test.ts`'s production-gate positive control, which **cannot run until Tasks 10 and 14** and names them — and `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is the *passed* count, so it reads **1496**; 1497 there would report `MOVED` on every run. Before it **1456 passed + 1 skipped, 110 files** — up 7 and no new file in P6a sitting 5 (Task 7): `launch/readiness.test.ts` **8 → 15**, and `api/delivery.test.ts` gained the skip. Before it **1449 passed, 110 files**, ~120 s — up 54 and TWO new files in P6a sitting 4 (Tasks 5–6): `launch/transitions.test.ts` (13 — §9's two state machines, including the counted control that names 8 allowed arrows and 17 refused), `launch/records.test.ts` (13 — the two external records, each refusal beside a positive control), **+27 in `api/authz-contract.test.ts`** (370 → 397 — three new routes × nine actors) and **+1 in `projects/privileged.test.ts`** (5 → 6). Before it **1395 in 108**, ~122 s — up 5 and no new file in sitting 3 (Task 4): four in `routing/routes.test.ts`, which exercises two DISTINCT server names for the first time, and one in `config.test.ts` for `MANIFEST_EDGE_PUBLIC_PORT`. Before that **1390 in 108**, ~115 s — the `unit` project and `packages` (the client, the journey, the CONSOLE and the MOCK, none of which need anything running). **Up 21 and FOUR FILES from sitting 7's 1355/103**, all of it P5c sitting 8: `packages/mock/src/validate.test.ts` (4 — every fixture against `openapi.json` on Ajv's 2020-12 dialect, plus the control that the validator refuses what the document refuses), `packages/mock/src/server.test.ts` (7 — every documented operation has an answer, and the refusals by CODE), `packages/console/src/api.test.ts` (8 — the console's WHOLE data layer against the mock in Node with no DOM) and `packages/console/src/coverage.test.ts` (2 — D22's *is the API complete?* as a gate). Sittings 5, 6 and 7 added none, by Decision 7 (the console has no DOM test tier); sitting 4's 1355 was up 1 and no new file from 1354/103. No Docker needed except Postgres for the `db/`, `api/`, `secrets/`, `services/`, `sso/`, `observability/`, `releases/` and `tokens/` suites, plus `spec/injection-drift`, which reads the pinned `passport-ubcshib` tarball out of the platform's own mirror. It connects as **`manifest_app`**, not as `manifest` (§3) |
 | `pnpm test:docker` | **185 passed, 0 SKIPPED**, 30 files, **829 s, re-measured by P6a sitting 6** — which OWED the tier (`identity/`, `sso/`, `projects/`, `api/routes/`), ran it, and **found it UNMOVED, which is again a COVERAGE STATEMENT rather than a formality**: that sitting put a step-up guard on `members:manage`, and **no `*.docker.test.ts` makes a member call over HTTP** — `boot.docker.test.ts` writes `pending_actions` straight into Postgres — **and none drives `/auth/step-up`**, so the tier cannot see Task 9 at all. Before it **185 in 30, 826 s, P6a sitting 5**, which OWED the tier, ran it and found it unmoved for the same class of reason: it DELETED a production refusal inside `deployRelease`, and not one Docker test deploys to production. Before it **185 in 30, 830 s, P6a sitting 4**, which also owed the tier, ran it and found it unmoved: no new Docker test file, and a wider schema is not a new test. Before it **185 in 30, 827 s, P6a sitting 3**, which OWED the tier and added **5 tests to `routing/listener-split.docker.test.ts` and no file** — the first tests here that put a REAL ROUTE on each listener, where sitting 2's two only proved the two servers answer differently. The predicted 180 + 5 exactly. Previously **180 in 30, 848 s, P6a sitting 2**, which added that file (2 tests — §12's *a route bound to the wrong listener is simply unreachable*, the first test here that could ever have failed for that reason); and **178 in 29, 795 s, P5c sitting 8**, which OWED the tier because its `make doctor` repair touches `infra/lib/common.sh` and `routing/edge-source-refusal.docker.test.ts` reads that file. **178 held for four runs across four sittings before P6a sitting 2 moved it to 180.** Not every sitting owes the tier — P5c's 4 to 7 and P6a's 1 neither ran nor owed it, so **do not spend 14 minutes on it out of habit**; the plan's own sittings rule says who owes it. `boot.docker.test.ts`'s *expires a question nobody answered* is still the ONLY test in the repository that fails if `src/index.ts` stops calling the expiry sweeper. The tier still drives SESSIONS: `grep` over every `*.docker.test.ts` finds no `Authorization: Bearer` that is a Manifest delegated token. **Running it costs the machine**: it restarts the edge (dropping every runtime route, so every app hostname then answers the WILDCARD), truncates the tables, re-registers the platform's SP row at a loopback ACS — **restart the control plane afterwards** — and regenerates exactly seven dead app networks and one volume — **measured six times now**, most recently at P6a sitting 2's close. Needs `make up`, and **fails rather than skips** when asked to run |
 | `make doctor` | **19 checks, 0 failed, 0 warnings** — **unmoved by P6a sitting 6 (re-run AFTER its Docker tier AND after both cleanup scripts), by sitting 5, by sitting 4 and by sitting 3**, and up one in sitting 2, which REPLACED the single-alias check with a two-alias loop (net 0) and added *the production zone answers the public address, and the console does not*. That check asserts BOTH directions: one asserting only the production answer stays green while the console has moved to the public address |
 | `make verify` | **54 checks, 0 failed, 0 warnings** — **unmoved by P6a sitting 6, which adds one unversioned route and a guard and no platform check**, by sitting 5, which changed a refusal, and by sitting 4, which added three API routes; re-run after each sitting's Docker tier. **Unmoved by sitting 3 too, which added an ASSERTION INSIDE an existing check rather than a check**: *the public listener answers a production name* now also holds `MANIFEST_EDGE_PUBLIC_PORT`'s default in `config.ts` equal to the container-side half of `infra/compose.yaml`'s `127.0.0.3:443:8443`, and prints `(probe port 8443 = compose 8443)` when it passes. Watched failing three ways. **Up three in P6a sitting 2** for §12's second listener: *the edge serves two listeners*, *the public listener answers a production name on 127.0.0.3*, and *neither listener answers for the other's zone*. Previously measured by P5c sitting 3 **both with `vite dev` on 7104 and with 7104 free**, because its console check was rewritten to stop depending on a developer's host process (sitting 3, F3) — and read its *per-app resources* INFO line, which is not a check. **It reads `containers=12 networks=4 volumes=8` today** (re-measured at P6a sitting 6's close, after that sitting's Docker-tier run took it to `networks=11 volumes=9` and `dead-app-resources.sh --apply` took it back — the **TENTH** measurement of that cycle, the same seven networks and the same one volume again; `p4b-probe-user` came back as a LiteLLM orphan with them, 6 users → 4): **FOUR** apps are deployed, `journey-app`, `token-app`, `p5c-acceptance` and `proof-app`, three containers, one network and two volumes each — and **their project rows are truncated by every `pnpm test`, so the containers outlive their projects**, which is ordinary here and not a fault. **This is a state claim with a shelf life: query it, do not quote it.** The rule the number follows: **one app is `containers=3 networks=1 volumes=2`**, ANY `pnpm test:docker` run adds **seven dead networks and one dead volume**, and `bash scripts/dead-app-resources.sh --apply` takes them away again. More networks than apps means an app whose containers are gone and whose network is not; `0/0/0` is a freshly reset machine. **P6a's sittings 3, 4, 5 and 6 were each ALLOWED `--apply` for BOTH cleanup scripts and ran them themselves**, re-measuring with the scripts afterwards — the classifier refuses this in some sessions and not others, so **try the command rather than trusting any note about it** |
 | `make demo-token` | green — **P5b's acceptance, and it ran three times in sitting 9**: from a truncated database (create path, 64 checks), on the re-use path (63 — the one fewer is the create path's own check) and from an `echo reset | make reset` machine (64). ~30 s. It is step 9 of `scripts/offline-acceptance.sh` |
 | `make demo-journey` | green, all eight steps — **last run by P5c sitting 8's real `make ci-acceptance`, over the 1.0.0 contract**. It recreated `journey-app`, whose containers still stand |
-| `make ci-acceptance` | **NEW in P5c sitting 8, and RUN**: the headless half of 1c's acceptance — `make doctor`, `make verify`, the three fast gates, `pnpm test` with its COUNT asserted, the three package builds, then `make demo-journey` and `make demo-token`. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. ~15 min. **Its four `EXPECT_` lines carry this box's numbers and move with it — and they did NOT, from P6a sitting 2 until sitting 3 found them reading 18 and 51 against a machine at 19 and 54.** They are now **1496 / 112 / 19 / 54**, moved by sitting 6 in the same commit as this box, and §6's sweep table has a row for this file so it cannot happen again. **`EXPECT_TESTS` is the PASSED count**, which starts to matter at sitting 5, because the suite now has a skipped test |
+| `make ci-acceptance` | **NEW in P5c sitting 8, and RUN**: the headless half of 1c's acceptance — `make doctor`, `make verify`, the three fast gates, `pnpm test` with its COUNT asserted, the three package builds, then `make demo-journey` and `make demo-token`. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. ~15 min. **Its four `EXPECT_` lines carry this box's numbers and move with it — and they did NOT, from P6a sitting 2 until sitting 3 found them reading 18 and 51 against a machine at 19 and 54.** They are now **1544 / 114 / 19 / 54**, moved by sitting 7 in the same commit as this box, and §6's sweep table has a row for this file so it cannot happen again. **`EXPECT_TESTS` is the PASSED count**, which starts to matter at sitting 5, because the suite now has a skipped test |
 
 **A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is cheaper before you start than after. **This box is the only current one in this file**; the same four numbers are stated in `README.md` and `RUNBOOK.md`, and all three move together (§6). A plan's record carries the numbers as each sitting left them, dated, and they deliberately do not move.
 
@@ -1815,178 +1823,149 @@ curl -s --cacert infra/ca/manifest-root.crt \
 | **P4c** | [`plans/2026-09-15-p4c-zero-downtime-redeploys.md`](plans/2026-09-15-p4c-zero-downtime-redeploys.md), with [its brief](plans/2026-09-15-p4c-brief.md) | `make demo-redeploy` | 70 findings in eight sittings. **Sitting 8**: four of the acceptance's nine negative controls could not fail in it — §4 says which tier sees each. |
 | **P5a** | [`plans/2026-09-16-p5a-the-contract.md`](plans/2026-09-16-p5a-the-contract.md), with [the P5 brief](plans/2026-09-16-p5-brief.md) | `make demo-journey` | 146 findings in twelve sittings. **Sitting 12**, the acceptance: three of fourteen negative controls could not fail as written — including one where the journey read a *status* while the property was a *latency*, so a synchronous build passed R6's own check. **Sitting 10's finding 1** is the other one to read: the document said for six sittings that the error envelope could not carry the field the production refusal had been sending since P2, because nothing parsed an error body through its schema. |
 | **P5b** | [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md) — **EXECUTED 2026-09-18**, all nine sittings | `make demo-token` — green three times, the third from a `make reset` machine; step 9 of the offline acceptance | 116 findings in nine sittings. **Sitting 9's F1 is the newest one to read, and it is a lesson about PREDICTIONS**: sitting 8 predicted Task 13's control (a) would be invisible to the acceptance, and it turns three checks red — the reasoning was about the FIXTURE token, which holds the privileged capability and is refused identically either way, while every REAL token lacks it and is refused by a different rule with a different code. **Sitting 9's F3** is the second: replacing the token secret's constant-time comparison with `===` left all 1342 tests AND all nine demo steps green, so the property was asserted by nothing; it is now asserted at the source, and the first draft of that assertion could not fail. **Sitting 9's F8**: one `pnpm test:docker` run recreates exactly the seven dead app networks cleared by hand the same day. **Sitting 8's F1 is the newest one to read**, and it is what the first integration client is for: **`subscribe` could not carry a delegated token at all**, so an agent could start a build through the generated client and had nothing to watch it end on — the route had accepted a bearer all along, and nothing server-side could see the hole. **Sitting 8's F4 and F5** are the second: **three of its five negative controls answer `403` for the WRONG REASON** — the privileged rule disabled makes the refusal a dead-end `403 FORBIDDEN`, confirm reverted answers `403 TOKEN_ACTION_PENDING`, the fleet reverted answers `403 FORBIDDEN` — so a status-only demo passes all three. **Sitting 7's F4**, and it is a JavaScript trap rather than a platform one: `toToken` was given an optional `now: Date = new Date()`, and `api/routes/tokens.ts` maps it as `.map(toToken)` — so `now` arrived as the ARRAY INDEX, `0`, and every token in every list read `expired: false`, including one that had expired an hour before. Only the assertion about an expired token could see it. **Sitting 7's F2** is the one after that: the plan's own `Promise.all` control for a read-then-insert **passed against the defect**, because `pg.Pool` establishes a connection per acquire and the five calls serialised — a warm pool is what makes a pooled race observable, and a deterministic SQLSTATE test belongs beside it. **Sitting 6's F5:** two of that sitting's own four new tests were green before the feature, because both were *"is not limited"* claims — and a claim that something is NOT refused is true of a platform that refuses nothing. A negative claim needs a positive control in the same test. **Sitting 4's F1** is the one to read: the plan's own negative control for the ORDER of the two token checks could not fail against any of the 31 tests that existed, because every test writes a token holding the privileged capability and **no token the platform can mint can hold one** — so the swapped order answers a dead-end `403 FORBIDDEN` for every real token, with D24's loop unable to start, and all 31 green. **Sitting 2's F1**: the plan's token parser split on `_` while base64url's alphabet contains it, so it refused 47.5% of the tokens the same file minted — and the round-trip test minted ONE token, so it would have gone red about half the time and read as a flaky harness. **Sitting 2's F14**: the plan's own TRUNCATE negative control cannot fail, because the statement's CASCADE reaches both new tables unnamed. **Sitting 3's F1**: `DELETE /v1/tokens/{tokenId}` is the API's first bodyless mutation, and the contract layer could not carry one — the route answered `400` before its handler ran and the OpenAPI document could not be generated for it at all, because both kept on `method === 'GET'` rather than on the body schema. **Sitting 3's F13**: three of that sitting's own negative controls answer `403` for the WRONG REASON, so a status-only assertion is green through all of them. |
-### 7e. Execute P6a's SITTING 7 — Tasks 10 and 11, the approval and its diff snapshot ← **START HERE**
+### 7e. Execute P6a's SITTING 8 — Tasks 12 and 13, R4's `Reviewer` seam and §7's last production clause ← **START HERE**
 
-**P6a IS EXECUTING. Sitting 6 — Tasks 8 and 9, step-up re-authentication, the heavy one —
-ran on 2026-09-20, and NO TASK BOUNDARY MOVED, so the eleven-sitting split
-still stands.**
+**P6a IS EXECUTING. Sitting 7 — Tasks 10 and 11, the approval and its diff snapshot — ran on
+2026-09-20, and NO TASK BOUNDARY MOVED, so the eleven-sitting split still stands.**
 [`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md);
 sitting 1's measurements are [`spikes/p6a-baseline/`](spikes/p6a-baseline/README.md).
 
-**Your job is SITTING 7: TASKS 10 AND 11.** Task 10 gives `release:approve` its **first
-caller in this platform's life** — a non-repudiable approval bound to the build's immutable
-image digest, behind `requireSession` **and** the step-up sitting 6 built; Task 11 gives it
-a `diff_snapshot` whose AI-written summary is **recorded as absent rather than blocking**
-when the model is down (Decision 7). Use `superpowers:subagent-driven-development` or
-`executing-plans`.
+**Your job is SITTING 8: TASKS 12 AND 13.** Task 12 is R4's `Reviewer` seam — the interface,
+an honest `NullReviewer` whose verdict is `not_performed`, **a real caller**, and a
+**NON-blocking** `code-review` checklist item. Task 13 is §7's last production clause:
+`auth.attributes` ⊆ `registered_attributes`, failing **at build time**, before the driver
+builds. Use `superpowers:subagent-driven-development` or `executing-plans`.
 
-**WHAT SITTING 6 HANDS YOU, and the first item is the one Task 10 plugs straight into.**
+**READ TASK 12's TWO CORRECTION BLOCKS BEFORE ITS STEPS.** `[M4]`'s (sitting 1) and the
+**sitting 7 block** directly under it, which is what this sitting hands you and is not
+repeated here in full. Its four points in one line each: `buildDiffSnapshot` is in
+`releases/approval.ts` and its `review` literal is a one-place change; `deps.ai` is NOT an
+LLM client and `ServerDeps` now carries `llm`; the item-id enum is in **three** places, one
+of them generated; and four things assert the checklist's item list by name — one of which
+`pnpm test` cannot see.
 
-1. **`assertStepUp(actor, capability, now?)` EXISTS IN `projects/authz.ts`, AND TASK 10's
-   STEP 1 ALREADY CALLS IT** — after `assertCapability`, which is the right order and the
-   plan already says why. `STEP_UP_GUARDED` is `PRIVILEGED ∪ {release:approve}`, named as
-   literals in `projects/step-up-guarded.test.ts`. Task 10's `errors:` list already carries
-   `STEP_UP_REQUIRED`. **There is nothing for you to wire.**
-2. **ITS TOKEN RULE IS NOT WHAT THE PLAN SAYS, AND YOU MUST NOT "TIDY" IT BACK.** The plan's
-   Task 9 snippet refuses **every** token at the first line, on the stated premise that a
-   token never reaches there. **It does**: a token carrying a human-confirmed `grant` walks
-   through `assertCapability`'s privileged branch, and refusing it unconditionally **kills
-   D24's confirm-and-retry loop** for all four privileged capabilities — four red in
-   `delegation.test.ts`. The line is now `if (actor.grant === capability) return` before the
-   throw. **For `release:approve` this changes nothing**: it is not one of D24's four, so no
-   token can ever hold a grant for it, and `requireSession` refuses the credential class
-   first anyway. Belt and braces, which is exactly what *Read this first* 2 asks for.
-3. **`STEP_UP_REQUIRED` IS REGISTERED UNDER FAMILY `api`, AND THE REASON IS A TRAP YOU WILL
-   MEET AGAIN.** `StepUpRequiredError` carries **no code**; `api/errors.ts` supplies the
-   literal at its `instanceof` branch, which is `TokenCapabilityRefusedError`'s shape in the
-   same file. **Neither shape §7e used to offer works here**, and the reason generalises to
-   every code you add: **`error-codes.test.ts`'s scan cannot tell an EXPECTATION from a
-   THROW.** `api/authz-contract.ts`'s constants are written
-   `{ status: 403, code: 'STEP_UP_REQUIRED' }`, that matches the scan's `code: '…'` pattern,
-   and it lives under `api/` — so **any code you name in a matrix expectation is found for
-   family `api` whatever your class does.** If you add a code, decide its family from that
-   rather than from the class. **Checked, so you need not**: Tasks 10 and 11 name
-   `NOT_FOUND`, `FORBIDDEN`, `TOKEN_CREDENTIAL_REFUSED`, `STEP_UP_REQUIRED`,
-   `RELEASE_NOT_FOUND`, `RELEASE_DIGEST_MISSING` and `AI_BACKEND_UNAVAILABLE`, and **every
-   one of them is already registered** — so they add no error code, and
-   `error-codes.test.ts` should stay quiet through this sitting. *(This item said "Task 10
-   adds `RELEASE_DIGEST_MISSING`" until the post-sweep check opened `error-codes.ts` and
-   found it at line 235 under `ReleaseError`, where it has been since P5a.)*
-4. **THE TEST HELPERS FOR A STEPPED-UP SESSION ALREADY EXIST, in one place each.**
-   `loginAs(deps, puid, { steppedUp: true })` in `api/testing.ts`; `ctx.ownerSteppedUp` on
-   `withProjectServer`'s fixture; `sessionFor(ctx, puid, role, { steppedUp: true })`; and
-   `sessionActor({ userId, steppedUpAt })` in `projects/testing.ts` for a unit test.
-   **Use them only where the step-up is NOT what you are testing.** The authorization
-   matrix's sessions are deliberately ordinary, and its `STEP_UP` constant is the honest
-   expectation for a guarded route — **a row that reads `pass` on one is a row testing a
-   guard that is not there.**
-5. **A GUARD'S BLAST RADIUS IS NOT ITS ROUTES.** Task 9 predicted 4 red tests and got **48
-   across 7 files**, because the matrix's own fixture makes its collaborator by calling
-   `POST …/members` **through the route** and never read the answer — so 29 unrelated
-   `collaborator → pass` rows answered `404`. It now steps up **and asserts its own 201**.
-   **Before you assume a red test is yours, read which one it is.**
+**WHAT SITTING 7 HANDS YOU.**
+
+1. **`buildDiffSnapshot(deps, release, digest)` EXISTS IN `releases/approval.ts` AND ITS LAST
+   FIELD IS TASK 12's.** It returns
+   `review: { state: 'not_performed', reviewer: 'none', detail: 'no code reviewer is configured (D33, §15)' }`
+   as a LITERAL, with a comment naming Task 12 as the thing that replaces it. Its deps
+   parameter is `SnapshotDeps = { db, llm }`; add `reviewer` there and put it on `ServerDeps`,
+   and the route passes the whole object, so **there is nothing to thread**.
+2. **`ServerDeps` GAINED `llm: LiteLlmClient | undefined` (F1), AND THE PLAN WILL TELL YOU
+   `deps.ai` INSTEAD.** `ai` is `AiKeyService` — §10's mint/store/revoke lifecycle — and has
+   **no `post`**. Task 11's own snippet got this wrong. `api/testing.ts` sets `llm: undefined`
+   deliberately: the unit tier has no LiteLLM, so a route test meets the *"recorded as
+   absent"* state by default, and a test that needs a model answering spreads its own over
+   `testDeps()`. Both patterns are in `releases/approval.test.ts` already.
+3. **ADDING A `LaunchItemId` IS A CONTRACT CHANGE WITH NO ROUTE ADDED.** `code-review` goes in
+   `launch/readiness.ts:13` (`tsc` catches that), in `api/representations/launch.ts`'s closed
+   `z.enum` (`[M4]` point 2 — a missing id is a **`500 INTERNAL`** from `ResponseContractError`,
+   not a dropped field), and then **`pnpm contract:write && pnpm contract:generate`** must run,
+   because `schema.d.ts` publishes the enum. Sitting 4 measured the same for event types.
+4. **THREE THINGS ASSERT THE CHECKLIST'S ITEM LIST BY NAME AND WILL GO RED, AND ONE OF THEM IS
+   INVISIBLE TO `pnpm test` (F11).** *Counted by opening each one, not recalled — this hand-off's
+   first draft said FOUR and named `api/delivery.test.ts`, which asserts no such thing.*
+   `launch/readiness.test.ts`'s *"is not ready with nothing recorded"* (`items.map(i => i.id)`,
+   an exact `toEqual` of six ids at line 147); `lifecycle.test.ts`'s `byId` map (an exact
+   `toEqual` of six keys); and **`packages/journey/src/main.ts`, which is NOT a Vitest file** —
+   it runs only under `make demo-journey` and `make ci-acceptance`, so a green `pnpm test` would
+   ship a sitting whose acceptance script fails. **Grep the item id across the repository; do not
+   trust the gates to find it.** Two things will NOT move and are worth knowing so you do not go
+   looking: `api/delivery.test.ts` compares the refusal's checklist with the read's **byte for
+   byte** and asserts no `deliveredBy`, which holds for any item list; and
+   `packages/mock/src/fixtures.ts`'s `LAUNCH_READINESS` holds three items and is a subset by
+   design.
+5. **`admin-approval` IS NO LONGER `not_built`.** Sitting 7 made it read the `approvals` row
+   across five branches. **`rehearsal` is now the only UNCONDITIONAL item left in `not_built`**,
+   and Task 14 takes it — which will leave the journey's *"what Manifest does not track yet says
+   so"* check with nothing to assert. *Checked rather than said: `grep "state: 'not_built'"
+   launch/readiness.ts` returns TWO hits, and the second is `load-rehearsal`, which is P9's and
+   appears only for a `large_course` or `public` audience — the journey's project is `class`, so
+   it never sees it.*
+6. **`api/delivery.test.ts`'s ONE SKIPPED TEST STILL CANNOT RUN.** Its name says *"pending
+   Tasks 10 and 14"*; Task 10 is done and **Task 14 un-skips it**. Leave it skipped, and
+   `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` stays the PASSED count.
 
 **THE THINGS MOST LIKELY TO COST YOU.**
 
-- **A PLAN'S PREDICTION ABOUT WHICH TEST GOES RED IS A HYPOTHESIS, and sitting 6 is the
-  second sitting running to prove it.** Nine of its ten controls fired; **four fired WIDER
-  than predicted**, and **one — Task 8's (e), which the plan calls its most important row
-  and predicts in bold will redden nothing — turned a test red.** Write down what you
-  expect, then read what actually failed.
-- **A CONTROL THAT DERIVES ITS INPUT FROM THE CONSTANT UNDER TEST CANNOT FAIL.** Task 9's
-  control (d) widened the step-up window to a year and **1492 tests stayed green**, because
-  every test built its instants out of `STEP_UP_TTL_MS`. It is `privileged.test.ts`'s
-  *"deriving them from the constant under test"* warning applied to a number. **Where this
-  bites in Task 11** — checked against its steps rather than guessed, because the first
-  draft of this line warned about a timeout and a budget that Task 11 does not have: its
-  `summarySource` union and the model name `default-chat-onprem` are the values a test could
-  quietly agree with. **The 10 s timeout that makes *"recorded as absent"* reachable is
-  `ai/client.ts`'s and already exists** (Decision 7).
-- **EVERY REFUSAL ASSERTS ITS CODE, NEVER ITS STATUS.** `403` is now **five** answers —
-  `FORBIDDEN`, `TOKEN_CREDENTIAL_REFUSED`, `TOKEN_ACTION_PENDING`, `TOKEN_ACTION_REJECTED`
-  and `STEP_UP_REQUIRED`. Task 9's control (e) demonstrated the cost in full: with the
-  matrix rows written as a bare `403` **and** the guard throwing `FORBIDDEN` instead, **all
-  406 tests passed** with the control gone in meaning.
-- **A REFUSAL TEST NEEDS A POSITIVE CONTROL IN THE SAME FILE** (P5c sitting 9, F16), and
-  Task 10 is almost entirely refusals.
-- **THE MATRIX'S DRIFT GUARD FORCES A ROW FOR EVERY ROUTE YOU REGISTER** — *"covers every
-  route the server registers"* fails the build otherwise. Task 8's *Files* list did not name
-  `authz-contract.ts` and needed it; **Task 10 adds three routes**, so budget nine actors
-  each.
+- **A PLAN'S PREDICTION ABOUT WHICH TEST GOES RED IS A HYPOTHESIS, and sitting 7 is the third
+  sitting running to prove it.** Six of its nine controls fired; **three could not fail**, and
+  **two of those three paid for themselves**. Write down what you expect, then read what
+  actually failed — and when a control comes back green, **do not record it as "cannot fail"
+  until you have worked out why**: sitting 7's Task 10 control (e) came back green, and the
+  reason was a live `500` defect (F3).
+- **A CONTROL WHOSE INPUT THE WRONG IMPLEMENTATION WOULD ALSO REJECT MEASURES NOTHING** (F6).
+  Task 11's control (c) — compare digests by their first nineteen characters — was green
+  against the test the plan names for it, because that test substituted a digest differing at
+  the FIRST character. **Choose the input the broken version would accept.**
+- **`blocking: false` IS THE WHOLE OF DECISION 13 AND `[M4]` GIVES YOU THE THREE ROWS TO
+  ASSERT.** `readiness.test.ts` must hold all three — six blocking items met and no seventh
+  reads `ready: true`; a seventh blocking `not_built` reads `false`; the same item
+  non-blocking reads `true`. **The middle row is what turns red if anyone flips `blocking`**,
+  and it is what keeps production reachable for ever.
+- **R4's SPEC ACTION IS ✅ APPROVED AND APPLIED (D33, §15's hook row, §20's control-map row).
+  Do not propose it again.** §20's control-map row opens *"Still accepted under D9"* and ends
+  *"until one lands nothing reviews code"* — **nothing Task 12 ships may make either sentence
+  false**, and a `NullReviewer` whose verdict looked like `clean` would.
+- **TASK 13's CHECK GETS NO `error-codes.ts` ENTRY, DELIBERATELY** — the plan says why at its
+  Step 1. And **its empty-registration case is the one that matters**: every set is a superset
+  of nothing, so an empty `registered_attributes` would disable the check silently. Sitting 4's
+  control (d) already recorded that connection.
+- **EVERY REFUSAL ASSERTS ITS CODE, NEVER ITS STATUS.** `403` is five answers.
+- **A REFUSAL TEST NEEDS A POSITIVE CONTROL IN THE SAME FILE** (P5c sitting 9, F16).
 - **A ROUTE CHANGE IS THREE FILES IN ORDER**: the definition, `pnpm contract:write`, then
-  `pnpm contract:generate`. And **an UNVERSIONED route is still a contract change** — the
-  document publishes `UNVERSIONED` and the `ErrorCode` enum, which sitting 6 discovered when
-  `document.test.ts` went red for `GET /auth/step-up`. No operation and no shape changed, so
-  **`@manifest/contract` stays 1.0.0**.
-- **D22'S COVERAGE GATE IS DISARMED BY ITS OWN LIST** (*Read this first* 18). Task 10 adds
-  `approveRelease`, `rejectRelease` and `getApproval` — three of P6a's seven new operations —
-  and their console callers are **Task 18's**. Put them in `DELIBERATELY_UNCALLED` **with a
-  reason a reader can check**, because the gate will not.
-- **`pnpm typecheck` SEES A WHOLE CLASS OF THING `pnpm test` CANNOT.** Sitting 6 added one
-  field to `SessionActor` and `tsc` found **seven** test literals no test could have.
+  `pnpm contract:generate`. **Task 12 adds no route and still owes both**, for item 3 above.
+- **`@manifest/contract` IS STILL `1.0.0`, AND SITTING 7 DECIDED TO KEEP IT THERE** although
+  three operations landed — sitting 4's precedent, P6a has not shipped, and a version that
+  moves twice inside one plan says less than one that moves when the plan does.
+  `document.test.ts` holds the package and the document equal.
 
-**`pnpm test:docker` IS OWED BY THIS SITTING** — Tasks 10 and 11 touch `releases/`,
-`api/routes/` and `ai/`. Budget the fourteen minutes; it needs `make up` and **fails rather
-than skips**. §2's box has the count. **Restart the control plane afterwards.**
+**`pnpm test:docker` IS OWED BY THIS SITTING** — Task 13 touches `releases/build.ts` and
+`spec/`. Budget the fourteen minutes; it needs `make up` and **fails rather than skips**.
+§2's box has the count. **It has now read 185 in 30 for four sittings running**, and each
+time that has been a COVERAGE statement rather than a formality — **check it rather than
+repeating it**: grep the thirty `*.docker.test.ts` for what your task actually touches.
 
-**F12 IS CLOSED, AND TASK 10 INHERITS THE ANSWER RATHER THAN THE QUESTION (2026-09-20).**
-Sitting 6 raised the asymmetry — a person doing a guarded action must re-prove themselves,
-while the same person authorizing an *agent* to do it need not — and **Rich decided it the
-same day**. `answerable()` in `api/routes/pending-actions.ts` now calls
-`assertStepUp(actor, action)` for `'confirmed'` **and not for `'rejected'`**, because
-rejecting grants nothing and stops an agent, and charging a round trip would make the safe
-action as expensive as the dangerous one. **So Task 10's approve route is the THIRD caller
-of `assertStepUp`, not the second**, and the precedent for its answer already exists.
-
-*The exposure was re-measured before the decision, and this sitting's first framing of it
-was wrong in the direction that would have justified inaction: a stolen session needs **no**
-second credential to reach the confirm route — only a question already in the queue, which
-is the normal state of the system for a day. What it cannot do is choose the action.*
-
-**AND ONE GAP IS TRACKED TO TASK 15, NOT TO YOU: `release:promote` IS IN `STEP_UP_GUARDED`
-AND NO ROUTE ENFORCES IT.** `assertStepUp` has call sites for `members:manage` and for
-confirming a pending action; the production deploy route authorizes `release:promote` and
-never asks for freshness. It is unreachable today — §13's checklist refuses every production
-deploy until `rehearsal` and `admin-approval` exist — and **Task 15 carries a correction
-block with the exact change, the branch it goes on and its control**. `authz.ts` records
-where all five members of the set stand, so **do not "fix" the list by deleting a member**:
-the set is a statement about the spec, exactly as `PRIVILEGED` is.
-
-**THE MACHINE, as sitting 6 left it** — every number queried at the close, not recalled.
+**THE MACHINE, as sitting 7 left it** — every number queried at the close, not recalled.
 **`make doctor` 19/0 and `make verify` 54/0** — unmoved, re-run AFTER the Docker tier and
-after both cleanup scripts. **`pnpm test` 1496 passed + 1 SKIPPED in 112 files**, run twice
-and identical. **`pnpm test:docker` 185 in 30 files, 0 skipped, 829 s** — owed, **RUN TWICE** and unmoved both times. **No `*.docker.test.ts` confirms a pending action over HTTP either**, so that tier cannot see F12's guard any more than it can see Task 9's.
+after both cleanup scripts. **`pnpm test` 1544 passed + 1 SKIPPED in 114 files**, run twice
+and identical. **`pnpm test:docker` 185 in 30 files, 0 skipped, 823 s** — owed, run, unmoved.
 lint, typecheck and format:check clean. **`lo0` carries `127.0.0.1`, `127.0.0.2` AND
-`127.0.0.3`.** **Twenty migrations are applied**; sitting 6 adds none. **NOTHING IS LISTENING
-ON 7100** — the control plane was started once, for the live walk and to re-register the
-platform's SP row after the Docker tier moved it to a loopback ACS, and **stopped at the
-close**, so the machine matches how it was found; start it yourself with README's *Running
-the control plane* block. **Every restart mints a new `MANIFEST_SESSION_SECRET`, so no
-cookie survives one.** **THE DATABASE IS NOT WHAT SITTING 5 LEFT**: that sitting's
-`journey-app`, its `active` IAM registration and its `approved` PIA were **truncated by this
-sitting's `pnpm test` runs**, which is ordinary and was warned of. **THE DATABASE IS EMPTY OF PROJECTS**: the sitting's final `pnpm test` truncated everything it created, and `.manifest/repos/` is back to the four bare repositories it held at open. *(F15 is worth knowing anyway: a project row **cannot be deleted** while it has events — `audit.events` has no cascade, because §20 makes it append-only — so a truncate is the only disposal route the platform has today, and `project:delete` still has no route.)* **Any `pnpm test` truncates**, so run the gates before you want rows, not after. **`make verify`'s per-app INFO line reads `containers=12 networks=4
-volumes=8`** at close, **`runtime routes currently applied: 0`** — the Docker tier
-restarts the edge and drops every route, and the boot restored none because the project rows
-were gone, so **every app hostname answers the wildcard** until something redeploys. **Both
-cleanup scripts were ALLOWED `--apply` and were run — the FOURTH consecutive sitting** —
-clearing the tier's same seven networks and one volume (**the TENTH measurement of that
-cycle**) and taking LiteLLM from 6 users to 4; `p4b-probe-user` came back again. **The app
-images are the ONLY thing this sitting moved and left moved, and neither script covers
-them** — four per Docker-tier run, and the tier ran **twice**. **Name the metric**, because the
-obvious commands disagree by design: `docker images -q | wc -l` reads **137**, `sort -u`
-**129**, `127.0.0.1:7107/local/*` **87**, and `grep '^local/'` **0**, all on the same machine
-at the same moment. `POST …/members` still
+`127.0.0.3`.** **Twenty migrations are applied**; sitting 7 adds none. **NOTHING IS LISTENING
+ON 7100** — the control plane was never started this sitting, because every test drives
+Fastify in process through `app.inject` and the Docker tier spawns its own; start it yourself
+with README's *Running the control plane* block. **Every restart mints a new
+`MANIFEST_SESSION_SECRET`, so no cookie survives one.** **THE DATABASE IS EMPTY**:
+`projects`, `releases`, `approvals` and `users` all read **0**, truncated by the final
+`pnpm test`, and `.manifest/repos/` holds the same four bare repositories it held at open.
+**Any `pnpm test` truncates**, so run the gates before you want rows, not after.
+**`make verify`'s per-app INFO line reads `containers=12 networks=4 volumes=8`** at close,
+**`runtime routes currently applied: 0`** — the Docker tier restarts the edge and drops every
+route, and the boot restored none because the project rows were gone, so **every app hostname
+answers the wildcard** until something redeploys. **Both cleanup scripts were ALLOWED
+`--apply` and were run — the FIFTH consecutive sitting** — clearing the tier's same seven
+networks and one volume (**the ELEVENTH measurement of that cycle**: `networks=11 volumes=9`
+before, `4` and `8` after) and taking LiteLLM from 6 users to 4; `p4b-probe-user` came back
+again. **The app images are the ONLY thing this sitting moved and left moved, and neither
+script covers them.** **Name the metric**, because the obvious commands disagree by design:
+`docker images -q | wc -l` reads **141**, `sort -u` **133**, `127.0.0.1:7107/local/*` **91**,
+and `grep '^local/'` **0**, all on the same machine at the same moment. `POST …/members` still
 answers `400 MEMBER_USER_NOT_FOUND` for anybody who has not signed in to Manifest itself, and
 a role reaches a person only at their next sign-in (`scripts/admin-grant.sh`).
 
 **ONE CONTROL IS STILL OWED — the offline acceptance below. TASK 2's CONTROL (a) IS DONE**,
 run by Rich in his own terminal on 2026-09-20, four sittings after it was owed:
 `sudo ifconfig lo0 -alias 127.0.0.3` → **`19 checks, 1 failed`**, the one being *both
-loopback aliases exist* (*"127.0.0.3 not on lo0 — Docker will refuse to bind Caddy"*);
-restored → 19/0. **Exactly one check moved**, which the unprivileged stand-in could not
-establish.
-
-**IT ALSO MEASURED SOMETHING IT WAS NOT AIMED AT, AND YOU SHOULD KNOW IT BEFORE YOU TRUST A
-GREEN `make doctor`.** With `127.0.0.3` gone — Caddy unable to bind it, the production zone
-unreachable — **two checks naming `127.0.0.3` stayed GREEN**: *nothing but Manifest claims
-manifest.internal* and **"the production zone answers the public address"**.
-`check_zone_split` is two `dig` calls; it asserts what **dnsmasq answers** and never that
-anything listens there. That is right for a check in doctor's *Host setup* section and the
-NAME overstates it. **`make doctor` alone cannot tell you production is reachable** — the
-alias check is the only thing in it that would have caught this. `make verify`'s *the public
-listener answers a production name* does a real `curl --resolve` and asserts `listener=public`
-in the body, so it would have gone red — **"would have" is a prediction, not a measurement**,
-and verify was not run inside the window. One more `sudo` line closes it.
+loopback aliases exist*; restored → 19/0. **Exactly one check moved**, which the unprivileged
+stand-in could not establish. **It also measured something it was not aimed at**: with
+`127.0.0.3` gone, **two checks naming `127.0.0.3` stayed GREEN** — `check_zone_split` is two
+`dig` calls and asserts what **dnsmasq answers**, never that anything listens there. **`make
+doctor` alone cannot tell you production is reachable**; the alias check is the only thing in
+it that would have caught this. `make verify`'s *the public listener answers a production
+name* does a real `curl --resolve` and asserts `listener=public` in the body, so it would
+have gone red — **"would have" is a prediction, not a measurement**, and verify was not run
+inside the window. One more `sudo` line closes it.
 
 **RICH'S FOUR DECISIONS (brief §5) ARE SETTLED — do not re-open them**: R1 folds
 `IamRegistration` and `PrivacyAssessment` into P6a as tracked objects with manual transitions
@@ -1994,16 +1973,16 @@ and verify was not run inside the window. One more `sudo` line closes it.
 redefines D21's rehearsal as a local, production-shaped one, whose item's `why` **must** say
 it proves the registration's SHAPE and never UBC's acceptance of it; **R3 is DONE —
 sittings 2 and 3 built it**; R4 gives code safety a **seam** now with a **NON-blocking**
-checklist item. **R4's spec action is ✅ APPROVED AND APPLIED** (D33, §15's hook row, §20's
-control-map row) — **do not propose it again.** And **Rich chose ELEVEN sittings**, the lean
-of three splits.
+checklist item, **which is Task 12 and is this sitting's**. **R4's spec action is ✅ APPROVED
+AND APPLIED** (D33, §15's hook row, §20's control-map row) — **do not propose it again.** And
+**Rich chose ELEVEN sittings**, the lean of three splits.
 
 **THREE SPEC ACTIONS ARE PROPOSED AND NONE IS APPLIED** (the plan's *Spec actions*, and §8):
 §21's *honest divergences* item 2 — **now describing something that has actually happened**;
-§20's step-up list naming `release:approve` — **and sitting 6 made it concrete, because
-`STEP_UP_GUARDED` now implements exactly the asymmetry it describes and
-`step-up-guarded.test.ts` asserts it in both directions**; and §13's *Residual risk* saying
-"the five sensitive fields" where §7 says seven. **Never edit the spec. Ask.**
+§20's step-up list naming `release:approve` — **and sitting 7 made it concrete for the second
+time, because `release:approve` now has a route and that route steps up**; and §13's
+*Residual risk* saying "the five sensitive fields" where §7 says seven. **Never edit the
+spec. Ask.**
 
 **WHAT IS OUTSTANDING AND IS RICH'S**, unchanged: the **offline acceptance**
 (`scripts/offline-acceptance.sh`, TEN steps — P6a's Task 19 makes it eleven); the
@@ -2018,12 +1997,11 @@ each plan's *Global Constraints*:
 - **COMMIT ON `main`, AND STAGE YOUR OWN PATHS BY NAME — §6 RULE 9 IS THE FULL RULE AND THIS
   LINE DELIBERATELY DOES NOT RESTATE IT.** Read it: **other agents are working in this
   repository at the same time as you**. `HEAD` moved under sittings 1, 2, 3 and 4 and **did
-  not under sittings 5 and 6**, which makes it the exception rather than the rule either way,
-  and `superpowers:executing-plans` and `using-git-worktrees` will both push you toward a
+  not under sittings 5, 6 or 7**, which makes it the exception rather than the rule either
+  way, and `superpowers:executing-plans` and `using-git-worktrees` will both push you toward a
   branch you must not make.
 - **Ask before `sudo`, and before touching anything outside the repository.** §6 rule 2, and
   CLAUDE.md's *Non-negotiables* has the rest.
-
 
 
 ## 8. Decisions waiting on Rich

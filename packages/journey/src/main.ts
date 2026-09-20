@@ -595,8 +595,10 @@ async function step7RequestProduction(): Promise<void> {
   // P6a Task 10 moved `admin-approval` OUT of this check, the way Task 7 moved the two
   // external records out of the one above it: approvals are a row an administrator writes
   // now, so the item reads `unmet` with no `builtBy` on a project nobody has approved.
-  // **`rehearsal` is the last item in the checklist that Manifest genuinely does not
-  // track**, and Task 14 takes it, which will leave this check with nothing to assert.
+  // **`rehearsal` is the last UNCONDITIONAL item in the checklist that Manifest genuinely
+  // does not track** — `load-rehearsal` is also `not_built`, and is P9's, and appears only
+  // for a `large_course` or `public` audience, which this project is not. Task 14 takes
+  // `rehearsal`, which will leave this check with nothing to assert.
   checks.ok(
     'the approval is tracked, and unmet until an administrator makes one',
     item('admin-approval')?.state === 'unmet' &&
