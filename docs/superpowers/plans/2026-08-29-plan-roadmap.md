@@ -697,7 +697,7 @@ and *subsequent releases* — so the table below has seven rows for six subsyste
 | | Plan | Covers |
 |---|---|---|
 | **P6a** | **The first production launch** ← **WRITTEN 2026-09-19 — [19 tasks in eleven agreed sittings](./2026-09-19-p6a-first-production-launch.md); NEXT TO EXECUTE, sitting 1 (the measurements, alone and first)** | the public listener made real (§12), production environments, promotion by verified digest, the `LaunchReadiness` **gate** that blocks (P5 ships only its read-only view), `IamRegistration` and `PrivacyAssessment` **as tracked objects with manual state transitions** (Rich, 2026-09-19 — generation stays P8's), the D21 rehearsal, admin approval with step-up re-auth, gate integrity (§13), and the **`Reviewer` seam** — an interface, an honest `NullReviewer` and a NON-blocking checklist item, so code review can be built in later without unpicking anything (2026-09-19). **Demo:** `make demo-production` — an app reaches production, every blocking item honestly met. **Rich chose ELEVEN sittings on 2026-09-19, the LEAN of three splits offered** (thirteen recommended, sixteen cautious), with its three costs stated: sitting 6 builds a second authentication round trip AND applies it; sitting 10 is three tasks including both console screens; sitting 9 pairs the rehearsal with the first production deploy the rehearsal depends on. **The plan raises THREE spec actions, none applied and all Rich's** — §21's divergence 2 (conditional on the listener split landing), §20's step-up list naming `release:approve`, and §13's *Residual risk* saying **five** sensitive fields where §7 says **seven**. **Writing it found two things from the code the brief did not have**: there are **TWO** unconditional production gates, not one — the route's and `deployRelease`'s own — so a plan replacing only the outer one ships a production deploy that still refuses; and **`release:approve` is not one of D24's privileged four**, so a platform admin can mint a delegated token holding it, which would have let an agent approve a production release the day that capability got its first route |
-| **P6b** | **Subsequent releases** | D9.2: self-serve production redeploys, sensitive-diff re-escalation (`isSensitiveDiff` gets its first caller), the `diff_snapshot` and its **security-aware** AI summary carrying the reviewer's verdict, and the `auth.attributes` → IAM change-request path (§9). **Demo:** a self-serve redeploy, then a sensitive change refused until approved |
+| **P6b** | **Subsequent releases** | D9.2: self-serve production redeploys, sensitive-diff re-escalation (`isSensitiveDiff` gets its first caller), the `diff_snapshot` and its **security-aware** AI summary carrying the reviewer's verdict, and the `auth.attributes` → IAM change-request path (§9). **Demo:** a self-serve redeploy, then a sensitive change refused until approved. **D5's GitHub source driver is placed immediately after this plan** — see below for why the ordering is a security argument rather than a dependency |
 | P7 | Custom domains | §23 end to end: `Domain` lifecycle, CNAME + TXT verification, certificate issuance, the upload path, expiry alarms, D27's ordering constraint. **Depends on P6a's public listener.** *Can a custom domain be proved on this laptop? Read from the config on 2026-09-19 — see the note below the table: yes, cheaply, except for real ACME issuance* |
 | P8 | Launch package generation | §9 and D19: the IAM registration package via `saml-metadata-generator`, and the PIA draft. **The two tracked objects themselves moved to P6a on 2026-09-19** (Rich's decision, P6 brief §5 R1) — P8 GENERATES what they carry, and §9's own *"submitted by a human, with a ticket reference pasted in"* is what P6a builds first, the manual driver of the same state transition (D5, D10) |
 | P9 | Audience & capacity | §24: the tiers' production effects, pre-warming for `burst: synchronised`, the load rehearsal, upgrade requests through the admin queue |
@@ -792,7 +792,79 @@ implemented in both drivers, **called by nothing and not covered by the driver c
 **Sized at 8–14 tasks for the no-S5 slice.** Five decisions are Rich's (the brief's §6), the first
 being whether it becomes its own plan and where it sits. **One ordering dependency is real**: a
 spec write path makes D9's sensitive-diff re-escalation load-bearing for the first time, and P6b
-is what builds it.
+is what builds it. **This is one of two instances of the same rule** — see *D5's driver 2* below:
+*anything that widens who can change a spec goes after the gate that inspects spec changes.*
+
+### D5's driver 2 — the GitHub source driver. PLACED AFTER P6b, 2026-09-19
+
+**Fully specified, and until now owned by no plan.** D5 names it (*"driver 1 is local bare repos,
+driver 2 is a UBC GitHub org"*), §5's module map lists `source/  git provider drivers (local,
+github)`, and **§20's *Git driver* subsection specifies its security properties in detail**:
+a **GitHub App** whose private key is held *"in the same custody class as the master key"*, with
+**installation tokens that are short-lived and scoped per repository**; webhook payloads verified
+by HMAC; **repositories private by default and enforced private**; push-time secret scanning on
+both drivers; and a sandbox git credential that can push to exactly one branch of one repository
+and never `main` (D14). Nothing about the mechanism is an open question — only its placement was.
+
+**PLACED AFTER P6b (Rich, 2026-09-19), and the reason generalises.** There is **no technical
+coupling in either direction** — measured: `isSensitiveDiff(before: ManifestSpec, after:
+ManifestSpec)` works on parsed specs, and `releases/`, `launch/` and `spec/` do not import
+`source/` at all. The ordering is a security argument instead. **GitHub widens who can change
+`manifest.yaml`**: today that needs filesystem access to the bare repos on one laptop, and
+afterwards it is everyone with write access in the org — the faculty member, their agent, a TA, a
+leaked token — any of whom could change `auth.attributes`, `egress.allow`, `services`,
+`data.classification` or `ai.models`, five of §7's seven sensitive fields. **P6b's sensitive-diff
+re-escalation is the control that catches exactly that**, so shipping this first would open a
+window in which the exposure is real and the gate is absent.
+
+> **The rule this establishes, because it is the second instance and not the first:** *anything
+> that widens who can change a spec goes after the gate that inspects spec changes.* The
+> [authoring API brief](./2026-09-19-authoring-api-brief.md) reaches the same conclusion from the
+> opposite direction — a spec WRITE path wants P6b first for the identical reason. Two unrelated
+> features, one ordering constraint.
+
+**THREE FINDINGS THAT MAKE THIS SMALLER THAN IT SOUNDS**, read from the code on 2026-09-19:
+
+1. **The builder does not use the source driver.** `ContextInput` is
+   `{ repoPath: string, commitSha, blueprintDir, workDir }` and `assembleContext` runs
+   `git archive` against a bare repository on disk; nothing under `build/` imports `source/`. So
+   **a GitHub driver that keeps a LOCAL MIRROR leaves the build path untouched** — offline builds
+   keep working, C1 holds, and §13's *same source → same digest* determinism is undisturbed.
+   GitHub becomes the durable, reviewable copy and the CI trigger rather than the build's source
+   of truth. *Rejected alternative:* growing `SourceDriver` an "export tree at commit" method and
+   downloading a tarball, which is a cleaner abstraction and puts the network on the build path.
+2. **The interface exists but the build path is not behind it**, which is the seam to fix
+   whichever option is taken. "We already have a driver interface" is true and slightly
+   misleading.
+3. **Use TWO App registrations, not one.** An App's private key mints tokens for **every**
+   installation of that App, and generating a second key does not isolate anything. So a single
+   "Manifest" App installed on both a developer's account and the UBC org means **a laptop key
+   that can mint tokens for production repositories**. One registration per deployment —
+   `Manifest (local dev)` owned by the developer with its key in `infra/secrets/`, and `Manifest`
+   owned by UBC with its key in Vault/KMS — makes that impossible by construction rather than by
+   policy, and matches what §20 already says about where the master key lives in each environment.
+
+**Two more things settled on the way.** **A dedicated GitHub org for manifested apps** rather than
+UBC's main one: 500 course repositories would drown it, the App needs `administration: write` to
+create repositories and that is far safer scoped to a purpose-built org, slug collisions stay
+contained, and archival policy for finished courses can differ. And **the GitHub driver must stay
+OPTIONAL locally** — C1 requires the platform to run on one laptop offline after `make seed`, so
+driver 1 remains the default and `make demo` must keep working with no GitHub at all. That also
+disposes of webhooks: the local App registration has no webhook URL and builds stay **pull-based**
+through the API exactly as they are today, which C1 requires anyway since there is no public URL
+to deliver to.
+
+**When it becomes load-bearing rather than merely useful:** §13 says *"Everything reaching UBC
+staging or production is built by CI on the target architecture"*, because laptops are arm64 and
+UBC is x86-64 — and CI needs a git host. So this and *Toolchain decisions*' GitHub Actions row are
+effectively one milestone; that row calls CI *"the only legitimate source of promotable images"*
+(this document's phrasing, not the spec's) and says it *"binds at Phase 5"*. **The local proof needs none of it**: the platform
+already goes bare repo → build → release → deploy → URL, offline, end to end.
+
+**The one argument for doing it EARLIER, recorded rather than hidden:** §13's `diff_snapshot`
+would naturally carry a commit or PR link if GitHub already existed, and an approver would want
+one. Building GitHub afterwards makes that one field added later — minor and retrofittable, and
+not worth reordering for.
 
 ### Phases 3–5 — not planned
 
