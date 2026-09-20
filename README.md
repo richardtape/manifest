@@ -20,7 +20,8 @@ BuildKit, LiteLLM against host Ollama, and the Manifest IdP. `make doctor` is no
 network off** when P1 was executed. *(P6a sitting 2 added one doctor check and three verify
 checks for §12's second listener, 2026-09-19; sitting 3 moved NEITHER count, adding its
 port-equality assertion inside an existing verify check rather than as a new one,
-2026-09-20.)* `https://console.manifest.internal/` returned the same hostname and
+2026-09-20; sitting 4 moved neither either — it adds three API routes and no platform
+check, 2026-09-20.)* `https://console.manifest.internal/` returned the same hostname and
 scheme from the host browser and from inside a container — no port, no certificate
 warning. *(Since P5a Task 3 that name is the console's origin, refused to every source but
 the host, so `make verify` proves the same parity on `https://edge.manifest.internal/`.)* See [`docs/superpowers/RUNBOOK.md`](docs/superpowers/RUNBOOK.md).
@@ -35,7 +36,7 @@ and a Fastify surface with D23.6 idempotency keys and the D23.7 error envelope o
 every failure. The whole faculty lifecycle — project, spec, build, release, staging
 deploy to healthy, production correctly refused with its §13 checklist — runs against
 the fake driver in **~300 ms**, and against **real Docker** through `make demo`.
-**1395 tests with no Docker, and 185 more that need a daemon** — nothing skipped, since P4c Task 5 gave the Docker driver the fixtures for the driver contract's continuity block. See
+**1449 tests with no Docker, and 185 more that need a daemon** — nothing skipped, since P4c Task 5 gave the Docker driver the fixtures for the driver contract's continuity block. *(P6a sitting 4 took the first from 1395 to 1449 with migration 0019's two `launch/` test files and three new routes' worth of authorization-matrix rows; the Docker tier was owed, run and unmoved, 2026-09-20.)* See
 [*Running the control plane*](#running-the-control-plane) below.
 
 The design is approved and complete.

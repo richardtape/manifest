@@ -44,8 +44,8 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # DOCUMENTS; nothing pointed it at this file, because §6's sweep list names documents only.
 # Found by P6a sitting 3 by opening the file rather than by re-reading the list, and §6's
 # table now carries a row for it. Last moved 2026-09-20 by P6a sitting 3 (Task 4).
-EXPECT_TESTS=1395
-EXPECT_FILES=108
+EXPECT_TESTS=1449
+EXPECT_FILES=110
 EXPECT_DOCTOR=19
 EXPECT_VERIFY=54
 

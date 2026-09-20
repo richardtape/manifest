@@ -33,8 +33,8 @@
 | 1 | 1 | **The measurements this plan rests on**, before any code: whether SimpleSAMLphp honours `ForceAuthn`, what the second listener actually costs on this machine (the alias, the dnsmasq split, the probe path), whether `computeLaunchReadiness` survives being read by something that blocks, and the **two** production gates rather than one. **Alone, and first** | **DONE 2026-09-19 — 15 findings.** All ten measurements ran. **R3 is a GO**, `ForceAuthn` **is honoured**, Decision 13 is measured. **No task boundary moved, so the eleven-sitting split stands.** Correction blocks on Tasks 1, 2, 3, 4, 5, 7 and 12 |
 | 2 | 2–3 | **The second listener exists**: `127.0.0.3` on `lo0` and the dnsmasq split (Rich runs one bundled `sudo` script), then `srv1` inside the edge with the production wildcard site, and `make doctor` and `make verify` checks for both halves | **DONE 2026-09-19 — 12 findings.** §12's split is REAL: two servers in one container, and a production name on the internal address and a staging name on the public one are both served by NOTHING, watched both ways. **§21's divergence 2 no longer describes this machine, so Spec action 1 is unconditional in practice — still Rich's, still not applied.** doctor **19/0**, verify **54/0**. **Its headline corrects sitting 1's F3: an unreachable name answers `200` WITH AN EMPTY BODY, not a TLS error, because Caddy's certificate cache is app-global — so a status assertion is green whether the split holds or leaks.** Two of the plan's own controls could not fail as written |
 | 3 | 4 | **A production route goes on the public listener and staging cannot reach it** — §12's fail-closed claim watched failing on the only machine that exists, in both directions, and the readiness probe taught the production path | **DONE 2026-09-20 — 11 findings.** A production route is written to `srv1` and a staging route to `srv0`, read back off `X-Manifest-Instance` from a REAL route on each listener; `edgeIdentityProbe` and `edgeProbe` take a `port` and the driver passes it for production alone. `pnpm test` **1390 → 1395**, `pnpm test:docker` **180 → 185** (the predicted 180 + 5), doctor **19/0** and verify **54/0** both unmoved — the new port-equality assertion lives INSIDE check 2. **No task boundary moved.** **Its headline is about CONTROLS, not the platform: control (c) went RED rather than staying green, because the case asserts the body as well as the identity, and control (b) CANNOT FAIL AT ALL — the driver's production branch is asserted by nothing until Task 15.** `[M5]` named one hardcoded `public: 'srv0'` and there are nine; two were the Docker tier's own driver factory |
-| 4 | 5–6 | **Migration 0019** — `approvals`, `iam_registrations`, `privacy_assessments` and their state machines — and **the two external records over the API**: an administrator records a real registration and a real PIA with a pasted ticket reference. **Read Task 5's `[M10]` correction block first: the plan's own step would make the migration FAIL TO APPLY** | ← **next** |
-| 5 | 7 | **The gate that BLOCKS.** One evaluation in `launch/`, called by the read and by the deploy route, with the **two** unconditional refusals that exist today removed — and the checklist's items reading real rows. **Alone: it is this plan's centre** | |
+| 4 | 5–6 | **Migration 0019** — `approvals`, `iam_registrations`, `privacy_assessments` and their state machines — and **the two external records over the API**: an administrator records a real registration and a real PIA with a pasted ticket reference | **DONE 2026-09-20 — 19 findings.** §13's gate now has REAL ROWS to block on, which is the whole of R1. `[M10]` is confirmed exactly: drizzle wrote the `audit.events` DROP/ADD pair unprompted and **nothing was appended**. THREE routes, not the four this task says. `launch:record` is granted to `PLATFORM_ADMIN` alone and is NOT one of D24's four — `requireSession` is the control, enforced by the matrix **and by `tsc`**. **No task boundary moved.** `pnpm test` **1395 → 1449 in 110 files**. **Its headline is that the plan's own matrix row for `token-other-project` says `404 NOT_FOUND` and the route answers `403 TOKEN_CREDENTIAL_REFUSED`** — `requireSession` runs before the project is read, which is the right order, and control (a) proves the row was written for the other one. **ALL NINE controls fired; none could not fail** |
+| 5 | 7 | **The gate that BLOCKS.** One evaluation in `launch/`, called by the read and by the deploy route, with the **two** unconditional refusals that exist today removed — and the checklist's items reading real rows. **Alone: it is this plan's centre** | ← **next** |
 | 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | |
 | 7 | 10–11 | **The approval**: `release:approve`'s first caller ever, bound to an immutable digest, non-repudiable, behind step-up — and its `diff_snapshot` with the AI-written summary that is **recorded as absent rather than blocking** when the model is down | |
 | 8 | 12–13 | **R4's `Reviewer` seam** — the interface, the honest `NullReviewer`, its real caller and its **non-blocking** checklist item — and **§7's last production clause**: `auth.attributes` ⊆ `registered_attributes`, failing at build time | |
@@ -4244,3 +4244,230 @@ that the sweep's own instructions were the defect (F9 was the same shape for
 lesson is the one §6 already states and this sitting proved twice: *a list of what to sweep is
 itself a thing that goes stale, and the way to test it is to follow it as written rather than to
 read it.*
+
+### Sitting 4 — Tasks 5 and 6, migration 0019 and the two external records — 2026-09-20. **19 findings.**
+
+**§13'S GATE NOW HAS REAL ROWS TO BLOCK ON, WHICH IS THE WHOLE OF R1.** Migration **0019**
+adds `approvals`, `iam_registrations` and `privacy_assessments` with §9's submission states,
+`launch/transitions.ts` holds the two state machines as pure table-driven functions, and an
+administrator records a real IAM registration and a real PIA over the API with a pasted ticket
+reference. **THREE routes, not the four Task 6 says**: `getLaunchRecords` reads both, one POST
+per record writes it. `launch:record` is Decision 4's new capability, granted to
+`PLATFORM_ADMIN` alone — and it is **not** one of D24's privileged four, so the control is
+`requireSession` on every route that asserts it.
+
+**THE THREE THINGS TO CARRY FORWARD, above every finding below.**
+
+1. **`[M10]` IS CONFIRMED EXACTLY, AND IT WOULD HAVE COST THE SITTING.** `drizzle-kit generate`
+   emitted the `audit.events` `DROP CONSTRAINT`/`ADD CONSTRAINT` pair **unprompted**, because
+   the constraint is expressed in `schema.ts`. Appending the plan's SQL would have put a second
+   `ADD CONSTRAINT "events_type_known"` in a file that already had one, and 0019 would have
+   failed to apply **after its three `CREATE TABLE`s had run** — the replay ORIENTATION §4
+   prices. **Nothing was appended, and no second guard was built**: `observability/events.test.ts:283`
+   already reads the constraint out of Postgres and compares it with `EVENT_TYPES`, and control
+   (c) watched it go red.
+2. **THE PLAN'S OWN MATRIX ROW FOR `token-other-project` IS WRONG, AND CONTROL (a) EXPLAINS
+   WHY.** Task 6's Step 4 table says `404 NOT_FOUND`; both record routes answer
+   **`403 TOKEN_CREDENTIAL_REFUSED`**, measured. `requireSession` runs before `assertCapability`,
+   so the project is never read and the answer is identical for every project id — **which is
+   the right order**, because the alternative answers `404` for another project and
+   `TOKEN_CREDENTIAL_REFUSED` for this one, and that tells a token which projects exist. Control
+   (a) proves the plan's row was written for the *other* order: with `requireActor` in place of
+   `requireSession`, `token-other-project` does answer `404`.
+3. **AN EVENT TYPE IS PUBLISHED SURFACE, AND A NEW ROUTE IS NOT THE ONLY THING THAT NEEDS
+   `pnpm contract:write`.** `api/representations/events.ts` builds the contract's `EventFrame`
+   union from `EVENT_TYPES` and the detail-schema map, so Task 5's five new types made
+   `api/contract/document.test.ts` red — *"openapi.json is stale from line 2678"* — with no route
+   added at all. The plan states the three-files-in-order rule for a ROUTE and Task 5's file list
+   does not mention the contract.
+
+| Gate | Before | After |
+|---|---|---|
+| `make doctor` | 19 checks, 0 failed | **19 checks, 0 failed** — unmoved; this sitting adds no platform check |
+| `make verify` | 54 checks, 0 failed | **54 checks, 0 failed** — unmoved, same reason |
+| `pnpm test` | 1395 in 108 files | **1449 in 110 files**, twice and identical — up **54** and **two files**: `launch/transitions.test.ts` (13) and `launch/records.test.ts` (13), plus **28 in `api/authz-contract.test.ts`** (three routes × nine actors, and one row is the completeness check's) |
+| `pnpm test:docker` | 185 in 30 files | **185 in 30 files, 0 skipped, 830 s** — **OWED, RUN and UNMOVED**, and *predicted unmoved before it ran*: this sitting added no Docker test file, and migration 0019 only widens the schema every Docker suite already creates |
+
+#### The findings
+
+**F1 — `[M10]` holds in every particular, and the generated SQL is the evidence.** The
+correction block said drizzle writes the CHECK rewrite itself and that appending breaks 0019.
+`drizzle/0019_useful_taskmaster.sql` carries
+`ALTER TABLE "audit"."events" DROP CONSTRAINT "events_type_known"` immediately after the three
+`CREATE TABLE`s and the matching `ADD CONSTRAINT` with all 26 types as its last statement.
+**Read before adding anything to it, as the block says, and nothing was added.**
+
+**F2 — *Read this first* 16's reassuring half is wrong, and `[M10]` already said so; this
+sitting measured the guard working.** Control (c) added a 27th `EVENT_TYPE` with its schema and
+its example but WITHOUT the `schema.ts` CHECK and without a migration:
+`events.test.ts`'s *"is enforced by the DATABASE too — and the constraint names exactly
+EVENT_TYPES"* went red, `expected [ 'ai.key_rotated', …(25) ] to deeply equal [ …(26) ]`. The
+guard the plan asks for in Step 2 **already exists and a second one was not built.**
+
+**F3 — Task 5's file list omits the FOURTH of the four edits its own module documents.**
+`event-schemas.ts`'s doc comment says in terms that adding an event type is four edits — the
+schema map, `EVENT_TYPES`, the database's CHECK, and **`EXAMPLE_DETAILS` in
+`observability/testing.ts`** — and Task 5's *Files* names only the first three. `tsc` catches
+it, because `EXAMPLE_DETAILS` is a `{ readonly [T in EventType]: … }` mapped type, so it is
+cheap; it is recorded because the file it lives in warns about it by name and the plan still
+missed it.
+
+**F4 — the five new types tripped a gate the plan does not mention, and the honest fix was a
+SECOND LIST.** `api/stream-contract.test.ts` asserts that every `EVENT_TYPE` not reached by a
+real delivery lifecycle is in `PUBLISHED_ELSEWHERE` — and that map's own doc promises *"the test
+that runs each one's publisher"*. **None of the five has a publisher anywhere yet** (Tasks 6, 10
+and 14 write them), so an entry there would have been a reassuring claim that another test
+covers them. `NO_PUBLISHER_YET` now names the task that writes each one, and **removing the
+entry is that task's job**: the moment a lifecycle in that file reaches one, the assertion goes
+red and somebody decides which list it belongs in.
+
+**F5 — the plan's `LaunchTransitionError` shape would have left its code UNREGISTERABLE, and
+either way out was red.** The plan gives it a fixed `readonly code = 'LAUNCH_TRANSITION_INVALID'`.
+`error-codes.test.ts`'s scan reads `readonly code = '…'` **only for files under `api/`** and reads
+`new <WireClass>('CODE'` everywhere — so a fixed field in `launch/` is invisible to both
+directions: registering the code turns *"registers nothing the source never throws"* red, and
+NOT registering it makes the route answer `500 INTERNAL`. **The class now takes its code as a
+constructor argument**, exactly like `ReleaseError`, `SourceError`, `ConfigError`, `SsoError` and
+`SecretError` — every other domain module's wire error class.
+
+**F6 — and the plan's "both get a family (`LaunchError`)" is not expressible.**
+`error-codes.test.ts` derives the family from the CLASS NAME (`m[1] as ErrorFamily`), and the two
+classes answer two different statuses — 409 for a transition, 400 for an invalid record. **Two
+families, named for their classes**, which is what every existing entry does.
+
+**F7 — so Task 5 touches three `api/` files its list does not name.** The registry holds itself
+to the source in BOTH directions, so the code has to be registered in the same commit as the
+class that throws it: `api/error-codes.ts`, `api/errors.ts` (the `instanceof` branch, which the
+registry's own status test exercises) and `api/error-codes.test.ts`'s `WIRE_CLASSES`.
+
+**F8 — control (a) printed a message no gate can read, and it was wrong.** The refusal read
+*"a IAM registration cannot go from 'submitted' to 'active'"*. Found by reading the control's
+own output, not by a test — every assertion in `transitions.test.ts` matches on the part after
+the noun. `what` now carries its own article.
+
+**F9 — an edit left a doc comment describing the wrong shape, and neither prettier nor eslint
+can see that.** `ApprovalDetail` was inserted between `RetireDetail`'s doc comment and
+`RetireDetail` itself, so the paragraph about `handle` being *"the only thing naming what was
+removed"* sat above the approval detail. Found by reading the file back after the edit.
+
+**F10 — the three new tables ARE reachable by the application role, measured rather than
+assumed.** `information_schema.role_table_grants` reads `DELETE,INSERT,SELECT,UPDATE` for
+`manifest_app` on all three, through `ALTER DEFAULT PRIVILEGES`. A migration that created a table
+the tests' own connection could not read would be invisible until the first test used it, and
+these three are in `public` rather than in `audit` precisely so that they are writable.
+
+**F11 — Task 6's matrix row for `token-other-project` is wrong, and control (a) is what makes
+the reason visible.** Measured: `403 TOKEN_CREDENTIAL_REFUSED` on both record routes, not the
+plan's `404 NOT_FOUND`, because `requireSession` runs first. See *thing to carry forward* 2.
+
+**F12 — Task 6 says "four routes" and "four new operations"; THERE ARE THREE.**
+`pnpm contract:write` added exactly `getLaunchRecords`, `recordIamRegistration` and
+`recordPrivacyAssessment`. The plan's own *Read this first* 18 enumerates **seven** operations
+for the whole of P6a, of which exactly three are Task 6's. **It matters because Step 5's console
+reckoning is keyed to the count and D22's gate is disarmed by its own list** — a reviewer
+counting to four looks for an operation that does not exist, and the gate will not tell them.
+
+**F13 — Task 6's Step 5 as written would leave `pnpm test` RED FOR SIX SITTINGS.** It says
+*"Nothing goes in `DELIBERATELY_UNCALLED` from this task"*, but D22's coverage gate requires a
+console caller for **every** documented operation and the records screen is **Task 17's, in
+sitting 10**. Three entries now sit in that list naming Task 17 as the one that removes them.
+*Rejected:* writing the three `api.ts` functions now — that is the no-caller shape ORIENTATION §9
+names four times, moved into the console, and **an unused export is invisible where a list entry
+is not.**
+
+**F14 — Task 6's file list omits the MOCK, which has its own half of D22.**
+`packages/mock/src/server.test.ts` holds every documented operation to having an entry in
+`ANSWERED`, so three answers and three fixtures were needed in the same commit. Both record
+routes answer the FIXTURE rather than the request body: the mock keeps no state, and a route that
+echoed the body would let a console bug that sends the wrong state look right here and wrong
+against the platform.
+
+**F15 — `pnpm typecheck` caught what 1449 green tests could not.** `packages/console/src/screens/tokens.tsx`
+holds the capability list to the document by `tsc` in BOTH directions (P5c sitting 6's
+`everyCapability`), so `launch:record` collapsed the parameter's type to `never`:
+`error TS2345: Argument of type '[…11 capabilities]' is not assignable to parameter of type 'never'`.
+**Every test was green through it.** CLAUDE.md's *Vitest strips types* lesson, reproduced live —
+and the design worked exactly as P5c intended.
+
+**F16 — the two representation mappers needed TWO SIGNATURES, and `tsc` found it at the route.**
+`toIamRegistration(row | undefined) => T | null` made `defineRoute` reject the record handler,
+because a route that has just written a row cannot answer `null` against a success schema with no
+null in it. Overloads state both callers: the READ may find nothing — an absent record is a
+state, not an error — and the WRITE never does.
+
+**F17 — the new test walked straight into `expectSqlState`'s documented trap.**
+`rejects.toThrow(/iam_registrations_attributes_present/)` failed **while the constraint was
+refusing the insert**, because drizzle wraps every driver error in its own and the message is
+`Failed query: insert into "iam_registrations" …` with the real one on `.cause`. That helper's
+own doc comment describes this exact failure. It is the second time it has earned its place, and
+the test now asserts SQLSTATE `23514`.
+
+**F18 — `requireSession` is enforced TWICE, and `tsc` is the stronger half — with a limit worth
+knowing.** Control (a) predicted four red matrix rows and got them; it also **does not compile**,
+`error TS2339: Property 'puid' does not exist on type 'Actor'`. **But that is only because the
+handler reads `actor.puid`**: a future route asserting `launch:record` that never touches it would
+compile with `requireActor` and only the matrix would catch the leak.
+
+**F19 — control (d) is more precise than the plan predicts, and the difference is what to
+record.** The plan predicts *"`records.test.ts` red — and note that the database's CHECK catches
+it too"*. With the module's refusal removed the request is **still refused**, by the database —
+so what is lost is not the refusal but the *actionable message and hint*, and the failure becomes
+a drizzle-wrapped constraint violation an administrator cannot act on. The two tests now say
+which of the two guards each one exercises.
+
+#### Negative controls — every one watched, and which could not fail
+
+| | Control | Predicted | Measured |
+|---|---|---|---|
+| T5 a | one arrow removed from `IAM_ARROWS` (`submitted: ['active','change_requested']` → `['change_requested']`) | happy-path red **and** the counted test red at 8 → 7 | **FIRED, exactly**: both red, `{ allowed: 7, refused: 18 }` against `{ allowed: 8, refused: 17 }` |
+| T5 b | `iamTransition` returns `to` unconditionally | every refusal red, **and the counted test red at `refused: 0`** | **FIRED**: six red, counted test `{ allowed: 25, refused: 0 }` |
+| T5 c | a 27th `EVENT_TYPE` with its schema and example, no CHECK rewrite | `events.test.ts`'s constraint test red | **FIRED**: `expected […(25)] to deeply equal […(26)]` — the EXISTING guard, no second one built |
+| T5 d | `iam_registrations_attributes_present` dropped, an empty list inserted | the insert succeeds where it should not | **FIRED, both directions, inside one rolled-back transaction**: with the constraint, `ERROR: new row … violates check constraint`; without it `INSERT 0 1` and `stored_attribute_count = 0` — **so Task 13's subset check would then pass vacuously**. Machine re-measured after `ROLLBACK`: 0 rows, constraint present, no stray user |
+| T6 a | `requireSession` → `requireActor` on `recordIamRegistration` | four matrix rows red on the CODE; **`token-capable` becomes `pass`** | **FIRED, and the specific prediction held**: `token-capable` **200**, `token-privileged` **200**, `token-incapable` `403 FORBIDDEN`, `token-other-project` `404 NOT_FOUND`. **It also does not compile** (F18) |
+| T6 b | `launch:record` removed from `PLATFORM_ADMIN` | the admin row red, `403` where `pass` is expected | **FIRED, and wider than predicted**: both record routes' admin rows red, plus two `privileged.test.ts` assertions |
+| T6 c | `iamTransition` not called (state written straight through) | *refuses a first write straight into `active`* red | **FIRED**: that test red (*"promise resolved … instead of rejecting"*) and the submitted → draft refusal red with it |
+| T6 d | the module's empty-attributes refusal removed | `records.test.ts` red, and the database catches it too | **FIRED, and see F19**: the module test red, the request still refused — by the DATABASE, with a message nobody can act on |
+| T6 e | `launch:record` added to `PRIVILEGED` | `privileged.test.ts` red on *"is exactly D24's four"* | **FIRED**: that test red, plus the new *"does NOT make launch:record privileged"* assertion |
+
+**ALL NINE FIRED. None could not fail** — which is the first sitting in this plan where that is
+true, and it is worth saying why rather than claiming it as a win: eight of the nine act on a
+PURE FUNCTION or on an authorization row, both of which are cheap to break and cheap to watch.
+Sitting 3's control (b) could not fail because the branch it guarded had no caller at all; every
+branch this sitting wrote has one in the same commit.
+
+#### What this sitting decided
+
+1. **All five of Decision 14's event types land in 0019, though three have no publisher until
+   Tasks 10 and 14.** One CHECK rewrite on the audit table rather than three, which is what
+   Decision 14 asks for. The cost is three types the platform cannot yet produce, and
+   `NO_PUBLISHER_YET` is the forcing function that keeps that honest (F4). *Rejected:* adding
+   only Task 6's two and letting Tasks 10 and 14 each rewrite the constraint.
+2. **Two error classes in `launch/`, two families, code-first constructors** (F5, F6), against
+   the plan's one family and fixed code field.
+3. **Three temporary `DELIBERATELY_UNCALLED` entries naming Task 17**, against Task 6's
+   *"nothing goes in the list"* (F13).
+4. **`approvedAt` is set when a PIA REACHES `approved` and cleared when it leaves.** A timestamp
+   that survived a return to `draft` would say an assessment was approved while its state said it
+   was being rewritten, and §13's gate reads the state.
+5. **A request that does not MOVE the state is an edit, not an arrow.** Pasting a corrected
+   ticket reference against a `submitted` registration must succeed, and the machines have no
+   self-arrows — `transitions.test.ts` asserts that directly, and `records.ts` short-circuits
+   before calling them.
+6. **The states are written out as literals in `transitions.test.ts` rather than derived from the
+   arrow tables.** A test that asked the table under test which states exist would walk a smaller
+   grid the moment a state was dropped, and the counted controls would still pass.
+
+#### The machine, queried at close rather than recalled
+
+| | |
+|---|---|
+| `make doctor` / `make verify` | **19/0 and 54/0**, both re-run AFTER the Docker tier |
+| per-app resources | **`containers=12 networks=4 volumes=8`** — the Docker tier took it up and `dead-app-resources.sh --apply` took it back, the **EIGHTH** measurement of that cycle with **the same seven networks and the same one volume** (`mf-blueprint-ntm-`, `mf-chem-labs-`, `mf-fixture-rt-`, `mf-fixture-s6-`, `mf-fixture-s6nb-`, `mf-saml-probe-`, `mf-saml-unsigned-staging-net`, plus `mf-chem-labs-staging-db-data`). Re-measured by the script itself afterwards: `networks left: 4`, `volumes left: 8` |
+| LiteLLM | `p4b-probe-user` came back as an orphan **again** and was deleted; re-read afterwards, **4 users remain** and every container-held user survived |
+| cleanup scripts | **BOTH were ALLOWED `--apply` in this session** and were run by the agent. The classifier refuses them in other sessions — try the command |
+| database | **EMPTY**: `projects=0 users=0 instances=0 releases=0`, and `iam_registrations=0 privacy_assessments=0 approvals=0`. `pnpm test` truncates and the gates ran last |
+| migrations | **20 applied**, 0019 among them |
+| `lo0` | `127.0.0.1`, `127.0.0.2`, `127.0.0.3` |
+| port 7100 | **nothing listening** — the control plane was never started this sitting |
+| `HEAD` moved under this sitting | **twice**, `9987484` and `ad979e7`, both a design agent's markdown |
+| the four shared HTML pages | **checked, and none needed a change**: this sitting altered no decision, no spike status, no hostname and no count they restate |
