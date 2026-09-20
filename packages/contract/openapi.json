@@ -2915,6 +2915,8 @@
           "SAML_LOGIN_NOT_BOUND",
           "SAML_LOGOUT_REJECTED",
           "SAML_NO_PUID",
+          "SAML_STEP_UP_NO_SESSION",
+          "SAML_STEP_UP_WRONG_USER",
           "SAML_USER_UPSERT_FAILED",
           "SLUG_INVALID",
           "SLUG_RESERVED",
@@ -7250,6 +7252,11 @@
       "method": "GET",
       "path": "/auth/login",
       "why": "Browser-mediated sign-in. Its URL is part of the flow the Manifest IdP completes (§9), not a resource."
+    },
+    {
+      "method": "GET",
+      "path": "/auth/step-up",
+      "why": "§20's step-up re-authentication (P6a Task 8). A browser navigation that ends at the IdP and returns through the ACS; it re-proves a person rather than naming a resource, and its answer is a redirect rather than a representation."
     },
     {
       "method": "POST",

@@ -90,8 +90,34 @@ export interface SamlSp {
    * `login-state.ts`). The HTTP-Redirect binding signs it with the request.
    */
   loginUrl(relayState: string): Promise<string>
+  /**
+   * §20's STEP-UP: the same signed AuthnRequest with `ForceAuthn="true"` on it, so the
+   * IdP re-prompts a person who is already signed in there (P6a Task 8, Decision 17).
+   *
+   * Measured against the real Manifest IdP before this was built — `[M3]`, P6a sitting 1:
+   * with the flag the IdP served a login form (1 form, 0 assertions) and without it an
+   * assertion straight through (0 forms, 1 assertion), over the SAME cookie jar. The
+   * control is what makes "a form appeared" mean the flag rather than a lost session.
+   *
+   * **AND THE FLAG IS THE ONLY THING NO TEST HERE CAN SEE.** A step-up with
+   * `forceAuthn` removed still redirects, still comes back, still stamps the claim and
+   * still passes every test in this repository — the IdP simply does not re-prompt.
+   * `[M3]`'s measurement is the whole of the evidence, and Task 8's control (e) records
+   * that it cannot be reproduced in the unit tier.
+   */
+  stepUpUrl(relayState: string): Promise<string>
   /** Validates a `SAMLResponse` and returns §9's identity, or throws. */
   validate(samlResponse: string): Promise<SamlIdentity>
+  /**
+   * The step-up half of `validate`, and it must be a SEPARATE entry point.
+   *
+   * `validateInResponseTo: always` caches request IDs in node-saml's **in-memory
+   * provider, per SAML instance** — so an assertion answering a request the step-up
+   * instance issued can only be validated by that instance, and the ordinary `validate`
+   * would refuse it outright as unsolicited. The callback picks by which cookie's nonce
+   * matches `RelayState` (Decision 17).
+   */
+  validateStepUp(samlResponse: string): Promise<SamlIdentity>
   /**
    * The IdP's OWN LogoutRequest, delivered over the HTTP-Redirect binding — which is
    * a GET carrying `?SAMLRequest=`, not a POST. Validates its signature against
@@ -145,7 +171,7 @@ export interface SamlSp {
  * no test can see — and it is recorded here rather than left to be rediscovered.
  */
 export function createSamlSp(config: SamlSpConfig): SamlSp {
-  const saml = new SAML({
+  const options = {
     issuer: config.entity.entityId,
     callbackUrl: config.entity.acsUrl,
     entryPoint: `${config.idpBaseUrl}${MANIFEST_IDP_PATHS.sso}`,
@@ -166,12 +192,66 @@ export function createSamlSp(config: SamlSpConfig): SamlSp {
     // small enough that a replayed assertion is not usefully long-lived.
     acceptedClockSkewMs: 30_000,
     disableRequestedAuthnContext: true,
-  })
+  } satisfies ConstructorParameters<typeof SAML>[0]
+
+  /**
+   * ONE SP, TWO REQUEST BUILDERS (P6a Task 8, Decision 17).
+   *
+   * Both instances share the entityID, the ACS URL and the keys — so **the IdP's
+   * registration does NOT change**, which is what makes step-up affordable at all (§9
+   * registers the ACS in the platform's SP row, and a second one would be a registration
+   * change and a thing §9 alerts on specifically).
+   *
+   * **A SECOND INSTANCE IS NOT A PREFERENCE.** `forceAuthn` is a CONSTRUCTOR option in
+   * node-saml 5.1.0 — `lib/types.d.ts:128`, read once in `initialize()` and applied while
+   * generating the request — and the only per-request options are `AuthOptions`
+   * (`samlFallback`, `additionalParams`). `ForceAuthn` is an XML ATTRIBUTE on
+   * `<AuthnRequest>`, which `additionalParams` cannot reach.
+   *
+   * **AND THEY ARE BUILT HERE RATHER THAN BY TWO CALLERS**, because the seven fields
+   * above are the thing that must not differ between them: two `createSamlSp` calls at
+   * two construction sites would be the same configuration written twice, which is the
+   * shape this project keeps paying for. The per-instance `InResponseTo` cache is then an
+   * implementation detail the callback cannot get wrong — it calls `validateStepUp`.
+   */
+  const saml = new SAML({ ...options, forceAuthn: false })
+  const stepUpSaml = new SAML({ ...options, forceAuthn: true })
+
+  /** One refusal path for both instances; the CODE is what a client switches on. */
+  const validateWith = async (
+    instance: SAML,
+    samlResponse: string,
+  ): Promise<SamlIdentity> => {
+    let profile
+    try {
+      ;({ profile } = await instance.validatePostResponseAsync({
+        SAMLResponse: samlResponse,
+      }))
+    } catch (cause) {
+      // Every refusal arrives here — a bad signature, a wrong audience, an
+      // expired assertion, an unsolicited response. The CODE is stable and the
+      // library's message is carried through for the operator, because §20's
+      // opaque client envelope (D23.7) is not the same thing as an opaque log.
+      throw new SamlError(
+        'SAML_ASSERTION_REJECTED',
+        `the assertion was refused: ${cause instanceof Error ? cause.message : String(cause)}`,
+      )
+    }
+    if (!profile) {
+      throw new SamlError(
+        'SAML_ASSERTION_REJECTED',
+        'the response carried no assertion (a logout response was posted to the ACS)',
+      )
+    }
+    return toIdentity(profile as Record<string, unknown>)
+  }
 
   return {
     entity: config.entity,
     loginUrl: (relayState: string) =>
       saml.getAuthorizeUrlAsync(relayState, undefined, {}),
+    stepUpUrl: (relayState: string) =>
+      stepUpSaml.getAuthorizeUrlAsync(relayState, undefined, {}),
     completeIdpLogout: async (
       query: Record<string, unknown>,
       originalQuery: string,
@@ -201,30 +281,8 @@ export function createSamlSp(config: SamlSpConfig): SamlSp {
       const relayState = typeof query.RelayState === 'string' ? query.RelayState : ''
       return saml.getLogoutResponseUrlAsync(profile, relayState, {}, true)
     },
-    validate: async (samlResponse: string): Promise<SamlIdentity> => {
-      let profile
-      try {
-        ;({ profile } = await saml.validatePostResponseAsync({
-          SAMLResponse: samlResponse,
-        }))
-      } catch (cause) {
-        // Every refusal arrives here — a bad signature, a wrong audience, an
-        // expired assertion, an unsolicited response. The CODE is stable and the
-        // library's message is carried through for the operator, because §20's
-        // opaque client envelope (D23.7) is not the same thing as an opaque log.
-        throw new SamlError(
-          'SAML_ASSERTION_REJECTED',
-          `the assertion was refused: ${cause instanceof Error ? cause.message : String(cause)}`,
-        )
-      }
-      if (!profile) {
-        throw new SamlError(
-          'SAML_ASSERTION_REJECTED',
-          'the response carried no assertion (a logout response was posted to the ACS)',
-        )
-      }
-      return toIdentity(profile as Record<string, unknown>)
-    },
+    validate: (samlResponse: string) => validateWith(saml, samlResponse),
+    validateStepUp: (samlResponse: string) => validateWith(stepUpSaml, samlResponse),
   }
 }
 

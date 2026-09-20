@@ -13,6 +13,11 @@ export const UNVERSIONED = [
     why: 'Browser-mediated sign-in. Its URL is part of the flow the Manifest IdP completes (§9), not a resource.',
   },
   {
+    method: 'GET',
+    path: '/auth/step-up',
+    why: "§20's step-up re-authentication (P6a Task 8). A browser navigation that ends at the IdP and returns through the ACS; it re-proves a person rather than naming a resource, and its answer is a redirect rather than a representation.",
+  },
+  {
     method: 'POST',
     path: '/auth/saml/callback',
     why: "The ACS. Its URL is registered with the IdP in the platform's SP row (§9), so a prefix change would be an IdP registration change.",

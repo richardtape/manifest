@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm'
 import { projects, users } from '../db/index.js'
 import { loadConfig } from '../config.js'
 import { createProject, getProject, listProjectsFor } from './repository.js'
-import { testAudience, testReservedLabels } from './testing.js'
+import { sessionActor, testAudience, testReservedLabels } from './testing.js'
 
 // Each database file starts from a known slate rather than trusting whatever ran
 // before it to have cleaned up. `withRollback` isolates a test from its OWN writes
@@ -55,12 +55,7 @@ describe('project creation', () => {
       expect(byKind.staging).toBe('chem-labs.staging.manifest.internal')
       expect(byKind.production).toBe('chem-labs.manifest.internal')
 
-      const owned = await listProjectsFor(db, {
-        credential: 'session' as const,
-        userId: owner!.id,
-        platformRole: 'member',
-        puid: 'puid-test',
-      })
+      const owned = await listProjectsFor(db, sessionActor({ userId: owner!.id }))
       expect(owned.map((p) => p.slug)).toEqual(['chem-labs'])
     })
   })
@@ -83,24 +78,17 @@ describe('project creation', () => {
         audience: testAudience(owner!.id),
       })
 
-      expect(
-        await listProjectsFor(db, {
-          credential: 'session' as const,
-          userId: stranger!.id,
-          platformRole: 'member',
-          puid: 'puid-test',
-        }),
-      ).toEqual([])
+      expect(await listProjectsFor(db, sessionActor({ userId: stranger!.id }))).toEqual(
+        [],
+      )
       // A platform admin's OWN list is their memberships too (P5a Decision 20): the
       // fleet is a separate, admin-scoped read, so a person's list does not change
       // shape the day they are made an administrator.
       expect(
-        await listProjectsFor(db, {
-          credential: 'session' as const,
-          userId: stranger!.id,
-          platformRole: 'admin',
-          puid: 'puid-test',
-        }),
+        await listProjectsFor(
+          db,
+          sessionActor({ userId: stranger!.id, platformRole: 'admin' }),
+        ),
       ).toEqual([])
     })
   })

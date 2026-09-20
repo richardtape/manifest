@@ -293,6 +293,41 @@ const ROUTES: RouteCase[] = [
     },
   },
   {
+    /**
+     * §20's STEP-UP (P6a Task 8). The one `/auth/` route with an authorization answer:
+     * `/auth/login` is unauthenticated by definition and the ACS's credential is the
+     * assertion, but stepping up is **re-proving a person who is already here** — so it
+     * needs a session, and a delegated token can never have one.
+     *
+     * **`pass` here means the 302 to the IdP**, not that a step-up completed; the claim
+     * is only stamped by the callback, and `auth.test.ts` is what proves that.
+     *
+     * THIS ROW IS WHY THE DRIFT GUARD EXISTS. Task 8's own *Files* list does not name
+     * this table at all, and *"covers every route the server registers"* is what put it
+     * here — the nine actors then come for free, including the token refusal Task 8's
+     * step 6 asks for by name.
+     */
+    method: 'GET',
+    url: '/auth/step-up',
+    request: () => ({ url: '/auth/step-up' }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      // A STRANGER PASSES, and that is correct rather than a hole: stepping up proves
+      // who you are, and it authorizes nothing by itself. Every guarded route asks
+      // `assertCapability` first and `assertStepUp` second (Task 9).
+      stranger: 'pass',
+      admin: 'pass',
+      anonymous: 401,
+      // D24, through `requireSession`: a token has no session to step up, and a route
+      // that let it start one would be minting a browser flow for an agent.
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
+  {
     method: 'POST',
     url: '/auth/saml/callback',
     // No SAMLResponse, so every actor gets 400 REQUEST_INVALID — and that

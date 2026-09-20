@@ -5,13 +5,15 @@ import { resetDatabase } from '../db/testing.js'
 import { randomUUID } from 'node:crypto'
 import {
   authnRequestId,
+  authnRequestXml,
   testSamlIdp,
   testSessionCookies,
   type TestIdp,
 } from '../identity/testing.js'
+import { isSteppedUp, verifySession } from '../identity/index.js'
 import { mintSpKeypair } from '../sso/index.js'
 import { buildServer } from './server.js'
-import { loginAs, testDeps } from './testing.js'
+import { loginAs, refusal, testDeps } from './testing.js'
 
 const OID = {
   ubcEduCwlPuid: 'urn:oid:1.3.6.1.4.1.60.6.1.6',
@@ -561,6 +563,286 @@ describe('Manifest is its own SP (§9)', () => {
     // 404, not 401 or 403: the route must be ABSENT, not merely refusing. A 403
     // would confirm the shim is still compiled in.
     expect(res.statusCode).toBe(404)
+    await app.close()
+  })
+
+  /* ----------------------------------------------------------------------- *
+   * §20's STEP-UP RE-AUTHENTICATION (P6a Task 8).
+   *
+   * Nested here rather than in a file of its own so it drives the REAL SP through the
+   * same `pendingLogin` / `assertion` / `post` helpers the sign-in tests use: a step-up
+   * is the same ACS, the same keys and the same IdP, distinguished by its own cookie
+   * (Decision 17), and a second harness would be a second statement of that.
+   * ----------------------------------------------------------------------- */
+
+  /** A browser that has really signed in — the cookie the callback minted, not a signed fixture. */
+  async function signedIn(app: App, idp: TestIdp): Promise<string> {
+    const login = await pendingLogin(app)
+    const res = await post(app, assertion(idp, login.requestId), login)
+    expect(res.statusCode).toBe(302)
+    return res.cookies.find((c) => c.name === 'manifest_session')!.value
+  }
+
+  /** The step-up half of `pendingLogin`: it needs a session, and it sets its own cookie. */
+  async function pendingStepUp(
+    app: App,
+    session: string,
+    returnTo?: string,
+  ): Promise<{
+    location: string
+    requestId: string
+    relayState: string
+    stepUpCookie: string
+    cookie: {
+      path?: string
+      maxAge?: number
+      httpOnly?: boolean
+      secure?: boolean
+      sameSite?: string
+    }
+  }> {
+    const res = await app.inject({
+      method: 'GET',
+      url:
+        returnTo === undefined
+          ? '/auth/step-up'
+          : `/auth/step-up?returnTo=${encodeURIComponent(returnTo)}`,
+      cookies: { manifest_session: session },
+    })
+    expect(res.statusCode).toBe(302)
+    const location = res.headers.location as string
+    const cookie = res.cookies.find((c) => c.name === 'manifest_stepup')
+    expect(cookie).toBeDefined()
+    return {
+      location,
+      requestId: authnRequestId(location),
+      relayState: new URL(location).searchParams.get('RelayState') ?? '',
+      stepUpCookie: cookie!.value,
+      cookie: cookie!,
+    }
+  }
+
+  /** The IdP's auto-submitting POST coming back from a STEP-UP: all three of its parts. */
+  const postStepUp = (
+    app: App,
+    SAMLResponse: string,
+    binding: { relayState?: string; stepUpCookie?: string; session?: string },
+  ) =>
+    app.inject({
+      method: 'POST',
+      url: '/auth/saml/callback',
+      payload: {
+        SAMLResponse,
+        ...(binding.relayState === undefined ? {} : { RelayState: binding.relayState }),
+      },
+      cookies: {
+        ...(binding.stepUpCookie === undefined
+          ? {}
+          : { manifest_stepup: binding.stepUpCookie }),
+        ...(binding.session === undefined ? {} : { manifest_session: binding.session }),
+      },
+    })
+
+  /**
+   * THE POSITIVE CONTROL, AND IT COMES FIRST. P5c's F16: every test in a file fired
+   * garbage at the route and asserted a refusal, and a route that refuses everything
+   * passes them all. This is the test that fails if the step-up branch refuses
+   * everything — and it asserts the CLAIM on the cookie, not that a redirect happened.
+   */
+  it('stamps steppedUpAt on the session when a valid assertion comes back for the same person', async () => {
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const idp = await testSamlIdp()
+    const session = await signedIn(app, idp)
+    expect(verifySession(session, deps.config.sessionSecret)!.steppedUpAt).toBeNull()
+
+    const stepUp = await pendingStepUp(app, session, '/projects/7')
+    const res = await postStepUp(app, assertion(idp, stepUp.requestId), {
+      relayState: stepUp.relayState,
+      stepUpCookie: stepUp.stepUpCookie,
+      session,
+    })
+
+    expect(res.statusCode).toBe(302)
+    // To where the browser asked to go back to, re-checked on the way out.
+    expect(res.headers.location).toBe('/projects/7')
+    const stamped = res.cookies.find((c) => c.name === 'manifest_session')!.value
+    const after = verifySession(stamped, deps.config.sessionSecret)!
+    expect(isSteppedUp(after.steppedUpAt)).toBe(true)
+    // THE SAME SESSION, re-signed — not a new one. A step-up is an addition to a
+    // session, so the person, the role and the expiry all carry through unchanged: a
+    // step-up that silently extended a session would be the more expensive kind of wrong.
+    const before = verifySession(session, deps.config.sessionSecret)!
+    expect({
+      userId: after.userId,
+      puid: after.puid,
+      role: after.role,
+      expiresAt: after.expiresAt,
+    }).toEqual({
+      userId: before.userId,
+      puid: before.puid,
+      role: before.role,
+      expiresAt: before.expiresAt,
+    })
+    // The step-up cookie is spent: it cannot bind a second assertion.
+    expect(res.cookies.find((c) => c.name === 'manifest_stepup')?.value).toBe('')
+    await app.close()
+  })
+
+  /**
+   * THE FLAG, ON THE WIRE — and this is the assertion the plan predicted could not exist.
+   *
+   * Task 8's control (e) says removing `forceAuthn: true` reddens nothing and that only
+   * `[M3]`'s live measurement can see it. That is true of the IdP HONOURING the flag and
+   * false of the flag being SENT: `ForceAuthn` is an XML attribute on `<AuthnRequest>`,
+   * and `[M3]` proved it by inflating the redirect binding exactly as this does. So the
+   * unit tier sees the request and only `[M3]` sees the re-prompt — both are needed, and
+   * P4a's *four settings that read like controls and are not* is why neither is enough.
+   */
+  it('sends ForceAuthn="true" on the step-up request, and never on an ordinary sign-in', async () => {
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const idp = await testSamlIdp()
+    const session = await signedIn(app, idp)
+
+    const stepUp = await pendingStepUp(app, session)
+    expect(authnRequestXml(stepUp.location)).toContain('ForceAuthn="true"')
+    // THE CONTROL IN THE SAME TEST: an ordinary sign-in must not carry it, or every
+    // login would re-prompt and the attribute would prove nothing about step-up.
+    const login = await pendingLogin(app)
+    expect(authnRequestXml(login.location)).not.toContain('ForceAuthn')
+    // And both are the same SP: one entityID, one ACS, so the IdP's registration is
+    // untouched (Decision 17) — which is what makes this one sitting rather than three.
+    for (const url of [stepUp.location, login.location]) {
+      const xml = authnRequestXml(url)
+      expect(xml).toContain(
+        'https://manifest.internal/sp/manifest-control-plane/platform',
+      )
+      expect(xml).toContain(`AssertionConsumerServiceURL="${ACS}"`)
+    }
+    await app.close()
+  })
+
+  /**
+   * WITHOUT THIS CHECK, SIGNING IN AS ANYBODY AT THE IdP STAMPS THE CLAIM ONTO WHOEVER'S
+   * SESSION IS IN THIS BROWSER. Nothing else in the suite sees it, which is why it is
+   * written — and the second half is the half that matters: the session must be left
+   * exactly as it was.
+   */
+  it('refuses an assertion for a DIFFERENT person, and leaves the session unstamped', async () => {
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const idp = await testSamlIdp()
+    const session = await signedIn(app, idp)
+    const stepUp = await pendingStepUp(app, session)
+
+    const somebodyElse = { ...INSTRUCTOR, [OID.ubcEduCwlPuid]: 'stu000001' }
+    const res = await postStepUp(
+      app,
+      assertion(idp, stepUp.requestId, { attributes: somebodyElse }),
+      { relayState: stepUp.relayState, stepUpCookie: stepUp.stepUpCookie, session },
+    )
+
+    expect(refusal(res)).toEqual({ status: 401, code: 'SAML_STEP_UP_WRONG_USER' })
+    // NO new session cookie at all — the old one is untouched and is still not stepped up.
+    expect(res.cookies.find((c) => c.name === 'manifest_session')).toBeUndefined()
+    expect(verifySession(session, deps.config.sessionSecret)!.steppedUpAt).toBeNull()
+    await app.close()
+  })
+
+  it('refuses a step-up that comes back to a browser holding no session', async () => {
+    // A step-up is an ADDITION to a session, never a way to get one. Answering this by
+    // minting a session would make the ACS a second, quieter front door.
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const idp = await testSamlIdp()
+    const session = await signedIn(app, idp)
+    const stepUp = await pendingStepUp(app, session)
+
+    const res = await postStepUp(app, assertion(idp, stepUp.requestId), {
+      relayState: stepUp.relayState,
+      stepUpCookie: stepUp.stepUpCookie,
+      // and no session cookie
+    })
+    expect(refusal(res)).toEqual({ status: 401, code: 'SAML_STEP_UP_NO_SESSION' })
+    expect(res.cookies.find((c) => c.name === 'manifest_session')).toBeUndefined()
+    await app.close()
+  })
+
+  it('refuses a RelayState that is not the step-up cookie’s nonce, and does not stamp', async () => {
+    // Two step-ups in one browser: the cookie from one, the RelayState from the other.
+    // The branch is not entered at all, so the ordinary one answers — and it answers
+    // `SAML_LOGIN_NOT_BOUND`, which is the honest code for "this browser did not start
+    // this". Asserted by CODE: `401` alone is four different answers here.
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const idp = await testSamlIdp()
+    const session = await signedIn(app, idp)
+    const mine = await pendingStepUp(app, session)
+    const theirs = await pendingStepUp(app, session)
+
+    const res = await postStepUp(app, assertion(idp, theirs.requestId), {
+      relayState: theirs.relayState,
+      stepUpCookie: mine.stepUpCookie,
+      session,
+    })
+    expect(refusal(res)).toEqual({ status: 401, code: 'SAML_LOGIN_NOT_BOUND' })
+    expect(verifySession(session, deps.config.sessionSecret)!.steppedUpAt).toBeNull()
+    await app.close()
+  })
+
+  it('leaves an ordinary sign-in alone when a stale step-up cookie is in the browser', async () => {
+    // THE OTHER POSITIVE CONTROL. The step-up branch runs FIRST, so a leftover
+    // `manifest_stepup` must not be able to derail a sign-in — which it would if the
+    // branch keyed on the cookie's presence rather than on its nonce matching.
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const idp = await testSamlIdp()
+    const session = await signedIn(app, idp)
+    const stale = await pendingStepUp(app, session)
+
+    const login = await pendingLogin(app)
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/saml/callback',
+      payload: {
+        SAMLResponse: assertion(idp, login.requestId),
+        RelayState: login.relayState,
+      },
+      cookies: { manifest_login: login.loginCookie, manifest_stepup: stale.stepUpCookie },
+    })
+    expect(res.statusCode).toBe(302)
+    const minted = res.cookies.find((c) => c.name === 'manifest_session')!.value
+    // Signed in, and NOT stepped up: a sign-in is not a second round trip (§20).
+    expect(verifySession(minted, deps.config.sessionSecret)!.steppedUpAt).toBeNull()
+    await app.close()
+  })
+
+  it('sets a step-up cookie bound to the RelayState it sends, for ten minutes, on /auth only', async () => {
+    const deps = await testDeps()
+    const app = await buildServer(deps)
+    const idp = await testSamlIdp()
+    const session = await signedIn(app, idp)
+    const stepUp = await pendingStepUp(app, session)
+
+    expect(stepUp.cookie.httpOnly).toBe(true)
+    expect(stepUp.cookie.path).toBe('/auth')
+    expect(stepUp.cookie.maxAge).toBe(600)
+    expect(stepUp.cookie.secure).toBe(true)
+    expect(String(stepUp.cookie.sameSite).toLowerCase()).toBe('none')
+    expect(stepUp.relayState).toMatch(/^[A-Za-z0-9_-]{32}$/)
+    expect(stepUp.stepUpCookie.startsWith(`${stepUp.relayState}.`)).toBe(true)
+    // A DIFFERENT cookie from the sign-in's, which is the whole of Decision 17.
+    expect(stepUp.stepUpCookie).not.toBe(session)
+    // The redirect binding signs the whole query, so the nonce cannot be swapped in transit.
+    expect(new URL(stepUp.location).searchParams.get('Signature')).toBeTruthy()
+    await app.close()
+  })
+
+  it('refuses to start a step-up with no credential at all', async () => {
+    const app = await buildServer(await testDeps())
+    const res = await app.inject({ method: 'GET', url: '/auth/step-up' })
+    expect(refusal(res)).toEqual({ status: 401, code: 'UNAUTHENTICATED' })
     await app.close()
   })
 })

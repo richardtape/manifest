@@ -4,7 +4,7 @@ import { createProject } from './repository.js'
 import { resetDatabase, withRollback } from '../db/testing.js'
 import { users } from '../db/index.js'
 import { loadConfig } from '../config.js'
-import { testAudience, testReservedLabels } from './testing.js'
+import { sessionActor, testAudience, testReservedLabels } from './testing.js'
 
 // Each database file starts from a known slate rather than trusting whatever ran
 // before it to have cleaned up. `withRollback` isolates a test from its OWN writes
@@ -90,12 +90,7 @@ describe('assertCapability', () => {
       await expect(
         assertCapability(
           db,
-          {
-            credential: 'session' as const,
-            userId: owner.id,
-            platformRole: 'member',
-            puid: 'puid-test',
-          },
+          sessionActor({ userId: owner.id }),
           project.id,
           'project:write',
         ),
@@ -109,12 +104,7 @@ describe('assertCapability', () => {
       try {
         await assertCapability(
           db,
-          {
-            credential: 'session' as const,
-            userId: stranger.id,
-            platformRole: 'member',
-            puid: 'puid-test',
-          },
+          sessionActor({ userId: stranger.id }),
           project.id,
           'project:read',
         )
@@ -132,12 +122,7 @@ describe('assertCapability', () => {
       try {
         await assertCapability(
           db,
-          {
-            credential: 'session' as const,
-            userId: owner.id,
-            platformRole: 'member',
-            puid: 'puid-test',
-          },
+          sessionActor({ userId: owner.id }),
           project.id,
           'release:approve',
         )
@@ -154,12 +139,7 @@ describe('assertCapability', () => {
       await expect(
         assertCapability(
           db,
-          {
-            credential: 'session' as const,
-            userId: owner.id,
-            platformRole: 'member',
-            puid: 'puid-test',
-          },
+          sessionActor({ userId: owner.id }),
           '00000000-0000-0000-0000-000000000000',
           'project:read',
         ),

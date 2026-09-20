@@ -332,10 +332,22 @@ function signElement(
  * `inflateRawSync`.
  */
 export function authnRequestId(loginUrl: string): string {
-  const encoded = new URL(loginUrl).searchParams.get('SAMLRequest')
-  if (!encoded) throw new Error(`no SAMLRequest in '${loginUrl}'`)
-  const xml = inflateRawSync(Buffer.from(encoded, 'base64')).toString('utf8')
+  const xml = authnRequestXml(loginUrl)
   const id = /\bID="([^"]+)"/.exec(xml)?.[1]
   if (!id) throw new Error(`no ID attribute in the AuthnRequest:\n${xml}`)
   return id
+}
+
+/**
+ * The AuthnRequest ITSELF, as XML — what `[M3]` inflated to prove `ForceAuthn` was on
+ * the wire rather than merely set in a constructor (P6a sitting 1).
+ *
+ * §20's step-up turns on an XML ATTRIBUTE of this document, so the only honest assertion
+ * about it is one made against the document. It is separated from `authnRequestId` here
+ * so neither test has to know about `inflateRawSync` twice.
+ */
+export function authnRequestXml(loginUrl: string): string {
+  const encoded = new URL(loginUrl).searchParams.get('SAMLRequest')
+  if (!encoded) throw new Error(`no SAMLRequest in '${loginUrl}'`)
+  return inflateRawSync(Buffer.from(encoded, 'base64')).toString('utf8')
 }

@@ -238,6 +238,10 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
       userId: session.userId,
       platformRole: session.role,
       puid: session.puid,
+      // §20's step-up claim, carried from the cookie `verifySession` VALIDATED (P6a Task
+      // 8). Freshness is not decided here: `assertStepUp` asks at the moment of use,
+      // because a Phase 1 session cannot be revoked before its own expiry (§20).
+      steppedUpAt: session.steppedUpAt,
     }
   })
 

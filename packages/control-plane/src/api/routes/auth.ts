@@ -5,6 +5,8 @@ import {
   LOGIN_TTL_SECONDS,
   SESSION_COOKIE,
   SESSION_TTL_MS,
+  STEP_UP_COOKIE,
+  STEP_UP_TTL_SECONDS,
   SamlError,
   encodeLoginCookie,
   issueSession,
@@ -13,8 +15,11 @@ import {
   safeReturnTo,
   sameNonce,
   signSession,
+  stepUpSession,
   upsertUserFromAssertion,
+  verifySession,
 } from '../../identity/index.js'
+import { requireSession } from '../actor.js'
 import type { ServerDeps } from '../server.js'
 
 /**
@@ -59,6 +64,23 @@ export async function registerAuthRoutes(
   deps: ServerDeps,
 ): Promise<void> {
   /**
+   * The session cookie's options, in ONE place, because the sign-in and the step-up both
+   * write it and two statements of the same flags is how one of them ends up without
+   * `Secure` (P6a Task 8). `maxAge` is the caller's, and that difference is the point:
+   * a step-up must not extend a session's life.
+   */
+  const sessionCookie = (maxAgeSeconds: number) => ({
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    // From the ORIGIN, not from MANIFEST_ENV (P5a Task 3): the console's origin is
+    // https in development too, and a cookie without Secure on an https origin is
+    // one a network position can read the day anything is served over plain http.
+    secure: deps.config.sp.origin.startsWith('https://'),
+    path: '/',
+    maxAge: maxAgeSeconds,
+  })
+
+  /**
    * §9: *"Manifest itself is an SP."* This is where a person starts.
    *
    * There is no configuration switch and no development variant. The route that
@@ -90,6 +112,39 @@ export async function registerAuthRoutes(
     return reply.redirect(await deps.samlSp.loginUrl(nonce), 302)
   })
 
+  /**
+   * §20's STEP-UP RE-AUTHENTICATION, deferred explicitly until the routes it protects
+   * landed — *"step-up's own second authentication round trip lands with the routes it
+   * protects"* (Rich, 2026-09-17). This is that round trip (P6a Task 8).
+   *
+   * A browser NAVIGATION, not a fetch: it ends at the IdP and comes back through the ACS,
+   * exactly as `/auth/login` does. A `fetch` would follow the redirect and post the IdP's
+   * login form to nowhere.
+   *
+   * **IT REQUIRES A SESSION ALREADY.** Stepping up is re-proving who you are, not signing
+   * in — so a token is refused the credential class (`403 TOKEN_CREDENTIAL_REFUSED`) and
+   * the callback refuses an assertion for a DIFFERENT person than the session in hand,
+   * which is the check that stops one person stepping up into another's session.
+   */
+  app.get('/auth/step-up', async (request, reply) => {
+    const actor = requireSession(request)
+    const { returnTo } = loginQuery.parse(request.query ?? {})
+    const nonce = newLoginNonce()
+    const https = deps.config.sp.origin.startsWith('https://')
+    reply.setCookie(STEP_UP_COOKIE, encodeLoginCookie(nonce, safeReturnTo(returnTo)), {
+      httpOnly: true,
+      path: '/auth',
+      maxAge: STEP_UP_TTL_SECONDS,
+      secure: https,
+      // The IdP's auto-submitting POST is CROSS-site, exactly as at `/auth/login`.
+      sameSite: https ? 'none' : 'lax',
+    })
+    // §14: the puid and nothing else — no assertion, no cookie, no secret. A step-up that
+    // leaves no operator line hides the next one (ORIENTATION §4).
+    console.error(`[auth] step-up started for ${actor.puid}`)
+    return reply.redirect(await deps.samlSp.stepUpUrl(nonce), 302)
+  })
+
   app.post(
     '/auth/saml/callback',
     // Logging in twice is not a domain mutation, and the IdP does not send an
@@ -99,6 +154,80 @@ export async function registerAuthRoutes(
     { config: { idempotency: 'exempt', csrf: 'exempt' } },
     async (request, reply) => {
       const { SAMLResponse, RelayState } = callbackBody.parse(request.body)
+
+      /**
+       * §20's STEP-UP, told apart from an ordinary sign-in BY ITS OWN COOKIE (Decision
+       * 17) and not by a second ACS path — because the ACS is registered with the IdP in
+       * the platform's SP row, so a second one would be a registration change (§9).
+       *
+       * This branch runs FIRST and is entered only when `manifest_stepup`'s nonce is the
+       * `RelayState` in hand, so an ordinary sign-in is unaffected by a stale step-up
+       * cookie and a step-up cannot be completed by an assertion bound to a sign-in.
+       */
+      const stepUp = readLoginCookie(request.cookies[STEP_UP_COOKIE])
+      if (
+        stepUp !== undefined &&
+        RelayState !== undefined &&
+        sameNonce(stepUp.nonce, RelayState)
+      ) {
+        // The session must still be here: a step-up is an ADDITION to one, never a way to
+        // get one. An expired session here means signing in again, which `/auth/login`
+        // does — and answering it by minting a session would make this route a second,
+        // quieter front door.
+        const current = verifySession(
+          request.cookies[SESSION_COOKIE] ?? '',
+          deps.config.sessionSecret,
+        )
+        if (current === null) {
+          console.error('[auth] step-up REFUSED: the browser had no valid session')
+          throw new SamlError(
+            'SAML_STEP_UP_NO_SESSION',
+            'the step-up answered no session — sign in again',
+          )
+        }
+        // VALIDATED BY THE INSTANCE THAT ISSUED THE REQUEST. node-saml's InResponseTo
+        // cache is per instance (Decision 17), so `validate` would refuse this outright
+        // as unsolicited — a refusal that would have read as a broken assertion.
+        let identity
+        try {
+          identity = await deps.samlSp.validateStepUp(SAMLResponse)
+        } catch (error) {
+          console.error(
+            JSON.stringify({
+              level: 'error',
+              msg: 'SAML step-up assertion refused',
+              error: (error as Error).message,
+            }),
+          )
+          throw error
+        }
+        // AND IT MUST BE THE SAME PERSON. Without this line, signing in as ANYBODY at the
+        // IdP stamps `steppedUpAt` onto whoever's session is in this browser — which is
+        // the whole control turned inside out. Nothing else in the suite sees it.
+        if (identity.ubcCwlPuid !== current.puid) {
+          console.error(
+            '[auth] step-up REFUSED: the assertion is for a different person than the session',
+          )
+          throw new SamlError(
+            'SAML_STEP_UP_WRONG_USER',
+            'that sign-in was for a different person than the session in this browser',
+          )
+        }
+        reply.setCookie(
+          SESSION_COOKIE,
+          signSession(stepUpSession(current), deps.config.sessionSecret),
+          // THE REMAINING LIFE, not a fresh twelve hours: re-signing carries `expiresAt`
+          // through unchanged, so a browser cookie that outlived it would simply be
+          // refused by `verifySession` — and a step-up that LOOKED like it extended a
+          // session would be the more expensive kind of wrong.
+          sessionCookie(Math.max(0, Math.floor((current.expiresAt - Date.now()) / 1000))),
+        )
+        // Spent, exactly as the login cookie is: it cannot bind a second assertion.
+        reply.clearCookie(STEP_UP_COOKIE, { path: '/auth' })
+        console.error(`[auth] step-up COMPLETED for ${current.puid}`)
+        return reply.redirect(stepUp.returnTo, 302)
+      }
+
       // BOUND BEFORE IT IS VALIDATED: a refusal here never touches the SAML library, and
       // never consumes the request ID node-saml is holding for the real browser.
       const binding = readLoginCookie(request.cookies[LOGIN_COOKIE])
@@ -144,16 +273,7 @@ export async function registerAuthRoutes(
       reply.setCookie(
         SESSION_COOKIE,
         signSession(issueSession(user), deps.config.sessionSecret),
-        {
-          httpOnly: true,
-          sameSite: 'lax',
-          // From the ORIGIN, not from MANIFEST_ENV (P5a Task 3): the console's origin is
-          // https in development too, and a cookie without Secure on an https origin is
-          // one a network position can read the day anything is served over plain http.
-          secure: deps.config.sp.origin.startsWith('https://'),
-          path: '/',
-          maxAge: SESSION_TTL_MS / 1000,
-        },
+        sessionCookie(SESSION_TTL_MS / 1000),
       )
       // The login cookie is spent: a second assertion cannot be bound with it.
       reply.clearCookie(LOGIN_COOKIE, { path: '/auth' })

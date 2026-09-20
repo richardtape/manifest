@@ -281,6 +281,18 @@ export const ERROR_CODES = {
   SAML_LOGIN_NOT_BOUND: saml(
     'The assertion answers a sign-in this browser did not start.',
   ),
+  /**
+   * §20's step-up (P6a Task 8). Both are 401 and both are `SamlError`, because a step-up
+   * that cannot be completed IS a failed sign-in from the browser's point of view and
+   * `/auth/login` is exactly where to go next — the distinction `SAML_LOGOUT_REJECTED`
+   * records does not apply here.
+   */
+  SAML_STEP_UP_NO_SESSION: saml(
+    'The step-up came back to a browser holding no valid session; sign in again.',
+  ),
+  SAML_STEP_UP_WRONG_USER: saml(
+    'The step-up assertion is for a different person than the session in this browser.',
+  ),
 
   /**
    * SINGLE LOGOUT IS NOT SIGN-IN, and this is deliberately not `saml()`. The

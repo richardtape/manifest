@@ -105,6 +105,15 @@ export interface SessionActor {
    * dropped it silently (`[M8]`, sitting 1 finding 11).
    */
   puid: string
+  /**
+   * §20's step-up claim, off the session cookie (P6a Task 8, Decision 8): when this
+   * person last completed a SECOND authentication round trip, or `null`.
+   *
+   * HERE, on the session member, for the reason `puid` above records — and because a
+   * token has no session to have stepped up, which is what makes `assertStepUp`'s first
+   * line a refusal rather than a question.
+   */
+  steppedUpAt: number | null
 }
 
 /** An agent, holding a delegated token (D24). */
