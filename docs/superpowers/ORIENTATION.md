@@ -1853,8 +1853,14 @@ when the model is down (Decision 7). Use `superpowers:subagent-driven-developmen
    THROW.** `api/authz-contract.ts`'s constants are written
    `{ status: 403, code: 'STEP_UP_REQUIRED' }`, that matches the scan's `code: '…'` pattern,
    and it lives under `api/` — so **any code you name in a matrix expectation is found for
-   family `api` whatever your class does.** Task 10 adds `RELEASE_DIGEST_MISSING` and gives
-   three routes matrix rows; decide the family from that, not from the class.
+   family `api` whatever your class does.** If you add a code, decide its family from that
+   rather than from the class. **Checked, so you need not**: Tasks 10 and 11 name
+   `NOT_FOUND`, `FORBIDDEN`, `TOKEN_CREDENTIAL_REFUSED`, `STEP_UP_REQUIRED`,
+   `RELEASE_NOT_FOUND`, `RELEASE_DIGEST_MISSING` and `AI_BACKEND_UNAVAILABLE`, and **every
+   one of them is already registered** — so they add no error code, and
+   `error-codes.test.ts` should stay quiet through this sitting. *(This item said "Task 10
+   adds `RELEASE_DIGEST_MISSING`" until the post-sweep check opened `error-codes.ts` and
+   found it at line 235 under `ReleaseError`, where it has been since P5a.)*
 4. **THE TEST HELPERS FOR A STEPPED-UP SESSION ALREADY EXIST, in one place each.**
    `loginAs(deps, puid, { steppedUp: true })` in `api/testing.ts`; `ctx.ownerSteppedUp` on
    `withProjectServer`'s fixture; `sessionFor(ctx, puid, role, { steppedUp: true })`; and
@@ -1879,9 +1885,12 @@ when the model is down (Decision 7). Use `superpowers:subagent-driven-developmen
 - **A CONTROL THAT DERIVES ITS INPUT FROM THE CONSTANT UNDER TEST CANNOT FAIL.** Task 9's
   control (d) widened the step-up window to a year and **1492 tests stayed green**, because
   every test built its instants out of `STEP_UP_TTL_MS`. It is `privileged.test.ts`'s
-  *"deriving them from the constant under test"* warning applied to a number. **Task 11 has
-  the same shape waiting**: a timeout, a budget and a model name are all constants a test
-  could quietly agree with.
+  *"deriving them from the constant under test"* warning applied to a number. **Where this
+  bites in Task 11** — checked against its steps rather than guessed, because the first
+  draft of this line warned about a timeout and a budget that Task 11 does not have: its
+  `summarySource` union and the model name `default-chat-onprem` are the values a test could
+  quietly agree with. **The 10 s timeout that makes *"recorded as absent"* reachable is
+  `ai/client.ts`'s and already exists** (Decision 7).
 - **EVERY REFUSAL ASSERTS ITS CODE, NEVER ITS STATUS.** `403` is now **five** answers —
   `FORBIDDEN`, `TOKEN_CREDENTIAL_REFUSED`, `TOKEN_ACTION_PENDING`, `TOKEN_ACTION_REJECTED`
   and `STEP_UP_REQUIRED`. Task 9's control (e) demonstrated the cost in full: with the
