@@ -40,8 +40,8 @@
 | 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | **DONE 2026-09-20.** §20's second round trip exists and is **proved end to end against the REAL Manifest IdP through the edge**: an ordinary session is refused `403 STEP_UP_REQUIRED`, `/auth/step-up` makes the IdP re-prompt **on a warm cookie jar** (`[M3]`'s control, re-fired live), the claim lands on the same session with `expiresAt` unchanged, the same request then answers `201`, and a step-up assertion for a DIFFERENT person is refused with the session left byte-identical. `pnpm test` **1456 → 1496 passed + 1 skipped in 112 files**; `pnpm test:docker` **OWED, RUN and UNMOVED at 185 in 30, 829 s** — and unmoved is the measurement, because **no Docker test makes a member call over HTTP or drives `/auth/step-up`, so that tier cannot see Task 9 at all**. doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is that the plan's own `assertStepUp` KILLS D24'S CONFIRM-AND-RETRY LOOP** — it refuses every token on a premise that is false, and a token carrying a human-confirmed grant reaches it; the grant is what stands in step-up's place. **Nine of ten controls fired, four of them WIDER than predicted and one — Task 8's (e), the row the plan calls its most important — where the plan says in bold that nothing would.** Control (d) **could not fail** and was fixed rather than recorded. **The guard reddened 48 tests across 7 files, not the 4 predicted, and 29 were the matrix's own fixture failing silently.** **F12 was raised open and CLOSED the same day by Rich's decision**: confirming a pending action now requires step-up and rejecting does not, and `release:promote`'s missing call site is tracked to Task 15 with a correction block there |
 | 7 | 10–11 | **The approval**: `release:approve`'s first caller ever, bound to an immutable digest, non-repudiable, behind step-up — and its `diff_snapshot` with the AI-written summary that is **recorded as absent rather than blocking** when the model is down | **DONE 2026-09-20.** `release:approve` has a caller: three routes, four guards in order, the BUILD's digest bound, insert-only, and §13's `admin-approval` item reading the row instead of saying `not_built`. Decision 7 is DRIVEN — a server whose LiteLLM client rejects every call answers the approval **`201` with `summary: null`, `summarySource: 'unavailable'` and the diff still in the record**, and the control for it answers `503 AI_BACKEND_UNAVAILABLE`. `pnpm test` **1496 → 1544 passed + 1 SKIPPED in 114 files**; `pnpm test:docker` **OWED and RUN**; doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is the CONTROLS: nine run, six fired, THREE could not fail — and two of those three paid for themselves.** Task 10's (e) could not fail, and writing the case it was aimed at found a **live defect**: a rejection reason made of spaces was answered `500 INTERNAL` by a database CHECK rather than `400` by the schema (F3, fixed). Task 11's (c) could not fail against the test the plan names for it (F6). **The plan passes `deps.ai` to `summariseChanges` and `deps.ai` has no `post`** — it is §10's key lifecycle, so `ServerDeps` gains `llm` (F1). **Decision 11's rebuild branch is unreachable through the platform** and the test says so (F5). **Control (b) does NOT make `[M6]`'s finding live**: `tsc` refuses it, and forced past, `assertStepUp` still refuses the token (F8) |
 | 8 | 12–13 | **R4's `Reviewer` seam** — the interface, the honest `NullReviewer`, its real caller and its **non-blocking** checklist item — and **§7's last production clause**: `auth.attributes` ⊆ `registered_attributes`, failing at build time | **DONE 2026-09-20.** R4's seam has ONE real caller — `buildDiffSnapshot` asks `ServerDeps.reviewer` about the release's OWN build — and `code-review` is the checklist's LAST item, `blocking: false`. A build asking for a CWL attribute UBC IAM did not register FAILS before the driver runs, the reason its log's last line. `pnpm test` **1544 → 1565 passed + 1 SKIPPED in 117 files**; doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is a HOLE the plan's design leaves: the build can only check a registration that exists when it runs, and §9 makes the other order NORMAL** — measured `iam-registration: met` for a candidate asking for `sn` against `[ubcEduCwlPuid, mail]`, so a release built before IAM answered could reach production unchecked. The checklist item now reads the candidate's attributes too (F9). **And §7's check ALREADY EXISTED, since P2, behind a context field no caller ever passed** — the plan would have added a second one under a second code (F8). **All nine runnable controls fired as predicted; the plan's own prediction for Task 12's (d) did not hold**, because this sitting added two `tsc` layers it could not know about |
-| 9 | 14–15 | **The D21 rehearsal as R2 redefines it**, and **the first production deploy this platform has ever done** — the digest verified before anything starts. **A first, and this project's worst discoveries have all arrived at a first** | ← **next** — **read the sitting 8 correction block at Task 14 first**: `iam-registration` now needs the candidate's attributes ⊆ registered |
-| 10 | 16–18 | **Gate integrity asserted** (the registry's refusal, the laptop-image rule, the append-only record) and **both console tasks**: readiness with actions, the two external records, approvals and the step-up prompt | |
+| 9 | 14–15 | **The D21 rehearsal as R2 redefines it**, and **the first production deploy this platform has ever done** — the digest verified before anything starts. **A first, and this project's worst discoveries have all arrived at a first** | **DONE 2026-09-20. AN APPLICATION IS IN PRODUCTION**: `journey-app` answers on 127.0.0.3 as the instance the deploy started, with all six blocking items met — the two external records, a rehearsal whose CWL sign-in released exactly the five attributes registered, and an approval an administrator made after the IdP re-prompted them. Migration **0020** adds `rehearsals`; `deployRelease` verifies the approved digest before anything starts; the production deploy route asks for step-up. `pnpm test` **1565 + 1 skipped → 1598 passed, 0 skipped, 118 files** — the skip Task 7 left is GONE. **No task boundary moved.** **Its headline is that §8 SENDS A PRODUCTION APP TO REAL UBC SHIBBOLETH, so R2's rehearsal could not pass on this laptop at all** — found by driving it, fixed by `InjectionContext.purpose`, which moves three URLs and nothing else. **Control (c) DID NOT FIRE and was worth all the others**: the evidence was derived from intent, so a rehearsal that deployed to staging recorded *"production, public listener"* with all seven Docker tests green |
+| 10 | 16–18 | **Gate integrity asserted** (the registry's refusal, the laptop-image rule, the append-only record) and **both console tasks**: readiness with actions, the two external records, approvals and the step-up prompt | ← **next** — **the console tasks need a person at a browser** (§20's step-up prompt is a second IdP hop, and an agent cannot type a password) |
 | 11 | 19 | **The acceptance**: `make demo-production` — an app reaches production with every blocking item honestly met — its offline-acceptance step, its `ci-acceptance` step, and its negative controls. **Alone, and last** | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -219,12 +219,18 @@ packages/control-plane/src/
 │   ├── records.ts                  NEW (T5/T6): the two external objects, their transitions, their reads
 │   ├── transitions.ts              NEW (T5): iamTransition / piaTransition — pure, table-driven
 │   ├── rehearsal.ts                NEW (T14): runs R2's production-shaped rehearsal, records evidence
+│   ├── candidate.ts                NEW (T14, sitting 9): the release serving staging — ONE derivation,
+│   │                               shared by readiness.ts and rehearsal.ts, which is why it is its own file
 │   ├── review.ts                   NEW (T12): R4's Reviewer interface + NullReviewer (D33, §15)
 │   └── index.ts                    MODIFIED: the module's public surface
 ├── releases/
 │   ├── release.ts                  MODIFIED (T3 Decision 3, T15): the inner gate DELETED; digest verified
 │   ├── approval.ts                 NEW (T10, T11): record an approval, its diff_snapshot, its AI summary
 │   └── build.ts                    MODIFIED (T13): §7's production attribute check, before the driver
+├── sso/
+│   ├── sign-in.ts                  NEW (T14, sitting 9): the three SAML hops and the rehearsal's own tail,
+│   │                               run from a probe container; `sso/testing.ts` shares the hops
+│   └── attributes.ts               NEW (T14, sitting 9): §9's OID vocabulary, ONE table in the control plane
 ├── identity/
 │   ├── session.ts                  MODIFIED (T8): steppedUpAt on the Session, validated not trusted
 │   ├── saml.ts                     MODIFIED (T8): createSamlSp gains a forceAuthn variant
@@ -3367,6 +3373,21 @@ git commit -m "test(releases): §13's integrity of the gate — five claims, all
 
 ## Task 17: The console — readiness with actions, and the two external records
 
+> ### Sitting 9 note — 2026-09-20. **What this task inherits from Tasks 14 and 15.**
+>
+> - **`runRehearsal` IS ALREADY IN `packages/mock`** (fixtures and the routing table) — a
+>   passing rehearsal with its evidence, so the screen has the shape to render. This task
+>   adds the console caller and REMOVES the `DELIBERATELY_UNCALLED` entry that names it.
+> - **The rehearsal's answer is a MEASUREMENT, not a tick**: `evidence.listener`,
+>   `evidence.signInStatus` and `evidence.attributesReleased` beside the registration's own
+>   `attributes` are what make the item mean anything. A screen that renders `passed` alone
+>   throws away what R2 bought.
+> - **It takes ~6 s against the platform and answers instantly against the mock**, so the
+>   screen needs a pending state a developer can see in neither.
+> - **`rehearsal` is `unmet` and no longer `not_built`**, so the checklist's *not built*
+>   rendering is exercised only by `code-review` now — which is also the only non-blocking
+>   item, and the one Decision 13 says must not gate.
+
 **Files:**
 - Modify: `packages/console/src/api.ts` — `getLaunchRecords`, `recordIamRegistration`, `recordPrivacyAssessment`, `runRehearsal`
 - Modify: `packages/console/src/screens/launch.tsx` — the checklist gains actions
@@ -3505,6 +3526,39 @@ git commit -m "feat(console): the approval screen, the step-up prompt, and D22's
 ---
 
 ## Task 19: The acceptance — `make demo-production`
+
+> ### Sitting 9 correction block — EXECUTED 2026-09-20. **Step 2's table is wrong in four places now, and the whole sequence has been DRIVEN.**
+>
+> *Sitting 9 ran this task's sequence by hand against `journey-app` and put an application
+> into production. What follows is what it measured; the record is sitting 9's section of
+> *What executing this plan found*.*
+>
+> **1. STEP 3 IS NO LONGER A `409`.** §20 guards `release:promote` since Task 15, so an
+> ordinary session asking for production is refused **`403 STEP_UP_REQUIRED`** before
+> §13's gate is consulted, and the refusal carries NO checklist. The demo either steps up
+> first or asserts the step-up refusal and reads the checklist from
+> `GET /v1/projects/{id}/launch-readiness`. `packages/journey/src/main.ts` already had to
+> make exactly this change (sitting 9, F6) — **`make demo-journey` went red on three
+> checks the moment Task 15 landed**, and `make ci-acceptance` runs it.
+>
+> **2. THE CHECKLIST HAS SIX BLOCKING ITEMS, NOT FIVE**: `domain`, `iam-registration`,
+> `privacy-assessment`, `rehearsal`, `scans`, `admin-approval` — plus `code-review`,
+> non-blocking. Step 3's *"five blocking items with THREE unmet"* and step 9's *"five
+> blocking items met"* are both off by one, and step 3's unmet SET for a CWL app with
+> nothing recorded is `iam-registration`, `privacy-assessment`, `rehearsal`,
+> `admin-approval` — **four**, not three, since Task 14 made `rehearsal` a tracked item.
+>
+> **3. STEP 8 NEEDS STEP-UP TOO**, and a step-up claim is spent by neither: one round trip
+> before the approval covers both while it is fresh (§20's window). The shell half drives
+> it exactly as `idp_login` drives a sign-in, with one addition sitting 9 paid for:
+> **`RelayState` must be posted back beside `SAMLResponse`** or the callback answers `401`
+> (F11).
+>
+> **4. THE REHEARSAL TAKES ~6 SECONDS on a warm machine**, not the ~90 s this plan's route
+> description allows for, and it leaves the candidate SERVING production, pointed at the
+> LOCAL IdP (Decision 2). The launch deploy at step 8 replaces it with the real thing —
+> which is why an app in production on this laptop cannot sign anybody in, and the demo
+> must not assert that it can.
 
 > ### Sitting 8 pointer — 2026-09-20. **Read the sitting 8 correction block at Task 14 before step 4.**
 >
@@ -5932,3 +5986,270 @@ moved**, and `manifest-decisions.html` drifts only when a decision changes, whic
 applied before this plan began). Saying that here is the requirement (§6), not skipping them
 silently. `WALKTHROUGH.md` is unchanged for the same reason, and `CLAUDE.md` because no plan
 started or finished and nothing in its *Outstanding* line moved.
+
+### Sitting 9 — Tasks 14 and 15, the D21 rehearsal and the first production deploy — 2026-09-20
+
+**THIS PLATFORM HAS PUT AN APPLICATION INTO PRODUCTION.** `journey-app` answers
+`https://journey-app.manifest.internal/` on **127.0.0.3** — §12's public listener — as the
+instance the deploy started, with every one of §13's six blocking items honestly met: an
+administrator recorded what UBC IAM and the Privacy Office said, **Manifest ran D21's
+rehearsal and a real CWL sign-in completed, releasing exactly the five attributes the
+registration lists**, the administrator was refused `403 STEP_UP_REQUIRED`, re-proved
+themselves at the IdP and approved the release against its immutable digest, and the deploy
+went through. The same name on 127.0.0.2 answers `200` with **no instance header** — the
+wildcard, not the app.
+
+**AND THE REHEARSAL COULD NOT HAVE WORKED AS THE PLAN WROTE IT** (F5, the sitting's
+headline): §8 injects **real UBC Shibboleth** into a production deploy —
+`authentication.ubc.ca`, explicitly rather than by default — so the rehearsal's probe
+followed `/login` to a host C1 puts out of reach and failed TLS against the platform CA.
+R2 asks for *"one real CWL sign-in against the Manifest IdP"* on a production-shaped
+deploy, and those two sentences cannot both be true without a distinction the code did not
+have. `InjectionContext.purpose` is that distinction, and it moves exactly three URLs and
+`SAML_ENVIRONMENT`.
+
+#### The decisions this sitting made
+
+**1. `DeployInput.purpose` — `'launch'` by default, `'rehearsal'` for the one caller that
+may precede an approval.** §13's checklist lists the rehearsal BEFORE the approval and
+Task 19's demo runs them in that order, so a digest check that refused the rehearsal would
+invert the plan's own acceptance. The default is the CHECKED value, so a future caller is
+verified unless it says otherwise. *Rejected:* requiring an approval before the rehearsal,
+which would put the administrator's decision before the evidence it is meant to read.
+
+**2. A rehearsal deploy is pointed at the LOCAL IdP** (F5). Production in every other
+respect — hostname, listener, entityID, ACS, attribute list, certificate rules, resources
+— and `SAML_ENVIRONMENT: LOCAL`, which is the truth rather than a compromise: the app
+really is talking to the local IdP. At UBC the same field names `authentication.stg.id.ubc.ca`,
+which is what D21 asked for in the first place. *Rejected:* recording every laptop rehearsal
+as failed, which makes the item permanently unmet and Task 19 impossible.
+
+**3. The attributes are read from the ASSERTION, not from the app** (F2). The blueprint's
+skeleton serves `/me` and the proof-app starter serves `/api/me`, so no app endpoint is
+common to every starter — while the assertion is the platform's own evidence and exists for
+every app. Measured first: the Manifest IdP signs and does not encrypt, and released
+exactly five `urn:oid:` attributes for a five-attribute registration. §9's `core:AttributeLimit`
+enforcement, seen rather than assumed.
+
+**4. The three SAML hops are `sso/sign-in.ts`'s `SAML_LOGIN_HOPS`, with two tails.**
+`sso/testing.ts` posts the assertion to the app's callback and reads `/me`; the rehearsal
+posts it to the REGISTERED ACS and reads the assertion. They were one copy and would have
+become two; the one thing worse than regex-over-HTML is two of it.
+
+**5. §9's OID vocabulary is ONE table in the control plane** (`sso/attributes.ts`).
+`identity/saml.ts` carried four names for the platform's own SP; the rehearsal needs all
+seven because it reads what an APP released. The blueprint's `auth/attributes.js` stays a
+third copy **on purpose** — it ships inside an application image (§8, C6).
+
+**6. The candidate derivation is its own module** (`launch/candidate.ts`). `readiness.ts`
+needs it for five items and `rehearsal.ts` needs it to know what to deploy, and
+`readiness.ts` imports `rehearsal.ts` for the item — so a copy in either would have been
+the second source of truth, and the import would have been a cycle.
+
+**7. `runRehearsal`'s impossible states throw a PLAIN `Error`, not a coded refusal.** The
+route's `assertCapability` answers `404` before either can be reached, so a registered wire
+code for them would be one no client can ever receive — which is what `error-codes.test.ts`
+refuses (F7).
+
+**8. The rehearsal's evidence describes what HAPPENED** (F8): the hostname and the listener
+are read off the environment the INSTANCE is in, and the registration must be the one this
+deploy wrote. Both were derived from intent until control (c) failed to fire.
+
+**9. `packages/journey` asserts §20's refusal rather than §13's gate** (F6). An ordinary
+session asking for production now meets `403 STEP_UP_REQUIRED` first, so the journey reads
+the checklist from the read endpoint; `api/delivery.test.ts` still asserts that the two
+paths are byte-identical, with a stepped-up session. **A stepped-up administrator walking
+the whole gate from a client is Task 19's.**
+
+**10. The matrix row for the rehearsal names its CODE, and that is what found F7's other
+half**: `authz-contract.ts` lives under `src/api/`, where `error-codes.test.ts` reads every
+`code: '…'` literal as a code the API THROWS. It is a table of EXPECTATIONS and throws
+nothing; the scan now skips it, and says why.
+
+#### The findings
+
+**F1 — THE PLAN'S TASK 15 REFUSES THE PLAN'S TASK 14, and Task 19's own step order is
+what proves it.** §13's digest check sits in `deployRelease`, and `runRehearsal` calls
+`deployRelease` — so with the check as written, a rehearsal before an approval is refused
+`RELEASE_DIGEST_NOT_APPROVED`, while the demo in Task 19 runs the rehearsal at step 5 and
+approves at step 7. Decision 1.
+
+**F2 — THERE IS NO APP ENDPOINT A REHEARSAL CAN RELY ON.** The plan's step 4 says *"the
+attributes the assertion actually released are read"*, and the obvious implementation —
+`sso/testing.ts`'s existing probe — reads the app's `/me`. `blueprints/node-ts-mongo/skeleton/server.js`
+serves `/me`; `starters/proof-app/server.js` serves `/api/me` and no `/me`. So the app-side
+read works for the blueprint's own skeleton and not for the starter every demo uses.
+Decision 3.
+
+**F3 — THE FAKE DRIVER CANNOT REBUILD TO A DIFFERENT DIGEST**, so *"a rebuild needs a new
+approval"* cannot be tested by rebuilding. `createFakeDriver`'s digest is
+`sha256(slug + commit + blueprint)`: the test as first written built twice, got the same
+digest, and **passed against a platform with no check at all**. It now approves a
+fabricated digest and says why.
+
+**F4 — `deployRelease`'s production path had ONE unit test and it now needs an approval.**
+*"deploys to production like any other environment"* — Task 7's replacement test — went red
+the moment the digest check landed, which is the right answer: it is the POSITIVE CONTROL
+for four refusals, and a `deployRelease` that refused every production deploy would satisfy
+all of them.
+
+**F5 — §8 SENDS A PRODUCTION APP TO REAL UBC SHIBBOLETH, SO R2's REHEARSAL COULD NOT PASS
+ON THIS MACHINE.** Measured live: the rehearsal recorded
+`"reason": "the sign-in probe printed no result. Last line: curl: (60) SSL certificate
+problem: self-signed certificate in certificate chain"`, and a probe container reading
+`/login` on the production hostname got `302 -> https://authentication.ubc.ca/idp/profile/SAML2/Redirect/SSO`.
+**The most honest possible failure, and no test could have found it** — the Docker tier's
+app has no CWL login at all, and every unit test of the injection asserts production is
+UBC, which it is. Decision 2.
+
+**F6 — TASK 15's STEP-UP CALL SITE TURNS `make demo-journey` RED, and nothing in the plan
+says so.** Three checks: *production is refused, 409*, *as RELEASE_PRODUCTION_GATE_UNAVAILABLE*
+and *the refusal carries the checklist the read answers*. The journey's session is an
+ordinary instructor's, and §20 now answers before §13 does. Decision 9. **The offline
+acceptance and `make ci-acceptance` both run it**, so this would have been the next
+sitting's surprise rather than this one's.
+
+**F7 — `error-codes.test.ts` READS THE AUTHORIZATION MATRIX'S EXPECTATIONS AS THROWS.**
+Adding `admin: { status: 409, code: 'REHEARSAL_NO_CANDIDATE' }` made the registry report
+*"REHEARSAL_NO_CANDIDATE: not registered for api"* — because the scan adds every `code: '…'`
+literal under `src/api/` to the `api` family. It held until this row because every code
+named there had been an `api`-family one. The scan skips `authz-contract.ts` now, with the
+reason; and the same test caught two rehearsal codes it could not see at all, because
+`RehearsalError` was not in `WIRE_CLASSES`.
+
+**F8 — CONTROL (c) DID NOT FIRE: A REHEARSAL THAT DEPLOYED TO STAGING RECORDED
+"production, public listener" AND ALL SEVEN DOCKER TESTS STAYED GREEN.** Two defects of one
+shape. The evidence's `hostname` and `listener` were read off the production environment
+row rather than off the environment the instance is actually in; and `latestRegistration`
+took the newest `sp:<slug>:production` event with no time bound, so it found a registration
+an EARLIER deploy in the same suite had written. Fixed, re-run with the control in place,
+and it fires: one red on the evidence's five fields. **This is the plan's own warning —
+*"and without that assertion nothing would notice"* — landing on the assertion itself.**
+
+**F9 — THE PROBE REPORTED THE `/login` STATUS AS THE SIGN-IN STATUS**, so a rehearsal that
+never produced an assertion was judged *"the sign-in completed and the IdP released no
+attributes at all"* — a wrong diagnosis of a right verdict, which is the kind of evidence
+that sends somebody to the IdP for a day. `status` is `null` when nothing was posted to the
+ACS. Found by the Docker tier on its first run; no unit test could see it.
+
+**F10 — THE ASSERTION MUST BE POSTED TO THE REGISTERED ACS *ON THE PUBLIC PORT*.** From a
+container the bare registered URL arrives at `srv0`, the internal listener, which holds no
+route for a production hostname. The path and host stay the registration's; the port is how
+a container reaches §12's public listener. The assertion's own `Destination` is untouched,
+which is what the app compares against its configured callback.
+
+**F11 — THE STEP-UP CALLBACK REFUSES AN ASSERTION WITH NO `RelayState`.** The live drive's
+first step-up answered `401` with *"the sign-in was not started by this browser"*: the IdP's
+auto-submit form carries `RelayState` beside `SAMLResponse`, and a client that posts only
+the assertion is refused. `infra/lib/idp-login.sh` has always posted both — **the drive
+script was the second implementation, and it drifted immediately**, which is the argument
+for that file existing.
+
+**F12 — VITEST RAN A TEST FILE `tsc` REFUSES, AGAIN** (sitting 8's F12, one sitting later):
+`rehearsal.test.ts` inserted a `builds` row with a `blueprintRef` column that table does not
+have. Green under Vitest, TS2769 under `tsc`. CLAUDE.md's *Vitest strips types*, measured on
+this sitting's own code for the second consecutive sitting.
+
+**F13 — `GET /v1/projects` ANSWERS AN ADMINISTRATOR WITH THEIR OWN PROJECTS, NOT EVERY
+PROJECT.** The live drive looked for `journey-app` there as the operator and found nothing;
+§26's fleet is the administrator's view (D31), and the drive reads it there. Recorded
+because the next script to drive an administrator will make the same assumption.
+
+#### Driven live, through the edge — the first production launch this platform has done
+
+**On `journey-app`, a real CWL app asking for five attributes**, with `make demo-journey`
+green immediately before (which is also F6's fix, confirmed):
+
+1. **The administrator recorded an `active` IAM registration listing ALL FIVE attributes**
+   (sitting 8's F9 hand-off, applied) and an `approved` PIA, each along §9's arrows —
+   `IAM-LIVE-9` and `PIA-LIVE-9`. The checklist went from four blocking items unmet to two.
+2. **THE REHEARSAL PASSED IN 6 SECONDS**: `passed: true`, the production entityID and the
+   registered ACS read back off the registration, `listener: "public"`,
+   `signInStatus: 200`, and `attributesReleased` = the same five names the registration
+   lists, read out of the assertion. **`ready` was still false — `admin-approval` alone.**
+3. **The approval was refused `403 STEP_UP_REQUIRED`**, with the remedy in its hint.
+4. **The IdP RE-PROMPTED a browser it had already signed in** (ForceAuthn, on a warm jar),
+   the claim landed on the same session, and the same request then answered `201`:
+   `decision=approved digest=sha256:e1ed003784eb…`. **`ready: true`, six blocking items met.**
+5. **The production deploy answered `200` with a healthy instance**, and the app answers
+   `https://journey-app.manifest.internal/healthz` **on 127.0.0.3** with
+   `X-Manifest-Instance: a535bfb2-…` — while the same name on **127.0.0.2** answers `200`
+   with **no instance header**, which is sitting 2's F5 seen from the other side.
+
+#### The negative controls — nine run, eight fired, and the one that did not was worth all of them
+
+**Every one committed first, broken, watched, and restored by name.** Predictions were
+written down before each run, in `t15-controls.md`.
+
+| | Control | Predicted | **Measured** |
+|---|---|---|---|
+| T15 a | the digest check deleted | 4 red in `releases.test.ts`, nothing else in the suite | **FIRED EXACTLY — 4 red, full suite** |
+| T15 b | the check moved AFTER `ensureInstance` | exactly 1 red: *leaves no instance row behind* | **FIRED EXACTLY — 1 red.** "Before anything" is a claim about side effects and only a side-effect assertion can see it |
+| T15 c | `approvalCoversDigest` ignores `decision` | 1 red in `releases.test.ts` + 1 in `launch/readiness.test.ts` | **FIRED, 2 red — AND THE PREDICTION WAS HALF WRONG.** The second was `approval.test.ts`'s own *a REJECTION covers nothing*, not the checklist: `approvalItem` tests `decision === 'rejected'` ITSELF, before it asks the helper, so the checklist cannot see that clause |
+| T15 d | `listenerFor` forced to `'internal'` | the *NOT on srv0* case red | **FIRED WIDER — 3 red** in the Docker tier: the deploy itself fails (17.6 s, `waitForIdentity` refusing the wildcard), so the two tests after it go red too. The plan predicted one |
+| T15 e | `assertStepUp` removed from the deploy route | the matrix's two production rows | **FIRED WIDER, AS THIS SITTING PREDICTED — 4 red in 3 files**: the two matrix rows, `delivery.test.ts`'s ordering test, and `lifecycle.test.ts`'s P2 acceptance |
+| T14 a | `rehearsalCovers` returns `true` | 3 red in `rehearsal.test.ts` | **FIRED EXACTLY — 3 red, full suite** |
+| T14 b | `passed: true` recorded without the measurement | 1 red, the Docker tier's rehearsal test; the unit item tests green | **FIRED EXACTLY.** The Docker tier is the only thing that can see a pass recorded without a measurement — the unit tests insert rows directly |
+| T14 c | the rehearsal deploys to STAGING | the evidence's listener and hostname red | **DID NOT FIRE — 7/7 GREEN. F8.** Fixed, then re-run: **fires, 1 red on five fields** |
+| T14 d | R2's *shape, not acceptance* sentence deleted | 1 red, and nothing else in 1596 tests | **FIRED EXACTLY — 1 red.** A required sentence with no test is a sentence that gets edited out |
+
+| Gate | Before | After |
+|---|---|---|
+| `make doctor` | 19 checks, 0 failed | **19, 0 failed** — unmoved, re-run AFTER the Docker tier and after both cleanup scripts. The sitting adds a route, a migration and refusals and no platform check |
+| `make verify` | 54 checks, 0 failed | **54, 0 failed** — unmoved, same reason, re-run at the same points. Its per-app line reads `containers=15 networks=5 volumes=10` and **`runtime routes currently applied: 0`**, because the Docker tier restarted the edge after the live drive |
+| `pnpm test` | 1565 passed + 1 skipped, 117 files | **1598 passed, 0 SKIPPED, 118 files**, run twice after each task's final change and identical. **Counted per file off the run's own output, never subtracted**: `launch/rehearsal.test.ts` **13 (NEW)**, `api/authz-contract.test.ts` **433 → 442**, `releases/releases.test.ts` **62 → 68**, `api/delivery.test.ts` **17 + 1 skipped → 20**, `spec/injection.test.ts` **36 → 38**; `launch/readiness.test.ts` held at **20** and `packages/mock` at **11**, both changed inside existing tests. **The suite's one skip is GONE** — Task 14 un-skipped it, which is what Task 7 promised |
+| `pnpm test:docker` | 185 in 30 files | **192 passed, 0 skipped, 31 files, 869 s** — **OWED, RUN, and MOVED for the first time since sitting 3**, by exactly the seven cases of `releases/production.docker.test.ts`. **Predicted before the run**, in writing |
+| `pnpm lint` / `typecheck` / `format:check` | clean | clean, before each commit. **`tsc` earned its place again**: F12, a `builds` insert with a column that table does not have, green under Vitest |
+
+#### The machine, at close
+
+**Both cleanup scripts were ALLOWED `--apply` and were run — the seventh consecutive sitting.**
+Seven dead networks and one volume cleared (the thirteenth measurement of that cycle) and
+LiteLLM taken from 8 users to 5; both re-measured by the scripts afterwards — `none dead`, and
+*Nothing to delete*. **The app images are what this sitting left moved**: `docker images -q |
+wc -l` **165**, `sort -u` **157**, `127.0.0.1:7107/local/*` **115** — **nine of them
+`local/prod-launch`**, because the new production suite rebuilds its image on every run and
+this sitting ran it five times.
+
+**`snapshot-machine.sh` at open and at close, diffed — 103 lines, every one accounted for**:
+timestamps and uptimes, **the laptop's own hostname changing under the session**
+(`Richs-MacBook-Pro.local` → `Richs-MBP.localdomain`), **free disk 48Gi → 113Gi, which this
+sitting did not free and cannot explain** — no prune was run, and it is recorded rather than
+explained away — `journey-app`'s staging app container replaced by `make demo-journey`, its
+**production** containers, network and volumes created by the live drive, the Docker tier's own
+fixture images, and `HEAD` moving to this sitting's commits. The four protected containers all
+survive, `caddy-data` is intact, and `docker-simple-saml`'s only dirty path is the untracked
+`cert.zip` dated June. **The control plane was started for the demo and the drive and stopped at
+the close; nothing listens on 7100.** **The database is EMPTY** — the closing `pnpm test`
+truncated the live drive's rows, so the containers outlive them, which is ordinary here.
+
+#### What the post-sweep check found — and the streak since P5b's third sitting holds
+
+**F14 — ORIENTATION §2's `make ci-acceptance` ROW STILL READ `1565 / 117` AFTER THE BOX ABOVE
+IT HAD MOVED.** That row restates the four gate numbers in prose, one screen below the box that
+carries them, and this sitting's own sweep updated the box, `scripts/ci-acceptance.sh`, README
+and RUNBOOK and walked past it. **It is the same defect §6's sweep table was given a row for on
+2026-09-20** — a number restated in a second place drifts from the first — arriving inside the
+document that says so. Found by grepping the file for the OLD number rather than by re-reading
+the new one, which is the only method that works: the stale copy carries a different number by
+definition.
+
+**F15 — THE SITTING'S OWN §7e SAID THE DATABASE WAS FULL, AND THE CLOSING `pnpm test` HAD
+EMPTIED IT.** The hand-off was written from what the live drive left — `journey-app` in
+production, a passed rehearsal, an approval — and the gates run LAST, so by the time the sitting
+closed every one of those rows was truncated and only the containers remained. **§6 names this
+exact trap** (*"write the state table from `psql`, `docker` and `curl` at close, never from
+memory of the session"*), and the check caught it by querying the eight tables rather than by
+re-reading the paragraph. The next agent would have gone looking for a project that is not there.
+
+**AND THE FOUR HTML PAGES WERE CHECKED, AND ONE CHANGED.** `manifest-schematic.html`'s status
+line is what an outsider reads, and *"an application has now gone live"* is the first thing on
+that page that is true of a real launch rather than of a refusal — so it names the checklist a
+first launch has to pass, the rehearsal Manifest runs by itself including a real practice
+sign-in, and the approval bound to the exact version. `manifest-phases.html` was read and left
+alone: its counts are a Phase 1a description and its spike section has not moved.
+`manifest-decisions.html` drifts when a DECISION changes and none did — the three spec actions
+are still proposed and still Rich's. `manifest-stories.html`'s hostname examples are unchanged.
+`WALKTHROUGH.md` and `CLAUDE.md` both DID change: the first because a person can now be told
+what a production launch does, the second because its *Outstanding* line now says that access
+to UBC's staging IdP is the only part of a first launch this platform cannot do for itself.

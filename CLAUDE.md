@@ -78,7 +78,11 @@ turning the network off from a tool call cuts the agent off too; **it now has TE
 newest being the console's preflight — that the console builds from the checked-in contract
 and the edge serves its own document, the one claim about the console a script can falsify), the second-machine clean clone, starting the UBC external track
 (its trigger fired on 2026-09-15, and **P6a's R1 makes it more urgent, not less** — P6a builds
-the objects a real IAM registration and PIA would populate), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 8**,
+the objects a real IAM registration and PIA would populate; **since 2026-09-20 its item 5,
+access to UBC's staging IdP, is the ONLY part of a first production launch this platform
+cannot do for itself** — Manifest runs D21's rehearsal locally and says in the checklist that
+it proves the registration's shape and never UBC's acceptance of it), and the rest of
+ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 8**,
 applied by the agent session itself and **re-measured by the scripts themselves afterwards**: `dead-app-resources.sh`
 reads `none dead` and `litellm-orphans.sh` reads 0 orphaned. They were clear at sitting 1's close
 too; sitting 2 ran no Docker tier and they stayed clear; **sitting 3 ran one and seven networks,

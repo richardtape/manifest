@@ -363,7 +363,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 19 / 0 and `make verify` 54 / 0**
-(**All four were re-measured at the close of P6a sitting 8, 2026-09-20 — doctor and verify UNMOVED, because Tasks 12–13 add refusals and no platform check. `pnpm test` went 1544 → 1565 passed plus the same one skipped, in 117 files, up 21 and THREE new files: `launch/review.test.ts` 3, `spec/registered-attributes.test.ts` 7 and `releases/build-attributes.test.ts` 4, plus +5 in `launch/readiness.test.ts` and +2 in `releases/approval.test.ts`. `pnpm test:docker` was OWED, RUN and UNMOVED at 185 in 30, 821 s — the SIXTH consecutive run to read 185 (sittings 3 to 8), and checked rather than asserted: no Docker test records an IAM registration, computes readiness or drives the reviewer.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured at the close of P6a sitting 9, 2026-09-20 — doctor and verify UNMOVED, because Tasks 14–15 add a route, a migration and refusals and no platform check. `pnpm test` went 1565 passed + 1 skipped → **1598 passed, 0 SKIPPED**, in 118 files: the suite's one skipped test — the production gate's positive control — was UN-SKIPPED by Task 14, which built the last blocking item it was waiting for. `pnpm test:docker` was OWED, RUN and **MOVED for the first time since sitting 3: 185 in 30 → 192 in 31**, by the seven cases of `releases/production.docker.test.ts`, which is the first thing in this repository to deploy a release to production.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has TEN steps** — P5a sitting 12 added `make demo-journey` as step 8,
@@ -739,6 +739,50 @@ can.
 *This section said "a token cannot authenticate until Task 5, which is the next sitting's work" until
 2026-09-18, two sittings after that stopped being true: sittings 3 and 4 swept the gate-number line in this
 file and not the section their own work made false. Recorded as a finding in P5b sitting 5.*
+
+## Taking an application to PRODUCTION, by hand (§13's checklist, end to end)
+
+*Added by P6a sitting 9, 2026-09-20, which drove this against `journey-app` and put the first
+application this platform has ever launched into production. `make demo-production` is Task 19's
+and does not exist yet; this is how to run it by hand until then.*
+
+**Every step is an administrator's**, signed in through the edge exactly as *The first administrator*
+below describes, and every mutation carries `Origin: https://console.manifest.internal` and an
+`Idempotency-Key`. `make demo-journey` leaves `journey-app` serving staging and `opr000001` an
+administrator, which is the cheapest starting point.
+
+1. **Read the checklist.** `GET /v1/projects/{id}/launch-readiness` — for a CWL app with nothing
+   recorded, four blocking items are `unmet`: `iam-registration`, `privacy-assessment`,
+   `rehearsal`, `admin-approval`.
+2. **Record what UBC said**, along §9's arrows — a first write straight into `active` is refused,
+   so `draft` → `submitted` → `active` for the registration, `submitted` → `approved` for the PIA:
+   `POST /v1/projects/{id}/launch-records/iam-registration` and `…/privacy-assessment`.
+   **LIST EVERY ATTRIBUTE THE RELEASE ASKS FOR** in `registeredAttributes` — the item is `met`
+   only when the candidate's list is a subset of it, and a short list reads like the rehearsal
+   failing (P6a sitting 8, F9).
+3. **Run the rehearsal.** `POST /v1/projects/{id}/rehearsal` — ~6 s. It deploys the candidate to
+   the production hostname, registers its Service Provider with production values, completes a
+   real CWL sign-in and answers `200` with the evidence. **`passed: false` is a `200`** — a
+   measurement that came out badly is not a request error, and `evidence.reason` says which hop
+   failed.
+4. **Approve the release.** `POST /v1/releases/{releaseId}/approve` is refused `403
+   STEP_UP_REQUIRED` first (§20). Navigate `GET /auth/step-up` on the SAME cookie jar, complete
+   the IdP's prompt — it prompts again even though you are already signed in — and post the
+   assertion back to `/auth/saml/callback` **with `RelayState` beside `SAMLResponse`**, or the
+   callback answers `401`. `infra/lib/idp-login.sh` is the flow; the step-up entry point is the
+   only difference. Then approve: `201`, bound to the build's digest.
+5. **Deploy to production.** `POST /v1/environments/{productionEnvironmentId}/deploy` — it also
+   asks for step-up, and one round trip covers both while the claim is fresh. The app then
+   answers on **127.0.0.3**:
+   ```bash
+   curl -sS --cacert infra/ca/manifest-root.crt -o /dev/null      -w 'status=%{http_code} instance=%header{x-manifest-instance}\n'      --resolve journey-app.manifest.internal:443:127.0.0.3      https://journey-app.manifest.internal/healthz
+   ```
+   **Read the INSTANCE header, never the status**: the same name on `127.0.0.2` also answers
+   `200`, with no header, because that is the edge's wildcard and not the app.
+
+**An app in production on this laptop signs nobody in, and that is correct.** §8 points a
+production deploy at real UBC Shibboleth (`authentication.ubc.ca`), which C1 puts out of reach.
+The rehearsal is the one production deploy pointed at the Manifest IdP.
 
 ## Answering an agent's pending action
 
