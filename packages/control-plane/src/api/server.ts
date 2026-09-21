@@ -26,7 +26,7 @@ import { assertSameOrigin } from './csrf.js'
 import { BadRequestError, toErrorResponse } from './errors.js'
 import { replayOrStore } from './idempotency.js'
 import { registerAuthRoutes } from './routes/auth.js'
-import type { SsoRegistrar } from '../sso/index.js'
+import type { CwlSignInProbe, SsoRegistrar } from '../sso/index.js'
 import type { SamlSp } from '../identity/index.js'
 import type { AiKeyService, LiteLlmClient, ModelCatalogue } from '../ai/index.js'
 import type { BuildRunner, Retirer } from '../releases/index.js'
@@ -93,6 +93,14 @@ export interface ServerDeps {
    * the one line in `src/index.ts` that constructs it, and nothing else. That is the seam.
    */
   reviewer: Reviewer
+  /**
+   * R2's measurement (P6a Task 14): what completes a REAL CWL sign-in against a deployed
+   * app, from a container, for D21's rehearsal. An interface for the reason `reviewer` is
+   * one — the unit tier rehearses with no Docker, no IdP and no app — and the day this
+   * platform rehearses against UBC's staging IdP, the change is the credentials and the
+   * base URL this is constructed with (`sso/sign-in.ts`), not a line in `launch/`.
+   */
+  signIn: CwlSignInProbe
   /**
    * D23.2's per-project fan-out (P4b Task 14): `WS /v1/projects/:projectId/events`
    * subscribes to it. ONE bus per process, built at boot, so every publisher and every

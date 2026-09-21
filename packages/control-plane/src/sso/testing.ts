@@ -5,6 +5,7 @@ import pg from 'pg'
 import type { Driver, ImageRef } from '../runtime/index.js'
 import { INJECTED_FILE_PATHS, renderInjection } from '../spec/index.js'
 import type { SpKeypair } from './keypair.js'
+import { SAML_LOGIN_HOPS } from './sign-in.js'
 import {
   createIdpPool,
   deleteSpRow,
@@ -436,64 +437,16 @@ export async function idpLogin(
 }
 
 /**
- * Three hops, because that is what a browser does. curl cannot auto-submit an
- * HTML form, so each form's fields are extracted and re-POSTed.
- *
- * Extracting them with `sed` is regex-over-HTML, which is normally a mistake. It
- * is acceptable here for one reason: this is a FIXTURE IdP whose exact
- * SimpleSAMLphp version we pin and whose markup we can re-check on upgrade — and
- * that re-check is precisely what this suite is for (S2's open question). If the
- * markup moves, this test fails loudly, which is the desired behaviour.
+ * THE HOPS ARE THE PLATFORM'S — `sso/sign-in.ts`'s `SAML_LOGIN_HOPS`, since P6a Task 14,
+ * where the rehearsal needed the same three and a copy would have been the second.
+ * What is left here is this tier's own TAIL: post the assertion to the app's callback
+ * and read the app's `/me`, which is what these tests are about — what the APP sees.
+ * The rehearsal's tail reads the assertion instead, because no app endpoint is common to
+ * every blueprint starter (the proof-app serves `/api/me` and the skeleton `/me`).
  */
-const LOGIN_SCRIPT = String.raw`
-set -eu
-J=/tmp/jar
-
-json_escape() {
-  # One argument, printed as a JSON string. sed cannot see a newline inside its
-  # own pattern space, so the newlines are removed FIRST with tr, and the
-  # backslash is escaped BEFORE the quote or the escaping escapes itself.
-  printf '%s' "$1" | head -c 4000 | tr '\n\r' '  ' \
-    | sed 's/\\/\\\\/g; s/"/\\"/g; s/^/"/; s/$/"/'
-}
-
-# HOP 1: the app redirects to the IdP with a SAMLRequest. -L follows it; the jar
-# picks up SimpleSAMLphp's session cookie, without which hop 2 starts a new
-# authentication and the flow loops forever rather than failing.
-form=$(curl -sS --cacert /ca.crt -c $J -b $J -L "$APP/login")
-
-# If there is no login form, the IdP refused the SP. That is the negative
-# control's expected path, so report it rather than failing the container.
-if ! echo "$form" | grep -q 'name="username"'; then
-  code=$(curl -sS --cacert /ca.crt -c $J -b $J -L -o /dev/null -w '%{http_code}' "$APP/login")
-  printf '{"status":%s,"body":%s}\n' "$code" "$(json_escape "$form")"
-  exit 0
-fi
-
-# HOP 2: post the credentials. AuthState is what carries the pending
-# authentication between requests; dropping it restarts the flow.
-# HTML-DECODE BOTH. These come out of an HTML attribute, so '&' arrives as
-# '&amp;' - and AuthState carries a query string, so an undecoded value posts
-# '...&amp;cookieTime=...' and SimpleSAMLphp cannot match the pending
-# authentication. Measured 2026-09-08: the raw value ends
-# '...singleSignOnService?spentityid=...&amp;cookieTime=1788919480'.
-unescape() { sed 's/&amp;/\&/g; s/&quot;/"/g; s/&#039;/'"'"'/g; s/&lt;/</g; s/&gt;/>/g'; }
-state=$(echo "$form" | sed -n 's/.*name="AuthState"[^>]*value="\([^"]*\)".*/\1/p' | head -1 | unescape)
-action=$(echo "$form" | sed -n 's/.*<form[^>]*action="\([^"]*\)".*/\1/p' | head -1 | unescape)
-case "$action" in http*) post="$action" ;; *) post="$IDP$action" ;; esac
-assertion=$(curl -sS --cacert /ca.crt -c $J -b $J -L \
-  --data-urlencode "username=$USER" --data-urlencode "password=$PASS" \
-  --data-urlencode "AuthState=$state" "$post")
-
-# HOP 3: the IdP answers with an auto-submitting form carrying the SAMLResponse.
-# Post it to the app's ACS. --location-trusted, not -L: the POST crosses from the
-# IdP origin to the app origin and plain -L drops the body on a cross-origin
-# redirect, which reads as "the app rejected the assertion".
-saml=$(echo "$assertion" | sed -n 's/.*name="SAMLResponse"[^>]*value="\([^"]*\)".*/\1/p' | head -1 | unescape)
-if [ -z "$saml" ]; then
-  printf '{"status":0,"body":%s}\n' "$(json_escape "$assertion")"
-  exit 0
-fi
+const LOGIN_SCRIPT =
+  SAML_LOGIN_HOPS +
+  String.raw`
 body=$(curl -sS --cacert /ca.crt -c $J -b $J --location-trusted \
   --data-urlencode "SAMLResponse=$saml" "$APP/auth/ubcshib/callback")
 me=$(curl -sS --cacert /ca.crt -b $J "$APP/me")

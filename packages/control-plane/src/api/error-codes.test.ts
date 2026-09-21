@@ -51,6 +51,7 @@ const WIRE_CLASSES = [
   'SamlError',
   'LaunchTransitionError',
   'LaunchRecordError',
+  'RehearsalError',
   'ProductionGateError',
 ] as const
 
@@ -69,7 +70,17 @@ async function thrown(): Promise<Map<string, Set<ErrorFamily>>> {
   for (const file of await sourceFiles(SRC)) {
     const text = await readFile(file, 'utf8')
     for (const m of text.matchAll(construct)) add(m[2]!, m[1] as ErrorFamily)
-    if (relative(SRC, file).split(sep)[0] === 'api') {
+    /**
+     * **`authz-contract.ts` IS EXPECTATIONS, NOT THROWS** (P6a Task 14). Every other file
+     * under `api/` names a code because it ANSWERS with it; that one names codes because a
+     * row EXPECTS them, and reading those as `api`-family throws is wrong the moment a row
+     * expects a code from another family. It held until Task 14, when the rehearsal row
+     * expected `REHEARSAL_NO_CANDIDATE` — a `RehearsalError` raised in `launch/` — and this
+     * scan reported it as a code the api layer throws and the registry had not registered.
+     * The file throws no wire error at all: `grep "new .*Error('"` over it finds nothing.
+     */
+    const withinApi = relative(SRC, file).split(sep)[0] === 'api'
+    if (withinApi && !file.endsWith(`${sep}authz-contract.ts`)) {
       for (const m of text.matchAll(/readonly code = '([A-Z][A-Z0-9_]+)'/g))
         add(m[1]!, 'api')
       for (const m of text.matchAll(/\bcode: '([A-Z][A-Z0-9_]+)'/g)) add(m[1]!, 'api')

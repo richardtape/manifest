@@ -1,15 +1,13 @@
 import { eq } from 'drizzle-orm'
 import { STALENESS_THRESHOLD_DAYS } from '../build/index.js'
 import { builds, environments, projects, releases, type Db } from '../db/index.js'
-import { servingInstanceOf, type StoredAudience } from '../projects/index.js'
-import {
-  approvalCoversDigest,
-  latestApprovalFor,
-  type ResolvedConfigSet,
-} from '../releases/index.js'
+import type { StoredAudience } from '../projects/index.js'
+import { approvalCoversDigest, latestApprovalFor } from '../releases/index.js'
 import type { ScanSummary } from '../runtime/index.js'
 import { unregisteredAttributes } from '../spec/index.js'
+import { candidateFor } from './candidate.js'
 import { getIamRegistration, getPrivacyAssessment } from './records.js'
+import { rehearsalItem } from './rehearsal.js'
 
 /**
  * Every id §13's checklist can carry, ONCE. `api/representations/launch.ts` builds its
@@ -73,23 +71,15 @@ export async function computeLaunchReadiness(
   projectId: string,
 ): Promise<LaunchReadinessView> {
   const [project] = await db.select().from(projects).where(eq(projects.id, projectId))
-  const [staging] = await db
+  // ONE DERIVATION OF *THE CANDIDATE*, shared with `rehearsal.ts` since P6a Task 14 — the
+  // release serving staging, which is what a launch promotes (§13).
+  const candidate = await candidateFor(db, projectId)
+  const [production] = await db
     .select()
     .from(environments)
     .where(eq(environments.projectId, projectId))
-    .then((rows) => rows.filter((e) => e.kind === 'staging'))
-  const serving = staging === undefined ? undefined : await servingInstanceOf(db, staging)
-  const [candidate] =
-    serving === undefined
-      ? []
-      : await db
-          .select({ release: releases, build: builds })
-          .from(releases)
-          .innerJoin(builds, eq(releases.buildId, builds.id))
-          .where(eq(releases.id, serving.releaseId))
-  const candidateAuth = (
-    candidate?.release.resolvedConfig as ResolvedConfigSet | undefined
-  )?.production.auth
+    .then((rows) => rows.filter((e) => e.kind === 'production'))
+  const candidateAuth = candidate?.auth
   const provider = candidateAuth?.provider
   // No candidate means no answer yet, and the conservative answer is that it will need
   // one: an IAM registration has a multi-week lead time, so reporting "not needed" on no
@@ -108,15 +98,15 @@ export async function computeLaunchReadiness(
     },
     await iamItem(db, projectId, usesCwl, candidateAuth?.attributes ?? []),
     await piaItem(db, projectId),
-    {
-      id: 'rehearsal',
-      title: 'Pre-production rehearsal passed',
-      owner: 'Manifest',
-      blocking: true,
-      state: 'not_built',
-      builtBy: 'P6',
-      why: 'A rehearsal against production-shaped identity before launch (D21). It is built with production environments.',
-    },
+    // D21, as R2 redefines it (P6a Task 14): met by the MEASUREMENT `runRehearsal` wrote,
+    // and `unmet` again the moment the candidate would register something else.
+    await rehearsalItem(
+      db,
+      projectId,
+      candidate === undefined || production === undefined
+        ? undefined
+        : { hostname: production.hostname, auth: candidate.auth },
+    ),
     scansItem(
       candidate?.build.scan as ScanSummary | null | undefined,
       candidate !== undefined,

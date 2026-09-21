@@ -629,6 +629,33 @@ export const LAUNCH_RECORDS: Schemas['LaunchRecords'] = {
   privacyAssessment: PRIVACY_ASSESSMENT,
 }
 
+/**
+ * D21's rehearsal (P6a Task 14). **IT PASSED, AND IT CARRIES ITS EVIDENCE** — a front-end
+ * developer building the launch screen needs the shape of what a passing rehearsal actually
+ * says, because the screen's job is to show the measurement rather than a tick: the
+ * listener it ran on, the status the sign-in ended on, and the attributes the assertion
+ * released against the ones the registration lists.
+ */
+export const REHEARSAL: Schemas['Rehearsal'] = {
+  id: '99999999-9999-4999-8999-999999999993',
+  projectId: PROJECT_ID,
+  releaseId: RELEASE.id,
+  passed: true,
+  entityId: 'https://manifest.internal/sp/chem-labs/production',
+  acsUrl: 'https://chem-labs.manifest.internal/auth/saml/callback',
+  attributes: ['displayName', 'mail', 'ubcEduCwlPuid'],
+  evidence: {
+    instanceId: INSTANCE.id,
+    hostname: 'chem-labs.manifest.internal',
+    listener: 'public',
+    signInStatus: 200,
+    attributesReleased: ['displayName', 'mail', 'ubcEduCwlPuid'],
+    reason:
+      'the sign-in completed: the app answered 200 at its registered ACS and the assertion carried 3 attribute(s)',
+  },
+  ranAt: '2026-09-20T00:00:00.000Z',
+}
+
 export const FIXTURES: [string, unknown][] = [
   ['Me', ME],
   ['Me', ADMIN_ME],
@@ -671,4 +698,5 @@ export const FIXTURES: [string, unknown][] = [
   ['IamRegistration', IAM_REGISTRATION],
   ['PrivacyAssessment', PRIVACY_ASSESSMENT],
   ['LaunchRecords', LAUNCH_RECORDS],
+  ['Rehearsal', REHEARSAL],
 ]

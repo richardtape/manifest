@@ -156,7 +156,12 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
       'iam-registration': 'met',
       // The PIA has no such exemption: every production app needs one.
       'privacy-assessment': 'unmet',
-      rehearsal: 'not_built',
+      // **`met` SINCE P6a TASK 14, WHERE IT WAS `not_built`** — and for the same reason
+      // `iam-registration` above is `met`, which is the reading that matters: this
+      // fixture's starter signs nobody in, so it registers no Service Provider and there
+      // is nothing to rehearse. A CWL project reads `unmet` here until somebody runs one
+      // (`launch/rehearsal.test.ts`).
+      rehearsal: 'met',
       // `scans` is computed from the candidate release, and this one is deployed to
       // staging with a clean scan (P5a Decision 35).
       scans: 'met',

@@ -174,11 +174,19 @@ describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task
       const approval = view.items.find((i) => i.id === 'admin-approval')!
       expect(approval.state).toBe('unmet')
       expect(approval.builtBy).toBeUndefined()
-      // And `rehearsal` alone is still genuinely unbuilt, which is why the gate above
-      // cannot open yet (Task 14).
+      // **AND `rehearsal` JOINED THEM IN P6a TASK 14**, which is what opened the gate at
+      // last: it was `not_built` / `builtBy: 'P6'` — *"it is built with production
+      // environments"* — until `runRehearsal` existed. A project nobody has rehearsed now
+      // reads `unmet` with no `builtBy`, and a `builtBy` back on it is a regression.
       const rehearsal = view.items.find((i) => i.id === 'rehearsal')!
-      expect(rehearsal.state).toBe('not_built')
-      expect(rehearsal.builtBy).toMatch(/^P\d$/)
+      expect(rehearsal.state).toBe('unmet')
+      expect(rehearsal.builtBy).toBeUndefined()
+      // The ONLY unconditional `not_built` item left is `code-review`, which is the one
+      // that does not block (D33, Decision 13). Asserted here rather than counted: the
+      // day another item goes `not_built`, this line says so.
+      expect(view.items.filter((i) => i.state === 'not_built').map((i) => i.id)).toEqual([
+        'code-review',
+      ])
       expect(view.items.every((i) => i.why.length > 20 && i.owner.length > 0)).toBe(true)
     })
   })

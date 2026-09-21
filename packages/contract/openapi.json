@@ -1724,6 +1724,78 @@
         ]
       }
     },
+    "/v1/projects/{projectId}/rehearsal": {
+      "post": {
+        "operationId": "runRehearsal",
+        "tags": [
+          "launch"
+        ],
+        "summary": "Run the pre-production rehearsal",
+        "description": "D21, as P6a redefines it for a laptop (R2): deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. Up to ~90 s.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The rehearsal, passed or failed. A failure is a 200 with `passed: false` and the reason in its evidence — it is a MEASUREMENT, and a measurement that came out badly is not a request error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rehearsal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REHEARSAL_DEPLOY_FAILED",
+          "REHEARSAL_NOT_CWL",
+          "REHEARSAL_NO_CANDIDATE",
+          "RELEASE_DIGEST_MISSING",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
     "/v1/projects/{projectId}/releases": {
       "get": {
         "operationId": "listReleases",
@@ -3352,6 +3424,9 @@
           "PENDING_ACTION_RESOLVED",
           "PROJECT_LAST_OWNER",
           "RATE_LIMITED",
+          "REHEARSAL_DEPLOY_FAILED",
+          "REHEARSAL_NOT_CWL",
+          "REHEARSAL_NO_CANDIDATE",
           "RELEASE_AI_BUDGET_MISSING",
           "RELEASE_AI_DISABLED",
           "RELEASE_BLUEPRINT_NOT_FOUND",
@@ -6802,6 +6877,118 @@
         },
         "required": [
           "state"
+        ],
+        "additionalProperties": false
+      },
+      "Rehearsal": {
+        "description": "A LOCAL, production-shaped rehearsal (D21 as P6a redefines it for a laptop): it proves the SHAPE of the registration and never UBC’s acceptance of it.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "releaseId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "entityId": {
+            "description": "The entityID the Service Provider was registered under when this ran — read off the registration, never recomputed.",
+            "type": "string"
+          },
+          "acsUrl": {
+            "type": "string"
+          },
+          "attributes": {
+            "description": "What the registration listed. Decision 10 compares these with what the candidate release would register now.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence": {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "hostname": {
+                "type": "string"
+              },
+              "listener": {
+                "type": "string",
+                "enum": [
+                  "internal",
+                  "public"
+                ]
+              },
+              "signInStatus": {
+                "description": "What the app answered at its registered ACS, or null when no assertion was produced.",
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "attributesReleased": {
+                "description": "What the assertion ACTUALLY carried, as friendly names where the platform knows one. §9’s attribute release, measured rather than assumed.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "instanceId",
+              "hostname",
+              "listener",
+              "signInStatus",
+              "attributesReleased",
+              "reason"
+            ],
+            "additionalProperties": false
+          },
+          "ranAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "releaseId",
+          "passed",
+          "entityId",
+          "acsUrl",
+          "attributes",
+          "evidence",
+          "ranAt"
         ],
         "additionalProperties": false
       },

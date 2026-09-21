@@ -167,6 +167,12 @@ const ANSWERS: Record<string, Answerer> = {
   // that sends the wrong state look correct here and wrong against the platform.
   recordIamRegistration: () => ok('IamRegistration', f.IAM_REGISTRATION),
   recordPrivacyAssessment: () => ok('PrivacyAssessment', f.PRIVACY_ASSESSMENT),
+  // D21's rehearsal (P6a Task 14): it ANSWERS the fixture immediately. The platform takes
+  // up to ~90 s and deploys an application to do it; a mock that slept would teach a
+  // front-end developer to build for a delay it cannot reproduce, and one that answered
+  // `passed: false` would hide the state the screen is for. `script.ts` is where timing is
+  // modelled, deliberately, and only for the stream.
+  runRehearsal: () => ok('Rehearsal', f.REHEARSAL),
   listMembers: () => ok('MemberList', f.MEMBERS),
   addMember: () => created('Member', f.MEMBER),
   // Idempotent, and it answers the WHOLE list (P5b Task 8).

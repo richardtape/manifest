@@ -4,6 +4,7 @@ import {
   LAUNCH_ITEM_IDS,
   type IamRegistrationRow,
   type PrivacyAssessmentRow,
+  type RehearsalRow,
 } from '../../launch/index.js'
 import { representation, request, Uuid } from '../contract/schemas.js'
 
@@ -196,5 +197,71 @@ export function toPrivacyAssessment(
     approvedAt: row.approvedAt === null ? null : row.approvedAt.toISOString(),
     externalTicketRef: row.externalTicketRef,
     updatedAt: row.updatedAt.toISOString(),
+  }
+}
+
+/**
+ * D21'S REHEARSAL, as a client reads it (R2, P6a Task 14).
+ *
+ * **THE EVIDENCE IS THE POINT.** §13's items are met by a measurement, so the thing a
+ * person reads is what was actually observed — the instance, the listener, the status the
+ * sign-in ended on and the attributes the assertion released — and never a boolean on its
+ * own. §14: no assertion and no NameID, ever; attribute NAMES only.
+ */
+export const Rehearsal = representation(
+  'Rehearsal',
+  z
+    .object({
+      id: Uuid,
+      projectId: Uuid,
+      releaseId: Uuid,
+      passed: z.boolean(),
+      entityId: z
+        .string()
+        .describe(
+          'The entityID the Service Provider was registered under when this ran — read off the registration, never recomputed.',
+        ),
+      acsUrl: z.string(),
+      attributes: z
+        .array(z.string())
+        .describe(
+          'What the registration listed. Decision 10 compares these with what the candidate release would register now.',
+        ),
+      evidence: z.object({
+        instanceId: Uuid.nullable(),
+        hostname: z.string(),
+        listener: z.enum(['internal', 'public']),
+        signInStatus: z
+          .number()
+          .int()
+          .nullable()
+          .describe(
+            'What the app answered at its registered ACS, or null when no assertion was produced.',
+          ),
+        attributesReleased: z
+          .array(z.string())
+          .describe(
+            'What the assertion ACTUALLY carried, as friendly names where the platform knows one. §9’s attribute release, measured rather than assumed.',
+          ),
+        reason: z.string(),
+      }),
+      ranAt: z.string(),
+    })
+    .describe(
+      'A LOCAL, production-shaped rehearsal (D21 as P6a redefines it for a laptop): it proves the SHAPE of the registration and never UBC’s acceptance of it.',
+    ),
+)
+
+export function toRehearsal(row: RehearsalRow): z.infer<typeof Rehearsal> {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    releaseId: row.releaseId,
+    passed: row.passed,
+    entityId: row.entityId,
+    acsUrl: row.acsUrl,
+    attributes: row.attributes,
+    evidence: row.evidence,
+    ranAt: row.ranAt.toISOString(),
   }
 }

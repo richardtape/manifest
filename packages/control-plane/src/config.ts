@@ -185,6 +185,23 @@ const envSchema = z.object({
   // network. P1 pins it at 10.89.0.53 (infra/lib/common.sh, DNS_C_IP).
   MANIFEST_DNS_SERVER: z.string().min(1).default('10.89.0.53'),
   /**
+   * THE ACCOUNT D21's REHEARSAL SIGNS IN AS (R2, P6a Task 14).
+   *
+   * A rehearsal is only evidence if somebody actually signs in, so the platform needs a
+   * test identity. On this laptop that is one of the Manifest IdP's three fixture users
+   * (`infra/idp/config/authsources.php`), whose passwords equal their usernames and are in
+   * the repository — they guard nothing, and `instructor` is the one every demo uses.
+   *
+   * **A REHEARSAL AGAINST UBC'S STAGING IdP — D21's own words, and still an external-track
+   * obligation (§9) — CHANGES THESE TWO SETTINGS AND NOTHING ELSE.** That is why they are
+   * settings rather than a constant in `launch/`.
+   *
+   * Not in `.env.example`: both have defaults that are correct for this machine, and a key
+   * there would be one more thing `make doctor` requires of every checkout.
+   */
+  MANIFEST_REHEARSAL_USER: z.string().min(1).default('instructor'),
+  MANIFEST_REHEARSAL_PASSWORD: z.string().min(1).default('instructor'),
+  /**
    * The platform CA `make seed` mints. `curlimages/curl` trusts no private root,
    * so the readiness probe cannot verify the edge's certificate without it — and
    * without verification the probe would need `-k`, which blinds readiness to a
@@ -309,6 +326,8 @@ export interface Config {
   caddyServers: { internal: string; public: string }
   /** The public listener's port inside the edge container. Probes only; see the schema. */
   edgePublicPort: number
+  /** D21's rehearsal signs in as this (P6a Task 14). The IdP's fixture account, here. */
+  rehearsalCredentials: { user: string; password: string }
   dnsServer: string
   /** The platform CA, absolute. Mounted into the readiness probe container. */
   caCertPath: string
@@ -474,6 +493,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     },
     edgePublicPort: raw.MANIFEST_EDGE_PUBLIC_PORT,
     dnsServer: raw.MANIFEST_DNS_SERVER,
+    rehearsalCredentials: {
+      user: raw.MANIFEST_REHEARSAL_USER,
+      password: raw.MANIFEST_REHEARSAL_PASSWORD,
+    },
     caCertPath: fromRepoRoot(raw.MANIFEST_CA_CERT),
     secretsMasterKeyPath: fromRepoRoot(raw.MANIFEST_SECRETS_MASTER_KEY),
     readinessTimeoutMs: raw.MANIFEST_READINESS_TIMEOUT_MS,

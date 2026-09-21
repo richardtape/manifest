@@ -30,6 +30,7 @@ export type ErrorFamily =
   | 'SlugRefusedError'
   | 'LaunchTransitionError'
   | 'LaunchRecordError'
+  | 'RehearsalError'
   | 'ProductionGateError'
 
 interface Entry {
@@ -51,6 +52,11 @@ const bad = (summary: string): Entry => ({
 const release = (summary: string): Entry => ({
   status: 409,
   families: ['ReleaseError'],
+  summary,
+})
+const rehearsal = (summary: string): Entry => ({
+  status: 409,
+  families: ['RehearsalError'],
   summary,
 })
 const source = (summary: string): Entry => ({
@@ -270,6 +276,20 @@ export const ERROR_CODES = {
     summary:
       'An external record’s fields cannot be accepted — today, an empty registered-attribute list, which §9 measured as the fail-open case.',
   },
+
+  // launch/rehearsal.ts — D21's rehearsal as R2 redefines it (P6a Task 14). Every one of
+  // these is a STATE conflict: the project is not in a condition to be rehearsed. A
+  // rehearsal that RAN and did not pass is a `200` with `passed: false`, never one of
+  // these — a measurement that came out badly is not a request error.
+  REHEARSAL_NO_CANDIDATE: rehearsal(
+    'Nothing is serving staging, so there is no candidate release to rehearse (§13).',
+  ),
+  REHEARSAL_NOT_CWL: rehearsal(
+    'The app signs nobody in with CWL, so it registers no Service Provider and there is nothing to rehearse. Its checklist item is met.',
+  ),
+  REHEARSAL_DEPLOY_FAILED: rehearsal(
+    'The candidate could not be deployed to production, or the deploy registered no Service Provider.',
+  ),
 
   // source/ — every one is 409
   SOURCE_FOREIGN_REPO: source('The repository reference was not made by this driver.'),

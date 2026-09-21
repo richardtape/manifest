@@ -28,6 +28,7 @@ import {
 } from './ai/index.js'
 import {
   controlPlaneSpEntity,
+  createCwlSignInProbe,
   createIdpPool,
   createSsoRegistrar,
   describeKeypair,
@@ -296,6 +297,20 @@ const app = await buildServer({
   // R4's seam (D33, §15). THE line that changes when a real reviewer exists, and the only
   // one: the approval path asks `deps.reviewer`, and this one answers `not_performed`.
   reviewer: NullReviewer,
+  /**
+   * R2's measurement (P6a Task 14): what signs in for D21's rehearsal. Bound here with the
+   * engine, the platform CA and the resolver — the same three the readiness probe uses —
+   * and with the IdP's own base URL and the fixture credentials `config` carries. The day
+   * a rehearsal runs against UBC's staging IdP, those two settings change and this line
+   * does not.
+   */
+  signIn: createCwlSignInProbe({
+    engine: createEngineClient({ socketPath: config.dockerSocket }),
+    idpBaseUrl: config.idp.baseUrl,
+    caCertPath: config.caCertPath,
+    dnsServer: config.dnsServer,
+    credentials: config.rehearsalCredentials,
+  }),
   // The same bus the registrar above publishes to, and `WS /v1/projects/:projectId/events`
   // subscribes to.
   bus,

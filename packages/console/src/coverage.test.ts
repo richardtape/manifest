@@ -37,6 +37,11 @@ const DELIBERATELY_UNCALLED: Record<string, string> = {
   rejectRelease: 'P6a Task 18 — the approvals screen calls it (sitting 10)',
   getApproval:
     'P6a Task 18 — the approvals screen reads the diff at decision time (sitting 10)',
+  // **AND P6a TASK 14's (sitting 9)**, whose screen is Task 17's: the launch checklist
+  // grows an ACTION per item, and *run the rehearsal* is the one this route serves. Same
+  // remover, same reason — an `api.ts` function with no screen importing it is the
+  // no-caller shape, moved into the console.
+  runRehearsal: 'P6a Task 17 — the launch screen runs it from the checklist (sitting 10)',
 }
 
 /**

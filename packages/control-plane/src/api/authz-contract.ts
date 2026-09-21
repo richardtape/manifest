@@ -996,6 +996,40 @@ const ROUTES: RouteCase[] = [
       'token-privileged': SESSION_ONLY,
     },
   },
+  /**
+   * D21's rehearsal (P6a Task 14). `launch:record`'s third route, and the same actor
+   * answers as the other two: an administrator alone, in an interactive session.
+   *
+   * **THE `409` IS `REHEARSAL_NO_CANDIDATE`, and that is a fact about WHERE THIS ROW SITS.**
+   * Nothing in this suite deploys to staging before it — the deploy rows are below — so no
+   * release is serving and there is no candidate to rehearse. If a later change deploys
+   * first, this row goes red naming the other code (`REHEARSAL_NOT_CWL`), which is the
+   * suite telling the truth about what changed rather than passing on a status.
+   */
+  {
+    method: 'POST',
+    url: '/v1/projects/:projectId/rehearsal',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/rehearsal` }),
+    expect: {
+      owner: 403,
+      collaborator: 403,
+      stranger: 404,
+      // **NAMED, because a bare `409` in this table means `RELEASE_PRODUCTION_GATE_
+      // UNAVAILABLE`** — `REFUSAL_CODE` maps one code per status, so a bare number here
+      // would assert the launch gate's code against the rehearsal's refusal. This is the
+      // first row to expect a code from a family other than `api`, and it is what found
+      // that `error-codes.test.ts` was reading this file's EXPECTATIONS as throws.
+      admin: { status: 409, code: 'REHEARSAL_NO_CANDIDATE' },
+      anonymous: 401,
+      // Refused for the CREDENTIAL CLASS before any capability is read, like the two
+      // records above — and `token-capable` holds `launch:record`, which is what makes
+      // this row mean anything rather than being a statement about a capability nobody has.
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
   {
     method: 'POST',
     url: '/v1/environments/:environmentId/deploy',

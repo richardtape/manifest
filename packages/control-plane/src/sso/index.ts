@@ -8,6 +8,19 @@
  */
 export { SsoError } from './errors.js'
 export {
+  ATTRIBUTE_OIDS,
+  friendlyAttributeName,
+  type FriendlyAttributeName,
+} from './attributes.js'
+export {
+  createCwlSignInProbe,
+  SAML_LOGIN_HOPS,
+  type CwlSignInInput,
+  type CwlSignInProbe,
+  type CwlSignInProbeOptions,
+  type CwlSignInResult,
+} from './sign-in.js'
+export {
   deriveSpEntity,
   SpEntityError,
   type SpEntity,

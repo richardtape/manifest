@@ -603,6 +603,72 @@ export const approvals = pgTable(
 )
 
 /**
+ * D21's PRE-PRODUCTION REHEARSAL, as R2 redefines it for a laptop (P6a Task 14).
+ *
+ * D21 asks for a run against UBC's staging IdP before anything is public; C1 puts that IdP
+ * out of reach of this machine, so Manifest runs a LOCAL, PRODUCTION-SHAPED one and says
+ * so in the checklist. §9's real-Shibboleth run remains an external-track obligation and
+ * nothing here discharges it.
+ *
+ * **IT RECORDS WHAT IT WAS RUN AGAINST, and that is what makes it re-runnable and
+ * invalidatable** (Decision 10): a rehearsal passed in week one must not certify a
+ * registration that changed in week six. The three stored values are compared with what
+ * the candidate release would register NOW, and a difference makes the checklist item
+ * `unmet` with a reason rather than silently stale.
+ *
+ * INSERT ONLY, like `approvals` and for the same reason: a rehearsal is evidence, and the
+ * history of what was rehearsed is worth more than the latest answer. What reads it takes
+ * the newest row by `ran_at`.
+ */
+export const rehearsals = pgTable(
+  'rehearsals',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    releaseId: uuid('release_id')
+      .notNull()
+      .references(() => releases.id, { onDelete: 'cascade' }),
+    passed: boolean('passed').notNull(),
+    /** WHAT IT WAS RUN AGAINST — Decision 10's three values, as REGISTERED. */
+    entityId: text('entity_id').notNull(),
+    acsUrl: text('acs_url').notNull(),
+    attributes: jsonb('attributes').notNull().$type<string[]>(),
+    /**
+     * THE EVIDENCE. §13's items are `met` by a MEASUREMENT here, not by a checkbox, so the
+     * row carries what was actually observed: the instance that served, the listener it
+     * was reached on, the status the sign-in ended on, the attributes the assertion
+     * actually released, and the reason when it did not pass.
+     *
+     * **NEVER the assertion itself and never a NameID** — §14 redacts at capture, and
+     * attribute NAMES are what a person needs to compare a release with a registration.
+     */
+    evidence: jsonb('evidence').notNull().$type<{
+      instanceId: string | null
+      hostname: string
+      listener: 'internal' | 'public'
+      signInStatus: number | null
+      attributesReleased: string[]
+      reason: string
+    }>(),
+    ranAt: timestamp('ran_at', { withTimezone: true }).notNull().defaultNow(),
+    ranBy: uuid('ran_by').references(() => users.id),
+  },
+  (t) => [
+    index('rehearsals_project_idx').on(t.projectId),
+    /**
+     * §9's fail-open rule, one table further out: a registration with no attribute list
+     * releases EVERYTHING (S2 measured it), so a rehearsal that recorded an empty list as
+     * what it was run against would be certifying that registration. `deriveSpEntity`
+     * refuses it too; this is the database saying the same thing, the way migration 0019
+     * does for `iam_registrations`.
+     */
+    check('rehearsals_attributes_present', sql`jsonb_array_length(${t.attributes}) > 0`),
+  ],
+)
+
+/**
  * §20's audit log lives in its own SCHEMA, and that is the control rather than a
  * filing decision.
  *

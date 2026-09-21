@@ -9,8 +9,9 @@ import { afterAll, beforeAll, expect, it } from 'vitest'
 import { disabledAiKeyService, disabledCatalogue } from '../ai/index.js'
 import { loadBlueprints } from '../blueprints/index.js'
 import { loadConfig } from '../config.js'
-import { appSpecs, db, instances, routes, users } from '../db/index.js'
+import { appSpecs, db, environments, instances, routes, users } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
+import { computeLaunchReadiness, runRehearsal } from '../launch/index.js'
 import { createEventBus } from '../observability/index.js'
 import { createProject } from '../projects/index.js'
 import { createCaddyClient, edgeIdentityProbe, removeRoute } from '../routing/index.js'
@@ -29,6 +30,7 @@ import {
 import { createAppSecrets, generateMasterKeypair } from '../secrets/index.js'
 import { createServiceCredentials } from '../services/index.js'
 import {
+  createCwlSignInProbe,
   createIdpPool,
   createSsoRegistrar,
   deleteSpRow,
@@ -56,6 +58,9 @@ const KIND = 'production' as const
 const HOST = `${SLUG}.manifest.internal`
 const PORT = 3000
 const ENTITY_ID = `https://manifest.internal/sp/${SLUG}/${KIND}`
+/** The rehearsal needs a candidate, and a candidate is what is serving STAGING (§13). */
+const STAGING_HOST = `${SLUG}.staging.manifest.internal`
+const STAGING_ENTITY_ID = `https://manifest.internal/sp/${SLUG}/staging`
 
 /**
  * §12's two listeners, and the port the public one answers on from INSIDE a container.
@@ -284,10 +289,16 @@ describeDocker('the first production deploy (§13, P6a Task 15)', () => {
         () => undefined,
       )
     }
-    await run('docker', ['rm', '-f', '-v', egressContainer(SLUG, KIND)]).catch(
-      () => undefined,
-    )
-    await destroyAppNetwork(engine, SLUG, KIND).catch(() => undefined)
+    // BOTH environments: the rehearsal test below needs something serving STAGING, so
+    // this suite owns two app networks and two egress proxies rather than one.
+    for (const kind of [KIND, 'staging'] as const) {
+      await run('docker', ['rm', '-f', '-v', egressContainer(SLUG, kind)]).catch(
+        () => undefined,
+      )
+      await destroyAppNetwork(engine, SLUG, kind).catch(() => undefined)
+    }
+    await removeRoute(routing, STAGING_HOST, 'staging').catch(() => undefined)
+    await deleteSpRow(pool, STAGING_ENTITY_ID).catch(() => undefined)
     // Unconditional: the IdP row went through a second pool, so nothing here rolls it
     // back, and a leaked row breaks the next `make up` (`ensure-idp-sql.sh` refuses to
     // start while one violates §9's attributes constraint).
@@ -415,4 +426,78 @@ describeDocker('the first production deploy (§13, P6a Task 15)', () => {
     ])
     expect(image.trim()).toContain(digest)
   }, 120_000)
+
+  /**
+   * **D21'S REHEARSAL, RUN AGAINST A REAL DEPLOY AND A REAL REGISTRATION — AND RECORDED AS
+   * FAILED, WHICH IS THE POINT** (P6a Task 14, the plan's control (b) as a test rather than
+   * as a mutation).
+   *
+   * R2 rejected a checkbox by name: the item is met by a MEASUREMENT. This suite's app is
+   * `fixture-node@1`'s skeleton, which answers `200` to every path and has no CWL login
+   * form — so the sign-in cannot complete, and a rehearsal that recorded `passed: true`
+   * anyway would be exactly the checkbox R2 refused. The evidence says which hop failed.
+   *
+   * Everything EXCEPT the successful sign-in is real here: the candidate is deployed into
+   * production, its Service Provider is registered with production values, and the probe
+   * container really runs against the real edge and the real IdP. A PASSING rehearsal
+   * needs an app with the blueprint's inherited auth surface — that is the live drive's
+   * (this sitting ran one on `journey-app`) and Task 19's demo.
+   */
+  it('runs the rehearsal, and records a sign-in that could not complete as FAILED', async () => {
+    // A candidate: something serving STAGING, which is what production promotes (§13).
+    const staging = await db
+      .select()
+      .from(environments)
+      .where(eq(environments.projectId, project.id))
+      .then((rows) => rows.find((e) => e.kind === 'staging')!)
+    const stagingInstance = await deployRelease(db, driver, config, deps, {
+      releaseId,
+      environmentId: staging.id,
+    })
+    expect(stagingInstance.state).toBe('healthy')
+
+    const row = await runRehearsal(
+      {
+        db,
+        driver,
+        config,
+        deploy: deps,
+        // THE REAL PROBE, over the real engine, the platform CA and the platform resolver
+        // — constructed exactly as `src/index.ts` constructs it.
+        signIn: createCwlSignInProbe({
+          engine,
+          idpBaseUrl: config.idp.baseUrl,
+          caCertPath: CA_CERT,
+          dnsServer: '10.89.0.53',
+          credentials: config.rehearsalCredentials,
+        }),
+        bus: deps.bus,
+      },
+      project.id,
+      { userId, puid: `puid-${SLUG}` },
+    )
+
+    expect(row.passed).toBe(false)
+    expect(row.evidence.reason).toContain('CWL login form')
+    // WHAT IT WAS RUN AGAINST is read off the registration the deploy wrote, not rebuilt:
+    // production values, on the public listener, for the release that is serving staging.
+    expect({
+      entityId: row.entityId,
+      acsUrl: row.acsUrl,
+      listener: row.evidence.listener,
+      hostname: row.evidence.hostname,
+      releaseId: row.releaseId,
+    }).toEqual({
+      entityId: ENTITY_ID,
+      acsUrl: `https://${HOST}/auth/ubcshib/callback`,
+      listener: 'public',
+      hostname: HOST,
+      releaseId,
+    })
+    // And §13's item says so, in the evidence's own words — the gate and the record agree.
+    const view = await computeLaunchReadiness(db, project.id)
+    const item = view.items.find((i) => i.id === 'rehearsal')!
+    expect(item.state).toBe('unmet')
+    expect(item.why).toContain('CWL login form')
+  }, 900_000)
 })

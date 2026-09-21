@@ -5,6 +5,7 @@ import {
   getPrivacyAssessment,
   recordIamRegistration,
   recordPrivacyAssessment,
+  runRehearsal,
 } from '../../launch/index.js'
 import { assertCapability } from '../../projects/index.js'
 import { requireSession } from '../actor.js'
@@ -16,8 +17,10 @@ import {
   PrivacyAssessment,
   RecordIamRegistrationRequest,
   RecordPrivacyAssessmentRequest,
+  Rehearsal,
   toIamRegistration,
   toPrivacyAssessment,
+  toRehearsal,
 } from '../representations/launch.js'
 
 /** §22 step 7 (P5a Task 15): what a first production launch still needs. */
@@ -158,6 +161,66 @@ export const launchRoutes = [
           externalTicketRef: body.externalTicketRef,
           actor: { id: actor.userId, puid: actor.puid },
         }),
+      )
+    },
+  }),
+  defineRoute({
+    operationId: 'runRehearsal',
+    method: 'POST',
+    path: '/v1/projects/{projectId}/rehearsal',
+    tag: 'launch',
+    summary: 'Run the pre-production rehearsal',
+    description:
+      'D21, as P6a redefines it for a laptop (R2): deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. Up to ~90 s.',
+    params: z.strictObject({ projectId: z.uuid() }),
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: {
+      status: 200,
+      description:
+        'The rehearsal, passed or failed. A failure is a 200 with `passed: false` and the reason in its evidence — it is a MEASUREMENT, and a measurement that came out badly is not a request error.',
+      schema: Rehearsal,
+    },
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'TOKEN_CREDENTIAL_REFUSED',
+      'REHEARSAL_NO_CANDIDATE',
+      'REHEARSAL_NOT_CWL',
+      'REHEARSAL_DEPLOY_FAILED',
+      'RELEASE_DIGEST_MISSING',
+    ],
+    handler: async ({ deps, request, params }) => {
+      // D14 and Decision 4: an administrator, in a browser — `requireSession`'s RETURN
+      // TYPE is the enforcement, because `runRehearsal` needs the `puid` it returns, and
+      // it runs BEFORE the project is read so a token learns nothing about which projects
+      // exist (Task 6's measured ordering).
+      const actor = requireSession(request)
+      await assertCapability(deps.db, actor, params.projectId, 'launch:record')
+      return toRehearsal(
+        await runRehearsal(
+          {
+            db: deps.db,
+            driver: deps.driver,
+            config: deps.config,
+            // THE SAME OBJECT THE DEPLOY ROUTE BUILDS, held equal by `tsc` rather than by
+            // memory: `DeployDeps` gaining a field turns both call sites red.
+            deploy: {
+              secrets: deps.secrets,
+              appSecrets: deps.appSecrets,
+              sso: deps.sso,
+              blueprints: deps.blueprints,
+              ai: deps.ai,
+              catalogue: deps.catalogue,
+              bus: deps.bus,
+              retirer: deps.retirer,
+            },
+            signIn: deps.signIn,
+            bus: deps.bus,
+          },
+          params.projectId,
+          { userId: actor.userId, puid: actor.puid },
+        ),
       )
     },
   }),

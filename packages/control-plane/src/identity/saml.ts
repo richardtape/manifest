@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { users } from '../db/index.js'
 import { MANIFEST_IDP_PATHS } from '../spec/index.js'
-import { SP_NAME_ID_FORMAT, type SpEntity } from '../sso/index.js'
+import { ATTRIBUTE_OIDS, SP_NAME_ID_FORMAT, type SpEntity } from '../sso/index.js'
 
 /**
  * §9: *"Manifest itself is an SP. Its own users log in with CWL… Locally it uses
@@ -39,15 +39,12 @@ import { SP_NAME_ID_FORMAT, type SpEntity } from '../sso/index.js'
  */
 
 /** §9's OID vocabulary, as the Manifest IdP releases it after `core:AttributeMap`
- *  at priority 60 and as real UBC Shibboleth sends it (S2). The blueprint's
- *  `auth/attributes.js` carries the app-side copy of this table; this is the
- *  control plane's own, and it needs only the four names its SP declares. */
-const OID = {
-  ubcEduCwlPuid: 'urn:oid:1.3.6.1.4.1.60.6.1.6',
-  mail: 'urn:oid:0.9.2342.19200300.100.1.3',
-  givenName: 'urn:oid:2.5.4.42',
-  sn: 'urn:oid:2.5.4.4',
-} as const
+ *  at priority 60 and as real UBC Shibboleth sends it (S2). **It moved to
+ *  `sso/attributes.ts` in P6a Task 14**, where the rehearsal reads what an app's
+ *  assertion released and needs all seven names — this file used to carry its own four,
+ *  which is the second-copy shape §9's own vocabulary should not have. The blueprint's
+ *  `auth/attributes.js` is the app-side copy and stays where it is. */
+const OID = ATTRIBUTE_OIDS
 
 export class SamlError extends Error {
   constructor(

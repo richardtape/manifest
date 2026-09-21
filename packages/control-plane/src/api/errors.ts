@@ -16,6 +16,7 @@ import type { ErrorEnvelopeShape } from './representations/errors.js'
 import { LaunchReadiness } from './representations/launch.js'
 import {
   LaunchRecordError,
+  RehearsalError,
   LaunchTransitionError,
   // §13's gate moved to `launch/` in P6a Task 7, with `assertLaunchable` that throws it.
   // This file maps it by `instanceof`, exactly as it does `ReleaseError` and every other
@@ -599,7 +600,11 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
   if (
     error instanceof ReleaseError ||
     error instanceof SourceError ||
-    error instanceof ConfigError
+    error instanceof ConfigError ||
+    // D21's rehearsal (P6a Task 14): every refusal it raises is a state conflict — no
+    // candidate, not a CWL app, or a deploy that did not happen. `NOT_FOUND` is raised as
+    // an `AuthorizationError` by the route before this, so it is not in this family.
+    error instanceof RehearsalError
   ) {
     return { status: 409, body: { error: { code: error.code, message: error.message } } }
   }

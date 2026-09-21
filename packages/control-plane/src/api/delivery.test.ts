@@ -634,30 +634,142 @@ describe('the delivery routes', () => {
   })
 
   /**
-   * **THE POSITIVE CONTROL FOR THE GATE, AND IT CANNOT RUN YET — which is this task's
-   * hardest honest fact** (P6a Task 7, Step 5). A refusal test beside no success test is
-   * a test of a route that refuses everything (P5c sitting 9's F16), and the route's
-   * success here needs EVERY blocking item met: an `active` IAM registration, an
-   * `approved` PIA, a clean scan on the candidate — **and `rehearsal` and
-   * `admin-approval`, which are `not_built` until Tasks 14 and 10.**
+   * **THE POSITIVE CONTROL FOR THE GATE — SKIPPED FROM P6a TASK 7 UNTIL TASK 14, AND NOW
+   * RUNNING.** A refusal test beside no success test is a test of a route that refuses
+   * everything (P5c sitting 9's F16), and until this sitting no project this platform could
+   * build had every blocking item met: `rehearsal` and `admin-approval` were `not_built`.
    *
-   * The alternative was to force those two to `met` in a fixture, which would be a test
-   * of a checklist the platform will never produce. A skipped test naming the task that
-   * un-skips it is a promise a reader can check; a forced fixture is a claim nobody can.
+   * **AND IT IS WHERE DECISION 13 IS SEEN END TO END FOR THE FIRST TIME** — `ready: true`
+   * beside a `not_built` `code-review`. `readiness.test.ts` could only FORCE the other
+   * items met (Task 12's F2), because no real project could have them all; this one is a
+   * real project, over HTTP, with every blocking item met the way a person would meet it.
    *
-   * **Task 14's step 5 un-skips this**, and until then `assertLaunchable`'s returning
-   * branch is asserted by nothing — recorded as a control that cannot fail rather than
-   * discovered later.
-   *
-   * What DOES hold the route honest in the meantime is the staging deploy below: the same
-   * registered route answers `200` for a collaborator deploying to staging, so this is not
-   * a route that refuses everything.
+   * **THE APP SIGNS NOBODY IN, AND THAT IS NOT AN EVASION** (Task 13's F10): the unit tier
+   * has one blueprint, `fixture-node@1`, which declares `auth_providers: [none]`, so a CWL
+   * manifest is refused `BLUEPRINT_AUTH_UNSUPPORTED` before a build is recorded. For such
+   * an app §9 says there is nothing to register and D21 says there is nothing to rehearse,
+   * and both items say so in those words. A CWL rehearsal is the Docker tier's and the
+   * live drive's.
    */
-  it.skip('deploys to production when every blocking item is met — pending Tasks 10 and 14: admin-approval and rehearsal are not built', async () => {
-    // Written when Task 14 lands: record an active IAM registration and an approved PIA,
-    // complete the rehearsal, approve the digest, then deploy to production and expect
-    // 200 with an instance — and assert `assertLaunchable` RETURNED the view it deployed
-    // on, which is what Task 15 records.
+  it('deploys to production when every blocking item is met — and `ready` is true beside a not_built code-review', async () => {
+    const { deps, app, cookies, project, release, staging } =
+      await releasedProject('chem-labs')
+    const production = project.environments.find(
+      (e: { kind: string }) => e.kind === 'production',
+    )
+    // 1. SOMETHING MUST BE SERVING STAGING: production runs exactly what staging ran, so
+    //    the checklist has no candidate at all until this deploy (§13).
+    const toStaging = await app.inject({
+      method: 'POST',
+      url: `/v1/environments/${staging.id}/deploy`,
+      payload: { releaseId: release.id },
+      cookies,
+      headers: mutationHeaders(deps),
+    })
+    expect(toStaging.statusCode, toStaging.body).toBe(200)
+
+    // 2. An administrator records what the Privacy Office said, along §9's arrows. There
+    //    is no IAM registration to record: this app signs nobody in.
+    const admin = await loginAs(deps, 'platform_admin', { steppedUp: true })
+    for (const state of ['submitted', 'approved'] as const) {
+      const recorded = await app.inject({
+        method: 'POST',
+        url: `/v1/projects/${project.id}/launch-records/privacy-assessment`,
+        payload: { state, reviewer: 'K. Privacy', externalTicketRef: 'PIA-DELIVERY-1' },
+        cookies: admin,
+        headers: mutationHeaders(deps),
+      })
+      expect(recorded.statusCode, recorded.body).toBe(200)
+    }
+
+    // 3. And approves the release, which binds the build's digest (§13, §20).
+    const approved = await app.inject({
+      method: 'POST',
+      url: `/v1/releases/${release.id}/approve`,
+      payload: { reason: 'the checklist is met and the diff is what we expect' },
+      cookies: admin,
+      headers: mutationHeaders(deps),
+    })
+    expect(approved.statusCode, approved.body).toBe(201)
+
+    // 4. THE CHECKLIST, READ BY A PERSON, BEFORE ANYTHING IS DEPLOYED.
+    const readiness = await app.inject({
+      method: 'GET',
+      url: `/v1/projects/${project.id}/launch-readiness`,
+      cookies,
+    })
+    const view = readiness.json()
+    const byId = Object.fromEntries(
+      (view.items as { id: string; state: string; blocking: boolean }[]).map((i) => [
+        i.id,
+        i,
+      ]),
+    )
+    expect(view.ready, JSON.stringify(view.items)).toBe(true)
+    // **DECISION 13, END TO END**: every BLOCKING item is met and `code-review` is
+    // `not_built` — and `ready` is true anyway, because it is not blocking. A gate that
+    // read "every item" rather than "every blocking item" would be false here.
+    expect(byId['code-review']).toMatchObject({ state: 'not_built', blocking: false })
+    // BY ID AND BY STATE, not a count: a checklist that grew a seventh blocking item
+    // would satisfy "six met" on the wrong day (the shape §4 names for `every(...)`).
+    expect(
+      Object.fromEntries(
+        Object.values(byId)
+          .filter((i) => i.blocking)
+          .map((i) => [i.id, i.state]),
+      ),
+    ).toEqual({
+      domain: 'met',
+      'iam-registration': 'met',
+      'privacy-assessment': 'met',
+      rehearsal: 'met',
+      scans: 'met',
+      'admin-approval': 'met',
+    })
+    // The two items this sitting's task answers, in their own words — so a checklist that
+    // went `met` for a different reason cannot pass this test.
+    expect(byId['rehearsal']!.state).toBe('met')
+    expect((byId['rehearsal'] as unknown as { why: string }).why).toContain(
+      'signs nobody in',
+    )
+
+    // 5. AND THE DEPLOY GOES THROUGH. This is the branch of `assertLaunchable` that
+    //    RETURNS — asserted by nothing at all from Task 7 until now.
+    const deployed = await app.inject({
+      method: 'POST',
+      url: `/v1/environments/${production.id}/deploy`,
+      payload: { releaseId: release.id },
+      cookies: await loginAs(deps, 'bio_prof', { steppedUp: true }),
+      headers: mutationHeaders(deps),
+    })
+    expect(deployed.statusCode, deployed.body).toBe(200)
+    expect(deployed.json()).toMatchObject({
+      environmentId: production.id,
+      releaseId: release.id,
+      state: 'healthy',
+    })
+    await app.close()
+  })
+
+  /**
+   * **THE ROUTE-LEVEL ASSERTION FOR `RehearsalError`'s MAPPING** (P6a Task 14). The
+   * authorization matrix asserts the STATUS of this refusal and deliberately not its code:
+   * that file lives under `src/api/`, where `error-codes.test.ts` reads every `code: '…'`
+   * literal as a code the API layer throws, and this one is raised in `launch/`. So the
+   * code is asserted here, where naming it costs nothing — and asserting it is the rule
+   * (§4: a `409` is four different refusals on this surface).
+   */
+  it('refuses a rehearsal when nothing is serving staging: REHEARSAL_NO_CANDIDATE', async () => {
+    const { deps, app, project } = await releasedProject('chem-labs')
+    const refused = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${project.id}/rehearsal`,
+      cookies: await loginAs(deps, 'platform_admin'),
+      headers: mutationHeaders(deps),
+    })
+    expect(refused.statusCode, refused.body).toBe(409)
+    expect(refused.json().error.code).toBe('REHEARSAL_NO_CANDIDATE')
+    await app.close()
   })
 
   it('a collaborator may deploy to staging and may not promote to production', async () => {

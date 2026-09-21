@@ -283,6 +283,24 @@ export async function testDeps(): Promise<ServerDeps> {
     // letting a silent no-op stand in for a registration that never happened.
     // Registering for real would need the IdP container, which the unit tier
     // deliberately does not have.
+    /**
+     * D21's rehearsal cannot run in this tier, and it says so rather than pretending
+     * (P6a Task 14) — the same shape as `sso` below, and for the same reason. A harness
+     * that quietly returned a passing sign-in would make `runRehearsal`'s verdict a
+     * property of the fake, and §13's third blocking item is met by a MEASUREMENT.
+     * `launch/rehearsal.test.ts` drives the refusals and the item's states with no probe
+     * at all; the whole path is the Docker tier's (`releases/production.docker.test.ts`)
+     * and the live drive's.
+     */
+    signIn: {
+      signIn: () => {
+        throw new Error(
+          'the API test harness has no IdP and no deployed app: a test in this tier ran ' +
+            "D21's rehearsal. Move it to the Docker tier, or drive `rehearsalItem` " +
+            'directly.',
+        )
+      },
+    },
     sso: {
       registerServiceProvider: () => {
         throw new Error(
