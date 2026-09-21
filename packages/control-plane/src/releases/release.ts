@@ -634,6 +634,11 @@ export async function deployRelease(
           hostname: environment.hostname,
           projectSlug,
           idp: config.idp,
+          // D21's rehearsal (P6a Task 14): production in every respect except the IdP it
+          // is pointed at, because §8 sends a production app to real UBC Shibboleth and
+          // C1 puts that out of reach. `injection.ts`'s `purpose` carries the measurement
+          // that found it.
+          ...(input.purpose === undefined ? {} : { purpose: input.purpose }),
           ...(registration !== undefined ? { spEntity: registration.entity } : {}),
           secrets: { sessionSecret },
           services: boundServices,

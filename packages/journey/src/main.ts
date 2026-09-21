@@ -541,25 +541,36 @@ async function step7RequestProduction(): Promise<void> {
     },
     body: { releaseId: state.releaseId! },
   })
+  /**
+   * **§20 ANSWERS BEFORE §13 DOES, SINCE P6a TASK 15.** A production deploy asks for
+   * `release:promote`, which is step-up-guarded, and this instructor signed in some
+   * minutes ago through the shell half — so the refusal a client actually meets first is
+   * `403 STEP_UP_REQUIRED`, with the remedy in its hint. *"A stolen admin session must not
+   * be sufficient to put an app on the public internet"* (§20), seen from a client.
+   *
+   * **THE CHECKLIST COMES FROM THE READ HERE, AND THAT IS A CHANGE THIS DEMO CANNOT AVOID**:
+   * the `409` envelope carries it, and an ordinary session no longer reaches the `409`.
+   * `api/delivery.test.ts` still asserts the two are byte-identical, with a stepped-up
+   * session; `make demo-production` (Task 19) is where a stepped-up administrator walks
+   * the whole gate from a client.
+   */
   checks.ok(
-    'production is refused, 409',
-    attempt.response.status === 409,
+    'production is refused for a session that has not re-proved itself, 403',
+    attempt.response.status === 403,
     String(attempt.response.status),
   )
   const envelope = attempt.error
   checks.ok(
-    'as RELEASE_PRODUCTION_GATE_UNAVAILABLE',
-    envelope?.error.code === 'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
+    'as STEP_UP_REQUIRED (§20), with the remedy in the answer',
+    envelope?.error.code === 'STEP_UP_REQUIRED' &&
+      (envelope?.error.hint ?? '').length > 0,
+    `${envelope?.error.code}: ${envelope?.error.hint ?? 'no hint'}`,
   )
   const readiness = unwrap(
     await client.GET('/v1/projects/{projectId}/launch-readiness', {
       params: { path: { projectId: state.projectId! } },
     }),
     'getLaunchReadiness',
-  )
-  checks.ok(
-    'the refusal carries the checklist the read answers',
-    JSON.stringify(envelope?.error.launchReadiness) === JSON.stringify(readiness),
   )
   checks.ok('not ready — honestly, in Phase 1', readiness.ready === false)
   checks.ok(
@@ -595,20 +606,29 @@ async function step7RequestProduction(): Promise<void> {
   // P6a Task 10 moved `admin-approval` OUT of this check, the way Task 7 moved the two
   // external records out of the one above it: approvals are a row an administrator writes
   // now, so the item reads `unmet` with no `builtBy` on a project nobody has approved.
-  // **`rehearsal` is the last UNCONDITIONAL item in the checklist that Manifest genuinely
-  // does not track** — `load-rehearsal` is also `not_built`, and is P9's, and appears only
-  // for a `large_course` or `public` audience, which this project is not. Task 14 takes
-  // `rehearsal`, which will leave this check with nothing to assert.
   checks.ok(
     'the approval is tracked, and unmet until an administrator makes one',
     item('admin-approval')?.state === 'unmet' &&
       item('admin-approval')?.builtBy === undefined,
     `admin-approval: ${item('admin-approval')?.state}, builtBy: ${item('admin-approval')?.builtBy}`,
   )
+  // **AND P6a TASK 14 TOOK THE LAST ONE.** This check read `rehearsal: not_built,
+  // builtBy: 'P6'` until that task, which was the sentence the comment above predicted
+  // would run out of things to assert. `rehearsal` is now a row `runRehearsal` writes,
+  // `unmet` until somebody runs one — and the ONLY unconditional `not_built` item left is
+  // `code-review`, which does not block (D33, Decision 13). That pair is what this now
+  // says: the thing Manifest does not track names who builds it, and it is not blocking.
   checks.ok(
-    'what Manifest does not track yet says so, and who builds it',
-    item('rehearsal')?.state === 'not_built' && item('rehearsal')?.builtBy === 'P6',
+    'the rehearsal is tracked, and unmet until Manifest runs one',
+    item('rehearsal')?.state === 'unmet' && item('rehearsal')?.builtBy === undefined,
     `rehearsal: ${item('rehearsal')?.state}, builtBy: ${item('rehearsal')?.builtBy}`,
+  )
+  checks.ok(
+    'what Manifest does not track yet says so, who builds it, and does not block',
+    item('code-review')?.state === 'not_built' &&
+      (item('code-review')?.builtBy ?? '').length > 0 &&
+      item('code-review')?.blocking === false,
+    `code-review: ${item('code-review')?.state}, builtBy: ${item('code-review')?.builtBy}, blocking: ${item('code-review')?.blocking}`,
   )
   checks.ok(
     'every item says why',

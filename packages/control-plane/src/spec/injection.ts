@@ -236,6 +236,31 @@ export interface InjectionContext {
   projectSlug: string
   /** From `config.idp` — the IdP's entityID and base URL, and §9's SP base. */
   idp: { entityId: string; baseUrl: string; spEntityBase: string }
+  /**
+   * **WHY THIS DEPLOY IS HAPPENING, AND IT CHANGES EXACTLY ONE THING: WHICH IdP THE APP IS
+   * SENT TO** (P6a Task 14, and it was found by driving the rehearsal live).
+   *
+   * §8 sends a PRODUCTION app to real UBC Shibboleth — `authentication.ubc.ca`, injected
+   * explicitly rather than defaulted. That is right for a launch and it makes D21's
+   * rehearsal impossible as R2 writes it: the rehearsal deploys the candidate into
+   * production and completes *"one real CWL sign-in against the Manifest IdP"*, and a
+   * production app points at a host C1 puts out of reach. Measured on 2026-09-20: the
+   * rehearsal's probe followed `/login` to
+   * `https://authentication.ubc.ca/idp/profile/SAML2/Redirect/SSO` and failed TLS against
+   * the platform CA, which is the most honest possible failure.
+   *
+   * So a `'rehearsal'` deploy is production in every other respect — hostname, listener,
+   * entityID, ACS URL, attribute list, certificate, resources — and is pointed at the
+   * REHEARSAL IdP instead. On this laptop that is the Manifest IdP; at UBC it is
+   * `authentication.stg.id.ubc.ca`, which is what D21 asks for in the first place and what
+   * `MANIFEST_IDP_BASE_URL` would name there. **`SAML_ENVIRONMENT` is `LOCAL` for such a
+   * deploy, and that is the truth rather than a compromise**: the app really is talking to
+   * the local IdP.
+   *
+   * Absent means `'launch'`, so every existing caller is unchanged and a launch is what a
+   * deploy is unless it says otherwise.
+   */
+  purpose?: 'launch' | 'rehearsal'
   /** Absent when `auth.provider` is `none`; Task 7's derivation when it is `cwl`. */
   spEntity?: InjectedSpEntity
   /** The session secret. Container-side paths are this module's own constants. */
@@ -385,7 +410,11 @@ export function renderInjection(ctx: InjectionContext): Record<string, string> {
 
   if (provider === 'cwl') {
     const spEntity = ctx.spEntity!
-    const production = ctx.environmentKind === 'production'
+    // A REHEARSAL IS NOT A LAUNCH: see `purpose` above. Everything else below reads
+    // `production`, so the hostname, the entityID, the ACS and the certificate rules are
+    // untouched — only the three IdP URLs and `SAML_ENVIRONMENT` move.
+    const production =
+      ctx.environmentKind === 'production' && (ctx.purpose ?? 'launch') === 'launch'
 
     // §8: LOCAL for sandbox and staging (the Manifest IdP), PRODUCTION for
     // production. A different vocabulary from MANIFEST_ENV on purpose — they

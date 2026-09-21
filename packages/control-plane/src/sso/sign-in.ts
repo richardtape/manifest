@@ -179,12 +179,26 @@ export function createCwlSignInProbe(options: CwlSignInProbeOptions): CwlSignInP
     async signIn(input: CwlSignInInput): Promise<CwlSignInResult> {
       const authority =
         input.port === undefined ? input.hostname : `${input.hostname}:${input.port}`
+      /**
+       * **THE REGISTERED ACS, REACHED FROM HERE** (P6a Task 14, measured live). The path
+       * and the host are the registration's and are never rebuilt; the PORT is how a
+       * container reaches §12's public listener, which is `:8443` inside the platform
+       * network and `:443` from the host. Posting to the bare registered URL from a
+       * container arrives at `srv0`, the INTERNAL listener, which holds no route for a
+       * production hostname and answers the wildcard.
+       *
+       * The assertion's own `Destination` is unaffected — it is whatever the IdP wrote,
+       * which is the registered URL, and that is what the app compares against its own
+       * configured callback.
+       */
+      const acs = new URL(input.acsUrl)
+      if (input.port !== undefined) acs.port = String(input.port)
       const output = await runProbeContainer(options, {
         script: SAML_LOGIN_HOPS + REHEARSAL_TAIL,
         env: {
           APP: `https://${authority}`,
           IDP: options.idpBaseUrl,
-          ACS: input.acsUrl,
+          ACS: acs.toString(),
           USER: options.credentials.user,
           PASS: options.credentials.password,
         },

@@ -50,6 +50,7 @@ function ctx(
     spec?: ManifestSpec
     resolved?: ResolvedConfig
     services?: InjectionContext['services']
+    purpose?: InjectionContext['purpose']
   } = {},
 ): InjectionContext {
   const kind = over.kind ?? 'staging'
@@ -66,6 +67,7 @@ function ctx(
       baseUrl: 'https://idp.manifest.internal',
       spEntityBase: 'https://manifest.internal',
     },
+    ...(over.purpose === undefined ? {} : { purpose: over.purpose }),
     ...(spec.auth.provider === 'cwl'
       ? {
           spEntity: {
@@ -219,6 +221,42 @@ describe('§8 injection contract', () => {
     expect(env.SAML_IDP_METADATA_URL).not.toContain('manifest.internal')
     expect(env.SAML_ENTRY_POINT).not.toContain('manifest.internal')
     expect(env.SAML_LOGOUT_URL).not.toContain('manifest.internal')
+  })
+
+  /**
+   * **D21'S REHEARSAL IS THE ONE PRODUCTION DEPLOY THAT IS POINTED AT THE LOCAL IdP**
+   * (P6a Task 14), and this pair is the whole of the exception. It was found by driving
+   * the rehearsal live: R2 asks for *"one real CWL sign-in against the Manifest IdP"* on a
+   * production-shaped deploy, and the app followed `/login` to
+   * `https://authentication.ubc.ca/...` — a host C1 puts out of reach — so the rehearsal
+   * could not pass on this machine at all.
+   *
+   * Everything else about the deploy stays production: the hostname, the entityID, the
+   * ACS, the attribute list and the signing rules are all below and all unchanged.
+   */
+  it('points a REHEARSAL deploy at the local IdP, and says LOCAL, on a production environment', () => {
+    const env = renderInjection(ctx({ kind: 'production', purpose: 'rehearsal' }))
+    expect(env.SAML_ENVIRONMENT).toBe('LOCAL')
+    expect(env.SAML_ENTRY_POINT).toBe(
+      'https://idp.manifest.internal/module.php/saml/idp/singleSignOnService',
+    )
+    expect(env.SAML_IDP_METADATA_URL).toContain('idp.manifest.internal')
+    expect(env.SAML_LOGOUT_URL).toContain('idp.manifest.internal')
+    // AND IT IS STILL A PRODUCTION DEPLOY. The SP identity is the registration's, on the
+    // production hostname — a rehearsal that moved these would rehearse something else.
+    expect(env.SAML_ISSUER).toBe('https://manifest.internal/sp/chem-labs/production')
+    expect(env.SAML_CALLBACK_URL).toContain('chem-labs.manifest.internal')
+    expect(env.MANIFEST_ENV).toBe('production')
+  })
+
+  it('a LAUNCH deploy to production is unaffected — the default is the checked one', () => {
+    // The positive control for the pair above: `purpose` absent means a launch, and a
+    // launch is real UBC Shibboleth.
+    const env = renderInjection(ctx({ kind: 'production', purpose: 'launch' }))
+    expect(env.SAML_ENVIRONMENT).toBe('PRODUCTION')
+    expect(env.SAML_ENTRY_POINT).toBe(
+      'https://authentication.ubc.ca/idp/profile/SAML2/Redirect/SSO',
+    )
   })
 
   it('never resolves sandbox or staging to real UBC Shibboleth', () => {
