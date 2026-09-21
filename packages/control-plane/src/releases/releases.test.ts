@@ -5,11 +5,13 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { resetDatabase, withRollback } from '../db/testing.js'
 import {
   appSpecs,
+  approvals,
   builds,
   db,
   events,
   incidents,
   instances,
+  projects,
   routes,
   users,
   withEnvironmentLock,
@@ -19,7 +21,7 @@ import {
   InstanceNotReadyError,
   createFakeDriver,
 } from '../runtime/index.js'
-import { createProject } from '../projects/index.js'
+import { createProject, deleteProject } from '../projects/index.js'
 import { loadConfig } from '../config.js'
 import type { Driver, InstanceSpec, ServiceBinding } from '../runtime/index.js'
 import { createAppSecrets, generateMasterKeypair, getSecret } from '../secrets/index.js'
@@ -52,6 +54,7 @@ import {
   type StreamFrame,
 } from '../observability/index.js'
 import { testAudience, testReservedLabels } from '../projects/testing.js'
+import { expectSqlState } from '../observability/testing.js'
 
 /** The repository's own blueprints, resolved from THIS FILE — `pnpm test` and
  *  `pnpm --filter … test` have different working directories. */
@@ -1331,6 +1334,120 @@ describe('releases (§13)', () => {
           environmentId: byKind.staging!.id,
         }),
       ).rejects.toMatchObject({ code: 'RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER' })
+    })
+  })
+
+  /**
+   * §13's *Integrity of the gate*: *"Images built on a laptop never reach UBC
+   * infrastructure"* — asserted where it MATTERS (P6a Task 16). The case above deploys to
+   * staging; `deployRelease`'s production path was unreachable until P6a Task 7, so the rule
+   * had never been walked there. **AN APPROVAL COVERS THE DIGEST FIRST**, and that is the
+   * point of the fixture: without it the production deploy is refused
+   * `RELEASE_DIGEST_NOT_APPROVED` before this rule is consulted, and the test would pass on
+   * the wrong refusal. The positive control is *deploys to production like any other
+   * environment* above — the same approved release, a local driver, and a healthy instance.
+   */
+  describe('the laptop-image rule holds for PRODUCTION (§13)', () => {
+    it('refuses an APPROVED local/ image bound for production on a remote-target driver, before anything starts', async () => {
+      await withRollback(async (db) => {
+        const { user, project, appSpec, byKind } = await fixture(db)
+        const driver = createFakeDriver({ capabilities: { remoteTarget: true } })
+        const release = await releaseFrom(db, driver, { project, appSpec, user })
+        const [build] = await db
+          .select()
+          .from(builds)
+          .where(eq(builds.id, release.buildId))
+        await approveFor(db, release, user, build!.imageDigest!)
+        await expect(
+          deployRelease(db, driver, config, deployDeps, {
+            releaseId: release.id,
+            environmentId: byKind.production!.id,
+          }),
+        ).rejects.toMatchObject({ code: 'RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER' })
+        expect(
+          await db
+            .select()
+            .from(instances)
+            .where(eq(instances.environmentId, byKind.production!.id)),
+        ).toEqual([])
+      })
+    })
+
+    /**
+     * **THE REHEARSAL SKIPS THE DIGEST CHECK, AND MUST NOT SKIP THIS ONE.** P6a sitting 9's
+     * `purpose: 'rehearsal'` lets the one caller that precedes an approval deploy into
+     * production unapproved (its decision 1). The two checks sit next to each other in
+     * `deployRelease`, and a rehearsal branch that returned early — or a refactor that
+     * folded both checks under one `if` — would put a laptop image onto remote production
+     * infrastructure for the length of a rehearsal, with every other test green.
+     */
+    it('and refuses it for a REHEARSAL, which is excused the approval and not the architecture', async () => {
+      await withRollback(async (db) => {
+        const { user, project, appSpec, byKind } = await fixture(db)
+        const driver = createFakeDriver({ capabilities: { remoteTarget: true } })
+        const release = await releaseFrom(db, driver, { project, appSpec, user })
+        await expect(
+          deployRelease(db, driver, config, deployDeps, {
+            releaseId: release.id,
+            environmentId: byKind.production!.id,
+            purpose: 'rehearsal',
+          }),
+        ).rejects.toMatchObject({ code: 'RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER' })
+      })
+    })
+  })
+
+  /**
+   * §13: *"Approval is a non-repudiable record."* `approvals` references `projects` with
+   * `ON DELETE CASCADE`, and the control plane HAS one path that deletes a project —
+   * `deleteProject`, which `POST /v1/projects` calls to roll back a project whose repository
+   * could not be created (P5a Decision 29). So the cascade is a route to erasing an approval
+   * that no search for `.delete(approvals` can see (`gate-integrity.test.ts`).
+   *
+   * **IT CANNOT BE REACHED, and this is the measurement that says so**: every approval
+   * publishes `release.approved` or `release.approval_rejected` into `audit.events`, which
+   * RESTRICTs the delete of a project it names — and a release cannot exist without a build,
+   * which has published before the approval does. `audit.incidents` states the same route
+   * around its grant in its own test (`observability/incidents.test.ts`); this is that
+   * argument for the approval record, which has no grant of its own to rely on.
+   */
+  it('the one path that deletes a project cannot reach an approval — the audit trail RESTRICTs it', async () => {
+    await withRollback(async (db) => {
+      const { user, project, appSpec } = await fixture(db)
+
+      // THE POSITIVE CONTROL, FIRST: a project with no history is deleted, so the refusal
+      // below is the audit trail's and not a `deleteProject` that deletes nothing.
+      const { project: empty } = await createProject(
+        db,
+        config,
+        await testReservedLabels(),
+        {
+          slug: 'chem-labs-empty',
+          ownerId: user.id,
+          blueprintRef: 'fixture-node@1',
+          starter: null,
+          audience: testAudience(user.id),
+        },
+      )
+      await deleteProject(db, empty.id)
+      expect(await db.select().from(projects).where(eq(projects.id, empty.id))).toEqual(
+        [],
+      )
+
+      const driver = createFakeDriver()
+      const release = await releaseFrom(db, driver, { project, appSpec, user })
+      const [build] = await db.select().from(builds).where(eq(builds.id, release.buildId))
+      const approval = await approveFor(db, release, user, build!.imageDigest!)
+
+      // A SAVEPOINT, so the refused statement does not abort the transaction the assertion
+      // after it runs in. 23503 is foreign_key_violation — the code, not a message.
+      await expectSqlState(
+        db.transaction((tx) => deleteProject(tx as unknown as typeof db, project.id)),
+        '23503',
+      )
+      expect(
+        await db.select().from(approvals).where(eq(approvals.id, approval.id)),
+      ).toEqual([approval])
     })
   })
 })

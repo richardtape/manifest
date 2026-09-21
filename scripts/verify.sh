@@ -241,6 +241,26 @@ registry_requires_a_token() {
 }
 check "the registry refuses an anonymous request and advertises its realm"  registry_requires_a_token
 
+# WHICH realm (P6a Task 16, §13's "only the builder may push"). The check above passes
+# whatever realm the registry names, and so does the scoped-token check below it, because
+# `mint-token.mjs` never asks a realm at all — so REGISTRY_AUTH_TOKEN_REALM pointed anywhere
+# else left every check here green while no build could get a token. The realm must be the
+# control plane's own route and the service the one it mints for — the values `api/server.ts`
+# passes to `registryTokenRoutes` and `runtime/docker/driver.ts` names TOKEN_SERVICE. Read
+# off the live registry's own challenge, so it sees the container as it runs rather than
+# compose.yaml as it is written.
+registry_realm_is_the_control_planes() {
+  local challenge want_realm want_service
+  want_realm="http://127.0.0.1:$PORT_CONTROL_PLANE/internal/registry/token"
+  want_service="manifest-registry"
+  challenge=$(curl -sS -i -m 6 "http://127.0.0.1:$PORT_REGISTRY/v2/" | tr -d '\r' |
+              grep -i '^Www-Authenticate:')
+  echo "${challenge:-no challenge}"
+  echo "$challenge" | grep -qF "realm=\"$want_realm\"" &&
+  echo "$challenge" | grep -qF "service=\"$want_service\""
+}
+check "the registry's realm is the control plane's, for the service it mints"  registry_realm_is_the_control_planes
+
 # The other half: a SCOPED token is accepted. A registry that refused everything
 # would pass the check above while being useless.
 registry_accepts_a_scoped_token() {
