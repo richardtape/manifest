@@ -302,7 +302,10 @@ const ENV_CONFIG = {
   services: [{ type: 'mongodb', version: '7.0', name: 'db' }],
   egressAllow: [],
   classification: 'low',
-  auth: { provider: 'cwl' as const, attributes: ['puid', 'displayName', 'email'] },
+  // §9's FRIENDLY NAMES, the ones `sso/attributes.ts` maps to OIDs — the Manifest IdP
+  // releases those seven and nothing else, so a fixture asking for `displayName` described
+  // an app whose sign-in could never carry it (P6a sitting 10).
+  auth: { provider: 'cwl' as const, attributes: ['ubcEduCwlPuid', 'mail', 'givenName'] },
   ai: { models: ['default-chat'] },
   envNames: ['MONGODB_URI', 'SESSION_SECRET', 'SAML_ENTRY_POINT'],
 }
@@ -355,9 +358,9 @@ export const APPROVAL: Schemas['Approval'] = {
         summary: 'raised the memory limit from 256Mi to 512Mi',
       },
     ],
-    services: ['postgres@16'],
-    attributes: ['displayName', 'mail'],
-    resources: { cpu: 1, memory: '512Mi', disk: '1Gi', pids: 128 },
+    services: ['mongodb@7.0'],
+    attributes: ['givenName', 'mail', 'ubcEduCwlPuid'],
+    resources: { cpu: 1, memory: '512Mi', disk: '1Gi', pids: 64 },
     summary: null,
     summarySource: 'unavailable',
     review: {
@@ -387,18 +390,20 @@ export const INCIDENTS: Schemas['IncidentList'] = {
 }
 
 /**
- * §13's checklist, COMPUTED and never stored. `ready` is `false` here, honestly.
+ * §13's checklist, COMPUTED and never stored — THE PLATFORM'S SEVEN ITEMS, in its order and
+ * in its words (`launch/readiness.ts`), describing the same moment every other fixture here
+ * does: UBC IAM's registration is `active`, the PIA is still `submitted`, the rehearsal
+ * passed, the scan is clean and the release is approved. So `ready` is `false` for exactly
+ * ONE reason, and a console built against this sees a real action to render on the one
+ * item that needs one.
  *
- * **IT CARRIES ALL THREE ITEM STATES ON PURPOSE** (P6a Task 7): `met` for something the
- * platform computed, `not_built` WITH a `builtBy` for something it does not track yet,
- * and `unmet` with NO `builtBy` for a row an administrator has not recorded. The third is
- * new — until Task 7 the two external records were `not_built` — and a console built
- * against fixtures that never show it would not render the case the platform now sends
- * for every production project.
+ * **IT CARRIES ALL THREE ITEM STATES, AND BOTH VALUES OF `blocking`.** `met` for what the
+ * platform computed or an administrator recorded, `unmet` with NO `builtBy` for the PIA,
+ * and `not_built` WITH one for `code-review` — the one NON-blocking item (D33), which a
+ * screen must render as harmless rather than as the reason production is refused.
  *
- * This is a small illustrative checklist and not the platform's six; `domain` is
- * `not_built` here and `met` there, which is a divergence that predates Task 7 and is
- * Task 17's to reconcile when the records screen is built.
+ * This was a three-item illustrative list until P6a Task 17, with `domain` `not_built` here
+ * and `met` on the platform; its own comment named Task 17 to reconcile it.
  */
 export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
   projectId: PROJECT_ID,
@@ -407,20 +412,19 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
   items: [
     {
       id: 'domain',
-      title: 'A domain name',
-      owner: 'the platform team',
-      blocking: true,
-      state: 'not_built',
-      why: 'Custom domains are not built in Phase 1.',
-      builtBy: 'Phase 2',
-    },
-    {
-      id: 'scans',
-      title: 'No fixable Critical or High findings',
-      owner: 'the project',
+      title: 'Where the app will live',
+      owner: 'project owner',
       blocking: true,
       state: 'met',
-      why: 'The candidate release’s scan found no fixable Critical or High.',
+      why: 'Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.',
+    },
+    {
+      id: 'iam-registration',
+      title: 'Registered with UBC IAM',
+      owner: 'UBC IAM, recorded by a platform administrator (§9)',
+      blocking: true,
+      state: 'met',
+      why: 'Registered as https://manifest.internal/sp/mock-app/production, active (ticket IAM-2026-0412), releasing 4 attribute(s).',
     },
     {
       id: 'privacy-assessment',
@@ -428,7 +432,40 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       owner: 'UBC Privacy Office, recorded by a platform administrator (§9)',
       blocking: true,
       state: 'unmet',
-      why: 'A Privacy Impact Assessment is required before a production launch (§9), with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what the UBC Privacy Office said, with the ticket reference.',
+      why: "The assessment is 'submitted' (ticket PIA-2026-0088) and must be 'approved' before a first production launch (§9).",
+    },
+    {
+      id: 'rehearsal',
+      title: 'Pre-production rehearsal passed',
+      owner: 'Manifest',
+      blocking: true,
+      state: 'met',
+      why: "A production-shaped rehearsal passed on 2026-09-20: the app was deployed to its production hostname on the public listener, its Service Provider was registered with production values, and one CWL sign-in completed releasing 3 attribute(s). **This proves the SHAPE of the registration — the entityID, the ACS URL, the attribute release and the certificate all work together. It proves nothing about UBC's acceptance of it**: the Manifest IdP is not real Shibboleth (D6), and the run against UBC's staging IdP that D21 describes remains an external-track obligation (§9).",
+    },
+    {
+      id: 'scans',
+      title: 'Dependency and secret scans clean',
+      owner: 'Manifest',
+      blocking: true,
+      state: 'met',
+      why: 'Its secret and lockfile gates passed and no finding it introduced has a published fix. 0 finding(s) with no published fix are recorded on the release (§12).',
+    },
+    {
+      id: 'admin-approval',
+      title: 'Release approved by a platform administrator',
+      owner: 'platform admin',
+      blocking: true,
+      state: 'met',
+      why: 'Approved by an administrator on 2026-09-20, bound to image digest sha256:9b2c1d0e3f4a…',
+    },
+    {
+      id: 'code-review',
+      title: 'Code reviewed for safety',
+      owner: 'Manifest',
+      blocking: false,
+      state: 'not_built',
+      builtBy: 'a tracked hardening item (SemgrepReviewer), not a plan',
+      why: 'Nothing reviews the code the agent wrote. Manifest reviews manifest.yaml, not code (§13), and that risk is still accepted: the controls that make it tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20). A reviewer interface exists with no implementation behind it (D33, §15), so this item does not block a launch.',
     },
   ],
 }
@@ -602,12 +639,18 @@ export const FLEET: Schemas['Fleet'] = [
 export const IAM_REGISTRATION: Schemas['IamRegistration'] = {
   id: '99999999-9999-4999-8999-999999999991',
   projectId: PROJECT_ID,
-  entityId: 'https://manifest.internal/sp/chem-labs/production',
-  acsUrl: 'https://chem-labs.manifest.internal/auth/saml/callback',
-  sloUrl: 'https://chem-labs.manifest.internal/auth/logout',
+  // THE MOCK'S OWN PROJECT (`mock-app`), in `sso/entity.ts`'s shapes. These said
+  // `chem-labs` — a slug no other fixture uses — so the records screen named one app and
+  // the project screen above it another.
+  entityId: 'https://manifest.internal/sp/mock-app/production',
+  acsUrl: 'https://mock-app.manifest.internal/auth/callback',
+  sloUrl: 'https://mock-app.manifest.internal/auth/logout',
   certFingerprint: 'AB:CD:EF:01:23:45',
   certExpiresAt: '2027-03-01T00:00:00.000Z',
-  registeredAttributes: ['displayName', 'mail', 'ubcEduCwlPuid'],
+  // UBC registered ONE MORE than the release asks for, which is legal — `iam-registration`
+  // is met when the request is a SUBSET — and is the case a screen must not render as a
+  // mismatch.
+  registeredAttributes: ['givenName', 'mail', 'sn', 'ubcEduCwlPuid'],
   state: 'active',
   externalTicketRef: 'IAM-2026-0412',
   updatedAt: '2026-09-20T00:00:00.000Z',
@@ -641,15 +684,16 @@ export const REHEARSAL: Schemas['Rehearsal'] = {
   projectId: PROJECT_ID,
   releaseId: RELEASE.id,
   passed: true,
-  entityId: 'https://manifest.internal/sp/chem-labs/production',
-  acsUrl: 'https://chem-labs.manifest.internal/auth/saml/callback',
-  attributes: ['displayName', 'mail', 'ubcEduCwlPuid'],
+  entityId: 'https://manifest.internal/sp/mock-app/production',
+  acsUrl: 'https://mock-app.manifest.internal/auth/callback',
+  // What the Service Provider REGISTRATION listed — the release's request, not UBC's list.
+  attributes: ['givenName', 'mail', 'ubcEduCwlPuid'],
   evidence: {
     instanceId: INSTANCE.id,
-    hostname: 'chem-labs.manifest.internal',
+    hostname: 'mock-app.manifest.internal',
     listener: 'public',
     signInStatus: 200,
-    attributesReleased: ['displayName', 'mail', 'ubcEduCwlPuid'],
+    attributesReleased: ['givenName', 'mail', 'ubcEduCwlPuid'],
     reason:
       'the sign-in completed: the app answered 200 at its registered ACS and the assertion carried 3 attribute(s)',
   },
@@ -699,4 +743,8 @@ export const FIXTURES: [string, unknown][] = [
   ['PrivacyAssessment', PRIVACY_ASSESSMENT],
   ['LaunchRecords', LAUNCH_RECORDS],
   ['Rehearsal', REHEARSAL],
+  // MISSING UNTIL P6a TASK 17: `server.ts` answers three operations with this fixture and
+  // this table never named it, so Ajv checked it only on the way OUT of a request — which is
+  // exactly the check this table exists to make without one.
+  ['Approval', APPROVAL],
 ]

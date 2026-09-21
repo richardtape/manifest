@@ -1,5 +1,6 @@
 import type { Schemas } from '@manifest/contract'
 import type { Api } from '../api'
+import { href } from '../router'
 import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 
 /**
@@ -53,7 +54,17 @@ function FleetProject({ project }: { project: Schemas['Fleet'][number] }) {
   return (
     <div className="env">
       <Field label="Project">
-        <code>{project.slug}</code>{' '}
+        {/*
+          A LINK, SINCE P6a TASK 17. `GET /v1/projects` answers an administrator with THEIR OWN
+          projects (P6a sitting 9, F13), so until this was a link the fleet was the only
+          screen that named somebody else's project and no screen led to it — and recording
+          what UBC IAM said, running the rehearsal and approving a release are all things an
+          administrator does on a project they do not own. They may read it: a platform
+          administrator holds every owner capability (`projects/authz.ts`).
+        */}
+        <a {...href(`/projects/${project.id}`)}>
+          <code>{project.slug}</code>
+        </a>{' '}
         {/*
           §23: a project holding a label that was RESERVED after it was created. The schema
           says what to do with it — "Handle with the owner; never renamed automatically" —

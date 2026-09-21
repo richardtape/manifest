@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { ManifestApiError, type Schemas } from '@manifest/contract'
 
 /** Every screen reads through this, so every refusal reaches one renderer. */
@@ -106,8 +106,17 @@ export function Refusal({ error }: { error: unknown }) {
  */
 export function ReadinessItems({
   items,
+  actions = {},
 }: {
   items: Schemas['LaunchReadiness']['items']
+  /**
+   * WHAT A PERSON CAN DO ABOUT AN ITEM, attached by its `id` (P6a Task 17) — and nothing
+   * else. The item's own `why` is still what the person reads: the console does not restate
+   * an item's meaning, because a sentence written here beside the platform's would be a
+   * third statement of one fact (ORIENTATION §9's restated number, applied to prose). The
+   * refusal passes no actions; the panel does. Both still render through this one list.
+   */
+  actions?: Partial<Record<LaunchItemId, ReactNode>>
 }) {
   return (
     <ul className="readiness">
@@ -115,17 +124,22 @@ export function ReadinessItems({
         <li key={item.id}>
           <Pill tone={item.state === 'met' ? 'good' : 'plain'}>{item.state}</Pill>{' '}
           <strong>{item.title}</strong>
-          {item.blocking && ' — blocking'}
+          {item.blocking ? ' — blocking' : ' — does not block a launch'}
           <br />
           <span className="hint">
             {item.why} Owner: {item.owner}.
             {item.builtBy !== undefined && ` Built by ${item.builtBy}.`}
           </span>
+          {actions[item.id] !== undefined && (
+            <div className="item-action">{actions[item.id]}</div>
+          )}
         </li>
       ))}
     </ul>
   )
 }
+
+export type LaunchItemId = Schemas['LaunchReadiness']['items'][number]['id']
 
 export function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (

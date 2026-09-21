@@ -8,6 +8,7 @@ import { Builds } from './builds'
 import { Deploy } from './deploy'
 import { Launch } from './launch'
 import { Queue } from './queue'
+import { Records } from './records'
 import { Tokens } from './tokens'
 
 /**
@@ -21,10 +22,17 @@ export function Project({
   api,
   projectId,
   tab,
+  isAdmin,
 }: {
   api: Api
   projectId: string
   tab: Extract<Route, { name: 'project' }>['tab']
+  /**
+   * THE PERSON'S PLATFORM ROLE, FOR AFFORDANCES ONLY — which actions a screen OFFERS. It
+   * authorizes nothing: the platform refuses a non-administrator `403` whatever this says,
+   * and the console could be replaced by `curl` without weakening anything (`app.tsx`).
+   */
+  isAdmin: boolean
 }) {
   const project = useAsync(() => api.getProject(projectId), [projectId])
   // ONE SOCKET FOR THE WHOLE SCREEN (D23.2), AND IT SPANS THE TABS. The hook lives here
@@ -40,6 +48,8 @@ export function Project({
       <Tabs projectId={projectId} tab={tab} />
       {tab === 'tokens' ? (
         <Tokens api={api} projectId={projectId} frames={stream.frames} />
+      ) : tab === 'records' ? (
+        <Records api={api} projectId={projectId} isAdmin={isAdmin} />
       ) : tab === 'queue' ? (
         <Queue api={api} projectId={projectId} frames={stream.frames} />
       ) : (
@@ -63,7 +73,7 @@ export function Project({
         §22 STEP 7, DIRECTLY BELOW THE DEPLOY PANEL whose production button is the asking.
         The refusal that button gets carries this same checklist, through the same renderer.
       */}
-          <Launch api={api} projectId={projectId} />
+          <Launch api={api} projectId={projectId} isAdmin={isAdmin} />
           <SpecPanel api={api} projectId={projectId} />
           <Members api={api} projectId={projectId} />
         </>
@@ -88,6 +98,14 @@ function Tabs({
     <nav className="tabs">
       <a {...href(`/projects/${projectId}`)} aria-current={tab === 'overview'}>
         Overview
+      </a>{' '}
+      {/*
+        §9's two external records, READABLE BY EVERYONE WHO MAY READ THE PROJECT — an owner
+        told by the checklist that the registration is 'submitted' will want the ticket.
+        Only the forms on it are an administrator's.
+      */}
+      <a {...href(`/projects/${projectId}/records`)} aria-current={tab === 'records'}>
+        Launch records
       </a>{' '}
       <a {...href(`/projects/${projectId}/queue`)} aria-current={tab === 'queue'}>
         Queue

@@ -222,7 +222,7 @@ export function scripted(
       machineDetail: {
         entityId: 'https://mock-app.staging.manifest.internal/auth/metadata',
         acsUrl: 'https://mock-app.staging.manifest.internal/auth/callback',
-        attributes: ['ubcEduCwlPuid', 'displayName', 'mail'],
+        attributes: ['ubcEduCwlPuid', 'mail', 'givenName'],
         certificateFingerprint: 'ab:cd:ef:01:23:45:67:89',
         changed: true,
       },

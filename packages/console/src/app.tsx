@@ -93,7 +93,7 @@ export function App() {
       <main className="shell">
         <Refusal error={signOutError} />
         <You person={person} />
-        <Screen route={route} />
+        <Screen route={route} isAdmin={person.role === 'admin'} />
       </main>
     </>
   )
@@ -134,7 +134,7 @@ function You({ person }: { person: Schemas['Me'] }) {
  * keep an honest placeholder rather than a blank page — a person who deep-links to
  * `/projects/<id>` before Task 6 should be told which task builds it, not shown nothing.
  */
-function Screen({ route }: { route: Route }) {
+function Screen({ route, isAdmin }: { route: Route; isAdmin: boolean }) {
   switch (route.name) {
     case 'projects':
       return <Projects api={api} />
@@ -155,6 +155,7 @@ function Screen({ route }: { route: Route }) {
           api={api}
           projectId={route.projectId}
           tab={route.tab}
+          isAdmin={isAdmin}
         />
       )
     default:

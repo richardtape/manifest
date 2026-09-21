@@ -21,27 +21,15 @@ const DELIBERATELY_UNCALLED: Record<string, string> = {
   // were callable by a session — `listFleet` is administrators only, which is a role, not
   // a second client (D31).
   //
-  // **THE THREE BELOW ARE TEMPORARY AND SAY WHO REMOVES THEM.** P6a Task 6 (sitting 4)
-  // adds the routes; P6a Task 17 (sitting 10) adds the records screen that calls them. The
-  // alternative was to write the three `api.ts` functions now, six sittings before any
-  // screen imports them — which is the no-caller shape ORIENTATION §9 names four times,
-  // moved into the console. An entry here is visible to a reader; an unused export is not.
-  getLaunchRecords: 'P6a Task 17 — the launch screen reads it (sitting 10)',
-  recordIamRegistration: 'P6a Task 17 — the records screen writes it (sitting 10)',
-  recordPrivacyAssessment: 'P6a Task 17 — the records screen writes it (sitting 10)',
-  // **AND THE THREE P6a TASK 10 ADDS (sitting 7)**, for the same reason and with the same
-  // remover: Task 18 (sitting 10) builds the approvals screen that calls all three. Writing
-  // the `api.ts` functions now, three sittings before any screen imports them, is the
-  // no-caller shape ORIENTATION §9 names four times.
+  // **P6a ADDED SEVEN OPERATIONS AND PARKED THEM HERE, EACH NAMING ITS REMOVER**, rather
+  // than writing `api.ts` functions sittings before any screen imported them (the no-caller
+  // shape ORIENTATION §9 names four times). Task 17 (sitting 10) removed four — the two
+  // records, their read and the rehearsal — with the launch checklist's actions and the
+  // records screen. **THE THREE BELOW ARE TASK 18's**, whose approval screen calls all three.
   approveRelease: 'P6a Task 18 — the approvals screen calls it (sitting 10)',
   rejectRelease: 'P6a Task 18 — the approvals screen calls it (sitting 10)',
   getApproval:
     'P6a Task 18 — the approvals screen reads the diff at decision time (sitting 10)',
-  // **AND P6a TASK 14's (sitting 9)**, whose screen is Task 17's: the launch checklist
-  // grows an ACTION per item, and *run the rehearsal* is the one this route serves. Same
-  // remover, same reason — an `api.ts` function with no screen importing it is the
-  // no-caller shape, moved into the console.
-  runRehearsal: 'P6a Task 17 — the launch screen runs it from the checklist (sitting 10)',
 }
 
 /**

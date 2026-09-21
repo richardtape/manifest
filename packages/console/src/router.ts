@@ -18,7 +18,11 @@ export type Route =
   | { name: 'projects' }
   | { name: 'blueprints' }
   | { name: 'fleet' }
-  | { name: 'project'; projectId: string; tab: 'overview' | 'queue' | 'tokens' }
+  | {
+      name: 'project'
+      projectId: string
+      tab: 'overview' | 'records' | 'queue' | 'tokens'
+    }
   | { name: 'unknown'; path: string }
 
 export function parse(path: string): Route {
@@ -28,7 +32,7 @@ export function parse(path: string): Route {
   if (parts[0] === 'fleet' && parts.length === 1) return { name: 'fleet' }
   if (parts[0] === 'projects' && parts[1] !== undefined) {
     const tab = parts[2]
-    if (tab === undefined || tab === 'queue' || tab === 'tokens')
+    if (tab === undefined || tab === 'records' || tab === 'queue' || tab === 'tokens')
       return { name: 'project', projectId: parts[1], tab: tab ?? 'overview' }
   }
   return { name: 'unknown', path }

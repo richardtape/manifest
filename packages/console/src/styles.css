@@ -346,3 +346,30 @@ button:disabled {
   border-color: var(--ink);
   max-height: none;
 }
+
+/* §13's checklist WITH ACTIONS (P6a Task 17). The action sits under the item's own reason,
+   so the reason is still what a person reads first and the action is what they can do about
+   it. The rehearsal's evidence is set apart the same way a refusal is, because it is a
+   measurement and not decoration. */
+.item-action {
+  margin: 0.3rem 0 0.1rem;
+}
+
+.evidence {
+  border-left: 3px solid var(--line);
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+}
+
+/* §9's two records: the form under the record it changes, separated so a person does not
+   read the empty form as the record. */
+.record-form {
+  border-top: 1px solid var(--line);
+  margin-top: 1rem;
+  padding-top: 0.25rem;
+}
+
+.record-form h3 {
+  font-size: 1rem;
+  margin: 0.5rem 0;
+}

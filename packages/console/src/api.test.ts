@@ -121,6 +121,37 @@ describe('the console’s data layer against manifest-mock', () => {
       expect(readiness.ready).toBe(false)
       // Every item carries why it is in that state and which plan builds it (§13).
       expect(readiness.items.every((i) => i.why.length > 0)).toBe(true)
+      // THE PLATFORM'S SEVEN, IN ITS ORDER (P6a Task 17) — the launch panel attaches its
+      // actions by these ids, so a fixture naming others would leave every action unrendered
+      // while the list still looked complete. And ONE of them does not block (D33).
+      expect(readiness.items.map((i) => i.id)).toEqual([
+        'domain',
+        'iam-registration',
+        'privacy-assessment',
+        'rehearsal',
+        'scans',
+        'admin-approval',
+        'code-review',
+      ])
+      expect(readiness.items.filter((i) => !i.blocking).map((i) => i.id)).toEqual([
+        'code-review',
+      ])
+
+      // §9's two records, as the records screen renders them: the state, the TICKET — the
+      // point of the object (§15) — and the registered list.
+      const records = await a.getLaunchRecords(PROJECT_ID)
+      expect(records.iamRegistration?.state).toBe('active')
+      expect(records.iamRegistration?.externalTicketRef).toBe('IAM-2026-0412')
+      expect(records.privacyAssessment?.state).toBe('submitted')
+      // …and what the release REQUESTS, which the screen shows BESIDE the registered list
+      // and never pours into it. A SUBSET, as `iam-registration: met` requires — a fixture
+      // where it was not would render a `met` item beside a list that contradicts it.
+      const requested = (await a.getRelease(RELEASE_ID)).config.production.auth.attributes
+      expect(
+        requested.filter(
+          (x) => !records.iamRegistration!.registeredAttributes.includes(x),
+        ),
+      ).toEqual([])
 
       expect((await a.listTokens(PROJECT_ID))[0]?.capabilities).toContain('build:create')
       const queue = await a.listPendingActions(PROJECT_ID)
@@ -189,6 +220,44 @@ describe('the console’s data layer against manifest-mock', () => {
       expect((await a.confirmPendingAction(PENDING_ACTION_ID, k())).state).toBe(
         'confirmed',
       )
+
+      // §9's records, written by an administrator. The mock answers its fixture whatever
+      // is sent (it keeps no state), so these prove the CALL — its path, its body and its
+      // key — and the platform's tests prove what it does with them.
+      expect(
+        (
+          await a.recordIamRegistration(
+            PROJECT_ID,
+            {
+              state: 'active',
+              externalTicketRef: 'IAM-2026-0412',
+              entityId: 'https://manifest.internal/sp/mock-app/production',
+              acsUrl: 'https://mock-app.manifest.internal/auth/callback',
+              sloUrl: 'https://mock-app.manifest.internal/auth/logout',
+              registeredAttributes: ['mail', 'ubcEduCwlPuid'],
+            },
+            k(),
+          )
+        ).state,
+      ).toBe('active')
+      expect(
+        (
+          await a.recordPrivacyAssessment(
+            PROJECT_ID,
+            { state: 'submitted', externalTicketRef: 'PIA-2026-0088' },
+            k(),
+          )
+        ).state,
+      ).toBe('submitted')
+
+      // D21's rehearsal. THE ANSWER IS A MEASUREMENT, and these are the three fields the
+      // launch panel renders instead of a tick: the listener, what the sign-in answered, and
+      // what the assertion actually released beside what the registration listed.
+      const rehearsal = await a.runRehearsal(PROJECT_ID, k())
+      expect(rehearsal.passed).toBe(true)
+      expect(rehearsal.evidence.listener).toBe('public')
+      expect(rehearsal.evidence.signInStatus).toBe(200)
+      expect(rehearsal.evidence.attributesReleased).toEqual(rehearsal.attributes)
       const rejected = await a.rejectPendingAction(
         PENDING_ACTION_ID,
         { reason: 'not on this course' },

@@ -343,6 +343,80 @@ export function createApi(options: ApiOptions) {
       )
     },
 
+    /**
+     * §9's two external records as an administrator last recorded them — `null` for one
+     * nobody has recorded. **Readable by anyone who may read the project** (`project:read`,
+     * P6a Task 6): an owner must be able to see what UBC IAM and the Privacy Office said
+     * about their app, because the checklist's `why` names those records and a person told
+     * *"the registration is 'submitted'"* will want to see the ticket.
+     */
+    async getLaunchRecords(projectId: string): Promise<Schemas['LaunchRecords']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/launch-records', {
+          params: { path: { projectId } },
+        }),
+        'getLaunchRecords',
+      )
+    },
+
+    /**
+     * WHAT UBC IAM SAID, recorded by a platform administrator in a browser (R1, Decision 4).
+     * The state is reached along §9's arrows from wherever the record is — a first write
+     * straight into `active` is refused `409 LAUNCH_TRANSITION_INVALID` — and the console
+     * does not restate which arrows exist: it offers every state and renders the refusal.
+     * `registeredAttributes` is what the TICKET lists, never what the app asks for.
+     */
+    async recordIamRegistration(
+      projectId: string,
+      body: Schemas['RecordIamRegistrationRequest'],
+      idempotency: string,
+    ): Promise<Schemas['IamRegistration']> {
+      return unwrap(
+        await client.POST('/v1/projects/{projectId}/launch-records/iam-registration', {
+          params: { path: { projectId }, ...key(idempotency) },
+          body,
+        }),
+        'recordIamRegistration',
+      )
+    },
+
+    /** The same shape over §9's three PIA states (`draft → submitted → approved`). */
+    async recordPrivacyAssessment(
+      projectId: string,
+      body: Schemas['RecordPrivacyAssessmentRequest'],
+      idempotency: string,
+    ): Promise<Schemas['PrivacyAssessment']> {
+      return unwrap(
+        await client.POST('/v1/projects/{projectId}/launch-records/privacy-assessment', {
+          params: { path: { projectId }, ...key(idempotency) },
+          body,
+        }),
+        'recordPrivacyAssessment',
+      )
+    },
+
+    /**
+     * D21's rehearsal as R2 redefines it: the candidate is deployed to its PRODUCTION
+     * hostname on the public listener, its Service Provider registered with production
+     * values, and one real CWL sign-in completed against the Manifest IdP. **~6 s against the
+     * platform and instant against the mock**, so the caller shows a pending state.
+     *
+     * **`passed: false` IS A `200`** — a measurement that came out badly is not a request
+     * error, and `evidence.reason` says which hop failed. A caller that switched on the HTTP
+     * status would report a failed rehearsal as a success. BODYLESS, like `revokeToken`.
+     */
+    async runRehearsal(
+      projectId: string,
+      idempotency: string,
+    ): Promise<Schemas['Rehearsal']> {
+      return unwrap(
+        await client.POST('/v1/projects/{projectId}/rehearsal', {
+          params: { path: { projectId }, ...key(idempotency) },
+        }),
+        'runRehearsal',
+      )
+    },
+
     /** §26's fleet, administrators only — a non-administrator is `403`, not `404`: there is
      *  no tenant's resource to hide (P5a Task 16). */
     async listFleet(): Promise<Schemas['Fleet']> {
