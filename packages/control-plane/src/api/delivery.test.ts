@@ -556,7 +556,14 @@ describe('the delivery routes', () => {
     await app.close()
   })
 
-  it('refuses production with the SAME checklist GET /launch-readiness answers', async () => {
+  /**
+   * **AN ORDINARY SESSION NEVER REACHES THE GATE SINCE P6a TASK 15** — §20 guards
+   * `release:promote`, so the owner is refused `403 STEP_UP_REQUIRED` before the project's
+   * readiness is consulted. This is the pair for the gate test below: that one steps up to
+   * get past here, and this one is what proves the guard is in front of it. Both assert
+   * the CODE, because this route now has four refusals that are all `403` or `409`.
+   */
+  it('asks a production deploy for step-up BEFORE it consults the checklist', async () => {
     const { deps, app, cookies, project, release } = await releasedProject('chem-labs')
     const production = project.environments.find(
       (e: { kind: string }) => e.kind === 'production',
@@ -565,6 +572,32 @@ describe('the delivery routes', () => {
       method: 'POST',
       url: `/v1/environments/${production.id}/deploy`,
       cookies,
+      headers: mutationHeaders(deps),
+      payload: { releaseId: release.id },
+    })
+    expect(refused.statusCode, refused.body).toBe(403)
+    expect(refused.json().error.code).toBe('STEP_UP_REQUIRED')
+    // And the refusal carries no checklist: the gate was never reached, so there is
+    // nothing to say about readiness. Without this a `403` from anywhere would pass.
+    expect(
+      Object.prototype.hasOwnProperty.call(refused.json().error, 'launchReadiness'),
+    ).toBe(false)
+    await app.close()
+  })
+
+  it('refuses production with the SAME checklist GET /launch-readiness answers', async () => {
+    const { deps, app, cookies, project, release } = await releasedProject('chem-labs')
+    const production = project.environments.find(
+      (e: { kind: string }) => e.kind === 'production',
+    )
+    const refused = await app.inject({
+      method: 'POST',
+      url: `/v1/environments/${production.id}/deploy`,
+      // STEPPED UP, since P6a Task 15: §20 guards `release:promote`, and an ordinary
+      // session is refused `403 STEP_UP_REQUIRED` before the gate is consulted (the test
+      // above). This test's subject is the CHECKLIST, so it takes the claim from `loginAs`
+      // rather than driving a SAML round trip to earn it.
+      cookies: await loginAs(deps, 'bio_prof', { steppedUp: true }),
       headers: mutationHeaders(deps),
       payload: { releaseId: release.id },
     })

@@ -31,6 +31,7 @@ import {
   createRelease,
   deployRelease,
   getBuild,
+  recordApproval,
   type Build,
 } from './index.js'
 import { buildToEnd } from './testing.js'
@@ -259,6 +260,67 @@ async function fixture(db: Parameters<typeof createProject>[0]) {
     .returning()
   const byKind = Object.fromEntries(environments.map((e) => [e.kind, e]))
   return { user: user!, project, appSpec: appSpec!, byKind }
+}
+
+/** A built, released candidate — the three calls every production case below starts with. */
+async function releaseFrom(
+  db: Parameters<typeof createRelease>[0],
+  driver: Driver,
+  input: {
+    project: { id: string; slug: string; blueprintRef: string }
+    appSpec: { id: string; commitSha: string }
+    user: { id: string }
+  },
+) {
+  const build = await buildToEnd(
+    { db: db, driver: driver, bus: bus },
+    {
+      projectId: input.project.id,
+      projectSlug: input.project.slug,
+      appSpecId: input.appSpec.id,
+      commitSha: input.appSpec.commitSha,
+      blueprintRef: input.project.blueprintRef,
+      repoPath: '/tmp/chem-labs.git',
+    },
+  )
+  return createRelease(db, {
+    projectId: input.project.id,
+    buildId: build.id,
+    appSpecId: input.appSpec.id,
+    createdBy: input.user.id,
+    resolvedConfig: RESOLVED,
+  })
+}
+
+/**
+ * An administrator's decision, written the way `POST /v1/releases/{id}/approve` writes it
+ * (P6a Task 10) — through `recordApproval`, never with a raw insert, so a test cannot
+ * approve something the route could not.
+ */
+async function approveFor(
+  db: Parameters<typeof recordApproval>[0],
+  release: { id: string; projectId: string },
+  user: { id: string },
+  imageDigest: string,
+  decision: 'approved' | 'rejected' = 'approved',
+) {
+  return recordApproval(db, bus, {
+    release,
+    actor: { userId: user.id, puid: 'o' },
+    decision,
+    ...(decision === 'rejected' ? { reason: 'not this one' } : {}),
+    imageDigest,
+    diffSnapshot: {
+      imageDigest,
+      changes: [],
+      services: [],
+      attributes: [],
+      resources: {},
+      summary: null,
+      summarySource: 'unavailable',
+      review: { state: 'not_performed', reviewer: 'NullReviewer', detail: 'none' },
+    },
+  })
 }
 
 describe('builds', () => {
@@ -1050,6 +1112,11 @@ describe('releases (§13)', () => {
    * **`deployRelease` treats production like any other environment**, which is what makes
    * Task 15's first production deploy possible at all. Nothing in the repository walked
    * this path before — it was unreachable — so this is also its first exercise.
+   *
+   * **IT NEEDED AN APPROVAL FROM P6a TASK 15 ON**, and it is the POSITIVE CONTROL for the
+   * four refusals below: §13's *"deployment verifies that digest before starting anything"*
+   * would be satisfied by a function that refused every production deploy, and this is the
+   * test that says it does not.
    */
   it('deploys to production like any other environment — the gate is the route’s, not this function’s', async () => {
     await withRollback(async (db) => {
@@ -1073,6 +1140,7 @@ describe('releases (§13)', () => {
         createdBy: user.id,
         resolvedConfig: RESOLVED,
       })
+      await approveFor(db, release, user, build.imageDigest!)
       const instance = await deployRelease(db, driver, config, deployDeps, {
         releaseId: release.id,
         environmentId: byKind.production!.id,
@@ -1087,6 +1155,147 @@ describe('releases (§13)', () => {
         environmentId: byKind.production!.id,
         releaseId: release.id,
         state: 'healthy',
+      })
+    })
+  })
+
+  /**
+   * §13's *Integrity of the gate*, second half (P6a Task 15). The launch gate asks whether
+   * the CHECKLIST is satisfied; this asks whether the approval covers THIS digest. A
+   * rebuild between the two answers yes to the first and no to the second.
+   *
+   * **Every one of these asserts the CODE**, because `ReleaseError` carries five other
+   * refusals a production deploy can raise and a status-free `rejects.toThrow` passes
+   * through all of them.
+   */
+  describe('the approved digest (§13)', () => {
+    it('refuses a production deploy no approval covers: RELEASE_DIGEST_NOT_APPROVED', async () => {
+      await withRollback(async (db) => {
+        const { user, project, appSpec, byKind } = await fixture(db)
+        const driver = createFakeDriver()
+        const release = await releaseFrom(db, driver, { project, appSpec, user })
+        await expect(
+          deployRelease(db, driver, config, deployDeps, {
+            releaseId: release.id,
+            environmentId: byKind.production!.id,
+          }),
+        ).rejects.toMatchObject({ code: 'RELEASE_DIGEST_NOT_APPROVED' })
+      })
+    })
+
+    /**
+     * **BEFORE ANYTHING IS A CLAIM ABOUT SIDE EFFECTS, AND ONLY A SIDE-EFFECT ASSERTION
+     * CAN SEE IT** (the plan's control (b)). A check that ran after `ensureInstance`
+     * refuses with the same code and leaves an instance row, a service and a Service
+     * Provider registration behind.
+     */
+    it('leaves no instance row behind when it refuses — the check runs before anything starts', async () => {
+      await withRollback(async (db) => {
+        const { user, project, appSpec, byKind } = await fixture(db)
+        const driver = createFakeDriver()
+        const release = await releaseFrom(db, driver, { project, appSpec, user })
+        await expect(
+          deployRelease(db, driver, config, deployDeps, {
+            releaseId: release.id,
+            environmentId: byKind.production!.id,
+          }),
+        ).rejects.toMatchObject({ code: 'RELEASE_DIGEST_NOT_APPROVED' })
+        const rows = await db
+          .select()
+          .from(instances)
+          .where(eq(instances.environmentId, byKind.production!.id))
+        expect(rows).toEqual([])
+      })
+    })
+
+    /**
+     * Decision 11, from the deploy's side: the approval binds the digest, so a rebuild
+     * needs a new approval.
+     *
+     * **THE APPROVED DIGEST IS FABRICATED, AND THAT IS NOT LAZINESS — THE FAKE DRIVER
+     * CANNOT REBUILD TO A DIFFERENT DIGEST.** `createFakeDriver`'s digest is
+     * `sha256(slug + commit + blueprint)`, so a second build of the same fixture returns
+     * the SAME digest and this test passed against a platform with no check at all when it
+     * was written that way (measured, P6a sitting 9). A real rebuild changes the digest
+     * because the image content changes; in this tier the only honest way to say
+     * *"approved something else"* is to approve something else. Sitting 7's F5 is the same
+     * shape: Decision 11's rebuild branch is not reachable through the platform.
+     */
+    it('refuses when the approval covers a DIFFERENT digest — a rebuild', async () => {
+      await withRollback(async (db) => {
+        const { user, project, appSpec, byKind } = await fixture(db)
+        const driver = createFakeDriver()
+        const release = await releaseFrom(db, driver, { project, appSpec, user })
+        const [build] = await db
+          .select()
+          .from(builds)
+          .where(eq(builds.id, release.buildId))
+        const otherDigest = `sha256:${'b'.repeat(64)}`
+        expect(otherDigest).not.toBe(build!.imageDigest)
+        await approveFor(db, release, user, otherDigest)
+        await expect(
+          deployRelease(db, driver, config, deployDeps, {
+            releaseId: release.id,
+            environmentId: byKind.production!.id,
+          }),
+        ).rejects.toMatchObject({ code: 'RELEASE_DIGEST_NOT_APPROVED' })
+      })
+    })
+
+    // The plan's control (c): an approval row is not the same thing as an APPROVAL.
+    it('refuses when the newest decision REJECTED the release', async () => {
+      await withRollback(async (db) => {
+        const { user, project, appSpec, byKind } = await fixture(db)
+        const driver = createFakeDriver()
+        const release = await releaseFrom(db, driver, { project, appSpec, user })
+        const [build] = await db
+          .select()
+          .from(builds)
+          .where(eq(builds.id, release.buildId))
+        await approveFor(db, release, user, build!.imageDigest!, 'rejected')
+        await expect(
+          deployRelease(db, driver, config, deployDeps, {
+            releaseId: release.id,
+            environmentId: byKind.production!.id,
+          }),
+        ).rejects.toMatchObject({ code: 'RELEASE_DIGEST_NOT_APPROVED' })
+      })
+    })
+
+    /**
+     * **THE REHEARSAL IS THE ONE PRODUCTION DEPLOY THAT PRECEDES THE APPROVAL** (P6a
+     * Task 14, and this sitting's decision 1): D21's rehearsal deploys the candidate
+     * into production so that the administrator has the rehearsal's evidence in front of
+     * them when they decide, which is the order §13's own checklist is written in and the
+     * order Task 19's demo runs. `purpose` is how the one caller that may do that says so,
+     * and it defaults to `'launch'`, so every other caller is checked.
+     */
+    it('lets the REHEARSAL deploy the candidate before any approval exists', async () => {
+      await withRollback(async (db) => {
+        const { user, project, appSpec, byKind } = await fixture(db)
+        const driver = createFakeDriver()
+        const release = await releaseFrom(db, driver, { project, appSpec, user })
+        const instance = await deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: byKind.production!.id,
+          purpose: 'rehearsal',
+        })
+        expect(instance.state).toBe('healthy')
+      })
+    })
+
+    // A staging deploy is not a promotion and asks for no approval — the negative claim
+    // above ("production is refused") is true of a platform that refuses everything.
+    it('asks for no approval when the environment is staging', async () => {
+      await withRollback(async (db) => {
+        const { user, project, appSpec, byKind } = await fixture(db)
+        const driver = createFakeDriver()
+        const release = await releaseFrom(db, driver, { project, appSpec, user })
+        const instance = await deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: byKind.staging!.id,
+        })
+        expect(instance.state).toBe('healthy')
       })
     })
   })

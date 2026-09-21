@@ -113,14 +113,28 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
     const production = project.environments.find(
       (e: { kind: string }) => e.kind === 'production',
     )
-    const blocked = await app.inject({
+    // **STEPPED UP SINCE P6a TASK 15**, and this line is the second half of a control:
+    // §20 guards `release:promote`, so the ORDINARY session two lines below is refused
+    // `403 STEP_UP_REQUIRED` and never reaches the gate. This step is about the
+    // CHECKLIST, so it takes the claim from `loginAs` rather than driving a SAML round
+    // trip to earn it — `sso/step-up.docker.test.ts` is where the real one is walked.
+    const ordinary = await app.inject({
       method: 'POST',
       url: `/v1/environments/${production.id}/deploy`,
       payload: { releaseId: release.json().id },
       cookies,
       headers: mutationHeaders(deps),
     })
-    expect(blocked.statusCode).toBe(409)
+    expect(ordinary.statusCode, ordinary.body).toBe(403)
+    expect(ordinary.json().error.code).toBe('STEP_UP_REQUIRED')
+    const blocked = await app.inject({
+      method: 'POST',
+      url: `/v1/environments/${production.id}/deploy`,
+      payload: { releaseId: release.json().id },
+      cookies: await loginAs(deps, 'bio_prof', { steppedUp: true }),
+      headers: mutationHeaders(deps),
+    })
+    expect(blocked.statusCode, blocked.body).toBe(409)
     expect(blocked.json().error.code).toBe('RELEASE_PRODUCTION_GATE_UNAVAILABLE')
     const readiness = blocked.json().error.launchReadiness
     expect(readiness.ready).toBe(false)

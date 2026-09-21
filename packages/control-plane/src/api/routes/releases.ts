@@ -363,7 +363,13 @@ export const releaseRoutes = [
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
+      // §20 (P6a Task 15): a production deploy asks for `release:promote`, which is
+      // step-up-guarded — so an ordinary admin session is refused here before the gate.
+      'STEP_UP_REQUIRED',
       'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
+      // §13's *Integrity of the gate*: the approval binds a digest and the deploy verifies
+      // it before anything starts. A rebuild since the approval is refused with this.
+      'RELEASE_DIGEST_NOT_APPROVED',
       // D24 (P5b Task 6): a token deploying to PRODUCTION asks for `release:promote`,
       // which is privileged — and is refused here, before the launch gate above.
       'TOKEN_ACTION_PENDING',
@@ -393,6 +399,25 @@ export const releaseRoutes = [
         environment.projectId,
         environment.kind === 'production' ? 'release:promote' : 'release:deploy',
       )
+      /**
+       * §20: *"A stolen admin session must not be sufficient to put an app on the public
+       * internet."* (P6a Task 15, decided by Rich on 2026-09-20 after sitting 6 found
+       * `release:promote` in `STEP_UP_GUARDED` with no route asking for it.)
+       *
+       * **ON THE PRODUCTION BRANCH ONLY**, because a staging deploy authorizes
+       * `release:deploy`, which is not guarded — asking for freshness there would put a
+       * second IdP round trip inside the build loop D24 exists to keep cheap.
+       *
+       * It is defence in depth BEHIND the approval, which is where §13 puts the human
+       * decision and which steps up already (`approveRelease` above). Sitting 6's own
+       * argument for why this could be left out is recorded in the plan; Rich chose to
+       * make §20's sentence true of the DEPLOY as well as of the decision.
+       *
+       * AFTER `assertCapability` and BEFORE the gate: who may ask, then whether they
+       * proved themselves recently, then whether the project is ready. A person refused
+       * here learns nothing about the project's readiness.
+       */
+      if (environment.kind === 'production') assertStepUp(actor, 'release:promote')
       // §13's gate, which until P6a Task 7 refused unconditionally. `assertLaunchable`
       // throws `ProductionGateError` carrying the SAME checklist
       // `GET /v1/projects/{projectId}/launch-readiness` answers — one computation, so the

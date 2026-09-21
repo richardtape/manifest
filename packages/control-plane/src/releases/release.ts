@@ -42,6 +42,7 @@ import type { AppSecretResolver } from '../secrets/index.js'
 import type { ServiceCredentialResolver } from '../services/index.js'
 import type { SpRegistration, SsoRegistrar } from '../sso/index.js'
 import type { Config } from '../config.js'
+import { approvalCoversDigest, latestApprovalFor } from './approval.js'
 import { assertPromotable } from './promotion.js'
 import type { Retirer } from './retire.js'
 
@@ -164,6 +165,26 @@ export async function createRelease(db: Db, input: CreateReleaseInput): Promise<
 export interface DeployInput {
   releaseId: string
   environmentId: string
+  /**
+   * WHY THIS DEPLOY IS HAPPENING, and it exists for exactly one distinction (P6a Task 15).
+   *
+   * `'launch'` — the default, and every caller that does not say otherwise — is an
+   * administrator putting a release in front of the public, and §13 binds it to an
+   * approved image digest, verified below before anything starts.
+   *
+   * `'rehearsal'` is D21's pre-production rehearsal (R2, Task 14), which deploys the
+   * candidate into production **so that the administrator has its evidence in front of
+   * them when they decide** — §13's checklist lists the rehearsal before the approval, and
+   * Task 19's demo runs them in that order. It is the one deploy that legitimately precedes
+   * an approval, it deploys the SAME digest the approval will later bind, and it is
+   * reachable only through `POST /v1/projects/{id}/rehearsal`, which an administrator must
+   * hold `launch:record` for.
+   *
+   * **IT DEFAULTS TO THE CHECKED VALUE**, so a new caller is verified unless it says it is
+   * a rehearsal — the opposite default would make every future caller an exemption nobody
+   * wrote down.
+   */
+  purpose?: 'launch' | 'rehearsal'
 }
 
 /**
@@ -224,6 +245,34 @@ export async function deployRelease(
       'RELEASE_DIGEST_MISSING',
       `release '${release.id}' has no digest`,
     )
+
+  /**
+   * §13's *Integrity of the gate*: *"Approval binds to an immutable image digest, and
+   * deployment verifies that digest before starting anything."*
+   *
+   * **BEFORE ANYTHING** is the operative phrase, and it is why this is here rather than in
+   * the route: an instance row, a service, a Service Provider registration and a network
+   * are all side effects, and a check after any of them has left something behind.
+   * `releases.test.ts`'s *leaves no instance row behind* is the assertion that can see it —
+   * a check moved after `ensureInstance` refuses with this same code and passes every other
+   * test in this file.
+   *
+   * **IT IS THE GATE'S SECOND HALF, NOT A COPY OF IT.** `assertLaunchable` (the route's,
+   * `launch/gate.ts`) asks whether the checklist is satisfied, which includes an approval;
+   * this asks whether the approval covers THIS digest. A rebuild between the two answers
+   * yes to the first and no to the second, and that window is what *binds to an immutable
+   * digest* means.
+   */
+  if (environment.kind === 'production' && (input.purpose ?? 'launch') === 'launch') {
+    const approval = await latestApprovalFor(db, release.id)
+    if (approval === undefined || !approvalCoversDigest(approval, digest))
+      throw new ReleaseError(
+        'RELEASE_DIGEST_NOT_APPROVED',
+        `no administrator approval covers image digest ${digest.slice(0, 19)}… for this ` +
+          'release. An approval binds the exact digest (§13), so a rebuild needs a new ' +
+          'approval.',
+      )
+  }
 
   // §23 gives the hostname as `<slug>.<zone>`, so the first label is the slug.
   const projectSlug = environment.hostname.split('.')[0]!

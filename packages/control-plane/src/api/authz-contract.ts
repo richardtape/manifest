@@ -1061,10 +1061,17 @@ const ROUTES: RouteCase[] = [
       payload: { releaseId: f.releaseId },
     }),
     expect: {
-      owner: 409,
+      // **STEP_UP SINCE P6a TASK 15, WHERE BOTH WERE `409`** — §20's sentence made true of
+      // the deploy as well as of the decision (Rich, 2026-09-20). `release:promote` has
+      // been in `STEP_UP_GUARDED` since sitting 6 with no route asking for it; now the
+      // production branch asks, and an ordinary session never reaches §13's gate. **The
+      // two rows are the only thing in the suite that can see that call site**: removing
+      // it turns both back into the `409` this row used to expect, which is the plan's
+      // control (e).
+      owner: STEP_UP,
       collaborator: 403,
       stranger: 404,
-      admin: 409,
+      admin: STEP_UP,
       anonymous: 401,
       // Privileged, so every scoped token is refused with a question a person answers —
       // whatever its own capability set says, and before the launch gate is consulted.

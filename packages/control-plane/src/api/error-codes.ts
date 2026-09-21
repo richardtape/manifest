@@ -233,6 +233,9 @@ export const ERROR_CODES = {
   ),
   RELEASE_BUILD_NOT_FOUND: release('No build with this id.'),
   RELEASE_DIGEST_MISSING: release('The release’s build recorded no digest.'),
+  RELEASE_DIGEST_NOT_APPROVED: release(
+    'No administrator approval covers the digest this production deploy would run (§13).',
+  ),
   RELEASE_ENVIRONMENT_NOT_FOUND: release('No environment with this id.'),
   RELEASE_IMAGE_REPOSITORY_MISSING: release(
     'The build recorded a digest and no repository; rebuild it.',
