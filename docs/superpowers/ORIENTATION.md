@@ -1520,6 +1520,14 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   and a hand-written curl walk drops it silently. `infra/lib/idp-login.sh` has always posted both
   — **use that file rather than writing the walk again**, which is what it exists for; a second
   implementation drifted on its first outing.
+- **`make verify` NEEDS HOMEBREW'S OPENSSL, AND macOS'S OWN REPORTS A GOOD CERTIFICATE AS
+  UNPARSEABLE** (2026-09-20). `/usr/bin/openssl` is LibreSSL and has no `x509 -ext`, which
+  `control_plane_sp_keypair` uses to read the SAN — so with `/opt/homebrew/bin` off PATH the
+  check reads *"infra/sp/control-plane.crt is not a parseable certificate"* and verify reports
+  `54 checks, 1 failed` on a platform that is fine. Measured while building a script that ran
+  `make verify` under a deliberately minimal PATH. **Anything that runs `make verify` from
+  `sudo`, `launchd`, `cron` or an editor must put `/opt/homebrew/bin` on PATH**, and node's
+  nvm directory too, because nvm is configured in `~/.zshrc` and `bash -l` never reads it.
 - **`GET /v1/projects` ANSWERS AN ADMINISTRATOR WITH THEIR OWN PROJECTS, NOT EVERY PROJECT**
   (P6a sitting 9, F13). §26's `GET /v1/fleet` is the administrator's view (D31). A script that
   looks for somebody else's project in the first list finds nothing and reads as a missing row.

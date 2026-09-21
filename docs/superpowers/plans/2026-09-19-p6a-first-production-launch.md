@@ -6262,3 +6262,14 @@ not re-proved itself. **Nothing went red**, because there is no DOM tier (P5c De
 the post-sweep check found it only by opening the file the hand-off pointed at. Fixed in this
 sitting rather than handed on: the copy now names both refusals in the order a person meets
 them. Task 18 builds the navigation that gets past the first.
+
+**F17 — `make verify` NEEDS HOMEBREW'S OPENSSL, AND macOS'S OWN MAKES IT REPORT A GOOD
+CERTIFICATE AS UNPARSEABLE.** Found while writing the bundled `sudo` script that closes Task
+2's control (a): the script runs `make verify` as the invoking user under an explicit PATH,
+and with `/opt/homebrew/bin` left out it reported `54 checks, 1 failed` —
+*"infra/sp/control-plane.crt is not a parseable certificate"* — on a certificate both openssl
+builds parse. `control_plane_sp_keypair` reads the SAN with `openssl x509 -ext subjectAltName`,
+and macOS's `/usr/bin/openssl` is LibreSSL, which answers `unknown option -ext`. **Inside the
+window this script measures, a red check for the wrong reason would have been read as the
+measurement**, so the script now asserts `x509 -ext` works before it touches the alias.
+ORIENTATION §4 carries it.
