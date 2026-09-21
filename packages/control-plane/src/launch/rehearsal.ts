@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, gte } from 'drizzle-orm'
 import type { Config } from '../config.js'
 import { environments, events, projects, rehearsals, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
@@ -113,6 +113,9 @@ export async function runRehearsal(
         'and there is nothing to rehearse. Its launch checklist says so.',
     )
 
+  // BEFORE THE DEPLOY, so the registration read below cannot pick up an OLDER one. See
+  // `latestRegistration`, and P6a sitting 9's control (c), which is what found it.
+  const startedAt = new Date()
   const instance = await deployRelease(deps.db, deps.driver, deps.config, deps.deploy, {
     releaseId: candidate.release.id,
     environmentId: production.id,
@@ -126,16 +129,33 @@ export async function runRehearsal(
     )
   })
 
-  const registration = await latestRegistration(deps.db, projectId, project.slug)
+  /**
+   * **THE EVIDENCE DESCRIBES WHAT HAPPENED, NOT WHAT WAS INTENDED** (P6a sitting 9's
+   * control (c), which did NOT fire until this changed). Both values used to be read off
+   * the production environment row two statements up — so a rehearsal that deployed
+   * somewhere else would still have recorded *"production, public listener"*, and the
+   * Docker test asserting exactly that would have stayed green. They are now read back off
+   * the environment the INSTANCE says it is in, which is the only thing that knows.
+   */
+  const [deployed] = await deps.db
+    .select()
+    .from(environments)
+    .where(eq(environments.id, instance.environmentId))
+  const listener = listenerFor(deployed!.kind)
+  const hostname = deployed!.hostname
+
+  const registration = await latestRegistration(
+    deps.db,
+    projectId,
+    `sp:${project.slug}:${deployed!.kind}`,
+    startedAt,
+  )
   if (registration === undefined)
     throw new RehearsalError(
       'REHEARSAL_DEPLOY_FAILED',
-      'the deploy recorded no Service Provider registration for production, so there is ' +
-        'nothing to rehearse against',
+      'the deploy recorded no Service Provider registration, so there is nothing to ' +
+        'rehearse against',
     )
-
-  const listener = listenerFor('production')
-  const hostname = production.hostname
   /**
    * A sign-in is only worth attempting against an instance that is actually serving. A
    * failed deploy is a `200` whose state is `failed` (P4c), and the previous instance —
@@ -151,7 +171,7 @@ export async function runRehearsal(
       : {
           status: null,
           attributesReleased: [],
-          reason: `the candidate release did not become healthy in production: the instance is '${instance.state}'`,
+          reason: `the candidate release did not become healthy in ${deployed!.kind}: the instance is '${instance.state}'`,
         }
 
   const verdict = judge(signIn, registration.attributes)
@@ -211,7 +231,15 @@ export async function runRehearsal(
 async function latestRegistration(
   db: Db,
   projectId: string,
-  slug: string,
+  subject: string,
+  /**
+   * **NOT OLDER THAN THIS DEPLOY.** The registrar publishes on EVERY deploy, changed or
+   * not, so the event this rehearsal's own deploy wrote is newer than any before it —
+   * and without this bound a rehearsal whose deploy registered nothing would read a
+   * registration from last week and rehearse against it. Found by control (c), which
+   * passed against exactly that (P6a sitting 9).
+   */
+  notBefore: Date,
 ): Promise<{ entityId: string; acsUrl: string; attributes: string[] } | undefined> {
   const [row] = await db
     .select()
@@ -219,8 +247,9 @@ async function latestRegistration(
     .where(
       and(
         eq(events.projectId, projectId),
-        eq(events.subject, `sp:${slug}:production`),
+        eq(events.subject, subject),
         eq(events.type, 'sso.registered'),
+        gte(events.createdAt, notBefore),
       ),
     )
     .orderBy(desc(events.createdAt), desc(events.id))
