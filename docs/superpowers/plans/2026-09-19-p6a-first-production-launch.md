@@ -6253,3 +6253,12 @@ are still proposed and still Rich's. `manifest-stories.html`'s hostname examples
 `WALKTHROUGH.md` and `CLAUDE.md` both DID change: the first because a person can now be told
 what a production launch does, the second because its *Outstanding* line now says that access
 to UBC's staging IdP is the only part of a first launch this platform cannot do for itself.
+
+**F16 — AND THE CONSOLE'S OWN COPY WAS WRONG ON A LIVE SCREEN.** `screens/launch.tsx` told a
+person that *"Pressing Deploy to production above is refused `409
+RELEASE_PRODUCTION_GATE_UNAVAILABLE` … and that refusal carries this same checklist"* — true
+until Task 15 put §20's guard in front of it, and false afterwards for every session that has
+not re-proved itself. **Nothing went red**, because there is no DOM tier (P5c Decision 7), and
+the post-sweep check found it only by opening the file the hand-off pointed at. Fixed in this
+sitting rather than handed on: the copy now names both refusals in the order a person meets
+them. Task 18 builds the navigation that gets past the first.

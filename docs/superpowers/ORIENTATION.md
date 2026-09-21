@@ -1866,9 +1866,13 @@ every page, Rich types every password and says so.
    exercised by `code-review` alone — which is also the only non-blocking item.
 4. **THE CHECKLIST HAS SIX BLOCKING ITEMS**, and a project can now meet all six: `domain`,
    `iam-registration`, `privacy-assessment`, `rehearsal`, `scans`, `admin-approval`.
-5. **A PRODUCTION DEPLOY ASKS FOR STEP-UP** (§20, `release:promote`), so the console's deploy
-   action needs the same step-up navigation Task 18 builds for approvals — `auth.ts` is the
-   only file that may name `/auth/`.
+5. **A PRODUCTION DEPLOY ASKS FOR STEP-UP** (§20, `release:promote`) — and the console
+   ALREADY HAS the button: `screens/launch.tsx` says in its own doc comment that *Deploy to
+   production* is the asking, and it is written around a `409` carrying the checklist. **It
+   now gets a `403 STEP_UP_REQUIRED` with no checklist at all**, so that screen's copy is
+   wrong until Task 17 or 18 fixes it — the same step-up navigation Task 18 builds for
+   approvals, in `auth.ts`, the only file that may name `/auth/`. **Check it by pressing the
+   button**: it is the cheapest thing on this list to see.
 6. **`make demo-journey` ASSERTS THE STEP-UP REFUSAL NOW**, not the gate's `409`: an ordinary
    session never reaches §13's gate. `api/delivery.test.ts` still asserts that the refusal's
    envelope and the read are byte-identical, with a stepped-up session.

@@ -58,10 +58,19 @@ function Checklist({ readiness }: { readiness: Schemas['LaunchReadiness'] }) {
           <code>{readiness.candidateReleaseId}</code>
         )}
       </Field>
+      {/*
+        **TWO REFUSALS NOW, IN THIS ORDER, SINCE P6a TASK 15** — and this copy said only the
+        second until sitting 9 made the first true. §20 guards `release:promote`, so a
+        session that has not re-proved itself in the last ten minutes never reaches §13's
+        gate and never sees this checklist in a refusal. Task 18 builds the step-up
+        navigation that gets past it; until then the button's first answer is the `403`.
+      */}
       <p className="hint">
         Pressing <em>Deploy to production</em> above is refused{' '}
-        <code>409 RELEASE_PRODUCTION_GATE_UNAVAILABLE</code> until every blocking item is
-        met, and that refusal carries this same checklist.
+        <code>403 STEP_UP_REQUIRED</code> until you have signed in again in the last ten
+        minutes (§20) — and then <code>409 RELEASE_PRODUCTION_GATE_UNAVAILABLE</code>{' '}
+        until every blocking item is met, which is the refusal that carries this same
+        checklist.
       </p>
       <ReadinessItems items={readiness.items} />
     </>
