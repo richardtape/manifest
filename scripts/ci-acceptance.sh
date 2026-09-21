@@ -43,16 +43,18 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # THEY MOVED. P6a sitting 2 took doctor 18 -> 19 and verify 51 -> 54 and swept the three
 # DOCUMENTS; nothing pointed it at this file, because §6's sweep list names documents only.
 # Found by P6a sitting 3 by opening the file rather than by re-reading the list, and §6's
-# table now carries a row for it. Last moved 2026-09-20 by P6a sitting 7 (Tasks 10-11).
+# table now carries a row for it. Last moved 2026-09-20 by P6a sitting 8 (Tasks 12-13).
 #
-# EXPECT_TESTS IS THE *PASSED* COUNT AND THE SUITE HAS A SKIPPED TEST. Since sitting 7
-# `pnpm test` prints `Tests  1544 passed | 1 skipped (1545)` — the one `it.skip` is the
+# EXPECT_TESTS IS THE *PASSED* COUNT AND THE SUITE HAS A SKIPPED TEST. Since sitting 8
+# `pnpm test` prints `Tests  1565 passed | 1 skipped (1566)` — the one `it.skip` is the
 # production gate's positive control, which **still** cannot run: Task 10 built
-# `admin-approval`, and `rehearsal` is TASK 14's. `awk '{print $2}'` reads 1544 from that
-# line, checked against the literal string rather than assumed; **1545 here would read
-# MOVED on every run.** When Task 14 un-skips it, this becomes 1545 and the `| 1 skipped` goes.
-EXPECT_TESTS=1544
-EXPECT_FILES=114
+# `admin-approval`, and `rehearsal` is TASK 14's. `awk '{print $2}'` reads 1565 from that
+# line, checked against the literal string rather than assumed; **1566 here would read
+# MOVED on every run.** When Task 14 un-skips it, this moves by Task 14's new tests PLUS ONE
+# and the `| 1 skipped` goes. (It said "becomes 1545" for two sittings after that stopped being
+# arithmetic — a restated number drifts, which is why this now states the rule instead.)
+EXPECT_TESTS=1565
+EXPECT_FILES=117
 EXPECT_DOCTOR=19
 EXPECT_VERIFY=54
 

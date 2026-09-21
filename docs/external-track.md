@@ -48,6 +48,13 @@ rather than on code** — which is what ORIENTATION §2 means by *P6a makes this
 urgent, not less*. Items 3 and 4's *Manifest supplies* column still says **generated**
 packages, and that stays P8's: P6a records what UBC said, it does not produce the submission.
 
+**AND SINCE P6a SITTING 8 (2026-09-20) THE ATTRIBUTE LIST IN THAT RECORD IS LOAD-BEARING.** When
+item 3 comes back, `registered_attributes` must be what UBC IAM actually released — not what the
+app asks for. Every build of the app is now checked against it (a build asking for an attribute
+IAM did not register **fails**, naming the attribute and the ticket), and §13's
+`iam-registration` item is `met` only when the release that would be promoted asks for a subset of
+it. A list copied from the app's own `manifest.yaml` would make both checks vacuous.
+
 ---
 
 ## Open items

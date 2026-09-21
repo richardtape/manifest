@@ -39,8 +39,8 @@
 | 5 | 7 | **The gate that BLOCKS.** One evaluation in `launch/`, called by the read and by the deploy route, with the **two** unconditional refusals that exist today removed — and the checklist's items reading real rows. **Alone: it is this plan's centre** | **DONE 2026-09-20.** §13's checklist is now the thing that gates production: `assertLaunchable` in `launch/gate.ts`, ONE evaluation, two callers, and **both** unconditional refusals gone — the inner one DELETED. Measured live end to end: with nothing recorded the deploy is refused blocking on **four** items; an administrator records a real IAM registration and a real PIA over the API and the same deploy is refused blocking on **two**, `rehearsal` and `admin-approval`. `pnpm test` **1449 → 1456 passed + 1 SKIPPED in 110 files**; `pnpm test:docker` **OWED, RUN and UNMOVED at 185 in 30, 826 s**; doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is that the plan's Steps 2 and 4 CONTRADICT EACH OTHER** — the class cannot both move to `launch/` and keep the `api` family — **and that moving it would have made its code invisible to the registry**, sitting 4's F5 one sitting later. **Control (b) fired SIX red across FOUR files where the plan predicted the matrix alone and said the delivery test would stay green; control (a) could not fail against all 1456 tests, predicted in advance; control (d) is the second gate SEEN** — `409` with the same code and **no `launchReadiness`** |
 | 6 | 8–9 | **Step-up re-authentication**: the `ForceAuthn` round trip, `steppedUpAt` on the stateless cookie, and `assertStepUp` applied to D24's privileged four **and** to `release:approve`, which is not one of them. **The heavy sitting Rich was warned about** | **DONE 2026-09-20.** §20's second round trip exists and is **proved end to end against the REAL Manifest IdP through the edge**: an ordinary session is refused `403 STEP_UP_REQUIRED`, `/auth/step-up` makes the IdP re-prompt **on a warm cookie jar** (`[M3]`'s control, re-fired live), the claim lands on the same session with `expiresAt` unchanged, the same request then answers `201`, and a step-up assertion for a DIFFERENT person is refused with the session left byte-identical. `pnpm test` **1456 → 1496 passed + 1 skipped in 112 files**; `pnpm test:docker` **OWED, RUN and UNMOVED at 185 in 30, 829 s** — and unmoved is the measurement, because **no Docker test makes a member call over HTTP or drives `/auth/step-up`, so that tier cannot see Task 9 at all**. doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is that the plan's own `assertStepUp` KILLS D24'S CONFIRM-AND-RETRY LOOP** — it refuses every token on a premise that is false, and a token carrying a human-confirmed grant reaches it; the grant is what stands in step-up's place. **Nine of ten controls fired, four of them WIDER than predicted and one — Task 8's (e), the row the plan calls its most important — where the plan says in bold that nothing would.** Control (d) **could not fail** and was fixed rather than recorded. **The guard reddened 48 tests across 7 files, not the 4 predicted, and 29 were the matrix's own fixture failing silently.** **F12 was raised open and CLOSED the same day by Rich's decision**: confirming a pending action now requires step-up and rejecting does not, and `release:promote`'s missing call site is tracked to Task 15 with a correction block there |
 | 7 | 10–11 | **The approval**: `release:approve`'s first caller ever, bound to an immutable digest, non-repudiable, behind step-up — and its `diff_snapshot` with the AI-written summary that is **recorded as absent rather than blocking** when the model is down | **DONE 2026-09-20.** `release:approve` has a caller: three routes, four guards in order, the BUILD's digest bound, insert-only, and §13's `admin-approval` item reading the row instead of saying `not_built`. Decision 7 is DRIVEN — a server whose LiteLLM client rejects every call answers the approval **`201` with `summary: null`, `summarySource: 'unavailable'` and the diff still in the record**, and the control for it answers `503 AI_BACKEND_UNAVAILABLE`. `pnpm test` **1496 → 1544 passed + 1 SKIPPED in 114 files**; `pnpm test:docker` **OWED and RUN**; doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is the CONTROLS: nine run, six fired, THREE could not fail — and two of those three paid for themselves.** Task 10's (e) could not fail, and writing the case it was aimed at found a **live defect**: a rejection reason made of spaces was answered `500 INTERNAL` by a database CHECK rather than `400` by the schema (F3, fixed). Task 11's (c) could not fail against the test the plan names for it (F6). **The plan passes `deps.ai` to `summariseChanges` and `deps.ai` has no `post`** — it is §10's key lifecycle, so `ServerDeps` gains `llm` (F1). **Decision 11's rebuild branch is unreachable through the platform** and the test says so (F5). **Control (b) does NOT make `[M6]`'s finding live**: `tsc` refuses it, and forced past, `assertStepUp` still refuses the token (F8) |
-| 8 | 12–13 | **R4's `Reviewer` seam** — the interface, the honest `NullReviewer`, its real caller and its **non-blocking** checklist item — and **§7's last production clause**: `auth.attributes` ⊆ `registered_attributes`, failing at build time | ← **next** |
-| 9 | 14–15 | **The D21 rehearsal as R2 redefines it**, and **the first production deploy this platform has ever done** — the digest verified before anything starts. **A first, and this project's worst discoveries have all arrived at a first** | |
+| 8 | 12–13 | **R4's `Reviewer` seam** — the interface, the honest `NullReviewer`, its real caller and its **non-blocking** checklist item — and **§7's last production clause**: `auth.attributes` ⊆ `registered_attributes`, failing at build time | **DONE 2026-09-20.** R4's seam has ONE real caller — `buildDiffSnapshot` asks `ServerDeps.reviewer` about the release's OWN build — and `code-review` is the checklist's LAST item, `blocking: false`. A build asking for a CWL attribute UBC IAM did not register FAILS before the driver runs, the reason its log's last line. `pnpm test` **1544 → 1565 passed + 1 SKIPPED in 117 files**; doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is a HOLE the plan's design leaves: the build can only check a registration that exists when it runs, and §9 makes the other order NORMAL** — measured `iam-registration: met` for a candidate asking for `sn` against `[ubcEduCwlPuid, mail]`, so a release built before IAM answered could reach production unchecked. The checklist item now reads the candidate's attributes too (F9). **And §7's check ALREADY EXISTED, since P2, behind a context field no caller ever passed** — the plan would have added a second one under a second code (F8). **All nine runnable controls fired as predicted; the plan's own prediction for Task 12's (d) did not hold**, because this sitting added two `tsc` layers it could not know about |
+| 9 | 14–15 | **The D21 rehearsal as R2 redefines it**, and **the first production deploy this platform has ever done** — the digest verified before anything starts. **A first, and this project's worst discoveries have all arrived at a first** | ← **next** — **read the sitting 8 correction block at Task 14 first**: `iam-registration` now needs the candidate's attributes ⊆ registered |
 | 10 | 16–18 | **Gate integrity asserted** (the registry's refusal, the laptop-image rule, the append-only record) and **both console tasks**: readiness with actions, the two external records, approvals and the step-up prompt | |
 | 11 | 19 | **The acceptance**: `make demo-production` — an app reaches production with every blocking item honestly met — its offline-acceptance step, its `ci-acceptance` step, and its negative controls. **Alone, and last** | |
 
@@ -2981,6 +2981,36 @@ git commit -m "feat(spec): a production release may not request an unregistered 
 
 ## Task 14: The D21 rehearsal, as R2 redefines it
 
+> ### Sitting 8 correction block — EXECUTED 2026-09-20. What Tasks 14, 15 and 19 INHERIT from §7's clause and R4's item.
+>
+> *FOUR points, all measured while building Tasks 12 and 13. The record is sitting 8's section of
+> *What executing this plan found*.*
+>
+> **1. `iam-registration` IS `met` ONLY WHEN THE REGISTRATION IS `active` AND THE CANDIDATE ASKS
+> FOR A SUBSET OF ITS `registered_attributes`** (sitting 8, F9). The rehearsal needs a CWL app
+> (`REHEARSAL_NOT_CWL`), so **every registration this task's tests, Step 5's un-skipped test and
+> Task 19's demo record MUST list every attribute the candidate release asks for** — or the gate
+> stays shut on an item nobody is looking at, and it will read like the rehearsal failing. Step
+> 3's *"never against the stored `IamRegistration`"* is right for Decision 10's question (has the
+> SP changed since the rehearsal?) and is **not** the only check: the item now asks the other
+> one (does UBC's registration cover what this release asks for?).
+>
+> **2. A BUILD NOW FAILS when a registration exists and the manifest asks for more**
+> (`SPEC_ATTRIBUTE_NOT_REGISTERED`, the log's last line, before the driver runs). **Task 19's
+> step 10 rebuilds AFTER step 4 records the registration**, so that rebuild is the first build in
+> this platform's life to run the check with a registration present — record the full set, or
+> step 10 fails for a reason the demo does not expect. Its control (b) is unaffected.
+>
+> **3. `code-review` is the checklist's LAST item and `blocking: false`**, so un-skipping
+> `api/delivery.test.ts`'s positive control needs nothing for it. **That test is where Decision
+> 13 is seen END TO END for the first time** — `ready: true` beside a `not_built` `code-review`
+> on a real project. `readiness.test.ts` can only FORCE the other items met (F2), because no
+> project could have them all until this task; **assert the `code-review` item in that
+> un-skipped test**, and it becomes the control sitting 8 could not write.
+>
+> **4. `readyOf(items)` is exported from `launch/readiness.ts`** and is the only statement of
+> `ready`. `rehearsalItem` must NOT compute its own.
+
 **R2 is decided and its *required* clause is what this task is judged on: the item's own `why` text must say that the rehearsal proves the registration's SHAPE and never UBC's acceptance of it.** D21 asks for a run against `authentication.stg.id.ubc.ca`; C1 says this laptop cannot reach it; §9's real-Shibboleth run **remains an external-track obligation** and nothing here discharges it.
 
 **Files:**
@@ -3475,6 +3505,13 @@ git commit -m "feat(console): the approval screen, the step-up prompt, and D22's
 ---
 
 ## Task 19: The acceptance — `make demo-production`
+
+> ### Sitting 8 pointer — 2026-09-20. **Read the sitting 8 correction block at Task 14 before step 4.**
+>
+> The IAM registration step 4 records must list **every** CWL attribute the app asks for. Step 10
+> rebuilds after it, and since sitting 8 a build **fails** on drift, before the driver runs; and
+> `iam-registration` is `met` only when the candidate's attributes are a subset of what was
+> registered. Both were measured; neither is in the table below.
 
 **ALONE, AND LAST, and it is this plan's own task rather than something that happens after the last feature** (brief §10's third surviving rule).
 
@@ -5615,3 +5652,283 @@ the team and describe what a *person* can do. Sitting 7 adds an API capability w
 screen** — the approvals screen is Task 18's — so nothing an outsider could click has moved,
 and `manifest-decisions.html` drifts only when a decision changes and none did. Saying that
 here is the requirement (§6), not skipping them silently.
+
+### Sitting 8 — Tasks 12 and 13, R4's `Reviewer` seam and §7's last production clause — 2026-09-20
+
+**R4'S SEAM HAS A CALLER, AND §7'S LAST PRODUCTION CLAUSE IS ENFORCED — IN TWO PLACES, BECAUSE
+THE ONE THE PLAN DESIGNED LEAVES A HOLE.** `launch/review.ts` is Decision 12's interface with an
+honest `NullReviewer` whose verdict is `not_performed` and names itself; `ServerDeps.reviewer` is
+typed as the interface and constructed once, in `src/index.ts`; `buildDiffSnapshot` asks it
+about the release's OWN build and stores its verdict in the approval record; and §13's checklist
+carries `code-review`, LAST and `blocking: false`. A build whose manifest asks for a CWL attribute
+UBC IAM did not register now FAILS before the driver runs, with the reason as its log's last line
+— and §13's `iam-registration` item reads the candidate release's attributes too, because the
+build can only check a registration that exists when it runs.
+
+**THE HEADLINE IS THAT HOLE, AND IT IS THE ORDER §9 MAKES NORMAL** (F9). A registration takes
+weeks, so a faculty member builds for staging long before IAM answers; the administrator then
+records an `active` registration, and the release serving staging — built before any
+registration existed, so never checked — is what §13 promotes **without rebuilding**. Before this
+sitting the item read `met` on `active` alone: **measured `met` for a candidate asking for `sn`
+against a registration of `[ubcEduCwlPuid, mail]`**, which is the launch-day broken login §9
+exists to prevent, reachable on the common path. Task 14 does not close it — its Step 3 says in
+terms that the rehearsal compares against what the release would register, *"never against the
+stored `IamRegistration`"*. **And the check itself was not new** (F8): `spec/policy.ts` has
+carried it since P2, behind an optional `ValidationContext.registeredAttributes` that no caller of
+`validateSpec` ever passed — the fifth instance of *a module with no caller is not built* — and
+the plan, not knowing, would have added a second check under a second spelling of its code.
+
+#### The decisions this sitting made
+
+**1. The reviewer is asked about the BUILD's commit, read from the release's own rows inside
+`buildDiffSnapshot`, not handed in by the route.** The approval binds the build's digest, so the
+code a reviewer reads must be the code that digest was built from; the plan's snippet reads
+`appSpec.commitSha`, which `buildDiffSnapshot` does not have and which can differ (a build takes
+`body.commitSha ?? spec.commitSha`). One query, `builds ⋈ projects` on `release.buildId`.
+*Rejected:* changing the function's signature so the route passes the slug and the commit — a
+caller that passed the wrong one would be invisible through `NullReviewer`, which reads nothing.
+
+**2. A reviewer that THROWS fails the approval, loudly.** `NullReviewer` cannot throw; whether a
+real reviewer's outage should be *recorded as absent* — Decision 7's argument for the summary —
+is the question the plan that lands one must answer, not one this seam should answer for it by
+swallowing an error. *Changing course* is a `try` around one call.
+
+**3. `code-review` is the LAST item, static, and a copy per view.** After every blocking item,
+including the conditional `load-rehearsal`, so no blocking item's position depends on it — which
+is also why `packages/journey/src/main.ts`'s `items[0]`/`items[1]` check cannot move (F6). Static
+because nothing reviews code whatever the project; an item that read the approval's stored
+verdict would be reading `not_performed` back out of a record the same sentence put there.
+
+**4. The item-id list is `LAUNCH_ITEM_IDS`, ONCE, and the representation's `z.enum` is built from
+it.** `[M4]` measured a missing id as a `500` on the read; on the production deploy's `409` it is
+worse (F3). The generated `schema.d.ts` is the only other copy, and `pnpm contract:generate` owns
+it. *Rejected:* a type-level equality check between two lists — one list needs no check.
+
+**5. The stored verdict's `state` is the union's three states, in the jsonb type AND the
+contract** (F4), held to `ReviewVerdict` in both directions by the console's `everyCapability`
+idiom (`everyReviewState`), so a fourth state is a `tsc` error in three places (control T12 d).
+
+**6. `readyOf(items)` is exported, and `computeLaunchReadiness` uses it.** It is the only way to
+test Decision 13 before Task 14 (F2). *Rejected:* a test-only copy of the derivation, which is
+the second source of truth this project has paid for.
+
+**7. ONE RULE, ONE NAME** (F8). The build-time error throws `SPEC_ATTRIBUTE_NOT_REGISTERED` — the
+code `ManifestErrorCode` has published for exactly this rule since P2 — rather than the plan's
+`SPEC_ATTRIBUTES_UNREGISTERED`. The dormant validation branch and its context field are
+**deleted**; `POLICY_CODES` keeps the constant, with a comment saying who throws it now.
+**No `error-codes.ts` entry** — that registry is the codes an HTTP envelope carries, and the
+build route has answered `202` before this can be thrown; `BuildGateError` is the precedent.
+
+**8. `finishBuild` reads `iam_registrations` through `db/`, not through `launch/`'s
+`getIamRegistration`.** `launch/readiness.ts` imports `releases/` at runtime, so the reverse
+import would be a runtime module cycle. **Measured rather than assumed**: a scan of every
+non-test file's value imports finds exactly two runtime module cycles today — `build ↔ runtime`
+and `routing ↔ runtime` — and this would have been the third. `project_id` is UNIQUE on that
+table, so the select cannot mean anything but what the getter means.
+
+**9. Only a CWL app requests anything** (F12). `auth.attributes` beside `provider: none` is valid
+and inert — no Service Provider is registered, so nothing is released — and is not drift.
+
+**10. The checklist enforces the clause too** (F9), through `unregisteredAttributes`, the rule's
+one statement, which the build-time assertion also uses. **Not a move of the check to the deploy**
+— the plan's control (d) argues against that and the argument stands: a check at promotion time
+refuses the very thing *promotion never rebuilds* guarantees. This is the gate READING whether the
+candidate it would promote was ever checked, which is Decision 2's one evaluation doing its job.
+
+**11. The wired test is in the UNIT tier, driving `createBuildRunner` directly** (F11), and
+counts the driver's calls — which is what makes *"before the driver builds"* an assertion.
+
+**12. `@manifest/contract` stays `1.0.0`** although the document changed (one enum member, the
+verdict's three states, two descriptions) — sitting 7's precedent, for sitting 7's reason.
+
+#### The findings
+
+**F1 — the plan's caller does not compile: `repoPathFor(deps.config, project.slug)` does not
+exist.** The repository path is `deps.source.repositoryFor(slug).path` (`api/routes/builds.ts`
+builds it that way), so `SnapshotDeps` gains `source` as well as `reviewer` — and neither
+`project.slug` nor `appSpec.commitSha` is in scope in `buildDiffSnapshot`, which holds a release
+row. Found by grepping for the helper before writing the call, not by `tsc`.
+
+**F2 — Decision 13's test, as the plan writes it, CANNOT RUN until Task 14.** It computes the
+view for *"a project with every blocking item met"*, and `rehearsal` is `not_built`
+unconditionally — no project this platform can build has every blocking item met. So the test
+takes the REAL items `computeLaunchReadiness` produced, forces every item but `code-review` to
+`met`, and asks `readyOf`; `[M4]`'s three rows are asserted beside it against the derivation
+itself, the middle one being what makes the other two mean anything. **The end-to-end version is
+Task 14's un-skipped delivery test**, and its correction block says so.
+
+**F3 — `[M4]`'s failure mode is WORSE on the `409` than on the read.** An id missing from the
+representation's restated enum is a `500 INTERNAL` on `GET …/launch-readiness`; on the production
+deploy's refusal, `mapError`'s `checklist()` **drops the checklist and logs** rather than throw
+(it fails closed by design), so the refusal would reach a client with its code and no checklist at
+all — the exact envelope P5a Task 14 built the field to prevent. Closed by building the enum from
+`LAUNCH_ITEM_IDS` (Decision 4).
+
+**F4 — the stored verdict's `state` was an UNCONSTRAINED STRING** — `z.string()` in the contract,
+`string` in the jsonb type — so a reviewer answering any word at all would have been stored and
+published. The published description said *"`not_performed` until a reviewer is configured"* over
+a schema that promised nothing. Now `enum: [not_performed, clean, findings]` in `openapi.json`.
+
+**F5 — the plan says `deps.reviewer` is "constructed once in `server.ts`"**; `server.ts` only
+TYPES `ServerDeps`. It is constructed in `src/index.ts` (the boot) and `api/testing.ts` (the
+harness), exactly where sitting 7 put `llm`. Small, recorded because the next reader would look
+there.
+
+**F6 — SITTING 7'S HAND-OFF OVER-PREDICTED RED: `packages/journey/src/main.ts` CANNOT go red on
+`code-review`.** It said three things assert the item list by name and will go red. Two did —
+`readiness.test.ts`'s exact list and `lifecycle.test.ts`'s `byId` — and the journey did not and
+could not: it asserts `items[0]` and `items[1]` and reads items by id, so an item appended LAST
+changes nothing it reads. Had `code-review` gone FIRST it would have gone red, which is the reason
+Decision 3 records the position. *Found by opening the file and reading its checks rather than
+trusting the count.* **CONFIRMED LIVE**: `make demo-journey` ran green after this sitting — exit 0, *every check passed*, with `code-review` in the checklist it reads.
+
+**F7 — TASK 12's CONTROL (d) PREDICTION DOES NOT HOLD, and the reason is this sitting's own
+work.** The plan predicts that a `default` branch in `describeVerdict` makes `tsc` stop catching a
+new verdict state. Measured with a fourth state `deferred`: with no `default`, **three** errors —
+`review.ts:62` TS2345 (`REVIEW_STATES` incomplete), `approval.ts:252` TS2322 (the stored type),
+`approval.ts:265` TS2366 (`describeVerdict`); **with** a `default`, **two remain**. The `default`
+removes only its own function's error, because Decision 5 put two more layers under it.
+
+**F8 — §7'S SUBSET CHECK HAS EXISTED SINCE P2, AND NOTHING HAS EVER REACHED IT.**
+`spec/policy.ts:128` (`0b9f729`, 2026-09-05) refuses `auth.attributes` outside
+`ctx.registeredAttributes` with `SPEC_ATTRIBUTE_NOT_REGISTERED` — and that field is OPTIONAL and
+`grep` finds no caller of `validateSpec` that sets it (`api/routes/projects.ts:203` and
+`project-reads.ts:365` both build their context with `validationContext`, which does not). Its
+only caller was its own unit test, which passed it by hand. **The fifth instance of *a module with
+no caller is not built*, and the first found by a plan that was about to build the same thing
+again**: Task 13 as written would have added `assertRegisteredAttributes` under
+`SPEC_ATTRIBUTES_UNREGISTERED`, leaving the published code dormant beside it. Decision 7.
+*Found because the whitelist check needed reading to write the wired test's manifest.*
+
+**F9 — THE HOLE: THE BUILD-TIME CHECK CANNOT SEE A REGISTRATION RECORDED AFTER THE BUILD, AND §9
+MAKES THAT THE NORMAL ORDER.** Stated in the headline. **Measured**: `readiness.test.ts`'s new
+*unmet when the release serving staging asks for an attribute UBC did not register* ran RED before
+the fix — `expected 'met' to be 'unmet'` — with a candidate asking for `[ubcEduCwlPuid, sn]` and an
+`active` registration of `[ubcEduCwlPuid, mail]`. Fixed at the checklist (Decision 10); the test
+has its positive control beside it (a candidate asking for `[mail]` reads `met`), because the
+existing *met when active* test has no candidate and would pass against an item that refused
+every release it could see. **Task 14's Step 3 does not close it** and Task 19's step 10 is the
+first rebuild with a registration present — both now carry the correction block.
+
+**F10 — THE PLAN PUTS THE WIRED TEST IN THE DOCKER TIER "BECAUSE IT RUNS A REAL BUILD", AND
+NEITHER HALF HOLDS** (Decision 11). The check runs BEFORE the driver, so a real build adds
+nothing to the refusal; and the unit tier's build ROUTE cannot reach it at all — `fixture-node`
+declares `auth_providers: [none]`, so a CWL manifest is refused `BLUEPRINT_AUTH_UNSUPPORTED`
+before a build is recorded. The test drives `createBuildRunner` — the code under test — and
+asserts `driverCalls() === 0` on the refusal and `1` on its positive control.
+
+**F11 — the plan's snippet would have failed the build of an app that signs NOBODY in.**
+`(spec.parsed as ManifestSpec).auth?.attributes ?? []` checks the list whatever the provider,
+and the schema lets `auth.attributes` stand beside `provider: none`. Such a list is inert — no SP
+is registered, nothing is released — so refusing it is a false positive on a build that cannot
+cause the failure the rule exists for. Decision 9; its test is control (e)'s target.
+
+**F12 — VITEST RAN A TEST FILE `tsc` REFUSES.** `registered-attributes.test.ts`'s helper took
+`context = ctx`, so the default parameter's type was inferred as `ticketRef: string` and a call
+passing `null` is TS2322 — green under Vitest, which strips types, and caught only because a
+control's `tsc` run happened to include the uncommitted file. CLAUDE.md's *Vitest strips types*,
+measured on this sitting's own code.
+
+**F13 — ORIENTATION §7's PREAMBLE SAID "EXECUTE P6a's SITTING 7" THROUGHOUT SITTING 8.** §7e said
+sitting 8; the preamble one screen above it — whose own italic sentence exists to stop exactly
+this, having said *"EXECUTE P5c's SITTING 9"* for a day once before — still named sitting 7 and
+Tasks 10–11. Sitting 7's sweep replaced §7e and missed the preamble. **Found at open**, by reading
+§7 top-down as the cold agent it is written for.
+
+**F14 — AN UNSET `$SCRATCH` FAILED LOUDLY ON THIS MACHINE, which is worth knowing.** The Global
+Constraint warns that `> "$SCRATCH/x"` becomes `> /x`; shell state does not persist between tool
+calls, so it happened, and macOS's read-only root answered `read-only file system: /lint.txt`
+rather than writing there. **The trap is loud here and would be silent on a writable root.** Every
+later command used the literal path.
+
+#### Driven live, through the edge — and this is the deliverable rather than the tests
+
+**On `journey-app`, a real CWL app whose manifest asks for five attributes**
+(`ubcEduCwlPuid, mail, eduPersonAffiliation, givenName, sn`), with the control plane restarted
+after the Docker tier and `make demo-journey` green immediately before (exit 0, every check
+passed — which is also F6's confirmation):
+
+1. **An administrator recorded an `active` registration of `[ubcEduCwlPuid, mail]` ONLY**, walked
+   along §9's arrows — `draft`, `submitted`, `active`, three `200`s, because a first write straight
+   into `active` is refused. The ticket reference is `IAM-LIVE-8`.
+2. **THE CHECKLIST CAUGHT WHAT THE BUILD COULD NOT** — F9's exact scenario, because the release
+   serving staging had been built by the demo MINUTES BEFORE the registration existed:
+   `iam-registration` reads **`unmet`**, *"The release serving staging asks for CWL attribute(s)
+   UBC IAM did not register: eduPersonAffiliation, givenName, sn. Registered: mail,
+   ubcEduCwlPuid. … raise an IAM change request against IAM-LIVE-8, or remove the attribute(s)
+   from auth.attributes and build again."* **Before this sitting that item read `met`.**
+3. **A NEW BUILD FAILED, BEFORE THE DRIVER.** `POST …/builds` answered `202`; the row reads
+   `status: failed`, `imageDigest: null`, and
+   `error: "SPEC_ATTRIBUTE_NOT_REGISTERED: manifest.yaml asks for 3 CWL attribute(s) UBC IAM did
+   not register for 'journey-app': … — A production release must request a subset …"`. **The log
+   has exactly ONE line, at `seq 0`, and it is that sentence** — no BuildKit output at all, which
+   is what *"before the driver builds"* means, seen rather than asserted.
+4. **`code-review` renders in the live checklist** as `blocking: false`, `state: not_built`,
+   `builtBy: "a tracked hardening item (SemgrepReviewer), not a plan"`, with §20's three clauses
+   in its `why` — and `ready` is `false` for `rehearsal`, `privacy-assessment` and
+   `admin-approval`, never for it.
+
+**The rows this left are in the database at close** and are named in the machine section: one
+`iam_registrations` row for `journey-app` and one failed build. **The next `pnpm test` truncates
+both.**
+
+#### The negative controls — nine run and one argued; all nine fired as THIS sitting predicted, and one of the PLAN's predictions did not hold
+
+**Every one committed first, broken, watched, and restored with `git checkout <path>` by name.**
+Predictions were written down before each run, and the Task 13 set was written into the script
+that ran them, beside each mutation.
+
+| | Control | Predicted | **Measured** |
+|---|---|---|---|
+| T12 a | `blocking: true` on `code-review` | FOUR red, all `readiness.test.ts`: the two item tests, and the two that expect exactly `['rehearsal', 'admin-approval']` blocking | **FIRED EXACTLY — 4 red, full suite.** R4(c)'s trap SEEN: with every other item met, `readyOf` answers `false`, so a project whose real blocking items are all met becomes unlaunchable. A fifth red in that run was Task 13's uncommitted wired test, which was its TDD red and not this control |
+| T12 b | `NullReviewer` answers `{ state: 'clean', checked: 0 }` | TWO red: `review.test.ts`'s *names itself*, and `approval.test.ts`'s first test | **FIRED EXACTLY — 2 red.** The plan's warning holds: neither test existed before this sitting, and nothing else in 1544 tests could see a dishonest null reviewer |
+| T12 c | Task 11's literal restored in place of `reviewOf(...)` | TWO red: the injected-reviewer test, and the first approval test — the second only because the literal's `detail` begins lowercase | **FIRED EXACTLY — 2 red.** The injected reviewer's distinctive NAME is the assertion a literal cannot imitate; the other is an accident of wording and would not survive a literal copied from `NullReviewer` |
+| T12 d | a fourth verdict state, with and without `default` in `describeVerdict` | **the plan:** with `default`, `tsc` stops catching it. **This sitting:** it still catches it | **THE PLAN'S PREDICTION DID NOT HOLD — F7.** No `default`: 3 `tsc` errors. With `default`: 2 remain |
+| T13 a | the caller removed from `finishBuild` | ONE red, the wired *fails the BUILD*; the seven pure tests green | **FIRED EXACTLY — 1 red** |
+| T13 b | the empty-registration guard removed | ONE red, *refuses when the registration lists nothing* | **FIRED EXACTLY — 1 red.** And the connection to Task 5's control (d): migration 0019's CHECK is the only other thing refusing an empty list — with both gone, the check is silently off |
+| T13 c | `unregisteredAttributes` refuses only when EVERY requested attribute is missing | FOUR red: two pure, the wired build, and F9's readiness test | **FIRED EXACTLY — 4 red.** Mutated in the rule's ONE statement, so both of its callers went red at once, which is Decision 10's reason for there being one |
+| T13 d | the check moved to the production deploy | **not run — it is an argument** | Recorded as the plan asks: §13 promotes a digest the build already made, so a deploy-time check refuses the thing promotion exists to guarantee. **Decision 10 is NOT that move**: the gate READS whether its candidate was checked, and refuses nothing the build did not |
+| T13 e | the `provider === 'cwl'` read removed | ONE red, *builds an app that signs nobody in* | **FIRED EXACTLY — 1 red** |
+| T13 f | `iam-registration` ignores the candidate's attributes | ONE red, F9's *unmet when …* | **FIRED EXACTLY — 1 red** — and it is the same test that ran red BEFORE the fix, so the hole is proved open, closed, and re-opened by the control |
+
+| Gate | Before | After |
+|---|---|---|
+| `make doctor` | 19 checks, 0 failed | **19, 0 failed** — unmoved, re-run AFTER the Docker tier and after both cleanup scripts. The sitting adds no platform check |
+| `make verify` | 54 checks, 0 failed | **54, 0 failed** — unmoved, same reason, re-run at the same points |
+| `pnpm test` | 1544 passed + 1 skipped, 114 files | **1565 passed + 1 skipped, 117 files**, run twice after each task's final change and identical. **Counted per file off the run's own output, never subtracted**: `launch/review.test.ts` **3 (NEW)**, `spec/registered-attributes.test.ts` **7 (NEW)**, `releases/build-attributes.test.ts` **4 (NEW)**, `launch/readiness.test.ts` **15 → 20 (+5)**, `releases/approval.test.ts` **16 → 18 (+2)**, and `spec/policy.test.ts` **28 → 28** — one test REPLACED, the dormant branch's, by one asserting validation no longer judges registration (with its positive control). **Up 21 and three files.** Task 12 alone read **1552 in 115**, twice. The skip is still `api/delivery.test.ts`'s and still cannot run: `rehearsal` is Task 14's |
+| `pnpm test:docker` | 185 in 30 files | **185 in 30, 0 skipped, 821 s** — **OWED** (`releases/`, `launch/`, `spec/`), **RUN and UNMOVED — the SIXTH CONSECUTIVE RUN to read 185** (sitting 3 moved it from 180; sittings 4 to 8 each found it unchanged) — **and CHECKED rather than repeated**: grepping all thirty `*.docker.test.ts` for `iamRegistration`, `registeredAttributes`, `computeLaunchReadiness`, `reviewer` and `approve` returns NOTHING, and the five that build a CWL app (`releases/deploy-sso`, `sso/login`, `sso/registration`, `sso/metadata-store`, `runtime/docker/node-ts-mongo`) all build with **no registration row**, which is this task's *no registration, no check* branch. **Task 15's own Docker test is the first thing that will move it** |
+| `pnpm lint` / `typecheck` / `format:check` | clean | clean, before each commit. **`tsc` earned its place twice**: F12, and control T12 (d)'s three layers |
+
+#### What the post-sweep check found — THREE, and the streak since P5b's third sitting holds
+
+**All three were found by opening the thing pointed at and counting it, not by re-reading the
+sentence** — and the second is the same sentence sitting 7's own check corrected, one item later.
+
+**F15 — ONE FACT, TWO PHRASINGS, ACROSS FOUR DOCUMENTS.** This sitting's own sweep wrote the
+Docker tier's result as *"the SIXTH sitting running"* in §2's box, the plan and README and as
+*"FIVE sittings running"* in §7e — for the same measurement. Both were loose: sitting 3 MOVED the
+count to 185 and sittings 4 to 8 each found it unchanged, so it is **the sixth consecutive RUN to
+read 185, five of them unmoved from the run before**. Every copy now says that. **A number that is
+described two ways is a number the next reader has to re-derive**, which is what §9's *a document
+that restates a number drifts from it* means when the number is a count of sittings.
+
+**F16 — *"`rehearsal` is the only unconditional item still `not_built`"* WAS TRUE UNTIL THIS
+SITTING ADDED ONE, and this is sitting 7's F15 exactly, one item later.** `grep "state:
+'not_built'" launch/readiness.ts` returns **THREE** sites: `rehearsal`, `load-rehearsal` (P9's,
+conditional on audience) and now `code-review` (unconditional, non-blocking). ORIENTATION §3 now
+says *the only unconditional **BLOCKING** item*, with the grep and its count beside it. **The
+sentence was inherited from a sweep that was right when it was written** — which is the shape
+§6 names: a wrong pointer is inherited and multiplied unless somebody runs the grep again.
+
+**F17 — §2's box said `pnpm test` takes ~135 s and the run says 121.76 s.** Carried from the
+previous sitting's figure rather than read off this sitting's own output, where `Duration` is
+printed on every run. Corrected to ~122 s.
+
+**AND THE FOUR HTML PAGES WERE CHECKED AND DELIBERATELY NOT CHANGED.** They are shared outside the
+team and describe what a *person* can do. Sitting 8 adds an interface with no screen, a checklist
+item that renders through the existing generic renderer, and a build refusal reachable only once an
+administrator has recorded a registration over the API — **nothing an outsider could click has
+moved**, and `manifest-decisions.html` drifts only when a decision changes, which none did (D33 was
+applied before this plan began). Saying that here is the requirement (§6), not skipping them
+silently. `WALKTHROUGH.md` is unchanged for the same reason, and `CLAUDE.md` because no plan
+started or finished and nothing in its *Outstanding* line moved.
