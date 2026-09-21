@@ -92,7 +92,17 @@ console.manifest.internal {
 		# The edge does NO SPA fallback and it PRESERVES `Host: console.manifest.internal`
 		# (Task 1, M1) — so whatever serves 7104 owes both. `vite.config.ts` carries
 		# `allowedHosts`, and Vite's own `appType: 'spa'` serves index.html for an unknown path.
-		reverse_proxy host.docker.internal:7104
+		#
+		# `stream_close_delay`, FOR THE SAME REASON AS THE API's ABOVE (P6a sitting 10). `vite
+		# dev` holds a WebSocket through this proxy for hot reload, and when a config reload
+		# closes it Vite RELOADS THE WHOLE PAGE — so every deploy anywhere on the platform
+		# reloaded every open console, and a person who pressed *Run the rehearsal* lost its
+		# answer to the rehearsal's own production deploy. Measured: a page open since 9:24:26
+		# reconnected at 9:26:01, mid-deploy, with nobody touching it. `vite preview` holds no
+		# socket and was never affected.
+		reverse_proxy host.docker.internal:7104 {
+			stream_close_delay 1h
+		}
 	}
 }
 
