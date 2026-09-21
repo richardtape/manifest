@@ -1091,8 +1091,8 @@ makes the third move a one-line edit instead of a six-document sweep. *(A prose 
 | P6a Tasks 8–9 (sitting 6, step-up re-authentication) | 2 | 19 | 9.5 |
 | P6a Tasks 10–11 (sitting 7, the approval and its diff snapshot) | 2 | 15 | 7.5 |
 | P6a Tasks 12–13 (sitting 8, the Reviewer seam and §7's last production clause) | 2 | 17 | 8.5 |
-| P6a Tasks 14–15 (sitting 9, the rehearsal and the first production deploy) | 2 | 17 | 8.5 |
-| **P6a, in flight** | **15 of 19** | **141** | **9.4** |
+| P6a Tasks 14–15 (sitting 9, the rehearsal and the first production deploy) | 2 | 18 | 9.0 |
+| **P6a, in flight** | **15 of 19** | **142** | **9.5** |
 
 ***P5a's total and every P5b row above were added on 2026-09-18, by P5b sitting 6.** They had
 been missing since P5a finished — five consecutive P5b sittings closed out without them, each

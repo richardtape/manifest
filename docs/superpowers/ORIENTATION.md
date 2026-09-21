@@ -1520,6 +1520,14 @@ which is why P1's **offline** acceptance can only run after a successful seed.
   and a hand-written curl walk drops it silently. `infra/lib/idp-login.sh` has always posted both
   — **use that file rather than writing the walk again**, which is what it exists for; a second
   implementation drifted on its first outing.
+- **REMOVING `127.0.0.3` FROM `lo0` TURNS A 40-SECOND `make verify` INTO A TEN-MINUTE ONE**
+  (2026-09-20). Several checks probe that address and each burns the full **75-second**
+  connect timeout — *the public listener answers a production name* and *all three §23
+  platform zones serve with a trusted certificate* both did. **Inside a window like that, run
+  the ONE check you are measuring** (`check_public_listener`) rather than the whole suite, or
+  pass `--connect-timeout`. And **put the restore in a `trap … EXIT INT TERM`**: the run that
+  found this was `^C`'d halfway and the alias went back on the way out, which is the only
+  reason the machine was left as it was found.
 - **`make verify` NEEDS HOMEBREW'S OPENSSL, AND macOS'S OWN REPORTS A GOOD CERTIFICATE AS
   UNPARSEABLE** (2026-09-20). `/usr/bin/openssl` is LibreSSL and has no `x509 -ext`, which
   `control_plane_sp_keypair` uses to read the SAN — so with `/opt/homebrew/bin` off PATH the
@@ -1949,7 +1957,18 @@ by the demo, its **production** containers, network and volumes created by the l
 Docker tier's own fixture images, and `HEAD` moving to this sitting's commits. **The four
 protected containers all survive** and `caddy-data` is intact.
 
-**ONE CONTROL IS STILL OWED — the offline acceptance below. TASK 2's CONTROL (a) IS DONE.**
+**TASK 2's CONTROL (a) IS NOW CLOSED IN BOTH HALVES, 2026-09-20** — Rich ran the bundled
+script in his own terminal and `make verify` was run INSIDE the window: with `127.0.0.3` off
+`lo0`, *the public listener answers a production name on 127.0.0.3* went **RED** —
+`curl: (28) Failed to connect to cdn.manifest.internal port 443 after 75001 ms` — against
+`54 checks, 0 failed` before and after. Sitting 6's *"would have gone red"* is a measurement
+now. **THE ONLY CONTROL STILL OWED IS THE OFFLINE ACCEPTANCE below.**
+
+**AND IT COST TEN MINUTES RATHER THAN THREE, WHICH IS WORTH KNOWING BEFORE YOU DO ANYTHING
+LIKE IT**: every check that probes `127.0.0.3` waits the full **75-second** connect timeout
+with the alias gone, and there are several, so a 40-second `make verify` becomes a ten-minute
+one. Run `check_public_listener` alone inside such a window, or pass `--connect-timeout`.
+The script's trap did its job: `^C` put the alias back on the way out.
 
 **RICH'S FOUR DECISIONS (brief §5) ARE SETTLED — do not re-open them**: R1 is delivered end to
 end; **R2 IS DELIVERED — sitting 9 built the rehearsal and a real CWL sign-in completed**;

@@ -4032,7 +4032,7 @@ and that applies to a throwaway shell pipeline as much as to a committed script.
 
 | | Control | Predicted | Measured |
 |---|---|---|---|
-| 2a | `sudo ifconfig lo0 -alias 127.0.0.3` | doctor red: *"127.0.0.3 not on lo0"* | **FIRED — RUN BY RICH IN HIS OWN TERMINAL, 2026-09-20, four sittings after it was owed.** `19 checks, 1 failed`, and the one is *both loopback aliases exist* — *"127.0.0.3 not on lo0 — Docker will refuse to bind Caddy"*. Restored, `19 checks, 0 failed`, *"127.0.0.2 and 127.0.0.3 present on lo0"*. **Exactly one check moved**, which is what the unprivileged stand-in could not establish |
+| 2a | `sudo ifconfig lo0 -alias 127.0.0.3` | doctor red: *"127.0.0.3 not on lo0"* | **FIRED — RUN BY RICH IN HIS OWN TERMINAL, 2026-09-20, four sittings after it was owed.** `19 checks, 1 failed`, and the one is *both loopback aliases exist* — *"127.0.0.3 not on lo0 — Docker will refuse to bind Caddy"*. Restored, `19 checks, 0 failed`, *"127.0.0.2 and 127.0.0.3 present on lo0"*. **Exactly one check moved**, which is what the unprivileged stand-in could not establish  **AND ITS OTHER HALF IS CLOSED TOO, 2026-09-20 (sitting 9):** `make verify` was run INSIDE the window and *the public listener answers a production name on 127.0.0.3* went RED — `curl: (28) … after 75001 ms` — against 54/0 before and after. Sitting 3's *"would have gone red"* is a measurement. |
 | 2a′ | `PUBLIC_EDGE_IP` pointed at `127.0.0.9`, unprivileged | — | **RED, both new checks**: *"127.0.0.9 not on lo0"* and *"a production name answers 127.0.0.3, want 127.0.0.9"*. Proves the check's logic; does NOT prove a real alias removal, which is why 2a is still owed |
 | 2b | console pin-back removed, `make up` | doctor red on the console half | **RED as predicted**: *"console.manifest.internal answers 127.0.0.3, want 127.0.0.2 — the console is on the PUBLIC address"* |
 | 2c | production parent rule removed, `make up` | doctor red: *"answers 127.0.0.2"* | **RED, different message** — `<nothing>`. See F4 |
@@ -6273,3 +6273,27 @@ and macOS's `/usr/bin/openssl` is LibreSSL, which answers `unknown option -ext`.
 window this script measures, a red check for the wrong reason would have been read as the
 measurement**, so the script now asserts `x509 -ext` works before it touches the alias.
 ORIENTATION §4 carries it.
+
+#### Task 2's control (a) — CLOSED IN BOTH HALVES, and the second half is this sitting's
+
+**Sitting 6's follow-up removed `127.0.0.3` from `lo0` and watched `make doctor` go red. It
+also measured that doctor CANNOT tell you production is reachable** — two checks naming
+`127.0.0.3` stayed green, because they assert what dnsmasq answers — and left `make verify`'s
+half as a PREDICTION: *"it would have gone red too"*. **Rich ran the bundled script in his own
+terminal on 2026-09-20 and it is now a measurement.**
+
+| | `make verify` | *the public listener answers a production name on 127.0.0.3* |
+|---|---|---|
+| **before** | 54 checks, 0 failed | **PASS** — the positive control, without which removing the alias measures nothing |
+| **during** (no `127.0.0.3` on `lo0`) | red | **FAIL** — `curl: (28) Failed to connect to cdn.manifest.internal port 443 after 75001 ms` |
+| **after** (alias restored) | 54 checks, 0 failed | **PASS** |
+
+**F18 — AND IT TOOK TEN MINUTES RATHER THAN THREE, WHICH IS THE THING TO KNOW.** The
+public-listener check's `curl` has a **75-second** connect timeout, and with the address gone
+EVERY check that probes `127.0.0.3` burns it — a second one, *all three §23 platform zones
+serve with a trusted certificate*, did the same 75 s on `chem-labs.manifest.internal`. A
+40-second `make verify` became a ten-minute one and Rich `^C`'d it, which is the right thing
+to have done: **the script's `trap … INT` put the alias back on the way out**, and the *after*
+run confirmed 54/0 with the check green. **Do it the cheap way next time**: run
+`check_public_listener` alone inside the window, or pass `--connect-timeout`. The script was
+written to bundle one privileged step and it bundled a ten-minute suite around it.
