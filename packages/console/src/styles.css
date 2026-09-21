@@ -373,3 +373,10 @@ button:disabled {
   font-size: 1rem;
   margin: 0.5rem 0;
 }
+
+/* An entityID, an ACS and an SLO are whole URLs, and a field showing a dozen characters of
+   one makes a person record a value they could not read (P6a sitting 10, found clicking the
+   records screen against the mock). The date input keeps its own width. */
+.record-form input:not([type='date']) {
+  width: min(34rem, 70vw);
+}

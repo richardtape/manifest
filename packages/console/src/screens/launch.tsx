@@ -263,9 +263,17 @@ export function RehearsalEvidence({ rehearsal }: { rehearsal: Schemas['Rehearsal
       <Field label="Attributes released">
         {evidence.attributesReleased.length === 0
           ? 'none'
-          : evidence.attributesReleased.join(', ')}
+          : [...evidence.attributesReleased].sort().join(', ')}
       </Field>
-      <Field label="Registration lists">{rehearsal.attributes.join(', ')}</Field>
+      {/*
+        BOTH LISTS SORTED, because the reader's job is to compare them. The platform answers
+        each in its own order — the assertion's, and the manifest's — and the first live
+        rehearsal clicked (P6a sitting 10) rendered five names against the same five in a
+        different order, which reads as a mismatch until counted.
+      */}
+      <Field label="Registration lists">
+        {[...rehearsal.attributes].sort().join(', ')}
+      </Field>
       <Field label="Entity ID">
         <code>{rehearsal.entityId}</code>
       </Field>
