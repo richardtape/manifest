@@ -363,10 +363,16 @@ export const APPROVAL: Schemas['Approval'] = {
     resources: { cpu: 1, memory: '512Mi', disk: '1Gi', pids: 64 },
     summary: null,
     summarySource: 'unavailable',
+    // `NullReviewer`'s reason VERBATIM (`launch/review.ts`), which is what `describeVerdict`
+    // stores for `not_performed` — the screen renders this sentence as the platform's own,
+    // so a paraphrase here would teach a front-end developer a sentence the platform never says.
     review: {
       state: 'not_performed',
       reviewer: 'none',
-      detail: 'no code reviewer is configured (D33, §15)',
+      detail:
+        'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the ' +
+        'controls that make that tolerable are containment — default-deny egress, network ' +
+        'isolation, least privilege and edge protections (§20).',
     },
   },
 }

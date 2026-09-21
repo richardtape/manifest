@@ -271,10 +271,12 @@ function EnvironmentPanel({
       </Field>
       <p>
         {/*
-          PRODUCTION'S BUTTON STAYS. It is refused `409
-          RELEASE_PRODUCTION_GATE_UNAVAILABLE`, whose envelope carries `launchReadiness` —
-          hiding it would make the console teach something the platform does not do, and
-          §13's gate is the control, not this button's absence.
+          PRODUCTION'S BUTTON STAYS. It is refused `403 STEP_UP_REQUIRED` until the person
+          has re-proved themselves in the last ten minutes — `<Refusal>` renders that as the
+          link that does it (P6a Task 18) — and then `409 RELEASE_PRODUCTION_GATE_UNAVAILABLE`,
+          whose envelope carries `launchReadiness`, until every blocking item is met. Hiding
+          it would make the console teach something the platform does not do, and §13's
+          gate is the control, not this button's absence.
         */}
         <button
           type="button"

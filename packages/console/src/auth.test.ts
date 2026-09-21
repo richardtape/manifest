@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { signOut } from './auth'
+import { signOut, stepUpUrl } from './auth'
 
 /**
  * THE ONE THING IN auth.ts THAT CAN BE WRONG SILENTLY, tested in Node with no DOM —
@@ -85,5 +85,23 @@ describe('signOut asserts the shape of the answer (D23.7, §20)', () => {
     answering(200)
     await expect(signOut()).rejects.toThrow(/answered 200, not 204/)
     expect(href).toBe('unchanged')
+  })
+})
+
+/**
+ * §20's step-up link (P6a Task 18). The server re-checks `returnTo` (`safeReturnTo`), so the
+ * property this asserts is the ENCODING: a path with a query string must arrive as ONE
+ * parameter, or `?tab=x&y=z` would leave half of itself behind as a second query parameter
+ * of `/auth/step-up` and the person would land somewhere else.
+ */
+describe('stepUpUrl', () => {
+  it('names the step-up endpoint and carries the page back, encoded', () => {
+    expect(stepUpUrl('/releases/abc/approval')).toBe(
+      '/auth/step-up?returnTo=%2Freleases%2Fabc%2Fapproval',
+    )
+    const url = new URL(stepUpUrl('/projects/p?tab=records&x=1'), 'https://c.example')
+    expect(url.pathname).toBe('/auth/step-up')
+    expect([...url.searchParams.keys()]).toEqual(['returnTo'])
+    expect(url.searchParams.get('returnTo')).toBe('/projects/p?tab=records&x=1')
   })
 })

@@ -3,6 +3,7 @@ import { ManifestApiError, type Schemas } from '@manifest/contract'
 import { createApi } from './api'
 import { signIn, signOut } from './auth'
 import { href, useRoute, type Route } from './router'
+import { Approval } from './screens/approvals'
 import { Blueprints } from './screens/blueprints'
 import { Fleet } from './screens/fleet'
 import { Project } from './screens/project'
@@ -155,6 +156,15 @@ function Screen({ route, isAdmin }: { route: Route; isAdmin: boolean }) {
           api={api}
           projectId={route.projectId}
           tab={route.tab}
+          isAdmin={isAdmin}
+        />
+      )
+    case 'approval':
+      return (
+        <Approval
+          key={route.releaseId}
+          api={api}
+          releaseId={route.releaseId}
           isAdmin={isAdmin}
         />
       )

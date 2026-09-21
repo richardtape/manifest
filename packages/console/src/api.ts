@@ -417,6 +417,61 @@ export function createApi(options: ApiOptions) {
       )
     },
 
+    /**
+     * §13's APPROVAL. Interactive only, a platform administrator only, and behind §20's
+     * step-up: a session that has not re-proved itself in the last ten minutes is refused
+     * `403 STEP_UP_REQUIRED`, whose `<Refusal>` is the link that does it (P6a Tasks 9, 10).
+     * It binds the BUILD's immutable digest and answers `201` with the diff it was made on.
+     *
+     * **THAT DIFF EXISTS ONLY FROM THIS CALL ON.** `buildDiffSnapshot` runs inside it, and
+     * `getApproval` is `404` until somebody decides — so no client can show an administrator
+     * the diff BEFORE they decide (P6a sitting 10). `reason` is optional here.
+     */
+    async approveRelease(
+      releaseId: string,
+      body: Schemas['ApproveReleaseRequest'],
+      idempotency: string,
+    ): Promise<Schemas['Approval']> {
+      return unwrap(
+        await client.POST('/v1/releases/{releaseId}/approve', {
+          params: { path: { releaseId }, ...key(idempotency) },
+          body,
+        }),
+        'approveRelease',
+      )
+    },
+
+    /** The same four guards; the reason is REQUIRED, because a refusal with no words in it
+     *  is one nobody can act on (D23.7). */
+    async rejectRelease(
+      releaseId: string,
+      body: Schemas['RejectReleaseRequest'],
+      idempotency: string,
+    ): Promise<Schemas['Approval']> {
+      return unwrap(
+        await client.POST('/v1/releases/{releaseId}/reject', {
+          params: { path: { releaseId }, ...key(idempotency) },
+          body,
+        }),
+        'rejectRelease',
+      )
+    },
+
+    /**
+     * The NEWEST decision, with the diff it was made on — readable by anyone who may read
+     * the project, so an owner sees why their release was rejected in the administrator's
+     * own words. **`404 NOT_FOUND` when nobody has decided**, which is also what a release
+     * this person may not see answers; the screen reads the release first to tell them apart.
+     */
+    async getApproval(releaseId: string): Promise<Schemas['Approval']> {
+      return unwrap(
+        await client.GET('/v1/releases/{releaseId}/approval', {
+          params: { path: { releaseId } },
+        }),
+        'getApproval',
+      )
+    },
+
     /** §26's fleet, administrators only — a non-administrator is `403`, not `404`: there is
      *  no tenant's resource to hide (P5a Task 16). */
     async listFleet(): Promise<Schemas['Fleet']> {

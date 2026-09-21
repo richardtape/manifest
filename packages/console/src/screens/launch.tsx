@@ -49,16 +49,17 @@ export function Launch({
       {readiness.value !== undefined && (
         <Checklist
           readiness={readiness.value}
-          actions={
-            isAdmin
+          actions={{
+            ...approvalAction(readiness.value, isAdmin),
+            ...(isAdmin
               ? adminActions({
                   api,
                   projectId,
                   readiness: readiness.value,
                   onChanged: readiness.reload,
                 })
-              : {}
-          }
+              : {}),
+          }}
         />
       )}
     </Panel>
@@ -72,8 +73,8 @@ export function Launch({
  *   that led somewhere would imply otherwise.
  * - **`domain` and `scans` have none**: the first is `met` unconditionally in Phase 1, and
  *   the second is changed by building again, which the Builds panel above already does.
- * - **`admin-approval` is Task 18's**, added with the screen it leads to — a link to a route
- *   the console does not serve yet would be the no-caller shape pointed the other way.
+ * - **`admin-approval` is `approvalAction`'s** below, because it is not an administrator's
+ *   alone: an owner may READ the decision, in the administrator's own words.
  */
 function adminActions({
   api,
@@ -103,6 +104,26 @@ function adminActions({
             />
           ),
         }),
+  }
+}
+
+/**
+ * THE CANDIDATE'S APPROVAL SCREEN (P6a Task 18), linked from `admin-approval` for EVERYONE
+ * who can read this checklist — an administrator decides there, and an owner reads what was
+ * decided and why (`getApproval` is `project:read`). No candidate, no link: there is no
+ * release to approve until something serves staging, and the item's own `why` says so.
+ */
+function approvalAction(
+  readiness: Schemas['LaunchReadiness'],
+  isAdmin: boolean,
+): Partial<Record<LaunchItemId, React.ReactNode>> {
+  if (readiness.candidateReleaseId === null) return {}
+  return {
+    'admin-approval': (
+      <a {...href(`/releases/${readiness.candidateReleaseId}/approval`)}>
+        {isAdmin ? 'Review this release' : 'See this release’s approval'}
+      </a>
+    ),
   }
 }
 

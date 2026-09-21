@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { ManifestApiError, type Schemas } from '@manifest/contract'
+import { stepUpUrl } from './auth'
 
 /** Every screen reads through this, so every refusal reaches one renderer. */
 export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
@@ -75,6 +76,19 @@ export function Refusal({ error }: { error: unknown }) {
         <code>{error.code}</code> — {envelope?.message ?? `HTTP ${error.status}`}
       </p>
       {envelope?.hint !== undefined && <p className="hint">{envelope.hint}</p>}
+      {/*
+        §20's STEP-UP, RENDERED AS THE ACTION IT IS (P6a Task 18). The envelope's hint already
+        says what to do; this is the link that does it, back to the page the person is on.
+        EVERY privileged action in the console reaches here — approving, deploying to
+        production, confirming an agent's question — and none of them needs its own copy.
+      */}
+      {error.code === 'STEP_UP_REQUIRED' && (
+        <p>
+          <a href={stepUpUrl(window.location.pathname + window.location.search)}>
+            Confirm it is you, then try again
+          </a>
+        </p>
+      )}
       {envelope?.details !== undefined && (
         <ul>
           {envelope.details.map((d, i) => (

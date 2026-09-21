@@ -23,6 +23,7 @@ export type Route =
       projectId: string
       tab: 'overview' | 'records' | 'queue' | 'tokens'
     }
+  | { name: 'approval'; releaseId: string }
   | { name: 'unknown'; path: string }
 
 export function parse(path: string): Route {
@@ -35,6 +36,10 @@ export function parse(path: string): Route {
     if (tab === undefined || tab === 'records' || tab === 'queue' || tab === 'tokens')
       return { name: 'project', projectId: parts[1], tab: tab ?? 'overview' }
   }
+  // §13's approval (P6a Task 18). Under the RELEASE, not the project: an approval is about
+  // one release, and the release row names its project.
+  if (parts[0] === 'releases' && parts[1] !== undefined && parts[2] === 'approval')
+    return { name: 'approval', releaseId: parts[1] }
   return { name: 'unknown', path }
 }
 

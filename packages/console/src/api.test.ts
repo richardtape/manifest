@@ -121,6 +121,18 @@ describe('the console’s data layer against manifest-mock', () => {
       expect(readiness.ready).toBe(false)
       // Every item carries why it is in that state and which plan builds it (§13).
       expect(readiness.items.every((i) => i.why.length > 0)).toBe(true)
+      // §13's DECISION, as the approval screen renders it (P6a Task 18): the digest it binds,
+      // the diff it was made on — and the summary's SOURCE, because a null summary is a state
+      // with three meanings and the screen writes a sentence for each rather than a blank.
+      const approval = await a.getApproval(RELEASE_ID)
+      expect(approval.imageDigest).toBe(approval.diff.imageDigest)
+      expect(approval.diff.summary).toBeNull()
+      expect(approval.diff.summarySource).toBe('unavailable')
+      // R4(b): the verdict is shown even when nothing reviewed anything, in the PLATFORM's
+      // words — `NullReviewer`'s reason, which the fixture now carries verbatim.
+      expect(approval.diff.review.state).toBe('not_performed')
+      expect(approval.diff.review.detail).toMatch(/^No code reviewer is configured\./)
+
       // THE PLATFORM'S SEVEN, IN ITS ORDER (P6a Task 17) — the launch panel attaches its
       // actions by these ids, so a fixture naming others would leave every action unrendered
       // while the list still looked complete. And ONE of them does not block (D33).
@@ -249,6 +261,15 @@ describe('the console’s data layer against manifest-mock', () => {
           )
         ).state,
       ).toBe('submitted')
+
+      // §13's approval: BOTH decisions answer `201` with the record, and a rejection carries
+      // its reason. The mock answers one fixture for both (it keeps no state), so this proves
+      // the calls — their paths, bodies and keys — and the platform's tests prove the rest.
+      expect((await a.approveRelease(RELEASE_ID, {}, k())).decision).toBe('approved')
+      expect(
+        (await a.rejectRelease(RELEASE_ID, { reason: 'the PIA does not cover it' }, k()))
+          .releaseId,
+      ).toBe(RELEASE_ID)
 
       // D21's rehearsal. THE ANSWER IS A MEASUREMENT, and these are the three fields the
       // launch panel renders instead of a tick: the listener, what the sign-in answered, and

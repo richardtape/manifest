@@ -6,6 +6,7 @@
  * reason each is outside `/v1`:
  *
  *   GET  /auth/login    a browser-mediated sign-in whose URL the Manifest IdP completes (§9)
+ *   GET  /auth/step-up  §20's re-authentication, the same round trip with ForceAuthn (P6a)
  *   POST /auth/logout   the SLO URL registered beside the ACS (§9)
  *
  * Everything else the console does goes through `api.ts` and `@manifest/contract`.
@@ -22,6 +23,22 @@
  */
 export function signIn(returnTo: string = location.pathname + location.search): void {
   window.location.href = `/auth/login?returnTo=${encodeURIComponent(returnTo)}`
+}
+
+/**
+ * §20's STEP-UP, as a URL (P6a Task 18) — the link `<Refusal>` renders for
+ * `403 STEP_UP_REQUIRED`. `GET /auth/step-up` sends the browser to the IdP with `ForceAuthn`,
+ * which asks for a password AGAIN even though the person is signed in (measured on a warm
+ * cookie jar, P6a sitting 6), and lands back on `returnTo` with the claim on the SAME
+ * session for ten minutes. The request the person was making is NOT replayed: they press
+ * the button again, which is the point — they chose to.
+ *
+ * A URL and not a navigation, because it is rendered as a LINK a person follows, never as a
+ * redirect fired by a refusal. `returnTo` is re-checked server-side by `safeReturnTo`, exactly
+ * as `/auth/login`'s is, so the console does not have to be trusted about it.
+ */
+export function stepUpUrl(returnTo: string): string {
+  return `/auth/step-up?returnTo=${encodeURIComponent(returnTo)}`
 }
 
 /**
