@@ -46,14 +46,16 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # table now carries a row for it.
 #
 # EXPECT_TESTS IS THE *PASSED* COUNT, AND SINCE P6a SITTING 9 THERE IS NO SKIPPED TEST.
-# `pnpm test` prints `Tests  1598 passed (1598)`: Task 14 un-skipped the production gate's
+# `pnpm test` prints `Tests  1604 passed (1604)`: Task 14 un-skipped the production gate's
 # positive control — the one `it.skip` that had been there since Task 7 — so the `| 1 skipped`
-# is gone and the passed count and the total are the same number again. `awk '{print $2}'`
-# reads 1598 from that line either way. Last moved 2026-09-20 by P6a sitting 9 (Tasks 14-15).
-EXPECT_TESTS=1598
-EXPECT_FILES=118
+# is gone and the passed count and the total are the same number. `awk '{print $2}'` reads the
+# passed count from that line either way. Last moved 2026-09-20 by P6a sitting 10 (Tasks
+# 16-18): +6 tests and one file (`releases/gate-integrity.test.ts`), and `make verify` +1 for
+# the registry's realm.
+EXPECT_TESTS=1604
+EXPECT_FILES=119
 EXPECT_DOCTOR=19
-EXPECT_VERIFY=54
+EXPECT_VERIFY=55
 
 STEPS=""
 FAILED=0

@@ -41,8 +41,8 @@
 | 7 | 10–11 | **The approval**: `release:approve`'s first caller ever, bound to an immutable digest, non-repudiable, behind step-up — and its `diff_snapshot` with the AI-written summary that is **recorded as absent rather than blocking** when the model is down | **DONE 2026-09-20.** `release:approve` has a caller: three routes, four guards in order, the BUILD's digest bound, insert-only, and §13's `admin-approval` item reading the row instead of saying `not_built`. Decision 7 is DRIVEN — a server whose LiteLLM client rejects every call answers the approval **`201` with `summary: null`, `summarySource: 'unavailable'` and the diff still in the record**, and the control for it answers `503 AI_BACKEND_UNAVAILABLE`. `pnpm test` **1496 → 1544 passed + 1 SKIPPED in 114 files**; `pnpm test:docker` **OWED and RUN**; doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is the CONTROLS: nine run, six fired, THREE could not fail — and two of those three paid for themselves.** Task 10's (e) could not fail, and writing the case it was aimed at found a **live defect**: a rejection reason made of spaces was answered `500 INTERNAL` by a database CHECK rather than `400` by the schema (F3, fixed). Task 11's (c) could not fail against the test the plan names for it (F6). **The plan passes `deps.ai` to `summariseChanges` and `deps.ai` has no `post`** — it is §10's key lifecycle, so `ServerDeps` gains `llm` (F1). **Decision 11's rebuild branch is unreachable through the platform** and the test says so (F5). **Control (b) does NOT make `[M6]`'s finding live**: `tsc` refuses it, and forced past, `assertStepUp` still refuses the token (F8) |
 | 8 | 12–13 | **R4's `Reviewer` seam** — the interface, the honest `NullReviewer`, its real caller and its **non-blocking** checklist item — and **§7's last production clause**: `auth.attributes` ⊆ `registered_attributes`, failing at build time | **DONE 2026-09-20.** R4's seam has ONE real caller — `buildDiffSnapshot` asks `ServerDeps.reviewer` about the release's OWN build — and `code-review` is the checklist's LAST item, `blocking: false`. A build asking for a CWL attribute UBC IAM did not register FAILS before the driver runs, the reason its log's last line. `pnpm test` **1544 → 1565 passed + 1 SKIPPED in 117 files**; doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is a HOLE the plan's design leaves: the build can only check a registration that exists when it runs, and §9 makes the other order NORMAL** — measured `iam-registration: met` for a candidate asking for `sn` against `[ubcEduCwlPuid, mail]`, so a release built before IAM answered could reach production unchecked. The checklist item now reads the candidate's attributes too (F9). **And §7's check ALREADY EXISTED, since P2, behind a context field no caller ever passed** — the plan would have added a second one under a second code (F8). **All nine runnable controls fired as predicted; the plan's own prediction for Task 12's (d) did not hold**, because this sitting added two `tsc` layers it could not know about |
 | 9 | 14–15 | **The D21 rehearsal as R2 redefines it**, and **the first production deploy this platform has ever done** — the digest verified before anything starts. **A first, and this project's worst discoveries have all arrived at a first** | **DONE 2026-09-20. AN APPLICATION IS IN PRODUCTION**: `journey-app` answers on 127.0.0.3 as the instance the deploy started, with all six blocking items met — the two external records, a rehearsal whose CWL sign-in released exactly the five attributes registered, and an approval an administrator made after the IdP re-prompted them. Migration **0020** adds `rehearsals`; `deployRelease` verifies the approved digest before anything starts; the production deploy route asks for step-up. `pnpm test` **1565 + 1 skipped → 1598 passed, 0 skipped, 118 files** — the skip Task 7 left is GONE. **No task boundary moved.** **Its headline is that §8 SENDS A PRODUCTION APP TO REAL UBC SHIBBOLETH, so R2's rehearsal could not pass on this laptop at all** — found by driving it, fixed by `InjectionContext.purpose`, which moves three URLs and nothing else. **Control (c) DID NOT FIRE and was worth all the others**: the evidence was derived from intent, so a rehearsal that deployed to staging recorded *"production, public listener"* with all seven Docker tests green |
-| 10 | 16–18 | **Gate integrity asserted** (the registry's refusal, the laptop-image rule, the append-only record) and **both console tasks**: readiness with actions, the two external records, approvals and the step-up prompt | ← **next** — **the console tasks need a person at a browser** (§20's step-up prompt is a second IdP hop, and an agent cannot type a password) |
-| 11 | 19 | **The acceptance**: `make demo-production` — an app reaches production with every blocking item honestly met — its offline-acceptance step, its `ci-acceptance` step, and its negative controls. **Alone, and last** | |
+| 10 | 16–18 | **Gate integrity asserted** (the registry's refusal, the laptop-image rule, the append-only record) and **both console tasks**: readiness with actions, the two external records, approvals and the step-up prompt | **DONE 2026-09-20. AN APPLICATION REACHED PRODUCTION THROUGH THE CONSOLE, CLICKED** — Rich typed the password twice (sign-in, and the step-up re-prompt on a browser the IdP had signed in minutes before) and the agent drove every page: records along §9's arrows (an illegal jump refused `409 LAUNCH_TRANSITION_INVALID`), the rehearsal rendered as its measurement, the approval refused `403 STEP_UP_REQUIRED` with the link that does it, `ready: yes`, and `127.0.0.3` answering as the production instance. §13's five *Integrity of the gate* claims are all falsifiable; **`DELIBERATELY_UNCALLED` is EMPTY — all 41 operations have a caller.** `pnpm test` **1598 → 1604 in 119 files**; `pnpm test:docker` **192 → 194 in 31** (OWED twice, run twice); verify **54 → 55** (the registry's realm); doctor 19 unmoved. **No task boundary moved.** **Its headline is that NO CLIENT CAN SHOW THE DIFF BEFORE THE DECISION** — `buildDiffSnapshot` runs inside the approve call, so §13's *"exact diff shown at decision time"* is shown after it (§8, Rich's). **Clicking found a live defect no gate could see**: every deploy reloaded every open `vite dev` console, so the rehearsal lost its own answer — one Caddyfile line, FIXED and measured both ways. **The realm test's registry half could not fail**: it signed with a key the registry never trusted |
+| 11 | 19 | **The acceptance**: `make demo-production` — an app reaches production with every blocking item honestly met — its offline-acceptance step, its `ci-acceptance` step, and its negative controls. **Alone, and last** | ← **next** — read Task 19's *Sitting 10 correction block* first |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -3527,6 +3527,46 @@ git commit -m "feat(console): the approval screen, the step-up prompt, and D22's
 
 ## Task 19: The acceptance — `make demo-production`
 
+> ### Sitting 10 correction block — 2026-09-20. **Read this before the sitting 9 block below.**
+>
+> *Sitting 10 built both console screens and CLICKED the whole launch through them, live,
+> against `journey-app`. Its record is sitting 10's section of* What executing this plan
+> found*; these are the parts that change how this task runs.*
+>
+> **1. STEP 5's FOUR "ONLY A PERSON CAN PROVE" ROWS HAVE BEEN PROVED BY A PERSON** — the IdP
+> re-prompted a browser it had signed in minutes before, the step-up link went back to the page
+> it came from, the summary's absent state rendered as a sentence (`unavailable` against the
+> mock, `no-previous-release` live), and R4's *"No code reviewer is configured"* rendered. The
+> ACCEPTANCE's clicked half is still this task's: run it as the acceptance and record it, or
+> cite sitting 10's table and say that you did — never assume it.
+>
+> **2. SERVE THE CONSOLE WITH `vite preview` FOR THE CLICKED HALF.** Under `vite dev` every
+> deploy anywhere reloaded every open console until sitting 10 put `stream_close_delay` on the
+> console's proxy (F17, fixed) — and `make demo-journey` STILL reloads a `vite dev` page, by
+> rebuilding `@manifest/contract` (F18). `vite preview` holds no socket and is the Caddyfile's
+> own stated acceptance mode.
+>
+> **3. `make demo-journey`'s RE-USE PATH FAILS TWO CHECKS on a project whose launch records
+> exist** (F21). After a `pnpm test` the tables are empty and it passes; after a launch it does
+> not. **`make demo-production` should launch its OWN project** — `launch-app`, as Step 2 says —
+> not `journey-app`, or every later `demo-journey` inherits its records.
+>
+> **4. AN ADMINISTRATOR REACHES SOMEBODY ELSE'S PROJECT THROUGH §26's FLEET**, which links each
+> project now (F11); `GET /v1/projects` answers them with their own.
+>
+> **5. THE COUNTS THIS TASK STARTS FROM** are `pnpm test` **1604 in 119**, `pnpm test:docker`
+> **194 in 31**, `make doctor` **19**, `make verify` **55** — and sitting 10 moved
+> `scripts/ci-acceptance.sh`'s `EXPECT_` lines to match. Step 4 moves them again only for what
+> this task adds.
+>
+> **6. NEVER RUN A SECOND VITEST PROCESS BESIDE `pnpm test`** (F22): the global setup deletes
+> the shared test repositories and truncates the shared tables in BOTH, and the running suite
+> goes red with `SOURCE_GIT_FAILED`.
+>
+> **7. TWO GAPS THIS TASK MUST NOT MISTAKE FOR ITS OWN**: the approval's actor is a user id no
+> client can resolve (F16), and no client can show the diff before the decision (F15, §8). The
+> demo asserts what exists.
+
 > ### Sitting 9 correction block — EXECUTED 2026-09-20. **Step 2's table is wrong in four places now, and the whole sequence has been DRIVEN.**
 >
 > *Sitting 9 ran this task's sequence by hand against `journey-app` and put an application
@@ -3659,6 +3699,9 @@ git commit -m "feat: make demo-production — an app reaches production with eve
 
 - **D9.2 — subsequent releases, and `isSensitiveDiff`'s first caller. THIS IS P6b AND IT IS THE WHOLE OF P6b.** `spec/diff.ts` has held `isSensitiveDiff`, `SENSITIVE_FIELDS` and `describeDiff` since P2 with **no caller for approval purposes**; P6a calls `describeDiff` (Task 11) and deliberately does **not** call `isSensitiveDiff`. **And P6b inherits one thing from a brief that is not P6's**: [`2026-09-19-authoring-api-brief.md`](./2026-09-19-authoring-api-brief.md) measured that **an app can be deployed through the API and cannot be created through it** — zero `PATCH` or `PUT`, no repository reference, `validateSpec` reads `manifest.yaml` rather than writing it. **The moment a write path for `manifest.yaml` exists, an agent can request new `auth.attributes`, `egress.allow`, `services`, `data.classification` or `ai.models` — five of §7's seven sensitive fields — and P6b's re-escalation is the only thing that would stop it.** Today that gate has never had to refuse a hostile change because nothing can make one. **Write P6b's controls as though something will.**
 - **The `auth.attributes` → IAM change request path** (§9, D16). P6a refuses the build (Task 13) and names the change request in the message; **it does not create or track one.** P6b.
+- **A diff an administrator can see BEFORE approving** (sitting 10, F15). `buildDiffSnapshot` runs inside `POST …/approve` and `…/reject`, so §13's *"exact diff shown at decision time"* is shown after it. **P6b's whole subject is that diff**, and the honest version is not a preview read alone — the summary is written per call — but a preview that is STORED and that the approval binds. **Rich's decision; ORIENTATION §8.**
+- **A name for the approval's actor** (sitting 10, F16). `decidedBy` is a user id and no operation resolves another person's id; P6b renders decisions to owners and will meet it first.
+- **Database-level non-repudiation for `approvals`** (sitting 10, F5). `manifest_app` holds `UPDATE` and `DELETE` on the table; the guarantee is the code's, asserted by `releases/gate-integrity.test.ts`. The shape to copy is `audit.incidents`' — a grant, and a test of `42501` and of the cascade route. A hardening item, not a plan.
 - **A real `Reviewer` implementation.** `SemgrepReviewer` is a **tracked hardening item** in the roadmap, not a plan (R4e), and it is **advisory before blocking** for the reason §12 gives for the scan gate. **When it is built, its negative control is a corpus of PLANTED DEFECTS** (R4g) — an AI reviewing AI-written code fails **silently**, and *a green result is not evidence a control is in force* applies with unusual force, because no ordinary test can assert that a model noticed something. **Written down here because it is the part most likely to be skipped later.**
 - **The AI summary's security dimension** (R4d). P6a stores the reviewer's verdict in the snapshot and renders it; **P6b makes the summary itself security-aware.** Its stated coverage limit travels with it: under D9 it sees first launches and re-escalations only, **never a self-serve release**.
 - **Custom domains** (§23, P7) — and note that P7's local proof depends on **this plan's `127.0.0.3`**: §23 makes a custom domain production-only and public-listener-only, so the alias Task 2 adds is the target by construction.
@@ -6297,3 +6340,373 @@ to have done: **the script's `trap … INT` put the alias back on the way out**,
 run confirmed 54/0 with the check green. **Do it the cheap way next time**: run
 `check_public_listener` alone inside the window, or pass `--connect-timeout`. The script was
 written to bundle one privileged step and it bundled a ten-minute suite around it.
+
+### Sitting 10 — Tasks 16, 17 and 18, gate integrity and both console screens — 2026-09-20
+
+**AN APPLICATION REACHED PRODUCTION THROUGH THE CONSOLE, CLICKED.** Rich signed in as the
+administrator and typed the password twice — once to sign in, once when the step-up link took
+the browser back to an IdP that had signed it in minutes before — and the agent drove every
+page: the fleet's new link to `journey-app`, the Launch records tab, an IAM registration
+refused `409 LAUNCH_TRANSITION_INVALID` for jumping straight to `active` and then walked
+`submitted → active`, a PIA walked `submitted → approved`, **D21's rehearsal run from its own
+checklist item and rendered as a measurement** (the public listener, `answered 200 at the
+registered ACS`, five attributes released against five registered), a rejection with no
+reason refused `400 REQUEST_INVALID`, an approval refused `403 STEP_UP_REQUIRED` with the link
+that does the step-up, the approval made after it, the checklist reading `ready: yes`, and
+*Deploy to production*. **`journey-app` then answered on `127.0.0.3` as instance `d704affa-…`
+— the healthy production instance in the database — while the same name on `127.0.0.2`
+answered `200` with no instance header.** Recorded as a GIF, 50 frames
+(`p6a-sitting10-console-production-launch.gif`, in Rich's Downloads).
+
+**§13's *Integrity of the gate* is five claims and all five are now falsifiable**, indexed in
+`releases/gate-integrity.test.ts`; **`DELIBERATELY_UNCALLED` is EMPTY again — all 41
+operations have a console caller** — and **the console found two defects no gate could see**:
+a Caddyfile line that made every deploy reload every open `vite dev` console (F17, fixed and
+measured both ways), and an approval screen that cannot show the diff the approval records
+(F15, raised for Rich).
+
+**THE HEADLINE IS F15: NO CLIENT CAN SHOW THE DIFF BEFORE THE DECISION.** §13 calls the
+approval *"the exact diff shown at decision time"*. `buildDiffSnapshot` — the changes since the
+last approved release, the AI summary and the reviewer's verdict — has ONE caller, `decide()`,
+inside `POST …/approve` and `…/reject`, and `GET …/approval` answers `404` until somebody has
+decided. So the diff is computed at decision time and shown AFTER it. **`DELIBERATELY_UNCALLED`
+is empty and D22's question still answers "not quite"** — a missing operation, which the
+coverage gate cannot see by construction because it reads only what the document declares.
+The screen does not invent a preview; it shows what IS readable first (the digest, the scan,
+the production configuration the diff is computed FROM) and says in words that the diff arrives
+with the decision. ORIENTATION §8 carries the question with three options and a recommendation.
+
+#### The decisions this sitting made
+
+**1. Rich chose to CLICK AT THE END OF THIS SITTING** rather than leave it to Task 19 — asked
+before the sitting started, as §7e said to. The run followed P5c's R3: the agent drove Chrome
+and read every page, Rich typed every password.
+
+**2. Task 16's assertions live beside their fixtures, and `gate-integrity.test.ts` is their
+INDEX.** The realm assertions extend the existing `api/registry-token.docker.test.ts` rather
+than a new `registry-scope` file (the plan offered both); the production laptop-image cases and
+the project-delete cascade sit in `releases.test.ts`, where `fixture`, `releaseFrom` and
+`approveFor` are; the new file holds the structural scan and a table of which test holds each
+of §13's five claims. *Rejected:* one file holding all five, which would copy three fixtures.
+
+**3. The realm test's positive control COMPLETES A PUSH of the empty blob** rather than
+opening and cancelling one (F4). *Rejected:* a pull as the positive control — the claim is
+about pushes.
+
+**4. `make verify` gains a SEPARATE realm check (54 → 55)** rather than tightening the
+anonymous one, so a wrong realm and a missing token scheme fail under different names.
+
+**5. Database-level non-repudiation is NAMED AND NOT BUILT** (F5). A `REVOKE UPDATE, DELETE ON
+approvals FROM manifest_app` is the shape `audit.incidents` already has; it is a change to the
+platform's roles in a sitting whose tasks are assertions and two screens. *Changing course* is
+one grant line and a test in the style of `observability/incidents.test.ts`.
+
+**6. The approval screen is built against the API as it stands, and adds no route** (F15).
+The plan's Tasks 17 and 18 are callers; a preview read alone would not close the gap, because
+the summary is written per call and the stored and the previewed could differ. §8.
+
+**7. `admin-approval`'s action is for EVERYONE who may read the project**, worded by role —
+*Review this release* for an administrator, *See this release's approval* for an owner —
+because `getApproval` is `project:read` and an owner must read a rejection's words. The plan's
+snippet gave it to administrators only.
+
+**8. The fleet LINKS its projects** (F11), and `manifest-mock`'s fixtures describe ONE moment
+in the platform's own vocabulary (F10).
+
+**9. The console's `vite dev` defect was FIXED IN THIS SITTING** (F17) — one Caddyfile line —
+and measured both ways with a bare staging redeploy as the trigger, which made
+`pnpm test:docker` owed a second time for `infra/`.
+
+#### The findings
+
+**F1 — THE REALM TEST'S "THE REGISTRY AGREES" HALF COULD NOT FAIL.** It signed tokens with
+`testIssuer()` — a self-signed `CN=manifest-test-issuer` pair — and `registry:2` trusts exactly
+one certificate, `infra/registry-auth/token.crt`, `CN=manifest-control-plane`. So its `401` was
+answered for the SIGNATURE, and would have been for a token granting everything.
+`dockerDriverForTests` says so in its own doc comment. **Measured by control (f):** with the
+test issuer restored, the new positive control goes red (`expected 401 to be 202`) and BOTH
+refusals stay green — which is the old file exactly.
+
+**F2 — THE PLAN'S PREMISE WAS WRONG: the registry's refusal WAS asserted.** Task 16's snippet
+says *"Nothing in this repository has ever asserted it"*; `api/registry-token.docker.test.ts`
+(P3) and `runtime/docker/registry-auth.test.ts` both did. What was missing was the positive
+control — and F1 is what that absence hid. *Grep before you build*, for the third sitting
+running.
+
+**F3 — `make verify` NEVER ASSERTED WHICH REALM.** *"the registry refuses an anonymous request
+and advertises its realm"* greps for `Bearer realm=` — any realm — and *"accepts a correctly
+scoped token"* uses `mint-token.mjs`, which asks no realm at all. **Measured by control (a′):**
+`REGISTRY_AUTH_TOKEN_REALM` pointed at port 7199 — a registry no build could get a token from —
+left both existing checks and all three realm tests GREEN; the new check alone went red.
+
+**F4 — `registry:2` CANNOT CANCEL AN UPLOAD CLEANLY.** A cancel is a `DELETE`, which it
+authorizes as the `delete` action (the push token that opened the upload is answered `401`);
+with a `delete` grant it answers `204` and still leaves `_uploads/<uuid>/hashstates/` behind —
+`distribution` 2.8.3 re-writes the hash state as the request closes — and its purger skips an
+upload with no `startedat`. **Two residue directories were removed by hand from
+`local/scopetest/_uploads`, both this sitting's, each checked by its `startedat` first.**
+Completing the push removes the upload directory; every repository already carries an empty
+`_uploads` (measured over all seventeen).
+
+**F5 — NON-REPUDIATION IS A PROPERTY OF THE CODE, NOT OF THE DATABASE.** Measured with
+`has_table_privilege`: `manifest_app` holds `UPDATE` and `DELETE` on `public.approvals` (and
+not `TRUNCATE`), while it holds only `SELECT` and `INSERT` on `audit.events` — and
+`audit.incidents` refuses all three with `42501`, with the cascade route closed as well
+(`observability/incidents.test.ts`). The approval record has neither. Decision 5.
+
+**F6 — THE REHEARSAL IS EXCUSED THE DIGEST CHECK, AND NOTHING ASSERTED IT WAS NOT EXCUSED THE
+LAPTOP-IMAGE RULE.** `purpose: 'rehearsal'` (sitting 9's decision 1) skips the approval check
+and the two checks sit side by side in `deployRelease`; a branch that returned early would put
+a `local/` image onto remote production for the length of a rehearsal with every test green.
+Asserted now, beside the production case — **which itself needs an APPROVAL to reach the rule**,
+or the test passes on `RELEASE_DIGEST_NOT_APPROVED`.
+
+**F7 — THE PLAN'S STRUCTURAL SNIPPET PASSES FOR ANY OTHER NAME.**
+`expect(Object.keys(approvalModule)).not.toContain('updateApproval')` is satisfied by an
+updater called anything else, in any other module. Replaced by a scan of every production
+source file for `.update(approvals` / `.delete(approvals` and their raw-SQL forms, **with a
+positive control — the same scan finding the one `.insert(approvals` in `releases/approval.ts`
+and nowhere else** — and the one path that deletes a project asserted unable to reach an
+approval (`23503`, with an empty project deleted first as its own positive control).
+
+**F8 — THE PLAN'S CONTROL (c) PREDICTION WAS FAR TOO NARROW**: *"both promotion tests red, in
+opposite directions"*. Inverting `assertPromotable`'s branch refuses every local-driver deploy
+in the suite: **76 red across 7 files** — `releases.test.ts` 55, `api/delivery.test.ts` 8,
+`authz-contract.test.ts` 5, `promotion.test.ts` 3, `approval.test.ts` 3, `lifecycle.test.ts`
+and `stream-contract.test.ts` 1 each. Predicted in writing as *"wide, more than 20 in more than
+4 files"*.
+
+**F9 — `DELIBERATELY_UNCALLED` HELD SEVEN ENTRIES, NOT NONE.** *Read this first* 18 says it is
+EMPTY; sittings 4, 7 and 9 each parked their operations there naming Task 17 or 18 as the
+remover. Tasks 17 and 18 removed all seven, and the document was counted — **41 operations**,
+not assumed from 34 + 7.
+
+**F10 — THE MOCK ALREADY ANSWERED ALL SEVEN, AND ITS FIXTURES DESCRIBED AN APP THE PLATFORM
+COULD NOT RUN.** Task 17's Step 4 was done (sittings 4, 7 and 9). But the release asked for
+`puid`, `displayName` and `email` — none of them among the seven names §9's IdP can release
+(`sso/attributes.ts`) — while the registration listed `displayName`; the IAM and rehearsal
+fixtures named `chem-labs`, a slug no other fixture uses; the checklist was three illustrative
+items with `domain` `not_built`, which its own comment named Task 17 to reconcile; the approval
+was missing from the validation table `server.ts` answers it through; and the review line
+paraphrased `NullReviewer`. **`tsc` and Ajv see none of the vocabulary**: every one of those
+fields is a bare string array in the document — `Token.capabilities`' shape (P5c sitting 8),
+for the third time.
+
+**F11 — NO SCREEN LED AN ADMINISTRATOR TO A PROJECT THEY MUST ACT ON.** `GET /v1/projects`
+answers an administrator with their OWN projects (sitting 9's F13), and the fleet named every
+project and linked none — while recording UBC's answers, running the rehearsal and approving
+are all an administrator's, on somebody else's project. Seen live: the operator's *My projects*
+was empty. The fleet links now.
+
+**F12 — THE PLAN'S TASK 17 CONTROL (b) IS WRONG ABOUT `tsc`.** *"`tsc` does NOT see it (P5c
+sitting 8, F1)"* — that was a bare `string[]`. A state is an enum: `PRIVACY_ASSESSMENT.state =
+'pending'` is `TS2322` as well as Ajv-red, and two `api.test.ts` cases go red because the mock
+refuses to send it.
+
+**F13 — `pnpm test` IS GREEN WITH A CONSOLE SCREEN THAT DOES NOT PARSE.** Found by accident: the
+first attempt at control (c) left a stray `)` in `records.tsx`, and all 20 console tests passed
+while `tsc` and ESLint reported the parse error. No test imports a screen; `tsc`, lint and the
+build are the only gates that read one. P5c Decision 7's cost, one layer further down than it
+is usually stated.
+
+**F14 — THE MOCK VALIDATES WHAT IT SENDS AND NOT WHAT IT RECEIVES.** Clicked against the mock, a
+rejection with an EMPTY reason answered `201` — with a record saying `approved`; the platform
+answers `400 REQUEST_INVALID — body.reason: Too small` (clicked live). A console that sent an
+invalid body would look correct against `manifest-mock`.
+
+**F15 — NO CLIENT CAN SHOW THE DIFF BEFORE THE DECISION.** The headline, above. ORIENTATION §8.
+
+**F16 — THE NON-REPUDIABLE RECORD NAMES ITS ACTOR BY AN ID NO CLIENT CAN RESOLVE.** `decidedBy`
+is a user id and no operation resolves another person's id to a name — `GET /v1/me` is the
+caller only, members are per project and an administrator is usually not one. Seen live: the
+approval read *"approved 0s ago by d38059d9-…"*. Recorded for P6b, which renders decisions to
+owners.
+
+**F17 — EVERY DEPLOY RELOADED EVERY OPEN `vite dev` CONSOLE, AND THE REHEARSAL LOST ITS OWN
+ANSWER TO IT.** The live run's first rehearsal passed — the activity feed said so — while the
+checklist still read *"Nobody has run it"*, the button was idle, no evidence rendered and the
+page had jumped to the top. The console's `reverse_proxy host.docker.internal:7104` had no
+`stream_close_delay`, which the API's proxy two lines above has carried since P5a for exactly
+this reason: every admin-API change reloads the edge's whole config and closes proxied
+WebSockets, `vite dev` holds one for hot reload, and **Vite reloads the page when it loses it**.
+**Measured both ways with the same bare trigger** — the instructor, signed in through
+`infra/lib/idp-login.sh`'s `idp_login`, `POST`s `/v1/environments/{staging}/deploy` with the
+`releaseId` staging already serves (read off `GET /v1/projects/{id}/environments`), so a route
+moves and NOTHING is built — the script was a sitting scratch file and is not in the tree: **without the
+line, at 21:31:53 mid-deploy, `[vite] server connection lost. Polling for restart...` and a
+reconnect; with it, nothing** — and the staging instance changed both times, so the route
+really moved. `vite preview` holds no socket and was never affected, which is why the rest of
+the clicked run used it. **The first measurement attempt was confounded twice** (F18, and a
+control-plane restart whose boot re-applies IDENTICAL routes — which Caddy treats as a no-op
+and which cuts nothing), and is recorded so that nobody reads it as evidence.
+
+**F18 — `make demo-journey` ALSO RELOADS A `vite dev` CONSOLE, BY REBUILDING
+`@manifest/contract`.** Its first step builds the contract package the console imports, and
+Vite answers a dependency change with a reload — every source file `hot updated` and a
+reconnect, three seconds into the demo and before its deploy. So the demo is not a clean
+trigger for F17 in either direction.
+
+**F19 — THE REHEARSAL'S TWO ATTRIBUTE LISTS RENDERED IN TWO DIFFERENT ORDERS** — the
+assertion's and the manifest's — five names against the same five, which reads as a mismatch
+until counted. Both are sorted now.
+
+**F20 — THE RECORDS FORM SHOWED A DOZEN CHARACTERS OF A URL**, found clicking against the mock;
+an entityID, an ACS and an SLO are whole URLs a person must read before recording. Widened.
+
+**F21 — `make demo-journey`'s RE-USE PATH FAILS ON A PROJECT WHOSE LAUNCH RECORDS EXIST.** Run
+after the clicked launch, two checks went red: *"the two external records are tracked, and
+unmet until an administrator records them — iam: met, pia: met"* and the rehearsal's twin. The
+demo assumes a project with no records; `pnpm test` truncates them, which is how the next
+sitting will normally find it. **Not a platform defect — a precondition Task 19 must know**,
+and a correction block there says so.
+
+**F22 — TWO VITEST PROCESSES CANNOT RUN AT ONCE ON THIS MACHINE, AND THE SECOND CORRUPTS THE
+FIRST.** `vitest.global-setup.ts` — the `unit` and `docker` projects' — runs `rm -rf` over the
+shared `$TMPDIR/manifest-test-repos` and TRUNCATEs the shared tables, at start AND at teardown.
+Running Task 16's Docker realm test for controls (a) and (a′) while the gate run's `pnpm test`
+was in flight turned two `api/credential.test.ts` cases red with `SOURCE_GIT_FAILED … does not
+appear to be a git repository` — their temporary repositories deleted under them. The run was
+discarded and the suite run twice more with nothing beside it: **1604 / 1604 both times.** The
+`packages` project has no global setup, so the console controls run DURING the Docker tier
+did not touch it, and the tier's 194 stands.
+
+#### D22's reckoning — every operation P6a added, and its caller (Task 18, Step 3)
+
+| Operation | Caller |
+|---|---|
+| `getLaunchRecords` | `screens/records.tsx` |
+| `recordIamRegistration` | `screens/records.tsx` |
+| `recordPrivacyAssessment` | `screens/records.tsx` |
+| `runRehearsal` | `screens/launch.tsx` — the rehearsal item's own button |
+| `approveRelease` | `screens/approvals.tsx` |
+| `rejectRelease` | `screens/approvals.tsx` |
+| `getApproval` | `screens/approvals.tsx` |
+
+**`DELIBERATELY_UNCALLED` is EMPTY — no operation needed the first entry.** And beside the list,
+the measurement that is the reason a person reads it (control (a), re-run with all **41**
+operations): **with every operation in `DELIBERATELY_UNCALLED` the gate is GREEN.** An empty
+list is also not a complete API — F15 is the operation that is missing, which this gate cannot
+see by construction because it reads only what the document declares.
+
+#### Driven live, through the edge — the clicked half, shared
+
+| Row | What a person saw |
+|---|---|
+| sign-in | the header `Test Operator opr000001 · administrator`; *My projects* EMPTY (F11) |
+| fleet → project | `journey-app` is a link; four blocking items `unmet`, each with its action; `code-review` *does not block a launch* |
+| IAM, illegal jump | `LAUNCH_TRANSITION_INVALID — an IAM registration cannot go from 'draft' to 'active' — from 'draft' it can only become 'submitted'`, with §9's hint — the console restated no arrow |
+| IAM, along the arrows | `submitted`, then `active`, ticket `IAM-LIVE-10`, five attributes, the release's own request shown beside the field as *requested* |
+| PIA | `submitted`, then `approved`, ticket `PIA-LIVE-10` |
+| rehearsal | *rehearsing… deploying the candidate to its production hostname*; then (under `vite preview`, F17) `passed`, `journey-app.manifest.internal` on the **public** listener, `answered 200 at the registered ACS`, five released against five registered |
+| reject, no reason | `REQUEST_INVALID — body.reason: Too small: expected string to have >=1 characters` |
+| approve | `STEP_UP_REQUIRED — 'release:approve' needs a second authentication round trip (§20)`, the platform's hint, and **Confirm it is you, then try again** |
+| step-up | the link took the browser to the IdP's **password page** although it had signed in there minutes earlier; Rich typed it; the browser landed back on the approval page |
+| approve again | `approved`, the reason, the digest it binds, **Summary: *"A first launch: there is no earlier approved release to compare with, so there is nothing to summarise."*** — words, never a blank; **Code review: `not performed` and `NullReviewer`'s own sentence**; the actor as `d38059d9-…` (F16) |
+| production | `Ready for production: yes`; *Deploy to production*, no second step-up inside the window; `127.0.0.3` answered as instance `d704affa-…` |
+
+**The database said the same, queried before any test run truncated it**: two rehearsals, both
+`passed`, `public`, sign-in `200`, five attributes; the IAM registration `active` with
+`IAM-LIVE-10` and five attributes; the PIA `approved`; **exactly two
+`iam_registration.recorded` events — the refused jump recorded nothing**; one approval,
+`approved`, binding `sha256:bb3b9b19d154…`, the same digest the production instance runs; the
+two rehearsal instances `gone`.
+
+**The same three screens were clicked first against `manifest-mock`** (as an administrator,
+no password), which is where F14, F16's shape and F20 were found, and where the summary's
+`unavailable` sentence was seen — the live run could only reach `no-previous-release`.
+
+**The Chrome extension's click-by-reference missed twice** (the sign-in button, the rehearsal
+button) where a click by coordinate worked, and it cannot read `idp.manifest.internal` at all
+(P5c's F15, again) — both worth knowing before Task 19's clicked half.
+
+#### The negative controls — fifteen: fourteen run, one refused, and the three that CANNOT fail predicted so
+
+**Every one committed first, broken, watched, and restored by path.** Predictions were written
+down before each run, and the table's *Predicted* column is them.
+
+| | Control | Predicted | **Measured** |
+|---|---|---|---|
+| T16 f | the realm test signs with `testIssuer()` again (F1) | positive red; both refusals GREEN | **FIRED EXACTLY** — `expected 401 to be 202`; the refusals green, which is the old file |
+| T16 a | `REGISTRY_AUTH_TOKEN_SERVICE` changed in `compose.yaml`, registry recreated | the realm check and *accepts a scoped token* red; the realm test's positive red, refusals green | **FIRED EXACTLY** — `service="manifest-registry-x"`; `scoped token -> 401` |
+| T16 a′ | `REGISTRY_AUTH_TOKEN_REALM` pointed at 7199 | ONLY the new realm check red | **FIRED EXACTLY** — every other check and all three realm tests GREEN. **This is what the new check is for** (F3) |
+| T16 b | `applyGrantPolicy` grants every repository scope | the two docker refusals red, positive green; 3 unit red | **FIRED** — 2 docker red as predicted; **2 unit, not 3** — my mutation touched repository scopes only and the `registry:catalog` case is not one (my prediction's error) |
+| T16 c | `assertPromotable`'s branch inverted | wide: more than 20 red in more than 4 files | **FIRED WIDE — 76 in 7 files.** The plan predicted *"both promotion tests"* (F8) |
+| T16 d | `recordApproval` updates the newest row | the two-rows test and the structural scan | **FIRED EXACTLY — 2 red** |
+| T16 d′ | an updater under ANOTHER name in ANOTHER module | the structural scan alone | **REFUSED by the permission classifier** as *[Logging/Audit Tampering]*, and not worked around. Argued from (d): the scan reads every production file, and its positive control proves it found the one insert among them |
+| T17 a | `runRehearsal` removed from `api.ts` | coverage red NAMING it; `api.test` red; `tsc` red | **FIRED EXACTLY** — `POST /v1/projects/{projectId}/rehearsal (runRehearsal)`; `a.runRehearsal is not a function`; two `TS2339` |
+| T17 b | a fixture state outside the enum (`'pending'`) | Ajv red — **and `tsc` red too**, contrary to the plan | **FIRED, `tsc` INCLUDED** — `TS2322`; `validate.test` and two `api.test` cases red (F12) |
+| T17 c | the IAM attribute field prefilled from the app's REQUEST | **cannot fail** | **CANNOT FAIL** — tests, `tsc`, lint and the build all green. Only a person reading the form sees it. **Its first attempt left a stray `)` and was green too** (F13) |
+| T17 g | *(mine)* the mock's registration no longer covers the request | the subset assertion red, `tsc` and Ajv green | **FIRED EXACTLY** — `expected [ 'givenName' ] to deeply equal []` |
+| T18 a | every operation in `DELIBERATELY_UNCALLED` | **GREEN** (`[M7]`) | **GREEN**, with all 41 — the reason a person reads the list |
+| T18 b | `<Refusal>`'s step-up branch removed | **cannot fail** | **CANNOT FAIL** — every gate green. The clicked run is what saw it: the link rendered, and following it re-prompted at the IdP |
+| T18 c | the summary rendered as `{summary}` with no null branch | **cannot fail** | **CANNOT FAIL** — every gate green. Clicked: the mock's `unavailable` and the platform's `no-previous-release` both rendered as sentences |
+| F17 | `stream_close_delay` removed from the console proxy | a bare route change reloads a `vite dev` page; with it, nothing | **FIRED BOTH WAYS** — 21:31:53 `server connection lost` without it; silence with it; the route moved both times |
+
+**Three of the fourteen run cannot fail in any tier, all predicted, and that is P5c Decision
+7's stated cost being collected** — the clicked run is the only thing that sees them, and it saw
+all three this sitting.
+
+| Gate | Before | After |
+|---|---|---|
+| `make doctor` | 19 checks, 0 failed | **19, 0 failed** — unmoved; re-run AFTER the second Docker-tier run and after both cleanup scripts |
+| `make verify` | 54 checks, 0 failed | **55, 0 failed** — *the registry's realm is the control plane's, for the service it mints* (F3), watched failing both ways (controls a and a′). Re-run at the same point as doctor |
+| `pnpm test` | 1598 passed, 118 files | **1604 passed, 0 skipped, 119 files**, twice, ALONE, identical (F22 is why "alone" is in this cell). Counted per file: `releases.test.ts` **68 → 71**, `gate-integrity.test.ts` **2 (NEW)**, console `auth.test.ts` **6 → 7** |
+| `pnpm test:docker` | 192 in 31 files | **194 passed, 0 skipped, 31 files — OWED TWICE AND RUN TWICE**: after Task 16 changed a `*.docker.test.ts` (870 s) and after the Caddyfile fix changed `infra/` (865 s). Predicted 192 → 194 in writing before the first |
+| `pnpm lint` / `typecheck` / `format:check` | clean | clean before each of the five code commits; the console BUILDS (`vite build`) after each console change — F13 is why that is worth saying |
+
+#### The machine, at close — queried, not recalled
+
+**Both cleanup scripts were ALLOWED `--apply` and were run — the EIGHTH consecutive sitting.**
+The Docker tier's same seven networks and one volume cleared (the **FOURTEENTH** measurement of
+that cycle); LiteLLM **9 → 5 users**, the three deleted being the tier's recurring
+`p4b-probe-user` and the staging and production users of sitting 9's `journey-app`, whose
+containers this sitting's launch replaced. Both re-measured by the scripts: `none dead`,
+*Nothing to delete*. `make verify` reads **`containers=15 networks=5 volumes=10`** and
+**`runtime routes currently applied: 0`** — the tier restarted the edge. **The database is EMPTY**
+(`projects`, `releases`, `users`, `rehearsals`, `approvals`, `iam_registrations`, `routes`,
+`instances` all 0 — the tier truncates), **21 migrations** are applied, and **nothing listens on
+7100, 7102 or 7104.** Images, with the metric named: `docker images -q` **176**, `sort -u`
+**168**, `127.0.0.1:7107/local/*` **126** — each **+11** on sitting 9's close — of which
+`local/prod-launch` is **11**, one more per Docker-tier run.
+
+**`snapshot-machine.sh` at open and at close, diffed — 102 lines, every one accounted for**:
+timestamps and uptimes; free disk 113 → 112 Gi; `manifest-caddy` restarted by the Caddyfile fix
+and `manifest-registry` recreated by controls (a) and (a′), both on their committed
+configuration; `journey-app`'s staging and production app containers replaced by the clicked
+launch and the bare redeploys, with their `-app-files` volumes; eleven new app images; and
+`HEAD` moving to this sitting's commits. **The four protected containers all survive** —
+`docker-simple-saml-saml-idp-1` was `Exited (0) 2 weeks ago` at the open and is at the close —
+`caddy-data` is intact, and `docker-simple-saml`'s only dirty path is the untracked `cert.zip`.
+**The registry's storage was touched deliberately and by hand once** (F4): two upload
+directories this sitting's own tests left, each checked by its `startedat` before removal.
+
+#### What the post-sweep check found — FIVE, and the streak since P5b's third sitting holds
+
+**Every one found by opening the thing pointed at, or by grepping for the OLD value — never by
+re-reading the sentence.** Three of the five are in this sitting's own sweep.
+
+**F23 — THE ROADMAP'S P6–P11 ROW SAID P6a WAS *"most recently sitting 8"*** through the whole of
+sitting 9 and into this one — a restated sitting number, in the cell whose next sentence says the
+count lives elsewhere. Removed rather than updated, because an updated number is the next stale
+one.
+
+**F24 — THE SCHEMATIC, WHICH IS SHARED OUTSIDE THE TEAM, SAID THE QUEUE SCREEN DID NOT EXIST** —
+*"What is still to come is the screen a person answers those questions in"* and *"not yet the
+queue of questions assistants have asked"* — false since P5c sitting 7 (2026-09-19), and
+contradicted by the same page's own status line, which already said *"the last screen is now
+there too"*. At least three sittings recorded checking the page; the sentences sat below the
+header each of them read. Both fixed, and the status line gained the console launch.
+
+**F25 — THIS SITTING'S OWN CONTROLS HEADING SAID *"fifteen run"* AND ITS CLOSING LINE *"three of
+eighteen"*.** The table has fifteen rows: fourteen run and one refused. Found by counting the
+rows, which is §6's *count what you summarised* applied to a sentence written ten minutes
+earlier.
+
+**F26 — THIS SITTING'S OWN NEW RUNBOOK POINTER NAMED A SECTION THAT DOES NOT EXIST** — *"The
+reference console"*, where the section is *Running the reference console*. Found by grepping the
+name.
+
+**F27 — THIS SITTING'S OWN RECORD POINTED AT A SCRATCHPAD SCRIPT THE NEXT AGENT CANNOT OPEN** —
+F17's trigger, named by path — which is **P6a sitting 8's finding exactly (`9e8f6d7`), two
+sittings later**, in the paragraph whose whole point was a reproducible trigger. The trigger is
+now written out inline.

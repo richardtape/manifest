@@ -94,7 +94,13 @@ reads the SOURCE and Vite bundles `dist/`. A stale `dist/` ships with every gate
 
 `dev` gives HMR (its socket goes through the edge as `wss://console.manifest.internal`,
 measured in P5c sitting 1's M3); `preview` serves the production build and is what the
-acceptance uses. Either way **stop it by port** when you are done —
+acceptance uses. **Vite RELOADS THE PAGE when that socket drops**, which matters more than it
+sounds: until P6a sitting 10 every deploy on the platform dropped it (a route change reloads
+the edge's whole config), so pressing *Run the rehearsal* under `dev` lost its own answer to
+the rehearsal's production deploy. The Caddyfile's console proxy now carries
+`stream_close_delay`, measured both ways — but `make demo-journey` still reloads a `dev` page,
+by rebuilding `@manifest/contract`, and an edge restart still cuts everything. **Click an
+acceptance under `preview`**, which holds no socket. Either way **stop it by port** when you are done —
 `lsof -nP -iTCP:7104 -sTCP:LISTEN -t | xargs kill` — because each shell is its own and
 `kill %1` has no job table to read.
 
@@ -362,8 +368,8 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
-and the current numbers are **`make doctor` 19 / 0 and `make verify` 54 / 0**
-(**All four were re-measured at the close of P6a sitting 9, 2026-09-20 — doctor and verify UNMOVED, because Tasks 14–15 add a route, a migration and refusals and no platform check. `pnpm test` went 1565 passed + 1 skipped → **1598 passed, 0 SKIPPED**, in 118 files: the suite's one skipped test — the production gate's positive control — was UN-SKIPPED by Task 14, which built the last blocking item it was waiting for. `pnpm test:docker` was OWED, RUN and **MOVED for the first time since sitting 3: 185 in 30 → 192 in 31**, by the seven cases of `releases/production.docker.test.ts`, which is the first thing in this repository to deploy a release to production.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+and the current numbers are **`make doctor` 19 / 0 and `make verify` 55 / 0**
+(**All four were re-measured at the close of P6a sitting 10, 2026-09-20. `make verify` went 54 → **55**: one check that the registry's token realm is the control plane's own route, for the service it mints — every earlier check passed whatever realm the registry named. `make doctor` held at 19. `pnpm test` went 1598 → **1604 passed**, in 119 files — §13's *Integrity of the gate* made falsifiable. `pnpm test:docker` was OWED TWICE (a Docker test changed, then the Caddyfile) and RUN TWICE: **192 in 31 → 194 in 31**, the realm test's two new cases.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has TEN steps** — P5a sitting 12 added `make demo-journey` as step 8,
@@ -745,6 +751,13 @@ file and not the section their own work made false. Recorded as a finding in P5b
 *Added by P6a sitting 9, 2026-09-20, which drove this against `journey-app` and put the first
 application this platform has ever launched into production. `make demo-production` is Task 19's
 and does not exist yet; this is how to run it by hand until then.*
+
+**Or click it** (P6a sitting 10): serve the console with `vite preview` (see *Running the
+reference console* above for why not `dev`), sign in as the administrator, open the project from **Fleet**,
+record both answers on its **Launch records** tab, press **Run the rehearsal** on the checklist,
+follow **Review this release**, press **Approve** — and follow **Confirm it is you, then try
+again** when it is refused — then **Deploy to production**. Every step below is what those
+buttons send.
 
 **Every step is an administrator's**, signed in through the edge exactly as *The first administrator*
 below describes, and every mutation carries `Origin: https://console.manifest.internal` and an
