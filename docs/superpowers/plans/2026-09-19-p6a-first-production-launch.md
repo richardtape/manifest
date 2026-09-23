@@ -3703,6 +3703,7 @@ git commit -m "feat: make demo-production — an app reaches production with eve
 - **The `auth.attributes` → IAM change request path** (§9, D16). P6a refuses the build (Task 13) and names the change request in the message; **it does not create or track one.** P6b.
 - **A diff an administrator can see BEFORE approving** (sitting 10, F15). `buildDiffSnapshot` runs inside `POST …/approve` and `…/reject`, so §13's *"exact diff shown at decision time"* is shown after it. **P6b's whole subject is that diff**, and the honest version is not a preview read alone — the summary is written per call — but a preview that is STORED and that the approval binds. **RICH DECIDED ON 2026-09-22 (sitting 11): exactly that — a stored preview the approval binds, built in P6b.** The approve request names the preview; the platform refuses if what it would record now differs.
 - **Whether an approval binds a DIGEST or a RELEASE** (sitting 11, F3). §13 says digest; `latestApprovalFor` finds it by release. The builder is reproducible, so an identical rebuild is a new release with the SAME digest and no approval. Safe for a first launch; for D9.2's re-escalation it decides whether re-approving an identical image is ever asked. P6b decides, and says which.
+- **The PERSON-ONLY class** (Rich, 2026-09-22, Spec action 2's option (c)): `release:approve` and `launch:record` can never be minted into a token, and a token asking for either is refused centrally with no pending action. Both are guarded by `requireSession` per route today; P6b makes it one rule, and adds approval paths that must obey it.
 - **The `code-review` checklist item reads no reviewer** (sitting 11, F7): it is `not_built` whatever the approval's recorded verdict says. Harmless with `NullReviewer`; the first real reviewer, and P6b's security-aware summary (R4d), will need it to read the verdict.
 - **`make demo-production` leaves `launch-app` launched and a rebuilt release in staging**, and a second run re-uses it (sitting 11, F5) — so it is P6b's natural starting state for *a self-serve production redeploy*.
 - **A name for the approval's actor** (sitting 10, F16). `decidedBy` is a user id and no operation resolves another person's id; P6b renders decisions to owners and will meet it first.
@@ -3739,6 +3740,8 @@ It currently reads:
 
 ### 2. §20's step-up list names `release:approve`. **Because the code has two capabilities where the spec has one phrase.**
 
+> **DECIDED BY RICH, 2026-09-22: NEITHER of the two options above, but a third — a PERSON-ONLY class holding `release:approve` and `launch:record`**: no token may be minted holding either, and a token asking is refused outright with no pending action (the confirm-and-retry loop would let a token record the approval). Built in P6b. Spec wording drafted for his reading before it is applied.
+
 §20 reads: *"Step-up re-authentication for the privileged set — approving a release, reading a secret, changing a quota, changing project membership… **The first four are exactly D24's forbidden delegated-token capabilities.**"*
 
 **In the code they are not.** `PRIVILEGED` is `{release:promote, secret:read, quota:set, members:manage}` and **`release:approve` is a separate capability that is not in it** — §13 names the approval and the promotion separately, and P5b implemented both. **Measured as `[M6]`: a platform administrator can mint a delegated token holding `release:approve`**, and the day it got a route (Task 10) an agent could have approved a production release with no person in the loop, which is D14 exactly inverted. **P6a closes it without a spec change** — `requireSession` plus `STEP_UP_GUARDED` — but the spec's sentence is now inaccurate about the code, and that inaccuracy is load-bearing because the next reader will believe *"the first four are exactly D24's"*.
@@ -3748,6 +3751,8 @@ It currently reads:
 **Rich's alternative, which is his to choose and not this plan's to assume:** add `release:approve` to D24's forbidden set, which makes the two lists genuinely identical and is a **change to D24's meaning** — a token could then never hold it, and `assertCapability` would refuse it centrally with a `PendingAction`. **That is the stronger control and it is a larger change.** The plan builds the safe behaviour either way, so neither answer blocks execution.
 
 ### 3. §13's *Residual risk* says **five** sensitive fields; §7 says **seven**.
+
+> **DECIDED BY RICH, 2026-09-22: as proposed — §13 names no number.** Spec wording drafted for his reading before it is applied.
 
 §13: *"only changes to the **five** sensitive fields re-escalate."* §7: *"These **seven** fields, and only these, trigger re-escalation to approval (D9)"*, and `SENSITIVE_FIELDS` has seven. **The number in §13 is stale** — `ai.models` and `blueprint` were added to §7 and §13's prose was not swept, which is §9's *a document that restates a number drifts from it* inside the spec itself.
 

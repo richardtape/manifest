@@ -1922,7 +1922,8 @@ sensitive change that re-escalates and is refused until an administrator approve
   which it reads. State it as a decision with its cost.
 - **`isSensitiveDiff` has had no caller since P2**, and §13's *Residual risk* still says "five
   sensitive fields" where §7 and `SENSITIVE_FIELDS` say SEVEN — P6a's Spec action 3, Rich's, and
-  P6b's whole subject is that sentence. **Ask about it before the plan leans on either number.**
+  P6b's whole subject is that sentence. **Rich decided on 2026-09-22: §13 names no number** (§8, *Decided*) — the plan uses §7's list.
+- **Rich's PERSON-ONLY class (2026-09-22): `release:approve` and `launch:record` can never be held by a token and are refused without a pending action** — P6b builds it, since it adds approval paths (§8, *Decided*).
 - **The `code-review` checklist item reads no reviewer** (sitting 11, F7) — R4d puts the verdict in
   P6b's summary.
 - **`make demo-production` leaves `launch-app` launched**, and re-uses it on a second run — the
@@ -1971,7 +1972,7 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 
 ### Open
 
-- **P6a's THREE PROPOSED SPEC ACTIONS — RAISED 2026-09-19, none applied.** The plan's own
+- **P6a's THREE PROPOSED SPEC ACTIONS — RAISED 2026-09-19. (2) AND (3) WERE DECIDED BY RICH ON 2026-09-22 (see *Decided*) and their spec wording awaits his reading of the exact text; (1) IS STILL OPEN.** The plan's own
   *Spec actions* section has the exact wording for each; they are summarised here because §8 is
   where a decision of Rich's lives. **(1) §21's *honest divergences* item 2**, which says both
   Caddy listeners are on loopback with no separation to enforce — R3 makes that false in its
@@ -1999,16 +2000,6 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
   that the API is complete and it stops being a reliable instrument the moment it becomes a
   product surface. §26's queue table and its non-repudiation rule are unchanged. The full
   proposal is [the interface design brief's §13](plans/2026-09-19-interface-design-brief.md).
-- **Where does the AUTHORING API go, and does it precede the front-end project? — RAISED
-  2026-09-19**, when Rich asked whether the API is complete enough to spec a separate front end
-  against. It is not: an app can be **deployed** through the API and cannot be **created** through
-  it. §17 bundles authoring with sandboxes in Phase 3 and Phase 3 is blocked on **S5**, which is
-  unrun — but the brief measured the split and **most of what a front end needs does not touch S5
-  at all**. [`plans/2026-09-19-authoring-api-brief.md`](plans/2026-09-19-authoring-api-brief.md)
-  has five decisions, all Rich's: whether the no-S5 slice becomes its own plan and where it sits;
-  whether it ships before or after P6b; whether binary files matter for v1; whether the front-end
-  project is specced against the slice or waits for sandboxes; and **whether S5 gets scheduled**.
-  Sized at 8–14 tasks.
 - **Should app containers run with an init (`Init: true`)? — RAISED 2026-09-16 (P5a sitting 2).** An app's PID 1 is its
   own `node`, which never reaps the orphans it adopts, so a process an app starts that leaves children behind turns them
   into zombies holding pids against §12's `PidsLimit` (64 in the S6 fixture) for the container's life — measured with
@@ -2043,6 +2034,12 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 - **Starting the UBC external track (C4)** — the trigger fired 2026-09-15; see §2 and `docs/external-track.md`.
 
 ### Decided
+
+- **§13's *Residual risk* names NO number of sensitive fields** — *"only changes to the sensitive fields §7 lists re-escalate"* — rather than five or seven (Rich, 2026-09-22; P6a's Spec action 3). Spec wording drafted for his reading; applied once he has seen it. — do not re-raise
+
+- **A PERSON-ONLY class of actions: `release:approve` and `launch:record`** (Rich, 2026-09-22; P6a's Spec action 2, option (c) of three). A delegated token can never be minted holding either, and asking for one is refused outright — **not** turned into a pending action, because each is a record that a named person decided, and the confirm-and-retry loop would let a token make that record. *Rejected:* documenting the route-level guard only (a future route could forget it); adding `release:approve` to D24's four (the confirm path would let an agent's retry record the approval). **Built in P6b**, which adds approval paths; the code today already guards both by `requireSession`. Spec wording (§20's step-up bullet and D24's row) drafted for Rich's reading. — do not re-raise
+
+- **The authoring API: its own Phase 2 plan, placed P6b → GitHub source driver → authoring slice** (Rich, 2026-09-22), with **text files only in v1**, **the front-end project specced against that slice** rather than waiting for sandboxes, and **S5 not scheduled until after the slice**. Why after GitHub: the slice writes through `SourceDriver`, which the GitHub plan gives a second implementation and puts the build path behind — so the write path is designed once, and API commits reach GitHub from the start. The cost, accepted: a front-end team waits one plan longer. [`plans/2026-09-19-authoring-api-brief.md`](plans/2026-09-19-authoring-api-brief.md) §6. — do not re-raise
 
 - **An administrator sees the approval's diff BEFORE deciding — as a STORED preview that the approval binds, built in P6b** (Rich, 2026-09-22; raised by P6a sitting 10's F15). Rich asked what the diff is *of*; D9's answer settled it — an administrator approves a first launch and afterwards only a re-escalation, and a re-escalation's diff is the whole question. *Rejected:* a preview read alone (the summary can differ from the record), §13 saying "computed at" (a spec change that weakens non-repudiation), building it in P6a. P6a's sitting 11 record, *Rich's decision this sitting*; P6b inherits it through P6a's *What this plan does not build*. — do not re-raise
 
