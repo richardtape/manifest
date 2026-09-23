@@ -20,7 +20,11 @@ acceptance that passes. **P6 was split into P6a and P6b on 2026-09-19, and P6a �
 production launch — IS EXECUTED** (`docs/superpowers/plans/2026-09-19-p6a-first-production-launch.md`,
 all 19 tasks in the eleven agreed sittings, 2026-09-19 → 2026-09-22): an application reaches
 production with every blocking item honestly met, and `make demo-production` proves it. **P6b —
-subsequent releases — is NEXT, and is to be WRITTEN** from P6a's record; ORIENTATION §7e says how.
+subsequent releases — IS WRITTEN** (`docs/superpowers/plans/2026-09-22-p6b-subsequent-releases.md`,
+2026-09-22, eleven tasks) **and its sitting 1 — Task 1, the measurements — is NEXT**; ORIENTATION §7e
+says how. **Three of its questions are Rich's** (ORIENTATION §8, *Open*): the sitting count (eight
+recommended), whether removing a CWL attribute waits for IAM (its one proposed spec action), and
+whether a sensitive change returns an approved PIA to `draft`. None blocks sitting 1.
 **P6a raised three spec actions and ALL THREE were approved and APPLIED on 2026-09-22**: §13
 names no number of sensitive fields, §20 and D24 gain a *person-only* class, and §21's divergence 2
 now describes the real listener split and what stays divergent. **Rich decided on 2026-09-22 that an administrator sees the approval's diff before
