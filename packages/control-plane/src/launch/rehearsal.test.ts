@@ -173,6 +173,9 @@ describe('§13’s rehearsal item, met by a measurement (R2)', () => {
       expect(item.state).toBe('met')
       expect(item.why).toContain('SHAPE of the registration')
       expect(item.why).toContain('proves nothing about UBC')
+      // Plain words: the console renders `why` as text, so markdown arrives as literal
+      // asterisks in front of a person (P6a sitting 11, seen clicking).
+      expect(item.why).not.toContain('**')
       expect(item.why).toContain('external-track obligation')
       // And it names the MEASUREMENT rather than asserting a tick: the listener it ran on
       // and how many attributes the assertion actually released.

@@ -446,7 +446,7 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       owner: 'Manifest',
       blocking: true,
       state: 'met',
-      why: "A production-shaped rehearsal passed on 2026-09-20: the app was deployed to its production hostname on the public listener, its Service Provider was registered with production values, and one CWL sign-in completed releasing 3 attribute(s). **This proves the SHAPE of the registration — the entityID, the ACS URL, the attribute release and the certificate all work together. It proves nothing about UBC's acceptance of it**: the Manifest IdP is not real Shibboleth (D6), and the run against UBC's staging IdP that D21 describes remains an external-track obligation (§9).",
+      why: "A production-shaped rehearsal passed on 2026-09-20: the app was deployed to its production hostname on the public listener, its Service Provider was registered with production values, and one CWL sign-in completed releasing 3 attribute(s). This proves the SHAPE of the registration — the entityID, the ACS URL, the attribute release and the certificate all work together. It proves nothing about UBC's acceptance of it: the Manifest IdP is not real Shibboleth (D6), and the run against UBC's staging IdP that D21 describes remains an external-track obligation (§9).",
     },
     {
       id: 'scans',
