@@ -647,6 +647,58 @@ describe('releases (§13)', () => {
     })
   })
 
+  it('refuses a build of ANOTHER project — the second, independent read of the scope (P6b Task 3)', async () => {
+    /**
+     * The route scopes the build lookup to the project first, so through the API this read
+     * is never the one that refuses — and removing it left every route test green (Task 3's
+     * control (d)). A guard nothing can see alone is a guard someone can delete, so it is
+     * held here, below the route.
+     */
+    await withRollback(async (db) => {
+      const { user, project, appSpec } = await fixture(db)
+      const driver = createFakeDriver()
+      const build = await buildToEnd(
+        { db: db, driver: driver, bus: bus },
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          appSpecId: appSpec.id,
+          commitSha: appSpec.commitSha,
+          blueprintRef: project.blueprintRef,
+          repoPath: '/tmp/chem-labs.git',
+        },
+      )
+      const { project: other } = await createProject(
+        db,
+        config,
+        await testReservedLabels(),
+        {
+          slug: 'bio-labs',
+          ownerId: user.id,
+          blueprintRef: 'fixture-node@1',
+          starter: null,
+          audience: testAudience(user.id),
+        },
+      )
+      const input = {
+        buildId: build.id,
+        appSpecId: appSpec.id,
+        createdBy: user.id,
+        resolvedConfig: RESOLVED,
+      }
+      const attempt = createRelease(db, { ...input, projectId: other.id })
+      await expect(attempt).rejects.toBeInstanceOf(ReleaseError)
+      await expect(attempt).rejects.toMatchObject({ code: 'RELEASE_BUILD_NOT_FOUND' })
+      // The positive half: the same build, released under its own project.
+      await expect(
+        createRelease(db, { ...input, projectId: project.id }),
+      ).resolves.toMatchObject({
+        projectId: project.id,
+        buildId: build.id,
+      })
+    })
+  })
+
   it('deploys a release to staging and reaches healthy', async () => {
     await withRollback(async (db) => {
       const { user, project, appSpec, byKind } = await fixture(db)
