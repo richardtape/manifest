@@ -173,7 +173,7 @@ describeDocker('a redeploy through deployRelease (§11 Redeploys)', () => {
       '-c',
       'while [ ! -f /tmp/stop ]; do ' +
         "curl -s --cacert /ca.crt -m 5 -w '|%{http_code}|%header{x-manifest-instance}|END\\n' " +
-        `https://${HOST}/healthz; sleep 0.025; done`,
+        `https://${HOST}/healthz; sleep 0.15; done`,
     ])
   }
   const stopLoop = async (): Promise<
@@ -357,6 +357,14 @@ describeDocker('a redeploy through deployRelease (§11 Redeploys)', () => {
     expect(seen.length).toBeGreaterThan(50)
     expect(seen.filter((r) => r.wildcard)).toEqual([])
     expect(seen.filter((r) => r.status >= 500)).toEqual([])
+    // THE LOOP MUST STAY UNDER THE EDGE'S OWN RATE LIMIT, or the edge answers it and not the
+    // app (P6b sitting 3). Every route carries 600 requests a minute per client IP
+    // (`routing/caddy.ts`), and this loop used to ask every 25 ms — about 40 a second — so
+    // whenever the second build and deploy took longer than ~15 s it was answered `429` with
+    // no instance header until it stopped, never saw the new instance, and failed four
+    // assertions below for a reason none of them names. One request per 150 ms or more is at
+    // most ~400 a minute; a 429 here now says exactly that.
+    expect(seen.filter((r) => r.status === 429)).toEqual([])
     // R1 tolerates the reset a Caddy configuration reload occasionally causes — about
     // one request in 300 per admin change — and counts it rather than failing on it.
     expect(seen.filter((r) => r.status === 0).length).toBeLessThanOrEqual(2)
