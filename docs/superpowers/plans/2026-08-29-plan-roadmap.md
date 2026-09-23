@@ -92,6 +92,18 @@ implied have already been applied to
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
 
+### Spec actions raised by P6a — TWO OF THREE ✅ APPROVED AND APPLIED 2026-09-22
+
+Written in [P6a's *Spec actions*](./2026-09-19-p6a-first-production-launch.md). **Action 3** — §13's
+*Residual risk* now says *"only changes to the sensitive fields §7 lists re-escalate"*, naming no
+number (it said five; §7 says seven). **Action 2**, decided as a third option Rich chose over the
+plan's two — §20's step-up bullet now lists promotion to production and says approving a release is
+not one of D24's four but a stricter **person-only** action; D24's row gains the person-only class
+(approving a release, recording UBC's IAM registration or Privacy Office assessment): no token can
+hold either, and a token that asks is refused outright, not given a pending action. **P6b builds
+it.** Both applied only after Rich read the exact wording; `manifest-decisions.html`'s D24 swept
+to match. **Action 1 — §21's *honest divergences* item 2 — is still Rich's** (ORIENTATION §8).
+
 ### Spec action raised by the P6 brief — ✅ APPROVED AND APPLIED 2026-09-19
 
 **One, and Rich chose a narrower version than was proposed.** The brief's R4 asked what asserts

@@ -7,8 +7,10 @@ import {
 } from './authz.js'
 
 /**
- * §20: "The first four are exactly D24's forbidden delegated-token capabilities ...
- * Keeping the two lists aligned is a test, not a convention." This is that test.
+ * §20: "Promoting, reading a secret, changing a quota and changing membership are exactly
+ * D24's forbidden delegated-token capabilities ... Keeping the lists aligned is a test, not
+ * a convention." This is that test. (Reworded 2026-09-22, when §20 stopped counting approving
+ * a release among them: it is PERSON-ONLY, which P6b builds, and not one of D24's four.)
  *
  * D24's four, in the spec's words: production promotion, secret read, quota change,
  * member management. They are named here as LITERALS on purpose — deriving them from

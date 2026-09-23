@@ -3740,7 +3740,7 @@ It currently reads:
 
 ### 2. §20's step-up list names `release:approve`. **Because the code has two capabilities where the spec has one phrase.**
 
-> **DECIDED BY RICH, 2026-09-22: NEITHER of the two options above, but a third — a PERSON-ONLY class holding `release:approve` and `launch:record`**: no token may be minted holding either, and a token asking is refused outright with no pending action (the confirm-and-retry loop would let a token record the approval). Built in P6b. Spec wording drafted for his reading before it is applied.
+> **DECIDED BY RICH, 2026-09-22: NEITHER of the two options above, but a third — a PERSON-ONLY class holding `release:approve` and `launch:record`**: no token may be minted holding either, and a token asking is refused outright with no pending action (the confirm-and-retry loop would let a token record the approval). Built in P6b. **The wording was APPLIED to §20 and D24 on 2026-09-22 after Rich read it.**
 
 §20 reads: *"Step-up re-authentication for the privileged set — approving a release, reading a secret, changing a quota, changing project membership… **The first four are exactly D24's forbidden delegated-token capabilities.**"*
 
@@ -3752,7 +3752,7 @@ It currently reads:
 
 ### 3. §13's *Residual risk* says **five** sensitive fields; §7 says **seven**.
 
-> **DECIDED BY RICH, 2026-09-22: as proposed — §13 names no number.** Spec wording drafted for his reading before it is applied.
+> **DECIDED BY RICH, 2026-09-22: as proposed — §13 names no number.** **APPLIED on 2026-09-22 after Rich read the wording.**
 
 §13: *"only changes to the **five** sensitive fields re-escalate."* §7: *"These **seven** fields, and only these, trigger re-escalation to approval (D9)"*, and `SENSITIVE_FIELDS` has seven. **The number in §13 is stale** — `ai.models` and `blueprint` were added to §7 and §13's prose was not swept, which is §9's *a document that restates a number drifts from it* inside the spec itself.
 

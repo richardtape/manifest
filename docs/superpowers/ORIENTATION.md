@@ -71,7 +71,7 @@ everything.
 - **~~Watching the edge's `@outside` refusal go red~~ — CLOSED 2026-09-17, and no longer Rich's.** P5a Task 17's control (a) asked for the refusal to be removed from `infra/caddy/Caddyfile` and the edge reloaded; that weakens a running edge, and this machine's classifier refused it twice as *[Security Weaken]*. **It is now proved two ways that do not weaken anything.** (1) `make verify`'s *the console's one allowed source is the platform network's gateway* reads the **Caddyfile on disk**, so removing the rule was watched turning it red — `platform gateway=10.89.0.1 Caddyfile allows= …` — with no `make up` and the edge never reloaded. (2) `routing/edge-source-refusal.docker.test.ts` starts a **throwaway** `manifest-caddy:local` on the platform network with and without the matcher and asserts the answer changes, so the causal link is re-proved on every `pnpm test:docker` instead of once by hand. Both of its directions were watched failing.
 - **§8's open questions.**
 
-**The spec is current.** Every spike's and every plan's spec actions have been applied with Rich's explicit approval — **most recently the P6 brief's R4 on 2026-09-19: D33, §15's extension-hook row and §20's control-map row**, with the four shared HTML pages swept to match (every count 32 → 33). Before that, P5b's four and P5a's six (`491f8be`). **Trust the spec over the spike briefs**, which are preserved as a record of what was originally asked, and **propose any further change; never edit it** (§6).
+**The spec is current.** Every spike's and every plan's spec actions have been applied with Rich's explicit approval — **most recently P6a's Spec actions 2 and 3 on 2026-09-22 — §13's *Residual risk* names no number of sensitive fields, and §20 and D24 gain a *person-only* class (approving a release, recording UBC's IAM or privacy decision) that no token can hold** — each applied only after Rich read the exact wording, with `manifest-decisions.html` swept to match. **P6a's Spec action 1 (§21's divergence 2) is still open (§8).** Before that, the P6 brief's R4 on 2026-09-19 (D33)., with the four shared HTML pages swept to match (every count 32 → 33). Before that, P5b's four and P5a's six (`491f8be`). **Trust the spec over the spike briefs**, which are preserved as a record of what was originally asked, and **propose any further change; never edit it** (§6).
 
 ---
 
@@ -1972,23 +1972,7 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 
 ### Open
 
-- **P6a's THREE PROPOSED SPEC ACTIONS — RAISED 2026-09-19. (2) AND (3) WERE DECIDED BY RICH ON 2026-09-22 (see *Decided*) and their spec wording awaits his reading of the exact text; (1) IS STILL OPEN.** The plan's own
-  *Spec actions* section has the exact wording for each; they are summarised here because §8 is
-  where a decision of Rich's lives. **(1) §21's *honest divergences* item 2**, which says both
-  Caddy listeners are on loopback with no separation to enforce — R3 makes that false in its
-  first clause and it is **rewritten rather than deleted**, stating precisely what remains
-  divergent (both addresses are still loopback on one host). **ITS CONDITION IS MET: Task 1's `[M5]` ran on 2026-09-19 and
-  says the split is affordable — two servers in one container and the dnsmasq pin-backs both
-  work — so the fallback is NOT taken and this action stands, subject to Task 3 landing.** **(2) §20's
-  step-up list says its first four are *"exactly D24's forbidden delegated-token
-  capabilities"* — and in the code they are not**: approving a release is `release:approve`,
-  which is separate from `release:promote`, is not in `PRIVILEGED`, and **a platform admin can
-  mint a delegated token holding it** — **re-measured through the mint route by P6a sitting 1's `[M6]` on 2026-09-19, with `release:promote` refused `400 TOKEN_CAPABILITY_FORBIDDEN` beside it as the control; and CONCRETE THREE TIMES OVER NOW, because sitting 7 gave `release:approve` its first route and sitting 9 gave `release:promote` its first `assertStepUp` call site, so §20's list names two capabilities that both have enforcement and one sentence that describes neither accurately, so this is a fact rather than a reading of the code.** P6a closes the hole with
-  `requireSession` plus step-up and needs no spec change to be safe; the question is whether §20
-  should say so, or whether `release:approve` should join D24's four — **the stronger control and
-  the larger change, and Rich's**. **(3) §13's *Residual risk* says *"only changes to the five
-  sensitive fields re-escalate"* while §7 says SEVEN** and `SENSITIVE_FIELDS` has seven; proposed
-  fix is to name no number. **It matters to P6b, whose whole subject is that sentence.**
+- **P6a's Spec action 1 — §21's *honest divergences* item 2, RAISED 2026-09-19, NOT APPLIED.** It says both Caddy listeners are on loopback with no separation to enforce; P6a's `srv0`/`srv1` split makes its first clause false, so it is **rewritten rather than deleted**, stating what remains divergent (both addresses are still loopback on one host). Its condition — the split landing — is met. The plan's *Spec actions* §1 has the wording. *(Spec actions 2 and 3 were decided AND APPLIED on 2026-09-22 — see Decided.)*
 - **Does the ADMIN CONSOLE get real design effort? — the spec says no, Rich says yes. RAISED
   2026-09-19.** §26's *Scope* reads *"Rudimentary and deliberately so… an operations tool for the
   team running the platform, **not a product surface**, and it inherits `console/`'s quality bar
@@ -2035,9 +2019,9 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 
 ### Decided
 
-- **§13's *Residual risk* names NO number of sensitive fields** — *"only changes to the sensitive fields §7 lists re-escalate"* — rather than five or seven (Rich, 2026-09-22; P6a's Spec action 3). Spec wording drafted for his reading; applied once he has seen it. — do not re-raise
+- **§13's *Residual risk* names NO number of sensitive fields** — *"only changes to the sensitive fields §7 lists re-escalate"* — rather than five or seven (Rich, 2026-09-22; P6a's Spec action 3). **APPLIED to the spec on 2026-09-22 after Rich read the exact wording.** — do not re-raise
 
-- **A PERSON-ONLY class of actions: `release:approve` and `launch:record`** (Rich, 2026-09-22; P6a's Spec action 2, option (c) of three). A delegated token can never be minted holding either, and asking for one is refused outright — **not** turned into a pending action, because each is a record that a named person decided, and the confirm-and-retry loop would let a token make that record. *Rejected:* documenting the route-level guard only (a future route could forget it); adding `release:approve` to D24's four (the confirm path would let an agent's retry record the approval). **Built in P6b**, which adds approval paths; the code today already guards both by `requireSession`. Spec wording (§20's step-up bullet and D24's row) drafted for Rich's reading. — do not re-raise
+- **A PERSON-ONLY class of actions: `release:approve` and `launch:record`** (Rich, 2026-09-22; P6a's Spec action 2, option (c) of three). A delegated token can never be minted holding either, and asking for one is refused outright — **not** turned into a pending action, because each is a record that a named person decided, and the confirm-and-retry loop would let a token make that record. *Rejected:* documenting the route-level guard only (a future route could forget it); adding `release:approve` to D24's four (the confirm path would let an agent's retry record the approval). **Built in P6b**, which adds approval paths; the code today already guards both by `requireSession`. **APPLIED to the spec on 2026-09-22 after Rich read the exact wording** — §20's step-up bullet and D24's row — and `manifest-decisions.html`'s D24 in plain language. — do not re-raise
 
 - **The authoring API: its own Phase 2 plan, placed P6b → GitHub source driver → authoring slice** (Rich, 2026-09-22), with **text files only in v1**, **the front-end project specced against that slice** rather than waiting for sandboxes, and **S5 not scheduled until after the slice**. Why after GitHub: the slice writes through `SourceDriver`, which the GitHub plan gives a second implementation and puts the build path behind — so the write path is designed once, and API commits reach GitHub from the start. The cost, accepted: a front-end team waits one plan longer. [`plans/2026-09-19-authoring-api-brief.md`](plans/2026-09-19-authoring-api-brief.md) §6. — do not re-raise
 

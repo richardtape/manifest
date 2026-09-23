@@ -21,8 +21,9 @@ production launch — IS EXECUTED** (`docs/superpowers/plans/2026-09-19-p6a-firs
 all 19 tasks in the eleven agreed sittings, 2026-09-19 → 2026-09-22): an application reaches
 production with every blocking item honestly met, and `make demo-production` proves it. **P6b —
 subsequent releases — is NEXT, and is to be WRITTEN** from P6a's record; ORIENTATION §7e says how.
-**P6a raised three spec actions and applied none**; they are ORIENTATION §8's first entry and they
-are Rich's. **Rich decided on 2026-09-22 that an administrator sees the approval's diff before
+**P6a raised three spec actions: two were approved and APPLIED on 2026-09-22** (§13 names no number of
+sensitive fields; a *person-only* class in §20 and D24), **and one — §21's divergence 2 — is still
+Rich's**, ORIENTATION §8's first entry. **Rich decided on 2026-09-22 that an administrator sees the approval's diff before
 deciding, as a stored preview the approval binds — in P6b.**
 
 | Plan | Executed | What it made true | Acceptance |
@@ -180,7 +181,7 @@ For the platform itself it is `make doctor` and `make verify`.
   is `*.manifest.internal` and why the edge binds the `127.0.0.2` loopback alias.
 - **Never edit the spec directly.** `docs/superpowers/specs/2026-08-29-manifest-platform-design.md`
   is marked *Approved design*. Record proposed changes and ask — **every spec change this
-  project has made was approved by Rich first**, most recently **D33 on 2026-09-19**. The
+  project has made was approved by Rich first**, most recently **§13, §20 and D24 on 2026-09-22** (P6a's Spec actions 2 and 3). The
   roadmap's *Spec action(s) raised by…* sections are the list; this file deliberately states no
   count, because a restated number drifts (ORIENTATION §9) and this one already had.
   **A spec action is not finished when the spec changes**: the four shared HTML pages restate it
