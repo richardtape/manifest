@@ -92,10 +92,10 @@ the objects a real IAM registration and PIA would populate; **since 2026-09-20 i
 access to UBC's staging IdP, is the ONLY part of a first production launch this platform
 cannot do for itself** — Manifest runs D21's rehearsal locally and says in the checklist that
 it proves the registration's shape and never UBC's acceptance of it), **refreshing the
-vulnerability database with `make seed` and the network on** (past §12's seven days since
-2026-09-23, so `make doctor` carries one true warning and §13's `scans` item refuses every
-production launch until it is refreshed — P6b sitting 3's `make demo-production` needs it; it
-recurs weekly, and it needs the network), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 8**,
+vulnerability database weekly, with the network on** (refreshed 2026-09-23 at the open of P6b
+sitting 3, at Rich's yes; **next due after 2026-09-30** — past §12's seven days `make doctor`
+warns and §13's `scans` item refuses every production launch, so `make demo-production` goes red;
+the one-line refresh is in ORIENTATION §2 *Outstanding*), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 8**,
 applied by the agent session itself and **re-measured by the scripts themselves afterwards**: `dead-app-resources.sh`
 reads `none dead` and `litellm-orphans.sh` reads 0 orphaned. They were clear at sitting 1's close
 too; sitting 2 ran no Docker tier and they stayed clear; **sitting 3 ran one and seven networks,

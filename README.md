@@ -35,7 +35,7 @@ and a Fastify surface with D23.6 idempotency keys and the D23.7 error envelope o
 every failure. The whole faculty lifecycle — project, spec, build, release, staging
 deploy to healthy, production correctly refused with its §13 checklist — runs against
 the fake driver in **~300 ms**, and against **real Docker** through `make demo`.
-**1635 tests with no Docker, and 194 more that need a daemon** — the Docker tier skips nothing, since P4c Task 5 gave the Docker driver the fixtures for the driver contract's continuity block, and **the unit tier's one skipped test is GONE**: it was the production gate's positive control, and P6a's Task 14 un-skipped it by building the last blocking item it was waiting for. *(P6b sitting 2 took the first from 1605 to 1635, 2026-09-23: the person-only class and the sensitive diff over frozen releases. Each earlier sitting's movement is in its plan record.)* See
+**1651 tests with no Docker, and 198 more that need a daemon** — the Docker tier skips nothing, since P4c Task 5 gave the Docker driver the fixtures for the driver contract's continuity block, and **the unit tier's one skipped test is GONE**: it was the production gate's positive control, and P6a's Task 14 un-skipped it by building the last blocking item it was waiting for. *(P6b sitting 3 took the first from 1635 to 1651 and the second from 194 to 198, 2026-09-23: an app has launched, D9.2's second half, and the egress proxy that follows its release. Each earlier sitting's movement is in its plan record.)* See
 [*Running the control plane*](#running-the-control-plane) below.
 
 The design is approved and complete.

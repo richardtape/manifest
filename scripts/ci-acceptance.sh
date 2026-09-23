@@ -55,10 +55,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # found by the acceptance's control (e). Before that, sitting 10: +6 and one file, and
 # `make verify` +1 for the registry's realm. Then P6b sitting 2 (2026-09-23): +30 and two
 # files — the person-only class and the sensitive diff over frozen releases. `make doctor`
-# carries ONE WARNING from that sitting on (a vulnerability database past seven days); a
-# warning is not a check, so EXPECT_DOCTOR does not move.
-EXPECT_TESTS=1635
-EXPECT_FILES=121
+# carried ONE WARNING from that sitting (a vulnerability database past seven days) until P6b
+# sitting 3 refreshed it; a warning is not a check, so EXPECT_DOCTOR never moved. Then P6b
+# sitting 3 (2026-09-23): +16 and one file — an app has launched, and D9.2's second half.
+EXPECT_TESTS=1651
+EXPECT_FILES=122
 EXPECT_DOCTOR=19
 EXPECT_VERIFY=55
 
