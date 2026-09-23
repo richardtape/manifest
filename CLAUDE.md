@@ -14,14 +14,16 @@ statement of the four gate numbers; and the roadmap's ledger
 (`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every other document on
 status.*
 
-**The design is approved and complete, five spikes are done, and P1 to P5c are executed
-and green — PHASE 1c IS COMPLETE.** Every one of them has an acceptance that passes. **P6 was
-split into P6a and P6b on 2026-09-19, and P6a — the first production launch — IS WRITTEN AND
-EXECUTING** (`docs/superpowers/plans/2026-09-19-p6a-first-production-launch.md`, 19 tasks in
-eleven agreed sittings, from `docs/superpowers/plans/2026-09-19-p6-brief.md`). **Its measurement
-sitting has run; ORIENTATION §7e names the exact next job, and this file states no sitting
-count.** P6b is written after P6a executes. **The plan raises three spec actions and applies none**;
-they are ORIENTATION §8's first entry and they are Rich's.
+**The design is approved and complete, five spikes are done, and P1 to P6a are executed
+and green — PHASE 1c IS COMPLETE, and so is Phase 2's first plan.** Every one of them has an
+acceptance that passes. **P6 was split into P6a and P6b on 2026-09-19, and P6a — the first
+production launch — IS EXECUTED** (`docs/superpowers/plans/2026-09-19-p6a-first-production-launch.md`,
+all 19 tasks in the eleven agreed sittings, 2026-09-19 → 2026-09-22): an application reaches
+production with every blocking item honestly met, and `make demo-production` proves it. **P6b —
+subsequent releases — is NEXT, and is to be WRITTEN** from P6a's record; ORIENTATION §7e says how.
+**P6a raised three spec actions and applied none**; they are ORIENTATION §8's first entry and they
+are Rich's. **Rich decided on 2026-09-22 that an administrator sees the approval's diff before
+deciding, as a stored preview the approval binds — in P6b.**
 
 | Plan | Executed | What it made true | Acceptance |
 |---|---|---|---|
@@ -34,6 +36,7 @@ they are ORIENTATION §8's first entry and they are Rich's.
 | P5a | 2026-09-17 | The API is a published contract under `/v1`, driven by a generated client | `make demo-journey` |
 | P5b | 2026-09-18 | An agent acts on a delegated token; D24's privileged four are refused centrally and a person confirms one retry | `make demo-token` |
 | P5c | 2026-09-19 | The clients: `manifest-mock`, `console/` behind its import boundary, the CI acceptance script — and Phase 1c's acceptance | §22's journey clicked by a person **and** run headlessly, over one contract |
+| P6a | 2026-09-22 | The first production launch: §12's public listener, the two external records, the rehearsal, step-up, an approval bound to a digest | `make demo-production`, **and a launch clicked by a person** |
 
 **P5c IS EXECUTED** (`docs/superpowers/plans/2026-09-18-p5c-the-clients.md`, written
 2026-09-18, executed 2026-09-18/19): the clients — `manifest-mock`, `console/` behind its import
@@ -74,9 +77,9 @@ client; it is step 8 of the same script. *Sittings pace the work; they are not �
 Phases.*
 
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
-turning the network off from a tool call cuts the agent off too; **it now has TEN steps**, the
-newest being the console's preflight — that the console builds from the checked-in contract
-and the edge serves its own document, the one claim about the console a script can falsify), the second-machine clean clone, starting the UBC external track
+turning the network off from a tool call cuts the agent off too; **it now has ELEVEN steps**, the
+newest being `make demo-production` — the first production launch, whose approval summary may
+legitimately read `unavailable` offline), the second-machine clean clone, starting the UBC external track
 (its trigger fired on 2026-09-15, and **P6a's R1 makes it more urgent, not less** — P6a builds
 the objects a real IAM registration and PIA would populate; **since 2026-09-20 its item 5,
 access to UBC's staging IdP, is the ONLY part of a first production launch this platform

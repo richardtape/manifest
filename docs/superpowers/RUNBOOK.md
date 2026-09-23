@@ -369,12 +369,14 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 19 / 0 and `make verify` 55 / 0**
-(**All four were re-measured at the close of P6a sitting 10, 2026-09-20. `make verify` went 54 → **55**: one check that the registry's token realm is the control plane's own route, for the service it mints — every earlier check passed whatever realm the registry named. `make doctor` held at 19. `pnpm test` went 1598 → **1604 passed**, in 119 files — §13's *Integrity of the gate* made falsifiable. `pnpm test:docker` was OWED TWICE (a Docker test changed, then the Caddyfile) and RUN TWICE: **192 in 31 → 194 in 31**, the realm test's two new cases.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured at the close of P6a sitting 11, 2026-09-22. `pnpm test` went 1604 → **1605 passed**, in 119 files — an existing route on the wrong listener is now moved there, found by P6a's acceptance. `pnpm test:docker` was OWED and RUN: **194 in 31, unmoved**. `make doctor` held at 19 and `make verify` at 55.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
-disabling Wi-Fi cuts an agent off too. **It now has TEN steps** — P5a sitting 12 added `make demo-journey` as step 8,
-P5b sitting 9 added `make demo-token` as step 9, and P5c sitting 9 added the console's
-preflight as step 10 (2026-09-19), all guarded by the same control-plane check as steps 6
+disabling Wi-Fi cuts an agent off too. **It now has ELEVEN steps** — P5a sitting 12 added `make demo-journey` as step 8,
+P5b sitting 9 added `make demo-token` as step 9, P5c sitting 9 added the console's
+preflight as step 10 (2026-09-19), and P6a sitting 11 added `make demo-production` as step 11
+(2026-09-22) — whose approval summary may legitimately read `unavailable` offline, which is
+Decision 7 working, not a failure — all guarded by the same control-plane check as steps 6
 and 7. The evidence is left exactly as recorded — a run is a run — and this
 note exists so nobody reads it as today's baseline.
 
@@ -522,6 +524,51 @@ it is what Task 10's expiry sweeper exists for, and §26's queue shows it beside
 `rejected` ones. A `FAIL no step threw — [cause UNABLE_TO_GET_ISSUER_CERT_LOCALLY] TypeError: fetch failed` is a
 run without the platform CA; a demo that does not build stops at step 0 and prints `tsc`'s errors.
 
+## `make demo-production` — P6a's acceptance: the first production launch
+
+*Added by P6a sitting 11, 2026-09-22 (Task 19).*
+
+An application reaches production with every one of §13's six blocking items honestly met,
+through the edge, on its OWN project, `launch-app`. Needs `make up`, **`127.0.0.3` on `lo0`**
+(`make host-setup` adds it; `make reset` does not remove it) and the control plane running, per README.
+
+```bash
+make demo-production        # ~3 minutes; three phases, each ending `every check passed`, exit 0
+```
+
+**The split.** `scripts/demo-production.sh` signs people in and — the new part — **steps them
+up**, both through `infra/lib/idp-login.sh` (`/auth/step-up` is driven exactly as `/auth/login`
+is). `packages/journey/src/production.ts` does everything Manifest's API does, importing nothing
+but `@manifest/contract`, in three phases: **instructor** (create, build, release, staging, refused
+production `403 STEP_UP_REQUIRED`, and the checklist's unmet ids), **admin** (both external records
+along §9's steps with an illegal jump refused, the rehearsal, and the approval refused
+`403 STEP_UP_REQUIRED`), and **launch** (a stepped-up owner refused `409
+RELEASE_PRODUCTION_GATE_UNAVAILABLE` naming only `admin-approval`, the approval, the production
+deploy, the app probed on BOTH addresses, the checklist `ready`, and a rebuild with no approval).
+
+**A step-up is a claim on the session cookie, and sessions are stateless** — so the cookie from
+before the step-up is still an ordinary session afterwards. The script keeps both for each person;
+that is how one run proves the refusal and the approval.
+
+**What a green run prints that a wrong one would not**: the candidate digest; the unmet ids at step
+3 and step 9; the rehearsal's evidence line; the approval's digest, `summarySource` and review
+state; the production instance id beside the `X-Manifest-Instance` each address answered with; and
+whether the rebuild's digest is IDENTICAL to the approved one — **on this machine it always is**,
+because BuildKit pins layer timestamps to the commit (`source-date-epoch`), and the approval is
+still not carried over, because it belongs to a release.
+
+**A second run RE-USES `launch-app`**, because no route deletes a project. It says `the RE-USE path`,
+and step 3's unmet set is then `[admin-approval]` — the records exist, and an earlier rehearsal of
+the same registration still counts (it covers the registration's shape, not a release). After a
+`pnpm test` or a reset it is the fresh path again: `[admin-approval, iam-registration,
+privacy-assessment, rehearsal]`.
+
+**A red phase stops the script** (`set -e`, like every demo), so a red rehearsal never reaches the
+launch phase and its output is not there to read.
+
+**It leaves `launch-app` in production and a rebuilt release serving staging.** A production app on
+this laptop points at UBC's real CWL and signs nobody in — do not read that as a failure.
+
 ## `make ci-acceptance` and `make demo-console` — 1c's acceptance, in two halves
 
 *Added by P5c sitting 8, 2026-09-19 (Task 13).*
@@ -547,7 +594,8 @@ purpose must not fail the run; what must not happen is that it moves and nobody 
 Every step **reports rather than exits** (P4c Decision 26), so a red run is a measurement
 of everything that is broken rather than a stop at the first thing. It runs, in order:
 `make doctor`, `make verify`, `pnpm lint`, `pnpm typecheck`, `pnpm format:check`,
-`pnpm test`, the three package builds, then `make demo-journey` and `make demo-token`.
+`pnpm test`, the three package builds, then `make demo-journey`, `make demo-token` and — last,
+because it leaves `launch-app` in production — `make demo-production`.
 
 **`pnpm test` runs BEFORE the demos and the order is load-bearing**: it TRUNCATES the
 control plane's §6 tables. The other way round it would empty the database the demos had
@@ -749,8 +797,9 @@ file and not the section their own work made false. Recorded as a finding in P5b
 ## Taking an application to PRODUCTION, by hand (§13's checklist, end to end)
 
 *Added by P6a sitting 9, 2026-09-20, which drove this against `journey-app` and put the first
-application this platform has ever launched into production. `make demo-production` is Task 19's
-and does not exist yet; this is how to run it by hand until then.*
+application this platform has ever launched into production. **`make demo-production` now drives
+the whole of it headlessly** (P6a sitting 11, 2026-09-22 — its own section above); this is what
+each of its calls is, for when you need to do one step by hand.*
 
 **Or click it** (P6a sitting 10): serve the console with `vite preview` (see *Running the
 reference console* above for why not `dev`), sign in as the administrator, open the project from **Fleet**,
@@ -1075,8 +1124,11 @@ restarts every container on the machine, so it is a person's call rather than a 
   equally unrun offline; its open question is whether **Ollama** — a host application,
   not a container — answers with the network off. **P5a sitting 12 appended a step 8,
   `make demo-journey`, P5b sitting 9 a step 9, `make demo-token` (2026-09-18), and P5c
-  sitting 9 a step 10, the console's preflight (2026-09-19)** — the
-  script now has ten steps and all five of the appended ones are unrun offline. Step 9
+  sitting 9 a step 10, the console's preflight (2026-09-19), and P6a sitting 11 a step 11,
+  `make demo-production` (2026-09-22)** — the script now has eleven steps and all six of the
+  appended ones are unrun offline. Step 11 is the one most likely to find something: a
+  production launch pulls the approved digest from the registry and signs in at the IdP three
+  times, and its approval summary may read `unavailable` offline, which is Decision 7. Step 9
   should want the network least of any of them: its credential is `node:crypto` and its
   build comes from the same mirror step 6 already exercises.
 - **A redeploy no longer 502s the app or signs anyone out — for apps on the current blueprint.**

@@ -42,7 +42,7 @@
 | 8 | 12–13 | **R4's `Reviewer` seam** — the interface, the honest `NullReviewer`, its real caller and its **non-blocking** checklist item — and **§7's last production clause**: `auth.attributes` ⊆ `registered_attributes`, failing at build time | **DONE 2026-09-20.** R4's seam has ONE real caller — `buildDiffSnapshot` asks `ServerDeps.reviewer` about the release's OWN build — and `code-review` is the checklist's LAST item, `blocking: false`. A build asking for a CWL attribute UBC IAM did not register FAILS before the driver runs, the reason its log's last line. `pnpm test` **1544 → 1565 passed + 1 SKIPPED in 117 files**; doctor 19/0 and verify 54/0 unmoved. **No task boundary moved.** **Its headline is a HOLE the plan's design leaves: the build can only check a registration that exists when it runs, and §9 makes the other order NORMAL** — measured `iam-registration: met` for a candidate asking for `sn` against `[ubcEduCwlPuid, mail]`, so a release built before IAM answered could reach production unchecked. The checklist item now reads the candidate's attributes too (F9). **And §7's check ALREADY EXISTED, since P2, behind a context field no caller ever passed** — the plan would have added a second one under a second code (F8). **All nine runnable controls fired as predicted; the plan's own prediction for Task 12's (d) did not hold**, because this sitting added two `tsc` layers it could not know about |
 | 9 | 14–15 | **The D21 rehearsal as R2 redefines it**, and **the first production deploy this platform has ever done** — the digest verified before anything starts. **A first, and this project's worst discoveries have all arrived at a first** | **DONE 2026-09-20. AN APPLICATION IS IN PRODUCTION**: `journey-app` answers on 127.0.0.3 as the instance the deploy started, with all six blocking items met — the two external records, a rehearsal whose CWL sign-in released exactly the five attributes registered, and an approval an administrator made after the IdP re-prompted them. Migration **0020** adds `rehearsals`; `deployRelease` verifies the approved digest before anything starts; the production deploy route asks for step-up. `pnpm test` **1565 + 1 skipped → 1598 passed, 0 skipped, 118 files** — the skip Task 7 left is GONE. **No task boundary moved.** **Its headline is that §8 SENDS A PRODUCTION APP TO REAL UBC SHIBBOLETH, so R2's rehearsal could not pass on this laptop at all** — found by driving it, fixed by `InjectionContext.purpose`, which moves three URLs and nothing else. **Control (c) DID NOT FIRE and was worth all the others**: the evidence was derived from intent, so a rehearsal that deployed to staging recorded *"production, public listener"* with all seven Docker tests green |
 | 10 | 16–18 | **Gate integrity asserted** (the registry's refusal, the laptop-image rule, the append-only record) and **both console tasks**: readiness with actions, the two external records, approvals and the step-up prompt | **DONE 2026-09-20. AN APPLICATION REACHED PRODUCTION THROUGH THE CONSOLE, CLICKED** — Rich typed the password twice (sign-in, and the step-up re-prompt on a browser the IdP had signed in minutes before) and the agent drove every page: records along §9's arrows (an illegal jump refused `409 LAUNCH_TRANSITION_INVALID`), the rehearsal rendered as its measurement, the approval refused `403 STEP_UP_REQUIRED` with the link that does it, `ready: yes`, and `127.0.0.3` answering as the production instance. §13's five *Integrity of the gate* claims are all falsifiable; **`DELIBERATELY_UNCALLED` is EMPTY — all 41 operations have a caller.** `pnpm test` **1598 → 1604 in 119 files**; `pnpm test:docker` **192 → 194 in 31** (OWED twice, run twice); verify **54 → 55** (the registry's realm); doctor 19 unmoved. **No task boundary moved.** **Its headline is that NO CLIENT CAN SHOW THE DIFF BEFORE THE DECISION** — `buildDiffSnapshot` runs inside the approve call, so §13's *"exact diff shown at decision time"* is shown after it (§8, Rich's). **Clicking found a live defect no gate could see**: every deploy reloaded every open `vite dev` console, so the rehearsal lost its own answer — one Caddyfile line, FIXED and measured both ways. **The realm test's registry half could not fail**: it signed with a key the registry never trusted |
-| 11 | 19 | **The acceptance**: `make demo-production` — an app reaches production with every blocking item honestly met — its offline-acceptance step, its `ci-acceptance` step, and its negative controls. **Alone, and last** | ← **next** — read Task 19's *Sitting 10 correction block* first |
+| 11 | 19 | **The acceptance**: `make demo-production` — an app reaches production with every blocking item honestly met — its offline-acceptance step, its `ci-acceptance` step, and its negative controls. **Alone, and last** | **DONE 2026-09-22. P6a IS EXECUTED.** `make demo-production` is green on the fresh path, the re-use path, from an `echo reset \| make reset` machine, and on the final code; it is step 11 of the offline acceptance and the last step of `make ci-acceptance`. **Rich clicked a whole launch through the console**, typing the password twice. `pnpm test` **1604 → 1605 in 119**. **No task boundary moved.** **Its headline is control (e): it stayed GREEN, and the reason was a live fail-open** — `applyRoute` patched an existing route in place, so a production route kept whatever listener held it; fixed and watched both ways. **Clicking found two console defects no gate could see** (a stale checklist, literal markdown), both fixed. **The builder is reproducible**, so Decision 11's premise is false here and P6b inherits the question. **Rich decided the diff question: a stored preview the approval binds, in P6b** |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -3527,6 +3527,8 @@ git commit -m "feat(console): the approval screen, the step-up prompt, and D22's
 
 ## Task 19: The acceptance — `make demo-production`
 
+> ### EXECUTED 2026-09-22, sitting 11. **The record is sitting 11's section of *What executing this plan found*.** Step 2's table was run as the sitting 9 block corrects it, with two further changes the running platform forced: step 10 asserts that the rebuild is a NEW RELEASE with no approval and PRINTS the digest comparison, because the builder is reproducible (F3); and a second run re-uses `launch-app`, because no route deletes a project (F5). **The demo is `scripts/demo-production.sh` + `packages/journey/src/production.ts`; `make demo-production` runs it.**
+
 > ### Sitting 10 correction block — 2026-09-20. **Read this before the sitting 9 block below.**
 >
 > *Sitting 10 built both console screens and CLICKED the whole launch through them, live,
@@ -3699,7 +3701,10 @@ git commit -m "feat: make demo-production — an app reaches production with eve
 
 - **D9.2 — subsequent releases, and `isSensitiveDiff`'s first caller. THIS IS P6b AND IT IS THE WHOLE OF P6b.** `spec/diff.ts` has held `isSensitiveDiff`, `SENSITIVE_FIELDS` and `describeDiff` since P2 with **no caller for approval purposes**; P6a calls `describeDiff` (Task 11) and deliberately does **not** call `isSensitiveDiff`. **And P6b inherits one thing from a brief that is not P6's**: [`2026-09-19-authoring-api-brief.md`](./2026-09-19-authoring-api-brief.md) measured that **an app can be deployed through the API and cannot be created through it** — zero `PATCH` or `PUT`, no repository reference, `validateSpec` reads `manifest.yaml` rather than writing it. **The moment a write path for `manifest.yaml` exists, an agent can request new `auth.attributes`, `egress.allow`, `services`, `data.classification` or `ai.models` — five of §7's seven sensitive fields — and P6b's re-escalation is the only thing that would stop it.** Today that gate has never had to refuse a hostile change because nothing can make one. **Write P6b's controls as though something will.**
 - **The `auth.attributes` → IAM change request path** (§9, D16). P6a refuses the build (Task 13) and names the change request in the message; **it does not create or track one.** P6b.
-- **A diff an administrator can see BEFORE approving** (sitting 10, F15). `buildDiffSnapshot` runs inside `POST …/approve` and `…/reject`, so §13's *"exact diff shown at decision time"* is shown after it. **P6b's whole subject is that diff**, and the honest version is not a preview read alone — the summary is written per call — but a preview that is STORED and that the approval binds. **Rich's decision; ORIENTATION §8.**
+- **A diff an administrator can see BEFORE approving** (sitting 10, F15). `buildDiffSnapshot` runs inside `POST …/approve` and `…/reject`, so §13's *"exact diff shown at decision time"* is shown after it. **P6b's whole subject is that diff**, and the honest version is not a preview read alone — the summary is written per call — but a preview that is STORED and that the approval binds. **RICH DECIDED ON 2026-09-22 (sitting 11): exactly that — a stored preview the approval binds, built in P6b.** The approve request names the preview; the platform refuses if what it would record now differs.
+- **Whether an approval binds a DIGEST or a RELEASE** (sitting 11, F3). §13 says digest; `latestApprovalFor` finds it by release. The builder is reproducible, so an identical rebuild is a new release with the SAME digest and no approval. Safe for a first launch; for D9.2's re-escalation it decides whether re-approving an identical image is ever asked. P6b decides, and says which.
+- **The `code-review` checklist item reads no reviewer** (sitting 11, F7): it is `not_built` whatever the approval's recorded verdict says. Harmless with `NullReviewer`; the first real reviewer, and P6b's security-aware summary (R4d), will need it to read the verdict.
+- **`make demo-production` leaves `launch-app` launched and a rebuilt release in staging**, and a second run re-uses it (sitting 11, F5) — so it is P6b's natural starting state for *a self-serve production redeploy*.
 - **A name for the approval's actor** (sitting 10, F16). `decidedBy` is a user id and no operation resolves another person's id; P6b renders decisions to owners and will meet it first.
 - **Database-level non-repudiation for `approvals`** (sitting 10, F5). `manifest_app` holds `UPDATE` and `DELETE` on the table; the guarantee is the code's, asserted by `releases/gate-integrity.test.ts`. The shape to copy is `audit.incidents`' — a grant, and a test of `42501` and of the cascade route. A hardening item, not a plan.
 - **A real `Reviewer` implementation.** `SemgrepReviewer` is a **tracked hardening item** in the roadmap, not a plan (R4e), and it is **advisory before blocking** for the reason §12 gives for the scan gate. **When it is built, its negative control is a corpus of PLANTED DEFECTS** (R4g) — an AI reviewing AI-written code fails **silently**, and *a green result is not evidence a control is in force* applies with unusual force, because no ordinary test can assert that a model noticed something. **Written down here because it is the part most likely to be skipped later.**
@@ -6710,3 +6715,264 @@ name.
 F17's trigger, named by path — which is **P6a sitting 8's finding exactly (`9e8f6d7`), two
 sittings later**, in the paragraph whose whole point was a reproducible trigger. The trigger is
 now written out inline.
+
+### Sitting 11 — Task 19, the acceptance, alone and last — 2026-09-22
+
+**P6a IS EXECUTED. `make demo-production` puts an application into production with every one of
+§13's six blocking items honestly met, through the edge, by nothing but the generated client — and
+it is green on all three paths the plan asks for**: run A on the machine as the last `pnpm test`
+left it (the fresh path), run B on the re-use path, and run C from an `echo reset | make reset`
+machine — plus run D, the re-use path again, on the final code after this sitting's routing fix.
+**And Rich clicked a whole launch through the console** — a project created on the screen, built,
+staged, recorded, rehearsed, refused, stepped up, approved and deployed — typing the password
+twice, recorded as `p6a-task19-clicked-launch.gif`.
+
+**Its headline is that the acceptance's CONTROL (e) STAYED GREEN, and the reason was a live
+fail-open in §12's split** (F6): `applyRoute` patched an existing route in place by `@id`, which
+names no server, so a production route kept whatever listener already held it. Change the public
+server's name in configuration and every production route stays on the INTERNAL listener, on
+every redeploy, silently. Fixed, and watched moving both ways.
+
+#### Rich's decision this sitting
+
+**The diff before approving (§8, raised by sitting 10's F15) — DECIDED 2026-09-22: a STORED
+preview that the approval binds, built in P6b.** Rich was shown the three options and asked what
+the diff is *of*; the answer that settled it is D9's own shape — an administrator approves an app's
+FIRST launch, and afterwards only a release that changes one of §7's seven sensitive fields, so the
+diff matters little for a first launch (nothing to compare with; the console already shows what the
+app asks for) and is the whole question for a re-escalation, which is P6b's subject. **P6a closes
+with the gap as it stands**: the console says, in its own words, that the diff is computed at the
+moment of decision and shown after it. *Rejected:* a preview read alone (the model-written summary
+can differ between preview and record); changing §13 to "computed at decision time" (weakens the
+non-repudiation claim); building it in P6a (a twelfth sitting for a gap that bites in P6b).
+
+#### The decisions this sitting made
+
+**1. Three TypeScript phases, split by the step-ups, and BOTH cookies kept per person.** A step-up
+is a claim on a stateless session cookie, so the cookie from before it is still a valid, ordinary
+session afterwards. The shell holds both and hands each phase what it needs — which lets one run
+prove §20's refusal (step 6, the plain admin cookie) AND §13's gate seen by a stepped-up owner
+(step 7, a `409` whose envelope carries the checklist). *Rejected:* one phase with the step-ups done
+up front, which risks §20's ten-minute window on a cold first build and cannot show the refusal.
+
+**2. The OWNER deploys to production, not the administrator.** D9's faculty flow: the administrator
+records and approves, the instructor launches. It costs one more `idp_login` in bash. Sitting 10's
+clicked run had the administrator deploy; this run's clicked half did too, because a person typing
+passwords should not have to sign in as two people.
+
+**3. `idp_login` drives `/auth/step-up` UNCHANGED.** Its hop 1 sends the jar's session, hop 2
+fails unless the IdP serves a login form (so ForceAuthn's re-prompt is asserted for free), and it
+already posts `RelayState` beside the assertion — sitting 9's F11 was a second implementation that
+forgot it. `step_up` in `scripts/demo-production.sh` adds only "the session cookie changed".
+
+**4. There is no route that deletes a project, so the second run RE-USES `launch-app`** (F5) and
+asserts what the platform's own records imply: on the fresh path the unmet set is exactly
+`admin-approval, iam-registration, privacy-assessment, rehearsal`; on the re-use path it is
+`admin-approval` and at most `rehearsal` beside it (F4). The illegal-jump check runs on both paths
+— `draft → active` fresh, `active → submitted` re-used — and both answer
+`409 LAUNCH_TRANSITION_INVALID`.
+
+**5. Step 10 asserts what the platform DOES, not what Decision 11 says** (F3): the rebuild is a new
+release, the new release has no approval, production still serves the approved launch — and the
+digest comparison is PRINTED, not asserted, because on this builder the same commit rebuilds to the
+same digest.
+
+**6. The routing fix (F6) was made in THIS sitting**, not deferred: it is a fail-open in the control
+this plan exists to build, it is small, and its negative control is the acceptance's own control (e).
+The price is a wildcard window during a correction, which should never be routine; a route already
+on its right server is still one in-place PATCH.
+
+**7. `pnpm test:docker` was OWED** — by the routing fix (`routing/`) and the rehearsal text
+(`launch/`), not by Task 19's own files — and was run once, after all four commits.
+
+#### The findings
+
+**F1 — NODE 24's `net` CALLS A CUSTOM `lookup` WITH `{ all: true }` AND WANTS AN ARRAY BACK.** The
+probe that pins an address answered the single-address form and threw `ERR_INVALID_IP_ADDRESS:
+undefined` on the first run — after every earlier step had passed, so the first production deploy
+of the run was never checked. Answers both forms now.
+
+**F2 — THE GLOBAL HTTPS AGENT REUSED THE PUBLIC LISTENER'S SOCKET FOR THE INTERNAL PROBE, AND
+REPORTED A LEAK THAT DID NOT EXIST.** The fourth run read `127.0.0.2 answered 200,
+X-Manifest-Instance: fe068f31…` — the production app on the internal listener, §12 failing. `curl
+--resolve` said otherwise: `127.0.0.2` served the wildcard's empty `200` with no header. The agent
+pools keep-alive sockets by HOSTNAME, not address, so the second probe went over the first probe's
+connection to `127.0.0.3`. **In the other order the same reuse would have reported a real leak as
+the split holding** — the worse direction. `agent: false`, with the reason beside it. *Sitting 2's
+F5 and sitting 9 were right about the platform; the demo's first instrument was wrong about it.*
+
+**F3 — THE BUILDER IS REPRODUCIBLE: THE SAME COMMIT REBUILDS TO THE SAME DIGEST, SO DECISION 11'S
+PREMISE IS FALSE ON THIS MACHINE.** Every run's step 10 printed `IDENTICAL to the approved one` —
+`a7945b31…`, `c9be4fb8…`, `4d578ec2…` — and the clicked console showed two releases side by side
+carrying `a3cfe4666b22`. The build log says why: `rewriting layers with source-date-epoch
+1790132150` — BuildKit pins layer timestamps to the commit. **The approval is not carried over
+anyway**, because it is looked up by RELEASE (`latestApprovalFor`), and a rebuild is a new release;
+that is the safe direction. So the `"rebuilt since it was approved"` branch is unreachable TWICE
+over — sitting 7's F5 (a release's digest is written once) and this. **P6b inherits the
+question**: §13 says an approval *"binds to an immutable image digest"*, and the code binds it to a
+release. For a re-escalation that is the difference between re-approving an identical image and not.
+
+**F4 — THE PLAN-WRITER'S RE-USE EXPECTATION WAS WRONG, AND THE PLATFORM WAS RIGHT: A REHEARSAL
+COVERS A REGISTRATION'S SHAPE, NOT A RELEASE.** The second run's step 3 read `[admin-approval]`
+where this sitting predicted `[admin-approval, rehearsal]`. `rehearsalCovers` compares the ACS and
+the attribute set (Decision 10) — so a rehearsal from an earlier run of the same app legitimately
+still counts for a new release with the same registration. Found by being red.
+
+**F5 — NO ROUTE DELETES A PROJECT**, so an acceptance cannot start from nothing twice without a
+`pnpm test` or a reset between. `make demo-journey`'s re-use path met the same fact (sitting 10's
+F21); this demo was designed around it rather than into it.
+
+**F6 — CONTROL (e) STAYED GREEN, AND IT WAS A LIVE FAIL-OPEN IN §12's SPLIT.** With the control
+plane restarted on `MANIFEST_CADDY_SERVER_PUBLIC=srv0`, every check passed and the production route
+was still on `srv1` (read off the admin API: `srv0` held only `mf-launch-app-staging-…`).
+`applyRoute` resolves the server and then, when the route already exists, PATCHes it by `@id` —
+which names no server — so the route stays wherever it is. The existing unit test's comment even
+said *"patchRoute … names no server at all, so it is only the create-and-restore paths where the
+listener can be got wrong"* — true of getting it wrong, false of putting it right. **Reachable
+whenever the listener names change under a running platform** — at UBC, the day the public server
+is renamed, every live production app would stay on the internal listener. Fixed (`1e692fe`): a
+route not on its server is deleted and put there, with an operator line. **Watched both ways**:
+under the control the route moved `srv1 → srv0` and the rehearsal's deploy failed (step 5, three
+red); on the next normal run it moved back `srv0 → srv1` on its own. `routes.test.ts` 15 → 16,
+watched red first on `["patch mf-app-manifest-internal"]`.
+
+**F7 — CONTROL (g) FIRED WHERE THE PLAN PREDICTED IT WOULD BE INVISIBLE**, because this demo
+asserts the approval's `diff.review.state === 'not_performed'`: a reviewer answering `clean` turned
+exactly that check red. **And it found a gap beside it**: step 9's `code-review` checklist item
+stayed `not_built` beside an approval whose recorded verdict was `clean` — the item is unconditional
+and never reads the reviewer. Harmless today (`NullReviewer` is the only reviewer); the first real
+`SemgrepReviewer` will need the item to read it.
+
+**F8 — CONTROL (a) MEASURED DEFENCE IN DEPTH.** With `assertLaunchable` ignoring `ready`, a
+stepped-up owner's deploy was STILL refused — `409 RELEASE_DIGEST_NOT_APPROVED: no administrator
+approval covers image digest…` — by Task 15's digest check. Two red at step 7, as predicted: the
+gate's code was absent and the checklist with it. §13's two controls are independent, and now that
+is a measurement rather than a design statement.
+
+**F9 — A RED PHASE STOPS THE SHELL, SO THREE CONTROLS NEVER REACHED THE LAUNCH PHASE.**
+`scripts/demo-production.sh` is `set -e`, like every demo; a phase that ends red exits 1. Controls
+(c), (f) and (b) each stopped after their own phase — which is why (b) went red at steps 4 and 5
+where the plan predicted step 9. Left as it is: later phases depend on earlier ones, and a launch
+run after a failed rehearsal would measure nothing. Recorded so the next reader of a red run does
+not look for output that was never produced.
+
+**F10 — CLICKING FOUND THE CONSOLE'S CHECKLIST STALE AFTER A DEPLOY ON THE SAME SCREEN.** *"Candidate
+release: none — nothing is serving staging yet"*, directly beneath staging reading `healthy`. A
+reload showed the right candidate, so the server was right and the panel read the checklist once.
+Fixed (`6c96766`) in the screen's own idiom — re-read on the instance frames the Deploy panel
+already counts (D23.2) — and **watched live**: build, release and deploy to staging on one screen,
+and the candidate moved to the new release with `admin-approval` unmet, no reload. **The fifth
+console defect in two plans that no gate could see.**
+
+**F11 — THE REHEARSAL ITEM'S REASON REACHED A PERSON WITH LITERAL MARKDOWN** — `**This proves the
+SHAPE…**`, asterisks and all, in the checklist. Fixed (`3ddc1de`), the test now refuses `**` in it
+(watched red), and the mock's fixture carried the same sentence. The two OpenAPI descriptions that
+use `**` were left: markdown is right there.
+
+**F12 — `scripts/ci-acceptance.sh` SAID THE OFFLINE ACCEPTANCE HAD *"ten headings numbered 0 to
+9"*** — stale since P5c added step 10; with this sitting's eleventh it would have been two behind.
+Found by opening the file to add the step.
+
+**F13 — `make reset` DOES NOT TOUCH `lo0`: BOTH ALIASES, 127.0.0.2 AND 127.0.0.3, SURVIVED IT.** The
+plan asked for the check (Step 6) because `127.0.0.3` is new in this plan; measured with `ifconfig
+lo0` after `echo reset | make reset` and `make up`. So a reset needs no `make host-setup` — only
+`make up`, the migration and the control plane.
+
+#### Driven live — the clicked half, shared (Rich typed `operator` twice)
+
+| Row | What a person saw |
+|---|---|
+| sign-in | `Test Operator opr000001 · administrator`; *My projects* empty (the reset) |
+| create | `click-launch`, `node-ts-mongo@1`, the proof-app starter — *"click-launch is available"* as it was typed |
+| build | `build.started` then `build.succeeded` on the live Activity panel; the scan's four lines; the log ending `rewriting layers with source-date-epoch` (F3's cause, on screen) |
+| staging | provisioning → `sso.registered` → starting → healthy, streamed; **the checklist below still said "nothing is serving staging yet" (F10)** |
+| IAM, illegal jump | `LAUNCH_TRANSITION_INVALID — an IAM registration cannot go from 'draft' to 'active' — from 'draft' it can only become 'submitted'` |
+| IAM, along the arrows | `submitted`, then `active`, ticket `IAM-CLICK-11`, five attributes, the release's request shown beside the field |
+| PIA | `submitted`, then `approved`, ticket `PIA-CLICK-11`, *UBC Privacy Office* |
+| rehearsal | `passed`, `click-launch.manifest.internal` on the **public** listener, *answered 200 at the registered ACS*, five released against five registered — **and the item's reason with literal `**` (F11)** |
+| approval screen | the release's production configuration; *"the API offers no preview of them, so they appear above once you have"* — the gap §8 now assigns to P6b, in the console's own words |
+| approve | `STEP_UP_REQUIRED — 'release:approve' needs a second authentication round trip (§20)` and **Confirm it is you, then try again** |
+| step-up | the IdP's **password page**, on a browser it had signed in ten minutes earlier; Rich typed it; back on the approval page |
+| approve again | `approved`, the reason, `Binds sha256:a3cfe4666b22…`, *Summary: "A first launch: there is no earlier approved release to compare with, so there is nothing to summarise."*, *Code review: not performed* with `NullReviewer`'s sentence; the actor still an id (sitting 10's F16) |
+| production | *Ready for production: yes*; *Deploy to production* with no second step-up inside the window; the instance's states streamed; `127.0.0.3` answered `X-Manifest-Instance: f5721fb3-…` with `{"status":"ok","mongo":true}` and `127.0.0.2` answered the wildcard's empty body |
+
+**Click-by-reference missed twice again** (the IAM *Record* button and the PIA's second submit);
+click-by-coordinate worked. Sitting 10 said so, and it is still true.
+
+#### The headless runs
+
+| Run | Path | Result | What it printed |
+|---|---|---|---|
+| 1–6 | building the demo | red, then green | F1 (run 1), F4 (runs 2–3), F2 (runs 4–5); run 6 the first green, re-use |
+| **A** | fresh — after `pnpm test` | **green** | unmet `[admin-approval, iam-registration, privacy-assessment, rehearsal]` → `[admin-approval, rehearsal]` → `[admin-approval]` → `[]`; rehearsal 6.0 s; summary `no-previous-release`; production deploy 5230 ms; `127.0.0.3` = instance `9da7fb31…`, `127.0.0.2` no header; rebuild IDENTICAL |
+| **B** | re-use | **green** | unmet `[admin-approval]`; illegal jump `active → submitted` refused; summary **`llm`** |
+| **C** | **from `echo reset | make reset`** | **green** | the fresh path's sets exactly; build 18.1 s; rehearsal 9.0 s; `cd5cdb1c…` on `127.0.0.3` |
+| **D** | re-use, on the final code | **green** | the model's summary, read from the database: *"Nothing in manifest.yaml changed since the last approved release."* — honest, beside an identical digest |
+
+#### The negative controls — seven run, all seven predicted in writing first; six fired, one cannot fail, and one of the six only after its green was chased
+
+| | Control | Predicted | **Measured** |
+|---|---|---|---|
+| c | `assertStepUp` removed from the approve route | step 6, exactly 2 red | **FIRED EXACTLY** — `201 (no envelope)` and the approval read `200`. The launch phase did not run (F9) |
+| g | a reviewer answering `clean` | PLAN: invisible. MINE: 1 red at step 7 | **FIRED, 1 red — the plan was wrong** (F7). `tsc` first refused the verdict without `checked`, which is the seam's type doing its job |
+| f | the rehearsal's sign-in skipped | step 5, 3 red | **FIRED EXACTLY** — *"the IdP released no attributes at all"*, `200 []`, rehearsal unmet |
+| a | `assertLaunchable` ignores `ready` | step 3 green; step 7, 2 red, refused by the digest check instead | **FIRED EXACTLY** — `409 RELEASE_DIGEST_NOT_APPROVED` (F8); steps 8–10 green |
+| e | `MANIFEST_CADDY_SERVER_PUBLIC=srv0` | step 5 and step 8 red | **DID NOT FIRE — every check green (F6).** Chased to `applyRoute`, fixed, re-run: **FIRES, step 5 red on 3 checks**, and `[routing] … was not on srv0 … moving it there` |
+| d | `approvalCoversDigest` compares 19 characters | **cannot fail** in the demo | **CANNOT FAIL — every check green, as predicted.** The approval is found by release, not by digest. Sitting 7's F6 unit test is the only thing that sees it |
+| b | the IAM registration left `submitted` (fresh path) | PLAN: step 9. MINE: steps 4 and 5, launch phase not reached | **FIRED, 3 red at steps 4 and 5** — the plan's prediction did not hold (F9); the rehearsal passed with a submitted registration, as predicted |
+
+| Gate | Before | After |
+|---|---|---|
+| `make doctor` | 19 checks, 0 failed | **19, 0 failed** — unmoved; re-run at the close, AFTER the Docker tier, both cleanup scripts and a control-plane restart |
+| `make verify` | 55 checks, 0 failed | **55, 0 failed** — unmoved, at the same point. **Straight after the reset it read 55 with ONE red** — the audit grant — because no migration had run yet; green once the control plane had migrated (§4 now says so) |
+| `pnpm test` | 1604 passed, 119 files | **1605 passed, 0 skipped, 119 files** — `routing/routes.test.ts` **15 → 16** (F6's case). Run twice ALONE and identical after the demo's commit (1604, the demo adds no test), again after the routing fix (1605), and again after the console and text fixes (1605 — the new `not.toContain('**')` lives inside an existing case). `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` moved to **1605** in the fix's own commit |
+| `pnpm test:docker` | 194 in 31 files | **194 passed, 0 skipped, 31 files, 1394 s — OWED ONCE (by `routing/` and `launch/`), RUN ONCE, after all four commits, and UNMOVED as predicted in writing.** Slower than sitting 10's ~870 s; nothing failed or retried |
+| `pnpm lint` / `typecheck` / `format:check` | clean | clean before each of the four code commits; the console BUILDS after its change |
+| `make demo-production` | did not exist | **green four times** (A fresh, B re-use, C from a reset, D re-use on the final code), each printing its measurements |
+
+#### The machine, at close — queried, not recalled
+
+**Docker Desktop was not running when the session opened**; `open -a Docker` started it and every
+platform container came back healthy on its restart policy. **Both cleanup scripts were ALLOWED
+`--apply` and were run — the ELEVENTH consecutive sitting**: the Docker tier's seven networks and
+one volume (`mf-chem-labs-staging-db-data`) cleared, and LiteLLM **6 → 4 users**, the orphan being
+`p4b-probe-user` again; both re-measured by the scripts afterwards — `none dead`, *Nothing to
+delete*. `make verify` reads **`mf- containers=12 networks=4 volumes=8`** — `launch-app` and
+`click-launch`, each with a production and a staging environment — and **`runtime routes currently
+applied: 0`**, because the tier restarted the edge. **THE DATABASE IS EMPTY** (`projects`,
+`releases`, `users`, `rehearsals`, `approvals`, `iam_registrations`, `routes`, `instances` all 0 —
+the tier truncates), **21 migrations** are applied (this sitting added none), and **nothing
+listens on 7100, 7102 or 7104** — the control plane and the console's preview server were both
+stopped at the close. **Images, with the metric named**: `docker images -q` **192**, `sort -u`
+**184**, `127.0.0.1:7107/local/*` **142** — of which `local/launch-app` **5** and
+`local/prod-launch` **12** (one more per Docker-tier run).
+
+**`snapshot-machine.sh` at open and close, diffed — 111 lines, every one accounted for**: the
+timestamps and uptimes (Docker Desktop was started at the open); free disk **112 → 104 Gi**; the
+reset's removal of `journey-app`, `p5c-acceptance`, `proof-app` and `token-app`'s containers and
+networks; `launch-app`'s and `click-launch`'s four environments in their place; and sixteen new
+app images. **The four protected containers survive** — `docker-simple-saml-saml-idp-1` still
+`Exited (0) 2 weeks ago`, as at the open — `manifest-caddy-data` is intact, and `docker-simple-saml`'s
+only dirty path is the untracked `cert.zip`. **Both loopback aliases are on `lo0`** (F13). The GIF
+of the clicked half is in Rich's Downloads as `p6a-task19-clicked-launch.gif`.
+
+#### What the post-sweep check found — FOUR, and the streak since P5b's third sitting holds
+
+**Each found by grepping for the OLD phrase or by opening the thing pointed at — never by re-reading.**
+
+**F14 — RUNBOOK's *Known gaps* SAID THE OFFLINE SCRIPT *"now has ten steps and all five of the
+appended ones are unrun"*** — after this sitting's own sweep had moved RUNBOOK's C1 preamble to
+eleven. The same fact stated twice in one file, and the sweep found the first. Found by grepping
+`ten steps`.
+
+**F15 — ORIENTATION §3 SAID *"Decisions are D1–D32"*** three days after D33 was approved and applied
+(2026-09-19), in the sentence a cold agent uses to know which decisions exist. Found by opening §3
+to add this sitting's invariants.
+
+**F16 — WALKTHROUGH'S CONSOLE TRAPS STILL WARNED THAT SIGNING OUT OF AN APP LANDS ON A RAW JSON
+`404`** — fixed at `b23674b` on 2026-09-19 — under a heading that said *"Four things"* over five
+bullets. Removing the stale one made the count true again.
+
+**F17 — THIS SITTING'S OWN §4 ENTRY CLAIMED *"a reboot is what removes the aliases, not a reset"***,
+which nothing in this sitting measured. Removed before commit; the entry now says only what was
+measured.
