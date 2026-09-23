@@ -110,7 +110,7 @@ function stateTone(state: Schemas['Instance']['state']): string {
  * COUNTING THE FRAMES IS WHAT DRIVES THE RE-READ. It is not a poll: with no deploy
  * happening the count never changes and nothing is re-read.
  */
-function instanceFrameCount(frames: StreamFrame[]): number {
+export function instanceFrameCount(frames: StreamFrame[]): number {
   return frames.filter(isDeployFrame).length
 }
 

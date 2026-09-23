@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
-import type { Schemas } from '@manifest/contract'
+import type { Schemas, StreamFrame } from '@manifest/contract'
 import type { Api } from '../api'
 import { href } from '../router'
+import { instanceFrameCount } from './deploy'
 import {
   Field,
   Instant,
@@ -37,12 +38,24 @@ export function Launch({
   api,
   projectId,
   isAdmin,
+  frames,
 }: {
   api: Api
   projectId: string
   isAdmin: boolean
+  /** The screen's one stream, so the checklist is re-read when a deploy changes it. */
+  frames: StreamFrame[]
 }) {
-  const readiness = useAsync(() => api.getLaunchReadiness(projectId), [projectId])
+  // D23.2, AS THE DEPLOY PANEL ABOVE DOES IT: re-read when a frame says it changed. The
+  // candidate is "the release serving staging", which only a deploy can change — and until
+  // P6a sitting 11 this panel read the checklist ONCE, so a person who deployed to staging
+  // on this screen was told "nothing is serving staging yet" directly beneath a staging
+  // environment reading `healthy`. Found by clicking; every gate was green through it.
+  const instanceFrames = instanceFrameCount(frames)
+  const readiness = useAsync(
+    () => api.getLaunchReadiness(projectId),
+    [projectId, instanceFrames],
+  )
   return (
     <Panel title="Request production">
       <Refusal error={readiness.error} />

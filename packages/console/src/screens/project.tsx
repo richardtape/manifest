@@ -73,7 +73,12 @@ export function Project({
         §22 STEP 7, DIRECTLY BELOW THE DEPLOY PANEL whose production button is the asking.
         The refusal that button gets carries this same checklist, through the same renderer.
       */}
-          <Launch api={api} projectId={projectId} isAdmin={isAdmin} />
+          <Launch
+            api={api}
+            projectId={projectId}
+            isAdmin={isAdmin}
+            frames={stream.frames}
+          />
           <SpecPanel api={api} projectId={projectId} />
           <Members api={api} projectId={projectId} />
         </>
