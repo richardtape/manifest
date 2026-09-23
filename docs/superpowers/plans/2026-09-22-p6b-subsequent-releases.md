@@ -247,7 +247,7 @@ Order: B is what the hand-off lists first, but it runs after A. **B's self-serve
 
 Every task's requirements implicitly include this section. Values are copied verbatim from the spec, or from a dated measurement.
 
-- **Four gates, all clean before every commit**, from the **repository root**: `pnpm test`, `pnpm lint`, `pnpm typecheck` and `pnpm format:check`. **Run `pnpm test` twice**, because a suite that is not repeatable has a state leak. Never run it with `--filter`: the two differ, and that difference once found a defect. **The baseline is `pnpm test` 1605 passed in 119 files, `pnpm test:docker` 194 in 31, `make doctor` 19/0, `make verify` 55/0, and 21 migrations** (P6a sitting 11, 2026-09-22).
+- **Four gates, all clean before every commit**, from the **repository root**: `pnpm test`, `pnpm lint`, `pnpm typecheck` and `pnpm format:check`. **Run `pnpm test` twice**, because a suite that is not repeatable has a state leak. Never run it with `--filter`: the two differ, and that difference once found a defect. **The baseline is `pnpm test` 1605 passed in 119 files, `pnpm test:docker` 194 in 31, `make doctor` 19/0, `make verify` 55/0, and 21 migrations** (P6a sitting 11, 2026-09-22) — **the plan's starting line, kept as written; the CURRENT baseline is ORIENTATION §2's box and §7e** (1635 in 121 since sitting 2).
 - **`pnpm test:docker`** (~23 min, needs `make up`, **fails rather than skips**) is owed by any change to `runtime/`, `routing/`, `services/`, `build/`, `releases/`, `identity/`, `sso/`, `secrets/`, `projects/`, `blueprints/`, `spec/`, `ai/`, `observability/`, `launch/`, `infra/`, or any `*.docker.test.ts`. **In this plan that is every sitting but the first.** It restarts the edge, dropping every runtime route, truncates the tables and re-registers the platform's SP row. **Restart the control plane afterwards.** It also regenerates seven dead app networks and one volume every time it runs.
 - **`pnpm test -- <filter>` does not filter.** Run one file this way instead:
   - a unit file: `pnpm exec vitest run --project unit src/<path>`;
@@ -3055,8 +3055,8 @@ person-only class as a decision since 2026-09-22, and nothing an outsider sees h
 
 #### What the post-sweep check found
 
-**Four, all this sitting's own, each found by opening what a sentence pointed at or by asking whether a
-sentence was true — never by re-reading.** The first is F14 above, the sharpest: this sitting had written
+**Five, all this sitting's own, each found by opening what a sentence pointed at, by asking whether a sentence
+was true, or by grepping for the old number — never by re-reading.** The first is F14 above, the sharpest: this sitting had written
 *"nothing is broken by it"* about the stale database into §2, and opening `launch/readiness.ts`'s `scans` item
 showed that every production launch is. The other three:
 
@@ -3072,6 +3072,12 @@ about the day, not a rule. Both now say what is true: it needs the network, so i
 **F17 — THE NEW §7e's BASELINE BULLET SAID `make doctor` (19)** while the same section's machine paragraph said it
 carries a warning — so a cold agent reading the bullet would have taken the warning for a regression of its own.
 Found by reading the bullet as the next agent will. It now names the warning and says when it goes away.
+
+**F18 — A SIXTH COPY OF THE GATE NUMBERS, AND THE SWEEP HAD MISSED IT.** ORIENTATION §2's `make ci-acceptance`
+row says in its own words what the script's `EXPECT_` lines are — *"They are now **1605 / 119 / 19 / 55**"* —
+and it still said so after the five places §6 names had all moved to 1635 / 121. Found by grepping for `1605`
+across the three documents and the script after the close-out commit. §6's rule already says to grep for the
+phrase rather than trust the list, and that is what found it.
 
 **The four HTML pages were re-checked after F14**: nothing in them states the platform's production readiness
 on this laptop, so none changed.

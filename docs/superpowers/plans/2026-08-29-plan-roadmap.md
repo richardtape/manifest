@@ -1117,7 +1117,7 @@ makes the third move a one-line edit instead of a six-document sweep. *(A prose 
 | P6a Task 19 (sitting 11, the acceptance) | 1 | 17 | 17.0 |
 | **P6a, EXECUTED** | **19 of 19** | **186** | **9.8** |
 | P6b Task 1 (sitting 1, the measurements) | 1 | 18 | 18.0 |
-| P6b Tasks 2–3 (sitting 2, the person-only class and the sensitive diff over frozen releases) | 2 | 17 | 8.5 |
+| P6b Tasks 2–3 (sitting 2, the person-only class and the sensitive diff over frozen releases) | 2 | 18 | 9.0 |
 
 ***P5a's total and every P5b row above were added on 2026-09-18, by P5b sitting 6.** They had
 been missing since P5a finished — five consecutive P5b sittings closed out without them, each
