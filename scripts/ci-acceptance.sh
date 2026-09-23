@@ -53,9 +53,12 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # passed count from that line either way. Last moved 2026-09-22 by P6a sitting 11 (Task 19):
 # +1 test in `routing/routes.test.ts` — an existing route on the WRONG listener is moved,
 # found by the acceptance's control (e). Before that, sitting 10: +6 and one file, and
-# `make verify` +1 for the registry's realm.
-EXPECT_TESTS=1605
-EXPECT_FILES=119
+# `make verify` +1 for the registry's realm. Then P6b sitting 2 (2026-09-23): +30 and two
+# files — the person-only class and the sensitive diff over frozen releases. `make doctor`
+# carries ONE WARNING from that sitting on (a vulnerability database past seven days); a
+# warning is not a check, so EXPECT_DOCTOR does not move.
+EXPECT_TESTS=1635
+EXPECT_FILES=121
 EXPECT_DOCTOR=19
 EXPECT_VERIFY=55
 

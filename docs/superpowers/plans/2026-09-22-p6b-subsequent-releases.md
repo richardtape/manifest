@@ -34,8 +34,8 @@
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Status |
 |---|---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on** — fifteen measurements of the running platform before any code: the override blind spot, the baseline that counts a rejected release, a release freezing the wrong spec, a rehearsal that replaces live production, the gate evaluating one release and deploying another, the IAM record that overwrites what UBC registered. **Alone, and first** | **No** — nothing under the owing paths changes; two throwaway probe tests are written and deleted | **DONE 2026-09-22** — all six premises measured true, every control fired, and a seventh defect found: **the egress proxy never re-renders its allowlist**, which adds Task 5a below. Record: *What executing this plan found*, sitting 1; [`spikes/p6b-baseline/`](../spikes/p6b-baseline/README.md) |
-| 2 | 2–3 | **The person-only class** — one central refusal, a mint refusal, a code of its own — and **the sensitive diff over frozen releases**: one rule over §7's seven fields, the baseline that reads each release's *latest* decision, and a release that freezes its build's own spec | **Yes** — `projects/`, `spec/`, `releases/` | not started ← **next** |
-| 3 | 4, 5, **5a** | **An app has launched** — migration 0021, the launch recorded once, a rehearsal refused afterwards — and **`deployRelease`'s half of D9.2**: approval required for a first launch and for a sensitive change, never for anything else, and never deploying a release an administrator rejected — **and (Task 5a, added by sitting 1) the egress proxy follows the release it serves.** **If it runs long, stop after Task 5 and sweep; Task 5a then opens sitting 4, ahead of Task 6**, with which it shares nothing | **Yes** — `releases/`, `launch/`, `runtime/`, `*.docker.test.ts` | not started |
+| 2 | 2–3 | **The person-only class** — one central refusal, a mint refusal, a code of its own — and **the sensitive diff over frozen releases**: one rule over §7's seven fields, the baseline that reads each release's *latest* decision, and a release that freezes its build's own spec | **Yes** — `projects/`, `spec/`, `releases/` | **DONE 2026-09-23** — a token asking for `release:approve` or `launch:record` is refused centrally `403 TOKEN_PERSON_ONLY` with no pending action, and the mint refuses both; the contract is `1.1.0`. `isSensitiveDiff` sees a raised production override; the baseline is each release's latest decision; a release freezes its build's spec and refuses another project's build (two reads, each with its own test). `sensitiveChangeOf` exists and **its only caller is its test until Task 5**. Record: *What executing this plan found*, sitting 2 |
+| 3 | 4, 5, **5a** | **An app has launched** — migration 0021, the launch recorded once, a rehearsal refused afterwards — and **`deployRelease`'s half of D9.2**: approval required for a first launch and for a sensitive change, never for anything else, and never deploying a release an administrator rejected — **and (Task 5a, added by sitting 1) the egress proxy follows the release it serves.** **If it runs long, stop after Task 5 and sweep; Task 5a then opens sitting 4, ahead of Task 6**, with which it shares nothing | **Yes** — `releases/`, `launch/`, `runtime/`, `*.docker.test.ts` | not started ← **next** |
 | 4 | 6 | **The gate for a launched app — this plan's centre, alone.** The checklist branches on `launched`, the self-serve deploy goes through, a sensitive change is refused `RELEASE_REESCALATED` carrying the view, and a release that is not the one serving staging is refused `RELEASE_NOT_STAGED` | **Yes** — `launch/` | not started |
 | 5 | 7–8 | **The IAM change request** — migration 0022, a registration's registered set that changes only when UBC registers it, the change request as the registration's own `change_requested` state, and the live-registration check (attributes, ACS and SLO) for every production release — and **R4(d)**: deterministic security notes per sensitive field, the reviewer's verdict and D33's coverage limit in the record and in the prompt, and the `code-review` item reading the verdict (P6a F7). **The lean split's cost: if it runs long, stop after Task 7 and sweep** | **Yes** — `launch/`, `releases/` | not started |
 | 6 | 9–10 | **The stored preview**: migration 0023, `createApprovalPreview` and `getApprovalPreview`, approve and reject binding a preview and refusing a stale one — and **the console's approvals screen**, which shows the preview BEFORE the decision and keeps it through the step-up round trip. **Heavy**: the server half and the screen that uses it, together, so the console's Approve button is never broken across a session boundary | **Yes** — `releases/` | not started |
@@ -368,7 +368,7 @@ docs/superpowers/spikes/p6b-baseline/       NEW (T1)
 - **Added by Task 4 to `api/testing.ts`**, moved out of `api/delivery.test.ts` rather than copied:
   - `builtProject(slug, options?)`, `releasedProject(slug, options?)`;
   - **`launchedProject(slug)`**: released, deployed to staging, a PIA recorded, approved (through a preview from Task 9 onwards), and deployed to production by a stepped-up owner. It returns `{ app, deps, cookies, project, release, staging, production, admin, owner }`, where `admin` and `owner` are stepped-up cookies;
-  - **`commitManifest(ctx, yamlLines, message)`**: commits `manifest.yaml` through `deps.source.commitFiles` and validates it through `POST …/spec`, asserting `valid: true`.
+  - **`commitManifest(ctx, yamlLines, message, { valid? })`** — **created by Task 3 (sitting 2), not Task 4**: commits `manifest.yaml` through `deps.source.commitFiles` and validates it through `POST …/spec`. `ctx` is `{ app, deps, cookies, project: { id, slug } }` — the shape `delivery.test.ts`'s `projectFor` and `builtProject` already return; `approval.test.ts` passes `{ ...ctx, cookies: ctx.owner }`. It **throws** unless `valid` is what was expected (default `true`), and returns the route's body, `sensitiveDiff` included.
 
 **In the demos and scripts:**
 
@@ -1228,6 +1228,23 @@ git commit -m "fix(releases): one sensitive-field rule over what production runs
 > demo approves next. *Read this first* 22 already predicts that step's change; this is the measurement
 > behind it. **`commitManifest` already exists when this task starts** — Task 3 creates it (F8) — so this
 > task moves `builtProject` and `releasedProject` and adds `launchedProject`, and reuses the rest.
+>
+> **SITTING 2 LEFT THREE THINGS THIS TASK MEETS (2026-09-23).** (1) **`builtProject` calls `projectFor`**
+> (`delivery.test.ts:22` at sitting 2's close — find it by name, not line), and so do several of the file's own
+> tests, so the move takes `projectFor` too, or leaves a copy the file's tests keep using — the plan names only
+> the two.
+> (2) **Task 3 added a `describe` to the END of `delivery.test.ts`** — *a release freezes its build's own
+> spec* — that calls `builtProject` and `projectFor`; after the move it imports them like everything else.
+> (3) **`approval.test.ts` keeps its OWN `releasedProject` and `secondRelease`** (sitting 1's `[M5]`), and
+> Task 3's new baseline tests there use them; the move is `delivery.test.ts`'s only. **The contract is already
+> `1.1.0`** (Task 2): this task's `Project.launchedAt` regenerates the document and does NOT bump it (Decision 15).
+>
+> **AND BEFORE STEP 5: THE VULNERABILITY DATABASE MUST BE FRESH (sitting 2, F14).** Step 5 runs `make
+> demo-production`, and §13's `scans` item is `unmet` for any candidate scanned against a database over seven
+> days old — so the fresh path goes red at step 3 with `scans` in the unmet set. **Check first**: `make doctor`'s
+> *the vulnerability database is fresh* must PASS. If it WARNS, stop before Step 5 and ask Rich to refresh it
+> (`make seed`, network on — or its one line, `docker run --rm -v manifest-grype-db:/db -e
+> GRYPE_DB_CACHE_DIR=/db anchore/grype:v0.118.0 db update`). Steps 1–4 do not need it.
 
 **The fact P6b's whole second clause turns on** (Decision 1). It is recorded by the deploy that makes it true, and it is read by the checklist, by `deployRelease` and by the rehearsal. **After this task nothing branches on it except the rehearsal refusal.** The branches are Tasks 5 and 6, in the same sitting and the next.
 
@@ -1413,6 +1430,17 @@ git commit -m "feat(launch): an app has launched — recorded once by the deploy
 ---
 
 ## Task 5: The approval requirement — `deployRelease`'s half of D9.2
+
+> **WHAT TASK 3 LEFT FOR THIS TASK (sitting 2, 2026-09-23) — three facts, each checked in the code.**
+> (1) **`sensitiveChangeOf(db, release)` exists with exactly the planned shape** — `{ baseline: ReleaseRow |
+> undefined; fields: SensitiveField[] }` (`releases/approval.ts`) — and **with no baseline it answers `fields:
+> []`**: this task's `approvalRequirementFor` must read `baseline === undefined` as *an approval is required*,
+> never as *nothing changed*, which its doc comment already says. (2) **Its doc comment says its only caller is
+> its test and names THIS task** — rewrite that paragraph when `approvalRequirementFor` calls it, or the next
+> reader is told a live function is caller-less. (3) **`lastApprovedReleaseFor` reads each release's LATEST
+> decision** (Task 3, `[M5]`), and `buildDiffSnapshot` already calls it — so control (e)'s *"reverted to Task 3's
+> before"* is the loop that de-duplicates by release removed (Task 3's control (b) did exactly that; two tests
+> went red there, `approval.test.ts`'s *APPROVED AND THEN REJECTED* and *rejected and then approved AGAIN*).
 
 **One rule, stated once, with two readers**: this task's `deployRelease`, and Task 6's checklist. **It is §13's *second half* of the gate** (P6a F8 measured the two halves as independent): it runs before anything starts, whatever the route decided. **After this task, a launched app's non-sensitive release deploys when `deployRelease` is called directly, while the route still refuses it**, because the route's checklist is first-launch until Task 6. **That window is one sitting long, and it is stated in the record.**
 
@@ -2807,3 +2835,243 @@ state beside it.
 
 **The four HTML pages were checked and not changed**: they describe what is built, and this sitting
 built nothing.
+
+### Sitting 2 — Tasks 2 and 3, the person-only class and the sensitive diff over frozen releases — 2026-09-23
+
+**BOTH TASKS LANDED AS PLANNED, EVERY ONE OF THEIR CONTROLS FIRED — THE PLAN'S TEN AND TWO THIS SITTING ADDED —
+AND THE PLAN'S `[M15]` PREDICTION HELD: NO EXISTING TEST WENT RED.** Task 2 (`5f323ef`): a token asking for `release:approve` or
+`launch:record` is refused by `assertCapability` — after scope, before the privileged rule and any grant —
+as `403 TOKEN_PERSON_ONLY`, with **no pending action**; the mint route refuses both `400
+TOKEN_CAPABILITY_FORBIDDEN`; every real route keeps `requireSession`, which answers first; and
+`@manifest/contract` is `1.1.0`, covering P6a's seven. Task 3 (`9372f06`, and `88fd228` for a witness the
+plan lacked): `spec/diff.ts` has one rule over a `SensitiveView` with two adapters, so `isSensitiveDiff`
+sees a raised production override (`[M3]`); `lastApprovedReleaseFor` reads each release's LATEST decision
+(`[M5]`); a release freezes its BUILD's spec and refuses another project's build (`[M6]`); the validate route
+compares with the newest VALID spec (sitting 1's F7); and `commitManifest` is in `api/testing.ts`.
+**`sensitiveChangeOf`'s only caller is its test until Task 5** — the plan's one sanctioned exception, and its
+doc comment says so. Its findings are mostly about the plan's CONTROLS: two under-counted their reds, one was
+wrong about which code one actor gets, one could not fail as written, and two guards had no witness at all.
+**And the owed Docker tier went red on the CALENDAR** (F12): a scan test that assumed a vulnerability database
+under a week old, on the first run past a week — fixed in the test, with `make doctor`'s own freshness check
+brought into line with the gate it describes (F13, `d0a5aad`). **And that stale database blocks every
+production launch through §13's `scans` item (F14), so sitting 3's Task 4 Step 5 needs it refreshed first —
+Rich's, because it needs the network.**
+
+#### The decisions this sitting made
+
+**1. `api/person-only.test.ts` builds its own server** — as `contract/route.test.ts` does — rather than using
+`withProjectServer`: Fastify refuses a route added after the instance is ready, and `withProjectServer`'s app is
+ready by the time its callback runs.
+
+**2. The mint tests mint as `platform_admin`**, the only role holding either capability — so the mint route's
+*"no more than you hold yourself"* rule cannot be what refuses, and control (b) answers `201` rather than
+`403 FORBIDDEN`.
+
+**3. `sensitiveViewOfSpec` folds the production override ONE DIMENSION AT A TIME, with `??`**, rather than the
+plan's object spread: a spread of an override holding an explicit `undefined` would erase the top-level value,
+which is exactly what `resolveConfig`'s `defined()` exists to prevent on the release side. No parsed spec holds
+one today; the fold cannot be wrong for any spec.
+
+**4. `commitManifest(ctx, lines, message, { valid? })`** takes `{ app, deps, cookies, project: { id, slug } }` —
+the shape `projectFor` and `builtProject` already return — **throws** rather than asserting, like
+`withProjectServer`, and takes `valid: false` so the invalid-commit tests use the same helper. The plan's
+fixtures section now says so.
+
+**5. The route's spec lookup after the scoped build lookup throws a plain `Error` if the row is missing** — an
+honest `500` for a state `builds.app_spec_id`'s `NOT NULL` foreign key makes unreachable — and `SPEC_NOT_FOUND`
+leaves `createRelease`'s `errors:` list, as planned. It stays in the document for `getSpec`.
+
+**6. Sitting 3's inheritance is written into the plan, not only into ORIENTATION §7e**: Task 4's block (the
+helper move must take `projectFor`; Task 3's new `describe` in `delivery.test.ts`; the contract is already
+`1.1.0`) and a new block at the top of Task 5 (`sensitiveChangeOf`'s shape, its caller-less comment, and what
+control (e) now reverts).
+
+#### The findings
+
+**F1 — VITEST RESOLVES A MISSING NAMED EXPORT TO `undefined`, SO TASK 2'S FIRST RED WAS NEVER AN IMPORT
+FAILURE.** Step 2 predicted *"`PERSON_ONLY` does not exist, so the module fails to import"*. Measured: both files
+loaded and ran — `[...PERSON_ONLY]` threw *"PERSON_ONLY is not iterable"*, while `assertCapability` for a token
+holding `release:approve` **resolved**, the synthetic route answered **`201`** and the mint **`201`**. Those are
+the three answers the plan's *"once it exists but is empty"* state was to record, so `[M13]` was measured in the
+unit tier on the first run. **The trap**: a test whose only use of a not-yet-written export tolerates
+`undefined` — `new Set(X)`, `X ?? fallback`, a spread — is green before the feature exists. Here 7 of 12 went
+red for the right reason; the other 5 were positive controls, green by design.
+
+**F2 — THE PLAN'S "RECORDS NO PENDING ACTION" HAD NO POSITIVE CONTROL.** Its refusal tests count
+`pending_actions` before and after and assert `0` both times, which is equally true of a wrapper that never runs
+on a probe registered by the test. A third probe asserts `release:promote` on a route of the same shape and
+records exactly one question (`TOKEN_ACTION_PENDING`, `0 → 1`) — green before and after Task 2 — so the zero in
+the other two means something.
+
+**F3 — TASK 2'S *Files* LIST WAS WRONG IN BOTH DIRECTIONS.** It names `projects/index.ts` (*"export them"*),
+which needs nothing: `export * from './authz.js'`. And it misses two statements of the OLD rule that agents read:
+`MintTokenRequest.capabilities`' description **in the published document** (*"None of members:manage,
+release:promote, quota:set or secret:read"*) and `TOKEN_CAPABILITY_FORBIDDEN`'s registry summary (*"one of
+D24's four forbidden capabilities"*). Both now name the person-only two; the document's diff is the version, two
+descriptions and the new code in the error enum, nothing else.
+
+**F4 — FIVE COMMENTS BECAME FALSE THE MOMENT THE RULE LANDED, AND THE PLAN NAMED NONE OF THEM.** In
+`authz.ts`: `launch:record`'s (*"`assertCapability` WILL NOT REFUSE A TOKEN THAT HOLDS IT"*), `STEP_UP_GUARDED`'s
+(*"the plan's Spec action 2 asks Rich whether §20 should say so"* — applied 2026-09-22), `assertStepUp`'s (*"a
+token holding it … is refused here"*) and `TokenActor.capabilities`' (*"Never one of `PRIVILEGED`"*); in the
+console, `launch:record`'s *"It is mintable"*. All five corrected in the task's commit. **A comment that states a
+rule is a copy of the rule**, and ORIENTATION §9's restated-number lesson applies to prose.
+
+**F5 — CONTROL (c) HAS A THIRD WITNESS THE PLAN DID NOT NAME.** With `TOKEN_PERSON_ONLY` mapped to
+`TOKEN_CREDENTIAL_REFUSED`, `error-codes.test.ts`'s *registers nothing the source never throws* also went red —
+`expected [ 'TOKEN_PERSON_ONLY' ] to deeply equal []`. The registry holds the literal to its one throw site.
+
+**F6 — TWO CONTROL PREDICTIONS UNDER-COUNTED THEIR REDS.** Task 2's (d), `release:approve` added to
+`PRIVILEGED`: predicted two red, measured **four** — `step-up-guarded.test.ts`'s *names release:approve, which is
+NOT one of D24's four* and *is a strict superset of D24's privileged four* (`expected 5 to be 6`) as well; the
+synthetic route still answered `TOKEN_PERSON_ONLY`, as predicted. Task 3's (b), the baseline filtering rows on
+`approved` again: the plan predicted one, this sitting predicted **two** before running and measured two — *a
+release rejected and then approved AGAIN* also checks the state between the rejection and the re-approval.
+
+**F7 — CONTROL (e)'S PREDICTION WAS WRONG FOR ONE ACTOR IN FOUR, AND IN THE DIRECTION THAT WOULD MISLEAD.**
+`requireSession` → `requireActor` in `decide()` was a `tsc` error as predicted — `releases.ts(112,7): Type
+'Actor' is not assignable to type '{ userId: string; puid: string; }'`. Forced with a cast, the plan predicted
+*"the matrix's four token rows for approve and reject read `TOKEN_PERSON_ONLY`"*. Measured: eight rows red,
+**six** reading `TOKEN_PERSON_ONLY` and **`token-other-project`'s two reading `404 NOT_FOUND`**, because scope is
+checked before the person-only rule by design. Someone running the control against the plan's sentence would
+have read two `404`s as a broken scope rule.
+
+**F8 — TASK 3'S CONTROL (c) COULD NOT FAIL AS WRITTEN; IT NOW CAN.** The plan predicted it green and called that
+a question: `sensitiveViewOf`'s `''` fallback has no witness through the routes, since `releases.app_spec_id` is
+a foreign key. A fifth `approval.test.ts` case hands `sensitiveChangeOf` a release row whose `appSpecId` no spec
+has, with its positive half (the row as stored compares clean). With the fallback replaced by the baseline's own
+blueprint: red, `expected [] to deeply equal [ 'blueprint' ]`.
+
+**F9 — `createRelease`'S PROJECT SCOPE — THE "SECOND, INDEPENDENT READ" — HAD NO WITNESS OF ITS OWN.** Control
+(d) removes the ROUTE's scope and keeps `createRelease`'s, and the route test stays green: the guard working, as
+predicted. **Its mirror was not in the plan**: remove only `createRelease`'s, and every test stays green too,
+because the route refuses first. A guard nothing can see alone is a guard someone can delete.
+`releases/releases.test.ts` now holds it below the route (`88fd228`), watched red — *promise resolved "{ …(8) }"
+instead of rejecting* — with the route's scope intact.
+
+**F10 — SITTING 1'S F7 FIX HAD NO CONTROL IN THE PLAN.** Added as (f): the newest-VALID filter removed from the
+validate route → *a sensitive change after an invalid commit is still reported* red, `{ sensitive: false,
+fields: [] }`.
+
+**F11 — TASK 3'S TEST SNIPPETS CALL A `spec(…)` HELPER THAT `spec/diff.test.ts` DOES NOT HAVE** — it is
+`base(…)`, over `manifestSchema.parse`. Adapted; recorded so the next agent copying a snippet is not surprised.
+
+**F12 — THE DOCKER TIER WENT RED ON THE CALENDAR: `build/scan.docker.test.ts`'s *blocks the identical image
+when the base is unknown* IS A TIME BOMB, AND IT WENT OFF TODAY.** `expected false to be true` on `blocked`,
+in a file this sitting did not touch. Cause, measured: the machine's vulnerability database was built
+`2026-09-16T06:30:57Z`, the test ran at about `16:07Z` on 2026-09-23 — **7.4 days** — and `build/scan.ts`
+calls anything over `STALENESS_THRESHOLD_DAYS = 7` stale, which WARNS rather than blocks (§12, by design, and
+asserted by the file's own *scans with a database past grype's own age limit*). The test asserted `blocked:
+true` outright, which is true only while the database is at most seven days old, so it would go red on any
+machine a week after its last `make seed`. P6a sitting 11's tier ran on 2026-09-22 at 6.x days and passed.
+**Fixed in the test, not the gate** (`d0a5aad`): the fail-closed half — every fixable finding is the APP'S
+once the base is unknown (`appFindings.length > 0`, the mirror of the previous test's `appFindings: []`) —
+holds on any date, and `blocked` is asserted as `!stale`. **Measured, not inferred**, by the fixed test with a temporary line: `{"stale":true,"app":29,"blocked":false}`, reason *"the vulnerability database is 7.4 days old (threshold 7); this scan is STALE"*. **Both regimes and the rule itself watched**: the threshold raised to 30 → `{"stale":false,"app":29,"blocked":true}`, green, so the fresh half is still asserted; the fail-closed attribution removed (an unknown base attributes nothing to the app) → red, `expected 0 to be greater than 0` — a defect the old assertion could not have told apart from staleness on this machine.
+
+**F13 — `make doctor` CALLED THE DATABASE "FRESH" FOR A DAY EVERY WEEK WHILE THE GATE CALLED IT STALE.**
+`scripts/doctor.sh`'s `scanner_db_age` floored the age to whole days and passed up to `-le 7`, so at the
+sitting's open it printed *"7 days old (warns above 7, never blocks)"* and PASS with the database 7.36 days
+old — beside a scan gate already warning on every build. It now compares SECONDS with the gate's threshold and
+prints tenths. The open's run is its before-measurement — *"7 days old"*, PASS, at 7.36 days; after, *"7.4 days old (the scan gate calls it stale above 7.0 and warns rather than blocks)"*, WARN. **So `make doctor` now reads `19 checks, 0 failed, 1 warning` on this machine,
+and that warning is true** until `make seed`, with the network on, refreshes the database — which is Rich's
+(ORIENTATION §2, *Outstanding*).
+
+**F14 — AND A STALE DATABASE BLOCKS EVERY PRODUCTION LAUNCH, SO SITTING 3's TASK 4 STEP 5 IS RED UNTIL IT IS
+REFRESHED.** Found by the post-sweep check, by asking whether *"nothing is broken by it"* — a sentence this
+sitting had written into §2 — was true. It was not. §13's `scans` item is **blocking**, and
+`launch/readiness.ts` makes it **`unmet`** whenever the candidate's scan is stale (*"A clean result from a stale
+database is not evidence (§12); rebuild once the database is refreshed"*). Every build on this machine now scans
+stale (measured above: `stale: true` at 7.4 days). So **no candidate built from now on can pass the production
+checklist**, and `make demo-production`'s fresh path — which asserts the unmet set at step 3 is *exactly*
+`admin-approval, iam-registration, privacy-assessment, rehearsal` (`packages/journey/src/production.ts`) — will
+read a fifth, `scans`, and go red; Task 4's Step 5 runs it. **The Docker tier did not see this**:
+`production.docker.test.ts` deploys through `deployRelease` directly, never through the checklist. **Predicted
+from a measured premise, not run**: running the demo to prove it would have left a half-launched project for
+sitting 3 to clean up. **The design is as §12 and §13 say** — an offline laptop still deploys to staging, and a
+production launch waits for a fresh database — so nothing is fixed here; **the database needs refreshing before
+sitting 3's Step 5**, which needs the network and is Rich's call. Task 4's block and ORIENTATION §7e say so first.
+
+#### The negative controls — Task 2's five and Task 3's five as planned, two this sitting added, and F12's two; ALL FIRED
+
+| | Control | Predicted | **Measured** |
+|---|---|---|---|
+| T2 a | the `isPersonOnly` branch removed | 4 red (both refusal cases in each file); matrix green | **FIRED** — exactly 4; `authz-contract.test.ts` green (`201`, *resolved*) |
+| T2 b | the mint refusal removed | the mint case red, `201` and a row | **FIRED** — 1 red |
+| T2 c | mapped to `TOKEN_CREDENTIAL_REFUSED` | the two probe refusals red on the CODE | **FIRED** — `403`/`403`, code differs; **and** the error registry (F5) |
+| T2 d | `release:approve` in `PRIVILEGED` | literal list + *DISJOINT* red; probe still `TOKEN_PERSON_ONLY` | **FIRED** — 4 red, 2 unpredicted (F6); probe unchanged |
+| T2 e | `requireActor` in `decide()` | `tsc` error; forced, token rows `TOKEN_PERSON_ONLY` | **FIRED** — `tsc` as predicted; 8 rows, 6 `TOKEN_PERSON_ONLY`, 2 `404 NOT_FOUND` (F7) |
+| T3 a | the spec adapter ignores the production override | the override case red `[]`; the release view green | **FIRED** — exactly that |
+| T3 b | the baseline filters rows on `approved` | 1 red (plan); 2 (this sitting) | **FIRED** — 2 (F6) |
+| T3 c | the `''` fallback becomes the baseline's blueprint | green — *a question* | **FIRED** — the orphan-row case red (F8) |
+| T3 d | the route's scope removed; then both | green (the guard); then red `201` | **FIRED** — both halves |
+| T3 d′ | **added**: only `createRelease`'s scope removed | the new `releases.test.ts` case red; the route case green | **FIRED** (F9) |
+| T3 e | the route freezes the newest spec again | the build's-spec case red; the invalid case `500` | **FIRED** — both |
+| T3 f | **added**: F7's newest-VALID filter removed | the F7 case red, `fields: []` | **FIRED** (F10) |
+| F12 i | the staleness threshold raised to 30 days (the fresh regime) | green, `blocked: true` | **as predicted** — `{"stale":false,"app":29,"blocked":true}` |
+| F12 ii | an unknown base attributes nothing to the app | red at `appFindings.length > 0` | **FIRED** — `expected 0 to be greater than 0` |
+
+Every control was run after its task's commit and restored with `git checkout <path>`; `git status` was clean
+after each.
+
+#### The runs
+
+| Gate | Open | After Task 2 (`5f323ef`) | After Task 3 (`9372f06`) | After `88fd228` | Close |
+|---|---|---|---|---|---|
+| `pnpm test` | **1605 / 119**, twice (132.3 s, 129.4 s) | **1617 / 121**, twice — +12, +2 files | **1634 / 121**, twice — +17 | **1635 / 121**, twice | **1635 / 121**, twice (144.4 s, 137.5 s), after `d0a5aad` |
+| lint / typecheck / format | clean | clean | clean | clean | clean |
+| `make doctor` | **19 / 0** | — | — | — | **19 / 0, 1 warning** — true (F13) |
+| `make verify` | **55 / 0** | — | — | — | **55 / 0** |
+| `pnpm test:docker` | 194 / 31 (P6a sitting 11) | — | — | **194 in 31: 193 passed, 1 failed** (1206.6 s) — the red is F12; after `d0a5aad` its file re-ran alone **6 / 6** | — |
+
+**The test count moved by exactly the new cases**: Task 2 six in `projects/person-only.test.ts` and six in
+`api/person-only.test.ts`; Task 3 seven in `spec/diff.test.ts`, five in `releases/approval.test.ts` and five in
+`api/delivery.test.ts`; `88fd228` one in `releases/releases.test.ts`. `privileged.test.ts` replaced a case rather
+than adding one. **No existing test went red in any run** — `[M15]`'s prediction for Task 3, and the plan's for
+Task 2's matrix. `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` / `EXPECT_FILES` move to **1635** / **121**; `EXPECT_DOCTOR` and `EXPECT_VERIFY` stay **19** / **55** — a warning is not a check.
+
+#### The machine, at close — queried, not recalled
+
+**The control plane is stopped; nothing listens on 7100, 7102 or 7104**, as at the open. **THE DATABASE IS
+EMPTY** — `projects 0, releases 0, users 0`, from `psql` after the close's `pnpm test` — and **21 migrations**.
+`make verify`: **`mf- containers=12 networks=4 volumes=8`** and **`runtime routes currently applied: 0`** — the
+Docker tier restarted the edge (`manifest-caddy` up 21 minutes at the snapshot) and dropped `launch-app`'s two
+routes. Its containers still stand on R2 in both environments, `click-launch` beside it, and with an empty
+database nothing re-applies the routes, so both hostnames answer the wildcard until a deploy. **`make doctor`
+19/0 with ONE WARNING, and the warning is true** (F13): the vulnerability database is 7.4 days old, and `make
+seed` with the network refreshes it — Rich's. **Cleanup**: `dead-app-resources.sh` found the tier's usual
+seven networks and one volume, and `--apply` was **allowed**; re-measured *none dead*. `litellm-orphans.sh`
+found `p4b-probe-user`, and `--apply` was **allowed — the thirteenth consecutive sitting**; re-measured
+*Nothing to delete*, 4 users remain. **Images, the metric named**: `docker images -q` **66**, `sort -u` **58**,
+`127.0.0.1:7107/local/*` **16** — up 10 from sitting 1's close, every one an untagged image the Docker tier built
+(`blueprint-ntm`, `boot-recover`, `chem-labs`, `fixture-rd`, `fixture-s6`, `incident-probe`, `prod-launch`,
+`redeploy-cp` ×2, `saml-unsigned`), which no script sweeps. **`snapshot-machine.sh` diff, open → close: 85
+lines, every one accounted for** — timestamps, 2 GiB of disk, uptimes, `manifest-caddy` restarted by the tier,
+those ten images, and `HEAD` and the dirty count before the close's docs commit. The four protected containers
+survive (`docker-simple-saml-saml-idp-1` exited two weeks ago, at both ends), `caddy-data` is intact, all three
+aliases are on `lo0`, and `docker-simple-saml`'s only dirty path is its untracked `cert.zip`.
+
+**The four HTML pages were checked and not changed**: `manifest-decisions.html`'s D24 card has stated the
+person-only class as a decision since 2026-09-22, and nothing an outsider sees has changed.
+
+#### What the post-sweep check found
+
+**Four, all this sitting's own, each found by opening what a sentence pointed at or by asking whether a
+sentence was true — never by re-reading.** The first is F14 above, the sharpest: this sitting had written
+*"nothing is broken by it"* about the stale database into §2, and opening `launch/readiness.ts`'s `scans` item
+showed that every production launch is. The other three:
+
+**F15 — TASK 4's NEW CORRECTION BLOCK POINTED AT `delivery.test.ts:15`, AND `projectFor` WAS AT LINE 22** — moved
+by this sitting's own import changes to the same file, an hour after the line was read. Found by `grep -n`
+against the pointer. The block now says *find it by name*, and that the file's own tests call it too (twelve
+calls), which the move must keep working.
+
+**F16 — THIS SITTING WROTE *"an agent cannot refresh it, because it needs a route out"* INTO TWO DOCUMENTS, AND
+NOBODY MEASURED IT.** The database refresh needs the network; whether an agent's session has one is a fact
+about the day, not a rule. Both now say what is true: it needs the network, so it is Rich's call.
+
+**F17 — THE NEW §7e's BASELINE BULLET SAID `make doctor` (19)** while the same section's machine paragraph said it
+carries a warning — so a cold agent reading the bullet would have taken the warning for a regression of its own.
+Found by reading the bullet as the next agent will. It now names the warning and says when it goes away.
+
+**The four HTML pages were re-checked after F14**: nothing in them states the platform's production readiness
+on this laptop, so none changed.
