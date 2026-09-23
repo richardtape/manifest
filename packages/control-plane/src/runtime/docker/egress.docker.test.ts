@@ -10,6 +10,42 @@ const SLUG = 'egresstest'
 const KIND = 'staging' as const
 let proxyUrl = ''
 
+/**
+ * THE HTTP STATUS THE PROXY GAVE, not curl's exit code (P6b Task 5a): an allowed host that
+ * cannot be reached and a filtered one both fail curl, and only the status tells them
+ * apart — `403` is tinyproxy's `Filtered`, anything else means the filter let it through.
+ * `Tty: true`, so the logs endpoint returns the bytes unframed.
+ */
+async function proxyAnswer(host: string): Promise<number> {
+  const env = proxyEnvironment(proxyUrl)
+  const created = await engine.post<{ Id: string }>('/containers/create', {
+    Image: 'curlimages/curl:8.11.1',
+    Env: Object.entries(env).map(([k, v]) => `${k}=${v}`),
+    Tty: true,
+    Cmd: ['-s', '-m', '8', '-o', '/dev/null', '-w', '%{http_code}', `http://${host}/`],
+    HostConfig: { NetworkMode: appNetwork(SLUG, KIND) },
+  })
+  const id = created!.Id
+  try {
+    await engine.post(`/containers/${id}/start`)
+    await engine.post(`/containers/${id}/wait`)
+    let out = ''
+    for await (const chunk of await engine.stream(`/containers/${id}/logs?stdout=true`))
+      out += String(chunk)
+    const status = Number(out.trim())
+    if (!Number.isInteger(status) || status === 0)
+      throw new Error(`curl through the proxy printed no status for ${host}: '${out}'`)
+    return status
+  } finally {
+    await engine.del(`/containers/${id}?force=true&v=true`)
+  }
+}
+
+/** The proxy container's id — what "the same container" means. */
+async function containerId(name: string): Promise<string> {
+  return (await engine.get<{ Id: string }>(`/containers/${name}/json`))!.Id
+}
+
 async function curlThroughProxy(target: string): Promise<number> {
   const env = proxyEnvironment(proxyUrl)
   const created = await engine.post<{ Id: string }>('/containers/create', {
@@ -70,6 +106,9 @@ describeDocker('forced default-deny egress (D18)', () => {
   })
 
   it('ALLOWS a destination this app declared, and only this app', async () => {
+    // The destroy is no longer needed since P6b Task 5a — a changed list recreates the
+    // proxy — and it stays: this case proves a FRESH container enforces its list, which the
+    // cases below, which change a running one, do not.
     await destroyEgressProxy(engine, SLUG, KIND)
     proxyUrl = (
       await ensureEgressProxy(engine, { slug: SLUG, kind: KIND, allow: ['example.com'] })
@@ -77,5 +116,51 @@ describeDocker('forced default-deny egress (D18)', () => {
     expect(await curlThroughProxy('https://example.com/')).toBe(0)
     // Still denied: a neighbour's declaration is not this app's.
     expect(await curlThroughProxy('https://example.org/')).not.toBe(0)
+  })
+
+  /**
+   * **THE LIST FOLLOWS THE RELEASE (P6b Task 5a, Task 1's F1).** An environment's proxy used
+   * to render its allowlist once, at its first deploy, and never again: an ADDED host was
+   * refused like an undeclared one, and a REMOVED host stayed reachable. Each case starts
+   * from a fresh proxy so its first state is known, and then changes the list the way a
+   * deploy does — by asking for it — WITHOUT destroying anything.
+   */
+  it('re-renders a WIDER list without being destroyed first — the new host is no longer Filtered', async () => {
+    await destroyEgressProxy(engine, SLUG, KIND)
+    await ensureEgressProxy(engine, { slug: SLUG, kind: KIND, allow: [] })
+    expect(await proxyAnswer('added.example.org')).toBe(403) // THE POSITIVE HALF: filtered
+    await ensureEgressProxy(engine, {
+      slug: SLUG,
+      kind: KIND,
+      allow: ['added.example.org'],
+    })
+    expect(await proxyAnswer('added.example.org')).not.toBe(403)
+  })
+
+  it('re-renders a NARROWER list — a REMOVED host is Filtered again (the fail-open, Task 1 F1)', async () => {
+    await destroyEgressProxy(engine, SLUG, KIND)
+    await ensureEgressProxy(engine, {
+      slug: SLUG,
+      kind: KIND,
+      allow: ['gone.example.org'],
+    })
+    expect(await proxyAnswer('gone.example.org')).not.toBe(403) // THE POSITIVE HALF: allowed
+    await ensureEgressProxy(engine, { slug: SLUG, kind: KIND, allow: [] })
+    expect(await proxyAnswer('gone.example.org')).toBe(403)
+  })
+
+  it('keeps the SAME container when the list has not changed — a redeploy does not bounce the proxy', async () => {
+    await ensureEgressProxy(engine, {
+      slug: SLUG,
+      kind: KIND,
+      allow: ['kept.example.org'],
+    })
+    const settled = await containerId(egressContainer(SLUG, KIND))
+    await ensureEgressProxy(engine, {
+      slug: SLUG,
+      kind: KIND,
+      allow: ['kept.example.org'],
+    })
+    expect(await containerId(egressContainer(SLUG, KIND))).toBe(settled)
   })
 })

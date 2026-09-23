@@ -72,13 +72,6 @@ export async function ensureEgressProxy(
 ): Promise<{ name: string; url: string }> {
   const name = egressContainer(input.slug, input.kind)
   const url = `http://${name}:8888`
-  const existing = await engine.get<{ State: { Running: boolean } }>(
-    `/containers/${name}/json`,
-  )
-  if (existing) {
-    if (!existing.State.Running) await engine.post(`/containers/${name}/start`)
-    return { name, url }
-  }
 
   // The allowlist is passed as the container's command rather than a bind mount:
   // the control plane is a host process and the daemon is in a VM, so a host path
@@ -117,6 +110,30 @@ export async function ensureEgressProxy(
     'FilterExtended On',
   ].join('\n')
 
+  const wanted = [`ALLOWLIST=${allowlist}`, `TINYPROXY_CONF=${config}`]
+  const existing = await engine.get<{
+    State: { Running: boolean }
+    Config: { Env: string[] | null }
+  }>(`/containers/${name}/json`)
+  if (existing) {
+    // WHAT THE PROXY SERVES IS ITS ENVIRONMENT: the command writes /tmp/allowlist from
+    // ALLOWLIST at start. This used to return here whatever the list was, so an environment's
+    // allowlist was the one its FIRST deploy declared, forever — an added host refused, a
+    // removed one still reachable (P6b Task 1, F1). Compared here rather than by the caller
+    // because this is the one place that knows how the list reaches tinyproxy. BOTH entries,
+    // so a change to the platform's own config reaches a running proxy too.
+    if (wanted.every((entry) => (existing.Config.Env ?? []).includes(entry))) {
+      if (!existing.State.Running) await engine.post(`/containers/${name}/start`)
+      return { name, url }
+    }
+    // THE NAME, NEVER THE LIST: the list is the app's declaration, not a secret, but this
+    // line is an operator's and the list is on the release.
+    console.error(
+      `[egress] ${name}: the running proxy's allowlist is not this release's — recreating it`,
+    )
+    await engine.del(`/containers/${name}?force=true&v=true`)
+  }
+
   await engine.post(`/containers/create?name=${name}`, {
     // manifest-egress:local, NOT vimagick/tinyproxy. P1 replaced that image
     // because it is amd64-only and ran under emulation on arm64; the local build
@@ -132,7 +149,7 @@ export async function ensureEgressProxy(
         `printf '%s\\n' "$TINYPROXY_CONF" > /tmp/tinyproxy.conf && ` +
         `exec tinyproxy -d -c /tmp/tinyproxy.conf`,
     ],
-    Env: [`ALLOWLIST=${allowlist}`, `TINYPROXY_CONF=${config}`],
+    Env: wanted,
     HostConfig: {
       NetworkMode: appNetwork(input.slug, input.kind),
       CapDrop: ['ALL'],
