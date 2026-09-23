@@ -46,8 +46,28 @@ export async function applyRoute(deps: RoutingDeps, spec: RouteSpec): Promise<vo
   const routeId = routeIdFor(spec.hostname)
   const route = buildRoute({ ...spec, routeId })
   const existing = await deps.caddy.getRoute(routeId)
-  if (existing === undefined) await deps.caddy.putRoute(server, route)
-  else await deps.caddy.patchRoute(routeId, route)
+  if (existing === undefined) {
+    await deps.caddy.putRoute(server, route)
+    return
+  }
+  /**
+   * **AN IN-PLACE MOVE KEEPS THE LISTENER THE ROUTE ALREADY HAS** — `patchRoute` addresses
+   * it by `@id` and names no server. So a route on the wrong listener (the listener names
+   * changed in configuration, or an older platform put it there) would stay there on every
+   * redeploy, and for a production route that is §12's split failing OPEN, silently (P6a
+   * Task 19, control (e)). The wildcard window of delete-then-put is the price of the
+   * correction, and a correction is not a routine move.
+   */
+  const onServer = (await deps.caddy.getRoutes(server)).some((r) => r['@id'] === routeId)
+  if (onServer) {
+    await deps.caddy.patchRoute(routeId, route)
+    return
+  }
+  console.error(
+    `[routing] ${routeId} was not on ${server}, where a ${spec.kind} route belongs — moving it there`,
+  )
+  await deps.caddy.deleteRoute(server, routeId)
+  await deps.caddy.putRoute(server, route)
 }
 
 export async function removeRoute(

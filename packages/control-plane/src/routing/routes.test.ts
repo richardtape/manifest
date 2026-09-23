@@ -83,7 +83,11 @@ const PROD_ROUTE_ID = 'mf-app-manifest-internal'
 
 describe('applyRoute (§12, S1, P4c)', () => {
   it('moves an existing route IN PLACE — one PATCH, and never a delete', async () => {
-    const { client, calls, patches } = fakeCaddy({ getRoute: async () => existingRoute })
+    const { client, calls, patches } = fakeCaddy({
+      getRoute: async () => existingRoute,
+      // Where the route IS: on the internal server, which is where a staging route belongs.
+      getRoutes: async (server) => (server === 'srv0' ? [existingRoute] : []),
+    })
     await applyRoute({ caddy: client, servers: SERVERS }, spec)
     // Delete-then-insert leaves a gap the edge's wildcard answers with a 200 —
     // measured 2026-09-15: 4 of 320 requests across 20 moves, and 0 of 330 across
@@ -110,6 +114,38 @@ describe('applyRoute (§12, S1, P4c)', () => {
     await applyRoute(deps, { ...spec, hostname: PROD_HOST, kind: 'production' })
     await applyRoute(deps, spec)
     expect(servers).toEqual(['srv1', 'srv0'])
+  })
+
+  /**
+   * §12's claim for a route that ALREADY EXISTS — P6a Task 19's control (e), which stayed
+   * GREEN on the demo's re-use path. `patchRoute` addresses a route by `@id` and names no
+   * server, so an in-place move keeps the route on whichever listener already holds it:
+   * with `MANIFEST_CADDY_SERVER_PUBLIC` changed, every production route stayed where it
+   * was and nothing said so. For a production route found on the INTERNAL listener that is
+   * §12's split failing OPEN, so the route is moved — delete, then put on the right server
+   * — accepting the wildcard's window for a correction that should never be routine.
+   *
+   * The case above is the positive control: a route already on its right server is still
+   * one PATCH and never a delete.
+   */
+  it('moves an existing route to the RIGHT listener when it is on the wrong one', async () => {
+    const onInternal = buildRoute({
+      hostname: PROD_HOST,
+      upstream: 'mf-i-00000000-0000-4000-8000-000000000001:8080',
+      routeId: PROD_ROUTE_ID,
+      instanceId: '00000000-0000-4000-8000-000000000001',
+    })
+    const { client, calls, servers, puts } = fakeCaddy({
+      getRoute: async () => onInternal,
+      getRoutes: async (server) => (server === 'srv0' ? [onInternal] : []),
+    })
+    await applyRoute(
+      { caddy: client, servers: SERVERS },
+      { ...spec, hostname: PROD_HOST, kind: 'production' },
+    )
+    expect(calls).toEqual([`delete ${PROD_ROUTE_ID}`, 'put'])
+    expect(servers.at(-1)).toBe('srv1')
+    expect(puts[0]!['@id']).toBe(PROD_ROUTE_ID)
   })
 
   /**

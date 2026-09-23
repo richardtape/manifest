@@ -50,10 +50,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # `pnpm test` prints `Tests  1604 passed (1604)`: Task 14 un-skipped the production gate's
 # positive control — the one `it.skip` that had been there since Task 7 — so the `| 1 skipped`
 # is gone and the passed count and the total are the same number. `awk '{print $2}'` reads the
-# passed count from that line either way. Last moved 2026-09-20 by P6a sitting 10 (Tasks
-# 16-18): +6 tests and one file (`releases/gate-integrity.test.ts`), and `make verify` +1 for
-# the registry's realm.
-EXPECT_TESTS=1604
+# passed count from that line either way. Last moved 2026-09-22 by P6a sitting 11 (Task 19):
+# +1 test in `routing/routes.test.ts` — an existing route on the WRONG listener is moved,
+# found by the acceptance's control (e). Before that, sitting 10: +6 and one file, and
+# `make verify` +1 for the registry's realm.
+EXPECT_TESTS=1605
 EXPECT_FILES=119
 EXPECT_DOCTOR=19
 EXPECT_VERIFY=55
