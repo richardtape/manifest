@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Manifest",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Manifest's public API (§22). Generated from the control plane's route definitions; do not edit. Resource routes are under /v1 (D23.8); a breaking change is a new prefix beside it. Response objects may gain fields under /v1 — a client ignores fields it does not know. Every mutation carries an Idempotency-Key, and a session-bearing mutation carries Origin (§20)."
   },
   "servers": [
@@ -2114,7 +2114,7 @@
           "tokens"
         ],
         "summary": "Mint a delegated token",
-        "description": "D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in the response and nowhere else — the platform stores only a hash of it and cannot show it again. A token may never hold members:manage, release:promote, quota:set or secret:read, and never more than the person minting it holds themselves.",
+        "description": "D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in the response and nowhere else — the platform stores only a hash of it and cannot show it again. A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.",
         "parameters": [
           {
             "name": "projectId",
@@ -3469,6 +3469,7 @@
           "TOKEN_ACTION_REJECTED",
           "TOKEN_CAPABILITY_FORBIDDEN",
           "TOKEN_CREDENTIAL_REFUSED",
+          "TOKEN_PERSON_ONLY",
           "UNAUTHENTICATED"
         ]
       },
@@ -6468,7 +6469,7 @@
             "maxLength": 64
           },
           "capabilities": {
-            "description": "The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted.",
+            "description": "The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve or launch:record, which are person-only and refused outright.",
             "minItems": 1,
             "type": "array",
             "items": {

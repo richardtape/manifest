@@ -16,8 +16,8 @@ import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
  * `console.log` (§14 — an operator line with a credential in it is a defect this project
  * names four times).
  *
- * **(b) The privileged four are not offerable** — see `PRIVILEGED` below, and the D22
- * finding recorded with it.
+ * **(b) The privileged four are not offerable, nor the person-only two** — see `PRIVILEGED`
+ * and `PERSON_ONLY` below, and the D22 finding recorded with them.
  *
  * **(c) `expired` is the PLATFORM's computed field and is NOT `revokedAt !== null`** (P5b
  * Task 10). A clock and a person are different answers to why a credential stopped, and both
@@ -58,12 +58,10 @@ const CAPABILITIES = everyCapability([
   'release:promote',
   'release:approve',
   /**
-   * §9 and R1 (P6a Task 6): recording what UBC IAM and the Privacy Office said. It is
-   * mintable — it is NOT one of D24's four — and a token holding it is still refused
-   * `403 TOKEN_CREDENTIAL_REFUSED`, because every route asserting it calls
-   * `requireSession` first (P6a Decision 4). **So it is offered here and it will not
-   * work**, which is the same honest shape this screen already has for the four below:
-   * the API is what says no, and the console does not pretend to know better.
+   * §9 and R1 (P6a Task 6): recording what UBC IAM and the Privacy Office said. NOT one of
+   * D24's four, and since P6b Task 2 not mintable either: it is PERSON-ONLY, with
+   * `release:approve` (`PERSON_ONLY` below). Listed, and disabled with the reason, for the
+   * same honest shape this screen has for the four: the API is what says no.
    */
   'launch:record',
   'quota:set',
@@ -100,6 +98,23 @@ const PRIVILEGED: ReadonlySet<Capability> = new Set<Capability>([
 
 const PRIVILEGED_REASON =
   'D24: a delegated token never carries this, however it is minted. An agent that asks is answered with a question a person confirms.'
+
+/**
+ * D24's PERSON-ONLY TWO (P6b Task 2) — **RESTATED HERE FOR EXACTLY THE REASON `PRIVILEGED`
+ * ABOVE IS, AND THAT IS STILL A FINDING ABOUT THE DOCUMENT, NOT A PREFERENCE.**
+ * `MintTokenRequest.capabilities` marks neither class; only its prose names them.
+ *
+ * Stricter than the four: an agent asking for one of these is refused `403
+ * TOKEN_PERSON_ONLY` with NO question for anybody to confirm, because each is a record that
+ * a named person decided. The mint route refuses both `400 TOKEN_CAPABILITY_FORBIDDEN`;
+ * `disabled` is an explanation, never the control.
+ */
+const PERSON_ONLY: ReadonlySet<Capability> = new Set<Capability>([
+  'release:approve',
+  'launch:record',
+])
+
+const PERSON_ONLY_REASON = 'A person does this — no token and no confirmation can.'
 
 /** What a token was minted with by default here — the four an agent needs to build and ship. */
 const SUGGESTED: readonly Capability[] = [
@@ -245,6 +260,7 @@ function Mint({
           <ul className="capabilities">
             {CAPABILITIES.map((capability) => {
               const privileged = PRIVILEGED.has(capability)
+              const personOnly = PERSON_ONLY.has(capability)
               return (
                 <li key={capability}>
                   <label>
@@ -252,7 +268,7 @@ function Mint({
                       type="checkbox"
                       // AN EXPLANATION, NOT A CONTROL. The mint route refuses any of these
                       // `400 TOKEN_CAPABILITY_FORBIDDEN` whatever this checkbox does.
-                      disabled={privileged}
+                      disabled={privileged || personOnly}
                       checked={chosen.includes(capability)}
                       onChange={(e) =>
                         setChosen((c) =>
@@ -265,6 +281,7 @@ function Mint({
                     <code>{capability}</code>
                   </label>
                   {privileged && <div className="hint">{PRIVILEGED_REASON}</div>}
+                  {personOnly && <div className="hint">{PERSON_ONLY_REASON}</div>}
                 </li>
               )
             })}

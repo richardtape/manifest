@@ -15,15 +15,20 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
  * *"The major version is the path. P5c sets `1.0.0` when the console has proved the
  * contract."* It has — D22's reference console drives §22's whole journey through nothing
  * but this document's generated client, and `packages/console/src/coverage.test.ts` holds
- * every one of its 34 operations to having a caller. From here an ADDITIVE change bumps the
+ * every one of its operations to having a caller. From here an ADDITIVE change bumps the
  * minor; a BREAKING one is a new path prefix served beside `/v1`, never an edit to it
  * (D23.8).
+ *
+ * **`1.1.0` SINCE P6b TASK 2 (2026-09-23)**, and the bump is late: P6a added seven
+ * operations (approve, reject, the approval, the launch records and the rehearsal) under
+ * `1.0.0` without one (P6b *Read this first* 11). This bump covers those seven and every
+ * additive change P6b makes, once, because nothing is published between tasks.
  *
  * Three files carry it and two tests hold them together: this constant,
  * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,
  * never edited) and `packages/contract/package.json`.
  */
-export const CONTRACT_VERSION = '1.0.0'
+export const CONTRACT_VERSION = '1.1.0'
 
 type JsonSchema = Record<string, unknown>
 

@@ -36,12 +36,12 @@ export const CAPABILITIES = [
    * **External state Manifest tracks and drives** (D19), so it is an administrator's and
    * not an owner's — a faculty member cannot assert that their own PIA was approved.
    *
-   * **IT IS NOT ONE OF D24'S PRIVILEGED FOUR, AND SO `assertCapability` WILL NOT REFUSE A
-   * TOKEN THAT HOLDS IT.** Adding it to `PRIVILEGED` would be a spec change (D24 names
-   * four). The control is therefore `requireSession` on every route that asserts this,
-   * and `records.test.ts` proves a token holding `launch:record` is still refused
-   * `403 TOKEN_CREDENTIAL_REFUSED` — because a token that could satisfy the platform's
-   * own launch gate is D14 exactly inverted (P6a Decision 4).
+   * **IT IS NOT ONE OF D24'S PRIVILEGED FOUR — IT IS PERSON-ONLY** (`PERSON_ONLY` below,
+   * since P6b Task 2): the mint route refuses it and `assertCapability` refuses any token
+   * holding it, with no pending action, because a token that could satisfy the platform's
+   * own launch gate is D14 exactly inverted (P6a Decision 4). Every route that asserts it
+   * ALSO calls `requireSession` first, which answers `403 TOKEN_CREDENTIAL_REFUSED` before
+   * the central rule is reached — two layers, two codes.
    */
   'launch:record',
   'quota:set',
@@ -83,6 +83,27 @@ export function isPrivileged(capability: PrivilegedCapability): boolean {
 }
 
 /**
+ * D24's PERSON-ONLY actions (Rich, 2026-09-22; §20's step-up bullet and D24's row): approving a
+ * release (§13) and recording what UBC IAM or the Privacy Office decided (§9). **Stricter than
+ * the privileged four.** A privileged action a token asks for becomes a question a person
+ * answers, and a confirmed retry goes through once. A person-only action cannot, because each is a RECORD
+ * THAT A NAMED PERSON DECIDED — and a confirmed retry would let the token make that record.
+ *
+ * Refused CENTRALLY, in `assertCapability`, so a route that forgot `requireSession` still
+ * refuses. And refused with its OWN code, `TOKEN_PERSON_ONLY`, so that removing either the
+ * central rule or a route's `requireSession` turns a test red (P6b Decision 14). DISJOINT from
+ * `PRIVILEGED` by construction, and `person-only.test.ts` holds it so.
+ */
+export const PERSON_ONLY: ReadonlySet<Capability> = new Set<Capability>([
+  'release:approve',
+  'launch:record',
+])
+
+export function isPersonOnly(capability: PrivilegedCapability): boolean {
+  return (PERSON_ONLY as ReadonlySet<PrivilegedCapability>).has(capability)
+}
+
+/**
  * §20's step-up set: *"approving a release, reading a secret, changing a quota, changing
  * project membership"*, re-proved by a second authentication round trip (P6a Task 9).
  *
@@ -92,9 +113,9 @@ export function isPrivileged(capability: PrivilegedCapability): boolean {
  * SEPARATE capability (§13 names the approval and the promotion separately) which is NOT
  * in `PRIVILEGED`, is granted to a platform admin by role, and **could be minted into a
  * delegated token by an administrator** — measured through the mint route as P6a `[M6]`.
- * Adding it to `PRIVILEGED` would change D24's meaning and is a SPEC CHANGE, so it is not
- * done here; this union plus `requireSession` on the route is what closes it, and the
- * plan's Spec action 2 asks Rich whether §20 should say so.
+ * Rich settled it on 2026-09-22 (P6a's Spec action 2, applied to §20 and D24): it is
+ * PERSON-ONLY, not privileged, and since P6b Task 2 `PERSON_ONLY` above is the rule — the
+ * mint route refuses it and `assertCapability` refuses any token holding it.
  *
  * LITERALS, like `privileged.test.ts`'s D24 list, so nothing can be quietly added or
  * removed — and `step-up-guarded.test.ts` names the same five a second time rather than
@@ -197,8 +218,10 @@ export function assertStepUp(
    * Requiring both would mean requiring something a token cannot have.
    *
    * **IT FAILS CLOSED FOR EVERYTHING ELSE**, and that is not decoration: `release:approve`
-   * is step-up-guarded and is NOT one of D24's `PRIVILEGED` four, so a token holding it
-   * reaches this line with no grant at all and is refused here (*Read this first* 2).
+   * is step-up-guarded and is NOT one of D24's `PRIVILEGED` four, so before P6b a token
+   * holding it reached this line with no grant at all and was refused here (*Read this
+   * first* 2). Since P6b Task 2 `assertCapability` refuses it first as person-only, so this
+   * line is the second layer for that capability, not the only one.
    * Compared for EQUALITY, like `assertCapability`'s own grant check: a confirmation of
    * one capability is not a confirmation of another.
    */
@@ -253,7 +276,11 @@ export interface TokenActor {
   tokenId: string
   /** D24 and Decision 3: exactly ONE project. */
   projectId: string
-  /** The explicit set it was minted with. Never one of `PRIVILEGED` (Task 6). */
+  /**
+   * The explicit set it was minted with. The mint route refuses `PRIVILEGED` (P5b Task 4)
+   * and `PERSON_ONLY` (P6b Task 2), but a row written before either — or straight to the
+   * store — can hold one, which is why `assertCapability` refuses both whatever this says.
+   */
   capabilities: ReadonlySet<Capability>
   /** §20's per-token limit, off the row. Task 9 is its only reader. */
   rateLimit: number
@@ -349,6 +376,30 @@ export class TokenCapabilityRefusedError extends Error {
   }
 }
 
+/**
+ * A delegated token asked for one of `PERSON_ONLY` (P6b Task 2, Decision 14).
+ *
+ * **NOT `TokenCapabilityRefusedError`, and that is the whole point**: `api/contract/route.ts`'s
+ * wrapper turns THAT class into a PendingAction, and this one must never become one — there is
+ * no question a person could confirm that would make the token a person.
+ *
+ * Carries no code; `api/errors.ts` supplies `TOKEN_PERSON_ONLY` at its `instanceof` branch,
+ * the shape `StepUpRequiredError` records the reason for above.
+ */
+export class PersonOnlyRefusedError extends Error {
+  constructor(
+    readonly capability: Capability,
+    readonly projectId: string,
+    readonly tokenId: string,
+  ) {
+    super(
+      `'${capability}' is a record that a named person decided (D24): no delegated token may ` +
+        'hold it, and no confirmation can grant it',
+    )
+    this.name = 'PersonOnlyRefusedError'
+  }
+}
+
 export async function membershipOf(
   db: Db,
   userId: string,
@@ -390,23 +441,35 @@ export async function assertCapability(
    * request a token makes, which is the per-request database cost Decision 9 rejected —
    * and the plan that adds member removal to the console is the one that revisits it.
    *
-   * **THE ORDER OF THE THREE CHECKS BELOW IS THE SECURITY PROPERTY**, and the next
-   * reader will want to reorder them for readability. Scope, then D24's privileged rule,
-   * then the token's own set:
+   * **THE ORDER OF THE FOUR CHECKS BELOW IS THE SECURITY PROPERTY**, and the next
+   * reader will want to reorder them for readability. Scope, then the person-only rule,
+   * then D24's privileged rule, then the token's own set:
    *
    * 1. **Scope first**, so a token cannot learn that a project it may not address exists
    *    — not even by being told its action is privileged, and not by having a row written
    *    into that project's queue for a person there to read.
-   * 2. **Then the privileged rule, BEFORE the token's own capability set**, because D24
+   * 2. **Then the person-only rule (P6b Task 2), BEFORE the privileged rule and before any
+   *    grant**, because no confirmation may stand in for a person here — that is the whole
+   *    difference between this class and D24's four. It is disjoint from `PRIVILEGED`, so
+   *    the order between 2 and 3 decides nothing today; it is written first so that the
+   *    day a capability is wrongly put in both, the stricter answer wins.
+   * 3. **Then the privileged rule, BEFORE the token's own capability set**, because D24
    *    says *"regardless of how it was minted"*: a token that somehow holds one of
    *    `PRIVILEGED` is refused by this line, not by the mint route. Put after the set,
    *    this line would be unreachable for every token minted through Task 4's route —
    *    and every test using such a token would stay green.
-   * 3. **Then the set**, which is the ordinary `FORBIDDEN`.
+   * 4. **Then the set**, which is the ordinary `FORBIDDEN`.
    */
   if (actor.credential === 'token') {
     if (actor.projectId !== projectId) {
       throw new AuthorizationError('NOT_FOUND', `no project '${projectId}'`)
+    }
+    // PERSON-ONLY, BEFORE THE PRIVILEGED RULE AND BEFORE ANY GRANT (Decision 14). After scope,
+    // so a token still learns nothing about a project it may not address. Before the grant,
+    // because no confirmation may stand in for a person here — the whole difference between
+    // this class and D24's four.
+    if (isPersonOnly(capability)) {
+      throw new PersonOnlyRefusedError(capability, projectId, actor.tokenId)
     }
     if (isPrivileged(capability)) {
       /**

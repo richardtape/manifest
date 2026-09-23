@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   capabilitiesFor,
+  isPersonOnly,
   isPrivileged,
   PRIVILEGED,
   type PrivilegedCapability,
@@ -62,22 +63,23 @@ describe('the privileged set (D24, §20)', () => {
   })
 
   /**
-   * **`launch:record` IS NOT PRIVILEGED, AND THE ROUTE'S `requireSession` IS WHAT REFUSES
-   * A TOKEN** (P6a Decision 4). It is asserted HERE because this is the file a reader
-   * opens to find out what a delegated token may never do, and the honest answer for this
-   * capability is *"the privileged rule says nothing about it"* — `assertCapability`'s
-   * token branch falls straight through to *does this token hold it?*, and a platform
-   * administrator can mint a token that does.
+   * **`launch:record` IS NOT PRIVILEGED — IT IS PERSON-ONLY** (P6a Decision 4; P6b Task 2).
+   * It is asserted HERE because this is the file a reader opens to find out what a
+   * delegated token may never do, and the honest answer for this capability is *"the
+   * privileged rule says nothing about it"*: a privileged capability becomes a question a
+   * person confirms, and this one never may, because recording UBC's decision is a record
+   * that a named person made it.
    *
-   * The control that makes it safe is a different one, and it is proved in
-   * `launch/records.test.ts` and `api/authz-contract.ts`: every route asserting this
-   * capability calls `requireSession` first, so a token holding `launch:record` is
-   * refused `403 TOKEN_CREDENTIAL_REFUSED` before the capability is ever read.
+   * The rule that refuses it is `PERSON_ONLY` (`person-only.test.ts`), refused centrally by
+   * `assertCapability` and at the mint route, answered `403 TOKEN_PERSON_ONLY`. Every route
+   * asserting it ALSO calls `requireSession` first, which answers `403
+   * TOKEN_CREDENTIAL_REFUSED` before the central rule is reached (`api/authz-contract.ts`).
    */
-  it('does NOT make launch:record privileged — requireSession is that route’s control', () => {
+  it('does NOT make launch:record privileged — it is person-only, a stricter class', () => {
     expect(isPrivileged('launch:record')).toBe(false)
     expect([...PRIVILEGED]).not.toContain('launch:record')
-    // And a token CAN hold it, which is exactly why the routes are session-only.
+    expect(isPersonOnly('launch:record')).toBe(true)
+    // A ROLE holds it — a platform administrator records what UBC said — and no token can.
     expect(capabilitiesFor(null, 'admin').has('launch:record')).toBe(true)
   })
 

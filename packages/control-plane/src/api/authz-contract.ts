@@ -1469,9 +1469,10 @@ export function describeAuthorizationContract(
         'release:deploy',
         // P6a Task 6: `token-capable` must HOLD `launch:record` for the two record rows to
         // mean anything — a token refused for not holding it would prove nothing about the
-        // credential-class rule. It is mintable, because it is not one of D24's four, and
-        // no other row's expectation moves: a token holding one more capability is still
-        // capable of everything it was.
+        // credential-class rule. It is NOT mintable since P6b Task 2 — `mintTestToken`
+        // writes it straight to the store, which is what a token minted before P6b looks
+        // like. `requireSession` answers first on both record routes, so no row's
+        // expectation moves; `api/person-only.test.ts` is what sees the central rule.
         'launch:record',
       ]
       const tokenFor = async (

@@ -29,7 +29,11 @@ import {
   PendingActionRequiredError,
   type PendingAction,
 } from '../tokens/index.js'
-import { StepUpRequiredError, TokenCapabilityRefusedError } from '../projects/index.js'
+import {
+  PersonOnlyRefusedError,
+  StepUpRequiredError,
+  TokenCapabilityRefusedError,
+} from '../projects/index.js'
 import {
   PendingAction as PendingActionSchema,
   toPendingAction,
@@ -272,6 +276,27 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
           code: 'STEP_UP_REQUIRED',
           message: error.message,
           hint: 'Navigate the browser to /auth/step-up?returnTo=<the page you are on>, complete the CWL prompt, and make this request again.',
+        },
+      },
+    }
+  }
+
+  /**
+   * D24's PERSON-ONLY class (P6b Task 2, Decision 14). 403 for the same reason as the two
+   * around it — and a code of its OWN, distinct from `TOKEN_CREDENTIAL_REFUSED` below, so
+   * that removing either the central rule or a route's `requireSession` turns a test red.
+   * No `pendingAction`: there is nothing a person could confirm that makes a token a person.
+   */
+  if (error instanceof PersonOnlyRefusedError) {
+    return {
+      status: 403,
+      body: {
+        error: {
+          // THE LITERAL LIVES HERE (Decision 14): the class carries no code, so it cannot be
+          // constructed with the wrong one, and error-codes.test.ts finds this line under api/.
+          code: 'TOKEN_PERSON_ONLY',
+          message: error.message,
+          hint: 'A person does this, in the console, in their own session. No token can hold it and no confirmation grants it — do not ask for one.',
         },
       },
     }

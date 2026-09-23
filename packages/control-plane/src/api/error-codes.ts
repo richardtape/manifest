@@ -183,6 +183,16 @@ export const ERROR_CODES = {
     403,
     'This action needs a second authentication round trip (§20). Send the person to /auth/step-up and retry.',
   ),
+  /**
+   * D24's PERSON-ONLY class (P6b Task 2), and the SIXTH `403` on this API. Distinct from
+   * `TOKEN_CREDENTIAL_REFUSED` (a route no token may use at all) and from
+   * `TOKEN_ACTION_PENDING` (a question a person can confirm): this one is a dead end by
+   * design, because each action is a record that a named person decided.
+   */
+  TOKEN_PERSON_ONLY: api(
+    403,
+    'A delegated token asked for a person-only action (D24) — approving a release, or recording UBC’s IAM or privacy decision. Refused outright; no pending action is created.',
+  ),
   PROJECT_LAST_OWNER: api(
     409,
     'A project must always have an owner, so the last one cannot be removed.',
@@ -205,7 +215,7 @@ export const ERROR_CODES = {
     'The request carried both a session cookie and a delegated token; it carries one or the other.',
   ),
   TOKEN_CAPABILITY_FORBIDDEN: bad(
-    'A mint asked for one of D24’s four forbidden capabilities; the message names which.',
+    'A mint asked for one of D24’s four privileged capabilities, or for one of its two person-only ones; the message names which.',
   ),
 
   // projects/slugs.ts — §23. The check answers them in a 200; creation refuses with them.

@@ -88,16 +88,17 @@ export const MintTokenRequest = request(
       .max(64)
       .describe('A person’s label for it, so a list of tokens is reviewable.'),
     /**
-     * EVERY capability the platform names, including the four a token may never hold —
-     * so asking for one of those is refused as `TOKEN_CAPABILITY_FORBIDDEN`, naming it,
-     * rather than as `REQUEST_INVALID`, which would make D24's forbidden four
-     * indistinguishable from a typo (D23.7: an agent must be able to correct itself).
+     * EVERY capability the platform names, including the six a token may never hold —
+     * D24's privileged four and its person-only two (P6b Task 2) — so asking for one of
+     * those is refused as `TOKEN_CAPABILITY_FORBIDDEN`, naming it, rather than as
+     * `REQUEST_INVALID`, which would make them indistinguishable from a typo (D23.7: an
+     * agent must be able to correct itself).
      */
     capabilities: z
       .array(z.enum(PRIVILEGED_CAPABILITIES))
       .min(1)
       .describe(
-        'The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted.',
+        'The explicit set this token may use (D24). None of members:manage, release:promote, quota:set or secret:read: those are refused to a delegated token however it was minted. Nor release:approve or launch:record, which are person-only and refused outright.',
       ),
     expiresInDays: z
       .int()
