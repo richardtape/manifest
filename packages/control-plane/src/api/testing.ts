@@ -154,6 +154,58 @@ export function mutationHeaders(deps: ServerDeps): {
 }
 
 /**
+ * Commits `manifest.yaml` to a project's repository and validates it THROUGH THE ROUTE
+ * (`POST /v1/projects/{id}/spec`), which is the only way a spec row is written — so the
+ * next build, and the sensitive diff the route reports, both see it.
+ *
+ * Created by P6b Task 3, whose route tests are its first caller (sitting 1's F8); Task 4's
+ * `launchedProject` reuses it. It THROWS rather than asserting, like `withProjectServer`,
+ * because this file is a fixture and not a test. `valid: false` is for a test whose subject
+ * is an invalid commit; everything else takes the default and is told loudly if the
+ * manifest it wrote does not validate.
+ */
+export async function commitManifest(
+  ctx: {
+    app: FastifyInstance
+    deps: ServerDeps
+    cookies: Record<string, string>
+    project: { id: string; slug: string }
+  },
+  yamlLines: readonly string[],
+  message: string,
+  options: { valid?: boolean } = {},
+): Promise<{
+  appSpecId: string
+  commitSha: string
+  valid: boolean
+  sensitiveDiff: { sensitive: boolean; fields: string[] }
+}> {
+  await ctx.deps.source.commitFiles(
+    ctx.deps.source.repositoryFor(ctx.project.slug),
+    { 'manifest.yaml': [...yamlLines, ''].join('\n') },
+    message,
+  )
+  const res = await ctx.app.inject({
+    method: 'POST',
+    url: `/v1/projects/${ctx.project.id}/spec`,
+    payload: {},
+    cookies: ctx.cookies,
+    headers: mutationHeaders(ctx.deps),
+  })
+  if (res.statusCode !== 201) {
+    throw new Error(`validating manifest.yaml answered ${res.statusCode}: ${res.body}`)
+  }
+  const body = res.json() as Awaited<ReturnType<typeof commitManifest>>
+  const expected = options.valid ?? true
+  if (body.valid !== expected) {
+    throw new Error(
+      `manifest.yaml validated ${body.valid}, expected ${expected}: ${res.body}`,
+    )
+  }
+  return body
+}
+
+/**
  * A `POST /v1/projects` body (P5a Task 11). The audience is REQUIRED — §24 asks it at
  * creation — so every test that creates a project states one; `solo`/`steady` because no
  * test here depends on it.

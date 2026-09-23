@@ -138,9 +138,18 @@ export interface CreateReleaseInput {
  * "promotion never rebuilds" quietly stops being true.
  */
 export async function createRelease(db: Db, input: CreateReleaseInput): Promise<Release> {
-  const [build] = await db.select().from(builds).where(eq(builds.id, input.buildId))
+  // SCOPED TO THE PROJECT (P6b Decision 6, [M6]): without it a member of two projects could
+  // put one project's image under the other's name. The route reads the same condition
+  // first; this is the second, independent read — what ORIENTATION §9 records a guard is.
+  const [build] = await db
+    .select()
+    .from(builds)
+    .where(and(eq(builds.id, input.buildId), eq(builds.projectId, input.projectId)))
   if (!build)
-    throw new ReleaseError('RELEASE_BUILD_NOT_FOUND', `no build '${input.buildId}'`)
+    throw new ReleaseError(
+      'RELEASE_BUILD_NOT_FOUND',
+      `no build '${input.buildId}' in project '${input.projectId}'`,
+    )
   if (build.status !== 'succeeded' || !build.imageDigest) {
     throw new ReleaseError(
       'RELEASE_BUILD_NOT_DEPLOYABLE',

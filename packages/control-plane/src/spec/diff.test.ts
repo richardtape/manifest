@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { manifestSchema, type ManifestSpec } from './schema.js'
-import { DESCRIBED_PATHS, describeDiff, isSensitiveDiff } from './diff.js'
+import {
+  DESCRIBED_PATHS,
+  describeDiff,
+  isSensitiveDiff,
+  SENSITIVE_FIELDS,
+  sensitiveFieldsBetween,
+  sensitiveViewOfRelease,
+  sensitiveViewOfSpec,
+  type SensitiveField,
+} from './diff.js'
 import { resolveConfig, type ResolvedConfig } from './resolve.js'
 
 const base = (extra: Record<string, unknown> = {}): ManifestSpec =>
@@ -319,5 +328,131 @@ describe('describeDiff (§14)', () => {
     const reported = describeDiff(before, after).map((c) => c.path)
     const expected = Object.values(DESCRIBED_PATHS).filter((path) => path !== null)
     expect(reported.sort()).toEqual([...new Set(expected)].sort())
+  })
+})
+
+/**
+ * ONE RULE OVER WHAT PRODUCTION RUNS (P6b Task 3, Decision 5).
+ *
+ * `isSensitiveDiff` read `before.resources` against `after.resources` and nothing else, so a
+ * manifest raising `environments.production.resources.memory` from 512Mi to 8Gi reported no
+ * sensitive change while production would run with sixteen times the memory — measured as
+ * P6b `[M3]` through the validate route. The rule now reads a `SensitiveView`, and two
+ * adapters build one: from a raw spec (production's override folded over the top level) and
+ * from a release's FROZEN production config (the blueprint's defaults included).
+ */
+describe('sensitiveFieldsBetween — one rule, two adapters (P6b Task 3)', () => {
+  const DEFAULTS = { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' }
+
+  it('a raised PRODUCTION override is a resources change — [M3], and what production actually runs', () => {
+    const before = base({
+      environments: { production: { resources: { memory: '512Mi' } } },
+    })
+    const after = base({ environments: { production: { resources: { memory: '8Gi' } } } })
+    expect(isSensitiveDiff(before, after).fields).toEqual(['resources'])
+  })
+
+  it('a LOWERED production override is not — §7 is increase-only', () => {
+    const before = base({
+      environments: { production: { resources: { memory: '8Gi' } } },
+    })
+    const after = base({
+      environments: { production: { resources: { memory: '512Mi' } } },
+    })
+    expect(isSensitiveDiff(before, after)).toEqual({ sensitive: false, fields: [] })
+  })
+
+  it('a staging override is not a production change at all', () => {
+    const before = base({ environments: { staging: { resources: { memory: '256Mi' } } } })
+    const after = base({ environments: { staging: { resources: { memory: '2Gi' } } } })
+    expect(isSensitiveDiff(before, after).fields).toEqual([])
+  })
+
+  it('an override that restates the top-level value is no change — the fold, not the key, is compared', () => {
+    const before = base({ resources: { memory: '1Gi' } })
+    const after = base({
+      resources: { memory: '1Gi' },
+      environments: { production: { resources: { memory: '1Gi' } } },
+    })
+    expect(isSensitiveDiff(before, after)).toEqual({ sensitive: false, fields: [] })
+  })
+
+  it('the release view reads the FROZEN production config, defaults and override included', () => {
+    const a = resolveConfig(base({}), 'production', DEFAULTS)
+    const b = resolveConfig(
+      base({ environments: { production: { resources: { cpu: 2 } } } }),
+      'production',
+      DEFAULTS,
+    )
+    expect(
+      sensitiveFieldsBetween(
+        sensitiveViewOfRelease(a, 'node-ts-mongo@1'),
+        sensitiveViewOfRelease(b, 'node-ts-mongo@1'),
+      ),
+    ).toEqual(['resources'])
+    // THE POSITIVE HALF IN THE SAME TEST: identical configs, identical answer.
+    expect(
+      sensitiveFieldsBetween(
+        sensitiveViewOfRelease(a, 'node-ts-mongo@1'),
+        sensitiveViewOfRelease(a, 'node-ts-mongo@1'),
+      ),
+    ).toEqual([])
+  })
+
+  it('the two adapters agree whenever a spec sets every limit itself', () => {
+    // A property over §7's seven: for each field, a pair of specs differing ONLY there, with
+    // every resource dimension set explicitly — so the blueprint's defaults cannot be what
+    // the two adapters disagree about. One rule, two inputs, the same answer.
+    const every = {
+      resources: { cpu: 0.5, memory: '512Mi', pids: 128, disk: '1Gi' },
+      auth: { provider: 'cwl', attributes: ['ubcEduCwlPuid'] },
+    }
+    const pairs: Record<
+      SensitiveField,
+      [Record<string, unknown>, Record<string, unknown>]
+    > = {
+      services: [{}, { services: [{ type: 'mongo', version: '7', name: 'db' }] }],
+      'auth.attributes': [
+        {},
+        { auth: { provider: 'cwl', attributes: ['ubcEduCwlPuid', 'mail'] } },
+      ],
+      'egress.allow': [{}, { egress: { allow: ['api.ubc.ca'] } }],
+      resources: [{}, { resources: { cpu: 0.5, memory: '1Gi', pids: 128, disk: '1Gi' } }],
+      'data.classification': [
+        { data: { classification: 'internal' } },
+        { data: { classification: 'confidential' } },
+      ],
+      'ai.models': [{}, { ai: { models: ['default-chat'] } }],
+      blueprint: [{}, { blueprint: 'node-ts-mongo@3' }],
+    }
+    for (const field of SENSITIVE_FIELDS) {
+      const [left, right] = pairs[field]
+      const before = base({ ...every, ...left })
+      const after = base({ ...every, ...right })
+      const bySpec = sensitiveFieldsBetween(
+        sensitiveViewOfSpec(before),
+        sensitiveViewOfSpec(after),
+      )
+      const byRelease = sensitiveFieldsBetween(
+        sensitiveViewOfRelease(
+          resolveConfig(before, 'production', DEFAULTS),
+          before.blueprint,
+        ),
+        sensitiveViewOfRelease(
+          resolveConfig(after, 'production', DEFAULTS),
+          after.blueprint,
+        ),
+      )
+      expect(bySpec, field).toEqual([field])
+      expect(byRelease, field).toEqual([field])
+    }
+  })
+
+  it('reports the fields in SENSITIVE_FIELDS order', () => {
+    const after = base({
+      blueprint: 'node-ts-mongo@3',
+      services: [{ type: 'mongo', version: '7', name: 'db' }],
+    })
+    expect(isSensitiveDiff(base(), after).fields).toEqual(['services', 'blueprint'])
   })
 })

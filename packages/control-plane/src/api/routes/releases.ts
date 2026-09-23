@@ -1,5 +1,5 @@
 import type { FastifyRequest } from 'fastify'
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { z } from 'zod/v4'
 import {
   appSpecs,
@@ -154,7 +154,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Release a build',
     description:
-      '§13: an immutable release — the build’s digest, the newest valid spec, and the configuration resolved for all three environments, frozen together.',
+      '§13: an immutable release — the build’s digest, the spec that build was made from, and the configuration resolved from it for all three environments, frozen together. The build must be this project’s.',
     params: ProjectParams,
     query: NO_QUERY,
     body: CreateReleaseRequest,
@@ -162,7 +162,6 @@ export const releaseRoutes = [
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
-      'SPEC_NOT_FOUND',
       'BLUEPRINT_NOT_FOUND',
       'RELEASE_BUILD_NOT_FOUND',
       'RELEASE_BUILD_NOT_DEPLOYABLE',
@@ -175,16 +174,31 @@ export const releaseRoutes = [
         .where(eq(projects.id, params.projectId))
       if (project === undefined)
         throw new AuthorizationError('NOT_FOUND', `no project '${params.projectId}'`)
+      // THE BUILD'S OWN SPEC (P6b Decision 6, [M6]) — the one §7's build-time attribute
+      // check ran against, and a spec `startBuild` has already refused if it was invalid. The
+      // newest spec is somebody's NEXT commit, and freezing it paired one commit's image with
+      // another's configuration — and an invalid newest spec (`parsed: {}`) reached
+      // `resolveConfig` as a `500`. SCOPED TO THE PROJECT, so another project's build is
+      // indistinguishable from no build at all (the enumeration rule `getRelease` states).
+      // `createRelease` reads the same condition again: two independent reads (ORIENTATION §9).
+      const [build] = await deps.db
+        .select()
+        .from(builds)
+        .where(and(eq(builds.id, body.buildId), eq(builds.projectId, params.projectId)))
+      if (build === undefined)
+        throw new ReleaseError(
+          'RELEASE_BUILD_NOT_FOUND',
+          `no build '${body.buildId}' in this project`,
+        )
       const [spec] = await deps.db
         .select()
         .from(appSpecs)
-        .where(eq(appSpecs.projectId, params.projectId))
-        .orderBy(desc(appSpecs.createdAt))
-        .limit(1)
+        .where(eq(appSpecs.id, build.appSpecId))
+      // `builds.app_spec_id` is NOT NULL with a foreign key, so this cannot happen through
+      // any route; an honest 500 rather than a code a client would be told to act on.
       if (spec === undefined)
-        throw new BadRequestError(
-          'SPEC_NOT_FOUND',
-          'this project has no validated spec yet',
+        throw new Error(
+          `build '${build.id}' names spec '${build.appSpecId}', which is gone`,
         )
       const descriptor = deps.blueprints.resolve(project.blueprintRef)
       if (descriptor === undefined) {

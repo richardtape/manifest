@@ -52,17 +52,49 @@ const sameObjectSet = (a: readonly unknown[], b: readonly unknown[]): boolean =>
   stable(a.map(stable).sort()) === stable(b.map(stable).sort())
 
 /**
+ * What §7's seven sensitive fields ARE, for one side of a comparison (P6b Task 3, Decision 5).
+ *
+ * ONE SHAPE, SO THERE IS ONE RULE. The re-escalation compares two releases' FROZEN production
+ * configs, and the validate route compares two raw specs; before P6b the rule read
+ * `ManifestSpec` directly, and a second copy for releases would have been two statements of
+ * one rule, which drift (ORIENTATION §9). Two adapters below build this view instead.
+ */
+export interface SensitiveView {
+  services: readonly { type: string; version: string; name: string }[]
+  attributes: readonly string[]
+  egress: readonly string[]
+  /**
+   * What the environment RUNS with where known; a raw spec leaves a dimension `undefined`
+   * where the blueprint supplies it. `| undefined` explicitly, because
+   * `exactOptionalPropertyTypes` would otherwise refuse the spec adapter's fold.
+   */
+  resources: {
+    cpu?: number | undefined
+    memory?: string | undefined
+    pids?: number | undefined
+    disk?: string | undefined
+  }
+  classification: string
+  models: readonly string[]
+  /** §7's `blueprint` — the MANIFEST's reference (P6b *Read this first* 4). */
+  blueprint: string
+}
+
+/**
  * `resources` is sensitive on INCREASE only (§7). A faculty member trimming memory
  * should not wait on an approval; one quietly tripling it should.
  */
-function resourcesIncreased(before: ManifestSpec, after: ManifestSpec): boolean {
+function resourcesIncreased(
+  before: SensitiveView['resources'],
+  after: SensitiveView['resources'],
+): boolean {
   const mib = (q: string | undefined) => (q === undefined ? undefined : toMebibytes(q))
 
   return (
-    dimensionRose(before.resources.cpu, after.resources.cpu) ||
-    dimensionRose(mib(before.resources.memory), mib(after.resources.memory)) ||
-    dimensionRose(mib(before.resources.disk), mib(after.resources.disk)) ||
-    dimensionRose(before.resources.pids, after.resources.pids)
+    dimensionRose(before.cpu, after.cpu) ||
+    dimensionRose(mib(before.memory), mib(after.memory)) ||
+    dimensionRose(mib(before.disk), mib(after.disk)) ||
+    dimensionRose(before.pids, after.pids)
   )
 }
 
@@ -82,30 +114,33 @@ function dimensionRose(before: number | undefined, after: number | undefined): b
   return after > before
 }
 
-export function isSensitiveDiff(
-  before: ManifestSpec,
-  after: ManifestSpec,
-): { sensitive: boolean; fields: string[] } {
-  const fields: string[] = []
+/**
+ * §7's rule, once: which sensitive fields differ between two views, in `SENSITIVE_FIELDS`
+ * order. Its callers are `isSensitiveDiff` (the validate route's report) and
+ * `releases/approval.ts`'s `sensitiveChangeOf` (D9.2's re-escalation).
+ */
+export function sensitiveFieldsBetween(
+  before: SensitiveView,
+  after: SensitiveView,
+): SensitiveField[] {
+  const fields: SensitiveField[] = []
 
   if (!sameObjectSet(before.services, after.services)) fields.push('services')
 
   // Both directions matter: in production auth.attributes must remain a subset of
   // what UBC IAM registered, so a removal is still a change worth seeing (D16, §9).
-  if (!sameSet(before.auth.attributes, after.auth.attributes))
-    fields.push('auth.attributes')
+  if (!sameSet(before.attributes, after.attributes)) fields.push('auth.attributes')
 
-  if (!sameSet(before.egress.allow, after.egress.allow)) fields.push('egress.allow')
+  if (!sameSet(before.egress, after.egress)) fields.push('egress.allow')
 
-  if (resourcesIncreased(before, after)) fields.push('resources')
+  if (resourcesIncreased(before.resources, after.resources)) fields.push('resources')
 
-  if (before.data.classification !== after.data.classification)
-    fields.push('data.classification')
+  if (before.classification !== after.classification) fields.push('data.classification')
 
   // A model change can move personal information to a different jurisdiction, which
   // invalidates an approved PIA — data.classification catches a change to the claim,
   // not to where the data actually goes (§7).
-  if (!sameSet(before.ai.models, after.ai.models)) fields.push('ai.models')
+  if (!sameSet(before.models, after.models)) fields.push('ai.models')
 
   // Under D13 the blueprint IS the build definition, so a major bump changes the
   // Dockerfile, base image and knowledge pack beneath the app. The WHOLE reference
@@ -117,6 +152,75 @@ export function isSensitiveDiff(
   // description of the reference, not an instruction to ignore its name.
   if (before.blueprint !== after.blueprint) fields.push('blueprint')
 
+  return fields
+}
+
+/**
+ * PRODUCTION'S view of a raw spec (Decision 5): §7 lets `environments.production` override
+ * `resources`, and a gate on production that cannot see that override is not a gate on
+ * production (P6b `[M3]`: 512Mi → 8Gi through the override reported no change). No
+ * blueprint defaults here — a raw spec has none, and `dimensionRose` already escalates
+ * where the direction cannot be known.
+ *
+ * Folded one dimension at a time, with `??`, rather than by spreading the override: a
+ * spread of an object holding an explicit `undefined` would erase the top-level value,
+ * which `resolveConfig`'s `defined()` exists to prevent on the release side.
+ */
+export function sensitiveViewOfSpec(spec: ManifestSpec): SensitiveView {
+  const top = spec.resources
+  const override = spec.environments.production?.resources
+  return {
+    services: spec.services,
+    attributes: spec.auth.attributes,
+    egress: spec.egress.allow,
+    resources: {
+      cpu: override?.cpu ?? top.cpu,
+      memory: override?.memory ?? top.memory,
+      pids: override?.pids ?? top.pids,
+      disk: override?.disk ?? top.disk,
+    },
+    classification: spec.data.classification,
+    models: spec.ai.models,
+    blueprint: spec.blueprint,
+  }
+}
+
+/**
+ * A release's view: its FROZEN production config — blueprint defaults, the top level and the
+ * production override already resolved (§13) — and the manifest's `blueprint:`, which
+ * `ResolvedConfig` does not carry. `describeDiff`'s own fallbacks for a release frozen before
+ * `auth` or `ai` existed (P4b pre-flight 64) — the SAME constants, not copies of them.
+ */
+export function sensitiveViewOfRelease(
+  production: ResolvedConfig,
+  blueprint: string,
+): SensitiveView {
+  const auth = (production.auth as ResolvedConfig['auth'] | undefined) ?? NO_AUTH
+  const ai = (production.ai as ResolvedConfig['ai'] | undefined) ?? NO_AI
+  return {
+    services: production.services,
+    attributes: auth.attributes,
+    egress: production.egressAllow,
+    resources: production.resources,
+    classification: production.classification,
+    models: ai.models,
+    blueprint,
+  }
+}
+
+/**
+ * The validate route's report (§7, D9): which of the seven fields two raw specs differ in, as
+ * PRODUCTION would run them. The signature is unchanged since P2; the body is the one rule
+ * over the spec adapter since P6b Task 3.
+ */
+export function isSensitiveDiff(
+  before: ManifestSpec,
+  after: ManifestSpec,
+): { sensitive: boolean; fields: string[] } {
+  const fields = sensitiveFieldsBetween(
+    sensitiveViewOfSpec(before),
+    sensitiveViewOfSpec(after),
+  )
   return { sensitive: fields.length > 0, fields }
 }
 

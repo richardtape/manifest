@@ -19,6 +19,9 @@ export {
   describeDiff,
   isSensitiveDiff,
   SENSITIVE_FIELDS,
+  sensitiveFieldsBetween,
+  sensitiveViewOfRelease,
+  sensitiveViewOfSpec,
 } from './diff.js'
 export { resolveConfig } from './resolve.js'
 export {
@@ -42,7 +45,7 @@ export type {
   ResourceDefaults,
   EnvironmentKind,
 } from './resolve.js'
-export type { SensitiveField, SpecChange } from './diff.js'
+export type { SensitiveField, SensitiveView, SpecChange } from './diff.js'
 
 export type ValidationResult =
   { valid: true; spec: ManifestSpec } | { valid: false; errors: ManifestError[] }

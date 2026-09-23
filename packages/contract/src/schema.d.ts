@@ -551,7 +551,7 @@ export interface paths {
         put?: never;
         /**
          * Release a build
-         * @description §13: an immutable release — the build’s digest, the newest valid spec, and the configuration resolved for all three environments, frozen together.
+         * @description §13: an immutable release — the build’s digest, the spec that build was made from, and the configuration resolved from it for all three environments, frozen together. The build must be this project’s.
          */
         post: operations["createRelease"];
         delete?: never;
@@ -3235,7 +3235,7 @@ export interface operations {
                     "application/json": components["schemas"]["Release"];
                 };
             };
-            /** @description An error, in the D23.7 envelope. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_BUILD_NOT_DEPLOYABLE, RELEASE_BUILD_NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SPEC_NOT_FOUND, UNAUTHENTICATED. */
+            /** @description An error, in the D23.7 envelope. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_BUILD_NOT_DEPLOYABLE, RELEASE_BUILD_NOT_FOUND, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

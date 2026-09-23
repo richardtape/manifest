@@ -1,17 +1,28 @@
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AI_CODES, AiError } from '../ai/index.js'
-import { approvals, builds, events } from '../db/index.js'
+import { approvals, builds, events, releases } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 // `api/index.js`, not `api/server.js`: `module-boundaries.test.ts` allows a module's
 // `index` and its `testing` and nothing else, and it caught this import the first time it
 // was written the other way.
 import { buildServer } from '../api/index.js'
-import { loginAs, mutationHeaders, projectBody, testDeps } from '../api/testing.js'
+import {
+  commitManifest,
+  loginAs,
+  mutationHeaders,
+  projectBody,
+  testDeps,
+} from '../api/testing.js'
 import { mintTestToken } from '../tokens/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
 import type { Reviewer, ReviewRequest } from '../launch/index.js'
-import { approvalCoversDigest, describeVerdict } from './approval.js'
+import {
+  approvalCoversDigest,
+  describeVerdict,
+  lastApprovedReleaseFor,
+  sensitiveChangeOf,
+} from './approval.js'
 
 beforeEach(resetDatabase)
 afterAll(resetDatabase)
@@ -820,5 +831,158 @@ describe('approvalCoversDigest — a string comparison, deliberately not a prefi
     expect(
       approvalCoversDigest({ decision: 'rejected', imageDigest: DIGEST }, DIGEST),
     ).toBe(false)
+  })
+})
+
+/**
+ * THE BASELINE A RE-ESCALATION IS DIFFED AGAINST (P6b Task 3, Decisions 4 and 5).
+ *
+ * `lastApprovedReleaseFor` filtered approval rows on `decision = 'approved'`, so a release an
+ * administrator approved and then WITHDREW stayed the baseline for every diff after it —
+ * measured as P6b `[M5]`. The approvals table has no unique constraint on `release_id`
+ * precisely so a release can be approved, rejected and approved again; what counts is each
+ * release's LATEST decision.
+ */
+describe('the baseline is each release’s LATEST decision (P6b Task 3)', () => {
+  /** No release has this id: the exclusion a test passes when no release is "in hand". */
+  const NOBODY = '00000000-0000-0000-0000-000000000000'
+
+  const decide = (
+    ctx: Awaited<ReturnType<typeof releasedProject>>,
+    releaseId: string,
+    kind: 'approve' | 'reject',
+    reason = 'reviewed',
+  ) =>
+    ctx.app.inject({
+      method: 'POST',
+      url: `/v1/releases/${releaseId}/${kind}`,
+      payload: { reason },
+      cookies: ctx.admin,
+      headers: mutationHeaders(ctx.deps),
+    })
+
+  const rowOf = async (ctx: Awaited<ReturnType<typeof releasedProject>>, id: string) => {
+    const [row] = await ctx.deps.db.select().from(releases).where(eq(releases.id, id))
+    return row!
+  }
+
+  it('a release APPROVED AND THEN REJECTED is not a baseline — [M5]', async () => {
+    const ctx = await releasedProject('m5-labs')
+    expect((await decide(ctx, ctx.release.id, 'approve')).statusCode).toBe(201)
+    const r2 = await secondRelease(ctx, 'm5-labs', '1Gi')
+    expect((await decide(ctx, r2.id, 'approve')).statusCode).toBe(201)
+    // THE POSITIVE HALF: approved, R2 IS the baseline — so the answer below is the
+    // rejection's doing, and not a function that never returns anything newer than R1.
+    expect((await lastApprovedReleaseFor(ctx.deps.db, ctx.project.id, NOBODY))?.id).toBe(
+      r2.id,
+    )
+    expect((await decide(ctx, r2.id, 'reject', 'withdrawn')).statusCode).toBe(201)
+    const r3 = await secondRelease(ctx, 'm5-labs', '2Gi')
+    expect((await lastApprovedReleaseFor(ctx.deps.db, ctx.project.id, r3.id))?.id).toBe(
+      ctx.release.id,
+    )
+    await ctx.app.close()
+  })
+
+  it('a release rejected and then approved AGAIN is one — the latest decision is what counts', async () => {
+    const ctx = await releasedProject('m5b-labs')
+    expect((await decide(ctx, ctx.release.id, 'approve')).statusCode).toBe(201)
+    const r2 = await secondRelease(ctx, 'm5b-labs', '1Gi')
+    expect((await decide(ctx, r2.id, 'approve')).statusCode).toBe(201)
+    expect((await decide(ctx, r2.id, 'reject', 'the scan is stale')).statusCode).toBe(201)
+    expect((await lastApprovedReleaseFor(ctx.deps.db, ctx.project.id, NOBODY))?.id).toBe(
+      ctx.release.id,
+    )
+    expect((await decide(ctx, r2.id, 'approve')).statusCode).toBe(201)
+    expect((await lastApprovedReleaseFor(ctx.deps.db, ctx.project.id, NOBODY))?.id).toBe(
+      r2.id,
+    )
+    await ctx.app.close()
+  })
+
+  it('sensitiveChangeOf compares FROZEN production configs against the last approved release', async () => {
+    const ctx = await releasedProject('m6-labs')
+    expect((await decide(ctx, ctx.release.id, 'approve')).statusCode).toBe(201)
+    // THE POSITIVE HALF FIRST: a second release of the SAME build freezes the same config,
+    // so nothing sensitive changed — a rule that answered every release sensitive fails here.
+    const same = await ctx.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ctx.project.id}/releases`,
+      payload: { buildId: ctx.build.id },
+      cookies: ctx.owner,
+      headers: mutationHeaders(ctx.deps),
+    })
+    expect(same.statusCode, same.body).toBe(201)
+    const unchanged = await sensitiveChangeOf(
+      ctx.deps.db,
+      await rowOf(ctx, same.json().id),
+    )
+    expect(unchanged.baseline?.id).toBe(ctx.release.id)
+    expect(unchanged.fields).toEqual([])
+
+    await commitManifest(
+      { ...ctx, cookies: ctx.owner },
+      [
+        'manifest: 1',
+        'name: m6-labs',
+        'blueprint: fixture-node@1',
+        'runtime:',
+        '  port: 3000',
+        '  health: /healthz',
+        'egress:',
+        '  allow: [m6.example.org]',
+      ],
+      'feat: an egress host',
+    )
+    const started = await ctx.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ctx.project.id}/builds`,
+      payload: {},
+      cookies: ctx.owner,
+      headers: mutationHeaders(ctx.deps),
+    })
+    expect(started.statusCode, started.body).toBe(202)
+    await ctx.deps.builds.idle()
+    const made = await ctx.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ctx.project.id}/releases`,
+      payload: { buildId: started.json().id },
+      cookies: ctx.owner,
+      headers: mutationHeaders(ctx.deps),
+    })
+    expect(made.statusCode, made.body).toBe(201)
+    const changed = await sensitiveChangeOf(ctx.deps.db, await rowOf(ctx, made.json().id))
+    expect(changed.baseline?.id).toBe(ctx.release.id)
+    expect(changed.fields).toEqual(['egress.allow'])
+    await ctx.app.close()
+  })
+
+  it('sensitiveChangeOf with no approved release answers no baseline and no fields — the caller decides', async () => {
+    const ctx = await releasedProject('m6b-labs')
+    const change = await sensitiveChangeOf(ctx.deps.db, await rowOf(ctx, ctx.release.id))
+    expect(change).toEqual({ baseline: undefined, fields: [] })
+    await ctx.app.close()
+  })
+
+  it('a release whose spec row cannot be read RE-ESCALATES on blueprint rather than passing', async () => {
+    // The `''` fallback's only witness. No route can produce a release whose spec row is
+    // missing — `releases.app_spec_id` is a foreign key — so the row is handed in with an id
+    // no spec has, which is what a lookup that found nothing looks like to the function.
+    const ctx = await releasedProject('m6c-labs')
+    expect((await decide(ctx, ctx.release.id, 'approve')).statusCode).toBe(201)
+    const again = await ctx.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ctx.project.id}/releases`,
+      payload: { buildId: ctx.build.id },
+      cookies: ctx.owner,
+      headers: mutationHeaders(ctx.deps),
+    })
+    expect(again.statusCode, again.body).toBe(201)
+    const row = await rowOf(ctx, again.json().id)
+    // The positive half: the row as stored compares clean against its identical baseline.
+    expect((await sensitiveChangeOf(ctx.deps.db, row)).fields).toEqual([])
+    const orphan = { ...row, appSpecId: NOBODY }
+    expect((await sensitiveChangeOf(ctx.deps.db, orphan)).fields).toEqual(['blueprint'])
+    await ctx.app.close()
   })
 })

@@ -1,12 +1,20 @@
-import { and, desc, eq } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import type { LiteLlmClient } from '../ai/index.js'
-import { approvals, builds, projects, releases, type Db } from '../db/index.js'
+import { appSpecs, approvals, builds, projects, releases, type Db } from '../db/index.js'
 // TYPES ONLY, and that is load-bearing: `launch/readiness.ts` imports this module at
 // RUNTIME, so a value imported back from `launch/` would be an import cycle.
 import type { Reviewer, ReviewVerdict } from '../launch/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import type { SourceDriver } from '../source/index.js'
-import { describeDiff, type SpecChange } from '../spec/index.js'
+import {
+  describeDiff,
+  sensitiveFieldsBetween,
+  sensitiveViewOfRelease,
+  type ManifestSpec,
+  type SensitiveField,
+  type SensitiveView,
+  type SpecChange,
+} from '../spec/index.js'
 import type { ResolvedConfigSet } from './release.js'
 import { summariseChanges } from './summary.js'
 
@@ -114,17 +122,23 @@ export function approvalCoversDigest(
 }
 
 /**
- * The newest release of this project an administrator has APPROVED — what §13's diff at
- * decision time is taken against ("since the last approved release").
+ * The newest release of this project whose LATEST decision is `approved` (P6b Decision 4) —
+ * the baseline a re-escalation is diffed against, and what §13's summary means by "the last
+ * approved release".
  *
  * **BY APPROVAL ORDER, NOT BY RELEASE ORDER.** A release made after an approved one and
- * never approved is not what production is running and is not what changed since; the
- * question this answers is about decisions, so it is asked of the decisions table.
+ * never approved is not what changed since; the question this answers is about decisions,
+ * so it is asked of the decisions table.
  *
- * **THE RELEASE IN HAND IS EXCLUDED, and that is not tidiness.** A release can be approved,
- * rejected and approved again (there is no unique constraint on `release_id`), so without
- * this a second approval of the same release would diff it against itself and report that
- * nothing changed — beside a digest that had.
+ * **EACH RELEASE'S LATEST DECISION, NOT ANY APPROVAL ROW** (P6b `[M5]`). A release can be
+ * approved, rejected and approved again (no unique constraint on `release_id`), and
+ * filtering the rows on `decision = 'approved'` let a release an administrator had
+ * WITHDRAWN stay the baseline for every diff after it. Rows are read newest first, and the
+ * first row seen for a release is its latest decision.
+ *
+ * **THE RELEASE IN HAND IS EXCLUDED, and that is not tidiness.** Without it a second
+ * approval of the same release would diff it against itself and report that nothing
+ * changed — beside a digest that had.
  */
 export async function lastApprovedReleaseFor(
   db: Db,
@@ -132,12 +146,73 @@ export async function lastApprovedReleaseFor(
   excludeReleaseId: string,
 ): Promise<ReleaseRow | undefined> {
   const rows = await db
-    .select({ release: releases })
+    .select({ decision: approvals.decision, release: releases })
     .from(approvals)
     .innerJoin(releases, eq(approvals.releaseId, releases.id))
-    .where(and(eq(approvals.projectId, projectId), eq(approvals.decision, 'approved')))
+    .where(eq(approvals.projectId, projectId))
     .orderBy(desc(approvals.decidedAt), desc(approvals.id))
-  return rows.find((r) => r.release.id !== excludeReleaseId)?.release
+  const seen = new Set<string>()
+  for (const row of rows) {
+    if (seen.has(row.release.id)) continue
+    seen.add(row.release.id)
+    if (row.release.id !== excludeReleaseId && row.decision === 'approved')
+      return row.release
+  }
+  return undefined
+}
+
+/** D9.2's question about one release: what it changed since the baseline, if there is one. */
+export interface SensitiveChange {
+  /** The last approved release (Decision 4), or `undefined` when nothing is approved yet. */
+  baseline: ReleaseRow | undefined
+  /** §7's fields that differ, in `SENSITIVE_FIELDS` order; `[]` when there is no baseline. */
+  fields: SensitiveField[]
+}
+
+/**
+ * A release's `SensitiveView`: its frozen PRODUCTION config, and the `blueprint:` its own
+ * spec row names (`ResolvedConfig` carries none — P6b *Read this first* 3).
+ */
+async function sensitiveViewOf(db: Db, release: ReleaseRow): Promise<SensitiveView> {
+  const [spec] = await db
+    .select({ parsed: appSpecs.parsed })
+    .from(appSpecs)
+    .where(eq(appSpecs.id, release.appSpecId))
+  // '' when the reference cannot be read: compared with any real one it DIFFERS, so a
+  // missing spec row re-escalates rather than waving the release through.
+  const blueprint = (spec?.parsed as Partial<ManifestSpec> | undefined)?.blueprint ?? ''
+  return sensitiveViewOfRelease(
+    (release.resolvedConfig as ResolvedConfigSet).production,
+    blueprint,
+  )
+}
+
+/**
+ * D9.2's diff (P6b Task 3, Decision 5): the sensitive fields in which this release's FROZEN
+ * production config differs from the last approved release's — the configuration the
+ * platform actually runs, blueprint defaults and production override included.
+ *
+ * **WITH NO BASELINE IT ANSWERS NO FIELDS, AND THE CALLER DECIDES** what that means: for a
+ * launched app with nothing approved to compare against, "no fields" must not read as
+ * "self-serve" — Task 5's `approvalRequirementFor` treats a missing baseline as requiring
+ * an approval.
+ *
+ * **ITS ONLY CALLER IN TASK 3 IS ITS TEST**, which is the one sanctioned exception to *every
+ * task names its caller*: Task 5's `approvalRequirementFor` is the next, in the next sitting,
+ * and Task 8's snapshot the one after. If you are reading this after P6b sitting 3 and it
+ * still has no caller outside a test, that is a defect, not a plan.
+ */
+export async function sensitiveChangeOf(
+  db: Db,
+  release: ReleaseRow,
+): Promise<SensitiveChange> {
+  const baseline = await lastApprovedReleaseFor(db, release.projectId, release.id)
+  if (baseline === undefined) return { baseline, fields: [] }
+  const [before, after] = await Promise.all([
+    sensitiveViewOf(db, baseline),
+    sensitiveViewOf(db, release),
+  ])
+  return { baseline, fields: sensitiveFieldsBetween(before, after) }
 }
 
 export interface SnapshotDeps {

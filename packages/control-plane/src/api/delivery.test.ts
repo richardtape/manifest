@@ -1,12 +1,19 @@
 import { beforeEach, afterAll, describe, expect, it, vi } from 'vitest'
-import { asc, eq } from 'drizzle-orm'
-import { events } from '../db/index.js'
+import { asc, count, eq } from 'drizzle-orm'
+import { builds, events, releases } from '../db/index.js'
 import type { StreamFrame } from '../observability/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { createFakeDriver, type Driver } from '../runtime/index.js'
 import { createBuildRunner, createRetirer } from '../releases/index.js'
 import { buildServer } from './server.js'
-import { loginAs, mutationHeaders, projectBody, testDeps } from './testing.js'
+import {
+  commitManifest,
+  loginAs,
+  mutationHeaders,
+  projectBody,
+  refusal,
+  testDeps,
+} from './testing.js'
 import type { TestUserPuid } from '../identity/testing.js'
 
 beforeEach(resetDatabase)
@@ -1079,5 +1086,146 @@ describe('releases, deploys and incidents answer representations (P5a Task 14)',
       'instance.healthy',
     ])
     await app.close()
+  })
+})
+
+/**
+ * A RELEASE FREEZES ITS BUILD'S SPEC, AND ONLY ITS OWN PROJECT'S BUILD (P6b Task 3, Decision 6).
+ *
+ * The route froze the project's NEWEST spec row and never read `build.appSpecId`, so a
+ * release paired one commit's image with another commit's configuration — one §7's
+ * build-time attribute check never saw; an INVALID newest spec (`parsed: {}`) reached
+ * `resolveConfig` and answered `500`; and a member of two projects could release one
+ * project's build under the other's name. All three measured as P6b `[M6]`.
+ */
+describe('a release freezes its build’s own spec (P6b Task 3, [M6])', () => {
+  const manifest = (slug: string, extra: readonly string[] = []) => [
+    'manifest: 1',
+    `name: ${slug}`,
+    'blueprint: fixture-node@1',
+    'runtime:',
+    '  port: 3000',
+    '  health: /healthz',
+    ...extra,
+  ]
+  const withEgress = (slug: string) =>
+    manifest(slug, ['egress:', '  allow: [m6.example.org]'])
+
+  async function specOfBuild(
+    deps: Awaited<ReturnType<typeof testDeps>>,
+    buildId: string,
+  ): Promise<string> {
+    const [row] = await deps.db.select().from(builds).where(eq(builds.id, buildId))
+    return row!.appSpecId
+  }
+
+  const release = (
+    ctx: Awaited<ReturnType<typeof builtProject>>,
+    projectId: string,
+    buildId: string,
+  ) =>
+    ctx.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${projectId}/releases`,
+      payload: { buildId },
+      cookies: ctx.cookies,
+      headers: mutationHeaders(ctx.deps),
+    })
+
+  it('a release freezes its BUILD’s spec, not the newest one — [M6]', async () => {
+    const ctx = await builtProject('m6-route')
+    const built = await specOfBuild(ctx.deps, ctx.build.id)
+    const newer = await commitManifest(
+      ctx,
+      withEgress('m6-route'),
+      'feat: an egress host',
+    )
+    expect(newer.appSpecId).not.toBe(built)
+    const res = await release(ctx, ctx.project.id, ctx.build.id)
+    expect(res.statusCode, res.body).toBe(201)
+    expect(res.json().appSpecId).toBe(built)
+    expect(res.json().config.production.egressAllow).toEqual([])
+    await ctx.app.close()
+  })
+
+  it('an INVALID newest spec no longer reaches a release', async () => {
+    const ctx = await builtProject('m6-invalid')
+    const built = await specOfBuild(ctx.deps, ctx.build.id)
+    await commitManifest(
+      ctx,
+      [
+        'manifest: 1',
+        'name: m6-invalid',
+        'blueprint: fixture-node@1',
+        'runtime:',
+        '  port: x',
+      ],
+      'broken: a port that is not a number',
+      { valid: false },
+    )
+    const res = await release(ctx, ctx.project.id, ctx.build.id)
+    expect(res.statusCode, res.body).toBe(201)
+    expect(res.json().appSpecId).toBe(built)
+    expect(res.json().config.production.port).toBe(3000)
+    await ctx.app.close()
+  })
+
+  it('refuses a build of ANOTHER project: 409 RELEASE_BUILD_NOT_FOUND, and writes no release', async () => {
+    const ctx = await builtProject('m6-mine')
+    // The SAME owner holds both projects, so `release:create` on the second is granted and
+    // the only thing that can refuse is the build belonging to the first.
+    const theirs = await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      payload: projectBody('m6-theirs'),
+      cookies: ctx.cookies,
+      headers: mutationHeaders(ctx.deps),
+    })
+    expect(theirs.statusCode, theirs.body).toBe(201)
+    const otherId = theirs.json().id as string
+    const res = await release(ctx, otherId, ctx.build.id)
+    expect(refusal(res)).toEqual({ status: 409, code: 'RELEASE_BUILD_NOT_FOUND' })
+    const [written] = await ctx.deps.db
+      .select({ n: count() })
+      .from(releases)
+      .where(eq(releases.projectId, otherId))
+    expect(written?.n).toBe(0)
+    await ctx.app.close()
+  })
+
+  it('the positive control: a build of THIS project releases, 201', async () => {
+    const ctx = await builtProject('m6-own')
+    const res = await release(ctx, ctx.project.id, ctx.build.id)
+    expect(res.statusCode, res.body).toBe(201)
+    expect(res.json().buildId).toBe(ctx.build.id)
+    await ctx.app.close()
+  })
+
+  /**
+   * THE VALIDATE ROUTE COMPARES WITH THE NEWEST VALID SPEC (P6b sitting 1, F7). It diffed
+   * only against the IMMEDIATELY previous row and, when that row was invalid, answered
+   * `{sensitive: false, fields: []}` — the same answer a genuine no-change gets, so any
+   * sensitive change committed after an invalid one reported as not sensitive.
+   */
+  it('a sensitive change after an invalid commit is still reported — F7', async () => {
+    const ctx = await projectFor('bio_prof', 'f7-labs')
+    // THE POSITIVE HALF: with no invalid commit between, the change is reported.
+    const added = await commitManifest(ctx, withEgress('f7-labs'), 'feat: an egress host')
+    expect(added.sensitiveDiff).toEqual({ sensitive: true, fields: ['egress.allow'] })
+    await commitManifest(
+      ctx,
+      [
+        'manifest: 1',
+        'name: f7-labs',
+        'blueprint: fixture-node@1',
+        'runtime:',
+        '  port: x',
+      ],
+      'broken',
+      { valid: false },
+    )
+    const removed = await commitManifest(ctx, manifest('f7-labs'), 'revert: no egress')
+    expect(removed.sensitiveDiff).toEqual({ sensitive: true, fields: ['egress.allow'] })
+    await ctx.app.close()
   })
 })

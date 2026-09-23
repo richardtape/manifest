@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { z } from 'zod/v4'
 import { appSpecs, environments, users, type Db } from '../../db/index.js'
 import {
@@ -349,10 +349,14 @@ export const projectReadRoutes = [
       const project = await getProject(deps.db, params.projectId)
       if (project === undefined)
         throw new AuthorizationError('NOT_FOUND', `no project '${params.projectId}'`)
+      // THE NEWEST VALID SPEC, not the newest row (P6b sitting 1, F7). Compared only with
+      // the immediately previous row, an invalid commit in between made the route answer
+      // `{sensitive: false}` — the answer a genuine no-change gets — for a change it had
+      // never compared, so any sensitive change after a broken commit reported as none.
       const [previous] = await deps.db
         .select()
         .from(appSpecs)
-        .where(eq(appSpecs.projectId, params.projectId))
+        .where(and(eq(appSpecs.projectId, params.projectId), eq(appSpecs.valid, true)))
         .orderBy(desc(appSpecs.createdAt))
         .limit(1)
       const repo = deps.source.repositoryFor(project.slug)
@@ -378,7 +382,7 @@ export const projectReadRoutes = [
         })
         .returning()
       const sensitiveDiff =
-        result.valid && previous?.valid === true
+        result.valid && previous !== undefined
           ? isSensitiveDiff(previous.parsed as ManifestSpec, result.spec)
           : { sensitive: false, fields: [] }
       return {
