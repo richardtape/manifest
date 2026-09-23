@@ -139,4 +139,23 @@ else
 fi
 
 echo
+echo "=== 11. P6a's acceptance: the first production launch, offline ==="
+# APPENDED, like steps 7 to 10, and for the same reason. WHAT THIS PROVES OFFLINE THAT THE
+# OTHER TEN DO NOT: a production launch needs the REGISTRY (the approved digest is verified
+# and the image pulled before anything starts), the IdP TWICE per person (the rehearsal's
+# sign-in, and §20's step-up re-prompt), and §12's second listener on 127.0.0.3 — none of
+# which any earlier step touches.
+#
+# AND `ai/` FOR THE APPROVAL'S SUMMARY — THE ONE THING HERE THAT MAY LEGITIMATELY BE
+# ABSENT. With the network off the summary can come back `summarySource: unavailable`, and
+# that is Decision 7 being DEMONSTRATED rather than argued: the approval is recorded with
+# the diff and without the words, and the launch goes ahead. Do not read it as a failure.
+# (On a first launch it reads `no-previous-release` whatever the network does.)
+if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
+  make demo-production; echo "demo-production exit=$?"
+else
+  echo "  SKIPPED: no control plane behind https://console.manifest.internal — the same rule as step 6."
+fi
+
+echo
 echo "=== done. Turn the network back on. ==="

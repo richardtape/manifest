@@ -12,8 +12,9 @@
 #
 # IT IS NOT scripts/offline-acceptance.sh. That one is C1's — run by hand with the network
 # OFF, because turning the network off from a tool call cuts the agent off too — and its
-# ten `=== n.` headings are numbered 0 to 9, where 0 is the precondition and 1-9 are the
-# work. This one runs with the network on and asserts the gates' COUNTS as well.
+# twelve `=== n.` headings are numbered 0 to 11, where 0 is the precondition and 1-11 are
+# the work (this line said "ten, 0 to 9" through P5c's step 10; P6a Task 19 found it).
+# This one runs with the network on and asserts the gates' COUNTS as well.
 #
 # EVERY STEP REPORTS RATHER THAN EXITS (P4c Decision 26), so a red run is a MEASUREMENT of
 # what is broken rather than a stop at the first thing. The exit status is the summary's.
@@ -156,13 +157,18 @@ run "build @manifest/contract" pnpm --filter @manifest/contract build
 run "build @manifest/console" pnpm --filter @manifest/console build
 run "build @manifest/mock" pnpm --filter @manifest/mock build
 
-# ---------------------------------------------------------------- 5. the two headless journeys
-# Both drive the published contract through the edge and neither uses a browser.
-#   demo-journey — §22's journey on a SESSION (P5a's acceptance)
-#   demo-token   — D24's loop on a DELEGATED TOKEN (P5b's acceptance), which is why P5b
-#                  came first: the second credential class needs the first one's routes.
+# ---------------------------------------------------------------- 5. the three headless journeys
+# All three drive the published contract through the edge and none uses a browser.
+#   demo-journey    — §22's journey on a SESSION (P5a's acceptance)
+#   demo-token      — D24's loop on a DELEGATED TOKEN (P5b's acceptance), which is why P5b
+#                     came first: the second credential class needs the first one's routes.
+#   demo-production — the FIRST PRODUCTION LAUNCH (P6a's acceptance): records, rehearsal,
+#                     step-up, approval and a deploy to §12's public listener. It adds NO
+#                     test, so the EXPECT_ counts above did not move with it. LAST, because
+#                     it leaves `launch-app` in production and a rebuild in staging.
 run "make demo-journey" make demo-journey
 run "make demo-token" make demo-token
+run "make demo-production" make demo-production
 
 # ---------------------------------------------------------------- the summary
 bold "=== summary ==="
@@ -185,7 +191,7 @@ cat <<'TAIL'
      services/, build/, releases/, identity/, sso/, secrets/, projects/, blueprints/,
      ai/, observability/, infra/ or a *.docker.test.ts;
    - the OFFLINE acceptance — `scripts/offline-acceptance.sh`, run by hand with the
-     network off, whose steps 0-9 include `make demo-identity` and `make demo-ai`.
+     network off, whose steps 0-11 include `make demo-identity` and `make demo-ai`.
 TAIL
 
 [ "$FAILED" -eq 0 ]
