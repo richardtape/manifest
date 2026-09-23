@@ -250,7 +250,7 @@ export const ERROR_CODES = {
   RELEASE_BUILD_NOT_FOUND: release('No build with this id.'),
   RELEASE_DIGEST_MISSING: release('The release’s build recorded no digest.'),
   RELEASE_DIGEST_NOT_APPROVED: release(
-    'No administrator approval covers the digest this production deploy would run (§13).',
+    'This production deploy needs an administrator’s approval — a first launch, or a launched app’s change to a sensitive field (§13 D9.2) — and none covers the digest it would run; or an administrator rejected this release, which is final. The message says which.',
   ),
   RELEASE_ENVIRONMENT_NOT_FOUND: release('No environment with this id.'),
   RELEASE_IMAGE_REPOSITORY_MISSING: release(

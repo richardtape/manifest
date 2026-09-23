@@ -17,6 +17,7 @@ import {
 } from '../spec/index.js'
 import type { ResolvedConfigSet } from './release.js'
 import { summariseChanges } from './summary.js'
+import { launchedAt } from './launched.js'
 
 export type ApprovalRow = typeof approvals.$inferSelect
 export type ReleaseRow = typeof releases.$inferSelect
@@ -197,10 +198,9 @@ async function sensitiveViewOf(db: Db, release: ReleaseRow): Promise<SensitiveVi
  * "self-serve" — Task 5's `approvalRequirementFor` treats a missing baseline as requiring
  * an approval.
  *
- * **ITS ONLY CALLER IN TASK 3 IS ITS TEST**, which is the one sanctioned exception to *every
- * task names its caller*: Task 5's `approvalRequirementFor` is the next, in the next sitting,
- * and Task 8's snapshot the one after. If you are reading this after P6b sitting 3 and it
- * still has no caller outside a test, that is a defect, not a plan.
+ * **Caller:** `approvalRequirementFor` below (P6b Task 5), which `deployRelease` reads before
+ * any production launch deploy starts; Task 6's checklist is its second reader, and Task 8's
+ * snapshot will be a third.
  */
 export async function sensitiveChangeOf(
   db: Db,
@@ -213,6 +213,140 @@ export async function sensitiveChangeOf(
     sensitiveViewOf(db, release),
   ])
   return { baseline, fields: sensitiveFieldsBetween(before, after) }
+}
+
+/**
+ * Whether a production deploy of this release needs an administrator's approval, and why.
+ * `fields` is always present, so a reader never has to ask which branch it is on to print it.
+ */
+export type ApprovalRequirement =
+  | {
+      required: true
+      reason: 'first-launch'
+      baselineReleaseId: null
+      fields: readonly SensitiveField[]
+    }
+  /** Launched, and yet nothing approved to compare with — a hand-edited row, or a lost approval. FAIL CLOSED. */
+  | {
+      required: true
+      reason: 'no-baseline'
+      baselineReleaseId: null
+      fields: readonly SensitiveField[]
+    }
+  | {
+      required: true
+      reason: 'sensitive'
+      baselineReleaseId: string
+      fields: readonly SensitiveField[]
+    }
+  | {
+      required: false
+      reason: 'self-serve'
+      baselineReleaseId: string
+      fields: readonly SensitiveField[]
+    }
+
+/**
+ * §13 D9's TWO CLAUSES, as ONE rule (P6b Decisions 2, 3, 4 and 7) — read by `deployRelease`,
+ * which is the gate's second half, and from Task 6 by §13's checklist, which is its first.
+ * Two statements of it would be the drift ORIENTATION §9 names.
+ *
+ *  - NOT LAUNCHED: every production release is a first launch and needs an approval (D9.1)
+ *    — an identical rebuild of an approved release included, because the candidate changed
+ *    and asking is the safe direction (Decision 3).
+ *  - LAUNCHED: compare the release's frozen production config with the LAST APPROVED release
+ *    (Decision 4). Nothing sensitive changed → self-serve. Something did → approval (D9.2).
+ *  - LAUNCHED WITH NO BASELINE: fail closed. A launch needs an approval, so a launched project
+ *    with none has had its history edited, and self-serve is the expensive direction to be
+ *    wrong in. **This is also what redeploying the ONLY approved release reads as** — the
+ *    release in hand is excluded from its own baseline — and its own approval then covers it.
+ *
+ * **Callers:** `productionApprovalFor` (below), and so `deployRelease`; Task 6's checklist.
+ */
+export async function approvalRequirementFor(
+  db: Db,
+  release: ReleaseRow,
+): Promise<ApprovalRequirement> {
+  if ((await launchedAt(db, release.projectId)) === null)
+    return { required: true, reason: 'first-launch', baselineReleaseId: null, fields: [] }
+  const { baseline, fields } = await sensitiveChangeOf(db, release)
+  if (baseline === undefined)
+    return { required: true, reason: 'no-baseline', baselineReleaseId: null, fields: [] }
+  return fields.length > 0
+    ? { required: true, reason: 'sensitive', baselineReleaseId: baseline.id, fields }
+    : {
+        required: false,
+        reason: 'self-serve',
+        baselineReleaseId: baseline.id,
+        fields: [],
+      }
+}
+
+/** The rule's answer for one release and the digest a deploy would run. */
+export interface ProductionApproval {
+  requirement: ApprovalRequirement
+  latest: ApprovalRow | undefined
+  /** Decision 7: an administrator's rejection is final for this release, sensitive or not. */
+  rejected: boolean
+  covered: boolean
+  satisfied: boolean
+}
+
+/**
+ * THE VERDICT `deployRelease` ACTS ON — the requirement, plus what an administrator has said
+ * about THIS release. A rejection is never overridden by self-serve (Decision 7): deploying a
+ * release someone refused would override a recorded human decision.
+ *
+ * **Callers:** `deployRelease` (P6b Task 5), and Task 6's `admin-approval` item — P6a's
+ * Decision 2 applied a second time: the view and the gate cannot disagree.
+ */
+export async function productionApprovalFor(
+  db: Db,
+  release: ReleaseRow,
+  digest: string,
+): Promise<ProductionApproval> {
+  const [requirement, latest] = await Promise.all([
+    approvalRequirementFor(db, release),
+    latestApprovalFor(db, release.id),
+  ])
+  const rejected = latest?.decision === 'rejected'
+  const covered = latest !== undefined && approvalCoversDigest(latest, digest)
+  return {
+    requirement,
+    latest,
+    rejected,
+    covered,
+    satisfied: !rejected && (!requirement.required || covered),
+  }
+}
+
+/**
+ * WHY A VERDICT IS NOT SATISFIED, IN WORDS — which of the three it was. The CODE stays
+ * `RELEASE_DIGEST_NOT_APPROVED` for all three: through the route, Task 6's gate answers
+ * first with a more specific code and the view, and this refusal is the second half.
+ */
+export function unsatisfiedReason(verdict: ProductionApproval, digest: string): string {
+  if (verdict.rejected)
+    return (
+      'an administrator rejected this release for production' +
+      (verdict.latest?.reason ? `: ${verdict.latest.reason}` : '') +
+      '. A rejection is final for this release (§13); build and release again.'
+    )
+  const { requirement } = verdict
+  if (requirement.reason === 'sensitive')
+    return (
+      `this release changes ${requirement.fields.join(', ')} since the last approved ` +
+      `release (${requirement.baselineReleaseId}), so it needs an administrator's approval ` +
+      `again (§13 D9.2), and none covers image digest ${digest.slice(0, 19)}….`
+    )
+  return (
+    (requirement.reason === 'no-baseline'
+      ? 'this project has launched but has no other approved release to compare with, ' +
+        'so it fails closed: '
+      : '') +
+    `no administrator approval covers image digest ${digest.slice(0, 19)}… for this ` +
+    'release. An approval binds the exact digest (§13), so a rebuild needs a new approval.'
+  )
 }
 
 export interface SnapshotDeps {

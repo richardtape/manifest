@@ -42,7 +42,7 @@ import type { AppSecretResolver } from '../secrets/index.js'
 import type { ServiceCredentialResolver } from '../services/index.js'
 import type { SpRegistration, SsoRegistrar } from '../sso/index.js'
 import type { Config } from '../config.js'
-import { approvalCoversDigest, latestApprovalFor } from './approval.js'
+import { productionApprovalFor, unsatisfiedReason } from './approval.js'
 import { launchedAt, recordLaunch } from './launched.js'
 import { assertPromotable } from './promotion.js'
 import type { Retirer } from './retire.js'
@@ -272,15 +272,22 @@ export async function deployRelease(
    * this asks whether the approval covers THIS digest. A rebuild between the two answers
    * yes to the first and no to the second, and that window is what *binds to an immutable
    * digest* means.
+   *
+   * **SINCE P6b TASK 5, ONLY WHEN AN APPROVAL IS REQUIRED** — a first launch, a launched
+   * app's sensitive change, or a launched app with nothing approved to compare with (one
+   * rule, `approvalRequirementFor`). For a self-serve release the integrity property is that
+   * promotion never rebuilds (§13, P6b Decision 2): `builds.image_digest` is written once and
+   * the registry refuses pushes from app and sandbox contexts.
    */
   if (environment.kind === 'production' && (input.purpose ?? 'launch') === 'launch') {
-    const approval = await latestApprovalFor(db, release.id)
-    if (approval === undefined || !approvalCoversDigest(approval, digest))
+    // §13 D9 AS ONE RULE (P6b Task 5): an approval covering this digest is required for a
+    // first launch and for a launched app's sensitive change, never for anything else — and
+    // a release an administrator rejected is never deployed (Decision 7).
+    const verdict = await productionApprovalFor(db, release, digest)
+    if (!verdict.satisfied)
       throw new ReleaseError(
         'RELEASE_DIGEST_NOT_APPROVED',
-        `no administrator approval covers image digest ${digest.slice(0, 19)}… for this ` +
-          'release. An approval binds the exact digest (§13), so a rebuild needs a new ' +
-          'approval.',
+        unsatisfiedReason(verdict, digest),
       )
   }
 

@@ -575,7 +575,7 @@ export interface paths {
         put?: never;
         /**
          * Validate manifest.yaml at a commit
-         * @description §22 step 3: reads manifest.yaml at the commit (HEAD by default), validates it (§7) and records the result. A sensitive diff (D9) is reported, not yet enforced.
+         * @description §22 step 3: reads manifest.yaml at the commit (HEAD by default), validates it (§7) and records the result. A sensitive diff (D9) is reported here against the newest valid spec; it is ENFORCED at the production deploy, against the last approved release (§13 D9.2).
          */
         post: operations["validateSpec"];
         delete?: never;
