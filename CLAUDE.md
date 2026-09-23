@@ -20,9 +20,11 @@ acceptance that passes. **P6 was split into P6a and P6b on 2026-09-19, and P6a �
 production launch — IS EXECUTED** (`docs/superpowers/plans/2026-09-19-p6a-first-production-launch.md`,
 all 19 tasks in the eleven agreed sittings, 2026-09-19 → 2026-09-22): an application reaches
 production with every blocking item honestly met, and `make demo-production` proves it. **P6b —
-subsequent releases — IS WRITTEN** (`docs/superpowers/plans/2026-09-22-p6b-subsequent-releases.md`,
-2026-09-22, eleven tasks) **and its sitting 1 — Task 1, the measurements — is NEXT**; ORIENTATION §7e
-says how. **Rich answered its three questions the same day** (ORIENTATION §8, *Decided*): seven
+subsequent releases — IS EXECUTING** (`docs/superpowers/plans/2026-09-22-p6b-subsequent-releases.md`,
+written 2026-09-22); **ORIENTATION §7e names the next sitting and says how**, and this file
+deliberately does not. Its measurements (sitting 1, 2026-09-22) found every premise true and a
+defect it did not know — **the egress proxy never re-renders its allowlist**, so a removed
+`egress.allow` host stays reachable — which added Task 5a to the plan. **Rich answered its three questions the same day** (ORIENTATION §8, *Decided*): seven
 sittings; removing a CWL attribute does not wait for IAM (its one spec action — approved in
 substance, NOT applied); and a sensitive change never returns an approved PIA to `draft`.
 **P6a raised three spec actions and ALL THREE were approved and APPLIED on 2026-09-22**: §13

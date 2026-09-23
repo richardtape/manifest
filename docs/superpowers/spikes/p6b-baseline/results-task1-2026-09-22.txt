@@ -1,0 +1,1047 @@
+===== [M1] 2026-09-22 22:05:19 PDT =====
+$ git log --oneline -5 && git status --short
+9b335e8 docs(p6b): Rich's three answers — seven sittings; a removed attribute does not wait for IAM; no automatic PIA return
+faa8f3f docs(p6b): write P6b — subsequent releases, eleven tasks; its sitting 1 is next
+f71c43f spec: apply P6a's Spec action 1 — §21's divergence 2 describes the real listener split
+6ba68c7 spec: apply P6a's Spec actions 2 and 3, approved by Rich 2026-09-22
+cf0ac08 docs: Rich's three decisions of 2026-09-22 — no number in §13, a person-only class, and the authoring API's place
+$ lsof -nP -iTCP:7100 -sTCP:LISTEN
+NOTHING ON 7100 — the control plane is DOWN
+$ lsof 7102 7104
+NOTHING ON 7102
+NOTHING ON 7104
+$ ifconfig lo0 | grep inet
+	inet 127.0.0.1 netmask 0xff000000
+	inet 127.0.0.2 netmask 0xff000000
+	inet 127.0.0.3 netmask 0xff000000
+$ docker ps
+manifest-caddy	Up 2 hours (healthy)
+manifest-dns-containers	Up 2 hours
+manifest-dns-host	Up 2 hours
+manifest-egress	Up 2 hours
+manifest-idp	Up 2 hours
+manifest-litellm	Up 2 hours (healthy)
+manifest-postgres	Up 2 hours (healthy)
+manifest-registry	Up 2 hours (healthy)
+manifest-verdaccio	Up 2 hours (healthy)
+mf-click-launch-production-db	Up 2 hours (healthy)
+mf-click-launch-production-e52f6afc-f5721fb3-app	Up 2 hours (healthy)
+mf-click-launch-production-egress	Up 2 hours
+mf-click-launch-staging-454637b8-7e4c826f-app	Up 2 hours (healthy)
+mf-click-launch-staging-db	Up 2 hours (healthy)
+mf-click-launch-staging-egress	Up 2 hours
+mf-launch-app-production-882c867f-b3b62221-app	Up 2 hours (healthy)
+mf-launch-app-production-db	Up 2 hours (healthy)
+mf-launch-app-production-egress	Up 2 hours
+mf-launch-app-staging-497bac8f-177d0af8-app	Up 2 hours (healthy)
+mf-launch-app-staging-db	Up 2 hours (healthy)
+mf-launch-app-staging-egress	Up 2 hours
+mongo-express	Up 3 hours
+mongodb	Up 3 hours
+qdrant-local-dev	Up 3 hours
+$ row counts
+projects 0
+releases 0
+approvals 0
+iam_registrations 0
+rehearsals 0
+users 0
+builds 0
+instances 0
+routes 0
+app_specs 0
+$ migrations
+21
+$ docker ps -a (non-running)
+canvas-bridge-app-1	Exited (0) 2 months ago
+canvas-bridge-nginx-1	Exited (0) 2 months ago
+canvas-bridge-tusd-1	Exited (0) 2 months ago
+codercom-coder-1	Exited (0) 3 weeks ago
+codercom-database-1	Exited (0) 3 weeks ago
+course-directory-db-1	Exited (255) 4 months ago
+course-directory-web-1	Exited (255) 4 months ago
+credit-card-helper-app-1	Exited (0) 7 days ago
+credit-card-helper-frontend-1	Exited (0) 7 days ago
+docker-simple-saml-saml-idp-1	Exited (0) 2 weeks ago
+fakeacademicapi-academic-api-fake-1	Exited (143) 2 months ago
+openwebui-openwebui-1	Exited (137) 4 weeks ago
+ubc-document-parsing-api-clamav-1	Exited (143) 4 weeks ago
+ubc-document-parsing-api-gateway-1	Exited (0) 4 weeks ago
+ubc-document-parsing-api-minio-1	Exited (0) 4 weeks ago
+ubc-document-parsing-api-redis-1	Exited (0) 4 weeks ago
+ubc-document-parsing-api-vlmstub-1	Exited (137) 4 weeks ago
+ubc-document-parsing-api-worker-1	Exited (0) 4 weeks ago
+ubc-document-parsing-api-worker-2	Exited (0) 4 weeks ago
+
+===== [M2] baseline 22:11:09 =====
+make up exit 0
+
+  platform up. Next: make doctor && make verify
+  edge: https://edge.manifest.internal/   console and API: https://console.manifest.internal/v1/
+$ make doctor
+  19 checks, 0 failed, 0 warnings
+$ make verify
+  INFO  routing
+          runtime routes currently applied: 0 (the control plane re-applies these on edge start) 
+  INFO  per-app resources
+          mf- containers=12 networks=4 volumes=8 (0/0/0 immediately after make reset) 
+  55 checks, 0 failed, 0 warnings
+$ pnpm test (1)
+ Test Files  119 passed (119)
+      Tests  1605 passed (1605)
+   Duration  129.76s (transform 810ms, setup 133ms, collect 17.73s, tests 100.04s, environment 8ms, prepare 2.74s)
+$ pnpm test (2)
+ Test Files  119 passed (119)
+      Tests  1605 passed (1605)
+   Duration  128.56s (transform 808ms, setup 133ms, collect 17.69s, tests 98.89s, environment 8ms, prepare 2.75s)
+$ pnpm lint / typecheck / format:check → exit 0 / 0 / 0
+All matched files use Prettier code style!
+node v24.12.0; pnpm 11.24.0; docker server 29.7.2; macOS 26.6.2 (25G83)
+Docker Desktop 4.87.0
+
+===== [M11] the contract =====
+$ jq -r .info.version packages/contract/openapi.json
+1.0.0
+$ jq operationId count
+41
+$ distinct operationIds
+41
+$ git log -3 -- document.ts package.json
+58107aa feat(ci): the headless acceptance, D22's coverage gate, and the contract at 1.0.0
+5f6ce4c feat(api): per-token rate limits, from the token's own row
+e407ae3 feat(api): mint, list and revoke a delegated token, in an interactive session
+$ commits touching openapi.json since 58107aa
+      11
+$ CONTRACT_VERSION
+packages/control-plane/src/api/contract/document.ts:26:export const CONTRACT_VERSION = '1.0.0'
+$ package.json version
+1.0.0
+$ operationIds at 58107aa
+34
+$ operations added since 58107aa
+1a2
+> approveRelease
+6a8
+> getApproval
+12a15
+> getLaunchRecords
+28a32,33
+> recordIamRegistration
+> recordPrivacyAssessment
+29a35
+> rejectRelease
+31a38
+> runRehearsal
+
+===== [M3] isSensitiveDiff callers =====
+$ grep -rn 'isSensitiveDiff' src | non-test | not diff.ts/index.ts
+packages/control-plane/src/releases/approval.ts:169: * **`isSensitiveDiff` IS NOT CALLED HERE.** That one answers *"does this need an approval?"*
+packages/control-plane/src/api/routes/project-reads.ts:17:import { isSensitiveDiff, validateSpec, type ManifestSpec } from '../../spec/index.js'
+packages/control-plane/src/api/routes/project-reads.ts:319:   * `isSensitiveDiff` (D9) is COMPUTED and REPORTED here and deliberately does not
+packages/control-plane/src/api/routes/project-reads.ts:382:          ? isSensitiveDiff(previous.parsed as ManifestSpec, result.spec)
+
+===== [M3] probe =====
+$ pnpm exec vitest run --project unit src/spec/m3-probe.test.ts
+
+ RUN  v2.1.9 /Users/rich/Developer/manifest
+
+stdout | src/spec/m3-probe.test.ts > [M3] a raised PRODUCTION override
+[M3] override raised 512Mi -> 8Gi: {"sensitive":false,"fields":[]}
+
+stdout | src/spec/m3-probe.test.ts > [M3] the positive control: a raised TOP-LEVEL limit
+[M3] top-level raised: {"sensitive":true,"fields":["resources"]}
+
+ ✓ |unit| src/spec/m3-probe.test.ts (2 tests) 2ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  22:11:41
+   Duration  251ms (transform 26ms, setup 3ms, collect 28ms, tests 2ms, environment 0ms, prepare 31ms)
+
+probe deleted: gls: cannot access 'packages/control-plane/src/spec/m3-probe.test.ts': No such file or directory
+
+===== [M5] probe =====
+$ pnpm exec vitest run --project unit src/releases/m5-probe.test.ts
+
+ RUN  v2.1.9 /Users/rich/Developer/manifest
+
+stdout | src/releases/m5-probe.test.ts > [M5] approved, then rejected
+[M5] approve: 201 approved | reject: 201 rejected
+
+stdout | src/releases/m5-probe.test.ts > [M5] approved, then rejected
+[M5] GET …/approval (latest decision): rejected
+
+stdout | src/releases/m5-probe.test.ts > [M5] approved, then rejected
+[M5] baseline after approve-then-reject: THE REJECTED RELEASE
+
+stdout | src/releases/m5-probe.test.ts > [M5] the positive control: approved only
+[M5] control, approve only: THAT RELEASE (correct)
+
+ ✓ |unit| src/releases/m5-probe.test.ts (2 tests) 1243ms
+   ✓ [M5] approved, then rejected 878ms
+   ✓ [M5] the positive control: approved only 309ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  22:12:09
+   Duration  2.18s (transform 288ms, setup 3ms, collect 736ms, tests 1.24s, environment 0ms, prepare 23ms)
+
+probe deleted: gls: cannot access 'packages/control-plane/src/releases/m5-probe.test.ts': No such file or directory
+
+===== [M5] which helpers the probe needed =====
+$ grep -rn "async function releasedProject\|function releasedProject\|async function builtProject" packages/control-plane/src
+packages/control-plane/src/releases/approval.test.ts:28:async function releasedProject(slug = 'chem-labs') {
+packages/control-plane/src/api/delivery.test.ts:87:async function builtProject(
+packages/control-plane/src/api/delivery.test.ts:139:async function releasedProject(
+
+===== [M4] who reads the manifest's blueprint: =====
+$ grep -rn '\.blueprint' src *.ts | non-test | not blueprintRef/blueprints.
+packages/control-plane/src/index.ts:144:            .map((b) => `${b.blueprint}@${b.major_version}`)
+packages/control-plane/src/releases/release.ts:1089:        .map((b) => `${b.blueprint}@${b.major_version}`)
+packages/control-plane/src/blueprints/registry.ts:49:  const ref = `${descriptor.blueprint}@${descriptor.major_version}`
+packages/control-plane/src/blueprints/registry.ts:80:  if (parsed.data.blueprint !== ref) {
+packages/control-plane/src/blueprints/registry.ts:83:      `${ref}: starter '${entry.name}'s manifest.yaml pins ${parsed.data.blueprint}, not the blueprint that offers it`,
+packages/control-plane/src/blueprints/registry.ts:123:    const ref = `${descriptor.blueprint}@${descriptor.major_version}`
+packages/control-plane/src/blueprints/compatibility.ts:21:  const ref = `${descriptor.blueprint}@${descriptor.major_version}`
+packages/control-plane/src/spec/diff.ts:118:  if (before.blueprint !== after.blueprint) fields.push('blueprint')
+packages/control-plane/src/api/testing.ts:167:    blueprint: options.blueprint ?? 'fixture-node@1',
+packages/control-plane/src/api/routes/projects.ts:142:          `no blueprint '${body.blueprint}'`,
+packages/control-plane/src/api/routes/projects.ts:145:            .map((b) => `${b.blueprint}@${b.major_version}`)
+packages/control-plane/src/api/routes/projects.ts:156:          `blueprint '${body.blueprint}' offers no starter '${body.starter}'`,
+packages/control-plane/src/api/routes/projects.ts:234:            blueprint: body.blueprint,
+packages/control-plane/src/api/routes/projects.ts:238:          humanMessage: `${project.slug} was created from ${body.blueprint}${body.starter === undefined ? '' : ` with the ${body.starter} starter`}.`,
+$ grep -n blueprint spec/policy.ts
+100:          'choose another name. The full list is in the blueprint knowledge pack.',
+
+===== [M6] reading half =====
+$ sed -n 170,215p api/routes/releases.ts
+    handler: async ({ deps, actor, params, body }) => {
+      await assertCapability(deps.db, actor, params.projectId, 'release:create')
+      const [project] = await deps.db
+        .select()
+        .from(projects)
+        .where(eq(projects.id, params.projectId))
+      if (project === undefined)
+        throw new AuthorizationError('NOT_FOUND', `no project '${params.projectId}'`)
+      const [spec] = await deps.db
+        .select()
+        .from(appSpecs)
+        .where(eq(appSpecs.projectId, params.projectId))
+        .orderBy(desc(appSpecs.createdAt))
+        .limit(1)
+      if (spec === undefined)
+        throw new BadRequestError(
+          'SPEC_NOT_FOUND',
+          'this project has no validated spec yet',
+        )
+      const descriptor = deps.blueprints.resolve(project.blueprintRef)
+      if (descriptor === undefined) {
+        throw new BadRequestError(
+          'BLUEPRINT_NOT_FOUND',
+          `this project pins '${project.blueprintRef}', which is no longer in the registry`,
+        )
+      }
+      const parsed = spec.parsed as ManifestSpec
+      const defaults = descriptor.defaults.resources
+      const release = await createRelease(deps.db, {
+        projectId: params.projectId,
+        buildId: body.buildId,
+        appSpecId: spec.id,
+        createdBy: actor.userId,
+        ...(body.summary === undefined ? {} : { summary: body.summary }),
+        // Resolved once, at release time, and frozen — all three environments together,
+        // so promotion applies the exact numbers the approver saw.
+        resolvedConfig: {
+          sandbox: resolveConfig(parsed, 'sandbox', defaults),
+          staging: resolveConfig(parsed, 'staging', defaults),
+          production: resolveConfig(parsed, 'production', defaults),
+        },
+      })
+      const joined = await releaseWithBuild(deps.db, release.id)
+      return toRelease(joined!.release, joined!.build)
+    },
+  }),
+$ sed -n 140,163p releases/release.ts
+export async function createRelease(db: Db, input: CreateReleaseInput): Promise<Release> {
+  const [build] = await db.select().from(builds).where(eq(builds.id, input.buildId))
+  if (!build)
+    throw new ReleaseError('RELEASE_BUILD_NOT_FOUND', `no build '${input.buildId}'`)
+  if (build.status !== 'succeeded' || !build.imageDigest) {
+    throw new ReleaseError(
+      'RELEASE_BUILD_NOT_DEPLOYABLE',
+      `build '${build.id}' is '${build.status}' with digest '${build.imageDigest ?? 'none'}'`,
+    )
+  }
+
+  const [release] = await db
+    .insert(releases)
+    .values({
+      projectId: input.projectId,
+      buildId: input.buildId,
+      appSpecId: input.appSpecId,
+      createdBy: input.createdBy,
+      resolvedConfig: input.resolvedConfig,
+      summary: input.summary ?? null,
+    })
+    .returning()
+  return release!
+}
+
+===== [M15] tests that could move =====
+$ grep -rln '/releases' src *.test.ts | xargs grep -ln '/spec'
+packages/control-plane/src/lifecycle.test.ts
+packages/control-plane/src/releases/approval.test.ts
+packages/control-plane/src/observability/incidents.test.ts
+packages/control-plane/src/api/delivery.test.ts
+$ grep -n "it('" releases/production.docker.test.ts
+285:    const left = stdout.split('\n').filter((line) => line.trim() !== '')
+310:  it('refuses a production deploy whose digest no approval covers: RELEASE_DIGEST_NOT_APPROVED', async () => {
+335:  it('refuses when the approval covers a DIFFERENT digest — a rebuild', async () => {
+348:  it('deploys to PRODUCTION, on the public listener, as the instance it started', async () => {
+371:  it('a production route is NOT on srv0 — the internal listener does not serve it', async () => {
+389:  it('registers the Service Provider with PRODUCTION values, and the row is in the IdP', async () => {
+403:  it('the container is running the digest the administrator approved', async () => {
+419:    const container = names.trim().split('\n').filter(Boolean).at(-1)
+446:  it('runs the rehearsal, and records a sign-in that could not complete as FAILED', async () => {
+$ grep -n production api/delivery.test.ts | grep "it('"
+566:  it('asks a production deploy for step-up BEFORE it consults the checklist', async () => {
+588:  it('refuses production with the SAME checklist GET /launch-readiness answers', async () => {
+654:  it('deploys to production when every blocking item is met — and `ready` is true beside a not_built code-review', async () => {
+775:  it('a collaborator may deploy to staging and may not promote to production', async () => {
+$ direct createRelease( callers (Decision 6 scopes its build lookup)
+packages/control-plane/src/boot.docker.test.ts:380:      const release = await createRelease(db, {
+packages/control-plane/src/releases/deploy-sso.docker.test.ts:143:      const release = await createRelease(db, {
+packages/control-plane/src/releases/redeploy.docker.test.ts:215:    const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:289:  return createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:633:      const attempt = createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:665:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:707:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:752:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:807:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:855:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:914:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:985:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:1042:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:1084:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:1139:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:1324:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:1491:    const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:1830:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:1928:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:1972:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:2025:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:2075:      const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:2191:    const release = await createRelease(db, {
+packages/control-plane/src/releases/releases.test.ts:2762:    const release = await createRelease(db, {
+packages/control-plane/src/releases/production.docker.test.ts:258:    const release = await createRelease(db, {
+packages/control-plane/src/releases/incident.docker.test.ts:168:      const release = await createRelease(db, {
+packages/control-plane/src/api/routes/releases.ts:198:      const release = await createRelease(deps.db, {
+$ ordering in the four hit files: every /spec POST precedes its /builds POST (lines above); no case releases a build older than the newest spec
+
+===== Step 7: control plane boot line =====
+{"driver":"docker","port":7100,"origin":"https://console.manifest.internal","ai":"enabled","buildsInterrupted":0,"routesRestored":0,"routesFailed":0,"interrupted":0,"pendingActionsExpired":0,"msg":"control plane ready","reservedLabels":755,"secretsScrubbed":12}
+
+===== Step 7: make demo-production — run A, the fresh path =====
+0. The client and the demo, built from the checked-in document
+  built
+
+0. Is the control plane up, through the edge?
+  https://console.manifest.internal answered
+
+0. Is §12's public listener there? (127.0.0.3, P6a Task 2)
+  127.0.0.3 is on lo0
+
+1. The instructor signs in with CWL
+  removed /Users/rich/Developer/manifest/.manifest/repos/launch-app.git — no project holds 'launch-app' (pnpm test and make reset leave repositories behind)
+
+1–3. launch-app: built, in staging, and refused production — through @manifest/contract
+
+1. The instructor has launch-app, from the proof-app starter
+  ok   MANIFEST_SESSION was provided
+  ok   signed in as the instructor
+  ok   created, and its manifest.yaml is valid
+  ok   it has a staging environment
+  ok   and a production one, on the production zone
+  ok   production is launch-app.manifest.internal
+
+2. Build it, release it, deploy it to staging
+  ok   MANIFEST_SESSION was provided
+  ok   the build succeeded, with a digest
+  (built in 18078 ms)
+  ok   the release carries the build’s digest
+  ok   staging is healthy on it
+  candidate digest: sha256:25cdc95fb689d1689cff96973baa06274fbd7619aa9129bd919d2a99d781bb59
+
+3. Ask for production — refused, and the checklist says why
+  ok   MANIFEST_SESSION was provided
+  ok   refused 403 STEP_UP_REQUIRED — §20 answers before §13 (sitting 9, F6)
+  ok   not ready
+  ok   the candidate is the release serving staging
+  ok   six blocking items, and code-review present and non-blocking
+  unmet at step 3: [admin-approval, iam-registration, privacy-assessment, rehearsal]
+  ok   unmet is exactly admin-approval, iam-registration, privacy-assessment, rehearsal
+
+every check passed
+
+4. An administrator, made out of band (§20)
+NOTICE:  PUID opr000001 is now admin
+Done. A session issued before this still carries the old role — sign in again.
+
+4–6. Records, the rehearsal, and an approval refused — through @manifest/contract
+
+4. An administrator records the IAM registration and the PIA (R1)
+  ok   MANIFEST_ADMIN_SESSION was provided
+  ok   the operator is an administrator
+  ok   an illegal jump (draft → active) is refused 409 LAUNCH_TRANSITION_INVALID
+  ok   the registration is active, listing the five attributes
+  ok   the PIA is approved
+  unmet after the records: [admin-approval, rehearsal]
+  ok   unmet is exactly admin-approval, rehearsal
+
+5. Manifest runs the rehearsal (R2)
+  ok   MANIFEST_ADMIN_SESSION was provided
+  rehearsal: passed=true in 5978 ms; launch-app.manifest.internal on the public listener, sign-in 200, released [eduPersonAffiliation, givenName, mail, sn, ubcEduCwlPuid] — the sign-in completed: the app answered 200 at its registered ACS and the assertion carried 5 attribute(s)
+  ok   it passed
+  ok   of the candidate
+  ok   on the production hostname, on the PUBLIC listener
+  ok   registered under the entityID IAM was told, at its ACS
+  ok   a real sign-in released exactly the five registered attributes
+  ok   unmet is exactly admin-approval
+
+6. Approve — refused until the administrator re-proves themselves (§20)
+  ok   MANIFEST_ADMIN_SESSION was provided
+  ok   refused 403 STEP_UP_REQUIRED, with the remedy in the hint
+  ok   and nothing was recorded — the approval reads 404
+
+every check passed
+
+7. Both people re-prove themselves at the IdP (§20's step-up)
+  the administrator stepped up — the IdP re-prompted a browser it had signed in
+  the owner stepped up
+
+7–10. The gate, the approval, the launch and the rebuild — through @manifest/contract
+
+7. Stepped up: §13’s gate answers, and the administrator approves
+  ok   MANIFEST_SESSION_STEPPED was provided
+  ok   MANIFEST_ADMIN_SESSION_STEPPED was provided
+  ok   a stepped-up owner is refused 409 RELEASE_PRODUCTION_GATE_UNAVAILABLE
+  ok   whose checklist names exactly admin-approval as unmet
+  approval: approved, digest sha256:25cdc95fb689d1689cff96973baa06274fbd7619aa9129bd919d2a99d781bb59, summary no-previous-release, review not_performed (none)
+  ok   approved
+  ok   bound to the candidate’s digest (§13)
+  ok   the diff names the attributes the app asks for
+  ok   the summary is present, or absent for a stated reason
+  ok   and R4’s seam says no code review was performed
+  ok   the record reads back identically
+
+8. The owner deploys to production
+  ok   MANIFEST_SESSION_STEPPED was provided
+  production deploy answered in 5301 ms: instance 273923bf-a301-4991-b3f0-a40137397da9, healthy
+  ok   the production instance is healthy
+  127.0.0.3 answered 200, X-Manifest-Instance: 273923bf-a301-4991-b3f0-a40137397da9
+  ok   the app answers on the public listener AS THE INSTANCE THE DEPLOY STARTED
+  127.0.0.2 answered 200, X-Manifest-Instance: (none)
+  ok   and the same name on the INTERNAL listener is not the app
+
+9. The checklist, read again
+  ok   MANIFEST_SESSION_STEPPED was provided
+  unmet at step 9: []; ready: true
+  ok   ready: true
+  ok   no blocking item unmet
+  ok   every one of the six blocking items is met
+  ok   code-review is present, not built, and does not block (D33)
+
+10. Rebuild — the new release has no approval, and production is untouched
+  ok   MANIFEST_SESSION_STEPPED was provided
+  ok   the build succeeded, with a digest
+  (built in 16084 ms)
+  ok   the release carries the build’s digest
+  ok   staging is healthy on it
+  rebuilt digest: sha256:25cdc95fb689d1689cff96973baa06274fbd7619aa9129bd919d2a99d781bb59 — IDENTICAL to the approved one (a reproducible build)
+  ok   the rebuild is a new release
+  ok   the candidate is the rebuilt release
+  ok   admin-approval is unmet, and not ready
+  ok   production still serves the approved launch
+
+every check passed
+make demo-production  3.79s user 0.70s system 7% cpu 1:01.98 total
+
+===== [M13] 22:15:33 mint person-only capabilities as the administrator (not stepped up) =====
+zsh note: the plan's api_as used 'local path=' — zsh ties $path to $PATH, so under zsh every call lost curl; renamed to p, and run under bash
+$ POST /v1/projects/$PID/tokens capabilities=["project:read","release:approve"]
+{"status":"201","msg":null,"id":"fa013db1-ff30-431d-93f8-a6eec490a598","caps":["project:read","release:approve"],"secret":true}
+$ POST /v1/projects/$PID/tokens capabilities=["project:read","launch:record"]
+{"status":"201","msg":null,"id":"718cd24e-2a50-4695-b082-0228095e0901","caps":["project:read","launch:record"],"secret":true}
+$ POST /v1/projects/$PID/tokens capabilities=["release:promote"]
+{"status":"TOKEN_CAPABILITY_FORBIDDEN","msg":"a delegated token may never hold release:promote (D24)","id":null,"caps":null,"secret":false}
+$ the promote refusal, with its HTTP status
+400
+$ releases of launch-app, newest first, with latest decision
+2026-09-23T05:14:42.023Z  5562330d-644b-4e46-b51b-4071a5de2693  sha256:25cdc95fb689
+2026-09-23T05:14:07.567Z  b3a1c485-0960-484a-8067-9eaaa937f430  sha256:25cdc95fb689
+5562330d-644b-4e46-b51b-4071a5de2693 NOT_FOUND
+b3a1c485-0960-484a-8067-9eaaa937f430 approved
+$ the release:approve TOKEN on POST /v1/releases/{R1}/approve (R1 is already approved, so a wrong prediction writes a harmless second approval)
+{"error":{"code":"TOKEN_CREDENTIAL_REFUSED","message":"this action is only available in an interactive session (D24)","hint":"Sign in to the console and do it there. An agent asks a human for the ones D24 makes pending."}}
+HTTP 403
+$ the launch:record TOKEN on POST /v1/projects/{PID}/iam-registration (a no-op body is fine: refused before the handler reads it, if the prediction holds)
+31:    path: '/v1/projects/{projectId}/launch-readiness',
+49:    path: '/v1/projects/{projectId}/launch-records',
+82:    path: '/v1/projects/{projectId}/launch-records/iam-registration',
+134:    path: '/v1/projects/{projectId}/launch-records/privacy-assessment',
+$ the launch:record TOKEN on POST /v1/projects/{PID}/launch-records/iam-registration, body identical to the current record: {"entityId":"https://manifest.internal/sp/launch-app/production","acsUrl":"https://launch-app.manifest.internal/auth/ubcshib/callback","sloUrl":"https://launch-app.manifest.internal/auth/logout","registeredAttributes":["ubcEduCwlPuid","mail","eduPersonAffiliation","givenName","sn"],"state":"active","externalTicketRef":"IAM-ACCEPTANCE"}
+{"error":{"code":"TOKEN_CREDENTIAL_REFUSED","message":"this action is only available in an interactive session (D24)","hint":"Sign in to the console and do it there. An agent asks a human for the ones D24 makes pending."}}
+HTTP 403
+$ revoke both minted tokens
+DELETE /v1/tokens/fa013db1-ff30-431d-93f8-a6eec490a598 → 200
+DELETE /v1/tokens/718cd24e-2a50-4695-b082-0228095e0901 → 200
+$ the revoked approve token again
+{"error":{"code":"UNAUTHENTICATED","message":"a valid credential is required","hint":"Sign in at /auth/login for a session, or send Authorization: Bearer <token> for an agent. A token that is unknown, revoked or expired is refused the same way."}}
+HTTP 401
+
+===== [M10] 22:16:23 the recorded ACS is compared with nothing =====
+$ checklist before
+{"ready":false,"candidate":"5562330d-644b-4e46-b51b-4071a5de2693","iam":{"state":"met","why":"Registered as https://manifest.internal/sp/launch-app/production, active (ticket IAM-ACCEPTANCE), releasing 5 attribute(s)."}}
+$ POST …/iam-registration active→active with acsUrl https://wrong.example/acs (as the administrator)
+{"code":null,"msg":null,"state":"active","acsUrl":"https://wrong.example/acs"}
+$ checklist with the wrong ACS recorded
+{"ready":false,"candidate":"5562330d-644b-4e46-b51b-4071a5de2693","iam":{"state":"met","why":"Registered as https://manifest.internal/sp/launch-app/production, active (ticket IAM-ACCEPTANCE), releasing 5 attribute(s)."}}
+$ restore the right ACS
+{"code":null,"msg":null,"state":"active","acsUrl":"https://launch-app.manifest.internal/auth/ubcshib/callback"}
+$ checklist after restore
+{"ready":false,"candidate":"5562330d-644b-4e46-b51b-4071a5de2693","iam":{"state":"met","why":"Registered as https://manifest.internal/sp/launch-app/production, active (ticket IAM-ACCEPTANCE), releasing 5 attribute(s)."}}
+$ every item, right ACS
+[{"id":"domain","state":"met"},{"id":"iam-registration","state":"met"},{"id":"privacy-assessment","state":"met"},{"id":"rehearsal","state":"met"},{"id":"scans","state":"met"},{"id":"admin-approval","state":"unmet"},{"id":"code-review","state":"not_built"}]
+{"acsUrl":"https://wrong.example/acs"}
+$ every item, WRONG ACS
+[{"id":"domain","state":"met"},{"id":"iam-registration","state":"met"},{"id":"privacy-assessment","state":"met"},{"id":"rehearsal","state":"met"},{"id":"scans","state":"met"},{"id":"admin-approval","state":"unmet"},{"id":"code-review","state":"not_built"}]
+rehearsal: met — A production-shaped rehearsal passed on 2026-09-23: the app was deployed to its production hostname on the public listener, its Service Provider was registered with production values, and one CWL sign-in completed releasing 5 attribute(s). This proves the SHAPE of the registration — the entityID, the ACS URL, the attribute release and the certificate all work together. It proves nothing about UBC's acceptance of it: the Manifest IdP is not real Shibboleth (D6), and the run against UBC's staging IdP that D21 describes remains an external-track obligation (§9).
+{"acsUrl":"https://launch-app.manifest.internal/auth/ubcshib/callback"}
+$ restored
+[{"id":"domain","state":"met"},{"id":"iam-registration","state":"met"},{"id":"privacy-assessment","state":"met"},{"id":"rehearsal","state":"met"},{"id":"scans","state":"met"},{"id":"admin-approval","state":"unmet"},{"id":"code-review","state":"not_built"}]
+
+===== [M9] 22:16:44 recording a change request overwrites what UBC registered =====
+$ before
+{"state":"active","registeredAttributes":["ubcEduCwlPuid","mail","eduPersonAffiliation","givenName","sn"],"externalTicketRef":"IAM-ACCEPTANCE"}
+$ POST active→change_requested, registeredAttributes = the four without sn (as an admin filing 'please drop sn' would type it)
+{"code":null,"msg":null,"state":"change_requested","registeredAttributes":["ubcEduCwlPuid","mail","eduPersonAffiliation","givenName"]}
+$ GET …/launch-records while change_requested
+{"state":"change_requested","registeredAttributes":["ubcEduCwlPuid","mail","eduPersonAffiliation","givenName"],"externalTicketRef":"IAM-M9-DROP-SN"}
+$ the iam-registration item while change_requested
+{"state":"unmet","why":"The registration is 'change_requested' (ticket IAM-M9-DROP-SN) and must be 'active' before a first production launch (§9)."}
+$ the DB row
+change_requested|["ubcEduCwlPuid", "mail", "eduPersonAffiliation", "givenName"]
+$ read: releases/build.ts assertAttributesRegistered reads registered_attributes whenever a registration row exists, whatever its state
+$ DRIVEN: POST /v1/projects/{PID}/builds {} as the instructor, while the record says change_requested with four attributes
+{"code":null,"msg":null,"id":"6003b7d2-7b65-4114-bb12-e14c1ba87385","status":"running"}
+{"status":"failed","failureReason":"SPEC_ATTRIBUTE_NOT_REGISTERED: manifest.yaml asks for 1 CWL attribute(s) UBC IAM did not register for 'launch-app': sn. Registered: eduPersonAffiliation, givenName, mail, ubcEduCwlPuid. — A production release must request a subset of what UBC IAM registered (§7, §9) — otherwise students hit a broken login on launch day. Raise an IAM change request against IAM-M9-DROP-SN for the missing attribute(s), or remove them from auth.attributes.","digest":null}
+$ restore: change_requested → submitted → active, all five attributes, ticket IAM-ACCEPTANCE
+{"code":null,"msg":null,"state":"submitted","registeredAttributes":["ubcEduCwlPuid","mail","eduPersonAffiliation","givenName","sn"]}
+{"code":null,"msg":null,"state":"active","registeredAttributes":["ubcEduCwlPuid","mail","eduPersonAffiliation","givenName","sn"]}
+{"state":"active","registeredAttributes":["ubcEduCwlPuid","mail","eduPersonAffiliation","givenName","sn"],"externalTicketRef":"IAM-ACCEPTANCE","acsUrl":"https://launch-app.manifest.internal/auth/ubcshib/callback"}
+{"candidate":"5562330d-644b-4e46-b51b-4071a5de2693","unmet":["admin-approval"]}
+
+===== Step 11: make demo-production — run B, the re-use path =====
+0. The client and the demo, built from the checked-in document
+  built
+
+0. Is the control plane up, through the edge?
+  https://console.manifest.internal answered
+
+0. Is §12's public listener there? (127.0.0.3, P6a Task 2)
+  127.0.0.3 is on lo0
+
+1. The instructor signs in with CWL
+
+1–3. launch-app: built, in staging, and refused production — through @manifest/contract
+
+1. The instructor has launch-app, from the proof-app starter
+  ok   MANIFEST_SESSION was provided
+  ok   signed in as the instructor
+  (launch-app exists from an earlier run — the RE-USE path)
+  ok   it has a staging environment
+  ok   and a production one, on the production zone
+  ok   production is launch-app.manifest.internal
+
+2. Build it, release it, deploy it to staging
+  ok   MANIFEST_SESSION was provided
+  ok   the build succeeded, with a digest
+  (built in 16064 ms)
+  ok   the release carries the build’s digest
+  ok   staging is healthy on it
+  candidate digest: sha256:25cdc95fb689d1689cff96973baa06274fbd7619aa9129bd919d2a99d781bb59
+
+3. Ask for production — refused, and the checklist says why
+  ok   MANIFEST_SESSION was provided
+  ok   refused 403 STEP_UP_REQUIRED — §20 answers before §13 (sitting 9, F6)
+  ok   not ready
+  ok   the candidate is the release serving staging
+  ok   six blocking items, and code-review present and non-blocking
+  unmet at step 3: [admin-approval]
+  ok   unmet is admin-approval, and at most the rehearsal besides (re-use: the records exist)
+
+every check passed
+
+4. An administrator, made out of band (§20)
+NOTICE:  PUID opr000001 is already admin; nothing changed and nothing was recorded
+Done. A session issued before this still carries the old role — sign in again.
+
+4–6. Records, the rehearsal, and an approval refused — through @manifest/contract
+
+4. An administrator records the IAM registration and the PIA (R1)
+  ok   MANIFEST_ADMIN_SESSION was provided
+  ok   the operator is an administrator
+  ok   an illegal jump (active → submitted) is refused 409 LAUNCH_TRANSITION_INVALID
+  ok   the registration is active, listing the five attributes
+  ok   the PIA is approved
+  unmet after the records: [admin-approval]
+  ok   unmet is admin-approval, and at most the rehearsal besides (re-use)
+
+5. Manifest runs the rehearsal (R2)
+  ok   MANIFEST_ADMIN_SESSION was provided
+  rehearsal: passed=true in 5836 ms; launch-app.manifest.internal on the public listener, sign-in 200, released [eduPersonAffiliation, givenName, mail, sn, ubcEduCwlPuid] — the sign-in completed: the app answered 200 at its registered ACS and the assertion carried 5 attribute(s)
+  ok   it passed
+  ok   of the candidate
+  ok   on the production hostname, on the PUBLIC listener
+  ok   registered under the entityID IAM was told, at its ACS
+  ok   a real sign-in released exactly the five registered attributes
+  ok   unmet is exactly admin-approval
+
+6. Approve — refused until the administrator re-proves themselves (§20)
+  ok   MANIFEST_ADMIN_SESSION was provided
+  ok   refused 403 STEP_UP_REQUIRED, with the remedy in the hint
+  ok   and nothing was recorded — the approval reads 404
+
+every check passed
+
+7. Both people re-prove themselves at the IdP (§20's step-up)
+  the administrator stepped up — the IdP re-prompted a browser it had signed in
+  the owner stepped up
+
+7–10. The gate, the approval, the launch and the rebuild — through @manifest/contract
+
+7. Stepped up: §13’s gate answers, and the administrator approves
+  ok   MANIFEST_SESSION_STEPPED was provided
+  ok   MANIFEST_ADMIN_SESSION_STEPPED was provided
+  ok   a stepped-up owner is refused 409 RELEASE_PRODUCTION_GATE_UNAVAILABLE
+  ok   whose checklist names exactly admin-approval as unmet
+  approval: approved, digest sha256:25cdc95fb689d1689cff96973baa06274fbd7619aa9129bd919d2a99d781bb59, summary llm, review not_performed (none)
+  ok   approved
+  ok   bound to the candidate’s digest (§13)
+  ok   the diff names the attributes the app asks for
+  ok   the summary is present, or absent for a stated reason
+  ok   and R4’s seam says no code review was performed
+  ok   the record reads back identically
+
+8. The owner deploys to production
+  ok   MANIFEST_SESSION_STEPPED was provided
+  production deploy answered in 5233 ms: instance c473be07-1a2e-403c-9ecc-0bda5a816c1f, healthy
+  ok   the production instance is healthy
+  127.0.0.3 answered 200, X-Manifest-Instance: c473be07-1a2e-403c-9ecc-0bda5a816c1f
+  ok   the app answers on the public listener AS THE INSTANCE THE DEPLOY STARTED
+  127.0.0.2 answered 200, X-Manifest-Instance: (none)
+  ok   and the same name on the INTERNAL listener is not the app
+
+9. The checklist, read again
+  ok   MANIFEST_SESSION_STEPPED was provided
+  unmet at step 9: []; ready: true
+  ok   ready: true
+  ok   no blocking item unmet
+  ok   every one of the six blocking items is met
+  ok   code-review is present, not built, and does not block (D33)
+
+10. Rebuild — the new release has no approval, and production is untouched
+  ok   MANIFEST_SESSION_STEPPED was provided
+  ok   the build succeeded, with a digest
+  (built in 18088 ms)
+  ok   the release carries the build’s digest
+  ok   staging is healthy on it
+  rebuilt digest: sha256:25cdc95fb689d1689cff96973baa06274fbd7619aa9129bd919d2a99d781bb59 — IDENTICAL to the approved one (a reproducible build)
+  ok   the rebuild is a new release
+  ok   the candidate is the rebuilt release
+  ok   admin-approval is unmet, and not ready
+  ok   production still serves the approved launch
+
+every check passed
+make demo-production  3.69s user 0.69s system 7% cpu 1:01.00 total
+
+$ releases, newest first, with latest decision
+2026-09-23T05:18:08.765Z  4ffab38e-09cd-46d9-aac2-381f07b48f93  sha256:25cdc95fb689
+2026-09-23T05:17:32.912Z  44eb3841-4fc6-49ad-b078-2c8b40835622  sha256:25cdc95fb689
+2026-09-23T05:14:42.023Z  5562330d-644b-4e46-b51b-4071a5de2693  sha256:25cdc95fb689
+2026-09-23T05:14:07.567Z  b3a1c485-0960-484a-8067-9eaaa937f430  sha256:25cdc95fb689
+4ffab38e-09cd-46d9-aac2-381f07b48f93 NOT_FOUND
+44eb3841-4fc6-49ad-b078-2c8b40835622 approved
+5562330d-644b-4e46-b51b-4071a5de2693 NOT_FOUND
+b3a1c485-0960-484a-8067-9eaaa937f430 approved
+$ every approval row
+b3a1c485-0960-484a-8067-9eaaa937f430|approved|2026-09-23 05:14:20.528964+00|sha256:25cdc95fb689d1689cff96973baa06274fbd7619aa9129bd919d2a99d781bb59
+44eb3841-4fc6-49ad-b078-2c8b40835622|approved|2026-09-23 05:17:45.323224+00|sha256:25cdc95fb689d1689cff96973baa06274fbd7619aa9129bd919d2a99d781bb59
+$ production's instances, oldest first (the environment's history)
+ERROR:  column i.created_at does not exist
+LINE 1: select i.created_at, i.id, i.release_id, i.state from instan...
+               ^
+$ rehearsals
+ERROR:  column "created_at" does not exist
+LINE 1: select created_at, release_id, passed from rehearsals where ...
+               ^
+$ production's instances (no created_at column; events give the order)
+374b347b-9915-414f-a05e-19ac11944a0e|b3a1c485-0960-484a-8067-9eaaa937f430|gone
+273923bf-a301-4991-b3f0-a40137397da9|b3a1c485-0960-484a-8067-9eaaa937f430|gone
+c473be07-1a2e-403c-9ecc-0bda5a816c1f|44eb3841-4fc6-49ad-b078-2c8b40835622|healthy
+9244a5b1-c987-4fc8-bfd4-171bb936ef99|44eb3841-4fc6-49ad-b078-2c8b40835622|gone
+$ rehearsals
+2026-09-23 05:14:19.946762+00|b3a1c485-0960-484a-8067-9eaaa937f430|t
+2026-09-23 05:17:44.74468+00|44eb3841-4fc6-49ad-b078-2c8b40835622|t
+$ GET environments
+{"kind":"sandbox","instance":null,"release":null,"state":null}
+{"kind":"staging","instance":"37dd3f61-7e89-4505-8e59-d2262e1a432f","release":"4ffab38e-09cd-46d9-aac2-381f07b48f93","state":"healthy"}
+{"kind":"production","instance":"c473be07-1a2e-403c-9ecc-0bda5a816c1f","release":"44eb3841-4fc6-49ad-b078-2c8b40835622","state":"healthy"}
+$ audit.events for launch-app between 05:17:30 and 05:18:00 (run B's steps 2-8), instance/rehearsal/approval types
+05:17:32.957|instance.provisioning|instance:cd39a274-8c79-4aad-9a44-49feae124831|Preparing launch-app in staging.
+05:17:33.041|instance.starting|instance:cd39a274-8c79-4aad-9a44-49feae124831|launch-app is starting in staging.
+05:17:38.233|instance.healthy|instance:cd39a274-8c79-4aad-9a44-49feae124831|launch-app is running in staging.
+05:17:38.309|instance.retiring|instance:584351ef-1858-42ef-b063-2aa75231bb51|The previous version of launch-app in staging is finishing its last requests.
+05:17:38.472|instance.retired|instance:584351ef-1858-42ef-b063-2aa75231bb51|The previous version of launch-app in staging has been removed.
+05:17:38.929|instance.provisioning|instance:9244a5b1-c987-4fc8-bfd4-171bb936ef99|Preparing launch-app in production.
+05:17:38.968|instance.starting|instance:9244a5b1-c987-4fc8-bfd4-171bb936ef99|launch-app is starting in production.
+05:17:44.222|instance.healthy|instance:9244a5b1-c987-4fc8-bfd4-171bb936ef99|launch-app is running in production.
+05:17:44.279|instance.retiring|instance:273923bf-a301-4991-b3f0-a40137397da9|The previous version of launch-app in production is finishing its last requests.
+05:17:44.446|instance.retired|instance:273923bf-a301-4991-b3f0-a40137397da9|The previous version of launch-app in production has been removed.
+05:17:44.748|rehearsal.completed|rehearsal:launch-app:production|opr000001 ran the pre-production rehearsal and it passed.
+05:17:45.324|release.approved|release:44eb3841-4fc6-49ad-b078-2c8b40835622|opr000001 approved this release for production.
+05:17:45.343|instance.provisioning|instance:c473be07-1a2e-403c-9ecc-0bda5a816c1f|Preparing launch-app in production.
+05:17:45.381|instance.starting|instance:c473be07-1a2e-403c-9ecc-0bda5a816c1f|launch-app is starting in production.
+05:17:50.552|instance.healthy|instance:c473be07-1a2e-403c-9ecc-0bda5a816c1f|launch-app is running in production.
+05:17:50.599|instance.retiring|instance:9244a5b1-c987-4fc8-bfd4-171bb936ef99|The previous version of launch-app in production is finishing its last requests.
+05:17:50.760|instance.retired|instance:9244a5b1-c987-4fc8-bfd4-171bb936ef99|The previous version of launch-app in production has been removed.
+
+===== [M8] 22:19:21 the gate evaluates one release and deploys another =====
+R1=b3a1c485-0960-484a-8067-9eaaa937f430 (approved, run A)  R2=44eb3841-4fc6-49ad-b078-2c8b40835622 (approved, run B, in production)  R2B=4ffab38e-09cd-46d9-aac2-381f07b48f93 (run B's step-10 rebuild, UNAPPROVED, serving staging)  R1B=5562330d-644b-4e46-b51b-4071a5de2693 (run A's rebuild, unapproved)
+FINDING: the plan says R2 'is now in production and is the candidate'; the candidate is R2B, because demo-production's step 10 deploys its rebuild to staging
+$ checklist now
+{"ready":false,"candidate":"4ffab38e-09cd-46d9-aac2-381f07b48f93","unmet":["admin-approval"]}
+$ 12a: stepped-up owner deploys APPROVED R1 to production while the UNAPPROVED R2B is the candidate
+{"code":"RELEASE_PRODUCTION_GATE_UNAVAILABLE","msg":"first production launch is a checklist, not a button (§13, D19)","unmet":[],"candidate":null,"state":null,"releaseId":null}
+$ 12a again, the envelope's checklist
+{"code":"RELEASE_PRODUCTION_GATE_UNAVAILABLE","candidate":"4ffab38e-09cd-46d9-aac2-381f07b48f93","unmet":[{"id":"admin-approval","why":"An administrator approves the exact image digest, with step-up re-authentication (§13, §20). This release has not been r"}]}
+$ 12b setup: deploy R2 (approved) to STAGING, so the candidate is an approved release and the checklist is ready
+{"code":null,"state":"healthy","releaseId":"44eb3841-4fc6-49ad-b078-2c8b40835622"}
+{"ready":true,"candidate":"44eb3841-4fc6-49ad-b078-2c8b40835622","unmet":[]}
+$ [M14] NODE_EXTRA_CA_CERTS=$CA node scripts/lib/redeploy-loop.mjs https://launch-app.manifest.internal/healthz m14.ndjson 200 m14.stop &
+$ production before: {"instance":"c473be07-1a2e-403c-9ecc-0bda5a816c1f","release":"44eb3841-4fc6-49ad-b078-2c8b40835622"}
+$ 12b: stepped-up owner deploys R1 to production, while the checklist describes R2 (the candidate)
+{"code":null,"msg":null,"state":"healthy","releaseId":"b3a1c485-0960-484a-8067-9eaaa937f430","instance":"6e10e5fc-c50c-4f98-8c8f-6605f284792d"}
+$ production after: {"instance":"6e10e5fc-c50c-4f98-8c8f-6605f284792d","release":"b3a1c485-0960-484a-8067-9eaaa937f430"}
+$ jq -r .cls m14.ndjson | sort | uniq -c
+  57 app
+$ jq -r .instance m14.ndjson | uniq -c
+  22 c473be07-1a2e-403c-9ecc-0bda5a816c1f
+  35 6e10e5fc-c50c-4f98-8c8f-6605f284792d
+$ first 2 records (control d)
+{"t":1790140785296,"ms":45,"status":200,"cls":"app","instance":"c473be07-1a2e-403c-9ecc-0bda5a816c1f"}
+{"t":1790140785496,"ms":6,"status":200,"cls":"app","instance":"c473be07-1a2e-403c-9ecc-0bda5a816c1f"}
+NOTE: R1 and R2 share digest sha256:25cdc95fb689d1689cff96973baa06274fbd7619aa9129bd919d2a99d781bb59 — the builder is reproducible (P6a F3) — so this shows a different RELEASE reaching production, not a different digest; the gate never compares body.releaseId with the candidate, which is the claim
+$ restore: deploy R2 to production (stepped-up owner)
+{"code":null,"state":"healthy","releaseId":"44eb3841-4fc6-49ad-b078-2c8b40835622","instance":"bef81dab-70c8-4e45-9f49-8d030747823d"}
+{"kind":"sandbox","instance":null,"release":null,"state":null}
+{"kind":"staging","instance":"52cd15bc-a857-493e-9114-7e9d934424e5","release":"44eb3841-4fc6-49ad-b078-2c8b40835622","state":"healthy"}
+{"kind":"production","instance":"bef81dab-70c8-4e45-9f49-8d030747823d","release":"44eb3841-4fc6-49ad-b078-2c8b40835622","state":"healthy"}
+
+===== [M6] driven half, and [M12] — 22:20:37 =====
+$ app_specs, newest 3
+804b9793-6d26-4c95-8c5f-d0e13dc7aeed|8a58e5c491f42f2c2c45eb093e5dcfdd2c78bac7|t|2026-09-23 05:13:49.406809+00
+$ 13.1 build HEAD ({}) — B1
+B1=
+{"status":null,"appSpecId":null,"commitSha":null,"imageDigest":null}
+ERROR:  invalid input syntax for type uuid: ""
+LINE 1: select app_spec_id from builds where id=''
+                                                ^
+$ 13.1 build HEAD ({}) — B1 (retry: the first attempt sent an invalid body from a quoting bug in the helper)
+B1=d062885e-8d0c-48b3-a9ab-a497677df894
+{"status":"succeeded","commitSha":"8a58e5c491f42f2c2c45eb093e5dcfdd2c78bac7","imageDigest":"sha256:25cdc95fb689"}
+B1.app_spec_id=804b9793-6d26-4c95-8c5f-d0e13dc7aeed
+$ 13.2 commit egress allow [m6.example.org], push, POST …/spec
+{"valid":true,"commitSha":"4d3da813f3a544d1fb91ed762291778a2d565ac6","sensitiveDiff":{"sensitive":true,"fields":["egress.allow"]},"errors":[]}
+S2=e4b27617-724e-4e44-a4a7-de62f369ce5b|4d3da813f3a544d1fb91ed762291778a2d565ac6|t|2026-09-23 05:21:12.344238+00
+$ 13.3 control (e): B2, built AFTER S2; release it
+B2=0c4b6d63-74c1-421e-be52-971d6ce02b73
+{"status":"succeeded","commitSha":"4d3da813f3a544d1fb91ed762291778a2d565ac6","imageDigest":"sha256:4d9654149457"}
+B2.app_spec_id=e4b27617-724e-4e44-a4a7-de62f369ce5b
+{"code":null,"id":"0dc939f1-6a8e-476f-9a3f-2da5683be69c","buildId":"0c4b6d63-74c1-421e-be52-971d6ce02b73"}
+release(B2).app_spec_id=e4b27617-724e-4e44-a4a7-de62f369ce5b  egress(prod)=["m6.example.org"]
+$ 13.4 release B1 (built on S1, BEFORE S2)
+{"code":null,"id":"93a7294b-a9f6-4435-8bf1-681f3d621d27","buildId":"d062885e-8d0c-48b3-a9ab-a497677df894"}
+B1.app_spec_id=804b9793-6d26-4c95-8c5f-d0e13dc7aeed  release(B1).app_spec_id=e4b27617-724e-4e44-a4a7-de62f369ce5b  S1=804b9793-6d26-4c95-8c5f-d0e13dc7aeed S2=e4b27617-724e-4e44-a4a7-de62f369ce5b
+release(B1) production egressAllow=["m6.example.org"]
+$ the public representation
+{"id":"93a7294b-a9f6-4435-8bf1-681f3d621d27","buildId":"d062885e-8d0c-48b3-a9ab-a497677df894","commitSha":null,"config":{"egressAllow":["m6.example.org"]}}
+$ 13.5 deploy the egress release from 13.4 (RB1=93a7294b-a9f6-4435-8bf1-681f3d621d27) to STAGING
+{"code":null,"msg":null,"state":"healthy","releaseId":"93a7294b-a9f6-4435-8bf1-681f3d621d27"}
+$ the staging egress proxy
+manifest-egress:local ["printf '%s\\n' \"$ALLOWLIST\" > /tmp/allowlist && printf '%s\\n' \"$TINYPROXY_CONF\" > /tmp/tinyproxy.conf && exec tinyproxy -d -c /tmp/tinyproxy.conf"] ["ALLOWLIST=# Generated by the Manifest Docker driver. Do not edit.\n# Platform baseline (§12) followed by this app's declared egress.allow.\n^manifest-verdaccio$\n^manifest-litellm$\n^manifest-idp$\n","TINYPROXY_CONF=Port 8888\nListen 0.0.0.0\nTimeout 600\nLogLevel Warning\nMaxClients 32\nDefaultErrorFile \"/usr/share/tinyproxy/default.html\"\nStatFile \"/usr/share/tinyproxy/stats.html\"\nFilterDefaultDeny Yes\nFilter
+$ the staging egress proxy after the healthy deploy of the egress release
+created: 2026-09-23T02:52:21.149956005Z started 2026-09-23T02:52:21.183716546Z
+$ docker exec … cat /tmp/allowlist
+# Generated by the Manifest Docker driver. Do not edit.
+# Platform baseline (§12) followed by this app's declared egress.allow.
+^manifest-verdaccio$
+^manifest-litellm$
+^manifest-idp$
+
+$ staging environment now
+{"instance":"2c317ea3-c7a7-44d5-af50-c632131c6ac9","release":"93a7294b-a9f6-4435-8bf1-681f3d621d27","state":"healthy"}
+$ the app container's egress env
+mf-launch-app-staging-93a7294b-2c317ea3-app
+HTTP_PROXY=http://mf-launch-app-staging-egress:8888
+HTTPS_PROXY=http://mf-launch-app-staging-egress:8888
+http_proxy=http://mf-launch-app-staging-egress:8888
+https_proxy=http://mf-launch-app-staging-egress:8888
+NO_PROXY=localhost,127.0.0.1
+$ from mf-launch-app-staging-93a7294b-2c317ea3-app (release RB1, which declares egress.allow [m6.example.org]), through its proxy
+$ positive control: a baseline host (manifest-verdaccio:4873)
+Connecting to mf-launch-app-staging-egress:8888 (172.30.0.6:8888)
+  HTTP/1.1 200 OK
+  Via: 1.1 3c21b1e1ee84 (tinyproxy/1.11.2)
+$ the declared host (m6.example.org) — tinyproxy answers 403 Filtered for a host NOT on its list
+Connecting to mf-launch-app-staging-egress:8888 (172.30.0.6:8888)
+  HTTP/1.1 403 Filtered
+wget: server returned error: HTTP/1.1 403 Filtered
+$ an undeclared host (never.example.org), the negative control
+Connecting to mf-launch-app-staging-egress:8888 (172.30.0.6:8888)
+  HTTP/1.1 403 Filtered
+wget: server returned error: HTTP/1.1 403 Filtered
+
+===== egress removal direction (found in [M6] step 5) — 22:22:50 =====
+$ 1. remove the staging egress proxy, so the next deploy renders one
+mf-launch-app-staging-egress
+$ 2. deploy RB1 (declares m6.example.org) to staging
+{"code":null,"state":"healthy","releaseId":"93a7294b-a9f6-4435-8bf1-681f3d621d27"}
+proxy allowlist: ^manifest-verdaccio$ ^manifest-litellm$ ^manifest-idp$ ^m6\.example\.org$  
+m6.example.org → Error response from daemon: 404 page not found
+
+never.example.org →   HTTP/1.1 403 Filtered wget: server returned error: HTTP/1.1 403 Filtered 
+$ 3. deploy R2 (declares NO egress.allow) to staging — a REMOVAL of m6.example.org
+{"code":null,"state":"healthy","releaseId":"44eb3841-4fc6-49ad-b078-2c8b40835622"}
+proxy allowlist: ^manifest-verdaccio$ ^manifest-litellm$ ^manifest-idp$ ^m6\.example\.org$  
+m6.example.org → Error response from daemon: 404 page not found
+
+$ re-probe from the SERVING staging container mf-launch-app-staging-44eb3841-3a845dc2-app (release R2 — declares NO egress.allow)
+(the two m6 probes above read 'Error response from daemon: 404' — docker exec against a name list holding the retiring container too; not a proxy answer)
+m6.example.org →   HTTP/1.1 500 Unable to connect wget: server returned error: HTTP/1.1 500 Unable to connect 
+never.example.org →   HTTP/1.1 403 Filtered wget: server returned error: HTTP/1.1 403 Filtered 
+manifest-verdaccio:4873 →   HTTP/1.1 200 OK 
+$ 13.6 commit runtime.port: "x", push, POST …/spec
+{"valid":false,"commitSha":"b32fd50df10cca1e4316597a5dda48700a436c71","errors":["SPEC_INVALID_VALUE"]}
+newest spec: 542a9ed7-20f8-4ee9-995c-3ab7bfb57890|b32fd50df10cca1e4316597a5dda48700a436c71|f|2026-09-23 05:23:24.763881+00   parsed={}
+$ release B1 again (B1=d062885e-8d0c-48b3-a9ab-a497677df894)
+{"error":{"code":"INTERNAL","message":"the control plane failed to handle this request"}}
+HTTP 500
+$ the control plane log around it
+    at Object.handler (file:///Users/rich/Developer/manifest/packages/control-plane/dist/api/routes/releases.js:152:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async run (file:///Users/rich/Developer/manifest/packages/control-plane/dist/api/contract/route.js:106:38)
+    at async replayOrStore (file:///Users/rich/Developer/manifest/packages/control-plane/dist/api/idempotency.js:32:22)
+    at async Object.handler (file:///Users/rich/Developer/manifest/packages/control-plane/dist/api/contract/route.js:159:64)
+TypeError: Cannot read properties of undefined (reading 'map')
+    at resolveConfig (file:///Users/rich/Developer/manifest/packages/control-plane/dist/spec/resolve.js:16:26)
+    at Object.handler (file:///Users/rich/Developer/manifest/packages/control-plane/dist/api/routes/releases.js:152:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async run (file:///Users/rich/Developer/manifest/packages/control-plane/dist/api/contract/route.js:106:38)
+    at async replayOrStore (file:///Users/rich/Developer/manifest/packages/control-plane/dist/api/idempotency.js:32:22)
+$ 13.7 the cross-project half: the instructor creates a throwaway project m6-other (fixture-node@1, solo)
+{"code":null,"msg":null,"id":"b9ee3fe9-602c-48dd-96f6-99774324158f","slug":"m6-other"}
+$ POST /v1/projects/m6-other/releases {buildId: B1} — B1 is launch-app's build
+{"code":null,"msg":null,"id":"ba98520c-ebd9-4e94-a654-12dd8e66478a","projectId":"b9ee3fe9-602c-48dd-96f6-99774324158f","buildId":"d062885e-8d0c-48b3-a9ab-a497677df894","imageDigest":"sha256:25cdc95fb689"}
+row: b9ee3fe9-602c-48dd-96f6-99774324158f|56fff94a-b430-4a49-be89-82ae27e9ae80
+mf- containers before/after creating the project: 12 / 12
+
+===== [M12] 22:23:59 the summary differs between two calls on one input =====
+$ POST /v1/releases/RB1/reject reason='m12 first rejection: egress host not covered by the PIA'
+{"code":null,"msg":null,"decision":"rejected","summarySource":"llm","changes":[{"path":"egress.allow","from":"none","to":"m6.example.org","summary":"now allows m6.example.org"}]}
+  took 4991 ms
+$ POST /v1/releases/RB1/reject reason='m12 second rejection: same release, asked again'
+{"code":null,"msg":null,"decision":"rejected","summarySource":"llm","changes":[{"path":"egress.allow","from":"none","to":"m6.example.org","summary":"now allows m6.example.org"}]}
+  took 2602 ms
+$ both rows' diff_snapshot
+2026-09-23 05:24:04.314019+00|llm|The firewall rule now explicitly permits outgoing traffic to **m6.example.org** (previously blocked entirely). This could expose the system to risks if the domain is compromised or misused, so verify its necessity and security posture before enabling. Ensure no sensitive data is sent to this host.
+2026-09-23 05:24:06.916048+00|llm|The rule now explicitly permits traffic to **m6.example.org** (previously blocked all egress). This could expose the system to risks if the domain is compromised or misused. Verify if this domain is a trusted third-party service and confirm no sensitive data is sent there.
+$ identical?
+2|2|1
+$ baseline unchanged: lastApproved is still R2
+b3a1c485-0960-484a-8067-9eaaa937f430|approved
+44eb3841-4fc6-49ad-b078-2c8b40835622|approved
+93a7294b-a9f6-4435-8bf1-681f3d621d27|rejected
+93a7294b-a9f6-4435-8bf1-681f3d621d27|rejected
+$ 13.9 restore: manifest.yaml byte-identical to the original, pushed
+git diff $ORIG HEAD -- manifest.yaml: []
+git diff $ORIG HEAD --stat (whole tree): []
+{"valid":true,"commitSha":"da3cff2b2adf8d80c04aea83741a41007b175a4a","sensitiveDiff":{"sensitive":false,"fields":[]}}
+
+===== [M4] driven — 22:24:34 the manifest's blueprint: validates, and changes nothing =====
+9:blueprint: node-ts-mongo@9
+$ POST …/spec
+{"valid":true,"errors":[],"sensitiveDiff":{"sensitive":true,"fields":["blueprint"]}}
+project.blueprintRef=node-ts-mongo@1
+$ available blueprints
+["fixture-node@1","node-ts-mongo@1"]
+$ would a build use @9? read: api/routes/builds.ts passes blueprintRef: project.blueprintRef (line ~101) — not the manifest's claim
+restore: git diff $ORIG HEAD: []
+{"valid":true,"sensitiveDiff":{"sensitive":true,"fields":["blueprint"]}}
+$ [M4] driven, build half: commit @9 again, validate, BUILD it
+{"valid":true,"sensitiveDiff":{"sensitive":true,"fields":["blueprint"]}}
+B9=370dbdba-c6f8-4a0c-8aca-3ed513a11eeb
+{"status":"succeeded","failureReason":null,"commitSha":"4573b089c3e0f84c5ebf22ef0f2c2f9e0c2c5c31","imageDigest":"sha256:266476843ef2"}
+builds row:  → ERROR:  column "blueprint_ref" does not exist
+LINE 1: select blueprint_ref from builds where id='370dbdba-c6f8-4a0...
+               ^
+restore: git diff $ORIG HEAD: []
+{"valid":true,"sensitiveDiff":{"sensitive":true,"fields":["blueprint"]}}
+
+===== [M7] 22:25:22 a rehearsal on a launched app replaces live production with an unapproved release =====
+$ 15.1 validate, build, release R3, deploy R3 to staging
+{"valid":true,"commitSha":"5c7118bca4b7ff2955c5b1f63a8ef6ad163c017c","sensitiveDiff":{"sensitive":false,"fields":[]}}
+B3=d7bf8c30-5ce1-43cd-af3a-49fb6fcfbb59
+{"status":"succeeded","commitSha":"5c7118bca4b7ff2955c5b1f63a8ef6ad163c017c","imageDigest":"sha256:07ddf5b9fe9e51d4396e405b6c9413bed716e2a7398109b0f3075fe990d98935"}
+R3=ff6808ae-59f4-47a7-bbdf-d367efabd993
+{"code":null,"state":"healthy","releaseId":"ff6808ae-59f4-47a7-bbdf-d367efabd993"}
+$ 15.2 production before: {"instance":"bef81dab-70c8-4e45-9f49-8d030747823d","release":"44eb3841-4fc6-49ad-b078-2c8b40835622","state":"healthy"}
+  127.0.0.3: HTTP/2 200  x-manifest-instance: bef81dab-70c8-4e45-9f49-8d030747823d 
+  R3 approvals before: 0
+$ 15.3 as the operator: POST /v1/projects/{PID}/rehearsal
+{"passed":true,"releaseId":"ff6808ae-59f4-47a7-bbdf-d367efabd993","hostname":null,"code":null,"msg":null}
+$ 15.4 production after: {"instance":"7221f2c2-dce6-4ee9-9e0d-a41c0d5cfc33","release":"ff6808ae-59f4-47a7-bbdf-d367efabd993","state":"healthy"}
+  127.0.0.3: HTTP/2 200  x-manifest-instance: 7221f2c2-dce6-4ee9-9e0d-a41c0d5cfc33 
+$ 15.5 select count(*) from approvals where release_id = R3: 0
+  R3 = ff6808ae-59f4-47a7-bbdf-d367efabd993, digest sha256:07ddf5b9fe9e51d4396e405b6c9413bed716e2a7398109b0f3075fe990d98935
+$ the checklist while production runs unapproved R3
+{"ready":false,"candidate":"ff6808ae-59f4-47a7-bbdf-d367efabd993","items":[{"id":"domain","state":"met"},{"id":"iam-registration","state":"met"},{"id":"privacy-assessment","state":"met"},{"id":"rehearsal","state":"met"},{"id":"scans","state":"met"},{"id":"admin-approval","state":"unmet"},{"id":"code-review","state":"not_built"}]}
+$ the fleet row
+{"id":"56fff94a-b430-4a49-be89-82ae27e9ae80","slug":"launch-app","blueprint":"node-ts-mongo@1","starter":"proof-app","owner":{"id":"edb997a3-5673-497d-bff4-5b389754fc73","displayName":"Test Instructor","email":"instructor@ubc.ca"},"audience":{"scale":"class","burst":"synchronised","justification":"P6a’s acceptance — the first production launch","setBy":"edb997a3-5673-497d-bff4-5b389754fc73","setAt":"2026-09-23T05:13:49.198Z"},"createdAt":"2026-09-23T05:13:49.199Z","slugReserved":false,"environments":[{"kind":"production","hostname":"launch-app.manifest.internal","state":"healthy","releaseI
+
+===== restore — 22:26:20 =====
+$ the staging egress proxy: remove it so R2 renders the baseline allowlist again
+mf-launch-app-staging-egress
+$ deploy R2 to staging
+{"code":null,"state":"healthy","releaseId":"44eb3841-4fc6-49ad-b078-2c8b40835622"}
+staging proxy allowlist: ^manifest-verdaccio$ ^manifest-litellm$ ^manifest-idp$  
+$ the owner steps up again; deploy R2 to production
+{"code":null,"msg":null,"state":"healthy","releaseId":"44eb3841-4fc6-49ad-b078-2c8b40835622","instance":"d49d8f59-b579-464a-a940-9f89ab0e5abb"}
+127.0.0.3: HTTP/2 200  x-manifest-instance: d49d8f59-b579-464a-a940-9f89ab0e5abb 
+$ revert server.js so HEAD's tree matches the original
+git diff $ORIG HEAD (whole tree): []  tree: c181e70db9cb8f40945731e2076f8e9b9aeb3907 vs original c181e70db9cb8f40945731e2076f8e9b9aeb3907
+{"valid":true,"commitSha":"3df5e29be2108aec5d69b3e906e85205dda4d716","sensitiveDiff":{"sensitive":false,"fields":[]}}
+{"kind":"sandbox","release":null,"state":null}
+{"kind":"staging","release":"44eb3841-4fc6-49ad-b078-2c8b40835622","state":"healthy"}
+{"kind":"production","release":"44eb3841-4fc6-49ad-b078-2c8b40835622","state":"healthy"}
+
+===== Read-this-first 12 (unmarked, measured while the rows exist) =====
+b3a1c485-0960-484a-8067-9eaaa937f430|no-previous-release||0
+44eb3841-4fc6-49ad-b078-2c8b40835622|llm|Nothing in manifest.yaml changed since the last approved release.|0
+$ where the fixed sentence is produced
+46:      summary: 'Nothing in manifest.yaml changed since the last approved release.',
+
+===== close — 22:37:34 =====
+$ pnpm test (close 1)
+ Test Files  119 passed (119)
+      Tests  1605 passed (1605)
+   Duration  125.78s (transform 769ms, setup 130ms, collect 17.29s, tests 96.90s, environment 8ms, prepare 2.67s)
+$ pnpm test (close 2)
+ Test Files  119 passed (119)
+      Tests  1605 passed (1605)
+   Duration  125.95s (transform 714ms, setup 140ms, collect 17.33s, tests 96.77s, environment 8ms, prepare 2.76s)
+$ pnpm lint / typecheck / format:check → 0 / 0 / 0
+$ control plane stopped; lsof 7100/7102/7104 → nothing listening
+$ make doctor
+  19 checks, 0 failed, 0 warnings
+$ make verify
+  INFO  routing
+          runtime routes currently applied: 1 (the control plane re-applies these on edge start) 
+  INFO  per-app resources
+          mf- containers=12 networks=4 volumes=8 (0/0/0 immediately after make reset) 
+  55 checks, 0 failed, 0 warnings
+$ edge runtime routes by server (verify counts srv0 only)
+srv0: mf-launch-app-staging-manifest-internal
+srv1: mf-launch-app-manifest-internal
+$ bash scripts/dead-app-resources.sh
+  none dead
+
+Nothing was changed. 0 network(s) and 0 volume(s) are dead.
+$ bash scripts/litellm-orphans.sh --apply
+  deleted mf-99c1dc2d-d3f8-4b58-a105-ef3638dc7203-production (1 key(s))
+  deleted mf-99c1dc2d-d3f8-4b58-a105-ef3638dc7203-staging (1 key(s))
+
+Re-reading the list — the answer, not that an answer arrived
+  4 user(s) remain (was 7)
+
+Done. Every held user survived and every orphan is gone.
+$ re-measured
+Orphaned (0) — no app holds any of their keys
+Nothing to delete.
+$ rm -rf .manifest/repos/m6-other.git (created by [M6] step 7)
+$ images: docker images -q 56, sort -u 48, 127.0.0.1:7107/local/* 6 (at the open the snapshot listed 2 local/* images)
+$ snapshot-machine.sh diff, open → close
+2c2
+< taken: 2026-09-22 22:05:31 PDT
+---
+> taken: 2026-09-22 22:35:56 PDT
+11c11
+< free disk   107Gi
+---
+> free disk   108Gi
+47,66c47,66
+< manifest-dns-containers	manifest-dnsmasq:local	Up 2 hours
+< manifest-dns-host	manifest-dnsmasq:local	Up 2 hours
+< manifest-egress	manifest-egress:local	Up 2 hours
+< manifest-idp	manifest-idp:local	Up 2 hours
+< manifest-litellm	20b5044b6190	Up 2 hours (healthy)
+< manifest-postgres	postgres:16-alpine	Up 2 hours (healthy)
+< manifest-registry	registry:2	Up 2 hours (healthy)
+< manifest-verdaccio	verdaccio/verdaccio:6	Up 2 hours (healthy)
+< mf-click-launch-production-db	56d07a0227ce	Up 2 hours (healthy)
+< mf-click-launch-production-e52f6afc-f5721fb3-app	127.0.0.1:7107/local/click-launch	Up 2 hours (healthy)
+< mf-click-launch-production-egress	manifest-egress:local	Up 2 hours
+< mf-click-launch-staging-454637b8-7e4c826f-app	127.0.0.1:7107/local/click-launch	Up 2 hours (healthy)
+< mf-click-launch-staging-db	56d07a0227ce	Up 2 hours (healthy)
+< mf-click-launch-staging-egress	manifest-egress:local	Up 2 hours
+< mf-launch-app-production-882c867f-b3b62221-app	127.0.0.1:7107/local/launch-app	Up 2 hours (healthy)
+< mf-launch-app-production-db	56d07a0227ce	Up 2 hours (healthy)
+< mf-launch-app-production-egress	manifest-egress:local	Up 2 hours
+< mf-launch-app-staging-497bac8f-177d0af8-app	127.0.0.1:7107/local/launch-app	Up 2 hours (healthy)
+< mf-launch-app-staging-db	56d07a0227ce	Up 2 hours (healthy)
+< mf-launch-app-staging-egress	manifest-egress:local	Up 2 hours
+---
+> manifest-dns-containers	manifest-dnsmasq:local	Up 3 hours
+> manifest-dns-host	manifest-dnsmasq:local	Up 3 hours
+> manifest-egress	manifest-egress:local	Up 3 hours
+> manifest-idp	manifest-idp:local	Up 3 hours
+> manifest-litellm	20b5044b6190	Up 3 hours (healthy)
+> manifest-postgres	postgres:16-alpine	Up 3 hours (healthy)
+> manifest-registry	registry:2	Up 3 hours (healthy)
+> manifest-verdaccio	verdaccio/verdaccio:6	Up 3 hours (healthy)
+> mf-click-launch-production-db	56d07a0227ce	Up 3 hours (healthy)
+> mf-click-launch-production-e52f6afc-f5721fb3-app	127.0.0.1:7107/local/click-launch	Up 3 hours (healthy)
+> mf-click-launch-production-egress	manifest-egress:local	Up 3 hours
+> mf-click-launch-staging-454637b8-7e4c826f-app	127.0.0.1:7107/local/click-launch	Up 3 hours (healthy)
+> mf-click-launch-staging-db	56d07a0227ce	Up 3 hours (healthy)
+> mf-click-launch-staging-egress	manifest-egress:local	Up 3 hours
+> mf-launch-app-production-44eb3841-d49d8f59-app	127.0.0.1:7107/local/launch-app	Up 9 minutes (healthy)
+> mf-launch-app-production-db	56d07a0227ce	Up 3 hours (healthy)
+> mf-launch-app-production-egress	manifest-egress:local	Up 3 hours
+> mf-launch-app-staging-44eb3841-c63c9ba8-app	127.0.0.1:7107/local/launch-app	Up 9 minutes (healthy)
+> mf-launch-app-staging-db	56d07a0227ce	Up 3 hours (healthy)
+> mf-launch-app-staging-egress	manifest-egress:local	Up 9 minutes
+94a95,97
+> 127.0.0.1:7107/local/launch-app:<none>	sha256:07ddf5b9fe9e51d4396e405b6c9413bed716e2a7398109b0f3075fe990d98935
+> 127.0.0.1:7107/local/launch-app:<none>	sha256:25cdc95fb689d1689cff96973baa06274fbd7619aa9129bd919d2a99d781bb59
+> 127.0.0.1:7107/local/launch-app:<none>	sha256:266476843ef27944b3ce10457f1b0dcd6121a48d584991f27ea40baeefdabac6
+95a99
+> 127.0.0.1:7107/local/launch-app:<none>	sha256:4d9654149457ee8edd2fb958592a211545a53465ae6088b22d5f913d8364e3f0
+182c186
+< mf-launch-app-production-882c867f-b3b62221-app-files
+---
+> mf-launch-app-production-44eb3841-d49d8f59-app-files
+184c188
+< mf-launch-app-staging-497bac8f-177d0af8-app-files
+---
+> mf-launch-app-staging-44eb3841-c63c9ba8-app-files

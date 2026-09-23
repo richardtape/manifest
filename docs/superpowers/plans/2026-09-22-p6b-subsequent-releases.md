@@ -33,9 +33,9 @@
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Status |
 |---|---|---|---|---|
-| 1 | 1 | **The measurements this plan rests on** — fifteen measurements of the running platform before any code: the override blind spot, the baseline that counts a rejected release, a release freezing the wrong spec, a rehearsal that replaces live production, the gate evaluating one release and deploying another, the IAM record that overwrites what UBC registered. **Alone, and first** | **No** — nothing under the owing paths changes; two throwaway probe tests are written and deleted | not started ← **next** |
-| 2 | 2–3 | **The person-only class** — one central refusal, a mint refusal, a code of its own — and **the sensitive diff over frozen releases**: one rule over §7's seven fields, the baseline that reads each release's *latest* decision, and a release that freezes its build's own spec | **Yes** — `projects/`, `spec/`, `releases/` | not started |
-| 3 | 4–5 | **An app has launched** — migration 0021, the launch recorded once, a rehearsal refused afterwards — and **`deployRelease`'s half of D9.2**: approval required for a first launch and for a sensitive change, never for anything else, and never deploying a release an administrator rejected | **Yes** — `releases/`, `launch/`, `*.docker.test.ts` | not started |
+| 1 | 1 | **The measurements this plan rests on** — fifteen measurements of the running platform before any code: the override blind spot, the baseline that counts a rejected release, a release freezing the wrong spec, a rehearsal that replaces live production, the gate evaluating one release and deploying another, the IAM record that overwrites what UBC registered. **Alone, and first** | **No** — nothing under the owing paths changes; two throwaway probe tests are written and deleted | **DONE 2026-09-22** — all six premises measured true, every control fired, and a seventh defect found: **the egress proxy never re-renders its allowlist**, which adds Task 5a below. Record: *What executing this plan found*, sitting 1; [`spikes/p6b-baseline/`](../spikes/p6b-baseline/README.md) |
+| 2 | 2–3 | **The person-only class** — one central refusal, a mint refusal, a code of its own — and **the sensitive diff over frozen releases**: one rule over §7's seven fields, the baseline that reads each release's *latest* decision, and a release that freezes its build's own spec | **Yes** — `projects/`, `spec/`, `releases/` | not started ← **next** |
+| 3 | 4, 5, **5a** | **An app has launched** — migration 0021, the launch recorded once, a rehearsal refused afterwards — and **`deployRelease`'s half of D9.2**: approval required for a first launch and for a sensitive change, never for anything else, and never deploying a release an administrator rejected — **and (Task 5a, added by sitting 1) the egress proxy follows the release it serves.** **If it runs long, stop after Task 5 and sweep; Task 5a then opens sitting 4, ahead of Task 6**, with which it shares nothing | **Yes** — `releases/`, `launch/`, `runtime/`, `*.docker.test.ts` | not started |
 | 4 | 6 | **The gate for a launched app — this plan's centre, alone.** The checklist branches on `launched`, the self-serve deploy goes through, a sensitive change is refused `RELEASE_REESCALATED` carrying the view, and a release that is not the one serving staging is refused `RELEASE_NOT_STAGED` | **Yes** — `launch/` | not started |
 | 5 | 7–8 | **The IAM change request** — migration 0022, a registration's registered set that changes only when UBC registers it, the change request as the registration's own `change_requested` state, and the live-registration check (attributes, ACS and SLO) for every production release — and **R4(d)**: deterministic security notes per sensitive field, the reviewer's verdict and D33's coverage limit in the record and in the prompt, and the `code-review` item reading the verdict (P6a F7). **The lean split's cost: if it runs long, stop after Task 7 and sweep** | **Yes** — `launch/`, `releases/` | not started |
 | 6 | 9–10 | **The stored preview**: migration 0023, `createApprovalPreview` and `getApprovalPreview`, approve and reject binding a preview and refusing a stale one — and **the console's approvals screen**, which shows the preview BEFORE the decision and keeps it through the step-up round trip. **Heavy**: the server half and the screen that uses it, together, so the console's Approve button is never broken across a session boundary | **Yes** — `releases/` | not started |
@@ -49,6 +49,12 @@
 4. **The close-out sweep in ORIENTATION §6.** Its first line is the roadmap ledger. The gate numbers live in **ORIENTATION's top-of-file box, §2's box, `README.md`, `RUNBOOK.md` and `scripts/ci-acceptance.sh`'s four `EXPECT_` lines**, and all five move together. **Then re-read your own §7e as a cold agent would, and verify every claim by opening what it points at.** That check has found a defect in every sitting since P5b's third.
 
 **THIS TABLE IS A SCHEDULE, NOT A CONTRACT.** Moving task boundaries is Task 1's job; it did so in three of P6a's four predecessors. **If it moves one, re-cut the sittings before starting sitting 2.** Two rules survive any re-cut. **Task 1 stays first and alone. Task 11 stays alone and last**: it is this plan's own task, not something that happens after the last feature.
+
+> **SITTING 1 MOVED NO BOUNDARY AND ADDED ONE TASK (2026-09-22).** Task 5a — *the egress proxy follows
+> the release it serves* — is F1's fix, and it is numbered 5a so that Tasks 6 to 11 keep the numbers every
+> other document uses. It goes in sitting 3, **last**, because it shares nothing with Tasks 4 and 5 and so
+> is the one piece of that sitting that can spill into sitting 4 without breaking the 4 → 5 → 6 chain.
+> Rich's seven sittings stand. *Decision 20* says why the fix is this plan's.
 
 ---
 
@@ -137,7 +143,7 @@
 
 ## Decisions this plan makes, and why
 
-**Nineteen questions below Rich's line.** Each one records what it rejected and what changing course would cost. The hand-off's six questions are Decisions 3, 4, 10, 11, 12 and 15, and each says so.
+**Twenty questions below Rich's line** — nineteen made while the plan was written, and Decision 20 by Task 1 (2026-09-22). Each one records what it rejected and what changing course would cost. The hand-off's six questions are Decisions 3, 4, 10, 11, 12 and 15, and each says so.
 
 **Decision 1. "Launched" is a STORED fact: `projects.launched_at`.** It is written once, by the first `purpose: 'launch'` production deploy whose instance becomes healthy, and never cleared. An `project.launched` event is published with it. *Rejected:* **deriving it from a production instance**, because a rehearsal serves production too (*Read this first* 7) and would read as a launch. **Deriving it from an approval**, because an approved release may never have been deployed. **A `launches` table**: one fact, one column. **A backfill**: `pnpm test` empties the database on every run, and a launch that happened before migration 0021 simply reads as not launched. Its next production deploy then passes the full first-launch gate once more, which fails closed, and that deploy records the launch. **The same column is what §9's *"the project slug is immutable after production launch"* would read**, the day a rename route exists. *Changing course* costs a column.
 
@@ -233,6 +239,8 @@ Order: B is what the hand-off lists first, but it runs after A. **B's self-serve
 
 **Decision 19. A new operation's console caller lands in the same task, or in the same sitting with a `DELIBERATELY_UNCALLED` entry naming its remover.** This is P6a's pattern. **Task 9 parks both preview operations there, and Task 10 removes both in the same sitting.** Everything else lands with its screen.
 
+**Decision 20 (Task 1, 2026-09-22). The egress proxy's fix is THIS plan's, as Task 5a.** Task 1's F1 measured that `ensureEgressProxy` renders an environment's allowlist once, at its first deploy, and never again: an added `egress.allow` host is refused exactly like an undeclared one, and a **removed** host stays reachable. `egress.allow` is a sensitive field in both directions, so **every re-escalation of an egress change — this plan's subject — approves something that does not happen**, and Task 11's leg A, which changes `egress.allow`, would have passed with the approved change not in force. **That is the reason it cannot wait**: this plan's acceptance would otherwise prove a control that is not in force, which is the one thing this project has paid most often to learn not to do. The fix is small and independent (one function and its Docker test), so it goes **last in sitting 3**, where the Docker tier is already owed, with the lean split's own overflow rule. *Rejected:* **a separate hardening item after P6b**, because Task 11 would then either assert nothing about egress (a green acceptance over a dead control) or have to choose a different sensitive field to avoid it; **per-instance proxies**, which would remove the shared proxy's overlap window (Task 5a's *What it costs*) but change every app's network topology, which is a design change rather than a fix; **rewriting `/tmp/allowlist` in place and signalling tinyproxy**, because the container's `ALLOWLIST` environment would then disagree with the file it serves, and whether tinyproxy 1.11.2 re-reads its filter on a signal is unmeasured. *Changing course* costs one task, moved.
+
 ---
 
 ## Global Constraints
@@ -311,11 +319,14 @@ packages/control-plane/src/
 │   ├── rehearsal.ts              MODIFIED (T4): REHEARSAL_LAUNCHED
 │   └── records.ts                MODIFIED (T7): registered changes only on `active`; requested; registered_at
 ├── observability/events.ts, event-schemas.ts   MODIFIED (T4): project.launched
+├── runtime/docker/egress.ts      MODIFIED (T5a): the allowlist re-rendered when the release's differs (T1's F1)
+├── runtime/docker/egress.docker.test.ts   MODIFIED (T5a): a changed list, in both directions, without destroying first
 ├── api/
 │   ├── errors.ts                 MODIFIED (T2, T6): TOKEN_PERSON_ONLY; the gate's hint by code
 │   ├── error-codes.ts            MODIFIED (T2, T4, T6, T9): every new code, once
 │   ├── authz-contract.ts         MODIFIED (T2, T9): the stale comment; two rows per new route
-│   ├── testing.ts                MODIFIED (T4): builtProject, releasedProject, launchedProject, commitManifest
+│   ├── testing.ts                MODIFIED (T3, T4): commitManifest (T3, its first caller — T1's F8);
+│   │                             builtProject, releasedProject, launchedProject (T4)
 │   ├── contract/document.ts      MODIFIED (T2): CONTRACT_VERSION 1.1.0
 │   ├── routes/tokens.ts          MODIFIED (T2): the person-only mint refusal
 │   ├── routes/releases.ts        MODIFIED (T3, T6, T9): the build's spec; the gate's new signature; previews; decide()
@@ -530,9 +541,11 @@ OP="$SCRATCH/op.jar"; OPI="$SCRATCH/op-idp.jar"; IN="$SCRATCH/in.jar"; INI="$SCR
 rm -f "$OP" "$OPI" "$IN" "$INI"
 idp_login "$OP" "$OPI" "$O/auth/login" operator operator "$O/auth/saml/callback" "$CA"   # admin since Step 7
 idp_login "$IN" "$INI" "$O/auth/login" instructor instructor "$O/auth/saml/callback" "$CA"
-api_as() { local jar="$1" method="$2" path="$3" body="${4:-}"
+# NOT `path`: zsh ties $path to $PATH, so `local path=…` loses curl and uuidgen for the call
+# (sitting 1, F9 — "command not found: curl"). Run these steps under bash in any case.
+api_as() { local jar="$1" method="$2" p="$3" body="${4:-}"
   curl -sS --cacert "$CA" -b "$jar" -c "$jar" -H "Origin: $O" -H "Idempotency-Key: $(uuidgen)" \
-    -H 'content-type: application/json' -X "$method" ${body:+-d "$body"} "$O$path"; }
+    -H 'content-type: application/json' -X "$method" ${body:+-d "$body"} "$O$p"; }
 PID=$(api_as "$IN" GET /v1/projects | jq -r '.[] | select(.slug=="launch-app") | .id')
 ```
 
@@ -576,6 +589,12 @@ R1=<the older release whose decision is approved>; R2=<the newer one>
 ```
 
 - [ ] **Step 12: `[M8]` and `[M14]` — the gate evaluates R2 and deploys R1; and the loop can watch the public listener**
+
+> **Sitting 1 found Step 11's premise false (F3): after `make demo-production`, R2 is NOT the candidate.** Its
+> step 10 deploys its unapproved rebuild to staging, so the candidate is that rebuild, and the deploy below is
+> refused `409 RELEASE_PRODUCTION_GATE_UNAVAILABLE` before it measures anything. **Deploy R2 to staging first**
+> (`healthy`, and `GET launch-readiness` reads `ready: true` for R2), then run the step. The refusal is worth
+> recording in its own right: it is `[M8]`'s mirror, an approved release refused because a different one is staged.
 
 ```bash
 # A stepped-up owner: /auth/step-up through the same walk (P6a's pattern)
@@ -655,6 +674,18 @@ git commit -m "docs(p6b): sitting 1 — the measurements this plan rests on"
 ---
 
 ## Task 2: The person-only class — one central refusal, a mint refusal, and a code of its own
+
+> **`[M13]` AND `[M11]` — TASK 1 MEASURED BOTH PREMISES TRUE (2026-09-22); ONE ADDITION.** `[M13]`: the
+> un-stepped administrator minted `release:approve` and `launch:record` tokens (`201` each) while
+> `release:promote` was refused `400 TOKEN_CAPABILITY_FORBIDDEN`; the `release:approve` token on the approve
+> route and the `launch:record` token on the IAM route were BOTH answered `403 TOKEN_CREDENTIAL_REFUSED` —
+> *"this action is only available in an interactive session (D24)"* — which is `requireSession`'s refusal, the
+> code a missing session also gets. That is the gap, exactly as written. `[M11]`: `1.0.0`, 41 operations, seven
+> added since `58107aa` unbumped. **The addition (F12):** the comment above `CONTRACT_VERSION` also says
+> *"`coverage.test.ts` holds every one of its **34** operations to having a caller"* (`document.ts:13-19`) —
+> stale at 41, and 43 after Task 9. **When you add this task's sentence, take the number out rather than
+> updating it**: *"every one of its operations"*. A restated count is the drift ORIENTATION §9 names, and this
+> one drifted within the plan that wrote it. The constant is at line 26, not in lines 14–24.
 
 **Rich decided this on 2026-09-22, and §20 and D24's row have said it since that day.** Today the code states it nowhere (*Read this first* 14): each route guards its own capability with `requireSession`, and the mint route will issue a token holding either one. **This task makes it one rule, and it gives the rule a code that no other layer answers with**, so that removing either layer turns a test red.
 
@@ -918,6 +949,40 @@ git commit -m "feat(authz): D24's person-only class — refused centrally, never
 
 ## Task 3: The sensitive diff over frozen releases, the baseline by LATEST decision, and a release that freezes its build's spec
 
+> **`[M3]`, `[M5]`, `[M6]` — TASK 1 MEASURED ALL THREE EXACTLY AS PREDICTED (2026-09-22), AND FOUND TWO THINGS
+> THIS TASK MUST ALSO DO.** *The measurements:* the override raised `512Mi → 8Gi` gave `{"sensitive":false,"fields":[]}`
+> beside the top-level control's `["resources"]`; approve-then-reject left `lastApprovedReleaseFor` returning
+> *THE REJECTED RELEASE* beside the approve-only control's correct id; and on `launch-app`, B1 (built on S1)
+> released with **S2's** `appSpecId` and `egressAllow ["m6.example.org"]`, an invalid newest spec gave `500
+> INTERNAL` (`TypeError … reading 'map' at resolveConfig`), and another project released B1 `201`. The
+> spike README has every raw answer.
+>
+> **1. `commitManifest` DOES NOT EXIST UNTIL TASK 4, AND THIS TASK'S ROUTE TEST CALLS IT (F8).** The fixtures
+> section and File Structure give `api/testing.ts`'s helpers to Task 4, and the route case at *Step 1* reads
+> `commitManifest(S2 with an egress host)`. **Ruled: this task CREATES `commitManifest` in `api/testing.ts`**
+> — its first caller is here — exactly as the fixtures section specifies it (commit `manifest.yaml` through
+> `deps.source.commitFiles`, validate through `POST …/spec`, assert `valid: true`), and **Task 4 reuses it**
+> and moves only `builtProject`, `releasedProject` and `launchedProject`. `api/testing.ts` is in *Files* and in
+> the commit for this reason, and so is `project-reads.ts`, for 2 below. *Task 1's Step 5 said "Task 3 moves the one it needs into `api/testing.ts`"; it need not —
+> `approval.test.ts`'s own `releasedProject` (line 28) and `secondRelease` (line 99) are all its `[M5]` tests
+> need, and the move stays Task 4's.*
+>
+> **2. THE VALIDATE ROUTE SAYS "NOT SENSITIVE" WHEN IT DID NOT COMPARE (F7).** `project-reads.ts:381-384`
+> computes the diff only when the IMMEDIATELY previous row is valid, and otherwise answers
+> `{ sensitive: false, fields: [] }` — the same answer a genuine no-change gets. Measured: restoring
+> `launch-app` from S2 (which added `egress.allow`) through an invalid commit reported
+> `{"sensitive":false,"fields":[]}`, where removing `m6.example.org` is sensitive. **So any sensitive change
+> committed after an invalid one reports as not sensitive.** It is a report, not a gate, and this task
+> already rewires what that route calls. **Add:** the `previous` select takes the newest **valid** row
+> (`and(eq(appSpecs.projectId, …), eq(appSpecs.valid, true))`), and a test in `api/delivery.test.ts` —
+> *a sensitive change after an invalid commit is still reported* — with its positive half (a change with no
+> invalid commit between, reported the same) in the same test. Predicted red today with `fields: []`.
+>
+> **`[M15]`, for Step 2's prediction:** no case in `lifecycle.test.ts`, `approval.test.ts`, `incidents.test.ts`
+> or `delivery.test.ts` releases a build older than the newest spec (every `POST …/spec` precedes its build),
+> and `createRelease`'s 28 direct callers pass their own project's build (the two opened do). **So Step 5 is
+> predicted to turn NO existing test red.** A red one is a finding; name it.
+
 **Three premises of this plan, each measured false in Task 1**: `[M3]` the override blind spot, `[M5]` the rejected baseline, and `[M6]` the newest-spec release together with the unscoped build. **All three sit under the re-escalation**, and none is visible through a first launch. This task fixes them before anything builds on them.
 
 **Files:**
@@ -929,6 +994,8 @@ git commit -m "feat(authz): D24's person-only class — refused centrally, never
 - Modify: `packages/control-plane/src/releases/release.ts` — `createRelease` refuses a build of another project
 - Modify: `packages/control-plane/src/api/routes/releases.ts` — the route freezes `build.appSpecId`; `SPEC_NOT_FOUND` leaves its `errors:` list
 - Modify: `packages/control-plane/src/api/delivery.test.ts` (or `releases/releases.test.ts`) — the two route cases
+- Modify: `packages/control-plane/src/api/testing.ts` — **`commitManifest`, created here** (Task 1's F8; Task 4 reuses it)
+- Modify: `packages/control-plane/src/api/routes/project-reads.ts` — **the validate route compares with the newest VALID spec** (Task 1's F7)
 
 **Interfaces:**
 - Consumes: `ResolvedConfigSet` (`releases/release.ts:120`), `approvals`, `appSpecs`.
@@ -1130,7 +1197,8 @@ pnpm test && pnpm test && pnpm lint && pnpm typecheck && pnpm format:check
 git add packages/control-plane/src/spec/diff.ts packages/control-plane/src/spec/index.ts packages/control-plane/src/spec/diff.test.ts \
   packages/control-plane/src/releases/approval.ts packages/control-plane/src/releases/approval.test.ts \
   packages/control-plane/src/releases/release.ts packages/control-plane/src/api/routes/releases.ts \
-  packages/control-plane/src/api/delivery.test.ts packages/contract/openapi.json packages/contract/src/schema.d.ts
+  packages/control-plane/src/api/delivery.test.ts packages/control-plane/src/api/testing.ts \
+  packages/control-plane/src/api/routes/project-reads.ts packages/contract/openapi.json packages/contract/src/schema.d.ts
 git commit -m "fix(releases): one sensitive-field rule over what production runs; the baseline by latest decision; a release freezes its build's spec"
 ```
 
@@ -1150,6 +1218,17 @@ git commit -m "fix(releases): one sensitive-field rule over what production runs
 
 ## Task 4: An app has launched — migration 0021, the launch recorded once, and no rehearsal afterwards
 
+> **`[M7]` — TASK 1 MEASURED IT EXACTLY, AND TWICE (2026-09-22).** Step 15: after R3 (a new digest,
+> `07ddf5b9…`, **zero approvals**) was staged, the administrator's rehearsal answered `passed: true` and the
+> public listener then answered as R3's instance — *"a released, unapproved digest serving students"*, as
+> predicted — with nothing on the checklist or the fleet saying so. **And `make demo-production`'s own re-use
+> path does it every run (F2)**: its step 5 rehearses the already-launched app, and `audit.events` shows the
+> live, approved instance retired at `05:17:44.279` for the unapproved candidate's, whose approval came at
+> `05:17:45.324` — **1.045 s of an unapproved release on the public listener**, bounded only because the
+> demo approves next. *Read this first* 22 already predicts that step's change; this is the measurement
+> behind it. **`commitManifest` already exists when this task starts** — Task 3 creates it (F8) — so this
+> task moves `builtProject` and `releasedProject` and adds `launchedProject`, and reuses the rest.
+
 **The fact P6b's whole second clause turns on** (Decision 1). It is recorded by the deploy that makes it true, and it is read by the checklist, by `deployRelease` and by the rehearsal. **After this task nothing branches on it except the rehearsal refusal.** The branches are Tasks 5 and 6, in the same sitting and the next.
 
 **Files:**
@@ -1162,7 +1241,7 @@ git commit -m "fix(releases): one sensitive-field rule over what production runs
 - Modify: `packages/control-plane/src/api/routes/launch.ts` — the rehearsal route's `errors:`
 - Modify: `packages/control-plane/src/api/error-codes.ts` — `REHEARSAL_LAUNCHED`
 - Modify: `packages/control-plane/src/api/representations/projects.ts` — `Project.launchedAt`
-- Modify: `packages/control-plane/src/api/testing.ts` — `builtProject`, `releasedProject` moved here from `delivery.test.ts`; `launchedProject`, `commitManifest` added
+- Modify: `packages/control-plane/src/api/testing.ts` — `builtProject`, `releasedProject` moved here from `delivery.test.ts`; `launchedProject` added. **`commitManifest` is already there — Task 3 created it (Task 1's F8)**
 - Modify: `packages/control-plane/src/api/delivery.test.ts` — imports the moved helpers
 - Modify: `packages/control-plane/src/releases/releases.test.ts`, `launch/rehearsal.test.ts`
 - Modify: `packages/control-plane/src/releases/production.docker.test.ts` — the rehearsal gets a project of its own (*Read this first* 19)
@@ -1469,6 +1548,113 @@ git commit -m "feat(releases): D9.2's second half — approval required for a fi
 
 ---
 
+## Task 5a: The egress proxy follows the release it serves
+
+**ADDED BY TASK 1 (2026-09-22), F1 — and numbered 5a so that Tasks 6 to 11 keep their numbers.** Decision 20 says why it is this plan's. **Last in sitting 3, and the one piece of it that may spill**: if the sitting runs long, stop after Task 5 and sweep, and this task opens sitting 4 ahead of Task 6. It shares nothing with either.
+
+**What Task 1 measured.** `ensureEgressProxy` (`runtime/docker/egress.ts:69`) returns as soon as the environment's proxy container exists (lines 78–81), so **an environment's allowlist is rendered once, by the first deploy it ever has, and never again**. On `launch-app`'s staging proxy (created by P6a sitting 11), after a `healthy` deploy of a release declaring `m6.example.org`: `/tmp/allowlist` held the platform baseline alone, and from the app container `m6.example.org` answered **`403 Filtered`** — the same as the undeclared `never.example.org` — while `manifest-verdaccio` answered `200 OK`. Then, with the proxy recreated so that it held `m6.example.org`, **a deploy of a release declaring NO egress left it there**: `m6.example.org` answered `500 Unable to connect` (the proxy let it through; offline, DNS failed) while `never.example.org` stayed `403 Filtered`. **The added host is refused; the removed host stays reachable.** `egress.allow` is a sensitive field in both directions, so an administrator approving either change approves nothing. **Why no test saw it**: `egress.docker.test.ts`'s *ALLOWS a destination this app declared* calls `destroyEgressProxy` before asking for the new list — it tests around the defect — and *is idempotent* asserts only the URL.
+
+**Files:**
+- Modify: `packages/control-plane/src/runtime/docker/egress.ts` — `ensureEgressProxy` compares what the running proxy serves with what this release declares, and recreates it when they differ
+- Modify: `packages/control-plane/src/runtime/docker/egress.docker.test.ts` — a changed list, both directions, **without** destroying first; the proxy kept when nothing changed
+
+**Interfaces:**
+- Consumes: `renderAllowlist`, `egressContainer`, `appNetwork` (all in the same module).
+- Produces: `ensureEgressProxy`'s signature unchanged. **Caller:** `runtime/docker/driver.ts:453`, inside `perNetwork`, on every deploy — **the caller already exists**, which is why the fix is one function: the driver has asked for the right list on every deploy since P3; the proxy never listened.
+
+- [ ] **Step 1: The failing tests**
+
+```ts
+// egress.docker.test.ts — "the list follows the release (P6b Task 5a)"
+// A helper answering the HTTP status the PROXY gave, not curl's exit code: an allowed host that
+// cannot be reached (offline) and a filtered one both fail curl, and only the status tells them
+// apart — 403 is tinyproxy's `Filtered`, anything else means the filter let it through.
+// `curl -s -o /dev/null -w '%{http_code}' http://<host>/`, created with `Tty: true` so the logs
+// endpoint returns the bytes unframed.
+async function proxyAnswer(host: string): Promise<number> { … }
+
+it('re-renders a WIDER list without being destroyed first — the new host is no longer Filtered', async () => {
+  await ensureEgressProxy(engine, { slug: SLUG, kind: KIND, allow: [] })
+  expect(await proxyAnswer('added.example.org')).toBe(403)            // THE POSITIVE HALF: it was filtered
+  await ensureEgressProxy(engine, { slug: SLUG, kind: KIND, allow: ['added.example.org'] })
+  expect(await proxyAnswer('added.example.org')).not.toBe(403)
+})
+it('re-renders a NARROWER list — a REMOVED host is Filtered again (the fail-open, Task 1 F1)', async () => {
+  await ensureEgressProxy(engine, { slug: SLUG, kind: KIND, allow: ['gone.example.org'] })
+  expect(await proxyAnswer('gone.example.org')).not.toBe(403)         // THE POSITIVE HALF: it was allowed
+  await ensureEgressProxy(engine, { slug: SLUG, kind: KIND, allow: [] })
+  expect(await proxyAnswer('gone.example.org')).toBe(403)
+})
+it('keeps the SAME container when the list has not changed — a redeploy does not bounce the proxy', async () => {
+  // containerId: `engine.get(/containers/<name>/json).Id`
+  await ensureEgressProxy(engine, { slug: SLUG, kind: KIND, allow: ['kept.example.org'] })   // may recreate
+  const settled = await containerId(egressContainer(SLUG, KIND))
+  await ensureEgressProxy(engine, { slug: SLUG, kind: KIND, allow: ['kept.example.org'] })
+  expect(await containerId(egressContainer(SLUG, KIND))).toBe(settled)
+})
+```
+
+- [ ] **Step 2: Run them — predict the reds**
+
+```bash
+MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/runtime/docker/egress.docker.test.ts
+```
+
+**Predicted:** *WIDER* red at its second assertion (`403`, as Task 1 measured); *NARROWER* red at its second (not `403`: the removed host still passes); *keeps the SAME container* **green today** — it is the positive control for the fix, and it must stay green after it. **The existing tests stay green**, including *ALLOWS a destination this app declared* (its `destroyEgressProxy` becomes unnecessary; leave it, and say so in a comment, since it still proves a fresh container enforces its list).
+
+- [ ] **Step 3: Compare, and recreate when different**
+
+In `ensureEgressProxy`, build `allowlist` and `config` BEFORE the existence check, and replace the early return:
+
+```ts
+  const wanted = [`ALLOWLIST=${allowlist}`, `TINYPROXY_CONF=${config}`]
+  const existing = await engine.get<{ State: { Running: boolean }; Config: { Env: string[] } }>(
+    `/containers/${name}/json`,
+  )
+  if (existing) {
+    // WHAT THE PROXY SERVES IS ITS ENVIRONMENT: the command writes /tmp/allowlist from ALLOWLIST at
+    // start. It used to return here whatever the list was, so an environment's allowlist was the one
+    // its FIRST deploy declared, forever — an added host refused, a removed one still reachable
+    // (P6b Task 1, F1). Compared here rather than by the caller because this is the one place that
+    // knows how the list reaches tinyproxy.
+    if (wanted.every((entry) => existing.Config.Env.includes(entry))) {
+      if (!existing.State.Running) await engine.post(`/containers/${name}/start`)
+      return { name, url }
+    }
+    console.error(`[egress] ${name}: the running proxy's allowlist is not this release's — recreating it`)
+    await engine.del(`/containers/${name}?force=true&v=true`)
+  }
+```
+
+The create path below it is unchanged, including `/networks/manifest-platform/connect`. **Log the container name, never the list**: it is the app's declaration, which is not secret, but the line is an operator's and the list is in the release.
+
+**What it costs, recorded rather than hidden.** The proxy is **per environment, not per instance**, so during a deploy that changes the list: (1) for about a second between the delete and the start, the instance still serving has no proxy, and its outbound requests fail; (2) if the new instance then fails its health check, **the old instance keeps serving behind the NEW release's list** until the next successful deploy — a removal fails closed (the old code loses a host it used), an addition fails open by exactly what an administrator approved for the release that failed. Per-instance proxies remove both and are a topology change (Decision 20, *Rejected*). **A deploy that does not change the list costs nothing** — the third test is that promise.
+
+- [ ] **Step 4: Gates; commit**
+
+```bash
+MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/runtime/docker/egress.docker.test.ts   # green
+pnpm test && pnpm test && pnpm lint && pnpm typecheck && pnpm format:check
+git add packages/control-plane/src/runtime/docker/egress.ts packages/control-plane/src/runtime/docker/egress.docker.test.ts
+git commit -m "fix(runtime): the egress proxy re-renders when a release changes egress.allow — a removed host was still reachable"
+```
+
+**The sitting's own `pnpm test:docker` covers this file**; run it after this commit, not before.
+
+- [ ] **Step 5: Driven, not only tested — the platform, through the edge**
+
+On `launch-app` (after `make demo-production`): commit an `egress:` block naming a run-unique host, validate, build, release, deploy to STAGING, and read the staging proxy's `/tmp/allowlist` and a `wget` through it from the app container (Task 1's commands, in its results file). **Predict: the host listed, and not `403 Filtered`.** Then restore the original `manifest.yaml`, rebuild, redeploy, and **predict the host `403 Filtered` again** — the half that was failing open. Restore as Task 1 did (`git diff <original> HEAD` prints nothing).
+
+- [ ] **Step 6: Negative controls**
+
+| | Control | Predicted |
+|---|---|---|
+| a | the early return restored (`if (existing) { …start…; return }`) | *WIDER* and *NARROWER* red at their second assertions — Task 1's measurement, in a test; *keeps the SAME container* green |
+| b | the comparison reads `ALLOWLIST` only, not `TINYPROXY_CONF` | **no test goes red, predicted** — no test can change the platform's own proxy config without editing it. Record it as the one comparison only a code change can exercise, and keep both entries |
+| c | the delete removed (recreate attempted while the old container exists) | *WIDER* red with a `409` from `/containers/create` (the name is taken) — the create path must never be reached with the old container standing |
+
+---
+
 ## Task 6: The gate for a launched app — self-serve, re-escalated, or not what staging runs
 
 **THIS PLAN'S CENTRE, AND ALONE IN ITS SITTING.** §13's checklist learns that an app has launched. The view a person reads and the refusal they meet stay **one computation** (P6a Decision 2, whose byte-identical assertion is kept). **After this task, a launched app's owner deploys a non-sensitive release with no administrator; a sensitive release is refused `409 RELEASE_REESCALATED` carrying exactly what changed; and a release that is not the one serving staging is refused `409 RELEASE_NOT_STAGED`.**
@@ -1653,6 +1839,20 @@ git commit -m "feat(launch): D9.2 — a launched app's release is self-serve unl
 
 ## Task 7: The IAM change request — what UBC registered changes only when UBC registers it
 
+> **`[M9]` AND `[M10]` — TASK 1 MEASURED BOTH, AND DROVE `[M9]` (2026-09-22).** `[M9]`: recording
+> `active → change_requested` with the four attributes without `sn` answered `200`, and `GET …/launch-records`
+> and the row both then read **four** registered. **Driven**: a build of the UNCHANGED app then FAILED —
+> *"SPEC_ATTRIBUTE_NOT_REGISTERED: manifest.yaml asks for 1 CWL attribute(s) UBC IAM did not register for
+> 'launch-app': sn. … Raise an IAM change request against IAM-M9-DROP-SN for the missing attribute(s)"* — so
+> the build told the owner to raise a change request **against the change request**, while UBC's real
+> registration had never changed. That sentence is this task's `spec/registered-attributes.ts` change's
+> *before*. `[M10]` **was stronger than predicted**: with `acsUrl: https://wrong.example/acs` recorded, **every**
+> item read exactly as before — `iam-registration` `met` with an identical `why`, **and `rehearsal` `met`,
+> whose own sentence says it proved *"the entityID, the ACS URL, the attribute release and the
+> certificate"*** beside a record naming `wrong.example`. `rehearsalCovers` compares the rehearsal with the
+> candidate, never with what the administrator recorded. **This task's first-launch ACS/SLO case is the fix**;
+> after it, recorded = derived = rehearsed, and the rehearsal's sentence becomes true. No other change.
+
 **§9's second production obligation, and the hole Task 1's `[M9]` measured.** Today an administrator filing a change request overwrites the attributes UBC registered with the ones merely requested. From then on the build-time check passes an attribute UBC does not release, and students get a broken login. **This task makes the registration's own `change_requested` state the change request** (Decision 11), and it makes the gate check the *live* registration for every production release of a launched app.
 
 > **Rich answered Question 2 on 2026-09-22: an addition waits for IAM, and a removal does not.** That is
@@ -1825,6 +2025,19 @@ git commit -m "feat(launch): §9's IAM change request — what UBC registered ch
 ---
 
 ## Task 8: R4(d) — a security-aware summary that carries the reviewer's verdict
+
+> **`[M12]` — TASK 1 MEASURED IT (2026-09-22), AND THE MODEL ALREADY WRITES MARKDOWN (F10).** Two
+> rejections of one release, one list of changes (`egress.allow: none → m6.example.org`), gave **two different
+> summaries** — Decision 10's premise. Both also wrote **`**m6.example.org**`**, under today's prompt, which
+> already says *"Plain English"*; and the console renders `{diff.summary}` as text (`approvals.tsx:189`), so an
+> administrator reads literal asterisks — P6a F11's shape, arriving from the model instead of from code.
+> **This task's prompt also says only "plain English", so it will not stop it.** **Add** to the system prompt:
+> *"Write plain text: no Markdown, no asterisks, no bullet characters."* — and **do not strip in the console or
+> the server**: the stored summary is what the approval records and what the administrator was shown, verbatim
+> (Decision 10), and a renderer that edits it makes those two differ. A prompt is not a control, so **Task 10's
+> clicked row checks the screen for a literal `**`**, and a model that still writes one is a finding, not a
+> repair. Both summaries also volunteered a security reading unprompted (*"could expose the system to
+> risks"*) — which is why Decision 13 makes the security notes deterministic rather than trusting that.
 
 **Rich's R4(d), from the brief's §5**: §13's AI-written summary *"gains a security dimension and surfaces the reviewer's verdict beside it."* **Coverage limit, stated in the record itself**: under D9 an administrator sees a first launch and a re-escalation, **never a self-serve release** (D33). **Decision 13 makes the security dimension deterministic first**, because no test can assert what a model noticed. And **the `code-review` item stops being static** (P6a F7, Decision 12).
 
@@ -2102,6 +2315,11 @@ git commit -m "feat(releases): the stored preview — an approval records exactl
 
 ## Task 10: The approvals screen — the preview before the decision, kept through the step-up
 
+> **From Task 1 (2026-09-22), F10:** the model writes Markdown (`**m6.example.org**`) under a prompt that
+> forbids it in spirit, and this screen renders the summary as text. Task 8 tells the model plainly; **this
+> task's clicked check reads the summary on screen for a literal `**`** and records what it sees. Do not strip
+> it: the preview is the record, verbatim.
+
 **The clicked half of Rich's decision.** An administrator opening a release's approval page sees the diff **first**. They click Approve and are sent through the IdP to step up, and **they come back to the same preview**, re-read from the store, not a fresh one the model wrote differently. The record they then make **is** that preview. **P6a's screen said, in its own words, that this was not possible** (`approvals.tsx:276-281`), and this task removes those words.
 
 **Files:**
@@ -2161,6 +2379,35 @@ git commit -m "feat(console): the approval preview — read before deciding, and
 
 ## Task 11: The acceptance — `make demo-releases`
 
+> **`[M6]` STEP 5, `[M14]` AND `[M8]` — WHAT TASK 1 FOUND FOR THIS TASK (2026-09-22).**
+>
+> **1. LEG A'S PREMISE HOLDS AS WRITTEN — AND WAS NOT ENOUGH (F1).** A staging deploy of a release declaring a
+> new egress host is `healthy`, as predicted. **But the host was never reachable**: the environment's proxy
+> kept the allowlist of its first deploy, answering the declared host `403 Filtered`; and a host REMOVED from
+> `egress.allow` stayed reachable. Task 5a fixes it. **This task must prove it stays fixed**, because leg A is
+> the one place this plan's acceptance changes `egress.allow`, and an approval of an egress change that never
+> takes effect is exactly the green-over-a-dead-control this project keeps paying for. **Add to leg A, after
+> step 4's production deploy** (bash — `docker exec` is outside the contract, like the git commits): from
+> the production app container, through its proxy, **the run's new host is NOT `403 Filtered`** (offline it
+> answers `500 Unable to connect`, which is the proxy letting it through), **and the host the PREVIOUS run
+> declared IS `403 Filtered`** (on the fresh path there is none; print that and check only the first). Put a
+> baseline host (`manifest-verdaccio:4873` → `200 OK`) beside them as the positive control. Pick the container
+> by the instance id the deploy returned, not by a name pattern: during a retire drain two app containers
+> match, and `docker exec` against both answers `Error response from daemon: 404` (Task 1 met it). **Control
+> (i), added**: Task 5a's early return restored → **step 4's egress checks red** (the new host `403`), and on
+> the re-use path the previous host not `403` as well.
+>
+> **2. `[M14]` HOLDS, WITH ONE THING TO KNOW WHEN LEG B IS RED (F11).** The loop on the public listener read
+> `57 app`, the instance changing once, and its first records were the old instance (control (d)). But it
+> labels only a body starting `manifest OK` as `wildcard`; **the public listener's wildcard answers an EMPTY
+> `200`**, which the loop labels `status-200`. Leg B's *"only `app`"* is still honest — `status-200` is not
+> `app` — but a red run will say `status-200`, not `wildcard`, for the same cause.
+>
+> **3. AFTER `make demo-production` THE CANDIDATE IS ITS UNAPPROVED REBUILD (F3)** — while its step 10 is still
+> there (Decision 17 moves it here). Step 1's RECOVERY and step 3's *"baselineReleaseId === the release
+> production serves"* are written for that, and the fresh path meets it: the candidate is the rebuild, and the
+> baseline is the launch. Nothing changes; know it before reading a red step 1.
+
 **ALONE, AND LAST.** D9's second clause, driven through the edge by nothing but `@manifest/contract`. **A self-serve production redeploy of a launched app; a sensitive change refused until an administrator, having read the stored preview, approves it; and the IAM change request path.** Green three times, the third from an `echo reset | make reset` machine, plus an offline-acceptance step, a `ci-acceptance` step, **and a clicked half by a person.** **Ask Rich before this sitting whether he will click it.** It needs him to type the operator's and the instructor's passwords, and the step-up prompt more than once.
 
 **Files:**
@@ -2202,6 +2449,8 @@ git commit -m "feat(console): the approval preview — read before deciding, and
    GET the SAME preview → identical to what was read (the console's round trip, headless)
    approve naming it → 201; approval.diff DEEP-EQUALS preview.diff; approval.previewId === preview.id; decidedByName present
 4. The owner deploys it → 200 healthy; 127.0.0.3 answers as the new instance; 127.0.0.2 answers the wildcard's empty body
+   (bash) through production's proxy, from the instance the deploy returned: the run's host NOT 403 Filtered;
+     the previous run's host 403 Filtered; manifest-verdaccio:4873 200 OK        ← Task 5a (Task 1's F1)
    the owner then asks for the release production ran BEFORE A → 409 RELEASE_NOT_STAGED              ← Decision 8
      (here and not in leg A: NOT_STAGED is checked only once the checklist is ready for the candidate, and during
      leg A the candidate is re-escalated, so leg A would answer RELEASE_REESCALATED about A instead)
@@ -2246,6 +2495,7 @@ make demo-releases 2>&1 | tee "$SCRATCH/releases-B.txt"      # re-use
 | f | the person-only mint refusal removed | **step 1's mint check red** (`201`) |
 | g | the `RELEASE_NOT_STAGED` line removed | **step 4's previous-release check red** (`200`, and production now runs the release from before A). **Re-run the demo afterwards to restore production** |
 | h | `NullReviewer` replaced by one answering `clean` | **step 3 red at `review.state not_performed`**, P6a's F7 lesson applied. **Also read `code-review` in the checklist**: it must now say `met`, which is Task 8's fix, seen end to end |
+| i | Task 5a's early return restored in `ensureEgressProxy` (added by Task 1, F1) | **step 4's egress checks red**: the run's host `403 Filtered`. On the re-use path, the previous run's host also NOT `403`. **Restart the control plane first** — the driver is in its process |
 
 **A control that stays green where red was predicted is a question, not a result.** Chase it to its cause before recording it. P6a's worst defect, F6, was found exactly that way.
 
@@ -2294,7 +2544,7 @@ git commit -m "feat(journey): P6b's acceptance — make demo-releases: self-serv
 
 **Named so the next plan inherits a list rather than a surprise.**
 
-- **Binding the manifest's `blueprint:` to the project's pin** (*Read this first* 4). §7's `blueprint` field re-escalates on the manifest's *claim*, and the build uses `project.blueprintRef`, which no route changes. **The first route that changes a project's pin, a blueprint upgrade, must re-escalate**, and validation should refuse a manifest whose `blueprint:` is not the project's. That second half is a proposed §7 validation rule for whichever plan builds the upgrade.
+- **Binding the manifest's `blueprint:` to the project's pin** (*Read this first* 4). §7's `blueprint` field re-escalates on the manifest's *claim*, and the build uses `project.blueprintRef`, which no route changes. **The first route that changes a project's pin, a blueprint upgrade, must re-escalate**, and validation should refuse a manifest whose `blueprint:` is not the project's. That second half is a proposed §7 validation rule for whichever plan builds the upgrade. **Task 1 measured how loose it is (2026-09-22, F6)**: a manifest pinning `node-ts-mongo@9` — a blueprint the registry does not have — validated `valid: true` and **built `succeeded`**, by `@1`. **And the rule already exists for starters**: `blueprints/registry.ts:80` refuses at load a starter whose manifest pins another blueprint, *"validated against one blueprint and built by another"*. That is the pattern to copy.
 - **`startBuild`'s pairing of `body.commitSha` with the newest spec** (*Read this first* 6). A build of commit X can record commit Y's spec. After Decision 6, a release freezes the build's recorded spec, so **no gate reads the mismatch**, but a faculty member could still be confused by it.
 - **D16's *every environment***. A newly requested attribute re-escalates in production (this plan), and the build fails in every environment once a registration exists (P6a Task 13). **Before a registration exists, staging accepts new attributes freely.** D16 says approval is required in every environment. The IdP's `AttributeLimit` bounds what a staging app receives, and staging uses test users (D6). **The divergence is recorded here, not closed.**
 - **A PIA returned to `draft` automatically on a sensitive change**: Rich's answer to Question 3 (2026-09-22) is never automatically.
@@ -2302,6 +2552,8 @@ git commit -m "feat(journey): P6b's acceptance — make demo-releases: self-serv
 - **A real `Reviewer`** (`SemgrepReviewer`, a tracked hardening item, advisory before blocking), **and its planted-defect corpus** (R4(g)). **`code-review` now reads a verdict, so the day one lands, the checklist shows it.** It becomes blocking in that same change, as D33 says.
 - **A run against real UBC Shibboleth for a *changed* registration.** It is an external-track obligation, exactly as the launch rehearsal's is. **After launch this platform refuses to rehearse at all** (Decision 16).
 - **A rollback operation.** A rollback goes through staging (Decision 8).
+- **Per-instance egress proxies** (Task 5a's recorded cost). The proxy is per environment, so a deploy that changes `egress.allow` leaves the instance still serving without a proxy for about a second, and — if the new instance then fails — behind the new release's list until the next successful deploy. Per-instance proxies remove both and change every app's network topology.
+- **`make verify`'s runtime-route meter on the public listener** (Task 1, F13). *"runtime routes currently applied"* counts `srv0` only (`scripts/verify.sh:1142`), so since P6a it has never seen a production route. An operator's line, not a gate; whoever next touches `verify.sh` should count both servers.
 - **A route that deletes a project** (P6a F5). The acceptance is written around its absence.
 - **Revoking pre-P6b tokens that hold `release:approve` or `launch:record`.** The central rule refuses them however they were minted.
 - **IAM change-request *generation*** (P8). This plan records what an administrator files, and the checklist names the attributes to request.
@@ -2372,3 +2624,186 @@ awk '/^### Sitting 2 —/,/^### Sitting 3 —/' docs/superpowers/plans/2026-09-2
 **The honest prior, from the defect-rate table: 9.8 findings per task (P6a), 8.6 (P5a), 8.9 (P5b), 7.6 (P5c). It has risen, never fallen, with practice.** At eleven tasks that is **roughly 95–120 findings.** This plan makes a launched app's release, a stored preview and an IAM change request run for the first time. **This project's worst discoveries have all arrived at a first.** Treat this plan as a hypothesis.
 
 *One dated section per sitting, added as it runs.*
+
+### Sitting 1 — Task 1, the measurements, alone and first — 2026-09-22
+
+**ALL SIX PREMISES THIS PLAN WAS WRITTEN AGAINST ARE TRUE, AND DRIVING THEM FOUND A SEVENTH THE
+PLAN DID NOT KNOW.** `[M3]`, `[M5]`, `[M6]`, `[M7]`, `[M8]` and `[M9]` each measured exactly as
+*Read this first* predicted; `[M4]`, `[M10]`, `[M11]`, `[M12]`, `[M13]` and `[M14]` held too; all
+five of the task's controls fired. **The seventh is F1: the egress proxy never re-renders its
+allowlist**, so a changed `egress.allow` never reaches a running environment — an added host is
+refused and a REMOVED host stays reachable — and every approval of an egress change, which is a
+re-escalation, approves nothing. **It adds Task 5a to sitting 3** (Decision 20) and corrects Task
+11's leg A. No task boundary moved; **Rich's seven sittings stand.** Every raw answer is in
+[`spikes/p6b-baseline/`](../spikes/p6b-baseline/README.md), one section per measurement, with the
+untrimmed output beside it.
+
+#### The decisions this sitting made
+
+**1. F1's fix is this plan's, as Task 5a, last in sitting 3** — Decision 20 has the reasoning and
+what was rejected. The one-line version: this plan's acceptance changes `egress.allow`, and without
+the fix it would prove an approval that never takes effect.
+
+**2. Task 3 creates `commitManifest`; Task 4 reuses it** (F8). Its first caller is Task 3's route
+test, and a helper lands with its first caller. Task 4 still moves `builtProject` and
+`releasedProject` and adds `launchedProject`.
+
+**3. Step 12 re-staged R2 before measuring `[M8]`** (F3) — the plan's state had the unapproved
+rebuild in staging — and measured the as-written state too, because its refusal is `[M8]`'s mirror.
+
+**4. Every snippet from Step 8 on ran under `bash`, and `api_as`'s `path` became `p`** (F9).
+
+**5. F1's removal direction was measured by recreating `launch-app`'s staging proxy**, the only way
+to get a proxy holding a host that a later release drops. It was restored the same way — removed,
+and re-rendered by a deploy of R2 — and read back as the baseline alone.
+
+#### The findings
+
+**F1 — THE EGRESS PROXY NEVER RE-RENDERS ITS ALLOWLIST: AN ADDED HOST IS REFUSED, AND A REMOVED HOST
+STAYS REACHABLE.** Found by `[M6]` step 5's *"record the egress proxy's rendered allowlist"*. After a
+`healthy` staging deploy of a release declaring `m6.example.org`, the proxy (created by P6a sitting
+11, `2026-09-23T02:52:21Z`) still held the platform baseline alone; through it, `m6.example.org` →
+`403 Filtered`, identical to the undeclared `never.example.org`, beside `manifest-verdaccio` →
+`200 OK`. With the proxy recreated by a deploy declaring `m6`, **a deploy of R2, which declares no
+egress, left `^m6\.example\.org$` in the list**, and `m6.example.org` answered `500 Unable to
+connect` — the filter let it through; offline, DNS failed — while `never.example.org` stayed `403
+Filtered`. **Cause: one early return**, `runtime/docker/egress.ts:78-81`. **Why nothing saw it**:
+`egress.docker.test.ts`'s *ALLOWS a destination this app declared* calls `destroyEgressProxy` BEFORE
+asking for the new list, so it tests around the defect. Since P3, every environment has run with the
+egress its first deploy declared. **Task 5a (new); Task 11, correction block and control (i).**
+
+**F2 — THE ACCEPTANCE ITSELF DOES `[M7]`: `make demo-production`'s RE-USE PATH PUT AN UNAPPROVED
+RELEASE ON THE PUBLIC LISTENER FOR 1.045 s.** Its step 5 rehearses the already-launched app.
+`audit.events`: the unapproved candidate's instance `healthy` at `05:17:44.222`; the live, APPROVED
+launch instance `retiring` at `05:17:44.279`; `release.approved` for the candidate at
+`05:17:45.324`. Bounded only because the demo approves next; Step 15 then made it indefinite (R3, a
+new digest, zero approvals, serving). Nothing on the checklist or the fleet says production runs an
+unapproved release. *Read this first* 22 already predicts the step's change; Task 4's block carries
+the measurement.
+
+**F3 — THIS TASK'S OWN STEP 11 WAS WRONG: AFTER `make demo-production`, R2 IS NOT THE CANDIDATE.**
+Its step 10 deploys its unapproved rebuild to staging, so the candidate was `4ffab38e`, and Step 12
+as written was refused `409 RELEASE_PRODUCTION_GATE_UNAVAILABLE` (candidate `4ffab38e`,
+`admin-approval` unmet) before measuring anything. **That refusal is `[M8]`'s mirror** — an approved
+release refused because a different, unapproved one is staged. With R2 re-staged (`ready: true`),
+**R1 deployed `200 healthy` while the checklist described R2**: `[M8]`. Corrected in Step 12's text.
+
+**F4 — `[M9]` DRIVEN: THE BUILD BELIEVES THE OVERWRITTEN RECORD, AND SENDS THE OWNER TO THE CHANGE
+REQUEST.** With the record at `change_requested` holding four attributes, a build of the UNCHANGED
+app failed *"SPEC_ATTRIBUTE_NOT_REGISTERED: … did not register for 'launch-app': sn. … Raise an IAM
+change request against IAM-M9-DROP-SN"*. UBC's real registration had never changed. Task 7's block.
+
+**F5 — `[M10]` STRONGER THAN PREDICTED: NO ITEM SEES A WRONG RECORDED ACS, AND THE REHEARSAL ITEM
+CLAIMS TO HAVE PROVED IT.** With `https://wrong.example/acs` recorded, all seven items read exactly
+as before; `rehearsal` stayed `met`, its sentence saying it proved *"the entityID, the ACS URL, the
+attribute release and the certificate"*. Task 7's first-launch ACS/SLO case is the fix; its block
+says so.
+
+**F6 — `[M4]` DRIVEN: A MANIFEST NAMING A BLUEPRINT THAT DOES NOT EXIST VALIDATES AND BUILDS.**
+`blueprint: node-ts-mongo@9` → `valid: true`, `fields: ["blueprint"]`; a build → `succeeded`
+(`sha256:266476843ef2…`), by `@1`. **And the missing rule exists for starters**:
+`blueprints/registry.ts:80` refuses at load a starter pinning another blueprint. *What this plan does
+not build*'s first entry carries both.
+
+**F7 — THE VALIDATE ROUTE SAYS "NOT SENSITIVE" WHEN IT DID NOT COMPARE.** `project-reads.ts:381-384`
+diffs only against an immediately-previous VALID row and otherwise answers `{sensitive: false,
+fields: []}`. Measured: restoring from S2 (which added `egress.allow`) through the invalid commit
+reported not sensitive. A negative claim made without looking. Task 3's block adds the fix and its test.
+
+**F8 — TASK 3'S ROUTE TEST CALLS `commitManifest`, WHICH THE PLAN ADDS IN TASK 4**; and this task's
+own Step 5 said Task 3 would move a helper that File Structure gives to Task 4. Ruled (decision 2).
+
+**F9 — THE PLAN'S `api_as` HELPER CANNOT RUN IN zsh.** `local … path="$3"`: zsh ties `$path` to
+`$PATH`, so every call answered `command not found: curl` and `uuidgen`. This machine's shell and
+the agent's are zsh. Renamed, with the reason beside it.
+
+**F10 — THE MODEL WRITES MARKDOWN INTO THE SUMMARY, UNDER A PROMPT THAT SAYS "PLAIN ENGLISH".** Both
+`[M12]` summaries wrote `**m6.example.org**`, and the console renders the summary as text. Task 8's
+block adds a sentence to the prompt; Task 10's checks the screen; neither strips, because the preview
+is the record verbatim.
+
+**F11 — THE REQUEST LOOP CALLS THE PUBLIC LISTENER'S WILDCARD `status-200`, NOT `wildcard`.** It
+labels only `manifest OK…` bodies; the public wildcard is an empty `200`. `[M14]` itself held — `57
+app`, one instance change, control (d) fired. Task 11's block.
+
+**F12 — `document.ts`'s COMMENT SAYS *"every one of its 34 operations"*** — 41 today, 43 after Task 9.
+Task 2's block: take the number out when adding its sentence.
+
+**F13 — `make verify`'s *"runtime routes currently applied"* COUNTS `srv0` ONLY** (`verify.sh:1142`).
+At the close it read `1` while the edge held two live routes — staging on `srv0`, production on
+`srv1`. Since P6a it has never seen a production route. *What this plan does not build*.
+
+**F14 — AT THE OPEN, 140 OF THE 142 APP IMAGES P6a's CLOSE COUNTED WERE GONE** — the snapshot listed
+2 `local/*` images. Swept by somebody between the two sessions; not this sitting's doing, and
+recorded so the next count is not a mystery.
+
+#### The negative controls — five, all predicted in the plan, all five FIRED
+
+| | Control | Predicted | **Measured** |
+|---|---|---|---|
+| a | `[M3]`'s top-level limit raised | `fields: ["resources"]` | **FIRED** — `{"sensitive":true,"fields":["resources"]}` |
+| b | `[M5]`'s approve-only release | that release's id | **FIRED** — asserted in the probe |
+| c | `[M13]`'s `release:promote` mint | `400 TOKEN_CAPABILITY_FORBIDDEN` | **FIRED** — `400`, *"a delegated token may never hold release:promote (D24)"* |
+| d | `[M14]`'s first records | `app`, the old instance | **FIRED** — `c473be07…` ×22, then `6e10e5fc…` ×35 |
+| e | `[M6]`'s release of a build made after S2 | `appSpecId` equal to the build's | **FIRED** — `e4b27617` both |
+
+**The egress finding (F1) carries its own pair**: `manifest-verdaccio` `200 OK` and `never.example.org` `403 Filtered`
+beside every answer about `m6.example.org`, so a `403` there means the filter and not a dead proxy.
+
+#### The runs
+
+| Run | What | Result |
+|---|---|---|
+| A | `make demo-production`, fresh (after `pnpm test`) | **green**, 62 s, 59 checks; digest `25cdc95f…`; production `273923bf…` |
+| B | `make demo-production`, re-use | **green**, 61 s, 58 checks; unmet `[admin-approval]`; summary `llm`; production `c473be07…` |
+| — | Steps 13–15 | nine commits to `launch-app.git`, each restored; **`git diff <original> HEAD` prints nothing; tree `c181e70d…`** |
+
+| Gate | Open | Close |
+|---|---|---|
+| `pnpm test` | **1605 passed, 119 files**, twice (129.8 s, 128.6 s) | **1605 / 119**, twice (125.8 s, 126.0 s) — unmoved; the probes were deleted |
+| `pnpm lint` / `typecheck` / `format:check` | clean | clean |
+| `make doctor` | **19 / 0** | **19 / 0** |
+| `make verify` | **55 / 0** | **55 / 0** |
+| `pnpm test:docker` | **not owed, not run** | — (194 / 31 stands, from P6a sitting 11) |
+
+#### The machine, at close — queried, not recalled
+
+**The control plane is stopped; nothing listens on 7100, 7102 or 7104. THE DATABASE IS EMPTY** (the
+close's `pnpm test`), **21 migrations**. `make verify`: **`mf- containers=12 networks=4 volumes=8`**
+and **`runtime routes currently applied: 1`** (F13 — the edge holds `launch-app`'s staging route on
+`srv0` and its production route on `srv1`). `launch-app` stands in both environments on **R2**
+(`d49d8f59…` production, `c63c9ba8…` staging), its staging egress proxy re-rendered from R2 (the
+baseline alone); `click-launch` untouched. **Cleanup**: `dead-app-resources.sh` *none dead*;
+`litellm-orphans.sh --apply` **allowed — the twelfth consecutive sitting** — two orphans
+(`mf-99c1dc2d-…`, P6a's `launch-app`, orphaned when run A recreated the project), re-measured *Nothing
+to delete*. `.manifest/repos/m6-other.git` removed. **Images, the metric named**: `docker images -q`
+**56**, `sort -u` **48**, `127.0.0.1:7107/local/*` **6** (F14). **`snapshot-machine.sh` diff, open →
+close: 64 lines, every one accounted for** (the README lists them). The four protected containers
+survive, `caddy-data` is intact, all three aliases are on `lo0`, and `docker-simple-saml`'s only dirty
+path is its untracked `cert.zip`.
+
+#### What the post-sweep check found — FOUR, three of them this sitting's own
+
+**Each found by opening what a sentence pointed at, or by grepping for the old phrase — never by
+re-reading.**
+
+**F15 — THIS SITTING'S OWN §7e STATED A FINDINGS COUNT** (*"fourteen findings"*), which ORIENTATION §6
+says lives in the roadmap's defect-rate table and nowhere else (Rich, 2026-09-20) — and which the
+post-sweep check itself was about to move. Found by opening §6's findings-count row. Replaced with the
+three findings that land in sitting 2's tasks, by number.
+
+**F16 — TWO OF THIS SITTING'S LINE POINTERS WERE OFF BY ONE**: `ensureEgressProxy` starts at
+`egress.ts:69`, not 68, and the `srv0` read is `verify.sh:1142`, not 1141 — in five places across three
+documents. Found by `grep -n` against each pointer. The pattern ORIENTATION §6 names: a wrong pointer is
+inherited and multiplied.
+
+**F17 — TASK 3'S CORRECTION BLOCK TOLD THE NEXT AGENT TO ADD TWO FILES THAT TASK 3'S *Files* LIST AND
+COMMIT COMMAND DID NOT CARRY** (`api/testing.ts`, `project-reads.ts`), while §7e said they had been
+added. Found by opening Task 3's *Files* to check §7e's sentence. Both lists now carry them.
+
+**F18 — THE ROADMAP STILL SAID P6a "IS EXECUTING"** in its status paragraph (line 366), stale since P6a
+sitting 11's close. Found by grepping `sitting 1 — Task 1` across the documents. Corrected, with P6b's
+state beside it.
+
+**The four HTML pages were checked and not changed**: they describe what is built, and this sitting
+built nothing.

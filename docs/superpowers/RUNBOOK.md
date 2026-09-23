@@ -369,7 +369,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 19 / 0 and `make verify` 55 / 0**
-(**All four were re-measured at the close of P6a sitting 11, 2026-09-22. `pnpm test` went 1604 → **1605 passed**, in 119 files — an existing route on the wrong listener is now moved there, found by P6a's acceptance. `pnpm test:docker` was OWED and RUN: **194 in 31, unmoved**. `make doctor` held at 19 and `make verify` at 55.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**Three of the four were re-measured at the close of P6b sitting 1, 2026-09-22, and NONE moved: `pnpm test` **1605 passed** in 119 files, `make doctor` 19, `make verify` 55. `pnpm test:docker` was not owed and stands at **194 in 31** from P6a sitting 11, the last sitting that moved a number (`pnpm test` 1604 → 1605).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has ELEVEN steps** — P5a sitting 12 added `make demo-journey` as step 8,
