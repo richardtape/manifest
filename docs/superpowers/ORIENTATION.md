@@ -1949,7 +1949,7 @@ truncated it — while **the containers outlive the rows**: `make verify` reads 
 containers=12 networks=4 volumes=8`, `launch-app` and `click-launch` each in production and staging,
 and **`runtime routes currently applied: 0`**. **NOTHING IS LISTENING ON 7100, 7102 OR 7104.** Both
 cleanup scripts were allowed `--apply` (the eleventh consecutive sitting): `none dead`, LiteLLM 4
-users, nothing orphaned. Images: `docker images -q` 192, `sort -u` 184, `127.0.0.1:7107/local/*` 142.
+users, nothing orphaned. Images, after Rich's sweep the same evening (2026-09-22): `docker images -q` 52, `sort -u` 44, `127.0.0.1:7107/local/*` **2** — only the two the running apps hold. The 140 unheld `local/*` images were removed by ID, and by name where one image carried two test names (`fixture-rt`/`fixture-s6`, `saml-probe`/`saml-unsigned`); every other image on the machine, other projects' included, was diffed unchanged. **They come back with every Docker-tier run and demo** — re-derive the unheld set from `docker inspect` of every container, never from a list.
 **Both loopback aliases are on `lo0`, and a reset does not remove them.** **Docker Desktop was not
 running at the start of this session** — `open -a Docker` was all it took (§4). **A plan-writing
 sitting needs none of this running**; the numbers are here so the plan's Task 1 starts from them.
