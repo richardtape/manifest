@@ -158,8 +158,8 @@ export function mutationHeaders(deps: ServerDeps): {
  * (`POST /v1/projects/{id}/spec`), which is the only way a spec row is written — so the
  * next build, and the sensitive diff the route reports, both see it.
  *
- * Created by P6b Task 3, whose route tests are its first caller (sitting 1's F8); Task 4's
- * `launchedProject` reuses it. It THROWS rather than asserting, like `withProjectServer`,
+ * Created by P6b Task 3, whose route tests are its first caller (sitting 1's F8); Task 5's
+ * D9.2 tests reuse it, on a project `launchedProject` below has already launched. It THROWS rather than asserting, like `withProjectServer`,
  * because this file is a fixture and not a test. `valid: false` is for a test whose subject
  * is an invalid commit; everything else takes the default and is told loudly if the
  * manifest it wrote does not validate.
@@ -203,6 +203,199 @@ export async function commitManifest(
     )
   }
   return body
+}
+
+/**
+ * THE DELIVERY FIXTURES, from a bare project to a LAUNCHED one (P6b Task 4) — moved here
+ * from `delivery.test.ts` rather than copied, because `subsequent-releases.test.ts` (Task 5
+ * onward) starts every case from `launchedProject`, and two copies of a path to production
+ * would drift the first time the path changed (Task 9 adds a preview to its approval, and
+ * changes it here, once). Each one THROWS rather than asserting, like every helper in this
+ * file: a fixture that fails is a broken fixture, and the message says which call.
+ */
+
+/** A project created through the route by `puid`. */
+export async function projectFor(puid: TestUserPuid, slug = 'chem-labs') {
+  const deps = await testDeps()
+  const app = await buildServer(deps)
+  const cookies = await loginAs(deps, puid)
+  const created = await app.inject({
+    method: 'POST',
+    url: '/v1/projects',
+    payload: projectBody(slug),
+    cookies,
+    headers: mutationHeaders(deps),
+  })
+  if (created.statusCode !== 201)
+    throw new Error(`creating '${slug}' answered ${created.statusCode}: ${created.body}`)
+  return { app, deps, cookies, project: created.json() }
+}
+
+/**
+ * A project with one SUCCEEDED build (P5a Task 14). `env` is written into its
+ * `manifest.yaml` and pushed, so the release below resolves a config with an env var
+ * whose VALUE must not travel with it — the property Decision 22 exists for cannot be
+ * tested against a manifest that declares none.
+ */
+export async function builtProject(
+  slug: string,
+  options: { env?: { name: string; value: string }[] } = {},
+) {
+  // The slug reaches BOTH halves: the project this creates and the repository the manifest
+  // below is committed to. Passing it to only one is a fixture that works for exactly one
+  // name and fails confusingly for any other.
+  const { app, deps, cookies, project } = await projectFor('bio_prof', slug)
+  if (options.env !== undefined) {
+    await deps.source.commitFiles(
+      deps.source.repositoryFor(slug),
+      {
+        'manifest.yaml': [
+          'manifest: 1',
+          `name: ${slug}`,
+          'blueprint: fixture-node@1',
+          'runtime:',
+          '  port: 3000',
+          '  health: /healthz',
+          'env:',
+          ...options.env.map((e) => `  - { name: ${e.name}, value: ${e.value} }`),
+          '',
+        ].join('\n'),
+      },
+      'feat: an env var whose value is the app’s, not the contract’s',
+    )
+    const pushed = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${project.id}/spec`,
+      payload: {},
+      cookies,
+      headers: mutationHeaders(deps),
+    })
+    if (pushed.json().valid !== true)
+      throw new Error(`the manifest with env did not validate: ${pushed.body}`)
+  }
+  const started = await app.inject({
+    method: 'POST',
+    url: `/v1/projects/${project.id}/builds`,
+    payload: {},
+    cookies,
+    headers: mutationHeaders(deps),
+  })
+  if (started.statusCode !== 202)
+    throw new Error(`starting a build answered ${started.statusCode}: ${started.body}`)
+  await deps.builds.idle()
+  const build = (
+    await app.inject({ method: 'GET', url: `/v1/builds/${started.json().id}`, cookies })
+  ).json()
+  if (build.status !== 'succeeded')
+    throw new Error(`the build did not succeed: ${JSON.stringify(build)}`)
+  return { app, deps, cookies, project, build }
+}
+
+/** The same, released — and its staging environment, which is what a deploy names. */
+export async function releasedProject(
+  slug: string,
+  options: { env?: { name: string; value: string }[] } = {},
+) {
+  const built = await builtProject(slug, options)
+  const created = await built.app.inject({
+    method: 'POST',
+    url: `/v1/projects/${built.project.id}/releases`,
+    payload: { buildId: built.build.id },
+    cookies: built.cookies,
+    headers: mutationHeaders(built.deps),
+  })
+  if (created.statusCode !== 201)
+    throw new Error(`creating a release answered ${created.statusCode}: ${created.body}`)
+  const staging = built.project.environments.find(
+    (e: { kind: string }) => e.kind === 'staging',
+  )
+  const production = built.project.environments.find(
+    (e: { kind: string }) => e.kind === 'production',
+  )
+  return { ...built, release: created.json(), staging, production }
+}
+
+/**
+ * RELEASED, SERVING STAGING, AND EVERY BLOCKING ITEM MET — everything a first launch needs
+ * except the production deploy itself (P6b Task 4). The body of `delivery.test.ts`'s
+ * positive control for the gate, moved: that test reads the checklist between this and the
+ * deploy, which is why the helper stops here and `launchedProject` is this plus one call.
+ *
+ * `admin` is a STEPPED-UP administrator's cookie: approving is guarded by §20's step-up.
+ * The app signs nobody in (`fixture-node@1` declares `auth_providers: [none]`), so there
+ * is no IAM registration to record and nothing to rehearse — both items say so.
+ */
+export async function approvedProject(slug: string) {
+  const released = await releasedProject(slug)
+  const { app, deps, cookies, project, release, staging } = released
+  // 1. SOMETHING MUST BE SERVING STAGING: production runs exactly what staging ran, so
+  //    the checklist has no candidate at all until this deploy (§13).
+  const toStaging = await app.inject({
+    method: 'POST',
+    url: `/v1/environments/${staging.id}/deploy`,
+    payload: { releaseId: release.id },
+    cookies,
+    headers: mutationHeaders(deps),
+  })
+  if (toStaging.statusCode !== 200)
+    throw new Error(
+      `the staging deploy answered ${toStaging.statusCode}: ${toStaging.body}`,
+    )
+
+  // 2. An administrator records what the Privacy Office said, along §9's arrows. There
+  //    is no IAM registration to record: this app signs nobody in.
+  const admin = await loginAs(deps, 'platform_admin', { steppedUp: true })
+  for (const state of ['submitted', 'approved'] as const) {
+    const recorded = await app.inject({
+      method: 'POST',
+      url: `/v1/projects/${project.id}/launch-records/privacy-assessment`,
+      payload: { state, reviewer: 'K. Privacy', externalTicketRef: 'PIA-DELIVERY-1' },
+      cookies: admin,
+      headers: mutationHeaders(deps),
+    })
+    if (recorded.statusCode !== 200)
+      throw new Error(
+        `recording the PIA ${state} answered ${recorded.statusCode}: ${recorded.body}`,
+      )
+  }
+
+  // 3. And approves the release, which binds the build's digest (§13, §20).
+  const approved = await app.inject({
+    method: 'POST',
+    url: `/v1/releases/${release.id}/approve`,
+    payload: { reason: 'the checklist is met and the diff is what we expect' },
+    cookies: admin,
+    headers: mutationHeaders(deps),
+  })
+  if (approved.statusCode !== 201)
+    throw new Error(
+      `approving the release answered ${approved.statusCode}: ${approved.body}`,
+    )
+  return { ...released, admin }
+}
+
+/**
+ * LAUNCHED: `approvedProject`, then deployed to production by a stepped-up owner — so the
+ * project's `launched_at` is set by the deploy that made it true (P6b Decision 1), exactly as
+ * a person's launch sets it. `owner` is that stepped-up cookie. **Every project this returns
+ * has launched**, so a test of D9's FIRST clause must build its project without it.
+ */
+export async function launchedProject(slug: string) {
+  const approved = await approvedProject(slug)
+  const { app, deps, release, production } = approved
+  const owner = await loginAs(deps, 'bio_prof', { steppedUp: true })
+  const deployed = await app.inject({
+    method: 'POST',
+    url: `/v1/environments/${production.id}/deploy`,
+    payload: { releaseId: release.id },
+    cookies: owner,
+    headers: mutationHeaders(deps),
+  })
+  if (deployed.statusCode !== 200 || deployed.json().state !== 'healthy')
+    throw new Error(
+      `the production deploy answered ${deployed.statusCode}: ${deployed.body}`,
+    )
+  return { ...approved, owner, launched: deployed.json() }
 }
 
 /**

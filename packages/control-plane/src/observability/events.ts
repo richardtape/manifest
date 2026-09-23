@@ -82,6 +82,8 @@ export const EVENT_TYPES = [
   'release.approved',
   /** The other answer, and a separate type so a client can switch on it rather than read a field. */
   'release.approval_rejected',
+  /** §13 D9 (P6b Task 4): the app's first production launch — recorded once, by the deploy that made it true. */
+  'project.launched',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

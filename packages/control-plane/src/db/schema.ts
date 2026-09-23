@@ -77,6 +77,14 @@ export const projects = pgTable(
     published: boolean('published').notNull().default(false),
     forkedFrom: uuid('forked_from'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * WHEN THIS APP FIRST WENT TO PRODUCTION (P6b Decision 1) — written once, by the first
+     * `purpose: 'launch'` production deploy that became healthy, and never cleared. D9 turns
+     * on it: before it, a production deploy needs §13's whole checklist; after it, a release
+     * is self-serve unless it changes a sensitive field. It is also the fact §9's *"the slug
+     * is immutable after production launch"* reads, the day a rename exists.
+     */
+    launchedAt: timestamp('launched_at', { withTimezone: true }),
   },
   (t) => [uniqueIndex('projects_slug_key').on(t.slug)],
 )
@@ -745,7 +753,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched')`,
     ),
   ],
 )

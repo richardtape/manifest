@@ -300,6 +300,9 @@ export const ERROR_CODES = {
   REHEARSAL_DEPLOY_FAILED: rehearsal(
     'The candidate could not be deployed to production, or the deploy registered no Service Provider.',
   ),
+  REHEARSAL_LAUNCHED: rehearsal(
+    'The app has launched, so a rehearsal would put an unapproved candidate on its live production listener (P6b Decision 16). A registration change is proved by UBC IAM’s change request.',
+  ),
 
   // source/ — every one is 409
   SOURCE_FOREIGN_REPO: source('The repository reference was not made by this driver.'),

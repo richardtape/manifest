@@ -182,4 +182,9 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     imageDigest: `sha256:${'a'.repeat(64)}`.slice(0, 19),
     decision: 'rejected',
   },
+  'project.launched': {
+    releaseId: UUID,
+    instanceId: UUID,
+    imageDigest: `sha256:${'a'.repeat(64)}`.slice(0, 19),
+  },
 }

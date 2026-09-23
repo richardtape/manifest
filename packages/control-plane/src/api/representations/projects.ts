@@ -40,6 +40,9 @@ export const Project = representation(
     owner: UserSummary,
     audience: Audience.nullable(),
     createdAt: Timestamp,
+    launchedAt: Timestamp.nullable().describe(
+      'When it first went to production (§13 D9) — null until then; never cleared.',
+    ),
     environments: z
       .array(Environment)
       .optional()
@@ -119,6 +122,7 @@ export function toProject(
             setAt: audience.set_at,
           },
     createdAt: view.project.createdAt.toISOString(),
+    launchedAt: view.project.launchedAt?.toISOString() ?? null,
     ...(environments === undefined ? {} : { environments }),
   }
 }

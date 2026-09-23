@@ -113,6 +113,16 @@ clear_orphan_repository "$SLUG"
 say "1–3. launch-app: built, in staging, and refused production — through @manifest/contract"
 run_phase instructor
 
+# P6b Task 4: A LAUNCHED launch-app ENDS THE RUN HERE. The instructor phase checked what a
+# launched project durably is and said so in the state file — a flag, not an exit code,
+# because a phase that ends early must not read as red (P6a F9). The phases below were
+# written for a project that has not launched, and the admin phase's rehearsal is refused
+# once one has (REHEARSAL_LAUNCHED).
+if grep -q '"launched": true' "$STATE"; then
+  say "launch-app has launched — the re-use path ends here (P6b Task 4)"
+  exit 0
+fi
+
 say "4. An administrator, made out of band (§20)"
 # Signed in ONCE so the users row exists, granted, then signed in AGAIN — a session carries
 # the role it was issued with. `admin-grant.sh` records nothing when the role is already set.

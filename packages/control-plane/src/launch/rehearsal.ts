@@ -85,6 +85,22 @@ export async function runRehearsal(
    * is an `INTERNAL`, which is what "this project has no production environment" is.
    */
   if (project === undefined) throw new Error(`no project '${projectId}'`)
+  /**
+   * **A LAUNCHED APP IS NOT REHEARSED** (P6b Task 4, Decision 16). Before a launch nothing is
+   * public, which is why the rehearsal may deploy an unapproved candidate into production.
+   * After one, the same deploy puts that candidate in front of real students with no
+   * approval record — `[M7]` measured it, and `make demo-production`'s re-use path did it
+   * for about a second on every run. Refused BEFORE the candidate is looked for, so the
+   * answer is the launch whatever else is true. `deployRelease` refuses the exemption as
+   * well — the second read of one condition, which is what a guard is.
+   */
+  if (project.launchedAt !== null)
+    throw new RehearsalError(
+      'REHEARSAL_LAUNCHED',
+      `'${project.slug}' has launched: a rehearsal deploys into production, so it would put ` +
+        'this candidate in front of real students with no approval. A change to its ' +
+        'registration is proved by UBC IAM’s change request (§9).',
+    )
   const [production] = await deps.db
     .select()
     .from(environments)

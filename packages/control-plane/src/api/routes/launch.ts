@@ -171,7 +171,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Run the pre-production rehearsal',
     description:
-      'D21, as P6a redefines it for a laptop (R2): deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. Up to ~90 s.',
+      'D21, as P6a redefines it for a laptop (R2): deploys the candidate release into production behind the gate, registers its Service Provider with production-shaped values, completes one CWL sign-in and records pass or fail with the evidence. It proves the registration’s SHAPE, never UBC’s acceptance of it. Refused once the app has launched (`REHEARSAL_LAUNCHED`): after launch it would put an unapproved candidate on the live listener. Up to ~90 s.',
     params: z.strictObject({ projectId: z.uuid() }),
     query: NO_QUERY,
     body: NO_BODY,
@@ -188,6 +188,7 @@ export const launchRoutes = [
       'REHEARSAL_NO_CANDIDATE',
       'REHEARSAL_NOT_CWL',
       'REHEARSAL_DEPLOY_FAILED',
+      'REHEARSAL_LAUNCHED',
       'RELEASE_DIGEST_MISSING',
     ],
     handler: async ({ deps, request, params }) => {

@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import pg from 'pg'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { resetDatabase, withRollback } from '../db/testing.js'
@@ -33,9 +33,11 @@ import {
   createRelease,
   deployRelease,
   getBuild,
+  launchedAt,
   recordApproval,
   type Build,
 } from './index.js'
+import { runRehearsal } from '../launch/index.js'
 import { buildToEnd } from './testing.js'
 import type { DeployDeps, ResolvedConfigSet } from './index.js'
 import type { SpRegistrationInput } from '../sso/index.js'
@@ -1351,6 +1353,263 @@ describe('releases (§13)', () => {
           environmentId: byKind.staging!.id,
         })
         expect(instance.state).toBe('healthy')
+      })
+    })
+  })
+
+  /**
+   * **AN APP HAS LAUNCHED — RECORDED BY THE DEPLOY THAT MAKES IT TRUE** (P6b Task 4,
+   * Decision 1). `projects.launched_at` is written once, by the first production deploy
+   * for purpose `launch` whose instance became healthy, and by nothing else. The four
+   * cases after the first are that "nothing else": a rehearsal serves production too, a
+   * failed deploy never served anybody, and a staging deploy is not a launch — each is a
+   * condition whose removal would make a project read as launched when it is not, which
+   * after Task 5 is a project whose releases skip the administrator.
+   */
+  describe('the launch (P6b Decision 1)', () => {
+    const digestOf = async (
+      db: Parameters<typeof launchedAt>[0],
+      release: { buildId: string },
+    ): Promise<string> => {
+      const [build] = await db.select().from(builds).where(eq(builds.id, release.buildId))
+      return build!.imageDigest!
+    }
+    const launchEvents = (db: Parameters<typeof launchedAt>[0], projectId: string) =>
+      db
+        .select()
+        .from(events)
+        .where(and(eq(events.projectId, projectId), eq(events.type, 'project.launched')))
+
+    it('records the launch ONCE: the first healthy production deploy for purpose launch', async () => {
+      await withRollback(async (db) => {
+        const { user, project, appSpec, byKind } = await fixture(db)
+        const driver = createFakeDriver()
+        const release = await releaseFrom(db, driver, { project, appSpec, user })
+        const digest = await digestOf(db, release)
+        await approveFor(db, release, user, digest)
+        // THE POSITIVE HALF: approved and not yet deployed is not launched.
+        expect(await launchedAt(db, project.id)).toBeNull()
+
+        const first = await deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: byKind.production!.id,
+        })
+        expect(first.state).toBe('healthy')
+        const at = await launchedAt(db, project.id)
+        expect(at).toBeInstanceOf(Date)
+        const recorded = await launchEvents(db, project.id)
+        expect(recorded.map((e) => e.machineDetail)).toEqual([
+          {
+            releaseId: release.id,
+            instanceId: first.id,
+            imageDigest: digest.slice(0, 19),
+          },
+        ])
+
+        // A SECOND production deploy — the release production already runs, again (Review
+        // Focus 3) — launches nothing: the same instant, and still one event.
+        const second = await deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: byKind.production!.id,
+        })
+        expect(second.state).toBe('healthy')
+        expect(second.id).not.toBe(first.id)
+        expect(await launchedAt(db, project.id)).toEqual(at)
+        expect(await launchEvents(db, project.id)).toHaveLength(1)
+      })
+    })
+
+    it('a REHEARSAL deploy does not launch', async () => {
+      await withRollback(async (db) => {
+        const { user, project, appSpec, byKind } = await fixture(db)
+        const driver = createFakeDriver()
+        const release = await releaseFrom(db, driver, { project, appSpec, user })
+        const instance = await deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: byKind.production!.id,
+          purpose: 'rehearsal',
+        })
+        // Healthy AND in production — which is exactly why "a production instance exists"
+        // cannot be what launched means (Decision 1's first rejected option).
+        expect(instance.state).toBe('healthy')
+        expect(await launchedAt(db, project.id)).toBeNull()
+        expect(await launchEvents(db, project.id)).toEqual([])
+      })
+    })
+
+    it('a production deploy that FAILS does not launch', async () => {
+      await withRollback(async (db) => {
+        const { user, project, appSpec, byKind } = await fixture(db)
+        const release = await releaseFrom(db, createFakeDriver(), {
+          project,
+          appSpec,
+          user,
+        })
+        await approveFor(db, release, user, await digestOf(db, release))
+        const instance = await deployRelease(
+          db,
+          createFakeDriver({ failInstances: true }),
+          config,
+          deployDeps,
+          { releaseId: release.id, environmentId: byKind.production!.id },
+          { timeoutMs: 20, intervalMs: 1 },
+        )
+        // Approved and past the digest check, so the ONLY thing between this deploy and a
+        // launch is that nobody was ever served by it.
+        expect(instance.state).toBe('failed')
+        expect(await launchedAt(db, project.id)).toBeNull()
+        expect(await launchEvents(db, project.id)).toEqual([])
+      })
+    })
+
+    it('a STAGING deploy does not launch', async () => {
+      await withRollback(async (db) => {
+        const { user, project, appSpec, byKind } = await fixture(db)
+        const driver = createFakeDriver()
+        const release = await releaseFrom(db, driver, { project, appSpec, user })
+        // Approved too, so an environment check that read "approved" instead of
+        // "production" would launch it.
+        await approveFor(db, release, user, await digestOf(db, release))
+        const instance = await deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: byKind.staging!.id,
+        })
+        expect(instance.state).toBe('healthy')
+        expect(await launchedAt(db, project.id)).toBeNull()
+        expect(await launchEvents(db, project.id)).toEqual([])
+      })
+    })
+
+    /**
+     * **DECISION 16'S SECOND READ, AND ITS ONE WITNESS** (the plan's control (d)).
+     * `runRehearsal` refuses a launched project with `REHEARSAL_LAUNCHED` before it gets
+     * here; this is the exemption itself refusing to be used after launch, because
+     * `purpose: 'rehearsal'` skips the digest check and its instance serves the live
+     * public listener (`[M7]`). A plain `Error`: no client can reach it.
+     */
+    it('refuses the rehearsal exemption for a LAUNCHED project — a programming fault, not a wire refusal', async () => {
+      await withRollback(async (db) => {
+        const { user, project, appSpec, byKind } = await fixture(db)
+        const driver = createFakeDriver()
+        const release = await releaseFrom(db, driver, { project, appSpec, user })
+        await approveFor(db, release, user, await digestOf(db, release))
+        const launched = await deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: byKind.production!.id,
+        })
+        expect(await launchedAt(db, project.id)).toBeInstanceOf(Date)
+
+        const error = await deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: byKind.production!.id,
+          purpose: 'rehearsal',
+        }).catch((e: unknown) => e)
+        expect(error).toBeInstanceOf(Error)
+        expect(error).not.toBeInstanceOf(ReleaseError)
+        expect((error as Error).message).toContain('has launched')
+        // BEFORE ANYTHING STARTS: the launch's own instance is still the only row.
+        const rows = await db
+          .select({ id: instances.id })
+          .from(instances)
+          .where(eq(instances.environmentId, byKind.production!.id))
+        expect(rows).toEqual([{ id: launched.id }])
+      })
+    })
+
+    /**
+     * **THE ROUTE'S READ AND THE DEPLOY'S, TOGETHER, AGAINST A REAL DEPLOY** (P6b Task 4,
+     * Decision 16). A CWL app, because `runRehearsal` refuses a non-CWL one
+     * (`REHEARSAL_NOT_CWL`) before it would ever deploy — so with the unit tier's own
+     * `auth: none` fixture, removing `runRehearsal`'s refusal would be caught by the
+     * wrong rule, and `deployRelease`'s refusal behind it would never be reached. Here it
+     * is: without the first read, the second answers, wrapped as `REHEARSAL_DEPLOY_FAILED`
+     * — so the CODE assertion is `runRehearsal`'s witness, and *production is untouched*
+     * is `deployRelease`'s (the plan's control (c)).
+     */
+    it('runRehearsal refuses a LAUNCHED project with REHEARSAL_LAUNCHED, and production is untouched', async () => {
+      await withRollback(async (db) => {
+        const { user, project, appSpec, byKind } = await fixture(db)
+        const driver = createFakeDriver()
+        const sso = {
+          registerServiceProvider: async (_db: unknown, input: SpRegistrationInput) => ({
+            entity: {
+              entityId: `https://manifest.internal/sp/${input.slug}/${input.environmentKind}`,
+              acsUrl: `https://${input.hostname}${input.auth.callback}`,
+              sloUrl: `https://${input.hostname}${input.auth.logout}`,
+              attributes: [...input.auth.attributes],
+            },
+            keypair: {
+              privateKeyPem: '',
+              certificatePem: '',
+              certData: '',
+              fingerprint: '',
+              expiresAt: new Date(),
+            },
+            changed: true,
+          }),
+          idpSigningCertificate: async () =>
+            '-----BEGIN CERTIFICATE-----\nRECORDER\n-----END CERTIFICATE-----\n',
+        }
+        const deploy = { ...deployDeps, sso }
+        const build = await buildToEnd(
+          { db, driver, bus },
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            appSpecId: appSpec.id,
+            commitSha: appSpec.commitSha,
+            blueprintRef: project.blueprintRef,
+            repoPath: '/tmp/chem-labs.git',
+          },
+        )
+        const release = await createRelease(db, {
+          projectId: project.id,
+          buildId: build.id,
+          appSpecId: appSpec.id,
+          createdBy: user.id,
+          resolvedConfig: RESOLVED_WITH_CWL,
+        })
+        // A CANDIDATE (what serves staging), approved, launched.
+        await deployRelease(db, driver, config, deploy, {
+          releaseId: release.id,
+          environmentId: byKind.staging!.id,
+        })
+        await approveFor(db, release, user, build.imageDigest!)
+        const launched = await deployRelease(db, driver, config, deploy, {
+          releaseId: release.id,
+          environmentId: byKind.production!.id,
+        })
+        expect(launched.state).toBe('healthy')
+        expect(await launchedAt(db, project.id)).toBeInstanceOf(Date)
+
+        const refused = await runRehearsal(
+          {
+            db,
+            driver,
+            config,
+            deploy,
+            signIn: {
+              signIn: () => {
+                throw new Error(
+                  'the rehearsal reached the SIGN-IN; it should refuse first',
+                )
+              },
+            },
+            bus,
+          },
+          project.id,
+          { userId: user.id, puid: 'o' },
+        ).catch((e: unknown) => e)
+        // UNTOUCHED FIRST, THE CODE SECOND — so that with either read removed, the red
+        // message says which one still held: without `runRehearsal`'s, this line passes
+        // (deployRelease's read refused before anything started) and the code reads
+        // `REHEARSAL_DEPLOY_FAILED`.
+        const rows = await db
+          .select({ id: instances.id, state: instances.state })
+          .from(instances)
+          .where(eq(instances.environmentId, byKind.production!.id))
+        expect(rows).toEqual([{ id: launched.id, state: 'healthy' }])
+        expect(refused).toMatchObject({ code: 'REHEARSAL_LAUNCHED' })
       })
     })
   })

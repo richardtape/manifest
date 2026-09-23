@@ -1,5 +1,13 @@
+import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
-import { appSpecs, builds, environments, rehearsals, releases } from '../db/index.js'
+import {
+  appSpecs,
+  builds,
+  environments,
+  projects,
+  rehearsals,
+  releases,
+} from '../db/index.js'
 import { withProject } from '../db/testing.js'
 import {
   RehearsalError,
@@ -314,6 +322,31 @@ describe('runRehearsal refuses before it deploys anything', () => {
       await expect(
         runRehearsal(refusingDeps(db), projectId, { userId: '', puid: 'opr000001' }),
       ).rejects.toMatchObject({ code: 'REHEARSAL_NO_CANDIDATE' })
+    })
+  })
+
+  /**
+   * **P6b Task 4, Decision 16** — `[M7]` measured a rehearsal after launch putting an
+   * unapproved, released digest on the live public listener with nothing saying so. So a
+   * launched project is refused BEFORE the candidate is even looked for: this project has
+   * no candidate either, and the answer is still the launch, not `REHEARSAL_NO_CANDIDATE`.
+   * The case above is the positive control — the same project, unlaunched, gets past this
+   * check to the next one. `releases.test.ts` has the same refusal against a real deploy,
+   * where the SECOND read behind this one can be seen.
+   */
+  it('refuses a rehearsal once the app has launched: REHEARSAL_LAUNCHED, before it looks for a candidate', async () => {
+    await withCandidate(async (db, { projectId }) => {
+      await db
+        .update(projects)
+        .set({ launchedAt: new Date() })
+        .where(eq(projects.id, projectId))
+      const error = await runRehearsal(refusingDeps(db), projectId, {
+        userId: '',
+        puid: 'opr000001',
+      }).catch((e: unknown) => e)
+      expect(error).toBeInstanceOf(RehearsalError)
+      expect(error).toMatchObject({ code: 'REHEARSAL_LAUNCHED' })
+      expect((error as Error).message).toContain('real students')
     })
   })
 

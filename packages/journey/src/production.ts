@@ -55,6 +55,13 @@ interface ProductionState {
   /** Whether `launch-app` existed with its records before this run (the re-use path). */
   reused?: boolean
   productionInstanceId?: string
+  /**
+   * `launch-app` had ALREADY LAUNCHED when this run began (P6b Task 4), so the instructor
+   * phase checked what a launched project durably is and stopped — and
+   * `scripts/demo-production.sh` runs neither of the other phases. A flag rather than an
+   * exit code, because a phase that ends early must not read as red (P6a F9).
+   */
+  launched?: boolean
 }
 
 const [phase, statePath] = process.argv.slice(2)
@@ -303,6 +310,65 @@ async function step1Project(): Promise<void> {
   state.reused =
     records.iamRegistration?.state === 'active' &&
     records.privacyAssessment?.state === 'approved'
+  if (existing?.launchedAt !== undefined && existing.launchedAt !== null)
+    await launchedReuse(client, existing.launchedAt)
+}
+
+/**
+ * THE RE-USE PATH FOR A LAUNCHED APP (P6b Task 4). A first launch happens once per
+ * project and no route deletes a project (P6a F5), so a second run of this demo meets
+ * `launch-app` already in production — and steps 3, 5 and 10 were written for one that has
+ * not launched. Step 5 was the dangerous one: its rehearsal retired the live, approved
+ * instance for the unapproved candidate for about a second on every re-use run (P6b sitting
+ * 1, `[M7]`), and a launched project now refuses a rehearsal outright. So this checks what a
+ * launched project DURABLY is — its records, the release production serves and its
+ * approval, and §12's split — and stops.
+ */
+async function launchedReuse(client: ManifestClient, launchedAt: string): Promise<never> {
+  checks.ok('the registration is active and the PIA approved', state.reused === true)
+  const production = unwrap(
+    await client.GET('/v1/environments/{environmentId}', {
+      params: { path: { environmentId: state.productionEnvironmentId! } },
+    }),
+    'getEnvironment',
+  )
+  const serving = checks.must(
+    'production is serving an instance',
+    production.instance ?? undefined,
+  )
+  const approval = unwrap(
+    await client.GET('/v1/releases/{releaseId}/approval', {
+      params: { path: { releaseId: serving.releaseId } },
+    }),
+    'getApproval',
+  )
+  checks.ok(
+    'the release production serves was APPROVED — the durable trace of the first launch',
+    approval.decision === 'approved',
+    `${serving.releaseId}: ${approval.decision}`,
+  )
+  const pub = await probe('127.0.0.3', '/healthz')
+  console.log(
+    `  127.0.0.3 answered ${pub.status}, X-Manifest-Instance: ${pub.instance ?? '(none)'}`,
+  )
+  checks.ok(
+    'the public listener answers AS THE INSTANCE PRODUCTION SERVES',
+    pub.status === 200 && pub.instance === serving.id,
+    `${pub.status} ${pub.instance} ${pub.body}`,
+  )
+  const internal = await probe('127.0.0.2', '/healthz')
+  checks.ok(
+    'and the same name on the INTERNAL listener is not the app',
+    internal.instance === undefined,
+    `${internal.status} ${internal.instance} ${internal.body}`,
+  )
+  state.launched = true
+  console.log(
+    `  (launch-app launched on ${launchedAt}. A first launch happens once per project, and ` +
+      'no route deletes one (P6a F5). The fresh path is what proves P6a; ' +
+      '`make demo-releases` is what a launched app does next.)',
+  )
+  throw new JourneyStop('launch-app has launched')
 }
 
 /** Step 2: build, release, staging — the digest production will run (§13). */

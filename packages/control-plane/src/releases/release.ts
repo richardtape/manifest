@@ -43,6 +43,7 @@ import type { ServiceCredentialResolver } from '../services/index.js'
 import type { SpRegistration, SsoRegistrar } from '../sso/index.js'
 import type { Config } from '../config.js'
 import { approvalCoversDigest, latestApprovalFor } from './approval.js'
+import { launchedAt, recordLaunch } from './launched.js'
 import { assertPromotable } from './promotion.js'
 import type { Retirer } from './retire.js'
 
@@ -282,6 +283,24 @@ export async function deployRelease(
           'approval.',
       )
   }
+
+  /**
+   * DECISION 16'S SECOND READ (P6b Task 4). `runRehearsal` refuses a launched project with
+   * `REHEARSAL_LAUNCHED` before it gets here; this is the exemption itself refusing to be
+   * used after launch, because `purpose: 'rehearsal'` skips the digest check above and its
+   * instance serves the PUBLIC listener — `[M7]` measured an unapproved release answering
+   * students that way. A plain `Error`: no client can reach it, and a wire code nothing can
+   * receive is one `error-codes.test.ts` would rightly refuse to register.
+   */
+  if (
+    environment.kind === 'production' &&
+    input.purpose === 'rehearsal' &&
+    (await launchedAt(db, environment.projectId)) !== null
+  )
+    throw new Error(
+      `project '${environment.projectId}' has launched, so a rehearsal would put an ` +
+        'unapproved release on its live production listener',
+    )
 
   // §23 gives the hostname as `<slug>.<zone>`, so the first label is the slug.
   const projectSlug = environment.hostname.split('.')[0]!
@@ -865,6 +884,18 @@ export async function deployRelease(
         },
         redact,
       )
+      // §13 D9: THE LAUNCH IS RECORDED BY THE DEPLOY THAT MAKES IT TRUE (P6b Decision 1). A
+      // production deploy for purpose 'launch' that reached healthy — never a rehearsal,
+      // whose instance serves production too and must not read as a launch. Once per
+      // project, by `recordLaunch`'s own WHERE clause.
+      if (environment.kind === 'production' && (input.purpose ?? 'launch') === 'launch')
+        await recordLaunch(db, deps.bus, {
+          projectId: environment.projectId,
+          releaseId: release.id,
+          instanceId: updated!.id,
+          imageDigest: digest,
+          slug: projectSlug,
+        })
       if (minted !== undefined) {
         /**
          * §10's rotation is complete at the moment the ROUTE MOVED — which is now, not

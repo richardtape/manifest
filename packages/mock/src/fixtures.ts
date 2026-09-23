@@ -126,6 +126,7 @@ export const PROJECT: Schemas['Project'] = {
   owner: { id: ME.id, displayName: ME.displayName },
   audience: AUDIENCE,
   createdAt: ISO,
+  launchedAt: null,
 }
 
 /** What `?expand=environments` adds (D23.1) — the project screen always asks for it. */

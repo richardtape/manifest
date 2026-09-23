@@ -41,6 +41,16 @@ const PUBLISHED_ELSEWHERE = {
   // never records an external launch object — an administrator does that, out of band.
   'iam_registration.recorded': 'launch/records.test.ts — recordIamRegistration',
   'privacy_assessment.recorded': 'launch/records.test.ts — recordPrivacyAssessment',
+  // Moved here from NO_PUBLISHER_YET by P6b Task 4, which found all three there although
+  // their publishers have existed since P6a Tasks 10 and 14: the list's own rule said the
+  // publishing task removes the entry, and nothing went red to make it, because this
+  // lifecycle never reaches production.
+  'rehearsal.completed': 'releases/production.docker.test.ts — runRehearsal, real IdP',
+  'release.approved': 'releases/releases.test.ts — recordApproval, through approveFor',
+  'release.approval_rejected': 'releases/releases.test.ts — recordApproval, rejected',
+  // P6b Task 4: published by the first healthy production deploy for purpose `launch`, which
+  // this lifecycle never makes.
+  'project.launched': 'releases/releases.test.ts — the launch (P6b Decision 1)',
 } as const
 
 /**
@@ -53,13 +63,12 @@ const PUBLISHED_ELSEWHERE = {
  *
  * **Each entry names the task that writes its publisher, and removing the entry is that
  * task's job**: the moment a lifecycle in this file reaches one of these, the assertion
- * below goes red and somebody has to decide which list it belongs in.
+ * below goes red and somebody has to decide which list it belongs in. **It cannot go red
+ * for a publisher this lifecycle never reaches** — its three entries outlived their
+ * publishers by a whole plan that way (P6b Task 4) — so a task that writes a publisher
+ * moves the entry itself. **EMPTY since P6b Task 4: every event type has a publisher.**
  */
-const NO_PUBLISHER_YET = {
-  'rehearsal.completed': 'P6a Task 14 — launch/rehearsal.ts',
-  'release.approved': 'P6a Task 10 — releases/approval.ts',
-  'release.approval_rejected': 'P6a Task 10 — releases/approval.ts',
-} as const
+const NO_PUBLISHER_YET = {} as const
 
 /**
  * THE DOCUMENT DESCRIBES WHAT STREAMS (P5a Task 12). Every frame the platform publishes

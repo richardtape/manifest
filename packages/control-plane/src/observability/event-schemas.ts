@@ -217,4 +217,17 @@ export const EVENT_DETAIL_SCHEMAS = {
   'release.approved': ApprovalDetail,
   /** The same detail; the reason is in the human message, in the administrator's own words. */
   'release.approval_rejected': ApprovalDetail,
+  /**
+   * §13 D9 (P6b Task 4): the first production deploy for purpose `launch` that became
+   * healthy. Written ONCE per project — `recordLaunch`'s WHERE clause, not a read-then-write.
+   */
+  'project.launched': z.strictObject({
+    releaseId: Uuid,
+    instanceId: Uuid,
+    imageDigest: z
+      .string()
+      .describe(
+        'The first 19 characters — recognisable, and never mistaken for the binding.',
+      ),
+  }),
 } satisfies Record<EventType, z.ZodType>

@@ -7,31 +7,20 @@ import { createFakeDriver, type Driver } from '../runtime/index.js'
 import { createBuildRunner, createRetirer } from '../releases/index.js'
 import { buildServer } from './server.js'
 import {
+  approvedProject,
+  builtProject,
   commitManifest,
   loginAs,
   mutationHeaders,
   projectBody,
+  projectFor,
   refusal,
+  releasedProject,
   testDeps,
 } from './testing.js'
-import type { TestUserPuid } from '../identity/testing.js'
 
 beforeEach(resetDatabase)
 afterAll(resetDatabase)
-
-async function projectFor(puid: TestUserPuid, slug = 'chem-labs') {
-  const deps = await testDeps()
-  const app = await buildServer(deps)
-  const cookies = await loginAs(deps, puid)
-  const created = await app.inject({
-    method: 'POST',
-    url: '/v1/projects',
-    payload: projectBody(slug),
-    cookies,
-    headers: mutationHeaders(deps),
-  })
-  return { app, deps, cookies, project: created.json() }
-}
 
 /** A build's present status, read the way a client reads it (R6). */
 async function statusOf(
@@ -83,83 +72,6 @@ async function projectWithBuilds(n: number) {
     await deps.builds.idle()
   }
   return { app, deps, cookies, project, ids }
-}
-
-/**
- * A project with one SUCCEEDED build (P5a Task 14). `env` is written into its
- * `manifest.yaml` and pushed, so the release below resolves a config with an env var
- * whose VALUE must not travel with it — the property Decision 22 exists for cannot be
- * tested against a manifest that declares none.
- */
-async function builtProject(
-  slug: string,
-  options: { env?: { name: string; value: string }[] } = {},
-) {
-  // The slug reaches BOTH halves: the project this creates and the repository the manifest
-  // below is committed to. Passing it to only one is a fixture that works for exactly one
-  // name and fails confusingly for any other.
-  const { app, deps, cookies, project } = await projectFor('bio_prof', slug)
-  if (options.env !== undefined) {
-    await deps.source.commitFiles(
-      deps.source.repositoryFor(slug),
-      {
-        'manifest.yaml': [
-          'manifest: 1',
-          `name: ${slug}`,
-          'blueprint: fixture-node@1',
-          'runtime:',
-          '  port: 3000',
-          '  health: /healthz',
-          'env:',
-          ...options.env.map((e) => `  - { name: ${e.name}, value: ${e.value} }`),
-          '',
-        ].join('\n'),
-      },
-      'feat: an env var whose value is the app’s, not the contract’s',
-    )
-    const pushed = await app.inject({
-      method: 'POST',
-      url: `/v1/projects/${project.id}/spec`,
-      payload: {},
-      cookies,
-      headers: mutationHeaders(deps),
-    })
-    expect(pushed.json().valid, pushed.body).toBe(true)
-  }
-  const started = await app.inject({
-    method: 'POST',
-    url: `/v1/projects/${project.id}/builds`,
-    payload: {},
-    cookies,
-    headers: mutationHeaders(deps),
-  })
-  expect(started.statusCode, started.body).toBe(202)
-  await deps.builds.idle()
-  const build = (
-    await app.inject({ method: 'GET', url: `/v1/builds/${started.json().id}`, cookies })
-  ).json()
-  expect(build.status, JSON.stringify(build)).toBe('succeeded')
-  return { app, deps, cookies, project, build }
-}
-
-/** The same, released — and its staging environment, which is what a deploy names. */
-async function releasedProject(
-  slug: string,
-  options: { env?: { name: string; value: string }[] } = {},
-) {
-  const built = await builtProject(slug, options)
-  const created = await built.app.inject({
-    method: 'POST',
-    url: `/v1/projects/${built.project.id}/releases`,
-    payload: { buildId: built.build.id },
-    cookies: built.cookies,
-    headers: mutationHeaders(built.deps),
-  })
-  expect(created.statusCode, created.body).toBe(201)
-  const staging = built.project.environments.find(
-    (e: { kind: string }) => e.kind === 'staging',
-  )
-  return { ...built, release: created.json(), staging }
 }
 
 describe('a build answers at once and finishes on the stream (R6, P5a Task 13)', () => {
@@ -659,47 +571,16 @@ describe('the delivery routes', () => {
    * live drive's.
    */
   it('deploys to production when every blocking item is met — and `ready` is true beside a not_built code-review', async () => {
-    const { deps, app, cookies, project, release, staging } =
-      await releasedProject('chem-labs')
-    const production = project.environments.find(
-      (e: { kind: string }) => e.kind === 'production',
-    )
-    // 1. SOMETHING MUST BE SERVING STAGING: production runs exactly what staging ran, so
-    //    the checklist has no candidate at all until this deploy (§13).
-    const toStaging = await app.inject({
-      method: 'POST',
-      url: `/v1/environments/${staging.id}/deploy`,
-      payload: { releaseId: release.id },
-      cookies,
-      headers: mutationHeaders(deps),
-    })
-    expect(toStaging.statusCode, toStaging.body).toBe(200)
-
-    // 2. An administrator records what the Privacy Office said, along §9's arrows. There
-    //    is no IAM registration to record: this app signs nobody in.
-    const admin = await loginAs(deps, 'platform_admin', { steppedUp: true })
-    for (const state of ['submitted', 'approved'] as const) {
-      const recorded = await app.inject({
-        method: 'POST',
-        url: `/v1/projects/${project.id}/launch-records/privacy-assessment`,
-        payload: { state, reviewer: 'K. Privacy', externalTicketRef: 'PIA-DELIVERY-1' },
-        cookies: admin,
-        headers: mutationHeaders(deps),
-      })
-      expect(recorded.statusCode, recorded.body).toBe(200)
-    }
-
-    // 3. And approves the release, which binds the build's digest (§13, §20).
-    const approved = await app.inject({
-      method: 'POST',
-      url: `/v1/releases/${release.id}/approve`,
-      payload: { reason: 'the checklist is met and the diff is what we expect' },
-      cookies: admin,
-      headers: mutationHeaders(deps),
-    })
-    expect(approved.statusCode, approved.body).toBe(201)
+    // 1–3, IN `approvedProject` SINCE P6b TASK 4 (moved, not copied — `launchedProject` is
+    // it plus the deploy below): the release serving staging, the PIA recorded along §9's
+    // arrows, and the approval that binds its digest.
+    const { deps, app, cookies, project, release, production } =
+      await approvedProject('chem-labs')
 
     // 4. THE CHECKLIST, READ BY A PERSON, BEFORE ANYTHING IS DEPLOYED.
+    const launchedBefore = (
+      await app.inject({ method: 'GET', url: `/v1/projects/${project.id}`, cookies })
+    ).json().launchedAt
     const readiness = await app.inject({
       method: 'GET',
       url: `/v1/projects/${project.id}/launch-readiness`,
@@ -755,6 +636,17 @@ describe('the delivery routes', () => {
       releaseId: release.id,
       state: 'healthy',
     })
+    // 6. AND THE APP HAS LAUNCHED (P6b Task 4, Decision 1) — recorded by the deploy that
+    //    made it true, and carried by the representation. `null` a moment ago, with every
+    //    item met and the release approved, is the positive half: neither of those is a
+    //    launch, and a project that read as launched before this deploy would skip D9.1.
+    expect(launchedBefore).toBeNull()
+    const after = await app.inject({
+      method: 'GET',
+      url: `/v1/projects/${project.id}`,
+      cookies,
+    })
+    expect(after.json().launchedAt).toEqual(expect.any(String))
     await app.close()
   })
 
