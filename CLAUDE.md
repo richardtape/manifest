@@ -22,9 +22,9 @@ all 19 tasks in the eleven agreed sittings, 2026-09-19 → 2026-09-22): an appli
 production with every blocking item honestly met, and `make demo-production` proves it. **P6b —
 subsequent releases — IS WRITTEN** (`docs/superpowers/plans/2026-09-22-p6b-subsequent-releases.md`,
 2026-09-22, eleven tasks) **and its sitting 1 — Task 1, the measurements — is NEXT**; ORIENTATION §7e
-says how. **Three of its questions are Rich's** (ORIENTATION §8, *Open*): the sitting count (eight
-recommended), whether removing a CWL attribute waits for IAM (its one proposed spec action), and
-whether a sensitive change returns an approved PIA to `draft`. None blocks sitting 1.
+says how. **Rich answered its three questions the same day** (ORIENTATION §8, *Decided*): seven
+sittings; removing a CWL attribute does not wait for IAM (its one spec action — approved in
+substance, NOT applied); and a sensitive change never returns an approved PIA to `draft`.
 **P6a raised three spec actions and ALL THREE were approved and APPLIED on 2026-09-22**: §13
 names no number of sensitive fields, §20 and D24 gain a *person-only* class, and §21's divergence 2
 now describes the real listener split and what stays divergent. **Rich decided on 2026-09-22 that an administrator sees the approval's diff before

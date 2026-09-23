@@ -1,6 +1,6 @@
 # Orientation — read this first
 
-**Manifest's design is finished and TEN implementation plans are executed — P1, P2, P3, P4a, P4b, P4c, P5a (the contract), P5b (delegated tokens), P5c (the clients) and P6a (the first production launch), whose acceptance passed on 2026-09-22. PHASE 1c IS COMPLETE, AND THE FIRST PLAN OF PHASE 2 IS DONE.** **An application now reaches PRODUCTION with every one of §13's six blocking items honestly met**: an administrator records what UBC IAM and the Privacy Office said, along §9's steps; Manifest runs D21's rehearsal — the candidate deployed to its production hostname on §12's PUBLIC listener (`127.0.0.3`, a second Caddy server staging cannot reach), with a real CWL sign-in releasing exactly the registered attributes; the administrator is refused the approval until CWL has asked them again (§20's step-up), then approves the exact image digest; and the owner deploys, the digest verified before anything starts. **`make demo-production` proves it headlessly** — green on the fresh path, the re-use path and from an `echo reset | make reset` machine, and step 11 of the offline acceptance — **and a person has clicked the whole launch through the console** (P6a sitting 11, recorded as a GIF). Before that, **P5c made §16's Acceptance tier true**: §22's journey is proved by two independent clients over one contract, `make ci-acceptance` headlessly and a person clicking all sixteen rows; `manifest-mock` serves every operation of the contract from fixtures, so a front-end developer needs no platform at all; and D24's loop — an agent refused, a person confirming, the agent's own retry succeeding once — runs as `make demo-token`. **P6a's acceptance found a live fail-open no gate could see**: a production route kept whatever listener already held it, so renaming the public server would have left every live app on the internal one — fixed and watched both ways (sitting 11, F6). **Rich decided on 2026-09-22 that an administrator sees the approval's diff BEFORE deciding, as a stored preview the approval binds — in P6b**, which was WRITTEN on 2026-09-22 ([`plans/2026-09-22-p6b-subsequent-releases.md`](plans/2026-09-22-p6b-subsequent-releases.md), eleven tasks) and whose sitting 1 is next. **Three of its questions are Rich's (§8, Open): the sitting count, whether removing a CWL attribute waits for IAM, and whether a sensitive change returns the PIA to draft.** **The next job is always §7e.** This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
+**Manifest's design is finished and TEN implementation plans are executed — P1, P2, P3, P4a, P4b, P4c, P5a (the contract), P5b (delegated tokens), P5c (the clients) and P6a (the first production launch), whose acceptance passed on 2026-09-22. PHASE 1c IS COMPLETE, AND THE FIRST PLAN OF PHASE 2 IS DONE.** **An application now reaches PRODUCTION with every one of §13's six blocking items honestly met**: an administrator records what UBC IAM and the Privacy Office said, along §9's steps; Manifest runs D21's rehearsal — the candidate deployed to its production hostname on §12's PUBLIC listener (`127.0.0.3`, a second Caddy server staging cannot reach), with a real CWL sign-in releasing exactly the registered attributes; the administrator is refused the approval until CWL has asked them again (§20's step-up), then approves the exact image digest; and the owner deploys, the digest verified before anything starts. **`make demo-production` proves it headlessly** — green on the fresh path, the re-use path and from an `echo reset | make reset` machine, and step 11 of the offline acceptance — **and a person has clicked the whole launch through the console** (P6a sitting 11, recorded as a GIF). Before that, **P5c made §16's Acceptance tier true**: §22's journey is proved by two independent clients over one contract, `make ci-acceptance` headlessly and a person clicking all sixteen rows; `manifest-mock` serves every operation of the contract from fixtures, so a front-end developer needs no platform at all; and D24's loop — an agent refused, a person confirming, the agent's own retry succeeding once — runs as `make demo-token`. **P6a's acceptance found a live fail-open no gate could see**: a production route kept whatever listener already held it, so renaming the public server would have left every live app on the internal one — fixed and watched both ways (sitting 11, F6). **Rich decided on 2026-09-22 that an administrator sees the approval's diff BEFORE deciding, as a stored preview the approval binds — in P6b**, which was WRITTEN on 2026-09-22 ([`plans/2026-09-22-p6b-subsequent-releases.md`](plans/2026-09-22-p6b-subsequent-releases.md), eleven tasks) and whose sitting 1 is next. **Rich answered its three questions the same day (§8, *Decided*): seven sittings; removing a CWL attribute does not wait for IAM (the plan's one spec action, approved in substance and not yet applied); and a sensitive change never returns the PIA to draft automatically.** **The next job is always §7e.** This is the single entry point: what Manifest is, where things stand, how the platform is built, what the machine will do to you, how to work here, and what to do next. It is written for someone with **no prior context** — a new agent with a fresh window, or a developer joining.
 
 *Last verified 2026-09-22, AFTER P6a sitting 11 — which moved ONE of the four. `pnpm test`
 **1604 → 1605 passed, 0 skipped, in 119 files**, run twice alone and identical — `routing/routes.test.ts`
@@ -1869,7 +1869,7 @@ curl -s --cacert infra/ca/manifest-root.crt \
 
 ## 7. What to do next
 
-**The next job is §7e — EXECUTE P6b's SITTING 1: Task 1, the measurements, alone and first** ([`plans/2026-09-22-p6b-subsequent-releases.md`](plans/2026-09-22-p6b-subsequent-releases.md), *subsequent releases*, WRITTEN 2026-09-22: eleven tasks, the sitting count Rich's — eight recommended, seven lean, nine cautious — and Task 1 is alone and first in all three). P6a ([`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md)) IS EXECUTED, and its record is what P6b was written from. *This preamble states the job because §7e is the section a cold agent is sent to and the two must agree — it said "EXECUTE P6a's SITTING 7" through the whole of sitting 8 (P6a sitting 8, F13). Change BOTH, every sitting.* Each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
+**The next job is §7e — EXECUTE P6b's SITTING 1: Task 1, the measurements, alone and first** ([`plans/2026-09-22-p6b-subsequent-releases.md`](plans/2026-09-22-p6b-subsequent-releases.md), *subsequent releases*, WRITTEN 2026-09-22: eleven tasks, SEVEN sittings, Rich's choice of the lean split). P6a ([`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md)) IS EXECUTED, and its record is what P6b was written from. *This preamble states the job because §7e is the section a cold agent is sent to and the two must agree — it said "EXECUTE P6a's SITTING 7" through the whole of sitting 8 (P6a sitting 8, F13). Change BOTH, every sitting.* Each plan's own *What executing this plan found* is its record. The roadmap's ledger outranks this section on status.
 
 ### 7a. The executed plans, and which of their records to read first
 
@@ -1895,14 +1895,13 @@ carries the reviewer's verdict, and approves by naming it. An added CWL attribut
 to be recorded `active`. The plan also builds Rich's **person-only** class. **Your job is sitting 1: Task 1, alone. It
 writes no feature code.** Use `superpowers:executing-plans` and **commit on `main`** (§6 rule 9).
 
-**THREE QUESTIONS IN THE PLAN ARE RICH'S, AND NONE BLOCKS SITTING 1** (the plan's *Questions for Rich*, and §8 *Open* below):
+**RICH ANSWERED THE PLAN'S THREE QUESTIONS ON 2026-09-22** (§8, *Decided*):
 
-- **the sitting count** — eight is recommended, seven lean, nine cautious. **Task 1 is alone and first in all three.** Re-cut
-  the plan's sittings table before sitting 2 if he picks another;
-- **whether removing a CWL attribute waits for IAM** — this is the plan's Spec action 1, and it changes one condition in Task 7;
-- **whether a sensitive change returns an approved PIA to `draft`** — it changes one sentence in Task 8.
-
-**If Rich has answered any of them, record the answer in the plan before you start.**
+- **seven sittings, the lean split**, so the plan's table is already cut that way. Sitting 5 pairs Task 7 with Task 8, and
+  if it runs long, stop after Task 7 and sweep;
+- **removing a CWL attribute does not wait for IAM; adding one does.** That approves Spec action 1 in substance, but it is
+  **NOT applied** to the spec: do not apply it unless Rich says to;
+- **a sensitive change never returns an approved PIA to `draft` automatically.**
 
 **READ, IN THIS ORDER:** the plan's *How this plan is to be executed*, its *Read this first* (25 facts, eleven of them marked
 *(T1: M<n>)*, which are the ones you measure), its *Decisions this plan makes*, then Task 1 in full. **P6a's sitting 11 record**
@@ -1954,20 +1953,6 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 
 ### Open
 
-- **P6b's sitting count — RAISED 2026-09-22 by the P6b plan.** Eleven tasks: **eight sittings recommended**, seven lean,
-  nine cautious, each with its cost stated in the plan's *Question 1*. Task 1 is alone and first in all three, so sitting 1
-  does not wait for the answer.
-- **Does REMOVING a CWL attribute wait for an IAM change request? — RAISED 2026-09-22 by the P6b plan (its Spec action 1).**
-  §13 D9.2 says *"a change to `auth.attributes`"*, and the mechanism §9 and D16 describe is the subset rule, which only an
-  **addition** breaks. **Recommended: an addition waits for IAM; a removal re-escalates (an administrator approves it) and
-  does not wait**, with §13's sentence saying *addition*. The plan builds that, and the other answer is one condition in its
-  Task 7. The plan's *Question 2*.
-- **Does a sensitive change to something the PIA was written from return an approved PIA to `draft`? — RAISED 2026-09-22
-  by the P6b plan.** §7 says a model change *"invalidates an approved PIA"*, and nothing says what happens next.
-  **Recommended: never automatically** — the re-escalation's security note tells the approving administrator, who can
-  return it along P6a's existing arrow — because an automatic return blocks every release of the app, self-serve ones
-  included, for weeks. The plan's *Question 3*.
-
 - **Does the ADMIN CONSOLE get real design effort? — the spec says no, Rich says yes. RAISED
   2026-09-19.** §26's *Scope* reads *"Rudimentary and deliberately so… an operations tool for the
   team running the platform, **not a product surface**, and it inherits `console/`'s quality bar
@@ -2013,6 +1998,8 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 - **Starting the UBC external track (C4)** — the trigger fired 2026-09-15; see §2 and `docs/external-track.md`.
 
 ### Decided
+
+- **P6b's three questions — ALL DECIDED by Rich on 2026-09-22**, the day the plan was written, each from options with their costs stated; the plan's *Decided by Rich, 2026-09-22* section keeps the options he rejected. **Seven sittings, the LEAN split** (eight was recommended): its cost is that sitting 5 pairs the IAM change request with R4(d), and the plan says to stop after Task 7 and sweep if it runs long. **Removing a CWL attribute does not wait for IAM; adding one does**: a removal still re-escalates to an administrator. **That approves the plan's Spec action 1 in substance** — §13 D9.2's *"a change to `auth.attributes`"* becoming *"a change … that adds an attribute UBC IAM has not registered"* — with the wording shown to him, **and it is NOT APPLIED**: applying it, and sweeping `manifest-decisions.html` with it, waits for Rich to say so. **An approved PIA never returns to `draft` automatically** on a sensitive change: the re-escalation's security note tells the administrator, who decides. — do not re-raise
 
 - **§21's *honest divergences* item 2 is REWRITTEN, not deleted** (Rich, 2026-09-22; P6a's Spec action 1): the two Caddy listeners are real and separate — `srv0` on `127.0.0.2` for sandbox, staging and the platform's own names, `srv1` on `127.0.0.3` for production — and what stays divergent is stated: both are loopback on one host, so the separation is a listener assignment rather than a network topology. Applied with one factual correction to the plan's wording (the plan said `srv0` held sandbox and staging only). **With it, every spec action P6a raised is applied.** — do not re-raise
 

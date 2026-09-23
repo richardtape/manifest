@@ -22,11 +22,12 @@
 
 **One sitting per session, with a check-in at each boundary.** This pattern has carried every plan since P4a, and it means a session limit can never land in the middle of a task. This plan commits after every task: a stop *between* tasks is recoverable, a stop *inside* one is not.
 
-> **THE SITTING COUNT IS RICH'S AND IS NOT YET AGREED (Question 1 below).** The table below is
-> the RECOMMENDED split, eight sittings. The lean split (seven) and the cautious one (nine) are in
-> Question 1 with their costs. **Task 1 is alone and first in all three**, so sitting 1 can run
-> before Rich answers. **If he chooses another split, re-cut this table before sitting 2 and say
-> so in the session record.**
+> **SEVEN SITTINGS — RICH CHOSE THE LEAN SPLIT ON 2026-09-22**, over the recommended eight and the
+> cautious nine, with its cost stated (*Decided by Rich* below, Question 1). **The cost is sitting 5**,
+> which pairs the IAM change request with R4(d). IAM is where P6a hid its worst logic hole, so **if
+> sitting 5 runs long, stop after Task 7 and sweep** — ORIENTATION §6 rule 8 is worth more than
+> finishing a task. **Sitting 6 is the other heavy one**: the preview's server half and the screen that
+> uses it, together, so the console's Approve button is never broken across a session boundary.
 
 *The **Status** column records what a sitting made true, never how many findings it produced — that number lives once, in the roadmap's defect-rate table (Rich, 2026-09-20).*
 
@@ -36,10 +37,9 @@
 | 2 | 2–3 | **The person-only class** — one central refusal, a mint refusal, a code of its own — and **the sensitive diff over frozen releases**: one rule over §7's seven fields, the baseline that reads each release's *latest* decision, and a release that freezes its build's own spec | **Yes** — `projects/`, `spec/`, `releases/` | not started |
 | 3 | 4–5 | **An app has launched** — migration 0021, the launch recorded once, a rehearsal refused afterwards — and **`deployRelease`'s half of D9.2**: approval required for a first launch and for a sensitive change, never for anything else, and never deploying a release an administrator rejected | **Yes** — `releases/`, `launch/`, `*.docker.test.ts` | not started |
 | 4 | 6 | **The gate for a launched app — this plan's centre, alone.** The checklist branches on `launched`, the self-serve deploy goes through, a sensitive change is refused `RELEASE_REESCALATED` carrying the view, and a release that is not the one serving staging is refused `RELEASE_NOT_STAGED` | **Yes** — `launch/` | not started |
-| 5 | 7 | **The IAM change request** — migration 0022, a registration's registered set that changes only when UBC registers it, the change request as the registration's own `change_requested` state, and the live-registration check (attributes, ACS and SLO) for every production release | **Yes** — `launch/` | not started |
-| 6 | 8 | **R4(d)** — the summary becomes security-aware: deterministic security notes per sensitive field, the reviewer's verdict and D33's coverage limit in the record and in the prompt; and the `code-review` item reads the verdict (P6a F7) | **Yes** — `releases/`, `launch/` | not started |
-| 7 | 9–10 | **The stored preview**: migration 0023, `createApprovalPreview` and `getApprovalPreview`, approve and reject binding a preview and refusing a stale one — and **the console's approvals screen**, which shows the preview BEFORE the decision and keeps it through the step-up round trip. **The heavy sitting**: the server half and the screen that uses it, together, so the console's Approve button is never broken across a session boundary | **Yes** — `releases/` | not started |
-| 8 | 11 | **The acceptance**: `make demo-releases` — a self-serve production redeploy, then a sensitive change refused until an administrator approves it, then the IAM change request path — its offline-acceptance step, its `ci-acceptance` step, green three times, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | not started |
+| 5 | 7–8 | **The IAM change request** — migration 0022, a registration's registered set that changes only when UBC registers it, the change request as the registration's own `change_requested` state, and the live-registration check (attributes, ACS and SLO) for every production release — and **R4(d)**: deterministic security notes per sensitive field, the reviewer's verdict and D33's coverage limit in the record and in the prompt, and the `code-review` item reading the verdict (P6a F7). **The lean split's cost: if it runs long, stop after Task 7 and sweep** | **Yes** — `launch/`, `releases/` | not started |
+| 6 | 9–10 | **The stored preview**: migration 0023, `createApprovalPreview` and `getApprovalPreview`, approve and reject binding a preview and refusing a stale one — and **the console's approvals screen**, which shows the preview BEFORE the decision and keeps it through the step-up round trip. **Heavy**: the server half and the screen that uses it, together, so the console's Approve button is never broken across a session boundary | **Yes** — `releases/` | not started |
+| 7 | 11 | **The acceptance**: `make demo-releases` — a self-serve production redeploy, then a sensitive change refused until an administrator approves it, then the IAM change request path — its offline-acceptance step, its `ci-acceptance` step, green three times, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | not started |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -52,11 +52,11 @@
 
 ---
 
-## Questions for Rich — decision, options, recommendation
+## Decided by Rich, 2026-09-22 — the three questions this plan raised
 
-**Three of them.** Each is his because it is a spec change, a policy with a cost that faculty would feel, or the schedule. **None blocks sitting 1.** Question 2 blocks Task 7's control (e), and nothing else. Question 3 changes one sentence in Task 8.
+**All three were answered on 2026-09-22, the day the plan was written, each from the options below. Do not re-open them.** Each was his because it is a spec change, a policy with a cost that faculty would feel, or the schedule. The options and their costs are kept as they were put to him, so a reader can see what was rejected.
 
-### Question 1 — the sitting count
+### Question 1 — the sitting count. **DECIDED: SEVEN, the lean split**
 
 | Split | Sittings | What it costs |
 |---|---|---|
@@ -64,9 +64,9 @@
 | **Recommended** | **8**: [1] [2,3] [4,5] [6] [7] [8] [9,10] [11] | Task 7 gets a sitting to itself. Sitting 6 (R4(d)) is light, which leaves room for the sweep. **Sitting 7 is still heavy**: the preview's server half and the screen that uses it, together, so the Approve button is never broken across a session boundary |
 | **Cautious** | **9**: [1] [2,3] [4] [5] [6] [7] [8] [9,10] [11] | Splits "launched" from `deployRelease`'s half. It buys isolation between two tasks that both touch `releases/release.ts`, **at the cost of a session in which the platform records launches that nothing reads yet** |
 
-**Recommendation: eight.** The honest prior is **P6a's 9.8 findings per task** (the roadmap's defect-rate table), which puts eleven tasks at roughly **95–120 findings**. The eight-sitting split gives the one task most likely to hide a hole, IAM, its own session. The brief guessed five to seven. It could not have known that writing this plan would find six premises false (*Read this first* 2, 5, 6, 7, 8 and 9).
+**Rich chose seven, over the recommended eight.** The sittings table above is that split, and its heading states the cost. *The recommendation, as put to him:* eight. The honest prior is **P6a's 9.8 findings per task** (the roadmap's defect-rate table), which puts eleven tasks at roughly **95–120 findings**. The eight-sitting split gives the one task most likely to hide a hole, IAM, its own session. The brief guessed five to seven. It could not have known that writing this plan would find six premises false (*Read this first* 2, 5, 6, 7, 8 and 9).
 
-### Question 2 — does REMOVING a CWL attribute wait for an IAM change request? (Spec action 1)
+### Question 2 — does REMOVING a CWL attribute wait for an IAM change request? **DECIDED: (a), an addition waits and a removal does not** (Spec action 1)
 
 §13 D9.2 reads: *"A change to `auth.attributes` additionally requires an IAM change request to reach `active` before the release can deploy (§9)."* The mechanism §9 describes, and D16's rationale, are both the **subset rule**: *"in production, `auth.attributes` must be a subset of what UBC IAM registered"*. **An addition breaks the subset. A removal cannot**, because the app asks for less than UBC releases, and sign-in still works.
 
@@ -75,9 +75,9 @@
 | **(a) Recommended: an addition waits; a removal re-escalates but does not wait** | A removal is still a sensitive change, so an administrator approves it (D9). It does not block on IAM, and the checklist notes that UBC now releases an attribute the app no longer asks for, and that a change request would stop it (data minimisation) | **§13's sentence must say "addition"**. That is Spec action 1: one word, and the sentence then describes the code. The platform never makes a faculty member wait weeks for UBC to *stop* sending something |
 | (b) The literal sentence: any change waits | A removal also blocks until an administrator records a change request `active` with the smaller set | Weeks of lead time to *narrow* what an app receives, which is the change privacy wants encouraged. The platform must also track which change request answers which release, where the subset rule needs no such tracking |
 
-**The plan builds (a).** If Rich chooses (b), the switch is one condition in `launch/readiness.ts`'s `liveRegistrationItem`: `added.length > 0` becomes `!sameSet(requested, registered)`. **Task 7's control (e) is that switch, and it is predicted.** The acceptance's leg A would then need a change request for its removal: four API calls, named in Task 11.
+**Rich chose (a), with the proposed §13 wording in front of him** (it was shown beside the option). **The plan builds (a).** Task 7's control (e) is the switch to (b) — in `liveRegistrationItem`, `missing.length === 0` becoming *the two sets are equal* — kept as a control, never as the code. **Spec action 1 is approved in substance and NOT yet applied to the spec**: the session that wrote this plan was told to make no spec edits, so applying it, and sweeping `manifest-decisions.html` with it, is a separate step Rich authorises.
 
-### Question 3 — a sensitive change to something the PIA was written from: back to `draft`?
+### Question 3 — a sensitive change to something the PIA was written from: back to `draft`? **DECIDED: (a), never automatically**
 
 §7 says of `ai.models`: *"a model change can move personal information to a different jurisdiction, which **invalidates an approved PIA** (§9)."* §9's PIA table derives *where it is stored* from `services` and *where it flows* from `egress.allow`, `ai.models` and `data.classification`. **Nothing in the spec says what happens to an approved PIA when one of those changes after launch.**
 
@@ -87,7 +87,7 @@
 | (b) Automatic: a change to any PIA input returns the PIA to `draft` | The Privacy Office sees every such change | **Every production release of the app is blocked for weeks**, self-serve ones included, because §9 blocks production until the PIA is `approved`. That includes renaming a model group or adding an egress host |
 | (c) Automatic for `ai.models` only, the one field §7 names | Implements §7's sentence literally | The same weeks-long block, for the one field an administrator repoints fleet-wide (§7 *Logical model names*) |
 
-**The plan builds (a).** If Rich chooses (b) or (c), it is a new task after Task 8, plus a spec action on §9's PIA subsection. It is not a one-line switch.
+**Rich chose (a). The plan builds it**, and nothing else moves: `SECURITY_NOTES`' sentences for the PIA's inputs tell the approving administrator, who decides.
 
 ---
 
@@ -129,6 +129,7 @@
 - **A PERSON-ONLY class: `release:approve` and `launch:record`** (2026-09-22; in §20 and D24's row since that day). No delegated token can be minted holding either, and a token asking for either is **refused outright, with no pending action**, because each is a record that a named person decided.
 - **§13 names no number of sensitive fields.** The code uses `SENSITIVE_FIELDS`, which has seven.
 - **Ordering: P6b, then the GitHub source driver, then the authoring API.** Do not design for GitHub, and do not block it either. **This plan's re-escalation is the control both later plans depend on.**
+- **The three questions this plan raised** (2026-09-22): seven sittings; an added CWL attribute waits for IAM and a removed one does not; a PIA never returns to `draft` automatically. *Decided by Rich, 2026-09-22* below has each one's options.
 - **R4(d)** (2026-09-19, brief §5): the approval summary gains a security dimension and surfaces the reviewer's verdict. *Coverage limit, stated:* under D9 it sees first launches and re-escalations only, **never a self-serve release**. **R4's spec action is applied (D33, §15, §20), and §13 was deliberately left untouched. Do not propose it again.**
 - *Settled before this plan:* stateless session cookies with their two stated costs (§20). Step-up guards the production deploy as well as the approval (2026-09-20). Confirming a pending action needs step-up and rejecting one does not (P6a sitting 6, F12). An approval binds the build's digest and the deploy verifies it before starting anything (P6a Task 15).
 
@@ -200,7 +201,7 @@ The chosen reading fails in exactly one direction, the conservative one: an unne
 
 *Rejected:* **a preview that is read and then recomputed**, which Rich rejected. **A preview that never expires**, because a stale reading would then be recorded as *"shown at decision time"*. **Single-use previews**, which are a second counter to race for nothing the expiry does not already bound.
 
-**Decision 11 (hand-off Q4). The IAM change request is the registration's own `change_requested` state.** It is not a new table. Migration 0022 adds `requested_attributes` (what the change request asks for) and `registered_at` (when UBC last registered it). **Once a registration has been active once, `registered_attributes`, `acs_url` and `sloUrl` change only on a record whose resulting state is `active`**, and `entity_id` never changes (§9: *"fixed at registration"*). The build-time check (§7, P6a Task 13) is unchanged, and it becomes honest again: it reads `registered_attributes`, which can no longer hold something only requested (*Read this first* 9). **For a launched app, the gate reads the live registration** (Decision 2): an **added** attribute is `unmet` until UBC's registration covers it, and the reason names the change request and its ticket. **A removal re-escalates, because it is a sensitive change, but does not wait on IAM**, subject to Question 2. *Rejected:* **a `change_requests` table**. §9 modelled the registration's submission state *"precisely so that"* the manual and the programmatic case are one transition with a different driver behind it. **Letting a change request carry its own "registered" set**, which is the overwrite *Read this first* 9 measured. *Changing course* costs a table and a join.
+**Decision 11 (hand-off Q4). The IAM change request is the registration's own `change_requested` state.** It is not a new table. Migration 0022 adds `requested_attributes` (what the change request asks for) and `registered_at` (when UBC last registered it). **Once a registration has been active once, `registered_attributes`, `acs_url` and `sloUrl` change only on a record whose resulting state is `active`**, and `entity_id` never changes (§9: *"fixed at registration"*). The build-time check (§7, P6a Task 13) is unchanged, and it becomes honest again: it reads `registered_attributes`, which can no longer hold something only requested (*Read this first* 9). **For a launched app, the gate reads the live registration** (Decision 2): an **added** attribute is `unmet` until UBC's registration covers it, and the reason names the change request and its ticket. **A removal re-escalates, because it is a sensitive change, but does not wait on IAM** (Rich's answer to Question 2, 2026-09-22). *Rejected:* **a `change_requests` table**. §9 modelled the registration's submission state *"precisely so that"* the manual and the programmatic case are one transition with a different driver behind it. **Letting a change request carry its own "registered" set**, which is the overwrite *Read this first* 9 measured. *Changing course* costs a table and a join.
 
 **Decision 12 (hand-off Q5). The `code-review` item reads the newest verdict recorded for the candidate.** Previews (Task 9) and approvals both record one. `not_performed` reads as `not_built`, `clean` as `met`, and `findings` as `unmet` naming the count, and the item stays **`blocking: false`**. **With nothing recorded**, the item says so and states D33's coverage limit in words: a reviewer runs when an administrator previews an approval, **never for a self-serve release**. *Rejected:* **running the reviewer at readiness time**: the checklist is read on every page load and on every deploy, and a slow or model-backed reviewer there is an outage waiting to happen. **Leaving the item static**, which is P6a's F7: the first real reviewer would report `clean` beside an item that says `not_built`.
 
@@ -255,7 +256,7 @@ Every task's requirements implicitly include this section. Values are copied ver
 - **Never accept a check you have not watched fail.** Every task ends by breaking what it built, **after committing the task**, and naming the test that goes red with its assertion quoted. `git checkout <path>` restores from the index, so an uncommitted task is destroyed by the restore rather than by the experiment. **Predict what turns red before you run it**, because a wrong prediction is itself a finding (P5b sitting 9, F1). **A control that stays green is a question to chase, not a result**: P6a's worst defect, F6, was found only by chasing one.
 - **Every task names its CALLER.** A module with no call site is not built, and this project has shipped one five times.
 - **Ask before `sudo`.** No task in this plan needs it.
-- **Never edit the spec.** It is *Approved design*. This plan's *Spec actions* section proposes one change, and **it may not be applied until Rich approves it**. A spec action is not finished when the spec changes: the four shared HTML pages restate it.
+- **Never edit the spec.** It is *Approved design*. This plan's *Spec actions* section has one change, **approved in substance by Rich on 2026-09-22 and NOT applied**: no sitting applies it unless Rich says to. A spec action is not finished when the spec changes: the four shared HTML pages restate it.
 - **Never touch Laravel Valet.** These four containers must survive: `docker-simple-saml-saml-idp-1`, `qdrant-local-dev`, `mongodb` and `mongo-express`. **`caddy-data` must never be destroyed.**
 - **macOS ships bash 3.2 and a BSD userland**: no associative arrays, no `mapfile`, no `xargs -r`, no `readlink -f`, and `sed -i ''`.
 - **`request.log` writes nothing** under `Fastify({ logger: false })`. Use `console.error`, and never with a secret, a token, a cookie or an assertion in the message.
@@ -1654,9 +1655,9 @@ git commit -m "feat(launch): D9.2 — a launched app's release is self-serve unl
 
 **§9's second production obligation, and the hole Task 1's `[M9]` measured.** Today an administrator filing a change request overwrites the attributes UBC registered with the ones merely requested. From then on the build-time check passes an attribute UBC does not release, and students get a broken login. **This task makes the registration's own `change_requested` state the change request** (Decision 11), and it makes the gate check the *live* registration for every production release of a launched app.
 
-> **Question 2 (Rich) decides one condition in this task**, and nothing else in it: whether a *removal*
-> waits for IAM. The plan builds the recommended answer, **an addition waits and a removal does not**.
-> Control (e) is the switch, and it is predicted.
+> **Rich answered Question 2 on 2026-09-22: an addition waits for IAM, and a removal does not.** That is
+> one condition in this task, and the plan builds it. Control (e) is the switch to the other answer, run
+> as a control and then restored — never kept as the code.
 
 **Files:**
 - Modify: `packages/control-plane/src/db/schema.ts` — `iamRegistrations.requestedAttributes`, `.registeredAt`
@@ -1793,7 +1794,7 @@ Its `why` says, in words:
 - **`expired`**: *"the registration lapsed (D20) — nothing reaches production until it is registered again"*;
 - **`met` with `unused`**: *"UBC still releases <attrs> to this app, which no longer asks for them — a change request would stop it (data minimisation)"*.
 
-**Under the recommended answer to Question 2, a REMOVAL is covered** (`missing` is empty), so this item is `met`. The re-escalation comes from `admin-approval`, because `auth.attributes` is a sensitive field.
+**Under Rich's answer to Question 2, a REMOVAL is covered** (`missing` is empty), so this item is `met`. The re-escalation comes from `admin-approval`, because `auth.attributes` is a sensitive field.
 
 `spec/registered-attributes.ts`: `AttributeDriftError`'s message gains *"— an administrator records it on the project as `change_requested`, with the attributes it asks for"*.
 
@@ -1819,7 +1820,7 @@ git commit -m "feat(launch): §9's IAM change request — what UBC registered ch
 | b | `liveRegistrationItem` accepts `expired` | *an `expired` registration stops every release* red |
 | c | ACS/SLO dropped from `registrationCovers` | both ACS cases red (first launch and launched) |
 | d | `requestedAttributes` not cleared on `active` | *…clears the request* red |
-| e | **Question 2's switch**: `missing.length === 0` becomes *the sets are equal* | *a REMOVAL re-escalates but does not wait on IAM* red (`unmet`). **The one-line switch if Rich chooses (b).** Restore it unless he has |
+| e | **Question 2's other answer**: `missing.length === 0` becomes *the sets are equal* | *a REMOVAL re-escalates but does not wait on IAM* red (`unmet`). **Rich chose (a) on 2026-09-22, so restore it**: this is a control, not a change |
 
 ---
 
@@ -1889,7 +1890,7 @@ export const SECURITY_NOTES: Record<SensitiveField, string> = {
 }
 ```
 
-*(If Rich answers Question 3 with (b) or (c), `ai.models`'s sentence changes and a task is added. Nothing else in this task moves.)*
+*(Rich answered Question 3 on 2026-09-22: a PIA never returns to `draft` automatically. These sentences are therefore how an administrator learns that a PIA may need the Privacy Office again, and the decision is theirs.)*
 
 ```ts
 // releases/approval.ts
@@ -2296,7 +2297,7 @@ git commit -m "feat(journey): P6b's acceptance — make demo-releases: self-serv
 - **Binding the manifest's `blueprint:` to the project's pin** (*Read this first* 4). §7's `blueprint` field re-escalates on the manifest's *claim*, and the build uses `project.blueprintRef`, which no route changes. **The first route that changes a project's pin, a blueprint upgrade, must re-escalate**, and validation should refuse a manifest whose `blueprint:` is not the project's. That second half is a proposed §7 validation rule for whichever plan builds the upgrade.
 - **`startBuild`'s pairing of `body.commitSha` with the newest spec** (*Read this first* 6). A build of commit X can record commit Y's spec. After Decision 6, a release freezes the build's recorded spec, so **no gate reads the mismatch**, but a faculty member could still be confused by it.
 - **D16's *every environment***. A newly requested attribute re-escalates in production (this plan), and the build fails in every environment once a registration exists (P6a Task 13). **Before a registration exists, staging accepts new attributes freely.** D16 says approval is required in every environment. The IdP's `AttributeLimit` bounds what a staging app receives, and staging uses test users (D6). **The divergence is recorded here, not closed.**
-- **A PIA returned to `draft` automatically on a sensitive change**: Question 3's recommended answer.
+- **A PIA returned to `draft` automatically on a sensitive change**: Rich's answer to Question 3 (2026-09-22) is never automatically.
 - **Database-level non-repudiation for `approvals` and `approval_previews`** (P6a sitting 10, F5). Both are insert-only in code and asserted by tests; `manifest_app` still holds `UPDATE` and `DELETE`. The shape to copy is `audit.incidents`'.
 - **A real `Reviewer`** (`SemgrepReviewer`, a tracked hardening item, advisory before blocking), **and its planted-defect corpus** (R4(g)). **`code-review` now reads a verdict, so the day one lands, the checklist shows it.** It becomes blocking in that same change, as D33 says.
 - **A run against real UBC Shibboleth for a *changed* registration.** It is an external-track obligation, exactly as the launch rehearsal's is. **After launch this platform refuses to rehearse at all** (Decision 16).
@@ -2311,7 +2312,7 @@ git commit -m "feat(journey): P6b's acceptance — make demo-releases: self-serv
 
 ## Spec actions
 
-**ONE IS PROPOSED, AND IT MAY NOT BE APPLIED UNTIL RICH APPROVES IT.** Proposing and asking is the pattern here, and every spec change this project has made was approved first. **A spec action is not finished when the spec changes**: `manifest-decisions.html` restates D9 and D16 in plain language, and must be swept with it.
+**ONE. RICH APPROVED IT IN SUBSTANCE ON 2026-09-22 (Question 2, option (a), with the wording below shown beside it), AND IT IS NOT APPLIED.** The session that wrote this plan was told to make no spec edits, so applying it is a separate step Rich authorises. Every spec change this project has made was approved first, and applied only after Rich had read the exact wording. **A spec action is not finished when the spec changes**: `manifest-decisions.html` restates D9 and D16 in plain language, and must be swept with it.
 
 **Not proposed, deliberately:**
 
@@ -2319,17 +2320,17 @@ git commit -m "feat(journey): P6b's acceptance — make demo-releases: self-serv
 - **`projects.launched_at`, `approval_previews` and the new `IamRegistration` columns**. P6a added `rehearsals` without a §6 action. §6 lists *key fields*, and none of these changes a decision.
 - **Decision 8 and Decision 16**, which make true what §13 and §9 already say.
 
-### 1. §13 D9.2's second sentence says *change* where the mechanism means *addition* — conditional on Question 2
+### 1. §13 D9.2's second sentence says *change* where the mechanism means *addition* — APPROVED IN SUBSTANCE 2026-09-22, NOT APPLIED
 
 It currently reads:
 
 > 2. **Subsequent releases** — self-serve, *unless* `spec/isSensitiveDiff()` reports a change to a sensitive field (§7), in which case the release re-escalates. A change to `auth.attributes` additionally requires an IAM change request to reach `active` before the release can deploy (§9).
 
-**Proposed**, if Rich chooses (a):
+**Proposed, and the wording Rich was shown:**
 
 > …A change to `auth.attributes` **that adds an attribute UBC IAM has not registered** additionally requires an IAM change request to reach `active` before the release can deploy (§9). **A removal re-escalates like any sensitive change, and does not wait on IAM**: the app then asks for less than UBC releases, which a change request can narrow later.
 
-**If Rich chooses (b), this action is WITHDRAWN.** Task 7's control (e) becomes the code, and Task 11's leg A files a change request for its removal.
+**When it is applied**, `manifest-decisions.html`'s D9 and D16 cards are swept with it, and the roadmap's *Spec action raised by P6b* section moves to *applied*. *Had Rich chosen (b), this action would have been withdrawn and Task 7's control (e) would have become the code.*
 
 ---
 
