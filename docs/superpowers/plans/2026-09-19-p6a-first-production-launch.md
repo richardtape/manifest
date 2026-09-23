@@ -3728,6 +3728,8 @@ git commit -m "feat: make demo-production — an app reaches production with eve
 
 ### 1. §21's *honest divergences* item 2 — rewritten by R3. **CONDITIONAL on Task 3 landing.**
 
+> **APPROVED BY RICH AND APPLIED, 2026-09-22.** The condition was met in sitting 2. Applied as proposed below with one factual correction: `srv0` serves sandbox, staging **and the platform's own names (the console, the IdP, `edge.`)**, not sandbox and staging alone.
+
 It currently reads:
 
 > 2. Both Caddy listeners are on loopback — there is no real internal/public network separation to enforce (§12).

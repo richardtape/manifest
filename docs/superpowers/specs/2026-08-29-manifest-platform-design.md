@@ -2006,8 +2006,17 @@ production locally carries visible evidence of how it got there.
 Stated so nobody discovers them at the wrong moment:
 
 1. The control plane runs as a host process, not a container.
-2. Both Caddy listeners are on loopback — there is no real internal/public network
-   separation to enforce (§12).
+2. **The two Caddy listeners are real and separate** — `srv0` on `127.0.0.2:443` for
+   sandbox, staging and the platform's own names (the console, the IdP, `edge.`), `srv1`
+   on `127.0.0.3:443` for production — so a route bound to the wrong one is genuinely
+   unreachable and §12's fail-closed claim is tested rather than modelled. **What
+   remains divergent: both addresses are loopback on one host, so there is no network
+   separation to enforce between them** — a process on this machine can reach either,
+   and the separation production provides is topological where this one is only a
+   listener assignment. The **readiness probe** reaches the public listener by port
+   (`:8443` inside the container), because the container-side resolver answers one
+   address for the whole zone; that port is in a probe URL and never in a
+   faculty-facing one.
 3. One Postgres server holds three databases; production separates them.
 4. **Developer laptops are arm64 and UBC infrastructure is x86-64.** Laptop-built
    images are never promoted (§13); CI builds everything that leaves the laptop.

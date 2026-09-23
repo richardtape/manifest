@@ -21,9 +21,9 @@ production launch — IS EXECUTED** (`docs/superpowers/plans/2026-09-19-p6a-firs
 all 19 tasks in the eleven agreed sittings, 2026-09-19 → 2026-09-22): an application reaches
 production with every blocking item honestly met, and `make demo-production` proves it. **P6b —
 subsequent releases — is NEXT, and is to be WRITTEN** from P6a's record; ORIENTATION §7e says how.
-**P6a raised three spec actions: two were approved and APPLIED on 2026-09-22** (§13 names no number of
-sensitive fields; a *person-only* class in §20 and D24), **and one — §21's divergence 2 — is still
-Rich's**, ORIENTATION §8's first entry. **Rich decided on 2026-09-22 that an administrator sees the approval's diff before
+**P6a raised three spec actions and ALL THREE were approved and APPLIED on 2026-09-22**: §13
+names no number of sensitive fields, §20 and D24 gain a *person-only* class, and §21's divergence 2
+now describes the real listener split and what stays divergent. **Rich decided on 2026-09-22 that an administrator sees the approval's diff before
 deciding, as a stored preview the approval binds — in P6b.**
 
 | Plan | Executed | What it made true | Acceptance |

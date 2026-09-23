@@ -71,7 +71,7 @@ everything.
 - **~~Watching the edge's `@outside` refusal go red~~ — CLOSED 2026-09-17, and no longer Rich's.** P5a Task 17's control (a) asked for the refusal to be removed from `infra/caddy/Caddyfile` and the edge reloaded; that weakens a running edge, and this machine's classifier refused it twice as *[Security Weaken]*. **It is now proved two ways that do not weaken anything.** (1) `make verify`'s *the console's one allowed source is the platform network's gateway* reads the **Caddyfile on disk**, so removing the rule was watched turning it red — `platform gateway=10.89.0.1 Caddyfile allows= …` — with no `make up` and the edge never reloaded. (2) `routing/edge-source-refusal.docker.test.ts` starts a **throwaway** `manifest-caddy:local` on the platform network with and without the matcher and asserts the answer changes, so the causal link is re-proved on every `pnpm test:docker` instead of once by hand. Both of its directions were watched failing.
 - **§8's open questions.**
 
-**The spec is current.** Every spike's and every plan's spec actions have been applied with Rich's explicit approval — **most recently P6a's Spec actions 2 and 3 on 2026-09-22 — §13's *Residual risk* names no number of sensitive fields, and §20 and D24 gain a *person-only* class (approving a release, recording UBC's IAM or privacy decision) that no token can hold** — each applied only after Rich read the exact wording, with `manifest-decisions.html` swept to match. **P6a's Spec action 1 (§21's divergence 2) is still open (§8).** Before that, the P6 brief's R4 on 2026-09-19 (D33)., with the four shared HTML pages swept to match (every count 32 → 33). Before that, P5b's four and P5a's six (`491f8be`). **Trust the spec over the spike briefs**, which are preserved as a record of what was originally asked, and **propose any further change; never edit it** (§6).
+**The spec is current.** Every spike's and every plan's spec actions have been applied with Rich's explicit approval — **most recently P6a's Spec actions 2 and 3 on 2026-09-22 — §13's *Residual risk* names no number of sensitive fields, and §20 and D24 gain a *person-only* class (approving a release, recording UBC's IAM or privacy decision) that no token can hold** — each applied only after Rich read the exact wording, with `manifest-decisions.html` swept to match. **And the same day P6a's Spec action 1 — §21's divergence 2 rewritten for the real listener split — so every spec action P6a raised is applied.** Before that, the P6 brief's R4 on 2026-09-19 (D33)., with the four shared HTML pages swept to match (every count 32 → 33). Before that, P5b's four and P5a's six (`491f8be`). **Trust the spec over the spike briefs**, which are preserved as a record of what was originally asked, and **propose any further change; never edit it** (§6).
 
 ---
 
@@ -1972,7 +1972,6 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 
 ### Open
 
-- **P6a's Spec action 1 — §21's *honest divergences* item 2, RAISED 2026-09-19, NOT APPLIED.** It says both Caddy listeners are on loopback with no separation to enforce; P6a's `srv0`/`srv1` split makes its first clause false, so it is **rewritten rather than deleted**, stating what remains divergent (both addresses are still loopback on one host). Its condition — the split landing — is met. The plan's *Spec actions* §1 has the wording. *(Spec actions 2 and 3 were decided AND APPLIED on 2026-09-22 — see Decided.)*
 - **Does the ADMIN CONSOLE get real design effort? — the spec says no, Rich says yes. RAISED
   2026-09-19.** §26's *Scope* reads *"Rudimentary and deliberately so… an operations tool for the
   team running the platform, **not a product surface**, and it inherits `console/`'s quality bar
@@ -2018,6 +2017,8 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 - **Starting the UBC external track (C4)** — the trigger fired 2026-09-15; see §2 and `docs/external-track.md`.
 
 ### Decided
+
+- **§21's *honest divergences* item 2 is REWRITTEN, not deleted** (Rich, 2026-09-22; P6a's Spec action 1): the two Caddy listeners are real and separate — `srv0` on `127.0.0.2` for sandbox, staging and the platform's own names, `srv1` on `127.0.0.3` for production — and what stays divergent is stated: both are loopback on one host, so the separation is a listener assignment rather than a network topology. Applied with one factual correction to the plan's wording (the plan said `srv0` held sandbox and staging only). **With it, every spec action P6a raised is applied.** — do not re-raise
 
 - **§13's *Residual risk* names NO number of sensitive fields** — *"only changes to the sensitive fields §7 lists re-escalate"* — rather than five or seven (Rich, 2026-09-22; P6a's Spec action 3). **APPLIED to the spec on 2026-09-22 after Rich read the exact wording.** — do not re-raise
 
