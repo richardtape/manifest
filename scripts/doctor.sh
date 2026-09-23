@@ -414,7 +414,7 @@ check "base images are IN the local registry, not merely pulled"  check_registry
 # a doctor that fails here would stop an offline developer for the one gate that is
 # explicitly allowed to degrade.
 scanner_db_age() {
-  local built age
+  local built secs tenths
   # Ask GRYPE, not the volume. The v6 database has no metadata.json -- it is
   # `import.json`, `last_update_check` and `vulnerability.db` -- so reading a file
   # by name reports "no database" against a perfectly good one.
@@ -429,9 +429,17 @@ scanner_db_age() {
   fi
   # BSD date. No -d, no --date; and -u, or an ISO-8601 Z timestamp is read as LOCAL
   # time and the age is off by the offset.
-  age=$(( ( $(date +%s) - $(date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$built" +%s 2>/dev/null || echo 0) ) / 86400 ))
-  echo "vulnerability database built $built, ${age} days old (warns above 7, never blocks)"
-  [ "$age" -le 7 ]
+  #
+  # IN SECONDS, NOT WHOLE DAYS (P6b sitting 2). `build/scan.ts` calls a database stale
+  # when its age in FRACTIONAL days is > 7 (`STALENESS_THRESHOLD_DAYS`), and this check
+  # used to floor to whole days and pass up to 8 — so for a whole day every week it
+  # said "fresh" beside a gate that was already warning on every scan. Measured
+  # 2026-09-23: "7 days old", PASS, with the database 7.4 days old and a Docker-tier
+  # test red because every scan had gone stale.
+  secs=$(( $(date +%s) - $(date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$built" +%s 2>/dev/null || echo 0) ))
+  tenths=$(( secs * 10 / 86400 ))
+  echo "vulnerability database built $built, $(( tenths / 10 )).$(( tenths % 10 )) days old (the scan gate calls it stale above 7.0 and warns rather than blocks)"
+  [ "$secs" -le $(( 7 * 86400 )) ]
 }
 check_warn "the vulnerability database is fresh"  scanner_db_age
 

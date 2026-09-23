@@ -68,11 +68,21 @@ describeDocker('SBOM and vulnerability scanning (§12)', () => {
    * FAILS CLOSED, against the same real image. Without a base to compare against,
    * those same findings are all the app's and the build is refused — a scan that
    * cannot tell what the build added must not answer "nothing to worry about".
+   *
+   * **ON ANY DATE** (P6b sitting 2): this asserted `blocked: true` outright, which is
+   * true only while the machine's vulnerability database is at most 7 days old — past
+   * that, §12's staleness rule WARNS rather than blocks, by design and asserted below.
+   * It went red on 2026-09-23 with a database built 2026-09-16T06:30:57Z (7.4 days),
+   * a calendar failure with no code change behind it. The fail-closed half is that
+   * every fixable finding is the APP'S once the base is unknown — which the previous
+   * test's `appFindings: []` is the mirror of — and that holds whatever the database's
+   * age; whether those findings then BLOCK is the staleness rule's to say.
    */
   it('blocks the identical image when the base is unknown', async () => {
     const result = await scanImage(engine, 'node:22-alpine')
     expect(result.baseImageKnown).toBe(false)
-    expect(result.blocked).toBe(true)
+    expect(result.appFindings.length).toBeGreaterThan(0)
+    expect(result.blocked).toBe(!result.stale)
     expect(result.reason).toMatch(/not identified/i)
   })
 
