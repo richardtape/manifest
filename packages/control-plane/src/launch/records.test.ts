@@ -221,6 +221,226 @@ describe('§9’s IAM registration, as an administrator records it (R1)', () => 
   })
 })
 
+/**
+ * §9's CHANGE REQUEST (P6b Task 7, Decision 11): the registration's own `change_requested`
+ * state IS the change request. Once UBC has registered this SP, what it registered —
+ * `registeredAttributes`, the ACS and the SLO — changes only on a record whose resulting state
+ * is `active`, and what is merely ASKED FOR lives in `requestedAttributes`. `[M9]` measured the
+ * hole this closes: filing a change request overwrote the registered set with the requested
+ * one, and the build then passed an attribute UBC does not release.
+ */
+describe('the change request (§9, Decision 11)', () => {
+  /** submitted → active, the real first registration — what every case below starts from. */
+  async function registered(
+    db: Parameters<typeof recordIamRegistration>[0],
+    projectId: string,
+    actor: { id: string; puid: string },
+  ) {
+    await recordIamRegistration(db, bus, {
+      ...IAM,
+      projectId,
+      state: 'submitted',
+      actor,
+    })
+    return recordIamRegistration(db, bus, {
+      ...IAM,
+      projectId,
+      state: 'active',
+      externalTicketRef: 'IAM-2026-0412',
+      actor,
+    })
+  }
+
+  /** The thrown error, or `undefined`, so a test asserts WHAT was refused. */
+  async function refusedWith(write: Promise<unknown>): Promise<LaunchRecordError> {
+    let thrown: unknown
+    try {
+      await write
+    } catch (error) {
+      thrown = error
+    }
+    expect(thrown).toBeInstanceOf(LaunchRecordError)
+    return thrown as LaunchRecordError
+  }
+
+  it('files a change request: active → change_requested keeps what UBC registered and stores what is requested', async () => {
+    // THE POSITIVE CONTROL for every refusal below: a module that refused every write after
+    // `active` would pass them all.
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const active = await registered(db, projectId, actor)
+      expect(active.registeredAt).toBeInstanceOf(Date)
+      expect(active.requestedAttributes).toBeNull()
+
+      const filed = await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'change_requested',
+        requestedAttributes: ['displayName', 'mail', 'sn'],
+        externalTicketRef: 'IAM-2026-0519',
+        actor,
+      })
+      expect(filed.state).toBe('change_requested')
+      // WHAT UBC REGISTERED IS UNCHANGED — `[M9]`'s overwrite, closed.
+      expect(filed.registeredAttributes).toEqual(['displayName', 'mail'])
+      expect(filed.requestedAttributes).toEqual(['displayName', 'mail', 'sn'])
+      expect(filed.registeredAt).toEqual(active.registeredAt)
+      expect(filed.externalTicketRef).toBe('IAM-2026-0519')
+    })
+  })
+
+  it('refuses to change registeredAttributes outside `active` once registered: 400 LAUNCH_RECORD_INVALID — [M9]', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await registered(db, projectId, actor)
+      // `[M9]`'s exact request: the change request's attributes typed as the registered set.
+      const error = await refusedWith(
+        recordIamRegistration(db, bus, {
+          ...IAM,
+          projectId,
+          registeredAttributes: ['displayName', 'mail', 'sn'],
+          requestedAttributes: ['displayName', 'mail', 'sn'],
+          state: 'change_requested',
+          actor,
+        }),
+      )
+      expect(error.code).toBe('LAUNCH_RECORD_INVALID')
+      expect(error.message).toContain('changes only when it registers it')
+      expect(error.hint).toContain('requestedAttributes')
+      // AND NOTHING MOVED: still active, still what UBC registered.
+      const row = await getIamRegistration(db, projectId)
+      expect(row?.state).toBe('active')
+      expect(row?.registeredAttributes).toEqual(['displayName', 'mail'])
+    })
+  })
+
+  it('refuses a change request from `active` that names nothing requested: 400 LAUNCH_RECORD_INVALID', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await registered(db, projectId, actor)
+      const error = await refusedWith(
+        recordIamRegistration(db, bus, {
+          ...IAM,
+          projectId,
+          state: 'change_requested',
+          actor,
+        }),
+      )
+      expect(error.code).toBe('LAUNCH_RECORD_INVALID')
+      expect(error.message).toContain('requestedAttributes')
+      expect((await getIamRegistration(db, projectId))?.state).toBe('active')
+    })
+  })
+
+  it('change_requested → submitted → active records the new registration, clears the request, moves registeredAt', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const first = await registered(db, projectId, actor)
+      const requested = ['displayName', 'mail', 'sn']
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'change_requested',
+        requestedAttributes: requested,
+        actor,
+      })
+      // `submitted` carries the request forward WITHOUT restating it.
+      const submitted = await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'submitted',
+        actor,
+      })
+      expect(submitted.requestedAttributes).toEqual(requested)
+      expect(submitted.registeredAttributes).toEqual(['displayName', 'mail'])
+
+      const again = await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        registeredAttributes: requested,
+        state: 'active',
+        actor,
+      })
+      expect(again.registeredAttributes).toEqual(requested)
+      expect(again.requestedAttributes).toBeNull()
+      expect(again.registeredAt!.getTime()).toBeGreaterThan(first.registeredAt!.getTime())
+    })
+  })
+
+  it('refuses a different entityID once registered: 400 LAUNCH_RECORD_INVALID — §9: fixed at registration', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await registered(db, projectId, actor)
+      // Into `active` — the one state that MAY change what was registered — so the refusal
+      // is the entityID's own and not the registered-set rule's.
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'change_requested',
+        requestedAttributes: ['displayName', 'mail'],
+        actor,
+      })
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'submitted',
+        actor,
+      })
+      const error = await refusedWith(
+        recordIamRegistration(db, bus, {
+          ...IAM,
+          projectId,
+          entityId: 'https://manifest.internal/sp/chem-labs-2/production',
+          state: 'active',
+          actor,
+        }),
+      )
+      expect(error.code).toBe('LAUNCH_RECORD_INVALID')
+      expect(error.message).toContain('entityID is fixed at registration')
+      expect((await getIamRegistration(db, projectId))?.entityId).toBe(IAM.entityId)
+    })
+  })
+
+  it('before the first `active`, registeredAttributes may still be edited — the first registration is P6a’s, unchanged', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'submitted',
+        actor,
+      })
+      // IAM came back with questions: a change of what is being asked for, before UBC has
+      // registered anything — there is no registration yet for a record to misstate.
+      const edited = await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        registeredAttributes: ['displayName', 'mail', 'sn'],
+        state: 'change_requested',
+        actor,
+      })
+      expect(edited.registeredAttributes).toEqual(['displayName', 'mail', 'sn'])
+      expect(edited.registeredAt).toBeNull()
+    })
+  })
+
+  it('re-recording `active` to correct the ticket does not move registeredAt — nothing new was registered', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const first = await registered(db, projectId, actor)
+      const fixed = await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'active',
+        externalTicketRef: 'IAM-2026-0413',
+        actor,
+      })
+      expect(fixed.externalTicketRef).toBe('IAM-2026-0413')
+      expect(fixed.registeredAt).toEqual(first.registeredAt)
+    })
+  })
+})
+
 describe('§9’s privacy assessment, as an administrator records it (R1)', () => {
   it('writes a first record, and the read finds it', async () => {
     await withProject(async (db, { projectId, ownerId }) => {

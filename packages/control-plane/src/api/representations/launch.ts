@@ -91,7 +91,19 @@ export const IamRegistration = representation(
     registeredAttributes: z
       .array(z.string())
       .describe(
-        'WHAT UBC IAM ACTUALLY REGISTERED. A production build fails when a release asks for an attribute that is not in here (§7).',
+        'WHAT UBC IAM ACTUALLY REGISTERED. A production build fails when a release asks for an attribute that is not in here (§7). Once registered, it changes only on a record that reaches `active` — a change UBC has not registered yet is `requestedAttributes`.',
+      ),
+    requestedAttributes: z
+      .array(z.string())
+      .nullable()
+      .describe(
+        'What an outstanding CHANGE REQUEST asks UBC IAM for (§9) — the registration’s own `change_requested` state is the change request. Null when none is outstanding; cleared when the registration is recorded `active` again.',
+      ),
+    registeredAt: z.iso
+      .datetime()
+      .nullable()
+      .describe(
+        'When UBC IAM last registered this Service Provider — set when the record reaches `active`. Null until the first time; a launched app’s releases need it (§13, D9).',
       ),
     state: z.enum(iamRegistrationState.enumValues),
     externalTicketRef: z.string().nullable(),
@@ -145,7 +157,17 @@ export const RecordIamRegistrationRequest = request(
       .array(z.string().min(1))
       .min(1)
       .max(64)
-      .describe('Exactly the attributes UBC IAM registered, as the ticket lists them.'),
+      .describe(
+        'Exactly the attributes UBC IAM registered, as the ticket lists them. Once registered, a record that does not reach `active` must repeat them unchanged.',
+      ),
+    requestedAttributes: z
+      .array(z.string().min(1))
+      .min(1)
+      .max(64)
+      .optional()
+      .describe(
+        'What a change request asks for; required when a registration goes from `active` to `change_requested`.',
+      ),
     state: z
       .enum(iamRegistrationState.enumValues)
       .describe(
@@ -193,6 +215,8 @@ export function toIamRegistration(
     certFingerprint: row.certFingerprint,
     certExpiresAt: row.certExpiresAt === null ? null : row.certExpiresAt.toISOString(),
     registeredAttributes: row.registeredAttributes,
+    requestedAttributes: row.requestedAttributes,
+    registeredAt: row.registeredAt === null ? null : row.registeredAt.toISOString(),
     state: row.state,
     externalTicketRef: row.externalTicketRef,
     updatedAt: row.updatedAt.toISOString(),

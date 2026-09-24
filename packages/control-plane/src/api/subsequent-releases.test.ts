@@ -16,6 +16,9 @@ import type { ServerDeps } from './server.js'
 import {
   approvedProject,
   commitManifest,
+  CWL_LAUNCH_ATTRIBUTES,
+  cwlManifest,
+  launchedCwlProject,
   launchedProject,
   loginAs,
   mutationHeaders,
@@ -795,6 +798,303 @@ describe('the gate for a launched app (D9.2, P6b Task 6)', () => {
     expect(itemOf(view, 'admin-approval')!.title).toBe(
       'Release approved by a platform administrator',
     )
+    await closed(ctx)
+  })
+})
+
+type CwlCtx = Awaited<ReturnType<typeof launchedCwlProject>>
+
+/** UBC IAM's registration as an administrator records it, through the route (`admin` is stepped up). */
+const recordRegistration = (ctx: CwlCtx, body: Record<string, unknown>) =>
+  ctx.app.inject({
+    method: 'POST',
+    url: `/v1/projects/${ctx.project.id}/launch-records/iam-registration`,
+    payload: body,
+    cookies: ctx.admin,
+    headers: mutationHeaders(ctx.deps),
+  })
+
+/** The registration as a member reads it. */
+const registrationOf = async (ctx: CwlCtx) =>
+  (
+    await ctx.app.inject({
+      method: 'GET',
+      url: `/v1/projects/${ctx.project.id}/launch-records`,
+      cookies: ctx.cookies,
+    })
+  ).json().iamRegistration
+
+/**
+ * §9's CHANGE REQUEST, walked to `active` the way UBC answers one: filed `change_requested`
+ * naming what is asked for, then `submitted`, then recorded `active` with what UBC registered
+ * — `requested` unless a case says UBC registered something else, and the ACS unless it moved.
+ */
+async function registerChange(
+  ctx: CwlCtx,
+  change: { requested: readonly string[]; acsUrl?: string },
+): Promise<void> {
+  const asUbcHasIt = { ...ctx.registration, ...(await registered(ctx)) }
+  for (const [state, extra] of [
+    ['change_requested', { requestedAttributes: [...change.requested] }],
+    ['submitted', {}],
+    [
+      'active',
+      {
+        registeredAttributes: [...change.requested],
+        ...(change.acsUrl === undefined ? {} : { acsUrl: change.acsUrl }),
+      },
+    ],
+  ] as const) {
+    const res = await recordRegistration(ctx, { ...asUbcHasIt, ...extra, state })
+    expect(refusal(res), `recording ${state}: ${res.body}`).toEqual({
+      status: 200,
+      code: undefined,
+    })
+  }
+}
+
+/** What UBC has registered right now — what a change request re-sends unchanged. */
+const registered = async (ctx: CwlCtx) => {
+  const row = await registrationOf(ctx)
+  return {
+    registeredAttributes: row.registeredAttributes as string[],
+    acsUrl: row.acsUrl as string,
+    sloUrl: row.sloUrl as string,
+  }
+}
+
+/**
+ * A build, awaited to its END — succeeded or failed — as a client reads it. With `lines`, that
+ * manifest is committed and validated first; without, the last validated manifest is built again.
+ */
+async function buildOf(
+  ctx: CwlCtx,
+  lines?: readonly string[],
+): Promise<{ id: string; status: string; error: string | null }> {
+  if (lines !== undefined) await commitManifest(ctx, lines, 'feat: the next release')
+  const started = await ctx.app.inject({
+    method: 'POST',
+    url: `/v1/projects/${ctx.project.id}/builds`,
+    payload: {},
+    cookies: ctx.cookies,
+    headers: mutationHeaders(ctx.deps),
+  })
+  expect(started.statusCode, started.body).toBe(202)
+  await ctx.deps.builds.idle()
+  return (
+    await ctx.app.inject({
+      method: 'GET',
+      url: `/v1/builds/${started.json().id}`,
+      cookies: ctx.cookies,
+    })
+  ).json()
+}
+
+async function releaseOf(ctx: CwlCtx, buildId: string): Promise<{ id: string }> {
+  const made = await ctx.app.inject({
+    method: 'POST',
+    url: `/v1/projects/${ctx.project.id}/releases`,
+    payload: { buildId },
+    cookies: ctx.cookies,
+    headers: mutationHeaders(ctx.deps),
+  })
+  expect(made.statusCode, made.body).toBe(201)
+  return made.json()
+}
+
+/**
+ * §9's SECOND PRODUCTION OBLIGATION FOR A LAUNCHED CWL APP (P6b Task 7). Once launched, every
+ * production release is checked against the LIVE registration — what UBC IAM registered, which
+ * changes only when UBC registers something new (Decision 11): an ADDED attribute waits for the
+ * change request to come back `active`, a REMOVED one re-escalates but waits on nobody (Rich,
+ * Question 2), a moved ACS waits for UBC, and a lapsed registration stops everything.
+ *
+ * Over `launchedCwlProject`'s two labelled fakes — the subject is the gate, not the IdP (the
+ * fixture says why that is acceptable here and nowhere else).
+ */
+describe('a launched CWL app’s live registration (§9, D9.2, P6b Task 7)', () => {
+  const TWO = [...CWL_LAUNCH_ATTRIBUTES]
+  const THREE = [...CWL_LAUNCH_ATTRIBUTES, 'sn']
+
+  it('a release that ADDS an attribute: its BUILD fails (§7), naming the change request', async () => {
+    const ctx = await launchedCwlProject('iam-add')
+    const built = await buildOf(ctx, cwlManifest('iam-add', THREE))
+    expect(built.status).toBe('failed')
+    expect(built.error).toContain('SPEC_ATTRIBUTE_NOT_REGISTERED')
+    expect(built.error).toContain(': sn.')
+    // §9's pre-generated change request says how it is RECORDED, not only "raise one".
+    expect(built.error).toContain('change_requested')
+    await closed(ctx)
+  })
+
+  it('while the change request is change_requested or submitted, the build still fails — UBC has not registered it', async () => {
+    const ctx = await launchedCwlProject('iam-pending')
+    const filed = await recordRegistration(ctx, {
+      ...ctx.registration,
+      state: 'change_requested',
+      requestedAttributes: THREE,
+      externalTicketRef: 'IAM-CR-7',
+    })
+    expect(refusal(filed)).toEqual({ status: 200, code: undefined })
+    // THE TWO NEW FIELDS, READ BY NAME (sitting 4, F8): a field the representation forgets
+    // is stripped, not dropped, and nothing but a read by name sees it.
+    const record = await registrationOf(ctx)
+    expect(record).toMatchObject({
+      state: 'change_requested',
+      registeredAttributes: TWO,
+      requestedAttributes: THREE,
+    })
+    expect(record.registeredAt).toEqual(expect.any(String))
+
+    const whileRequested = await buildOf(ctx, cwlManifest('iam-pending', THREE))
+    expect(whileRequested.status).toBe('failed')
+    expect(whileRequested.error).toContain(': sn.')
+    expect(whileRequested.error).toContain("'change_requested'")
+    expect(whileRequested.error).toContain('IAM-CR-7')
+
+    const submitted = await recordRegistration(ctx, {
+      ...ctx.registration,
+      state: 'submitted',
+      externalTicketRef: 'IAM-CR-7',
+    })
+    expect(refusal(submitted)).toEqual({ status: 200, code: undefined })
+    const whileSubmitted = await buildOf(ctx)
+    expect(whileSubmitted.status).toBe('failed')
+    expect(whileSubmitted.error).toContain("'submitted'")
+    await closed(ctx)
+  })
+
+  it('once it is active with the attribute, the build passes, and the release RE-ESCALATES (auth.attributes)', async () => {
+    const ctx = await launchedCwlProject('iam-granted')
+    const before = (await registrationOf(ctx)).registeredAt
+    await registerChange(ctx, { requested: THREE })
+    const record = await registrationOf(ctx)
+    expect(record.registeredAttributes).toEqual(THREE)
+    expect(record.requestedAttributes).toBeNull()
+    expect(Date.parse(record.registeredAt)).toBeGreaterThan(Date.parse(before))
+
+    const built = await buildOf(ctx, cwlManifest('iam-granted', THREE))
+    expect(built.status, built.error ?? '').toBe('succeeded')
+    const release = await releaseOf(ctx, built.id)
+    await stage(ctx, release.id)
+    const read = (await readinessOf(ctx)).json()
+    expect(itemOf(read, 'iam-registration')!.state).toBe('met')
+    expect(read).toMatchObject({
+      reescalated: true,
+      sensitiveFields: ['auth.attributes'],
+    })
+    expect(unmetBlocking(read)).toEqual(['admin-approval'])
+    expect(refusal(await promote(ctx, release.id))).toEqual({
+      status: 409,
+      code: 'RELEASE_REESCALATED',
+    })
+    await closed(ctx)
+  })
+
+  it('a release built BEFORE the registration shrank is refused by the live check, naming what is missing', async () => {
+    const ctx = await launchedCwlProject('iam-shrunk')
+    await registerChange(ctx, { requested: THREE })
+    const built = await buildOf(ctx, cwlManifest('iam-shrunk', THREE))
+    expect(built.status, built.error ?? '').toBe('succeeded')
+    const release = await releaseOf(ctx, built.id)
+    await stage(ctx, release.id)
+    // UBC then REMOVED `sn` from the registration, and an administrator records what it has.
+    await registerChange(ctx, { requested: TWO })
+
+    const read = (await readinessOf(ctx)).json()
+    const iam = itemOf(read, 'iam-registration')!
+    expect(iam.state).toBe('unmet')
+    expect(iam.why).toContain('sn')
+    const refused = await promote(ctx, release.id)
+    expect(refusal(refused)).toEqual({
+      status: 409,
+      code: 'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
+    })
+    expect(await servingProduction(ctx)).toBe(ctx.launched.id)
+    await closed(ctx)
+  })
+
+  it('a REMOVAL re-escalates but does not wait on IAM, and says UBC still releases what the app stopped asking for', async () => {
+    const ctx = await launchedCwlProject('iam-removal')
+    const built = await buildOf(ctx, cwlManifest('iam-removal', ['ubcEduCwlPuid']))
+    expect(built.status, built.error ?? '').toBe('succeeded')
+    const release = await releaseOf(ctx, built.id)
+    await stage(ctx, release.id)
+
+    const read = (await readinessOf(ctx)).json()
+    const iam = itemOf(read, 'iam-registration')!
+    expect(iam.state).toBe('met')
+    expect(iam.why).toContain('mail')
+    expect(iam.why).toContain('no longer asks')
+    expect(read).toMatchObject({
+      reescalated: true,
+      sensitiveFields: ['auth.attributes'],
+    })
+    expect(unmetBlocking(read)).toEqual(['admin-approval'])
+    expect(refusal(await promote(ctx, release.id))).toEqual({
+      status: 409,
+      code: 'RELEASE_REESCALATED',
+    })
+    // An administrator's approval is the whole of what it waits for.
+    await decide(ctx, release.id, 'approve', 'dropping mail is data minimisation')
+    const deployed = await promote(ctx, release.id)
+    expect(refusal(deployed)).toEqual({ status: 200, code: undefined })
+    expect(deployed.json()).toMatchObject({ releaseId: release.id, state: 'healthy' })
+    await closed(ctx)
+  })
+
+  it('an `expired` registration stops every release, self-serve included', async () => {
+    const ctx = await launchedCwlProject('iam-expired')
+    const rebuilt = await nextRelease(ctx)
+    await stage(ctx, rebuilt.id)
+    // THE POSITIVE HALF, in the same test: before the lapse this identical rebuild is
+    // self-serve, so the refusal below is the expiry's and nothing else's.
+    expect((await readinessOf(ctx)).json()).toMatchObject({ ready: true })
+
+    const lapsed = await recordRegistration(ctx, {
+      ...ctx.registration,
+      state: 'expired',
+    })
+    expect(refusal(lapsed)).toEqual({ status: 200, code: undefined })
+    const iam = itemOf((await readinessOf(ctx)).json(), 'iam-registration')!
+    expect(iam.state).toBe('unmet')
+    expect(iam.why).toContain('lapsed')
+    expect(refusal(await promote(ctx, rebuilt.id))).toEqual({
+      status: 409,
+      code: 'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
+    })
+    await closed(ctx)
+  })
+
+  it('an auth.callback change — a new ACS UBC never registered — is refused until the registration says so', async () => {
+    const ctx = await launchedCwlProject('iam-acs')
+    const built = await buildOf(
+      ctx,
+      cwlManifest('iam-acs', TWO, ['  callback: /auth/saml/callback']),
+    )
+    expect(built.status, built.error ?? '').toBe('succeeded')
+    const release = await releaseOf(ctx, built.id)
+    await stage(ctx, release.id)
+    const moved = `https://${ctx.production.hostname}/auth/saml/callback`
+
+    const read = (await readinessOf(ctx)).json()
+    const iam = itemOf(read, 'iam-registration')!
+    expect(iam.state).toBe('unmet')
+    expect(iam.why).toContain(moved)
+    expect(iam.why).toContain(ctx.registration.acsUrl)
+    // `auth.callback` is not one of §7's sensitive fields: no administrator is asked. The
+    // ACS is UBC's to register, and that is the whole of what this release waits for.
+    expect(read).toMatchObject({ reescalated: false, sensitiveFields: [] })
+    expect(refusal(await promote(ctx, release.id))).toEqual({
+      status: 409,
+      code: 'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
+    })
+
+    await registerChange(ctx, { requested: TWO, acsUrl: moved })
+    const deployed = await promote(ctx, release.id)
+    expect(refusal(deployed)).toEqual({ status: 200, code: undefined })
+    expect(deployed.json()).toMatchObject({ releaseId: release.id, state: 'healthy' })
+    expect(await approvalsOf(ctx, release.id)).toEqual([])
     await closed(ctx)
   })
 })

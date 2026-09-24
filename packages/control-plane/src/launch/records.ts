@@ -47,6 +47,12 @@ export interface RecordIamInput {
   acsUrl: string
   sloUrl: string
   registeredAttributes: string[]
+  /**
+   * What a CHANGE REQUEST asks UBC IAM for (§9, P6b Decision 11). Required when a registration
+   * goes from `active` to `change_requested`; carried forward by a later record that omits it;
+   * cleared when the record reaches `active`.
+   */
+  requestedAttributes?: string[] | undefined
   state: IamState
   externalTicketRef?: string | undefined
   certFingerprint?: string | undefined
@@ -121,6 +127,62 @@ export async function recordIamRegistration(
   const from: IamState = existing?.state ?? 'draft'
   const state = input.state === from ? from : iamTransition(from, input.state)
 
+  /**
+   * §9's CHANGE REQUEST (P6b Decision 11): once UBC has registered this SP, what it registered
+   * — the attributes, the ACS and the SLO — changes ONLY on a record that says UBC registered
+   * something new, which is a record whose resulting state is `active`. Anything else would
+   * make this row claim a registration UBC has not made (`[M9]`: filing a change request typed
+   * the requested set in as the registered one, and §7's build-time check reads exactly this
+   * column). What is merely asked for is `requestedAttributes`.
+   *
+   * **BEFORE THE FIRST `active` NOTHING HERE APPLIES**: UBC has registered nothing yet, so there
+   * is no registration for a record to misstate, and P6a's first registration is unchanged.
+   */
+  const registeredValuesChange =
+    existing === undefined ||
+    !sameAttributeSet(input.registeredAttributes, existing.registeredAttributes) ||
+    input.acsUrl !== existing.acsUrl ||
+    input.sloUrl !== existing.sloUrl
+  if (existing?.registeredAt != null) {
+    if (input.entityId !== existing.entityId)
+      throw new LaunchRecordError(
+        'LAUNCH_RECORD_INVALID',
+        'the entityID is fixed at registration (§9): a new one is a new registration, not a change',
+        'Record the entityID UBC IAM registered.',
+      )
+    if (state !== 'active' && registeredValuesChange)
+      throw new LaunchRecordError(
+        'LAUNCH_RECORD_INVALID',
+        'what UBC IAM registered changes only when it registers it: record the registration ' +
+          "'active' with the new values. A change it has not registered yet is requestedAttributes",
+        'Keep registeredAttributes, acsUrl and sloUrl as UBC has them; put what you are asking for in requestedAttributes.',
+      )
+  }
+  if (
+    from === 'active' &&
+    state === 'change_requested' &&
+    (input.requestedAttributes?.length ?? 0) === 0
+  )
+    throw new LaunchRecordError(
+      'LAUNCH_RECORD_INVALID',
+      'a change request names what it asks for: requestedAttributes',
+      'List every attribute the app will ask for once UBC IAM agrees.',
+    )
+  // Cleared on `active`: UBC has answered, and what it registered is now the registration.
+  const requestedAttributes =
+    state === 'active'
+      ? null
+      : (input.requestedAttributes ?? existing?.requestedAttributes ?? null)
+  /**
+   * WHEN UBC LAST REGISTERED IT — moved by a record that REACHES `active`, or that changes what
+   * an `active` record says UBC registered. **Not by a ticket correction on an `active` record**:
+   * nothing new was registered, and a launched app's checklist says *registered since* from it.
+   */
+  const registeredAt =
+    state === 'active' && (from !== 'active' || registeredValuesChange)
+      ? new Date()
+      : (existing?.registeredAt ?? null)
+
   const [row] = await db
     .insert(iamRegistrations)
     .values({
@@ -129,6 +191,8 @@ export async function recordIamRegistration(
       acsUrl: input.acsUrl,
       sloUrl: input.sloUrl,
       registeredAttributes: input.registeredAttributes,
+      requestedAttributes,
+      registeredAt,
       state,
       recordedBy: input.actor.id,
       ...(input.externalTicketRef === undefined
@@ -148,6 +212,8 @@ export async function recordIamRegistration(
         acsUrl: input.acsUrl,
         sloUrl: input.sloUrl,
         registeredAttributes: input.registeredAttributes,
+        requestedAttributes,
+        registeredAt,
         state,
         recordedBy: input.actor.id,
         externalTicketRef: input.externalTicketRef ?? null,
@@ -183,6 +249,12 @@ export async function recordIamRegistration(
     makeRedactor([]),
   )
   return row!
+}
+
+/** Two attribute lists name the same set — order and repeats are not a change (§9 compares sets). */
+function sameAttributeSet(a: readonly string[], b: readonly string[]): boolean {
+  const key = (xs: readonly string[]) => [...new Set(xs)].sort().join('\u0000')
+  return key(a) === key(b)
 }
 
 export async function recordPrivacyAssessment(

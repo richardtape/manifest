@@ -423,7 +423,7 @@ export interface paths {
         put?: never;
         /**
          * Record what UBC IAM registered
-         * @description §9, D19 and R1: an administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. P8 will submit these programmatically; the object and its states do not change when it does.
+         * @description §9, D19 and R1: an administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. **A change request is the registration’s own `change_requested` state**: once UBC has registered the SP, `registeredAttributes`, `acsUrl` and `sloUrl` change only on a record that reaches `active`, the entityID never changes, and what is asked for goes in `requestedAttributes` — required when filing one from `active` (`LAUNCH_RECORD_INVALID` otherwise). P8 will submit these programmatically; the object and its states do not change when it does.
          */
         post: operations["recordIamRegistration"];
         delete?: never;
@@ -1724,8 +1724,12 @@ export interface components {
             certFingerprint: string | null;
             /** @description D20: an unnoticed expiry silently kills login for a live course app. */
             certExpiresAt: string | null;
-            /** @description WHAT UBC IAM ACTUALLY REGISTERED. A production build fails when a release asks for an attribute that is not in here (§7). */
+            /** @description WHAT UBC IAM ACTUALLY REGISTERED. A production build fails when a release asks for an attribute that is not in here (§7). Once registered, it changes only on a record that reaches `active` — a change UBC has not registered yet is `requestedAttributes`. */
             registeredAttributes: string[];
+            /** @description What an outstanding CHANGE REQUEST asks UBC IAM for (§9) — the registration’s own `change_requested` state is the change request. Null when none is outstanding; cleared when the registration is recorded `active` again. */
+            requestedAttributes: string[] | null;
+            /** @description When UBC IAM last registered this Service Provider — set when the record reaches `active`. Null until the first time; a launched app’s releases need it (§13, D9). */
+            registeredAt: string | null;
             /** @enum {string} */
             state: "draft" | "submitted" | "active" | "change_requested" | "expired";
             externalTicketRef: string | null;
@@ -1968,8 +1972,10 @@ export interface components {
             entityId: string;
             acsUrl: string;
             sloUrl: string;
-            /** @description Exactly the attributes UBC IAM registered, as the ticket lists them. */
+            /** @description Exactly the attributes UBC IAM registered, as the ticket lists them. Once registered, a record that does not reach `active` must repeat them unchanged. */
             registeredAttributes: string[];
+            /** @description What a change request asks for; required when a registration goes from `active` to `change_requested`. */
+            requestedAttributes?: string[];
             /**
              * @description The state this record should now be in. It is reached along §9’s arrows from wherever it is — a first write into `active` is refused exactly as a later one is.
              * @enum {string}

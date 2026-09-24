@@ -10,7 +10,11 @@ import {
 import type { ScanSummary } from '../runtime/index.js'
 import { unregisteredAttributes, type SensitiveField } from '../spec/index.js'
 import { candidateFor, type LaunchCandidate } from './candidate.js'
-import { getIamRegistration, getPrivacyAssessment } from './records.js'
+import {
+  getIamRegistration,
+  getPrivacyAssessment,
+  type IamRegistrationRow,
+} from './records.js'
 import { rehearsalItem } from './rehearsal.js'
 
 /**
@@ -106,6 +110,22 @@ export async function computeLaunchReadiness(
     candidate?.build.scan as ScanSummary | null | undefined,
     candidate !== undefined,
   )
+  const [production] = await db
+    .select()
+    .from(environments)
+    .where(eq(environments.projectId, projectId))
+    .then((rows) => rows.filter((e) => e.kind === 'production'))
+  // WHAT THE CANDIDATE WOULD REGISTER IN PRODUCTION (P6b Task 7) — the one shape both IAM
+  // items compare with what UBC registered, derived as `deriveSpEntity` and `rehearsalItem`
+  // derive it. Undefined with nothing serving staging, when there is nothing to compare.
+  const would =
+    candidate === undefined || production === undefined
+      ? undefined
+      : {
+          acsUrl: `https://${production.hostname}${candidate.auth.callback}`,
+          sloUrl: `https://${production.hostname}${candidate.auth.logout}`,
+          attributes: candidate.auth.attributes,
+        }
 
   /**
    * **D9's SECOND CLAUSE (P6b Task 6, Decision 2)**: once an app has launched, a release goes
@@ -113,13 +133,14 @@ export async function computeLaunchReadiness(
    * a different list — so the gate and the read still cannot disagree. `rehearsal` is gone:
    * after a launch a rehearsal would put an unapproved release on the live listener, and it
    * is refused outright (Decision 16). `admin-approval` reads Task 5's rule — the SAME
-   * verdict `deployRelease` reads.
+   * verdict `deployRelease` reads. `iam-registration` becomes the LIVE check (Task 7): what
+   * UBC registered, for every production release and not only the first.
    */
   if (project?.launchedAt != null) {
     const approval = await releaseApprovalItem(db, candidate)
     const items: LaunchItem[] = [
       { ...DOMAIN_ITEM },
-      await iamItem(db, projectId, usesCwl, candidateAuth?.attributes ?? []),
+      await liveRegistrationItem(db, projectId, usesCwl, would),
       await piaItem(db, projectId),
       scans,
       approval.item,
@@ -138,14 +159,9 @@ export async function computeLaunchReadiness(
     }
   }
 
-  const [production] = await db
-    .select()
-    .from(environments)
-    .where(eq(environments.projectId, projectId))
-    .then((rows) => rows.filter((e) => e.kind === 'production'))
   const items: LaunchItem[] = [
     { ...DOMAIN_ITEM },
-    await iamItem(db, projectId, usesCwl, candidateAuth?.attributes ?? []),
+    await iamItem(db, projectId, usesCwl, would),
     await piaItem(db, projectId),
     // D21, as R2 redefines it (P6a Task 14): met by the MEASUREMENT `runRehearsal` wrote,
     // and `unmet` again the moment the candidate would register something else.
@@ -257,9 +273,10 @@ const CODE_REVIEW_ITEM: LaunchItem = {
  * about a row an administrator recorded from what UBC IAM said:
  *
  *  - `met` when the app signs nobody in with CWL — there is nothing to register.
- *  - `met` when a recorded registration is `active` AND the candidate release asks for a
- *    subset of what it registered (§7's last production clause, P6a Task 13).
- *  - `unmet` when it is `active` and the candidate asks for more, naming what is missing.
+ *  - `met` when a recorded registration is `active` AND it covers the candidate release — a
+ *    subset of what it registered (§7's last production clause, P6a Task 13), at the ACS and
+ *    SLO UBC registered (P6b Task 7, `[M10]`); `registrationCovers` is the one statement.
+ *  - `unmet` when it is `active` and does not cover the candidate, naming each gap.
  *  - `unmet` when one exists and is not yet active, naming the state and the ticket, so
  *    the owner can chase it rather than wonder.
  *  - `unmet` when none exists at all — **NOT `not_built`**, which said "Manifest does not
@@ -272,62 +289,210 @@ async function iamItem(
   db: Db,
   projectId: string,
   usesCwl: boolean,
-  /** What the CANDIDATE release asks for — its frozen config, never the latest spec. */
-  requested: readonly string[],
+  /** What the CANDIDATE would register in production — its frozen config, never the latest spec. */
+  would: RegistrationShape | undefined,
 ): Promise<LaunchItem> {
-  const base = {
-    id: 'iam-registration' as const,
-    title: 'Registered with UBC IAM',
-    blocking: true,
-  }
-  if (!usesCwl)
-    return {
-      ...base,
-      owner: 'UBC IAM',
-      state: 'met',
-      why: 'This app does not sign people in with CWL, so it needs no IAM registration.',
-    }
+  if (!usesCwl) return { ...NOT_CWL_ITEM }
   const row = await getIamRegistration(db, projectId)
-  const owner = 'UBC IAM, recorded by a platform administrator (§9)'
-  const ticket = (ref: string | null) => (ref === null ? '' : ` (ticket ${ref})`)
   if (row === undefined)
     return {
-      ...base,
-      owner,
+      ...IAM_BASE,
       state: 'unmet',
       why: 'Every production app that signs people in with CWL needs its own IAM registration (§9, C4), with a multi-week lead time. Nothing has been recorded for this project yet — an administrator records what UBC IAM said, with the ticket reference.',
     }
   if (row.state === 'active') {
     /**
-     * **`active` IS NOT ENOUGH — THE CANDIDATE MUST ASK FOR A SUBSET OF IT** (§7, §9, P6a
-     * Task 13). `finishBuild` refuses drift, but only when a registration exists at build
-     * time, and §9 makes the other order the normal one: a faculty member builds for staging
-     * for the weeks IAM takes, the administrator records the answer, and the release serving
-     * staging — built before the registration existed, so never checked — is what §13 would
-     * promote without rebuilding. Measured `met` for a candidate asking for `sn` against a
-     * registration of `[ubcEduCwlPuid, mail]` before this branch existed.
+     * **`active` IS NOT ENOUGH — THE CANDIDATE MUST BE COVERED BY IT** (§7, §9). `finishBuild`
+     * refuses attribute drift only when a registration exists at build time, and §9 makes the
+     * other order the normal one — so the release serving staging, built before UBC answered,
+     * is compared here (P6a Task 13). **And since P6b Task 7 its ACS and SLO are too** (`[M10]`):
+     * a recorded ACS naming `wrong.example` read `met`, and so did the rehearsal whose own
+     * sentence says it proved the ACS URL. After this, recorded = derived = rehearsed.
      */
-    const missing = unregisteredAttributes(requested, row.registeredAttributes)
-    if (missing.length > 0)
-      return {
-        ...base,
-        owner,
-        state: 'unmet',
-        why: `The release serving staging asks for CWL attribute(s) UBC IAM did not register: ${missing.join(', ')}. Registered: ${[...row.registeredAttributes].sort().join(', ')}. A production release may request only what was registered (§7, §9), or students hit a broken login on launch day — raise an IAM change request${row.externalTicketRef === null ? '' : ` against ${row.externalTicketRef}`}, or remove the attribute(s) from auth.attributes and build again.`,
-      }
+    if (would !== undefined) {
+      const coverage = registrationCovers(row, would)
+      if (!coverage.covers)
+        return {
+          ...IAM_BASE,
+          state: 'unmet',
+          why: coverageGap(row, would, coverage, 'The release serving staging'),
+        }
+    }
     return {
-      ...base,
-      owner,
+      ...IAM_BASE,
       state: 'met',
       why: `Registered as ${row.entityId}, active${ticket(row.externalTicketRef)}, releasing ${row.registeredAttributes.length} attribute(s).`,
     }
   }
   return {
-    ...base,
-    owner,
+    ...IAM_BASE,
     state: 'unmet',
     why: `The registration is '${row.state}'${ticket(row.externalTicketRef)} and must be 'active' before a first production launch (§9).`,
   }
+}
+
+/**
+ * §13's `iam-registration` for a LAUNCHED app (P6b Task 7, Decision 2) — the LIVE check, for
+ * every production release and not only the first (§7's last production clause says *"for a
+ * production release"*). Met when:
+ *
+ *  - UBC has registered this SP at least once (`registeredAt`) — a change request on file does
+ *    not unregister it, so a launched app keeps shipping while one is outstanding, as long as
+ *    what it ships is covered by what UBC registered;
+ *  - the registration has not lapsed (`expired`, D20);
+ *  - and it COVERS the candidate: every attribute asked for is registered, and the ACS and SLO
+ *    are the ones UBC registered.
+ *
+ * **A REMOVED attribute is covered** (Rich's answer to Question 2, 2026-09-22): it waits for
+ * nobody here, and re-escalates through `admin-approval`, because `auth.attributes` is one of
+ * §7's sensitive fields. The item says UBC still releases it, which is the data-minimisation
+ * reason to file a change request anyway.
+ */
+async function liveRegistrationItem(
+  db: Db,
+  projectId: string,
+  usesCwl: boolean,
+  would: RegistrationShape | undefined,
+): Promise<LaunchItem> {
+  if (!usesCwl) return { ...NOT_CWL_ITEM }
+  const row = await getIamRegistration(db, projectId)
+  if (row === undefined)
+    return {
+      ...IAM_BASE,
+      state: 'unmet',
+      why: 'This app has launched and signs people in with CWL, but no IAM registration is recorded for it — nothing reaches production until an administrator records what UBC IAM registered (§9).',
+    }
+  if (row.registeredAt === null)
+    return {
+      ...IAM_BASE,
+      state: 'unmet',
+      why: `UBC IAM has never been recorded registering this app: the registration is '${row.state}'${ticket(row.externalTicketRef)}. Nothing reaches production until an administrator records it 'active' (§9).`,
+    }
+  if (row.state === 'expired')
+    return {
+      ...IAM_BASE,
+      state: 'unmet',
+      why: `The registration lapsed (D20)${ticket(row.externalTicketRef)} — nothing reaches production until UBC IAM registers it again and an administrator records it 'active' (§9).`,
+    }
+  const since = `since ${row.registeredAt.toISOString().slice(0, 10)}`
+  if (would === undefined)
+    return {
+      ...IAM_BASE,
+      state: 'met',
+      why: `Registered with UBC IAM as ${row.entityId} ${since}${ticket(row.externalTicketRef)}.${changeRequestOnFile(row)}`,
+    }
+  const coverage = registrationCovers(row, would)
+  if (!coverage.covers)
+    return {
+      ...IAM_BASE,
+      state: 'unmet',
+      why: coverageGap(row, would, coverage, 'This release'),
+    }
+  return {
+    ...IAM_BASE,
+    state: 'met',
+    why:
+      `Registered as ${row.entityId} ${since}, releasing ${row.registeredAttributes.length} attribute(s): this release asks for nothing more, at the ACS and SLO UBC registered.` +
+      (coverage.unused.length === 0
+        ? ''
+        : ` UBC IAM still releases ${[...coverage.unused].sort().join(', ')} to this app, which no longer asks for them — a change request would stop it (data minimisation).`) +
+      changeRequestOnFile(row),
+  }
+}
+
+/** What a release would register in production — what UBC's registration must cover (§9). */
+export interface RegistrationShape {
+  acsUrl: string
+  sloUrl: string
+  attributes: readonly string[]
+}
+
+/**
+ * DOES WHAT UBC REGISTERED COVER WHAT THIS RELEASE WOULD REGISTER? (P6b Task 7) — THE ONE
+ * STATEMENT OF *COVERS*, read by both `iamItem` (a first launch) and `liveRegistrationItem`
+ * (a launched app), so the two checklists cannot disagree about it.
+ *
+ * Every attribute asked for must be registered (a subset, the same rule as the build's —
+ * `unregisteredAttributes` is its one statement), and the ACS and SLO must be exactly the
+ * registered ones: the IdP posts assertions and logout requests to what UBC holds, not to what
+ * the app now says. `unused` is what UBC still releases that the app stopped asking for — not a
+ * gap, and reported so a person can decide to narrow the registration.
+ *
+ * **Not the entityID**: it is `<entity base>/sp/<slug>/production`, which no release can move
+ * (`rehearsalCovers` says the same), and `records.ts` refuses a record that changes it.
+ */
+export function registrationCovers(
+  row: Pick<IamRegistrationRow, 'acsUrl' | 'sloUrl' | 'registeredAttributes'>,
+  would: RegistrationShape,
+): {
+  covers: boolean
+  missing: string[]
+  unused: string[]
+  acsDiffers: boolean
+  sloDiffers: boolean
+} {
+  const missing = unregisteredAttributes(would.attributes, row.registeredAttributes)
+  const unused = row.registeredAttributes.filter((a) => !would.attributes.includes(a))
+  const acsDiffers = row.acsUrl !== would.acsUrl
+  const sloDiffers = row.sloUrl !== would.sloUrl
+  return {
+    covers: missing.length === 0 && !acsDiffers && !sloDiffers,
+    missing,
+    unused,
+    acsDiffers,
+    sloDiffers,
+  }
+}
+
+/** Why a registration does not cover a release, in words — one sentence per gap. */
+function coverageGap(
+  row: IamRegistrationRow,
+  would: RegistrationShape,
+  coverage: ReturnType<typeof registrationCovers>,
+  subject: string,
+): string {
+  const sentences: string[] = []
+  if (coverage.missing.length > 0)
+    sentences.push(
+      `${subject} asks for CWL attribute(s) UBC IAM did not register: ${coverage.missing.join(', ')}. Registered: ${[...row.registeredAttributes].sort().join(', ')}. A production release may request only what was registered (§7, §9), or students hit a broken login — ${
+        row.requestedAttributes === null
+          ? `raise an IAM change request${row.externalTicketRef === null ? '' : ` against ${row.externalTicketRef}`} (an administrator records it here as 'change_requested', with requestedAttributes), or remove the attribute(s) from auth.attributes and build again.`
+          : `a change request is on file ('${row.state}'${ticket(row.externalTicketRef)}, asking for ${[...row.requestedAttributes].sort().join(', ')}); this release waits for UBC IAM to register it and an administrator to record it 'active'.`
+      }`,
+    )
+  if (coverage.acsDiffers)
+    sentences.push(
+      `auth.callback moves the ACS to ${would.acsUrl}, but UBC IAM registered ${row.acsUrl} — sign-in responses would be posted where the app does not listen. Raise an IAM change request for the new ACS; it goes to production once an administrator records the registration 'active'.`,
+    )
+  if (coverage.sloDiffers)
+    sentences.push(
+      `auth.logout moves the SLO to ${would.sloUrl}, but UBC IAM registered ${row.sloUrl} — a sign-out would not reach the app. Raise an IAM change request for the new SLO.`,
+    )
+  return sentences.join(' ')
+}
+
+/** A change request on file, said once, for a registration that is otherwise covering. */
+function changeRequestOnFile(row: IamRegistrationRow): string {
+  if (row.requestedAttributes === null) return ''
+  return ` A change request is on file ('${row.state}'${ticket(row.externalTicketRef)}, asking for ${[...row.requestedAttributes].sort().join(', ')}); until UBC registers it, releases are checked against what it registered.`
+}
+
+const ticket = (ref: string | null) => (ref === null ? '' : ` (ticket ${ref})`)
+
+/** Both IAM items' shared fields. */
+const IAM_BASE = {
+  id: 'iam-registration' as const,
+  title: 'Registered with UBC IAM',
+  owner: 'UBC IAM, recorded by a platform administrator (§9)',
+  blocking: true,
+}
+
+/** Both clauses: an app that signs nobody in registers nothing. */
+const NOT_CWL_ITEM: LaunchItem = {
+  ...IAM_BASE,
+  owner: 'UBC IAM',
+  state: 'met',
+  why: 'This app does not sign people in with CWL, so it needs no IAM registration.',
 }
 
 /**
@@ -508,7 +673,6 @@ async function piaItem(db: Db, projectId: string): Promise<LaunchItem> {
     blocking: true,
   }
   const row = await getPrivacyAssessment(db, projectId)
-  const ticket = (ref: string | null) => (ref === null ? '' : ` (ticket ${ref})`)
   if (row === undefined)
     return {
       ...base,
@@ -527,7 +691,9 @@ async function piaItem(db: Db, projectId: string): Promise<LaunchItem> {
   return {
     ...base,
     state: 'unmet',
-    why: `The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before a first production launch (§9).`,
+    // BOTH CLAUSES (P6b sitting 4, F14): §9 blocks production until the PIA is approved, so
+    // a launched app whose PIA went back to `draft` stops shipping too — not only a first launch.
+    why: `The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production (§9).`,
   }
 }
 

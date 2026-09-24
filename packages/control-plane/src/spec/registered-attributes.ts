@@ -60,7 +60,16 @@ export function unregisteredAttributes(
 export function assertRegisteredAttributes(
   requested: readonly string[],
   registered: readonly string[],
-  context: { slug: string; ticketRef: string | null },
+  context: {
+    slug: string
+    ticketRef: string | null
+    /**
+     * A CHANGE REQUEST ON FILE (P6b Task 7): the registration's state and what it asks for,
+     * or null when none is outstanding. `[M9]` measured this message telling an owner to
+     * raise a change request AGAINST the change request — so when one is on file, it says so.
+     */
+    changeRequest?: { state: string; requested: readonly string[] } | null
+  },
 ): void {
   if (registered.length === 0)
     throw new AttributeDriftError(
@@ -70,13 +79,22 @@ export function assertRegisteredAttributes(
     )
   const missing = unregisteredAttributes(requested, registered)
   if (missing.length === 0) return
+  const pending = context.changeRequest ?? null
   throw new AttributeDriftError(
     `manifest.yaml asks for ${missing.length} CWL attribute(s) UBC IAM did not register ` +
       `for '${context.slug}': ${missing.join(', ')}. Registered: ` +
       `${[...new Set(registered)].sort().join(', ')}.`,
     'A production release must request a subset of what UBC IAM registered (§7, §9) — ' +
-      'otherwise students hit a broken login on launch day. Raise an IAM change request' +
-      `${context.ticketRef === null ? '' : ` against ${context.ticketRef}`} for the ` +
-      'missing attribute(s), or remove them from auth.attributes.',
+      'otherwise students hit a broken login on launch day. ' +
+      (pending === null
+        ? 'Raise an IAM change request' +
+          `${context.ticketRef === null ? '' : ` against ${context.ticketRef}`} for the ` +
+          "missing attribute(s) — an administrator records it on the project as 'change_requested', " +
+          'with the attributes it asks for — or remove them from auth.attributes.'
+        : `A change request is on file ('${pending.state}'` +
+          `${context.ticketRef === null ? '' : `, ticket ${context.ticketRef}`}, asking for ` +
+          `${[...new Set(pending.requested)].sort().join(', ')}): UBC IAM has not registered it yet, ` +
+          "and this builds once an administrator records the registration 'active'. Or remove " +
+          'them from auth.attributes.'),
   )
 }

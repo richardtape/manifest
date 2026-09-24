@@ -99,8 +99,30 @@ function IamRecord({ record }: { record: Schemas['IamRegistration'] | null }) {
       <Field label="SLO">
         <code>{record.sloUrl}</code>
       </Field>
+      {/*
+       * WHAT UBC REGISTERED AND WHAT A CHANGE REQUEST ASKS FOR, SIDE BY SIDE and never merged
+       * (P6b Task 7). The first is what every production release is checked against; the
+       * second is only a question UBC has not answered yet (§9, `[M9]`).
+       */}
       <Field label="Registered attributes">
         {[...record.registeredAttributes].sort().join(', ')}
+      </Field>
+      <Field label="Requested attributes">
+        {record.requestedAttributes === null ? (
+          'no change request on file'
+        ) : (
+          <>
+            {[...record.requestedAttributes].sort().join(', ')}{' '}
+            <span className="hint">— asked for, not yet registered</span>
+          </>
+        )}
+      </Field>
+      <Field label="Registered since">
+        {record.registeredAt === null ? (
+          'UBC IAM has not registered it yet'
+        ) : (
+          <Instant at={record.registeredAt} />
+        )}
       </Field>
       <Field label="Certificate">
         {record.certFingerprint === null ? (
@@ -199,6 +221,12 @@ function IamForm({
   const [attributes, setAttributes] = useState(
     current === null ? '' : current.registeredAttributes.join(', '),
   )
+  const [requestedList, setRequestedList] = useState(
+    current?.requestedAttributes?.join(', ') ?? '',
+  )
+  // §9's change request is the registration's own `change_requested` state (P6b Task 7), and
+  // `submitted` carries it forward — the only two states in which asking is what is recorded.
+  const asking = state === 'change_requested' || state === 'submitted'
   const [fingerprint, setFingerprint] = useState(current?.certFingerprint ?? '')
   const [expires, setExpires] = useState(current?.certExpiresAt?.slice(0, 10) ?? '')
   const [busy, setBusy] = useState(false)
@@ -220,6 +248,9 @@ function IamForm({
           acsUrl,
           sloUrl,
           registeredAttributes: listOf(attributes),
+          ...(asking && listOf(requestedList).length > 0
+            ? { requestedAttributes: listOf(requestedList) }
+            : {}),
           // OPTIONAL IN THE DOCUMENT, so absent rather than empty
           // (`exactOptionalPropertyTypes`): an empty string is a value the schema refuses.
           ...(fingerprint === '' ? {} : { certFingerprint: fingerprint }),
@@ -282,6 +313,19 @@ function IamForm({
           required
         />
       </Field>
+      {asking && (
+        <Field label="Requested attributes">
+          <input
+            value={requestedList}
+            onChange={(e) => setRequestedList(e.target.value)}
+            placeholder="what the change request asks UBC IAM for"
+          />{' '}
+          <span className="hint">
+            once UBC has registered this app, the registered list above stays as UBC has
+            it until it registers the change — record it <code>active</code> then
+          </span>
+        </Field>
+      )}
       <p className="hint">
         <strong>Requested</strong> by the release serving staging, for comparison only:{' '}
         {requested === undefined ? (

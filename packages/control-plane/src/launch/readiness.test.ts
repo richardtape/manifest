@@ -42,16 +42,28 @@ async function serving(
   buildScan: unknown,
   /** The CWL attributes the candidate release asks for — FROZEN in its resolved config. */
   attributes: string[] = [],
+  /**
+   * P6b Task 7: a PRODUCTION environment at this hostname, and the frozen `callback` and
+   * `logout` — what the candidate would register in production, which `iam-registration`
+   * now compares with what UBC recorded (`[M10]`). Absent, the project has no production
+   * environment, and the item compares attributes only, as every older case here expects.
+   */
+  production?: { hostname: string; callback: string; logout: string },
 ): Promise<string> {
   await tx.insert(environments).values({
     projectId,
     kind: 'staging',
     hostname: `${projectId.slice(0, 8)}.staging.manifest.internal`,
   })
+  if (production !== undefined)
+    await tx
+      .insert(environments)
+      .values({ projectId, kind: 'production', hostname: production.hostname })
   const [env] = await tx
     .select()
     .from(environments)
     .where(eq(environments.projectId, projectId))
+    .then((rows) => rows.filter((e) => e.kind === 'staging'))
   const [spec] = await tx
     .insert(appSpecs)
     .values({
@@ -74,7 +86,13 @@ async function serving(
     })
     .returning()
   const resolved = {
-    auth: { provider: 'cwl', attributes },
+    auth: {
+      provider: 'cwl',
+      attributes,
+      ...(production === undefined
+        ? {}
+        : { callback: production.callback, logout: production.logout }),
+    },
     ai: { models: [] },
     env: [],
     services: [],
@@ -105,6 +123,17 @@ async function serving(
 }
 
 /**
+ * The production environment every real project has (P6b Task 7), with the `callback` and
+ * `logout` whose derived URLs are exactly what `recordIam` below records — so a case that
+ * passes this is one whose registration matches the candidate unless it says otherwise.
+ */
+const PRODUCTION = {
+  hostname: 'chem-labs.manifest.internal',
+  callback: '/auth/saml/callback',
+  logout: '/auth/logout',
+}
+
+/**
  * The rows written DIRECTLY, not through `recordIamRegistration`: this file is about what
  * the checklist READS, and `records.test.ts` is about how a row gets there. Going through
  * the write path would make a readiness failure ambiguous between the two.
@@ -115,6 +144,8 @@ async function recordIam(
   ownerId: string,
   state: 'draft' | 'submitted' | 'active' | 'change_requested' | 'expired',
   externalTicketRef: string | null,
+  /** What UBC recorded, where a case needs it to differ (P6b Task 7's `[M10]`). */
+  overrides: { acsUrl?: string; sloUrl?: string } = {},
 ): Promise<void> {
   await tx.insert(iamRegistrations).values({
     projectId,
@@ -125,6 +156,10 @@ async function recordIam(
     state,
     externalTicketRef,
     recordedBy: ownerId,
+    // P6b Task 7: a row written `active` was REGISTERED. The launched branch's live check
+    // reads this; the first launch's does not.
+    ...(state === 'active' ? { registeredAt: new Date() } : {}),
+    ...overrides,
   })
 }
 
@@ -228,7 +263,14 @@ describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task
    */
   it('iam-registration: unmet when the release serving staging asks for an attribute UBC did not register', async () => {
     await withProject(async (tx, { projectId, ownerId }) => {
-      await serving(tx, projectId, ownerId, scan(1, false), ['ubcEduCwlPuid', 'sn'])
+      await serving(
+        tx,
+        projectId,
+        ownerId,
+        scan(1, false),
+        ['ubcEduCwlPuid', 'sn'],
+        PRODUCTION,
+      )
       await recordIam(tx, projectId, ownerId, 'active', 'IAM-4471')
       const iam = (await computeLaunchReadiness(tx, projectId)).items.find(
         (i) => i.id === 'iam-registration',
@@ -244,12 +286,61 @@ describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task
     // The positive control for the test above, with a CANDIDATE — the `met when active` test
     // has none, so it would pass against an item that refused every release it could see.
     await withProject(async (tx, { projectId, ownerId }) => {
-      await serving(tx, projectId, ownerId, scan(1, false), ['mail'])
+      await serving(tx, projectId, ownerId, scan(1, false), ['mail'], PRODUCTION)
       await recordIam(tx, projectId, ownerId, 'active', 'IAM-4471')
       const iam = (await computeLaunchReadiness(tx, projectId)).items.find(
         (i) => i.id === 'iam-registration',
       )!
       expect(iam.state).toBe('met')
+    })
+  })
+
+  /**
+   * **`[M10]`** (P6b Task 7): nothing compared the ACS an administrator RECORDED from UBC with
+   * the one the release would register in production, so a registration naming
+   * `wrong.example` read `met` — and so did the rehearsal, whose own sentence says it proved
+   * the ACS URL. The candidate's production ACS is `https://<production hostname><callback>`,
+   * which is how `deriveSpEntity` and `rehearsalItem` both build it.
+   */
+  it('iam-registration is unmet when the recorded ACS is not the one this release derives — [M10]', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(tx, projectId, ownerId, scan(1, false), ['mail'], PRODUCTION)
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-4471', {
+        acsUrl: 'https://wrong.example/acs',
+      })
+      const iam = (await computeLaunchReadiness(tx, projectId)).items.find(
+        (i) => i.id === 'iam-registration',
+      )!
+      expect(iam.state).toBe('unmet')
+      expect(iam.why).toContain('https://wrong.example/acs')
+      expect(iam.why).toContain('https://chem-labs.manifest.internal/auth/saml/callback')
+    })
+  })
+
+  it('…and met when it is (the positive control in the same file)', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(tx, projectId, ownerId, scan(1, false), ['mail'], PRODUCTION)
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-4471')
+      const iam = (await computeLaunchReadiness(tx, projectId)).items.find(
+        (i) => i.id === 'iam-registration',
+      )!
+      expect(iam.state).toBe('met')
+    })
+  })
+
+  it('iam-registration is unmet when the recorded SLO is not the one this release derives', async () => {
+    // The SLO half of the same comparison: the IdP sends a LogoutRequest to what UBC
+    // registered, so a moved `auth.logout` is a sign-out that never reaches the app.
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(tx, projectId, ownerId, scan(1, false), ['mail'], PRODUCTION)
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-4471', {
+        sloUrl: 'https://chem-labs.manifest.internal/logout',
+      })
+      const iam = (await computeLaunchReadiness(tx, projectId)).items.find(
+        (i) => i.id === 'iam-registration',
+      )!
+      expect(iam.state).toBe('unmet')
+      expect(iam.why).toContain('https://chem-labs.manifest.internal/logout')
     })
   })
 

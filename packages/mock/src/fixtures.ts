@@ -445,7 +445,7 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
       owner: 'UBC Privacy Office, recorded by a platform administrator (§9)',
       blocking: true,
       state: 'unmet',
-      why: "The assessment is 'submitted' (ticket PIA-2026-0088) and must be 'approved' before a first production launch (§9).",
+      why: "The assessment is 'submitted' (ticket PIA-2026-0088) and must be 'approved' before anything goes to production (§9).",
     },
     {
       id: 'rehearsal',
@@ -664,6 +664,9 @@ export const IAM_REGISTRATION: Schemas['IamRegistration'] = {
   // is met when the request is a SUBSET — and is the case a screen must not render as a
   // mismatch.
   registeredAttributes: ['givenName', 'mail', 'sn', 'ubcEduCwlPuid'],
+  // P6b Task 7: no change request outstanding, and registered once — an `active` record's shape.
+  requestedAttributes: null,
+  registeredAt: '2026-09-15T00:00:00.000Z',
   state: 'active',
   externalTicketRef: 'IAM-2026-0412',
   updatedAt: '2026-09-20T00:00:00.000Z',

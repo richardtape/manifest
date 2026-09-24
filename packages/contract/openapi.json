@@ -1312,7 +1312,7 @@
           "launch"
         ],
         "summary": "Record what UBC IAM registered",
-        "description": "§9, D19 and R1: an administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. P8 will submit these programmatically; the object and its states do not change when it does.",
+        "description": "§9, D19 and R1: an administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. **A change request is the registration’s own `change_requested` state**: once UBC has registered the SP, `registeredAttributes`, `acsUrl` and `sloUrl` change only on a record that reaches `active`, the entityID never changes, and what is asked for goes in `requestedAttributes` — required when filing one from `active` (`LAUNCH_RECORD_INVALID` otherwise). P8 will submit these programmatically; the object and its states do not change when it does.",
         "parameters": [
           {
             "name": "projectId",
@@ -6000,11 +6000,38 @@
             ]
           },
           "registeredAttributes": {
-            "description": "WHAT UBC IAM ACTUALLY REGISTERED. A production build fails when a release asks for an attribute that is not in here (§7).",
+            "description": "WHAT UBC IAM ACTUALLY REGISTERED. A production build fails when a release asks for an attribute that is not in here (§7). Once registered, it changes only on a record that reaches `active` — a change UBC has not registered yet is `requestedAttributes`.",
             "type": "array",
             "items": {
               "type": "string"
             }
+          },
+          "requestedAttributes": {
+            "description": "What an outstanding CHANGE REQUEST asks UBC IAM for (§9) — the registration’s own `change_requested` state is the change request. Null when none is outstanding; cleared when the registration is recorded `active` again.",
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "registeredAt": {
+            "description": "When UBC IAM last registered this Service Provider — set when the record reaches `active`. Null until the first time; a launched app’s releases need it (§13, D9).",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "state": {
             "type": "string",
@@ -6041,6 +6068,8 @@
           "certFingerprint",
           "certExpiresAt",
           "registeredAttributes",
+          "requestedAttributes",
+          "registeredAt",
           "state",
           "externalTicketRef",
           "updatedAt"
@@ -6958,7 +6987,17 @@
             "maxLength": 512
           },
           "registeredAttributes": {
-            "description": "Exactly the attributes UBC IAM registered, as the ticket lists them.",
+            "description": "Exactly the attributes UBC IAM registered, as the ticket lists them. Once registered, a record that does not reach `active` must repeat them unchanged.",
+            "minItems": 1,
+            "maxItems": 64,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "requestedAttributes": {
+            "description": "What a change request asks for; required when a registration goes from `active` to `change_requested`.",
             "minItems": 1,
             "maxItems": 64,
             "type": "array",

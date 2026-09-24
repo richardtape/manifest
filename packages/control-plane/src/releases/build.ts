@@ -319,6 +319,8 @@ async function assertAttributesRegistered(db: Db, input: StartBuildInput): Promi
     .select({
       attributes: iamRegistrations.registeredAttributes,
       ticketRef: iamRegistrations.externalTicketRef,
+      state: iamRegistrations.state,
+      requested: iamRegistrations.requestedAttributes,
     })
     .from(iamRegistrations)
     .where(eq(iamRegistrations.projectId, input.projectId))
@@ -331,7 +333,15 @@ async function assertAttributesRegistered(db: Db, input: StartBuildInput): Promi
   assertRegisteredAttributes(
     auth?.provider === 'cwl' ? auth.attributes : [],
     registration.attributes,
-    { slug: input.projectSlug, ticketRef: registration.ticketRef },
+    {
+      slug: input.projectSlug,
+      ticketRef: registration.ticketRef,
+      // P6b Task 7: a change request on file is named rather than asked for again (`[M9]`).
+      changeRequest:
+        registration.requested === null
+          ? null
+          : { state: registration.state, requested: registration.requested },
+    },
   )
 }
 

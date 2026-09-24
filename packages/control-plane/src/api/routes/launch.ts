@@ -83,7 +83,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Record what UBC IAM registered',
     description:
-      '§9, D19 and R1: an administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. P8 will submit these programmatically; the object and its states do not change when it does.',
+      '§9, D19 and R1: an administrator records the Service Provider UBC IAM registered, with the ticket reference pasted in. The state is reached along §9’s arrows from wherever the record is, so a first write straight into `active` is refused exactly as a later one is. **A change request is the registration’s own `change_requested` state**: once UBC has registered the SP, `registeredAttributes`, `acsUrl` and `sloUrl` change only on a record that reaches `active`, the entityID never changes, and what is asked for goes in `requestedAttributes` — required when filing one from `active` (`LAUNCH_RECORD_INVALID` otherwise). P8 will submit these programmatically; the object and its states do not change when it does.',
     params: z.strictObject({ projectId: z.uuid() }),
     query: NO_QUERY,
     body: RecordIamRegistrationRequest,
@@ -118,6 +118,7 @@ export const launchRoutes = [
           acsUrl: body.acsUrl,
           sloUrl: body.sloUrl,
           registeredAttributes: body.registeredAttributes,
+          requestedAttributes: body.requestedAttributes,
           state: body.state,
           externalTicketRef: body.externalTicketRef,
           certFingerprint: body.certFingerprint,

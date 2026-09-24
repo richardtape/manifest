@@ -499,6 +499,20 @@ export const iamRegistrations = pgTable(
      * way and the list is validated where it is written.
      */
     registeredAttributes: jsonb('registered_attributes').notNull().$type<string[]>(),
+    /**
+     * WHAT A CHANGE REQUEST ASKS UBC IAM FOR (§9, P6b Decision 11) — the registration's own
+     * `change_requested` state IS the change request. Null when none is outstanding; cleared
+     * when UBC's answer is recorded `active`. Once this SP has been registered,
+     * `registered_attributes` changes only on a record that reaches `active`, so what is
+     * merely asked for lives here and never there (`[M9]`).
+     */
+    requestedAttributes: jsonb('requested_attributes').$type<string[]>(),
+    /**
+     * When UBC last REGISTERED this SP — set when a record reaches `active`, or changes what an
+     * `active` record says UBC registered. Null until the first time; a launched app's live
+     * registration check requires it (P6b Task 7).
+     */
+    registeredAt: timestamp('registered_at', { withTimezone: true }),
     state: iamRegistrationState('state').notNull().default('draft'),
     /** §15's submission-state hook: "a human submits and pastes a ticket reference". */
     externalTicketRef: text('external_ticket_ref'),

@@ -22,12 +22,14 @@ import {
 } from '../identity/testing.js'
 import {
   controlPlaneSpEntity,
+  deriveSpEntity,
   describeKeypair,
   mintSpKeypair,
+  type SpEntity,
   type SpKeypair,
 } from '../sso/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
-import { createEventBus } from '../observability/index.js'
+import { createEventBus, makeRedactor, publishEvent } from '../observability/index.js'
 import { randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -396,6 +398,235 @@ export async function launchedProject(slug: string) {
       `the production deploy answered ${deployed.statusCode}: ${deployed.body}`,
     )
   return { ...approved, owner, launched: deployed.json() }
+}
+
+/**
+ * THE TWO LABELLED FAKES A CWL APP NEEDS IN THIS TIER (P6b Task 7), and nowhere else.
+ *
+ * `testDeps()` refuses a CWL deploy and a rehearsal ON PURPOSE (its `sso` and `signIn` throw,
+ * *"move that test to the Docker tier"*), because a harness that quietly answered would make
+ * a registration and a sign-in properties of the fake. **That stays true for every test but
+ * these**: the subject of `launchedCwlProject`'s callers is D9.2's GATE over a launched CWL
+ * app — what the checklist and the deploy do with a registration UBC recorded — never the
+ * registration or the sign-in themselves. The real IdP is driven by
+ * `releases/production.docker.test.ts` and by P6b's acceptance, which is where a claim about
+ * either belongs.
+ *
+ * The registrar DERIVES the entity with the real `deriveSpEntity` (so the ACS, SLO and
+ * attributes are the platform's own derivation, not the fake's) and publishes the same
+ * `sso.registered` event the real one does, because `runRehearsal` reads the registration
+ * back off that event. The probe answers a passing sign-in releasing EXACTLY what was
+ * registered at the ACS it is asked about — and nothing at all for an ACS nobody registered.
+ */
+export function cwlFakes(deps: ServerDeps): Pick<ServerDeps, 'sso' | 'signIn'> {
+  const registered = new Map<string, SpEntity>()
+  return {
+    sso: {
+      registerServiceProvider: async (db, input) => {
+        const entity = deriveSpEntity({
+          ...input,
+          entityBase: deps.config.idp.spEntityBase,
+        })
+        registered.set(entity.acsUrl, entity)
+        const { keypair } = await testSamlMaterial()
+        await publishEvent(
+          db,
+          deps.bus,
+          {
+            projectId: input.projectId,
+            subject: `sp:${input.slug}:${input.environmentKind}`,
+            type: 'sso.registered',
+            machineDetail: {
+              entityId: entity.entityId,
+              acsUrl: entity.acsUrl,
+              attributes: entity.attributes,
+              certificateFingerprint: keypair.fingerprint,
+              changed: true,
+            },
+            humanMessage: `Single sign-on was set up for ${input.slug} in ${input.environmentKind} (the unit tier's labelled fake).`,
+          },
+          makeRedactor([]),
+        )
+        return { entity, keypair, changed: true }
+      },
+      idpSigningCertificate: async () => (await testSamlMaterial()).idp.certificatePem,
+    },
+    signIn: {
+      signIn: (input) => {
+        const entity = registered.get(input.acsUrl)
+        return Promise.resolve(
+          entity === undefined
+            ? {
+                status: null,
+                attributesReleased: [],
+                reason: `the unit tier's fake IdP holds no registration for ${input.acsUrl}`,
+              }
+            : {
+                status: 302,
+                attributesReleased: [...entity.attributes],
+                reason:
+                  'the unit tier’s labelled fake released exactly what was registered',
+              },
+        )
+      },
+    },
+  }
+}
+
+/** The CWL attributes `launchedCwlProject` launches with — a subset of the whitelist (§7). */
+export const CWL_LAUNCH_ATTRIBUTES = ['ubcEduCwlPuid', 'mail'] as const
+
+/**
+ * A minimal CWL manifest for `node-ts-mongo@1` — the one blueprint in this tier whose
+ * descriptor offers `auth_providers: [cwl]` (`fixture-node@1` offers `none` only). No
+ * services and no models, so nothing here reaches a database or LiteLLM.
+ */
+export const cwlManifest = (
+  slug: string,
+  attributes: readonly string[],
+  extra: readonly string[] = [],
+): string[] => [
+  'manifest: 1',
+  `name: ${slug}`,
+  'blueprint: node-ts-mongo@1',
+  'runtime:',
+  '  port: 3000',
+  '  health: /healthz',
+  'auth:',
+  '  provider: cwl',
+  `  attributes: [${attributes.join(', ')}]`,
+  ...extra,
+]
+
+/**
+ * A LAUNCHED CWL APP, every step through the ROUTES a person uses (P6b Task 7): created,
+ * a CWL manifest committed, built, released and deployed to staging; UBC IAM's registration
+ * recorded `submitted` then `active` with exactly the values the platform derives for its
+ * production hostname; the PIA approved; D21's rehearsal run and passed; the release approved
+ * by a stepped-up administrator; and deployed to production by the stepped-up owner — which
+ * is what records the launch (Decision 1). Over `cwlFakes`, and for the reason given there.
+ *
+ * Returns what `launchedProject` does, plus `registration` — the values recorded, so a test
+ * that files a change request re-sends them as UBC has them.
+ */
+export async function launchedCwlProject(slug: string) {
+  const base = await testDeps()
+  const deps: ServerDeps = { ...base, ...cwlFakes(base) }
+  const app = await buildServer(deps)
+  const cookies = await loginAs(deps, 'bio_prof')
+  const call = async (
+    method: 'POST' | 'GET',
+    url: string,
+    as: Record<string, string>,
+    payload?: unknown,
+    expected = 200,
+  ) => {
+    const res = await app.inject({
+      method,
+      url,
+      cookies: as,
+      ...(method === 'POST'
+        ? { payload: payload ?? {}, headers: mutationHeaders(deps) }
+        : {}),
+    })
+    if (res.statusCode !== expected)
+      throw new Error(`${method} ${url} answered ${res.statusCode}: ${res.body}`)
+    return res.json()
+  }
+  const project = await call(
+    'POST',
+    '/v1/projects',
+    cookies,
+    projectBody(slug, { blueprint: 'node-ts-mongo@1' }),
+    201,
+  )
+  await commitManifest(
+    { app, deps, cookies, project },
+    cwlManifest(slug, CWL_LAUNCH_ATTRIBUTES),
+    'feat: sign in with CWL',
+  )
+  const started = await call(
+    'POST',
+    `/v1/projects/${project.id}/builds`,
+    cookies,
+    {},
+    202,
+  )
+  await deps.builds.idle()
+  const build = await call('GET', `/v1/builds/${started.id}`, cookies)
+  if (build.status !== 'succeeded')
+    throw new Error(`the CWL build did not succeed: ${JSON.stringify(build)}`)
+  const release = await call(
+    'POST',
+    `/v1/projects/${project.id}/releases`,
+    cookies,
+    { buildId: build.id },
+    201,
+  )
+  const env = (kind: string) =>
+    project.environments.find((e: { kind: string }) => e.kind === kind)
+  const staging = env('staging')
+  const production = env('production')
+  const staged = await call('POST', `/v1/environments/${staging.id}/deploy`, cookies, {
+    releaseId: release.id,
+  })
+  if (staged.state !== 'healthy')
+    throw new Error(`the CWL staging deploy was not healthy: ${JSON.stringify(staged)}`)
+
+  const admin = await loginAs(deps, 'platform_admin', { steppedUp: true })
+  const registration = {
+    entityId: `${deps.config.idp.spEntityBase}/sp/${slug}/production`,
+    acsUrl: `https://${production.hostname}/auth/ubcshib/callback`,
+    sloUrl: `https://${production.hostname}/auth/logout`,
+    registeredAttributes: [...CWL_LAUNCH_ATTRIBUTES],
+    externalTicketRef: `IAM-${slug}`,
+  }
+  for (const state of ['submitted', 'active'] as const)
+    await call(
+      'POST',
+      `/v1/projects/${project.id}/launch-records/iam-registration`,
+      admin,
+      { ...registration, state },
+    )
+  for (const state of ['submitted', 'approved'] as const)
+    await call(
+      'POST',
+      `/v1/projects/${project.id}/launch-records/privacy-assessment`,
+      admin,
+      { state, reviewer: 'K. Privacy', externalTicketRef: `PIA-${slug}` },
+    )
+  const rehearsal = await call('POST', `/v1/projects/${project.id}/rehearsal`, admin)
+  if (rehearsal.passed !== true)
+    throw new Error(`the rehearsal did not pass: ${JSON.stringify(rehearsal)}`)
+  await call(
+    'POST',
+    `/v1/releases/${release.id}/approve`,
+    admin,
+    { reason: 'the checklist is met and the registration is what UBC recorded' },
+    201,
+  )
+  const owner = await loginAs(deps, 'bio_prof', { steppedUp: true })
+  const launched = await call('POST', `/v1/environments/${production.id}/deploy`, owner, {
+    releaseId: release.id,
+  })
+  if (launched.state !== 'healthy')
+    throw new Error(
+      `the CWL production deploy was not healthy: ${JSON.stringify(launched)}`,
+    )
+  return {
+    app,
+    deps,
+    cookies,
+    project,
+    build,
+    release,
+    staging,
+    production,
+    admin,
+    owner,
+    launched,
+    registration,
+  }
 }
 
 /**
