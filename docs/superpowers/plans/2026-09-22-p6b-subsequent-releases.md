@@ -4218,7 +4218,7 @@ containers=6 networks=2 volumes=4`, `runtime routes currently applied: 1`. **Cle
 script sweeps them. The four protected containers are present, `manifest-caddy-data` intact, both loopback aliases on
 `lo0`, `docker-simple-saml`'s only dirty path its untracked `cert.zip`. **The snapshot diff, open → close, is 172 lines,
 every one Manifest's own** — the platform's containers restarted by the reset, `launch-app`'s instances, images, free disk
-**115 → 107 GiB**, and `HEAD`. **Chrome**: one tab left in the Claude group, on the console, signed in as the operator.
+**115 → 107 GiB**, and `HEAD`. **Chrome**: the Claude tab group was closed at the end; the browser's own `manifest.internal` cookies are whatever Rich's last sign-in left (the operator).
 
 **The four HTML pages were checked and not changed**: no spec action was applied. **Spec action 1 stays approved in
 substance and NOT applied** — Rich's to say.
