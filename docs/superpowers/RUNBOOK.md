@@ -294,7 +294,7 @@ none is hypothetical.
 | Node reaches the edge but `curl` does not, or vice versa | Trust is needed in **three** places, not two: the macOS keychain, container trust stores, and `NODE_EXTRA_CA_CERTS` for host Node processes. Without it Node gives `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` while `curl` on the same URL is fine. |
 | A build fails on `failed to resolve source metadata` | The base image is not in the local registry. `make seed`. Pulling alone is not enough — BuildKit cannot see the daemon's cache. |
 | `docker push` hangs | You used `localhost`. It resolves to `::1`. Use `127.0.0.1`. |
-| The console streams nothing, with no error | `default-chat` is pointed at a *thinking* model. Its reasoning arrives as `reasoning_content`, which clients discard. Measured: 0 content frames and 472 reasoning frames from a 4B thinking model asked to count to five. Use a non-thinking model. |
+| The console streams nothing, with no error | `default-chat` is a *thinking* model with thinking ON. Its reasoning arrives as `reasoning_content`, which clients discard. Measured: 0 content frames and 472 reasoning frames from a 4B thinking model asked to count to five (and 0 in 260 from `qwen3.5:4b` on 2026-09-24). **`default-chat` IS `qwen3.5:4b` since 2026-09-24**, and it answers only because each chat mapping in `infra/litellm/config.yaml` sets `reasoning_effort: none` (Ollama `think: false`) — check that line is there, edited in place, and that `docker exec manifest-litellm grep reasoning_effort /app/config.yaml` shows it. **An app that sends its own `reasoning_effort` (anything but `none`) overrides the mapping** and gets the same empty answer — measured 2026-09-24. |
 | An embedding "works" but retrieval is nonsense | The caller omitted `encoding_format: 'float'` and got 192 zeros instead of 768 floats. LiteLLM's Ollama path ignores the parameter, so a client's base64 default decodes to rubbish. |
 | The egress proxy 403s correctly but requests near it fail with `Empty reply from server` | tinyproxy exits after serving a denial unless `DefaultErrorFile` is set, and `restart: unless-stopped` hides it. `make verify` checks the restart count across a denial. |
 | **Nothing** resolves — not `.test`, not `manifest.internal`, not `google.com` — while `nc -z 127.0.0.1 53` succeeds | Valet's dnsmasq is hung in `sendto` to an upstream nameserver. It is single-threaded, so one stuck send freezes everything it serves. `sudo launchctl kickstart -k system/homebrew.mxcl.dnsmasq`, then `sudo killall -HUP mDNSResponder`. Nothing to do with Manifest, which uses port 7153. |
@@ -369,7 +369,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 19 / 0 and `make verify` 55 / 0**
-(**Three were re-measured at the close of the D5 plan's sitting 1, 2026-09-24, which changed no code: `pnpm test` **1742 passed** in 123 files (unmoved), `make doctor` 19 with **0 warnings** — the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — and `make verify` 55. `pnpm test:docker` **200 in 31** is the F10 sitting's (owed and run there; not owed by the D5 sitting 1).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured on 2026-09-24 after the D5 plan's sitting 1 and Rich's switch of the chat model to `qwen3.5:4b`: `pnpm test` **1742 passed** in 123 files, `make doctor` 19 with **0 warnings** — the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 55, and `pnpm test:docker` **200 in 31** (owed by the switch and run). None moved.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has ELEVEN steps** — P5a sitting 12 added `make demo-journey` as step 8,
@@ -1027,7 +1027,7 @@ keeps its raw output** and prints the directory; a green one deletes it.
 *Added by P4b Task 16, 2026-09-15. §16's proof app is complete with it.*
 
 Same requirements as `make demo-identity`, plus **Ollama running on the host** with
-`ministral-3` and `nomic-embed-text` — it is a host application, not a container, so
+`qwen3.5:4b` and `nomic-embed-text` — it is a host application, not a container, so
 `make up` does not start it, and LiteLLM reaches it at `host.docker.internal:11434`.
 
 ```bash

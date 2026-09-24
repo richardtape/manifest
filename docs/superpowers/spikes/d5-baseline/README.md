@@ -297,9 +297,27 @@ answers. `probes/f9-triggers.mjs` names what trips Task 13's `checkSummary` in e
 instruction to state a verdict, 3 in 10 twice. The plan measured 3 in 10 as well. Its *"4 of 10 contained
 Markdown"* is now backticks in 20 of 20. **And Task 13's prompt fixes it**: no verdict in twenty.
 **But Task 13's check, as written, would withhold 7 summaries in 10 for reasons that are not decisions.**
-The plan's own rule sends that to Rich in sitting 7 before building. The options and a recommendation
-(keep backticks, strip them for display, and drop "blocked": 0 of 20 withheld, 6 of 6 inventions still
-caught) are **written at the top of Task 13**.
+The plan's own rule sends that to Rich in sitting 7 before building. **Rich decided it the same day, choosing
+a fourth option: STRUCTURED OUTPUT** — see the addendum below.
+
+### `[M15]` addendum — the summary as structured output, on `qwen3.5:4b` (2026-09-24, after the sitting)
+
+Rich switched the chat model to **`qwen3.5:4b`** and asked for structured output where it makes sense. Two
+measurements, both in the results file under *[M15] ADDENDUM*:
+
+- **Thinking must be OFF.** `qwen3.5:4b` is the thinking model S3 rejected (Evidence 9). With only the mapping
+  switched, `default-chat` streamed **260 frames, 258 reasoning, 0 content** — the negative control. With
+  `reasoning_effort: none` on each chat mapping (LiteLLM 1.98.0's adapter maps anything but `low`/`medium`/`high`
+  to Ollama's `think: false`): **7 frames, 5 content, 0 reasoning**, on both logical names.
+- **A schema reaches the model, and shapes the answer.** `probes/structured.mjs` hands the model leg A's facts as
+  JSON and asks, through `response_format: json_schema`, for `{ changes: [{ path, exposure }] }` with `path` an enum
+  of the diff's paths: **10 of 10 parsed and matched, 0 decision words, 0 backticks or asterisks, ~3.3 s each.** One
+  sentence paraphrased `sn` as *"the full name attribute"* — an accuracy residual, not a decision.
+  `probes/structured-control.mjs`: a field renamed **in the schema only** was used 3 of 3 times, so LiteLLM
+  forwards it and Ollama enforces it; with no `response_format` the model invented its own keys and fenced them in
+  Markdown 1 time in 3.
+
+**Task 13 is rewritten for it** (the plan's Decisions 19 and 22).
 
 ## `[M16]` — the seam's callers. **HOLDS EXACTLY.**
 
@@ -383,7 +401,7 @@ by reading the raw output rather than the summary line, and every first run is k
 | F4 two schemas do not compile | 4 | normalise `nullable` at load; `ajv-formats`; one case |
 | F5 bare `down` exits 0 | 5 | `make down` AND `make reset` name the profile; assert, don't trust the exit code |
 | F6 one rewrite freezes `main` | 7, 9, 11 | the forced shadow refspec; reads and porcelain from it; one red-first case each |
-| F7 the check withholds 7 in 10 | 13 | **Rich decides in sitting 7**, the plan's own rule, with the options written |
+| F7 the check withholds 7 in 10 | 13 | **Rich chose structured output the same day**; Task 13 rewritten, Decisions 19 and 22 |
 | F8 the contract moves in Task 2 | 2, 8, Decision 15 | the `1.2.0` bump in Task 2; two more paths in its commit |
 
 The heaviest addition is F6's to Task 7, in sitting 4, and it is a second refspec plus reads from a

@@ -35,7 +35,7 @@ and a Fastify surface with D23.6 idempotency keys and the D23.7 error envelope o
 every failure. The whole faculty lifecycle — project, spec, build, release, staging
 deploy to healthy, production correctly refused with its §13 checklist — runs against
 the fake driver in **~300 ms**, and against **real Docker** through `make demo`.
-**1742 tests with no Docker, and 200 more that need a daemon** — the Docker tier skips nothing, since P4c Task 5 gave the Docker driver the fixtures for the driver contract's continuity block, and **the unit tier's one skipped test is GONE**: it was the production gate's positive control, and P6a's Task 14 un-skipped it by building the last blocking item it was waiting for. *(Re-measured at the close of the D5 plan's sitting 1, 2026-09-24, which changed no code: 1742, unmoved; the Docker tier was not owed and its 200 is the F10 sitting's. Each earlier sitting's movement is in its plan record.)* See
+**1742 tests with no Docker, and 200 more that need a daemon** — the Docker tier skips nothing, since P4c Task 5 gave the Docker driver the fixtures for the driver contract's continuity block, and **the unit tier's one skipped test is GONE**: it was the production gate's positive control, and P6a's Task 14 un-skipped it by building the last blocking item it was waiting for. *(Re-measured 2026-09-24 after the D5 plan's sitting 1 and Rich's switch of the chat model to `qwen3.5:4b`: 1742 and 200, both unmoved. Each earlier sitting's movement is in its plan record.)* See
 [*Running the control plane*](#running-the-control-plane) below.
 
 The design is approved and complete.

@@ -18,7 +18,7 @@ Manifest runs on one Mac. **Almost everything is a container**; two things run o
 | **The control plane** | `https://console.manifest.internal` — through the edge, to a Node process on the host (`127.0.0.1:7100`) | Manifest itself: a JSON API under `/v1` and one WebSocket event stream per project. Refused to every source but the host |
 | **The Manifest IdP** | `https://idp.manifest.internal` | A practice CWL sign-in (SimpleSAMLphp). **Test users only**: `student`, `instructor` and `operator` — each its own password. `operator` (`opr000001`) is the one `make demo-journey` makes a platform administrator |
 | **LiteLLM** | `http://127.0.0.1:7106`, dashboard at `/ui` | The AI gateway every app's key goes through |
-| **Ollama** | `http://127.0.0.1:11434` — on the host | The models LiteLLM serves: `ministral-3` and `nomic-embed-text` |
+| **Ollama** | `http://127.0.0.1:11434` — on the host | The models LiteLLM serves: `qwen3.5:4b` (a thinking model, run with thinking off) and `nomic-embed-text` |
 | Also | Postgres (`7103`), the image registry (`7107`), an npm mirror, DNS, an egress proxy | Plumbing — `make doctor` and `make verify` check it |
 | **The proof app** | `https://proof-app.staging.manifest.internal` | §16's application: CWL sign-in, private notes, an AI answer |
 | **The fixture app** | `https://fixture-app.staging.manifest.internal` | P3's trivial app — proves a build and a deploy, nothing more |

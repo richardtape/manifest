@@ -1,6 +1,6 @@
 # D5's Driver 2 — the GitHub Source Driver Implementation Plan
 
-> **WRITTEN 2026-09-24. SITTING 1 — TASK 1, THE MEASUREMENTS — RAN ON 2026-09-24; SITTING 2 (TASKS 2 AND 3) IS NEXT.** Every premise held, and the measurements found that one rewrite of GitHub's `main` freezes the mirror's (F6) — corrected in Tasks 7, 9 and 11 — and that Task 13's check crosses its own line, which is Rich's in sitting 7 (F7). No sitting boundary moved. The `[M<n>]` blocks at the top of Tasks 2, 4, 5, 7, 8, 9, 11 and 13 are the corrections; [`spikes/d5-baseline/`](../spikes/d5-baseline/README.md) is the record. **Its three spec actions were approved by Rich and APPLIED the same day** (*Spec actions*, below): §20's push-time sentence as option (a), §21's inventory row, and §20's one unscoped token — the last *unless the conformance run says otherwise*. *What executing this plan found* is empty and is where every sitting's record goes.
+> **WRITTEN 2026-09-24. SITTING 1 — TASK 1, THE MEASUREMENTS — RAN ON 2026-09-24; SITTING 2 (TASKS 2 AND 3) IS NEXT.** Every premise held, and the measurements found that one rewrite of GitHub's `main` freezes the mirror's (F6) — corrected in Tasks 7, 9 and 11 — and that Task 13's check crosses its own line (F7). **Rich decided F7 the same day: the summary becomes STRUCTURED OUTPUT, and Task 13 is rewritten for it (Decisions 19 and 22); he also switched the chat model to `qwen3.5:4b`, with thinking off.** No sitting boundary moved. The `[M<n>]` blocks at the top of Tasks 2, 4, 5, 7, 8, 9, 11 and 13 are the corrections; [`spikes/d5-baseline/`](../spikes/d5-baseline/README.md) is the record. **Its three spec actions were approved by Rich and APPLIED the same day** (*Spec actions*, below): §20's push-time sentence as option (a), §21's inventory row, and §20's one unscoped token — the last *unless the conformance run says otherwise*. *What executing this plan found* is empty and is where every sitting's record goes.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
 
@@ -35,13 +35,13 @@
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Status |
 |---|---|---|---|---|
-| 1 | 1 | **The measurements this plan rests on.** Measured while the plan was written, and to be re-measured: the smart-HTTP transport, the credential-leak paths, the webhook's route, the stateless token format the secret gate misses, the model's F9 rate. **To be measured for the first time:** whether a new workspace package links offline, whether an installation token can be scoped to a repository it has just created, how `compose down` treats a profiled service, and the four gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | **DONE 2026-09-24** — every premise held; F6 (one rewrite freezes the mirror's `main`) corrects Tasks 7, 9 and 11; F7 is Rich's in sitting 7; the contract bump moves to Task 2 (F8); no boundary moved |
+| 1 | 1 | **The measurements this plan rests on.** Measured while the plan was written, and to be re-measured: the smart-HTTP transport, the credential-leak paths, the webhook's route, the stateless token format the secret gate misses, the model's F9 rate. **To be measured for the first time:** whether a new workspace package links offline, whether an installation token can be scoped to a repository it has just created, how `compose down` treats a profiled service, and the four gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | **DONE 2026-09-24** — every premise held; F6 (one rewrite freezes the mirror's `main`) corrects Tasks 7, 9 and 11; F7 decided by Rich the same day — structured output, Task 13 rewritten; the contract bump moves to Task 2 (F8); no boundary moved |
 | 2 | 2, 3 | **The build path behind `SourceDriver`** — `localGitDir`, `RepoRef` without a path, and the source-driver contract suite, which driver 1 passes — and **the App key's custody**: one owner-only rule for both keys, the App JWT, the fake App's credentials minted by `make up`, and the GitHub settings | **Yes** — `releases/`, `build/` callers, `secrets/` | not started ← next — **Task 2 takes the `1.2.0` contract bump** (`[M17]`) |
 | 3 | 4, 5, **6** | **The fake** — App JWT → installation tokens, private org repositories and git over HTTP, all held to GitHub's own schemas — **its container** (`--profile github`, 7110, built by `make seed`), and **the conformance run** against GitHub's recorded answers, with a real App at Rich's yes. **If it runs long, stop after Task 5 and sweep** | **Yes** — `infra/`, a `*.docker.test.ts` | not started |
 | 4 | 7, 8 | **The GitHub driver** — mirror, tokens that never leave the process, the contract suite green against the fake — and **its wiring**: boot, `source_repositories` (migration), the provider mismatch refusal, `SOURCE_UNREACHABLE` as `503`, the contract to `1.2.0`, and a real build through the fake | **Yes** — `api/`, `build/` callers, a `*.docker.test.ts` | not started |
 | 5 | 9, 10 | **Webhooks** — the fake delivers signed events; the receiver refuses an ABSENT signature, a malformed one and a wrong one by code, records a delivery once, and syncs off the request; a rewritten `main` is refused by the mirror and reported — and **enforced-private**: a repository found public is made private again, reported, and not built while public | **Yes** — `observability/`, `projects/`, a `*.docker.test.ts` | not started |
 | 6 | 11, 12 | **Push-time secret scanning** on every path Manifest can see — its own commits before they leave, driver 1's pushes by a hook, and driver 2's pushes on arrival — with the stateless token pattern, and **`main` protected** on both drivers, and **the repository link** on `Project` and the console | **Yes** — `build/`, `projects/` | not started |
-| 7 | 13, 14 | **P6b's inherited findings**: F9 (the model invents a verdict), F13 and F14 on the server, and F11, F12 and F15 in the console | **Yes** — `releases/`, `launch/` | not started |
+| 7 | 13, 14 | **P6b's inherited findings**: F9 (the model invents a verdict — fixed by making the summary STRUCTURED OUTPUT with no place for one), F13 and F14 on the server, and F11, F12 and F15 in the console | **Yes** — `releases/`, `launch/` | not started |
 | 8 | 15 | **The acceptance**: `make demo-github` against a GitHub-mode control plane — green three times, offline, with its offline-acceptance and `ci-acceptance` steps — `make github-conformance` at Rich's yes, `make demo` still green on driver 1, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | not started |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -63,6 +63,8 @@
 - **Eight sittings, split as the table above** (2026-09-24). *Offered:* seven (merging 6 and 7, putting the inheritance in the sitting most likely to run long) and ten (splitting the fake and the mirror).
 - **The order after this plan: the authoring API, then the vulnerability database in the console** (2026-09-22 and 2026-09-24). This plan neither designs for the authoring API nor blocks it. It gives `commitFiles` a second implementation and a pre-push scan, and leaves the write surface to that plan.
 - **F10 is fixed and NOT inherited** (`0aa1824`, 2026-09-24). **F9 and F11–F15 ARE inherited** — Tasks 13 and 14.
+- **The approval summary is STRUCTURED OUTPUT** (2026-09-24, answering sitting 1's F7). The model fills a JSON schema — one `exposure` sentence per change, `path` an enum of the diff's own paths — through LiteLLM's `response_format`, with no field a verdict could go in; Task 13 is rewritten for it, and Decision 22 makes it the rule for every platform model call whose answer is read or shown. *Offered:* (a) keep the prose and narrow the check; (b) the check as written, withholding ~7 in 10; (c) a harder prompt.
+- **The chat model is `qwen3.5:4b`, with thinking OFF** (2026-09-24). `infra/litellm/config.yaml` maps `default-chat` and `default-chat-onprem` to `ollama_chat/qwen3.5:4b` with `reasoning_effort: none`, which LiteLLM 1.98.0 turns into Ollama's `think: false`. It is a thinking model: without that line it streams 0 content frames in 260 (S3 Evidence 9, re-measured), and `make verify` and `ai-path.docker.test.ts` go red.
 - **Carried from earlier plans, still binding:** D24's privileged four and the person-only class (§20); step-up for a production deploy and for an approval; the stored preview an approval binds; `SENSITIVE_FIELDS` as §7's list; an added CWL attribute waits for IAM and a removed one does not; a PIA never returns to `draft` automatically.
 
 ---
@@ -104,7 +106,7 @@
 10. **THE FAKE CAN RUN FROM TYPESCRIPT SOURCE WITH NO BUILD STEP AND NO DEPENDENCY.** `node:22-alpine` is **22.23.2** (on this machine, and in `infra/images.txt`), and it strips erasable types unflagged. **It cannot resolve the repository's NodeNext `./x.js` specifier to `./x.ts`** (`ERR_MODULE_NOT_FOUND`). A 12-line `node:module` `registerHooks` resolve hook, `--import`ed, fixes it in the container (22.23.2) and on the host (24.12.0). So the fake keeps house style (`.js` specifiers, the base tsconfig) and needs `erasableSyntaxOnly: true` (TypeScript 5.9.3 has it). *(T1: M12.)*
 11. **A PLAIN `docker compose build` SKIPS A SERVICE BEHIND A PROFILE.** Measured with a two-service throwaway project and `--dry-run`: `compose build` built `always` only; `--profile github build` built both. **So `make seed`'s step 2 (`$COMPOSE build`, `infra/seed/seed.sh:14`) would never build the fake** unless it names the profile. *(T1: M13 — and measure what `compose down` does with a running profiled service, which was NOT measured.)*
 12. **GIT ALREADY PROTECTS HISTORY THE WAY THIS PLAN NEEDS, ON BOTH SIDES.** On a bare repository, `receive.denyNonFastForwards true` and `receive.denyDeletes true` refused a force-push (`denying non-fast-forward refs/heads/main`) and a deletion (`denying ref deletion`). A **non-forced** fetch refspec `refs/heads/*:refs/heads/*` into a mirror, after the upstream `main` was rewritten, answered `! [rejected] main -> main (non-fast-forward)`, **exit 1, and the mirror kept its `main`**. A `pre-receive` hook that exits 1 refused a push to the mirror, and a fetch into the same mirror was unaffected, because hooks do not run on fetch. *(T1: M14.)*
-13. **F9 REPRODUCES ON THE REAL MODEL, AND ITS SOURCE IS THE PROMPT'S OWN INSTRUCTION.** Measured by sending `summary.ts`'s `SYSTEM_PROMPT`, verbatim, ten times through LiteLLM (`default-chat-onprem` → `ministral-3:latest` on Ollama 0.34.4). The input was a leg-A-shaped diff (`sn` removed, one egress host added), its two security notes, `NullReviewer`'s reason and `COVERAGE_LIMIT`. **4 of 10 contained Markdown**: backticked field names twice, and a `**Verdict:**` line twice. **Those two `**Verdict:**` lines are invented verdicts**: *"This release is blocked by §7 and §20—it changes a sensitive field and widens egress without code review"* and *"This release changes sensitive fields and egress, so it requires an administrator's approval."* **1 of 10 called the coverage sentence *"the code reviewer's verdict"*.** Every one of the three appeared **after** `State the code reviewer's verdict exactly as given`. **And a regex for "a person decided" caught 0 of those 3**, so a prose check alone would not have caught F9. *(T1: M15 — re-run it, and run Task 13's prompt beside it.)*
+13. **F9 REPRODUCES ON THE REAL MODEL, AND ITS SOURCE IS THE PROMPT'S OWN INSTRUCTION.** Measured by sending `summary.ts`'s `SYSTEM_PROMPT`, verbatim, ten times through LiteLLM (`default-chat-onprem` → `ministral-3:latest` on Ollama 0.34.4). The input was a leg-A-shaped diff (`sn` removed, one egress host added), its two security notes, `NullReviewer`'s reason and `COVERAGE_LIMIT`. **4 of 10 contained Markdown**: backticked field names twice, and a `**Verdict:**` line twice. **Those two `**Verdict:**` lines are invented verdicts**: *"This release is blocked by §7 and §20—it changes a sensitive field and widens egress without code review"* and *"This release changes sensitive fields and egress, so it requires an administrator's approval."* **1 of 10 called the coverage sentence *"the code reviewer's verdict"*.** Every one of the three appeared **after** `State the code reviewer's verdict exactly as given`. **And a regex for "a person decided" caught 0 of those 3**, so a prose check alone would not have caught F9. *(T1: M15 — re-run it, and run Task 13's prompt beside it.)* **→ Task 1 re-ran it (6 in 20 invented or misattributed) and found Task 13's prose check withholding 14 in 20, none a verdict (F7); Rich chose structured output the same day, and Task 13 is rewritten for it (Decisions 19 and 22).**
 14. **`SourceDriver` HAS FOUR CALLERS THAT ASSUME A DIRECTORY, AND `RepoRef.url` HAS NONE.** `api/routes/builds.ts:107` hands `repositoryFor(slug).path` to the builder. `releases/approval.ts:571` hands it to the code reviewer (`NullReviewer` reads nothing, and a real reviewer would read a checkout). `api/routes/project-reads.ts:362` reads through `headCommit`/`readFile`. `api/routes/projects.ts:195` creates the repository. `grep -rn '\.url\b'` over `src/` finds **no reader of `RepoRef.url`** — the field the interface says *"a builder is handed"*. The builder is not handed it (roadmap finding 1). *(T1: M16.)*
 15. **THE DEMOS WRITE STRAIGHT INTO THE BARE REPOSITORIES.** `scripts/demo.sh:85`, `scripts/demo-releases.sh:48,105-107,189` and `scripts/lib/proof-app.sh:76-86` `git clone`/`push` `.manifest/repos/<slug>.git`, and `scripts/lib/api.sh:60` deletes an orphan one. That is outside the contract, as signing in is (D23.8). **On driver 2 that path is the MIRROR**, and a push into it would put a commit in the mirror that GitHub never saw. So the mirror refuses every push (item 12's hook), and `make demo-github` pushes to the fake instead.
 16. **EVERY `SourceError` IS `409`, AND ITS MESSAGE IS THE WIRE'S.** `api/errors.ts:639-650` maps the whole family to `409 { code, message }`. The registry (`api/error-codes.ts:330-334`) holds four `SOURCE_*` codes, and its comment says *"every one is 409"*. **A GitHub that cannot be reached is not a state conflict**, so this plan gives `SOURCE_UNREACHABLE` its own `503`. The registry scan finds codes as `new SourceError('LITERAL'` anywhere under `src/` (`error-codes.test.ts:66-71`), so every new code must be thrown as a literal.
@@ -117,7 +119,7 @@
 
 ## Decisions this plan makes, and why
 
-**Twenty-one questions below Rich's line**, all made while the plan was written. Each one records what it rejected and what changing course would cost.
+**Twenty-two questions below Rich's line** — twenty-one made while the plan was written, and Decision 22 added on 2026-09-24 after sitting 1, when Rich chose structured output. Each one records what it rejected and what changing course would cost.
 
 **Decision 1. The GitHub driver keeps a LOCAL MIRROR at driver 1's path, and `build/` does not change.** The mirror is a bare repository at `<reposRoot>/<slug>.git`, which is exactly where driver 1 keeps the repository itself. `localGitDir` makes sure the commit is present, and fetches it if it is not. It returns that directory, and the builder's `git --git-dir=<dir> archive` runs as it always has. *Rejected:* **an "export the tree at a commit" method downloading a tarball**, which is the cleaner abstraction and puts the network on the build path (roadmap finding 1). **A shallow mirror**, because a release's commit must stay buildable after GitHub moves on (§13). *Changing course* costs the build path's one caller, since the interface is already there.
 
@@ -155,11 +157,13 @@
 
 **Decision 18. Offline on driver 2 (C1): what the mirror has keeps working, and what it lacks answers `503`, never a stale answer.** Building a commit that is in the mirror needs no network. `headCommit`, a read of a commit that is not mirrored, and `createRepository` answer **`503 SOURCE_UNREACHABLE`**, naming the provider. **A stale `HEAD` presented as current would validate and build the wrong commit.** *Rejected:* **the mirror's head as a fallback**, for that reason.
 
-**Decision 19. F9: the model no longer states the verdict, and a deterministic check withholds what it should not have written.** The measurement (*Read this first* 13) puts all three failures after the instruction to state the verdict. The verdict and the coverage limit are the snapshot's own fields (P6b Task 8), and the console already shows them beside the summary. **So the model is no longer given them**, and it is told to describe what changed and what it could expose, and nothing about decisions. `checkSummary(text)` then **withholds** a summary that uses decision vocabulary (`verdict`, `approv…`, `reject…`, `blocked`, `decid…`) or Markdown (`*`, `` ` ``, a leading `#` or `- `). It is recorded as `summary: null`, `summarySource: 'withheld'` and `summaryWithheldBecause: <the rule>`, **so an administrator sees the facts instead of an invented verdict**. **R4(d) — Rich's — is unchanged**: *the approval summary surfaces the reviewer's verdict*, and the SNAPSHOT surfaces it, in its own field. It was P6b's Decision 13 that had the MODEL state it, and this plan reverses that one decision, below Rich's line, on a measurement. *Rejected:* **stripping Markdown**, which turns `**Verdict:** This release is blocked` into `Verdict: This release is blocked` — the same invented verdict without the asterisks. **A prompt change alone**, which the measurement shows failing 3 in 10 under a prompt that already forbade it. **A retry**, which doubles a preview's worst-case latency for a cosmetic gain.
+**Decision 19. F9: the model no longer states the verdict — it fills a schema that has no place for one, and an answer that breaks the schema or decides something is withheld.** *(Rewritten 2026-09-24, after sitting 1's F7 and Rich's choice of structured output; the prose-and-regex design this decision first made is in the *Rejected* list below, with the measurement that retired it.)* The measurement (*Read this first* 13) puts every invented verdict after the instruction to state one, over a free-text answer. The verdict and the coverage limit are the snapshot's own fields (P6b Task 8), and the console already shows them beside the summary. **So the model is no longer given them.** It is handed the diff's facts as JSON — each change's `path`, `from`, `to` and `describeDiff`'s own `summary`, and the security notes — and it answers `{ changes: [{ path, exposure }] }`, **`path` an enum of this diff's own paths and the array exactly as long as the diff**, through LiteLLM's `response_format: json_schema` (Decision 22). An answer that does not parse, does not match, names a path twice or leaves one out, or has a sentence using decision vocabulary (`verdict`, `approv…`, `reject…`, `decid…`, `decision`, `recommend…` — **not** `blocked`, which F7 measured describing egress) is recorded as `summary: null`, `summarySource: 'withheld'` and `summaryWithheldBecause: <the rule>`, **so an administrator sees the facts instead of an invented verdict**. Backticks and asterisks are stripped from a sentence that passed, which is safe only because the decision words are refused first. **R4(d) — Rich's — is unchanged**: *the approval summary surfaces the reviewer's verdict*, and the SNAPSHOT surfaces it, in its own field. It was P6b's Decision 13 that had the MODEL state it, and this plan reverses that one decision on a measurement. *Rejected:* **the prose prompt plus `checkSummary` over the whole text** — this decision's first form: Task 1 measured it withholding 14 of 20 answers, none of which decided anything (F7). **Stripping Markdown from prose**, which turns `**Verdict:** This release is blocked` into `Verdict: This release is blocked`. **A prompt change alone**, which failed 3 in 10 under a prompt that already forbade it. **A retry**, which doubles a preview's worst-case latency. **Asking the model for the whole summary as one JSON string field**, which is prose inside JSON and keeps every failure.
 
 **Decision 20. D14's sandbox credential is not built, and the property that makes it buildable is.** §20's fifth bullet is a SANDBOX's credential, and sandboxes wait on S5. **What this plan makes true is that an installation token never leaves the control plane**: not into an app's environment, a build context, an event, a log line, an argument or a wire message. Tests assert this with a canary token (Tasks 7 and 9). A branch-scoped credential for a sandbox can then only be issued by the control plane and forwarded under its own token, which is the only way it could be scoped at all, since GitHub cannot scope an installation token to a branch.
 
 **Decision 21. The conformance run creates, pushes and deletes, and never makes anything public on real GitHub.** Its script (Task 6) runs fourteen steps against a target. **The two that need a publicised repository — the `publicized` webhook and the revert — run against the fake only**, because flipping a real repository public is an outward action this plan will not take even for an empty repository. Webhook delivery cannot be conformance-checked at all on a laptop, which has no public URL. GitHub's test vector checks the signing instead. *Rejected:* **a real publicise-and-revert**, for that reason.
+
+**Decision 22. A model's answer that the platform reads or shows is STRUCTURED OUTPUT: a JSON schema in the request, validated on the way back.** *(Added 2026-09-24, when Rich chose structured output for Task 13.)* The request carries `response_format: { type: 'json_schema', json_schema: { name, strict: true, schema } }`, the schema derived from a zod definition with `z.toJSONSchema`, so **one definition is both what the model is asked for and what its answer is checked against**. LiteLLM 1.98.0 turns it into Ollama's `format: <schema>` (read in its adapter and measured, sitting 1's `[M15]` addendum), and into each hosted provider's own form. **The request gives the model FACTS, not instructions about decisions**, and the schema has no field for anything the model must not say. **A provider that cannot honour the schema fails safe**: `drop_params: true` drops the parameter, the model answers prose, the parse fails and the answer is withheld — loudly, with an operator line, never shown unconstrained. **The chat mappings run thinking models with thinking off** (`reasoning_effort: none`, the chat-model decision above), because reasoning tokens spend `max_tokens` before any JSON appears. **In this plan the rule has exactly one caller, Task 13's summary** — it is the control plane's only model call (`grep -rn chat/completions src/` finds only `releases/summary.ts`, 2026-09-24). **The authoring API and a real code reviewer inherit it.** *Rejected:* **JSON mode alone** (`format: "json"` / `response_format: json_object`), which guarantees JSON but not its shape — without a schema the model invented its own keys 3 times in 3 (`structured-control.mjs`). **A per-deployment "small-model mode" switch**, which ties a per-MODEL property to the whole deployment; if a model ever needs a more explicit prompt than another, that is a per-model attribute in `infra/litellm/config.yaml`'s `model_info`, beside `max_classification` (D17), and it is not built here because every mapping today is the same model. *Changing course* is one request field.
 
 ---
 ## Global Constraints
@@ -167,7 +171,7 @@
 Every task's requirements implicitly include this section. Values are copied verbatim from the spec, or from a dated measurement.
 
 - **Four gates, all clean before every commit**, from the **repository root**: `pnpm test`, `pnpm lint`, `pnpm typecheck` and `pnpm format:check`. **Run `pnpm test` twice**, because a suite that is not repeatable has a state leak. Never run it with `--filter`. **The baseline is `pnpm test` 1742 passed in 123 files, `pnpm test:docker` 200 in 31, `make doctor` 19/0, `make verify` 55/0, and 24 migrations** (ORIENTATION §2, the F10 sitting, 2026-09-24) — **this plan's starting line, kept as written; the CURRENT baseline is always ORIENTATION §2's box.**
-- **`pnpm test:docker`** (~20 min, needs `make up`, **fails rather than skips**) is owed by any change to `runtime/`, `routing/`, `services/`, `build/`, `releases/`, `identity/`, `sso/`, `secrets/`, `projects/`, `blueprints/`, `spec/`, `ai/`, `observability/`, `launch/`, `infra/`, or any `*.docker.test.ts` — **and, in this plan, `source/`**, because from Task 2 the build path runs through it. It restarts the edge, dropping every runtime route, truncates the tables and re-registers the platform's SP row. **Restart the control plane afterwards.** It regenerates seven dead app networks and one volume every time it runs. **S6's probe 14 needs `ministral-3` resident** (P6b sitting 3, F17): a `000` there is that precondition before it is a regression.
+- **`pnpm test:docker`** (~20 min, needs `make up`, **fails rather than skips**) is owed by any change to `runtime/`, `routing/`, `services/`, `build/`, `releases/`, `identity/`, `sso/`, `secrets/`, `projects/`, `blueprints/`, `spec/`, `ai/`, `observability/`, `launch/`, `infra/`, or any `*.docker.test.ts` — **and, in this plan, `source/`**, because from Task 2 the build path runs through it. It restarts the edge, dropping every runtime route, truncates the tables and re-registers the platform's SP row. **Restart the control plane afterwards.** It regenerates seven dead app networks and one volume every time it runs. **S6's probe 14 needs the chat model resident** (P6b sitting 3, F17) — **`qwen3.5:4b` since 2026-09-24**, 3.4 GB on disk and about 4.3 GB loaded: warm it with `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'`. A `000` there is that precondition before it is a regression.
 - **`pnpm test -- <filter>` does not filter.** Run one file this way instead, from the repository root:
   - a unit file: `pnpm exec vitest run --project unit src/<path>`;
   - a packages file (the fake's too, from Task 4): `pnpm exec vitest run --project packages packages/<pkg>/src/<path>`;
@@ -2930,153 +2934,179 @@ The API tests, over both drivers, cover:
 | (d) | `repository` made optional in the representation | the API test's shape assertion red; **and the mock's fixtures stop mattering** — `validate.test.ts` goes green with the field removed. Predict it, and see it |
 
 ---
-## Task 13: F9, F13 and F14 on the server — the model stops stating a verdict, a summary that invents one is withheld, and the record names people
+## Task 13: F9, F13 and F14 on the server — the summary becomes STRUCTURED OUTPUT with no place for a verdict, an answer that breaks it is withheld, and the record names people
 
-> **`[M15]` — RICH DECIDES BEFORE THIS TASK IS BUILT (2026-09-24, F7). This task's own threshold was
-> crossed: *"more than 5 of 10 withheld → raise it with Rich in sitting 7 before building"*.** Measured
-> with twenty answers per prompt (two batches of ten, `ministral-3:latest` through `default-chat-onprem`,
-> every input read from source): **under THIS task's prompt, `checkSummary` withholds 14 of 20 (7 of 10,
-> twice) — and NONE of the 14 states or suggests a decision.** 11 are withheld for backtick code spans
-> alone (`` `leg-a-m15.example.org` ``, `` `sn` ``), 3 for the word *"blocked"* describing egress
-> (*"a host that was previously blocked"*). 0 of 20 attribute a verdict to anyone. **Without the backtick
-> rule and without "blocked", it withholds 0 of 20**, and all six inventions under the CURRENT prompt are
-> still caught, because each says *"verdict"*. Under the CURRENT prompt: 20 of 20 state "the verdict", as
-> it instructs, and **6 of 20 attribute one to the coverage sentence or to an administrator** (*"The
-> administrator's verdict was: An administrator sees a first launch…"*) — F9 reproduced, the plan's 3 in
-> 10 exactly. **The question for Rich, with the recommendation:** (a) **keep backticks and drop
-> "blocked"** — strip backticks before display, which cannot manufacture a verdict the way stripping `**`
-> can, and let the other decision words carry the check (measured: 0 of 20 withheld, 6 of 6 inventions
-> caught) — *recommended*; (b) build the check as written and accept that an administrator sees the facts
-> without a summary about 7 times in 10; (c) keep the rules and add *"no backticks"* more forcefully to
-> the prompt, which this prompt already says and the model ignores 11 times in 20. The raw answers are in
-> `spikes/d5-baseline/results-task1-2026-09-24.txt`, `[M15]`.
+> **`[M15]` — RICH CHOSE STRUCTURED OUTPUT, 2026-09-24 (F7; Decisions 19 and 22). THIS TASK WAS REWRITTEN FOR
+> IT the same day, and the prose prompt and `checkSummary` it first specified are gone.** Why: Task 1 measured
+> the prose design withholding **14 of 20** summaries under its own prompt, **none of them a verdict** (11
+> backticks, 3 *"previously blocked"*), while the CURRENT prompt invents one 6 times in 20. Asked what the model
+> is actually for, the answer was: **one sentence per change about what it could expose** — everything else in
+> the summary (the change, the security note, the reviewer's verdict, the coverage limit) is data the platform
+> already holds. **Measured with the new design** (`probes/structured.mjs`, `qwen3.5:4b` through
+> `default-chat-onprem`, Rich's model switch the same day): **10 of 10 answers parsed and matched the schema, 0
+> contained a decision word, 0 backticks or asterisks, ~3.3 s each.** The control (`probes/structured-control.mjs`)
+> proves it is the SCHEMA doing it: a field renamed in the schema alone was used 3 of 3 times; with no
+> `response_format` the model invented its own shape and fenced it in Markdown 1 time in 3. **The one residual
+> seen is accuracy, not decisions**: 1 of 10 paraphrased `sn` as *"the full name attribute"* — which is why the
+> console shows the deterministic change line FIRST and the model's sentence under it, labelled as the model's.
 
-**P6b sitting 7's F9, with its mechanism measured** (*Read this first* 13; Decision 19): all three failures came after the instruction to state the reviewer's verdict. A GitHub push is exactly the path that will put an unreviewed `manifest.yaml` change in front of this summary, which is why the inheritance is this plan's. **F13** is a sentence in `launch/readiness.ts` that names the wrong source. **F14** is a PUID where a person's name belongs.
+**P6b sitting 7's F9, with its mechanism measured** (*Read this first* 13; Decision 19): all the failures came after the instruction to state the reviewer's verdict, over a free-text answer. A GitHub push is exactly the path that will put an unreviewed `manifest.yaml` change in front of this summary, which is why the inheritance is this plan's. **F13** is a sentence in `launch/readiness.ts` that names the wrong source. **F14** is a PUID where a person's name belongs.
 
-**THE PROMPT AND THE CHECK LAND TOGETHER, OR NOT AT ALL.** Checked while this plan was written: `checkSummary` withholds the three F9 sentences and keeps the clean one. **But it would also withhold every answer the CURRENT prompt produces**, including the six measured with no invented verdict, because each states the reviewer's verdict, as that prompt tells it to. A check shipped without the prompt change would withhold ten summaries in ten. Task 1's `[M15]` measures both prompts for exactly this reason.
+**THE MODEL IS GIVEN FACTS AND FILLS A SCHEMA; THE PLATFORM WRITES EVERYTHING ELSE.** The user message is JSON: the changes (`path`, `from`, `to`, `describeDiff`'s own `summary`) and the security notes. **No verdict, no coverage sentence.** The answer is `{ changes: [{ path, exposure }] }`, `path` an **enum of this diff's own paths** and the array exactly as long as the diff. There is no field a verdict could go in, so F9 stops being catchable and becomes impossible to express in the shape — the per-sentence check below is the backstop, not the control.
 
 **Files:**
-- Modify: `packages/control-plane/src/releases/summary.ts` — the prompt; the user message without the verdict or the coverage sentence; `checkSummary`; `'withheld'`
+- Modify: `packages/control-plane/src/releases/summary.ts` — the answer schema (zod) and its JSON Schema; the prompt; the JSON user message without the verdict or the coverage sentence; `response_format`; parse, validate, `checkExposure`; `'withheld'`
 - Modify: `packages/control-plane/src/releases/summary.test.ts`
-- Modify: `packages/control-plane/src/db/schema.ts:570` — `DiffSnapshot`'s `summarySource` union gains `'withheld'`, and an optional `summaryWithheldBecause` (jsonb: **no migration** — it is a TypeScript type over a `jsonb` column, read 2026-09-24)
-- Modify: `packages/control-plane/src/api/representations/releases.ts` — the enum value; `summaryWithheldBecause`
+- Modify: `packages/control-plane/src/db/schema.ts:561-570` — `DiffSnapshotColumn`: `summarySource` gains `'withheld'`; optional `summaryWithheldBecause`; optional `exposures: { path: string; sentence: string }[] | null` (jsonb: **no migration** — a TypeScript type over a `jsonb` column, read 2026-09-24; rows written before this task simply lack `exposures`)
+- Modify: `packages/control-plane/src/api/representations/releases.ts` — the enum value; `summaryWithheldBecause`; `summaryExposures`
 - Modify: `packages/control-plane/src/releases/approval.ts` — `latestReviewFor` returns its source (F13); the event's `humanMessage` names the person (F14)
 - Modify: `packages/control-plane/src/launch/readiness.ts:288` — F13's sentence
 - Modify: `packages/control-plane/src/releases/approval.test.ts`, `launch/readiness.test.ts`
-- Modify: `packages/console/src/screens/approvals.tsx` — a withheld summary shown as withheld
-- Modify: `packages/mock/src/fixtures.ts` — one preview whose summary is withheld
-- Modify: `packages/contract/openapi.json`, `packages/contract/src/schema.ts` — regenerated
-- Create: `docs/superpowers/spikes/d5-baseline/probes/f9.mjs` results, re-run (`[M15]`'s probe with the new prompt, recorded in this sitting's entry)
+- Modify: `packages/console/src/screens/approvals.tsx` — each change's model sentence under its own change line; a withheld summary shown as withheld
+- Modify: `packages/mock/src/fixtures.ts` — previews with `summaryExposures`, and one whose summary is withheld
+- Modify: `packages/contract/openapi.json`, `packages/contract/src/schema.ts` — regenerated (additive, inside Task 2's `1.2.0`)
+- Modify: `docs/superpowers/spikes/d5-baseline/probes/structured.mjs` — Step 4 re-runs it against the schema `summary.ts` actually builds
 
 **Interfaces:**
-- Consumes: P6b's `summariseChanges(ai, changes, context)`, `SummaryContext`, `DiffSnapshot`.
+- Consumes: P6b's `summariseChanges(ai, changes, context)`, `SummaryContext`, `DiffSnapshotColumn`; `SpecChange` (`spec/diff.ts`).
 - Produces:
 
 ```ts
+// releases/summary.ts
 export type SummarySource = 'llm' | 'unavailable' | 'no-previous-release' | 'no-changes' | 'withheld'
-export interface ChangeSummary { summary: string | null; summarySource: SummarySource; summaryWithheldBecause?: string }
-/** The rule a model's summary broke, or null. Deterministic; applied before anything is stored. */
-export function checkSummary(text: string): string | null
+export interface Exposure { path: string; sentence: string }
+export interface ChangeSummary {
+  summary: string | null                 // the sentences joined, in the diff's order — for every reader that wants one string
+  summarySource: SummarySource
+  exposures?: Exposure[] | null          // what the console lays out; null unless summarySource is 'llm'
+  summaryWithheldBecause?: string
+}
+/** The answer's shape for THIS diff: exactly one `{ path, exposure }` per change, `path` from the diff. */
+export function exposureSchema(changes: readonly SpecChange[]): z.ZodType<{ changes: { path: string; exposure: string }[] }>
+/** The rule one sentence broke, or null. Deterministic; applied before anything is stored. */
+export function checkExposure(sentence: string): string | null
 // releases/approval.ts
 export async function latestReviewFor(db: Db, releaseId: string): Promise<{ review: DiffSnapshot['review']; from: 'preview' | 'approval'; at: Date } | undefined>
 ```
 
-- [ ] **Step 1: The failing tests — F9's own measured sentences, verbatim**
+- [ ] **Step 1: The real request shape, measured before a line is written.** `z.toJSONSchema` (the control plane already uses it, `api/contract/document.ts:65`) adds a `$schema` key and may express `.length(n)` as `minItems`/`maxItems`. **Send its output for leg A's two paths through LiteLLM once** — `probes/structured.mjs` with its hand-written schema replaced by `z.toJSONSchema(exposureSchema(changes))`, run from `packages/control-plane/` so zod resolves — and confirm Ollama answers in shape. If `$schema` (or anything else) is refused or ignored, strip it in `summary.ts` and say why in a comment. **Record the answer in this sitting's entry.**
+
+- [ ] **Step 2: The failing tests — F9's own sentences, now as the model's JSON**
 
 ```ts
-// releases/summary.test.ts — the model's answers from 2026-09-24 (Read this first 13), replayed
-const F9 = {
-  inventedVerdict: 'The app no longer collects last names (sn) but now can reach api-4f2a.example.org:443, which could expose personal info to an external host. The change requires an administrator’s approval because it alters sensitive data collection and expands egress.\n\n**Verdict:** *This release is blocked by §7 and §20—it changes a sensitive field and widens egress without code review.*',
-  backticks: 'The app no longer collects the last name (`sn`) but now can send data to `api-4f2a.example.org:443`, which could expose personal info to an external host and risk data leakage.',
-  misattributed: 'The app no longer collects last names (sn) but now sends data to api-4f2a.example.org:443, which could expose personal info to an external host and risk data leakage. The code reviewer’s verdict was: "An administrator sees a first launch and any release that changes a sensitive field (§7)."',
-  clean: 'The app no longer receives last names (sn), and it can now send data to api-4f2a.example.org on port 443, a host it could not reach before, which could carry personal information off the platform.',
+// releases/summary.test.ts
+const PATHS = CHANGES.map((c) => c.path)   // the fixture diff's own paths, e.g. ['egress.allow', 'auth.attributes']
+const answer = (exposures: Record<string, string>) =>
+  JSON.stringify({ changes: Object.entries(exposures).map(([path, exposure]) => ({ path, exposure })) })
+const GOOD = {
+  'egress.allow': 'The app can now send data to api-4f2a.example.org, a host it could not reach before.',
+  'auth.attributes': 'The app no longer receives the surname (sn) of the people who sign in.',
 }
 
+it('keeps a structured answer that describes each change — the positive control', async () => {
+  const s = await summariseChanges(modelAnswering(answer(GOOD)), CHANGES, CONTEXT)
+  expect(s.summarySource).toBe('llm')
+  expect(s.exposures).toEqual(PATHS.map((path) => ({ path, sentence: GOOD[path] })))
+  expect(s.summary).toBe(PATHS.map((p) => GOOD[p]).join(' '))
+})
+
 it.each([
-  ['an invented verdict', F9.inventedVerdict, /verdict|approv|block/i],
-  ['Markdown', F9.backticks, /markdown/i],
-  ['a misattributed verdict', F9.misattributed, /verdict/i],
-])('withholds a summary carrying %s, and says which rule it broke', async (_l, answer, because) => {
-  const s = await summariseChanges(modelAnswering(answer), CHANGES, CONTEXT)
-  expect(s).toMatchObject({ summary: null, summarySource: 'withheld' })
+  ['prose, not JSON (F9’s own invented verdict, verbatim)', F9.inventedVerdict, /did not match the schema/],
+  ['JSON in a Markdown fence', '```json\n' + answer(GOOD) + '\n```', /did not match the schema/],
+  ['a path that is not in the diff', answer({ ...GOOD, 'resources': 'More memory.' }), /did not match the schema/],
+  ['a change left out', answer({ 'egress.allow': GOOD['egress.allow'] }), /did not match the schema/],
+  ['a verdict inside a sentence', answer({ ...GOOD, 'egress.allow': 'This release requires an administrator’s approval.' }), /decision/],
+])('withholds %s, and says which rule it broke', async (_l, text, because) => {
+  const s = await summariseChanges(modelAnswering(text), CHANGES, CONTEXT)
+  expect(s).toMatchObject({ summary: null, summarySource: 'withheld', exposures: null })
   expect(s.summaryWithheldBecause).toMatch(because)
 })
 
-it('keeps a summary that describes what changed and what it could expose — the positive control', async () => {
-  expect(await summariseChanges(modelAnswering(F9.clean), CHANGES, CONTEXT)).toEqual({ summary: F9.clean, summarySource: 'llm' })
+it('does not withhold "previously blocked" or a backtick — the two false positives F7 measured', async () => {
+  const s = await summariseChanges(modelAnswering(answer({ ...GOOD,
+    'egress.allow': 'The app can now reach `api-4f2a.example.org`, a host that was previously blocked.' })), CHANGES, CONTEXT)
+  expect(s.summarySource).toBe('llm')
+  expect(s.exposures!.find((e) => e.path === 'egress.allow')!.sentence)
+    .toBe('The app can now reach api-4f2a.example.org, a host that was previously blocked.')
 })
 
-it('no longer asks the model to state the verdict, and does not give it the verdict or the coverage sentence', async () => {
+it('asks for a JSON schema built from this diff, and gives the model facts only', async () => {
   const seen = captureRequests()
   await summariseChanges(seen.client, CHANGES, CONTEXT)
-  const [system, user] = seen.messages()
-  expect(system).not.toMatch(/verdict/i)
-  expect(system).toMatch(/do not state or suggest any decision, verdict, approval, rejection or recommendation/i)
-  expect(user).not.toContain(CONTEXT.review.detail)
-  expect(user).not.toContain(CONTEXT.coverage)
-  expect(user).toContain(CONTEXT.security[0]!.note)               // the security notes stay: they are facts
+  const body = seen.bodies()[0]
+  expect(body.response_format.type).toBe('json_schema')
+  const items = body.response_format.json_schema.schema.properties.changes
+  expect(items.items.properties.path.enum).toEqual(PATHS)
+  expect([items.minItems, items.maxItems]).toEqual([PATHS.length, PATHS.length])
+  const user = JSON.parse(body.messages.at(-1).content)
+  expect(Object.keys(user).sort()).toEqual(['changes', 'securityNotes'])
+  expect(JSON.stringify(user)).not.toContain(CONTEXT.review.detail)
+  expect(JSON.stringify(user)).not.toContain(CONTEXT.coverage)
+  expect(body.messages[0].content).not.toMatch(/verdict/i)
 })
 ```
 
-`modelAnswering(text)` and `captureRequests()` are `LiteLlmClient` fakes of the shape `approval.test.ts` already uses. **Read that file and reuse its helper rather than writing a third** — a helper copied three times drifts three ways (`api/testing.ts`'s own comment on `refusal`).
+`F9.inventedVerdict` is kept from P6b's measured sentences (*Read this first* 13). `modelAnswering(text)` and `captureRequests()` are `LiteLlmClient` fakes of the shape `approval.test.ts` already uses — **read that file and reuse its helper rather than writing a third** (a helper copied three times drifts three ways). F13, in `readiness.test.ts`: a verdict that came from a PREVIEW reads *"…recorded when this release was previewed"*, one from a decision *"…when an administrator decided on this release"* — **both cases, in the same test**. F14, in `approval.test.ts`: the `release.approved` event's `humanMessage` begins with the approver's **display name** and does not contain their PUID. A rejection's does the same.
 
-F13, in `readiness.test.ts`: a verdict that came from a PREVIEW reads *"…recorded when this release was previewed"*, one from a decision *"…when an administrator decided on this release"* — **both cases, in the same test**. F14, in `approval.test.ts`: the `release.approved` event's `humanMessage` begins with the approver's **display name** and does not contain their PUID. A rejection's does the same.
+- [ ] **Step 3: Watch them fail.**
 
-- [ ] **Step 2: Watch them fail.**
-
-- [ ] **Step 3: Implement**
+- [ ] **Step 4: Implement**
 
 ```ts
 // releases/summary.ts
 /**
- * THE MODEL DESCRIBES; THE RECORD DECIDES (the D5 plan's Decision 19, on P6b's F9). Measured on
- * 2026-09-24: under a prompt that told the model to "state the code reviewer's verdict exactly as
- * given", 2 of 10 answers invented a **Verdict:** line and 1 of 10 called the coverage sentence the
- * reviewer's verdict. The verdict and the coverage limit are the snapshot's OWN fields, which the
- * console shows beside this summary — so the model is no longer given them, and is told to leave
- * decisions alone. R4(d) (Rich) is unchanged: the SNAPSHOT surfaces the verdict.
+ * THE MODEL DESCRIBES ONE THING; THE RECORD SAYS EVERYTHING ELSE (the D5 plan's Decisions 19 and 22,
+ * on P6b's F9). Measured 2026-09-24: asked for prose and told to "state the code reviewer's verdict
+ * exactly as given", the model invented or misattributed a verdict 6 times in 20; a regex over the
+ * prose then withheld 14 good answers in 20. So the model is handed FACTS as JSON and fills a schema
+ * with one `exposure` sentence per change — there is no field a verdict could go in. The verdict and
+ * the coverage limit are the snapshot's own fields, which the console shows beside this. R4(d) (Rich)
+ * is unchanged: the SNAPSHOT surfaces the verdict.
  */
 const SYSTEM_PROMPT =
-  "You describe changes to a university web application's configuration for a platform administrator. " +
-  'Two sentences at most, in plain English. Say what changed and what each change could expose: personal ' +
-  'information, where data can go, what the app can reach. Describe only the changes listed. Do not state ' +
-  'or suggest any decision, verdict, approval, rejection or recommendation, and do not say whether anything ' +
-  'was reviewed; the administrator reads those separately. Write plain text: no Markdown, no asterisks, ' +
-  'no backticks, no headings, no bullet characters.'
+  'You explain configuration changes to a platform administrator. For EACH change in the input, write one ' +
+  'plain-English sentence saying what that change could expose: personal information, where data can go, or ' +
+  'what the app can reach. Use only the facts in the input. Answer with JSON matching the schema.'
 
-/**
- * Withheld, not repaired. Stripping Markdown would turn "**Verdict:** This release is blocked" into
- * "Verdict: This release is blocked" — the same invented verdict without its asterisks. What an
- * administrator is shown instead is the diff, the security notes and the reviewer's verdict, which
- * no model wrote.
- */
-export function checkSummary(text: string): string | null {
-  if (/\b(verdict|approv\w*|reject\w*|blocked|decid\w*|decision)\b/i.test(text))
-    return 'it states or suggests a decision, a verdict or an approval, which is the administrator’s and the record’s, never the model’s'
-  if (/[*`]|^\s{0,3}(#{1,6}\s|[-•]\s)/m.test(text))
-    return 'it is written in Markdown, which the console shows as literal characters'
-  return null
+export function exposureSchema(changes: readonly SpecChange[]) {
+  const paths = changes.map((c) => c.path) as [string, ...string[]]   // describeDiff never returns an empty list here
+  return z.strictObject({
+    changes: z
+      .array(z.strictObject({ path: z.enum(paths), exposure: z.string().min(10).max(300) }))
+      .length(paths.length),
+  })
+}
+
+/** Withheld, not repaired: the answer's own words decided something, which is never the model's to do. */
+export function checkExposure(sentence: string): string | null {
+  // NOT "blocked" (F7: it is the word for egress that was denied) and NOT Markdown (stripped below).
+  return /\b(verdict|approv\w*|reject\w*|decid\w*|decision|recommend\w*)\b/i.test(sentence)
+    ? 'a sentence states or suggests a decision, a verdict or an approval, which is the administrator’s and the record’s, never the model’s'
+    : null
 }
 ```
 
-In `summariseChanges`, the user message keeps the change lines and the *Security notes* block. **It drops `Code review:` and `context.coverage`.** Then `const broke = checkSummary(text)`: `broke === null` → `{ summary: text, summarySource: 'llm' }`, else `{ summary: null, summarySource: 'withheld', summaryWithheldBecause: broke }`. The operator gets one `console.error` line naming the rule and **not the text**, because an app's own words can be in it. `SummaryContext` keeps `review` and `coverage`, **because the snapshot still stores them**. Only the model stops receiving them.
+In `summariseChanges`: the body gains `response_format: { type: 'json_schema', json_schema: { name: 'change_exposures', strict: true, schema: z.toJSONSchema(exposureSchema(changes)) } }` (adjusted by Step 1), and `max_tokens` becomes `80 + 90 * changes.length` — a truncated answer is invalid JSON, and the old flat 200 would cut a large diff short. The user message is `JSON.stringify({ changes, securityNotes: context.security.map(({ field, note }) => ({ path: field, note })) })`. **It drops `Code review:` and `context.coverage`.** Then, in order: `JSON.parse` → `exposureSchema(changes).safeParse` → **each path exactly once** (a schema cannot say "unique" for objects) → `checkExposure` on every sentence → strip `` ` `` and `*` from each sentence (safe now: a decision word was refused first, so stripping cannot turn `**Verdict:**` into a verdict that passes) → `{ summarySource: 'llm', exposures: in the diff's order, summary: sentences.join(' ') }`. **Any failure is `{ summary: null, summarySource: 'withheld', exposures: null, summaryWithheldBecause }`**, the reason naming the rule and, for a schema failure, Zod's first issue path — **never the model's text**, because an app's own words can be in it. The operator gets one `console.error` line with the same reason. **A model or provider that ignores `response_format`** — LiteLLM's `drop_params: true` drops what a provider cannot take — answers prose, which fails the parse and is withheld: **the failure is loud and safe, never a summary nobody constrained.** `SummaryContext` keeps `review` and `coverage`, **because the snapshot still stores them**; only the model stops receiving them.
 
 `latestReviewFor` already reads both sources (`releases/approval.ts:389-401`), and now also returns which one was newest and when. `readiness.ts:288` builds its sentence from `from`. **`approval.ts:99`'s `humanMessage`** reads `users.display_name` for `input.actor.userId` (P6b's Decision 18 already joins it for `decidedByName`, and the event uses the same read), falling back to the PUID only if the name is empty. So the feed reads *"Test Operator approved this release for production."*
 
-`approvals.tsx`: a `withheld` summary renders **"The model's summary was withheld: <because>. What changed, the security notes and the reviewer's verdict below are the record."** — in the same place a summary would be, so an administrator never meets an empty space. The mock gains one such preview, and `validate.test.ts` holds it to the document.
+`approvals.tsx` (its change list is at line ~290, `path: from → to — summary`): under each change line, that path's `sentence`, labelled once above the list as **"What each change could expose — written by a language model; the change lines are the record."** The deterministic line stays FIRST (the measured residual is a paraphrase that gets a fact wrong — *"the full name attribute"* for `sn`). A `withheld` summary renders **"The model's summary was withheld: <because>. What changed, the security notes and the reviewer's verdict below are the record."** in the same place, so an administrator never meets an empty space. A record written before this task has no `exposures`: render its `summary` string as today. The mock gains `summaryExposures` on its previews and one withheld preview, and `validate.test.ts` holds them to the document.
 
-- [ ] **Step 4: The real model, re-measured** — run `probes/f9.mjs` with THIS prompt and `checkSummary`, ten times (`[M15]`'s procedure). **Record how many are withheld and why.** **If more than 5 of 10 are withheld, stop before committing and bring it to Rich** (Task 1, Step 14 said so first): a summary withheld more often than shown is a decision about whether to keep the feature, and that is his.
+- [ ] **Step 5: The real model, re-measured.** Run `probes/structured.mjs 20` against the schema `summary.ts` now builds (Step 1's variant), **and a third change** (a `resources` change) so the enum and the count are not always two. **Record how many parse, match, pass `checkExposure`, and how long each took.** **If more than 5 of 20 are withheld, stop before committing and bring it to Rich** — the threshold Task 1 set, carried over: a summary withheld more often than shown is a decision about whether to keep the feature, and that is his.
 
-- [ ] **Step 5: Gates — `releases/` and `launch/` owe the Docker tier. Step 6: Commit.** `git commit -m "fix(releases): the model no longer states a verdict, a summary that invents one is withheld (P6b F9); F13's source; F14's name"`
+- [ ] **Step 6: Gates — `releases/` and `launch/` owe the Docker tier. Step 7: Commit.** `git commit -m "fix(releases): the summary is structured output with no place for a verdict (P6b F9); F13's source; F14's name"`
 
-- [ ] **Step 7: Negative controls**
+- [ ] **Step 8: Negative controls**
 
 | # | Break | Predict |
 |---|---|---|
-| (a) | `checkSummary` returns `null` always | the three `it.each` rows red: `summarySource: 'llm'` — **F9 back, with its own sentences** |
-| (b) | the user message keeps `Code review:` | *does not give it the verdict* red |
-| (c) | the vocabulary rule without `\b…\b` | predict **the clean sentence withheld** — "reach" contains no rule word, but check "approve**d**"-free prose like *"reapproves"*… write the prediction, run it, and record which words the boundary protects |
-| (d) | F14's fallback inverted (PUID first) | the event test red: the message contains `opr000001` |
+| (a) | `response_format` removed from the body | *asks for a JSON schema built from this diff* red — and against the REAL model (Step 5's probe with it removed), prose or a fenced block: `structured-control.mjs` measured 1 in 3 fenced |
+| (b) | `path` as `z.string()` instead of the enum | *a path that is not in the diff* red — kept as `llm` with `resources` in it |
+| (c) | the each-path-once check removed | write a case first with `egress.allow` twice and `auth.attributes` absent — `.length(2)` still passes it; predict it red, then restore |
+| (d) | `checkExposure` returns `null` always | *a verdict inside a sentence* red — F9's shape back, inside the schema |
+| (e) | "blocked" put back into the vocabulary | *does not withhold "previously blocked"* red — F7's false positive back |
+| (f) | the user message keeps the verdict | *gives the model facts only* red |
+| (g) | F14's fallback inverted (PUID first) | the event test red: the message contains `opr000001` |
 
 ---
 
@@ -3463,3 +3493,27 @@ GitHub's schema.
   what the suite leaves** — see ORIENTATION §7e's state list, queried after this record.
 - Nothing listens on 7100, 7102, 7104 or 7110; three addresses on `lo0`; Ollama 0.34.4 with no model
   resident (`ministral-3` unloaded, decision 6).
+
+#### After the sitting — Rich's two decisions, the same day (2026-09-24)
+
+**1. F7 is decided: the approval summary becomes STRUCTURED OUTPUT.** Asked what the model is actually for,
+the answer was one sentence per change about what it could expose; the change, its security note, the
+reviewer's verdict and the coverage limit are data the platform already holds. **Task 13 is rewritten**
+(its `[M15]` block, Decision 19 rewritten, **Decision 22 added**): the model is handed facts as JSON and fills
+a schema with no field a verdict could go in. **Measured before rewriting it** (`probes/structured.mjs`,
+through LiteLLM 1.98.0 on `qwen3.5:4b`): **10 of 10 parsed and matched, 0 decision words, 0 Markdown, ~3.3 s
+each**; one paraphrase got a fact wrong (*"the full name attribute"* for `sn`), so the console shows the
+deterministic change line first. **`probes/structured-control.mjs` proves the schema is what does it**: a field
+renamed in the schema alone was used 3 of 3 times, and with no schema the model invented its own keys and
+fenced them in Markdown 1 time in 3. LiteLLM's adapter (`llms/ollama/chat/transformation.py`) maps
+`response_format: json_schema` to Ollama's `format: <schema>` — read, then measured.
+
+**2. The chat model is `qwen3.5:4b`, with thinking OFF.** It is the model S3 measured as a thinking model and
+rejected (Evidence 9). Measured again: with the mapping switched and nothing else, `default-chat` streamed
+**260 frames, 258 of reasoning and 0 of content** — S3's failure exactly, and the negative control for the
+fix. **`reasoning_effort: none` on both chat mappings** (LiteLLM 1.98.0 maps anything but
+`low`/`medium`/`high` to Ollama's `think: false`): **7 frames, 5 of content, 0 of reasoning**, on both logical
+names. `make verify`'s *a streamed completion returns non-empty content* is 55/0 with it; `infra/models.txt`,
+the config's comments, `ai-path.docker.test.ts`'s comment and `offline-acceptance.sh` name the new model.
+`ministral-3` (6.0 GB) is still on the machine and no longer used; removing it is Rich's to do. The gates
+after the switch are in ORIENTATION §2's box.
