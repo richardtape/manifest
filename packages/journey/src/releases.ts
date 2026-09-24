@@ -188,10 +188,13 @@ async function production(client: ManifestClient): Promise<Schemas['Environment'
 }
 
 /**
- * THE BASELINE, DERIVED THROUGH THE CONTRACT: the newest release other than `except` whose
- * LATEST decision is `approved` — which is what §13 D9.2 compares a candidate with (Task 3).
- * The demo does not assume it is what production serves: a run that stopped after leg B left
- * production serving a SELF-SERVE release, and the baseline is then A, not what serves.
+ * THE BASELINE, DERIVED THROUGH THE CONTRACT: of the releases other than `except` whose
+ * LATEST decision is `approved`, the one decided most recently — which is what §13 D9.2
+ * compares a candidate with (Task 3; `lastApprovedReleaseFor` orders by DECISION, not by
+ * release, and so does this — its first draft walked releases newest-first, which agrees only
+ * while every approval is of the newest release). The demo does not assume the baseline is
+ * what production serves: a run that stopped after leg B left production serving a SELF-SERVE
+ * release, and the baseline is then A, not what serves.
  */
 async function lastApproved(
   client: ManifestClient,
@@ -203,14 +206,21 @@ async function lastApproved(
     }),
     'listReleases',
   )
+  let newest: { releaseId: string; decidedAt: string } | undefined
   for (const candidate of releases) {
     if (candidate.id === except) continue
     const approval = await client.GET('/v1/releases/{releaseId}/approval', {
       params: { path: { releaseId: candidate.id } },
     })
-    if (approval.data?.decision === 'approved') return candidate.id
+    const latest = approval.data
+    if (latest?.decision !== 'approved') continue
+    if (
+      newest === undefined ||
+      Date.parse(latest.decidedAt) > Date.parse(newest.decidedAt)
+    )
+      newest = { releaseId: candidate.id, decidedAt: latest.decidedAt }
   }
-  return undefined
+  return newest?.releaseId
 }
 
 /**
