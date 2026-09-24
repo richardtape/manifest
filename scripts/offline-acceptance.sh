@@ -73,7 +73,7 @@ echo "=== 7. P4b's acceptance: the proof app answers a question, offline ==="
 # replaced the first). THE QUESTION OFFLINE IS OLLAMA: it is a HOST application,
 # not a container, so `make up` does not start it, and LiteLLM reaches it at
 # host.docker.internal:11434. If this is the step that fails, check `ollama list`
-# holds ministral-3 and nomic-embed-text before blaming the platform. It also
+# holds qwen3.5:4b and nomic-embed-text before blaming the platform. It also
 # reads LiteLLM's spend log, which needs no network.
 if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
   make demo-ai; echo "demo-ai exit=$?"

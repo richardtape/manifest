@@ -96,8 +96,9 @@ describeDocker('AI-path regression (§16, S3 Evidence 8 and 9)', () => {
   it('streams NON-EMPTY content, which a thinking model does not', async () => {
     // S3 Evidence 9: qwen3.5:4b emitted 1677 SSE frames and ZERO content frames at
     // max_tokens 2000. The toolkit reads delta.content only, so the app sees an empty
-    // string and no error. `default-chat` is pinned to ministral-3 in
-    // infra/litellm/config.yaml for exactly this reason.
+    // string and no error. `default-chat` IS qwen3.5:4b since 2026-09-24 (Rich), and it
+    // passes only because infra/litellm/config.yaml sets `reasoning_effort: none` on the
+    // mapping (Ollama `think: false`) — this test is what fails if that line goes.
     const chunks: string[] = []
     const response = await makeToolkit().streamConversation(
       [{ role: 'user', content: 'Count 1 to 5, digits only.' }],

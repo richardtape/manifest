@@ -8,8 +8,15 @@
 model_list:
   - model_name: default-chat
     litellm_params:
-      model: ollama_chat/ministral-3:latest
+      # qwen3.5:4b (Rich, 2026-09-24) IS A THINKING MODEL, and `reasoning_effort: none` is what
+      # makes it usable — LOAD-BEARING, on every chat entry. LiteLLM 1.98.0 maps any value but
+      # low/medium/high to Ollama's `think: false`. Without it every token goes to reasoning_content,
+      # which the app toolkit discards: 260 streamed frames, 0 with content, and no error (measured
+      # 2026-09-24, the D5 plan's [M15] addendum — S3 Evidence 9 again). `make verify`'s streaming
+      # check and ai-path.docker.test.ts both go red if it is removed.
+      model: ollama_chat/qwen3.5:4b
       api_base: http://host.docker.internal:11434
+      reasoning_effort: none
       # SYNTHETIC COST — load-bearing. Ollama is free, so without it no budget is
       # ever reachable AND every per-user spend row reads $0.00, which makes D8's
       # attribution as untestable as §10's budgets (S3 §Evidence 4, 5).
@@ -20,8 +27,9 @@ model_list:
 
   - model_name: default-chat-onprem
     litellm_params:
-      model: ollama_chat/ministral-3:latest
+      model: ollama_chat/qwen3.5:4b
       api_base: http://host.docker.internal:11434
+      reasoning_effort: none
       input_cost_per_token: 0.000001
       output_cost_per_token: 0.000003
     model_info:
