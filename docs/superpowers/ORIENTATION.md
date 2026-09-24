@@ -2014,13 +2014,17 @@ private by default, push-time secret scanning on both drivers, a sandbox credent
 `SourceDriver` and this plan gives it its second implementation; and the house style, [P1](plans/2026-08-30-p1-local-substrate.md)
 or the newest, [P6b](plans/2026-09-22-p6b-subsequent-releases.md). Use `superpowers:writing-plans`, and **commit on `main`**.
 
-**THE QUESTION THAT IS RICH'S, AND COMES FIRST — ask it before drafting tasks, as a decision with options and a
-recommendation (§6):** **D5's own rationale is C1** — *"the laptop build needs no GitHub org, no tokens, no webhook
-tunnel"* — so a GitHub driver cannot be proved on this laptop offline, and its acceptance has to run against *something*.
-The options include a GitHub-compatible stand-in in a container (what C1 allows, and what this project did for CWL with
-its own IdP), a real org (an external dependency, like UBC's staging IdP in the external track), or both, with the real
-one on the external track. **Also his: the sitting count**, offered as options with their costs, as every plan since P5b
-has. Everything else is yours to decide and document.
+**RICH'S TWO QUESTIONS ARE DECIDED (2026-09-24, §8 *Decided*) — do not re-ask them.** **The stand-in is a FAKE plus
+an opt-in REAL check**: a small GitHub-compatible fake in a container carries the acceptance offline and in CI, and a short
+opt-in conformance run against a real GitHub App (the roadmap's `Manifest (local dev)` registration, network on, at
+Rich's yes) checks the fake answers what GitHub answers; UBC's own org stays on the external track. **Eight sittings**,
+split as §8's entry lists. **Two things for Task 1 to measure rather than assume**, raised while the question was put:
+(1) whether Gitea or Forgejo implement GitHub Apps' installation tokens — the answer given was *probably not*, which is
+why the fake is our own; (2) **§20's *"a detected secret blocks the push"*** — GitHub.com runs no custom pre-receive
+hooks (Enterprise Server only) and webhooks fire after a push lands, so the only thing that can block a push there is
+GitHub's own push protection, which for private repositories is believed to need a paid licence; and locally secret
+scanning is a BUILD gate today, not a push-time one. That sentence may become a spec action. Everything else is yours
+to decide and document.
 
 **THINGS MOST LIKELY TO COST YOU:**
 
@@ -2104,6 +2108,22 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 - **Starting the UBC external track (C4)** — the trigger fired 2026-09-15; see §2 and `docs/external-track.md`.
 
 ### Decided
+
+- **D5's GitHub source driver plan — its two questions DECIDED by Rich on 2026-09-24**, from options with their costs.
+  **The stand-in: a FAKE plus an opt-in REAL check** (recommended). A small GitHub-compatible fake in a container — App
+  JWT → per-repository installation tokens, private repositories, git over HTTP, HMAC-signed webhooks — carries the
+  plan's acceptance offline and in CI, and is the only way a webhook can reach a laptop at all; a short opt-in
+  conformance run against a real GitHub App (`Manifest (local dev)`, on Rich's account, network on, at his yes) checks
+  that the fake answers what GitHub answers; UBC's own org stays on the external track. *Rejected:* the fake alone (a
+  fake written by the agent that writes the driver agrees with the driver — P3's false-green shape); a real org alone
+  (the network and an external account on the acceptance path). **Eight sittings** (recommended; seven and ten
+  offered): 1 the measurements; 2 the build path behind `SourceDriver` and the App key's custody; 3 the fake; 4 the
+  driver; 5 webhooks and enforced-private; 6 push-time secret scanning, `main` protected and the repository link; 7
+  P6b's inherited findings (F9, F11–F15); 8 the acceptance. *Seven would merge 6 and 7 and put the inheritance in the
+  sitting most likely to run long; ten would split the fake and the mirror.* — do not re-raise
+
+- **F10 — the console's *Sign out* leaves the IdP session alive — is FIXED IN ITS OWN SITTING, BEFORE the D5 plan**
+  (Rich, 2026-09-24), not folded into it; P5c's `b23674b` is the precedent. — do not re-raise
 
 - **P6b's three questions — ALL DECIDED by Rich on 2026-09-22**, the day the plan was written, each from options with their costs stated; the plan's *Decided by Rich, 2026-09-22* section keeps the options he rejected. **Seven sittings, the LEAN split** (eight was recommended): its cost is that sitting 5 pairs the IAM change request with R4(d), and the plan says to stop after Task 7 and sweep if it runs long. **Removing a CWL attribute does not wait for IAM; adding one does**: a removal still re-escalates to an administrator. **That approves the plan's Spec action 1 in substance** — §13 D9.2's *"a change to `auth.attributes`"* becoming *"a change … that adds an attribute UBC IAM has not registered"* — with the wording shown to him, **and APPLIED on 2026-09-24 at Rich's word**, with `manifest-decisions.html`'s D9 and D16 cards swept the same day. **An approved PIA never returns to `draft` automatically** on a sensitive change: the re-escalation's security note tells the administrator, who decides. — do not re-raise
 

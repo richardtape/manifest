@@ -829,6 +829,8 @@ is what builds it. **This is one of two instances of the same rule** — see *D5
 
 ### D5's driver 2 — the GitHub source driver. PLACED AFTER P6b, 2026-09-19 — **P6b IS EXECUTED (2026-09-23), SO THIS IS THE NEXT PLAN TO WRITE**
 
+**ITS TWO QUESTIONS ARE DECIDED (Rich, 2026-09-24; ORIENTATION §8):** a GitHub-compatible FAKE in a container for the acceptance, plus an opt-in conformance check against a real GitHub App; **eight sittings**. And the console's sign-out (P6b's F10) is fixed in its own sitting first, not in this plan.
+
 *The gate this section waits for now exists and is proved end to end (`make demo-releases`). The plan that writes this driver should inherit P6b's* What this plan does not build *— above all its sitting-7 findings, since a GitHub push is exactly the path that will put an unreviewed `manifest.yaml` change in front of the summary F9 found unreliable.*
 
 **Fully specified, and until now owned by no plan.** D5 names it (*"driver 1 is local bare repos,
