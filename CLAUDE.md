@@ -23,9 +23,11 @@ production with every blocking item honestly met, and `make demo-production` pro
 subsequent releases — IS EXECUTED** (`docs/superpowers/plans/2026-09-22-p6b-subsequent-releases.md`,
 written 2026-09-22, executed 2026-09-22 → 2026-09-23 in Rich's seven sittings): a launched app's release
 is self-serve unless it changes a sensitive field, then an administrator approves a STORED preview, and
-`make demo-releases` proves it — green three times, and clicked by a person. **The next job is WRITING
-a plan — D5's GitHub source driver (Rich's order) — and ORIENTATION §7e says how**; this file
-deliberately says no more. Its measurements (sitting 1, 2026-09-22) found every premise true and a
+`make demo-releases` proves it — green three times, and clicked by a person. **D5's GitHub source
+driver plan IS WRITTEN** (`docs/superpowers/plans/2026-09-24-d5-github-source-driver.md`, 2026-09-24,
+15 tasks in Rich's eight sittings; three spec actions proposed, none applied — ORIENTATION §8).
+**The next job is EXECUTING its sitting 1, and ORIENTATION §7e says how**; this file deliberately
+says no more. P6b's measurements (its sitting 1, 2026-09-22) found every premise true and a
 defect it did not know — **the egress proxy never re-renders its allowlist**, so a removed
 `egress.allow` host stays reachable — which added Task 5a to the plan. **Rich answered its three questions the same day** (ORIENTATION §8, *Decided*): seven
 sittings; removing a CWL attribute does not wait for IAM (its one spec action — approved, and
@@ -93,7 +95,8 @@ Phases.*
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
 turning the network off from a tool call cuts the agent off too; **it now has TWELVE steps**, the
 newest being `make demo-releases` — a launched app's next release, whose preview summary may
-legitimately read `unavailable` offline), the second-machine clean clone, starting the UBC external track
+legitimately read `unavailable` offline), the second-machine clean clone, registering the optional `Manifest (local dev)`
+GitHub App on a free organisation (the D5 plan's *What Rich does*), starting the UBC external track
 (its trigger fired on 2026-09-15, and **P6a's R1 makes it more urgent, not less** — P6a builds
 the objects a real IAM registration and PIA would populate; **since 2026-09-20 its item 5,
 access to UBC's staging IdP, is the ONLY part of a first production launch this platform
