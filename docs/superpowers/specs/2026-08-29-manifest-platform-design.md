@@ -1822,12 +1822,22 @@ another project's events is an administrator action and is itself logged.
 ### Git driver
 
 - GitHub App private key held in the same custody class as the master key;
-  installation tokens are short-lived and scoped per repository.
+  installation tokens are short-lived and scoped per repository — **except the one
+  that creates a repository, which cannot name it yet: it carries the administration
+  permission alone, is used for that one call, and is never kept.**
 - Webhook payloads verified by HMAC before any processing.
 - **Repositories are private by default and enforced private.** A public repository
   containing a course application leaks student data immediately and irreversibly.
-- Push-time secret scanning on both drivers; a detected secret blocks the push and
-  raises an Event.
+- Push-time secret scanning on both drivers, from one set of rules. **A push Manifest
+  makes** — its own commits, and in time a sandbox's — is scanned before it leaves and
+  refused if it carries a secret. **A push to a driver-1 repository** is refused by that
+  repository's own hook. **A push made directly to GitHub cannot be blocked by
+  Manifest** (GitHub.com runs no custom pre-receive hooks): its commits are scanned as
+  soon as Manifest learns of them, by webhook or fetch, a detection raises an Event
+  naming the commit, the path and the rule — never the value — and the commit is not
+  built. The secret is then on GitHub and must be treated as exposed. Blocking such a
+  push at GitHub is GitHub's push protection, which the production organisation
+  enables (§19).
 - The sandbox's git credential can push to exactly one branch of one repository
   (D14) — never `main`, never another project.
 
@@ -1889,6 +1899,7 @@ created per build and destroyed:
 | Registry (`registry:2`) | 7107 | Required: §13 binds approval to a digest and restricts pushes |
 | Verdaccio | 7108 | The private package mirror §12 mandates; also what makes offline installs possible |
 | Egress proxy | 7109 | Default-deny must exist locally, or an app works here and fails in staging |
+| GitHub fake | 7110 | **Opt-in** (`make github-up`, compose profile `github`) — a GitHub-compatible test double for D5's driver 2: App installation tokens, private repositories, git over HTTP and HMAC-signed webhooks. **It is not GitHub**: its answers are held to GitHub's own published schemas and test vector, and checked against a real GitHub App by an opt-in conformance run. |
 | Control plane | 7100 | **Host Node process**, not a container — it needs the Docker socket, which §12 forbids mounting into *workload* containers while explicitly permitting the control plane's own access. Running on the host sidesteps the question and iterates faster. **It cannot reach container IPs** on Docker Desktop (S1), so health checks and readiness polling go through the edge or a published port, never the container address. **Clients reach it through the edge on the console's origin (§21), never on this port**; the edge refuses those routes to app and sandbox networks (§12). |
 | Admin UI (Vite) | 7101 | Host process |
 | `manifest-mock` | 7102 | Host process; needed only when working on the front-end without the platform |
@@ -1896,6 +1907,8 @@ created per build and destroyed:
 | Ollama | 11434 | **Host application** — Metal GPU access is unavailable from a container. `make seed` pulls a **non-thinking** chat model and an embedding model by name; a thinking model streams no content at all (§21, S3) |
 
 Git uses the local driver (bare repositories on disk), so it needs no container.
+**Driver 2 runs against the GitHub fake above**, which only the driver-2 acceptance
+starts.
 The 7100–7199 block was chosen to avoid the ports already in use on this machine
 (3000, 4000, 5001, 6060, 6118, 6122, 8020, 8050–8052, 8768, 11434); `make doctor`
 verifies they are free rather than assuming it.
