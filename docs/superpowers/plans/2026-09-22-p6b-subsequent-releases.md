@@ -4380,5 +4380,8 @@ here ran an update. Record the new version.
 **The four HTML pages**: `manifest-decisions.html`'s D9 and D16 cards were swept with the spec action (`f4f0a84`); the
 other three were checked and state nothing about signing out or §13's IAM sentence, so they did not change.
 
-**Left for Rich, because the classifier refused the reads (F7):** `make refresh-vulndb`, which he asked for, and
-`CLAUDE.md`'s *State* line, which still says P6b's spec action is *NOT applied*.
+**Left for Rich, because the classifier refused the reads (F7) — then DONE the same day, when he said to try again and
+every read was allowed:** `make refresh-vulndb` (`scripts/refresh-vulndb.sh`; `make doctor` now names it in its
+staleness line), run once — the database moved from the 2026-09-23 build to **2026-09-24T06:31:52Z**, fresh until
+2026-10-01; its offline-failure branch has never run — and `CLAUDE.md`'s *State* line, which now says P6b's spec action
+is applied and F10 is fixed.

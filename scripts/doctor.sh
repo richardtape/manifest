@@ -424,7 +424,7 @@ scanner_db_age() {
             anchore/grype:v0.118.0 db status -o json 2>/dev/null \
           | sed -n 's/.*"built": *"\([^"]*\)".*/\1/p' | head -1)
   if [ -z "$built" ]; then
-    echo "no vulnerability database -- run 'make seed' with network"
+    echo "no vulnerability database -- run 'make refresh-vulndb' with the network on"
     return 1
   fi
   # BSD date. No -d, no --date; and -u, or an ISO-8601 Z timestamp is read as LOCAL
@@ -438,7 +438,7 @@ scanner_db_age() {
   # test red because every scan had gone stale.
   secs=$(( $(date +%s) - $(date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$built" +%s 2>/dev/null || echo 0) ))
   tenths=$(( secs * 10 / 86400 ))
-  echo "vulnerability database built $built, $(( tenths / 10 )).$(( tenths % 10 )) days old (the scan gate calls it stale above 7.0 and warns rather than blocks)"
+  echo "vulnerability database built $built, $(( tenths / 10 )).$(( tenths % 10 )) days old (the scan gate calls it stale above 7.0 and warns rather than blocks; refresh with 'make refresh-vulndb')"
   [ "$secs" -le $(( 7 * 86400 )) ]
 }
 check_warn "the vulnerability database is fresh"  scanner_db_age

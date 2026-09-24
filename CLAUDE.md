@@ -28,8 +28,11 @@ a plan — D5's GitHub source driver (Rich's order) — and ORIENTATION §7e say
 deliberately says no more. Its measurements (sitting 1, 2026-09-22) found every premise true and a
 defect it did not know — **the egress proxy never re-renders its allowlist**, so a removed
 `egress.allow` host stays reachable — which added Task 5a to the plan. **Rich answered its three questions the same day** (ORIENTATION §8, *Decided*): seven
-sittings; removing a CWL attribute does not wait for IAM (its one spec action — approved in
-substance, NOT applied); and a sensitive change never returns an approved PIA to `draft`.
+sittings; removing a CWL attribute does not wait for IAM (its one spec action — approved, and
+APPLIED on 2026-09-24); and a sensitive change never returns an approved PIA to `draft`.
+**P6b's F10 — the console's *Sign out* leaving the IdP session alive — was FIXED on 2026-09-24,
+in its own sitting** (`0aa1824`, clicked by Rich), together with the defect fixing it found: the
+SLO route accepted UNSIGNED logout messages. P6b's record, *After the plan*, has it.
 **P6a raised three spec actions and ALL THREE were approved and APPLIED on 2026-09-22**: §13
 names no number of sensitive fields, §20 and D24 gain a *person-only* class, and §21's divergence 2
 now describes the real listener split and what stays divergent. **Rich decided on 2026-09-22 that an administrator sees the approval's diff before
@@ -96,10 +99,10 @@ the objects a real IAM registration and PIA would populate; **since 2026-09-20 i
 access to UBC's staging IdP, is the ONLY part of a first production launch this platform
 cannot do for itself** — Manifest runs D21's rehearsal locally and says in the checklist that
 it proves the registration's shape and never UBC's acceptance of it), **refreshing the
-vulnerability database weekly, with the network on** (refreshed 2026-09-23 at the open of P6b
-sitting 3, at Rich's yes; **next due after 2026-09-30** — past §12's seven days `make doctor`
-warns and §13's `scans` item refuses every production launch, so `make demo-production` goes red;
-the one-line refresh is in ORIENTATION §2 *Outstanding*), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 8**,
+vulnerability database weekly, with the network on** (**`make refresh-vulndb`**, added
+2026-09-24 at Rich's request and run the same day; **next due after 2026-10-01** — past §12's
+seven days `make doctor` warns and §13's `scans` item refuses every production launch, so
+`make demo-production` goes red), and the rest of ORIENTATION §8. **THE MACHINE CLEANUPS ARE ALL CLEAR as of the close of P5c sitting 8**,
 applied by the agent session itself and **re-measured by the scripts themselves afterwards**: `dead-app-resources.sh`
 reads `none dead` and `litellm-orphans.sh` reads 0 orphaned. They were clear at sitting 1's close
 too; sitting 2 ran no Docker tier and they stayed clear; **sitting 3 ran one and seven networks,

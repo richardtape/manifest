@@ -923,8 +923,8 @@ sittings. **What it needs, read from the code on 2026-09-24:**
 - **A platform-level capability.** Today's capabilities are project-scoped; this is the first platform setting.
 - **The real-server gap, offered as scope**: nothing refreshes the database on a server, so seven days after a
   deployment every production launch would be refused. A scheduled refresh belongs here.
-- **`make refresh-vulndb`**, asked for the same day and not added — the permission classifier refused reading the
-  `Makefile` (ORIENTATION §4). It is one line and needs no plan.
+- **`make refresh-vulndb`**, asked for the same day, is DONE — added and run on 2026-09-24 (`scripts/refresh-vulndb.sh`),
+  outside any plan. It is what this plan's refresh operation replaces for an administrator.
 
 ### Phases 3–5 — not planned
 

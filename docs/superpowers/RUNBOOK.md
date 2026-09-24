@@ -369,7 +369,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 19 / 0 and `make verify` 55 / 0**
-(**All four were re-measured at the close of the sitting that fixed P6b's F10, 2026-09-24 — the console's *Sign out* now ends the IdP session: `pnpm test` **1742 passed** in 123 files (up 19), `make doctor` 19 with **0 warnings** — the vulnerability database goes stale again after 2026-09-30 — `make verify` 55, and `pnpm test:docker` **200 in 31** (owed and run; S6 probe 14 green on a re-run with the chat model warm).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured at the close of the sitting that fixed P6b's F10, 2026-09-24 — the console's *Sign out* now ends the IdP session: `pnpm test` **1742 passed** in 123 files (up 19), `make doctor` 19 with **0 warnings** — the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 55, and `pnpm test:docker` **200 in 31** (owed and run; S6 probe 14 green on a re-run with the chat model warm).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has ELEVEN steps** — P5a sitting 12 added `make demo-journey` as step 8,
@@ -578,7 +578,7 @@ production app on this laptop points at UBC's real CWL and signs nobody in — d
 
 §13 D9's second clause, through the edge, on `launch-app`. Needs what `make demo-production` needs —
 `make up`, **`127.0.0.3` on `lo0`**, the control plane running per README — and a vulnerability
-database younger than seven days (§2 *Outstanding*), because on a machine where `launch-app` has not
+database younger than seven days (`make refresh-vulndb`, with the network on), because on a machine where `launch-app` has not
 launched **it runs `make demo-production` first, and says so** (Decision 17), and that launch needs
 §13's `scans` item met.
 

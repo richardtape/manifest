@@ -16,7 +16,7 @@ LITELLM_DIGEST := $(shell awk '$$1 ~ /berriai\/litellm/ {print $$2}' infra/image
 LITELLM_DIGEST := $(or $(LITELLM_DIGEST),sha256:0000000000000000000000000000000000000000000000000000000000000000)
 COMPOSE := LITELLM_DIGEST=$(LITELLM_DIGEST) docker compose -f infra/compose.yaml -p manifest --env-file .env
 
-.PHONY: help seed up down reset doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-console ci-acceptance host-setup host-undo
+.PHONY: help seed refresh-vulndb up down reset doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-console ci-acceptance host-setup host-undo
 
 # Every compose target needs .env to exist — `--env-file` on a missing file is a
 # hard error, not a warning. `make seed` also writes it; this makes `make up` on
@@ -30,6 +30,9 @@ help:  ## Show this help
 
 seed: .env  ## The only step needing network. Run once, then work offline.
 	@bash infra/seed/seed.sh
+
+refresh-vulndb:  ## Refresh the vulnerability database — weekly, with the network on. Touches only manifest-grype-db.
+	@bash scripts/refresh-vulndb.sh
 
 doctor:  ## Can this machine run the platform? Works with nothing up.
 	@bash scripts/doctor.sh
