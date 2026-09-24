@@ -787,10 +787,22 @@ export interface components {
             /** @description The AI-written plain-English summary of what changed. **Null is a state, not an error** (Decision 7): an approval gate that fails closed on a language model being down is an outage, not a control. `summarySource` says why. */
             summary: string | null;
             /**
-             * @description `llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff.
+             * @description `llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff. `no-changes`: nothing in manifest.yaml changed, and the summary is the platform’s fixed sentence — no model wrote it.
              * @enum {string}
              */
-            summarySource: "llm" | "unavailable" | "no-previous-release";
+            summarySource: "llm" | "unavailable" | "no-previous-release" | "no-changes";
+            /** @description The last approved release this one was compared with (§13 D9.2) — null for a first launch, and for a record made before P6b. */
+            baselineReleaseId: string | null;
+            /** @description Which of §7’s sensitive fields changed since that release — what re-escalated it to an administrator. Empty for a first launch. */
+            sensitiveFields: ("services" | "auth.attributes" | "egress.allow" | "resources" | "data.classification" | "ai.models" | "blueprint")[];
+            /** @description R4(d): what each changed field means for security and privacy, in the platform’s own words — present whether or not the model answered. */
+            security: {
+                /** @enum {string} */
+                field: "services" | "auth.attributes" | "egress.allow" | "resources" | "data.classification" | "ai.models" | "blueprint";
+                note: string;
+            }[];
+            /** @description D33’s coverage limit, stated in the record: an administrator sees a first launch and a re-escalation, never a self-serve release, and nothing reviews code. Null only for a record made before P6b. */
+            coverage: string | null;
             /** @description R4 (D33, §15): the code reviewer’s verdict at decision time. `not_performed` until a reviewer is configured — an honest absence rather than a stub that purports to have reviewed. */
             review: {
                 /** @enum {string} */

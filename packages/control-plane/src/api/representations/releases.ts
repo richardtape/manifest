@@ -3,6 +3,7 @@ import type { approvals, builds, releases } from '../../db/index.js'
 import { REVIEW_STATES } from '../../launch/index.js'
 import type { ResolvedConfigSet } from '../../releases/index.js'
 import type { ScanSummary as DriverScanSummary } from '../../runtime/index.js'
+import { SENSITIVE_FIELDS, type SensitiveField } from '../../spec/index.js'
 import { representation, request, Timestamp, Uuid } from '../contract/schemas.js'
 import { ScanSummary } from './builds.js'
 
@@ -162,9 +163,28 @@ export const ApprovalDiff = representation(
           'The AI-written plain-English summary of what changed. **Null is a state, not an error** (Decision 7): an approval gate that fails closed on a language model being down is an outage, not a control. `summarySource` says why.',
         ),
       summarySource: z
-        .enum(['llm', 'unavailable', 'no-previous-release'])
+        .enum(['llm', 'unavailable', 'no-previous-release', 'no-changes'])
         .describe(
-          '`llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff.',
+          '`llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff. `no-changes`: nothing in manifest.yaml changed, and the summary is the platform’s fixed sentence — no model wrote it.',
+        ),
+      baselineReleaseId: Uuid.nullable().describe(
+        'The last approved release this one was compared with (§13 D9.2) — null for a first launch, and for a record made before P6b.',
+      ),
+      sensitiveFields: z
+        .array(z.enum(SENSITIVE_FIELDS))
+        .describe(
+          'Which of §7’s sensitive fields changed since that release — what re-escalated it to an administrator. Empty for a first launch.',
+        ),
+      security: z
+        .array(z.object({ field: z.enum(SENSITIVE_FIELDS), note: z.string() }))
+        .describe(
+          'R4(d): what each changed field means for security and privacy, in the platform’s own words — present whether or not the model answered.',
+        ),
+      coverage: z
+        .string()
+        .nullable()
+        .describe(
+          'D33’s coverage limit, stated in the record: an administrator sees a first launch and a re-escalation, never a self-serve release, and nothing reviews code. Null only for a record made before P6b.',
         ),
       review: z
         .object({
@@ -262,6 +282,15 @@ export function toApproval(row: typeof approvals.$inferSelect): z.input<typeof A
       summary: diff.summary,
       summarySource: diff.summarySource,
       review: diff.review,
+      // P6b Task 8's four keys, DEFAULTED HERE for a row written before them — inside the
+      // mapper's body, never as a defaulted parameter (`.map(fn)` passes the array index as
+      // a second argument: P5b sitting 7).
+      baselineReleaseId: diff.baselineReleaseId ?? null,
+      // Written by `securityNotesFor` / `sensitiveChangeOf`, which only produce §7's names;
+      // the column is `string[]` because `db/` imports nothing above it.
+      sensitiveFields: (diff.sensitiveFields ?? []) as SensitiveField[],
+      security: (diff.security ?? []) as { field: SensitiveField; note: string }[],
+      coverage: diff.coverage ?? null,
     },
   }
 }

@@ -375,6 +375,22 @@ export const APPROVAL: Schemas['Approval'] = {
         'controls that make that tolerable are containment — default-deny egress, network ' +
         'isolation, least privilege and edge protections (§20).',
     },
+    // R4(d) (P6b Task 8). The memory change above IS one of §7's sensitive fields, so this
+    // approval names what it was compared with, the field and its note — the note and the
+    // coverage sentence VERBATIM from `spec/diff.ts`'s `SECURITY_NOTES` and
+    // `releases/approval.ts`'s `COVERAGE_LIMIT`, for the reason the reviewer's is above.
+    baselineReleaseId: '88888888-8888-4888-8888-888888888881',
+    sensitiveFields: ['resources'],
+    security: [
+      {
+        field: 'resources',
+        note: 'More CPU, memory, processes or disk: cost and blast radius rather than data.',
+      },
+    ],
+    coverage:
+      'An administrator sees a first launch and any release that changes a sensitive field (§7). ' +
+      'A release that changes none reaches production without an administrator, and its code is ' +
+      'reviewed by nothing (§13’s residual risk); containment is the control (§20).',
   },
 }
 

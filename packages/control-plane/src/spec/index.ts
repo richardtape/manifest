@@ -18,6 +18,8 @@ export {
   DESCRIBED_PATHS,
   describeDiff,
   isSensitiveDiff,
+  SECURITY_NOTES,
+  securityNotesFor,
   SENSITIVE_FIELDS,
   sensitiveFieldsBetween,
   sensitiveViewOfRelease,

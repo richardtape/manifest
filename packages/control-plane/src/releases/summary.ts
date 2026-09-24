@@ -1,8 +1,41 @@
 import type { LiteLlmClient } from '../ai/index.js'
-import type { SpecChange } from '../spec/index.js'
+import type { SensitiveField, SpecChange } from '../spec/index.js'
 
-/** Where the summary in a `diff_snapshot` came from, or why there is none (Decision 7). */
-export type SummarySource = 'llm' | 'unavailable' | 'no-previous-release'
+/**
+ * Where the summary in a `diff_snapshot` came from, or why there is none (Decision 7).
+ * `no-changes` (P6b Task 8): the fixed sentence for an empty diff, which no model wrote —
+ * P6a recorded it as `llm`, and its acceptance printed it as "the model's summary".
+ */
+export type SummarySource = 'llm' | 'unavailable' | 'no-previous-release' | 'no-changes'
+
+/**
+ * R4(d)'s context (P6b Task 8, Decision 13): what the model is told BESIDE the changes — the
+ * deterministic security notes, the reviewer's verdict at decision time, and D33's coverage
+ * limit. The notes and the verdict are the record's own; the model only phrases them.
+ */
+export interface SummaryContext {
+  security: readonly { field: SensitiveField; note: string }[]
+  review: { state: string; reviewer: string; detail: string }
+  coverage: string
+}
+
+/** The one sentence an empty diff has, whoever writes it — never a model. */
+const NO_CHANGES = 'Nothing in manifest.yaml changed since the last approved release.'
+
+/**
+ * R4(d)'s system prompt. **Security-aware and verdict-carrying, and plain text**: `[M12]`
+ * measured the model writing `**host**` under "plain English", and the console renders the
+ * stored summary as text. The record is what the administrator was shown, verbatim, so the
+ * prompt asks for plain text and nothing strips it afterwards — a model that still writes
+ * Markdown is a finding for the clicked acceptance, not something to repair here.
+ */
+const SYSTEM_PROMPT =
+  'You summarise changes to a university web application’s configuration for a platform administrator ' +
+  'deciding whether to allow it into production. Three sentences at most, plain English. Say what changed ' +
+  'and what each change could expose — personal information, where data can go, what the app can reach. ' +
+  'State the code reviewer’s verdict exactly as given, in one sentence. Never say or imply that the ' +
+  'application’s code was reviewed unless the verdict says it was. Do not invent anything that is not in ' +
+  'the list. Write plain text: no Markdown, no asterisks, no bullet characters.'
 
 export interface ChangeSummary {
   summary: string | null
@@ -36,34 +69,41 @@ export const SUMMARY_MODEL = 'default-chat-onprem'
 export async function summariseChanges(
   ai: LiteLlmClient | undefined,
   changes: readonly SpecChange[],
+  context: SummaryContext,
 ): Promise<ChangeSummary> {
+  // AN EMPTY DIFF HAS ONE RIGHT ANSWER, and it needs no model — so it is given whether or not
+  // one is configured, and recorded as what it is (`no-changes`), never as the model's.
+  if (changes.length === 0) return { summary: NO_CHANGES, summarySource: 'no-changes' }
   // MANIFEST_AI_ENABLED=0 is a real configuration (`src/index.ts` builds no client at all),
   // so `ai` can be absent. NOT an error: it is the same "recorded as absent" answer by a
-  // different route, and an administrator reads the diff either way.
+  // different route, and an administrator reads the diff — and the security notes — either way.
   if (ai === undefined) return { summary: null, summarySource: 'unavailable' }
-  if (changes.length === 0)
-    return {
-      summary: 'Nothing in manifest.yaml changed since the last approved release.',
-      summarySource: 'llm',
-    }
   try {
     const answer = await ai.post<{ choices: { message: { content: string } }[] }>(
       '/chat/completions',
       {
         model: SUMMARY_MODEL,
         messages: [
-          {
-            role: 'system',
-            content:
-              'You summarise changes to a university web application’s configuration for an administrator ' +
-              'deciding whether to allow it into production. Three sentences at most. Plain English. ' +
-              'Say what changed and why it might matter. Do not invent anything that is not in the list.',
-          },
+          { role: 'system', content: SYSTEM_PROMPT },
           {
             role: 'user',
-            content: changes
-              .map((c) => `${c.path}: ${c.from} -> ${c.to} (${c.summary})`)
-              .join('\n'),
+            // The changes, then the notes (only when a sensitive field changed), then the
+            // verdict, then the coverage sentence — each under its own label, so the model
+            // can state the verdict "exactly as given".
+            content: [
+              ...changes.map((c) => `${c.path}: ${c.from} -> ${c.to} (${c.summary})`),
+              ...(context.security.length === 0
+                ? []
+                : [
+                    '',
+                    'Security notes:',
+                    ...context.security.map((s) => `${s.field}: ${s.note}`),
+                  ]),
+              '',
+              `Code review: ${context.review.detail}`,
+              '',
+              context.coverage,
+            ].join('\n'),
           },
         ],
         max_tokens: 200,

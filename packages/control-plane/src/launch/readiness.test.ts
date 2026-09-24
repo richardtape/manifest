@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import {
+  approvals,
   appSpecs,
   builds,
   environments,
@@ -555,6 +556,124 @@ describe('the code-review item — R4’s seam, NON-blocking (D33, Decision 13)'
       expect(item.why).toContain('Nothing reviews the code the agent wrote')
       expect(item.why).toContain('still accepted')
       expect(item.why).toContain('containment')
+    })
+  })
+
+  /**
+   * P6b Task 8, Decision 12 (P6a F7): the item READS the newest verdict recorded for the
+   * candidate, rather than saying `not_built` beside a record whose verdict says `clean`. The
+   * rows are written directly — this file is about what the checklist reads.
+   */
+  async function recordVerdict(
+    tx: Db,
+    projectId: string,
+    releaseId: string,
+    decidedBy: string,
+    review: {
+      state: 'not_performed' | 'clean' | 'findings'
+      reviewer: string
+      detail: string
+    },
+    decidedAt: Date,
+  ): Promise<void> {
+    await tx.insert(approvals).values({
+      releaseId,
+      projectId,
+      decision: 'approved',
+      decidedBy,
+      decidedAt,
+      imageDigest: `sha256:${'b'.repeat(64)}`,
+      diffSnapshot: {
+        imageDigest: `sha256:${'b'.repeat(64)}`,
+        changes: [],
+        services: [],
+        attributes: [],
+        resources: {},
+        summary: null,
+        summarySource: 'no-previous-release',
+        review,
+      },
+    })
+  }
+  const codeReview = async (tx: Db, projectId: string) =>
+    (await computeLaunchReadiness(tx, projectId)).items.find(
+      (i) => i.id === 'code-review',
+    )!
+
+  it('code-review reads the newest verdict recorded for the candidate: clean → met, still non-blocking', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      const releaseId = await serving(tx, projectId, ownerId, scan(1, false))
+      // An OLDER verdict with findings, then a newer clean one: the newest is what counts.
+      await recordVerdict(
+        tx,
+        projectId,
+        releaseId,
+        ownerId,
+        { state: 'findings', reviewer: 'semgrep', detail: '1 finding(s): [advise] x' },
+        new Date('2026-09-20T00:00:00Z'),
+      )
+      await recordVerdict(
+        tx,
+        projectId,
+        releaseId,
+        ownerId,
+        { state: 'clean', reviewer: 'semgrep', detail: '12 checked, no findings' },
+        new Date('2026-09-21T00:00:00Z'),
+      )
+      const item = await codeReview(tx, projectId)
+      expect(item).toMatchObject({ state: 'met', blocking: false })
+      expect(item.why).toContain('12 checked, no findings')
+      expect(item.why).toContain('semgrep')
+    })
+  })
+
+  it('findings → unmet, naming the count; not_performed → not_built, in the reviewer’s own words', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      const releaseId = await serving(tx, projectId, ownerId, scan(1, false))
+      await recordVerdict(
+        tx,
+        projectId,
+        releaseId,
+        ownerId,
+        {
+          state: 'findings',
+          reviewer: 'semgrep',
+          detail: '2 finding(s): [advise] a; [block] b',
+        },
+        new Date('2026-09-21T00:00:00Z'),
+      )
+      const item = await codeReview(tx, projectId)
+      expect(item).toMatchObject({ state: 'unmet', blocking: false })
+      expect(item.why).toContain('2 finding(s)')
+    })
+    await withProject(async (tx, { projectId, ownerId }) => {
+      const releaseId = await serving(tx, projectId, ownerId, scan(1, false))
+      await recordVerdict(
+        tx,
+        projectId,
+        releaseId,
+        ownerId,
+        {
+          state: 'not_performed',
+          reviewer: 'none',
+          detail: 'No code reviewer is configured.',
+        },
+        new Date('2026-09-21T00:00:00Z'),
+      )
+      const item = await codeReview(tx, projectId)
+      expect(item).toMatchObject({ state: 'not_built', blocking: false })
+      expect(item.why).toContain('No code reviewer is configured.')
+      expect(item.builtBy).toContain('SemgrepReviewer')
+    })
+  })
+
+  it('with no verdict recorded, it says a reviewer runs only for a first launch or a re-escalation (D33)', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(tx, projectId, ownerId, scan(1, false))
+      const item = await codeReview(tx, projectId)
+      expect(item).toMatchObject({ state: 'not_built', blocking: false })
+      expect(item.why).toContain('No reviewer has looked at this release')
+      expect(item.why).toContain('never for a self-serve release')
     })
   })
 

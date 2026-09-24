@@ -19,6 +19,47 @@ export const SENSITIVE_FIELDS = [
 export type SensitiveField = (typeof SENSITIVE_FIELDS)[number]
 
 /**
+ * R4(d): what each of §7's seven fields MEANS for security and privacy when it changes — the
+ * deterministic half of the approval summary's security dimension (P6b Decision 13), present
+ * when the model is down. A `Record<SensitiveField, …>` so an eighth field is a `tsc` error
+ * here rather than a change nobody explains to an administrator.
+ *
+ * *(Rich answered P6b's Question 3 on 2026-09-22: a PIA never returns to `draft`
+ * automatically. These sentences are therefore how an administrator learns that a PIA may
+ * need the Privacy Office again, and the decision is theirs.)*
+ */
+export const SECURITY_NOTES: Record<SensitiveField, string> = {
+  services:
+    'A service stores data somewhere new — the PIA’s “where it is stored” (§9) may no longer be accurate.',
+  'auth.attributes':
+    'The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered (§7, §9), and it is an input to the PIA.',
+  'egress.allow':
+    'The app may send data to a host it could not reach before. Default-deny egress is §20’s containment for unreviewed code, and this widens it. An input to the PIA’s “where it flows”.',
+  resources:
+    'More CPU, memory, processes or disk: cost and blast radius rather than data.',
+  'data.classification':
+    'The app now claims a different class of data, which bounds the models it may use (D17) and is an input to the PIA.',
+  'ai.models':
+    'A model change can move personal information to a different jurisdiction, which invalidates an approved PIA (§7, §9) — the administrator decides whether the PIA must be reviewed again.',
+  blueprint:
+    'Under D13 the blueprint is the build definition: a change replaces the Dockerfile, base image and knowledge pack beneath the app.',
+}
+
+/**
+ * The note for each field that changed, in `SENSITIVE_FIELDS` order whatever order it was
+ * handed — two approvals of the same change record the same list. **Callers:** P6b Task 8's
+ * `buildDiffSnapshot`, which stores them on the approval and hands them to the summary.
+ */
+export function securityNotesFor(
+  fields: readonly SensitiveField[],
+): { field: SensitiveField; note: string }[] {
+  return SENSITIVE_FIELDS.filter((f) => fields.includes(f)).map((field) => ({
+    field,
+    note: SECURITY_NOTES[field],
+  }))
+}
+
+/**
  * A serialisation that ignores the ORDER OF AN OBJECT'S KEYS, at every depth. The route
  * compares the previous spec as Postgres's jsonb hands it back — keys by length, then
  * bytes, `{name, type, version}` — with one zod has just parsed in schema order,

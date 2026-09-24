@@ -8,6 +8,7 @@ import { makeRedactor, publishEvent, type EventBus } from '../observability/inde
 import type { SourceDriver } from '../source/index.js'
 import {
   describeDiff,
+  securityNotesFor,
   sensitiveFieldsBetween,
   sensitiveViewOfRelease,
   type ManifestSpec,
@@ -349,6 +350,32 @@ export function unsatisfiedReason(verdict: ProductionApproval, digest: string): 
   )
 }
 
+/**
+ * D33's coverage limit (P6b Task 8, R4(d)), written into every record so no reader mistakes an
+ * approval for a code review — and handed to the model, which is told not to imply otherwise.
+ */
+export const COVERAGE_LIMIT =
+  'An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).'
+
+/**
+ * THE NEWEST CODE-REVIEW VERDICT RECORDED FOR A RELEASE (P6b Task 8, Decision 12), or
+ * `undefined` when no reviewer has been asked about it — which, under D9, is every release an
+ * administrator never saw: a self-serve one (D33). Read from the approvals' stored snapshots;
+ * **Task 9 adds `approval_previews` as a second source, here, and the item does not change.**
+ *
+ * NEWEST BY `decided_at`, with `id` breaking a tie — `latestApprovalFor`'s order.
+ *
+ * **Caller:** `launch/readiness.ts`'s `code-review` item — which reads it through `releases/`,
+ * never the table itself: `launch/` already imports `releases/` at runtime, and the reverse
+ * would be a cycle.
+ */
+export async function latestReviewFor(
+  db: Db,
+  releaseId: string,
+): Promise<DiffSnapshot['review'] | undefined> {
+  return (await latestApprovalFor(db, releaseId))?.diffSnapshot.review
+}
+
 export interface SnapshotDeps {
   db: Db
   /** §10's admin transport. Absent under `MANIFEST_AI_ENABLED=0` (Decision 7). */
@@ -375,15 +402,20 @@ export interface SnapshotDeps {
  * `app_specs.parsed` — a release is what §13 froze, and reading the spec back would be the
  * second source of truth P4a deleted.
  *
- * **`isSensitiveDiff` IS NOT CALLED HERE.** That one answers *"does this need an approval?"*
- * and is D9.2's re-escalation, which is P6b's; calling it now would be P6b built badly.
+ * **R4(d)'S SECURITY DIMENSION (P6b Task 8, Decision 13)** — deterministic first: the
+ * baseline, the sensitive fields that changed since it (`sensitiveChangeOf`, the rule the gate
+ * reads) and a note for each, present when the model is down; and D33's coverage limit. **The
+ * reviewer is asked BEFORE the model**, so the summary can carry its verdict, and the model is
+ * told the notes, the verdict and the limit.
  */
 export async function buildDiffSnapshot(
   deps: SnapshotDeps,
   release: ReleaseRow,
   digest: string,
 ): Promise<DiffSnapshot> {
-  const previous = await lastApprovedReleaseFor(deps.db, release.projectId, release.id)
+  // ONE READ OF THE BASELINE: the summary's "previous" and the sensitive diff's baseline are
+  // the same question (Decision 4), so `sensitiveChangeOf` answers both.
+  const { baseline: previous, fields } = await sensitiveChangeOf(deps.db, release)
   const now = (release.resolvedConfig as ResolvedConfigSet).production
   // A FIRST LAUNCH HAS NOTHING TO DIFF, and that is a STATE rather than an absence: §13's
   // gate for a first launch is the whole checklist, and D9.2's re-escalation — which is
@@ -393,6 +425,10 @@ export async function buildDiffSnapshot(
     previous === undefined
       ? []
       : describeDiff((previous.resolvedConfig as ResolvedConfigSet).production, now)
+  const security = securityNotesFor(fields)
+  // R4(d): THE REVIEWER FIRST, so the summary below is written knowing the verdict — and the
+  // record carries the verdict whatever the model then says (Decision 13).
+  const review = await reviewOf(deps, release, changes)
   return {
     imageDigest: digest,
     changes: changes.map((c) => ({
@@ -414,12 +450,20 @@ export async function buildDiffSnapshot(
     },
     ...(previous === undefined
       ? { summary: null, summarySource: 'no-previous-release' as const }
-      : await summariseChanges(deps.llm, changes)),
+      : await summariseChanges(deps.llm, changes, {
+          security,
+          review,
+          coverage: COVERAGE_LIMIT,
+        })),
     // R4 (D33): the reviewer's verdict AT DECISION TIME, from the reviewer `ServerDeps`
     // carries — the seam's one real caller (P6a Task 12). What it says is the reviewer's
     // to say: `NullReviewer` answers `not_performed` and names itself, and a verdict of
     // `clean` from a reviewer that looked at nothing is the stub R4(b) forbids.
-    review: await reviewOf(deps, release, changes),
+    review,
+    baselineReleaseId: previous?.id ?? null,
+    sensitiveFields: fields,
+    security,
+    coverage: COVERAGE_LIMIT,
   }
 }
 

@@ -2787,12 +2787,82 @@
             ]
           },
           "summarySource": {
-            "description": "`llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff.",
+            "description": "`llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff. `no-changes`: nothing in manifest.yaml changed, and the summary is the platform’s fixed sentence — no model wrote it.",
             "type": "string",
             "enum": [
               "llm",
               "unavailable",
-              "no-previous-release"
+              "no-previous-release",
+              "no-changes"
+            ]
+          },
+          "baselineReleaseId": {
+            "description": "The last approved release this one was compared with (§13 D9.2) — null for a first launch, and for a record made before P6b.",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sensitiveFields": {
+            "description": "Which of §7’s sensitive fields changed since that release — what re-escalated it to an administrator. Empty for a first launch.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "services",
+                "auth.attributes",
+                "egress.allow",
+                "resources",
+                "data.classification",
+                "ai.models",
+                "blueprint"
+              ]
+            }
+          },
+          "security": {
+            "description": "R4(d): what each changed field means for security and privacy, in the platform’s own words — present whether or not the model answered.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "enum": [
+                    "services",
+                    "auth.attributes",
+                    "egress.allow",
+                    "resources",
+                    "data.classification",
+                    "ai.models",
+                    "blueprint"
+                  ]
+                },
+                "note": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "field",
+                "note"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "coverage": {
+            "description": "D33’s coverage limit, stated in the record: an administrator sees a first launch and a re-escalation, never a self-serve release, and nothing reviews code. Null only for a record made before P6b.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "review": {
@@ -2830,6 +2900,10 @@
           "resources",
           "summary",
           "summarySource",
+          "baselineReleaseId",
+          "sensitiveFields",
+          "security",
+          "coverage",
           "review"
         ],
         "additionalProperties": false

@@ -5,6 +5,7 @@ import type { StoredAudience } from '../projects/index.js'
 import {
   approvalCoversDigest,
   latestApprovalFor,
+  latestReviewFor,
   productionApprovalFor,
 } from '../releases/index.js'
 import type { ScanSummary } from '../runtime/index.js'
@@ -145,7 +146,7 @@ export async function computeLaunchReadiness(
       scans,
       approval.item,
       ...loadRehearsalItems(audience),
-      { ...CODE_REVIEW_ITEM },
+      await codeReviewItem(db, candidate),
     ]
     return {
       projectId,
@@ -178,8 +179,7 @@ export async function computeLaunchReadiness(
     // LAST, after every blocking item — including `load-rehearsal`, which is conditional —
     // so the checklist reads as the things that gate production followed by the one that
     // does not, and no blocking item's position depends on whether this one is present.
-    // A COPY, so no caller that edits the view it was handed can edit every later view.
-    { ...CODE_REVIEW_ITEM },
+    await codeReviewItem(db, candidate),
   ]
 
   return {
@@ -236,35 +236,76 @@ export function readyOf(items: readonly LaunchItem[]): boolean {
 }
 
 /**
- * R4's item (D33, §15, P6a Task 12): code safety has a SEAM and nothing behind it.
+ * R4's item (D33, §15), and since P6b Task 8 A FUNCTION OF THE VERDICT (Decision 12, P6a F7):
+ * the newest review recorded for the CANDIDATE, rather than a static `not_built` beside a
+ * record whose verdict might say `clean`.
  *
- * **Static, and deliberately so.** Nothing reviews code, whatever the project, so this item
- * cannot say anything about one project that it does not say about every other — and an
- * item that read the approval's stored verdict would be reading `not_performed` back out of
- * a record the same sentence put there. When a real reviewer lands this becomes a function
- * of that reviewer's verdict on the candidate, and becomes blocking in the same change.
+ *  - `clean` → `met`; `findings` → `unmet`, naming the count; `not_performed` → `not_built`, in
+ *    the reviewer's own words (with `builtBy`, because nothing reviews code until one lands).
+ *  - NOTHING RECORDED → `not_built`, saying when a reviewer runs at all: only when an
+ *    administrator is asked about a release — a first launch or a re-escalation — and NEVER for
+ *    a self-serve release (D33's coverage limit, in words). **Not run here**: the checklist is
+ *    read on every page load and every deploy, and a model-backed reviewer there is an outage
+ *    waiting to happen (Decision 12).
+ *
+ * **`blocking: false` IN EVERY BRANCH, AND THIS IS NOT A PREFERENCE** (D33, R4c). `ready` is
+ * derived from every BLOCKING item being met, so a blocking item in state `not_built` would
+ * make production unreachable for ever — the precise trap R1 exists to undo. It becomes
+ * blocking when a real implementation lands, which is a one-field change by design.
+ * `readiness.test.ts` asserts both directions.
  */
-const CODE_REVIEW_ITEM: LaunchItem = {
-  id: 'code-review',
+async function codeReviewItem(
+  db: Db,
+  candidate: LaunchCandidate | undefined,
+): Promise<LaunchItem> {
+  const review =
+    candidate === undefined ? undefined : await latestReviewFor(db, candidate.release.id)
+  if (review === undefined)
+    return {
+      ...CODE_REVIEW_BASE,
+      state: 'not_built',
+      builtBy: CODE_REVIEWER_BUILT_BY,
+      why: `No reviewer has looked at this release. A reviewer runs when an administrator is asked to approve a release — a first launch or a re-escalation — and never for a self-serve release (D33). ${NOTHING_REVIEWS_CODE}`,
+    }
+  switch (review.state) {
+    case 'clean':
+      return {
+        ...CODE_REVIEW_BASE,
+        state: 'met',
+        why: `${review.reviewer}: ${review.detail}. Recorded when an administrator decided on this release; it does not block a launch (D33).`,
+      }
+    case 'findings':
+      return {
+        ...CODE_REVIEW_BASE,
+        state: 'unmet',
+        why: `${review.detail} — ${review.reviewer}. Recorded when an administrator decided on this release; advisory, so it does not block a launch (D33).`,
+      }
+    case 'not_performed':
+      return {
+        ...CODE_REVIEW_BASE,
+        state: 'not_built',
+        builtBy: CODE_REVIEWER_BUILT_BY,
+        why: `${review.detail} (${review.reviewer === 'none' ? 'no reviewer' : review.reviewer}, recorded when an administrator decided on this release).`,
+      }
+  }
+}
+
+const CODE_REVIEW_BASE = {
+  id: 'code-review' as const,
   title: 'Code reviewed for safety',
   owner: 'Manifest',
-  /**
-   * **`false`, AND THIS IS NOT A PREFERENCE** (D33, R4c). `ready` is derived from every
-   * BLOCKING item being met, so a blocking item in state `not_built` would make production
-   * unreachable for ever — the precise trap R1 exists to undo, reintroduced by accident. It
-   * becomes blocking when a real implementation lands, and that is a one-field change by
-   * design. `readiness.test.ts` asserts both directions.
-   */
   blocking: false,
-  state: 'not_built',
-  builtBy: 'a tracked hardening item (SemgrepReviewer), not a plan',
-  /**
-   * §20's control-map row, word for word where it matters: the risk is STILL ACCEPTED, the
-   * control is CONTAINMENT, and until an implementation lands NOTHING REVIEWS CODE. If this
-   * sentence and that row can be read as saying different things, this sentence is wrong.
-   */
-  why: 'Nothing reviews the code the agent wrote. Manifest reviews manifest.yaml, not code (§13), and that risk is still accepted: the controls that make it tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20). A reviewer interface exists with no implementation behind it (D33, §15), so this item does not block a launch.',
 }
+
+const CODE_REVIEWER_BUILT_BY = 'a tracked hardening item (SemgrepReviewer), not a plan'
+
+/**
+ * §20's control-map row, word for word where it matters: the risk is STILL ACCEPTED, the
+ * control is CONTAINMENT, and until an implementation lands NOTHING REVIEWS CODE. If this
+ * sentence and that row can be read as saying different things, this sentence is wrong.
+ */
+const NOTHING_REVIEWS_CODE =
+  'Nothing reviews the code the agent wrote. Manifest reviews manifest.yaml, not code (§13), and that risk is still accepted: the controls that make it tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20). A reviewer interface exists with no implementation behind it (D33, §15), so this item does not block a launch.'
 
 /**
  * §13's first blocking item, and the one R1 bought (P6a Task 7). Until this task it read

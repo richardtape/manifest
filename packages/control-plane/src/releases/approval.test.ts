@@ -17,8 +17,10 @@ import {
 import { mintTestToken } from '../tokens/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
 import type { Reviewer, ReviewRequest } from '../launch/index.js'
+import { SECURITY_NOTES } from '../spec/index.js'
 import {
   approvalCoversDigest,
+  COVERAGE_LIMIT,
   describeVerdict,
   lastApprovedReleaseFor,
   sensitiveChangeOf,
@@ -983,6 +985,191 @@ describe('the baseline is each release’s LATEST decision (P6b Task 3)', () => 
     expect((await sensitiveChangeOf(ctx.deps.db, row)).fields).toEqual([])
     const orphan = { ...row, appSpecId: NOBODY }
     expect((await sensitiveChangeOf(ctx.deps.db, orphan)).fields).toEqual(['blueprint'])
+    await ctx.app.close()
+  })
+})
+
+/**
+ * R4(d) IN THE RECORD (P6b Task 8, Decision 13). The snapshot an approval stores names what
+ * it was compared WITH (the baseline), which of §7's fields changed, a deterministic security
+ * note for each — present when the model is down — and D33's coverage limit, so no reader
+ * mistakes an approval for a code review. And the reviewer is asked BEFORE the model, so the
+ * summary can carry its verdict.
+ *
+ * Every field is read BY NAME off the route's answer (P6b sitting 4, F8): a field the
+ * representation forgets is stripped, and nothing but a read by name sees it.
+ */
+describe('R4(d) — the snapshot’s security dimension (P6b Task 8)', () => {
+  /** An approval, through the route, by the stepped-up administrator. */
+  const approve = (
+    app: Awaited<ReturnType<typeof buildServer>>,
+    ctx: Awaited<ReturnType<typeof releasedProject>>,
+    releaseId: string,
+  ) =>
+    app.inject({
+      method: 'POST',
+      url: `/v1/releases/${releaseId}/approve`,
+      payload: {},
+      cookies: ctx.admin,
+      headers: mutationHeaders(ctx.deps),
+    })
+
+  /** A release of `lines`, committed, validated and built through the routes. */
+  async function releaseOf(
+    ctx: Awaited<ReturnType<typeof releasedProject>>,
+    slug: string,
+    extra: readonly string[],
+  ): Promise<{ id: string }> {
+    await commitManifest(
+      { app: ctx.app, deps: ctx.deps, cookies: ctx.owner, project: ctx.project },
+      [
+        'manifest: 1',
+        `name: ${slug}`,
+        'blueprint: fixture-node@1',
+        'runtime:',
+        '  port: 3000',
+        '  health: /healthz',
+        ...extra,
+      ],
+      'feat: a sensitive change',
+    )
+    const started = await ctx.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ctx.project.id}/builds`,
+      payload: {},
+      cookies: ctx.owner,
+      headers: mutationHeaders(ctx.deps),
+    })
+    expect(started.statusCode, started.body).toBe(202)
+    await ctx.deps.builds.idle()
+    const made = await ctx.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ctx.project.id}/releases`,
+      payload: { buildId: started.json().id },
+      cookies: ctx.owner,
+      headers: mutationHeaders(ctx.deps),
+    })
+    expect(made.statusCode, made.body).toBe(201)
+    return made.json()
+  }
+
+  it('the snapshot names the baseline, the sensitive fields and a note for each', async () => {
+    const ctx = await releasedProject('notes-labs')
+    expect((await approve(ctx.app, ctx, ctx.release.id)).statusCode).toBe(201)
+    const next = await releaseOf(ctx, 'notes-labs', [
+      'egress:',
+      '  allow: [x.example.org]',
+    ])
+    const approved = await approve(ctx.app, ctx, next.id)
+    expect(approved.statusCode, approved.body).toBe(201)
+    const diff = approved.json().diff
+    expect(diff.baselineReleaseId).toBe(ctx.release.id)
+    expect(diff.sensitiveFields).toEqual(['egress.allow'])
+    expect(diff.security).toEqual([
+      { field: 'egress.allow', note: SECURITY_NOTES['egress.allow'] },
+    ])
+    expect(diff.coverage).toBe(COVERAGE_LIMIT)
+    // And the READ answers the same record — the snapshot is stored, not recomputed.
+    const read = await ctx.app.inject({
+      method: 'GET',
+      url: `/v1/releases/${next.id}/approval`,
+      cookies: ctx.owner,
+    })
+    expect(read.json().diff).toEqual(diff)
+    await ctx.app.close()
+  })
+
+  it('asks the reviewer BEFORE the model, so the summary can carry the verdict', async () => {
+    const ctx = await releasedProject('order-labs')
+    const order: string[] = []
+    const asked: unknown[] = []
+    const reviewer: Reviewer = {
+      name: 'ordered-reviewer',
+      review: () => {
+        order.push('reviewer')
+        return Promise.resolve({
+          state: 'clean',
+          reviewer: 'ordered-reviewer',
+          checked: 3,
+        })
+      },
+    }
+    const app = await buildServer({
+      ...ctx.deps,
+      reviewer,
+      llm: {
+        get: () => Promise.reject(new Error('never')),
+        post: <T>(_path: string, body: unknown) => {
+          order.push('model')
+          asked.push(body)
+          return Promise.resolve({
+            choices: [{ message: { content: 'The app may reach a new host.' } }],
+          } as T)
+        },
+      },
+    })
+    // A first launch asks the reviewer and not the model — nothing to summarise.
+    expect((await approve(app, ctx, ctx.release.id)).statusCode).toBe(201)
+    const next = await releaseOf(ctx, 'order-labs', [
+      'egress:',
+      '  allow: [x.example.org]',
+    ])
+    expect((await approve(app, ctx, next.id)).statusCode).toBe(201)
+    expect(order).toEqual(['reviewer', 'reviewer', 'model'])
+    const user = (asked[0] as { messages: { content: string }[] }).messages.at(
+      -1,
+    )!.content
+    expect(user).toContain('Code review: 3 checked, no findings')
+    await app.close()
+    await ctx.app.close()
+  })
+
+  it('a first launch: no baseline, no sensitive fields, and the coverage limit still stated', async () => {
+    const ctx = await releasedProject('first-labs')
+    const approved = await approve(ctx.app, ctx, ctx.release.id)
+    expect(approved.statusCode, approved.body).toBe(201)
+    expect(approved.json().diff).toMatchObject({
+      baselineReleaseId: null,
+      sensitiveFields: [],
+      security: [],
+      coverage: COVERAGE_LIMIT,
+      summarySource: 'no-previous-release',
+    })
+    await ctx.app.close()
+  })
+
+  it('still records the notes when the model is DOWN — the security reading is not the model’s', async () => {
+    const ctx = await releasedProject('down-labs')
+    const operator = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const down = await buildServer({
+      ...ctx.deps,
+      llm: {
+        get: () => Promise.reject(new Error('never')),
+        post: () =>
+          Promise.reject(
+            new AiError(AI_CODES.BACKEND_UNAVAILABLE, 0, {
+              status: 0,
+              reason: 'unreachable',
+            }),
+          ),
+      },
+    })
+    expect((await approve(down, ctx, ctx.release.id)).statusCode).toBe(201)
+    const next = await releaseOf(ctx, 'down-labs', [
+      'egress:',
+      '  allow: [x.example.org]',
+    ])
+    const approved = await approve(down, ctx, next.id)
+    expect(approved.statusCode, approved.body).toBe(201)
+    expect(approved.json().diff).toMatchObject({
+      summary: null,
+      summarySource: 'unavailable',
+      sensitiveFields: ['egress.allow'],
+      security: [{ field: 'egress.allow', note: SECURITY_NOTES['egress.allow'] }],
+    })
+    expect(operator).toHaveBeenCalled()
+    operator.mockRestore()
+    await down.close()
     await ctx.app.close()
   })
 })

@@ -641,11 +641,13 @@ async function step7Approve(): Promise<void> {
     approval.diff.attributes.join(','),
   )
   // Decision 7: the summary may be ABSENT, and says why in a closed vocabulary. A first
-  // launch has nothing to compare with; an offline run may have no model.
+  // launch has nothing to compare with; an offline run may have no model; and since P6b Task 8
+  // an empty diff is the platform's own fixed sentence, recorded `no-changes`, never `llm`.
   checks.ok(
     'the summary is present, or absent for a stated reason',
     (approval.diff.summarySource === 'llm' && (approval.diff.summary ?? '').length > 0) ||
       approval.diff.summarySource === 'no-previous-release' ||
+      approval.diff.summarySource === 'no-changes' ||
       approval.diff.summarySource === 'unavailable',
     `${approval.diff.summarySource}: ${approval.diff.summary}`,
   )

@@ -147,7 +147,38 @@ function DecisionRecord({ approval }: { approval: Schemas['Approval'] }) {
       </Field>
       <Field label="Summary">
         <Summary diff={diff} />
+        {/* D33's coverage limit, stated where the summary is read (P6b Task 8, R4(d)). */}
+        {diff.coverage !== null && <p className="hint">{diff.coverage}</p>}
       </Field>
+      <Field label="Compared with">
+        {diff.baselineReleaseId === null ? (
+          'no earlier approved release'
+        ) : (
+          <a {...href(`/releases/${diff.baselineReleaseId}/approval`)}>
+            <code>{diff.baselineReleaseId.slice(0, 8)}</code>, the last approved release
+          </a>
+        )}
+      </Field>
+      <Field label="Sensitive fields">
+        {diff.sensitiveFields.length === 0
+          ? 'none changed'
+          : diff.sensitiveFields.join(', ')}
+      </Field>
+      {/*
+       * R4(d)'s deterministic half: one line per changed field, in the platform's words and
+       * present whether or not the model answered — the security reading is not the model's.
+       */}
+      {diff.security.length > 0 && (
+        <Field label="Security notes">
+          <ul>
+            {diff.security.map((s) => (
+              <li key={s.field}>
+                <code>{s.field}</code>: {s.note}
+              </li>
+            ))}
+          </ul>
+        </Field>
+      )}
       <Field label="Changes">
         {diff.changes.length === 0 ? (
           'none recorded'
@@ -187,6 +218,10 @@ function DecisionRecord({ approval }: { approval: Schemas['Approval'] }) {
  */
 function Summary({ diff }: { diff: Schemas['Approval']['diff'] }) {
   if (diff.summarySource === 'llm' && diff.summary !== null) return <>{diff.summary}</>
+  // P6b Task 8: the platform's fixed sentence for an empty diff, which no model wrote — NOT
+  // the "could not be produced" fallback below, which would send a person looking for an outage.
+  if (diff.summarySource === 'no-changes')
+    return <em>Nothing in manifest.yaml changed since the last approved release.</em>
   if (diff.summarySource === 'no-previous-release')
     return (
       <em>

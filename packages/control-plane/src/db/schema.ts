@@ -597,7 +597,19 @@ export const approvals = pgTable(
       resources: Record<string, string | number | null>
       /** Decision 7: null when the model could not be reached. NOT an empty string. */
       summary: string | null
-      summarySource: 'llm' | 'unavailable' | 'no-previous-release'
+      /** `no-changes` (P6b Task 8): the fixed sentence for an empty diff, which no model wrote. */
+      summarySource: 'llm' | 'unavailable' | 'no-previous-release' | 'no-changes'
+      /**
+       * R4(d) (P6b Task 8): what the release was compared WITH, which of §7's fields changed,
+       * a deterministic note for each, and D33's coverage limit. **OPTIONAL, because P6a's
+       * rows were written without them** — a reader defaults them (`toApproval`), and a
+       * record made before P6b answers `coverage: null`. Strings, not `SensitiveField`,
+       * because `db/` imports nothing above it.
+       */
+      baselineReleaseId?: string | null
+      sensitiveFields?: string[]
+      security?: { field: string; note: string }[]
+      coverage?: string
       /**
        * R4: the reviewer's verdict at decision time, `describeVerdict`'s one line in
        * `detail`. `not_performed` until one lands. The three states are `launch/review.ts`'s
