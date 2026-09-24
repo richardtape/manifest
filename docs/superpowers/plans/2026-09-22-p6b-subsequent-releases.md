@@ -36,8 +36,8 @@
 | 1 | 1 | **The measurements this plan rests on** — fifteen measurements of the running platform before any code: the override blind spot, the baseline that counts a rejected release, a release freezing the wrong spec, a rehearsal that replaces live production, the gate evaluating one release and deploying another, the IAM record that overwrites what UBC registered. **Alone, and first** | **No** — nothing under the owing paths changes; two throwaway probe tests are written and deleted | **DONE 2026-09-22** — all six premises measured true, every control fired, and a seventh defect found: **the egress proxy never re-renders its allowlist**, which adds Task 5a below. Record: *What executing this plan found*, sitting 1; [`spikes/p6b-baseline/`](../spikes/p6b-baseline/README.md) |
 | 2 | 2–3 | **The person-only class** — one central refusal, a mint refusal, a code of its own — and **the sensitive diff over frozen releases**: one rule over §7's seven fields, the baseline that reads each release's *latest* decision, and a release that freezes its build's own spec | **Yes** — `projects/`, `spec/`, `releases/` | **DONE 2026-09-23** — a token asking for `release:approve` or `launch:record` is refused centrally `403 TOKEN_PERSON_ONLY` with no pending action, and the mint refuses both; the contract is `1.1.0`. `isSensitiveDiff` sees a raised production override; the baseline is each release's latest decision; a release freezes its build's spec and refuses another project's build (two reads, each with its own test). `sensitiveChangeOf` exists and **its only caller is its test until Task 5**. Record: *What executing this plan found*, sitting 2 |
 | 3 | 4, 5, **5a** | **An app has launched** — migration 0021, the launch recorded once, a rehearsal refused afterwards — and **`deployRelease`'s half of D9.2**: approval required for a first launch and for a sensitive change, never for anything else, and never deploying a release an administrator rejected — **and (Task 5a, added by sitting 1) the egress proxy follows the release it serves.** **If it runs long, stop after Task 5 and sweep; Task 5a then opens sitting 4, ahead of Task 6**, with which it shares nothing | **Yes** — `releases/`, `launch/`, `runtime/`, `*.docker.test.ts` | **DONE 2026-09-23** — all three tasks. A launch is recorded ONCE by the deploy that makes it true (migration 0021), a launched app is not rehearsed (`REHEARSAL_LAUNCHED`), and `make demo-production`'s re-use path is a launched app that stops. `deployRelease` reads ONE rule, `approvalRequirementFor`: self-serve unless a sensitive field changed since the last approved release, fail closed with no baseline, never a rejected release. The egress proxy is recreated when a release changes its list, and kept when it does not. **The route still refuses a launched app's self-serve release until Task 6** — the planned one-sitting window. Record: *What executing this plan found*, sitting 3 |
-| 4 | 6 | **The gate for a launched app — this plan's centre, alone.** The checklist branches on `launched`, the self-serve deploy goes through, a sensitive change is refused `RELEASE_REESCALATED` carrying the view, and a release that is not the one serving staging is refused `RELEASE_NOT_STAGED` | **Yes** — `launch/` | not started ← **next** — read Task 6's correction block first (sitting 3 left five things in it) |
-| 5 | 7–8 | **The IAM change request** — migration 0022, a registration's registered set that changes only when UBC registers it, the change request as the registration's own `change_requested` state, and the live-registration check (attributes, ACS and SLO) for every production release — and **R4(d)**: deterministic security notes per sensitive field, the reviewer's verdict and D33's coverage limit in the record and in the prompt, and the `code-review` item reading the verdict (P6a F7). **The lean split's cost: if it runs long, stop after Task 7 and sweep** | **Yes** — `launch/`, `releases/` | not started |
+| 4 | 6 | **The gate for a launched app — this plan's centre, alone.** The checklist branches on `launched`, the self-serve deploy goes through, a sensitive change is refused `RELEASE_REESCALATED` carrying the view, and a release that is not the one serving staging is refused `RELEASE_NOT_STAGED` | **Yes** — `launch/` | **DONE 2026-09-23** — a launched app's non-sensitive release goes to production through the ROUTE with no administrator; a sensitive one is refused `409 RELEASE_REESCALATED` carrying a checklist byte-identical to the read, and deploys once approved; a release that is not the one serving staging is refused `409 RELEASE_NOT_STAGED`; a rejection is final. `candidateFor` no longer offers a FAILED staging release (F2), and the test file drains its retirer (F7). `make demo-production` has no step 10. Record: *What executing this plan found*, sitting 4 |
+| 5 | 7–8 | **The IAM change request** — migration 0022, a registration's registered set that changes only when UBC registers it, the change request as the registration's own `change_requested` state, and the live-registration check (attributes, ACS and SLO) for every production release — and **R4(d)**: deterministic security notes per sensitive field, the reviewer's verdict and D33's coverage limit in the record and in the prompt, and the `code-review` item reading the verdict (P6a F7). **The lean split's cost: if it runs long, stop after Task 7 and sweep** | **Yes** — `launch/`, `releases/` | not started ← **next** — read Task 7's correction block first (sitting 4 left five things in it) |
 | 6 | 9–10 | **The stored preview**: migration 0023, `createApprovalPreview` and `getApprovalPreview`, approve and reject binding a preview and refusing a stale one — and **the console's approvals screen**, which shows the preview BEFORE the decision and keeps it through the step-up round trip. **Heavy**: the server half and the screen that uses it, together, so the console's Approve button is never broken across a session boundary | **Yes** — `releases/` | not started |
 | 7 | 11 | **The acceptance**: `make demo-releases` — a self-serve production redeploy, then a sensitive change refused until an administrator approves it, then the IAM change request path — its offline-acceptance step, its `ci-acceptance` step, green three times, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | not started |
 
@@ -1900,6 +1900,25 @@ git commit -m "feat(launch): D9.2 — a launched app's release is self-serve unl
 
 ## Task 7: The IAM change request — what UBC registered changes only when UBC registers it
 
+> **WHAT SITTING 4 LEFT FOR THIS TASK (2026-09-23) — each checked in the code.**
+> (1) **The launched branch exists**: `computeLaunchReadiness` returns early on `project?.launchedAt != null`
+> with Decision 2's list, and it still calls the SHARED `iamItem` — replace that call in the launched branch
+> only with `liveRegistrationItem`. `releaseApprovalItem` returns `{ item, baselineReleaseId, sensitiveFields,
+> reescalated }`; `DOMAIN_ITEM` and `loadRehearsalItems` are extracted. The candidate's `auth` is its release's
+> FROZEN production auth.
+> (2) **`iamItem` and `piaItem` say *"before a first production launch"*** in their unmet `why` — on a launched
+> app's checklist too (sitting 4, F14). Word them for both clauses when you touch them.
+> (3) **A representation field you forget is STRIPPED, not dropped** (sitting 4, F8): `z.object` strips a key
+> the schema lacks from the read and the `409` alike, so the byte-identical assertion stays green and `tsc` is
+> silent. `requestedAttributes` and `registeredAt` need a route test that READS each by name.
+> (4) **`api/subsequent-releases.test.ts` closes every server through `closed(ctx)`**, which drains the build
+> runner and the retirer first (F7) — never `ctx.app.close()` alone, or a retire pass races the next test's
+> `TRUNCATE`. It also has `stage`, `readinessOf`, `promote`, `servingProduction`, `approvalsOf`, `itemOf` and
+> `unmetBlocking` for route cases. The unit tier's only blueprint is `auth: none`, so a CWL route case is the
+> Docker tier's (sitting 3, F5).
+> (5) **`candidateFor` requires a `healthy` instance now** (F2), so "the release serving staging" is never a
+> failed one.
+
 > **`[M9]` AND `[M10]` — TASK 1 MEASURED BOTH, AND DROVE `[M9]` (2026-09-22).** `[M9]`: recording
 > `active → change_requested` with the four attributes without `sn` answered `200`, and `GET …/launch-records`
 > and the row both then read **four** registered. **Driven**: a build of the UNCHANGED app then FAILED —
@@ -2468,6 +2487,13 @@ git commit -m "feat(console): the approval preview — read before deciding, and
 > there (Decision 17 moves it here). Step 1's RECOVERY and step 3's *"baselineReleaseId === the release
 > production serves"* are written for that, and the fresh path meets it: the candidate is the rebuild, and the
 > baseline is the launch. Nothing changes; know it before reading a red step 1.
+>
+> **SUPERSEDED BY SITTING 4 (2026-09-23): step 10 IS GONE**, so after a fresh `make demo-production` the candidate
+> is the LAUNCH release itself, serving staging and production, and its checklist reads `launched: true`,
+> `ready: true`, `baselineReleaseId: null` and `sensitiveFields: []` — the release in hand is excluded from its
+> own baseline, and its own approval covers it (sitting 3's F9, worded in sitting 4). **Step 3's *"baselineReleaseId
+> === the release production serves"* holds only once a NEW release is the candidate**; write step 1's recovery
+> and step 3 for this state, and predict the pair before the first run.
 
 **ALONE, AND LAST.** D9's second clause, driven through the edge by nothing but `@manifest/contract`. **A self-serve production redeploy of a launched app; a sensitive change refused until an administrator, having read the stored preview, approves it; and the IAM change request path.** Green three times, the third from an `echo reset | make reset` machine, plus an offline-acceptance step, a `ci-acceptance` step, **and a clicked half by a person.** **Ask Rich before this sitting whether he will click it.** It needs him to type the operator's and the instructor's passwords, and the step-up prompt more than once.
 
@@ -3359,3 +3385,210 @@ three aliases are on `lo0`, and `docker-simple-saml`'s only dirty path is its un
 
 **The four HTML pages were checked and not changed**: no spec action was applied, and none of them states a
 launch, a re-escalation, self-serve or egress at a level this sitting moved.
+
+### Sitting 4 — Task 6, alone: the gate for a launched app — 2026-09-23
+
+**D9.2 IS REACHABLE THROUGH THE ROUTE, AND THE ONE-SITTING WINDOW SITTING 3 OPENED IS CLOSED.**
+`ea76321`: §13's checklist learns that an app has launched, and the read and the gate are still one
+computation. A launched app's checklist is Decision 2's — no `rehearsal` item, and `admin-approval`
+read from Task 5's rule, `productionApprovalFor`, the verdict `deployRelease` reads — and the view
+gains `launched`, `baselineReleaseId`, `sensitiveFields` and `reescalated`. `assertLaunchable(db,
+projectId, releaseId)` refuses with three literal codes: `RELEASE_PRODUCTION_GATE_UNAVAILABLE`,
+`RELEASE_REESCALATED` (a launched app where an approval is the ONE thing missing and would fix it) and,
+after readiness, `RELEASE_NOT_STAGED` (`[M8]`, closed). **A launched app's owner now deploys an identical
+rebuild to production through the route with no administrator**, a sensitive release is refused
+`RELEASE_REESCALATED` carrying a checklist byte-identical to the read, it deploys once an administrator
+approves it, a rejection is final sensitive or not, and an agent's self-serve promotion is still a
+question a person answers — and then needs no administrator. The console says *Launched* and names the
+changed fields, and a re-escalation links to the approval; the mock and the contract (`1.1.0`, additive)
+follow; `make demo-production` lost its step 10, and its step 9 now reads a LAUNCHED app's checklist.
+**Two defects outside the plan were found and fixed**: a staging whose only deploy FAILED offered the
+failed release as the launch candidate (F2), and this file's own tests left a retire pass racing the
+next test's `TRUNCATE` (F7, `6329275`).
+
+#### The decisions this sitting made
+
+**1. `releaseApprovalItem` returns `{ item, baselineReleaseId, sensitiveFields, reescalated }`** rather
+than an item whose extra fields are stripped before it joins the list — one derivation either way, and
+no strip step to forget.
+
+**2. The covered `admin-approval` is worded for its two real cases** (sitting 3's F9): a sensitive change
+an administrator approved (*"This release changes egress.allow since the last approved release, and an
+administrator approved it on …"*), and the launch release redeployed, which has no other approved
+release to compare with (*"An administrator approved this release itself on … No other approved release
+exists to compare it with, so its own approval is what covers it"*). The unmet `no-baseline` sentence no
+longer says *history edited*.
+
+**3. `ProductionGateError`'s MESSAGE is chosen by code, as well as its hint.** P6a's *"first production
+launch is a checklist, not a button"* was the message of all three refusals, and is false for two of them
+and for a launched app's third (F5).
+
+**4. The re-escalation's link to `/releases/<candidate>/approval` lives in `<Refusal>`** beside the step-up
+link, not in `deploy.tsx` as the plan says: every screen's refusal reaches that one renderer, which is the
+step-up link's own argument.
+
+**5. The launch panel reads *whether* from the checklist and only *when* from the project**, which is
+read once and can lag the launch that just happened; then the date is simply not shown.
+
+**6. `candidateFor` requires a `healthy` instance** (F2). Nothing in Phase 1 hibernates a staging
+instance, so `healthy` is the whole of *serving*.
+
+**7. Two route cases beyond the plan's nine**: the launch release redeployed through the route (Review
+Focus 3 and F9's wording, together), and a staging whose only deploy FAILED (Review Focus 2's *"a failed
+instance"*, which is how F2 was found). The plan's *nothing serving staging* case keeps its hand-written
+`launched_at`: a launch needs a candidate, so no route reaches that state.
+
+#### The findings
+
+**F1 — THE PLAN'S STEP 2 PREDICTION FOR `RELEASE_NOT_STAGED` WAS WRONG: IT ANSWERED `409
+RELEASE_PRODUCTION_GATE_UNAVAILABLE` BEFORE THE CHANGE, NOT `200`.** The plan's premise was `[M8]`, whose
+candidate was APPROVED. Task 6's candidate is a self-serve rebuild — unapproved — so before the launched
+branch existed the first-launch checklist refused it before the request's release was ever compared.
+Predicted by this sitting, and measured.
+
+**F2 — A STAGING WHOSE ONLY DEPLOY FAILED OFFERED THE FAILED RELEASE AS THE LAUNCH CANDIDATE — FIXED.**
+`servingInstanceOf` falls back to an environment's NEWEST instance of ANY state when no Route record
+exists (its rule for apps deployed before P4c), and `candidateFor` took whatever it returned. Measured
+through the routes, with a manifest whose health path the fake driver never answers: the staging deploy
+answered `200` with state `failed`, and `GET …/launch-readiness` read `candidateReleaseId: '0640e133…'` —
+the release that never served staging — with `scans` met. **For a first launch as much as a launched app**:
+the checklist would have offered production a release §13 says it must not run, and the rehearsal would
+have deployed it. Found by writing Review Focus 2's *"a failed instance"* as a test.
+
+**F3 — `make demo-production`'s STEP 9 WOULD HAVE GONE RED, AND THE PLAN NAMED ONLY STEP 10.** Step 9
+reads the checklist AFTER step 8's launch, so it is the LAUNCHED checklist — five blocking items, no
+`rehearsal` — and *"every one of the six blocking items is met"* counts six. Rewritten by id, with the launch
+release's own approval asserted; the fresh demo read `ok` on all seven of its checks.
+
+**F4 — THE ERROR-CODE REGISTRY READ THE PLAN'S OWN COMMENT AS A THROWN CODE.** The Step 4 snippet's comment
+says *"error-codes.test.ts reads `new ProductionGateError('CODE'`"* — and that scan reads comments, so it
+registered a code named `CODE`: *"registers every code the source throws…"* went red with `['CODE
+(ProductionGateError)']`. The comment now describes the pattern without writing it.
+
+**F5 — THE GATE'S MESSAGE DESCRIBED THE WRONG CLAUSE OF D9 FOR TWO OF ITS THREE CODES.** The plan changes
+the hint by code; the message, *"first production launch is a checklist, not a button"*, was set in the
+class's constructor for every code. Nothing asserted it. Decision 3.
+
+**F6 — `getLaunchReadiness`'s SUMMARY READ *"What a first production launch still needs"***, which is false
+once launched; the plan named only its description.
+
+**F7 — THIS FILE'S TESTS LEFT A RETIRE PASS RACING THE NEXT TEST'S `TRUNCATE` — LATENT SINCE SITTING 3,
+FIXED (`6329275`).** A deploy schedules a retire pass and answers without waiting (§11's drain), and
+`api/subsequent-releases.test.ts` closed each server with it running. **Every run of the file logged 4–6
+`[retire] the pass for environment … failed: Error`**, and **2 of 11 runs failed a test with `deadlock
+detected` inside `resetDatabase`** — both times the first test of the new describe block, in its
+`beforeEach`, not at its assertion. The full suite logged 3–4 such lines at the OPEN, two from sitting 3's
+Task 5 tests. `closed(ctx)` awaits `builds.idle()` and `retirer.idle()` — which exists *"for tests"* — before
+`app.close()`: **6 runs of the file, 0 failed passes and 0 deadlocks; the full suite now logs exactly one,
+the deliberate case in `retire.test.ts`.** Control: the `retirer.idle()` line removed → 6 failed passes.
+
+**F8 — CONTROL (f) AND *READ THIS FIRST* 18 ARE NARROWER THAN THEY SAY: A FIELD MISSING FROM THE
+REPRESENTATION IS STRIPPED, NOT DROPPED.** The plan predicted the byte-identical assertion red, *"because the
+`409` arrives with NO checklist"*. It stayed **GREEN**, with zero *"not the shape"* lines on stderr: `z.object`
+STRIPS a key the schema lacks, from the read and from the refusal alike, so the two stay identical. And
+**`tsc` is silent too** — a view with an extra key satisfies the schema's type. `mapError` drops a checklist
+only when a VALUE fails to parse (`[M4]`'s unknown item id); a FIELD the representation forgot is invisible to
+byte-identity and to the type checker, and **its only witnesses are the tests that read it** — seven here. For
+Tasks 7–9, which each add representation fields: assert the new field by name in a route test.
+
+**F9 — `RELEASE_NOT_STAGED` HAS ONE LAYER.** Control (e) — the gate's launched branch bypassed — answered
+`200` for the not-staged case: `deployRelease` deploys a release that is not the one serving staging, so
+Decision 8 is enforced by the route alone. Unlike Decision 6 and Decision 16, it has no second read. **Not
+reachable by a client** — every production `launch` deploy goes through the route, an agent's confirmed
+retry included — so recorded, not fixed; a second read in `deployRelease` is one comparison with
+`candidateFor`, and is a candidate for a later task or the hardening list.
+
+**F10 — THE PLAN UNDER-COUNTED FOUR OF ITS OWN SEVEN CONTROLS; THIS SITTING PREDICTED THREE OF THOSE, AND
+UNDER-COUNTED THREE OF ITS OWN.** The plan's: (a) nine red, not one — every launched-app case asserts the view;
+(b) the registry's *"registers nothing the source never throws"* is a second witness beside the not-staged case;
+(c) two, not one — the same registry witness; (e) five, not one — every refusal `deployRelease` would also make
+answers `409 RELEASE_DIGEST_NOT_APPROVED` with no checklist, and the not-staged case `200` (F9). This sitting
+predicted (a), (c) and (e), and **missed (b)'s registry witness** — its first (b) run did not include that file.
+**And two of the controls this sitting added went red twice where it said once**: (i), because the revert also
+replaced the non-empty branch's wording, which the approved case's regex holds; and (j), because the console's
+data-layer test against the mock is a second witness of a fixture's shape.
+
+**F11 — TASK 4's CONTROL (b) NOW HAS A DEMO WITNESS, EXACTLY AS PREDICTED** (sitting 3's F8). With
+`recordLaunch`'s `purpose` condition removed, the rehearsal at step 5 launches `launch-app`, and the fresh
+`make demo-production` exits 2 with **two** FAILED checks, both at step 7: *"a stepped-up owner is refused 409
+RELEASE_PRODUCTION_GATE_UNAVAILABLE — 409 RELEASE_REESCALATED: this release changes a sensitive field…"* and
+*"whose checklist names exactly admin-approval as unmet — no checklist"*. Step 5's own *"unmet is exactly
+admin-approval"* stayed green, as predicted: the launched list's only unmet item is the same id.
+
+**F12 — THE PLAN'S STEP 5 ASKS TO SEE THE LAUNCHED TEXT RENDER AGAINST `manifest-mock`, WHOSE CHECKLIST IS AN
+UNLAUNCHED PROJECT'S.** Opened as-is it rendered *"Launched — not yet — a first launch needs every blocking
+item below (D9)"*; the launched line needed the fixture edited for one run (`launched: true`,
+`sensitiveFields: ['egress.allow']`, `launchedAt` set) — it rendered *"Launched (yes) 3d ago — releases go to
+production without an administrator unless they change a sensitive field (D9)"* and *"Sensitive fields changed
+egress.allow"* — and restored, `cmp`-identical.
+
+**F13 — THE PLAN'S `$SCRATCH` TRAP, IN A DIFFERENT VARIABLE.** A `cp … "$SCRATCH_DUMMY"` with the variable
+unset wrote `fixtures.ts` to the repository root; `git status` showed it as untracked before the commit, it was
+byte-identical to this sitting's own copy, and it was removed. The Global Constraint names `$SCRATCH`; the trap
+is any unset variable in a destination.
+
+**F14 — THE IAM AND PIA ITEMS STILL SAY *"before a first production launch"* ON A LAUNCHED APP'S CHECKLIST.**
+Both are shared by the two branches, as Decision 2 says. Left for Task 7, which rewrites the launched IAM item;
+its block says so.
+
+#### The negative controls — the plan's seven, three more, and Task 4's demo half; ALL FIRED
+
+| | Control | Plan predicted | This sitting predicted | **Measured** |
+|---|---|---|---|---|
+| a | `computeLaunchReadiness` ignores `launchedAt` | the positive control red | 9 red | **FIRED — exactly the 9** |
+| b | the `RELEASE_NOT_STAGED` line removed | not-staged red, `200` | 1 red | **FIRED** — `200`; and the registry's *never throws* red when that file runs (F10) |
+| c | the `RELEASE_REESCALATED` line removed | 1 red, on the code only | 2 red | **FIRED — 2**: the code (`409` and the view unchanged) and the registry |
+| d | `deployRelease`'s half disabled | every route test green; Task 5's red | route green; 6 + P6a's digest tests | **FIRED** — all 11 route tests GREEN; 10 direct red (Task 5's 6, P6a's 4) |
+| e | the gate's launched branch bypassed | 1 red, `RELEASE_DIGEST_NOT_APPROVED` | 5 red | **FIRED — exactly the 5** (F9) |
+| f | `sensitiveFields` left out of the representation | the byte-identical assertion red, no checklist | byte-identical GREEN; 7 red | **as this sitting predicted** — 7 red, byte-identity and `tsc` silent (F8) |
+| g | `reescalated` without `!v.rejected` | the rejected-sensitive case red | 1 | **FIRED** — `RELEASE_REESCALATED` |
+| h | *(added)* `candidateFor`'s `healthy` condition removed | — | the failed-staging case red | **FIRED** (and the run also met F7's deadlock) |
+| i | *(added)* the covered branch's wording reverted | — | F9's case red | **FIRED — 2** (F10) |
+| j | *(added)* the mock fixture's four new fields removed | — | `validate.test.ts` red | **FIRED — 2** (F10) |
+| T4b | sitting 3's Task 4 control (b), demo half | — | 2 FAILED at step 7 | **FIRED — exactly those two** (F11) |
+
+Every control ran on the committed tree (`ea76321`) and was restored with `git checkout <path>`; `git status`
+was clean after each. The control plane's `dist/` was rebuilt clean after T4b.
+
+#### The runs
+
+| Gate | Open (`2ddfad6`) | After Task 6 (`ea76321`) | After F7's fix (`6329275`) — the close |
+|---|---|---|---|
+| `pnpm test` | **1651 / 122**, twice (145 s, 146 s) | **1662 / 122**, twice (149 s, 146 s; then 147 s, 145 s after the launch route's description) — +11, no existing test moved | **1662 / 122**, twice (144 s, 144 s); one failed retire pass per run, the deliberate one |
+| lint / typecheck / format | clean | clean | clean |
+| `make doctor` | **19 / 0, 0 warnings** | — | **19 / 0, 0 warnings** |
+| `make verify` | **55 / 0** | — | **55 / 0** |
+| `pnpm test:docker` | 198 / 31 (sitting 3) | — | **198 passed in 31, 0 red** (1407.0 s) — sitting 3's two reds both green: the redeploy test after `a7948fd`, and S6 probe 14 this time |
+| `make demo-production` | — | fresh 41 s green (step 9's seven checks `ok`); re-use 4 s green | T4b's control run (red as predicted), then restored |
+| `make demo-journey` | — | 51 s green, all eight steps | — |
+
+**The test count moved by exactly the new cases**: eleven in `api/subsequent-releases.test.ts`, no new file.
+The Docker tier did not move. `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` moves to **1662**; `EXPECT_FILES`,
+`EXPECT_DOCTOR` and `EXPECT_VERIFY` stay **122** / **19** / **55**. The contract stays `1.1.0` — every change
+additive (Decision 15).
+
+#### The machine, at close — queried, not recalled
+
+**The control plane is stopped; nothing listens on 7100, 7102 or 7104**, as at the open — it was started for the
+demos and for T4b's control, and stopped after each; `manifest-mock` and the console's Vite server were started
+for F12's look and stopped. **The database is EMPTY** (0 projects, 0 releases — the close's `pnpm test` and the
+tier truncated it; queried through `manifest-postgres`, since the host has no `psql`) with **22 migrations**.
+`make verify`: **`mf- containers=15 networks=5 volumes=10`**, and `runtime routes currently applied: 0` (the tier
+restarted the edge). The three containers, one network and two volumes more than the open are **journey-app's
+staging, which `make demo-journey` recreated** (its database's anonymous volume is the snapshot's one unnamed
+line); `launch-app` stands in production and in staging on the fresh demo's launch release, with `click-launch`
+beside it — containers only, no rows hold them. **`make doctor` 19/0 with 0 warnings**; the vulnerability
+database goes stale after 2026-09-30. **Cleanup**: `dead-app-resources.sh` found the tier's seven networks and one
+volume, and `--apply` was **allowed** — re-measured *0 dead*; `litellm-orphans.sh` found six orphans and `--apply`
+was **allowed — the fifteenth consecutive sitting** — *5 user(s) remain (was 11)*, every held user kept. **Images,
+the metric named**: `docker images -q` **102**, `sort -u` **94**, `127.0.0.1:7107/local/*` **52** — the snapshot
+shows 14 new untagged app images from the tier and the demos, which no script sweeps. **`snapshot-machine.sh`
+diff, open → close: 81 lines, every one accounted for** — timestamps, 2 GiB of disk, uptimes, `manifest-caddy`
+restarted by the tier, journey-app's containers, network and volumes, `launch-app`'s replaced instances and their
+files volumes, the 14 images, and `HEAD` and the dirty count before the close-out commit. The four protected
+containers are as they were (`docker-simple-saml-saml-idp-1` was already `Exited (0) 2 weeks ago` at the open),
+`manifest-caddy-data` is intact, both loopback aliases are on `lo0`, and `docker-simple-saml`'s only dirty path is
+its untracked `cert.zip`.
+
+**The four HTML pages were checked and not changed**: no spec action was applied, and none of them describes the
+production checklist, a re-escalation or self-serve at a level this sitting moved.
