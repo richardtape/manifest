@@ -553,6 +553,44 @@ export const privacyAssessments = pgTable('privacy_assessments', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+/**
+ * §13's `diff_snapshot`, the jsonb shape — ONE statement of it, read by `approvals` and by
+ * `approval_previews` (P6b Task 9), because the approval COPIES the preview's snapshot and two
+ * declarations of one shape are one that will drift.
+ */
+export interface DiffSnapshotColumn {
+  imageDigest: string
+  changes: { path: string; from: string; to: string; summary: string }[]
+  services: string[]
+  attributes: string[]
+  resources: Record<string, string | number | null>
+  /** Decision 7: null when the model could not be reached. NOT an empty string. */
+  summary: string | null
+  /** `no-changes` (P6b Task 8): the fixed sentence for an empty diff, which no model wrote. */
+  summarySource: 'llm' | 'unavailable' | 'no-previous-release' | 'no-changes'
+  /**
+   * R4(d) (P6b Task 8): what the release was compared WITH, which of §7's fields changed,
+   * a deterministic note for each, and D33's coverage limit. **OPTIONAL, because P6a's
+   * rows were written without them** — a reader defaults them (`toApproval`), and a
+   * record made before P6b answers `coverage: null`. Strings, not `SensitiveField`,
+   * because `db/` imports nothing above it.
+   */
+  baselineReleaseId?: string | null
+  sensitiveFields?: string[]
+  security?: { field: string; note: string }[]
+  coverage?: string
+  /**
+   * R4: the reviewer's verdict at decision time, `describeVerdict`'s one line in
+   * `detail`. `not_performed` until one lands. The three states are `launch/review.ts`'s
+   * `ReviewVerdict` union, written out because `db/` imports nothing above it.
+   */
+  review: {
+    state: 'not_performed' | 'clean' | 'findings'
+    reviewer: string
+    detail: string
+  }
+}
+
 export const approvalDecision = pgEnum('approval_decision', ['approved', 'rejected'])
 
 /**
@@ -589,38 +627,13 @@ export const approvals = pgTable(
     /** Why, in the administrator's own words. Required on a rejection; optional otherwise. */
     reason: text('reason'),
     /** Decision 6: the RENDERED diff, at decision time. Never a reference recomputed later. */
-    diffSnapshot: jsonb('diff_snapshot').notNull().$type<{
-      imageDigest: string
-      changes: { path: string; from: string; to: string; summary: string }[]
-      services: string[]
-      attributes: string[]
-      resources: Record<string, string | number | null>
-      /** Decision 7: null when the model could not be reached. NOT an empty string. */
-      summary: string | null
-      /** `no-changes` (P6b Task 8): the fixed sentence for an empty diff, which no model wrote. */
-      summarySource: 'llm' | 'unavailable' | 'no-previous-release' | 'no-changes'
-      /**
-       * R4(d) (P6b Task 8): what the release was compared WITH, which of §7's fields changed,
-       * a deterministic note for each, and D33's coverage limit. **OPTIONAL, because P6a's
-       * rows were written without them** — a reader defaults them (`toApproval`), and a
-       * record made before P6b answers `coverage: null`. Strings, not `SensitiveField`,
-       * because `db/` imports nothing above it.
-       */
-      baselineReleaseId?: string | null
-      sensitiveFields?: string[]
-      security?: { field: string; note: string }[]
-      coverage?: string
-      /**
-       * R4: the reviewer's verdict at decision time, `describeVerdict`'s one line in
-       * `detail`. `not_performed` until one lands. The three states are `launch/review.ts`'s
-       * `ReviewVerdict` union, written out because `db/` imports nothing above it.
-       */
-      review: {
-        state: 'not_performed' | 'clean' | 'findings'
-        reviewer: string
-        detail: string
-      }
-    }>(),
+    diffSnapshot: jsonb('diff_snapshot').notNull().$type<DiffSnapshotColumn>(),
+    /**
+     * THE PREVIEW THE ADMINISTRATOR READ, whose snapshot this row COPIES (P6b Task 9; Rich,
+     * 2026-09-22). **NULLABLE, because P6a's rows were decided without one** — the route has
+     * required it since Task 9, and a row written after that always names one.
+     */
+    previewId: uuid('preview_id').references(() => approvalPreviews.id),
   },
   (t) => [
     index('approvals_release_idx').on(t.releaseId),
@@ -634,6 +647,39 @@ export const approvals = pgTable(
       sql`${t.decision} <> 'rejected' OR length(trim(coalesce(${t.reason}, ''))) > 0`,
     ),
   ],
+)
+
+/**
+ * §13's "exact diff shown at decision time", made true BEFORE the decision (Rich, 2026-09-22;
+ * P6b Decision 10). An administrator asks for one, reads it, and names it when deciding; the
+ * approval COPIES its snapshot — the summary and the verdict as they were SHOWN, never written
+ * again by a model that answers differently on every call. INSERT ONLY, like `approvals`, and
+ * for the same reason: it is evidence of what a person read.
+ *
+ * `expires_at` bounds how old "shown at decision time" may be (`PREVIEW_TTL_MS`); the facts are
+ * recomputed at decision time and a preview whose facts moved is refused, so a preview is not
+ * single-use — a second decision naming it makes a true claim about what was shown.
+ */
+export const approvalPreviews = pgTable(
+  'approval_previews',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    releaseId: uuid('release_id')
+      .notNull()
+      .references(() => releases.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    /** The digest the preview was taken over — the build's, as the approval will bind it. */
+    imageDigest: text('image_digest').notNull(),
+    diffSnapshot: jsonb('diff_snapshot').notNull().$type<DiffSnapshotColumn>(),
+  },
+  (t) => [index('approval_previews_release_idx').on(t.releaseId)],
 )
 
 /**

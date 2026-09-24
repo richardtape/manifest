@@ -39,6 +39,7 @@ export const INCIDENT_ID = '99999999-9999-4999-8999-999999999999'
 export const APP_SPEC_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 export const STUDENT_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 export const APPROVAL_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+export const APPROVAL_PREVIEW_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
 
 export const ME: Schemas['Me'] = {
   id: USER_ID,
@@ -340,58 +341,84 @@ export const RELEASES: Schemas['ReleaseList'] = [RELEASE]
  * "there is no summary, and the diff beside it is the control". A fixture that always had
  * a summary would hide that.
  */
+/**
+ * THE DIFF AN ADMINISTRATOR READS, ONCE (P6b Task 9): the preview carries it and the approval
+ * COPIES it, which is the platform's rule — so the mock's two fixtures share one object rather
+ * than two literals that could drift into a preview and a record that disagree.
+ */
+const APPROVAL_DIFF: Schemas['ApprovalDiff'] = {
+  imageDigest: BUILD.imageDigest as string,
+  changes: [
+    {
+      path: 'resources.memory',
+      from: '256Mi',
+      to: '512Mi',
+      summary: 'raised the memory limit from 256Mi to 512Mi',
+    },
+  ],
+  services: ['mongodb@7.0'],
+  attributes: ['givenName', 'mail', 'ubcEduCwlPuid'],
+  resources: { cpu: 1, memory: '512Mi', disk: '1Gi', pids: 64 },
+  summary: null,
+  summarySource: 'unavailable',
+  // `NullReviewer`'s reason VERBATIM (`launch/review.ts`), which is what `describeVerdict`
+  // stores for `not_performed` — the screen renders this sentence as the platform's own,
+  // so a paraphrase here would teach a front-end developer a sentence the platform never says.
+  review: {
+    state: 'not_performed',
+    reviewer: 'none',
+    detail:
+      'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the ' +
+      'controls that make that tolerable are containment — default-deny egress, network ' +
+      'isolation, least privilege and edge protections (§20).',
+  },
+  // R4(d) (P6b Task 8). The memory change above IS one of §7's sensitive fields, so this
+  // approval names what it was compared with, the field and its note — the note and the
+  // coverage sentence VERBATIM from `spec/diff.ts`'s `SECURITY_NOTES` and
+  // `releases/approval.ts`'s `COVERAGE_LIMIT`, for the reason the reviewer's is above.
+  baselineReleaseId: '88888888-8888-4888-8888-888888888881',
+  sensitiveFields: ['resources'],
+  security: [
+    {
+      field: 'resources',
+      note: 'More CPU, memory, processes or disk: cost and blast radius rather than data.',
+    },
+  ],
+  coverage:
+    'An administrator sees a first launch and any release that changes a sensitive field (§7). ' +
+    'A release that changes none reaches production without an administrator, and its code is ' +
+    'reviewed by nothing (§13’s residual risk); containment is the control (§20).',
+}
+
+/**
+ * P6b Task 9's preview — what the approvals screen renders BEFORE the decision. The mock keeps
+ * no state (P5c Decision 9), so every take and every read answers this one; its `createdAt` is
+ * the fixtures' fixed instant and its `expiresAt` thirty minutes later.
+ */
+export const APPROVAL_PREVIEW: Schemas['ApprovalPreview'] = {
+  id: APPROVAL_PREVIEW_ID,
+  releaseId: RELEASE_ID,
+  projectId: PROJECT_ID,
+  createdBy: USER_ID,
+  createdByName: ME.displayName,
+  createdAt: ISO,
+  expiresAt: new Date(Date.parse(ISO) + 30 * 60 * 1000).toISOString(),
+  imageDigest: BUILD.imageDigest as string,
+  diff: APPROVAL_DIFF,
+}
+
 export const APPROVAL: Schemas['Approval'] = {
   id: APPROVAL_ID,
   releaseId: RELEASE_ID,
   projectId: PROJECT_ID,
   decision: 'approved',
   decidedBy: USER_ID,
+  decidedByName: ME.displayName,
   decidedAt: ISO,
   imageDigest: BUILD.imageDigest as string,
   reason: 'the scan is clean and the egress list matches the ticket',
-  diff: {
-    imageDigest: BUILD.imageDigest as string,
-    changes: [
-      {
-        path: 'resources.memory',
-        from: '256Mi',
-        to: '512Mi',
-        summary: 'raised the memory limit from 256Mi to 512Mi',
-      },
-    ],
-    services: ['mongodb@7.0'],
-    attributes: ['givenName', 'mail', 'ubcEduCwlPuid'],
-    resources: { cpu: 1, memory: '512Mi', disk: '1Gi', pids: 64 },
-    summary: null,
-    summarySource: 'unavailable',
-    // `NullReviewer`'s reason VERBATIM (`launch/review.ts`), which is what `describeVerdict`
-    // stores for `not_performed` — the screen renders this sentence as the platform's own,
-    // so a paraphrase here would teach a front-end developer a sentence the platform never says.
-    review: {
-      state: 'not_performed',
-      reviewer: 'none',
-      detail:
-        'No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the ' +
-        'controls that make that tolerable are containment — default-deny egress, network ' +
-        'isolation, least privilege and edge protections (§20).',
-    },
-    // R4(d) (P6b Task 8). The memory change above IS one of §7's sensitive fields, so this
-    // approval names what it was compared with, the field and its note — the note and the
-    // coverage sentence VERBATIM from `spec/diff.ts`'s `SECURITY_NOTES` and
-    // `releases/approval.ts`'s `COVERAGE_LIMIT`, for the reason the reviewer's is above.
-    baselineReleaseId: '88888888-8888-4888-8888-888888888881',
-    sensitiveFields: ['resources'],
-    security: [
-      {
-        field: 'resources',
-        note: 'More CPU, memory, processes or disk: cost and blast radius rather than data.',
-      },
-    ],
-    coverage:
-      'An administrator sees a first launch and any release that changes a sensitive field (§7). ' +
-      'A release that changes none reaches production without an administrator, and its code is ' +
-      'reviewed by nothing (§13’s residual risk); containment is the control (§20).',
-  },
+  diff: APPROVAL_DIFF,
+  previewId: APPROVAL_PREVIEW_ID,
 }
 
 export const INCIDENTS: Schemas['IncidentList'] = {
@@ -779,4 +806,5 @@ export const FIXTURES: [string, unknown][] = [
   // this table never named it, so Ajv checked it only on the way OUT of a request — which is
   // exactly the check this table exists to make without one.
   ['Approval', APPROVAL],
+  ['ApprovalPreview', APPROVAL_PREVIEW],
 ]

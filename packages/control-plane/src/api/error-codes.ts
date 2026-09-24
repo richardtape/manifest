@@ -223,6 +223,10 @@ export const ERROR_CODES = {
   BLUEPRINT_NOT_FOUND: bad('No blueprint with this reference is in the registry.'),
   MEMBER_USER_NOT_FOUND: bad('No user with this PUID has ever signed in.'),
   SPEC_NOT_FOUND: bad('The project has no validated spec yet.'),
+  // P6b Task 9 (Rich, 2026-09-22): a decision names the preview the administrator read.
+  APPROVAL_PREVIEW_REQUIRED: bad(
+    'An approval or rejection names no preview. Take one (`POST /v1/releases/{releaseId}/approval-preview`), read it, and decide naming its id.',
+  ),
   STARTER_NOT_FOUND: bad('The blueprint offers no starter by that name (§25).'),
   CREDENTIAL_AMBIGUOUS: bad(
     'The request carried both a session cookie and a delegated token; it carries one or the other.',
@@ -250,6 +254,12 @@ export const ERROR_CODES = {
   },
 
   // releases/ — every one is 409
+  APPROVAL_PREVIEW_EXPIRED: release(
+    'The preview is older than thirty minutes, so it is no longer what was shown at decision time; take a new one.',
+  ),
+  APPROVAL_PREVIEW_STALE: release(
+    'What the release would be approved as changed since the preview was taken — in practice another decision moved the last approved release. Take a new preview and read it.',
+  ),
   RELEASE_AI_BUDGET_MISSING: release('The release declares models and no AI budget.'),
   RELEASE_AI_DISABLED: release(
     'The release declares models and AI is switched off on this control plane.',

@@ -11,6 +11,7 @@ import {
   commitManifest,
   loginAs,
   mutationHeaders,
+  previewThenDecide,
   projectBody,
   testDeps,
 } from '../api/testing.js'
@@ -175,13 +176,14 @@ describe('§13’s approval — `release:approve`’s first caller (P6a Task 10)
     const frames: { kind: string; type?: string; machineDetail?: unknown }[] = []
     ctx.deps.bus.subscribe(ctx.project.id, (f) => frames.push(f as never))
 
-    const approved = await ctx.app.inject({
-      method: 'POST',
-      url: `/v1/releases/${ctx.release.id}/approve`,
-      payload: { reason: 'the scan is clean and the diff is what the ticket says' },
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
-    })
+    const approved = await previewThenDecide(
+      ctx.app,
+      ctx.deps,
+      ctx.admin,
+      ctx.release.id,
+      'approve',
+      { reason: 'the scan is clean and the diff is what the ticket says' },
+    )
     expect(approved.statusCode, approved.body).toBe(201)
     const body = approved.json()
 
@@ -295,26 +297,28 @@ describe('§13’s approval — `release:approve`’s first caller (P6a Task 10)
 
   it('refuses a rejection with no reason: 400, and the database refuses it too', async () => {
     const ctx = await releasedProject()
-    const refused = await ctx.app.inject({
-      method: 'POST',
-      url: `/v1/releases/${ctx.release.id}/reject`,
-      payload: {},
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
-    })
+    const refused = await previewThenDecide(
+      ctx.app,
+      ctx.deps,
+      ctx.admin,
+      ctx.release.id,
+      'reject',
+      {},
+    )
     expect(refusal(refused)).toEqual({ status: 400, code: 'REQUEST_INVALID' })
 
     // AND A REASON MADE OF SPACES, which is the case `min(1)` alone does NOT catch and the
     // one control (e) is aimed at. Measured: with `.trim()` absent from the schema this
     // request reached the database and was answered `500 INTERNAL` — a client error wearing
     // a server error's clothes (P6a sitting 7, F3).
-    const blank = await ctx.app.inject({
-      method: 'POST',
-      url: `/v1/releases/${ctx.release.id}/reject`,
-      payload: { reason: '   ' },
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
-    })
+    const blank = await previewThenDecide(
+      ctx.app,
+      ctx.deps,
+      ctx.admin,
+      ctx.release.id,
+      'reject',
+      { reason: '   ' },
+    )
     expect(refusal(blank)).toEqual({ status: 400, code: 'REQUEST_INVALID' })
 
     /**
@@ -363,15 +367,16 @@ describe('§13’s approval — `release:approve`’s first caller (P6a Task 10)
     // A decision only its maker can read is not a decision anybody can act on (D23.7), so
     // `getApproval` is a `project:read` and the owner is who this test speaks for.
     const ctx = await releasedProject()
-    const rejected = await ctx.app.inject({
-      method: 'POST',
-      url: `/v1/releases/${ctx.release.id}/reject`,
-      payload: {
+    const rejected = await previewThenDecide(
+      ctx.app,
+      ctx.deps,
+      ctx.admin,
+      ctx.release.id,
+      'reject',
+      {
         reason: 'this release adds an egress destination the PIA does not cover',
       },
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
-    })
+    )
     expect(rejected.statusCode, rejected.body).toBe(201)
 
     const read = await ctx.app.inject({
@@ -394,13 +399,7 @@ describe('§13’s approval — `release:approve`’s first caller (P6a Task 10)
      */
     const ctx = await releasedProject()
     const decide = (kind: 'approve' | 'reject', reason: string) =>
-      ctx.app.inject({
-        method: 'POST',
-        url: `/v1/releases/${ctx.release.id}/${kind}`,
-        payload: { reason },
-        cookies: ctx.admin,
-        headers: mutationHeaders(ctx.deps),
-      })
+      previewThenDecide(ctx.app, ctx.deps, ctx.admin, ctx.release.id, kind, { reason })
     expect((await decide('reject', 'the scan is stale')).statusCode).toBe(201)
     expect((await decide('approve', 'rebuilt against a fresh database')).statusCode).toBe(
       201,
@@ -459,13 +458,7 @@ describe('§13’s checklist reads the approval (Decision 11)', () => {
     expect((await item()).builtBy).toBeUndefined()
     expect((await item()).why).toContain('has not been reviewed yet')
 
-    await ctx.app.inject({
-      method: 'POST',
-      url: `/v1/releases/${ctx.release.id}/approve`,
-      payload: {},
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
-    })
+    await previewThenDecide(ctx.app, ctx.deps, ctx.admin, ctx.release.id, 'approve', {})
     const met = await item()
     expect(met.state).toBe('met')
     expect(met.why).toContain(ctx.build.imageDigest.slice(0, 19))
@@ -475,12 +468,8 @@ describe('§13’s checklist reads the approval (Decision 11)', () => {
   it('a rejected candidate is unmet, in the administrator’s own words', async () => {
     const ctx = await releasedProject()
     await servingStaging(ctx)
-    await ctx.app.inject({
-      method: 'POST',
-      url: `/v1/releases/${ctx.release.id}/reject`,
-      payload: { reason: 'the egress list grew and the PIA has not seen it' },
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
+    await previewThenDecide(ctx.app, ctx.deps, ctx.admin, ctx.release.id, 'reject', {
+      reason: 'the egress list grew and the PIA has not seen it',
     })
     const view = await ctx.app.inject({
       method: 'GET',
@@ -509,13 +498,7 @@ describe('§13’s checklist reads the approval (Decision 11)', () => {
   it('a rebuild invalidates the approval — the checklist says the release was rebuilt', async () => {
     const ctx = await releasedProject()
     await servingStaging(ctx)
-    await ctx.app.inject({
-      method: 'POST',
-      url: `/v1/releases/${ctx.release.id}/approve`,
-      payload: {},
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
-    })
+    await previewThenDecide(ctx.app, ctx.deps, ctx.admin, ctx.release.id, 'approve', {})
     /**
      * **THE NEW DIGEST SHARES ITS FIRST NINETEEN CHARACTERS WITH THE APPROVED ONE**, and
      * that is control (c) folded into this test rather than left to the unit one. Measured:
@@ -552,13 +535,14 @@ describe('§13’s diff_snapshot — rendered at decision time and STORED (P6a T
      * — the rendered clause, which a reference does not carry.
      */
     const ctx = await releasedProject('diff-labs')
-    const first = await ctx.app.inject({
-      method: 'POST',
-      url: `/v1/releases/${ctx.release.id}/approve`,
-      payload: {},
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
-    })
+    const first = await previewThenDecide(
+      ctx.app,
+      ctx.deps,
+      ctx.admin,
+      ctx.release.id,
+      'approve',
+      {},
+    )
     expect(first.statusCode, first.body).toBe(201)
     // A FIRST LAUNCH HAS NOTHING TO DIFF, and that is a STATE: not `unavailable`, which
     // would send an administrator looking for a failure that did not happen.
@@ -566,13 +550,14 @@ describe('§13’s diff_snapshot — rendered at decision time and STORED (P6a T
     expect(first.json().diff.changes).toEqual([])
 
     const next = await secondRelease(ctx, 'diff-labs', '1Gi')
-    const second = await ctx.app.inject({
-      method: 'POST',
-      url: `/v1/releases/${next.id}/approve`,
-      payload: {},
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
-    })
+    const second = await previewThenDecide(
+      ctx.app,
+      ctx.deps,
+      ctx.admin,
+      next.id,
+      'approve',
+      {},
+    )
     expect(second.statusCode, second.body).toBe(201)
     const diff = second.json().diff
 
@@ -628,24 +613,18 @@ describe('§13’s diff_snapshot — rendered at decision time and STORED (P6a T
     // answer is `no-previous-release` and the gateway is never asked, which would make this
     // test green against a `buildDiffSnapshot` that rethrows.
     expect(
-      (
-        await down.inject({
-          method: 'POST',
-          url: `/v1/releases/${ctx.release.id}/approve`,
-          payload: {},
-          cookies: ctx.admin,
-          headers: mutationHeaders(ctx.deps),
-        })
-      ).statusCode,
+      (await previewThenDecide(down, ctx.deps, ctx.admin, ctx.release.id, 'approve', {}))
+        .statusCode,
     ).toBe(201)
     const next = await secondRelease(ctx, 'outage-labs', '1Gi')
-    const approved = await down.inject({
-      method: 'POST',
-      url: `/v1/releases/${next.id}/approve`,
-      payload: {},
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
-    })
+    const approved = await previewThenDecide(
+      down,
+      ctx.deps,
+      ctx.admin,
+      next.id,
+      'approve',
+      {},
+    )
 
     // 201, NOT 502. The approval is recorded; the summary is recorded as absent.
     expect(approved.statusCode, approved.body).toBe(201)
@@ -674,24 +653,18 @@ describe('§13’s diff_snapshot — rendered at decision time and STORED (P6a T
       },
     })
     expect(
-      (
-        await up.inject({
-          method: 'POST',
-          url: `/v1/releases/${ctx.release.id}/approve`,
-          payload: {},
-          cookies: ctx.admin,
-          headers: mutationHeaders(ctx.deps),
-        })
-      ).statusCode,
+      (await previewThenDecide(up, ctx.deps, ctx.admin, ctx.release.id, 'approve', {}))
+        .statusCode,
     ).toBe(201)
     const next = await secondRelease(ctx, 'summary-labs', '1Gi')
-    const approved = await up.inject({
-      method: 'POST',
-      url: `/v1/releases/${next.id}/approve`,
-      payload: {},
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
-    })
+    const approved = await previewThenDecide(
+      up,
+      ctx.deps,
+      ctx.admin,
+      next.id,
+      'approve',
+      {},
+    )
     expect(approved.statusCode, approved.body).toBe(201)
     expect(approved.json().diff.summary).toBe('The app asks for more memory.')
     expect(approved.json().diff.summarySource).toBe('llm')
@@ -741,13 +714,14 @@ describe('R4’s seam — the snapshot’s review comes from the injected review
     const ctx = await releasedProject('review-labs')
     const reviewer = recordingReviewer()
     const app = await buildServer({ ...ctx.deps, reviewer })
-    const approved = await app.inject({
-      method: 'POST',
-      url: `/v1/releases/${ctx.release.id}/approve`,
-      payload: {},
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
-    })
+    const approved = await previewThenDecide(
+      app,
+      ctx.deps,
+      ctx.admin,
+      ctx.release.id,
+      'approve',
+      {},
+    )
     expect(approved.statusCode, approved.body).toBe(201)
     expect(approved.json().diff.review).toEqual({
       state: 'findings',
@@ -772,13 +746,14 @@ describe('R4’s seam — the snapshot’s review comes from the injected review
     // A SECOND release, so `changes` is the diff and not the first launch's empty list —
     // otherwise `changes: []` above would be as true of a caller that never passed them.
     const next = await secondRelease(ctx, 'review-labs', '1Gi')
-    const again = await app.inject({
-      method: 'POST',
-      url: `/v1/releases/${next.id}/approve`,
-      payload: {},
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
-    })
+    const again = await previewThenDecide(
+      app,
+      ctx.deps,
+      ctx.admin,
+      next.id,
+      'approve',
+      {},
+    )
     expect(again.statusCode, again.body).toBe(201)
     expect(reviewer.asked).toHaveLength(2)
     expect(reviewer.asked[1]!.releaseId).toBe(next.id)
@@ -854,14 +829,7 @@ describe('the baseline is each release’s LATEST decision (P6b Task 3)', () => 
     releaseId: string,
     kind: 'approve' | 'reject',
     reason = 'reviewed',
-  ) =>
-    ctx.app.inject({
-      method: 'POST',
-      url: `/v1/releases/${releaseId}/${kind}`,
-      payload: { reason },
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
-    })
+  ) => previewThenDecide(ctx.app, ctx.deps, ctx.admin, releaseId, kind, { reason })
 
   const rowOf = async (ctx: Awaited<ReturnType<typeof releasedProject>>, id: string) => {
     const [row] = await ctx.deps.db.select().from(releases).where(eq(releases.id, id))
@@ -1005,14 +973,7 @@ describe('R4(d) — the snapshot’s security dimension (P6b Task 8)', () => {
     app: Awaited<ReturnType<typeof buildServer>>,
     ctx: Awaited<ReturnType<typeof releasedProject>>,
     releaseId: string,
-  ) =>
-    app.inject({
-      method: 'POST',
-      url: `/v1/releases/${releaseId}/approve`,
-      payload: {},
-      cookies: ctx.admin,
-      headers: mutationHeaders(ctx.deps),
-    })
+  ) => previewThenDecide(app, ctx.deps, ctx.admin, releaseId, 'approve', {})
 
   /** A release of `lines`, committed, validated and built through the routes. */
   async function releaseOf(

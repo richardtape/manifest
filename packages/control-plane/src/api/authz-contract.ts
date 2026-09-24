@@ -171,6 +171,11 @@ interface Fixture {
   environmentId: { staging: string; production: string }
   buildId: string
   releaseId: string
+  /**
+   * A stored approval preview of `releaseId` (P6b Task 9), taken in setup by a stepped-up
+   * admin — what the read row is aimed at, and what the fixture's approval names.
+   */
+  previewId: string
   commitSha: string
   /** A delegated token the OWNER minted (P5b Task 4) — what the revoke row is aimed at. */
   tokenId: string
@@ -810,6 +815,48 @@ const ROUTES: RouteCase[] = [
       'token-incapable': 403,
       'token-other-project': 404,
       'token-privileged': 'pass',
+    },
+  },
+  /**
+   * **P6b TASK 9: THE STORED PREVIEW's two routes.** `release:approve`, like the decision —
+   * and, unlike it, **NO STEP-UP**: a preview decides nothing (Decision 10), so `admin` PASSES
+   * here on the ordinary session every row uses, which makes these two rows the positive
+   * control the approve and reject rows below cannot have. `requireSession` runs first, so the
+   * four token rows are `TOKEN_CREDENTIAL_REFUSED` for every release id; `TOKEN_PERSON_ONLY`
+   * is the central rule behind it, seen on `api/person-only.test.ts`'s synthetic probe.
+   */
+  {
+    method: 'POST',
+    url: '/v1/releases/:releaseId/approval-preview',
+    request: (f) => ({ url: `/v1/releases/${f.releaseId}/approval-preview` }),
+    expect: {
+      owner: 403,
+      collaborator: 403,
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
+  {
+    method: 'GET',
+    url: '/v1/releases/:releaseId/approval-previews/:previewId',
+    request: (f) => ({
+      url: `/v1/releases/${f.releaseId}/approval-previews/${f.previewId}`,
+    }),
+    expect: {
+      owner: 403,
+      collaborator: 403,
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
     },
   },
   /**
@@ -1546,6 +1593,8 @@ export function describeAuthorizationContract(
         commitSha: body.spec.commitSha,
         buildId: build.json().id,
         releaseId: release.json().id,
+        // Set below, once the preview is taken — after the collaborator is made a member.
+        previewId: '',
         environmentId: {
           staging: body.environments.find((e: { kind: string }) => e.kind === 'staging')
             .id,
@@ -1596,11 +1645,28 @@ export function describeAuthorizationContract(
        * It leaves `admin-approval` MET for this project, which moves no expectation:
        * `rehearsal` is still `not_built`, so the production deploy row's `409` stands.
        */
+      const steppedAdmin = await loginAs(deps, 'platform_admin', { steppedUp: true })
+      // P6b Task 9: the decision NAMES the preview the administrator read — and the preview
+      // is what the read row above is aimed at.
+      const previewed = await app.inject({
+        method: 'POST',
+        url: `/v1/releases/${release.json().id}/approval-preview`,
+        cookies: steppedAdmin,
+        headers: mutationHeaders(deps),
+      })
+      expect({ status: previewed.statusCode, code: codeOf(previewed.body) }).toEqual({
+        status: 201,
+        code: undefined,
+      })
+      fixture.previewId = previewed.json().id
       const approved = await app.inject({
         method: 'POST',
         url: `/v1/releases/${release.json().id}/approve`,
-        payload: { reason: 'the authorization fixture needs a decision to read' },
-        cookies: await loginAs(deps, 'platform_admin', { steppedUp: true }),
+        payload: {
+          reason: 'the authorization fixture needs a decision to read',
+          previewId: fixture.previewId,
+        },
+        cookies: steppedAdmin,
         headers: mutationHeaders(deps),
       })
       expect({ status: approved.statusCode, code: codeOf(approved.body) }).toEqual({

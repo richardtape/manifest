@@ -38,7 +38,7 @@ import { join } from 'node:path'
 import { createBuildRunner, createRetirer } from '../releases/index.js'
 import { NullReviewer } from '../launch/index.js'
 import type { AiKeyService } from '../ai/index.js'
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, LightMyRequestResponse } from 'fastify'
 import { buildServer, type ServerDeps } from './server.js'
 import { resetDatabase } from '../db/testing.js'
 import { addMember } from '../projects/index.js'
@@ -208,6 +208,43 @@ export async function commitManifest(
 }
 
 /**
+ * §13's decision AS A PERSON MAKES IT SINCE P6b TASK 9 (Rich, 2026-09-22): take a stored
+ * PREVIEW, then approve or reject NAMING it — the record copies what was shown. Every test and
+ * fixture that decides goes through this, so the day the preview's shape changes there is one
+ * place to change it (the reason the delivery fixtures below live in this file at all).
+ *
+ * THE PREVIEW THROWS, like every fixture here: a preview that fails is a broken fixture. THE
+ * DECISION IS RETURNED UNASSERTED, so a caller can read a refusal — a flat session's
+ * `STEP_UP_REQUIRED` is answered AFTER the preview, which needs no step-up.
+ */
+export async function previewThenDecide(
+  app: FastifyInstance,
+  deps: ServerDeps,
+  cookies: Record<string, string>,
+  releaseId: string,
+  kind: 'approve' | 'reject',
+  payload: { reason?: string } = {},
+): Promise<LightMyRequestResponse> {
+  const preview = await app.inject({
+    method: 'POST',
+    url: `/v1/releases/${releaseId}/approval-preview`,
+    cookies,
+    headers: mutationHeaders(deps),
+  })
+  if (preview.statusCode !== 201)
+    throw new Error(
+      `previewing release '${releaseId}' answered ${preview.statusCode}: ${preview.body}`,
+    )
+  return app.inject({
+    method: 'POST',
+    url: `/v1/releases/${releaseId}/${kind}`,
+    payload: { ...payload, previewId: (preview.json() as { id: string }).id },
+    cookies,
+    headers: mutationHeaders(deps),
+  })
+}
+
+/**
  * THE DELIVERY FIXTURES, from a bare project to a LAUNCHED one (P6b Task 4) — moved here
  * from `delivery.test.ts` rather than copied, because `subsequent-releases.test.ts` (Task 5
  * onward) starts every case from `launchedProject`, and two copies of a path to production
@@ -361,13 +398,10 @@ export async function approvedProject(slug: string) {
       )
   }
 
-  // 3. And approves the release, which binds the build's digest (§13, §20).
-  const approved = await app.inject({
-    method: 'POST',
-    url: `/v1/releases/${release.id}/approve`,
-    payload: { reason: 'the checklist is met and the diff is what we expect' },
-    cookies: admin,
-    headers: mutationHeaders(deps),
+  // 3. And approves the release — naming the preview it read (P6b Task 9) — which binds the
+  //    build's digest (§13, §20).
+  const approved = await previewThenDecide(app, deps, admin, release.id, 'approve', {
+    reason: 'the checklist is met and the diff is what we expect',
   })
   if (approved.statusCode !== 201)
     throw new Error(
@@ -598,13 +632,14 @@ export async function launchedCwlProject(slug: string) {
   const rehearsal = await call('POST', `/v1/projects/${project.id}/rehearsal`, admin)
   if (rehearsal.passed !== true)
     throw new Error(`the rehearsal did not pass: ${JSON.stringify(rehearsal)}`)
-  await call(
-    'POST',
-    `/v1/releases/${release.id}/approve`,
-    admin,
-    { reason: 'the checklist is met and the registration is what UBC recorded' },
-    201,
-  )
+  // Naming the preview the administrator read (P6b Task 9).
+  const approved = await previewThenDecide(app, deps, admin, release.id, 'approve', {
+    reason: 'the checklist is met and the registration is what UBC recorded',
+  })
+  if (approved.statusCode !== 201)
+    throw new Error(
+      `approving the CWL release answered ${approved.statusCode}: ${approved.body}`,
+    )
   const owner = await loginAs(deps, 'bio_prof', { steppedUp: true })
   const launched = await call('POST', `/v1/environments/${production.id}/deploy`, owner, {
     releaseId: release.id,

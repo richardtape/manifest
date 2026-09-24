@@ -265,7 +265,7 @@ async function codeReviewItem(
       ...CODE_REVIEW_BASE,
       state: 'not_built',
       builtBy: CODE_REVIEWER_BUILT_BY,
-      why: `No reviewer has looked at this release. A reviewer runs when an administrator is asked to approve a release — a first launch or a re-escalation — and never for a self-serve release (D33). ${NOTHING_REVIEWS_CODE}`,
+      why: `No reviewer has looked at this release. A reviewer runs when an administrator previews a release for approval — a first launch or a re-escalation — and never for a self-serve release (D33). ${NOTHING_REVIEWS_CODE}`,
     }
   switch (review.state) {
     case 'clean':

@@ -196,6 +196,10 @@ const ANSWERS: Record<string, Answerer> = {
   approveRelease: () => created('Approval', f.APPROVAL),
   rejectRelease: () => created('Approval', f.APPROVAL),
   getApproval: () => ok('Approval', f.APPROVAL),
+  // P6b Task 9: the stored preview. Taking one and re-reading it answer the SAME fixture, which
+  // is the platform's property (a re-read never recomputes) and also all a stateless mock can do.
+  createApprovalPreview: () => created('ApprovalPreview', f.APPROVAL_PREVIEW),
+  getApprovalPreview: () => ok('ApprovalPreview', f.APPROVAL_PREVIEW),
   // The slug the fixtures already use is taken; everything else is free, so the create
   // form's check-as-you-type has both answers to render.
   checkSlug: (ctx) =>

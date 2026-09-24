@@ -22,6 +22,7 @@ import {
   launchedProject,
   loginAs,
   mutationHeaders,
+  previewThenDecide,
   projectFor,
   refusal,
   releasedProject,
@@ -129,12 +130,8 @@ async function decide(
   decision: 'approve' | 'reject',
   reason: string,
 ) {
-  const res = await ctx.app.inject({
-    method: 'POST',
-    url: `/v1/releases/${releaseId}/${decision}`,
-    payload: { reason },
-    cookies: ctx.admin,
-    headers: mutationHeaders(ctx.deps),
+  const res = await previewThenDecide(ctx.app, ctx.deps, ctx.admin, releaseId, decision, {
+    reason,
   })
   expect(res.statusCode, res.body).toBe(201)
 }

@@ -24,6 +24,7 @@ export {
   sensitiveFieldsBetween,
   sensitiveViewOfRelease,
   sensitiveViewOfSpec,
+  stable,
 } from './diff.js'
 export { resolveConfig } from './resolve.js'
 export {

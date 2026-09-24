@@ -616,15 +616,39 @@ async function step7Approve(): Promise<void> {
     carried !== undefined && unmetBlocking(carried).join(',') === 'admin-approval',
     carried === undefined ? 'no checklist' : unmetBlocking(carried).join(','),
   )
+  // P6b Task 9 (Rich, 2026-09-22): the administrator READS a stored preview first, and the
+  // approval names it — so the record is exactly what was shown, never a second summary.
+  const preview = unwrap(
+    await admin.POST('/v1/releases/{releaseId}/approval-preview', {
+      params: {
+        path: { releaseId: state.releaseId! },
+        header: { 'Idempotency-Key': idempotencyKey() },
+      },
+    }),
+    'createApprovalPreview',
+  )
+  // A first launch has nothing to diff, and D33's coverage limit is stated regardless.
+  checks.ok(
+    'the preview is a first launch’s, and states the coverage limit',
+    preview.diff.summarySource === 'no-previous-release' &&
+      (preview.diff.coverage ?? '').length > 0,
+    `${preview.diff.summarySource}; coverage ${preview.diff.coverage === null ? 'null' : 'present'}`,
+  )
   const approval = unwrap(
     await admin.POST('/v1/releases/{releaseId}/approve', {
       params: {
         path: { releaseId: state.releaseId! },
         header: { 'Idempotency-Key': idempotencyKey() },
       },
-      body: { reason: 'P6a acceptance — every blocking item met' },
+      body: { reason: 'P6a acceptance — every blocking item met', previewId: preview.id },
     }),
     'approveRelease',
+  )
+  checks.ok(
+    'the approval records exactly what was previewed',
+    JSON.stringify(approval.diff) === JSON.stringify(preview.diff) &&
+      approval.previewId === preview.id,
+    `previewId ${approval.previewId} vs ${preview.id}`,
   )
   console.log(
     `  approval: ${approval.decision}, digest ${approval.imageDigest}, summary ${approval.diff.summarySource}, review ${approval.diff.review.state} (${approval.diff.review.reviewer})`,

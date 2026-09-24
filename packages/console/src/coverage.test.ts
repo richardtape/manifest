@@ -17,18 +17,14 @@ import { describe, expect, it } from 'vitest'
  * and the list is where that claim is recorded.
  */
 const DELIBERATELY_UNCALLED: Record<string, string> = {
-  // **EMPTY, AND THAT IS A MEASUREMENT** — all 41 operations have a caller (P6a Task 18).
-  // It was empty through the whole of P5c (34 operations); P6a added seven and parked each
-  // here naming its remover, rather than writing `api.ts` functions sittings before any
-  // screen imported them (the no-caller shape ORIENTATION §9 names four times). Task 17
-  // removed four and Task 18 the last three, in P6a sitting 10.
-  //
-  // **AN EMPTY LIST IS NOT A COMPLETE API.** This gate asks whether every operation the
-  // document DECLARES has a caller. It cannot ask the converse — whether the console needs
-  // an operation the document does not declare — and P6a sitting 10 found one: the diff an
-  // administrator approves is computed INSIDE the approval, so no client can show it before
-  // the decision (`screens/approvals.tsx`). D22's question answered *"not quite"* there,
-  // with this list empty. A reader reads the record, not only this gate.
+  // P6b Task 9 parks its two preview operations here, and TASK 10 — THE SAME SITTING —
+  // removes both with the approvals screen (P6b Decision 19). Between the two commits the
+  // console's Approve button answers `400 APPROVAL_PREVIEW_REQUIRED`, which is why the two
+  // tasks share a sitting and this entry must never survive a session boundary.
+  createApprovalPreview:
+    'P6b Task 10 gives it the approvals screen, in the same sitting (P6b sitting 6).',
+  getApprovalPreview:
+    'P6b Task 10 gives it the approvals screen, in the same sitting (P6b sitting 6).',
 }
 
 /**

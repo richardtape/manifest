@@ -66,8 +66,12 @@ export function securityNotesFor(
  * `{type, version, name}`, and a plain `JSON.stringify` called every re-validation of a
  * manifest declaring a service a sensitive change (P5a sitting 6, measured through the
  * route). Array order is kept: the callers sort what should not depend on it.
+ *
+ * **EXPORTED FOR `releases/preview.ts`'s `sameFacts`** (P6b Task 9): a stored preview's facts
+ * come back from jsonb in Postgres's key order, and one serialisation that already ignores it
+ * is better than a second that might not.
  */
-const stable = (value: unknown): string =>
+export const stable = (value: unknown): string =>
   JSON.stringify(value, (_key, v: unknown) =>
     v !== null && typeof v === 'object' && !Array.isArray(v)
       ? Object.fromEntries(

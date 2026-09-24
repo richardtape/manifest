@@ -1,6 +1,14 @@
 import { desc, eq } from 'drizzle-orm'
 import type { LiteLlmClient } from '../ai/index.js'
-import { appSpecs, approvals, builds, projects, releases, type Db } from '../db/index.js'
+import {
+  appSpecs,
+  approvalPreviews,
+  approvals,
+  builds,
+  projects,
+  releases,
+  type Db,
+} from '../db/index.js'
 // TYPES ONLY, and that is load-bearing: `launch/readiness.ts` imports this module at
 // RUNTIME, so a value imported back from `launch/` would be an import cycle.
 import type { Reviewer, ReviewVerdict } from '../launch/index.js'
@@ -33,6 +41,12 @@ export interface RecordApprovalInput {
   reason?: string
   diffSnapshot: DiffSnapshot
   imageDigest: string
+  /**
+   * The preview whose snapshot this is (P6b Task 9). The ROUTE always names one; it is
+   * optional here because a row written before Task 9 has none, and a store-level fixture
+   * that writes a decision directly (`releases.test.ts`) has no preview to name.
+   */
+  previewId?: string
 }
 
 /**
@@ -59,6 +73,7 @@ export async function recordApproval(
       decidedBy: input.actor.userId,
       imageDigest: input.imageDigest,
       ...(input.reason === undefined ? {} : { reason: input.reason }),
+      ...(input.previewId === undefined ? {} : { previewId: input.previewId }),
       diffSnapshot: input.diffSnapshot,
     })
     .returning()
@@ -360,20 +375,35 @@ export const COVERAGE_LIMIT =
 /**
  * THE NEWEST CODE-REVIEW VERDICT RECORDED FOR A RELEASE (P6b Task 8, Decision 12), or
  * `undefined` when no reviewer has been asked about it — which, under D9, is every release an
- * administrator never saw: a self-serve one (D33). Read from the approvals' stored snapshots;
- * **Task 9 adds `approval_previews` as a second source, here, and the item does not change.**
+ * administrator never saw: a self-serve one (D33).
  *
- * NEWEST BY `decided_at`, with `id` breaking a tie — `latestApprovalFor`'s order.
+ * **TWO SOURCES, THE NEWER WINS** (P6b Task 9): a reviewer runs when an administrator TAKES A
+ * PREVIEW, so a preview's stored verdict exists before any decision — and a decision copies
+ * its preview's, so the two agree whenever both exist. Newest by `created_at` / `decided_at`,
+ * with `id` breaking a tie among the approvals (`latestApprovalFor`'s order).
  *
  * **Caller:** `launch/readiness.ts`'s `code-review` item — which reads it through `releases/`,
- * never the table itself: `launch/` already imports `releases/` at runtime, and the reverse
- * would be a cycle.
+ * never the tables themselves: `launch/` already imports `releases/` at runtime, and the
+ * reverse would be a cycle.
  */
 export async function latestReviewFor(
   db: Db,
   releaseId: string,
 ): Promise<DiffSnapshot['review'] | undefined> {
-  return (await latestApprovalFor(db, releaseId))?.diffSnapshot.review
+  const [decided, [previewed]] = await Promise.all([
+    latestApprovalFor(db, releaseId),
+    db
+      .select({ at: approvalPreviews.createdAt, snapshot: approvalPreviews.diffSnapshot })
+      .from(approvalPreviews)
+      .where(eq(approvalPreviews.releaseId, releaseId))
+      .orderBy(desc(approvalPreviews.createdAt), desc(approvalPreviews.id))
+      .limit(1),
+  ])
+  if (previewed === undefined) return decided?.diffSnapshot.review
+  if (decided === undefined) return previewed.snapshot.review
+  return previewed.at > decided.decidedAt
+    ? previewed.snapshot.review
+    : decided.diffSnapshot.review
 }
 
 export interface SnapshotDeps {
@@ -390,29 +420,37 @@ export interface SnapshotDeps {
 }
 
 /**
+ * THE DETERMINISTIC HALF OF A SNAPSHOT — what an approval COMPARES (P6b Task 9, Decision 10).
+ * Everything here is computed from immutable rows and the approvals table, so asking twice
+ * answers the same unless a decision moved the baseline — which is exactly what a stale
+ * preview differs in. NEVER the summary or the verdict: both are model-written or
+ * time-dependent, and the record copies the preview's instead.
+ */
+export type DiffFacts = Omit<DiffSnapshot, 'summary' | 'summarySource' | 'review'>
+
+/**
  * §13: the approval record captures "image digest, `manifest.yaml` diff, services requested,
  * CWL attributes requested, resource delta, and an AI-written plain-English summary of what
- * changed since the last approved release."
- *
- * **RENDERED AT DECISION TIME AND STORED** (Decision 6). §13 says "the exact diff shown at
- * decision time"; a diff recomputed later against a changed spec is a different claim about
- * a different thing, and the record exists precisely to be non-repudiable.
+ * changed since the last approved release." These are the FACTS of that record; `annotate`
+ * below writes the rest.
  *
  * `describeDiff` runs over the FROZEN `ResolvedConfig` of each release, never over
  * `app_specs.parsed` — a release is what §13 froze, and reading the spec back would be the
  * second source of truth P4a deleted.
  *
- * **R4(d)'S SECURITY DIMENSION (P6b Task 8, Decision 13)** — deterministic first: the
- * baseline, the sensitive fields that changed since it (`sensitiveChangeOf`, the rule the gate
- * reads) and a note for each, present when the model is down; and D33's coverage limit. **The
- * reviewer is asked BEFORE the model**, so the summary can carry its verdict, and the model is
- * told the notes, the verdict and the limit.
+ * **R4(d)'S SECURITY DIMENSION (P6b Task 8, Decision 13)** — deterministic: the baseline, the
+ * sensitive fields that changed since it (`sensitiveChangeOf`, the rule the gate reads) and a
+ * note for each, present when the model is down; and D33's coverage limit.
+ *
+ * **Callers:** `buildDiffSnapshot` (a preview being taken), and `assertPreviewCurrent` (a
+ * decision naming one) — the SAME function both times, so "the facts moved" can only mean a
+ * row moved, never that two computations disagree.
  */
-export async function buildDiffSnapshot(
-  deps: SnapshotDeps,
+export async function diffFactsFor(
+  deps: Pick<SnapshotDeps, 'db'>,
   release: ReleaseRow,
   digest: string,
-): Promise<DiffSnapshot> {
+): Promise<DiffFacts> {
   // ONE READ OF THE BASELINE: the summary's "previous" and the sensitive diff's baseline are
   // the same question (Decision 4), so `sensitiveChangeOf` answers both.
   const { baseline: previous, fields } = await sensitiveChangeOf(deps.db, release)
@@ -425,10 +463,6 @@ export async function buildDiffSnapshot(
     previous === undefined
       ? []
       : describeDiff((previous.resolvedConfig as ResolvedConfigSet).production, now)
-  const security = securityNotesFor(fields)
-  // R4(d): THE REVIEWER FIRST, so the summary below is written knowing the verdict — and the
-  // record carries the verdict whatever the model then says (Decision 13).
-  const review = await reviewOf(deps, release, changes)
   return {
     imageDigest: digest,
     changes: changes.map((c) => ({
@@ -448,23 +482,60 @@ export async function buildDiffSnapshot(
       disk: now.resources.disk ?? null,
       pids: now.resources.pids ?? null,
     },
-    ...(previous === undefined
-      ? { summary: null, summarySource: 'no-previous-release' as const }
-      : await summariseChanges(deps.llm, changes, {
-          security,
-          review,
-          coverage: COVERAGE_LIMIT,
-        })),
-    // R4 (D33): the reviewer's verdict AT DECISION TIME, from the reviewer `ServerDeps`
+    baselineReleaseId: previous?.id ?? null,
+    sensitiveFields: fields,
+    security: securityNotesFor(fields),
+    coverage: COVERAGE_LIMIT,
+  }
+}
+
+/**
+ * THE WRITTEN HALF — the reviewer's verdict and the model's summary (P6b Task 9). Asked when a
+ * preview is TAKEN and never again: the decision copies what the preview stored, because a
+ * model that answers differently on every call would otherwise record a sentence nobody read
+ * (Rich, 2026-09-22; P6b *Read this first* 13).
+ *
+ * **R4(d): THE REVIEWER FIRST**, so the summary is written knowing the verdict — and the record
+ * carries the verdict whatever the model then says (Decision 13). The model is told the facts'
+ * own security notes, the verdict and the coverage limit.
+ */
+export async function annotate(
+  deps: SnapshotDeps,
+  release: ReleaseRow,
+  facts: DiffFacts,
+): Promise<Pick<DiffSnapshot, 'summary' | 'summarySource' | 'review'>> {
+  const review = await reviewOf(deps, release, facts.changes)
+  // A first launch has no baseline: nothing to summarise, and a state rather than a failure.
+  if (facts.baselineReleaseId === null || facts.baselineReleaseId === undefined)
+    return { summary: null, summarySource: 'no-previous-release', review }
+  return {
+    ...(await summariseChanges(deps.llm, facts.changes, {
+      // Written by `securityNotesFor`, which only produces §7's names; the column is
+      // `string` because `db/` imports nothing above it.
+      security: (facts.security ?? []) as { field: SensitiveField; note: string }[],
+      review,
+      coverage: facts.coverage ?? COVERAGE_LIMIT,
+    })),
+    // R4 (D33): the reviewer's verdict AT PREVIEW TIME, from the reviewer `ServerDeps`
     // carries — the seam's one real caller (P6a Task 12). What it says is the reviewer's
     // to say: `NullReviewer` answers `not_performed` and names itself, and a verdict of
     // `clean` from a reviewer that looked at nothing is the stub R4(b) forbids.
     review,
-    baselineReleaseId: previous?.id ?? null,
-    sensitiveFields: fields,
-    security,
-    coverage: COVERAGE_LIMIT,
   }
+}
+
+/**
+ * §13's whole snapshot: the facts, then the written half — ONE baseline read, the reviewer
+ * before the model. **Caller:** `createApprovalPreview`, and nothing else — a decision copies
+ * a stored preview's snapshot rather than building one (Decision 10).
+ */
+export async function buildDiffSnapshot(
+  deps: SnapshotDeps,
+  release: ReleaseRow,
+  digest: string,
+): Promise<DiffSnapshot> {
+  const facts = await diffFactsFor(deps, release, digest)
+  return { ...facts, ...(await annotate(deps, release, facts)) }
 }
 
 /**

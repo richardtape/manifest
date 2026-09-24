@@ -2290,6 +2290,138 @@
         ]
       }
     },
+    "/v1/releases/{releaseId}/approval-preview": {
+      "post": {
+        "operationId": "createApprovalPreview",
+        "tags": [
+          "delivery"
+        ],
+        "summary": "Take the preview an administrator reads before deciding",
+        "description": "§13’s exact diff, computed NOW and STORED (Rich, 2026-09-22; P6b Decision 10): the facts, the security notes, the reviewer’s verdict and the model’s summary. Approve and reject name it; the record copies it. No step-up — a preview decides nothing — but an interactive session and `release:approve` (§20). Valid for thirty minutes.",
+        "parameters": [
+          {
+            "name": "releaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "D23.6. One per user action, reused across retries of THAT action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The preview.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalPreview"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "CSRF_ORIGIN_REFUSED",
+          "FORBIDDEN",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "RELEASE_DIGEST_MISSING",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/releases/{releaseId}/approval-previews/{previewId}": {
+      "get": {
+        "operationId": "getApprovalPreview",
+        "tags": [
+          "delivery"
+        ],
+        "summary": "Re-read a stored preview",
+        "description": "The preview exactly as it was taken — re-read, never recomputed — so a console coming back from the step-up round trip shows the administrator what they read before it (P6b Task 9). 404 for a preview of another release.",
+        "parameters": [
+          {
+            "name": "previewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "releaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The preview.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalPreview"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "FORBIDDEN",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_INVALID",
+          "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
     "/v1/releases/{releaseId}/approve": {
       "post": {
         "operationId": "approveRelease",
@@ -2297,7 +2429,7 @@
           "delivery"
         ],
         "summary": "Approve a release for production",
-        "description": "§13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time. It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.",
+        "description": "§13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time — COPIED from the stored preview it names, whose facts are recomputed and must not have moved (P6b Task 9). `previewId` is optional in the request schema and REQUIRED here (`400 APPROVAL_PREVIEW_REQUIRED`). It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.",
         "parameters": [
           {
             "name": "releaseId",
@@ -2342,7 +2474,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: APPROVAL_PREVIEW_EXPIRED, APPROVAL_PREVIEW_REQUIRED, APPROVAL_PREVIEW_STALE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2353,6 +2485,9 @@
           }
         },
         "x-manifest-error-codes": [
+          "APPROVAL_PREVIEW_EXPIRED",
+          "APPROVAL_PREVIEW_REQUIRED",
+          "APPROVAL_PREVIEW_STALE",
           "CSRF_ORIGIN_REFUSED",
           "FORBIDDEN",
           "IDEMPOTENCY_KEY_REQUIRED",
@@ -2377,7 +2512,7 @@
           "delivery"
         ],
         "summary": "Decline to approve a release for production",
-        "description": "§13, and the same four guards as approving. **The reason is REQUIRED**: a refusal a faculty member is told about, with no words in it, is a refusal nobody can act on (D23.7) — the request schema is the first half of that rule and the `approvals_rejection_has_reason` CHECK is the second.",
+        "description": "§13, and the same four guards as approving, naming a preview the same way. **The reason is REQUIRED**: a refusal a faculty member is told about, with no words in it, is a refusal nobody can act on (D23.7) — the request schema is the first half of that rule and the `approvals_rejection_has_reason` CHECK is the second.",
         "parameters": [
           {
             "name": "releaseId",
@@ -2422,7 +2557,7 @@
             }
           },
           "default": {
-            "description": "An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error, in the D23.7 envelope. This operation can answer: APPROVAL_PREVIEW_EXPIRED, APPROVAL_PREVIEW_REQUIRED, APPROVAL_PREVIEW_STALE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2433,6 +2568,9 @@
           }
         },
         "x-manifest-error-codes": [
+          "APPROVAL_PREVIEW_EXPIRED",
+          "APPROVAL_PREVIEW_REQUIRED",
+          "APPROVAL_PREVIEW_STALE",
           "CSRF_ORIGIN_REFUSED",
           "FORBIDDEN",
           "IDEMPOTENCY_KEY_REQUIRED",
@@ -2631,6 +2769,10 @@
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           },
+          "decidedByName": {
+            "description": "The display name of the person who decided — the owner meets a decision before anyone else, and a user id tells them nothing (P6b Decision 18).",
+            "type": "string"
+          },
           "decidedAt": {
             "description": "An instant, ISO 8601 in UTC.",
             "type": "string",
@@ -2654,6 +2796,19 @@
           },
           "diff": {
             "$ref": "#/components/schemas/ApprovalDiff"
+          },
+          "previewId": {
+            "description": "The stored preview the administrator read, whose diff this record COPIES (P6b Task 9). Null only for a decision made before previews existed.",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -2662,10 +2817,12 @@
           "projectId",
           "decision",
           "decidedBy",
+          "decidedByName",
           "decidedAt",
           "imageDigest",
           "reason",
-          "diff"
+          "diff",
+          "previewId"
         ],
         "additionalProperties": false
       },
@@ -2908,12 +3065,79 @@
         ],
         "additionalProperties": false
       },
+      "ApprovalPreview": {
+        "description": "§13’s exact diff, shown BEFORE the decision: approve and reject name it, the platform recomputes its facts and refuses if they moved (`APPROVAL_PREVIEW_STALE`), and the record copies its summary and verdict rather than asking the model again.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "releaseId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "createdByName": {
+            "description": "Who took it (P6b Decision 18).",
+            "type": "string"
+          },
+          "createdAt": {
+            "description": "An instant, ISO 8601 in UTC.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "expiresAt": {
+            "description": "Thirty minutes after it was taken. A decision naming it after this is refused `APPROVAL_PREVIEW_EXPIRED`; take a new one.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "imageDigest": {
+            "description": "The digest the preview was taken over (§13).",
+            "type": "string"
+          },
+          "diff": {
+            "$ref": "#/components/schemas/ApprovalDiff"
+          }
+        },
+        "required": [
+          "id",
+          "releaseId",
+          "projectId",
+          "createdBy",
+          "createdByName",
+          "createdAt",
+          "expiresAt",
+          "imageDigest",
+          "diff"
+        ],
+        "additionalProperties": false
+      },
       "ApproveReleaseRequest": {
         "type": "object",
         "properties": {
           "reason": {
             "type": "string",
             "maxLength": 2000
+          },
+          "previewId": {
+            "description": "The preview the administrator read (`POST /v1/releases/{releaseId}/approval-preview`). Optional in this schema and REQUIRED by the operation: without it the answer is `400 APPROVAL_PREVIEW_REQUIRED`.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           }
         },
         "additionalProperties": false
@@ -3495,6 +3719,9 @@
           "AI_ROUTE_NOT_PERMITTED",
           "AI_UNMAPPED",
           "AI_USER_BUDGET_EXCEEDED",
+          "APPROVAL_PREVIEW_EXPIRED",
+          "APPROVAL_PREVIEW_REQUIRED",
+          "APPROVAL_PREVIEW_STALE",
           "BLUEPRINT_NOT_FOUND",
           "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED",
           "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH",
@@ -7278,6 +7505,12 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 2000
+          },
+          "previewId": {
+            "description": "The preview the administrator read (`POST /v1/releases/{releaseId}/approval-preview`). Optional in this schema and REQUIRED by the operation: without it the answer is `400 APPROVAL_PREVIEW_REQUIRED`.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
           }
         },
         "required": [

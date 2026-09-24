@@ -7,6 +7,7 @@ import {
   environments,
   projects,
   releases,
+  users,
   type Db,
 } from '../../db/index.js'
 import { assertLaunchable } from '../../launch/index.js'
@@ -18,11 +19,14 @@ import {
   type Actor,
 } from '../../projects/index.js'
 import {
+  assertPreviewCurrent,
   buildDiffSnapshot,
   createRelease,
   deployRelease,
   latestApprovalFor,
+  previewFor,
   recordApproval,
+  recordPreview,
   ReleaseError,
 } from '../../releases/index.js'
 import { resolveConfig, type ManifestSpec } from '../../spec/index.js'
@@ -34,6 +38,7 @@ import { IncidentList, toIncident } from '../representations/incidents.js'
 import { Instance, toInstance } from '../representations/instances.js'
 import {
   Approval,
+  ApprovalPreview,
   ApproveReleaseRequest,
   CreateReleaseRequest,
   DeployRequest,
@@ -41,10 +46,12 @@ import {
   Release,
   ReleaseList,
   toApproval,
+  toApprovalPreview,
   toRelease,
 } from '../representations/releases.js'
 
 const ProjectParams = z.strictObject({ projectId: z.uuid() })
+const ReleaseParams = z.strictObject({ releaseId: z.uuid() })
 const EnvironmentParams = z.strictObject({ environmentId: z.uuid() })
 
 /** A release with the build it names: the digest and the scan are the build's (§12, §13). */
@@ -55,6 +62,55 @@ async function releaseWithBuild(db: Db, releaseId: string) {
     .innerJoin(builds, eq(releases.buildId, builds.id))
     .where(eq(releases.id, releaseId))
   return row
+}
+
+/**
+ * A person's display name, for `decidedByName` and `createdByName` (P6b Decision 18). The
+ * column is NOT NULL and the row is a foreign key's target, so a miss is a broken store — an
+ * honest 500 rather than a record that names nobody.
+ */
+async function displayNameOf(db: Db, userId: string): Promise<string> {
+  const [row] = await db
+    .select({ name: users.displayName })
+    .from(users)
+    .where(eq(users.id, userId))
+  if (row === undefined) throw new Error(`no user '${userId}' to name`)
+  return row.name
+}
+
+/**
+ * Guards 2 of `decide()` below, for every route that asserts `release:approve` (the decision
+ * and both preview routes): the release with its build, and WHO may approve it. The caller has
+ * already run `requireSession`. A release nobody may see is indistinguishable from one that
+ * does not exist — `getRelease`'s rule, for the enumeration-oracle reason `assertCapability`
+ * states — so the project comes from the release ROW, never from the request.
+ */
+async function approvableRelease(deps: ServerDeps, actor: Actor, releaseId: string) {
+  const joined = await releaseWithBuild(deps.db, releaseId)
+  if (joined === undefined)
+    throw new AuthorizationError('NOT_FOUND', `no release '${releaseId}'`)
+  await assertCapability(deps.db, actor, joined.release.projectId, 'release:approve')
+  return joined
+}
+
+/**
+ * UNREACHABLE THROUGH `createRelease`, WHICH REFUSES A BUILD WITH NO DIGEST
+ * (`RELEASE_BUILD_NOT_DEPLOYABLE`) — and asserted anyway, because an approval bound to
+ * nothing would satisfy §13's gate while binding to nothing at all. `toRelease` answers
+ * `''` for the same column for the same reason; here the answer is a refusal, because
+ * this is the write.
+ */
+function digestOf(joined: {
+  release: { id: string }
+  build: { imageDigest: string | null }
+}) {
+  const digest = joined.build.imageDigest
+  if (!digest)
+    throw new ReleaseError(
+      'RELEASE_DIGEST_MISSING',
+      `release '${joined.release.id}' has no digest, so there is nothing to bind an approval to`,
+    )
+  return digest
 }
 
 /**
@@ -76,46 +132,56 @@ async function releaseWithBuild(db: Db, releaseId: string) {
  * 4. **§13: "Approval binds to an immutable image digest."** THE BUILD's digest, read
  *    here — not a tag, and not the release id alone, because a release row's build can be
  *    rebuilt and a binding to a mutable thing is not a binding.
+ * 5. **The preview it names** (P6b Task 9) — required, and this release's.
+ * 6. **Still current** — not expired, and its facts unmoved.
+ *
+ * **A REPRESENTATION DEFECT ANSWERS `500` AFTER THE ROW IS WRITTEN** (P6b sitting 5, F7):
+ * `recordApproval` inserts and publishes, and the wrapper parses the body only then. Every
+ * stored value parses today; it is the contract layer's shape for every mutation, recorded
+ * rather than fixed.
  */
 async function decide(
   deps: ServerDeps,
   request: FastifyRequest,
   releaseId: string,
   decision: 'approved' | 'rejected',
-  reason: string | undefined,
+  body: { reason?: string | undefined; previewId?: string | undefined },
 ) {
   const actor = requireSession(request)
-  const joined = await releaseWithBuild(deps.db, releaseId)
-  // The project comes from the release ROW, never from the request, and a release nobody
-  // may see is indistinguishable from one that does not exist — `getRelease`'s rule, for
-  // the enumeration-oracle reason `assertCapability` states.
-  if (joined === undefined)
-    throw new AuthorizationError('NOT_FOUND', `no release '${releaseId}'`)
-  await assertCapability(deps.db, actor, joined.release.projectId, 'release:approve')
+  const joined = await approvableRelease(deps, actor, releaseId)
   assertStepUp(actor, 'release:approve')
-  const digest = joined.build.imageDigest
-  /**
-   * UNREACHABLE THROUGH `createRelease`, WHICH REFUSES A BUILD WITH NO DIGEST
-   * (`RELEASE_BUILD_NOT_DEPLOYABLE`) — and asserted anyway, because an approval bound to
-   * nothing would satisfy §13's gate while binding to nothing at all. `toRelease` answers
-   * `''` for the same column for the same reason; here the answer is a refusal, because
-   * this is the write.
-   */
-  if (!digest)
-    throw new ReleaseError(
-      'RELEASE_DIGEST_MISSING',
-      `release '${joined.release.id}' has no digest, so there is nothing to bind an approval to`,
+  const digest = digestOf(joined)
+  // 5. RICH'S DECISION (2026-09-22): the administrator saw the diff BEFORE deciding, as a STORED
+  //    preview, and names it. `previewId` is optional in the SCHEMA and required HERE —
+  //    Decision 15: a refusal an older client meets, rather than a document that stops
+  //    generating (D23.8). AFTER the four guards, so a flat session is still told to step up
+  //    and a stranger still learns nothing.
+  if (body.previewId === undefined)
+    throw new BadRequestError(
+      'APPROVAL_PREVIEW_REQUIRED',
+      'an approval names the preview the administrator read',
+      'POST /v1/releases/{releaseId}/approval-preview, read it, then decide naming its id.',
     )
-  return toApproval(
-    await recordApproval(deps.db, deps.bus, {
-      release: joined.release,
-      actor,
-      decision,
-      ...(reason === undefined ? {} : { reason }),
-      diffSnapshot: await buildDiffSnapshot(deps, joined.release, digest),
-      imageDigest: digest,
-    }),
-  )
+  const preview = await previewFor(deps.db, body.previewId, joined.release.id)
+  if (preview === undefined)
+    throw new AuthorizationError(
+      'NOT_FOUND',
+      `no preview '${body.previewId}' of release '${joined.release.id}'`,
+    )
+  // 6. EXPIRED, then STALE — the facts recomputed NOW; never the summary, never the verdict.
+  await assertPreviewCurrent(deps, preview, joined.release, digest)
+  const row = await recordApproval(deps.db, deps.bus, {
+    release: joined.release,
+    actor,
+    decision,
+    previewId: preview.id,
+    ...(body.reason === undefined ? {} : { reason: body.reason }),
+    // WHAT WAS SHOWN — not a second call to the model, which would record a summary nobody
+    // read (Rich, 2026-09-22; P6b *Read this first* 13).
+    diffSnapshot: preview.diffSnapshot,
+    imageDigest: digest,
+  })
+  return toApproval(row, await displayNameOf(deps.db, row.decidedBy))
 }
 
 /**
@@ -279,7 +345,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Approve a release for production',
     description:
-      '§13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time. It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.',
+      '§13’s *Integrity of the gate*: the approval binds the release’s immutable image digest, records who decided and when, and stores the exact diff shown at decision time — COPIED from the stored preview it names, whose facts are recomputed and must not have moved (P6b Task 9). `previewId` is optional in the request schema and REQUIRED here (`400 APPROVAL_PREVIEW_REQUIRED`). It requires step-up re-authentication (§20) and an interactive session (D14). A later rebuild produces a new digest, which this approval does not cover.',
     params: z.strictObject({ releaseId: z.uuid() }),
     query: NO_QUERY,
     body: ApproveReleaseRequest,
@@ -298,9 +364,14 @@ export const releaseRoutes = [
       // `NOT_FOUND`, which is `getRelease`'s rule and the enumeration-oracle reason behind
       // it. A second code for the first case would be the oracle, in the contract.
       'RELEASE_DIGEST_MISSING',
+      // P6b Task 9: the preview the administrator read — named, current, and this release's
+      // (a preview of another release is `NOT_FOUND`, the same enumeration rule).
+      'APPROVAL_PREVIEW_REQUIRED',
+      'APPROVAL_PREVIEW_EXPIRED',
+      'APPROVAL_PREVIEW_STALE',
     ],
     handler: ({ deps, request, params, body }) =>
-      decide(deps, request, params.releaseId, 'approved', body.reason),
+      decide(deps, request, params.releaseId, 'approved', body),
   }),
   defineRoute({
     operationId: 'rejectRelease',
@@ -309,7 +380,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Decline to approve a release for production',
     description:
-      '§13, and the same four guards as approving. **The reason is REQUIRED**: a refusal a faculty member is told about, with no words in it, is a refusal nobody can act on (D23.7) — the request schema is the first half of that rule and the `approvals_rejection_has_reason` CHECK is the second.',
+      '§13, and the same four guards as approving, naming a preview the same way. **The reason is REQUIRED**: a refusal a faculty member is told about, with no words in it, is a refusal nobody can act on (D23.7) — the request schema is the first half of that rule and the `approvals_rejection_has_reason` CHECK is the second.',
     params: z.strictObject({ releaseId: z.uuid() }),
     query: NO_QUERY,
     body: RejectReleaseRequest,
@@ -324,9 +395,71 @@ export const releaseRoutes = [
       'TOKEN_CREDENTIAL_REFUSED',
       'STEP_UP_REQUIRED',
       'RELEASE_DIGEST_MISSING',
+      'APPROVAL_PREVIEW_REQUIRED',
+      'APPROVAL_PREVIEW_EXPIRED',
+      'APPROVAL_PREVIEW_STALE',
     ],
     handler: ({ deps, request, params, body }) =>
-      decide(deps, request, params.releaseId, 'rejected', body.reason),
+      decide(deps, request, params.releaseId, 'rejected', body),
+  }),
+  defineRoute({
+    operationId: 'createApprovalPreview',
+    method: 'POST',
+    path: '/v1/releases/{releaseId}/approval-preview',
+    tag: 'delivery',
+    summary: 'Take the preview an administrator reads before deciding',
+    description:
+      '§13’s exact diff, computed NOW and STORED (Rich, 2026-09-22; P6b Decision 10): the facts, the security notes, the reviewer’s verdict and the model’s summary. Approve and reject name it; the record copies it. No step-up — a preview decides nothing — but an interactive session and `release:approve` (§20). Valid for thirty minutes.',
+    params: ReleaseParams,
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: { status: 201, description: 'The preview.', schema: ApprovalPreview },
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'TOKEN_CREDENTIAL_REFUSED',
+      'RELEASE_DIGEST_MISSING',
+    ],
+    handler: async ({ deps, request, params }) => {
+      // requireSession FIRST, as `decide()`: a token learns nothing about which releases exist.
+      const actor = requireSession(request)
+      const joined = await approvableRelease(deps, actor, params.releaseId)
+      // NO `assertStepUp`: a preview decides nothing (Decision 10), and the step-up round trip
+      // is what the administrator takes AFTER reading it — with the preview's id in the URL.
+      const digest = digestOf(joined)
+      const row = await recordPreview(deps.db, {
+        release: joined.release,
+        actor,
+        snapshot: await buildDiffSnapshot(deps, joined.release, digest),
+        digest,
+      })
+      return toApprovalPreview(row, await displayNameOf(deps.db, row.createdBy))
+    },
+  }),
+  defineRoute({
+    operationId: 'getApprovalPreview',
+    method: 'GET',
+    path: '/v1/releases/{releaseId}/approval-previews/{previewId}',
+    tag: 'delivery',
+    summary: 'Re-read a stored preview',
+    description:
+      'The preview exactly as it was taken — re-read, never recomputed — so a console coming back from the step-up round trip shows the administrator what they read before it (P6b Task 9). 404 for a preview of another release.',
+    params: z.strictObject({ releaseId: z.uuid(), previewId: z.uuid() }),
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: { status: 200, description: 'The preview.', schema: ApprovalPreview },
+    errors: ['NOT_FOUND', 'FORBIDDEN', 'TOKEN_CREDENTIAL_REFUSED'],
+    handler: async ({ deps, request, params }) => {
+      const actor = requireSession(request)
+      const joined = await approvableRelease(deps, actor, params.releaseId)
+      const row = await previewFor(deps.db, params.previewId, joined.release.id)
+      if (row === undefined)
+        throw new AuthorizationError(
+          'NOT_FOUND',
+          `no preview '${params.previewId}' of release '${joined.release.id}'`,
+        )
+      return toApprovalPreview(row, await displayNameOf(deps.db, row.createdBy))
+    },
   }),
   defineRoute({
     operationId: 'getApproval',
@@ -355,7 +488,7 @@ export const releaseRoutes = [
           'NOT_FOUND',
           `nobody has approved or rejected release '${params.releaseId}'`,
         )
-      return toApproval(approval)
+      return toApproval(approval, await displayNameOf(deps.db, approval.decidedBy))
     },
   }),
   defineRoute({

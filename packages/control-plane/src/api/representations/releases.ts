@@ -1,5 +1,5 @@
 import { z } from 'zod/v4'
-import type { approvals, builds, releases } from '../../db/index.js'
+import type { approvalPreviews, approvals, builds, releases } from '../../db/index.js'
 import { REVIEW_STATES } from '../../launch/index.js'
 import type { ResolvedConfigSet } from '../../releases/index.js'
 import type { ScanSummary as DriverScanSummary } from '../../runtime/index.js'
@@ -217,6 +217,11 @@ export const Approval = representation(
       projectId: Uuid,
       decision: z.enum(['approved', 'rejected']),
       decidedBy: Uuid,
+      decidedByName: z
+        .string()
+        .describe(
+          'The display name of the person who decided — the owner meets a decision before anyone else, and a user id tells them nothing (P6b Decision 18).',
+        ),
       decidedAt: Timestamp,
       imageDigest: z.string().describe('What this approval binds to (§13).'),
       reason: z
@@ -226,13 +231,55 @@ export const Approval = representation(
           'Required on a rejection: a refusal with no words is one nobody can act on (D23.7).',
         ),
       diff: ApprovalDiff,
+      previewId: Uuid.nullable().describe(
+        'The stored preview the administrator read, whose diff this record COPIES (P6b Task 9). Null only for a decision made before previews existed.',
+      ),
     })
     .describe('One decision about one release, kept for ever (§13).'),
 )
 
+/**
+ * WHAT AN ADMINISTRATOR READS BEFORE DECIDING (Rich, 2026-09-22; P6b Decision 10), stored so
+ * the decision can name it and the record can copy it. **Its `diff` IS an `ApprovalDiff`** —
+ * the same representation, so the preview and the record cannot read differently.
+ */
+export const ApprovalPreview = representation(
+  'ApprovalPreview',
+  z
+    .object({
+      id: Uuid,
+      releaseId: Uuid,
+      projectId: Uuid,
+      createdBy: Uuid,
+      createdByName: z.string().describe('Who took it (P6b Decision 18).'),
+      createdAt: Timestamp,
+      expiresAt: Timestamp.describe(
+        'Thirty minutes after it was taken. A decision naming it after this is refused `APPROVAL_PREVIEW_EXPIRED`; take a new one.',
+      ),
+      imageDigest: z.string().describe('The digest the preview was taken over (§13).'),
+      diff: ApprovalDiff,
+    })
+    .describe(
+      '§13’s exact diff, shown BEFORE the decision: approve and reject name it, the platform recomputes its facts and refuses if they moved (`APPROVAL_PREVIEW_STALE`), and the record copies its summary and verdict rather than asking the model again.',
+    ),
+)
+
+/**
+ * **`previewId` IS OPTIONAL IN THE SCHEMA AND REQUIRED AT RUNTIME** (P6b Decision 15): a
+ * decision naming no preview is refused `400 APPROVAL_PREVIEW_REQUIRED` — a refusal an older
+ * client meets — rather than a required field that would be a breaking document change
+ * (D23.8 answers one with a new path prefix).
+ */
+const PreviewId = z
+  .uuid()
+  .optional()
+  .describe(
+    'The preview the administrator read (`POST /v1/releases/{releaseId}/approval-preview`). Optional in this schema and REQUIRED by the operation: without it the answer is `400 APPROVAL_PREVIEW_REQUIRED`.',
+  )
+
 export const ApproveReleaseRequest = request(
   'ApproveReleaseRequest',
-  z.strictObject({ reason: z.string().max(2000).optional() }),
+  z.strictObject({ reason: z.string().max(2000).optional(), previewId: PreviewId }),
 )
 
 /**
@@ -250,47 +297,86 @@ export const ApproveReleaseRequest = request(
  */
 export const RejectReleaseRequest = request(
   'RejectReleaseRequest',
-  z.strictObject({ reason: z.string().trim().min(1).max(2000) }),
+  z.strictObject({ reason: z.string().trim().min(1).max(2000), previewId: PreviewId }),
 )
 
-export function toApproval(row: typeof approvals.$inferSelect): z.input<typeof Approval> {
-  const diff = row.diffSnapshot
+/**
+ * `decidedByName` is PASSED IN, joined by the caller from `users.display_name` — a mapper that
+ * read the database would be a mapper with a query in it. **Never `.map(toApproval)`**: its
+ * second parameter would receive the array index (P5b sitting 7).
+ */
+export function toApproval(
+  row: typeof approvals.$inferSelect,
+  decidedByName: string,
+): z.input<typeof Approval> {
   return {
     id: row.id,
     releaseId: row.releaseId,
     projectId: row.projectId,
     decision: row.decision,
     decidedBy: row.decidedBy,
+    decidedByName,
     decidedAt: row.decidedAt.toISOString(),
     imageDigest: row.imageDigest,
     reason: row.reason,
-    diff: {
-      imageDigest: diff.imageDigest,
-      changes: diff.changes,
-      services: diff.services,
-      attributes: diff.attributes,
-      // The COLUMN is `Record<string, string | number | null>` — a jsonb shape that cannot
-      // promise four named keys — and the representation names them, so each is read and
-      // coalesced here rather than spread. A snapshot written before a key existed answers
-      // `null`, which is the same thing "this release sets no limit" means.
-      resources: {
-        cpu: (diff.resources['cpu'] as number | null | undefined) ?? null,
-        memory: (diff.resources['memory'] as string | null | undefined) ?? null,
-        disk: (diff.resources['disk'] as string | null | undefined) ?? null,
-        pids: (diff.resources['pids'] as number | null | undefined) ?? null,
-      },
-      summary: diff.summary,
-      summarySource: diff.summarySource,
-      review: diff.review,
-      // P6b Task 8's four keys, DEFAULTED HERE for a row written before them — inside the
-      // mapper's body, never as a defaulted parameter (`.map(fn)` passes the array index as
-      // a second argument: P5b sitting 7).
-      baselineReleaseId: diff.baselineReleaseId ?? null,
-      // Written by `securityNotesFor` / `sensitiveChangeOf`, which only produce §7's names;
-      // the column is `string[]` because `db/` imports nothing above it.
-      sensitiveFields: (diff.sensitiveFields ?? []) as SensitiveField[],
-      security: (diff.security ?? []) as { field: SensitiveField; note: string }[],
-      coverage: diff.coverage ?? null,
+    diff: toApprovalDiff(row.diffSnapshot),
+    previewId: row.previewId,
+  }
+}
+
+/** A preview as its representation; `createdByName` joined by the caller, like `toApproval`. */
+export function toApprovalPreview(
+  row: typeof approvalPreviews.$inferSelect,
+  createdByName: string,
+): z.input<typeof ApprovalPreview> {
+  return {
+    id: row.id,
+    releaseId: row.releaseId,
+    projectId: row.projectId,
+    createdBy: row.createdBy,
+    createdByName,
+    createdAt: row.createdAt.toISOString(),
+    expiresAt: row.expiresAt.toISOString(),
+    imageDigest: row.imageDigest,
+    diff: toApprovalDiff(row.diffSnapshot),
+  }
+}
+
+/**
+ * ONE MAPPER FOR BOTH TABLES' SNAPSHOT (P6b Task 9) — the record and the preview are the same
+ * representation, so they are the same code: a key defaulted for one and forgotten for the
+ * other would make "the approval's diff equals the preview's" false for a reason no reader
+ * would look for.
+ */
+function toApprovalDiff(
+  diff: (typeof approvals.$inferSelect)['diffSnapshot'],
+): z.input<typeof ApprovalDiff> {
+  return {
+    imageDigest: diff.imageDigest,
+    changes: diff.changes,
+    services: diff.services,
+    attributes: diff.attributes,
+    // The COLUMN is `Record<string, string | number | null>` — a jsonb shape that cannot
+    // promise four named keys — and the representation names them, so each is read and
+    // coalesced here rather than spread. A snapshot written before a key existed answers
+    // `null`, which is the same thing "this release sets no limit" means.
+    resources: {
+      cpu: (diff.resources['cpu'] as number | null | undefined) ?? null,
+      memory: (diff.resources['memory'] as string | null | undefined) ?? null,
+      disk: (diff.resources['disk'] as string | null | undefined) ?? null,
+      pids: (diff.resources['pids'] as number | null | undefined) ?? null,
     },
+    summary: diff.summary,
+    summarySource: diff.summarySource,
+    review: diff.review,
+    // P6b Task 8's four keys, DEFAULTED HERE for a row written before them — inside the
+    // mapper's body, never as a defaulted parameter (`.map(fn)` passes the array index as
+    // a second argument: P5b sitting 7).
+    baselineReleaseId: diff.baselineReleaseId ?? null,
+    // Written by `securityNotesFor` / `sensitiveChangeOf`, which only produce §7's names;
+    // the column is `string[]` because `db/` imports nothing above it.
+    sensitiveFields: (diff.sensitiveFields ?? []) as SensitiveField[],
+    security: (diff.security ?? []) as { field: SensitiveField; note: string }[],
+    coverage: diff.coverage ?? null,
   }
 }
