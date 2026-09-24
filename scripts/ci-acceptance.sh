@@ -63,8 +63,10 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # sitting 5 (2026-09-23): +28, no new file — the IAM change request and R4(d)'s summary.
 # Then P6b sitting 6 (2026-09-23): +33 and one file — the stored preview (13), its two
 # routes in the authorization matrix (18), the rehearsal's one-clock bound (1) and the mock
-# refusing a decision that names no preview (1).
-EXPECT_TESTS=1723
+# refusing a decision that names no preview (1). Then the F10 sitting (2026-09-24): +19, no new
+# file — the session's IdP handle (3), the SLO route's signed-only refusals and the console
+# sign-out's round trip (10), the console's `signOut` (5) and the mock's answer (1).
+EXPECT_TESTS=1742
 EXPECT_FILES=123
 EXPECT_DOCTOR=19
 EXPECT_VERIFY=55

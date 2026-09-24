@@ -201,10 +201,11 @@ and **row 10 is the one only a person can prove**: that CWL really asks again.
 validated, built, released and deployed to staging — by hand or with the API (RUNBOOK's *Running
 `make demo-releases`* shows each leg's commit); then `make demo-console`.
 
-**One trap first: the console's *Sign out* does not sign you out of CWL.** It ends Manifest's session,
-and the next *Sign in with CWL* quietly signs the SAME person back in. To switch from the instructor to
-the operator, delete the site data for `manifest.internal` in `chrome://settings/content/all` (P6b
-sitting 7, F10).
+**Switching person is *Sign out*, then *Sign in with CWL* as the other user.** The console's *Sign out*
+ends CWL's session as well as Manifest's, so the IdP asks for a password again (fixed 2026-09-24 — until
+then it quietly signed the SAME person back in, P6b sitting 7's F10). One exception: a session you signed
+in to before that fix carries no handle the IdP can use, so its first *Sign out* ends only Manifest's —
+sign in once more and sign out again.
 
 | # | As | Click | What must be true |
 |---|---|---|---|

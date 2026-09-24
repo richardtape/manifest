@@ -1,6 +1,6 @@
 # P6b — Subsequent Releases Implementation Plan
 
-> **EXECUTED 2026-09-22 → 2026-09-23 — all twelve tasks (eleven and Task 5a) in Rich's seven sittings.** Its acceptance, `make demo-releases`, passed three times and was clicked by a person. *What executing this plan found* is the record; *What this plan does not build* is the next plan's input list.
+> **EXECUTED 2026-09-22 → 2026-09-23 — all twelve tasks (eleven and Task 5a) in Rich's seven sittings.** Its acceptance, `make demo-releases`, passed three times and was clicked by a person. **Its F10 — the console's *Sign out* leaving the IdP session alive — was fixed after the plan, on 2026-09-24, in its own sitting (*After the plan*, at the end of the record).** *What executing this plan found* is the record; *What this plan does not build* is the next plan's input list.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
 
@@ -2707,7 +2707,7 @@ git commit -m "feat(journey): P6b's acceptance — make demo-releases: self-serv
 - **Certificate expiry alerts** (D20). `cert_expires_at` is recorded and nothing reads it.
 - **What the acceptance found and did not fix (sitting 7, 2026-09-23)** — each is small, and each is the next plan's to place:
   - **F9: the model's summary invents an administrator's verdict** (*"The administrator's verdict was: '…'"*, before anyone decided) and writes Markdown the prompt forbids. The record keeps what was shown, so the fix is upstream of it — the prompt, or a check that refuses a summary claiming a decision — and **an administrator reads that summary before approving**.
-  - **F10: the console's *Sign out* does not end the IdP session** — the next sign-in silently returns the previous person. Pre-existing; it matters on any shared machine, and it made the clicked half's switch of person a manual cookie deletion.
+  - ~~**F10: the console's *Sign out* does not end the IdP session**~~ — **FIXED 2026-09-24, in its own sitting, at Rich's word (`0aa1824`; *After the plan*, below)**: the sign-out sends the IdP a signed LogoutRequest, and the next sign-in asks for a password. Fixing it found that the SLO route accepted UNSIGNED logout messages; fixed with it.
   - **F13: the `code-review` item says its verdict was *"recorded when an administrator decided"*** when it came from a preview (`launch/readiness.ts`, which owes the Docker tier).
   - **F11, F12, F14, F15 — the console**: the decision record does not name the preview it copied, and its buttons stay live after a decision; a reason typed before a step-up is lost; the activity feed names an approver by PUID; a self-serve release's `admin-approval` links to an approval page it does not need.
 - **The GitHub source driver and the authoring API** (the next two plans, in that order). **Both widen who can write `manifest.yaml`**, and this plan's re-escalation is the gate that inspects what they write.
@@ -4232,3 +4232,147 @@ document and both demo files for *"not built yet"* after the sweep, rather than 
 comments corrected in the close-out commit. Every §7e pointer was opened and resolves: the roadmap's *D5's driver 2*
 section, the spec's D5, D14 and §20 *Git driver*, this plan's *What this plan does not build*, the authoring brief's §6,
 and §8's *Decided* entry for this plan's spec action.
+
+### After the plan — F10 fixed, in its own sitting — 2026-09-24
+
+**RICH'S WORD, 2026-09-24: *"fix it now in its own sitting"*** — F10, the console's *Sign out* leaving the IdP session
+alive, was taken out of the GitHub plan's inheritance and fixed before that plan is written, as P5c's `b23674b` was.
+**`0aa1824`.** The console's `POST /auth/logout` now clears Manifest's session and answers `200 { redirectTo }` — the
+IdP's SingleLogoutService with a signed LogoutRequest naming the session the IdP holds, or `/` for a cookie an older
+build signed; the IdP ends its session (and every app's in it) and answers at `GET /auth/logout` with a LogoutResponse,
+accepted only SIGNED and answering a request this process sent, which lands on `/`. **Fixing it found a second defect
+in the same route, and it is fixed with it** (F1). The same session also applied P6b's Spec action 1 (`f4f0a84`) and
+recorded Rich's two D5 decisions (`603a3fa`).
+
+#### The decisions this sitting made
+
+**1. The POST answers WHERE TO GO NEXT (`200 { redirectTo }`), not a redirect.** The console calls it with `fetch`, which
+would follow a `302` to the IdP cross-origin and fail; a native form POST would lose `signOut`'s shape assertion (Task 4
+of P5c: a refused sign-out must not look like a successful one). *Rejected:* `303` + `redirect: 'manual'` (the Location of
+an opaque redirect is unreadable). The console refuses a `redirectTo` that is not a same-origin path or an https URL.
+
+**2. Manifest's session is cleared BEFORE the IdP is asked anything**, so a round trip that fails half way still leaves
+the person signed out of the console. The LogoutResponse therefore ends nothing — it is checked because a check that
+passes anything is not one.
+
+**3. The LogoutResponse lands on a FIXED `/`**, never on `RelayState`, so the SLO URL is no redirector.
+
+**4. The session carries the IdP's handle** — `idp: { nameID, nameIDFormat, sessionIndex, nameQualifier,
+spNameQualifier } | null` in the signed cookie, because Phase 1 sessions have no server-side store (§20). None of it is a
+secret. **A cookie with no handle is a valid session**, read as `idp: null` (the `steppedUpAt` argument: refusing would
+sign everybody out on restart), whose sign-out ends Manifest's session alone. **A step-up refreshes the handle** to the
+newest assertion's.
+
+**5. `sign.logout: true` on EVERY SP row, apps included** — measured on the real skeleton (control (e)): the blueprint's
+passport-saml answers a SIGNED LogoutRequest and the IdP forgets the student. *Rejected:* the platform's row only, which
+would have been safe without the measurement and leaves the IdP-to-app leg unsigned for no reason. **The app side still
+ACCEPTS an unsigned LogoutRequest** (passport-saml checks a signature only when present — `ubcshib.js` already says so);
+requiring one is a blueprint change, named and not made.
+
+**6. No contract version bump.** `/v1` is unchanged; the two `x-manifest-unversioned` reasons moved and the generated
+document with them. D23.8 versions the `/v1` contract, and these endpoints are outside it by construction.
+
+#### What this sitting found
+
+**F1 — THE SLO ROUTE ACCEPTED AN UNSIGNED LogoutRequest, WHILE ITS OWN COMMENT SAID "IT REQUIRES A SIGNED REQUEST".**
+node-saml 5.1.0's `hasValidSignatureForRedirect` returns `true` when the query carries no `Signature` at all (read from
+`lib/saml.js`), so an unsigned LogoutRequest naming the IdP as Issuer ended any console session — the logout-CSRF
+primitive the comment says this route is not, reachable from an `<img>` on any page. **Measured: the new unit test went
+`302` (session cleared) where `400` belonged.** Every existing test fired garbage at the route, and a route that refuses
+garbage passed them all — P5c F16's lesson, one layer down. Fixed: both redirect paths refuse a message with no
+`Signature` or `SigAlg` before node-saml sees it.
+
+**F2 — THE IdP NEVER SIGNED A LOGOUT MESSAGE.** SimpleSAMLphp **v2.5.3.1**'s `addRedirectSign`
+(`modules/saml/src/Message.php:99`) signs a LogoutRequest or LogoutResponse only when `sign.logout` — or `redirect.sign`
+— is set on the hosted IdP or on the destination SP's row, and neither was, anywhere. So F1's refusal alone would have
+stranded every sign-out. Control (b) is the measurement: with the flag off, the real IdP's LogoutResponse arrives with no
+`Signature`, in both Docker tests.
+
+**F3 — node-saml CHECKS A LogoutResponse's `InResponseTo` ONLY WHEN ONE IS PRESENT** (`verifyLogoutResponse`), so a
+response answering nothing would pass. Required explicitly, off the inflated message, before node-saml.
+
+**F4 — A LogoutResponse's `InResponseTo` STAYS IN node-saml's CACHE AFTER USE** (`validateInResponseTo` reads and never
+removes), so a replayed response lands a browser on `/` again. Harmless — nothing ends there — and recorded, not fixed.
+
+**F5 — NO TEST ANYWHERE SIGNED A PERSON OUT OF AN APP THROUGH THE REAL IdP** except `make demo-identity`'s step 9, which
+the offline acceptance runs by hand. The blueprint's Docker test now does, hop by hop — and it had to, because this
+sitting changed what the IdP sends every app.
+
+**F6 — `csrf.test.ts`'s POSITIVE CONTROL WAS A SECOND STATEMENT OF THE SIGN-OUT'S ANSWER** (`204`), which the first grep
+for the route's callers missed and the full suite found. Updated to the new answer.
+
+**F7 — THE PERMISSION CLASSIFIER REFUSED READS, TWICE.** A batch reading `CLAUDE.md` (among others), and one reading the
+`Makefile`, `scripts/doctor.sh` and `infra/seed/seed.sh`, were refused as *dangerous* with no reason given. Consequences:
+**`make refresh-vulndb` was not added** (Rich asked for it; it needs the `Makefile`), and **`CLAUDE.md`'s *State* line
+still says P6b's spec action is *NOT applied*** — both left for Rich. ORIENTATION §4 already says the classifier is not a
+fixed rule; this is the first time it refused a plain read of a repository file.
+
+**F8 — A SHELL `${…}` INSIDE `String.raw` IS JS INTERPOLATION.** The sign-out probe's first draft used `${out%% *}`;
+`tsc` refused it (`TS1109`). `SAML_LOGIN_HOPS` had avoided the form without saying why; the probe now says so.
+
+**F9 — THE DEMOS' `api` HELPER CANNOT SEND A BODYLESS POST.** `scripts/lib/api.sh` sets `content-type:
+application/json` on every mutation, and Fastify refuses an empty JSON body `400 REQUEST_INVALID` before the route runs
+— found driving `POST /auth/logout` through the edge. A browser's `fetch` sends no content type with no body, so the
+console is unaffected; the headless check used `curl` directly. Named in ORIENTATION §4, not fixed: no demo calls a
+bodyless mutation today.
+
+#### The negative controls — each watched red, then restored
+
+| | Removed | Predicted | Result |
+|---|---|---|---|
+| a | the POST's IdP hop (`redirectTo: '/'`) | Docker red at the IdP assertion; unit: the handle tests | **FIRED** — Docker 1, unit 5 |
+| b | `sign.logout` off | the console Docker test red on *"not signed"* | **FIRED** — *"the IdP's LogoutResponse was not signed"* |
+| c | the signature requirement | the two UNSIGNED cases | **FIRED — 2** |
+| d | the `InResponseTo` requirement | the no-InResponseTo case | **FIRED — 1** |
+| e | `sign.logout` off, the blueprint's test | `signed` false | **FIRED** — the hop trail shows the IdP's request to the app unsigned |
+| f | the mock's old `204` | the mock's new case | **FIRED — 1** |
+
+The console Docker test carries its own control too: **before signing out, a second sign-in in the same browser gets an
+assertion and no password** — F10 itself — so the closing *"the IdP asks for a password"* cannot be a lost cookie jar.
+
+#### The gates
+
+| Gate | Open (`bbac5d3`) | Close (`0aa1824` + docs) |
+|---|---|---|
+| `pnpm test` | **1723 / 123** (167.5 s) | **1742 / 123**, twice (186.4 s, 189.2 s) — +19: the session's handle (3), the platform row (0, one assertion), the route (10 new, 1 changed), the console (5), the mock (1) |
+| lint / typecheck / format | clean | clean |
+| `make doctor` | **19 / 0, 0 warnings** (the database 1.4 days old) | **19 / 0, 0 warnings** |
+| `make verify` | **55 / 0** | **55 / 0**; `mf- containers=6 networks=2 volumes=4` after the cleanups |
+| `pnpm test:docker` | 198 in 31 (P6b sitting 6) | **200 in 31**, 1170.9 s — owed (`identity/`, `sso/`) and run: **199** in the full run, and S6 probe 14 `expected +0 to be 200` — P6b sitting 3's F17, the chat model cold — **green on a re-run of `s6.docker.test.ts` alone with the model warm, 18 of 18**. Up 2: the console's sign-out against the real IdP, and an app's through the blueprint's skeleton |
+
+**`scripts/ci-acceptance.sh`'s `EXPECT_` lines move to `1742 / 123 / 19 / 55`.**
+
+#### Through the edge, and then the whole release path
+
+**The console's sign-out, headless, through `https://console.manifest.internal`**, against the platform's own SP row as
+the restarted control plane re-registered it: signed in as the instructor; a second sign-in in the same browser was
+answered WITHOUT a password (F10's state, the control); `POST /auth/logout` answered the IdP's `singleLogout`; three hops
+— `303` singleLogout, `303` `core/logout-resume`, `302` back to `/auth/logout?SAMLResponse=…&Signature=…` — landed on
+`/`; `/v1/me` answered `401`; and the next sign-in got the IdP's login FORM. The control plane logged all three lines:
+*sign-out … single logout sent to the IdP*, *LogoutResponse arrived*, *the IdP confirmed the console sign-out*.
+
+**`make demo-releases`, fresh, 2:58, every phase *every check passed*** — run because the Docker tier truncated the
+tables and `launch-app`'s records with them, and because its per-leg step-ups drive §20's step-up over a session that now
+carries the IdP's handle, which `stepUpSession` rewrites (Decision 4). It re-launched `launch-app` from nothing.
+
+#### Clicked by a person
+
+**Handed to Rich at the close**, with the control plane and the console preview left running for it: sign in as the
+instructor, *Sign out*, *Sign in with CWL* — the IdP must ask for a password — and sign in as the operator. **Pending
+when this was written**; the line below records what he saw.
+
+#### The machine, at close — queried, not recalled
+
+**The Docker tier truncated the tables and `make demo-releases` rebuilt them**: 1 project (`launch-app`), 4 releases,
+launched, on its leg C release, the registration `active` five-wide; **24 migrations**. **Cleanup: the tier put back its
+seven dead networks and one volume and four LiteLLM orphans; `--apply` was ALLOWED for both scripts, and both re-read
+clean** (`none dead`, `0 orphaned`). `make verify`: `mf- containers=6 networks=2 volumes=4`, `runtime routes currently
+applied: 1`. **Images**: `docker images -q` **192**, `sort -u` **184**, `127.0.0.1:7107/local/*` **145** (135 at the
+open). **The control plane (7100) and the console preview (7104) were LEFT RUNNING for Rich's click**, to be stopped after it.
+Both loopback aliases are on `lo0`; the four protected containers are present.
+
+**The four HTML pages**: `manifest-decisions.html`'s D9 and D16 cards were swept with the spec action (`f4f0a84`); the
+other three were checked and state nothing about signing out or §13's IAM sentence, so they did not change.
+
+**Left for Rich, because the classifier refused the reads (F7):** `make refresh-vulndb`, which he asked for, and
+`CLAUDE.md`'s *State* line, which still says P6b's spec action is *NOT applied*.
