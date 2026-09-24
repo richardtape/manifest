@@ -92,9 +92,9 @@ implied have already been applied to
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
 
-### Spec actions raised by the D5 plan — PROPOSED 2026-09-24, NONE APPROVED
+### Spec actions raised by the D5 plan — ✅ ALL THREE APPROVED AND APPLIED 2026-09-24
 
-Written in [the D5 plan's *Spec actions*](./2026-09-24-d5-github-source-driver.md), each with its exact wording, **none applied**.
+Written in [the D5 plan's *Spec actions*](./2026-09-24-d5-github-source-driver.md), each with its exact wording. **Rich answered all three on 2026-09-24, the day the plan was written, and said to apply them. They are APPLIED in the wording he read**: 1 as option (a), 2 as written, and 3 *"unless the conformance run says otherwise"*. **No shared HTML page restates §20's git-driver bullets or §21's inventory** (checked: `manifest-decisions.html`'s D5 card is the only related text, and it is still true), so none moved. **Found while applying:** action 1's wording points at §19 for the production GitHub organisation, and §19 has no such row. A one-row addition is raised with Rich (ORIENTATION §8, *Open*), not applied. The external track gained item 10, which is what option (a) makes UBC's.
 1. **§20 *Git driver* bullet 4 — Rich's decision, from two options.** *"A detected secret blocks the push"* cannot hold on GitHub.com, which runs no custom pre-receive hooks. The recommended wording says what each path does: Manifest blocks every push it makes and every push to driver 1, and FINDS every commit pushed straight to GitHub, raising an Event and refusing to build it. Blocking a direct push becomes GitHub's push protection on UBC's organisation, an external-track item. The alternative keeps the sentence and requires GitHub Secret Protection (paid, per committer) as a precondition of driver 2.
 2. **§21 *Platform inventory*** — one row for the opt-in GitHub fake on 7110, and one sentence.
 3. **§20 *Git driver* bullet 1** — the one installation token that cannot be scoped to a repository: the one that creates it. That token carries administration alone, is used for that one call and is never kept. **This action is withdrawn if Task 6's real conformance leg shows otherwise.**
@@ -846,7 +846,7 @@ is what builds it. **This is one of two instances of the same rule** — see *D5
 - A non-forced fetch refuses a rewritten upstream `main` and keeps the mirror's history.
 - **F9 reproduces on the real model: 4 of 10 summaries had Markdown, and 3 of 10 an invented or misattributed verdict, every one after the prompt's own instruction to state the verdict.**
 
-**Its three spec actions are PROPOSED and not approved** (the section *Spec actions raised by the D5 plan*, above).
+**Its three spec actions were approved and APPLIED the same day** (the section *Spec actions raised by the D5 plan*, above). One follow-up is open: a §19 row for the production GitHub organisation.
 
 
 **ITS TWO QUESTIONS ARE DECIDED (Rich, 2026-09-24; ORIENTATION §8):** a GitHub-compatible FAKE in a container for the acceptance, plus an opt-in conformance check against a real GitHub App; **eight sittings**. And the console's sign-out (P6b's F10) is fixed in its own sitting first, not in this plan.

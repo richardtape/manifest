@@ -25,7 +25,8 @@ written 2026-09-22, executed 2026-09-22 → 2026-09-23 in Rich's seven sittings)
 is self-serve unless it changes a sensitive field, then an administrator approves a STORED preview, and
 `make demo-releases` proves it — green three times, and clicked by a person. **D5's GitHub source
 driver plan IS WRITTEN** (`docs/superpowers/plans/2026-09-24-d5-github-source-driver.md`, 2026-09-24,
-15 tasks in Rich's eight sittings; three spec actions proposed, none applied — ORIENTATION §8).
+15 tasks in Rich's eight sittings; its three spec actions approved and APPLIED the same day, with
+one follow-up open — a §19 row, ORIENTATION §8).
 **The next job is EXECUTING its sitting 1, and ORIENTATION §7e says how**; this file deliberately
 says no more. P6b's measurements (its sitting 1, 2026-09-22) found every premise true and a
 defect it did not know — **the egress proxy never re-renders its allowlist**, so a removed
@@ -200,7 +201,7 @@ For the platform itself it is `make doctor` and `make verify`.
   is `*.manifest.internal` and why the edge binds the `127.0.0.2` loopback alias.
 - **Never edit the spec directly.** `docs/superpowers/specs/2026-08-29-manifest-platform-design.md`
   is marked *Approved design*. Record proposed changes and ask — **every spec change this
-  project has made was approved by Rich first**, most recently **§13, §20 and D24 on 2026-09-22** (P6a's Spec actions 2 and 3). The
+  project has made was approved by Rich first**, most recently **§20 and §21 on 2026-09-24** (the D5 plan's three). The
   roadmap's *Spec action(s) raised by…* sections are the list; this file deliberately states no
   count, because a restated number drifts (ORIENTATION §9) and this one already had.
   **A spec action is not finished when the spec changes**: the four shared HTML pages restate it
