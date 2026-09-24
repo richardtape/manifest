@@ -3787,7 +3787,7 @@ and a production deploy), `boot` 227 s (**206 s of setup** — the control plane
 built and deployed, the edge restarted) and `releases/redeploy` 172 s (three tests that wait on real things: a
 request loop, a race, a readiness timeout). Test time 1021 s, setup 527 s; thirteen files take under 5 s. The
 candidates Rich was given — share one fixture build across files, compile `boot`'s control plane once, and look at
-production's second suite and the two redeploy files for overlap — are **ideas, not decisions**.
+production's second suite and the two redeploy files for overlap — are **ideas, not decisions**, written up at Rich's request as [a tracked item](./2026-09-23-docker-tier-speed-brief.md) — and that write-up measured two of them wrong: `boot`'s compile is 4 s, and a drain ends as soon as nothing is in flight.
 
 **The test count moved by exactly the new cases**: 17 + 1 in Task 7 (records 7, readiness 3, route 8), 10 in Task 8
 (summary 3 net — one case renamed — approval 4, readiness 3); no new file. **22 → 23 migrations.** The contract stays
