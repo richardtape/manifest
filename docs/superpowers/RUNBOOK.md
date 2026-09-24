@@ -547,8 +547,7 @@ RELEASE_PRODUCTION_GATE_UNAVAILABLE` naming only `admin-approval`, the approval,
 deploy, the app probed on BOTH addresses, and the checklist read again — now a LAUNCHED app's,
 `ready`, with no `rehearsal` item and the launch release covered by its own approval). **Its step 10,
 a rebuild after the launch, was removed by P6b Task 6 (2026-09-23)**: a launched app's rebuild now goes
-to production self-serve, which is what P6b's acceptance, `make demo-releases`, will prove (its Task 11 —
-not built yet).
+to production self-serve, which is what P6b's acceptance, [`make demo-releases`](#make-demo-releases--p6bs-acceptance-what-a-launched-apps-next-release-does), proves.
 
 **A step-up is a claim on the session cookie, and sessions are stateless** — so the cookie from
 before the step-up is still an ordinary session afterwards. The script keeps both for each person;
@@ -560,17 +559,65 @@ state; and the production instance id beside the `X-Manifest-Instance` each addr
 *(A rebuild's digest is IDENTICAL to the approved one on this machine — BuildKit pins layer
 timestamps to the commit (`source-date-epoch`) — which step 10 printed until P6b removed it.)*
 
-**A second run RE-USES `launch-app`**, because no route deletes a project. It says `the RE-USE path`,
-and step 3's unmet set is then `[admin-approval]` — the records exist, and an earlier rehearsal of
-the same registration still counts (it covers the registration's shape, not a release). After a
-`pnpm test` or a reset it is the fresh path again: `[admin-approval, iam-registration,
-privacy-assessment, rehearsal]`.
+**A second run RE-USES `launch-app`**, because no route deletes a project — and since P6b Task 4 a
+re-used `launch-app` has LAUNCHED, so step 1 checks what a launched project durably is (the records,
+the approval of the release production serves, §12's split), prints `launch-app has launched — the
+re-use path ends here`, and stops green in about four seconds: a launched app is never rehearsed.
+After a `pnpm test` or a reset it is the fresh path again, with step 3's unmet set `[admin-approval,
+iam-registration, privacy-assessment, rehearsal]`.
 
 **A red phase stops the script** (`set -e`, like every demo), so a red rehearsal never reaches the
 launch phase and its output is not there to read.
 
-**It leaves `launch-app` in production and a rebuilt release serving staging.** A production app on
-this laptop points at UBC's real CWL and signs nobody in — do not read that as a failure.
+**It leaves `launch-app` in production, its launch release serving staging and production.** A
+production app on this laptop points at UBC's real CWL and signs nobody in — do not read that as a failure.
+
+## `make demo-releases` — P6b's acceptance: what a launched app's next release does
+
+*Added by P6b sitting 7, 2026-09-23 (Task 11).*
+
+§13 D9's second clause, through the edge, on `launch-app`. Needs what `make demo-production` needs —
+`make up`, **`127.0.0.3` on `lo0`**, the control plane running per README — and a vulnerability
+database younger than seven days (§2 *Outstanding*), because on a machine where `launch-app` has not
+launched **it runs `make demo-production` first, and says so** (Decision 17), and that launch needs
+§13's `scans` item met.
+
+```bash
+make demo-releases          # ~1.5 minutes re-used, ~3 fresh; each phase ends `every check passed`, exit 0
+```
+
+**Three legs, in this order** — A before B, although B is the headline, because B's *"nothing
+sensitive changed"* is a claim about a baseline and only A guarantees one:
+
+| Leg | The commit (bash) | What must happen |
+|---|---|---|
+| **A** | `manifest.yaml` rewritten from the starter: `sn` removed, `egress.allow: [<run id>.example.org]` | refused `409 RELEASE_REESCALATED` with EXACTLY the fields that changed since the last approved release; an administrator takes a **stored preview** (no step-up), is refused `403 STEP_UP_REQUIRED`, steps up, is refused `400 APPROVAL_PREVIEW_REQUIRED` naming none, re-reads the SAME preview, approves naming it — the record's diff deep-equals the preview's — and the owner deploys. Then, from production's app container through its egress proxy, **this run's host is let through and the previous run's is `403 Filtered`** (Task 5a), beside `manifest-verdaccio:4873` answering `200 OK`; and asking for the release production ran before A is `409 RELEASE_NOT_STAGED` |
+| **B** | a comment in `server.js` — a new digest, nothing sensitive | the checklist `ready` with no sensitive field; the stepped-up owner deploys to production with **no administrator** (the release has no approval: `404`), while `scripts/lib/redeploy-loop.mjs` on the public listener sees only the app and the instance change once |
+| **C** | `sn` back | the administrator records the registration `active` with the four (UBC registered the narrower set); the build FAILS naming `sn`; `[M9]`'s request — the change request written as what UBC *registered* — is `400 LAUNCH_RECORD_INVALID`; the proper change request is filed and the build STILL fails, saying one is on file; `submitted → active` with the five; the build succeeds, re-escalates on `auth.attributes` alone, is approved from a preview and deployed |
+
+**Path-independent.** Every leg writes its manifest from the starter, so it is what it claims whatever an
+earlier run left; the baseline every assertion compares with is **derived through the contract** — the
+newest release whose latest decision is `approved` — never assumed to be what production serves; and
+step 1's **RECOVERY** repairs the two things it honestly can when a run stopped part-way (the registration
+recorded `active` for what the candidate asks, an approval from a preview) and **prints that it did, as
+setup**. Anything else unmet stops the run red.
+
+**Each leg steps up right before its stepped-up calls**: a step-up lasts ten minutes, and every leg builds
+first. The script keeps a plain and a stepped cookie for each person, as `demo-production` does.
+
+**What a green run prints that a wrong one would not**: the expected field list and the baseline it was
+derived from; the preview's id, author, expiry, `summarySource` and summary; the approval naming the
+preview; the three egress answers; the loop's counts and its instance sequence; both failed builds'
+errors; and the registration after each record.
+
+**The preview's summary may read `unavailable` offline** — Decision 7: the record carries the diff and a
+security note per field without the model's words, and the approval goes ahead. Online, read it: the
+model has written emphasis asterisks and has called the code reviewer's verdict "the administrator's"
+(P6b sitting 7) — the record is what was shown, verbatim, so that is a finding, not something stripped.
+
+**A red phase stops the script** (`set -e`). **It leaves `launch-app` launched, on its leg C release in
+staging and production, the registration `active` five-wide, two more approvals** (three on a fresh
+machine, counting the launch), **and three more commits in its repository** — one per leg.
 
 ## `make ci-acceptance` and `make demo-console` — 1c's acceptance, in two halves
 

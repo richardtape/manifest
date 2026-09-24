@@ -158,4 +158,25 @@ else
 fi
 
 echo
+echo "=== 12. P6b's acceptance: subsequent releases, offline ==="
+# APPENDED, like steps 7 to 11, and for the same reason. WHAT THIS PROVES OFFLINE THAT STEP 11
+# DOES NOT: what a LAUNCHED app's next release does — a self-serve production redeploy under a
+# loop on the public listener, a sensitive change re-escalated to an administrator who reads a
+# STORED preview and approves naming it, the egress proxy re-rendered for the approved host, and
+# §9's IAM change request refusing a build until UBC has registered the attribute. Step 11 ends
+# where this begins, and on a machine where launch-app has not launched this runs it first.
+#
+# THE PREVIEW'S SUMMARY MAY LEGITIMATELY READ `unavailable` OFFLINE — Decision 7 again: the
+# record carries the diff and the security notes without the model's words, and the approval
+# goes ahead. And while it does, NEGATIVE CONTROL (c) — a decision that re-asks the model instead
+# of copying the preview — CANNOT FAIL, because both summaries are null. That control is proved
+# online (P6b sitting 7), not here. The run host's egress probe reads `500 Unable to connect`
+# offline, which is tinyproxy LETTING IT THROUGH to a name nothing resolves: not a failure.
+if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
+  make demo-releases; echo "demo-releases exit=$?"
+else
+  echo "  SKIPPED: no control plane behind https://console.manifest.internal — the same rule as step 6."
+fi
+
+echo
 echo "=== done. Turn the network back on. ==="
