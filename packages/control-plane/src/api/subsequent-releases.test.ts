@@ -964,6 +964,30 @@ describe('a launched CWL app’s live registration (§9, D9.2, P6b Task 7)', () 
     await closed(ctx)
   })
 
+  /**
+   * `[M9]`'S EXACT REQUEST, AND ITS CONSEQUENCE, IN ONE ASSERTION (sitting 5's control (a)). The
+   * case above files the change request correctly and so cannot see what the rule prevents: an
+   * administrator who types the requested set in as the REGISTERED one. Refused — and the build
+   * of the added attribute still fails, because the column §7's build-time check reads was never
+   * overwritten. Asserted together, so a red shows both halves rather than stopping at the first.
+   */
+  it('refuses [M9]’s request — the requested set typed in as registered — and the build still fails', async () => {
+    const ctx = await launchedCwlProject('iam-m9')
+    const typed = await recordRegistration(ctx, {
+      ...ctx.registration,
+      registeredAttributes: THREE,
+      requestedAttributes: THREE,
+      state: 'change_requested',
+    })
+    const built = await buildOf(ctx, cwlManifest('iam-m9', THREE))
+    expect({ record: refusal(typed), build: built.status }).toEqual({
+      record: { status: 400, code: 'LAUNCH_RECORD_INVALID' },
+      build: 'failed',
+    })
+    expect((await registrationOf(ctx)).registeredAttributes).toEqual(TWO)
+    await closed(ctx)
+  })
+
   it('once it is active with the attribute, the build passes, and the release RE-ESCALATES (auth.attributes)', async () => {
     const ctx = await launchedCwlProject('iam-granted')
     const before = (await registrationOf(ctx)).registeredAt
