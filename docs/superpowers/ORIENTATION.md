@@ -2032,13 +2032,55 @@ or the newest, [P6b](plans/2026-09-22-p6b-subsequent-releases.md). Use `superpow
 an opt-in REAL check**: a small GitHub-compatible fake in a container carries the acceptance offline and in CI, and a short
 opt-in conformance run against a real GitHub App (the roadmap's `Manifest (local dev)` registration, network on, at
 Rich's yes) checks the fake answers what GitHub answers; UBC's own org stays on the external track. **Eight sittings**,
-split as §8's entry lists. **Two things for Task 1 to measure rather than assume**, raised while the question was put:
+split as §8's entry lists — **if Task 1's measurements break that split, say so to Rich rather than re-cutting it
+silently.** **Two things for Task 1 to measure rather than assume**, raised while the question was put:
 (1) whether Gitea or Forgejo implement GitHub Apps' installation tokens — the answer given was *probably not*, which is
 why the fake is our own; (2) **§20's *"a detected secret blocks the push"*** — GitHub.com runs no custom pre-receive
 hooks (Enterprise Server only) and webhooks fire after a push lands, so the only thing that can block a push there is
 GitHub's own push protection, which for private repositories is believed to need a paid licence; and locally secret
 scanning is a BUILD gate today, not a push-time one. That sentence may become a spec action. Everything else is yours
 to decide and document.
+
+**WHAT THIS MACHINE MEANS FOR A FAKE GITHUB — read from the code on 2026-09-24, for the plan to design around. Each
+is a fact to re-check in Task 1, not a design decided:**
+
+- **Where it runs.** The other platform services that need their own image — `manifest-idp`, `manifest-caddy`,
+  `manifest-egress`, `manifest-dnsmasq` — are compose services with `build: { context: ./<name> }`, BUILT BY `make seed`
+  (step 2, `$COMPOSE build`, with the network on) so that `make up` stays offline (C1). A fake that serves git needs `git`
+  in its image, and **there is no apk mirror** (§8), so it can only be installed at `make seed` time. The cost to state:
+  **Rich re-runs `make seed` once, with the network on**, and anything under `infra/` owes the Docker tier.
+- **Reachability, both directions.** The control plane runs on the HOST (`127.0.0.1:7100`); a host process reaches a
+  container only through a published loopback port or the edge by name (§21). The other way, the edge itself reaches the
+  control plane at `host.docker.internal:7100` (`infra/caddy/Caddyfile:69`, compose's `host-gateway`) — **but the console
+  site refuses every source but the platform network's gateway** (`@outside`, `Caddyfile:64`), so a webhook from a
+  container through the edge is refused as things stand. How a delivery reaches the control plane is a design decision
+  with a security argument, not plumbing. A webhook receiver is also a new UNVERSIONED route: `api/unversioned.ts` must
+  list it with its reason, and `versioning.test.ts` forces that. S6 measured that app containers cannot reach the host at
+  all, so the fake belongs on the platform network, never an app network.
+- **Ports: the 7100–7199 block.** Taken: 7100 control plane, 7102 `manifest-mock`, 7103 Postgres, 7104 console preview,
+  7106 LiteLLM, 7107 registry, 7108 Verdaccio, 7109 egress proxy, 7119 Caddy admin, 7122 IdP, 7153 DNS, 7188/7189 the
+  Docker tier's own control planes. Add the fake's to §4's *Numbers*.
+- **A hostname under the zone** (e.g. `github.manifest.internal`) must be RESERVED in `infra/reserved-labels/labels.yaml`,
+  or an app slug can take it (§23).
+- **The seam.** `SourceDriver` is `packages/control-plane/src/source/git-driver.ts`; `local-driver.ts` is driver 1.
+  Four callers depend on a repository being a DIRECTORY: `api/routes/builds.ts:107` and `releases/approval.ts:571` (the
+  code reviewer) read `repositoryFor(slug).path`, `api/routes/project-reads.ts:362` reads it too, and
+  `api/routes/projects.ts:195` creates it. The roadmap's finding 1 — keep a LOCAL MIRROR — makes `.path` the mirror and
+  leaves `build/` untouched.
+- **Custody.** `infra/secrets/` (mode 700, gitignored) holds the master key; §20 puts the GitHub App's private key in the
+  same custody class. **The real App, `Manifest (local dev)`, is Rich's to register by hand on github.com** — the plan must
+  give him the exact settings (permissions, no webhook URL since this laptop has no public address, where to install it)
+  and say where the key goes. **The conformance leg must be skippable**: with the network off it says so and never fails
+  the offline acceptance.
+- **The contract.** `Project` carries no repository reference today (the authoring brief, §3.1). Adding one is additive,
+  so the contract goes to **1.2.0** — `CONTRACT_VERSION`, the generated `openapi.json`, `packages/contract/package.json`,
+  the mock, and the console's `coverage.test.ts`, which holds every operation to a caller.
+- **THE LESSON FROM 2026-09-24 THAT CARRIES STRAIGHT OVER:** node-saml verified a signature that was PRESENT and accepted
+  one that was ABSENT, so an unsigned logout message passed while every test fired garbage and passed. **A webhook HMAC
+  check must refuse a delivery with NO `X-Hub-Signature-256` at all**, not only a wrong one — test a real signed
+  delivery, an unsigned one and a wrongly-signed one, assert the refusal's CODE, and compare in constant time. The same
+  goes for anything the fake signs.
+- **F9 lives in `releases/summary.ts`** (the approval summary); **`scripts/lib/api.sh` cannot send a bodyless POST** (§4).
 
 **THINGS MOST LIKELY TO COST YOU:**
 
