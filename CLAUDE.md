@@ -14,15 +14,18 @@ statement of the four gate numbers; and the roadmap's ledger
 (`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every other document on
 status.*
 
-**The design is approved and complete, five spikes are done, and P1 to P6a are executed
-and green — PHASE 1c IS COMPLETE, and so is Phase 2's first plan.** Every one of them has an
+**The design is approved and complete, five spikes are done, and P1 to P6b are executed
+and green — PHASE 1c IS COMPLETE, and so are Phase 2's first two plans.** Every one of them has an
 acceptance that passes. **P6 was split into P6a and P6b on 2026-09-19, and P6a — the first
 production launch — IS EXECUTED** (`docs/superpowers/plans/2026-09-19-p6a-first-production-launch.md`,
 all 19 tasks in the eleven agreed sittings, 2026-09-19 → 2026-09-22): an application reaches
 production with every blocking item honestly met, and `make demo-production` proves it. **P6b —
-subsequent releases — IS EXECUTING** (`docs/superpowers/plans/2026-09-22-p6b-subsequent-releases.md`,
-written 2026-09-22); **ORIENTATION §7e names the next sitting and says how**, and this file
-deliberately does not. Its measurements (sitting 1, 2026-09-22) found every premise true and a
+subsequent releases — IS EXECUTED** (`docs/superpowers/plans/2026-09-22-p6b-subsequent-releases.md`,
+written 2026-09-22, executed 2026-09-22 → 2026-09-23 in Rich's seven sittings): a launched app's release
+is self-serve unless it changes a sensitive field, then an administrator approves a STORED preview, and
+`make demo-releases` proves it — green three times, and clicked by a person. **The next job is WRITING
+a plan — D5's GitHub source driver (Rich's order) — and ORIENTATION §7e says how**; this file
+deliberately says no more. Its measurements (sitting 1, 2026-09-22) found every premise true and a
 defect it did not know — **the egress proxy never re-renders its allowlist**, so a removed
 `egress.allow` host stays reachable — which added Task 5a to the plan. **Rich answered its three questions the same day** (ORIENTATION §8, *Decided*): seven
 sittings; removing a CWL attribute does not wait for IAM (its one spec action — approved in
@@ -44,6 +47,7 @@ deciding, as a stored preview the approval binds — in P6b.**
 | P5b | 2026-09-18 | An agent acts on a delegated token; D24's privileged four are refused centrally and a person confirms one retry | `make demo-token` |
 | P5c | 2026-09-19 | The clients: `manifest-mock`, `console/` behind its import boundary, the CI acceptance script — and Phase 1c's acceptance | §22's journey clicked by a person **and** run headlessly, over one contract |
 | P6a | 2026-09-22 | The first production launch: §12's public listener, the two external records, the rehearsal, step-up, an approval bound to a digest | `make demo-production`, **and a launch clicked by a person** |
+| P6b | 2026-09-23 | Subsequent releases: self-serve unless sensitive, re-escalation approved from a stored preview, the egress proxy following its release, §9's IAM change request, the person-only class | `make demo-releases`, **and a person clicking it** |
 
 **P5c IS EXECUTED** (`docs/superpowers/plans/2026-09-18-p5c-the-clients.md`, written
 2026-09-18, executed 2026-09-18/19): the clients — `manifest-mock`, `console/` behind its import
@@ -84,8 +88,8 @@ client; it is step 8 of the same script. *Sittings pace the work; they are not �
 Phases.*
 
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
-turning the network off from a tool call cuts the agent off too; **it now has ELEVEN steps**, the
-newest being `make demo-production` — the first production launch, whose approval summary may
+turning the network off from a tool call cuts the agent off too; **it now has TWELVE steps**, the
+newest being `make demo-releases` — a launched app's next release, whose preview summary may
 legitimately read `unavailable` offline), the second-machine clean clone, starting the UBC external track
 (its trigger fired on 2026-09-15, and **P6a's R1 makes it more urgent, not less** — P6a builds
 the objects a real IAM registration and PIA would populate; **since 2026-09-20 its item 5,

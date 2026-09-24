@@ -1,5 +1,7 @@
 # P6b — Subsequent Releases Implementation Plan
 
+> **EXECUTED 2026-09-22 → 2026-09-23 — all twelve tasks (eleven and Task 5a) in Rich's seven sittings.** Its acceptance, `make demo-releases`, passed three times and was clicked by a person. *What executing this plan found* is the record; *What this plan does not build* is the next plan's input list.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
 
 **Goal:** Once an application has launched, a new release reaches production **self-serve** — its owner deploys it, no administrator involved — **unless** it changes one of §7's sensitive fields. Then it **re-escalates**: it is refused until an administrator has read a **stored preview** of exactly what changed (a security-aware summary that carries the code reviewer's verdict) and approved that release by naming the preview. A change that adds a CWL attribute also waits for UBC IAM's change request to be recorded `active`.
@@ -39,7 +41,7 @@
 | 4 | 6 | **The gate for a launched app — this plan's centre, alone.** The checklist branches on `launched`, the self-serve deploy goes through, a sensitive change is refused `RELEASE_REESCALATED` carrying the view, and a release that is not the one serving staging is refused `RELEASE_NOT_STAGED` | **Yes** — `launch/` | **DONE 2026-09-23** — a launched app's non-sensitive release goes to production through the ROUTE with no administrator; a sensitive one is refused `409 RELEASE_REESCALATED` carrying a checklist byte-identical to the read, and deploys once approved; a release that is not the one serving staging is refused `409 RELEASE_NOT_STAGED`; a rejection is final. `candidateFor` no longer offers a FAILED staging release (F2), and the test file drains its retirer (F7). `make demo-production` has no step 10. Record: *What executing this plan found*, sitting 4 |
 | 5 | 7–8 | **The IAM change request** — migration 0022, a registration's registered set that changes only when UBC registers it, the change request as the registration's own `change_requested` state, and the live-registration check (attributes, ACS and SLO) for every production release — and **R4(d)**: deterministic security notes per sensitive field, the reviewer's verdict and D33's coverage limit in the record and in the prompt, and the `code-review` item reading the verdict (P6a F7). **The lean split's cost: if it runs long, stop after Task 7 and sweep** | **Yes** — `launch/`, `releases/` | **DONE 2026-09-23 — both tasks, without stopping after Task 7.** A registration's registered attributes, ACS and SLO change only on a record that reaches `active`, and a change request is the `change_requested` state naming `requestedAttributes` (migration 0022); `[M9]`'s request is refused and its consequence watched. One `registrationCovers` for both IAM items: the first launch compares the recorded ACS/SLO (`[M10]`), and a launched app's item is the live check — an added attribute waits for UBC, a removal re-escalates and waits for nobody, `expired` stops everything. The snapshot names its baseline, the sensitive fields, a `SECURITY_NOTES` line each and D33's coverage limit; the reviewer is asked before the model; `no-changes` is its own source; `code-review` reads the newest verdict. Record: *What executing this plan found*, sitting 5 |
 | 6 | 9–10 | **The stored preview**: migration 0023, `createApprovalPreview` and `getApprovalPreview`, approve and reject binding a preview and refusing a stale one — and **the console's approvals screen**, which shows the preview BEFORE the decision and keeps it through the step-up round trip. **Heavy**: the server half and the screen that uses it, together, so the console's Approve button is never broken across a session boundary | **Yes** — `releases/` | **DONE 2026-09-23 — both tasks, the Approve button never broken across a session boundary.** An administrator takes a stored preview (migration 0023, thirty minutes, no step-up); approve and reject must NAME it (`400 APPROVAL_PREVIEW_REQUIRED`, `404`, `409 APPROVAL_PREVIEW_EXPIRED` / `APPROVAL_PREVIEW_STALE`), and the record COPIES its snapshot — the model is asked once. The approvals screen shows the preview first, through the component the record uses, its id in `?preview=` across the step-up. A pre-existing two-clock defect in the rehearsal fixed (`549dda4`); the mock now refuses a decision naming no preview. Record: *What executing this plan found*, sitting 6 |
-| 7 | 11 | **The acceptance**: `make demo-releases` — a self-serve production redeploy, then a sensitive change refused until an administrator approves it, then the IAM change request path — its offline-acceptance step, its `ci-acceptance` step, green three times, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | not started ← **next** — read Task 11's block first (sittings 5 and 6 left things in it), and **ask Rich before the sitting whether he will click it** |
+| 7 | 11 | **The acceptance**: `make demo-releases` — a self-serve production redeploy, then a sensitive change refused until an administrator approves it, then the IAM change request path — its offline-acceptance step, its `ci-acceptance` step, green three times, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | **DONE 2026-09-23 — P6b IS EXECUTED.** `make demo-releases` green three times — fresh, re-use, and from an `echo reset \| make reset` machine — nine controls fired, and **Rich clicked every row plus the stale path**, never clicked before. Offline-acceptance step 12 and a `ci-acceptance` step. No control-plane code changed, so the Docker tier was not owed. Record: *What executing this plan found*, sitting 7 |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -2703,6 +2705,11 @@ git commit -m "feat(journey): P6b's acceptance — make demo-releases: self-serv
 - **Revoking pre-P6b tokens that hold `release:approve` or `launch:record`.** The central rule refuses them however they were minted.
 - **IAM change-request *generation*** (P8). This plan records what an administrator files, and the checklist names the attributes to request.
 - **Certificate expiry alerts** (D20). `cert_expires_at` is recorded and nothing reads it.
+- **What the acceptance found and did not fix (sitting 7, 2026-09-23)** — each is small, and each is the next plan's to place:
+  - **F9: the model's summary invents an administrator's verdict** (*"The administrator's verdict was: '…'"*, before anyone decided) and writes Markdown the prompt forbids. The record keeps what was shown, so the fix is upstream of it — the prompt, or a check that refuses a summary claiming a decision — and **an administrator reads that summary before approving**.
+  - **F10: the console's *Sign out* does not end the IdP session** — the next sign-in silently returns the previous person. Pre-existing; it matters on any shared machine, and it made the clicked half's switch of person a manual cookie deletion.
+  - **F13: the `code-review` item says its verdict was *"recorded when an administrator decided"*** when it came from a preview (`launch/readiness.ts`, which owes the Docker tier).
+  - **F11, F12, F14, F15 — the console**: the decision record does not name the preview it copied, and its buttons stay live after a decision; a reason typed before a step-up is lost; the activity feed names an approver by PUID; a self-serve release's `admin-approval` links to an approval page it does not need.
 - **The GitHub source driver and the authoring API** (the next two plans, in that order). **Both widen who can write `manifest.yaml`**, and this plan's re-escalation is the gate that inspects what they write.
 
 ---
@@ -4026,3 +4033,202 @@ instance volumes replaced by the demo, free disk 116 → 115 GiB, and `HEAD`. No
 
 **The four HTML pages were checked and not changed**: no spec action was applied, and their only *preview* is the
 sandbox's live preview — none describes when an administrator sees an approval's diff.
+
+### Sitting 7 — Task 11, the acceptance, alone and last — 2026-09-23 — **P6b IS EXECUTED**
+
+**`make demo-releases` IS P6b's ACCEPTANCE, AND IT PASSED THREE TIMES** — fresh from a truncated database (2:43, 163
+checks: `make demo-production` first, then the three legs), on the re-use path (1:58, 108), and from an `echo reset | make
+reset` machine (2:51, 163) — **and a person clicked every row of Step 6, plus the stale path nobody had ever clicked.**
+`1e02844`: `packages/journey/src/releases.ts` (eleven phases, nothing but `@manifest/contract`) and
+`scripts/demo-releases.sh` (sign-ins, step-ups, the three commits a faculty member's agent would push, and `docker exec`
+into production's app container to ask its egress proxy), the `Makefile` target, offline-acceptance **step 12** and the
+`ci-acceptance` run line, and RUNBOOK's section. `6fe5279`: the demo derives its baseline by DECISION order, as the
+platform does (F3). **Leg A** — `sn` removed and an egress host unique to the run — is refused `409 RELEASE_REESCALATED`
+with EXACTLY the fields that changed since the last approved release; the administrator reads a stored preview, is
+refused `403 STEP_UP_REQUIRED`, steps up, is refused `400 APPROVAL_PREVIEW_REQUIRED` naming none, re-reads the SAME
+preview, approves naming it (the record deep-equals it), and the owner deploys; production's proxy then lets this run's
+host through and answers the previous run's `403 Filtered`, beside `manifest-verdaccio:4873` `200 OK`; and the release
+production ran before is `409 RELEASE_NOT_STAGED`. **Leg B** — a code-only commit — goes to production with no
+administrator under `redeploy-loop.mjs` on the public listener: 93–94 answers, all the app, the instance changing once,
+and the release has no approval (`404`). **Leg C** — UBC registered the narrower set; `sn` back FAILS the build; `[M9]`'s
+request is `400 LAUNCH_RECORD_INVALID`; a change request on file still fails it; `submitted → active` with the five;
+the build succeeds and re-escalates on `auth.attributes` alone, approved from a preview, deployed. **No control-plane
+code changed**, so the Docker tier was not owed and not run.
+
+#### The decisions this sitting made
+
+**1. Step 3's `APPROVAL_PREVIEW_REQUIRED` check moved AFTER the administrator's step-up** — `decide()` answers §20
+before the preview check, so an unstepped administrator naming no preview is `403 STEP_UP_REQUIRED`, never `400` (F4).
+
+**2. The baseline every assertion compares with is DERIVED through the contract** — of the releases whose latest
+decision is `approved`, the one decided most recently — never assumed to be what production serves (F5), and **leg A's
+expected field list is derived from what that baseline declares**, so a recovery that approved a four-wide release
+expects `[egress.allow]` alone. Met naturally on the second debug run.
+
+**3. Leg A's VALIDATE check asserts `egress.allow` among the fields and nothing outside the pair** — validation compares
+with the previous VALIDATED spec, not the baseline.
+
+**4. Every commit is validated and built BY SHA** — an empty build request builds the newest VALIDATED commit (P5c
+sitting 5), so leg B's code-only commit is validated too, and its empty `sensitiveDiff` asserted.
+
+**5. The leg-B loop is spawned by the TS phase** (`node:child_process`, which the boundary allows), so its verdict is a
+check in the phase that deploys, over the same `redeploy-loop.mjs` `[M14]` measured.
+
+**6. Leg C carries `[M9]`'s EXACT request as a refusal check** — the change request written with the five as what UBC
+REGISTERED — because the registered-set rule has no other witness in a demo that files the change request correctly
+(F7).
+
+**7. `gateA` reads the checklist's `code-review` item after the preview** (not built, not blocking) — the witness control
+(h) asks for.
+
+**8. Step 1's RECOVERY is setup, printed as such**: when a run stopped part-way, it records the registration `active`
+for what the candidate asks and approves the candidate from a preview, deploys it, and stops red on anything else. It
+ran for real in five of the controls' green re-runs — repairing a stuck leg A four times and a stuck leg C once.
+
+**9. The clicked half's releases were staged by `curl`** (a scratch script over `scripts/lib/api.sh`), so Rich typed
+only the four passwords; the GIF was skipped at Rich's word (the recorder's 50-frame cap held the first three rows).
+
+#### The findings
+
+**F1 — THE EGRESS PROBE KILLED THE SCRIPT SILENTLY, TWICE OVER.** The first fresh run died straight after its positive
+control with nothing printed: busybox `wget` exits 1 on every non-2xx — every answer the probe wants but the positive
+control's — and under `pipefail` + `set -e` that exit ended the script inside `$(…)`. Measured afterwards: 3 of 3. Fixed
+with `; true` inside the container.
+
+**F2 — …AND THEN SIGPIPE.** The next fresh run died with make's `Error 141`: an `awk` that `exit`s at the first match
+closed the pipe while `docker exec` was still writing. Intermittent — 0 of 9 when re-measured — and a separate cause from
+F1. `awk` now reads to the end. **The status line is the evidence, never an exit code.**
+
+**F3 — THE DEMO'S OWN BASELINE RULE WAS NOT THE PLATFORM'S.** `lastApprovedReleaseFor` orders by `approvals.decided_at`;
+`lastApproved`'s first draft took the newest RELEASE whose latest decision is approved. Found reading `approval.ts` while
+staging the stale path, fixed (`6fe5279`) — and **load-bearing on the very next run**: after the clicked half, S2 had
+been approved after S1 though made before it, the server's baseline was S2, and the draft would have derived S1 and gone
+red for the wrong reason.
+
+**F4 — THE PLAN'S STEP 3 ORDER CANNOT BE MET.** *"approve naming no preview → 400"* before the step-up answers `403
+STEP_UP_REQUIRED`. Decision 1.
+
+**F5 — THE PLAN'S *"baselineReleaseId === the release production serves (every run, and the recovery, end on an approved
+release in production)"* IS FALSE.** A run that stopped after leg B leaves production serving a self-serve release, and
+the clicked half left production on S1 with S2 the baseline. Decision 2.
+
+**F6 — THE PLAN'S CONTROL (a) PREDICTION WAS WRONG.** Not `RELEASE_PRODUCTION_GATE_UNAVAILABLE`: a first-launch
+requirement is `required`, readiness sets `reescalated = required && !covered && !rejected`, and the gate answers
+`409 RELEASE_REESCALATED` carrying `sensitive []`. Predicted correctly by this sitting, in writing, before the run.
+
+**F7 — THE PLAN'S CONTROL (d) PREDICTION IS UNREACHABLE.** *"build again → STILL FAILED (the build passes)"* needs a
+change request that writes the five as REGISTERED, which the rule refuses — so a green demo must repeat the four, which
+the rule allows either way. Decision 6 gives the rule its witness.
+
+**F8 — THE PLAN'S EXACT PAIR FOR LEG A IS PATH-DEPENDENT.** After a recovery approved a stuck four-wide leg A, only the
+host differs. Decision 2's derivation; the path occurred naturally on the second debug run.
+
+**F9 — THE MODEL'S SUMMARY INVENTS A VERDICT.** Read in the console on S1's preview: *"The administrator's verdict was:
+'This release changes a sensitive field, so it requires manual approval before production.'"* — no such text is in the
+input and no administrator had decided. S3's summary called the code reviewer's words *"the administrator's verdict"*;
+the headless runs did the same. And backtick and asterisk Markdown, which the prompt forbids. **The record keeps what was
+shown, verbatim** (`summary.ts` says a model writing Markdown is a finding for this acceptance, not something to strip),
+so this is recorded, not fixed — the prompt, or a check on the model's output, is the next plan's to weigh.
+
+**F10 — THE CONSOLE'S *Sign out* DOES NOT SIGN YOU OUT OF CWL** (pre-existing). It ends Manifest's session; the next *Sign
+in with CWL* silently re-signed the instructor. Neither the console's `GET /auth/logout` nor the IdP's `initSLO` (404)
+ended it; Rich had to delete `manifest.internal` site data in `chrome://settings`. **A second person cannot sign in in the
+same browser after a sign-out** — on a shared machine that is the previous person's session. WALKTHROUGH says so.
+
+**F11 — THE DECISION RECORD ON SCREEN DOES NOT NAME THE PREVIEW IT COPIED** (Step 6's row expects *"bound to preview …"*;
+the API has `previewId`), **and the Approve/Reject buttons stay live after a decision.** Minor.
+
+**F12 — THE REASON TYPED BEFORE A STEP-UP IS LOST IN THE ROUND TRIP.** Minor.
+
+**F13 — THE `code-review` ITEM SAYS ITS VERDICT WAS *"recorded when an administrator decided on this release"*** — since
+Task 9 its newest source is a PREVIEW, and the green runs print the sentence at `gateA`, before any decision. Wording, in
+`launch/`, which owes the Docker tier — not changed in an acceptance sitting.
+
+**F14 — THE ACTIVITY FEED NAMES THE APPROVER BY PUID** — *"opr000001 approved this release for production"* — where
+Decision 18 gave the Approval a display name. Minor.
+
+**F15 — A SELF-SERVE RELEASE'S `admin-approval` ITEM STILL LINKS *"See this release's approval"*** to a page for a release
+that needs none. Minor.
+
+**F16 — RUNBOOK'S `demo-production` SECTION CARRIED THREE STALE SENTENCES** — the re-use path (a launched app now stops
+at step 1), *"a rebuilt release serving staging"* (gone since sitting 4) and *"Task 11 — not built yet"*. Fixed with the
+new section.
+
+#### The clicked half — Rich typed four passwords (instructor sign-in and step-up, operator sign-in and step-up)
+
+| Row | What a person saw |
+|---|---|
+| sign in (instructor) | *Launched* **yes** — *releases go to production without an administrator unless they change a sensitive field (D9)*; ready; the staged code-only release the candidate |
+| a self-serve deploy | `STEP_UP_REQUIRED` with *Confirm it is you*; CWL asked again; provisioning → starting → **healthy** streamed; the API: production on it, `GET …/approval` `404` |
+| a sensitive change | `RELEASE_REESCALATED`; *"This release changes egress.allow since the last approved release…"*; a link to **this release's approval** — which, for the owner, shows the configuration and *"Nobody has approved or rejected this release yet"* |
+| sign in (operator) | only after F10's workaround; the preview **before any decision** — by Test Operator, *valid until in 30m*, binds the digest, the summary (F9), D33's sentence, *Compared with 7fbb2857*, the field and its note, the change, *Code review: not performed* |
+| approve | `STEP_UP_REQUIRED` → CWL → back on `?preview=04834405`, *Taken 1m ago*, **the summary word for word** — control 10b's first witness (a re-take is a new id, *0s ago*, and new model words) |
+| approve again | *Decision approved … by Test Operator*, the reason, the digest, the same summary; the API: `previewId` `04834405`, the record's diff identical to the preview's (F11) |
+| **the stale path** (never clicked before) | S3's preview *Compared with 6f17c9c0*; S2 approved in a second tab; approving S3 → `APPROVAL_PREVIEW_STALE — the last approved release of this project changed since this preview was taken — take a new one. Moved: changes, baselineReleaseId.` → **Take a new preview** → *Compared with b766f24c*, the change `s2 → s3`, nothing decided |
+| *(added)* | the operator deployed the approved S1 → healthy; then S3 selected → `RELEASE_NOT_STAGED`, clicked |
+| records | `change_requested` filed asking for the five + `eduPersonPrincipalName` → **Registered** five, **Requested** six *"— asked for, not yet registered"*; `submitted` carried it; `active` with the six → *no change request on file* |
+
+#### The negative controls — the plan's nine; ALL FIRED; each predicted in writing first, run on the committed tree, restored and re-run green
+
+| | Control | Plan predicted | This sitting predicted | **Measured** |
+|---|---|---|---|---|
+| a | `approvalRequirementFor` always first-launch | `GATE_UNAVAILABLE`, `[]` | **still `REESCALATED`, `[]`**; 1 red | **FIRED — 1**: *"its sensitive fields are EXACTLY …"*, the refusal `sensitive [], baseline null` (F6); the preview still named both |
+| b | `sensitiveFieldsBetween` ignores `egress.allow` | the list red, code `REESCALATED` | run 1: stageA 1; run 2 (stageA non-fatal): gateA 3 | **FIRED — 1, then 1 + 3**: validation's list, then the refusal's list, the preview's list and its security notes — **code STAYED `409 RELEASE_REESCALATED`** |
+| c | `decide()` re-builds the snapshot | online red | approveA 1 | **FIRED — 1**: same `previewId`, a second model summary. Offline it cannot fail (offline step 12 says so) |
+| d | the registered-set rule removed | the build passes | `[M9]` answers 201; 1 | **FIRED — 1**: `[M9]` `200`; the build still failed (F7) |
+| e | `recordLaunch`'s call removed | fresh red, re-use green | the same | **re-use GREEN (108); fresh FIRED — 3**, all in `demo-production`'s step 9, one cause (predicted the location; the count unstated) |
+| f | the person-only mint refusal removed | setup red | 1 (`201`) | **FIRED — 1**; the minted token revoked by the demo (`revoked = t`) |
+| g | the `RELEASE_NOT_STAGED` line removed | notStaged red | 2 | **FIRED — 2**: `200`, and production then ran the release from before A |
+| h | `NullReviewer` answers `clean` | `not_performed` red; `code-review` `met` | 2 | **FIRED — 2**; `code-review: met — none: 1 checked` (and F13) |
+| i | Task 5a's early return restored | this host `403`; the previous not | 2 FAIL lines | **FIRED — 2**; *"production's egress proxy does not follow the release it serves"*; the green re-run's log shows both proxies recreated |
+
+#### The runs
+
+| Run | Path | Result |
+|---|---|---|
+| debug 1 | fresh | red at step 4 — F1 |
+| debug 2 | re-use from debug 1's partial state | **green** 1:52 — expected `[egress.allow]` alone (F8's path) |
+| A (after `pnpm test`) | fresh | red at step 4 — F2; re-truncated |
+| **A** | **fresh** | **green 2:43, 163 checks** |
+| **B** | **re-use** | **green 1:58, 108** |
+| B2 | re-use after the clicked half | **green 1:58** — baseline S2 while production served S1 (F3, F5) |
+| controls | re-use | nine red runs as predicted; ten green re-runs, five of them RECOVERING |
+| **C** | **`echo reset \| make reset` machine** | **green 2:51, 163** |
+
+| Gate | Open (`55fa80b`) | Close (`6fe5279` + docs) |
+|---|---|---|
+| `pnpm test` | **1723 / 123**, twice (162.8 s, 164.2 s) | **1723 / 123**, twice (165.7 s, 166.1 s, load 8 → 7); one failed retire pass per run, the deliberate one |
+| lint / typecheck / format | clean | clean |
+| `make doctor` | **19 / 0, 0 warnings** | **19 / 0, 0 warnings** (the database 1.0 days old; stale after 2026-09-30) |
+| `make verify` | **55 / 0** | **55 / 0** |
+| `pnpm test:docker` | — | **not owed** — no code under an owing path changed |
+
+**The test count did not move**: the new file is a journey entry point, which `boundary.test.ts` reads and nothing else
+tests. `scripts/ci-acceptance.sh`'s `EXPECT_` lines stay **1723 / 123 / 19 / 55**.
+
+#### The machine, at close — queried, not recalled
+
+**`make reset` ran** (the plan's step 4), so every `mf-` container before it is gone — journey-app's, click-launch's and
+token-app's among them — and the platform's containers were recreated. **The control plane is stopped; nothing listens on
+7100, 7102 or 7104.** The database holds what run C made: **1 project (`launch-app`), 4 releases**, launched, on its leg C
+release in staging and production, the registration `active` five-wide; **24 migrations**. `make verify`: `mf-
+containers=6 networks=2 volumes=4`, `runtime routes currently applied: 1`. **Cleanup: both scripts bare read nothing** —
+`none dead`, `0 orphaned` — so there was nothing to `--apply`. **Images, the metric named**: `docker images -q` **182**,
+`sort -u` **173**, `127.0.0.1:7107/local/*` **135** (68 at the open — about twenty demo runs of three builds each); no
+script sweeps them. The four protected containers are present, `manifest-caddy-data` intact, both loopback aliases on
+`lo0`, `docker-simple-saml`'s only dirty path its untracked `cert.zip`. **The snapshot diff, open → close, is 172 lines,
+every one Manifest's own** — the platform's containers restarted by the reset, `launch-app`'s instances, images, free disk
+**115 → 107 GiB**, and `HEAD`. **Chrome**: one tab left in the Claude group, on the console, signed in as the operator.
+
+**The four HTML pages were checked and not changed**: no spec action was applied. **Spec action 1 stays approved in
+substance and NOT applied** — Rich's to say.
+
+#### What the post-sweep check found
+
+**F17 — TWO COMMENTS STILL DESCRIBED THE ACCEPTANCE AS FUTURE, OR A STEP AS PRESENT.** Found by grepping every status
+document and both demo files for *"not built yet"* after the sweep, rather than by re-reading the sweep list:
+`packages/journey/src/production.ts` pointed at `make demo-releases`' leg B as *"(P6b Task 11, not built yet)"*, and
+`scripts/demo-production.sh`'s header still ended *"A rebuild then has no approval"* — the step sitting 4 removed. Both
+comments corrected in the close-out commit. Every §7e pointer was opened and resolves: the roadmap's *D5's driver 2*
+section, the spec's D5, D14 and §20 *Git driver*, this plan's *What this plan does not build*, the authoring brief's §6,
+and §8's *Decided* entry for this plan's spec action.

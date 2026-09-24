@@ -6,7 +6,8 @@
 # what UBC IAM and the Privacy Office said (R1), Manifest runs the rehearsal (R2), the
 # administrator is refused the approval until they re-prove themselves at the IdP (§20),
 # approves the exact digest (§13), the owner deploys, and the app answers on §12's PUBLIC
-# listener as the instance the deploy started. A rebuild then has no approval.
+# listener as the instance the deploy started. What a LAUNCHED app's next release does is
+# `make demo-releases` (P6b), which runs this first on a machine where launch-app has not launched.
 #
 # THE SPLIT, and why — the same as `scripts/demo-journey.sh` (P5a Decision 38). Signing in,
 # and stepping up, are the browser's and the IdP's business (D23.8), so both go through THE

@@ -28,7 +28,7 @@ import { Checks, JourneyStop } from './check.js'
  *
  * **There is no step 10 since P6b Task 6.** It rebuilt after the launch and asserted the
  * rebuild had no approval — a launched app's rebuild is P6b's subject, and it now goes to
- * production self-serve: `make demo-releases`, leg B (P6b Task 11, not built yet).
+ * production self-serve: `make demo-releases`, leg B (P6b Task 11, `packages/journey/src/releases.ts`).
  *
  * **A step-up is a claim on the SESSION COOKIE** (P6a Decision 8) and sessions are
  * stateless, so the cookie from before the step-up is still a valid, un-stepped session
