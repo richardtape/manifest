@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { ManifestApiError, type Schemas } from '@manifest/contract'
 import { stepUpUrl } from './auth'
+import { href } from './router'
 
 /** Every screen reads through this, so every refusal reaches one renderer. */
 export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
@@ -87,6 +88,21 @@ export function Refusal({ error }: { error: unknown }) {
           <a href={stepUpUrl(window.location.pathname + window.location.search)}>
             Confirm it is you, then try again
           </a>
+        </p>
+      )}
+      {/*
+        §13 D9.2's RE-ESCALATION, RENDERED AS THE ERRAND IT IS (P6b Task 6): the one refusal
+        whose remedy is an administrator's approval, so it links to where they give it — the
+        release the checklist describes, which is the one serving staging. Here beside the
+        step-up link, for its reason: every screen's refusal reaches this one renderer.
+      */}
+      {error.code === 'RELEASE_REESCALATED' && readiness?.candidateReleaseId && (
+        <p>
+          An administrator approves it at{' '}
+          <a {...href(`/releases/${readiness.candidateReleaseId}/approval`)}>
+            this release’s approval
+          </a>
+          .
         </p>
       )}
       {envelope?.details !== undefined && (

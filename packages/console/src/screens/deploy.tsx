@@ -274,7 +274,10 @@ function EnvironmentPanel({
           PRODUCTION'S BUTTON STAYS. It is refused `403 STEP_UP_REQUIRED` until the person
           has re-proved themselves in the last ten minutes — `<Refusal>` renders that as the
           link that does it (P6a Task 18) — and then `409 RELEASE_PRODUCTION_GATE_UNAVAILABLE`,
-          whose envelope carries `launchReadiness`, until every blocking item is met. Hiding
+          whose envelope carries `launchReadiness`, until every blocking item is met. Once the
+          app has launched (P6b Task 6) a sensitive change answers `409 RELEASE_REESCALATED`,
+          which `<Refusal>` renders with the link to the approval an administrator gives, and
+          a release that is not the one serving staging `409 RELEASE_NOT_STAGED`. Hiding
           it would make the console teach something the platform does not do, and §13's
           gate is the control, not this button's absence.
         */}

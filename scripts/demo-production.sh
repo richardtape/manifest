@@ -144,5 +144,5 @@ echo "  the administrator stepped up — the IdP re-prompted a browser it had si
 SESSION_STEPPED="$(step_up "$CP_JAR" "$IDP_JAR" instructor)"
 echo "  the owner stepped up"
 
-say "7–10. The gate, the approval, the launch and the rebuild — through @manifest/contract"
+say "7–9. The gate, the approval and the launch — through @manifest/contract"
 run_phase launch

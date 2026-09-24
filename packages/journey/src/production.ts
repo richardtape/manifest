@@ -23,8 +23,12 @@ import { Checks, JourneyStop } from './check.js'
  *
  *   instructor  MANIFEST_SESSION                 steps 1–3
  *   admin       MANIFEST_ADMIN_SESSION           steps 4–6
- *   launch      MANIFEST_ADMIN_SESSION_STEPPED   steps 7–10
+ *   launch      MANIFEST_ADMIN_SESSION_STEPPED   steps 7–9
  *               MANIFEST_SESSION_STEPPED
+ *
+ * **There is no step 10 since P6b Task 6.** It rebuilt after the launch and asserted the
+ * rebuild had no approval — a launched app's rebuild is P6b's subject, and it now goes to
+ * production self-serve: `make demo-releases`, leg B (P6b Task 11, not built yet).
  *
  * **A step-up is a claim on the SESSION COOKIE** (P6a Decision 8) and sessions are
  * stateless, so the cookie from before the step-up is still a valid, un-stepped session
@@ -195,7 +199,7 @@ async function waitForBuild(
   }
 }
 
-/** Build, release and deploy to staging — steps 2 and 10 both do exactly this. */
+/** Build, release and deploy to staging — step 2. */
 async function buildReleaseStage(
   client: ManifestClient,
   summary: string,
@@ -712,18 +716,42 @@ async function step8Launch(): Promise<void> {
   )
 }
 
-/** Step 9: the checklist, met — with R4's seam visible and harmless. */
+/**
+ * Step 9: the checklist, read again — AFTER step 8's launch, so it is D9.2's (P6b Task 6): a
+ * launched app's checklist, with NO `rehearsal` item (a rehearsal after a launch would put
+ * an unapproved release on the live listener — Decision 16), every blocking item met by id,
+ * and `admin-approval` met by the launch release's OWN approval, since nothing else is
+ * approved to compare it with. R4's seam is still visible, and still harmless.
+ */
 async function step9Ready(): Promise<void> {
-  checks.step('9. The checklist, read again')
+  checks.step('9. The checklist, read again — a launched app’s now')
   const r = await readiness(clientFor('MANIFEST_SESSION_STEPPED'))
   const unmet = unmetBlocking(r)
-  console.log(`  unmet at step 9: [${unmet.join(', ')}]; ready: ${r.ready}`)
+  console.log(
+    `  launched: ${r.launched}; unmet at step 9: [${unmet.join(', ')}]; ready: ${r.ready}`,
+  )
+  checks.ok('launched: true — the checklist reads the launch step 8 recorded', r.launched)
   checks.ok('ready: true', r.ready === true)
   checks.ok('no blocking item unmet', unmet.length === 0, unmet.join(','))
+  // BY ID, SORTED, NEVER A COUNT: this was "six met" before the launch branch existed.
+  const met = r.items
+    .filter((i) => i.blocking && i.state === 'met')
+    .map((i) => i.id)
+    .sort()
   checks.ok(
-    'every one of the six blocking items is met',
-    r.items.filter((i) => i.blocking && i.state === 'met').length === 6,
+    'the five blocking items of a launched app are met — and there is no rehearsal',
+    met.join(',') === 'admin-approval,domain,iam-registration,privacy-assessment,scans' &&
+      !r.items.some((i) => i.id === 'rehearsal'),
     r.items.map((i) => `${i.id}:${i.state}`).join(' '),
+  )
+  const approval = r.items.find((i) => i.id === 'admin-approval')
+  checks.ok(
+    'admin-approval is met by the launch release’s own approval — nothing else to compare with',
+    r.baselineReleaseId === null &&
+      r.sensitiveFields.length === 0 &&
+      r.reescalated === false &&
+      (approval?.why.includes('approved this release itself') ?? false),
+    `${r.baselineReleaseId} [${r.sensitiveFields.join(',')}] ${approval?.why}`,
   )
   const review = r.items.find((i) => i.id === 'code-review')
   checks.ok(
@@ -733,57 +761,10 @@ async function step9Ready(): Promise<void> {
   )
 }
 
-/**
- * Step 10: a REBUILD has no approval (Decision 11) — asserted as the platform actually
- * behaves, which is not quite what Decision 11 says.
- *
- * **THE BUILDER IS REPRODUCIBLE**: the same commit rebuilds to the SAME digest (measured on
- * this demo's first two runs), so Decision 11's premise — "a new build is a new digest" —
- * does not hold here. The approval is still not carried over, because it is looked up by
- * RELEASE (`latestApprovalFor`), and a rebuild is a new release. That is the safe
- * direction. And sitting 7's F5 holds: the checklist reads "not reviewed yet", never the
- * "rebuilt since it was approved" sentence, which no route can reach. The digest
- * comparison is PRINTED, so a run where it differs is not byte-identical to one where it
- * does not.
- */
-async function step10Rebuild(): Promise<void> {
-  checks.step(
-    '10. Rebuild — the new release has no approval, and production is untouched',
-  )
-  const owner = clientFor('MANIFEST_SESSION_STEPPED')
-  const { release } = await buildReleaseStage(
-    owner,
-    'P6a acceptance — rebuilt after the launch',
-  )
-  console.log(
-    `  rebuilt digest: ${release.imageDigest} — ${release.imageDigest === state.imageDigest ? 'IDENTICAL to the approved one (a reproducible build)' : 'different from the approved one'}`,
-  )
-  checks.ok('the rebuild is a new release', release.id !== state.releaseId, release.id)
-  const r = await readiness(owner)
-  const approval = r.items.find((i) => i.id === 'admin-approval')
-  checks.ok('the candidate is the rebuilt release', r.candidateReleaseId === release.id)
-  checks.ok(
-    'admin-approval is unmet, and not ready',
-    approval?.state === 'unmet' && r.ready === false,
-    `${approval?.state}: ${approval?.why}`,
-  )
-  const production = unwrap(
-    await owner.GET('/v1/environments/{environmentId}', {
-      params: { path: { environmentId: state.productionEnvironmentId! } },
-    }),
-    'getEnvironment',
-  )
-  checks.ok(
-    'production still serves the approved launch',
-    production.instance?.id === state.productionInstanceId,
-    `${production.instance?.id}`,
-  )
-}
-
 const phases: Record<'instructor' | 'admin' | 'launch', (() => Promise<void>)[]> = {
   instructor: [step1Project, step2Staging, step3Refused],
   admin: [step4Records, step5Rehearsal, step6ApprovalNeedsStepUp],
-  launch: [step7Approve, step8Launch, step9Ready, step10Rebuild],
+  launch: [step7Approve, step8Launch, step9Ready],
 }
 
 try {

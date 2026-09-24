@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { and, eq } from 'drizzle-orm'
 import { approvals, events, instances, projects, releases } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
+import { ensureTestUser } from '../identity/testing.js'
 import {
   approvalRequirementFor,
   deployRelease,
@@ -9,12 +10,17 @@ import {
   productionApprovalFor,
   type ReleaseRow,
 } from '../releases/index.js'
+import { FAKE_NEVER_READY_PATH } from '../runtime/index.js'
+import { mintTestToken } from '../tokens/testing.js'
 import type { ServerDeps } from './server.js'
 import {
   approvedProject,
   commitManifest,
   launchedProject,
+  loginAs,
   mutationHeaders,
+  projectFor,
+  refusal,
   releasedProject,
 } from './testing.js'
 
@@ -29,6 +35,8 @@ afterAll(resetDatabase)
  */
 
 type Released = Awaited<ReturnType<typeof releasedProject>>
+/** What `nextRelease` and `stage` read — so a project that was never released can use them. */
+type ProjectCtx = Pick<Released, 'app' | 'deps' | 'cookies' | 'project'>
 
 /**
  * `deployRelease` EXACTLY AS THE DEPLOY ROUTE CALLS IT (`api/routes/releases.ts`), with the
@@ -73,7 +81,7 @@ const manifest = (slug: string, extra: readonly string[] = []) => [
  * release with the SAME digest (P6a F3).
  */
 async function nextRelease(
-  ctx: Released,
+  ctx: ProjectCtx,
   lines?: readonly string[],
 ): Promise<{ id: string; imageDigest: string }> {
   if (lines !== undefined) await commitManifest(ctx, lines, 'feat: the next release')
@@ -377,6 +385,402 @@ describe('deployRelease’s half of D9.2 (P6b Task 5)', () => {
     // production that refuses everything.
     const launched = await deployDirect(ctx.deps, ctx.release.id, ctx.production.id)
     expect(launched.state).toBe('healthy')
+    await ctx.app.close()
+  })
+})
+
+/** Deploy to STAGING through the route — which is what makes a release the candidate (§13). */
+async function stage(ctx: ProjectCtx, releaseId: string): Promise<{ state: string }> {
+  const staging = ctx.project.environments.find(
+    (e: { kind: string }) => e.kind === 'staging',
+  )
+  const res = await ctx.app.inject({
+    method: 'POST',
+    url: `/v1/environments/${staging.id}/deploy`,
+    payload: { releaseId },
+    cookies: ctx.cookies,
+    headers: mutationHeaders(ctx.deps),
+  })
+  expect(res.statusCode, res.body).toBe(200)
+  return res.json()
+}
+
+/** §13's checklist as a person reads it — the other half of every byte-identical assertion. */
+const readinessOf = (ctx: ProjectCtx) =>
+  ctx.app.inject({
+    method: 'GET',
+    url: `/v1/projects/${ctx.project.id}/launch-readiness`,
+    cookies: ctx.cookies,
+  })
+
+/** A production deploy through the ROUTE, by the stepped-up owner unless told otherwise. */
+const promote = (ctx: Released & { owner: Record<string, string> }, releaseId: string) =>
+  ctx.app.inject({
+    method: 'POST',
+    url: `/v1/environments/${ctx.production.id}/deploy`,
+    payload: { releaseId },
+    cookies: ctx.owner,
+    headers: mutationHeaders(ctx.deps),
+  })
+
+/** Which instance production serves, as a client reads it. */
+const servingProduction = async (ctx: Released): Promise<string | undefined> =>
+  (
+    await ctx.app.inject({
+      method: 'GET',
+      url: `/v1/environments/${ctx.production.id}`,
+      cookies: ctx.cookies,
+    })
+  ).json().instance?.id
+
+const approvalsOf = (ctx: ProjectCtx, releaseId: string) =>
+  ctx.deps.db.select().from(approvals).where(eq(approvals.releaseId, releaseId))
+
+type Item = { id: string; state: string; blocking: boolean; why: string; title: string }
+const itemOf = (view: { items: Item[] }, id: string): Item | undefined =>
+  view.items.find((i) => i.id === id)
+const unmetBlocking = (view: { items: Item[] }) =>
+  view.items.filter((i) => i.blocking && i.state !== 'met').map((i) => i.id)
+
+/**
+ * §13 D9.2 THROUGH THE ROUTE (P6b Task 6) — the gate's FIRST half, and the one a client meets.
+ * `deployRelease`'s half is the block above; P6a F8 measured the two as independent, and Task
+ * 6's controls (d) and (e) re-measure it.
+ *
+ * Every case asserts the DEPLOY's answer first and the VIEW second, so a red says what the
+ * route did before it says why; and every refusal asserts its CODE, because `409` is three
+ * refusals on this one route.
+ */
+describe('the gate for a launched app (D9.2, P6b Task 6)', () => {
+  /**
+   * **THE POSITIVE CONTROL, FIRST.** Every refusal below is true of the route P6a built, which
+   * asked an administrator for every production release. This is the one case that tells the
+   * two apart: an identical rebuild — a NEW release (P6a F3) — goes to production with NO
+   * administrator, through the route a person uses.
+   */
+  it('a launched app’s owner deploys an identical rebuild to production through the ROUTE, with no administrator', async () => {
+    const ctx = await launchedProject('g6-selfserve')
+    const rebuilt = await nextRelease(ctx)
+    expect((await stage(ctx, rebuilt.id)).state).toBe('healthy')
+    const read = (await readinessOf(ctx)).json()
+
+    const deployed = await promote(ctx, rebuilt.id)
+    expect(refusal(deployed)).toEqual({ status: 200, code: undefined })
+    expect(deployed.json()).toMatchObject({ releaseId: rebuilt.id, state: 'healthy' })
+    expect(await servingProduction(ctx)).toBe(deployed.json().id)
+    expect(await approvalsOf(ctx, rebuilt.id)).toEqual([])
+
+    expect(read).toMatchObject({
+      launched: true,
+      ready: true,
+      reescalated: false,
+      candidateReleaseId: rebuilt.id,
+      baselineReleaseId: ctx.release.id,
+      sensitiveFields: [],
+    })
+    // DECISION 2's LIST, BY ID AND IN ORDER: no `rehearsal` once launched — after a launch a
+    // rehearsal would put an unapproved release on the live listener (Decision 16).
+    expect(read.items.map((i: Item) => i.id)).toEqual([
+      'domain',
+      'iam-registration',
+      'privacy-assessment',
+      'scans',
+      'admin-approval',
+      'code-review',
+    ])
+    expect(itemOf(read, 'admin-approval')).toMatchObject({ state: 'met', blocking: true })
+    expect(itemOf(read, 'admin-approval')!.why).toContain('self-serve')
+    await ctx.app.close()
+  })
+
+  it('refuses a sensitive release: 409 RELEASE_REESCALATED, and the envelope’s checklist IS the read, byte for byte', async () => {
+    const ctx = await launchedProject('g6-reesc')
+    const added = await nextRelease(
+      ctx,
+      manifest('g6-reesc', ['egress:', '  allow: [x.example.org]']),
+    )
+    await stage(ctx, added.id)
+    const read = await readinessOf(ctx)
+
+    const refused = await promote(ctx, added.id)
+    expect(refusal(refused)).toEqual({ status: 409, code: 'RELEASE_REESCALATED' })
+    // P6a DECISION 2, KEPT: what a person reads and what refuses them are one computation.
+    expect(JSON.stringify(refused.json().error.launchReadiness)).toBe(
+      JSON.stringify(read.json()),
+    )
+    expect(read.json()).toMatchObject({
+      launched: true,
+      ready: false,
+      reescalated: true,
+      candidateReleaseId: added.id,
+      baselineReleaseId: ctx.release.id,
+      sensitiveFields: ['egress.allow'],
+    })
+    expect(unmetBlocking(read.json())).toEqual(['admin-approval'])
+    expect(itemOf(read.json(), 'admin-approval')!.why).toContain('egress.allow')
+    // And production still serves the launch — the refusal started nothing.
+    expect(await servingProduction(ctx)).toBe(ctx.launched.id)
+    expect(await instancesOf(ctx, added.id)).toHaveLength(1) // its staging instance only
+    await ctx.app.close()
+  })
+
+  it('deploys the sensitive release once an administrator has approved it', async () => {
+    const ctx = await launchedProject('g6-approved')
+    const added = await nextRelease(
+      ctx,
+      manifest('g6-approved', ['egress:', '  allow: [x.example.org]']),
+    )
+    await stage(ctx, added.id)
+    await decide(ctx, added.id, 'approve', 'the new destination is covered by the PIA')
+    const read = (await readinessOf(ctx)).json()
+
+    const deployed = await promote(ctx, added.id)
+    expect(refusal(deployed)).toEqual({ status: 200, code: undefined })
+    expect(deployed.json()).toMatchObject({ releaseId: added.id, state: 'healthy' })
+
+    expect(read).toMatchObject({
+      launched: true,
+      ready: true,
+      reescalated: false,
+      sensitiveFields: ['egress.allow'],
+    })
+    const item = itemOf(read, 'admin-approval')!
+    expect(item.state).toBe('met')
+    expect(item.why).toMatch(
+      /changes egress\.allow since the last approved release, and an administrator approved it on \d{4}-/,
+    )
+    await ctx.app.close()
+  })
+
+  /**
+   * **DECISION 8 — `[M8]` CLOSED.** The checklist describes the candidate; a deploy naming any
+   * other release is refused, carrying that checklist. R_old is approved and launched, and
+   * production serves it; the candidate R_new is a self-serve rebuild serving staging.
+   */
+  it('refuses a release that is not the one serving staging: 409 RELEASE_NOT_STAGED, with the view', async () => {
+    const ctx = await launchedProject('g6-notstaged')
+    const candidate = await nextRelease(ctx)
+    await stage(ctx, candidate.id)
+    const read = await readinessOf(ctx)
+    const before = (await instancesOf(ctx, ctx.release.id)).length
+
+    const refused = await promote(ctx, ctx.release.id)
+    expect(refusal(refused)).toEqual({ status: 409, code: 'RELEASE_NOT_STAGED' })
+    expect(JSON.stringify(refused.json().error.launchReadiness)).toBe(
+      JSON.stringify(read.json()),
+    )
+    // THE CHECKLIST IS SATISFIED — for the candidate. That is the only way this code appears.
+    expect(read.json()).toMatchObject({ ready: true, candidateReleaseId: candidate.id })
+    expect((await instancesOf(ctx, ctx.release.id)).length).toBe(before)
+    expect(await servingProduction(ctx)).toBe(ctx.launched.id)
+    await ctx.app.close()
+  })
+
+  /**
+   * **REVIEW FOCUS 3 THROUGH THE ROUTE, AND SITTING 3's F9.** The launch release redeployed:
+   * it is still serving staging, so it is the candidate; the release in hand is excluded
+   * from its own baseline, so the rule reads `no-baseline` with `fields: []`, and its OWN
+   * approval covers it. The `admin-approval` item must say that in words — the plan's snippet
+   * printed *"This release changes , and an administrator approved it"* here.
+   */
+  it('redeploys the launch release through the route: covered by its own approval, worded for it, no second launch', async () => {
+    const ctx = await launchedProject('g6-redeploy')
+    const at = await launchedAt(ctx.deps.db, ctx.project.id)
+    const read = (await readinessOf(ctx)).json()
+
+    const again = await promote(ctx, ctx.release.id)
+    expect(refusal(again)).toEqual({ status: 200, code: undefined })
+    expect(again.json()).toMatchObject({ releaseId: ctx.release.id, state: 'healthy' })
+    expect(await launchedAt(ctx.deps.db, ctx.project.id)).toEqual(at)
+
+    expect(read).toMatchObject({
+      launched: true,
+      ready: true,
+      reescalated: false,
+      candidateReleaseId: ctx.release.id,
+      baselineReleaseId: null,
+      sensitiveFields: [],
+    })
+    const item = itemOf(read, 'admin-approval')!
+    expect(item.state).toBe('met')
+    expect(item.why).not.toMatch(/changes\s*,/)
+    expect(item.why).toContain('approved')
+    await ctx.app.close()
+  })
+
+  /**
+   * **REVIEW FOCUS 2**: a launched app whose staging serves NOTHING is refused because nothing
+   * serves staging — never for a first-launch reason. Never staged at all here, which needs
+   * `launched_at` written by hand: a launch needs a candidate, so no route reaches this state.
+   */
+  it('a launched app with NOTHING serving staging is refused for that reason, not a first-launch one', async () => {
+    const ctx = await releasedProject('g6-empty')
+    await ctx.deps.db
+      .update(projects)
+      .set({ launchedAt: new Date() })
+      .where(eq(projects.id, ctx.project.id))
+    const owner = await loginAs(ctx.deps, 'bio_prof', { steppedUp: true })
+
+    const refused = await promote({ ...ctx, owner }, ctx.release.id)
+    expect(refusal(refused)).toEqual({
+      status: 409,
+      code: 'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
+    })
+    const view = refused.json().error.launchReadiness
+    expect(view).toMatchObject({
+      launched: true,
+      reescalated: false,
+      candidateReleaseId: null,
+    })
+    expect(itemOf(view, 'scans')).toMatchObject({ state: 'unmet' })
+    expect(itemOf(view, 'scans')!.why).toContain('Nothing is serving in staging')
+    expect(itemOf(view, 'rehearsal')).toBeUndefined()
+    await ctx.app.close()
+  })
+
+  /**
+   * **REVIEW FOCUS 2's OTHER HALF — "A FAILED INSTANCE".** A staging whose only deploy FAILED
+   * serves nothing: the failed instance has no Route record, and `servingInstanceOf` falls
+   * back to the newest instance of ANY state for apps deployed before P4c. The candidate must
+   * not be a release that never served staging (§13: *production runs exactly what staging
+   * ran*).
+   */
+  it('a staging whose only deploy FAILED has no candidate: the failed release is not what staging ran', async () => {
+    const ctx = await projectFor('bio_prof', 'g6-failed')
+    const failing = await nextRelease(
+      ctx,
+      manifest('g6-failed').map((l) =>
+        l === '  health: /healthz' ? `  health: ${FAKE_NEVER_READY_PATH}` : l,
+      ),
+    )
+    expect((await stage(ctx, failing.id)).state).toBe('failed')
+
+    const view = (await readinessOf(ctx)).json()
+    expect(view.candidateReleaseId).toBeNull()
+    expect(itemOf(view, 'scans')!.why).toContain('Nothing is serving in staging')
+    await ctx.app.close()
+  })
+
+  /** **REVIEW FOCUS 4 — Decision 7.** An approval cannot fix a rejection already made. */
+  it('a rejected, non-sensitive release: 409 RELEASE_PRODUCTION_GATE_UNAVAILABLE — an approval cannot fix a rejection', async () => {
+    const ctx = await launchedProject('g6-rej')
+    const rebuilt = await nextRelease(ctx)
+    await stage(ctx, rebuilt.id)
+    await decide(ctx, rebuilt.id, 'reject', 'not this week — the term starts Monday')
+
+    const refused = await promote(ctx, rebuilt.id)
+    expect(refusal(refused)).toEqual({
+      status: 409,
+      code: 'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
+    })
+    const view = refused.json().error.launchReadiness
+    expect(view).toMatchObject({
+      launched: true,
+      reescalated: false,
+      sensitiveFields: [],
+    })
+    expect(itemOf(view, 'admin-approval')).toMatchObject({ state: 'unmet' })
+    expect(itemOf(view, 'admin-approval')!.why).toContain(
+      'not this week — the term starts Monday',
+    )
+    expect(await servingProduction(ctx)).toBe(ctx.launched.id)
+    await ctx.app.close()
+  })
+
+  /**
+   * **NOT `RELEASE_REESCALATED`**, though a sensitive field changed: that code sends a client
+   * to ask an administrator, and this one has already said no. *(The plan's self-review
+   * caught an earlier draft keying the code on `sensitiveFields` alone — control (g).)*
+   */
+  it('a rejected SENSITIVE release: RELEASE_PRODUCTION_GATE_UNAVAILABLE too, not RELEASE_REESCALATED — reescalated false', async () => {
+    const ctx = await launchedProject('g6-rejsens')
+    const added = await nextRelease(
+      ctx,
+      manifest('g6-rejsens', ['egress:', '  allow: [x.example.org]']),
+    )
+    await stage(ctx, added.id)
+    await decide(ctx, added.id, 'reject', 'that destination is not in the PIA')
+
+    const refused = await promote(ctx, added.id)
+    expect(refusal(refused)).toEqual({
+      status: 409,
+      code: 'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
+    })
+    expect(refused.json().error.launchReadiness).toMatchObject({
+      launched: true,
+      reescalated: false,
+      sensitiveFields: ['egress.allow'],
+    })
+    await ctx.app.close()
+  })
+
+  /**
+   * **REVIEW FOCUS 5.** Self-serve means no ADMINISTRATOR, not no person (*Read this first*
+   * 15): an agent's production promotion is still D24's question, which the owner answers
+   * stepped up — and then it deploys with no approval anywhere.
+   */
+  it('an agent’s self-serve promotion is still a question a person answers (D24), and then needs no administrator', async () => {
+    const ctx = await launchedProject('g6-agent')
+    const rebuilt = await nextRelease(ctx)
+    await stage(ctx, rebuilt.id)
+    const owner = await ensureTestUser(ctx.deps.db, 'bio_prof')
+    // A token the way a REAL one is minted: WITHOUT the privileged `release:promote`.
+    const { plaintext } = await mintTestToken(ctx.deps.db, {
+      userId: owner.id,
+      projectId: ctx.project.id,
+      capabilities: ['release:deploy'],
+    })
+    const ask = () =>
+      ctx.app.inject({
+        method: 'POST',
+        url: `/v1/environments/${ctx.production.id}/deploy`,
+        payload: { releaseId: rebuilt.id },
+        headers: {
+          authorization: `Bearer ${plaintext}`,
+          'idempotency-key': 'g'.repeat(12),
+        },
+      })
+
+    const asked = await ask()
+    expect(refusal(asked)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+    const confirmed = await ctx.app.inject({
+      method: 'POST',
+      url: `/v1/pending-actions/${asked.json().error.pendingAction.id}/confirm`,
+      cookies: ctx.owner,
+      headers: mutationHeaders(ctx.deps),
+    })
+    expect(refusal(confirmed)).toEqual({ status: 200, code: undefined })
+
+    const retried = await ask()
+    expect(refusal(retried)).toEqual({ status: 200, code: undefined })
+    expect(retried.json()).toMatchObject({ releaseId: rebuilt.id, state: 'healthy' })
+    expect(await approvalsOf(ctx, rebuilt.id)).toEqual([])
+    await ctx.app.close()
+  })
+
+  it('an unlaunched project’s view is P6a’s, unchanged: launched false, reescalated false, baselineReleaseId null, sensitiveFields []', async () => {
+    const ctx = await approvedProject('g6-first')
+    const view = (await readinessOf(ctx)).json()
+    expect(view).toMatchObject({
+      launched: false,
+      ready: true,
+      reescalated: false,
+      baselineReleaseId: null,
+      sensitiveFields: [],
+      candidateReleaseId: ctx.release.id,
+    })
+    expect(view.items.map((i: Item) => i.id)).toEqual([
+      'domain',
+      'iam-registration',
+      'privacy-assessment',
+      'rehearsal',
+      'scans',
+      'admin-approval',
+      'code-review',
+    ])
+    expect(itemOf(view, 'admin-approval')!.title).toBe(
+      'Release approved by a platform administrator',
+    )
     await ctx.app.close()
   })
 })

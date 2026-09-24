@@ -212,6 +212,21 @@ function checklist(
 }
 
 /**
+ * The gate's hint BY CODE (P6b Task 6, *Read this first* 17): the three refusals have three
+ * different remedies, and P6a's fixed *"multi-week lead times"* is right only for a first
+ * launch — a re-escalation waits on one administrator, not on UBC.
+ */
+function gateHint(error: ProductionGateError): string {
+  if (error.code === 'RELEASE_REESCALATED')
+    return 'This release changes a sensitive field (§7) since the last approved release, so an administrator must approve it (D9): they preview what changed and approve it. Deploy again once they have.'
+  if (error.code === 'RELEASE_NOT_STAGED')
+    return 'Production runs exactly what staging ran (§13). Deploy this release to staging first, or deploy the release that is serving staging.'
+  return error.launchReadiness.launched
+    ? 'The unmet items say what to do; none of them is an administrator’s approval alone.'
+    : 'These items have multi-week lead times and are tracked from project creation.'
+}
+
+/**
  * The pending action, THROUGH ITS REPRESENTATION — for the reason `checklist` above is,
  * and the reason every success body is (Decision 2): zod emits an object's keys in SCHEMA
  * order, so the copy `GET /v1/projects/{id}/pending-actions` answers (Task 8) and the copy
@@ -467,7 +482,7 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
         error: {
           code: error.code,
           message: error.message,
-          hint: 'These items have multi-week lead times and are tracked from project creation.',
+          hint: gateHint(error),
           ...checklist(error.launchReadiness),
         },
       },

@@ -126,7 +126,20 @@ export const ERROR_CODES = {
     // directions — so a stale family here is a red gate.
     families: ['ProductionGateError'],
     summary:
-      'A first production launch is a checklist (§13, D19); the body carries LaunchReadiness.',
+      'A blocking item an approval alone cannot fix is unmet — a first launch’s checklist (§13, D19), or a launched app’s (D9.2), a rejected release included; the body carries LaunchReadiness.',
+  },
+  RELEASE_REESCALATED: {
+    status: 409,
+    // P6b Task 6 (Decision 9): thrown by `assertLaunchable` as a LITERAL, beside the code above.
+    families: ['ProductionGateError'],
+    summary:
+      'A launched app’s release changes a sensitive field (§7) since the last approved release, and only an administrator’s approval is missing (§13 D9.2); the body carries LaunchReadiness.',
+  },
+  RELEASE_NOT_STAGED: {
+    status: 409,
+    families: ['ProductionGateError'],
+    summary:
+      'Production deploys only the release serving staging — production runs exactly what staging ran (§13); the body carries the LaunchReadiness of the one that is.',
   },
 
   // projects/authz.ts

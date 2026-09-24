@@ -135,8 +135,12 @@ describe('the error-code registry (§20, D23.7)', () => {
       ProductionGateError: (c) =>
         new ProductionGateError(c, {
           projectId: '00000000-0000-0000-0000-000000000000',
+          launched: false,
           ready: false,
           candidateReleaseId: null,
+          baselineReleaseId: null,
+          sensitiveFields: [],
+          reescalated: false,
           items: [],
         }),
     }

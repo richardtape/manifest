@@ -511,10 +511,10 @@ describe('the code-review item — R4’s seam, NON-blocking (D33, Decision 13)'
 describe('the gate that BLOCKS (§13, D9.1, P6a Task 7)', () => {
   it('refuses with the SAME view the read answers, as one object', async () => {
     await withProject(async (tx, { projectId, ownerId }) => {
-      await serving(tx, projectId, ownerId, scan(1, false))
+      const releaseId = await serving(tx, projectId, ownerId, scan(1, false))
       const view = await computeLaunchReadiness(tx, projectId)
       expect(view.ready).toBe(false)
-      const thrown = await assertLaunchable(tx, projectId).then(
+      const thrown = await assertLaunchable(tx, projectId, releaseId).then(
         () => undefined,
         (e: unknown) => e,
       )
@@ -539,10 +539,10 @@ describe('the gate that BLOCKS (§13, D9.1, P6a Task 7)', () => {
    */
   it('refuses on `ready` alone, and the refusal carries the items that say why', async () => {
     await withProject(async (tx, { projectId, ownerId }) => {
-      await serving(tx, projectId, ownerId, scan(1, false))
+      const releaseId = await serving(tx, projectId, ownerId, scan(1, false))
       await recordIam(tx, projectId, ownerId, 'active', 'IAM-4471')
       await recordPia(tx, projectId, ownerId, 'approved', 'K. Lam', new Date())
-      const gate = (await assertLaunchable(tx, projectId).then(
+      const gate = (await assertLaunchable(tx, projectId, releaseId).then(
         () => undefined,
         (e: unknown) => e,
       )) as ProductionGateError

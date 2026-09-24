@@ -365,7 +365,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Deploy a release to an environment',
     description:
-      '§22 step 5. Answers once the new instance serves, or once it has failed with an Incident — a failed deploy is a 200 whose state is `failed` (R3, §14). The previous instance keeps serving until the new one is proved, and drains in the background. Up to ~90 s when a release never becomes ready. Production answers 409 with LaunchReadiness (§13).',
+      '§22 step 5. Answers once the new instance serves, or once it has failed with an Incident — a failed deploy is a 200 whose state is `failed` (R3, §14). The previous instance keeps serving until the new one is proved, and drains in the background. Up to ~90 s when a release never becomes ready. Production answers 409 with the checklist: a first launch’s, or — once launched — the self-serve check, re-escalated when a sensitive field changed (§13, D9). Production deploys only the release serving staging.',
     params: EnvironmentParams,
     query: NO_QUERY,
     body: DeployRequest,
@@ -381,6 +381,12 @@ export const releaseRoutes = [
       // step-up-guarded — so an ordinary admin session is refused here before the gate.
       'STEP_UP_REQUIRED',
       'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
+      // §13 D9.2 (P6b Task 6): a launched app's release changes a sensitive field and only
+      // an administrator's approval is missing — the one refusal whose remedy is to ask.
+      'RELEASE_REESCALATED',
+      // §13: production runs exactly what staging ran — a deploy naming any other release
+      // is refused, with the checklist of the one that IS serving staging (P6b Decision 8).
+      'RELEASE_NOT_STAGED',
       // §13's *Integrity of the gate*: the approval binds a digest and the deploy verifies
       // it before anything starts. A rebuild since the approval is refused with this.
       'RELEASE_DIGEST_NOT_APPROVED',
@@ -441,7 +447,7 @@ export const releaseRoutes = [
       // WHO may ask, this one is about whether the project is ready, and a collaborator is
       // refused without the project's readiness ever being consulted.
       if (environment.kind === 'production')
-        await assertLaunchable(deps.db, environment.projectId)
+        await assertLaunchable(deps.db, environment.projectId, body.releaseId)
       const instance = await deployRelease(
         deps.db,
         deps.driver,

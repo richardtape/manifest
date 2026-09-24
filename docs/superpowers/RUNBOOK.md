@@ -544,7 +544,11 @@ production `403 STEP_UP_REQUIRED`, and the checklist's unmet ids), **admin** (bo
 along §9's steps with an illegal jump refused, the rehearsal, and the approval refused
 `403 STEP_UP_REQUIRED`), and **launch** (a stepped-up owner refused `409
 RELEASE_PRODUCTION_GATE_UNAVAILABLE` naming only `admin-approval`, the approval, the production
-deploy, the app probed on BOTH addresses, the checklist `ready`, and a rebuild with no approval).
+deploy, the app probed on BOTH addresses, and the checklist read again — now a LAUNCHED app's,
+`ready`, with no `rehearsal` item and the launch release covered by its own approval). **Its step 10,
+a rebuild after the launch, was removed by P6b Task 6 (2026-09-23)**: a launched app's rebuild now goes
+to production self-serve, which is what P6b's acceptance, `make demo-releases`, will prove (its Task 11 —
+not built yet).
 
 **A step-up is a claim on the session cookie, and sessions are stateless** — so the cookie from
 before the step-up is still an ordinary session afterwards. The script keeps both for each person;
@@ -552,10 +556,9 @@ that is how one run proves the refusal and the approval.
 
 **What a green run prints that a wrong one would not**: the candidate digest; the unmet ids at step
 3 and step 9; the rehearsal's evidence line; the approval's digest, `summarySource` and review
-state; the production instance id beside the `X-Manifest-Instance` each address answered with; and
-whether the rebuild's digest is IDENTICAL to the approved one — **on this machine it always is**,
-because BuildKit pins layer timestamps to the commit (`source-date-epoch`), and the approval is
-still not carried over, because it belongs to a release.
+state; and the production instance id beside the `X-Manifest-Instance` each address answered with.
+*(A rebuild's digest is IDENTICAL to the approved one on this machine — BuildKit pins layer
+timestamps to the commit (`source-date-epoch`) — which step 10 printed until P6b removed it.)*
 
 **A second run RE-USES `launch-app`**, because no route deletes a project. It says `the RE-USE path`,
 and step 3's unmet set is then `[admin-approval]` — the records exist, and an earlier rehearsal of

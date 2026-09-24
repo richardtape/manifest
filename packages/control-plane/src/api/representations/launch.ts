@@ -6,6 +6,7 @@ import {
   type PrivacyAssessmentRow,
   type RehearsalRow,
 } from '../../launch/index.js'
+import { SENSITIVE_FIELDS } from '../../spec/index.js'
 import { representation, request, Uuid } from '../contract/schemas.js'
 
 export const LaunchReadinessItem = representation(
@@ -36,12 +37,31 @@ export const LaunchReadiness = representation(
   z
     .object({
       projectId: Uuid,
+      launched: z
+        .boolean()
+        .describe(
+          'Which of D9’s two clauses this is: false, the first launch’s checklist; true, a launched app’s, where a release goes to production self-serve unless it changes a sensitive field (§13).',
+        ),
       ready: z.boolean(),
       candidateReleaseId: Uuid.nullable(),
+      baselineReleaseId: Uuid.nullable().describe(
+        'The last approved release the candidate is compared with (D9.2); null before launch, or when nothing else is approved.',
+      ),
+      // `spec/`'s ONE list, not a restatement (the rule P6a Task 12 set for item ids).
+      sensitiveFields: z
+        .array(z.enum(SENSITIVE_FIELDS))
+        .describe(
+          '§7’s fields the candidate changes since that release; empty before launch.',
+        ),
+      reescalated: z
+        .boolean()
+        .describe(
+          'An administrator’s approval is what this release is waiting for — a sensitive change, not rejected, and nothing else unmet (§13 D9.2).',
+        ),
       items: z.array(LaunchReadinessItem),
     })
     .describe(
-      '§13’s first-launch checklist, computed from what exists. A production deploy is refused with this exact value until every blocking item is met.',
+      '§13’s checklist, computed from what exists — a first launch’s, or once launched the self-serve check (D9). A production deploy is refused with this exact value until every blocking item is met.',
     ),
 )
 

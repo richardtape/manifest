@@ -30,9 +30,9 @@ export const launchRoutes = [
     method: 'GET',
     path: '/v1/projects/{projectId}/launch-readiness',
     tag: 'launch',
-    summary: 'What a first production launch still needs',
+    summary: 'What a production release still needs',
     description:
-      '§13 and §22 step 7: the checklist, computed from what exists, surfaced from the moment a project exists. Read-only in Phase 1.',
+      '§13 and §22 step 7: the checklist, computed from what exists, surfaced from the moment a project exists — a first launch’s, or once launched the self-serve check, where only a sensitive change needs an administrator (D9). The production deploy is refused with this exact value until every blocking item is met.',
     params: z.strictObject({ projectId: z.uuid() }),
     query: NO_QUERY,
     body: NO_BODY,

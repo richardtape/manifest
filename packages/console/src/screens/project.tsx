@@ -78,6 +78,7 @@ export function Project({
             projectId={projectId}
             isAdmin={isAdmin}
             frames={stream.frames}
+            launchedAt={project.value?.launchedAt}
           />
           <SpecPanel api={api} projectId={projectId} />
           <Members api={api} projectId={projectId} />

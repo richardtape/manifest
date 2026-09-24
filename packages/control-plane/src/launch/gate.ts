@@ -23,14 +23,28 @@ export class ProductionGateError extends Error {
     readonly code: string,
     readonly launchReadiness: LaunchReadinessView,
   ) {
-    super('first production launch is a checklist, not a button (§13, D19)')
+    // THE MESSAGE BY CODE (P6b Task 6): P6a's sentence is about a first launch, and two of
+    // the three refusals are about a launched app. The code is what a client switches on;
+    // the message is what a person reads, so it must not describe the wrong clause of D9.
+    super(
+      code === 'RELEASE_REESCALATED'
+        ? 'this release changes a sensitive field since the last approved release, so it needs an administrator’s approval before production (§13, D9)'
+        : code === 'RELEASE_NOT_STAGED'
+          ? 'production runs exactly what staging ran, and this release is not the one serving staging (§13)'
+          : launchReadiness.launched
+            ? 'this release cannot go to production until the unmet items are met (§13)'
+            : 'first production launch is a checklist, not a button (§13, D19)',
+    )
     this.name = 'ProductionGateError'
   }
 }
 
 /**
- * §13's gate, and D9.1: *"First launch to production — requires the full `LaunchReadiness`
- * checklist."*
+ * §13's gate — D9.1, *"First launch to production — requires the full `LaunchReadiness`
+ * checklist"*, and since P6b Task 6 D9.2: once launched, a release is self-serve unless it
+ * changes a sensitive field, and then it RE-ESCALATES. Three refusals, each a literal code
+ * with its own remedy: fix an item (`RELEASE_PRODUCTION_GATE_UNAVAILABLE`), ask an
+ * administrator (`RELEASE_REESCALATED`), or deploy what staging runs (`RELEASE_NOT_STAGED`).
  *
  * **ONE FUNCTION, TWO CALLERS** (P6a Decision 2). `GET …/launch-readiness` renders the
  * view and this throws on it; both reach it through `computeLaunchReadiness`, so **the
@@ -50,9 +64,35 @@ export class ProductionGateError extends Error {
 export async function assertLaunchable(
   db: Db,
   projectId: string,
+  /** The release the deploy names — which must be the candidate the checklist describes. */
+  releaseId: string,
 ): Promise<LaunchReadinessView> {
   const view = await computeLaunchReadiness(db, projectId)
-  if (!view.ready)
+  if (!view.ready) {
+    const unmet = view.items
+      .filter((i) => i.blocking && i.state !== 'met')
+      .map((i) => i.id)
+    // RELEASE_REESCALATED ONLY WHEN AN APPROVAL IS THE ONE THING MISSING, AND AN APPROVAL
+    // WOULD FIX IT (P6b Decision 9) — a client switches on this code to go and ask an
+    // administrator, which is the wrong errand for a lapsed registration or a rejection.
+    // A LITERAL on each line: error-codes.test.ts finds a code only as the first argument of
+    // the constructor, written out, and nothing else (P6b *Read this first* 17). That scan
+    // reads COMMENTS too — naming the pattern here with a placeholder registered a code
+    // called `CODE` (sitting 4).
+    if (
+      view.launched &&
+      view.reescalated &&
+      unmet.length === 1 &&
+      unmet[0] === 'admin-approval'
+    )
+      throw new ProductionGateError('RELEASE_REESCALATED', view)
     throw new ProductionGateError('RELEASE_PRODUCTION_GATE_UNAVAILABLE', view)
+  }
+  // AFTER readiness (P6b Decision 8), so every refusal P6a built keeps its code: this one
+  // appears only when the checklist is satisfied FOR THE CANDIDATE and the request names some
+  // other release ([M8]). Production runs exactly what staging ran (§13) — so a rollback goes
+  // through staging, which is seconds.
+  if (view.candidateReleaseId !== releaseId)
+    throw new ProductionGateError('RELEASE_NOT_STAGED', view)
   return view
 }

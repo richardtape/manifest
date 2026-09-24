@@ -34,7 +34,13 @@ export async function candidateFor(
     .where(eq(environments.projectId, projectId))
     .then((rows) => rows.filter((e) => e.kind === 'staging'))
   const serving = staging === undefined ? undefined : await servingInstanceOf(db, staging)
-  if (serving === undefined) return undefined
+  // **HEALTHY, OR IT IS NOT SERVING** (P6b Task 6). `servingInstanceOf` falls back to the
+  // environment's NEWEST instance of ANY state when no Route record exists — its rule for
+  // apps deployed before P4c — so a staging whose only deploy FAILED answered with the
+  // failed release, and the checklist offered production a release that never served
+  // staging (measured: `candidateReleaseId` was the failed release). Nothing in Phase 1
+  // hibernates a staging instance, so `healthy` is the whole of "serving".
+  if (serving === undefined || serving.state !== 'healthy') return undefined
   const [row] = await db
     .select({ release: releases, build: builds })
     .from(releases)

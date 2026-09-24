@@ -39,12 +39,20 @@ export function Launch({
   projectId,
   isAdmin,
   frames,
+  launchedAt,
 }: {
   api: Api
   projectId: string
   isAdmin: boolean
   /** The screen's one stream, so the checklist is re-read when a deploy changes it. */
   frames: StreamFrame[]
+  /**
+   * WHEN it launched, from the project (P6b Task 6) — for the date only. WHETHER it has
+   * launched is the checklist's own `launched`, which is re-read on every deploy frame; the
+   * project is read once, so it can lag the launch that just happened, and then the date is
+   * simply not shown.
+   */
+  launchedAt: string | null | undefined
 }) {
   // D23.2, AS THE DEPLOY PANEL ABOVE DOES IT: re-read when a frame says it changed. The
   // candidate is "the release serving staging", which only a deploy can change — and until
@@ -62,6 +70,7 @@ export function Launch({
       {readiness.value !== undefined && (
         <Checklist
           readiness={readiness.value}
+          launchedAt={launchedAt}
           actions={{
             ...approvalAction(readiness.value, isAdmin),
             ...(isAdmin
@@ -142,13 +151,50 @@ function approvalAction(
 
 function Checklist({
   readiness,
+  launchedAt,
   actions,
 }: {
   readiness: Schemas['LaunchReadiness']
+  launchedAt: string | null | undefined
   actions: Partial<Record<LaunchItemId, React.ReactNode>>
 }) {
   return (
     <>
+      {/*
+        WHICH OF D9's TWO CLAUSES THIS IS (P6b Task 6). Before a launch, the first launch's
+        checklist; after it, a release goes to production with no administrator unless it
+        changes a sensitive field — and then the fields are named, because they are what the
+        administrator will be asked about.
+      */}
+      <Field label="Launched">
+        {readiness.launched ? (
+          <>
+            <Pill tone="good">yes</Pill>
+            {launchedAt ? (
+              <>
+                {' '}
+                <Instant at={launchedAt} />
+              </>
+            ) : null}{' '}
+            <span className="hint">
+              — releases go to production without an administrator unless they change a
+              sensitive field (D9)
+            </span>
+          </>
+        ) : (
+          <span className="hint">
+            not yet — a first launch needs every blocking item below (D9)
+          </span>
+        )}
+      </Field>
+      {readiness.sensitiveFields.length > 0 && (
+        <Field label="Sensitive fields changed">
+          {readiness.sensitiveFields.map((f) => (
+            <code key={f}>{f} </code>
+          ))}
+          <span className="hint">since the last approved release</span>
+        </Field>
+      )}
       <Field label="Ready for production">
         <Pill tone={readiness.ready ? 'good' : 'plain'}>
           {readiness.ready ? 'yes' : 'not yet'}
@@ -181,6 +227,15 @@ function Checklist({
         ten minutes — the refusal carries the link that does it (§20) — and then{' '}
         <code>409 RELEASE_PRODUCTION_GATE_UNAVAILABLE</code> until every blocking item is
         met, which is the refusal that carries this same checklist.
+        {readiness.launched && (
+          <>
+            {' '}
+            Once launched, a sensitive change is refused{' '}
+            <code>409 RELEASE_REESCALATED</code> until an administrator approves it, and a
+            release that is not the one serving staging{' '}
+            <code>409 RELEASE_NOT_STAGED</code>.
+          </>
+        )}
       </p>
       <ReadinessItems items={readiness.items} actions={actions} />
     </>

@@ -2,10 +2,14 @@ import { eq } from 'drizzle-orm'
 import { STALENESS_THRESHOLD_DAYS } from '../build/index.js'
 import { builds, environments, projects, releases, type Db } from '../db/index.js'
 import type { StoredAudience } from '../projects/index.js'
-import { approvalCoversDigest, latestApprovalFor } from '../releases/index.js'
+import {
+  approvalCoversDigest,
+  latestApprovalFor,
+  productionApprovalFor,
+} from '../releases/index.js'
 import type { ScanSummary } from '../runtime/index.js'
-import { unregisteredAttributes } from '../spec/index.js'
-import { candidateFor } from './candidate.js'
+import { unregisteredAttributes, type SensitiveField } from '../spec/index.js'
+import { candidateFor, type LaunchCandidate } from './candidate.js'
 import { getIamRegistration, getPrivacyAssessment } from './records.js'
 import { rehearsalItem } from './rehearsal.js'
 
@@ -47,10 +51,27 @@ export interface LaunchItem {
 
 export interface LaunchReadinessView {
   projectId: string
-  /** True only when every blocking item is met — so false throughout Phase 1, honestly. */
+  /** P6b: which of D9's two clauses this view is — the first launch's checklist, or a launched app's. */
+  launched: boolean
+  /** True only when every blocking item is met. */
   ready: boolean
   /** The release a launch would promote: the one serving staging (§13 — promotion never rebuilds). */
   candidateReleaseId: string | null
+  /** The last approved release the candidate is diffed against (D9.2); null before launch. */
+  baselineReleaseId: string | null
+  /**
+   * §7's fields the candidate changes since that release, in `SENSITIVE_FIELDS` order; `[]`
+   * before launch. `SensitiveField[]`, not `string[]`: the representation is
+   * `z.enum(SENSITIVE_FIELDS)`, and the route returns this view as its body.
+   */
+  sensitiveFields: SensitiveField[]
+  /**
+   * True for the ONE refusal an administrator's approval FIXES: launched, an approval
+   * required (a sensitive change, or nothing approved to compare with), none covering the
+   * candidate, and NOT rejected. Derived once, from the same verdict as `admin-approval`,
+   * so the gate reads a fact rather than re-deciding one (P6b Decision 9).
+   */
+  reescalated: boolean
   items: LaunchItem[]
 }
 
@@ -74,11 +95,6 @@ export async function computeLaunchReadiness(
   // ONE DERIVATION OF *THE CANDIDATE*, shared with `rehearsal.ts` since P6a Task 14 — the
   // release serving staging, which is what a launch promotes (§13).
   const candidate = await candidateFor(db, projectId)
-  const [production] = await db
-    .select()
-    .from(environments)
-    .where(eq(environments.projectId, projectId))
-    .then((rows) => rows.filter((e) => e.kind === 'production'))
   const candidateAuth = candidate?.auth
   const provider = candidateAuth?.provider
   // No candidate means no answer yet, and the conservative answer is that it will need
@@ -86,16 +102,49 @@ export async function computeLaunchReadiness(
   // evidence is the expensive direction to be wrong in.
   const usesCwl = provider !== 'none'
   const audience = project?.audience as StoredAudience | null | undefined
+  const scans = scansItem(
+    candidate?.build.scan as ScanSummary | null | undefined,
+    candidate !== undefined,
+  )
 
+  /**
+   * **D9's SECOND CLAUSE (P6b Task 6, Decision 2)**: once an app has launched, a release goes
+   * to production self-serve unless it changes a sensitive field. Same function, same view,
+   * a different list — so the gate and the read still cannot disagree. `rehearsal` is gone:
+   * after a launch a rehearsal would put an unapproved release on the live listener, and it
+   * is refused outright (Decision 16). `admin-approval` reads Task 5's rule — the SAME
+   * verdict `deployRelease` reads.
+   */
+  if (project?.launchedAt != null) {
+    const approval = await releaseApprovalItem(db, candidate)
+    const items: LaunchItem[] = [
+      { ...DOMAIN_ITEM },
+      await iamItem(db, projectId, usesCwl, candidateAuth?.attributes ?? []),
+      await piaItem(db, projectId),
+      scans,
+      approval.item,
+      ...loadRehearsalItems(audience),
+      { ...CODE_REVIEW_ITEM },
+    ]
+    return {
+      projectId,
+      launched: true,
+      ready: readyOf(items),
+      candidateReleaseId: candidate?.release.id ?? null,
+      baselineReleaseId: approval.baselineReleaseId,
+      sensitiveFields: approval.sensitiveFields,
+      reescalated: approval.reescalated,
+      items,
+    }
+  }
+
+  const [production] = await db
+    .select()
+    .from(environments)
+    .where(eq(environments.projectId, projectId))
+    .then((rows) => rows.filter((e) => e.kind === 'production'))
   const items: LaunchItem[] = [
-    {
-      id: 'domain',
-      title: 'Where the app will live',
-      owner: 'project owner',
-      blocking: true,
-      state: 'met',
-      why: 'Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.',
-    },
+    { ...DOMAIN_ITEM },
     await iamItem(db, projectId, usesCwl, candidateAuth?.attributes ?? []),
     await piaItem(db, projectId),
     // D21, as R2 redefines it (P6a Task 14): met by the MEASUREMENT `runRehearsal` wrote,
@@ -107,24 +156,9 @@ export async function computeLaunchReadiness(
         ? undefined
         : { hostname: production.hostname, auth: candidate.auth },
     ),
-    scansItem(
-      candidate?.build.scan as ScanSummary | null | undefined,
-      candidate !== undefined,
-    ),
+    scans,
     await approvalItem(db, candidate),
-    ...(audience?.scale === 'large_course' || audience?.scale === 'public'
-      ? [
-          {
-            id: 'load-rehearsal' as const,
-            title: 'Load rehearsal passed',
-            owner: 'Manifest',
-            blocking: true,
-            state: 'not_built' as const,
-            builtBy: 'P9',
-            why: `An app for ${audience.scale === 'public' ? 'the public' : 'a large course'} is rehearsed against staging with production-shaped capacity before launch (§24).`,
-          },
-        ]
-      : []),
+    ...loadRehearsalItems(audience),
     // LAST, after every blocking item — including `load-rehearsal`, which is conditional —
     // so the checklist reads as the things that gate production followed by the one that
     // does not, and no blocking item's position depends on whether this one is present.
@@ -134,10 +168,40 @@ export async function computeLaunchReadiness(
 
   return {
     projectId,
+    launched: false,
     ready: readyOf(items),
     candidateReleaseId: candidate?.release.id ?? null,
+    baselineReleaseId: null,
+    sensitiveFields: [],
+    reescalated: false,
     items,
   }
+}
+
+/** §13's first item, ONE statement for both of D9's clauses. Always `met` today. */
+const DOMAIN_ITEM: LaunchItem = {
+  id: 'domain',
+  title: 'Where the app will live',
+  owner: 'project owner',
+  blocking: true,
+  state: 'met',
+  why: 'Canonical hostname only — no action. A custom domain is Phase 2 (§23), and for a CWL app it must be chosen before IAM registration, because the registration carries it.',
+}
+
+/** §24: a large-audience app is rehearsed under load before launch — P9 builds it. Both clauses. */
+function loadRehearsalItems(audience: StoredAudience | null | undefined): LaunchItem[] {
+  if (audience?.scale !== 'large_course' && audience?.scale !== 'public') return []
+  return [
+    {
+      id: 'load-rehearsal',
+      title: 'Load rehearsal passed',
+      owner: 'Manifest',
+      blocking: true,
+      state: 'not_built',
+      builtBy: 'P9',
+      why: `An app for ${audience.scale === 'public' ? 'the public' : 'a large course'} is rehearsed against staging with production-shaped capacity before launch (§24).`,
+    },
+  ]
 }
 
 /**
@@ -325,6 +389,106 @@ async function approvalItem(
     ...base,
     state: 'met',
     why: `Approved by an administrator on ${approval.decidedAt.toISOString().slice(0, 10)}, bound to image digest ${approval.imageDigest.slice(0, 19)}…`,
+  }
+}
+
+/**
+ * §13 D9.2's `admin-approval` for a LAUNCHED app (P6b Task 6), from Task 5's rule —
+ * `productionApprovalFor`, the SAME function `deployRelease` reads, so the view and the
+ * gate's second half cannot disagree either.
+ *
+ * It returns the item AND the three facts the view carries (`baselineReleaseId`,
+ * `sensitiveFields`, `reescalated`) from ONE verdict, so there is one derivation of each.
+ *
+ *  - `unmet` when nothing is serving staging: there is no release to promote.
+ *  - `unmet` when an administrator REJECTED the candidate, in their own words — and never
+ *    `reescalated`, because an approval cannot fix a rejection already made (Decision 7).
+ *  - `met`, self-serve, when no sensitive field changed since the last approved release.
+ *  - `met` when an approval covers the candidate's digest — worded for what it covers: a
+ *    sensitive change, or the release's OWN approval when nothing else is approved to
+ *    compare with (the launch release redeployed — sitting 3's F9).
+ *  - `unmet`, `reescalated`, otherwise.
+ */
+async function releaseApprovalItem(
+  db: Db,
+  candidate: LaunchCandidate | undefined,
+): Promise<{
+  item: LaunchItem
+  baselineReleaseId: string | null
+  sensitiveFields: SensitiveField[]
+  reescalated: boolean
+}> {
+  const base = {
+    id: 'admin-approval' as const,
+    title:
+      'Release approved by a platform administrator — only when a sensitive field changed (D9)',
+    owner: 'platform admin',
+    blocking: true,
+  }
+  if (candidate === undefined)
+    return {
+      item: {
+        ...base,
+        state: 'unmet',
+        why: 'Nothing is serving in staging yet, so there is no release to promote. Production runs exactly what staging ran (§13).',
+      },
+      baselineReleaseId: null,
+      sensitiveFields: [],
+      reescalated: false,
+    }
+  const v = await productionApprovalFor(
+    db,
+    candidate.release,
+    candidate.build.imageDigest ?? '',
+  )
+  const facts = {
+    baselineReleaseId: v.requirement.baselineReleaseId,
+    sensitiveFields: [...v.requirement.fields],
+    reescalated: v.requirement.required && !v.covered && !v.rejected,
+  }
+  const fields = v.requirement.fields.join(', ')
+  if (v.rejected)
+    return {
+      ...facts,
+      item: {
+        ...base,
+        state: 'unmet',
+        why: `An administrator did not approve this release: ${v.latest!.reason}. A rejection is final for this release (§13); build and release again.`,
+      },
+    }
+  if (!v.requirement.required)
+    return {
+      ...facts,
+      item: {
+        ...base,
+        state: 'met',
+        why: 'No sensitive field (§7) changed since the last approved release, so this release goes to production self-serve (D9). Its code is not reviewed: that is §13’s residual risk, and containment is its control (§20).',
+      },
+    }
+  if (v.covered) {
+    const on = `on ${v.latest!.decidedAt.toISOString().slice(0, 10)}, bound to ${v.latest!.imageDigest.slice(0, 19)}…`
+    return {
+      ...facts,
+      item: {
+        ...base,
+        state: 'met',
+        why:
+          v.requirement.fields.length > 0
+            ? `This release changes ${fields} since the last approved release, and an administrator approved it ${on}`
+            : `An administrator approved this release itself ${on} No other approved release exists to compare it with, so its own approval is what covers it (§13, D9).`,
+      },
+    }
+  }
+  return {
+    ...facts,
+    item: {
+      ...base,
+      state: 'unmet',
+      why:
+        v.requirement.reason === 'sensitive'
+          ? `This release changes ${fields} since the last approved release, so an administrator must approve it before it goes to production (§13, D9).`
+          : 'This app has launched, but no approved release exists to compare this one with — so it needs an administrator’s approval, and so will every release until one is approved (§13, D9).',
+    },
   }
 }
 

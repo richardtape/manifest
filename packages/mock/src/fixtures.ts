@@ -414,8 +414,14 @@ export const INCIDENTS: Schemas['IncidentList'] = {
  */
 export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
   projectId: PROJECT_ID,
+  // NOT LAUNCHED, like `PROJECT` (`launchedAt: null`): the first launch's checklist, so the
+  // three D9.2 fields read as P6b defines them before a launch (P6b Task 6).
+  launched: false,
   ready: false,
   candidateReleaseId: RELEASE_ID,
+  baselineReleaseId: null,
+  sensitiveFields: [],
+  reescalated: false,
   items: [
     {
       id: 'domain',
