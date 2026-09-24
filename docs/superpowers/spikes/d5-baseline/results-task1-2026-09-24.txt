@@ -1019,3 +1019,53 @@ mapping switched to qwen3.5:4b, NO reasoning_effort (negative control):   frames
 mapping with reasoning_effort: none:                                       frames 7, content 5, reasoning 0 (default-chat and default-chat-onprem)
 mapping with reasoning_effort: none, REQUEST sends reasoning_effort "low": frames 233, content 0, reasoning 231 — the request wins
 Docker tier after the switch: 200 passed in 31 files, 1090.5 s, ai-path "streams NON-EMPTY content" green (995 ms).
+--- the think:false PIN (Rich approved, 2026-09-24): both chat mappings carry `think: false` instead of `reasoning_effort: none` — 2026-09-24 15:41:51 PDT
+$ bash probes/think-pin.sh $SCRATCH default-chat
+default-chat, no reasoning parameter: frames 7, content 5, reasoning 0
+default-chat, request reasoning_effort "high": frames 7, content 5, reasoning 0
+default-chat, request reasoning_effort "low": frames 7, content 5, reasoning 0
+default-chat, request sends Ollama think:true: frames 236, content 0, reasoning 234
+$ bash probes/think-pin.sh $SCRATCH default-chat-onprem
+default-chat-onprem, no reasoning parameter: frames 7, content 5, reasoning 0
+default-chat-onprem, request reasoning_effort "high": frames 7, content 5, reasoning 0
+default-chat-onprem, request reasoning_effort "low": frames 7, content 5, reasoning 0
+default-chat-onprem, request sends Ollama think:true: frames 223, content 0, reasoning 221
+--- the -reasoning variants (Rich approved, 2026-09-24): same model, reasoning_effort: medium on the mapping — 2026-09-24 15:43:03 PDT
+$ bash probes/reasoning-variant.sh $SCRATCH default-chat-reasoning
+default-chat-reasoning, max_tokens 300: frames 221, content 0, reasoning 219, 8 s, answer: 
+default-chat-reasoning, no max_tokens: frames 3634, content 5, reasoning 3627, 129 s, answer: 12345
+default-chat-reasoning, max_tokens 300, request reasoning_effort "none": frames 7, content 5, reasoning 0, 1 s, answer: 12345
+$ bash probes/reasoning-variant.sh $SCRATCH default-chat-onprem-reasoning
+default-chat-onprem-reasoning, max_tokens 300: frames 233, content 0, reasoning 231, 8 s, answer: 
+default-chat-onprem-reasoning, no max_tokens: frames 458, content 5, reasoning 451, 17 s, answer: 1 2 3 4 5
+default-chat-onprem-reasoning, max_tokens 300, request reasoning_effort "none": frames 7, content 5, reasoning 0, 0 s, answer: 12345
+--- negative controls for 36c7e92's two tests — 2026-09-24 15:53:44 PDT
+=== control (a)
+22:      reasoning_effort: none 35:      reasoning_effort: none 53:      reasoning_effort: medium 63:      reasoning_effort: medium 
+  exit=1
+   ✓ streams NON-EMPTY content, which a thinking model does not 1074ms
+   × keeps the default names' thinking OFF even when a REQUEST asks for it 8915ms
+   ✓ the -reasoning names DO think — the difference the second name exists for 3022ms
+     → default-chat: a request's reasoning_effort turned thinking back on: expected 0 to be greater than 0
+AssertionError: default-chat: a request's reasoning_effort turned thinking back on: expected 0 to be greater than 0
+=== control (b)
+22:      think: false 35:      think: false 53:      think: false 63:      think: false 
+  exit=1
+   ✓ streams NON-EMPTY content, which a thinking model does not 327ms
+   ✓ keeps the default names' thinking OFF even when a REQUEST asks for it 501ms
+   × the -reasoning names DO think — the difference the second name exists for 252ms
+     → default-chat-reasoning: no reasoning frames — is it pinned off?: expected 0 to be greater than 0
+AssertionError: default-chat-reasoning: no reasoning frames — is it pinned off?: expected 0 to be greater than 0
+=== control (c)
+22:      think: false 35:      think: false 
+  exit=0
+   ✓ streams NON-EMPTY content, which a thinking model does not 336ms
+   ✓ keeps the default names' thinking OFF even when a REQUEST asks for it 556ms
+   ✓ the -reasoning names DO think — the difference the second name exists for 2976ms
+=== restored
+  config == HEAD
+22:      think: false 35:      think: false 53:      reasoning_effort: medium 63:      reasoning_effort: medium 
+  exit=0
+   ✓ streams NON-EMPTY content, which a thinking model does not 314ms
+   ✓ keeps the default names' thinking OFF even when a REQUEST asks for it 567ms
+   ✓ the -reasoning names DO think — the difference the second name exists for 3138ms

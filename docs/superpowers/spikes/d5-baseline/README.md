@@ -319,6 +319,13 @@ measurements, both in the results file under *[M15] ADDENDUM*:
 
 **Task 13 is rewritten for it** (the plan's Decisions 19 and 22).
 
+**Then the pin was made request-proof, and reasoning names were added** (Rich, the same afternoon). A request's own
+`reasoning_effort` overrode `reasoning_effort: none` (`"low"`: 0 content in 233). The default names now pin Ollama's
+`think: false`, which LiteLLM applies after mapping a request's `reasoning_effort`: `"high"` and `"low"` both answer, 5
+content frames and 0 reasoning (`probes/think-pin.sh`); a request sending Ollama's own `think: true` is the measured
+residual. `default-chat-reasoning` and `default-chat-onprem-reasoning` think (`probes/reasoning-variant.sh`: 300 tokens →
+empty; no limit → the answer after 17–129 s). The controls for the two new Docker tests are in the results file.
+
 ## `[M16]` — the seam's callers. **HOLDS EXACTLY.**
 
 `api/routes/builds.ts:107` and `releases/approval.ts:571` read `.path`; `api/routes/project-reads.ts:362`
