@@ -91,7 +91,10 @@ describe('CSRF by Origin (§20, P5a Task 4)', () => {
       cookies,
       headers: { origin: deps.config.sp.origin },
     })
-    expect(res.statusCode).toBe(204)
+    // 200 and where to go next since P6b's F10 was fixed (2026-09-24): this session was
+    // signed in-process with no IdP handle, so next is the console's home.
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({ redirectTo: '/' })
     expect(res.cookies.find((c) => c.name === 'manifest_session')?.value).toBe('')
     await app.close()
   })

@@ -48,17 +48,30 @@ describe('signOut asserts the shape of the answer (D23.7, §20)', () => {
     vi.restoreAllMocks()
   })
 
-  const answering = (status: number) => {
-    const fetchMock = vi.fn(async () => new Response(null, { status }))
+  const answering = (status: number, body: string | null = null) => {
+    const fetchMock = vi.fn(async () => new Response(body, { status }))
     globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch
     return fetchMock
   }
 
-  it('leaves for / when the route answered 204', async () => {
-    const fetchMock = answering(204)
+  /**
+   * P6b's F10, FIXED 2026-09-24: the route answers WHERE THE BROWSER GOES NEXT — the IdP's
+   * single logout, so CWL forgets the person too. Before, it answered 204 and the console
+   * went to `/`, and the next *Sign in with CWL* returned the previous person unasked.
+   */
+  it('leaves for the IdP’s single logout when the route names it', async () => {
+    const idp =
+      'https://idp.manifest.internal/module.php/saml/idp/singleLogout?SAMLRequest=x&SigAlg=y&Signature=z'
+    const fetchMock = answering(200, JSON.stringify({ redirectTo: idp }))
     await signOut()
     expect(fetchMock).toHaveBeenCalledWith('/auth/logout', { method: 'POST' })
-    expect(href, 'a 204 must still end the session AND leave the page').toBe('/')
+    expect(href, 'the IdP must be told, or CWL signs the same person back in').toBe(idp)
+  })
+
+  it('leaves for / when the route has no IdP session to end', async () => {
+    answering(200, JSON.stringify({ redirectTo: '/' }))
+    await signOut()
+    expect(href).toBe('/')
   })
 
   it.each([
@@ -69,7 +82,7 @@ describe('signOut asserts the shape of the answer (D23.7, §20)', () => {
     403, 500, 502,
   ])('refuses %i and does NOT leave the page', async (status) => {
     answering(status)
-    await expect(signOut()).rejects.toThrow(new RegExp(`answered ${status}, not 204`))
+    await expect(signOut()).rejects.toThrow(new RegExp(`answered ${status}, not 200`))
     expect(href, 'a refused sign-out must not look like a successful one').toBe(
       'unchanged',
     )
@@ -81,9 +94,24 @@ describe('signOut asserts the shape of the answer (D23.7, §20)', () => {
    * plane ended the session" are different claims — which is the whole reason this keys
    * on 204 rather than on `ok`.
    */
-  it('refuses a 200, which an `ok` check would have accepted', async () => {
-    answering(200)
-    await expect(signOut()).rejects.toThrow(/answered 200, not 204/)
+  it('refuses a 200 that is not the route’s answer — Vite’s index.html, which an `ok` check would accept', async () => {
+    answering(200, '<!doctype html><html></html>')
+    await expect(signOut()).rejects.toThrow(/did not say where to go next/)
+    expect(href).toBe('unchanged')
+  })
+
+  it.each([
+    ['204, the answer before F10 was fixed — Manifest’s session only', 204, null],
+    ['no redirectTo', 200, '{}'],
+    ['a javascript: URL', 200, JSON.stringify({ redirectTo: 'javascript:alert(1)' })],
+    [
+      'a protocol-relative URL',
+      200,
+      JSON.stringify({ redirectTo: '//evil.example.com/' }),
+    ],
+  ])('refuses %s', async (_name, status, body) => {
+    answering(status, body)
+    await expect(signOut()).rejects.toThrow()
     expect(href).toBe('unchanged')
   })
 })

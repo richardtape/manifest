@@ -27,11 +27,33 @@ export interface Session {
    * fix it.
    */
   steppedUpAt: number | null
+  /**
+   * THE IdP'S HANDLE ON THIS SIGN-IN — what a console sign-out quotes back to the IdP so
+   * it ends the session it holds, not only Manifest's (P6b F10, fixed 2026-09-24). Without
+   * it the IdP kept its session and the next *Sign in with CWL* returned the previous
+   * person with no password asked — on a shared lab machine, somebody else's session.
+   *
+   * Carried in the signed cookie because Phase 1 sessions have no server-side store (§20).
+   * None of it is a secret: a transient NameID and a SessionIndex identify a session to
+   * the IdP that issued them and authenticate nobody. `null` for a cookie an older build
+   * signed, whose sign-out then ends Manifest's session alone and says so by landing on `/`.
+   */
+  idp: IdpSessionHandle | null
+}
+
+/** The NameID and SessionIndex an assertion carried — SAML's name for a session at the IdP. */
+export interface IdpSessionHandle {
+  nameID: string
+  nameIDFormat: string
+  sessionIndex: string | null
+  nameQualifier: string | null
+  spNameQualifier: string | null
 }
 
 export function issueSession(
   user: { id: string; ubcCwlPuid: string; role: 'admin' | 'member' },
   now: number = Date.now(),
+  idp: IdpSessionHandle | null = null,
 ): Session {
   return {
     userId: user.id,
@@ -42,6 +64,28 @@ export function issueSession(
     // NEVER stepped up at sign-in. §20 asks for a SECOND round trip, and a sign-in that
     // counted as one would make `assertStepUp` a check on having a session at all.
     steppedUpAt: null,
+    idp,
+  }
+}
+
+/**
+ * A handle out of a signed cookie — VALIDATED, NOT TRUSTED, for `steppedUpAt`'s reason:
+ * the payload is signed, but an older build wrote no such field and a newer one could
+ * write anything. Anything that is not a handle becomes `null`, never a refusal.
+ */
+function readIdpHandle(value: unknown): IdpSessionHandle | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+  const v = value as Record<string, unknown>
+  const text = (x: unknown) => (typeof x === 'string' && x.length > 0 ? x : null)
+  const nameID = text(v.nameID)
+  const nameIDFormat = text(v.nameIDFormat)
+  if (nameID === null || nameIDFormat === null) return null
+  return {
+    nameID,
+    nameIDFormat,
+    sessionIndex: text(v.sessionIndex),
+    nameQualifier: text(v.nameQualifier),
+    spNameQualifier: text(v.spNameQualifier),
   }
 }
 
@@ -97,5 +141,5 @@ export function verifySession(
     typeof session.steppedUpAt === 'number' && Number.isFinite(session.steppedUpAt)
       ? session.steppedUpAt
       : null
-  return { ...session, steppedUpAt }
+  return { ...session, steppedUpAt, idp: readIdpHandle(session.idp) }
 }

@@ -8427,12 +8427,12 @@
     {
       "method": "POST",
       "path": "/auth/logout",
-      "why": "The console's own sign-out. Ends the browser's session; not a resource."
+      "why": "The console's own sign-out. Ends Manifest's session and answers where the browser goes next — the IdP's single logout, so the IdP's session ends too (P6b F10); not a resource."
     },
     {
       "method": "GET",
       "path": "/auth/logout",
-      "why": "The SLO URL registered beside the ACS (§9), reached by the IdP's HTTP-Redirect binding, which is a GET. Declared POST-only until P5c sitting 9 found that single logout therefore 404'd against Manifest's own SP."
+      "why": "The SLO URL registered beside the ACS (§9), reached by the IdP's HTTP-Redirect binding, which is a GET: the IdP's signed LogoutRequest, or its signed LogoutResponse to a console sign-out. Declared POST-only until P5c sitting 9 found that single logout therefore 404'd against Manifest's own SP."
     },
     {
       "method": "GET",

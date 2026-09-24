@@ -56,6 +56,19 @@ describe('manifest-mock refuses what the platform refuses', () => {
 
   const session = { cookie: 'manifest_session=mock-session' }
 
+  it('answers the console’s sign-out as the platform does: 200 and where to go next', async () => {
+    // The console's `signOut` refuses anything else — including the 204 the platform
+    // answered until P6b's F10 was fixed — so a mock still answering 204 would make
+    // *Sign out* fail against it while working against the platform.
+    const response = await fetch(`${origin}/auth/logout`, {
+      method: 'POST',
+      headers: session,
+    })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ redirectTo: '/' })
+    expect(response.headers.get('set-cookie')).toContain('manifest_session=;')
+  })
+
   it('answers a request with no credential 401 UNAUTHENTICATED', async () => {
     const response = await fetch(`${origin}/v1/me`)
     expect(response.status).toBe(401)

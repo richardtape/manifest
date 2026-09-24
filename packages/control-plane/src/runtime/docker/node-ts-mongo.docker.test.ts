@@ -6,7 +6,12 @@ import { afterAll, beforeAll, expect, it } from 'vitest'
 import type { Driver, ImageRef, ServiceHandle } from '../driver.js'
 import { instanceName, serviceName } from '../driver.js'
 import { mintSpKeypair, renderSpMetadata, type SpKeypair } from '../../sso/index.js'
-import { idpLogin, withRegisteredMetadata, type SamlSpHandle } from '../../sso/testing.js'
+import {
+  idpLogin,
+  idpSignInAndOut,
+  withRegisteredMetadata,
+  type SamlSpHandle,
+} from '../../sso/testing.js'
 import { INJECTED_FILE_PATHS, renderInjection } from '../../spec/index.js'
 import { appContainer, serviceContainer } from './names.js'
 import { describeDocker } from './docker-tier.js'
@@ -341,5 +346,40 @@ describeDocker('node-ts-mongo@1 builds, deploys and authenticates (Task 12)', ()
     // only when it has a store, and this one carries the person the IdP asserted.
     const after = await sessionsInDatabase()
     expect(after.signedIn).toBeGreaterThanOrEqual(1)
+  }, 600_000)
+
+  /**
+   * THE APP HALF OF SINGLE LOGOUT, against the real IdP and the real skeleton (2026-09-24).
+   *
+   * The row now asks the IdP to SIGN what it sends (`sign.logout`), and the skeleton's
+   * passport-saml checks a signature only when one is present — so the first signed
+   * LogoutRequest this app ever received is here, and an app that refused it would strand
+   * every *Sign out* half way through the IdP's round trip. Three people must forget the
+   * student: the app, the IdP, and nobody else's session in between.
+   */
+  it('signs a person out of the app AND the IdP, answering a SIGNED LogoutRequest', async () => {
+    const handle: SamlSpHandle = {
+      hostname: HOST,
+      idpBaseUrl: 'https://idp.manifest.internal',
+      row: { entityId: spEntity.entityId, acsUrl: spEntity.acsUrl, attributes: [] },
+      instance: INSTANCE,
+      stop: () => Promise.resolve(),
+    }
+    const out = await withRegisteredMetadata(
+      spEntity.entityId,
+      renderSpMetadata(spEntity, keypair),
+      () => idpSignInAndOut(handle, { user: 'student', password: 'student' }),
+    )
+    const trail = `hops:${out.hops}`
+
+    // The sign-in held, so what follows is a sign-out and not a sign-in that never happened.
+    expect(out.before, trail).toBe(200)
+    // THE IdP SIGNED ITS REQUEST TO THE APP, and the app answered it rather than refusing.
+    expect(out.signed, trail).toBe(true)
+    expect(out.last, trail).toBeLessThan(400)
+    expect(out.landed.startsWith(`https://${HOST}`), trail).toBe(true)
+    // The app forgot them, and so did the IdP.
+    expect(out.after, trail).toBe(401)
+    expect(out.idp, trail).toBe('form')
   }, 600_000)
 })

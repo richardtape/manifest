@@ -87,7 +87,8 @@ describe('the claim is VALIDATED on the way out of the cookie, not trusted', () 
   it('verifies a session cookie written before this field existed, and it is not stepped up', () => {
     // A cookie as an OLDER BUILD signed it: the payload with no `steppedUpAt` at all,
     // through the real signer, so the signature is genuine and only the shape is old.
-    const old: Omit<Session, 'steppedUpAt'> = {
+    // Nor an `idp` handle, which is younger still (P6b F10, 2026-09-24).
+    const old: Omit<Session, 'steppedUpAt' | 'idp'> = {
       userId: USER.id,
       puid: USER.ubcCwlPuid,
       role: 'member',

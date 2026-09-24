@@ -75,7 +75,12 @@ interface Res {
  */
 async function request(
   url: string,
-  init: { method?: string; cookie?: string; form?: Record<string, string> } = {},
+  init: {
+    method?: string
+    cookie?: string
+    form?: Record<string, string>
+    headers?: Record<string, string>
+  } = {},
 ): Promise<Res> {
   const target = new URL(url)
   const secure = target.protocol === 'https:'
@@ -87,6 +92,7 @@ async function request(
         method: init.method ?? 'GET',
         ...(secure ? { ca: CA } : {}),
         headers: {
+          ...(init.headers ?? {}),
           ...(init.cookie ? { cookie: init.cookie } : {}),
           ...(body
             ? {
@@ -348,6 +354,119 @@ describeDocker('Manifest’s own CWL login, against the real IdP', () => {
     })
     expect(me.status).toBe(200)
     expect(JSON.parse(me.body)).toMatchObject({ puid: 'ins000001', role: 'member' })
+  }, 300_000)
+
+  /**
+   * P6b's F10, AGAINST THE REAL IdP (fixed 2026-09-24): the console's *Sign out* ends the
+   * IdP's session, so the next *Sign in with CWL* in the same browser asks for a password.
+   *
+   * The unit tier proves the control plane SENDS a signed LogoutRequest naming the session
+   * and ACCEPTS only a signed answer. Two things only the real IdP can say: that it
+   * HONOURS the request — ends its session rather than ignoring a NameID it does not
+   * match — and that it SIGNS its answer now that the SP row carries `sign.logout`. A
+   * route that refuses unsigned answers, talking to an IdP that sends unsigned ones, would
+   * pass every unit test and strand every sign-out on a 400.
+   */
+  it('a console sign-out ends the IdP’s session too, so the next sign-in asks for a password', async () => {
+    const idpJar = cookieJar()
+
+    /** The three hops of a sign-in in the browser whose IdP cookies are `idpJar`. */
+    const signIn = async (user: string) => {
+      const appJar = cookieJar()
+      const login = await request(`${ORIGIN}/auth/login`)
+      appJar.take(login)
+      const form = await follow(login.location!, idpJar)
+      expect(form.body, 'expected the IdP’s login form').toMatch(/name="username"/)
+      const action = unescape(/<form[^>]*action="([^"]*)"/.exec(form.body)?.[1] ?? '')
+      const autosubmit = await follow(
+        action.startsWith('http') ? action : `${IDP}${action}`,
+        idpJar,
+        {
+          method: 'POST',
+          form: {
+            username: user,
+            password: user,
+            AuthState: unescape(attr(form.body, 'AuthState') ?? ''),
+          },
+        },
+      )
+      const callback = await request(`${ORIGIN}/auth/saml/callback`, {
+        method: 'POST',
+        cookie: `manifest_login=${appJar.get('manifest_login')}`,
+        form: {
+          SAMLResponse: unescape(attr(autosubmit.body, 'SAMLResponse') ?? ''),
+          RelayState: unescape(attr(autosubmit.body, 'RelayState') ?? ''),
+        },
+      })
+      expect(callback.status, callback.body).toBe(302)
+      appJar.take(callback)
+      return appJar
+    }
+
+    /** What the IdP answers a NEW sign-in in this browser: a form, or an assertion unasked. */
+    const nextSignIn = async (): Promise<'form' | 'assertion'> => {
+      const login = await request(`${ORIGIN}/auth/login`)
+      const page = await follow(login.location!, idpJar)
+      if (/name="username"/.test(page.body)) return 'form'
+      expect(
+        page.body,
+        `neither a form nor an assertion:
+${page.body.slice(0, 1500)}`,
+      ).toMatch(/name="SAMLResponse"/)
+      return 'assertion'
+    }
+
+    const appJar = await signIn('instructor')
+
+    // THE CONTROL THAT GIVES THE LAST LINE ITS MEANING: before signing out, the IdP answers
+    // a new sign-in with an assertion and no password — which is exactly F10, the state a
+    // Manifest-only sign-out used to leave behind. Without this, "a form appeared" could
+    // be a lost cookie jar rather than an ended session.
+    expect(await nextSignIn()).toBe('assertion')
+
+    // THE CONSOLE'S SIGN-OUT, as a browser sends it: the session and §20's Origin.
+    const out = await request(`${ORIGIN}/auth/logout`, {
+      method: 'POST',
+      cookie: `manifest_session=${appJar.get('manifest_session')}`,
+      headers: { origin: ORIGIN },
+    })
+    expect(out.status, out.body).toBe(200)
+    const { redirectTo } = JSON.parse(out.body) as { redirectTo: string }
+    expect(
+      redirectTo.startsWith(`${IDP}/module.php/saml/idp/singleLogout?`),
+      `the console's sign-out did not send the browser to the IdP (redirectTo: ${redirectTo}) — so the IdP keeps its session, which is F10`,
+    ).toBe(true)
+
+    // Through the IdP and back, hop by hop, each host with its own cookies — until the
+    // control plane lands the browser on `/`, which on 7189 is nobody's page.
+    let url = redirectTo
+    let answer: Res | undefined
+    const hops: string[] = []
+    for (let n = 0; n < 10; n++) {
+      hops.push(url)
+      const onIdp = url.startsWith(IDP)
+      answer = await request(url, onIdp ? { cookie: idpJar.header() } : {})
+      if (onIdp) idpJar.take(answer)
+      if (!answer.location || (!onIdp && answer.location === '/')) break
+      url = new URL(answer.location, url).toString()
+    }
+    const back = hops.find((h) => h.startsWith(`${ORIGIN}/auth/logout?`))
+    expect(
+      back,
+      `the IdP never answered at this SP’s SLO URL. Hops:\n${hops.join('\n')}`,
+    ).toBeDefined()
+    const backParams = new URL(back!).searchParams
+    expect(backParams.get('SAMLResponse')).toBeTruthy()
+    // THE IdP SIGNED IT — `sign.logout: true` on the row this control plane registered.
+    expect(
+      backParams.get('Signature'),
+      'the IdP’s LogoutResponse was not signed',
+    ).toBeTruthy()
+    expect(answer?.status, answer?.body).toBe(302)
+    expect(answer?.location).toBe('/')
+
+    // AND THE IdP FORGOT THEM: the next sign-in in this browser asks for a password.
+    expect(await nextSignIn()).toBe('form')
   }, 300_000)
 
   it('refuses an unsigned assertion, and does not crash on one', async () => {

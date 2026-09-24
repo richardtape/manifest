@@ -7,7 +7,8 @@
  *
  *   GET  /auth/login    a browser-mediated sign-in whose URL the Manifest IdP completes (§9)
  *   GET  /auth/step-up  §20's re-authentication, the same round trip with ForceAuthn (P6a)
- *   POST /auth/logout   the SLO URL registered beside the ACS (§9)
+ *   POST /auth/logout   the console's sign-out, which answers where to go next: the IdP's
+ *                       single logout, so CWL forgets the person too (P6b F10)
  *
  * Everything else the console does goes through `api.ts` and `@manifest/contract`.
  * `boundary.test.ts` asserts both halves of that sentence.
@@ -42,7 +43,14 @@ export function stepUpUrl(returnTo: string): string {
 }
 
 /**
- * Ends the session and reloads. `POST /auth/logout` is NOT exempt from §20's origin check —
+ * Ends the session — Manifest's AND the IdP's — and leaves the page. `POST /auth/logout`
+ * clears Manifest's session and answers `200 { redirectTo }`: the IdP's SingleLogoutService
+ * with a signed LogoutRequest, which ends CWL's session and comes back to `/`; or `/` itself
+ * for a session the IdP gave no handle for. Until 2026-09-24 it answered 204 and the console
+ * went to `/`, so the IdP kept its session and the next *Sign in with CWL* returned the
+ * previous person without asking for a password (P6b F10).
+ *
+ * `POST /auth/logout` is NOT exempt from §20's origin check —
  * only the SAML callback is — and a browser sends `Origin` itself, which is why the console
  * must be reached at `console.manifest.internal` and never at `127.0.0.1:7104`.
  *
@@ -54,14 +62,30 @@ export function stepUpUrl(returnTo: string): string {
  * `response.ok` would not be enough either. Measured 2026-09-18 at `127.0.0.1:7104`: the
  * console's own Vite server answers every GET under `/v1` with `index.html` and **200**, and
  * a POST under `/auth` with 404 — so an `ok` check calls a sign-out that never reached the
- * control plane a success. The route answers **204** and nothing else.
+ * control plane a success. The route answers **200 with a `redirectTo`** and nothing else —
+ * and the destination must be a same-origin path or an https URL, so an answer can never
+ * navigate to a `javascript:` URL or off to a protocol-relative host.
  */
 export async function signOut(): Promise<void> {
   const response = await fetch('/auth/logout', { method: 'POST' })
-  if (response.status !== 204) {
+  if (response.status !== 200) {
     throw new Error(
-      `sign-out was refused: POST /auth/logout answered ${response.status}, not 204`,
+      `sign-out was refused: POST /auth/logout answered ${response.status}, not 200`,
     )
   }
-  window.location.href = '/'
+  let redirectTo: unknown
+  try {
+    redirectTo = ((await response.json()) as { redirectTo?: unknown }).redirectTo
+  } catch {
+    redirectTo = undefined
+  }
+  if (
+    typeof redirectTo !== 'string' ||
+    !(/^\/(?!\/)/.test(redirectTo) || redirectTo.startsWith('https://'))
+  ) {
+    throw new Error(
+      'sign-out was refused: POST /auth/logout did not say where to go next, so the IdP may still hold the session',
+    )
+  }
+  window.location.href = redirectTo
 }

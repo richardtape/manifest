@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto'
-import { inflateRawSync } from 'node:zlib'
+import { randomUUID, sign as rsaSign } from 'node:crypto'
+import { deflateRawSync, inflateRawSync } from 'node:zlib'
 import { eq } from 'drizzle-orm'
 import { SignedXml } from 'xml-crypto'
 import type { Db } from '../db/index.js'
@@ -168,7 +168,40 @@ export interface TestIdp {
   certificatePem: string
   /** Signs a `SAMLResponse`, base64 as the POST binding carries it. */
   sign(input: AssertionInput): string
+  /**
+   * A LogoutRequest or LogoutResponse on SAML's HTTP-REDIRECT binding, as the RAW query
+   * string an IdP sends to an SP's SLO URL — `SAMLRequest|SAMLResponse=…&RelayState=…&
+   * SigAlg=…&Signature=…`.
+   *
+   * SIGNED BY HAND, with `node:crypto`, over the exact bytes the binding signs — not by
+   * node-saml, which is the library under test: a message node-saml produced would be one
+   * node-saml agrees with by construction. `unsigned` drops `SigAlg` and `Signature`, which
+   * is what SimpleSAMLphp v2.5.3.1 sent every SP until 2026-09-24 (no `sign.logout` on any
+   * row) and what node-saml 5.1.0 accepted.
+   */
+  redirect(input: RedirectInput): string
 }
+
+export type RedirectInput = {
+  /** The SP's SLO URL — the message's `Destination`. */
+  destination: string
+  relayState?: string
+  /** No `SigAlg`, no `Signature`. The control. */
+  unsigned?: boolean
+  /** Signs with this key instead of the IdP's. The wrong-key control. */
+  signWith?: { privateKeyPem: string }
+} & (
+  | {
+      kind: 'LogoutRequest'
+      nameID?: string
+      sessionIndex?: string
+    }
+  | {
+      kind: 'LogoutResponse'
+      /** The LogoutRequest this answers. Omitted is the missing-InResponseTo control. */
+      inResponseTo?: string
+    }
+)
 
 export interface AssertionInput {
   /** Who the assertion is FOR. A different value is the replay control. */
@@ -195,6 +228,11 @@ export interface AssertionInput {
    * SimpleSAMLphp's `validate.authnrequest`, now measured on the SP side too.
    */
   unsigned?: boolean
+  /**
+   * An `AuthnStatement` carrying this `SessionIndex` — what SimpleSAMLphp sends with every
+   * assertion, and what a LogoutRequest must quote back for the IdP to find the session.
+   */
+  sessionIndex?: string
 }
 
 const SAML_NS = {
@@ -268,6 +306,12 @@ export async function testSamlIdp(): Promise<TestIdp> {
         `<saml:Conditions NotBefore="${notBefore}" NotOnOrAfter="${notOnOrAfter}">` +
         `<saml:AudienceRestriction><saml:Audience>${input.audience}</saml:Audience>` +
         `</saml:AudienceRestriction></saml:Conditions>` +
+        (input.sessionIndex === undefined
+          ? ''
+          : `<saml:AuthnStatement AuthnInstant="${iso(now)}" SessionIndex="${input.sessionIndex}">` +
+            `<saml:AuthnContext><saml:AuthnContextClassRef>` +
+            `urn:oasis:names:tc:SAML:2.0:ac:classes:Password` +
+            `</saml:AuthnContextClassRef></saml:AuthnContext></saml:AuthnStatement>`) +
         `<saml:AttributeStatement>${attributes}</saml:AttributeStatement>` +
         `</saml:Assertion></samlp:Response>`
 
@@ -285,7 +329,54 @@ export async function testSamlIdp(): Promise<TestIdp> {
         'utf8',
       ).toString('base64')
     },
+    redirect: (input) => {
+      const now = new Date().toISOString()
+      const id = `_slo${randomUUID().replace(/-/g, '')}`
+      const head =
+        `xmlns:samlp="${SAML_NS.protocol}" xmlns:saml="${SAML_NS.assertion}" ` +
+        `ID="${id}" Version="2.0" IssueInstant="${now}" Destination="${input.destination}"`
+      const xml =
+        input.kind === 'LogoutRequest'
+          ? `<samlp:LogoutRequest ${head}>` +
+            `<saml:Issuer>${entityId}</saml:Issuer>` +
+            `<saml:NameID Format="${SP_NAME_ID_FORMAT}">${input.nameID ?? '_transientidp'}</saml:NameID>` +
+            (input.sessionIndex === undefined
+              ? ''
+              : `<samlp:SessionIndex>${input.sessionIndex}</samlp:SessionIndex>`) +
+            `</samlp:LogoutRequest>`
+          : `<samlp:LogoutResponse ${head}` +
+            (input.inResponseTo === undefined
+              ? ''
+              : ` InResponseTo="${input.inResponseTo}"`) +
+            `><saml:Issuer>${entityId}</saml:Issuer>` +
+            `<samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>` +
+            `</samlp:LogoutResponse>`
+      const param = input.kind === 'LogoutRequest' ? 'SAMLRequest' : 'SAMLResponse'
+      // Percent-encoded base64, as PHP's `urlencode` sends it: `+` → %2B, `/` → %2F.
+      let query = `${param}=${encodeURIComponent(deflateRawSync(Buffer.from(xml, 'utf8')).toString('base64'))}`
+      if (input.relayState !== undefined) {
+        query += `&RelayState=${encodeURIComponent(input.relayState)}`
+      }
+      if (input.unsigned) return query
+      // SAML Bindings §3.4.4.1: the signature is over `SAMLRequest=…&RelayState=…&SigAlg=…`,
+      // exactly as encoded on the wire.
+      query += `&SigAlg=${encodeURIComponent('http://www.w3.org/2001/04/xmldsig-more#rsa-sha256')}`
+      const signature = rsaSign(
+        'sha256',
+        Buffer.from(query, 'utf8'),
+        (input.signWith ?? keys).privateKeyPem,
+      ).toString('base64')
+      return `${query}&Signature=${encodeURIComponent(signature)}`
+    },
   }
+}
+
+/**
+ * The LogoutRequest ITSELF, as XML, out of the URL a console sign-out sends the browser to —
+ * the NameID and SessionIndex it names, and the `ID` a LogoutResponse must answer.
+ */
+export function logoutRequestXml(logoutUrl: string): string {
+  return authnRequestXml(logoutUrl)
 }
 
 /** One enveloped signature, placed after the element's own `Issuer`. */

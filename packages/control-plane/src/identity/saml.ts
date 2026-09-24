@@ -1,9 +1,11 @@
+import { inflateRawSync } from 'node:zlib'
 import { SAML, ValidateInResponseTo } from '@node-saml/node-saml'
 import { eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { users } from '../db/index.js'
 import { MANIFEST_IDP_PATHS } from '../spec/index.js'
 import { ATTRIBUTE_OIDS, SP_NAME_ID_FORMAT, type SpEntity } from '../sso/index.js'
+import type { IdpSessionHandle } from './session.js'
 
 /**
  * §9: *"Manifest itself is an SP. Its own users log in with CWL… Locally it uses
@@ -76,6 +78,11 @@ export interface SamlIdentity {
   ubcCwlPuid: string
   email: string
   displayName: string
+  /**
+   * The session the IdP now holds for this person, as the assertion named it — what a
+   * console sign-out quotes back (P6b F10). `null` only if the assertion carried no NameID.
+   */
+  idpSession: IdpSessionHandle | null
 }
 
 export interface SamlSp {
@@ -138,6 +145,54 @@ export interface SamlSp {
     query: Record<string, unknown>,
     originalQuery: string,
   ): Promise<string>
+  /**
+   * THE CONSOLE'S OWN SIGN-OUT, at the IdP (P6b F10, fixed 2026-09-24): a signed
+   * LogoutRequest naming the session the IdP holds, as the URL to send the browser to.
+   * The IdP ends its session — and every other SP's in it — and answers at this SP's
+   * SLO URL with a LogoutResponse, which `completeSpLogout` checks.
+   */
+  logoutUrl(session: IdpSessionHandle): Promise<string>
+  /**
+   * The IdP's LogoutResponse to a request `logoutUrl` made. Throws unless it is SIGNED,
+   * answers a request THIS process sent, and reports success. Nothing ends here — the
+   * session was cleared when the sign-out began — so all a forged one could do is land a
+   * browser on `/`; it is refused anyway, because a check that passes anything is not one.
+   */
+  completeSpLogout(query: Record<string, unknown>, originalQuery: string): Promise<void>
+}
+
+/**
+ * A redirect-binding logout message MUST carry a signature, and node-saml 5.1.0 does not
+ * require one: `hasValidSignatureForRedirect` checks a `Signature` that is present and
+ * returns `true` when there is none. SimpleSAMLphp v2.5.3.1 sent none, because nothing set
+ * `sign.logout` — so until 2026-09-24 an UNSIGNED LogoutRequest naming the IdP as Issuer
+ * ended any console session, from an `<img>` on any page. `renderSpMetadata` now asks the
+ * IdP to sign, and this refuses anything it did not.
+ */
+function requireRedirectSignature(query: Record<string, unknown>): void {
+  const present = (key: string) =>
+    typeof query[key] === 'string' && (query[key] as string).length > 0
+  if (!present('Signature') || !present('SigAlg')) {
+    throw new Error(
+      'the message carried no Signature — an unsigned logout message is refused, whoever it names as Issuer',
+    )
+  }
+}
+
+/**
+ * node-saml checks `InResponseTo` on a LogoutResponse only when one is PRESENT, so a
+ * response answering nothing would pass. Read off the message itself, before node-saml.
+ */
+function requireInResponseTo(samlResponse: string): void {
+  let xml: string
+  try {
+    xml = inflateRawSync(Buffer.from(samlResponse, 'base64')).toString('utf8')
+  } catch {
+    throw new Error('the LogoutResponse could not be inflated')
+  }
+  if (!/<(?:[\w-]+:)?LogoutResponse\b[^>]*\bInResponseTo="[^"]+"/.test(xml)) {
+    throw new Error('the LogoutResponse answers no request (no InResponseTo)')
+  }
 }
 
 /**
@@ -260,6 +315,7 @@ export function createSamlSp(config: SamlSpConfig): SamlSp {
     ): Promise<string> => {
       let profile
       try {
+        requireRedirectSignature(query)
         ;({ profile } = await saml.validateRedirectAsync(
           query as Parameters<typeof saml.validateRedirectAsync>[0],
           originalQuery,
@@ -282,6 +338,51 @@ export function createSamlSp(config: SamlSpConfig): SamlSp {
       // it is tearing down marked as still live at every other SP.
       const relayState = typeof query.RelayState === 'string' ? query.RelayState : ''
       return saml.getLogoutResponseUrlAsync(profile, relayState, {}, true)
+    },
+    logoutUrl: (session: IdpSessionHandle) =>
+      // SIGNED, because `privateKey` is set — the same `_requestToUrlAsync` that signs the
+      // AuthnRequest — and §9's `validate.logout: true` makes the IdP refuse it otherwise.
+      // The request's ID goes into this instance's InResponseTo cache, which is how
+      // `completeSpLogout` knows the answer is to a question this process asked.
+      saml.getLogoutUrlAsync(
+        {
+          issuer: config.entity.entityId,
+          nameID: session.nameID,
+          nameIDFormat: session.nameIDFormat,
+          ...(session.sessionIndex === null
+            ? {}
+            : { sessionIndex: session.sessionIndex }),
+          ...(session.nameQualifier === null
+            ? {}
+            : { nameQualifier: session.nameQualifier }),
+          ...(session.spNameQualifier === null
+            ? {}
+            : { spNameQualifier: session.spNameQualifier }),
+        },
+        '',
+        {},
+      ),
+    completeSpLogout: async (
+      query: Record<string, unknown>,
+      originalQuery: string,
+    ): Promise<void> => {
+      try {
+        requireRedirectSignature(query)
+        if (typeof query.SAMLResponse !== 'string') {
+          throw new Error('no SAMLResponse to check')
+        }
+        requireInResponseTo(query.SAMLResponse)
+        const { loggedOut } = await saml.validateRedirectAsync(
+          query as Parameters<typeof saml.validateRedirectAsync>[0],
+          originalQuery,
+        )
+        if (!loggedOut) throw new Error('the IdP did not report the session ended')
+      } catch (cause) {
+        // A plain Error, for `completeIdpLogout`'s reason: this is not a failed sign-in.
+        throw new Error(
+          `the logout response was refused: ${cause instanceof Error ? cause.message : String(cause)}`,
+        )
+      }
     },
     validate: (samlResponse: string) => validateWith(saml, samlResponse),
     validateStepUp: (samlResponse: string) => validateWith(stepUpSaml, samlResponse),
@@ -322,6 +423,10 @@ function toIdentity(profile: Record<string, unknown>): SamlIdentity {
   }
   const givenName = read('givenName')
   const sn = read('sn')
+  const text = (value: unknown) =>
+    typeof value === 'string' && value.length > 0 ? value : null
+  const nameID = text(profile.nameID)
+  const nameIDFormat = text(profile.nameIDFormat)
   return {
     ubcCwlPuid,
     email: read('mail') ?? '',
@@ -329,6 +434,16 @@ function toIdentity(profile: Record<string, unknown>): SamlIdentity {
     // NOT NULL and is what a member list shows, and a blank row there reads as
     // a broken database rather than as an IdP that released no name.
     displayName: [givenName, sn].filter(Boolean).join(' ') || ubcCwlPuid,
+    idpSession:
+      nameID === null || nameIDFormat === null
+        ? null
+        : {
+            nameID,
+            nameIDFormat,
+            sessionIndex: text(profile.sessionIndex),
+            nameQualifier: text(profile.nameQualifier),
+            spNameQualifier: text(profile.spNameQualifier),
+          },
   }
 }
 

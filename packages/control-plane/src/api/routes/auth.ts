@@ -215,7 +215,12 @@ export async function registerAuthRoutes(
         }
         reply.setCookie(
           SESSION_COOKIE,
-          signSession(stepUpSession(current), deps.config.sessionSecret),
+          // The IdP's NEWEST handle on this person: a sign-out quotes the session the IdP
+          // holds now, and the step-up's assertion is the most recent word on that.
+          signSession(
+            stepUpSession({ ...current, idp: identity.idpSession ?? current.idp }),
+            deps.config.sessionSecret,
+          ),
           // THE REMAINING LIFE, not a fresh twelve hours: re-signing carries `expiresAt`
           // through unchanged, so a browser cookie that outlived it would simply be
           // refused by `verifySession` — and a step-up that LOOKED like it extended a
@@ -272,7 +277,10 @@ export async function registerAuthRoutes(
       const user = await upsertUserFromAssertion(deps.db, identity)
       reply.setCookie(
         SESSION_COOKIE,
-        signSession(issueSession(user), deps.config.sessionSecret),
+        signSession(
+          issueSession(user, Date.now(), identity.idpSession),
+          deps.config.sessionSecret,
+        ),
         sessionCookie(SESSION_TTL_MS / 1000),
       )
       // The login cookie is spent: a second assertion cannot be bound with it.
@@ -323,12 +331,36 @@ export async function registerAuthRoutes(
       // failure that leaves no operator line hides the next one — and F11 was
       // invisible for exactly that reason, answering `404` with nobody watching.
       // A LogoutRequest carries no secret; the nameID is transient by §9's row.
+      const isResponse =
+        typeof query.SAMLResponse === 'string' && query.SAMLResponse.length > 0
       console.error(
-        `[auth] single logout: LogoutRequest ${typeof query.SAMLRequest === 'string' ? `arrived (${query.SAMLRequest.length} chars)` : 'ABSENT'}`,
+        isResponse
+          ? `[auth] single logout: LogoutResponse arrived (${(query.SAMLResponse as string).length} chars) — the IdP answering a console sign-out`
+          : `[auth] single logout: LogoutRequest ${typeof query.SAMLRequest === 'string' ? `arrived (${query.SAMLRequest.length} chars)` : 'ABSENT'}`,
       )
+
+      // THE IdP ANSWERING A CONSOLE SIGN-OUT (P6b F10). Manifest's session was cleared when
+      // the sign-out began, so nothing ends here: a verified answer lands on the console's
+      // home, and `/` is fixed rather than read from RelayState, so this is no redirector.
+      if (isResponse) {
+        try {
+          const originalQuery = (request.raw.url ?? '').split('?')[1] ?? ''
+          await deps.samlSp.completeSpLogout(rawQueryValues(originalQuery), originalQuery)
+        } catch (cause) {
+          console.error(
+            `[auth] single logout refused: ${cause instanceof Error ? cause.message : String(cause)}`,
+          )
+          return refusal(
+            'The IdP’s answer could not be verified. Manifest’s own session had already ended; the control plane’s log has the reason.',
+          )
+        }
+        console.error('[auth] single logout: the IdP confirmed the console sign-out')
+        return reply.redirect('/', 302)
+      }
+
       if (typeof query.SAMLRequest !== 'string' || query.SAMLRequest.length === 0) {
         return refusal(
-          'This is the SP’s single-logout endpoint, where the Manifest IdP delivers its LogoutRequest. A person signing out of the console uses POST /auth/logout.',
+          'This is the SP’s single-logout endpoint, where the Manifest IdP delivers its LogoutRequest or answers one. A person signing out of the console uses POST /auth/logout.',
         )
       }
 
@@ -368,12 +400,40 @@ export async function registerAuthRoutes(
     },
   )
 
+  /**
+   * THE CONSOLE'S SIGN-OUT, which now ends the IdP's session as well as Manifest's (P6b
+   * F10, fixed 2026-09-24). It answers WHERE THE BROWSER GOES NEXT rather than redirecting,
+   * because the console calls it with `fetch`, which would follow a redirect to the IdP
+   * cross-origin and fail: `redirectTo` is the IdP's SingleLogoutService with a signed
+   * LogoutRequest, or `/` for a session the IdP gave no handle for (an older cookie).
+   *
+   * STILL A POST BEHIND §20's ORIGIN CHECK, so no other page can fire it. And Manifest's
+   * session is cleared HERE, before the IdP is asked anything: a round trip that fails
+   * half way must not leave the person signed in to the console.
+   */
   app.post(
     '/auth/logout',
     { config: { idempotency: 'exempt' } },
-    async (_request, reply) => {
+    async (request, reply) => {
+      const session = verifySession(
+        request.cookies[SESSION_COOKIE] ?? '',
+        deps.config.sessionSecret,
+      )
       reply.clearCookie(SESSION_COOKIE, { path: '/' })
-      return reply.status(204).send()
+      if (session?.idp == null) {
+        if (session !== null) {
+          console.error(
+            `[auth] console sign-out for ${session.puid}: the session carries no IdP handle (an older cookie), so only Manifest's session ended`,
+          )
+        }
+        return reply.status(200).send({ redirectTo: '/' })
+      }
+      console.error(
+        `[auth] console sign-out for ${session.puid}: single logout sent to the IdP`,
+      )
+      return reply
+        .status(200)
+        .send({ redirectTo: await deps.samlSp.logoutUrl(session.idp) })
     },
   )
 }

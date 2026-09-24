@@ -408,10 +408,13 @@ export function createMockServer(options: MockOptions = {}): Server {
       return
     }
     if (url.pathname === '/auth/logout' && method === 'POST') {
-      response.writeHead(204, {
+      // The real route's answer (P6b F10): where the browser goes next. The mock has no IdP,
+      // so it is always the console's home.
+      response.writeHead(200, {
+        'content-type': 'application/json',
         'set-cookie': `${SESSION_COOKIE}=; Path=/; Max-Age=0`,
       })
-      response.end()
+      response.end(JSON.stringify({ redirectTo: '/' }))
       return
     }
 

@@ -460,6 +460,84 @@ attrs=$(printf '%s' "$me" | sed -n 's/^{"attributes":\(.*\)}$/\1/p')
 printf '{"status":%s,"body":%s,"attributes":%s}\n' "$code" "$(json_escape "$body")" "$attrs"
 `
 
+export interface SignOutResult {
+  /** The app's `/me` before signing out — 200 means the sign-in held. */
+  before: number
+  /** The app's `/me` after — 401 means the APP forgot the person. */
+  after: number
+  /** The last hop's status: an error page here is a sign-out stranded half way. */
+  last: number
+  /** Where the browser ended up. */
+  landed: string
+  /** Whether the IdP's LogoutRequest to the app carried a `Signature`. */
+  signed: boolean
+  /** What the IdP answers the NEXT sign-in: `form` means it forgot the person too. */
+  idp: 'form' | 'assertion'
+  /** Every hop, `status:url`, truncated — the only record when one strands. */
+  hops: string
+}
+
+/**
+ * AN APP'S SIGN-OUT, driven the way a browser drives it, from a container — the app half
+ * of single logout, which `make demo-identity`'s step 9 was the only thing to exercise
+ * until 2026-09-24.
+ *
+ * Why it exists now: `renderSpMetadata` asks the IdP to SIGN its logout messages
+ * (`sign.logout`), and the blueprint's passport-saml checks a signature only when one is
+ * present — so an app that had never been sent a signed LogoutRequest might refuse the
+ * first one it got, and every app's *Sign out* would strand on the IdP's round trip. The
+ * unit tier cannot see that; only the real IdP and the real skeleton can.
+ */
+export async function idpSignInAndOut(
+  sp: SamlSpHandle,
+  credentials: { user: string; password: string },
+): Promise<SignOutResult> {
+  const output = await runProbeContainer({
+    script: SIGN_OUT_SCRIPT,
+    env: {
+      APP: `https://${sp.hostname}`,
+      IDP: sp.idpBaseUrl,
+      USER: credentials.user,
+      PASS: credentials.password,
+    },
+  })
+  const line = output.trim().split('\n').at(-1) ?? '{}'
+  try {
+    return JSON.parse(line) as SignOutResult
+  } catch {
+    throw new Error(`the sign-out probe printed no JSON. Full output:\n${output}`)
+  }
+}
+
+const SIGN_OUT_SCRIPT =
+  SAML_LOGIN_HOPS +
+  String.raw`
+curl -sS --cacert /ca.crt -c $J -b $J --location-trusted -o /dev/null   --data-urlencode "SAMLResponse=$saml" "$APP/auth/ubcshib/callback"
+before=$(curl -sS --cacert /ca.crt -b $J -o /dev/null -w '%{http_code}' "$APP/me")
+
+# SIGN OUT, ONE HOP AT A TIME, so each hop is on the record: the app ends its session and
+# sends the browser to the IdP, the IdP sends the app its LogoutRequest, the app answers,
+# and the IdP returns the browser to the app.
+url="$APP/auth/logout"; hops=""; last=0; signed=false; i=0
+while [ $i -lt 12 ]; do
+  i=$((i + 1))
+  out=$(curl -sS --cacert /ca.crt -c $J -b $J -o /dev/null -w '%{http_code} %{redirect_url}' "$url")
+  # No shell $-brace expansion here: this is a JS template literal, where it interpolates.
+  last=$(printf '%s' "$out" | cut -d' ' -f1); next=$(printf '%s' "$out" | cut -s -d' ' -f2-)
+  case "$url" in
+    "$APP/auth/logout?SAMLRequest="*) case "$url" in *"&Signature="*) signed=true ;; esac ;;
+  esac
+  hops="$hops $last:$(printf '%s' "$url" | cut -c1-100)"
+  [ -n "$next" ] || break
+  url="$next"
+done
+after=$(curl -sS --cacert /ca.crt -b $J -o /dev/null -w '%{http_code}' "$APP/me")
+again=$(curl -sS --cacert /ca.crt -c $J -b $J -L "$APP/login")
+if echo "$again" | grep -q 'name="username"'; then idp=form; else idp=assertion; fi
+printf '{"before":%s,"after":%s,"last":%s,"landed":%s,"signed":%s,"idp":"%s","hops":%s}
+'   "$before" "$after" "$last" "$(json_escape "$url")" "$signed" "$idp" "$(json_escape "$hops")"
+`
+
 /** The image the probe runs in. Mirrored locally by `make seed`, so this is offline. */
 const PROBE_IMAGE = 'curlimages/curl:8.11.1'
 

@@ -99,6 +99,14 @@ describe('the control plane’s own Service Provider (§9)', () => {
     expect(row.attributes).toEqual(CONTROL_PLANE_ATTRIBUTES)
     expect(row['validate.authnrequest']).toBe(true)
     expect(row['saml20.sign.assertion']).toBe(true)
+    // The IdP SIGNS the logout messages it sends this SP (2026-09-24). SimpleSAMLphp
+    // v2.5.3.1's `addRedirectSign` signs a LogoutRequest or LogoutResponse only when
+    // `sign.logout` (or `redirect.sign`) is set on the hosted IdP or on this row, and
+    // neither was — so every one arrived unsigned, and node-saml 5.1.0 ACCEPTS an
+    // unsigned redirect message (`hasValidSignatureForRedirect` returns true with no
+    // `Signature` at all). The SLO route now refuses unsigned; this is its other half.
+    expect(row['sign.logout']).toBe(true)
+    expect(row['validate.logout']).toBe(true)
     // The base64 BODY, no PEM armour — armour in the row fails at signature
     // validation with a message about the certificate rather than its encoding.
     expect(row.certData).not.toContain('BEGIN CERTIFICATE')

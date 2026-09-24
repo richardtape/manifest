@@ -26,6 +26,7 @@ export interface SpMetadataRow {
   'saml20.sign.response': boolean
   'validate.authnrequest': boolean
   'validate.logout': boolean
+  'sign.logout': boolean
   certData: string
 }
 
@@ -85,6 +86,13 @@ export function renderSpMetadata(entity: SpEntity, keypair: SpKeypair): SpMetada
     // AuthnRequests costs nothing" — Manifest mints the keypair anyway.
     'validate.authnrequest': true,
     'validate.logout': true,
+    // AND THE IdP SIGNS WHAT IT SENDS BACK (2026-09-24). `validate.logout` only makes the
+    // IdP check the SP's messages; SimpleSAMLphp v2.5.3.1's `addRedirectSign` signs its own
+    // LogoutRequest and LogoutResponse only when `sign.logout` (or `redirect.sign`) is set
+    // here or on the hosted IdP, and neither was — so every one arrived unsigned, and
+    // node-saml accepted it. Manifest's SLO route now refuses an unsigned message; this is
+    // what lets a real one through. An app's SP gets it too, which costs an app nothing.
+    'sign.logout': true,
     certData: keypair.certData,
   }
 }
