@@ -2016,8 +2016,8 @@ a launched app's release goes to production self-serve unless it changes a sensi
 administrator who approves a STORED preview; `make demo-releases` proves it headlessly and a person has clicked it.
 **That was the gate the GitHub driver was waiting for** — *anything that widens who can change a spec goes after the
 gate that inspects spec changes* (the roadmap's rule, twice over). **Your job is to WRITE the next plan: D5's driver 2,
-the GitHub source driver** (Rich's order, 2026-09-22: P6b → GitHub → the authoring API; and on 2026-09-24 he placed a
-vulnerability-database plan after GitHub too — §8 *Decided*). Nothing is executing.
+the GitHub source driver** (Rich's order: **P6b → GitHub → the authoring API → the vulnerability database in the console** —
+the first three on 2026-09-22, the fourth added on 2026-09-24, §8 *Decided*). Nothing is executing.
 
 **READ, IN THIS ORDER:** the roadmap's **§ *D5's driver 2 — the GitHub source driver*** (its three findings make it
 smaller than it sounds: the builder does not use the source driver, and more); the spec's **D5**, **D14** and **§20 *Git
@@ -2126,12 +2126,17 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 
 ### Decided
 
-- **THE VULNERABILITY DATABASE IN THE CONSOLE — REQUESTED AND PLACED by Rich, 2026-09-24: its own plan, AFTER the GitHub
-  source driver.** Refresh it through the control plane's API, show its age and when it goes stale, let an administrator
-  adjust the threshold, scoped properly, with a console screen. What it needs is the roadmap's section of the same name —
-  a §12 spec action among it. **Asked the same day, and open: before or after the authoring API?** Until answered, the
-  authoring API keeps its place straight after GitHub. `make refresh-vulndb` was asked for too, and **added and run the same
-  day**. — do not re-raise the placement
+- **THE VULNERABILITY DATABASE IN THE CONSOLE — REQUESTED AND PLACED by Rich, 2026-09-24: its own plan, AFTER THE
+  AUTHORING API**, so the order is **GitHub → the authoring API → this**. Refresh it through the control plane's API, show
+  its age and when it goes stale, let an administrator adjust the threshold, scoped properly, with a console screen. What
+  it needs is the roadmap's section of the same name — a §12 spec action among it. **Why after the authoring API**
+  (recommended, and Rich agreed): `make refresh-vulndb` already meets the laptop's need and a scheduled refresh matters
+  only on a server, which is unplanned; the authoring API is what a waiting front-end team needs, and this would have made
+  them wait a second plan; nothing couples the two; and its screen is an admin surface, so it lands after the open
+  admin-console design question (above) has had longer to settle. *Rejected:* straight after GitHub (the front end waits
+  twice); folding it into P11 (it carries a spec action and the first platform-level setting, cleaner alone). *The cost,
+  accepted:* the threshold stays seven days and a refresh stays a `make` command for two more plans. `make
+  refresh-vulndb` was asked for too, and **added and run the same day**. — do not re-raise
 
 - **D5's GitHub source driver plan — its two questions DECIDED by Rich on 2026-09-24**, from options with their costs.
   **The stand-in: a FAKE plus an opt-in REAL check** (recommended). A small GitHub-compatible fake in a container — App

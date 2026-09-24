@@ -806,7 +806,7 @@ and its columns do not fit a test's speed.
 
 ### The authoring API — BRIEFED 2026-09-19, PLACED 2026-09-22: after the GitHub source driver, which is after P6b
 
-**Rich, 2026-09-22:** its own Phase 2 plan, in the order **P6b → D5's GitHub source driver → the authoring slice**; **text files only in v1**; the front-end project is specced against the slice rather than waiting for sandboxes; **S5 is not scheduled until after it**. The slice writes through `SourceDriver`, which the GitHub plan gives a second implementation and puts the build path behind, so the write path is designed once. The cost — a front-end team waits one plan longer — was stated and accepted.
+**Rich, 2026-09-22:** its own Phase 2 plan, in the order **P6b → D5's GitHub source driver → the authoring slice** (and, on 2026-09-24, **the vulnerability database in the console after it** — its own section below); **text files only in v1**; the front-end project is specced against the slice rather than waiting for sandboxes; **S5 is not scheduled until after it**. The slice writes through `SourceDriver`, which the GitHub plan gives a second implementation and puts the build path behind, so the write path is designed once. The cost — a front-end team waits one plan longer — was stated and accepted.
 
 **Not in the plan set, and that is the open question.** §17 bundles authoring with sandboxes in
 Phase 3, and Phase 3 is blocked on S5 — but
@@ -902,12 +902,16 @@ would naturally carry a commit or PR link if GitHub already existed, and an appr
 one. Building GitHub afterwards makes that one field added later — minor and retrofittable, and
 not worth reordering for.
 
-### The vulnerability database in the console — REQUESTED AND PLACED 2026-09-24: after the GitHub source driver
+### The vulnerability database in the console — REQUESTED AND PLACED 2026-09-24: after the authoring API
 
 **Rich, 2026-09-24:** refresh the scanner's vulnerability database from the control plane's API, show its age and when
 it goes stale, let an administrator ADJUST the staleness threshold, behind an appropriately scoped API, with a console
-screen — **its own plan, after the GitHub source driver.** *Whether it goes before or after the authoring API was asked
-the same day; until Rich answers, the authoring API keeps its 2026-09-22 place straight after GitHub.* Sized at about four
+screen — **its own plan, placed AFTER THE AUTHORING API: the order is P6b → GitHub → the authoring API → this** (Rich,
+2026-09-24, agreeing with the recommendation put to him). *Why:* `make refresh-vulndb` already meets the laptop's need,
+and a scheduled refresh matters only on a server, which is unplanned; the authoring API is what a waiting front-end team
+needs; nothing couples the two; and the screen is an admin surface, so it lands after ORIENTATION §8's open
+admin-console design question has had longer to settle. *Rejected:* straight after GitHub (the front end waits a second
+plan) and folding it into P11 (a spec action and the first platform-level setting are cleaner alone). Sized at about four
 sittings. **What it needs, read from the code on 2026-09-24:**
 
 - **A spec action.** §12 states *"warns rather than blocks when its database is older than 7 days"*, so an adjustable
