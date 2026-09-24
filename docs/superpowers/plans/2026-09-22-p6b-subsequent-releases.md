@@ -37,8 +37,8 @@
 | 2 | 2–3 | **The person-only class** — one central refusal, a mint refusal, a code of its own — and **the sensitive diff over frozen releases**: one rule over §7's seven fields, the baseline that reads each release's *latest* decision, and a release that freezes its build's own spec | **Yes** — `projects/`, `spec/`, `releases/` | **DONE 2026-09-23** — a token asking for `release:approve` or `launch:record` is refused centrally `403 TOKEN_PERSON_ONLY` with no pending action, and the mint refuses both; the contract is `1.1.0`. `isSensitiveDiff` sees a raised production override; the baseline is each release's latest decision; a release freezes its build's spec and refuses another project's build (two reads, each with its own test). `sensitiveChangeOf` exists and **its only caller is its test until Task 5**. Record: *What executing this plan found*, sitting 2 |
 | 3 | 4, 5, **5a** | **An app has launched** — migration 0021, the launch recorded once, a rehearsal refused afterwards — and **`deployRelease`'s half of D9.2**: approval required for a first launch and for a sensitive change, never for anything else, and never deploying a release an administrator rejected — **and (Task 5a, added by sitting 1) the egress proxy follows the release it serves.** **If it runs long, stop after Task 5 and sweep; Task 5a then opens sitting 4, ahead of Task 6**, with which it shares nothing | **Yes** — `releases/`, `launch/`, `runtime/`, `*.docker.test.ts` | **DONE 2026-09-23** — all three tasks. A launch is recorded ONCE by the deploy that makes it true (migration 0021), a launched app is not rehearsed (`REHEARSAL_LAUNCHED`), and `make demo-production`'s re-use path is a launched app that stops. `deployRelease` reads ONE rule, `approvalRequirementFor`: self-serve unless a sensitive field changed since the last approved release, fail closed with no baseline, never a rejected release. The egress proxy is recreated when a release changes its list, and kept when it does not. **The route still refuses a launched app's self-serve release until Task 6** — the planned one-sitting window. Record: *What executing this plan found*, sitting 3 |
 | 4 | 6 | **The gate for a launched app — this plan's centre, alone.** The checklist branches on `launched`, the self-serve deploy goes through, a sensitive change is refused `RELEASE_REESCALATED` carrying the view, and a release that is not the one serving staging is refused `RELEASE_NOT_STAGED` | **Yes** — `launch/` | **DONE 2026-09-23** — a launched app's non-sensitive release goes to production through the ROUTE with no administrator; a sensitive one is refused `409 RELEASE_REESCALATED` carrying a checklist byte-identical to the read, and deploys once approved; a release that is not the one serving staging is refused `409 RELEASE_NOT_STAGED`; a rejection is final. `candidateFor` no longer offers a FAILED staging release (F2), and the test file drains its retirer (F7). `make demo-production` has no step 10. Record: *What executing this plan found*, sitting 4 |
-| 5 | 7–8 | **The IAM change request** — migration 0022, a registration's registered set that changes only when UBC registers it, the change request as the registration's own `change_requested` state, and the live-registration check (attributes, ACS and SLO) for every production release — and **R4(d)**: deterministic security notes per sensitive field, the reviewer's verdict and D33's coverage limit in the record and in the prompt, and the `code-review` item reading the verdict (P6a F7). **The lean split's cost: if it runs long, stop after Task 7 and sweep** | **Yes** — `launch/`, `releases/` | not started ← **next** — read Task 7's correction block first (sitting 4 left five things in it) |
-| 6 | 9–10 | **The stored preview**: migration 0023, `createApprovalPreview` and `getApprovalPreview`, approve and reject binding a preview and refusing a stale one — and **the console's approvals screen**, which shows the preview BEFORE the decision and keeps it through the step-up round trip. **Heavy**: the server half and the screen that uses it, together, so the console's Approve button is never broken across a session boundary | **Yes** — `releases/` | not started |
+| 5 | 7–8 | **The IAM change request** — migration 0022, a registration's registered set that changes only when UBC registers it, the change request as the registration's own `change_requested` state, and the live-registration check (attributes, ACS and SLO) for every production release — and **R4(d)**: deterministic security notes per sensitive field, the reviewer's verdict and D33's coverage limit in the record and in the prompt, and the `code-review` item reading the verdict (P6a F7). **The lean split's cost: if it runs long, stop after Task 7 and sweep** | **Yes** — `launch/`, `releases/` | **DONE 2026-09-23 — both tasks, without stopping after Task 7.** A registration's registered attributes, ACS and SLO change only on a record that reaches `active`, and a change request is the `change_requested` state naming `requestedAttributes` (migration 0022); `[M9]`'s request is refused and its consequence watched. One `registrationCovers` for both IAM items: the first launch compares the recorded ACS/SLO (`[M10]`), and a launched app's item is the live check — an added attribute waits for UBC, a removal re-escalates and waits for nobody, `expired` stops everything. The snapshot names its baseline, the sensitive fields, a `SECURITY_NOTES` line each and D33's coverage limit; the reviewer is asked before the model; `no-changes` is its own source; `code-review` reads the newest verdict. Record: *What executing this plan found*, sitting 5 |
+| 6 | 9–10 | **The stored preview**: migration 0023, `createApprovalPreview` and `getApprovalPreview`, approve and reject binding a preview and refusing a stale one — and **the console's approvals screen**, which shows the preview BEFORE the decision and keeps it through the step-up round trip. **Heavy**: the server half and the screen that uses it, together, so the console's Approve button is never broken across a session boundary | **Yes** — `releases/` | not started ← **next** — read Task 9's block first (sitting 5 left six things in it) |
 | 7 | 11 | **The acceptance**: `make demo-releases` — a self-serve production redeploy, then a sensitive change refused until an administrator approves it, then the IAM change request path — its offline-acceptance step, its `ci-acceptance` step, green three times, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | not started |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -2250,6 +2250,30 @@ git commit -m "feat(releases): R4(d) — a security-aware summary carrying the r
 
 **Rich's decision of 2026-09-22, built.** An administrator asks for a preview, the platform **stores** it, and approve and reject must **name** it. At decision time the platform recomputes the **facts** and refuses if they changed. **The summary and the verdict are never recomputed**: the record copies the preview's, because those are what was shown (Decision 10).
 
+> **WHAT SITTING 5 LEFT FOR THIS TASK (2026-09-23) — each checked in the code.**
+> (1) **The snapshot has FOUR MORE FACTS** (Task 8): `baselineReleaseId`, `sensitiveFields`, `security`, `coverage`
+> — optional on `DiffSnapshot` because P6a's rows lack them, defaulted in `toApproval`'s body. So `DiffFacts =
+> Omit<DiffSnapshot, 'summary' | 'summarySource' | 'review'>` already carries the baseline, **which is the fact a
+> stale preview differs in** (Review Focus 1) — `sameFacts` sees a moved baseline through `baselineReleaseId`
+> before it reaches `changes`. `summarySource` has a fourth value, `no-changes`.
+> (2) **`buildDiffSnapshot`'s order is Task 8's and must survive the split**: ONE baseline read, through
+> `sensitiveChangeOf` (the rule the gate reads); the reviewer asked BEFORE the model; and `summariseChanges(ai,
+> changes, { security, review, coverage })` — `annotate` needs the facts' `security` and the verdict it has just
+> obtained. Control 8c (reviewer after the model) and 8b (verdict dropped from the request) are the tests that say so.
+> (3) **`latestReviewFor(db, releaseId)` is in `releases/approval.ts`** and reads `approvals` only; its doc comment
+> says this task adds `approval_previews` as the second source (newest of the two), and `codeReviewItem` does not
+> change. The no-verdict sentence says *"when an administrator is asked to approve a release"* (sitting 5, F11) —
+> reword it to *previews* here, once they exist.
+> (4) **TWO fixtures approve without a preview, not one**: `approvedProject` (which `launchedProject` builds on) AND
+> sitting 5's **`launchedCwlProject`**, both in `api/testing.ts` — which is not a `*.test.ts`, so the Files list's
+> `grep` does not find it. Plus the local `decide()` helper in `api/subsequent-releases.test.ts` and the `approve`
+> helpers in `releases/approval.test.ts` (the grep finds those).
+> (5) **A decision's `500` can arrive after its row is written** (sitting 5, F7): `decide()` records, then the
+> representation is checked. The preview route will write and then shape the same way — so a preview test that reads
+> a `500` should also ask whether the row exists.
+> (6) **The mock's `APPROVAL` fixture already carries the four keys** (verbatim `SECURITY_NOTES` and
+> `COVERAGE_LIMIT` sentences); `ApprovalPreview`'s fixture needs the same shape.
+
 > **THIS TASK AND TASK 10 SHARE A SITTING, AND THE ORDER MATTERS.** Between this task's commit and
 > Task 10's, the console's Approve button answers `400 APPROVAL_PREVIEW_REQUIRED`, which `<Refusal>`
 > renders. **That window must not cross a session boundary.** If the sitting runs short, stop after
@@ -2395,6 +2419,12 @@ git commit -m "feat(releases): the stored preview — an approval records exactl
 
 ## Task 10: The approvals screen — the preview before the decision, kept through the step-up
 
+> **WHAT SITTING 5 LEFT FOR THIS TASK (2026-09-23).** `approvals.tsx`'s `DecisionRecord` already renders Task 8's
+> four facts — the coverage sentence under the summary, *Compared with* (the baseline, linked), *Sensitive fields*
+> and *Security notes* — and `Summary` has a `no-changes` branch. **Render the preview's snapshot through the same
+> component** rather than a second copy of it: the preview and the record must read identically, which is Rich's
+> decision seen from the screen. Opened against the mock in sitting 5 and read as expected.
+
 > **From Task 1 (2026-09-22), F10:** the model writes Markdown (`**m6.example.org**`) under a prompt that
 > forbids it in spirit, and this screen renders the summary as text. Task 8 tells the model plainly; **this
 > task's clicked check reads the summary on screen for a literal `**`** and records what it sees. Do not strip
@@ -2458,6 +2488,17 @@ git commit -m "feat(console): the approval preview — read before deciding, and
 ---
 
 ## Task 11: The acceptance — `make demo-releases`
+
+> **WHAT SITTING 5 LEFT FOR THIS TASK (2026-09-23) — LEG C MEETS TASK 7's RULES.** Once UBC has registered the SP,
+> `registeredAttributes`, `acsUrl` and `sloUrl` change only on a record whose resulting state is `active`; an
+> `active` record MAY be re-recorded `active` with new values (that is how *"UBC registered the narrower set"* is
+> recorded); `active → change_requested` must carry `requestedAttributes`; and from `change_requested`, `active`
+> is reached only through `submitted` (§9's arrows). **So leg C is path-independent only if it walks to `active`
+> from whatever state a previous run left** — a re-use run that stopped in `change_requested` would be refused
+> `LAUNCH_TRANSITION_INVALID` by the first line as written. The build's refusal now names a change request on file
+> (*"A change request is on file ('change_requested', ticket …, asking for …)"*), which is what leg C's
+> *"naming sn and the change request"* can assert. And `launchedCwlProject` (`api/testing.ts`) is the unit tier's
+> version of legs A and C, over labelled fakes — the acceptance is where the real IdP drives them.
 
 > **`[M6]` STEP 5, `[M14]` AND `[M8]` — WHAT TASK 1 FOUND FOR THIS TASK (2026-09-22).**
 >
@@ -3592,3 +3633,194 @@ its untracked `cert.zip`.
 
 **The four HTML pages were checked and not changed**: no spec action was applied, and none of them describes the
 production checklist, a re-escalation or self-serve at a level this sitting moved.
+
+### Sitting 5 — Tasks 7 and 8: the IAM change request, and a security-aware summary carrying the reviewer's verdict — 2026-09-23
+
+**BOTH TASKS, IN ONE SITTING: THE LEAN SPLIT'S COST WAS PAID WITHOUT STOPPING AFTER TASK 7.** `7edb819` and
+`bd2a00a`: **§9's change request is the registration's own `change_requested` state** (migration **0022** —
+`requested_attributes`, `registered_at`, and one hand-appended backfill line). Once UBC has registered the SP,
+what it registered — the attributes, the ACS and the SLO — changes only on a record that reaches `active`, the
+entityID never changes, and filing a change request from `active` must name what it asks for. **`[M9]` is closed
+and watched**: its exact request is refused, and the build of the added attribute still fails. **One statement
+of *covers*, `registrationCovers`**, is read by both IAM items: a first launch's now compares the recorded ACS and
+SLO with the candidate's (`[M10]` — recorded = derived = rehearsed, so the rehearsal's own sentence is true), and
+a launched app's `iam-registration` is the **live** check — registered once, not `expired`, and covering the
+release. **An added attribute waits for UBC; a removal is covered and re-escalates through `admin-approval`**
+(Rich, Question 2), with the item saying UBC still releases what the app stopped asking for. `3ae1cfd`:
+**R4(d)** — the approval snapshot names its baseline, the sensitive fields, a deterministic `SECURITY_NOTES` line
+for each and D33's coverage limit, all present when the model is down; the reviewer is asked **before** the model,
+which is told the notes, the verdict and the limit; an empty diff is `no-changes`, never `llm`; and **`code-review`
+reads the newest verdict recorded for the candidate** (P6a F7), non-blocking in every branch.
+
+#### The decisions this sitting made
+
+**1. A CWL app in the unit tier, over two labelled fakes (`cwlFakes`, `launchedCwlProject` in `api/testing.ts`).**
+The plan asked for it; the registrar fake **derives the entity with the real `deriveSpEntity` and publishes the real
+`sso.registered` event** (F2), and the probe releases exactly what was registered at the ACS it is asked about. The
+first launch goes through the ROUTES — records, rehearsal, P6a's approve (Task 9's preview does not exist yet),
+deploy — in about a second. Its comment says why this is acceptable there and nowhere else.
+
+**2. `registeredAt` moves on REACHING `active`, or when an `active` record's registered values change — never on a
+ticket correction** (F3). It is *when UBC last registered this SP*, and the launched item says *registered since*
+from it.
+
+**3. The build's refusal names a change request on file** instead of asking for one again — `releases/build.ts`
+reads the state and the requested set (F4).
+
+**4. With no candidate, or no production environment, the IAM items compare state only.** The ACS needs a production
+hostname to be derived from; every real project is created with one, so this is unreachable outside a fixture (F5).
+
+**5. An empty diff is `no-changes` before the model is consulted at all** — AI off says it too (F9).
+
+**6. `summary.test.ts` hands `summariseChanges` LITERAL notes, a literal verdict and a literal coverage sentence**;
+where the real ones come from is `approval.test.ts`'s subject, through the route. So the file's existing cases do not
+depend on the new exports, and the positive control's green-before was visible.
+
+**7. The no-verdict `code-review` sentence says *"when an administrator is asked to approve a release"*** rather
+than the plan's *"previews"* (F11), and keeps §20's control-map sentence and `builtBy`, which `make demo-journey` and
+P6a's test both read.
+
+**8. Two tests beyond the plan's**: an SLO case beside the plan's two ACS cases (control (c) removes both, and nothing
+else sees the SLO half), and `securityNotesFor`'s own order-and-emptiness case. **And one route case added after the
+controls** — `[M9]`'s exact request, asserting the refusal and the build outcome together (F1, `bd2a00a`).
+
+#### The findings
+
+**F1 — TASK 7's CONTROL (a): THE PLAN'S DOWNSTREAM WITNESS COULD NOT FIRE — AND NOW DOES.** With the registered-set
+rule removed, the plan predicted the route case *"while the change request is change_requested or submitted, the
+build still fails"* red, because the build passes once the record overwrote the set. **Measured: 1 red, the records
+case; that route case stayed GREEN** — it re-sends the registration as UBC has it, so the rule it depends on is never
+asked. Predicted by this sitting before running. A route case now makes `[M9]`'s exact request and asserts the
+refusal and the build in one comparison; with the rule removed it reads **`record: 200` and `build: succeeded`** — an
+attribute UBC never registered, built, which is `[M9]`'s consequence watched rather than inferred.
+
+**F2 — A CWL APP IN THE UNIT TIER NEEDS A REGISTRAR THAT PUBLISHES, NOT ONE THAT ANSWERS.** `runRehearsal` reads the
+registration back off the append-only `sso.registered` EVENT (`latestRegistration`), never from the registrar's
+return value — so a fake that only answered would fail every rehearsal *"the deploy recorded no Service Provider
+registration"*. Read from `launch/rehearsal.ts`; the fixture was then probed on the untouched tree and launched a CWL
+app with all five blocking items met.
+
+**F3 — THE PLAN'S `registeredAt` SNIPPET RE-STAMPED A TICKET CORRECTION.** `state === 'active' ? new Date()` moves
+*"when UBC last registered"* on an `active → active` edit whose only change is the ticket. Decision 2; its test was
+**green before the column existed** — `undefined` equals `undefined` — and is a real test only after it.
+
+**F4 — `[M9]`'s *"raise a change request against the change request"* CAME FROM A FILE THE PLAN DOES NOT LIST.** The
+plan changes `AttributeDriftError`'s hint; the sentence's other half is `releases/build.ts`, which passed the change
+request's own ticket as the registration's. It now reads the state and `requested_attributes`, and the refusal says
+*"A change request is on file ('change_requested', ticket IAM-CR-7, asking for …): UBC IAM has not registered it
+yet"* — route case B asserts it in both `change_requested` and `submitted`.
+
+**F5 — P6a's TWO ATTRIBUTE CASES IN `readiness.test.ts` HAD NO PRODUCTION ENVIRONMENT**, a state no real project
+reaches (a project is created with all three). The first-launch item needs one to derive the ACS, so both cases were
+given `PRODUCTION`, whose derived ACS and SLO are exactly what `recordIam` records (Decision 4).
+
+**F6 — TASK 8's CONTROL (a) IS NOT *"A CONTROL ONLY `tsc` CAN SEE"*: `pnpm test` WENT RED, 7.** The plan predicted
+`tsc` red and the suite GREEN. `tsc` was red (`TS2741`, `spec/diff.ts`) **and so were 7 tests** — predicted by this
+sitting (7–8) — because every success body is parsed against its representation (`api/contract/route.ts:222`): a
+note that is `undefined` is **`500 ResponseContractError … at: diff.security.0.note`** on every decision about an
+egress change through the route (six `approveRelease`, one `rejectRelease`). Two witnesses, not one.
+
+**F7 — AND THAT `500` ARRIVES AFTER THE DECISION IS WRITTEN.** `decide()` calls `recordApproval`, which inserts the
+row and publishes the event, and only then is the representation checked — so a representation defect answers
+`500 INTERNAL` to an administrator whose decision **was** recorded. Read from the code, not measured; unreachable today
+(every stored value parses). **Recorded, not fixed**: it is the contract layer's shape for every mutation, and
+Task 9's preview is the next route that writes and then shapes.
+
+**F8 — THE PLAN UNDER-COUNTED FIVE OF ITS TEN CONTROLS; THIS SITTING PREDICTED EVERY COUNT BEFORE RUNNING.** Task 7:
+(c) **3**, not 2 — the SLO case this sitting added; (d) **2**, not 1 — route case C reads `requestedAttributes` by
+name; (e) **3**, not 1 — `registrationCovers` is SHARED, so the first launch's two subset cases see Question 2's other
+answer too. Task 8: (b) **2**, not 1 — the order case asserts the verdict line; (d) **3**, not 1. And (a) of each is F1
+and F6.
+
+**F9 — P6a's EMPTY DIFF READ `unavailable` WITH AI SWITCHED OFF** and *"Nothing … changed"* with it on — the
+`ai === undefined` check came first. The sentence needs no model; `no-changes` now comes first (Decision 5).
+
+**F10 — THE PLAN PUT *"still records the notes when the model is DOWN"* IN `summary.test.ts` WITH `ai: undefined`**,
+which is AI **off**, not down — and the notes are on the snapshot, not the summary. It is in `approval.test.ts`,
+through the route, with a model that REJECTS.
+
+**F11 — THE PLAN'S NO-VERDICT SENTENCE NAMES PREVIEWS, WHICH DO NOT EXIST UNTIL TASK 9.** Decision 7.
+
+**F12 — `make demo-production`'s CLOSED VOCABULARY WOULD HAVE READ `no-changes` AS NEITHER PRESENT NOR ABSENT.**
+`packages/journey/src/production.ts` listed `llm`, `no-previous-release` and `unavailable`; a re-approval of an
+unchanged release would have gone red there. Read, not measured — the fresh path's approval is a first launch — and
+added.
+
+**F13 — zsh DOES NOT WORD-SPLIT AN UNQUOTED `$F`.** The first control run answered *"No test files found"* and printed
+an empty summary, which reads as nothing having happened. Controls ran under `bash` after that — sitting 1's F9
+(*run these under bash*) in a different variable.
+
+#### The negative controls — Task 7's five and Task 8's five, and F1's re-run; ALL FIRED
+
+| | Control | Plan predicted | This sitting predicted | **Measured** |
+|---|---|---|---|---|
+| 7a | the registered-set rule removed | the `[M9]` records case, and route case B downstream | 1 (B green) | **FIRED — 1; B GREEN** (F1). Re-run after `bd2a00a`: **2**, the new case reading `record 200`, `build succeeded` |
+| 7b | `liveRegistrationItem` accepts `expired` | the expired case | 1 | **FIRED — 1** |
+| 7c | ACS/SLO dropped from `registrationCovers` | both ACS cases | 3 | **FIRED — 3**: readiness ACS and SLO, route G |
+| 7d | `requestedAttributes` not cleared on `active` | *…clears the request* | 2 | **FIRED — 2**: that and route C |
+| 7e | Question 2's other answer (sets equal) | the removal case | 3 | **FIRED — 3**: the removal and readiness's two subset positives. **Restored**: Rich chose (a) |
+| 8a | `SECURITY_NOTES['egress.allow']` deleted | `tsc` red, `pnpm test` GREEN | `tsc` red AND 7–8 | **`tsc` TS2741 AND 7 red**, all `500 … diff.security.0.note` (F6) |
+| 8b | the verdict dropped from the user message | the request case | 2 | **FIRED — 2** |
+| 8c | the reviewer asked after the model | the order case | 1 | **FIRED — 1** |
+| 8d | `codeReviewItem` returns P6a's static item | the clean case; Decision 13 green | 3; Decision 13 green | **FIRED — 3; Decision 13's case GREEN**, as it must be |
+| 8e | `no-changes` answers `llm` | the `no-changes` case | 1 | **FIRED — 1** |
+
+Every control ran on the committed tree and was restored with `git checkout <path>`; `git status` was clean after each.
+
+#### The runs
+
+| Gate | Open (`89cde7d`) | After Task 7 (`7edb819`, `bd2a00a`) | After Task 8 (`3ae1cfd`) | Close |
+|---|---|---|---|---|
+| `pnpm test` | **1662 / 122**, twice (143.7 s, 138.4 s) | **1679 / 122**, twice (148.4 s, 144.7 s) — +17 as predicted; then **1680** twice (148.0 s, 149.3 s) with F1's case | **1690 / 122**, twice (151.6 s, 153.2 s) — +10 as predicted | **1690 / 122**, twice (154.5 s, 151.8 s); one failed retire pass per run, the deliberate one |
+| lint / typecheck / format | clean | clean | clean | clean |
+| `make doctor` | **19 / 0, 0 warnings** | — | — | **19 / 0, 0 warnings** |
+| `make verify` | **55 / 0** | — | — | **55 / 0** |
+| `pnpm test:docker` | 198 / 31 (sitting 4) | — | — | **198 passed in 31, 0 red** (1574.9 s) — S6 probe 14 green |
+| `make demo-production` | — | fresh **44 s** green, re-use green | — | fresh **58 s** green after the tier (step 7's approval `no-previous-release`) |
+
+**Where the Docker tier's 1575 s goes — measured per file this sitting, at Rich's question, and NOTHING CHANGED.**
+Files run one at a time (`fileParallelism: false`, root `vitest.config.ts`) because they share one Postgres, one
+edge, one IdP and one registry, so the run is the sum of its files. **Four files are 925 s of 1547**:
+`runtime/docker/driver` 275 s (26 contract tests building and deploying for real; *same source → same digest* builds
+twice, 38 s), `releases/production` 251 s (**178 s of it in `beforeAll`** — two suites, each a full build, a staging
+and a production deploy), `boot` 227 s (**206 s of setup** — the control plane compiled twice, started twice, an app
+built and deployed, the edge restarted) and `releases/redeploy` 172 s (three tests that wait on real things: a
+request loop, a race, a readiness timeout). Test time 1021 s, setup 527 s; thirteen files take under 5 s. The
+candidates Rich was given — share one fixture build across files, compile `boot`'s control plane once, and look at
+production's second suite and the two redeploy files for overlap — are **ideas, not decisions**.
+
+**The test count moved by exactly the new cases**: 17 + 1 in Task 7 (records 7, readiness 3, route 8), 10 in Task 8
+(summary 3 net — one case renamed — approval 4, readiness 3); no new file. **22 → 23 migrations.** The contract stays
+`1.1.0` — every change additive (Decision 15). `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` moves to **1690**.
+
+#### The machine, at close — queried, not recalled
+
+**The control plane is stopped; nothing listens on 7100, 7102 or 7104**, as at the open — it was started for Task 7's
+demos and for the close's fresh demo, and `manifest-mock` and the console's Vite server were started twice (a look at
+the records screen and at the approval record) and stopped by port each time. **The database is EMPTY** (0 projects,
+0 releases, queried through `manifest-postgres`) with **23 migrations** — 0022 applied by `db:migrate` before the unit
+tier could see it. `make verify`: **`mf- containers=15 networks=5 volumes=10`** and `runtime routes currently applied:
+1`. `launch-app` stands in production and staging on the close's fresh-demo release (its instances replaced by this
+sitting's demo runs — the only Manifest lines in the snapshot diff besides uptimes), with `click-launch` and
+journey-app's staging beside it. **`make doctor` 19/0 with 0 warnings**; the vulnerability database goes stale after
+2026-09-30. **Cleanup**: `dead-app-resources.sh` found the tier's seven networks and one volume and `--apply` was
+**allowed** — re-measured *0 dead*; `litellm-orphans.sh` found six orphans and `--apply` was **allowed — the sixteenth
+consecutive sitting** — *5 user(s) remain (was 11)*, every held user kept. **Images, the metric named**: `docker images
+-q` **107**, `sort -u` **99**, `127.0.0.1:7107/local/*` **60** — eight new untagged app images from the tier and the
+demos, which no script sweeps. The four protected containers are as they were (`docker-simple-saml-saml-idp-1` already
+`Exited (0) 2 weeks ago` at the open), `manifest-caddy-data` is intact, both loopback aliases are on `lo0`, and
+`docker-simple-saml`'s only dirty path is its untracked `cert.zip`.
+
+**`snapshot-machine.sh` diff, open → close: 126 lines — and 26 of them are NOT this sitting's.** Between 18:48 and
+20:16, **seventeen STOPPED containers of six other projects** (`canvas-bridge`, `codercom`, `course-directory`,
+`credit-card-helper`, `openwebui`, `ubc-document-parsing-api`), **their six compose `_default` networks and three
+locally built images** (`credit-card-helper-app`, `ubc-document-parsing-api-gateway`, `-worker`) were removed, and free
+disk rose 14 GiB. **Nothing this sitting ran can remove them**: both cleanup scripts select `^mf-` only, and every
+container the platform removes is named or label-selected (`runtime/docker/{builder,egress,instances}.ts`); no prune
+was run; and `docker-simple-saml-saml-idp-1`, stopped too, SURVIVED — so it was not a blanket prune. The pattern is a
+targeted `docker compose down` per project, by another actor (another session, or Rich). Docker Desktop's event
+buffer had already rolled past it, so it cannot be traced further. **Recorded and raised with Rich; nothing restored.**
+
+**The four HTML pages were checked and not changed**: no spec action was applied (P6b's one spec action is still
+approved in substance and not applied), and none of them describes the IAM change request or the approval summary at
+a level this sitting moved.
