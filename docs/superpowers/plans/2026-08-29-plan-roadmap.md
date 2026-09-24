@@ -902,6 +902,30 @@ would naturally carry a commit or PR link if GitHub already existed, and an appr
 one. Building GitHub afterwards makes that one field added later — minor and retrofittable, and
 not worth reordering for.
 
+### The vulnerability database in the console — REQUESTED AND PLACED 2026-09-24: after the GitHub source driver
+
+**Rich, 2026-09-24:** refresh the scanner's vulnerability database from the control plane's API, show its age and when
+it goes stale, let an administrator ADJUST the staleness threshold, behind an appropriately scoped API, with a console
+screen — **its own plan, after the GitHub source driver.** *Whether it goes before or after the authoring API was asked
+the same day; until Rich answers, the authoring API keeps its 2026-09-22 place straight after GitHub.* Sized at about four
+sittings. **What it needs, read from the code on 2026-09-24:**
+
+- **A spec action.** §12 states *"warns rather than blocks when its database is older than 7 days"*, so an adjustable
+  threshold changes §12 — and raising it LOOSENS §13's `scans` item, so who may change it is Rich's (the recommendation
+  put to him: an administrator, person-only, behind step-up, within a bounded range such as 1–14 days, audited).
+- **One stored value where there are three constants**: `build/scan.ts`'s `STALENESS_THRESHOLD_DAYS` (which
+  `launch/readiness.ts` imports) and `scripts/doctor.sh`'s own `7.0`. And a decision on whether a changed threshold
+  re-judges scans already recorded, since `readiness.ts` reads both `stale` and `databaseAgeDays`.
+- **Three operations**: read (built at, age, stale after, threshold, last refresh); refresh (`202`, progress on the event
+  stream as a build's is, `grype db update` in a container with the volume writable and a route out, one at a time, a
+  clear refusal offline); set the threshold. **A measurement first**: whether a refresh is safe while a scan holds the
+  volume `:ro`.
+- **A platform-level capability.** Today's capabilities are project-scoped; this is the first platform setting.
+- **The real-server gap, offered as scope**: nothing refreshes the database on a server, so seven days after a
+  deployment every production launch would be refused. A scheduled refresh belongs here.
+- **`make refresh-vulndb`**, asked for the same day and not added — the permission classifier refused reading the
+  `Makefile` (ORIENTATION §4). It is one line and needs no plan.
+
 ### Phases 3–5 — not planned
 
 Deliberately. **Phase 3 depends on S5, which is unrun** — S6 reported on 2026-09-07 (as P3

@@ -2015,7 +2015,8 @@ a launched app's release goes to production self-serve unless it changes a sensi
 administrator who approves a STORED preview; `make demo-releases` proves it headlessly and a person has clicked it.
 **That was the gate the GitHub driver was waiting for** — *anything that widens who can change a spec goes after the
 gate that inspects spec changes* (the roadmap's rule, twice over). **Your job is to WRITE the next plan: D5's driver 2,
-the GitHub source driver** (Rich's order, 2026-09-22: P6b → GitHub → the authoring API). Nothing is executing.
+the GitHub source driver** (Rich's order, 2026-09-22: P6b → GitHub → the authoring API; and on 2026-09-24 he placed a
+vulnerability-database plan after GitHub too — §8 *Decided*). Nothing is executing.
 
 **READ, IN THIS ORDER:** the roadmap's **§ *D5's driver 2 — the GitHub source driver*** (its three findings make it
 smaller than it sounds: the builder does not use the source driver, and more); the spec's **D5**, **D14** and **§20 *Git
@@ -2058,8 +2059,8 @@ The tier truncated the tables, and **`make demo-releases` re-launched `launch-ap
 staging and production, the registration `active` five-wide; the database holds 1 project and 4 releases. `make verify`
 reads `mf- containers=6 networks=2 volumes=4` after `dead-app-resources.sh --apply` removed the tier's seven networks and
 one volume and `litellm-orphans.sh --apply` four orphaned users (both ALLOWED; both re-read clean). **The control plane
-and the console preview were LEFT RUNNING for Rich's click** — if they still are, stop them (`lsof -nP -iTCP:7100
--sTCP:LISTEN`, and the same for 7104); both loopback aliases are on `lo0`. **Images: `docker images -q` 192, `sort -u` 184, `127.0.0.1:7107/local/*` 145** — no script sweeps them.
+and the console preview were stopped after Rich's click; nothing listens on 7100, 7102 or 7104**; both loopback aliases
+are on `lo0`. **Ollama is 0.34.4** — it updated itself during that session. **Images: `docker images -q` 192, `sort -u` 184, `127.0.0.1:7107/local/*` 145** — no script sweeps them.
 **Docker Desktop may not be running when you open** (`open -a Docker`, §4).
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global Constraints*:
@@ -2078,15 +2079,6 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 
 ### Open
 
-- **THE VULNERABILITY DATABASE FROM THE CONSOLE — REQUESTED BY RICH, 2026-09-24.** Refresh it from the control plane's
-  API, show its age and when it goes stale, let an administrator ADJUST the staleness threshold, with an appropriately
-  scoped API — and a `make refresh-vulndb` target besides. **Not built, not placed.** What it needs was put to Rich the
-  same day: §12 states the seven days, so an adjustable threshold is a SPEC ACTION; the seven is a constant in three
-  places today (`build/scan.ts`'s `STALENESS_THRESHOLD_DAYS`, which `launch/readiness.ts` imports, and `scripts/doctor.sh`'s
-  own `7.0`), all of which must read one stored value; raising it loosens §13's `scans` item, so who may change it (and
-  whether it is person-only, like approving a release) is his; and it wants a placement relative to the GitHub plan.
-  **`make refresh-vulndb` was NOT added**: the permission classifier refused reading the `Makefile` (§4). Until then the
-  refresh is §2 *Outstanding*'s one line.
 - **Does the ADMIN CONSOLE get real design effort? — the spec says no, Rich says yes. RAISED
   2026-09-19.** §26's *Scope* reads *"Rudimentary and deliberately so… an operations tool for the
   team running the platform, **not a product surface**, and it inherits `console/`'s quality bar
@@ -2132,6 +2124,13 @@ Surface these; do not decide them. **When one is decided, move it to *Decided* a
 - **Starting the UBC external track (C4)** — the trigger fired 2026-09-15; see §2 and `docs/external-track.md`.
 
 ### Decided
+
+- **THE VULNERABILITY DATABASE IN THE CONSOLE — REQUESTED AND PLACED by Rich, 2026-09-24: its own plan, AFTER the GitHub
+  source driver.** Refresh it through the control plane's API, show its age and when it goes stale, let an administrator
+  adjust the threshold, scoped properly, with a console screen. What it needs is the roadmap's section of the same name —
+  a §12 spec action among it. **Asked the same day, and open: before or after the authoring API?** Until answered, the
+  authoring API keeps its place straight after GitHub. `make refresh-vulndb` was asked for too and is not added (§4's
+  classifier entry). — do not re-raise the placement
 
 - **D5's GitHub source driver plan — its two questions DECIDED by Rich on 2026-09-24**, from options with their costs.
   **The stand-in: a FAKE plus an opt-in REAL check** (recommended). A small GitHub-compatible fake in a container — App

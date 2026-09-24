@@ -4357,9 +4357,11 @@ carries the IdP's handle, which `stepUpSession` rewrites (Decision 4). It re-lau
 
 #### Clicked by a person
 
-**Handed to Rich at the close**, with the control plane and the console preview left running for it: sign in as the
-instructor, *Sign out*, *Sign in with CWL* — the IdP must ask for a password — and sign in as the operator. **Pending
-when this was written**; the line below records what he saw.
+**CLICKED BY RICH, 2026-09-24, and it held**: signed in as the instructor, *Sign out*, then *Sign in with CWL* — **and
+the IdP asked for a password** (*"step 3 asked for a password which is great"*) — then signed in as the operator. The
+control plane's log says the same thing independently, after `make demo-releases`' step-ups: *console sign-out for
+ins000001: single logout sent to the IdP*, *LogoutResponse arrived (408 chars)*, *the IdP confirmed the console
+sign-out*. No cookie deletion, which is what switching person in Chrome needed until this sitting.
 
 #### The machine, at close — queried, not recalled
 
@@ -4368,8 +4370,12 @@ launched, on its leg C release, the registration `active` five-wide; **24 migrat
 seven dead networks and one volume and four LiteLLM orphans; `--apply` was ALLOWED for both scripts, and both re-read
 clean** (`none dead`, `0 orphaned`). `make verify`: `mf- containers=6 networks=2 volumes=4`, `runtime routes currently
 applied: 1`. **Images**: `docker images -q` **192**, `sort -u` **184**, `127.0.0.1:7107/local/*` **145** (135 at the
-open). **The control plane (7100) and the console preview (7104) were LEFT RUNNING for Rich's click**, to be stopped after it.
-Both loopback aliases are on `lo0`; the four protected containers are present.
+open). **The control plane and the console preview were stopped after Rich's click; nothing listens on 7100, 7102 or 7104.**
+Both loopback aliases are on `lo0`; the four protected containers are present, and `docker-simple-saml`'s only dirty path
+is its untracked `cert.zip`. **The snapshot diff, open → close, is 60 lines**: `launch-app`'s instances and images (rebuilt
+by `make demo-releases`), the edge's uptime (the Docker tier restarts it), `base/alpine:3.22` gaining a repository digest,
+free disk **107 → 105 GiB**, `HEAD` — **and Ollama 0.34.3 → 0.34.4, which updated ITSELF during the session**; nothing
+here ran an update. Record the new version.
 
 **The four HTML pages**: `manifest-decisions.html`'s D9 and D16 cards were swept with the spec action (`f4f0a84`); the
 other three were checked and state nothing about signing out or §13's IAM sentence, so they did not change.
