@@ -8,15 +8,18 @@
 model_list:
   - model_name: default-chat
     litellm_params:
-      # qwen3.5:4b (Rich, 2026-09-24) IS A THINKING MODEL, and `reasoning_effort: none` is what
-      # makes it usable — LOAD-BEARING, on every chat entry. LiteLLM 1.98.0 maps any value but
-      # low/medium/high to Ollama's `think: false`. Without it every token goes to reasoning_content,
-      # which the app toolkit discards: 260 streamed frames, 0 with content, and no error (measured
-      # 2026-09-24, the D5 plan's [M15] addendum — S3 Evidence 9 again). `make verify`'s streaming
-      # check and ai-path.docker.test.ts both go red if it is removed.
+      # qwen3.5:4b (Rich, 2026-09-24) IS A THINKING MODEL, and `think: false` is what makes it
+      # usable — LOAD-BEARING, on both non-reasoning chat entries. Without it every token goes to
+      # reasoning_content, which the app toolkit discards: 260 streamed frames, 0 with content, and no
+      # error (measured 2026-09-24 — S3 Evidence 9 again). It is Ollama's own parameter, NOT
+      # `reasoning_effort: none`, because a REQUEST's reasoning_effort overrode that (0 content in 233
+      # frames): LiteLLM 1.98.0 maps a request's reasoning_effort to `think` first and copies these
+      # provider params over it (utils.py:4268, then :4508), so an app asking for "high" still gets
+      # content. The one thing that beats it is a request sending Ollama's own `think: true`. `make
+      # verify`'s streaming check and ai-path.docker.test.ts go red if it is removed or weakened.
       model: ollama_chat/qwen3.5:4b
       api_base: http://host.docker.internal:11434
-      reasoning_effort: none
+      think: false
       # SYNTHETIC COST — load-bearing. Ollama is free, so without it no budget is
       # ever reachable AND every per-user spend row reads $0.00, which makes D8's
       # attribution as untestable as §10's budgets (S3 §Evidence 4, 5).
@@ -29,7 +32,35 @@ model_list:
     litellm_params:
       model: ollama_chat/qwen3.5:4b
       api_base: http://host.docker.internal:11434
-      reasoning_effort: none
+      think: false
+      input_cost_per_token: 0.000001
+      output_cost_per_token: 0.000003
+    model_info:
+      max_classification: confidential
+
+  # THE REASONING VARIANTS (Rich, 2026-09-24): the SAME model with thinking ON, under its own logical
+  # name, so choosing reasoning is a declared `ai.models` entry — a §7 sensitive field an administrator
+  # sees on a launched app — never a request flag on the default. A request may send `reasoning_effort`
+  # (none/low/medium/high); through Ollama, LiteLLM collapses low/medium/high to `think: true` (only
+  # gpt-oss takes real levels), and they become real levels when an administrator repoints the name at a
+  # model that has them. WHAT AN APP ACCEPTS: the toolkit discards reasoning_content, so it sees nothing
+  # until thinking ends, and a small max_tokens is spent on thinking and answers EMPTY with no error
+  # (measured 2026-09-24: 300 tokens → 0 content). Ask for enough tokens, or none at all.
+  - model_name: default-chat-reasoning
+    litellm_params:
+      model: ollama_chat/qwen3.5:4b
+      api_base: http://host.docker.internal:11434
+      reasoning_effort: medium
+      input_cost_per_token: 0.000001
+      output_cost_per_token: 0.000003
+    model_info:
+      max_classification: internal
+
+  - model_name: default-chat-onprem-reasoning
+    litellm_params:
+      model: ollama_chat/qwen3.5:4b
+      api_base: http://host.docker.internal:11434
+      reasoning_effort: medium
       input_cost_per_token: 0.000001
       output_cost_per_token: 0.000003
     model_info:

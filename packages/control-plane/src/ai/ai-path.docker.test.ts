@@ -97,8 +97,8 @@ describeDocker('AI-path regression (§16, S3 Evidence 8 and 9)', () => {
     // S3 Evidence 9: qwen3.5:4b emitted 1677 SSE frames and ZERO content frames at
     // max_tokens 2000. The toolkit reads delta.content only, so the app sees an empty
     // string and no error. `default-chat` IS qwen3.5:4b since 2026-09-24 (Rich), and it
-    // passes only because infra/litellm/config.yaml sets `reasoning_effort: none` on the
-    // mapping (Ollama `think: false`) — this test is what fails if that line goes.
+    // passes only because infra/litellm/config.yaml pins Ollama's `think: false` on the
+    // mapping — this test is what fails if that line goes.
     const chunks: string[] = []
     const response = await makeToolkit().streamConversation(
       [{ role: 'user', content: 'Count 1 to 5, digits only.' }],
@@ -109,6 +109,54 @@ describeDocker('AI-path regression (§16, S3 Evidence 8 and 9)', () => {
       'zero content frames — is default-chat a thinking model?',
     ).toBeGreaterThan(0)
     expect(response.content.trim()).not.toBe('')
+  })
+
+  /** Streams one completion RAW and counts the frames that carry content and reasoning. */
+  async function streamed(model: string, extra: Record<string, unknown>) {
+    const res = await call(litellmMasterKey(), 'POST', '/v1/chat/completions', {
+      model,
+      stream: true,
+      messages: [{ role: 'user', content: 'Count 1 to 5, digits only.' }],
+      ...extra,
+    })
+    expect(res.status, `${model}: ${res.status}`).toBe(200)
+    const frames = (await res.text())
+      .split('\n')
+      .filter((line) => line.startsWith('data:'))
+    return {
+      content: frames.filter((f) => /"content":"[^"]/.test(f)).length,
+      reasoning: frames.filter((f) => /"reasoning_content":"[^"]/.test(f)).length,
+    }
+  }
+
+  it("keeps the default names' thinking OFF even when a REQUEST asks for it", async () => {
+    // Rich, 2026-09-24: an app must not be able to empty its own answers by sending
+    // `reasoning_effort`. The mapping pins Ollama's `think: false`, and LiteLLM 1.98.0 maps a
+    // request's reasoning_effort to `think` FIRST and copies the mapping's provider params over
+    // it. With `reasoning_effort: none` as the pin instead, a request's "high" won: 0 content
+    // frames in 233 (measured). A request sending Ollama's OWN `think: true` still wins — the
+    // one residual, measured, and not something the toolkit or the OpenAI SDK sends.
+    for (const model of ['default-chat', 'default-chat-onprem']) {
+      const got = await streamed(model, { max_tokens: 300, reasoning_effort: 'high' })
+      expect(
+        got.content,
+        `${model}: a request's reasoning_effort turned thinking back on`,
+      ).toBeGreaterThan(0)
+      expect(got.reasoning).toBe(0)
+    }
+  })
+
+  it('the -reasoning names DO think — the difference the second name exists for', async () => {
+    // The positive control for the test above, and for the catalogue: if a -reasoning name were
+    // pinned off too, choosing it in `ai.models` would mean nothing. 50 tokens is enough to see
+    // reasoning frames and too few to finish thinking, so no content is expected or asserted.
+    for (const model of ['default-chat-reasoning', 'default-chat-onprem-reasoning']) {
+      const got = await streamed(model, { max_tokens: 50 })
+      expect(
+        got.reasoning,
+        `${model}: no reasoning frames — is it pinned off?`,
+      ).toBeGreaterThan(0)
+    }
   })
 
   it('every mapped condition an APP key can provoke is still the shape 1.98.0 produces', async () => {
