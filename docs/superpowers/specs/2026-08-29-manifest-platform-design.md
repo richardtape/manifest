@@ -1393,8 +1393,11 @@ should never discover the existence of a PIA on the day they wanted to launch.
    above.
 2. **Subsequent releases** — self-serve, *unless* `spec/isSensitiveDiff()` reports
    a change to a sensitive field (§7), in which case the release re-escalates. A
-   change to `auth.attributes` additionally requires an IAM change request to
-   reach `active` before the release can deploy (§9).
+   change to `auth.attributes` that adds an attribute UBC IAM has not registered
+   additionally requires an IAM change request to reach `active` before the
+   release can deploy (§9). A removal re-escalates like any sensitive change, and
+   does not wait on IAM: the app then asks for less than UBC releases, which a
+   change request can narrow later.
 
 The approval record captures a `diff_snapshot`: image digest, `manifest.yaml`
 diff, services requested, CWL attributes requested, resource delta, and an

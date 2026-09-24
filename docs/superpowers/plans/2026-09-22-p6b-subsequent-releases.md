@@ -2716,7 +2716,7 @@ git commit -m "feat(journey): P6b's acceptance — make demo-releases: self-serv
 
 ## Spec actions
 
-**ONE. RICH APPROVED IT IN SUBSTANCE ON 2026-09-22 (Question 2, option (a), with the wording below shown beside it), AND IT IS NOT APPLIED.** The session that wrote this plan was told to make no spec edits, so applying it is a separate step Rich authorises. Every spec change this project has made was approved first, and applied only after Rich had read the exact wording. **A spec action is not finished when the spec changes**: `manifest-decisions.html` restates D9 and D16 in plain language, and must be swept with it.
+**ONE. RICH APPROVED IT IN SUBSTANCE ON 2026-09-22 (Question 2, option (a), with the wording below shown beside it), AND IT WAS APPLIED ON 2026-09-24, AFTER THIS PLAN WAS EXECUTED, AT HIS WORD** — with `manifest-decisions.html`'s D9 and D16 cards swept the same day. *What follows is as the plan was written.* The session that wrote this plan was told to make no spec edits, so applying it is a separate step Rich authorises. Every spec change this project has made was approved first, and applied only after Rich had read the exact wording. **A spec action is not finished when the spec changes**: `manifest-decisions.html` restates D9 and D16 in plain language, and must be swept with it.
 
 **Not proposed, deliberately:**
 
@@ -2724,7 +2724,7 @@ git commit -m "feat(journey): P6b's acceptance — make demo-releases: self-serv
 - **`projects.launched_at`, `approval_previews` and the new `IamRegistration` columns**. P6a added `rehearsals` without a §6 action. §6 lists *key fields*, and none of these changes a decision.
 - **Decision 8 and Decision 16**, which make true what §13 and §9 already say.
 
-### 1. §13 D9.2's second sentence says *change* where the mechanism means *addition* — APPROVED IN SUBSTANCE 2026-09-22, NOT APPLIED
+### 1. §13 D9.2's second sentence says *change* where the mechanism means *addition* — APPROVED 2026-09-22, ✅ APPLIED 2026-09-24
 
 It currently reads:
 
