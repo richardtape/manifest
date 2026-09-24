@@ -418,14 +418,52 @@ export function createApi(options: ApiOptions) {
     },
 
     /**
+     * §13's PREVIEW — what an administrator reads BEFORE deciding (Rich, 2026-09-22; P6b
+     * Task 9). Interactive and `release:approve`, and **no step-up**: a preview decides
+     * nothing, so the step-up round trip comes after it, with its id in the URL. The platform
+     * STORES it and the decision copies it — the model is asked here and never again.
+     * BODYLESS, like `runRehearsal`.
+     */
+    async createApprovalPreview(
+      releaseId: string,
+      idempotency: string,
+    ): Promise<Schemas['ApprovalPreview']> {
+      return unwrap(
+        await client.POST('/v1/releases/{releaseId}/approval-preview', {
+          params: { path: { releaseId }, ...key(idempotency) },
+        }),
+        'createApprovalPreview',
+      )
+    },
+
+    /**
+     * A stored preview, RE-READ and never recomputed — how the screen comes back from the
+     * step-up round trip showing what the administrator read before it. **`404 NOT_FOUND`
+     * for a preview of another release**, which the screen answers by taking a new one.
+     */
+    async getApprovalPreview(
+      releaseId: string,
+      previewId: string,
+    ): Promise<Schemas['ApprovalPreview']> {
+      return unwrap(
+        await client.GET('/v1/releases/{releaseId}/approval-previews/{previewId}', {
+          params: { path: { releaseId, previewId } },
+        }),
+        'getApprovalPreview',
+      )
+    },
+
+    /**
      * §13's APPROVAL. Interactive only, a platform administrator only, and behind §20's
      * step-up: a session that has not re-proved itself in the last ten minutes is refused
      * `403 STEP_UP_REQUIRED`, whose `<Refusal>` is the link that does it (P6a Tasks 9, 10).
      * It binds the BUILD's immutable digest and answers `201` with the diff it was made on.
      *
-     * **THAT DIFF EXISTS ONLY FROM THIS CALL ON.** `buildDiffSnapshot` runs inside it, and
-     * `getApproval` is `404` until somebody decides — so no client can show an administrator
-     * the diff BEFORE they decide (P6a sitting 10). `reason` is optional here.
+     * **IT NAMES THE PREVIEW THE ADMINISTRATOR READ** (P6b Task 9): `body.previewId` is
+     * optional in the schema and REQUIRED by the operation — `400 APPROVAL_PREVIEW_REQUIRED`
+     * without it — and the record's diff IS that preview's. A preview whose facts moved is
+     * `409 APPROVAL_PREVIEW_STALE`, an old one `409 APPROVAL_PREVIEW_EXPIRED`; the screen
+     * offers a new preview for both and never retries the decision by itself.
      */
     async approveRelease(
       releaseId: string,
@@ -441,8 +479,8 @@ export function createApi(options: ApiOptions) {
       )
     },
 
-    /** The same four guards; the reason is REQUIRED, because a refusal with no words in it
-     *  is one nobody can act on (D23.7). */
+    /** The same four guards and the same preview; the reason is REQUIRED, because a refusal
+     *  with no words in it is one nobody can act on (D23.7). */
     async rejectRelease(
       releaseId: string,
       body: Schemas['RejectReleaseRequest'],

@@ -265,10 +265,30 @@ describe('the console’s data layer against manifest-mock', () => {
       // §13's approval: BOTH decisions answer `201` with the record, and a rejection carries
       // its reason. The mock answers one fixture for both (it keeps no state), so this proves
       // the calls — their paths, bodies and keys — and the platform's tests prove the rest.
-      expect((await a.approveRelease(RELEASE_ID, {}, k())).decision).toBe('approved')
+      //
+      // P6b Task 9: a PREVIEW first, re-read by its id, and both decisions NAME it — the
+      // record's diff is the preview's (the mock shares one object, as the platform copies).
+      // Naming NO preview is refused by code, the platform's runtime rule the mock plays.
+      await expect(a.approveRelease(RELEASE_ID, {}, k())).rejects.toMatchObject({
+        code: 'APPROVAL_PREVIEW_REQUIRED',
+      })
+      const preview = await a.createApprovalPreview(RELEASE_ID, k())
+      expect(preview.releaseId).toBe(RELEASE_ID)
+      expect(preview.diff.coverage).not.toBeNull()
+      expect(await a.getApprovalPreview(RELEASE_ID, preview.id)).toEqual(preview)
+      const approved = await a.approveRelease(RELEASE_ID, { previewId: preview.id }, k())
+      expect(approved.decision).toBe('approved')
+      expect(approved.previewId).toBe(preview.id)
+      expect(approved.diff).toEqual(preview.diff)
+      expect(approved.decidedByName.length).toBeGreaterThan(0)
       expect(
-        (await a.rejectRelease(RELEASE_ID, { reason: 'the PIA does not cover it' }, k()))
-          .releaseId,
+        (
+          await a.rejectRelease(
+            RELEASE_ID,
+            { reason: 'the PIA does not cover it', previewId: preview.id },
+            k(),
+          )
+        ).releaseId,
       ).toBe(RELEASE_ID)
 
       // D21's rehearsal. THE ANSWER IS A MEASUREMENT, and these are the three fields the

@@ -1,5 +1,6 @@
 import type { Server } from 'node:http'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import * as fixtures from './fixtures.js'
 import { ANSWERED, createMockServer, operationsOf, readDocument } from './server.js'
 
 /**
@@ -90,6 +91,41 @@ describe('manifest-mock refuses what the platform refuses', () => {
     expect(((await response.json()) as { error: { code: string } }).error.code).toBe(
       'EVENTS_UPGRADE_REQUIRED',
     )
+  })
+
+  /**
+   * P6b Task 9's RUNTIME RULE, which the document cannot state: `previewId` is optional in the
+   * request schema and REQUIRED by the operation (Decision 15). A mock that accepted a decision
+   * naming no preview would let a console that never sends one look finished — and the
+   * difference would first appear against the platform (P6b sitting 6, found by clicking).
+   */
+  it('answers a decision naming no preview 400 APPROVAL_PREVIEW_REQUIRED', async () => {
+    const decide = (verb: 'approve' | 'reject', body: Record<string, unknown>) =>
+      fetch(`${origin}/v1/releases/${fixtures.RELEASE_ID}/${verb}`, {
+        method: 'POST',
+        headers: {
+          ...session,
+          'content-type': 'application/json',
+          'idempotency-key': crypto.randomUUID(),
+        },
+        body: JSON.stringify(body),
+      })
+    for (const [verb, body] of [
+      ['approve', {}],
+      ['reject', { reason: 'no preview was read' }],
+    ] as const) {
+      const refused = await decide(verb, body)
+      expect(refused.status).toBe(400)
+      expect(((await refused.json()) as { error: { code: string } }).error.code).toBe(
+        'APPROVAL_PREVIEW_REQUIRED',
+      )
+      // The positive half: the same request NAMING a preview is the platform's 201.
+      const named = await decide(verb, {
+        ...body,
+        previewId: fixtures.APPROVAL_PREVIEW_ID,
+      })
+      expect(named.status).toBe(201)
+    }
   })
 
   it('answers §26’s fleet 403 FORBIDDEN unless the role is admin', async () => {

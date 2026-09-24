@@ -79,6 +79,24 @@ export class MockRefusal extends Error {
 }
 
 /**
+ * P6b Task 9's RUNTIME RULE, played here because the document cannot state it: `previewId` is
+ * optional in the request schema and REQUIRED by the operation (Decision 15). Without this a
+ * console that never names a preview would look finished against the mock and be refused by
+ * the platform — found by clicking the approvals screen in P6b sitting 6. Stateless like
+ * everything here: any id is accepted, and the answer is the one fixture.
+ */
+function decisionNamingAPreview(ctx: Context): typeof f.APPROVAL {
+  if ((ctx.body as { previewId?: unknown } | undefined)?.previewId === undefined)
+    throw new MockRefusal(
+      400,
+      'APPROVAL_PREVIEW_REQUIRED',
+      'an approval names the preview the administrator read',
+      'POST /v1/releases/{releaseId}/approval-preview, read it, then decide naming its id.',
+    )
+  return f.APPROVAL
+}
+
+/**
  * ONE ENTRY PER OPERATION IN THE DOCUMENT, in the document's own order, so a reader can diff
  * the two. Every value here is a fixture from `fixtures.ts` and every fixture is in
  * `FIXTURES`, so both ends of the claim are checked.
@@ -193,8 +211,8 @@ const ANSWERS: Record<string, Answerer> = {
    * correct here and wrong against the platform. A screen that needs a REJECTED approval
    * drives the platform, not this.
    */
-  approveRelease: () => created('Approval', f.APPROVAL),
-  rejectRelease: () => created('Approval', f.APPROVAL),
+  approveRelease: (ctx) => created('Approval', decisionNamingAPreview(ctx)),
+  rejectRelease: (ctx) => created('Approval', decisionNamingAPreview(ctx)),
   getApproval: () => ok('Approval', f.APPROVAL),
   // P6b Task 9: the stored preview. Taking one and re-reading it answer the SAME fixture, which
   // is the platform's property (a re-read never recomputes) and also all a stateless mock can do.

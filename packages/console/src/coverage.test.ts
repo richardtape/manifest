@@ -17,14 +17,19 @@ import { describe, expect, it } from 'vitest'
  * and the list is where that claim is recorded.
  */
 const DELIBERATELY_UNCALLED: Record<string, string> = {
-  // P6b Task 9 parks its two preview operations here, and TASK 10 — THE SAME SITTING —
-  // removes both with the approvals screen (P6b Decision 19). Between the two commits the
-  // console's Approve button answers `400 APPROVAL_PREVIEW_REQUIRED`, which is why the two
-  // tasks share a sitting and this entry must never survive a session boundary.
-  createApprovalPreview:
-    'P6b Task 10 gives it the approvals screen, in the same sitting (P6b sitting 6).',
-  getApprovalPreview:
-    'P6b Task 10 gives it the approvals screen, in the same sitting (P6b sitting 6).',
+  // **EMPTY, AND THAT IS A MEASUREMENT** — all 43 operations have a caller (P6b Task 10).
+  // It was empty through the whole of P5c (34 operations) and again from P6a Task 18 (41).
+  // P6b Task 9 parked its two preview operations here naming their remover, and Task 10
+  // removed both in the same sitting (P6b Decision 19) — so the console's Approve button was
+  // never broken across a session boundary.
+  //
+  // **AN EMPTY LIST IS NOT A COMPLETE API.** This gate asks whether every operation the
+  // document DECLARES has a caller. It cannot ask the converse — whether the console needs
+  // an operation the document does not declare — and P6a sitting 10 found one: the diff an
+  // administrator approves was computed INSIDE the approval, so no client could show it
+  // before the decision. P6b Task 9's stored preview is that missing operation, and this
+  // list being empty again is only half of the evidence; the other half is a person reading
+  // the preview before deciding (Task 10's click, Task 11's clicked acceptance).
 }
 
 /**
@@ -98,13 +103,16 @@ describe('§16’s API completeness tier (D22)', () => {
     )
 
     const uncalled: string[] = []
+    // A PARKED OPERATION THAT HAS A CALLER IS A STALE PARK (P6b Task 10): the entry outlived
+    // its remover, and from then on it hides that caller's deletion from this gate. Task 9
+    // parked two and Task 10 removed both; this is what says the removal happened.
+    const staleParks: string[] = []
     let checked = 0
     for (const [path, operations] of Object.entries(document.paths)) {
       for (const [method, operation] of Object.entries(operations)) {
         const id = operation.operationId
         if (id === undefined) continue
         checked++
-        if (id in DELIBERATELY_UNCALLED) continue
         // THE STREAM IS ONE OF THE 34, NOT A 35th (P5c sitting 1, F5): it is in `d.paths`
         // as `GET /v1/projects/{projectId}/events`. It is not a client method either —
         // `subscribe` opens it, from stream.ts — so it is COUNTED and looked for there.
@@ -114,11 +122,16 @@ describe('§16’s API completeness tier (D22)', () => {
             : new RegExp(
                 `client\\.${method.toUpperCase()}\\(\\s*['"]${path.replace(/[{}]/g, '\\$&')}['"]`,
               ).test(source)
+        if (id in DELIBERATELY_UNCALLED) {
+          if (called) staleParks.push(id)
+          continue
+        }
         if (!called) uncalled.push(`${method.toUpperCase()} ${path} (${id})`)
       }
     }
 
     expect(uncalled).toEqual([])
+    expect(staleParks).toEqual([])
     // A document that failed to parse, or a path table that came back empty, validates
     // perfectly against an empty list. Assert what was READ (P5b sitting 8, F3).
     expect(checked, 'no operations were read from the document').toBeGreaterThan(30)
