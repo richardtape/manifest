@@ -27,8 +27,8 @@ is self-serve unless it changes a sensitive field, then an administrator approve
 driver plan IS WRITTEN** (`docs/superpowers/plans/2026-09-24-d5-github-source-driver.md`, 2026-09-24,
 15 tasks in Rich's eight sittings; its three spec actions approved and APPLIED the same day, with
 one follow-up open — a §19 row, ORIENTATION §8).
-**The next job is EXECUTING its sitting 1, and ORIENTATION §7e says how**; this file deliberately
-says no more. P6b's measurements (its sitting 1, 2026-09-22) found every premise true and a
+**Its sitting 1 — the measurements — ran on 2026-09-24; the next job is the sitting ORIENTATION §7e
+names, and §7e says how**; this file deliberately says no more. P6b's measurements (its sitting 1, 2026-09-22) found every premise true and a
 defect it did not know — **the egress proxy never re-renders its allowlist**, so a removed
 `egress.allow` host stays reachable — which added Task 5a to the plan. **Rich answered its three questions the same day** (ORIENTATION §8, *Decided*): seven
 sittings; removing a CWL attribute does not wait for IAM (its one spec action — approved, and

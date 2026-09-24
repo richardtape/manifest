@@ -834,7 +834,7 @@ spec write path makes D9's sensitive-diff re-escalation load-bearing for the fir
 is what builds it. **This is one of two instances of the same rule** — see *D5's driver 2* below:
 *anything that widens who can change a spec goes after the gate that inspects spec changes.*
 
-### D5's driver 2 — the GitHub source driver. PLACED AFTER P6b, 2026-09-19 — **WRITTEN 2026-09-24: [`2026-09-24-d5-github-source-driver.md`](./2026-09-24-d5-github-source-driver.md), 15 tasks in Rich's eight sittings. NOTHING IS EXECUTED; SITTING 1 — THE MEASUREMENTS — IS NEXT**
+### D5's driver 2 — the GitHub source driver. PLACED AFTER P6b, 2026-09-19 — **WRITTEN 2026-09-24: [`2026-09-24-d5-github-source-driver.md`](./2026-09-24-d5-github-source-driver.md), 15 tasks in Rich's eight sittings. SITTING 1 — THE MEASUREMENTS — RAN 2026-09-24; SITTING 2 (TASKS 2 AND 3) IS NEXT**
 
 **WRITTEN 2026-09-24, at `7045a99`.** Fifteen tasks in the eight sittings Rich chose. The conformance run is placed in sitting 3 as the fake's own check, with an overflow rule that moves it to sitting 4 if sitting 3 runs long. **Writing it measured, on this machine, the facts its *Read this first* lists** — each re-run by its Task 1 into `spikes/d5-baseline/` — and the ones that shaped it are:
 - Gitea (1.27-dev, 342 paths) and Forgejo (16.0-dev, 326) expose **no** GitHub App endpoint.
@@ -847,6 +847,8 @@ is what builds it. **This is one of two instances of the same rule** — see *D5
 - **F9 reproduces on the real model: 4 of 10 summaries had Markdown, and 3 of 10 an invented or misattributed verdict, every one after the prompt's own instruction to state the verdict.**
 
 **Its three spec actions were approved and APPLIED the same day** (the section *Spec actions raised by the D5 plan*, above). One follow-up is open: a §19 row for the production GitHub organisation.
+
+**SITTING 1 — Task 1, the measurements, alone and first — RAN 2026-09-24** ([`spikes/d5-baseline/`](../spikes/d5-baseline/README.md); the count is in the defect-rate table). **Every premise above held**, most of them exactly — and driving them found what the plan did not know: **after ONE rewrite of GitHub's `main`, every later non-forced fetch reports the same refusal, so a normal push is never an update** — never scanned for secrets, validated or reported — and the driver's `headCommit` would answer the frozen `main` as current for ever. The fix (a second, forced refspec into `refs/manifest/upstream/*`) is measured and corrects Tasks 7, 9 and 11. **Task 13's check withholds 7 summaries in 10 under Task 13's own prompt, and none of them states a verdict** (backticks round a hostname; *"previously blocked"* describing egress) — over the plan's own line, so **it is Rich's, in sitting 7**, with the options written at the top of Task 13. F9 itself reproduced (3 in 10, twice). **The contract first moves in Task 2, not Task 8**, which takes the `1.2.0` bump. The rest: Fastify is 5.12.3; a bare `compose down` exits 0 with the profiled fake still running (so `make down` and `make reset` name the profile); two of GitHub's schemas do not compile in Ajv without a `nullable` normaliser; an inherited `GIT_TRACE_CURL` file can hold a token. **No sitting boundary moved; Rich's eight stand.**
 
 
 **ITS TWO QUESTIONS ARE DECIDED (Rich, 2026-09-24; ORIENTATION §8):** a GitHub-compatible FAKE in a container for the acceptance, plus an opt-in conformance check against a real GitHub App; **eight sittings**. And the console's sign-out (P6b's F10) is fixed in its own sitting first, not in this plan.
@@ -1188,6 +1190,7 @@ makes the third move a one-line edit instead of a six-document sweep. *(A prose 
 | P6b Task 11 (sitting 7, the acceptance) | 1 | 17 | 17.0 |
 | **P6b, EXECUTED** | **12 of 12** | **111** | **9.3** |
 | P6b's F10, fixed after the plan (its own sitting, 2026-09-24 — P6b's record, *After the plan*) | 1 | 9 | 9.0 |
+| D5 driver 2 Task 1 (sitting 1, the measurements) | 1 | 12 | 12.0 |
 
 ***P5a's total and every P5b row above were added on 2026-09-18, by P5b sitting 6.** They had
 been missing since P5a finished — five consecutive P5b sittings closed out without them, each
