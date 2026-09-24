@@ -63,6 +63,20 @@ function deployDirect(deps: ServerDeps, releaseId: string, environmentId: string
   )
 }
 
+/**
+ * CLOSE A TEST'S SERVER ONLY ONCE ITS BACKGROUND WORK HAS FINISHED (P6b sitting 4). A deploy
+ * schedules a retire pass and answers without waiting for it (§11's drain), and this file
+ * closed the server with that pass still running — so the NEXT test's `beforeEach`
+ * `TRUNCATE` raced it: every run of this file logged 4–6 `[retire] the pass … failed`, and 2
+ * of 11 runs failed a test with `deadlock detected` inside `resetDatabase`. `retirer.idle()`
+ * exists for exactly this; `withProjectServer` drains the build runner the same way.
+ */
+async function closed(ctx: Pick<Released, 'app' | 'deps'>): Promise<void> {
+  await ctx.deps.builds.idle()
+  await ctx.deps.retirer.idle()
+  await ctx.app.close()
+}
+
 /** A minimal valid manifest for `fixture-node@1`, with `extra` lines appended. */
 const manifest = (slug: string, extra: readonly string[] = []) => [
   'manifest: 1',
@@ -165,7 +179,7 @@ describe('deployRelease’s half of D9.2 (P6b Task 5)', () => {
       baselineReleaseId: ctx.release.id,
       fields: [],
     })
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   it('redeploys the release production already serves, self-serve, and records no second launch', async () => {
@@ -199,7 +213,7 @@ describe('deployRelease’s half of D9.2 (P6b Task 5)', () => {
       covered: true,
       satisfied: true,
     })
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   it('refuses a release that ADDS an egress host: RELEASE_DIGEST_NOT_APPROVED, naming egress.allow, before anything starts', async () => {
@@ -223,7 +237,7 @@ describe('deployRelease’s half of D9.2 (P6b Task 5)', () => {
         fields: ['egress.allow'],
       },
     )
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   it('refuses a release that raises the PRODUCTION override — [M3], through the gate’s own half', async () => {
@@ -252,7 +266,7 @@ describe('deployRelease’s half of D9.2 (P6b Task 5)', () => {
       baselineReleaseId: ctx.release.id,
       fields: ['resources'],
     })
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   it('deploys the sensitive release once an approval covers its digest', async () => {
@@ -275,7 +289,7 @@ describe('deployRelease’s half of D9.2 (P6b Task 5)', () => {
       covered: true,
       satisfied: true,
     })
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   /** **Decision 7 — Review Focus 4.** A rejection is final for this release, sensitive or not. */
@@ -303,7 +317,7 @@ describe('deployRelease’s half of D9.2 (P6b Task 5)', () => {
       rejected: true,
       satisfied: false,
     })
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   /**
@@ -329,7 +343,7 @@ describe('deployRelease’s half of D9.2 (P6b Task 5)', () => {
       baselineReleaseId: null,
       fields: [],
     })
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   /**
@@ -356,7 +370,7 @@ describe('deployRelease’s half of D9.2 (P6b Task 5)', () => {
     await expect(deployDirect(ctx.deps, r3.id, ctx.production.id)).rejects.toMatchObject({
       code: 'RELEASE_DIGEST_NOT_APPROVED',
     })
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   /**
@@ -385,7 +399,7 @@ describe('deployRelease’s half of D9.2 (P6b Task 5)', () => {
     // production that refuses everything.
     const launched = await deployDirect(ctx.deps, ctx.release.id, ctx.production.id)
     expect(launched.state).toBe('healthy')
-    await ctx.app.close()
+    await closed(ctx)
   })
 })
 
@@ -490,7 +504,7 @@ describe('the gate for a launched app (D9.2, P6b Task 6)', () => {
     ])
     expect(itemOf(read, 'admin-approval')).toMatchObject({ state: 'met', blocking: true })
     expect(itemOf(read, 'admin-approval')!.why).toContain('self-serve')
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   it('refuses a sensitive release: 409 RELEASE_REESCALATED, and the envelope’s checklist IS the read, byte for byte', async () => {
@@ -521,7 +535,7 @@ describe('the gate for a launched app (D9.2, P6b Task 6)', () => {
     // And production still serves the launch — the refusal started nothing.
     expect(await servingProduction(ctx)).toBe(ctx.launched.id)
     expect(await instancesOf(ctx, added.id)).toHaveLength(1) // its staging instance only
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   it('deploys the sensitive release once an administrator has approved it', async () => {
@@ -549,7 +563,7 @@ describe('the gate for a launched app (D9.2, P6b Task 6)', () => {
     expect(item.why).toMatch(
       /changes egress\.allow since the last approved release, and an administrator approved it on \d{4}-/,
     )
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   /**
@@ -573,7 +587,7 @@ describe('the gate for a launched app (D9.2, P6b Task 6)', () => {
     expect(read.json()).toMatchObject({ ready: true, candidateReleaseId: candidate.id })
     expect((await instancesOf(ctx, ctx.release.id)).length).toBe(before)
     expect(await servingProduction(ctx)).toBe(ctx.launched.id)
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   /**
@@ -605,7 +619,7 @@ describe('the gate for a launched app (D9.2, P6b Task 6)', () => {
     expect(item.state).toBe('met')
     expect(item.why).not.toMatch(/changes\s*,/)
     expect(item.why).toContain('approved')
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   /**
@@ -635,7 +649,7 @@ describe('the gate for a launched app (D9.2, P6b Task 6)', () => {
     expect(itemOf(view, 'scans')).toMatchObject({ state: 'unmet' })
     expect(itemOf(view, 'scans')!.why).toContain('Nothing is serving in staging')
     expect(itemOf(view, 'rehearsal')).toBeUndefined()
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   /**
@@ -658,7 +672,7 @@ describe('the gate for a launched app (D9.2, P6b Task 6)', () => {
     const view = (await readinessOf(ctx)).json()
     expect(view.candidateReleaseId).toBeNull()
     expect(itemOf(view, 'scans')!.why).toContain('Nothing is serving in staging')
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   /** **REVIEW FOCUS 4 — Decision 7.** An approval cannot fix a rejection already made. */
@@ -684,7 +698,7 @@ describe('the gate for a launched app (D9.2, P6b Task 6)', () => {
       'not this week — the term starts Monday',
     )
     expect(await servingProduction(ctx)).toBe(ctx.launched.id)
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   /**
@@ -711,7 +725,7 @@ describe('the gate for a launched app (D9.2, P6b Task 6)', () => {
       reescalated: false,
       sensitiveFields: ['egress.allow'],
     })
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   /**
@@ -755,7 +769,7 @@ describe('the gate for a launched app (D9.2, P6b Task 6)', () => {
     expect(refusal(retried)).toEqual({ status: 200, code: undefined })
     expect(retried.json()).toMatchObject({ releaseId: rebuilt.id, state: 'healthy' })
     expect(await approvalsOf(ctx, rebuilt.id)).toEqual([])
-    await ctx.app.close()
+    await closed(ctx)
   })
 
   it('an unlaunched project’s view is P6a’s, unchanged: launched false, reescalated false, baselineReleaseId null, sensitiveFields []', async () => {
@@ -781,6 +795,6 @@ describe('the gate for a launched app (D9.2, P6b Task 6)', () => {
     expect(itemOf(view, 'admin-approval')!.title).toBe(
       'Release approved by a platform administrator',
     )
-    await ctx.app.close()
+    await closed(ctx)
   })
 })
