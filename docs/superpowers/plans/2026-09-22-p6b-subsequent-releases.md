@@ -38,8 +38,8 @@
 | 3 | 4, 5, **5a** | **An app has launched** — migration 0021, the launch recorded once, a rehearsal refused afterwards — and **`deployRelease`'s half of D9.2**: approval required for a first launch and for a sensitive change, never for anything else, and never deploying a release an administrator rejected — **and (Task 5a, added by sitting 1) the egress proxy follows the release it serves.** **If it runs long, stop after Task 5 and sweep; Task 5a then opens sitting 4, ahead of Task 6**, with which it shares nothing | **Yes** — `releases/`, `launch/`, `runtime/`, `*.docker.test.ts` | **DONE 2026-09-23** — all three tasks. A launch is recorded ONCE by the deploy that makes it true (migration 0021), a launched app is not rehearsed (`REHEARSAL_LAUNCHED`), and `make demo-production`'s re-use path is a launched app that stops. `deployRelease` reads ONE rule, `approvalRequirementFor`: self-serve unless a sensitive field changed since the last approved release, fail closed with no baseline, never a rejected release. The egress proxy is recreated when a release changes its list, and kept when it does not. **The route still refuses a launched app's self-serve release until Task 6** — the planned one-sitting window. Record: *What executing this plan found*, sitting 3 |
 | 4 | 6 | **The gate for a launched app — this plan's centre, alone.** The checklist branches on `launched`, the self-serve deploy goes through, a sensitive change is refused `RELEASE_REESCALATED` carrying the view, and a release that is not the one serving staging is refused `RELEASE_NOT_STAGED` | **Yes** — `launch/` | **DONE 2026-09-23** — a launched app's non-sensitive release goes to production through the ROUTE with no administrator; a sensitive one is refused `409 RELEASE_REESCALATED` carrying a checklist byte-identical to the read, and deploys once approved; a release that is not the one serving staging is refused `409 RELEASE_NOT_STAGED`; a rejection is final. `candidateFor` no longer offers a FAILED staging release (F2), and the test file drains its retirer (F7). `make demo-production` has no step 10. Record: *What executing this plan found*, sitting 4 |
 | 5 | 7–8 | **The IAM change request** — migration 0022, a registration's registered set that changes only when UBC registers it, the change request as the registration's own `change_requested` state, and the live-registration check (attributes, ACS and SLO) for every production release — and **R4(d)**: deterministic security notes per sensitive field, the reviewer's verdict and D33's coverage limit in the record and in the prompt, and the `code-review` item reading the verdict (P6a F7). **The lean split's cost: if it runs long, stop after Task 7 and sweep** | **Yes** — `launch/`, `releases/` | **DONE 2026-09-23 — both tasks, without stopping after Task 7.** A registration's registered attributes, ACS and SLO change only on a record that reaches `active`, and a change request is the `change_requested` state naming `requestedAttributes` (migration 0022); `[M9]`'s request is refused and its consequence watched. One `registrationCovers` for both IAM items: the first launch compares the recorded ACS/SLO (`[M10]`), and a launched app's item is the live check — an added attribute waits for UBC, a removal re-escalates and waits for nobody, `expired` stops everything. The snapshot names its baseline, the sensitive fields, a `SECURITY_NOTES` line each and D33's coverage limit; the reviewer is asked before the model; `no-changes` is its own source; `code-review` reads the newest verdict. Record: *What executing this plan found*, sitting 5 |
-| 6 | 9–10 | **The stored preview**: migration 0023, `createApprovalPreview` and `getApprovalPreview`, approve and reject binding a preview and refusing a stale one — and **the console's approvals screen**, which shows the preview BEFORE the decision and keeps it through the step-up round trip. **Heavy**: the server half and the screen that uses it, together, so the console's Approve button is never broken across a session boundary | **Yes** — `releases/` | not started ← **next** — read Task 9's block first (sitting 5 left six things in it) |
-| 7 | 11 | **The acceptance**: `make demo-releases` — a self-serve production redeploy, then a sensitive change refused until an administrator approves it, then the IAM change request path — its offline-acceptance step, its `ci-acceptance` step, green three times, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | not started |
+| 6 | 9–10 | **The stored preview**: migration 0023, `createApprovalPreview` and `getApprovalPreview`, approve and reject binding a preview and refusing a stale one — and **the console's approvals screen**, which shows the preview BEFORE the decision and keeps it through the step-up round trip. **Heavy**: the server half and the screen that uses it, together, so the console's Approve button is never broken across a session boundary | **Yes** — `releases/` | **DONE 2026-09-23 — both tasks, the Approve button never broken across a session boundary.** An administrator takes a stored preview (migration 0023, thirty minutes, no step-up); approve and reject must NAME it (`400 APPROVAL_PREVIEW_REQUIRED`, `404`, `409 APPROVAL_PREVIEW_EXPIRED` / `APPROVAL_PREVIEW_STALE`), and the record COPIES its snapshot — the model is asked once. The approvals screen shows the preview first, through the component the record uses, its id in `?preview=` across the step-up. A pre-existing two-clock defect in the rehearsal fixed (`549dda4`); the mock now refuses a decision naming no preview. Record: *What executing this plan found*, sitting 6 |
+| 7 | 11 | **The acceptance**: `make demo-releases` — a self-serve production redeploy, then a sensitive change refused until an administrator approves it, then the IAM change request path — its offline-acceptance step, its `ci-acceptance` step, green three times, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | not started ← **next** — read Task 11's block first (sittings 5 and 6 left things in it), and **ask Rich before the sitting whether he will click it** |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -2489,6 +2489,23 @@ git commit -m "feat(console): the approval preview — read before deciding, and
 
 ## Task 11: The acceptance — `make demo-releases`
 
+> **WHAT SITTING 6 LEFT FOR THIS TASK (2026-09-23) — THE PREVIEW, AND THREE THINGS ONLY THIS TASK CAN WITNESS.**
+> (1) **Every approval and rejection now names a preview**: `POST /v1/releases/{releaseId}/approval-preview` (a
+> session and `release:approve`, NO step-up; `201 ApprovalPreview`), then the decision with `previewId` — without it
+> `400 APPROVAL_PREVIEW_REQUIRED`. `packages/journey/src/production.ts` step 7 is the pattern: preview, approve naming
+> it, and `JSON.stringify(approval.diff) === JSON.stringify(preview.diff)`. Leg A's approval does the same, and leg
+> A's is the first approval in the acceptance whose preview has a BASELINE — so its `summarySource` is `llm` when the
+> model answers (or `unavailable` offline), and it is where the model is asked exactly once.
+> (2) **The stale path was never clicked** (sitting 6, F13): the mock cannot play it. The clicked half is its first
+> witness — take a preview, approve another release of the project in a second tab, then approve naming the first
+> preview: `409 APPROVAL_PREVIEW_STALE`, *Take a new preview*, and a NEW preview whose *Compared with* moved.
+> (3) **Control 10b — the screen ignoring `?preview=` — is invisible to every gate and to the mock** (F9): against the
+> real model, the summary read before the step-up and after it must be the SAME words. The clicked half is its witness;
+> read the summary on screen for a literal `**` too (Task 1's F10), since the mock's summary is null.
+> **The rehearsal's registration bound now reads Postgres's clock** (`549dda4`, F1), so a laptop whose Docker VM
+> clock lags after sleep no longer fails `make demo-production`'s rehearsal with *"recorded no Service Provider
+> registration"* — if that message returns, suspect the clock before the code.
+
 > **WHAT SITTING 5 LEFT FOR THIS TASK (2026-09-23) — LEG C MEETS TASK 7's RULES.** Once UBC has registered the SP,
 > `registeredAttributes`, `acsUrl` and `sloUrl` change only on a record whose resulting state is `active`; an
 > `active` record MAY be re-recorded `active` with new values (that is how *"UBC registered the narrower set"* is
@@ -3824,3 +3841,188 @@ buffer had already rolled past it, so it cannot be traced further. **Recorded an
 **The four HTML pages were checked and not changed**: no spec action was applied (P6b's one spec action is still
 approved in substance and not applied), and none of them describes the IAM change request or the approval summary at
 a level this sitting moved.
+
+### Sitting 6 — Tasks 9 and 10: the stored preview, and the screen that reads it first — 2026-09-23
+
+**BOTH TASKS, IN ONE SITTING, SO THE CONSOLE'S APPROVE BUTTON WAS NEVER BROKEN ACROSS A SESSION BOUNDARY** (the
+window between `600d9f0` and `e89c1c5` was 30 minutes). `549dda4` first — a pre-existing defect this sitting's first
+suite run exposed (F1). `600d9f0`: **Rich's decision of 2026-09-22, built.** An administrator takes a preview (`POST
+/v1/releases/{releaseId}/approval-preview` — a session and `release:approve`, no step-up), the platform STORES it
+(migration **0023**, `approval_previews`, insert-only, thirty minutes), and approve and reject must NAME it: `400
+APPROVAL_PREVIEW_REQUIRED` without one, `404 NOT_FOUND` for another release's, `409 APPROVAL_PREVIEW_EXPIRED` past its
+TTL and `409 APPROVAL_PREVIEW_STALE` when its facts — recomputed at decision time by the same `diffFactsFor` — moved.
+**The record COPIES the preview's snapshot: the model is asked once, when the preview is taken, and never by a
+decision** — measured by a fake model that answers `summary #1`, `summary #2`, … `GET …/approval-previews/{previewId}`
+re-reads one. `buildDiffSnapshot` is `diffFactsFor` + `annotate` (one baseline read, the reviewer before the model);
+`latestReviewFor` reads previews as its second source; `Approval` gains `previewId` and `decidedByName`,
+`ApprovalPreview` `createdByName`. The contract stays `1.1.0` with 43 operations. `e89c1c5`: **the approvals screen shows
+the preview BEFORE the decision**, through ONE component the record also uses, with its id in `?preview=` so §20's
+step-up returns to the same preview; a stale or expired preview offers *Take a new preview* and never retries the
+decision by itself; P6a's *"the API offers no preview"* is gone.
+
+#### The decisions this sitting made
+
+**1. One fixture decides for every test: `previewThenDecide` (`api/testing.ts`)** — the preview THROWS, the decision is
+returned unasserted, so a caller can still read a refusal. `approvedProject`, `launchedCwlProject`, the matrix's own
+setup approval and every decision in `approval.test.ts` and `subsequent-releases.test.ts` go through it.
+
+**2. `DiffFacts` lives in `releases/approval.ts`, beside `diffFactsFor`, which produces it** (the plan listed it in
+`preview.ts`); `preview.ts` imports it and does not re-export it, so `releases/index.ts`'s `export *` stays unambiguous.
+
+**3. `buildDiffSnapshot` is KEPT, as facts + annotations, with ONE caller — `createApprovalPreview`** — so the plan's
+control (a) is literally *"`decide()` calls `buildDiffSnapshot` again"*.
+
+**4. `assertPreviewCurrent` takes `Pick<SnapshotDeps, 'db'>`**: it only recomputes facts.
+
+**5. `recordApproval`'s `previewId` is OPTIONAL in its input** — the route always passes one; `releases.test.ts` and
+`production.docker.test.ts` write decisions directly and have no preview to name.
+
+**6. Expiry runs on ONE clock**: `recordPreview` sets `created_at` and `expires_at` from the same host `now`, and
+`assertPreviewCurrent` compares with the host's `Date.now()` — F1's lesson, applied before it could bite.
+
+**7. The preview and the record render through ONE component, `DiffView`** (the plan: *"through the same component"*),
+and `DecisionRecord` names who decided.
+
+**8. The mock's `APPROVAL` and `APPROVAL_PREVIEW` share one `APPROVAL_DIFF` object** — the platform's rule is that the
+record copies the preview.
+
+**9. The clock fix is its own commit, ahead of Task 9's**, staged from just its hunks — its content is independent of
+Task 9 (at that commit `launchedCwlProject` approves without a preview, which that commit's route allows).
+
+#### The findings
+
+**F1 — THE REHEARSAL COMPARED TWO CLOCKS, AND A `pnpm test` RUN SAID SO ONCE (pre-existing, P6a sitting 9's
+`notBefore`).** The first full run on the Task 9 tree read 1721/123 — the predicted count — with **8 red**, and the second
+run **0**. All eight were `launchedCwlProject` callers failing at the REHEARSAL, a step before any line Task 9 touched:
+`409 REHEARSAL_DEPLOY_FAILED` *"the deploy recorded no Service Provider registration"*. `runRehearsal` read its own
+deploy's `sso.registered` event "not older than this deploy" — `events.created_at` is Postgres's `clock_timestamp()`,
+inside Docker Desktop's VM, and the bound was the host's `new Date()`. With the fake driver the event lands milliseconds
+after the bound, so a VM clock a few milliseconds behind hides it; on the real platform a VM clock seconds behind after
+a laptop sleeps would do the same. Skew measured afterwards over a direct connection (minimum round trip of fifty): DB −
+host ≈ −0.1 ms. **Made deterministic** by faking the host's `Date` two seconds ahead around `launchedCwlProject`: red
+with the run's exact message, then green once the bound is read with `select clock_timestamp()` (`549dda4`).
+
+**F2 — TASK 9's CONTROL (d) DID NOT ANSWER `201`: THE FACTS CHECK IS A SECOND GUARD BEHIND THE SCOPE.** With
+`previewFor` ignoring `releaseId`, the plan predicted the crossed approval `201` with the wrong diff recorded. Measured
+(and predicted by this sitting): **`409 APPROVAL_PREVIEW_STALE`** — R1's preview's facts are not R2's. Only the asserted
+CODE separates the two guards. For a re-release of the SAME build — identical digest, configuration and baseline — the
+facts agree and the scope is the only guard; `previewFor`'s own unit case is its witness, and fired.
+
+**F3 — THE MOCK ACCEPTED A DECISION NAMING NO PREVIEW, SO TASK 10's CONTROL (a) COULD NOT COME TRUE.** The plan predicted
+*"the mock click answers `400 APPROVAL_PREVIEW_REQUIRED`"*; the mock answers its fixture to anything, so a console that
+never sent `previewId` would have looked finished against the mock and been refused by the platform. Found while
+clicking: the network tool cannot show a body, and a `fetch` wrapped after load sees nothing (`openapi-fetch` captures
+`fetch` when the client is made). **`manifest-mock` now plays the runtime rule the document cannot state** (`400
+APPROVAL_PREVIEW_REQUIRED`, red `201` → green), and against it the screen's Approve and Reject answer `201` — which is
+what measures that the screen sends the id.
+
+**F4 — `StrictMode` + A READ-THEN-INSERT IDEMPOTENCY STORE = TWO PREVIEWS.** The screen's load effect runs twice in
+development, both runs POST with one key concurrently, and `replayOrStore` reads before it inserts — so both run the
+handler, two previews are stored, and the URL could name the one not on screen. `usePreview` now shares one in-flight
+take per release. **Measured in Chrome on the dev server: a fresh load makes exactly one POST; a load with `?preview=`
+makes none and two GETs** (the double mount). The production build does not double-mount; the dev server is what
+RUNBOOK's mock instructions run.
+
+**F5 — D22's GATE COULD NOT SEE A STALE PARK.** It skipped every parked operation, so an entry left in
+`DELIBERATELY_UNCALLED` after its caller landed would silently hide that caller's later deletion — the exact entries
+this sitting parked and removed. The gate now also refuses a parked operation that HAS a caller; control (c2) — the
+entry put back beside its live caller — reads `['createApprovalPreview']`, where before it was green.
+
+**F6 — A THIRD APPROVING FIXTURE THE FILES LIST'S GREP DOES NOT FIND.** Sitting 5 named two (`approvedProject`,
+`launchedCwlProject`); the authorization matrix's own setup approval, in `api/authz-contract.ts`, is a third — not a
+`*.test.ts` either. The matrix gains `previewId` in its fixture, taken by a stepped-up admin, which the preview-read row
+is aimed at.
+
+**F7 — THE PLAN'S STEP 2 PREDICTION WAS UNREACHABLE AT STEP 2.** *"The positive control fails by recording `summary
+#2`"* needs the preview route to exist and the decision not to copy it — which is control (a), not the pre-implementation
+tree (where every case reds on `ROUTE_NOT_FOUND`). Measured as control (a): the record's diff differs from the preview's,
+and the rejection case reads `summary #2`.
+
+**F8 — TWO OF THE PLAN'S NAMED TRAPS FIRED ANYWAY.** An unset `$SCRATCH` sent one gate's output to `/tc.txt` (refused by
+the read-only root; nothing written), and **controls (a) and (b)'s first run measured nothing** — invoked from zsh with an
+unquoted `$F`, *"No test files found"* (sitting 5's F13, in the same shape). Both were in §7e. **A warning in a hand-off
+does not stop a trap that fires silently**; a control runner that refuses *"No test files found"* would.
+
+**F9 — A CONTROL'S RED CAN BE THE MUTATION'S OWN SIDE EFFECT.** Task 10's control (b), written crudely (`const named =
+null`), reddened ESLint — `'previewInUrl' is defined but never used` — which is the mutation, not the property. The
+realistic version (the parameter read and ignored) is green on every gate, as the plan predicted; only the network
+shows a POST where the re-read belongs. Task 11's clicked half against the real model is its witness.
+
+**F10 — A NON-GREEDY `DOTALL` REGEX SPANS TEST BOUNDARIES.** The first mechanical conversion of `approval.test.ts`'s
+decisions matched from a flat-session refusal's `payload:` through to the NEXT test's `cookies: ctx.admin`, rewriting
+two tests into one call. Caught by reading the list of converted lines before running anything; reverted and redone
+with a payload pattern that cannot cross a brace (`\{[^{}]*\}`).
+
+**F11 — A `JSON.stringify` REPLACER ARRAY FILTERS KEYS AT EVERY DEPTH.** This sitting's first `sameFacts` unit case
+reordered a snapshot's top-level keys that way and compared two snapshots that had lost their changes' fields — red on
+first run, for the test's reason. Rebuilt by hand, every level reversed, with an assertion that the order really moved.
+
+**F12 — `latestReviewFor` ORDERS ACROSS TWO CLOCKS — RECORDED, NOT FIXED.** It compares a preview's `created_at` (host,
+set explicitly — decision 6) with an approval's `decided_at` (Postgres's `now()`). It can only choose between two
+verdicts inside a millisecond-scale skew window, on the NON-blocking `code-review` item, and a decision copies its
+preview's verdict. A one-clock rule is *"the newest preview's verdict; approvals only for a decision made before
+previews existed"*. Not changed while the Docker tier was running over `releases/`.
+
+**F13 — THE MOCK CANNOT PLAY THE STALE PATH**: `MANIFEST_MOCK_FAIL` plays a failed deploy only. The *Take a new
+preview* button was not clicked; the platform's refusal behind it is `preview.test.ts`'s stale case. Task 11's clicked
+half or a live drive is its witness. **And Chrome's ref-based clicks twice did not dispatch** — no request, no refusal,
+reading exactly like a dead button — while coordinate clicks did. Confirm with the network before calling a button dead.
+
+**F14 — SITTING 5's SWEEP LEFT ORIENTATION §2's `pnpm test` ROW SAYING `EXPECT_TESTS` IS `1662`** — the value before
+sitting 5, when the script itself read `1690`. Found while moving that row, by reading the whole cell rather than the
+number at its head: the row's opening figure had moved and its own restatement further along had not. The same shape
+§6 records for this row's neighbour in P6a sitting 9; a restated number inside a long cell is the one a sweep misses.
+
+#### The negative controls — Task 9's five and Task 10's three, and two more; ALL FIRED
+
+| | Control | Plan predicted | This sitting predicted | **Measured** |
+|---|---|---|---|---|
+| 9a | `decide()` rebuilds the snapshot | the positive control red twice | 4 | **FIRED — 4**: the positive control (record ≠ preview), the rejection (`summary #2`), `approval.test.ts`'s order case and the R4 seam's `asked` count |
+| 9b | the whole snapshot compared, summary included | the positive control `409 STALE` | 4 | **FIRED — 4**: both preview cases `409 APPROVAL_PREVIEW_STALE … Moved: summary.`, plus the order and seam cases |
+| 9c | the expiry check removed | *refuses an expired preview* | 1 | **FIRED — 1** |
+| 9d | `previewFor` ignores `releaseId` | `201`, the wrong diff | 2, the crossed case `409 STALE` | **FIRED — 2**: `previewFor`'s unit case, and `{409, APPROVAL_PREVIEW_STALE}` (F2) |
+| 9e | the `REQUIRED` check removed | `404 NOT_FOUND` on the code | `tsc` red; forced, 1 × 404 | **`tsc` TS2345; forced, 1 red reading `{404, NOT_FOUND}`** |
+| 10a | `Decide` stops sending `previewId` | `tsc` green; mock click `400` | the same, true only after F3 | **`tsc` GREEN; click `400 APPROVAL_PREVIEW_REQUIRED` rendered by `<Refusal>`** |
+| 10b | the screen ignores `?preview=` | invisible to every gate | the same; only the network sees it | **every gate GREEN; screen identical; network shows a POST where the GET belongs** (F9) |
+| 10c | a caller removed from `api.ts` | `coverage.test.ts` red, naming it | 1 | **FIRED — `POST …/approval-preview (createApprovalPreview)`** |
+| 10c2 | *(added)* the park entry put back beside its live caller | — | 1 | **FIRED — `['createApprovalPreview']`** (F5) |
+| F1 | *(added)* the rehearsal's bound read from the host clock, the host 2 s ahead | — | red, run 1's message | **FIRED — `409 REHEARSAL_DEPLOY_FAILED`** before `549dda4`, green after |
+
+Every control ran on the committed tree and was restored with `git checkout <path>`; `git status` was clean after each.
+
+#### The runs
+
+| Gate | Open (`eb867ca`) | After Task 9 (`549dda4`, `600d9f0`) | After Task 10 (`e89c1c5`) | Close |
+|---|---|---|---|---|
+| `pnpm test` | **1690 / 122**, twice (157.5 s, 154.3 s) | first run **1721 / 123 with 8 red** (F1), second green; then **1722 / 123**, twice (152.9 s, 155.5 s) — +13 preview, +18 matrix, +1 clock | **1723 / 123**, twice (154.8 s, 156.3 s) — +1, the mock's refusal | **1723 / 123**, twice (188.6 s, 196.7 s, load 13.8 at the start); one failed retire pass per run, the deliberate one |
+| lint / typecheck / format | clean | clean | clean | clean |
+| `make doctor` | **19 / 0, 0 warnings** | — | — | **19 / 0, 0 warnings** (the database 0.9 days old) |
+| `make verify` | **55 / 0** | — | — | **55 / 0** |
+| `pnpm test:docker` | 198 / 31 (sitting 5) | — | — | **198 passed in 31, 0 red** (1503.6 s) |
+| `make demo-production` | — | fresh **43.5 s** green (55 checks, the two new preview checks among them), re-use **3.8 s** green | — | fresh **71.7 s** green after the tier (55 checks) |
+
+**The test count moved by exactly the new cases**: 13 in `releases/preview.test.ts` (the one new file), 18 matrix rows
+(two routes × nine actors), 1 clock case in `api/subsequent-releases.test.ts`, 1 mock case. **23 → 24 migrations.** The
+contract stays `1.1.0` with **43** operations (Decision 15). `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` moves to
+**1723** and `EXPECT_FILES` to **123**.
+
+#### The machine, at close — queried, not recalled
+
+**The control plane is stopped; nothing listens on 7100, 7102 or 7104**, as at the open — it was started twice (Task 9's
+demos, the close's fresh demo), and `manifest-mock` and the console's Vite server for Task 10's click, and all were
+stopped. **The database is EMPTY** (0 projects, 0 releases — the close's `pnpm test` truncated it after the demo) with
+**24 migrations** — 0023 applied by `db:migrate` before the unit tier could see it. `make verify`: after the cleanup
+**`mf- containers=15 networks=5 volumes=10`**, and `runtime routes currently applied: 1`. `launch-app` stands in
+production and staging on the close's fresh-demo release, with `click-launch` and journey-app's staging beside it.
+**Cleanup**: `dead-app-resources.sh` found the tier's seven networks and one volume and `--apply` was **allowed** —
+re-measured *0 dead*; `litellm-orphans.sh` found five orphans and `--apply` was **allowed — the seventeenth consecutive
+sitting** — *5 user(s) remain (was 11)*, every held user kept, re-measured *0 orphaned*. **Images, the metric named**:
+`docker images -q` **115**, `sort -u` **107**, `127.0.0.1:7107/local/*` **68** — eight new untagged app images from the
+tier and the demos, which no script sweeps. The four protected containers are as they were
+(`docker-simple-saml-saml-idp-1` already `Exited (0) 2 weeks ago` at the open), `manifest-caddy-data` is intact, both
+loopback aliases are on `lo0`, and `docker-simple-saml`'s only dirty path is its untracked `cert.zip`. **The
+`snapshot-machine.sh` diff, open → close, is 94 lines, every one of them Manifest's own** — the images above, `launch-app`'s
+instance volumes replaced by the demo, free disk 116 → 115 GiB, and `HEAD`. Nothing of any other project moved this time.
+
+**The four HTML pages were checked and not changed**: no spec action was applied, and their only *preview* is the
+sandbox's live preview — none describes when an administrator sees an approval's diff.

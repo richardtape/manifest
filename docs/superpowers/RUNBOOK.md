@@ -369,7 +369,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 19 / 0 and `make verify` 55 / 0**
-(**All four were re-measured at the close of P6b sitting 5, 2026-09-23: `pnpm test` **1690 passed** in 122 files (up from 1662), `make doctor` 19 with **0 warnings** — the vulnerability database goes stale again after 2026-09-30 — `make verify` 55, and `pnpm test:docker` **198 in 31, all passed**.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured at the close of P6b sitting 6, 2026-09-23: `pnpm test` **1723 passed** in 123 files (up from 1690), `make doctor` 19 with **0 warnings** — the vulnerability database goes stale again after 2026-09-30 — `make verify` 55, and `pnpm test:docker` **198 in 31, all passed**.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has ELEVEN steps** — P5a sitting 12 added `make demo-journey` as step 8,
@@ -835,7 +835,11 @@ administrator, which is the cheapest starting point.
    the IdP's prompt — it prompts again even though you are already signed in — and post the
    assertion back to `/auth/saml/callback` **with `RelayState` beside `SAMLResponse`**, or the
    callback answers `401`. `infra/lib/idp-login.sh` is the flow; the step-up entry point is the
-   only difference. Then approve: `201`, bound to the build's digest.
+   only difference. **Take a preview first** — `POST /v1/releases/{releaseId}/approval-preview`,
+   no step-up needed, `201` with the diff an approval will record (P6b Task 9) — then approve
+   naming it, `{"previewId": "<its id>"}`: `201`, bound to the build's digest, its diff the
+   preview's. Without `previewId` the approval is `400 APPROVAL_PREVIEW_REQUIRED`; a preview
+   older than thirty minutes is `409 APPROVAL_PREVIEW_EXPIRED`; take another.
 5. **Deploy to production.** `POST /v1/environments/{productionEnvironmentId}/deploy` — it also
    asks for step-up, and one round trip covers both while the claim is fresh. The app then
    answers on **127.0.0.3**:

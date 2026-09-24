@@ -184,10 +184,10 @@ launch can be clicked as one person. What you will actually see, from P6a sittin
 | 5 | the same form: entity ID `https://manifest.internal/sp/<name>/production`, ACS `https://<name>.manifest.internal/auth/ubcshib/callback`, SLO `…/auth/logout`, attributes `ubcEduCwlPuid, mail, eduPersonAffiliation, givenName, sn`; **Record** as `submitted`, then again as `active` | the record reads `active`, five attributes; the release's own request is shown beside the field *for comparison only* |
 | 6 | **Record what the Privacy Office said**: `submitted`, then `approved` | the record reads `approved`, with the reviewer and the date |
 | 7 | back on **Overview**, **Run the rehearsal** | `passed`; *`<name>.manifest.internal` on the **public** listener*; *answered 200 at the registered ACS*; five attributes released against five registered |
-| 8 | **Review this release** | the release's digest, its scan and its production configuration, and a sentence saying the diff appears only once you decide |
+| 8 | **Review this release** | the release's digest, its scan and its production configuration, and — since P6b — a **Preview** panel: what your decision will record, taken now and valid for thirty minutes, with its id in the address bar (`?preview=`) |
 | 9 | **Approve for production** | refused: `STEP_UP_REQUIRED — 'release:approve' needs a second authentication round trip (§20)`, with **Confirm it is you, then try again** |
-| 10 | follow that link | CWL shows its **password page** although you signed in minutes ago; type it; you land back on the approval |
-| 11 | **Approve for production** again | `approved`, *Binds sha256:…*, the summary as a sentence (*"A first launch: there is no earlier approved release to compare with…"*), *Code review: not performed*. The actor shows as an id, not a name — known |
+| 10 | follow that link | CWL shows its **password page** although you signed in minutes ago; type it; you land back on the approval — **the same preview**, re-read rather than written again |
+| 11 | **Approve for production** again | `approved`, *Binds sha256:…*, the summary as a sentence (*"A first launch: there is no earlier approved release to compare with…"*), *Code review: not performed* — exactly the preview's words — and the decision names who made it |
 | 12 | back on the project: *Ready for production* **yes**; **Deploy to production** | no second password inside ten minutes; the instance's states stream; `https://<name>.manifest.internal/` answers — **but signs nobody in**, because a production app points at UBC's real CWL |
 
 **Row 3 is the one that was broken until 2026-09-22** (the checklist did not notice the deploy),

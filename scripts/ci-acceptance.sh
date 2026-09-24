@@ -60,8 +60,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # sitting 3 (2026-09-23): +16 and one file — an app has launched, and D9.2's second half.
 # Then P6b sitting 4 (2026-09-23): +11, no new file — the gate for a launched app. Then P6b
 # sitting 5 (2026-09-23): +28, no new file — the IAM change request and R4(d)'s summary.
-EXPECT_TESTS=1690
-EXPECT_FILES=122
+# Then P6b sitting 6 (2026-09-23): +33 and one file — the stored preview (13), its two
+# routes in the authorization matrix (18), the rehearsal's one-clock bound (1) and the mock
+# refusing a decision that names no preview (1).
+EXPECT_TESTS=1723
+EXPECT_FILES=123
 EXPECT_DOCTOR=19
 EXPECT_VERIFY=55
 
