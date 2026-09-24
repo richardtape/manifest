@@ -7,39 +7,18 @@ plan queue, and the conventions below in full. Everything here is the short vers
 
 ## State
 
-*This section moves when a plan starts or finishes, not every sitting, and it states no
-gate numbers. **ORIENTATION §7e names the exact next job and how to run it**; the current
-plan's sittings table is the maintained copy; ORIENTATION §2's box is the only current
-statement of the four gate numbers; and the roadmap's ledger
-(`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every other document on
-status.*
+*This section moves only when a plan starts or finishes, and it states no job, no sitting and no gate
+numbers. **ORIENTATION §7e names the next job and how to run it**, and the current plan's sittings table
+says how far it has got — those are the ONLY two places the job is stated (Rich, 2026-09-24), so they are
+the only two a sitting changes. ORIENTATION §2's box is the only current statement of the four gate
+numbers, and the roadmap's ledger (`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every
+other document on status.*
 
-**The design is approved and complete, five spikes are done, and P1 to P6b are executed
-and green — PHASE 1c IS COMPLETE, and so are Phase 2's first two plans.** Every one of them has an
-acceptance that passes. **P6 was split into P6a and P6b on 2026-09-19, and P6a — the first
-production launch — IS EXECUTED** (`docs/superpowers/plans/2026-09-19-p6a-first-production-launch.md`,
-all 19 tasks in the eleven agreed sittings, 2026-09-19 → 2026-09-22): an application reaches
-production with every blocking item honestly met, and `make demo-production` proves it. **P6b —
-subsequent releases — IS EXECUTED** (`docs/superpowers/plans/2026-09-22-p6b-subsequent-releases.md`,
-written 2026-09-22, executed 2026-09-22 → 2026-09-23 in Rich's seven sittings): a launched app's release
-is self-serve unless it changes a sensitive field, then an administrator approves a STORED preview, and
-`make demo-releases` proves it — green three times, and clicked by a person. **D5's GitHub source
-driver plan IS WRITTEN** (`docs/superpowers/plans/2026-09-24-d5-github-source-driver.md`, 2026-09-24,
-15 tasks in Rich's eight sittings; its three spec actions approved and APPLIED the same day, with
-one follow-up open — a §19 row, ORIENTATION §8).
-**Its sitting 1 — the measurements — ran on 2026-09-24; the next job is the sitting ORIENTATION §7e
-names, and §7e says how**; this file deliberately says no more. P6b's measurements (its sitting 1, 2026-09-22) found every premise true and a
-defect it did not know — **the egress proxy never re-renders its allowlist**, so a removed
-`egress.allow` host stays reachable — which added Task 5a to the plan. **Rich answered its three questions the same day** (ORIENTATION §8, *Decided*): seven
-sittings; removing a CWL attribute does not wait for IAM (its one spec action — approved, and
-APPLIED on 2026-09-24); and a sensitive change never returns an approved PIA to `draft`.
-**P6b's F10 — the console's *Sign out* leaving the IdP session alive — was FIXED on 2026-09-24,
-in its own sitting** (`0aa1824`, clicked by Rich), together with the defect fixing it found: the
-SLO route accepted UNSIGNED logout messages. P6b's record, *After the plan*, has it.
-**P6a raised three spec actions and ALL THREE were approved and APPLIED on 2026-09-22**: §13
-names no number of sensitive fields, §20 and D24 gain a *person-only* class, and §21's divergence 2
-now describes the real listener split and what stays divergent. **Rich decided on 2026-09-22 that an administrator sees the approval's diff before
-deciding, as a stored preview the approval binds — in P6b.**
+**The design is approved and complete, five spikes are done, and eleven plans are executed** — Phase 1c,
+and Phase 2's first two plans, P6a (the first production launch) and P6b (subsequent releases). Every one
+has an acceptance that passes. **The plan being executed now is D5's GitHub source driver**
+(`docs/superpowers/plans/2026-09-24-d5-github-source-driver.md`). Each plan's *What executing this plan
+found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
 |---|---|---|---|
@@ -54,44 +33,6 @@ deciding, as a stored preview the approval binds — in P6b.**
 | P5c | 2026-09-19 | The clients: `manifest-mock`, `console/` behind its import boundary, the CI acceptance script — and Phase 1c's acceptance | §22's journey clicked by a person **and** run headlessly, over one contract |
 | P6a | 2026-09-22 | The first production launch: §12's public listener, the two external records, the rehearsal, step-up, an approval bound to a digest | `make demo-production`, **and a launch clicked by a person** |
 | P6b | 2026-09-23 | Subsequent releases: self-serve unless sensitive, re-escalation approved from a stored preview, the egress proxy following its release, §9's IAM change request, the person-only class | `make demo-releases`, **and a person clicking it** |
-
-**P5c IS EXECUTED** (`docs/superpowers/plans/2026-09-18-p5c-the-clients.md`, written
-2026-09-18, executed 2026-09-18/19): the clients — `manifest-mock`, `console/` behind its import
-boundary, and the CI acceptance script — **14 tasks in nine sittings, 107 findings**. It was the
-last plan of Phase 1c, and **Phase 1c is now complete**. **§16's Acceptance tier is MET**: §22's
-journey is proved by two independent clients over one contract — `make ci-acceptance` headlessly,
-run three times including from an `echo reset | make reset` machine, and **a person clicking all
-sixteen rows** on 2026-09-19, recorded as a GIF. Rich settled three things in it: nine sittings
-(the leaner of three splits, with the cost stated); **§8's `stream_close_delay` question is
-answered by a MEASUREMENT** — an app's WebSocket IS cut by any other app's deploy, so
-`routing/caddy.ts` carries the field and §8's item is closed; and the **clicked half of its
-acceptance is shared and recorded**, because an agent driving Chrome cannot type a password.
-**Its acceptance found a live defect no gate can see, and it is now FIXED** (`b23674b`,
-2026-09-19, at Rich's direction rather than deferred to P6): signing out of any deployed app
-left the person on a raw JSON `404`, because Manifest's own Single Logout URL answered `POST`
-only while SAML's logout binding sends `GET` — and Manifest's own session was never ended by
-the chain. **Single logout now works end to end, proved in a browser against the real IdP.**
-It took TWO fixes, and the second is the one worth knowing: the first passed every test and
-was still broken, because `+` is a literal character of base64 and every FORM decoder reads it
-as a space — the redirect binding's values are URI components, not form fields. **Every test
-missed it because they all fired garbage at the route and asserted a refusal, and a route that
-refuses everything passes them all.** ORIENTATION §8 records the decision; P5c's record,
-sitting 9, has the measurements.
-
-**P5b — delegated tokens and pending actions (D24) — was executed in nine sittings and finished
-on 2026-09-18** (`docs/superpowers/plans/2026-09-17-p5b-delegated-tokens.md`, 13 tasks): an agent
-holding a delegated token acts on its one project, asking for one of D24's privileged four is
-refused at the authorization layer rather than per route, a person confirms or rejects that
-question and a confirmation lets the agent's own retry through exactly once, §26's queue is
-readable, every request a token makes is rate-limited, and a question nobody answers is swept to
-`expired`. Its acceptance, `make demo-token`, ran green three times — the third from a
-`make reset` machine — and is now step 9 of `scripts/offline-acceptance.sh`. **Its four spec
-actions were approved and applied on 2026-09-17.** P5a — the contract — finished on 2026-09-17:
-the API is under `/v1` at `https://console.manifest.internal` through the edge, an OpenAPI
-document is generated from the routes and a TypeScript client from that document
-(`packages/contract`), and `make demo-journey` drives §22's journey through nothing but that
-client; it is step 8 of the same script. *Sittings pace the work; they are not §17's product
-Phases.*
 
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
 turning the network off from a tool call cuts the agent off too; **it now has TWELVE steps**, the
@@ -135,13 +76,14 @@ longer outstanding.)*
 
 **Where to look:** [`WALKTHROUGH.md`](docs/superpowers/WALKTHROUGH.md) to see it run;
 [`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) to operate it and run each demo; README's
-*Running the control plane* to start the server; ORIENTATION §4 for what this machine will
+*Running the control plane* to start the server; ORIENTATION §4 (its 27 likeliest traps, and
+[`TRAPS.md`](docs/superpowers/TRAPS.md) for all of them) for what this machine will
 do to you, §8 for decisions waiting on Rich, §9 for lessons; and each plan's *What
 executing this plan found* for the measurements behind all of it.
 
 ## Before you trust a green result
 
-Each of these was paid for. ORIENTATION §4 and §9 carry the measurements.
+Each of these was paid for. ORIENTATION §4, `docs/superpowers/TRAPS.md` and §9 carry the measurements.
 
 - **Integration is where the false greens sit.** P3 found that no build, and then no
   deploy, had ever succeeded — behind 74 passing Docker tests — because the test

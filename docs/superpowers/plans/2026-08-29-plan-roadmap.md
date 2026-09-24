@@ -860,7 +860,7 @@ spec write path makes D9's sensitive-diff re-escalation load-bearing for the fir
 is what builds it. **This is one of two instances of the same rule** — see *D5's driver 2* below:
 *anything that widens who can change a spec goes after the gate that inspects spec changes.*
 
-### D5's driver 2 — the GitHub source driver. PLACED AFTER P6b, 2026-09-19 — **WRITTEN 2026-09-24: [`2026-09-24-d5-github-source-driver.md`](./2026-09-24-d5-github-source-driver.md), 15 tasks in Rich's eight sittings. SITTING 1 — THE MEASUREMENTS — RAN 2026-09-24; SITTING 2 (TASKS 2 AND 3) IS NEXT**
+### D5's driver 2 — the GitHub source driver. PLACED AFTER P6b, 2026-09-19 — **WRITTEN 2026-09-24: [`2026-09-24-d5-github-source-driver.md`](./2026-09-24-d5-github-source-driver.md), 15 tasks in Rich's eight sittings. SITTING 1 — THE MEASUREMENTS — RAN 2026-09-24** *(which sitting is next: the plan's sittings table, and ORIENTATION §7e)*
 
 **WRITTEN 2026-09-24, at `7045a99`.** Fifteen tasks in the eight sittings Rich chose. The conformance run is placed in sitting 3 as the fake's own check, with an overflow rule that moves it to sitting 4 if sitting 3 runs long. **Writing it measured, on this machine, the facts its *Read this first* lists** — each re-run by its Task 1 into `spikes/d5-baseline/` — and the ones that shaped it are:
 - Gitea (1.27-dev, 342 paths) and Forgejo (16.0-dev, 326) expose **no** GitHub App endpoint.
