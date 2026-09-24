@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { and, eq } from 'drizzle-orm'
 import { approvals, events, instances, projects, releases } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
@@ -915,6 +915,31 @@ async function releaseOf(ctx: CwlCtx, buildId: string): Promise<{ id: string }> 
 describe('a launched CWL app’s live registration (§9, D9.2, P6b Task 7)', () => {
   const TWO = [...CWL_LAUNCH_ATTRIBUTES]
   const THREE = [...CWL_LAUNCH_ATTRIBUTES, 'sn']
+
+  /**
+   * ONE CLOCK, NOT TWO (P6b sitting 6, found by a `pnpm test` that was red 8 and then green).
+   * The rehearsal reads its own deploy's `sso.registered` event "not older than this deploy",
+   * and the event's `created_at` is Postgres's `clock_timestamp()` — inside Docker Desktop's
+   * VM — while the bound was the HOST's `new Date()`. With the fake driver the event lands a
+   * few milliseconds after the bound, so a VM clock a few milliseconds behind the host hid it
+   * and every rehearsal here answered *"the deploy recorded no Service Provider
+   * registration"*. On the real platform a VM clock seconds behind after a laptop sleeps does
+   * the same. Here the host is two seconds AHEAD, which is the same inequality, made certain.
+   */
+  it('a rehearsal finds its own registration when the host’s clock runs ahead of the database’s', async () => {
+    vi.useFakeTimers({
+      toFake: ['Date'],
+      shouldAdvanceTime: true,
+      now: Date.now() + 2_000,
+    })
+    try {
+      const ctx = await launchedCwlProject('clock-skew')
+      expect(ctx.launched.state).toBe('healthy')
+      await closed(ctx)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 
   it('a release that ADDS an attribute: its BUILD fails (§7), naming the change request', async () => {
     const ctx = await launchedCwlProject('iam-add')

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte } from 'drizzle-orm'
+import { and, desc, eq, gte, sql } from 'drizzle-orm'
 import type { Config } from '../config.js'
 import { environments, events, projects, rehearsals, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
@@ -131,7 +131,13 @@ export async function runRehearsal(
 
   // BEFORE THE DEPLOY, so the registration read below cannot pick up an OLDER one. See
   // `latestRegistration`, and P6a sitting 9's control (c), which is what found it.
-  const startedAt = new Date()
+  //
+  // **READ OFF THE DATABASE'S CLOCK, NOT THE HOST'S** (P6b sitting 6): it bounds
+  // `events.created_at`, which is Postgres's `clock_timestamp()` inside Docker Desktop's VM.
+  // Measured: with `new Date()` here, a host clock ahead of the VM's hid the rehearsal's own
+  // registration and answered "recorded no Service Provider registration" — eight times in
+  // one `pnpm test` run and never in the next. One clock on both sides of a comparison.
+  const startedAt = await databaseNow(deps.db)
   const instance = await deployRelease(deps.db, deps.driver, deps.config, deps.deploy, {
     releaseId: candidate.release.id,
     environmentId: production.id,
@@ -244,6 +250,16 @@ export async function runRehearsal(
  * the row the IdP holds works, and a value recomputed here would match whatever the
  * recomputation produced rather than whatever was written.
  */
+/** Postgres's `clock_timestamp()` — the clock `events.created_at` is written with. */
+async function databaseNow(db: Db): Promise<Date> {
+  const result = await db.execute<{ now: Date | string }>(
+    sql`select clock_timestamp() as now`,
+  )
+  const now = result.rows[0]?.now
+  if (now === undefined) throw new Error('select clock_timestamp() answered no row')
+  return now instanceof Date ? now : new Date(now)
+}
+
 async function latestRegistration(
   db: Db,
   projectId: string,
