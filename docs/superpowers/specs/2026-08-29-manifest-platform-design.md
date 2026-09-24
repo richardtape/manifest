@@ -416,6 +416,8 @@ vendor model IDs. Manifest maps them to LiteLLM model groups. An admin repoints
 the entire fleet at new on-prem hardware by editing one mapping — no app changes,
 no redeploys, no faculty involvement.
 
+**A logical name also fixes whether the model reasons.** A `-reasoning` name is the same model with thinking on; every other chat name has thinking off, pinned in its mapping so that no request can turn it back on. An app chooses reasoning by declaring a `-reasoning` name in `ai.models` — a sensitive field, so on a launched app an administrator sees the choice — never by a request parameter. A request to a `-reasoning` name may carry `reasoning_effort`; where the model behind the name has no levels, every level means *on*. What an app accepts by choosing one: its answer arrives only after the model has finished thinking, the toolkit shows none of the reasoning, and a token limit spent on thinking answers empty.
+
 **The catalogue is held in LiteLLM's database** (`STORE_MODEL_IN_DB`), not in
 `config.yaml`. S3 found a config-file deployment cannot be removed through the admin
 API at all — `/model/delete` answers `not found in db` — so a file-held catalogue
@@ -494,9 +496,11 @@ not support, a `manifest:` version it does not understand (§25, D30).
 The platform's logical model catalogue carries a `max_classification` per entry:
 
 ```
-default-chat-onprem    max_classification: confidential
-default-chat           max_classification: internal      # may route off-prem
-default-embed          max_classification: internal
+default-chat-onprem              max_classification: confidential
+default-chat                     max_classification: internal      # may route off-prem
+default-chat-onprem-reasoning    max_classification: confidential
+default-chat-reasoning           max_classification: internal      # may route off-prem
+default-embed                    max_classification: internal
 ```
 
 An app declaring `data.classification: confidential` may therefore resolve only to
@@ -1986,19 +1990,12 @@ streaming, so it is genuinely available in **Phase 3**.
 
 ### What offline AI does and does not prove
 
-A 7–8B model through Ollama exercises the *mechanism* end to end: key minting,
+A 4–8B model through Ollama exercises the *mechanism* end to end: key minting,
 budget enforcement, streaming, the agent's tool loop, incident-to-repair. It does
 not represent the *quality* of an agent building a full-stack application, which at
 that size will be poor.
 
-**The local chat model must be a non-thinking model**, and `make seed` pulls one
-deliberately rather than inheriting whatever the developer has in Ollama. A thinking
-model streams its reasoning as `reasoning_content` deltas, which the toolkit's stream
-callback discards, so the console receives **zero chunks, an empty string and no
-error** — at any token budget. S3 measured 1,677 reasoning frames and zero content
-frames from a 4B thinking model asked to count to five. `make doctor` therefore
-asserts that a *streamed* completion through `default-chat` returns non-empty
-content, not merely that a completion succeeds.
+**The local chat model must stream content**, and `make seed` pulls one deliberately rather than inheriting whatever the developer has in Ollama. It may be a non-thinking model, or a thinking model whose mapping switches thinking off with Ollama's own `think: false`, which a request cannot override the way it overrides `reasoning_effort`. A thinking model with thinking on streams its reasoning as `reasoning_content` deltas, which the toolkit's stream callback discards, so the console receives **zero chunks, an empty string and no error**. S3 measured 1,677 reasoning frames and zero content frames from a 4B thinking model asked to count to five, and the same model measured 0 content frames in 260 on 2026-09-24 before its mapping switched thinking off. `make verify` therefore asserts that a *streamed* completion through `default-chat` returns non-empty content, not merely that a completion succeeds, and the AI-path regression tier (§16) asserts that a request asking for reasoning cannot change that. The `-reasoning` names (§7) are the deliberate exception.
 
 Offline mode is for verifying plumbing and for CI. A developer with network points
 LiteLLM at a real provider by changing one line — which is exactly what LiteLLM's
