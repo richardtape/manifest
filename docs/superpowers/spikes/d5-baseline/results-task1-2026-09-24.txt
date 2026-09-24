@@ -1,0 +1,994 @@
+=== [M1] the state this plan starts from — 2026-09-24 13:25:43 PDT ===
+$ git log --oneline -5
+a2885ed docs: the D5 plan's spec actions are applied; a §19 row is raised; external track item 10
+195ff8b spec: apply the D5 plan's three spec actions — §20's git driver and §21's inventory (Rich, 2026-09-24)
+4c4e5ae docs: the D5 GitHub source driver plan is WRITTEN — the next job is its sitting 1
+7045a99 docs(plans): D5's driver 2 — the GitHub source driver plan, 15 tasks in Rich's eight sittings
+e038685 docs(orientation): §7e tells the GitHub plan's writer what this machine means for a fake GitHub
+$ git status --short
+?? docs/superpowers/spikes/d5-baseline/
+$ lsof 7100
+NOTHING ON 7100 — the control plane is DOWN
+$ lsof 7102/7104
+nothing on 7102
+nothing on 7104
+$ lsof 7110
+7110 free
+$ ifconfig lo0 | grep inet
+	inet 127.0.0.1 netmask 0xff000000
+	inet 127.0.0.2 netmask 0xff000000
+	inet 127.0.0.3 netmask 0xff000000
+$ docker ps
+manifest-caddy	Up 3 hours (healthy)
+manifest-dns-containers	Up 14 hours
+manifest-dns-host	Up 14 hours
+manifest-egress	Up 14 hours
+manifest-idp	Up 14 hours
+manifest-litellm	Up 14 hours (healthy)
+manifest-postgres	Up 14 hours (healthy)
+manifest-registry	Up 14 hours (healthy)
+manifest-verdaccio	Up 14 hours (healthy)
+mf-launch-app-production-56442f2f-4de099e6-app	Up 2 hours (healthy)
+mf-launch-app-production-db	Up 14 hours (healthy)
+mf-launch-app-production-egress	Up 2 hours
+mf-launch-app-staging-56442f2f-f0b2203b-app	Up 2 hours (healthy)
+mf-launch-app-staging-db	Up 14 hours (healthy)
+mf-launch-app-staging-egress	Up 2 hours
+mongo-express	Up 42 hours
+mongodb	Up 42 hours
+qdrant-local-dev	Up 42 hours
+$ row counts
+projects 1
+releases 4
+approvals 3
+app_specs 4
+builds 6
+$ projects
+launch-app|2026-09-24 18:00:39.058+00
+$ migrations
+24
+$ ls .manifest/repos/
+click-launch.git
+journey-app.git
+launch-app.git
+p5c-acceptance.git
+proof-app.git
+token-app.git
+=== [M2] the baseline — 2026-09-24 13:25:59 PDT ===
+$ make up
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ensure-app-role: manifest_app present, granted on public, no reach into audit
+
+  platform up. Next: make doctor && make verify
+  edge: https://edge.manifest.internal/   console and API: https://console.manifest.internal/v1/
+make up exit=
+$ make doctor
+manifest doctor — Thu 24 Sep 2026 13:26:01 PDT
+
+Host
+  [33mINFO[0m  architecture
+          arm64 
+  [33mINFO[0m  macOS
+          26.6.2 
+
+Docker
+  [32mPASS[0m  docker is running
+          29.7.2
+  [32mPASS[0m  Docker VM memory >= 8.00 GB decimal
+          8319238144 bytes = 8.32 GB decimal / 7.75 GiB binary; floor is 8.00 GB decimal
+  [32mPASS[0m  disk >= 40 GB free
+          103 GB free on /
+
+Host tools the control plane spawns
+  [32mPASS[0m  git, tar, openssl and buildx do what the control plane asks of them
+          git version 2.50.1 (Apple Git-155) · bsdtar 3.5.3 · OpenSSL 3.6.3 at /opt/homebrew/bin/openssl · github.com/docker/buildx v0.36.1-desktop.1
+
+Ports
+  [32mPASS[0m  ports 7100-7199 free, or held only by Manifest
+          7100-7199 free except 7103 7106 7107 7108 7109 7119 7122 7153, which Manifest's own containers publish
+  [33mINFO[0m  port 53 owner
+          nothing visible to this user — lsof cannot see other users' sockets without sudo, and Valet's dnsmasq runs as nobody 
+  [33mINFO[0m  port 443 owner
+          com.docke (rich) nginx (rich)  
+
+Zone
+  [32mPASS[0m  nothing but Manifest claims manifest.internal
+          manifest.internal resolves to 127.0.0.3 (the bare zone is production, so 127.0.0.3)
+
+Host setup (make host-setup)
+  [32mPASS[0m  /etc/resolver/manifest.internal installed and correct
+          /etc/resolver/manifest.internal -> 127.0.0.1:7153
+  [32mPASS[0m  both loopback aliases exist
+          127.0.0.2 and 127.0.0.3 present on lo0
+  [32mPASS[0m  the production zone answers the public address, and the console does not
+          production=127.0.0.3  console=127.0.0.2  (nested zones, pinned back)
+  [32mPASS[0m  the platform CA is trusted in the macOS keychain
+          1 Caddy root(s) in the System keychain
+  [32mPASS[0m  host Node trusts the CA (needs NODE_EXTRA_CA_CERTS)
+          node reached the edge with NODE_EXTRA_CA_CERTS=./infra/ca/manifest-root.crt, status 200
+
+Ollama (host application — §21)
+  [32mPASS[0m  Ollama is running
+          {"version":"0.34.4"}
+  [32mPASS[0m  the models infra/models.txt names are present
+          all models in infra/models.txt present
+
+Seed state
+  [32mPASS[0m  infra/images.lock exists and pins every base image
+          7 images pinned by digest
+  [32mPASS[0m  the running LiteLLM is the digest infra/images.lock pins
+          litellm lock=sha256:20b5044b619055374061a6d5b7b08754cad75aeabbf82ddf4f69cc0cf80ddaf4 running=sha256:20b5044b619055374061a6d5b7b08754cad75aeabbf82ddf4f69cc0cf80ddaf4
+  [32mPASS[0m  base images are IN the local registry, not merely pulled
+          every base image is in the local registry
+  [32mPASS[0m  the vulnerability database is fresh
+          vulnerability database built 2026-09-24T06:31:52Z, 0.5 days old (the scan gate calls it stale above 7.0 and warns rather than blocks; refresh with 'make refresh-vulndb')
+  [32mPASS[0m  .env exists and carries every key .env.example declares
+          .env present, with every key .env.example declares (9)
+  [32mPASS[0m  the Docker API version the driver pins is inside the daemon's window
+          daemon serves API [1.40, 1.55]; the driver pins v1.44
+
+  19 checks, 0 failed, 0 warnings
+make doctor exit=0
+$ make verify
+manifest verify — Thu 24 Sep 2026 13:26:13 PDT
+
+DNS — the split-horizon property (S7)
+  [32mPASS[0m  containers resolve the zone to Caddy's platform IP
+          container sees console.manifest.internal = 10.89.0.10 (want 10.89.0.10)
+  [32mPASS[0m  the host resolves the zone to the loopback alias
+          host sees console.manifest.internal = 127.0.0.2 (want 127.0.0.2)
+  [32mPASS[0m  AAAA returns NODATA, not SERVFAIL
+          AAAA status = NOERROR (want NOERROR, i.e. NODATA; anything else means --local is missing)
+  [32mPASS[0m  non-zone queries still reach Docker's resolver
+          Docker service name manifest-dns-host = 10.89.0.54 (want 10.89.0.54)
+
+Edge — the custom Caddy build (§20)
+  [32mPASS[0m  Caddy carries the rate-limit and Coraza modules
+          modules: http.handlers.rate_limit http.handlers.waf  (want http.handlers.rate_limit http.handlers.waf)
+  [32mPASS[0m  Caddy is pinned to v2.11.4
+          caddy v2.11.4 (Coraza v2.6.0 requires exactly v2.11.4)
+  [32mPASS[0m  a container reaches https://edge.manifest.internal with the platform CA
+          manifest OK host=edge.manifest.internal scheme=https remote=10.89.0.11 listener=internal
+  [32mPASS[0m  the edge serves two listeners, internal and public
+          servers=srv0,srv1
+  [32mPASS[0m  the public listener answers a production name on 127.0.0.3
+          manifest OK host=cdn.manifest.internal scheme=https remote=10.89.0.1 listener=public  (probe port 8443 = compose 8443)
+  [32mPASS[0m  neither listener answers for the other's zone
+          no crossover — neither name is served by the other's listener (empty = no site matched):
+    production on 127.0.0.2:        ''
+    staging on 127.0.0.3:    ''
+
+Postgres — one server, three databases (§21)
+  [32mPASS[0m  manifest_control, litellm and manifest_idp all exist
+          found: litellm manifest_control manifest_idp (want litellm manifest_control manifest_idp)
+  [32mPASS[0m  Postgres is reachable from the host on 7103
+          Connection to 127.0.0.1 port 7103 [tcp/*] succeeded!
+127.0.0.1:7103 accepting connections
+
+Supply chain (§12)
+  [32mPASS[0m  the registry refuses an anonymous request and advertises its realm
+          HTTP/1.1 401 Unauthorized
+  [32mPASS[0m  the registry's realm is the control plane's, for the service it mints
+          Www-Authenticate: Bearer realm="http://127.0.0.1:7100/internal/registry/token",service="manifest-registry"
+  [32mPASS[0m  the registry accepts a correctly scoped token
+          scoped token -> 200 (want 200)
+  [32mPASS[0m  Verdaccio answers on the host's published port
+          http://127.0.0.1:7108/-/ping -> 200
+  [32mPASS[0m  registry and mirror are reachable from the internal build network
+          registry=401 mirror=200
+  [32mPASS[0m  NEGATIVE CONTROL: the internal network cannot reach the public internet
+          curl exited 6 on manifest-build-internal and 0 on manifest-platform — the network is the difference
+  [32mPASS[0m  the egress proxy denies an undeclared destination, and allows a declared one
+          example.com -> CONNECT 403 (want 403, D18); allowlisted registry -> 401 (want 200 or 401)
+  [32mPASS[0m  the egress proxy survives denying a request
+          restart count 0 -> 0 across one denial (want no change)
+
+Builder (§12, S1)
+  [32mPASS[0m  NEGATIVE CONTROL: --internal still denies egress after any Docker restart
+          curl to npmjs from manifest-build-internal exited 6 (want non-zero)
+  [33mINFO[0m  builder properties
+          rootless, non-privileged, rootlesskit, no egress, mirror reachable: asserted in           builder.docker.test.ts against the container the driver creates           (pnpm test:docker). Not duplicated here — a second definition drifts. 
+
+AI (§10, S3)
+  [32mPASS[0m  LiteLLM is up with its database connected
+          {"status":"healthy","db":"connected"}
+  [32mPASS[0m  only logical model names are exposed (§7)
+          catalogue: default-chat default-chat-onprem default-embed 
+  [32mPASS[0m  a streamed completion returns non-empty content
+          5 streamed frames carried content (0 means default-chat is a THINKING model)
+  [32mPASS[0m  an embedding comes back at full dimension
+          embedding dimension = 768 (want 768 for nomic-embed-text)
+  [32mPASS[0m  no prompt content is persisted
+          0 of 39 spend rows carry request content (want 0 — §7's retention decision)
+  [32mPASS[0m  spend is actually attributed, not $0.00 (S3)
+          highest recorded spend = 0.000767 (want > 0; $0.00 means the synthetic cost is missing)
+
+Identity (§9, S2)
+  [32mPASS[0m  the Manifest IdP serves, and its redirect target works
+          http://127.0.0.1:7122/ -> 303, and after redirects -> 200 (want 200)
+  [32mPASS[0m  the IdP image has pdo_pgsql
+          pdo_pgsql loaded: 1 (needs libpq-dev at build time — S2)
+  [32mPASS[0m  one INSERT registers an SP, read back through SimpleSAMLphp (S2)
+          SimpleSAMLphp read the probe SP back as: https://verify-probe.manifest.internal/acs
+  [32mPASS[0m  the SQL session store is a DIFFERENT subsystem, and also works (S2)
+          SimpleSAML\Store\SQLStore 'ok'
+  [32mPASS[0m  the IdP serves SAML metadata with our entityID and a certificate
+          metadata carries the configured entityID and a signing certificate
+  [32mPASS[0m  the IdP entityID is configured, not derived from the request host
+          entityID carries no port: https://idp.manifest.internal/idp/shibboleth
+  [32mPASS[0m  the control plane's own SP keypair is a usable pair (§9)
+          one RSA pair, Public-Key: (4096 bit), SAN carries the control plane entityID
+  [32mPASS[0m  the IdP is reachable through the edge over trusted TLS
+          https://idp.manifest.internal/module.php/core/welcome -> 200 (want 200, from SimpleSAMLphp)
+  [32mPASS[0m  the IdP signs an app's user out to the app, and to nowhere else
+          ReturnTo=https://verify-probe.staging.manifest.internal -> the IdP sends the browser to https://verify-probe.staging.manifest.internal/ after 2 hop(s), last 303 (want the app)
+ReturnTo=https://verify-probe.sandbox.manifest.internal -> the IdP sends the browser to https://verify-probe.sandbox.manifest.internal/ after 2 hop(s), last 303 (want the app)
+ReturnTo=https://verify-probe.manifest.internal -> the IdP sends the browser to https://verify-probe.manifest.internal/ after 2 hop(s), last 303 (want the app)
+ReturnTo=https://evil.example -> 500 (want refused: URL not allowed)
+ReturnTo=https://verify-probe.staging.manifest.internal.evil.example -> 500 (want refused: URL not allowed)
+ReturnTo=https://a.b.staging.manifest.internal -> 500 (want refused: URL not allowed)
+  [32mPASS[0m  the IdP loads core:AttributeLimit (without it release fails OPEN)
+          authproc.idp = [core:AttributeLimit,core:AttributeMap]
+  [32mPASS[0m  the database refuses a row whose attributes list is empty
+          INSERT of a row with attributes:[] exited 1 (want non-zero)
+  [32mPASS[0m  the database refuses a row with no attributes key at all
+          INSERT of a row with NO attributes key exited 1 (want non-zero)
+  [32mPASS[0m  the SimpleSAMLphp metadata user can read and cannot write (§9)
+          ssp_ro INSERT exited 1 (want non-zero)
+  [32mPASS[0m  the events table is append-only by GRANT, and unreachable through the FK (§20)
+          manifest_app: 4 write paths attempted, 4 refused; readable = yes
+  [32mPASS[0m  a login releases exactly the declared attributes, named by OID (§9)
+          5 attributes in, row declares 2, released: urn:oid:0.9.2342.19200300.100.1.3,urn:oid:1.3.6.1.4.1.60.6.1.6
+                                   wanted: urn:oid:0.9.2342.19200300.100.1.3,urn:oid:1.3.6.1.4.1.60.6.1.6
+  [32mPASS[0m  the IdP can instantiate the auth source its test users are defined with
+          manifest-test-users resolves to: SimpleSAML\Module\exampleauth\Auth\Source\UserPass
+  [32mPASS[0m  the IdP ships no flatfile SP metadata (§9)
+          no flatfile saml20-sp-remote.php; the SQL store is the only place an SP is defined
+
+C1 — host/container parity (S7 §Evidence 4, 5)
+  [32mPASS[0m  the host reaches https://edge.manifest.internal with no -k and no port
+          manifest OK host=edge.manifest.internal scheme=https remote=10.89.0.1 listener=internal
+  [32mPASS[0m  the certificate verifies against the macOS keychain
+          ssl_verify_result=0 (0 means the macOS keychain trusts it)
+  [32mPASS[0m  host and container see a byte-identical hostname and scheme
+          host     : manifest OK host=edge.manifest.internal scheme=https
+container: manifest OK host=edge.manifest.internal scheme=https
+  [32mPASS[0m  the host reaches https://console.manifest.internal and is not refused
+           [502]
+  [32mPASS[0m  a container on manifest-platform is refused by https://console.manifest.internal (§12)
+          manifest: the control plane is not reachable from this network [403]
+  [32mPASS[0m  the console's one allowed source is the platform network's gateway
+          platform gateway=10.89.0.1 Caddyfile allows=10.89.0.1 common.sh HOST_SOURCE_IP=10.89.0.1
+  [32mPASS[0m  all three §23 platform zones serve with a trusted certificate
+          served: chem-labs.manifest.internal chem-labs.sandbox.manifest.internal chem-labs.staging.manifest.internal
+  [32mPASS[0m  a name allocated at runtime resolves, routes and gets a certificate — on both listeners
+              srv1  late-arrival.manifest.internal -> runtime route OK
+    srv0  late-arrival.staging.manifest.internal -> runtime route OK
+  [32mPASS[0m  the package mirror holds every blueprint's closure as tarballs
+          250 pinned tarballs across every blueprint and fixture lockfile; 0 missing from the mirror
+  [32mPASS[0m  no platform container runs under emulation
+          every running platform container is native aarch64
+
+Per-app resources (P3)
+  [33mINFO[0m  routing
+          runtime routes currently applied: 1 (the control plane re-applies these on edge start) 
+  [33mINFO[0m  per-app resources
+          mf- containers=6 networks=2 volumes=4 (0/0/0 immediately after make reset) 
+  [32mPASS[0m  nothing this platform owns has removed somebody else's containers or the CA
+          all four pre-existing containers and the CA volume are present
+
+  55 checks, 0 failed, 0 warnings
+make verify exit=0
+(note: "make up exit=" is empty because the tool shell is zsh and ${PIPESTATUS[0]} is bash — the make up output ends "platform up", and doctor ran after it)
+$ pnpm test (1)
+
+ Test Files  123 passed (123)
+      Tests  1742 passed (1742)
+   Start at  13:26:56
+   Duration  181.74s (transform 1.01s, setup 171ms, collect 21.66s, tests 145.92s, environment 10ms, prepare 3.26s)
+
+$ pnpm test (2)
+
+ Test Files  123 passed (123)
+      Tests  1742 passed (1742)
+   Start at  13:30:03
+   Duration  181.23s (transform 1.00s, setup 167ms, collect 21.31s, tests 146.14s, environment 10ms, prepare 3.24s)
+
+$ pnpm lint
+$ eslint .
+lint exit=0
+$ pnpm typecheck
+packages/journey typecheck$ tsc --noEmit
+packages/mock typecheck: Done
+packages/journey typecheck: Done
+packages/console typecheck$ tsc --noEmit
+packages/console typecheck: Done
+typecheck exit=0
+$ pnpm format:check
+$ prettier --check .
+Checking formatting...
+All matched files use Prettier code style!
+format exit=0
+$ versions
+node v24.12.0
+pnpm 11.24.0
+git version 2.50.1 (Apple Git-155)
+docker server 29.7.2
+macOS 26.6.2 (25G83)
+fastify 5.12.3
+typescript Version 5.9.3
+ajv (mock) 8.20.0
+$ node -e "...fastify version" --prefix packages/control-plane   (the plan's first form)
+node: bad option: --prefix
+exit=9
+$ (cd packages/control-plane && node -p "require(fastify/package.json).version")
+5.12.3
+$ ls -d node_modules/.pnpm/fastify@*
+drwxr-xr-x 3 rich staff 96 Sep  5 22:15 node_modules/.pnpm/fastify@5.12.3/
+$ readlink packages/control-plane/node_modules/fastify
+../../../node_modules/.pnpm/fastify@5.12.3/node_modules/fastify
+$ grep -c 5.12.2 pnpm-lock.yaml
+0
+$ grep fastify packages/control-plane/package.json
+21:    "fastify": "^5.12.3",
+=== [M3] Gitea and Forgejo, re-read (network) — 2026-09-24 13:35:59 PDT ===
+https://gitea.com/swagger.v1.json 200 949147
+version: 1.27.0+dev-954-g1f3981a301
+paths: 342
+matching ^/app|installation|access_token: 0
+  (paths mentioning token, for the record):
+    /admin/actions/runners/registration-token
+    /orgs/{org}/actions/runners/registration-token
+    /repos/{owner}/{repo}/actions/runners/registration-token
+    /repos/{owner}/{repo}/keys/tokens
+    /token
+    /user/actions/runners/registration-token
+    /user/gpg_key_token
+    /users/{username}/tokens
+    /users/{username}/tokens/{token}
+https://codeberg.org/swagger.v1.json 200 853956
+version: 16.0.0-dev-753-6bcc6da0+gitea-1.22.0
+paths: 326
+matching ^/app|installation|access_token: 0
+  (paths mentioning token, for the record):
+    /admin/actions/runners/registration-token
+    /admin/runners/registration-token
+    /admin/users/{username}/tokens
+    /admin/users/{username}/tokens/{token}
+    /orgs/{org}/actions/runners/registration-token
+    /repos/{owner}/{repo}/actions/runners/registration-token
+    /user/actions/runners/registration-token
+    /user/gpg_key_token
+    /users/{username}/tokens
+    /users/{username}/tokens/{token}
+=== [M4] git over HTTP with core git alone — 2026-09-24 13:36:47 PDT ===
+--- first run of probes/smart-http.sh (the bare repository created WITHOUT -b main — kept as the record of the probe defect):
+small push exit=0
+3 MB push exit=0
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: is subject to change. To configure the initial branch name to use in all
+hint: of your new repositories, which will suppress this warning, call:
+hint:
+hint: 	git config --global init.defaultBranch <name>
+hint:
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint:
+hint: 	git branch -m <name>
+hint:
+hint: Disable this message with "git config set advice.defaultBranchName false"
+warning: remote HEAD refers to nonexistent ref, unable to checkout
+clone exit=0
+fatal: your current branch 'master' does not have any commits yet
+docs/superpowers/spikes/d5-baseline/probes/smart-http.sh: line 19: /private/tmp/claude-501/-Users-rich-Developer-manifest/2642d87a-743d-4c12-bfab-6e10626ece6c/scratchpad/m4/clone/big.bin: No such file or directory
+clone head: 0 commits, big.bin  bytes
+served head == work head: yes
+fatal: could not read Username for 'http://127.0.0.1:7195': terminal prompts disabled
+clone WITHOUT the header exit=128
+--- second run (the probe fixed: git init --bare -b main):
+small push exit=0
+3 MB push exit=0
+clone exit=0
+clone head: 2 commits, big.bin 3145728 bytes
+served head == work head: yes
+fatal: could not read Username for 'http://127.0.0.1:7195': terminal prompts disabled
+clone WITHOUT the header exit=128
+--- Alpine git in a throwaway container (network on):
+alpine:3.22 image: 127.0.0.1:7107/alpine@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce
+OK: 20 MiB in 28 packages
+git version 2.49.1
+0100000000000000000000000000000000000000
+00b7000000000000000000000000000000000000
+ls: /usr/libexec/git-core/git-http-backend: No such file or directory
+ref: refs/heads/master
+docker run exit=0
+=== [M5] where a token leaks, with a canary — 2026-09-24 13:38:38 PDT ===
+$ node probes/leak.mjs
+A: -c http.extraHeader in argv: canary=false base64=true
+   message: "git -c failed: Error: Command failed: git -c http.extraHeader=Authorization: Basic eC1hY2Nlc3MtdG9rZW46Z2hzX0xFQUtDQU5BUlkwMTIzNDU2Nzg5YWJjZGVmQUJDREVGMDEyMw== ls-remote http://127.0.0.1:7196/o/r.git\nfatal: unable to access 'http://127.0.0."
+B: token in the URL: canary=true base64=false
+   message: "git ls-remote failed: Error: Command failed: git ls-remote http://x-access-token:ghs_LEAKCANARY0123456789abcdefABCDEF0123@127.0.0.1:7196/o/r.git\nfatal: unable to access 'http://127.0.0.1:7196/o/r.git/': Failed to connect to 127.0.0.1 port 7"
+C: GIT_CONFIG_* in the environment: canary=false base64=false
+   message: "git ls-remote failed: Error: Command failed: git ls-remote http://127.0.0.1:7196/o/r.git\nfatal: unable to access 'http://127.0.0.1:7196/o/r.git/': Failed to connect to 127.0.0.1 port 7196 after 0 ms: Couldn't connect to server\n"
+C positive control: push exit=0, served main == pushed main: true
+C with a WRONG token: refused (exit 128), canary in message: false
+Authorization headers the strict server saw: canary, Basic eC1hY2Nlc3MtdG9rZW46Z2hzX1dST05HVE9LRU4=
+$ node probes/leak-trace.mjs   (addendum: trace variables inherited through the environment)
+no trace variables: stderr carries canary=false base64=false redacted-marker=false (155 chars)
+GIT_CURL_VERBOSE=1: stderr carries canary=false base64=false redacted-marker=true (2579 chars)
+GIT_TRACE_CURL=1: stderr carries canary=false base64=false redacted-marker=true (2723 chars)
+GIT_TRACE_CURL=1 GIT_TRACE_REDACT=0: stderr carries canary=false base64=true redacted-marker=false (2789 chars)
+GIT_CURL_VERBOSE=1 GIT_TRACE_REDACT=0: stderr carries canary=false base64=true redacted-marker=false (2645 chars)
+GIT_TRACE=1 GIT_TRACE_PACKET=1: stderr carries canary=false base64=false redacted-marker=false (1956 chars)
+$ node probes/leak-trace-file.mjs   (addendum 2: a trace variable naming a FILE)
+spread only (Task 7 as written): trace file 2634 bytes, base64 on disk=true, <redacted>=false
+spread, then GIT_TRACE_REDACT=1 forced: trace file 2568 bytes, base64 on disk=false, <redacted>=true
+=== [M6] the stateless installation token against the build's patterns — 2026-09-24 13:38:49 PDT ===
+$ node probes/patterns.mjs
+patterns read: an AWS access key id | a private key block | a GitHub token | a Slack token | a Google API key | a JSON Web Token | a generic assigned secret
+classic 40 [ 'a GitHub token' ]
+stateless 438 []
+bare JWT 426 [ 'a JSON Web Token' ]
+exit=0
+=== [M7] the webhook's route, both ways — 2026-09-24 13:39:08 PDT ===
+$ bash probes/webhook-route.sh $SCRATCH
+reached
+ platform exit=0
+reached
+ host-gateway exit=0
+app network: mf-launch-app-staging-net
+curl: (28) Resolving timed out after 5002 milliseconds
+ app-network exit=28
+manifest: the control plane is not reachable from this network [status 403] via-edge exit=0
+manifest: the control plane is not reachable from this network [status 403] via-edge /v1/me exit=0
+requests the host listener logged:
+2
+docs/superpowers/spikes/d5-baseline/probes/webhook-route.sh: line 17: 54149 Terminated: 15          python3 -m http.server 7197 --bind 127.0.0.1 --directory "$S/www" > "$S/http.log" 2>&1
+--- [M7] addendum: the same path from the HOST (arrives from the gateway 10.89.0.1, so passes @outside). Nothing listens on 7100 or 7104 now.
+$ curl --cacert infra/ca/manifest-root.crt -X POST https://console.manifest.internal/webhooks/github
+ [status 502]
+$ curl ... https://console.manifest.internal/v1/me
+ [status 502]
+(both 502: /v1/* goes to 7100, /webhooks/* to the console catch-all on 7104 — the Caddyfile routes /webhooks/* to the CONSOLE, never to the control plane; with a console on 7104, vite would answer it)
+$ (a throwaway python listener on 127.0.0.1:7104 for the next two requests)
+POST /webhooks/github [status 501]
+GET /v1/me [status 502]
+/private/tmp/claude-501/-Users-rich-Developer-manifest/2642d87a-743d-4c12-bfab-6e10626ece6c/scratchpad/m7c.sh: line 6: 54460 Terminated: 15          python3 -m http.server 7104 --bind 127.0.0.1 --directory "$S/www" > "$S/http7104.log" 2>&1
+what the 7104 listener logged:
+  POST /webhooks/github HTTP/1.1
+7104 free again
+=== [M8] HMAC, the vector and the crash — 2026-09-24 13:40:01 PDT ===
+$ node probes/hmac.cjs
+vector sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17
+docs   sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17
+absent THROWS ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH
+empty THROWS ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH
+short THROWS ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH
+absent guarded -> false
+empty guarded -> false
+short guarded -> false
+right digest guarded -> true
+packages/control-plane/src/tokens/token.ts:1:import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+packages/control-plane/src/tokens/token.ts:76: * Constant-time by length AND content. `timingSafeEqual` throws on a length mismatch,
+packages/control-plane/src/tokens/token.ts:83:  return a.length === b.length && timingSafeEqual(a, b)
+packages/control-plane/src/identity/session.ts:1:import { createHmac, timingSafeEqual } from 'node:crypto'
+packages/control-plane/src/identity/session.ts:119:  if (given.length !== want.length || !timingSafeEqual(given, want)) return null
+packages/control-plane/src/runtime/docker/registry-auth.ts:1:import { createHmac, createSign, randomUUID, timingSafeEqual } from 'node:crypto'
+packages/control-plane/src/runtime/docker/registry-auth.ts:117:  if (a.length !== b.length || !timingSafeEqual(a, b)) return undefined
+--- [M8] re-run: the first run's last line was not a control (a || fallback made it true whatever the guard said); fixed to pass a Buffer
+right digest guarded -> true | one byte off -> false
+=== [M9] a raw-body parser scoped to one plugin — 2026-09-24 13:40:23 PDT ===
+$ (cd packages/control-plane && node m9-probe.mjs)
+fastify 5.12.2
+/v1/x {"isBuf":false}
+/webhooks/github {"isBuf":true}
+2 MiB /v1/x 413 /webhooks 200
+6 MiB /webhooks 413
+no content type /webhooks 415 {"statusCode":415,"code":"FST_ERR_CTP_INVALID_MEDIA_TYPE","error":"Unsupported Media Type","message":"Unsupported Media Type"}
+form-encoded /webhooks 415 {"statusCode":415,"code":"FST_ERR_CTP_INVALID_MEDIA_TYPE","error":"Unsupported Media Type","message":"Unsupported Media 
+exit=0
+--- F1 explained: the installed package is 5.12.3, and its own runtime constant says 5.12.2
+$ grep VERSION node_modules/.pnpm/fastify@5.12.3/node_modules/fastify/fastify.js
+3:const VERSION = '5.12.2'
+$ grep version node_modules/.pnpm/fastify@5.12.3/node_modules/fastify/package.json
+3:  "version": "5.12.3",
+=== [M10] and [M11] GitHub's own description (network) — 2026-09-24 13:40:51 PDT ===
+$ curl -o $SCRATCH/gh.json https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json
+200 12964527 bytes
+sha256 bbe036143857ba2dd734a93f5beca2417dcd2b4f737729e6cff7bd52ee836f1a
+openapi 3.0.3 info.version 1.1.4
+$ node extract-schemas.mjs $SCRATCH/gh.json github-schemas.json
+1.1.4 schemas 31
+github-schemas.json: 167542 bytes
+POST /user/repos enabledForGitHubApps: false
+POST /orgs/{org}/repos enabledForGitHubApps: true
+branch protection availability: Protected branches are available in public repositories with GitHub Free and GitHub Free for organizations, and in public and private repositories with GitHub Pro, GitHub Team, GitHub Enterprise Cloud, and GitHub Enterprise Server. For more information, see [GitHub's products](https://docs.github.com/github/getting-started-with-github/githubs-products) in the GitHub Help documentation.
+installation token description: Creates an installation access token that enables a GitHub App to make authenticated API requests for the app's installation on an organization or individual account. Installation tokens expire one hour from the time you create them. Using an expired token produces a status code of `401 - Unauthorized`, and requires creating a new installation token. By default the installation token has access to
+full-repository required=75
+installation required=17
+integration required=11
+installation-token required=2
+webhook-push required=12
+webhook-repository-publicized required=3
+--- the stateless-token note, in the full description:
+Starting April 27, 2026, GitHub began a staged rollout of a stateless format (`ghs_APPID_JWT`) to all newly minted GitHub App installation tokens, making them more performant and improving the reliability of our API surface. If your application expects or relies on installation tokens being exactly 40 characters long, it may not handle this new token format correctly. You can now validate your apps and workflows using a temporary request header that lets you enable the token format on demand.
+$ (cd packages/mock && node ../../docs/.../probes/nullable.mjs ../../docs/.../github-schemas.json)
+node:internal/modules/package_json_reader:316
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'ajv' imported from /Users/rich/Developer/manifest/docs/superpowers/spikes/d5-baseline/probes/nullable.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:718:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:735:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:764:52)
+    at #resolve (node:internal/modules/esm/loader:700:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:620:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:143:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.12.0
+(ESM resolves from the FILE, not the cwd — re-run from a copy in packages/mock, deleted after)
+$ (cd packages/mock && node m11-probe.mjs ../../.../github-schemas.json)
+ajv 8.20.0
+{type:'string',nullable:true} accepts null: true | accepts "x": true | accepts 1: false
+FAILED to compile GET /orgs/{org}/installation 200 "nullable" cannot be used without "type"
+FAILED to compile webhook push "nullable" cannot be used without "type"
+compiled 8 of 10 roots
+installation-token {token, expires_at} valid: true | {expires_at} alone valid: false
+exit=0
+--- [M11] F4: Ajv 8.20.0 REFUSES TO COMPILE 2 of the 10 roots ("nullable" cannot be used without "type"), and ignores every format without ajv-formats:
+format warnings in the run above: 838 (uri 652, date-time 80, int64 48, uri-template 48, email 10) — the raw lines are not kept here
+$ node probes/nullable-sites.mjs github-schemas.json
+2 sites
+  #/components/schemas/installation/properties/account  keys=[anyOf]
+  #/components/schemas/webhook-push/properties/repository/properties/pushed_at  keys=[oneOf]
+$ (cd packages/mock && node m11b-probe.mjs ...)   # Task 4 schemas.ts as corrected
+rewritten 2 sites; compiled 10 of 10 roots; format warnings 0
+installation.account accepts null: true | accepts 42: false
+push repository.pushed_at accepts null: true | 1790000000: true | "2026-09-24T20:00:00Z": true | "yesterday": false
+formats live: simple-user.html_url accepts "not a uri": false | "https://github.com/x": true
+exit=0
+=== [M12] the resolve hook in node:22-alpine — 2026-09-24 13:42:30 PDT ===
+node:22-alpine = sha256:1ef15d33d74602021f35ec64a4e72f4a21e2cfa68ebecd125fbe0c44af8f604a
+$ docker run --network none node:22-alpine node src/main.ts
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/app/src/b.js' imported from /app/src/main.ts
+$ docker run --network none node:22-alpine node --import ./resolve-ts.mjs src/main.ts
+hello from typescript source v22.23.2
+exit=0
+$ (host) node --import ./resolve-ts.mjs src/main.ts
+hello from typescript source v24.12.0
+exit=0
+--- negative control: an enum (not erasable) in b.ts, in the container
+SyntaxError [ERR_INVALID_TYPESCRIPT_SYNTAX]: Expected '}', got '<eof>'
+--- negative control re-run (the first wrote b.ts with printf, which ate the template literal — "got <eof>" was the probe, not node):
+export function greet(name: string): string { return `hello ${name}` }
+--- correction to the two lines above: the grep caught a SOURCE EXCERPT from the error, not a success. The error itself:
+SyntaxError [ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX]: TypeScript enum is not supported in strip-only mode
+(the first run's "Expected }, got <eof>" was not reproduced; the file content was identical — recorded, not explained. Either way an enum does not run: erasableSyntaxOnly is required.)
+=== [M13] a profiled service under build, up and down — 2026-09-24 13:43:15 PDT ===
+docker compose 5.4.0
+$ compose build --dry-run
+ Image m13probe-always:dev Building 
+ always ==> ==> naming to m13probe-always:dev 
+$ compose --profile github build --dry-run
+ Image m13probe-opt:dev Building 
+ Image m13probe-always:dev Building 
+ opt ==> ==> naming to m13probe-opt:dev 
+ always ==> ==> naming to m13probe-always:dev 
+$ compose --profile github up -d
+ Container m13probe-always-1 Starting 
+ Container m13probe-opt-1 Starting 
+ Container m13probe-always-1 Started 
+ Container m13probe-opt-1 Started 
+running:
+m13probe-always-1 Up Less than a second
+m13probe-opt-1 Up Less than a second
+$ compose down   (NO profile)
+ Container m13probe-always-1 Stopping 
+ Container m13probe-always-1 Stopped 
+ Container m13probe-always-1 Removing 
+ Container m13probe-always-1 Removed 
+ Network m13probe_shared Removing 
+ Network m13probe_shared Resource is still in use 
+down exit=0
+after a bare down, containers:
+m13probe-opt-1 Up 7 seconds
+after a bare down, networks:
+m13probe_shared
+$ compose --profile github down
+ Container m13probe-opt-1 Removing 
+ Container m13probe-opt-1 Removed 
+ Network m13probe_shared Removing 
+ Network m13probe_shared Removed 
+down exit=0
+after a profiled down, containers:
+after a profiled down, networks:
+$ cleanup: down -v --remove-orphans, and the two images
+left: containers=0 networks=0 images=0
+--- [M13] re-run: the first run's 'down exit=' was tail's status, not compose's (a pipe). Fixed to read compose's own:
+$ compose down   (NO profile)
+down exit=0 (compose's own)
+ Container m13probe-always-1 Stopping 
+ Container m13probe-always-1 Stopped 
+ Container m13probe-always-1 Removing 
+ Container m13probe-always-1 Removed 
+ Network m13probe_shared Removing 
+ Network m13probe_shared Resource is still in use 
+after a bare down, containers:
+m13probe-opt-1 Up 3 seconds
+after a bare down, networks:
+m13probe_shared
+$ compose --profile github down
+down exit=0 (compose's own)
+ Container m13probe-opt-1 Removing 
+ Container m13probe-opt-1 Removed 
+ Network m13probe_shared Removing 
+ Network m13probe_shared Removed 
+after a profiled down, containers:
+after a profiled down, networks:
+$ cleanup: down -v --remove-orphans, and the two images
+left: containers=0 networks=0 images=0
+=== [M14] git's own protections, and the mirror's non-forced fetch — 2026-09-24 13:44:24 PDT ===
+$ bash probes/mirror.sh $SCRATCH
+mirror main after first fetch: 2da954f8d35c23ae61f590872bef7a03818da0fe (upstream 2da954f8d35c23ae61f590872bef7a03818da0fe)
+mirror HOLDS c2 before the rewrite: commit
+upstream main rewritten to: 3811e15eeef41d5d152d4283c5b59c0072cbdfb5
+$ git fetch (NON-forced refspec refs/heads/*:refs/heads/*) into the mirror
+From upstream
+ ! [rejected]        main       -> main  (non-fast-forward)
+fetch exit=1
+mirror main unchanged: yes
+--- positive control: the same fetch FORCED (+) does move it
+forced fetch exit=0 main moved: yes
+--- receive.denyNonFastForwards and receive.denyDeletes on upstream
+remote: error: denying non-fast-forward refs/heads/main (you should pull first)        
+ ! [remote rejected] main -> main (non-fast-forward)
+error: failed to push some refs to '../upstream.git'
+force-push exit=1
+remote: error: denying ref deletion for refs/heads/main        
+ ! [remote rejected] main (deletion prohibited)
+error: failed to push some refs to '../upstream.git'
+delete exit=1
+--- positive control: a fast-forward push to the protected upstream still lands
+fast-forward push exit=0
+--- a pre-receive hook exiting 1 in the mirror
+remote: manifest: this is a mirror; push to GitHub        
+ ! [remote rejected] HEAD -> probe (pre-receive hook declined)
+push to mirror exit=1
+From upstream
+ ! [rejected]        main       -> main  (non-fast-forward)
+fetch into the hooked mirror exit=1 (main is still c2 — the non-forced rule, not the hook)
+fetch of a NEW ref into the hooked mirror exit=0 — lands: yes
+--- [M14] addendum: what every LATER sync sees after one rewrite — 2026-09-24 13:45:09 PDT
+$ bash probes/mirror-after-rewrite.sh $SCRATCH
+sync 1 (first):
+* 0000000000000000000000000000000000000000 c1c56b0c0bf60b9af11f674ca0f4e8927c16b2d3 refs/heads/main
+   exit=0
+fatal: options '-m' and '-c' cannot be used together
+sync 2 (after the rewrite to X=c1c56b0c0bf6):
+   exit=0
+   X present in the mirror's object store: YES
+sync 3 (a NORMAL push Y=951df625908b on top of the rewritten main):
+  c1c56b0c0bf60b9af11f674ca0f4e8927c16b2d3 951df625908bd374c7da97ad141cbe6d2b84b53f refs/heads/main
+   exit=0
+   Y present in the mirror's object store: YES
+docs/superpowers/spikes/d5-baseline/probes/mirror-after-rewrite.sh: command substitution: line 19: syntax error near unexpected token `('
+docs/superpowers/spikes/d5-baseline/probes/mirror-after-rewrite.sh: command substitution: line 19: `git --git-dir=mirror.git for-each-ref --contains $Y --format=%(refname) | grep -q . && echo yes || echo NO'
+   Y reachable from any mirror ref: 
+   mirror main still c1: a later push
+--- the same three syncs with a SECOND, forced refspec into a shadow namespace:
+one fetch now (upstream is already at Y):
+* 0000000000000000000000000000000000000000 951df625908bd374c7da97ad141cbe6d2b84b53f refs/heads/main
+* 0000000000000000000000000000000000000000 951df625908bd374c7da97ad141cbe6d2b84b53f refs/manifest/upstream/main
+   exit=0
+   refs/heads/main=a later push  refs/manifest/upstream/main=a later push
+--- [M14] addendum re-run: the first run above measured NOTHING — the amend failed ('-c' after 'commit'), so no rewrite happened; and %(refname) was unquoted. Fixed:
+sync 1 (first):
+* 0000000000000000000000000000000000000000 7444f3e44a4d097f4f62c5b9585ec410d3621885 refs/heads/main
+   exit=0
+   upstream main is now X; X is NOT a descendant of c1: right
+sync 2 (after the rewrite to X=470553bbdd0c):
+! 7444f3e44a4d097f4f62c5b9585ec410d3621885 470553bbdd0c765f52e35975cbda8e0781ef28f2 refs/heads/main
+   exit=1
+   X present in the mirror's object store: YES
+sync 3 (a NORMAL push Y=3438a90e9a67 on top of the rewritten main):
+! 7444f3e44a4d097f4f62c5b9585ec410d3621885 3438a90e9a673c00386a5a3e32efbe842628b01e refs/heads/main
+   exit=1
+   Y present in the mirror's object store: YES
+   Y reachable from any mirror ref: NO
+   mirror main still c1: c1
+--- the same three syncs with a SECOND, forced refspec into a shadow namespace:
+one fetch now (upstream is already at Y):
+* 0000000000000000000000000000000000000000 3438a90e9a673c00386a5a3e32efbe842628b01e refs/heads/main
+* 0000000000000000000000000000000000000000 3438a90e9a673c00386a5a3e32efbe842628b01e refs/manifest/upstream/main
+   exit=0
+   refs/heads/main=a later push  refs/manifest/upstream/main=a later push
+--- [M14] the fix, measured: one fetch, two refspecs — 2026-09-24 13:45:48 PDT
+$ bash probes/mirror-shadow.sh $SCRATCH
+sync 1 (first push c1):
+* 0000000000000000000000000000000000000000 abca0d81af94fb37e4d3762ced91070a19cac361 refs/heads/main
+* 0000000000000000000000000000000000000000 abca0d81af94fb37e4d3762ced91070a19cac361 refs/manifest/upstream/main
+   exit=0
+sync 2 (main rewritten to X):
+! abca0d81af94fb37e4d3762ced91070a19cac361 a6128f54a6009687f976e6c67044a96582767e18 refs/heads/main
++ abca0d81af94fb37e4d3762ced91070a19cac361 a6128f54a6009687f976e6c67044a96582767e18 refs/manifest/upstream/main
+   exit=1
+sync 3 (a normal push Y on top of X):
+! abca0d81af94fb37e4d3762ced91070a19cac361 b9be0d65750f1c42508667b1bf508632670d32ff refs/heads/main
+  a6128f54a6009687f976e6c67044a96582767e18 b9be0d65750f1c42508667b1bf508632670d32ff refs/manifest/upstream/main
+   exit=1
+sync 4 (nothing new):
+! abca0d81af94fb37e4d3762ced91070a19cac361 b9be0d65750f1c42508667b1bf508632670d32ff refs/heads/main
+   exit=1
+refs/heads/main=c1 (the history kept)  refs/manifest/upstream/main=Y-normal (GitHub now)
+=== [M15] F9 on the real model, before and after Task 13's prompt — 2026-09-24 13:48:14 PDT ===
+Ollama 0.34.4; resident: ministral-3:latest
+$ node probes/f9.mjs 10
+<anonymous_script>:1
+string }
+       ^
+
+SyntaxError: Unexpected token '}'
+    at lit (file:///Users/rich/Developer/manifest/docs/superpowers/spikes/d5-baseline/probes/f9.mjs:11:125)
+    at file:///Users/rich/Developer/manifest/docs/superpowers/spikes/d5-baseline/probes/f9.mjs:16:16
+    at ModuleJob.run (node:internal/modules/esm/module_job:413:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:660:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.12.0
+exit=1
+(the run above failed reading its inputs: the reason regex matched an interface's `reason: string }` — anchored on reviewer: 'none' and re-run)
+$ node probes/f9.mjs 10
+inputs read from source: SYSTEM_PROMPT 578 chars; notes 2 ; reason 219 ; coverage 255
+--- the CURRENT user message:
+egress.allow: none -> leg-a-m15.example.org (now allows leg-a-m15.example.org)
+auth.attributes: eduPersonAffiliation, givenName, mail, sn, ubcEduCwlPuid -> eduPersonAffiliation, givenName, mail, ubcEduCwlPuid (no longer requests the sn attribute)
+
+Security notes:
+auth.attributes: The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered (§7, §9), and it is an input to the PIA.
+egress.allow: The app may send data to a host it could not reach before. Default-deny egress is §20’s containment for unreviewed code, and this widens it. An input to the PIA’s “where it flows”.
+
+Code review: No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).
+
+An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).
+---
+
+=== CURRENT prompt, 10 answers ===
+[1] WITHHELD(decision) (default-chat-onprem) "The app now sends data to `leg-a-m15.example.org` (could expose where data goes) and no longer requests the `sn` attribute (could reduce personal info exposure). The code reviewer verdict was: \"No code reviewer is configured; manifest reviews manifest.yaml, not code, and the controls that make that tolerable are containment—default-deny egress, network isolation, least privilege and edge protections.\""
+[2] WITHHELD(decision) (default-chat-onprem) "The app now sends data to `leg-a-m15.example.org` (previously blocked) and no longer requests the `sn` attribute (personal info). This could expose user details to an external host and allow data to flow outside the default-deny perimeter. The verdict is: \"No code reviewer is configured; manifest reviews manifest.yaml, not code, and the controls that make that tolerable are containment—default-deny egress, network isolation, least privilege and edge protections.\""
+[3] WITHHELD(decision) (default-chat-onprem) "The app now sends data to `leg-a-m15.example.org` (previously blocked) and no longer requests the `sn` attribute (personal info). This could expose user details like surname to an external host and allow data to leave the network. The verdict was: \"An administrator sees a first launch and any release that changes a sensitive field (§7).\""
+[4] WITHHELD(decision) (default-chat-onprem) "The app now allows sending data to `leg-a-m15.example.org` (previously blocked) and no longer requests the `sn` (surname) attribute from authentication. This could expose personal identity details to an external host and allow data to flow outside the default-deny network. The code reviewer’s verdict was: \"No code reviewer is configured.\""
+[5] WITHHELD(decision) (default-chat-onprem) "The app now sends data to `leg-a-m15.example.org` (previously blocked) and no longer requests the `sn` attribute (personal info). This could expose personal data to an external host and allow the app to reach a new network location. The administrator’s verdict was: \"An administrator sees a first launch and any release that changes a sensitive field.\""
+[6] WITHHELD(decision) (default-chat-onprem) "The app now sends data to `leg-a-m15.example.org` (previously blocked) and no longer requests the `sn` attribute (personal info). These changes could expose user details to a new external host or remove a privacy-sensitive field, and they require a Privacy Impact Assessment. The administrator’s verdict was: **“An administrator sees a first launch and any release that changes a sensitive field (§7).”**"
+[7] WITHHELD(decision) (default-chat-onprem) "The app now allows sending data to `leg-a-m15.example.org` (previously blocked) and no longer requests the `sn` attribute (personal info). This could expose personal data to an external host and allow the app to reach a new network location. The verdict is: \"No code reviewer is configured, so the manifest review is the only check, and residual risk is accepted under containment controls.\""
+[8] WITHHELD(decision) (default-chat-onprem) "The app now allows sending data to `leg-a-m15.example.org` (previously blocked) and no longer requests the `sn` (surname) attribute from authentication. This could expose personal information (name, affiliation, email) to an external host and widen where data can flow, requiring a Privacy Impact Assessment (PIA). The code reviewer’s verdict was: \"No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).\""
+[9] WITHHELD(decision) (default-chat-onprem) "The app now allows sending data to `leg-a-m15.example.org` (could expose where data goes) and no longer requests the `sn` attribute (could reduce personal info exposure). The code reviewer verdict is: \"No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).\""
+[10] WITHHELD(decision) (default-chat-onprem) "The app now allows outgoing traffic only to `leg-a-m15.example.org` (previously blocked entirely) and no longer requests the `sn` (surname) attribute during authentication (still gets `eduPersonAffiliation`, `givenName`, `mail`, and `ubcEduCwlPuid`). These changes could expose more personal data to an external host and expand where data can be sent, requiring a Privacy Impact Assessment (PIA) under UBC IAM policies. The code reviewer’s verdict was: \"No code reviewer is configured; manifest reviews manifest.yaml, not code, and the controls that make that tolerable are containment—default-deny egress, network isolation, least privilege, and edge protections.\""
+CURRENT prompt: withheld 10 of 10 (decision 10, markdown 0), kept 0
+
+=== Task 13's prompt, 10 answers ===
+[1] WITHHELD(decision) (default-chat-onprem) "The app now sends user login data to leg-a-m15.example.org, which could expose personal information to an external host not previously accessible. Previously removed requests for the \"sn\" (surname) attribute mean the app receives less personal information but may still collect enough to identify individuals.\n\nThe change to egress.allow could expose where data is sent, potentially allowing sensitive information to leave the university network to an unreviewed destination. The app may now reach a host that was previously blocked by default-deny rules."
+[2] WITHHELD(decision) (default-chat-onprem) "The app’s egress rule now explicitly permits traffic to `leg-a-m15.example.org`, which could allow data to be sent to an external host that was previously blocked. This may expose where data can flow beyond the original scope.\n\nThe app no longer requests the `sn` (surname) attribute during authentication, reducing the personal information it collects about users. Previously, it received this data, which could have exposed more sensitive identity details."
+[3] WITHHELD(markdown) (default-chat-onprem) "The application now allows outgoing connections only to `leg-a-m15.example.org` instead of blocking all egress, which could expose where data is sent and what external systems the app interacts with. It no longer requests the `sn` (surname) attribute during authentication, reducing the personal information collected about users but may still receive `givenName`, `mail`, and `eduPersonAffiliation` for every login."
+[4] KEPT     (default-chat-onprem) "The application now explicitly allows outgoing connections to leg-a-m15.example.org, which could expose data to an external host not previously reachable. This may also change where data is sent or what systems the app can interact with.\n\nThe application no longer requests the \"sn\" (surname) attribute during authentication, reducing the personal information collected about users. Previously, it received givenName, mail, eduPersonAffiliation, and ubcEduCwlPuid, but now only the latter three are requested."
+[5] WITHHELD(markdown) (default-chat-onprem) "The app’s egress rule now permits outbound connections to leg-a-m15.example.org, which could expose data to an external host not previously reachable. The removed `sn` attribute means the app no longer receives that personal identifier, but it still collects `givenName`, `mail`, and `eduPersonAffiliation` for every user, which may include sensitive affiliation details."
+[6] WITHHELD(markdown) (default-chat-onprem) "The application now allows outgoing connections only to leg-a-m15.example.org instead of none, which could expose where data is sent or received. Removing the `sn` attribute from `auth.attributes` means the app no longer receives that personal information during authentication.\n\nThe app may now send data to a previously unreachable host, expanding its network reach. The app will no longer request the `sn` attribute, reducing the personal information it collects from users."
+[7] WITHHELD(markdown) (default-chat-onprem) "The application now allows outgoing connections only to `leg-a-m15.example.org` instead of blocking all egress, which could expose where data is sent and what external systems the app interacts with. Removing `sn` from the requested authentication attributes means the app no longer receives the surname of users, reducing the personal information it collects but may affect identity verification or access controls."
+[8] WITHHELD(markdown) (default-chat-onprem) "The app’s egress rule changed from blocking all outgoing connections to allowing traffic only to `leg-a-m15.example.org`, which could expose where the app sends data and what external systems it communicates with. The removed `sn` attribute means the app no longer receives that personal identifier from authentication, but it still collects `givenName`, `mail`, and `eduPersonAffiliation`, which may include sensitive user details like role or affiliation status."
+[9] KEPT     (default-chat-onprem) "The app can now send data to the host leg-a-m15.example.org, which could expose where data is sent and what external systems it reaches. It no longer requests the \"sn\" attribute, so it receives less personal information about users (e.g., surname) than before."
+[10] KEPT     (default-chat-onprem) "The application now allows outgoing connections to leg-a-m15.example.org, which could expose data to an external host not previously reachable. This may also affect where data can be sent or processed outside the university’s control.\n\nThe app no longer requests the \"sn\" (surname) attribute during authentication, reducing the personal information collected about users. Previously, it received givenName, mail, eduPersonAffiliation, and ubcEduCwlPuid, but now omits sn."
+Task 13's prompt: withheld 7 of 10 (decision 2, markdown 5), kept 3
+exit=0
+--- [M15] addendum: what trips Task 13's checkSummary, answer by answer
+$ node probes/f9-triggers.mjs <the run above>
+
+=== CURRENT prompt (10 answers) ===
+[1] decision words: verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[2] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[3] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: YES
+[4] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[5] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: YES
+[6] decision words: blocked,verdict | markdown: "`","*" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: YES
+[7] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[8] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[9] decision words: verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[10] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+withheld: as Task 13 writes it 10 | without the backtick rule 10 | without "blocked" 10 | without both 10
+
+=== Task 13's prompt (10 answers) ===
+[1] decision words: blocked | markdown: - | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[2] decision words: blocked | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[3] decision words: - | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[4] decision words: - | markdown: - | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[5] decision words: - | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[6] decision words: - | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[7] decision words: - | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[8] decision words: - | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[9] decision words: - | markdown: - | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[10] decision words: - | markdown: - | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+withheld: as Task 13 writes it 7 | without the backtick rule 2 | without "blocked" 6 | without both 0
+--- [M15] a second batch of ten per prompt, so Rich's sitting-7 decision rests on twenty — 2026-09-24 13:50:47 PDT
+$ node probes/f9.mjs 10
+=== CURRENT prompt, 10 answers ===
+[1] WITHHELD(decision) (default-chat-onprem) "The app now sends data to `leg-a-m15.example.org` (previously blocked) and no longer requests the `sn` attribute (personal info). These changes could expose user details to an external host or reduce the data collected, but the new endpoint may send data outside UBC’s control. The verdict was: \"No code reviewer is configured; manifest reviews manifest.yaml, not code, and the controls that make that tolerable are containment—default-deny egress, network isolation, least privilege and edge protections.\""
+[2] WITHHELD(decision) (default-chat-onprem) "The app now sends data to `leg-a-m15.example.org` (previously blocked) and stops requesting the `sn` attribute (personal info). This could expose user details to an external host and allow data to flow outside the default-deny egress policy. The code reviewer’s verdict was: \"No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).\""
+[3] WITHHELD(decision) (default-chat-onprem) "The app now allows sending data to `leg-a-m15.example.org` (previously blocked) and no longer requests the `sn` attribute (personal info). This could expose personal data to an external host and allow the app to reach a new network location. The code reviewer’s verdict was: \"No code reviewer is configured.\""
+[4] WITHHELD(decision) (default-chat-onprem) "The app now allows sending data to `leg-a-m15.example.org` (previously blocked) and no longer requests the `sn` attribute (personal info). These changes could expose personal data to an external host or remove a privacy safeguard, and both require a Privacy Impact Assessment. The administrator’s verdict was: \"An administrator sees a first launch and any release that changes a sensitive field.\""
+[5] WITHHELD(decision) (default-chat-onprem) "The app now sends personal data (givenName, mail, eduPersonAffiliation, ubcEduCwlPuid) to a new external host (leg-a-m15.example.org) and no longer requests sensitive personal info (sn). This could expose user identity and affiliation data outside UBC’s control and send data to a previously unreachable destination. The code reviewer’s verdict was: \"No code reviewer is configured.\""
+[6] WITHHELD(decision) (default-chat-onprem) "The app now allows sending data to `leg-a-m15.example.org` (previously blocked) and no longer requests the `sn` attribute (personal info). These changes could expose user details like surname (if `sn` was removed for privacy) or send data to an external host, and the PIA must assess where data flows. The verdict is: \"An administrator sees a first launch and any release that changes a sensitive field (§7).\""
+[7] WITHHELD(decision) (default-chat-onprem) "The app now sends data to `leg-a-m15.example.org` (previously blocked) and no longer requests the `sn` attribute (personal info). These changes could expose user details to an external host or reduce the scope of collected personal data. The code reviewer’s verdict was: \"No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).\""
+[8] WITHHELD(decision) (default-chat-onprem) "The app now sends data to `leg-a-m15.example.org` (could expose where data goes) and no longer requests the `sn` attribute (could reduce personal info exposure). The code reviewer verdict is: \"No code reviewer is configured. Manifest reviews manifest.yaml, not code (§13); the controls that make that tolerable are containment — default-deny egress, network isolation, least privilege and edge protections (§20).\""
+[9] WITHHELD(decision) (default-chat-onprem) "The app now sends data to `leg-a-m15.example.org` (previously blocked) and no longer requests the `sn` attribute (personal info). These changes could expose user details to an external host or reduce the data collected, but the new host may still receive sensitive info like affiliation or email. The administrator’s verdict was: \"An administrator sees a first launch and any release that changes a sensitive field.\""
+[10] WITHHELD(decision) (default-chat-onprem) "The app now allows sending data to `leg-a-m15.example.org` (previously blocked) and no longer requests the `sn` attribute (personal info). This could expose personal data to an external host and allow the app to reach a new network location. The code reviewer’s verdict was: \"No code reviewer is configured.\""
+CURRENT prompt: withheld 10 of 10 (decision 10, markdown 0), kept 0
+
+=== Task 13's prompt, 10 answers ===
+[1] KEPT     (default-chat-onprem) "The application now allows outgoing connections only to leg-a-m15.example.org instead of blocking all egress, which could expose where data is sent and what external systems the app interacts with. It no longer requests the \"sn\" (surname) attribute during authentication, so it receives less personal information about users than before."
+[2] KEPT     (default-chat-onprem) "The application now allows outgoing connections only to leg-a-m15.example.org instead of blocking all egress, which could expose where data is sent and what external systems the app interacts with. It no longer requests the \"sn\" (surname) attribute during authentication, so the app receives less personal information about users but still handles the remaining attributes (affiliation, given name, email, and PUID).\n\nThe change to egress rules could expose which external hosts the app communicates with, while the removal of the \"sn\" attribute reduces the personal information collected during sign-in."
+[3] WITHHELD(markdown) (default-chat-onprem) "The configuration now allows the app to send data to leg-a-m15.example.org, which could expose where data is sent and what external systems the app can reach. Removing the `sn` attribute from `auth.attributes` means the app receives less personal information about users, but it still collects givenName, mail, and eduPersonAffiliation, which may still include sensitive user details."
+[4] WITHHELD(markdown) (default-chat-onprem) "The configuration now allows the application to send data to leg-a-m15.example.org, which could expose where data is sent and what external systems the app can reach. Removing the `sn` attribute from `auth.attributes` means the app receives less personal information about users during authentication, but it still collects givenName, mail, and ubcEduCwlPuid, which may affect what personal data is exposed."
+[5] WITHHELD(markdown) (default-chat-onprem) "The app now allows outgoing connections only to `leg-a-m15.example.org` instead of none, which could expose where data is sent and what external systems the app can reach. It no longer requests the `sn` (surname) attribute during authentication, reducing the personal information collected about users but may still receive `givenName`, `mail`, and `eduPersonAffiliation` for every login."
+[6] WITHHELD(markdown) (default-chat-onprem) "The configuration now allows the app to send data to leg-a-m15.example.org, which could expose where data is sent and what external systems the app can reach. Removing `sn` from `auth.attributes` means the app no longer receives the surname attribute, reducing the personal information it collects about users."
+[7] KEPT     (default-chat-onprem) "The app now allows outgoing connections only to leg-a-m15.example.org instead of blocking all external traffic, which could expose where data is sent and what external systems the app interacts with. It no longer requests the \"sn\" (surname) attribute during authentication, reducing the personal information collected about users but keeping the same set of attributes as before."
+[8] WITHHELD(markdown) (default-chat-onprem) "The configuration now allows the application to send data to leg-a-m15.example.org, which could expose where data is sent and what external systems the app can reach. Removing the `sn` attribute from `auth.attributes` means the app no longer receives that personal information during authentication."
+[9] WITHHELD(decision) (default-chat-onprem) "The app now sends login data to `leg-a-m15.example.org` instead of being blocked by default, which could expose where data is sent and what external systems it reaches. It no longer requests the `sn` (surname) attribute, so it receives less personal information about users.\n\nThe change to `egress.allow` could expose which external hosts the app can contact. The change to `auth.attributes` could expose less personal information about users, but the remaining attributes may still be subject to IAM policy review."
+[10] WITHHELD(markdown) (default-chat-onprem) "The configuration now allows the app to send data to leg-a-m15.example.org, which could expose where data is sent outside the university’s control. Removing the `sn` attribute from `auth.attributes` reduces the personal information the app receives about users, but it still collects `givenName`, `mail`, and `ubcEduCwlPuid`, which may still include sensitive details like names and identifiers."
+Task 13's prompt: withheld 7 of 10 (decision 1, markdown 6), kept 3
+$ node probes/f9-triggers.mjs <batch 2>
+
+=== CURRENT prompt (10 answers) ===
+[1] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[2] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[3] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[4] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: YES
+[5] decision words: verdict | markdown: - | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[6] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: YES
+[7] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[8] decision words: verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[9] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: YES
+[10] decision words: blocked,verdict | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+withheld: as Task 13 writes it 10 | without the backtick rule 10 | without "blocked" 10 | without both 10
+
+=== Task 13's prompt (10 answers) ===
+[1] decision words: - | markdown: - | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[2] decision words: - | markdown: - | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[3] decision words: - | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[4] decision words: - | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[5] decision words: - | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[6] decision words: - | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[7] decision words: - | markdown: - | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[8] decision words: - | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[9] decision words: blocked | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+[10] decision words: - | markdown: "`" | a verdict ATTRIBUTED to the coverage sentence or to an administrator: no
+withheld: as Task 13 writes it 7 | without the backtick rule 1 | without "blocked" 7 | without both 0
+--- [M15] OVER TWENTY ANSWERS PER PROMPT (both batches above):
+CURRENT prompt: 20 of 20 state "the verdict" (as the prompt instructs); 6 of 20 ATTRIBUTE a verdict to the coverage sentence or to an administrator ("The administrator's verdict was: An administrator sees a first launch…"); backticks in 20 of 20, asterisks in 1.
+Task 13's prompt: checkSummary as Task 13 writes it WITHHOLDS 14 of 20 — 11 for backtick code spans alone (a hostname or `sn`), 3 for the word "blocked" used to describe egress ("previously blocked"). NONE of the 14 states or suggests a decision; 0 of 20 attribute a verdict to anyone. Without the backtick rule and without "blocked": 0 of 20 withheld — and the six current-prompt inventions are still caught (each says "verdict").
+The plan's threshold (Task 1 Step 14): more than 5 of 10 withheld → RAISE WITH RICH IN SITTING 7 BEFORE BUILDING. Measured: 7 of 10, twice.
+=== [M16] and [M17] the seam's callers, and the contract — 2026-09-24 13:52:36 PDT ===
+$ grep repositoryFor|.path.*repo|RepoRef|deps.source. (non-test)
+packages/control-plane/src/releases/approval.ts:414:  source: Pick<SourceDriver, 'repositoryFor'>
+packages/control-plane/src/releases/approval.ts:571:      repoPath: deps.source.repositoryFor(origin.slug).path,
+packages/control-plane/src/source/git-driver.ts:2:export interface RepoRef {
+packages/control-plane/src/source/git-driver.ts:27:  createRepository(projectSlug: string, seed: SeedFiles): Promise<RepoRef>
+packages/control-plane/src/source/git-driver.ts:39:  repositoryFor(projectSlug: string): RepoRef
+packages/control-plane/src/source/git-driver.ts:40:  commitFiles(repo: RepoRef, files: SeedFiles, message: string): Promise<string>
+packages/control-plane/src/source/git-driver.ts:41:  headCommit(repo: RepoRef, ref?: string): Promise<string>
+packages/control-plane/src/source/git-driver.ts:43:  readFile(repo: RepoRef, commitSha: string, path: string): Promise<string | null>
+packages/control-plane/src/source/git-driver.ts:44:  listBranches(repo: RepoRef): Promise<string[]>
+packages/control-plane/src/source/git-driver.ts:45:  destroyRepository(repo: RepoRef): Promise<void>
+packages/control-plane/src/source/local-driver.ts:7:  type RepoRef,
+packages/control-plane/src/source/local-driver.ts:33:export type { RepoRef, SourceDriver } from './git-driver.js'
+packages/control-plane/src/source/local-driver.ts:56:  function assertOwned(repo: RepoRef): string {
+packages/control-plane/src/source/local-driver.ts:117:    repositoryFor(projectSlug: string): RepoRef {
+packages/control-plane/src/source/local-driver.ts:122:    async createRepository(projectSlug: string, seed: SeedFiles): Promise<RepoRef> {
+packages/control-plane/src/api/testing.ts:185:  await ctx.deps.source.commitFiles(
+packages/control-plane/src/api/testing.ts:186:    ctx.deps.source.repositoryFor(ctx.project.slug),
+packages/control-plane/src/api/testing.ts:288:    await deps.source.commitFiles(
+packages/control-plane/src/api/testing.ts:289:      deps.source.repositoryFor(slug),
+packages/control-plane/src/api/routes/projects.ts:195:        const repo = await deps.source.createRepository(body.slug, seed)
+packages/control-plane/src/api/routes/projects.ts:196:        commitSha = await deps.source.headCommit(repo)
+packages/control-plane/src/api/routes/projects.ts:197:        yamlText = (await deps.source.readFile(repo, commitSha, 'manifest.yaml')) ?? ''
+packages/control-plane/src/api/routes/project-reads.ts:362:      const repo = deps.source.repositoryFor(project.slug)
+packages/control-plane/src/api/routes/project-reads.ts:363:      const commitSha = body.commitSha ?? (await deps.source.headCommit(repo))
+packages/control-plane/src/api/routes/project-reads.ts:365:        (await deps.source.readFile(repo, commitSha, 'manifest.yaml')) ?? ''
+packages/control-plane/src/api/routes/builds.ts:107:        repoPath: deps.source.repositoryFor(project.slug).path,
+$ grep .url with repo
+packages/control-plane/src/config.ts:22:const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
+packages/control-plane/src/blueprints/ai-component.test.ts:45:const REPO_ROOT = fileURLToPath(new URL('../../../../', import.meta.url))
+packages/control-plane/src/blueprints/session-component.test.ts:34:const REPO_ROOT = fileURLToPath(new URL('../../../../', import.meta.url))
+packages/control-plane/src/runtime/docker/testing.ts:92:export const REPO_ROOT = fileURLToPath(new URL('../../../../../', import.meta.url))
+packages/control-plane/src/spec/injection-drift.test.ts:39:const REPO_ROOT = fileURLToPath(new URL('../../../../', import.meta.url))
+packages/control-plane/src/db/client.test.ts:22:const REPO_ROOT = fileURLToPath(new URL('../../../../', import.meta.url))
+(exit 0 — no reader of RepoRef.url when empty)
+$ openapi.json version and operations
+1.1.0
+43
+43
+$ unversioned in the document
+[
+  {
+    "method": "GET",
+6:import { UNVERSIONED } from '../unversioned.js'
+223:    'x-manifest-unversioned': UNVERSIONED.map((u) => ({ ...u })),
+$ are error codes listed per operation in the document? (SOURCE_* occurrences, and where)
+   1 "SOURCE_FOREIGN_REPO"
+   3 "SOURCE_GIT_FAILED"
+   1 "SOURCE_INVALID_SLUG"
+   1 "SOURCE_PATH_ESCAPE"
+POST /v1/projects createProject
+POST /v1/projects/{projectId}/spec validateSpec
+$ how the codes are carried (one operation's 409):
+"{\"201\":{\"description\":\"The project, as created.\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/CreatedProject\"}}}},\"default\":{\"description\":\"An error, in the D23.7 envelope. This operation can answer: AI_BACKEND_UNAVAILABLE, AI_CATALOGUE_EMPTY, BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, RATE_LIMITED, REQUEST_BODY_TO"
+$ event types in the document
+"repository.seeded"
+$ startBuild's document entry lists its route's errors: [...] (document.ts:169) — so a new errors: entry in builds.ts MOVES openapi.json
+An error, in the D23.7 envelope. This operation can answer: BLUEPRINT_NOT_FOUND, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, SPEC_INVALID, SPEC_NOT_FOUND, UNAUTHENTICATED.
+              schema: ref(
+                representations,
+                route.success.schema,
+                `${route.operationId}'s response`,
+              ),
+            },
+          },
+        },
+        default: {
+          description: `An error, in the D23.7 envelope. This operation can answer: ${codes.join(', ')}.`,
+          content: {
+            'application/json': { schema: { $ref: component('ErrorEnvelope') } },
+          },
+PREDICTION REVISED: Task 2 (startBuild gains SOURCE_COMMIT_NOT_FOUND / SOURCE_PROVIDER_MISMATCH in errors:) is the first task to change openapi.json, not Task 8 — so the 1.2.0 bump moves to Task 2, as Task 2's own note provides.
+=== [M18] a new workspace package links OFFLINE — 2026-09-24 13:53:40 PDT ===
+(devDependencies exactly as Task 4's package.json: ajv 8.20.0 AND ajv-formats 3.0.1 — the plan's probe named ajv alone)
+$ pnpm install --offline
+exit=0
+Already up to date
+Progress: resolved 500, reused 358, downloaded 0, added 0, done
+
+Done in 1.2s using pnpm v11.24.0
+$ ls packages/m18-probe/node_modules
+lrwxr-xr-x@ 1 rich  staff   55 Sep 24 13:53 ajv -> ../../../node_modules/.pnpm/ajv@8.20.0/node_modules/ajv
+lrwxr-xr-x@ 1 rich  staff   81 Sep 24 13:53 ajv-formats -> ../../../node_modules/.pnpm/ajv-formats@3.0.1_ajv@8.20.0/node_modules/ajv-formats
+$ git diff --stat pnpm-lock.yaml
+ pnpm-lock.yaml | 9 +++++++++
+ 1 file changed, 9 insertions(+)
++  packages/m18-probe:
++    devDependencies:
++      ajv:
++        specifier: 8.20.0
++        version: 8.20.0
++      ajv-formats:
++        specifier: 3.0.1
++        version: 3.0.1(ajv@8.20.0)
++
+$ restore: rm the package, the lockfile from the copy, pnpm install --offline
+restore exit=0
+
+Done in 387ms using pnpm v11.24.0
+lockfile sha after: b97450412a18a12a3749492071bd1a1015888191228ba55e9d81937d7c9f8225
+lockfile sha before: b97450412a18a12a3749492071bd1a1015888191228ba55e9d81937d7c9f8225
+$ git status --short
+?? docs/superpowers/spikes/d5-baseline/
+--- [M8] re-run at close from probes/hmac.mjs (converted from hmac.cjs: the repository's ESLint forbids require()); output must match the above
+vector sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17
+docs   sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17
+absent THROWS ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH
+empty THROWS ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH
+short THROWS ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH
+absent guarded -> false
+empty guarded -> false
+short guarded -> false
+right digest guarded -> true | one byte off -> false
+--- [M11] normalise.mjs re-run at close (an unused variable removed for ESLint):
+rewritten 2 sites; compiled 10 of 10 roots; format warnings 0
+installation.account accepts null: true | accepts 42: false
+push repository.pushed_at accepts null: true | 1790000000: true | "2026-09-24T20:00:00Z": true | "yesterday": false
+formats live: simple-user.html_url accepts "not a uri": false | "https://github.com/x": true
