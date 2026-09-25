@@ -168,8 +168,8 @@ form-encoded delivery is refused before HMAC runs. `app.version` read **5.12.2**
 
 `api.github.com.json`: **12,964,527 bytes** (the same size the writer read), sha256
 `bbe036143857ba2dd734a93f5beca2417dcd2b4f737729e6cff7bd52ee836f1a`, OpenAPI 3.0.3, `info.version`
-**1.1.4**. [`extract-schemas.mjs`](extract-schemas.mjs) (the plan's, verbatim) pulled **31 component
-schemas** into [`github-schemas.json`](github-schemas.json) (167,542 bytes as written, indented). Facts:
+**1.1.4**. [`extract-schemas.mjs`](../../../../packages/github-fake/conformance/extract-schemas.mjs) (the plan's, verbatim) pulled **31 component
+schemas** into [`github-schemas.json`](../../../../packages/github-fake/conformance/github-schemas.json) (both moved to `packages/github-fake/conformance/` by Task 4) (167,542 bytes as written, indented). Facts:
 `POST /user/repos` `enabledForGitHubApps: false`, `POST /orgs/{org}/repos` **true**. The
 protection sentence is as *Read this first* 8 quotes it. **The `ghs_APPID_JWT` stateless-format note is
 present, word for word.** Required fields: `full-repository` **75**, `installation` **17**, `integration`

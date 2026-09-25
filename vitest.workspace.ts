@@ -45,6 +45,8 @@ export default defineWorkspace([
         // silently not run, which reads exactly like a suite that passes (Task 1, M4).
         'packages/console/src/**/*.test.ts',
         'packages/mock/src/**/*.test.ts',
+        // The D5 plan's Task 4: the GitHub fake, held to GitHub's own schemas.
+        'packages/github-fake/src/**/*.test.ts',
       ],
     },
   },
