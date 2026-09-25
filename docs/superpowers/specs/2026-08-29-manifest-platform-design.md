@@ -1826,9 +1826,11 @@ another project's events is an administrator action and is itself logged.
 ### Git driver
 
 - GitHub App private key held in the same custody class as the master key;
-  installation tokens are short-lived and scoped per repository — **except the one
-  that creates a repository, which cannot name it yet: it carries the administration
-  permission alone, is used for that one call, and is never kept.**
+  installation tokens are short-lived and scoped per repository — **though GitHub
+  does not confine creation to a token's repositories: any token holding the
+  administration permission can create one in the organisation, so the token that
+  creates a repository carries that permission alone, is used for that one call, and
+  is never kept, and no administration token ever leaves the control plane.**
 - Webhook payloads verified by HMAC before any processing.
 - **Repositories are private by default and enforced private.** A public repository
   containing a course application leaks student data immediately and irreversibly.

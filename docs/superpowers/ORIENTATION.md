@@ -103,7 +103,7 @@ each sitting left them, dated, and they deliberately do not move.
   /orgs/Manifest-local-dev/installation` → `200`, installation `164652178` = the file's, `repository_selection: all`,
   not suspended. **Its first real conformance run was the D5 plan's sitting 3, 2026-09-24, at Rich's yes**
   (`make github-conformance`, ~12 s, both repositories deleted; `packages/github-fake/conformance/github.com-2026-09-24.json`)
-  — and its C7s answer is §8's open Spec action 3 question.
+  — and its C7s answer corrected §20's git-driver bullet 1 (Rich chose option (b) the same evening; §8, *Decided*).
   - **What is still Rich's:** the conformance run creates two private repositories and deletes them, and runs **only
     at his yes, with the network on, each time** — next in sitting 8. **Never install this App on UBC's
     organisation**; to revoke it, delete the key or the App on its GitHub page.
@@ -131,11 +131,10 @@ each sitting left them, dated, and they deliberately do not move.
   access arrives, and no code does.
 - **§8's open questions.**
 
-**The spec is current, with two open follow-ups** (§8, *Open*: a §19 row that §20's new bullet 4 points at, and
-**Spec action 3's condition, met by the D5 plan's real conformance run on 2026-09-24** — §20's bullet 1, with three
-options and a recommendation). Every
-spec change has been applied only after Rich approved it — **most recently the chat-model switch's two, on
-2026-09-24**: §7's `-reasoning` names, and §21's *"the local chat model must stream content"*. The roadmap's *Spec
+**The spec is current, with one open follow-up** (§8, *Open*: a §19 row that §20's new bullet 4 points at). Every
+spec change has been applied only after Rich approved it — **most recently §20's git-driver bullet 1, corrected
+on the evening of 2026-09-24** (option (b), after the D5 plan's real conformance run met Spec action 3's
+condition; §8, *Decided*), and before it the chat-model switch's two the same day. The roadmap's *Spec
 actions raised by…* sections list every one, with its wording, and say which shared HTML pages were swept.
 
 ---
@@ -1277,11 +1276,10 @@ built*, and ***SITTING 3 — what Tasks 4–6 built, and what real GitHub said**
 measurements behind every `[M<n>]` block are in [`spikes/d5-baseline/README.md`](spikes/d5-baseline/README.md).
 
 **ASK RICH NOTHING TO START.** Sitting 4 is offline end to end — the unit tier starts fakes in process, and Task 8's
-Docker test and its Step 6 run the fake's IMAGE, which is built (`manifest-github-fake:local`). **One question is
-his and waiting, and no code in this sitting depends on it: §8's *Spec action 3's condition is MET*** (sitting 3's
-F10). If he has answered it when you open, apply only what he chose, in the wording he read, and sweep it (the
-roadmap's *Spec actions raised by the D5 plan*, the plan's *Spec actions* 3, and §8); if he has not, leave it —
-**Decision 4 stands under all three options**, so Task 7 builds it as written.
+Docker test and its Step 6 run the fake's IMAGE, which is built (`manifest-github-fake:local`). **Sitting 3's one
+question for him is answered**: the real conformance run met Spec action 3's condition (F10), Rich chose option
+(b), and §20's git-driver bullet 1 was corrected the same evening (§8, *Decided*) — **Decision 4 is unchanged**, so
+Task 7 builds it as written.
 
 **WHAT SITTING 3 CHANGED FOR YOU:**
 - **`@manifest/github-fake` exists** — `startFake({ dataDir?, plan? })` from `@manifest/github-fake/testing`. Task 7's
@@ -1375,20 +1373,6 @@ reasoning is recorded.**
 
 ### Open
 
-- **Spec action 3's condition is MET — the one §20 sentence Rich approved *"unless the conformance run says
-  otherwise"*. RAISED 2026-09-24, by the D5 plan's sitting 3 (Task 6's real leg, F10).** §20's applied bullet 1
-  reads *"…installation tokens are short-lived and scoped per repository — except the one that creates a
-  repository, which cannot name it yet: it carries the administration permission alone, is used for that one
-  call, and is never kept."* **Measured against real GitHub** (App 5068172, `Manifest-local-dev`;
-  `packages/github-fake/conformance/github.com-2026-09-24.json`): a token cannot name a repository that does not
-  exist (C5b, `422`) — that half holds — **but a token SCOPED to another repository, holding `administration:
-  write`, CREATED a repository** (C7s, `201`). GitHub does not confine creation to a token's repositories, so
-  every administration token — including the per-repository ones for visibility and protection — can create one.
-  **Options: (a) revert** to *"…scoped per repository"*; **(b) correct it** to say GitHub does not confine
-  creation, and that no administration token ever leaves the control plane; **(c) keep it** and record the
-  measurement only. **Recommended: (b).** The exact wording is in the plan's *Spec actions*, 3. **Nothing was
-  reverted**, as the approval's own condition requires, and **no code waits on it**: Decision 4 stands under all
-  three.
 - **§19 needs a row for the production GitHub organisation — RAISED 2026-09-24, while applying the D5 plan's Spec
   action 1.** §20's applied bullet 4 ends *"…which the production organisation enables (§19)"*, and **§19 has no
   such row**, so the pointer points at nothing. It was a drafting miss in the plan, and the approved wording was
@@ -1445,6 +1429,12 @@ reasoning is recorded.**
 
 ### Decided
 
+- **§20's git-driver bullet 1 is CORRECTED — option (b), DECIDED AND APPLIED 2026-09-24** (Rich, answering the D5
+  plan's sitting 3 F10 the same evening). The real conformance run met Spec action 3's condition — a token scoped
+  to another repository created one (C7s) — so the bullet now says GitHub does not confine creation to a token's
+  repositories, and that no administration token ever leaves the control plane. Decision 4 is unchanged. The plan's
+  *Spec actions*, 3, has the measurement and the options; the roadmap's *Spec actions raised by the D5 plan* the
+  wording.
 - **Task 13's summary is STRUCTURED OUTPUT — DECIDED 2026-09-24** (Rich, answering the D5 plan's sitting 1 F7, the
   same day it was raised). The model is handed the diff's facts as JSON and fills a schema — one `exposure`
   sentence per change, `path` an enum of the diff's own paths — with no field a verdict could go in. Task 13 is
