@@ -96,8 +96,11 @@ each sitting left them, dated, and they deliberately do not move.
   **`Manifest-local-dev`** (the plan's *What Rich does* 2). Checked locally the same evening, never printing the key:
   `infra/secrets/github-app.pem` is a 2048-bit RSA private key and `github-conformance.json` holds exactly `appId`,
   `installationId` and `org`, both `-rw-------` and owned by `rich`, git-ignored, and no copy left in `~/Downloads`; a
-  JWT signed with the key verifies under its own public half. **Not yet checked against GitHub** — whether the ids
-  and permissions are what GitHub holds is Task 6's real leg to find out.
+  JWT signed with the key verifies under its own public half. **And checked against GitHub, at Rich's yes, with two
+  read-only calls** (no installation token minted): `GET /app` → `200`, App id `5068172` = the file's, permissions
+  exactly `administration: write`, `contents: write`, `metadata: read`, no events, **installed once**; `GET
+  /orgs/Manifest-local-dev/installation` → `200`, installation `164652178` = the file's, `repository_selection: all`,
+  not suspended. Task 6's real leg is the first thing to mint a token or create a repository with it.
   - **What is still Rich's:** the conformance run creates two private repositories and deletes them, and runs **only
     at his yes, with the network on, each time** (sittings 3 and 8). **Never install this App on UBC's
     organisation**; to revoke it, delete the key or the App on its GitHub page.
@@ -1266,7 +1269,7 @@ start):
 - **Does he want Task 6's real leg run, with the network on?** The App IS registered (2026-09-24, organisation
   **`Manifest-local-dev`** — capitals included: GitHub treats a login case-insensitively and echoes it in its own
   case, so Task 6's normaliser must not compare org names or `full_name` literally). Its two files are in
-  `infra/secrets/` and were checked locally (§2, *Outstanding*). The real leg creates two private repositories and
+  `infra/secrets/`, checked locally and against GitHub's `GET /app` and installation (§2, *Outstanding*). The real leg creates two private repositories and
   deletes them, so it runs **only at his yes**; without it, it reads `SKIPPED`, which is not a failure.
 - **If no answer comes:** Task 4 needs neither (it is offline end to end), so do Task 4, commit it, then stop at that
   task boundary and sweep, saying what waits on him — **never stop inside Task 5**: its build is Step 4 and its
