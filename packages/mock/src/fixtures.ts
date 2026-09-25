@@ -582,6 +582,39 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
   ],
 }
 
+/**
+ * A LAUNCHED app's checklist for a SELF-SERVE release (P6b Task 6; the D5 plan's Task 14, F15):
+ * nothing sensitive changed since the last approved release, so `admin-approval` is met without
+ * an administrator — and the console offers NO link to an approval nobody will make. The
+ * `admin-approval` item's title and `why` are `launch/readiness.ts`'s `releaseApprovalItem`
+ * words, verbatim, and so is the PIA's, which is approved because a launched app's was.
+ */
+export const SELF_SERVE_READINESS: Schemas['LaunchReadiness'] = {
+  ...LAUNCH_READINESS,
+  launched: true,
+  ready: true,
+  baselineReleaseId: '88888888-8888-4888-8888-888888888881',
+  sensitiveFields: [],
+  reescalated: false,
+  items: LAUNCH_READINESS.items.map((i) =>
+    i.id === 'privacy-assessment'
+      ? {
+          ...i,
+          state: 'met' as const,
+          why: 'Approved by the UBC Privacy Office on 2026-09-21 (ticket PIA-2026-0088).',
+        }
+      : i.id === 'admin-approval'
+        ? {
+            ...i,
+            title:
+              'Release approved by a platform administrator — only when a sensitive field changed (D9)',
+            state: 'met' as const,
+            why: 'No sensitive field (§7) changed since the last approved release, so this release goes to production self-serve (D9). Its code is not reviewed: that is §13’s residual risk, and containment is its control (§20).',
+          }
+        : i,
+  ),
+}
+
 export const MEMBERS: Schemas['MemberList'] = [
   {
     userId: USER_ID,
@@ -841,6 +874,7 @@ export const FIXTURES: [string, unknown][] = [
   ['ReleaseList', RELEASES],
   ['IncidentList', INCIDENTS],
   ['LaunchReadiness', LAUNCH_READINESS],
+  ['LaunchReadiness', SELF_SERVE_READINESS],
   ['Member', MEMBER],
   ['MemberList', MEMBERS],
   ['MemberList', MEMBERS_WITH_STUDENT],

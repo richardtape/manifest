@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ManifestApiError, type Schemas } from '@manifest/contract'
 import type { Api } from '../api'
+import { canDecide, reasonDraft } from '../approval-state'
 import { href } from '../router'
 import { Field, Instant, Panel, Pill, Refusal, useAsync } from '../ui'
 
@@ -60,6 +61,7 @@ export function Approval({
             api={api}
             releaseId={releaseId}
             preview={preview.value}
+            recordedWithPreview={decision.value?.previewId ?? undefined}
             onNewPreview={preview.takeNew}
             onDecided={decision.reload}
           />
@@ -72,7 +74,12 @@ export function Approval({
             <p>Nobody has approved or rejected this release yet.</p>
           )}
           {decision.value !== undefined && decision.value !== null && (
-            <DecisionRecord approval={decision.value} />
+            <DecisionRecord
+              api={api}
+              approval={decision.value}
+              isAdmin={isAdmin}
+              shown={preview.value}
+            />
           )}
         </Panel>
       )}
@@ -217,8 +224,37 @@ function ReleaseFacts({ release }: { release: Schemas['Release'] }) {
   )
 }
 
-/** THE RECORD: who decided, what, and why — then the diff they read, through `DiffView`. */
-function DecisionRecord({ approval }: { approval: Schemas['Approval'] }) {
+/**
+ * THE RECORD: who decided, what, and why — then the diff they read, through `DiffView`.
+ *
+ * **IT NAMES THE PREVIEW IT COPIED** (P6b sitting 7's F11; the D5 plan's Task 14): the record
+ * IS that preview's diff (P6b Task 9), and without its id on the screen a person comparing the
+ * two had nothing to compare by. When the time it was taken can be read — a preview is read
+ * with `release:approve`, so an administrator can and an owner cannot — it says when, too.
+ */
+function DecisionRecord({
+  api,
+  approval,
+  isAdmin,
+  shown,
+}: {
+  api: Api
+  approval: Schemas['Approval']
+  isAdmin: boolean
+  /** The preview on this screen now — the one the decision named, straight after deciding. */
+  shown: Schemas['ApprovalPreview'] | undefined
+}) {
+  const previewId = approval.previewId
+  const taken = useAsync(async () => {
+    if (previewId === null || !isAdmin) return undefined
+    if (shown?.id === previewId) return shown.createdAt
+    try {
+      return (await api.getApprovalPreview(approval.releaseId, previewId)).createdAt
+    } catch {
+      // NOT READABLE IS A STATE HERE, not a failure: the record still names the id.
+      return undefined
+    }
+  }, [approval.releaseId, previewId, isAdmin, shown?.id])
   return (
     <>
       <Field label="Decision">
@@ -230,6 +266,20 @@ function DecisionRecord({ approval }: { approval: Schemas['Approval'] }) {
       {approval.reason !== null && <Field label="Reason">{approval.reason}</Field>}
       <Field label="Binds">
         <Digest value={approval.imageDigest} />
+        {previewId === null ? (
+          <span className="hint"> — decided before previews existed</span>
+        ) : (
+          <>
+            {' '}
+            bound to preview <code title={previewId}>{previewId.slice(0, 8)}</code>
+            {taken.value !== undefined && (
+              <>
+                {' '}
+                taken <Instant at={taken.value} />
+              </>
+            )}
+          </>
+        )}
       </Field>
       <DiffView diff={approval.diff} />
     </>
@@ -393,6 +443,19 @@ function Review({ review }: { review: Schemas['ApprovalDiff']['review'] }) {
 }
 
 /**
+ * `window.sessionStorage`, or nothing: READING THE PROPERTY ITSELF CAN THROW when site data is
+ * blocked, before any call on it — so it is read inside a `try`, and `reasonDraft` treats
+ * nothing as "keep no draft".
+ */
+function sessionStorageOrNone(): Storage | undefined {
+  try {
+    return window.sessionStorage
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * APPROVE OR REJECT, NAMING THE PREVIEW ABOVE. Both are behind §20's step-up: a session that
  * has not re-proved itself in the last ten minutes is refused `403 STEP_UP_REQUIRED`, and
  * `<Refusal>` renders that as the link that does it, returning to `pathname + search` — the
@@ -408,16 +471,32 @@ function Decide({
   api,
   releaseId,
   preview,
+  recordedWithPreview,
   onNewPreview,
   onDecided,
 }: {
   api: Api
   releaseId: string
   preview: Schemas['ApprovalPreview'] | undefined
+  /** The preview the latest RECORDED decision named — so a reload does not re-arm it. */
+  recordedWithPreview: string | undefined
   onNewPreview: () => void
   onDecided: () => void
 }) {
-  const [reason, setReason] = useState('')
+  // F12: THE REASON SURVIVES THE STEP-UP. The round trip is a full-page SAML navigation that
+  // comes back to this URL with React's state gone, so the draft is kept in sessionStorage by
+  // release — never in the URL, which the edge logs and the IdP carries.
+  const draft = useMemo(() => reasonDraft(sessionStorageOrNone(), releaseId), [releaseId])
+  const [reason, setReasonState] = useState(() => draft.read())
+  // Another release on the same screen reads ITS draft, never this one's.
+  useEffect(() => setReasonState(draft.read()), [draft])
+  const setReason = (v: string) => {
+    setReasonState(v)
+    draft.write(v)
+  }
+  // F11: the preview THIS view just decided with — the record's own id arrives with the
+  // reload, and until then this is what disarms the buttons.
+  const [decidedHere, setDecidedHere] = useState<string | undefined>(undefined)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(undefined)
   const approveKey = useRef<string | undefined>(undefined)
@@ -448,7 +527,9 @@ function Decide({
         )
         rejectKey.current = undefined
       }
-      setReason('')
+      setDecidedHere(preview.id)
+      setReasonState('')
+      draft.clear()
       onDecided()
     } catch (e) {
       setError(e)
@@ -460,6 +541,12 @@ function Decide({
   const outdated =
     error instanceof ManifestApiError &&
     (error.code === 'APPROVAL_PREVIEW_STALE' || error.code === 'APPROVAL_PREVIEW_EXPIRED')
+  const decidedWithPreview = decidedHere ?? recordedWithPreview
+  const live = canDecide({ preview, decidedWithPreview, busy })
+  // DECIDED ON THIS PREVIEW: the buttons wait for a new one (F11). A release can be decided
+  // on again (§13 keeps the history), and a second press on the same diff would record a
+  // second decision nobody meant to make.
+  const decided = preview !== undefined && decidedWithPreview === preview.id
 
   return (
     <div className="record-form">
@@ -475,20 +562,28 @@ function Decide({
           placeholder="required to reject; recorded either way"
         />
       </Field>
-      <button
-        type="button"
-        disabled={busy || preview === undefined}
-        onClick={() => void decide('approve')}
-      >
+      <button type="button" disabled={!live} onClick={() => void decide('approve')}>
         Approve for production
       </button>{' '}
-      <button
-        type="button"
-        disabled={busy || preview === undefined}
-        onClick={() => void decide('reject')}
-      >
+      <button type="button" disabled={!live} onClick={() => void decide('reject')}>
         Reject
       </button>
+      {decided && (
+        <p>
+          <span className="hint">Your decision on this preview is recorded below. </span>
+          <button
+            type="button"
+            onClick={() => {
+              setError(undefined)
+              approveKey.current = undefined
+              rejectKey.current = undefined
+              onNewPreview()
+            }}
+          >
+            Decide again — take a new preview
+          </button>
+        </p>
+      )}
       <Refusal error={error} />
       {outdated && (
         <p>

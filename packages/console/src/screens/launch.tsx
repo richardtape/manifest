@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { Schemas, StreamFrame } from '@manifest/contract'
 import type { Api } from '../api'
+import { approvalLinkWanted } from '../approval-state'
 import { href } from '../router'
 import { instanceFrameCount } from './deploy'
 import {
@@ -134,12 +135,16 @@ function adminActions({
  * who can read this checklist — an administrator decides there, and an owner reads what was
  * decided and why (`getApproval` is `project:read`). No candidate, no link: there is no
  * release to approve until something serves staging, and the item's own `why` says so.
+ *
+ * **AND NO LINK FOR A SELF-SERVE RELEASE** (P6b sitting 7's F15; the D5 plan's Task 14):
+ * *"See this release's approval"* sent a person to a page for a decision nobody will make.
+ * `approvalLinkWanted` reads it from the checklist's own facts.
  */
 function approvalAction(
   readiness: Schemas['LaunchReadiness'],
   isAdmin: boolean,
 ): Partial<Record<LaunchItemId, React.ReactNode>> {
-  if (readiness.candidateReleaseId === null) return {}
+  if (readiness.candidateReleaseId === null || !approvalLinkWanted(readiness)) return {}
   return {
     'admin-approval': (
       <a {...href(`/releases/${readiness.candidateReleaseId}/approval`)}>
