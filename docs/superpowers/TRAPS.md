@@ -1576,6 +1576,26 @@ it belongs among the traps the next sitting is most likely to hit.
   same six with nothing to fetch: 60 of 60 fine — so a test that never pushes between concurrent reads never sees it.
   Serialise per repository in process (`source/github/driver.ts`'s `sync`); a second PROCESS on the same mirror
   would still race, which is why there is one control plane per machine.
+- **A FASTIFY PLUGIN INHERITS ITS PARENT'S CONTENT-TYPE PARSERS — REMOVING `application/json`'s IS NOT ENOUGH**
+  (2026-09-25, the D5 plan's sitting 5, F1). The webhook plugin swapped JSON's parser for a raw one, and a
+  form-encoded delivery still reached the handler as an OBJECT — the root server parses
+  `application/x-www-form-urlencoded` for the registry token realm — and `createHmac().update(object)` threw: `500
+  INTERNAL`. `[M9]` had measured `415` on a bare Fastify, which has no such parser. **A plugin that must read raw
+  bytes calls `removeAllContentTypeParsers()`**, then adds the one it reads.
+- **AN EMPTY `$(ls …)` HANDS VITEST NO FILE, AND VITEST THEN RUNS THE WHOLE PROJECT** (2026-09-25, the D5 plan's
+  sitting 5, F10). `pnpm exec vitest run --project unit $(ls src/api/routes/*registry*.test.ts)` — zsh printed `no
+  matches found` and the substitution was empty, so it ran every unit file (truncating the tables) in the background
+  while I believed it was one. **Name files literally, or check the list is non-empty first.**
+- **THE GITHUB FAKE'S DOCKER TESTS RUN ITS IMAGE, NOT ITS SOURCE** (2026-09-25, the D5 plan's sitting 5, F4).
+  `manifest-github-fake:local` is built from `packages/github-fake/src/` at build time; a change to the source is
+  invisible to `webhook.docker.test.ts` and every `startFakeContainer()` until the image is rebuilt: `docker compose -f
+  infra/compose.yaml -p manifest --env-file .env --profile github build github-fake`. **It works offline only while
+  BuildKit caches the `apk add git` layer** — check with `docker buildx du --verbose | grep -A6 'apk add'`, and look for
+  `CACHED` on that step in the build's output.
+- **NODE 24'S `timingSafeEqual` LENGTH REFUSAL IS A `RangeError`: *"Input buffers must have the same byte length"***
+  (2026-09-25, the D5 plan's sitting 5, F6). Its `code` is `ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH`; a test that greps
+  the message for the code finds nothing. It throws for ANY length mismatch — a well-formed `sha256=…` header
+  compared as a 71-byte string against a 32-byte digest throws on every call.
 
 ## Images already pulled
 

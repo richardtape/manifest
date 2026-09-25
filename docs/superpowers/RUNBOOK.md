@@ -371,6 +371,22 @@ custody rule, so a key its group can read refuses the boot, naming the file.
   GitHub NOW — creating a project, validating at `HEAD` — answers **`503 SOURCE_UNREACHABLE`**.
 - **A name GitHub already holds is never adopted**: `409 SOURCE_REPOSITORY_EXISTS`, and the project
   is not created. The fake's repositories outlive `pnpm test`; `make reset` removes them.
+- **A push to the fake is DELIVERED to the control plane** (sitting 5, Task 9): `make github-up`'s
+  container sends a signed `push` to `http://host.docker.internal:7100/webhooks/github` — the edge's
+  own way in, never through the edge — and the control plane verifies it with
+  `infra/secrets/github-fake-webhook.secret` (`600`, minted by `make up`), records it once, syncs the
+  mirror and validates a moved `main`. It never builds. Each advance is an Event on the project's
+  stream: `repository.pushed`, `repository.history_rewritten`. `GET http://127.0.0.1:7110/_fake/deliveries`
+  lists what the fake sent and the answer it got. **On driver 1 the route answers
+  `404 WEBHOOKS_NOT_CONFIGURED`**, which is how to ask a control plane which driver it runs.
+  **A REAL App's webhook must be registered with content type `application/json`** — a
+  form-encoded delivery is `415`. **After changing `packages/github-fake/src/`, rebuild the image**
+  (`docker compose -f infra/compose.yaml -p manifest --env-file .env --profile github build github-fake`):
+  the container runs what was built.
+- **Every repository is kept PRIVATE** (sitting 5, Task 10): make one public on the fake (a `PATCH`
+  with the developer token) and the next sync — the fake's `publicized` delivery, or any read —
+  makes it private again and publishes `repository.visibility_enforced`. If it cannot, a build is
+  **`409 SOURCE_REPOSITORY_PUBLIC`** until a sync reads it private, with the network off too.
 
 ## The conformance run — the fake against REAL GitHub
 
@@ -408,6 +424,10 @@ at `infra/secrets/github-app.pem` (`chmod 600` — the script refuses a looser o
 `infra/secrets/github-conformance.json` holding `{"appId": …, "installationId": …, "org":
 "…"}`. **Never install it on UBC's organisation**: its key mints a token for every
 installation of the App. To revoke it, delete the key or the App on its GitHub page.
+**An App that DOES get a webhook** — UBC's, which has a public address to deliver to — must be
+registered with **content type `application/json`** and a secret in `infra/secrets/`'s custody
+class: the receiver reads exactly JSON, and answers a form-encoded delivery `415` (the D5 plan's
+`[M9]`, and sitting 5's F1).
 
 **What the first run measured (2026-09-24, App 5068172, organisation `Manifest-local-dev`,
 free plan)** — the fake was corrected for the first three:
@@ -609,7 +629,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 20 / 0 and `make verify` 57 / 0**
-(**All four were re-measured on 2026-09-24 at the close of the D5 plan's sitting 4: `pnpm test` **1858 passed** in 135 files, up 40 and four files (the GitHub driver — its git, token and client modules and the contract suite run against the fake — and `source_repositories`), `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57, and `pnpm test:docker` **207 in 33** (a real BuildKit build from driver 2's mirror, online and with the fake stopped; owed and run).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured on 2026-09-25 at the close of the D5 plan's sitting 5: `pnpm test` **1919 passed** in 139 files, up 61 and four files (GitHub's webhooks — the signature, the serial queue, the route and the fake's deliveries — and enforced-private), `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57 (after a `docker restart manifest-caddy`: the second Docker tier left the host unable to reach the edge), and `pnpm test:docker` **208 in 34** (a delivery from the fake's image to the host's loopback; one load-dependent red at load 12, green re-run alone).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has TWELVE steps, 1 to 12, after step 0's offline check** — P5a sitting 12 added `make demo-journey` as step 8,

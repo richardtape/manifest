@@ -10,12 +10,14 @@ on one laptop, offline. The plan being executed now is **D5's GitHub source driv
 ([`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md)) — its sittings table
 says how far it has got. The roadmap's ledger outranks every document on status.
 
-*Last verified 2026-09-24, at the close of the D5 plan's sitting 4 (Tasks 7 and 8, and one fix). `pnpm test` **1858
-passed, 0 skipped, in 135 files**, twice, identical (224 s, 206 s) — up 40 and four files (the GitHub driver, its
-token and git modules, and `source_repositories`). **`make doctor` 20 checks, 0 failed, 0 warnings**; the vulnerability
-database goes stale again after 2026-10-01 (`make refresh-vulndb`). **`make verify` 57**. `pnpm test:docker` **207 in
-33**, 1166.4 s — up one test and one file (a real BuildKit build from driver 2's mirror), owed and run twice, green both
-times. `scripts/ci-acceptance.sh` reads `1858 / 135 / 20 / 57`. **This line states only the latest sitting** — each
+*Last verified 2026-09-25, at the close of the D5 plan's sitting 5 (Tasks 9 and 10). `pnpm test` **1919 passed, 0
+skipped, in 139 files**, twice, identical — up 61 and four files (webhooks: the signature, the queue, the route and the
+fake's deliveries; enforced-private). **`make doctor` 20 checks, 0 failed, 0 warnings**; the vulnerability database
+goes stale again after 2026-10-01 (`make refresh-vulndb`). **`make verify` 57** — after a `docker restart
+manifest-caddy`, because the second Docker tier left the host unable to reach the edge (§2's box). `pnpm test:docker`
+**208 in 34**, owed twice and run twice: green after Task 9 (1209.5 s); after Task 10 one load-dependent red at load 12
+(*a retire waits for a request that is in flight*, `runtime/`, which this sitting did not touch), green re-run alone.
+`scripts/ci-acceptance.sh` reads `1919 / 139 / 20 / 57`. **This line states only the latest sitting** — each
 sitting's numbers are in its plan's *What executing this plan found*, dated, where they cannot drift.*
 
 **Short of context? Read §7e, §2's numbers box, §6 and §4's curated traps, in that order.** The full trap catalogue
@@ -61,22 +63,22 @@ browser after sitting 7, which no tier had ever looked at — **116 in P5b's 13*
 roadmap's table — every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat
 a written plan as a hypothesis (§9).
 
-**The four numbers you will check first, re-measured 2026-09-24 on this machine at the open AND the close of the D5
-plan's sitting 4 (Tasks 7 and 8; its record is in the plan). `pnpm test` **1858** in **135** files, up 40 and four
-files (1818 in 131, twice, at the open); `make doctor` **20** with **0 warnings**; `make verify` **57**; `pnpm
-test:docker` **207** in 33, owed and run:**
+**The four numbers you will check first, re-measured 2026-09-24/25 on this machine at the open AND the close of the D5
+plan's sitting 5 (Tasks 9 and 10; its record is in the plan). `pnpm test` **1919** in **139** files, up 61 and four
+files (1858 in 135, twice, at the open); `make doctor` **20** with **0 warnings**; `make verify` **57**; `pnpm
+test:docker` **208** in 34, owed twice and run twice:**
 
 | Gate | What it reads now |
 |---|---|
-| `pnpm test` (from the **repo root**) | **1858 passed, 0 skipped, 135 files**, ~205 s. Run it twice alone, and identical, after each code commit and at every close; `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **1858**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
-| `pnpm test:docker` | **207 tests, 0 SKIPPED, 33 files, 1166.4 s** on its last run (2026-09-24, the D5 plan's sitting 4). Owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — fails rather than skips, and **outlasts the agent's 10-minute tool limit: run it in the background**. It restarts the edge (dropping every runtime route), truncates the tables and re-registers the platform's SP row: **restart the control plane afterwards**, then run the two cleanup scripts, because it regenerates seven dead app networks and one volume every time — **and then `make verify`**: once, the edge's restart left the host unable to reach it (12 host→edge failures, fixed by `docker restart manifest-caddy`). Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
+| `pnpm test` (from the **repo root**) | **1919 passed, 0 skipped, 139 files**, ~240 s. Run it twice alone, and identical, after each code commit and at every close; `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **1919**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
+| `pnpm test:docker` | **208 tests, 0 SKIPPED, 34 files** (2026-09-25, the D5 plan's sitting 5: 1209.5 s green after Task 9; after Task 10, 207 green and ONE load-dependent red at load 12 — *a retire waits for a request that is in flight*, a wall-clock drain bound — green re-run alone). Owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — fails rather than skips, and **outlasts the agent's 10-minute tool limit: run it in the background**. It restarts the edge (dropping every runtime route), truncates the tables and re-registers the platform's SP row: **restart the control plane afterwards**, then run the two cleanup scripts, because it regenerates seven dead app networks and one volume every time — **and then `make verify`**: TWICE now — D5 sittings 2 and 5 — the edge's restart left the host unable to reach it (12, then 11, host→edge failures, `curl: (35) Recv failure: Connection reset by peer`; fixed each time by `docker restart manifest-caddy`). Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
 | `make doctor` | **20 checks, 0 failed, 0 warnings** — one of them the GitHub fake's image (`make seed`, profile `github`); the vulnerability database is fresh until **2026-10-01**; after that doctor warns, and §13's `scans` item refuses every production launch until `make refresh-vulndb` runs with the network on (*Outstanding*, below). Its `127.0.0.3` checks assert what dnsmasq answers, so **it cannot tell you production is REACHABLE** |
 | `make verify` | **57 checks, 0 failed, 0 warnings** — two of them the GitHub fake's, static, whether or not it runs. Straight after `make reset` it reads ONE red — the audit grant — until the control plane has migrated the empty database. Its INFO line reads `mf- containers=6 networks=2 volumes=4` today (`launch-app`'s alone). *Runtime routes currently applied* counts the internal listener (`srv0`) only, so it never sees a production route |
 | `make demo-production` | P6a's acceptance: ~1 min fresh, three phases each ending `every check passed`; ~4 s on the re-use path, where `launch-app` has launched. Step 11 of `scripts/offline-acceptance.sh`. Last green 2026-09-24, as the first half of a fresh `make demo-releases` |
 | `make demo-releases` | P6b's acceptance: ~2 min re-used, ~3 fresh (it runs `make demo-production` first when `launch-app` has not launched). Step 12 of the offline acceptance and the last step of `make ci-acceptance`. It leaves `launch-app` on its leg C release. Last green 2026-09-24 |
 | `make demo-token` | P5b's acceptance, ~30 s; step 9 of the offline acceptance |
 | `make demo-journey` | P5a's acceptance: all eight steps, ~51 s, over the contract; last run by P6b sitting 4 |
-| `make ci-acceptance` | The headless half of 1c's acceptance, ~15 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases`. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines are this box's numbers in code — `1858 / 135 / 20 / 57` — and move with it** (§6) |
+| `make ci-acceptance` | The headless half of 1c's acceptance, ~15 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases`. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines are this box's numbers in code — `1919 / 139 / 20 / 57` — and move with it** (§6) |
 
 **A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is
 cheaper before you start than after. **This box is the only current one in this file**; the same four numbers are
@@ -217,8 +219,9 @@ infra/reserved-labels/            §23's reserved labels, loaded at boot
 packages/control-plane/src/       the control plane — below
 packages/contract/                openapi.json (GENERATED) and @manifest/contract, the client generated from it
 packages/journey/                 §22's journey through that client — make demo-journey
-packages/github-fake/             D5's GitHub FAKE (the D5 plan, Tasks 4–6): App JWTs, scoped tokens, repositories,
-                                  git over HTTP — held to GitHub's own schemas and a real App's answers (golden.json);
+packages/github-fake/             D5's GitHub FAKE (the D5 plan, Tasks 4–6, 9–10): App JWTs, scoped tokens, repositories,
+                                  git over HTTP, signed webhooks (push; repository publicized/privatized) — held to
+                                  GitHub's own schemas, its HMAC vector and a real App's answers (golden.json);
                                   run from TS source in manifest-github-fake:local, --profile github, 127.0.0.1:7110
 ```
 
@@ -233,14 +236,14 @@ another module except through its `index.ts` or `testing.ts`**:
 | `db/` | Drizzle schema and client, `locks.ts`, `testing.ts` — `withRollback` isolates a test from its OWN writes only; `resetDatabase` is for a test that drives a real server, whose rows are committed |
 | `runtime/` | §11's `Driver`, the fake driver, **`driver-contract.ts`**, the state machine; `runtime/docker/` is the one real driver |
 | `routing/` | §23 hostnames → Caddy routes; readiness and identity probes run from inside the edge. `caddy.ts` speaks `node:http`, not `fetch` — Caddy's admin API refuses any request carrying an `Origin` header |
-| `build/`, `services/`, `source/` | the build context, §12's gates and scan; per-app Mongo; D5's `SourceDriver` — bare git repositories (driver 1), `driver-contract.ts` (the suite every driver passes) and `github/` (driver 2 — a mirror, tokens in memory; `MANIFEST_SOURCE_DRIVER=github`, the D5 plan's Tasks 7–8; webhooks and the rest still being built) |
+| `build/`, `services/`, `source/` | the build context, §12's gates and scan; per-app Mongo; D5's `SourceDriver` — bare git repositories (driver 1), `driver-contract.ts` (the suite every driver passes) and `github/` (driver 2 — a mirror, tokens in memory; `MANIFEST_SOURCE_DRIVER=github`, the D5 plan's Tasks 7–8; its sync reports to ONE observer and enforces private, Tasks 9–10; push-time scanning and the rest still being built), `queue.ts` (the webhook's serial queue) and `testing.ts` (a person pushing to the fake; a recording observer) |
 | `identity/`, `sso/`, `secrets/` | sessions and Manifest's own SAML SP; per-app SP registration in the IdP; envelope encryption |
 | `projects/` | §13 authorization (`authz.ts`), the repository, reserved labels, `checkSlug` and §26's `fleet.ts` |
 | `releases/` | build (the `BuildRunner` a build runs on), release, deploy, retire, recover-at-boot |
 | `observability/` | events and every event type's payload schema (`event-schemas.ts`), redaction, build logs, Incidents, the event bus |
 | `ai/` | the LiteLLM admin client, D17's catalogue, app keys |
 | `launch/` | §13's first-launch checklist, computed from what exists and never stored (`readiness.ts`) |
-| `api/` | the Fastify server; `contract/` (`defineRoute`, the OpenAPI document); `representations/`; `routes/`; `error-codes.ts`; CSRF; idempotency; **`authz-contract.ts`** |
+| `api/` | the Fastify server; `contract/` (`defineRoute`, the OpenAPI document); `representations/`; `routes/` (and `routes/webhooks.ts`, GitHub's deliveries — a plugin, not a contract route); `webhook-signature.ts`; `spec-validation.ts` (`validateAndRecord` — the validate route and a push); `error-codes.ts`; CSRF; idempotency; **`authz-contract.ts`** |
 
 **Read first:** `runtime/driver.ts` and `runtime/driver-contract.ts` — everything is built against them — then
 `runtime/docker/driver.ts`, `api/server.ts` for how a request becomes an actor, `projects/authz.ts`, and
@@ -363,6 +366,28 @@ defect even when every test is green.**
   in memory and in git's ENVIRONMENT only (a canary and an argv recorder hold it), and **`503 SOURCE_UNREACHABLE`
   offline while a mirrored commit still builds**. `readFile` names a COMMIT on both drivers: one the repository
   lacks is `SOURCE_COMMIT_NOT_FOUND`, never "no such file".
+- **GitHub's deliveries are verified BEFORE anything reads them, and every refusal has its own code** (the D5 plan's
+  Task 9, Decision 9). `POST /webhooks/github` — unversioned, reached at `127.0.0.1:7100` as the edge reaches the
+  control plane, never through the edge — checks `X-Hub-Signature-256` over the RAW bytes first (its plugin drops EVERY
+  inherited content-type parser and reads exactly `application/json`: with the registry realm's form parser inherited, a
+  form-encoded delivery was `500` — sitting 5's F1), and REPLIES its refusals, because `server.ts` flattens a thrown
+  `401` to `UNAUTHENTICATED`: absent (a SHA-1-only delivery included) `WEBHOOK_SIGNATURE_MISSING`, `…_MALFORMED`,
+  `…_INVALID`, a signed non-JSON body `400 WEBHOOK_PAYLOAD_INVALID`, and driver 1 `404 WEBHOOKS_NOT_CONFIGURED` to
+  everyone. A verified delivery is recorded ONCE (`webhook_deliveries`, 0025) and its sync runs off the request on ONE
+  serial queue (`ServerDeps.sourceSync`); a push whose `main` moved is VALIDATED, never built. The secret is the App
+  key's custody class (`loadWebhookSecret`, refusing an empty one).
+- **Every advance of driver 2's mirror goes to ONE required observer, once** (Task 9, Decision 11).
+  `createGithubSourceDriver` has no default for `observer` — omitting it at boot is a `tsc` error — and
+  `createSourceObserver({ db, bus })` publishes `repository.pushed` and `repository.history_rewritten`, read from the
+  SHADOW's porcelain so a rewrite is reported once and the next push is a push. The observer runs inside the mirror's
+  turn (`exclusively`), and a report that fails fails the read that synced. **The creation's first fetch is not
+  reported**: `audit.events` is `ON DELETE RESTRICT`, so an event there would block `deleteProject`. `localGitDir` pins
+  every commit it hands out (`refs/manifest/kept/<sha>`).
+- **A repository found PUBLIC is made private again, reported, and never built while public** (Task 10, Decision 12).
+  Every sync — webhook, read or Manifest's own commit — reads GitHub's visibility (failing CLOSED), PATCHes a public one
+  private with an `administration` token for that repository alone, READS AGAIN, and keeps the last read on the mirror;
+  `localGitDir` refuses `409 SOURCE_REPOSITORY_PUBLIC` while it says public, offline too; `repository.visibility_enforced`
+  reports it (0026).
 - **The GitHub fake answers what GitHub MEASURABLY answers, and a disagreement goes to the fake** (the D5 plan,
   Tasks 4–6, Decision 7). `@manifest/github-fake` imports nothing from the control plane (`boundary.test.ts`); every
   JSON answer it gives is validated against GitHub's own schemas (`conformance/github-schemas.json`, verbatim); and
@@ -1271,42 +1296,51 @@ named in the row below.*
 | **P5b** | [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md) — **EXECUTED 2026-09-18**, all nine sittings | `make demo-token` — green three times, the third from a `make reset` machine; step 9 of the offline acceptance | 116 findings in nine sittings. **Sitting 9's F1 is the newest one to read, and it is a lesson about PREDICTIONS**: sitting 8 predicted Task 13's control (a) would be invisible to the acceptance, and it turns three checks red — the reasoning was about the FIXTURE token, which holds the privileged capability and is refused identically either way, while every REAL token lacks it and is refused by a different rule with a different code. **Sitting 9's F3** is the second: replacing the token secret's constant-time comparison with `===` left all 1342 tests AND all nine demo steps green, so the property was asserted by nothing; it is now asserted at the source, and the first draft of that assertion could not fail. **Sitting 9's F8**: one `pnpm test:docker` run recreates exactly the seven dead app networks cleared by hand the same day. **Sitting 8's F1 is the newest one to read**, and it is what the first integration client is for: **`subscribe` could not carry a delegated token at all**, so an agent could start a build through the generated client and had nothing to watch it end on — the route had accepted a bearer all along, and nothing server-side could see the hole. **Sitting 8's F4 and F5** are the second: **three of its five negative controls answer `403` for the WRONG REASON** — the privileged rule disabled makes the refusal a dead-end `403 FORBIDDEN`, confirm reverted answers `403 TOKEN_ACTION_PENDING`, the fleet reverted answers `403 FORBIDDEN` — so a status-only demo passes all three. **Sitting 7's F4**, and it is a JavaScript trap rather than a platform one: `toToken` was given an optional `now: Date = new Date()`, and `api/routes/tokens.ts` maps it as `.map(toToken)` — so `now` arrived as the ARRAY INDEX, `0`, and every token in every list read `expired: false`, including one that had expired an hour before. Only the assertion about an expired token could see it. **Sitting 7's F2** is the one after that: the plan's own `Promise.all` control for a read-then-insert **passed against the defect**, because `pg.Pool` establishes a connection per acquire and the five calls serialised — a warm pool is what makes a pooled race observable, and a deterministic SQLSTATE test belongs beside it. **Sitting 6's F5:** two of that sitting's own four new tests were green before the feature, because both were *"is not limited"* claims — and a claim that something is NOT refused is true of a platform that refuses nothing. A negative claim needs a positive control in the same test. **Sitting 4's F1** is the one to read: the plan's own negative control for the ORDER of the two token checks could not fail against any of the 31 tests that existed, because every test writes a token holding the privileged capability and **no token the platform can mint can hold one** — so the swapped order answers a dead-end `403 FORBIDDEN` for every real token, with D24's loop unable to start, and all 31 green. **Sitting 2's F1**: the plan's token parser split on `_` while base64url's alphabet contains it, so it refused 47.5% of the tokens the same file minted — and the round-trip test minted ONE token, so it would have gone red about half the time and read as a flaky harness. **Sitting 2's F14**: the plan's own TRUNCATE negative control cannot fail, because the statement's CASCADE reaches both new tables unnamed. **Sitting 3's F1**: `DELETE /v1/tokens/{tokenId}` is the API's first bodyless mutation, and the contract layer could not carry one — the route answered `400` before its handler ran and the OpenAPI document could not be generated for it at all, because both kept on `method === 'GET'` rather than on the body schema. **Sitting 3's F13**: three of that sitting's own negative controls answer `403` for the WRONG REASON, so a status-only assertion is green through all of them. |
 | **P6a** | [`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md), with [the P6 brief](plans/2026-09-19-p6-brief.md) — **EXECUTED 2026-09-22**, all eleven sittings | `make demo-production` — green on the fresh path, the re-use path and from a `make reset` machine; step 11 of the offline acceptance; **and a whole launch clicked by a person** | **Sitting 11's F6 is the one to read**: the acceptance's own control (e) stayed GREEN because `applyRoute` patched an existing route in place, so a production route kept whatever listener held it — a fail-open in the control the plan exists to build, found only by asking why a control was green. **Sitting 11's F2** is its mirror image in the instrument: a pooled keep-alive socket reported the production app on the internal listener when it was not there, and in the other order would have hidden a real leak. **Sitting 9's F5**: §8 sends a production app to real UBC Shibboleth, so R2's rehearsal could not pass on this laptop until `InjectionContext.purpose` existed. **Sitting 10's F17 and sitting 11's F10**: two console defects no gate could see, both found by clicking. |
 | **P6b** | [`plans/2026-09-22-p6b-subsequent-releases.md`](plans/2026-09-22-p6b-subsequent-releases.md) — **EXECUTED 2026-09-23**, all seven sittings | `make demo-releases` — green fresh, re-use and from a `make reset` machine; step 12 of the offline acceptance; **clicked by a person, stale path included** | **Sitting 7's F3 is the one to read**: the acceptance's own baseline derivation used release order where the platform uses decision order, agreed on every path until the first run after the clicked half, and would have gone red for the wrong reason there — a client that re-derives a platform rule must implement THE rule. **Sitting 7's F9 and F10** are what the next plan inherits: the model's summary invented an administrator's verdict before anyone decided, and the console's *Sign out* leaves the IdP session alive. **Sitting 1's F1** is the plan's best: the egress proxy never re-rendered its allowlist, so a removed host stayed reachable — found by a measurement, fixed as Task 5a, and held by the acceptance's control (i). |
-### 7e. Execute sitting 5 of the D5 GitHub source driver plan — Tasks 9 and 10 ← **START HERE**
+### 7e. Execute sitting 6 of the D5 GitHub source driver plan — Tasks 11 and 12 ← **START HERE**
 
-**SITTINGS 1–4 RAN ON 2026-09-24:** [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md)
-— D5's driver 2, **15 tasks in Rich's eight sittings**. **Your job is sitting 5: Task 9 (webhooks — the fake delivers
-signed events; the receiver refuses an ABSENT signature, a malformed one and a wrong one each by its own code — four
-refusal codes with the unparseable payload's — records a delivery once and syncs off the request; every mirror advance goes through ONE required observer) and Task 10
-(enforced private — a repository found public is made private again, reported, and not built while public).** Use
-`superpowers:executing-plans` (or subagent-driven), and **commit on `main`, one commit per task**.
+**SITTINGS 1–5 RAN ON 2026-09-24/25:** [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md)
+— D5's driver 2, **15 tasks in Rich's eight sittings**. **Your job is sitting 6: Task 11 (push-time secret scanning on
+every path Manifest can see — its own commits before they leave, driver 1's pushes by a rendered `pre-receive` hook,
+driver 2's pushes as the mirror advances — one list of rules, and the stateless `ghs_APPID_JWT` token the gate misses)
+and Task 12 (`main` protected on both drivers, recorded honestly where GitHub will not protect it, and
+`Project.repository`).** The plan calls sitting 6 **the other heavy one**. Use `superpowers:executing-plans` (or
+subagent-driven), and **commit on `main`, one commit per task**.
 
 **READ, IN THIS ORDER:** the plan's header and sittings table; *Decided by Rich*; *Global Constraints*; **sittings
-1–4's records** at the end of the plan (*What executing this plan found*); then **Tasks 9 and 10 in full** — Task 9
-has TWO blocks at its top (`[M14]`/`[M9]`, and ***SITTING 4 — what Tasks 7 and 8 built***), Task 10 none. The
-measurements behind every `[M<n>]` block are in [`spikes/d5-baseline/README.md`](spikes/d5-baseline/README.md).
+1–5's records** at the end of the plan (*What executing this plan found*) — sitting 5's above all; then **Tasks 11 and
+12 in full** — Task 11 has TWO blocks at its top (`[M14]`, and ***SITTING 5 — what Tasks 9 and 10 built***), Task 12
+ONE (***SITTING 5***). The measurements behind every `[M<n>]` block are in
+[`spikes/d5-baseline/README.md`](spikes/d5-baseline/README.md).
 
-**ASK RICH NOTHING TO START.** Sitting 5 is offline end to end: the unit tier starts fakes in process, and Task 9's
-Docker test sends a delivery from the fake's IMAGE (`manifest-github-fake:local`, built) through
-`host.docker.internal`.
+**ASK RICH NOTHING TO START.** Sitting 6 is offline end to end: the unit tier starts fakes in process, and the Docker
+tier runs the fake's image — which Task 12 changes, so **rebuild it before the tier** (below).
 
-**WHAT SITTING 4 CHANGED FOR YOU:**
-- **Driver 2 exists and boots** (`MANIFEST_SOURCE_DRIVER=github`; RUNBOOK's *The control plane on driver 2*). Its
-  `sync` is PRIVATE, SERIALISED per mirror (`c47bdf0`, sitting 4's F19 — concurrent reads after a push failed five in
-  six before it was), and already fetches the two refspecs; it TOLERATES a rewrite's `! … refs/heads/<b>` exactly when
-  the shadow holds the refused commit (sitting 4's F3) — Task 9 turns that into `rewritten` and reports it, parsing
-  the SHADOW's porcelain lines as the `[M14]` block says. **Task 7's control (f) is already red in the F6 case**
-  (`github/driver.test.ts`, the contract suite's `extra`); Task 9's rewrite case names it too.
-- **Every method of the driver is wrapped** so a `SourceError` leaving it is redacted with every live token — a method
-  Task 9 adds is wrapped by the same loop. `TokenCache.redact`, `gitWithToken`'s `acceptExit`, `isAuthRefusal`.
-- **`repositoryOf` is the ONLY way the API names a project's repository** (`projects/source-repositories.ts`);
-  Task 9's `validateAndRecord` must keep calling it — without it a GitHub-mode control plane BUILT a driver-1 project
-  (sitting 4's F6). `githubTestDeps(fake, { reposRoot? })`; `startFakeContainer()` takes no options yet — Task 9 adds
-  `webhookUrl`. The fake's `startFake` has test-only `port`, `appKeyPem` and `quirks.createPublic`; `refusePrivatize`
-  is Task 10's, the delivery log and `/_fake/deliveries` Task 9's, `/_fake/reset` Task 15's.
-- **`describeRepository` replaced the plan's `webUrlOf`** (Task 12 folds it into the link). **25 migrations** now
-  (0024 is `source_repositories`); Task 9 writes 0025 and Task 10 0026 — **predictions: take what drizzle writes**.
-- **Gate numbers:** `pnpm test` 1858 in 135, `make doctor` 20, `make verify` 57, `pnpm test:docker` 207 in 33 — §2's
-  box; `scripts/ci-acceptance.sh`'s `EXPECT_` lines already read `1858 / 135 / 20 / 57`.
+**WHAT SITTING 5 CHANGED FOR YOU:**
+- **`POST /webhooks/github` exists** (`api/routes/webhooks.ts`, a plugin, unversioned): HMAC over the raw bytes first,
+  four refusal codes, a delivery recorded once (`webhook_deliveries`, 0025), its sync on `ServerDeps.sourceSync` (one
+  serial queue per process; `idle()` in tests). A push whose `main` moved is validated through
+  `api/spec-validation.ts`'s `validateAndRecord`.
+- **`MirrorAdvance` is `{ projectSlug, updated, rewritten, visibility }`** and Task 11 adds `findings`. **Driver 2's
+  `sync` calls the ONE observer only when something moved or visibility was read public — Task 11 must add
+  `findings.length > 0` to that condition**, and **five exact-shape advance assertions in `github/driver.test.ts` gain
+  `findings: []`** (Task 10 did the same for `visibility`). The observer runs inside the mirror's turn
+  (`exclusively(slug, job)` — the fetch, the observer and the `kept` pin share it), so `refs/manifest/scanned/*` moves
+  there too. **The creation's first fetch is `report: false`** — an event from inside `createRepository` would block
+  `deleteProject` (`audit.events` is `ON DELETE RESTRICT`; sitting 5's F3) — **so Task 12's
+  `repository.protection_unavailable` is published by the ROUTE, last**, as the plan's Task 12 already says.
+- **`source/testing.ts`** has `pushAsPerson`, `rewriteAsPerson` and `recordingObserver()` — whose `fail(error)` is Task
+  11's control (d) "an observer that throws once". `api/` tests may import it; not `source/github/testing.ts`.
+- **Every driver-2 sync reads visibility and reverts a public repository** (Task 10); `localGitDir` refuses `409
+  SOURCE_REPOSITORY_PUBLIC` while the mirror's last read says public. The fake's `patchRepo` delivers `repository`
+  `publicized`/`privatized`, and has the test-only quirk `refusePrivatize`; Task 12's protection `PUT` must leave both
+  alone.
+- **The fake delivers a `push` for every ref a push MOVED** — its `receive()` in `git-http.ts` snapshots refs before
+  `receive-pack` — so a push Task 12's `pre-receive` refuses delivers nothing. `StartedFake` has `deliveries()`,
+  `setWebhookUrl()`, `webhooksIdle()` and `pushPayload(slug, before, after)`; `startFakeContainer({ webhookUrl?,
+  network? })`.
+- **Gate numbers:** `pnpm test` 1919 in 139, `make doctor` 20, `make verify` 57, `pnpm test:docker` 208 in 34 — §2's
+  box; `scripts/ci-acceptance.sh`'s `EXPECT_` lines already read `1919 / 139 / 20 / 57`. **Migrations: 27**, the newest
+  0026; Task 11 writes the next and Task 12 the one after — **predictions: take what drizzle writes**.
 
 **DECIDED BY RICH — DO NOT RE-ASK** (§8, *Decided*): the fake in a container plus an opt-in real conformance check;
 eight sittings — **if a task breaks the split, WRITE TO RICH with the measurement and a proposed re-cut, and wait**;
@@ -1314,51 +1348,58 @@ the order after this plan (the authoring API, then the vulnerability database); 
 (Tasks 13 and 14).
 
 **THINGS MOST LIKELY TO COST YOU:**
-- **An EVENT TYPE is four edits and published surface** (*Global Constraints*): `EVENT_TYPES`, its payload schema, the
-  `CHECK` literal in `db/schema.ts` — drizzle writes the constraint rewrite itself; **never append it by hand** — and
-  the OpenAPI document's event schemas. Task 9 adds two, Task 10 one.
-- **Making `observer` REQUIRED is meant to break `tsc` at every place that builds a driver** — four today (`src/index.ts`,
-  `api/testing.ts`'s `githubTestDeps`, `github/driver.test.ts`'s harness and `github/build.docker.test.ts`; Task 9's
-  *Interfaces* and its *SITTING 4* block name them), plus Task 9's own `webhook.docker.test.ts`. Fix each; do not
-  default it.
-- **Four refusal codes, all asserted by CODE beside an accepted delivery in the same file** (Decision 9, Review Focus
-  1) — a receiver that refuses everything passes a status-only test.
-- **`pnpm test:docker` IS OWED BOTH TASKS** (`observability/`, `projects/`, a `*.docker.test.ts`), ~19 min —
-  background it; **warm the chat model first** (§2's box); it restarts the edge and truncates the tables, brings back
-  seven dead networks, a volume and `p4b-probe-user`. **Then `make verify`.**
-- **Never write into the tree while a backgrounded gate run is going** (TRAPS.md). **A negative control that never
-  applied reads as "cannot fail"**, and one can be red for the WRONG reason — read its assertion (sitting 4's F14).
-  **The tool shell is zsh** (`$SHA:a` is a history modifier — sitting 4's F15). **Other agents commit on `main`.**
+- **The fake's Docker tests run its IMAGE** (sitting 5's F4, TRAPS.md). Task 12 changes `repos.ts` and `git-http.ts`:
+  **rebuild before `pnpm test:docker`** — `docker compose -f infra/compose.yaml -p manifest --env-file .env --profile
+  github build github-fake` — and look for `CACHED` on its `apk add git` step: offline it works only while BuildKit
+  caches that layer (`docker buildx du --verbose | grep -A6 'apk add'`; it did at sitting 5's close).
+- **The plan's Files lists miss test harnesses that enumerate everything**: sitting 5's first full run was red in
+  `authz-contract.test.ts` (*covers every route*) and needed `stream-contract.test.ts`'s `PUBLISHED_ELSEWHERE` for each
+  new event type (F5). Task 11 and Task 12 each add an event type — **each needs a `PUBLISHED_ELSEWHERE` entry** — and
+  Task 11 adds `SourceDriver.prepare()`, which both drivers' objects must gain (`tsc` names them; driver 2's
+  redacting wrapper copies every method, so it needs nothing).
+- **An EVENT TYPE is four edits and published surface**: `EVENT_TYPES`, its payload schema, its sample in
+  `observability/testing.ts`'s `EXAMPLE_DETAILS` (typed over every `EventType`, so `tsc` demands it), and the `CHECK`
+  literal in `db/schema.ts` — drizzle writes the constraint; **never by hand** — then `pnpm contract:write` and
+  `contract:generate`. **Apply each new migration with `db:migrate`** (§3) before a Vitest run:
+  the global setup truncates by name and refuses a table the database lacks.
+- **`pnpm test:docker` IS OWED BOTH TASKS** (`build/`, `projects/`), ~20 min — background it; **warm the chat model
+  first** (§2's box); it restarts the edge and truncates the tables, and brings back seven dead networks, a volume and
+  `p4b-probe-user`. **Then `make verify`.**
+- **Never write into the tree while a backgrounded STATIC gate runs** (TRAPS.md) — draft in the scratchpad; `pnpm
+  test:docker` alone is safe for markdown. **Never hand Vitest an empty file list** — it runs the whole project (sitting
+  5's F10). **A control can be red wider than you predict** (sitting 5's F8) — record it. **The tool shell is zsh.
+  Other agents commit on `main`.**
 - **`docker-simple-saml-saml-idp-1` is `Exited (0)` and has been for weeks.** "Must survive" means it must still EXIST;
   do not start it.
 
-**WHERE THE SITTING STOPS, AND HOW IT ENDS.** **Stop after Task 10, and do not start sitting 6**: one sitting per
-session, with a check-in at each boundary (§3). Then the plan's *EVERY SITTING ENDS THE SAME WAY* — the four gates
-(`pnpm test` twice), the owed Docker tier, the dated record, the sittings table — and §6 rule 8's sweep, **ending with
-the re-read of the §7e you wrote, checking each claim by opening what it names**. Budget about an hour for all of it.
-**If you start the fake (`make github-up`) or a control plane on driver 2, stop both before you close** — the machine
-had neither running when you opened. Finish by telling Rich what landed, what you ruled, and what sitting 6 needs from
-him.
+**WHERE THE SITTING STOPS, AND HOW IT ENDS.** **Stop after Task 12, and do not start sitting 7**: one sitting per
+session, with a check-in at each boundary (§3). **If sitting 6 runs long, stop BETWEEN the tasks, never inside one,
+and sweep** — and tell Rich, with the measurement: the split is his to re-cut, never silently yours (*Decided by
+Rich*). Then the plan's *EVERY SITTING ENDS THE SAME WAY* — the four gates (`pnpm test`
+twice), the owed Docker tier, the dated record, the sittings table — and §6 rule 8's sweep, **ending with the re-read of
+the §7e you wrote, checking each claim by opening what it names**. Budget about an hour for all of it. **If you start
+the fake (`make github-up`) or a control plane on driver 2, stop both before you close** — the machine had neither
+running when you opened. Finish by telling Rich what landed, what you ruled, and what sitting 7 needs from him.
 
-**THE MACHINE, AS SITTING 4 LEFT IT (2026-09-24, queried at its close — query every one again):**
-- **The database is EMPTY: 0 projects, builds, releases and specs** (`docker exec manifest-postgres psql …`), because
-  the close's `pnpm test` truncated it. **25 migrations** — sitting 4 added 0024 (`source_repositories`); Task 9 adds
-  the next. `launch-app`'s six containers still run with no project row, and `.manifest/repos/` holds the same six
-  bare repositories (Step 6's three were removed).
+**THE MACHINE, AS SITTING 5 LEFT IT (2026-09-25, queried at its close — query every one again):**
+- **The database is EMPTY: 0 projects, builds, releases, specs, `source_repositories` and `webhook_deliveries` rows**
+  (`docker exec manifest-postgres psql …`), because the close's `pnpm test` truncated it. **27 migrations** — 0025
+  (`webhook_deliveries`) and 0026 (the `CHECK` for `repository.visibility_enforced`) are this sitting's. `launch-app`'s
+  six containers still run with no project row, and `.manifest/repos/` holds the same six bare repositories.
 - **Nothing listens on 7100, 7102, 7104 or 7110**; three addresses on `lo0`.
-- **The GitHub fake: its image `manifest-github-fake:local` is BUILT** (`98a310f686a7`); **no container, and no
-  `manifest-github-fake-data` volume** — sitting 4 started both for Task 8's Step 6 and removed them, so `make github-up`
-  starts from nothing. **The image cannot be rebuilt offline** unless BuildKit still caches its `apk add git` layer.
+- **The GitHub fake: its image `manifest-github-fake:local` is `1fd2def86a3f`** — REBUILT this sitting (it carries the
+  webhook code); **no container, and no `manifest-github-fake-data` volume**, so `make github-up` starts from nothing.
 - **`infra/secrets/`**: `master.key`, the four `github-fake-*` files, `github-app.pem` and `github-conformance.json`,
   all `-rw-------`, owner `rich`.
-- **The Docker tier ran TWICE** (Task 8, then the F19 fix; `manifest-caddy` last started 22:08, inside the second); `make verify` read
-  57/0 straight after both — sitting 2's F19 did not recur. `make doctor` 20/0/0. Both cleanup scripts read clean after
-  `--apply` (7 networks, 1 volume and `p4b-probe-user` came back after each tier, as always; both applies ALLOWED):
-  `mf- containers=6 networks=2 volumes=4`.
-- **Images: `docker images -q` 245, `sort -u` 237, `127.0.0.1:7107/local/*` 197** — the two tiers and Step 6 added 17
-  app images, and no script sweeps app images. **Ollama with no model resident** (both unloaded at close).
-- The gates at the close: `pnpm test` 1858 in 135 (twice), lint, typecheck and format clean, `make doctor` 20/0/0,
-  `make verify` 57/0, `pnpm test:docker` 207 in 33 (twice). Contract `1.2.0`.
+- **The Docker tier ran TWICE**; after the second, `make verify` read **11 host→edge failures** until `docker restart
+  manifest-caddy` (00:40) — then 57/0/0 (sitting 5's F16). One load-dependent red in the second tier, green re-run
+  alone (F15). `make doctor` 20/0/0. Both cleanup scripts read clean after `--apply` (7 networks, 1 volume and
+  `p4b-probe-user` came back, as always; both applies ALLOWED): `mf- containers=6 networks=2 volumes=4`.
+- **Images: `docker images -q` 260, `sort -u` 252, `127.0.0.1:7107/local/*` 212** — the two tiers added 15 app images,
+  and no script sweeps app images. **Ollama with no model resident** (unloaded at close). **Load was 12 at 00:38** and 5.5
+  at the close; read `uptime` before believing a Docker-tier red.
+- The gates at the close: `pnpm test` 1919 in 139 (twice), lint, typecheck and format clean, `make doctor` 20/0/0,
+  `make verify` 57/0, `pnpm test:docker` 208 in 34 (twice; see F15). Contract `1.2.0`.
 - **Docker Desktop may not be running when you open** (`open -a Docker`, §4).
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global

@@ -1,6 +1,6 @@
 # D5's Driver 2 — the GitHub Source Driver Implementation Plan
 
-> **WRITTEN 2026-09-24. SITTING 1 (TASK 1, THE MEASUREMENTS), SITTING 2 (TASKS 2 AND 3), SITTING 3 (TASKS 4, 5 AND 6 — THE FAKE, ITS CONTAINER AND THE CONFORMANCE RUN, REAL LEG INCLUDED) AND SITTING 4 (TASKS 7 AND 8 — THE DRIVER AND ITS WIRING) RAN ON 2026-09-24. Which sitting is next is stated by the sittings table below (and ORIENTATION §7e), and nowhere else.** **Sitting 3's real conformance leg MET SPEC ACTION 3'S CONDITION** — a token scoped to another repository created one, so GitHub does not confine creation to a token's repositories — **and Rich chose option (b) the same evening: §20's bullet 1 is corrected** (*Spec actions*, 3). Every premise held, and the measurements found that one rewrite of GitHub's `main` freezes the mirror's (F6) — corrected in Tasks 7, 9 and 11 — and that Task 13's check crosses its own line (F7). **Rich decided F7 the same day: the summary becomes STRUCTURED OUTPUT, and Task 13 is rewritten for it (Decisions 19 and 22); he also switched the chat model to `qwen3.5:4b`, with thinking off.** No sitting boundary moved. The `[M<n>]` blocks at the top of Tasks 2, 4, 5, 7, 8, 9, 11 and 13 are the corrections; [`spikes/d5-baseline/`](../spikes/d5-baseline/README.md) is the record. **Its three spec actions were approved by Rich and APPLIED the same day** (*Spec actions*, below): §20's push-time sentence as option (a), §21's inventory row, and §20's one unscoped token — the last *unless the conformance run says otherwise*. *What executing this plan found* is where every sitting's record goes.
+> **WRITTEN 2026-09-24. SITTING 1 (TASK 1, THE MEASUREMENTS), SITTING 2 (TASKS 2 AND 3), SITTING 3 (TASKS 4, 5 AND 6 — THE FAKE, ITS CONTAINER AND THE CONFORMANCE RUN, REAL LEG INCLUDED) AND SITTING 4 (TASKS 7 AND 8 — THE DRIVER AND ITS WIRING) RAN ON 2026-09-24; SITTING 5 (TASKS 9 AND 10 — WEBHOOKS AND ENFORCED-PRIVATE) RAN OVER MIDNIGHT INTO 2026-09-25. Which sitting is next is stated by the sittings table below (and ORIENTATION §7e), and nowhere else.** **Sitting 3's real conformance leg MET SPEC ACTION 3'S CONDITION** — a token scoped to another repository created one, so GitHub does not confine creation to a token's repositories — **and Rich chose option (b) the same evening: §20's bullet 1 is corrected** (*Spec actions*, 3). Every premise held, and the measurements found that one rewrite of GitHub's `main` freezes the mirror's (F6) — corrected in Tasks 7, 9 and 11 — and that Task 13's check crosses its own line (F7). **Rich decided F7 the same day: the summary becomes STRUCTURED OUTPUT, and Task 13 is rewritten for it (Decisions 19 and 22); he also switched the chat model to `qwen3.5:4b`, with thinking off.** No sitting boundary moved. The `[M<n>]` blocks at the top of Tasks 2, 4, 5, 7, 8, 9, 11 and 13 are the corrections; [`spikes/d5-baseline/`](../spikes/d5-baseline/README.md) is the record. **Its three spec actions were approved by Rich and APPLIED the same day** (*Spec actions*, below): §20's push-time sentence as option (a), §21's inventory row, and §20's one unscoped token — the last *unless the conformance run says otherwise*. *What executing this plan found* is where every sitting's record goes.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
 
@@ -39,8 +39,8 @@
 | 2 | 2, 3 | **The build path behind `SourceDriver`** — `localGitDir`, `RepoRef` without a path, and the source-driver contract suite, which driver 1 passes — and **the App key's custody**: one owner-only rule for both keys, the App JWT, the fake App's credentials minted by `make up`, and the GitHub settings | **Yes** — `releases/`, `build/` callers, `secrets/` | **DONE 2026-09-24** (`5758330`, `ef464a3`) — the builder and reviewer ask `localGitDir`; the suite is eleven cases, with an `extra` hook Task 7 uses; `SOURCE_FOREIGN_REPO` retired; contract `1.2.0`; a `644` master key refuses boot; `make up` mints the fake App's four files; no boundary moved |
 | 3 | 4, 5, **6** | **The fake** — App JWT → installation tokens, private org repositories and git over HTTP, all held to GitHub's own schemas — **its container** (`--profile github`, 7110, built by `make seed`), and **the conformance run** against GitHub's recorded answers, with a real App at Rich's yes. **If it runs long, stop after Task 5 and sweep** | **Yes** — `infra/`, a `*.docker.test.ts` | **DONE 2026-09-24** (`038cdf4`, `f10f895`, `a874895`) — `@manifest/github-fake` held to GitHub's schemas; `manifest-github-fake:local` behind `--profile github` on `127.0.0.1:7110`, doctor 20 and verify 57; **the real leg ran at Rich's yes** (App 5068172, both repositories deleted) and golden now holds GitHub's measured answers — three differed and the fake was corrected; **C7s met Spec action 3's condition — Rich chose (b), §20 corrected**; no boundary moved |
 | 4 | 7, 8 | **The GitHub driver** — mirror, tokens that never leave the process, the contract suite green against the fake — and **its wiring**: boot, `source_repositories` (migration), the provider mismatch refusal, `SOURCE_UNREACHABLE` as `503`, the contract to `1.2.0`, and a real build through the fake | **Yes** — `api/`, `build/` callers, a `*.docker.test.ts` | **DONE 2026-09-24** (`ac96f7b`, `f51bd54`, and the fix `c47bdf0`) — driver 2 passes Task 2's suite unchanged against the fake, boots by `MANIFEST_SOURCE_DRIVER=github`, and builds from its mirror online and offline to the same digest; `repositoryOf` refuses another driver's project — without it driver 2 BUILT a driver-1 project (F6); `sync` tolerates a rewrite rather than throwing (F3) and runs one fetch at a time per mirror (F19); migration 0024; no boundary moved |
-| 5 | 9, 10 | **Webhooks** — the fake delivers signed events; the receiver refuses an ABSENT signature, a malformed one and a wrong one by code, records a delivery once, and syncs off the request; a rewritten `main` is refused by the mirror and reported — and **enforced-private**: a repository found public is made private again, reported, and not built while public | **Yes** — `observability/`, `projects/`, a `*.docker.test.ts` | not started ← next — nothing of Rich's is needed to START it |
-| 6 | 11, 12 | **Push-time secret scanning** on every path Manifest can see — its own commits before they leave, driver 1's pushes by a hook, and driver 2's pushes on arrival — with the stateless token pattern, and **`main` protected** on both drivers, and **the repository link** on `Project` and the console | **Yes** — `build/`, `projects/` | not started |
+| 5 | 9, 10 | **Webhooks** — the fake delivers signed events; the receiver refuses an ABSENT signature, a malformed one and a wrong one by code, records a delivery once, and syncs off the request; a rewritten `main` is refused by the mirror and reported — and **enforced-private**: a repository found public is made private again, reported, and not built while public | **Yes** — `observability/`, `projects/`, a `*.docker.test.ts` | **DONE 2026-09-25** (`786cc80`, `3cbf937`) — `POST /webhooks/github` refuses an absent, a malformed and a wrong signature each by its own code beside an accepted delivery, records a delivery once and syncs off the request; every mirror advance goes to ONE required observer, a rewrite reported once; a form-encoded delivery was `500` until the plugin dropped its inherited parsers (F1); a repository found public is made private again, reported, and not built while public — offline too; migrations 0025 and 0026; no boundary moved |
+| 6 | 11, 12 | **Push-time secret scanning** on every path Manifest can see — its own commits before they leave, driver 1's pushes by a hook, and driver 2's pushes on arrival — with the stateless token pattern, and **`main` protected** on both drivers, and **the repository link** on `Project` and the console | **Yes** — `build/`, `projects/` | not started ← next — nothing of Rich's is needed to START it |
 | 7 | 13, 14 | **P6b's inherited findings**: F9 (the model invents a verdict — fixed by making the summary STRUCTURED OUTPUT with no place for one), F13 and F14 on the server, and F11, F12 and F15 in the console | **Yes** — `releases/`, `launch/` | not started |
 | 8 | 15 | **The acceptance**: `make demo-github` against a GitHub-mode control plane — green three times, offline, with its offline-acceptance and `ci-acceptance` steps — `make github-conformance` at Rich's yes, `make demo` still green on driver 1, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | not started |
 
@@ -2771,6 +2771,20 @@ git commit -m "feat(source): enforced private — a repository found public is m
 > for good. `refs/manifest/scanned/<branch>` is compared against the shadow's head. **Add the case: a
 > secret pushed to `main` after a rewrite is reported.**
 
+> **SITTING 5 — WHAT TASKS 9 AND 10 BUILT, WHICH THIS TASK CONSUMES (2026-09-25).** `MirrorAdvance` is `{ projectSlug,
+> updated, rewritten, visibility }`; this task adds `findings`, and **the observer's call condition in driver 2's
+> `sync` — `moved || visibility read public` — must add `findings.length > 0`**, or a finding on a quiet sync is never
+> reported. The observer runs INSIDE the mirror's turn (`exclusively(slug, job)`, the one chain the fetch, the observer
+> and the `kept` pin share — sitting 4's F19 generalised), so `refs/manifest/scanned/<branch>` moves inside that same
+> turn, after `observer.advanced` resolves. **The creation's first fetch is `sync(…, { report: false })`** (sitting 5's
+> F3: an event there would block `deleteProject`) — the seed is scanned before it leaves (path (a)), so decide whether
+> `scanned` refs are set at creation. A `rewritten` entry carries `mirror` and `upstream` but no previous shadow head:
+> the rewritten history's new commits are `upstream --not <every scanned ref>`. **Control (d)'s "an observer that throws
+> once" is `recordingObserver().fail(error)`** in `source/testing.ts` (with `pushAsPerson` and `rewriteAsPerson`, which
+> `api/` tests may import). Driver 1's `sync` answers an empty advance with `visibility: null`; the contract suite's
+> `sync` case uses `toMatchObject`. **A change to `packages/github-fake/src/` needs `manifest-github-fake:local` REBUILT
+> before a Docker test** (sitting 5's F4; offline while BuildKit caches the `apk add git` layer).
+
 §20, as applied on 2026-09-24 (Spec action 1, option (a)): *a push Manifest makes is scanned before it leaves and refused; a push to a driver-1 repository is refused by that repository's own hook; a push made directly to GitHub cannot be blocked by Manifest, and its commits are scanned as soon as Manifest learns of them, a detection raising an Event naming the commit, the path and the rule — never the value — and the commit not built.* **This task builds exactly that sentence** (Decision 14). GitHub.com runs no custom pre-receive hooks, so a push made straight to GitHub cannot be blocked from here, only found. And it closes *Read this first* 4: **the stateless installation token this plan puts into circulation passes the build's own secret gate today.**
 
 **Files:**
@@ -2918,6 +2932,14 @@ git commit -m "feat(source): push-time secret scanning on every path Manifest se
 ---
 
 ## Task 12: `main` protected on both drivers, and the repository link on `Project`
+
+> **SITTING 5 (2026-09-25).** **`repository.protection_unavailable` at creation must be published by the ROUTE, after
+> the rows that can fail — as `repository.seeded` is — never by the observer from inside `createRepository`**:
+> `audit.events` is `ON DELETE RESTRICT`, and an event written there makes `deleteProject` fail after any later step's
+> failure (sitting 5's F3, and why driver 2's creation fetch is `report: false`). This task changes the fake
+> (`repos.ts`, `git-http.ts`): **rebuild `manifest-github-fake:local` before any Docker test** (F4). The fake's
+> `patchRepo` now delivers `repository` `publicized`/`privatized` on a visibility change, and honours the test-only
+> `refusePrivatize` quirk (Task 10) — a protection `PUT` beside it must leave both alone.
 
 **Decision 13 and Decision 15.** Driver 1 refuses a force-push or a deletion of any branch by git's own configuration (*Read this first* 12). Driver 2 asks GitHub for branch protection, and **records honestly when GitHub will not give it**. And `Project` gains `repository`, so a client can say where the code lives — the authoring brief's §3.1 gap.
 
@@ -4187,3 +4209,195 @@ created under `.manifest/repos/`, the fake's container and its volume (the machi
 - **The final whole-branch review is DEFERRED to the plan's end (sitting 8)**, as sittings 1–3 ruled: this sitting's
   controls — 23, every one predicted (22 in the table, and Task 8's (d) through the boot line in Step 6), three of the
   plan's predictions wrong and one of mine red for the wrong reason until fixed — are its per-sitting check.
+
+### Sitting 5 — Tasks 9 and 10, webhooks and enforced-private — 2026-09-24/25
+
+**A GITHUB PUSH NOW REACHES MANIFEST SIGNED, VERIFIED FIRST, RECORDED ONCE AND REPORTED ONCE — AND A REPOSITORY FOUND
+PUBLIC IS MADE PRIVATE AGAIN AND NEVER BUILT WHILE PUBLIC.** Task 9 (`786cc80`): `POST /webhooks/github` checks
+`X-Hub-Signature-256` over the raw bytes before it reads anything, and refuses an ABSENT signature (a SHA-1-only
+delivery included), a malformed one and a wrong one each by its own `401` code — beside an accepted delivery in the
+same file — then records the delivery id once (`webhook_deliveries`, migration 0025) and syncs off the request on one
+serial queue per process. Driver 2's `sync` reads what moved from the SHADOW's porcelain (`[M14]`): a push is
+`updated`, a rewrite `rewritten` ONCE, and every advance goes to ONE required observer (`projects/source-events.ts`)
+that publishes `repository.pushed` / `repository.history_rewritten`; a push whose `main` moved is validated (never
+built); `localGitDir` pins what it hands out (`refs/manifest/kept/<sha>`). The fake delivers signed `push` payloads
+held to GitHub's schema and its HMAC test vector, and a Docker test crosses from the fake's IMAGE, on
+`manifest-platform`, to a control plane on the host's loopback through `host.docker.internal` — `[M7]` made
+permanent. Task 10 (`3cbf937`): every sync reads the repository's visibility, whatever caused it; found public, it is
+PATCHed private with an `administration` token for that repository alone and READ AGAIN; the last read is kept on the
+mirror and `localGitDir` refuses a build while it says public — `409 SOURCE_REPOSITORY_PUBLIC`, offline too;
+`repository.visibility_enforced` reports it (migration 0026). **Found by Task 9's Step 1 case: a form-encoded delivery
+was `500 INTERNAL`** (F1). **No task boundary moved.** Nothing of Rich's was needed; the network stayed off — the
+fake's image was rebuilt from BuildKit's cache (F4).
+
+#### The decisions this sitting made
+
+Each is a `Ruling:` line in the ledger with what it costs if wrong; the ones a later task inherits:
+
+**1. After a rewrite, GitHub's new `main` BUILDS and is VALIDATED** (F2): the shadow holds it and `headCommit` answers
+it, so refusing it would re-freeze the project F6 unfroze; the mirror's `refs/heads/main` still keeps the old history.
+
+**2. The creation's FIRST fetch is not reported** (`sync(…, { report: false })`, F3): the route publishes
+`repository.seeded` LAST because `audit.events` is `ON DELETE RESTRICT`, and an event from inside `createRepository`
+would make `deleteProject` (P4b Decision 29) fail after any later step's failure. **Task 12 inherits this**: its
+`repository.protection_unavailable` at creation must be published by the ROUTE, after the rows that can fail — never
+by the observer from inside `createRepository`.
+
+**3. The observer is called inside the mirror's turn, only when something moved or the repository was READ public**,
+and a report that fails fails the read that synced — never swallowed. **Task 11 adds `findings` to that condition.**
+
+**4. One serial chain per mirror, generalised**: `exclusively(slug, job)` serialises the fetch, the observer and the
+`kept` pin (an `update-ref` beside a fetch is F19's ref-lock race). **5. The receiver finds the project by the STORED
+`full_name`** (`projectForRepository`), never `${org}/<slug>` — GitHub keeps an organisation's own capitals. **6.
+`validateAndRecord(deps, project, commitSha | undefined)`** in `api/spec-validation.ts`, typed as the route's own
+`SpecValidation`. **7. `loadWebhookSecret`** beside `loadAppKey` — `assertOwnerOnly`'s third caller
+(`SECRET_GITHUB_WEBHOOK_SECRET_PERMISSIONS`) — refuses an EMPTY secret. **8. `source/testing.ts`** holds
+`pushAsPerson`, `rewriteAsPerson` and `recordingObserver()` (with `fail(error)`, which Task 11's control (d) needs),
+because `api/` may not import `source/github/testing.ts`. **9. The fake ends a push's response only after its
+deliveries are in flight**, so a returned push has its delivery registered; `StartedFake` gains `deliveries()`,
+`setWebhookUrl()`, `webhooksIdle()` and `pushPayload(slug, before, after)`. **10. The visibility read FAILS CLOSED**
+(only `private: true` is private); the event's `detail` is Manifest's own sentence and a refused revert's HTTP status
+is an operator line. **11. `startFakeContainer({ webhookUrl?, network? })`** exposes `webhookSecretPath`, `gitUrl` and
+`org`.
+
+#### The findings
+
+**F1 — A FORM-ENCODED DELIVERY WAS `500 INTERNAL`: THE WEBHOOK PLUGIN INHERITED THE REGISTRY REALM'S PARSER.** Task 9
+Step 1's case, red first: the root server parses `application/x-www-form-urlencoded` for `/internal/registry/token`,
+the webhook plugin inherited it, and a form-encoded delivery — a content type a GitHub App's webhook can be registered
+with — reached the handler as an OBJECT and `createHmac().update()` threw (`The "data" argument must be of type string
+or an instance of Buffer…`). `[M9]` measured `415` on a bare Fastify with no such parser. **Fixed**: the plugin calls
+`removeAllContentTypeParsers()` and reads exactly `application/json`; form-encoded and no content type are both `415
+REQUEST_MEDIA_TYPE_UNSUPPORTED` before any check, and no row. Control (i) is its red.
+
+**F2 — THE PLAN'S REWRITE CASE PREDATES SITTING 1'S F6.** It expected `localGitDir(X)` to be `SOURCE_COMMIT_NOT_FOUND`
+*"(the mirror never took it)"*; since Task 7 the forced shadow refspec fetches X. Decision 1 above.
+
+**F3 — AN EVENT PUBLISHED DURING `createRepository` WOULD BLOCK THE ROUTE'S OWN CLEANUP.** Read, not measured: the
+creation's first fetch is an "advance" (`* 000… <seed>`), and `audit.events` is `ON DELETE RESTRICT`. Decision 2;
+control (j) — the fetch reported — turned 8 cases red.
+
+**F4 — THE FAKE'S IMAGE HAD NO WEBHOOK CODE; §7e SAID "BUILT" AS IF THAT WERE ENOUGH.** The Docker test runs the
+IMAGE, built at sitting 3–4 from the source before Task 9. Rebuilt with the plan's one-image command
+(`98a310f686a7` → `1fd2def86a3f`), **offline**, because BuildKit still cached the `apk add git` layer (`docker buildx du`:
+20.46 MB, last used four hours before; the build printed `#7 CACHED`). **Every later task that changes
+`packages/github-fake/src/` and runs a Docker test must rebuild it the same way** (TRAPS.md).
+
+**F5 — TWO TEST HARNESSES THE PLAN DID NOT NAME HAD TO MOVE.** The first full run was 1902 passed and ONE red, the same
+twice: `authz-contract.test.ts`'s *covers every route the server registers* — the webhook route needs a row (now nine
+cases: `404 WEBHOOKS_NOT_CONFIGURED` for every actor on driver 1, by code). And `stream-contract.test.ts`'s
+`PUBLISHED_ELSEWHERE` needed each new event type (driver 1's lifecycle never advances a mirror).
+
+**F6 — THE PLAN'S CONTROL (b) PREDICTED THE WRONG RED.** It predicted the ABSENT case red with the throw; the absent case
+returns before any comparison and stayed GREEN, while every WELL-FORMED header threw `RangeError: Input buffers must
+have the same byte length` (Node 24's message for `ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH`) — 12 red, the positive
+control `500 INTERNAL`.
+
+**F7 — TASK 10'S CONTROL (c) HAS NO PREMISE HERE.** It assumes a webhook-triggered sync that could skip the `GET` while a
+read's re-reads; there is ONE sync path. Run as "the sync never reads visibility": 8 red.
+
+**F8 — TWO OF MY OWN PREDICTIONS WERE TOO NARROW.** Control (j) — the creation's fetch reported — I named 2 red and 8
+went red (every route case that counts `repository.pushed` saw the seed's event, the absent-signature case
+included); control (l) — the empty-advance guard removed — I named 2 and 3 went red. Both in the direction a control
+should err in.
+
+**F9 — A KNOWN LIMITATION, NAMED AND NOT FIXED: A READ CAN TAKE A PUSH'S ADVANCE BEFORE ITS DELIVERY.**
+`processDelivery` validates what ITS OWN sync moved; a read's sync that lands between a push and its delivery reports
+the push (`repository.pushed`) and the delivery then validates nothing. The next validate or build reads the commit.
+Read, not measured; for Task 15's clicked half.
+
+**F10 — MY SLIP, CAUGHT BY AN ACCIDENT: `validateAndRecord` WAS CALLED UNIMPORTED.** `tsc` named it; before that, a
+command whose `$(ls …)` glob matched nothing (zsh: `no matches found`) left `vitest run --project unit` with NO file,
+which ran the whole project in the background — and failed four D9.2 cases that `POST …/spec`. **An empty
+substitution runs the whole project** (TRAPS.md).
+
+**F11 — MOVING THE PERSON HELPERS TOOK `PERSON` WITH THEM**, and an unrelated case (*the mirror refuses a push*) went
+red `PERSON is not defined` in the RED run. Restored in the test file.
+
+**F12 — `api/` CANNOT IMPORT `source/github/testing.ts`** (`module-boundaries.test.ts` allows only a module's root
+`index`/`testing`), so the helpers the route tests needed became `source/testing.ts`. Decision 8.
+
+**F13 — `tsc` 5.9 REFUSES A `Buffer` AS A `fetch` BODY** in the fake (`Buffer<ArrayBufferLike>` is not a `BodyInit`);
+the fake sends `new Uint8Array(body)`, the same bytes.
+
+**F14 — `[M9]`'s OTHER HALF HELD IN THE REAL SERVER**: a delivery with NO content type is `415
+REQUEST_MEDIA_TYPE_UNSUPPORTED` — Step 1's measurement, now a case.
+
+**F15 — A DOCKER-TIER RED THAT WAS THE MACHINE, NOT THE CODE.** Task 10's tier: `runtime/docker/driver.docker.test.ts`'s
+*a retire waits for a request that is in flight* — `expected false to be true`, the held request not finished inside
+the drain's 4 × `holdMs` — at **load 12.3** (2.6 at open; WindowServer, iTerm and the Docker VM, not this session).
+Nothing in Task 10 touches `runtime/`, and the case had passed in Task 9's tier. **Re-run alone: green, 23.4 s, at load
+~10.** A wall-clock bound is a load gauge; the memory's rule — read `uptime` before believing a red — held.
+
+**F16 — THE EDGE TRAP RECURRED: `make verify` 11 RED AFTER THE SECOND TIER.** Every host→edge check `curl: (35) Recv
+failure: Connection reset by peer`; `docker restart manifest-caddy` fixed it (57 / 0 / 0). ORIENTATION §2 said
+*"once"* (sitting 2's F19); it is twice, and sitting 4's two tiers did not show it — so `make verify` after EVERY tier
+stays the rule.
+
+#### Negative controls
+
+Every one after its task's commit, predicted first in the ledger, restored with `git checkout <path>`, `git status`
+clean after each; the substitution scripts assert each pattern matched exactly once.
+
+| Task | # | Break | Predicted | Measured |
+|---|---|---|---|---|
+| 9 | (a) | absent header → `'valid'` — the node-saml shape | unit + route absent + SHA-1-only red | 3 red; `{ status: 202 }` — every positive case green |
+| 9 | (b) | `timingSafeEqual(Buffer.from(header), want)` | the plan: ABSENT red; mine: ABSENT green, every well-formed header throws | **mine** — 12 red, `RangeError`; F6 |
+| 9 | (c) | parse before verify | *verifies BEFORE it parses* red | `400 WEBHOOK_PAYLOAD_INVALID` where `401 INVALID` |
+| 9 | (d) | THROW a 401 | 4 refusal cases, `UNAUTHENTICATED` | as predicted — Step 1's collapse |
+| 9 | (e) | record before verifying | rows in every refusal case; positives `duplicate` | 10 red |
+| 9 | (f) | Task 7's throwing form | the rewrite cases, no event | 4 red, `git fetch refused 1 ref(s)` |
+| 9 | (f2) | `[M14]` as first written (parse the heads) | *rewrite ONCE* at the 2nd sync; route length 2 | as predicted |
+| 9 | (g) | history refspec forced | the rewrite cases (mirror X) | 3 red |
+| 9 | (g2) | no `kept` pin | *pins every commit* | red at the kept ref |
+| 9 | (h) | the boot's observer removed | `tsc` red at `index.ts`; tests green | `TS2345 … observer is missing` |
+| 9 | (i) | back to removing JSON's parser only | the content-type case `500` | as predicted — F1 |
+| 9 | (j) | the creation's fetch reported | 2 red | **8 red** — F8 |
+| 9 | (l) | the empty-advance guard removed | 2 red | **3 red** — F8 |
+| 9 | (n) | a rewrite not validated | `specAt(x)` 0 | as predicted |
+| 9 | (k) | Docker: deliver to `127.0.0.1` (the container's own) | status `null` | as predicted |
+| 10 | (a) | detect only | the fake still public ×3; still-public after the lift | 4 red |
+| 10 | (b) | `localGitDir` ignores the last read | `202` where `409` | as predicted — the plan's own |
+| 10 | (c) | the sync never reads visibility | all six Task 10 cases + Task 9's two shapes | 8 red — F7 |
+| 10 | (d) | the mirror written as ASKED, not re-read | the `409` (after the event passes) | as predicted |
+| 10 | (e) | the observer not told | the no-webhook case; both route events | 3 red |
+
+**20 controls, every one predicted; one of the plan's predictions was wrong (Task 9's (b)) and one of its premises
+absent (Task 10's (c)); two of mine were too narrow.** None stayed green.
+
+#### The gates, and the machine at close — queried, not recalled
+
+- **`pnpm test` 1911 in 139 after Task 9 and 1919 in 139 after Task 10, twice each** — each as predicted (Task 9: 1858
+  + 6 in the fake's `webhooks.test.ts`, 11 signature, 3 queue, 13 route, 2 contract (`sync` on both drivers), 5 in
+  driver 2's reporting, 4 webhook-secret custody = **1902**, four new files — and the first run was 1902 with ONE red,
+  F5; its row added nine authz cases, **1911**; Task 10: + 2 fake, 3 driver, 3 route). **At close: 1919 passed in 139
+  files, twice (252 s, 231 s)**; `pnpm lint`, `pnpm typecheck` (six packages) and `pnpm format:check` clean. At open:
+  1858 in 135, twice (213 s, 208 s), all four clean.
+- **`pnpm test:docker` 208 in 34, run twice** — after Task 9 green, **1209.5 s** (+1 file, `webhook.docker.test.ts`,
+  from the REBUILT image); after Task 10 **207 green and one red at load 12.3** — `runtime/docker/driver.docker.test.ts`'s
+  *a retire waits for a request that is in flight* (`expected false to be true`: the held request had not finished
+  inside the drain's 4 × `holdMs`), in code this sitting did not touch, which had passed in the first tier; **re-run
+  alone: green, 23.4 s, at load ~10**. Recorded as that, not as a clean tier. Chat model warmed before each (`200`).
+- **`make verify` after the second tier: 57 checks, 11 FAILED** — every host→edge check `curl: (35) Recv failure:
+  Connection reset by peer` (sitting 2's F19 again; sitting 4's two tiers had not shown it). **`docker restart
+  manifest-caddy`, then 57 / 0 / 0.** After the first tier: 57 / 0 / 0. **`make doctor` 20 / 0 / 0** (the vulnerability
+  database 1.0 day old, fresh until 2026-10-01). `scripts/ci-acceptance.sh` reads `1919 / 139 / 20 / 57`. Contract
+  `1.2.0` (+161 and +106 lines, no bump — Decision 15).
+- **Cleanups**: after the second tier `dead-app-resources.sh` found the usual **7 dead networks and 1 volume** and
+  `litellm-orphans.sh` **`p4b-probe-user`**; both `--apply` were ALLOWED and re-measured clean: `mf- containers=6
+  networks=2 volumes=4`.
+- **The database is EMPTY** (0 projects, builds, releases, specs, `source_repositories` and `webhook_deliveries` rows;
+  **27 migrations**, the newest 0026) — the close's `pnpm test` truncated it. `launch-app`'s six containers still run
+  with no project row; `.manifest/repos/` holds the same six bare repositories. Nothing listens on 7100, 7102, 7104 or
+  7110; three addresses on `lo0`.
+- **The GitHub fake**: `manifest-github-fake:local` is **`1fd2def86a3f`** (rebuilt from `98a310f686a7`, which is gone);
+  no container and no volume. **`infra/secrets/`**: `master.key`, the four `github-fake-*` files, `github-app.pem` and
+  `github-conformance.json`, all `-rw-------`, owner `rich`. **Real GitHub was not called.**
+- **Images**: `docker images -q` **260**, `sort -u` **252**, `127.0.0.1:7107/local/*` **212** — the two tiers added 15 app
+  images (197 → 212); no script sweeps app images. **Ollama with no model resident** (`qwen3.5:4b` unloaded at close).
+  `docker-simple-saml-saml-idp-1` is `Exited (0) 2 weeks ago`, as found; the other three must-survive containers are
+  up. Snapshot diff (22:43 → 00:50): uptimes, the edge's restart (00:40, mine), 15 app images, the fake's image, 3 GB of
+  disk, `HEAD`, and this sitting's own files.
+- **The final whole-branch review is DEFERRED to the plan's end (sitting 8)**, as sittings 1–4 ruled: this sitting's
+  20 controls, every one predicted — one of the plan's predictions wrong, one of its premises absent, two of mine too
+  narrow, none green — are its per-sitting check.
