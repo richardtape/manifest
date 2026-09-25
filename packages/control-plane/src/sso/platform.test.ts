@@ -12,7 +12,7 @@ import { mintSpKeypair } from './keypair.js'
  *
  * This file exists because the two Docker tests that boot the control plane
  * override `MANIFEST_SP_ENTITY_BASE` to keep off the shared row — so nothing
- * over there asserts that the DEFAULT base produces the entityID the README and
+ * over there asserts that the DEFAULT base produces the entityID RUNBOOK and
  * the runbook document. That is exactly the kind of gap a test-isolation fix
  * opens quietly, so it is closed here rather than noticed later.
  */

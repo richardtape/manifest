@@ -51,8 +51,8 @@ make doctor      # can this machine run the platform? every line PASS
 make verify      # is the running platform correct? every line PASS
 ```
 
-Then **start the control plane, in its own terminal**, with the commands in README's
-[*Running the control plane*](../../README.md#running-the-control-plane) — an `export`
+Then **start the control plane, in its own terminal**, with the commands in RUNBOOK's
+[*Running the control plane*](RUNBOOK.md#running-the-control-plane) — an `export`
 block, `db:migrate`, then `dev`. Leave it running. Its boot line must say
 `"driver":"docker"`, `"origin":"https://console.manifest.internal"` and `"ai":"enabled"`.
 

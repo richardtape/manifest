@@ -18,6 +18,8 @@ LiteLLM's config twice, a moved directory); **`pnpm test` truncating state** (fi
 struck through), the egress proxy that answered for its first deploy, a build finishing inside its own POST, and
 others marked FIXED in their text — and are kept as history.*
 
+*An entry that cites "README's *Running the control plane*" or "README's export block" means RUNBOOK's section of that name: it moved there, word for word, on 2026-09-24.*
+
 **New traps go at the end of *Things that will cost you a morning*.** Add one to ORIENTATION §4's list too only if
 it belongs among the traps the next sitting is most likely to hit.
 

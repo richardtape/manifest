@@ -21,8 +21,8 @@ make doctor && make verify
 
 Then open <https://console.manifest.internal/>. No port, no certificate warning. It answers
 `manifest console: not built yet` — that name is the console's and the API's origin (P5a Task 3);
-the API is under `/v1`, reached once the control plane runs (README's *Running the control
-plane*), and every other source than the host is refused.
+the API is under `/v1`, reached once the control plane runs (*Running the control
+plane*, below), and every other source than the host is refused.
 
 `make seed` must run **before** `make host-setup`: the CA it mints is what
 `host-setup` trusts. Seed also adds the loopback aliases itself, so Caddy can bind
@@ -34,6 +34,127 @@ plane*), and every other source than the host is refused.
 make up        # re-adds the 127.0.0.2 and 127.0.0.3 aliases if a reboot removed them
 make down      # stops everything, including the profiled builder
 ```
+
+## Running the control plane
+
+*Moved here from `README.md` on 2026-09-24, word for word, when the README became a short description of what Manifest is.*
+
+
+Requires P1's substrate (`make up`) — Postgres on 7103, the registry, the edge and
+its admin API, and the registry issuer keypair `make up` generates. **The control
+plane now constructs the Docker driver** (P3 Task 15), so it needs the Docker socket
+and refuses to boot without the issuer.
+
+Run these **from the repo root** — `MANIFEST_BLUEPRINTS_ROOT` and
+`MANIFEST_REPOS_ROOT` are read as given, and `pnpm --filter` runs with the *package*
+directory as its working directory, so relative paths there point at the wrong
+place. The issuer paths are no longer among them: they resolve against the
+repository root, because the documented command below could not otherwise find
+them.
+
+```bash
+set -a; . ./.env; set +a   # make seed writes .env; the password is NOT "manifest"
+# The control plane connects as `manifest_app`, NOT as `manifest`. `manifest` is
+# POSTGRES_USER and therefore a SUPERUSER, and a superuser bypasses every
+# privilege check — which makes §20's append-only `audit.events` grant
+# unimplementable. `make up` creates the role (infra/lib/ensure-app-role.sh).
+export MANIFEST_DATABASE_URL="postgres://manifest_app:${MANIFEST_APP_PASSWORD}@127.0.0.1:7103/manifest_control"
+# Admin, for DDL only: `db:migrate` below, and the test harness's TRUNCATE. Never
+# read by src/ — the control plane has no code path that needs it.
+export MANIFEST_ADMIN_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control"
+# The IdP metadata database is a THIRD, required setting — never derived from
+# either line above by swapping the name (P4a Decision 13). It has its own roles:
+# `ssp_ro` reads, `manifest` writes, and there is no `manifest_app` in it.
+export MANIFEST_IDP_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_idp"
+export MANIFEST_SESSION_SECRET=$(openssl rand -hex 32)
+export MANIFEST_BLUEPRINTS_ROOT="$PWD/blueprints"
+export MANIFEST_REPOS_ROOT="$PWD/.manifest/repos"
+# The key that mints and revokes every app's LiteLLM key (§10). ONE stored secret:
+# LiteLLM reads LITELLM_MASTER_KEY from .env, and this names the same value for the
+# control plane. Required outside development; never add a second copy to .env.
+export MANIFEST_LITELLM_MASTER_KEY="${LITELLM_MASTER_KEY}"
+# MANIFEST_MASTER_SECRET comes from .env. Every backing-service credential is
+# derived from it, so it must be STABLE — a value that changes between restarts
+# cannot reproduce the password an existing database container already holds.
+
+pnpm --filter @manifest/control-plane db:migrate
+pnpm --filter @manifest/control-plane dev      # tsc, then node dist/index.js
+```
+
+It listens on `127.0.0.1:7100` and **is reached at `https://console.manifest.internal`**,
+through the edge (§21, P5a Task 3): the edge forwards `/v1/*` and `/auth/*` to it and refuses
+every source but the host, so a container — an app included — gets `403 manifest: the control
+plane is not reachable from this network`. It prints one line saying which driver it built
+and where it is reached. **Read it** — every acceptance in P3 is meaningless if it says
+`fake`, and a sign-in completes only at the origin it names:
+
+```
+{"driver":"docker","port":7100,"origin":"https://console.manifest.internal","ai":"enabled",…,"msg":"control plane ready"}
+```
+
+**Restart the control plane after `make up` applies a Caddyfile change, and after
+`pnpm test:docker`.** Either one drops the edge's runtime routes, and the Docker tier also
+re-registers the platform's SP row at a loopback ACS, so a sign-in through the console fails
+at the ACS comparison until the control plane's boot puts both back.
+
+Verified end to end on 2026-09-05:
+
+```bash
+curl -s https://console.manifest.internal/v1/me
+# {"error":{"code":"UNAUTHENTICATED","message":"a session is required","hint":"Log in first."}}
+
+# §9: Manifest is its own SP, so logging in is a real CWL round trip against the
+# Manifest IdP. `scripts/demo.sh` step 1 drives all three hops with curl; in a
+# browser, just open https://console.manifest.internal/auth/login and sign in as
+# `instructor` / `instructor` (D6 — the IdP serves TEST USERS ONLY).
+curl -s -o /dev/null -w '%{redirect_url}\n' https://console.manifest.internal/auth/login
+# https://idp.manifest.internal/module.php/saml/idp/singleSignOnService?SAMLRequest=…&Signature=…
+
+curl -s -b /tmp/jar -X POST -H 'content-type: application/json' \
+  -H "idempotency-key: $(uuidgen)" -H "origin: https://console.manifest.internal" \
+  -d '{"slug":"boot-check","blueprint":"fixture-node@1","audience":{"scale":"solo","burst":"steady"}}' \
+  https://console.manifest.internal/v1/projects
+```
+
+**`audience` is required** (§24, P5a Task 11) — `scale` is `solo`, `class`, `large_course` or
+`public`, `burst` is `steady` or `synchronised` — and `starter` is optional: `GET /v1/blueprints`
+lists what each blueprint offers, and `node-ts-mongo@1`'s `proof-app` seeds §16's proof app over the
+skeleton. The answer carries the project, its environments and `spec` — the validation of the
+manifest its first commit carries — and the project's event stream has `project.created`,
+`repository.seeded` and `spec.validated`.
+
+**A mutation carrying a session is refused `403 CSRF_ORIGIN_REFUSED` without that `origin`
+header** (§20, P5a Task 4), and so is an event-stream upgrade: every deployed app is
+same-site with the console, so a session cookie alone proves nothing about which page sent
+the request. A browser on the console sends it itself; a script sets it, as
+`scripts/lib/api.sh` does. A sign-in lands on `/`, or on the same-origin path it was started
+with — `https://console.manifest.internal/auth/login?returnTo=/v1/me` — and it completes only
+in the browser that started it: the callback refuses an assertion whose `RelayState` is not
+the nonce in that browser's `manifest_login` cookie (`401 SAML_LOGIN_NOT_BOUND`).
+
+**`node src/index.ts` does not work**, though Node 24 strips types natively: the
+source uses NodeNext `.js` specifiers, which Node resolves literally rather than
+mapping back to `.ts`. Hence the build step.
+
+**There is no login shim any more.** `POST /auth/dev-login` and `MANIFEST_DEV_AUTH`
+were deleted in P4a Task 14: the route minted a real session for a named test user
+with no credential of any kind, and P2 measured that its only protection was a
+registration guard — removing that one condition made it answer 200 with a live
+session. Manifest logs its own users in with CWL (§9), and the test suite signs its
+own sessions in-process (`identity/testing.ts`), which needs no HTTP surface.
+
+**The control plane registers its own Service Provider at boot**, through the same
+`renderSpMetadata` every deployed app's row goes through — entityID
+`https://manifest.internal/sp/manifest-control-plane/platform`, ACS
+`https://console.manifest.internal/auth/saml/callback`. It is built from
+`MANIFEST_CONTROL_PLANE_ORIGIN`, which defaults to `https://console.manifest.internal` —
+the console's origin, through the edge — and becomes the console's production origin at
+UBC; `loadConfig` refuses a loopback origin whose port is not `MANIFEST_PORT` (the Docker
+tier boots control planes at loopback origins). The session cookie is `Secure` whenever the
+origin is `https`, in development too. The
+keypair it signs with is `infra/sp/control-plane.{key,crt}`, minted by `make up`,
+gitignored, and — like the IdP keypair and the envelope master key — **not removed by
+`make reset`**.
 
 ## The four verbs
 
@@ -62,7 +183,7 @@ exactly where §21's inventory puts it. The edge forwards everything that is not
 
 ```bash
 make up
-# ... the control plane running, per README's "Running the control plane" ...
+# ... the control plane running, per "Running the control plane" above ...
 pnpm --filter @manifest/contract build      # the console BUNDLES dist/, and typechecks src/
 pnpm --filter @manifest/console dev         # or `preview`, after `pnpm --filter @manifest/console build`
 open https://console.manifest.internal/
@@ -188,13 +309,13 @@ platform (the P5 brief's §8). Specifically:
 
 `make demo` drives the **real HTTP API** end to end, so it proves the platform
 rather than a test harness. The control plane must be running first — see
-*Running the control plane* in [`README.md`](../../README.md) — and its boot line
+*Running the control plane*, above — and its boot line
 must say `{"driver":"docker"}`. Against the fake driver every claim below is empty,
 which is why step 0 of the script checks and why the boot line exists at all.
 
 ```bash
 make up
-# ... start the control plane in another terminal, per README ...
+# ... start the control plane in another terminal, per "Running the control plane" above ...
 make demo
 ```
 
@@ -411,7 +532,7 @@ running, and a boot line saying `{"driver":"docker"}`.
 
 ```bash
 make up
-# ... start the control plane in another terminal, per README ...
+# ... start the control plane in another terminal, per "Running the control plane" above ...
 make demo-identity
 ```
 
@@ -451,14 +572,14 @@ for — `givenName` and `sn` are the two that are not pre-authorized.
 
 *Added by P5a sitting 5, 2026-09-16. It grows one step per P5a task and becomes the acceptance at Task 17.*
 
-The control plane running, per README. It builds `@manifest/contract` and `packages/journey` from the checked-in
+The control plane running, per *Running the control plane* above. It builds `@manifest/contract` and `packages/journey` from the checked-in
 document, checks the control plane answers through the edge, signs the instructor in with CWL through
 `infra/lib/idp-login.sh`, and runs the journey — a Node process calling `https://console.manifest.internal` through nothing but
 the generated client, under `NODE_EXTRA_CA_CERTS`.
 
 ```bash
 make up
-# ... the control plane running, per README ...
+# ... the control plane running, per "Running the control plane" above ...
 make demo-journey           # ~1 minute; ends with `every check passed` and exit 0
 ```
 
@@ -471,7 +592,7 @@ run without the platform CA. So far it runs §22 step 1 (`GET /v1/me`), step 2's
 
 *Added by P5b sitting 8, 2026-09-18 (Task 12).*
 
-D24's loop, end to end, through the edge. The control plane running, per README. It builds
+D24's loop, end to end, through the edge. The control plane running, per *Running the control plane* above. It builds
 `@manifest/contract` and `packages/journey` from the checked-in document, checks the control plane answers
 through the edge, signs the **instructor** in with CWL, signs the **student** in once as well — see below —
 and runs `packages/journey/dist/token.js`: a Node process holding two credentials, calling
@@ -479,7 +600,7 @@ and runs `packages/journey/dist/token.js`: a Node process holding two credential
 
 ```bash
 make up
-# ... the control plane running, per README ...
+# ... the control plane running, per "Running the control plane" above ...
 make demo-token             # ~40 seconds; ends with `every check passed` and exit 0
 ```
 
@@ -530,7 +651,7 @@ run without the platform CA; a demo that does not build stops at step 0 and prin
 
 An application reaches production with every one of §13's six blocking items honestly met,
 through the edge, on its OWN project, `launch-app`. Needs `make up`, **`127.0.0.3` on `lo0`**
-(`make host-setup` adds it; `make reset` does not remove it) and the control plane running, per README.
+(`make host-setup` adds it; `make reset` does not remove it) and the control plane running, per *Running the control plane* above.
 
 ```bash
 make demo-production        # ~3 minutes; three phases, each ending `every check passed`, exit 0
@@ -577,7 +698,7 @@ production app on this laptop points at UBC's real CWL and signs nobody in — d
 *Added by P6b sitting 7, 2026-09-23 (Task 11).*
 
 §13 D9's second clause, through the edge, on `launch-app`. Needs what `make demo-production` needs —
-`make up`, **`127.0.0.3` on `lo0`**, the control plane running per README — and a vulnerability
+`make up`, **`127.0.0.3` on `lo0`**, the control plane running per *Running the control plane* above — and a vulnerability
 database younger than seven days (`make refresh-vulndb`, with the network on), because on a machine where `launch-app` has not
 launched **it runs `make demo-production` first, and says so** (Decision 17), and that launch needs
 §13's `scans` item met.
@@ -638,7 +759,7 @@ summary-only filter swallows that line, leaving a result that looks exactly like
 failed (P5b sitting 9, F5). So the script carries the four numbers from ORIENTATION §2's
 box and reports a difference as **`MOVED`** rather than as a failure — a test added on
 purpose must not fail the run; what must not happen is that it moves and nobody notices.
-**When it moves, update ORIENTATION §2's box, `README.md`, `RUNBOOK.md` and
+**When it moves, update ORIENTATION's top box and §2's box, `RUNBOOK.md` and
 `scripts/ci-acceptance.sh` together.**
 
 Every step **reports rather than exits** (P4c Decision 26), so a red run is a measurement
@@ -998,7 +1119,7 @@ release that never becomes ready**, asserting on every request and question in e
 
 ```bash
 make up
-# ... the control plane running, per README ...
+# ... the control plane running, per "Running the control plane" above ...
 make demo-redeploy          # ~3 minutes; ends with Done. and exit 0
 ```
 
@@ -1032,7 +1153,7 @@ Same requirements as `make demo-identity`, plus **Ollama running on the host** w
 
 ```bash
 make up
-# ... the control plane running, per README; its boot line must say "ai":"enabled" ...
+# ... the control plane running, per "Running the control plane" above; its boot line must say "ai":"enabled" ...
 make demo-ai
 ```
 
@@ -1161,7 +1282,7 @@ restarts every container on the machine, so it is a person's call rather than a 
   that names the shape. The `127.0.0.2` alias was present, the control plane answered `401` on
   `127.0.0.1:7100`, and `manifest-caddy` was up and healthy. **`docker restart manifest-caddy`
   cleared it.** It did not reproduce under `make down && make up`, so it is intermittent and its
-  trigger is not isolated. **The order to use after a reset:** `make up`, then export README's
+  trigger is not isolated. **The order to use after a reset:** `make up`, then export *Running the control plane*'s
   whole block, then `pnpm --filter @manifest/control-plane db:migrate` — which fails with
   `[x] url: undefined` if `MANIFEST_ADMIN_DATABASE_URL` is not exported, because it is derived in
   that block and not stored in `.env` — then the control plane, **then `make verify`**, and only

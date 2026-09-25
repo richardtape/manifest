@@ -39,7 +39,7 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 #
 # A MISMATCH IS REPORTED AS A NUMBER THAT MOVED, NOT AS A FAILURE. A test added on purpose
 # must not fail CI; what must not happen is that it moves and nobody notices. When it does,
-# update ORIENTATION §2's box, README, RUNBOOK and this line together (§6).
+# update ORIENTATION's two boxes, RUNBOOK and this line together (§6).
 #
 # THIS SCRIPT IS THE FOURTH PLACE THE GATE NUMBERS LIVE, AND IT WENT STALE THE FIRST TIME
 # THEY MOVED. P6a sitting 2 took doctor 18 -> 19 and verify 51 -> 54 and swept the three
@@ -122,7 +122,7 @@ counted() {
     record "$name count" PASS "$got checks"
   else
     record "$name count" MOVED \
-      "counts moved: expected $expected, got ${got:-none} — update ORIENTATION §2, README, RUNBOOK and this script together"
+      "counts moved: expected $expected, got ${got:-none} — update ORIENTATION's two boxes, RUNBOOK and this script together"
   fi
 }
 

@@ -15,7 +15,7 @@ const run = promisify(execFile)
 /**
  * The platform CA, passed EXPLICITLY on every https request.
  *
- * `NODE_EXTRA_CA_CERTS` is what `.env` uses and what the README exports, and it
+ * `NODE_EXTRA_CA_CERTS` is what `.env` uses and what RUNBOOK's export block exports, and it
  * cannot work here: Node reads it once at process START, so a test setup file
  * setting it runs far too late. S7's finding is the reason it is needed at all —
  * a host Node process ignores the macOS keychain, so the edge's certificate is

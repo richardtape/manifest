@@ -46,7 +46,7 @@ export function idpDatabaseUrl(): string {
     throw new Error(
       'MANIFEST_IDP_DATABASE_URL is not set. vitest.env.ts derives it from the repo ' +
         '`.env`, which `make seed` writes; outside the test runner, export it the way ' +
-        'README does.',
+        'RUNBOOK does (docs/superpowers/RUNBOOK.md, Running the control plane).',
     )
   }
   return url

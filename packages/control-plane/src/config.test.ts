@@ -194,7 +194,7 @@ describe('configuration', () => {
   })
 
   it('treats an empty master key as absent in development too', () => {
-    // README's export block builds it as "${LITELLM_MASTER_KEY}", which an .env
+    // RUNBOOK's export block builds it as "${LITELLM_MASTER_KEY}", which an .env
     // without that line expands to ''. That must not stop a development boot that
     // never calls LiteLLM.
     const config = loadConfig({

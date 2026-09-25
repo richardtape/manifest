@@ -16,12 +16,13 @@ import { describe, expect, it } from 'vitest'
  * wrong. Nothing in the four gates could see it, because a string in an error message
  * is not type-checked, linted or executed.
  *
- * `README.md` is the other copy of this line and the two must agree, so the drift
+ * RUNBOOK's *Running the control plane* is the other copy of this line (it moved there from `README.md` on
+ * 2026-09-24) and the two must agree, so the drift
  * itself is what is asserted — the same shape as `spec/injection-drift.test.ts`.
  */
 const REPO_ROOT = fileURLToPath(new URL('../../../../', import.meta.url))
 const CLIENT = join(REPO_ROOT, 'packages/control-plane/src/db/client.ts')
-const README = join(REPO_ROOT, 'README.md')
+const RUNBOOK = join(REPO_ROOT, 'docs/superpowers/RUNBOOK.md')
 
 /** The role in a `postgres://<role>:` URL assigned to MANIFEST_DATABASE_URL. */
 function roleInDatabaseUrl(source: string): string | undefined {
@@ -33,8 +34,8 @@ describe('the missing-MANIFEST_DATABASE_URL hint names the app role, never the s
     expect(roleInDatabaseUrl(readFileSync(CLIENT, 'utf8'))).toBe('manifest_app')
   })
 
-  it('agrees with README, which is the other copy of the same line', () => {
-    expect(roleInDatabaseUrl(readFileSync(README, 'utf8'))).toBe('manifest_app')
+  it("agrees with RUNBOOK's export block, which is the other copy of the same line", () => {
+    expect(roleInDatabaseUrl(readFileSync(RUNBOOK, 'utf8'))).toBe('manifest_app')
   })
 
   it('says WHY, so a reader who has POSTGRES_PASSWORD to hand does not substitute it', () => {

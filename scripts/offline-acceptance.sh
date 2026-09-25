@@ -57,12 +57,12 @@ echo "=== 6. P4a's acceptance: a real CWL login, offline ==="
 # that needs a route out, that IS the finding.
 #
 # It needs the control plane RUNNING, which `make up` does not start — see
-# README's "Running the control plane". If it is not up, this reports that and
+# RUNBOOK's "Running the control plane". If it is not up, this reports that and
 # the rest of the run still stands.
 if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
   make demo-identity; echo "demo-identity exit=$?"
 else
-  echo "  SKIPPED: no control plane behind https://console.manifest.internal. Start it (README: Running the"
+  echo "  SKIPPED: no control plane behind https://console.manifest.internal. Start it (RUNBOOK: Running the"
   echo "  control plane) and re-run this step — a skipped acceptance is not a"
   echo "  passed one, and it is the step most likely to need the network."
 fi

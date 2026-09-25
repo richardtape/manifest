@@ -259,7 +259,7 @@ const envSchema = z.object({
    * generated, because a generated key is one LiteLLM refuses on every call.
    *
    * NOT in `.env.example`. LiteLLM itself reads `LITELLM_MASTER_KEY` from `.env`, and
-   * README's export block names that one stored secret again here, at the point of
+   * RUNBOOK's export block names that one stored secret again here, at the point of
    * use, the way it builds MANIFEST_DATABASE_URL from MANIFEST_APP_PASSWORD. A second
    * stored copy would drift from the first the first time either changed, and a new
    * `.env.example` key turns `make doctor` red on every existing machine.
@@ -451,7 +451,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new ConfigError(
       'CONFIG_LITELLM_MASTER_KEY_REQUIRED',
       `MANIFEST_LITELLM_MASTER_KEY is required when MANIFEST_ENV is '${raw.MANIFEST_ENV}'. ` +
-        "It mints and revokes every app's LiteLLM key (§10); README's export block sets " +
+        "It mints and revokes every app's LiteLLM key (§10); RUNBOOK's export block sets " +
         'it from LITELLM_MASTER_KEY in .env.',
     )
   }

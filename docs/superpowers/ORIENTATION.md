@@ -83,7 +83,7 @@ names the same afternoon:**
 
 **A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is
 cheaper before you start than after. **This box is the only current one in this file**; the same four numbers are
-stated in `README.md` and `RUNBOOK.md`, and all three move together (§6). A plan's record carries the numbers as
+stated in the top box, in `RUNBOOK.md` and in `scripts/ci-acceptance.sh`, and all four move together (§6). A plan's record carries the numbers as
 each sitting left them, dated, and they deliberately do not move.
 
 **Outstanding, and Rich's.**
@@ -144,7 +144,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | **executing a plan** | **The current plan, which §7e names.** Its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
 | **writing a plan** | **None is due.** The next to write is the authoring API, after the D5 plan executes (Rich's order). House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or the newest, [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md). |
 | **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. |
-| **running the platform** | [`RUNBOOK.md`](RUNBOOK.md) — `make seed && make host-setup && make up`, every demo step by step, and *Known gaps*. README's *Running the control plane* is the export block to start it with. |
+| **running the platform** | [`RUNBOOK.md`](RUNBOOK.md) — `make seed && make host-setup && make up`, every demo step by step, and *Known gaps*. Its *Running the control plane* is the export block to start it with. |
 | **writing code** | *The code* and *What the platform keeps true* below. **Then run `make demo` once**: it is the only thing that exercises boot, build, release, deploy and the edge through the real HTTP surface, and it is where this project's worst defects were found. |
 | **changing the spec** | Don't, without asking. It is marked *Approved design*. Record the proposed change and Rich decides. |
 
@@ -320,7 +320,7 @@ defect even when every test is green.**
   MANIFEST_ADMIN_DATABASE_URL="postgres://manifest:${POSTGRES_PASSWORD}@127.0.0.1:7103/manifest_control" \
     pnpm --filter @manifest/control-plane db:migrate
   ```
-  README's *Running the control plane* exports it along with everything else the process needs; this is the
+  RUNBOOK's *Running the control plane* exports it along with everything else the process needs; this is the
   one-line form for a migration on its own. *(Measured in P5b sitting 3, which applied 0015.)*
 
 **Build and deploy**
@@ -921,7 +921,7 @@ and is not repeated here.*
     (which truncates), then `pnpm contract:generate`; a stale copy turns `pnpm test` red. *(TRAPS: `GENERATED from
     the route`)*
 13. **An applied migration is never re-run, and one applied with a line missing is replayed, not patched.** New SQL
-    needs a new migration. `db:migrate` needs README's whole export block — the admin URL is derived, not in `.env`
+    needs a new migration. `db:migrate` needs RUNBOOK's whole export block (*Running the control plane*) — the admin URL is derived, not in `.env`
     — and fails naming neither. *(TRAPS: `APPLIED drizzle`, `REPLAYED`, `ADMIN URL`)*
 14. **The database's clock is not the host's** — Postgres runs in Docker Desktop's VM — and Postgres `now()` is the
     transaction's start. Never bound one with the other. *(TRAPS: `CLOCK`, `TRANSACTION's start`)*
@@ -944,7 +944,7 @@ and is not repeated here.*
     mount`, `inode`)*
 19. **Restarting the edge drops every runtime route, and a runtime route outlives its app** — the Docker tier does
     the first, any `pnpm test` the second. **Restarting the control plane the documented way signs everybody out**:
-    README's export block makes a fresh session secret each time. *(TRAPS: `discards all runtime routes`,
+    RUNBOOK's export block makes a fresh session secret each time. *(TRAPS: `discards all runtime routes`,
     `OUTLIVES`, `SIGNS EVERYBODY OUT`)*
 20. **`make reset` prompts** (`echo reset | make reset`), leaves both loopback aliases in place, leaves `make
     verify` one red until the migrations run, and has intermittently left the host unable to reach the edge.
@@ -1064,7 +1064,7 @@ coherent. Follow them.
 | **The plan's own SITTINGS TABLE** | **Added 2026-09-09. The first thing to change and the easiest to forget** — it is at the top of the plan, it says which sitting is next, and a stale one sends the next agent at a task that is already committed. Mark the sitting done, move the `← next` marker, and say how many findings it produced |
    | **The plan's *What executing this plan found*** | One dated section per sitting: the tasks, every defect with the measurement that found it, the negative controls, and the gate numbers at the end. **This is the record that stops the next agent repeating the work rather than continuing it** — and it is where a defect that is not worth fixing yet gets named instead of lost |
    | `ORIENTATION.md` | **§7e, §2's numbers box and the top box's *Last verified* line, every sitting — REPLACE, never append.** §7e is one of the TWO places the next job is stated; the other is the current plan's sittings table (Rich, 2026-09-24). The top box, §2 and §7's preamble point at §7e and state no job and no sitting's story — a sitting's story goes in its plan's *What executing this plan found*, which is how this file grew to 325 KB before it was trimmed on 2026-09-24. §2's plan table when a plan starts or finishes; §3's *What the platform keeps true* when an invariant changes; a new trap in `TRAPS.md`, and in §4's curated list only if it belongs there; §8 when something becomes or stops being Rich's call |
-   | `README.md` | The status section. Its *Where to start* table's job row POINTS at ORIENTATION §7e and states no job |
+   | `README.md` | **Usually nothing.** Since 2026-09-24 it is a short description of what Manifest IS — no status, no job, no numbers, and its *Running the control plane* moved to RUNBOOK. Sweep it only if what Manifest is changes |
    | `TRAPS.md` | **Added 2026-09-24**, when §4's catalogue moved there. A new trap goes at the end of it; §4's curated list gains it only if it is among the most likely to cost the next sitting |
    | `RUNBOOK.md` | **Added to this list 2026-09-09, having been missed once.** Its *C1's acceptance* preamble restates the CURRENT `make doctor` / `make verify` totals beside the dated 2026-09-05 ones, so it drifts every time a check lands — and it is the document a new agent opens to run the platform |
    | `WALKTHROUGH.md` | **Added 2026-09-15.** Its *What is built* status lines, and any URL, command, test user or demo that changes. It deliberately states no counts — keep it that way |
@@ -1077,19 +1077,20 @@ coherent. Follow them.
    | `machine-baseline-*.md` | **Do not edit these.** They are dated evidence. Re-run `scripts/snapshot-machine.sh` and add a new one |
    | **`scripts/ci-acceptance.sh`** | **Added 2026-09-20, having gone stale the FIRST time the numbers moved.** Its four `EXPECT_` lines are the gate numbers in CODE — `EXPECT_TESTS`, `EXPECT_FILES`, `EXPECT_DOCTOR`, `EXPECT_VERIFY` — and P6a sitting 2 moved doctor to 19 and verify to 54 while this file kept 18 and 51, because every list of what to sweep named only DOCUMENTS. It reports `MOVED` rather than `FAIL`, so a stale copy is quiet: `make ci-acceptance` would have read *"counts moved: expected 18, got 19"* and nobody would have seen it until the next full run. Found by P6a sitting 3 by opening the file |
 
-   **THE GATE NUMBERS LIVE IN FIVE PLACES: THREE DOCUMENTS (ONE OF THEM TWICE) AND ONE SCRIPT**, and they move
+   **THE GATE NUMBERS LIVE IN FOUR PLACES: TWO DOCUMENTS (ONE OF THEM TWICE) AND ONE SCRIPT** — README stopped
+   stating them on 2026-09-24 — and they move
    whenever a check or a test file lands — which is most sittings. `make doctor`, `make verify`, `pnpm test` and
    `pnpm test:docker` are stated in **ORIENTATION's TOP-OF-FILE BOX**, in **ORIENTATION §2's numbers box**, in
-   **`README.md`** and in **`RUNBOOK.md`** — and **`scripts/ci-acceptance.sh`'s four `EXPECT_` lines are a fourth
+   **`RUNBOOK.md`** — and **`scripts/ci-acceptance.sh`'s four `EXPECT_` lines are a fourth
    copy, in code**, which this sentence said nothing about until 2026-09-20 and which was therefore stale from P6a
    sitting 2 until P6a sitting 3 found it. `CLAUDE.md` stated them too until 2026-09-16 and now deliberately does
-   not — do not add them back. One `grep` catches the three documents, and **the script needs its own**, because
+   not — do not add them back. One `grep` catches the documents, and **the script needs its own**, because
    its numbers are bare assignments that match none of these patterns: `grep -n 'EXPECT_'
    scripts/ci-acceptance.sh`.
 
    ```bash
    grep -rn "make doctor\|pnpm test\` \|checks / 0 failed\|passed, .* files" \
-     ORIENTATION.md README.md RUNBOOK.md   # from docs/superpowers and the root
+     ORIENTATION.md RUNBOOK.md   # from docs/superpowers
    ```
 
    Update them together or not at all. A half-swept set is worse than a stale one,
@@ -1192,7 +1193,7 @@ curl -s --cacert infra/ca/manifest-root.crt \
 wins. One Docker file: `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/<path>`. **Restart the
 control plane after it.**
 
-**`make demo` is worth one run before you start** — README's *Running the control plane* first. It is the only
+**`make demo` is worth one run before you start** — RUNBOOK's *Running the control plane* first. It is the only
 thing that exercises boot, build, release, deploy and the edge through the real HTTP surface.
 
 ---

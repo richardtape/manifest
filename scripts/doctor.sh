@@ -446,7 +446,7 @@ check_warn "the vulnerability database is fresh"  scanner_db_age
 # NOT just "the file is there". `make seed` and the Makefile's `.env` target both
 # copy .env.example ONLY when .env is absent — an existing developer's .env never
 # gains a key added later. That is silent: MANIFEST_APP_PASSWORD arrived on
-# 2026-09-09, and the README's export block interpolates it, so a .env written
+# 2026-09-09, and RUNBOOK's export block interpolates it, so a .env written
 # before that date produces `postgres://manifest_app:@127.0.0.1…` and a login
 # failure that names the role rather than the missing variable.
 #

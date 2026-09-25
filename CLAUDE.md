@@ -75,8 +75,8 @@ the edge's `@outside` refusal — was closed on 2026-09-17 without weakening the
 longer outstanding.)*
 
 **Where to look:** [`WALKTHROUGH.md`](docs/superpowers/WALKTHROUGH.md) to see it run;
-[`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) to operate it and run each demo; README's
-*Running the control plane* to start the server; ORIENTATION §4 (its 27 likeliest traps, and
+[`RUNBOOK.md`](docs/superpowers/RUNBOOK.md) to operate it, run each demo, and — its
+*Running the control plane* — start the server; ORIENTATION §4 (its 27 likeliest traps, and
 [`TRAPS.md`](docs/superpowers/TRAPS.md) for all of them) for what this machine will
 do to you, §8 for decisions waiting on Rich, §9 for lessons; and each plan's *What
 executing this plan found* for the measurements behind all of it.
@@ -190,7 +190,7 @@ For the platform itself it is `make doctor` and `make verify`.
   documents say, so a sitting that ends unswept sends them at a task that is already
   committed. **The plan's own sittings table is the first thing to change and the
   easiest to miss.** ORIENTATION §6 carries the full checklist — including the fact
-  that the gate numbers are stated in three documents (ORIENTATION §2's box, README and
-  RUNBOOK; this file deliberately states none) and must move together. Budget session
+  that the gate numbers are stated in ORIENTATION's two boxes, RUNBOOK and
+  `scripts/ci-acceptance.sh` (this file deliberately states none) and must move together. Budget session
   capacity for the sweep; if it is tight, stop a task early and sweep rather than
   finishing the task and leaving the documents lying.

@@ -60,7 +60,7 @@ UP="$(curl -sS -m 5 -w ' [%{http_code}]' "$API/v1/me" 2>&1 || true)"
 case "$UP" in
   *'"UNAUTHENTICATED"'*) echo "  $API answered" ;;
   *) fail "no control plane behind $API (got: ${UP:0:120}).
-README's 'Running the control plane' has the exact commands." ;;
+docs/superpowers/RUNBOOK.md's 'Running the control plane' has the exact commands." ;;
 esac
 
 say "2. Serve the console on $PORT — the production build, not the dev server"

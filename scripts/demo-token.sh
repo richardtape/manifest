@@ -72,7 +72,7 @@ UP="$(curl -sS -m 5 -w ' [%{http_code}]' "$API/v1/me" 2>&1 || true)"
 case "$UP" in
   *'"UNAUTHENTICATED"'*) echo "  $API answered" ;;
   *) fail "no control plane behind $API (got: ${UP:0:120}).
-README's 'Running the control plane' has the exact commands — and check the boot line
+docs/superpowers/RUNBOOK.md's 'Running the control plane' has the exact commands — and check the boot line
 says {\"driver\":\"docker\"} and \"origin\":\"$ORIGIN\"." ;;
 esac
 
