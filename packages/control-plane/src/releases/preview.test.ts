@@ -37,6 +37,10 @@ afterAll(resetDatabase)
  * differently on every call** (Read this first 13), which is the one thing that makes "the
  * record is what was shown" observable. A fake that always answered the same sentence would
  * keep every assertion below green against a `decide()` that asked the model again.
+ *
+ * **IT FILLS THE SCHEMA IT IS SENT** (the D5 plan's Task 13): one `summary #N` sentence for
+ * each path in the request's own enum — ten characters, the schema's minimum, so a one-change
+ * diff's summary is exactly `summary #N`. A prose answer would now be withheld.
  */
 function countingModel() {
   const state = { calls: 0 }
@@ -44,10 +48,32 @@ function countingModel() {
     state,
     llm: {
       get: () => Promise.reject(new Error('never')),
-      post: <T>() => {
+      post: <T>(_path: string, body: unknown) => {
         state.calls += 1
+        const paths = (
+          body as {
+            response_format: {
+              json_schema: {
+                schema: {
+                  properties: {
+                    changes: { items: { properties: { path: { enum: string[] } } } }
+                  }
+                }
+              }
+            }
+          }
+        ).response_format.json_schema.schema.properties.changes.items.properties.path.enum
+        const exposure = `summary #${state.calls}`
         return Promise.resolve({
-          choices: [{ message: { content: `summary #${state.calls}` } }],
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  changes: paths.map((path) => ({ path, exposure })),
+                }),
+              },
+            },
+          ],
         } as T)
       },
     },
@@ -484,6 +510,12 @@ describe('the facts — what an approval compares, and what it never does', () =
     resources: { cpu: 1, memory: '1Gi', disk: null, pids: 64 },
     summary: 'summary #1',
     summarySource: 'llm',
+    // The D5 plan's Task 13: the model's per-change sentences, and the rule a withheld answer
+    // broke — WRITTEN, like the summary, so never compared. `factsOf` names what it strips,
+    // and a key it does not name is a fact: without these two names every preview with a
+    // model answer read as stale against the facts recomputed at decision time.
+    exposures: [{ path: 'resources.memory', sentence: 'summary #1' }],
+    summaryWithheldBecause: 'a rule',
     review: { state: 'not_performed', reviewer: 'none', detail: 'nothing' },
     baselineReleaseId: '11111111-1111-4111-8111-111111111111',
     sensitiveFields: ['resources'],
@@ -528,6 +560,10 @@ describe('the facts — what an approval compares, and what it never does', () =
     expect(
       sameFacts(factsOf(SNAPSHOT), factsOf({ ...SNAPSHOT, summary: 'summary #2' })),
     ).toBe(true)
+    // The model's per-change sentences are its words too (the D5 plan's Task 13) — and so is a
+    // stored snapshot that has them against facts recomputed without them.
+    const { exposures: _e, summaryWithheldBecause: _w, ...withoutWritten } = SNAPSHOT
+    expect(sameFacts(factsOf(SNAPSHOT), factsOf(withoutWritten))).toBe(true)
     expect(
       sameFacts(
         factsOf(SNAPSHOT),

@@ -163,9 +163,28 @@ export const ApprovalDiff = representation(
           'The AI-written plain-English summary of what changed. **Null is a state, not an error** (Decision 7): an approval gate that fails closed on a language model being down is an outage, not a control. `summarySource` says why.',
         ),
       summarySource: z
-        .enum(['llm', 'unavailable', 'no-previous-release', 'no-changes'])
+        .enum(['llm', 'unavailable', 'no-previous-release', 'no-changes', 'withheld'])
         .describe(
-          '`llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff. `no-changes`: nothing in manifest.yaml changed, and the summary is the platform’s fixed sentence — no model wrote it.',
+          '`llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff. `no-changes`: nothing in manifest.yaml changed, and the summary is the platform’s fixed sentence — no model wrote it. `withheld`: the model answered, and its answer broke the schema it was given or stated a decision, so it is not shown — `summaryWithheldBecause` names the rule, and the diff, the security notes and the reviewer’s verdict are the record.',
+        ),
+      summaryWithheldBecause: z
+        .string()
+        .nullable()
+        .describe(
+          'Which rule a `withheld` answer broke, in the platform’s words — never the model’s text, which could carry an app’s own words. Null for every other `summarySource`.',
+        ),
+      summaryExposures: z
+        .array(
+          z.object({
+            path: z
+              .string()
+              .describe('The change it is about — one of `changes`’ own paths.'),
+            sentence: z.string(),
+          }),
+        )
+        .nullable()
+        .describe(
+          'One sentence per change, in `changes`’ order, written by a language model: what that change could expose. The model is given the changes and the security notes only — never the verdict — and fills a schema with no place for one (the D5 plan’s Decision 19). The change lines are the record; these are the model’s reading of them, and a reading can get a fact wrong. Null unless `summarySource` is `llm`, and for a record made before it existed, whose `summary` is one string.',
         ),
       baselineReleaseId: Uuid.nullable().describe(
         'The last approved release this one was compared with (§13 D9.2) — null for a first launch, and for a record made before P6b.',
@@ -368,6 +387,10 @@ function toApprovalDiff(
     },
     summary: diff.summary,
     summarySource: diff.summarySource,
+    // The D5 plan's Task 13, DEFAULTED for a row written before it (P6b's four keys, below,
+    // for the same reason and in the same place).
+    summaryWithheldBecause: diff.summaryWithheldBecause ?? null,
+    summaryExposures: diff.exposures ?? null,
     review: diff.review,
     // P6b Task 8's four keys, DEFAULTED HERE for a row written before them — inside the
     // mapper's body, never as a defaulted parameter (`.map(fn)` passes the array index as

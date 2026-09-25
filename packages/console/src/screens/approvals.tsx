@@ -280,17 +280,37 @@ function DiffView({ diff }: { diff: Schemas['ApprovalDiff'] }) {
           </ul>
         </Field>
       )}
+      {/*
+       * THE CHANGE LINE FIRST, THE MODEL'S SENTENCE UNDER IT (the D5 plan's Task 13). The line
+       * is the platform's own and is the record; the sentence is a model's reading of it, and
+       * the measured residual is a reading that gets a fact wrong (`sn` read as "the full name
+       * attribute", and as a "student ID") — so it is labelled once, as the model's.
+       */}
       <Field label="Changes">
         {diff.changes.length === 0 ? (
           'none recorded'
         ) : (
-          <ul>
-            {diff.changes.map((c) => (
-              <li key={c.path}>
-                <code>{c.path}</code>: {c.from} → {c.to} — {c.summary}
-              </li>
-            ))}
-          </ul>
+          <>
+            {diff.summaryExposures !== null && (
+              <p className="hint">
+                What each change could expose — written by a language model; the change
+                lines are the record.
+              </p>
+            )}
+            <ul>
+              {diff.changes.map((c) => {
+                const exposure = diff.summaryExposures?.find((e) => e.path === c.path)
+                return (
+                  <li key={c.path}>
+                    <code>{c.path}</code>: {c.from} → {c.to} — {c.summary}
+                    {exposure !== undefined && (
+                      <div className="hint">{exposure.sentence}</div>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </>
         )}
       </Field>
       <Field label="Services">
@@ -313,12 +333,28 @@ function DiffView({ diff }: { diff: Schemas['ApprovalDiff'] }) {
 
 /**
  * **NEVER A BLANK SPACE** (the plan's Step 1). An empty summary reads as *nothing changed*,
- * which is the opposite of what an unreachable model means. Each of the three sources has
+ * which is the opposite of what an unreachable model means. Each source has
  * its own sentence, keyed on `summarySource` rather than on `summary` being null — the
  * source is the platform's statement of WHY, and the null alone does not say.
  */
 function Summary({ diff }: { diff: Schemas['ApprovalDiff'] }) {
+  // The model's sentences are laid out under the change each is about (the D5 plan's Task
+  // 13), so they are not repeated here as one paragraph.
+  if (diff.summarySource === 'llm' && diff.summaryExposures !== null)
+    return <em>The model’s reading of each change is under that change, below.</em>
+  // A record written before per-change sentences existed: its summary is one string.
   if (diff.summarySource === 'llm' && diff.summary !== null) return <>{diff.summary}</>
+  // WITHHELD — the model answered, and its answer broke the schema or stated a decision
+  // (P6b's F9). Never a blank space: the reason, in the platform's words, and where the
+  // record is.
+  if (diff.summarySource === 'withheld')
+    return (
+      <em>
+        The model’s summary was withheld:{' '}
+        {diff.summaryWithheldBecause ?? 'no reason was recorded'}. What changed, the
+        security notes and the reviewer’s verdict below are the record.
+      </em>
+    )
   // P6b Task 8: the platform's fixed sentence for an empty diff, which no model wrote — NOT
   // the "could not be produced" fallback below, which would send a person looking for an outage.
   if (diff.summarySource === 'no-changes')

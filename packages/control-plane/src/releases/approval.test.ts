@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AI_CODES, AiError } from '../ai/index.js'
 import { approvals, builds, events, releases } from '../db/index.js'
@@ -165,6 +165,46 @@ const refusal = (res: { statusCode: number; body: string }) => ({
   code: (JSON.parse(res.body) as { error?: { code?: string } }).error?.code,
 })
 
+/**
+ * A model that fills the schema it was SENT (the D5 plan's Task 13) — one sentence for each
+ * path in the request's own enum — so a route test needs to know nothing about the diff. It
+ * RECORDS each request, because what the model was told is half of every claim about it.
+ */
+function structuredModel(sentence: (path: string) => string) {
+  const asked: unknown[] = []
+  return {
+    asked,
+    get: () => Promise.reject(new Error('never')),
+    post: <T>(_path: string, body: unknown) => {
+      asked.push(body)
+      const paths = (
+        body as {
+          response_format: {
+            json_schema: {
+              schema: {
+                properties: {
+                  changes: { items: { properties: { path: { enum: string[] } } } }
+                }
+              }
+            }
+          }
+        }
+      ).response_format.json_schema.schema.properties.changes.items.properties.path.enum
+      return Promise.resolve({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                changes: paths.map((path) => ({ path, exposure: sentence(path) })),
+              }),
+            },
+          },
+        ],
+      } as T)
+    },
+  }
+}
+
 describe('§13’s approval — `release:approve`’s first caller (P6a Task 10)', () => {
   it('approves a release, binds its digest, and records who and when', async () => {
     /**
@@ -227,6 +267,56 @@ describe('§13’s approval — `release:approve`’s first caller (P6a Task 10)
       .from(events)
       .where(eq(events.type, 'release.approved'))
     expect(JSON.stringify(stored)).not.toContain('"changes"')
+    await ctx.app.close()
+  })
+
+  it('F14: the feed names the person who decided, not their PUID — an approval and a rejection', async () => {
+    /**
+     * P6b sitting 7's F14: *"opr000001 approved this release for production"*, where P6b's
+     * Decision 18 had already given the Approval a display name. The event is what the activity
+     * feed renders, and a PUID tells an owner nothing.
+     */
+    const ctx = await releasedProject('named-labs')
+    const approved = await previewThenDecide(
+      ctx.app,
+      ctx.deps,
+      ctx.admin,
+      ctx.release.id,
+      'approve',
+    )
+    expect(approved.statusCode, approved.body).toBe(201)
+    const rejected = await previewThenDecide(
+      ctx.app,
+      ctx.deps,
+      ctx.admin,
+      ctx.release.id,
+      'reject',
+      { reason: 'the egress host is not in the ticket' },
+    )
+    expect(rejected.statusCode, rejected.body).toBe(201)
+    const messages = await ctx.deps.db
+      .select({ type: events.type, message: events.humanMessage })
+      .from(events)
+      .where(
+        and(
+          eq(events.projectId, ctx.project.id),
+          inArray(events.type, ['release.approved', 'release.approval_rejected']),
+        ),
+      )
+      .orderBy(events.createdAt)
+    expect(messages).toEqual([
+      {
+        type: 'release.approved',
+        message: 'Platform Admin approved this release for production.',
+      },
+      {
+        type: 'release.approval_rejected',
+        message:
+          'Platform Admin did not approve this release: the egress host is not in the ticket',
+      },
+    ])
+    // AND NOT THE PUID, in either — `platform_admin` is this test user's.
+    for (const m of messages) expect(m.message).not.toContain('platform_admin')
     await ctx.app.close()
   })
 
@@ -644,13 +734,7 @@ describe('§13’s diff_snapshot — rendered at decision time and STORED (P6a T
     const ctx = await releasedProject('summary-labs')
     const up = await buildServer({
       ...ctx.deps,
-      llm: {
-        get: () => Promise.reject(new Error('never')),
-        post: <T>() =>
-          Promise.resolve({
-            choices: [{ message: { content: 'The app asks for more memory.' } }],
-          } as T),
-      },
+      llm: structuredModel(() => 'The app asks for more memory.'),
     })
     expect(
       (await previewThenDecide(up, ctx.deps, ctx.admin, ctx.release.id, 'approve', {}))
@@ -668,7 +752,64 @@ describe('§13’s diff_snapshot — rendered at decision time and STORED (P6a T
     expect(approved.statusCode, approved.body).toBe(201)
     expect(approved.json().diff.summary).toBe('The app asks for more memory.')
     expect(approved.json().diff.summarySource).toBe('llm')
+    // ON THE WIRE, one sentence per change, keyed by the diff's own path (the D5 plan's Task 13).
+    expect(approved.json().diff.summaryExposures).toEqual(
+      approved.json().diff.changes.map((c: { path: string }) => ({
+        path: c.path,
+        sentence: 'The app asks for more memory.',
+      })),
+    )
+    expect(approved.json().diff.summaryWithheldBecause).toBeNull()
     await up.close()
+    await ctx.app.close()
+  })
+
+  it('an answer that states a decision is WITHHELD — and the approval is still recorded, through the route', async () => {
+    /**
+     * F9, END TO END (the D5 plan's Task 13): the model's sentence decides something, so the
+     * record carries no summary, says it was withheld and names the rule — never the sentence —
+     * and the approval stands, because §13's control is the diff beside it (Decision 7).
+     */
+    const ctx = await releasedProject('withheld-labs')
+    const operator = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const deciding = await buildServer({
+      ...ctx.deps,
+      llm: structuredModel(() => 'This release requires an administrator’s approval.'),
+    })
+    expect(
+      (
+        await previewThenDecide(
+          deciding,
+          ctx.deps,
+          ctx.admin,
+          ctx.release.id,
+          'approve',
+          {},
+        )
+      ).statusCode,
+    ).toBe(201)
+    const next = await secondRelease(ctx, 'withheld-labs', '1Gi')
+    const approved = await previewThenDecide(
+      deciding,
+      ctx.deps,
+      ctx.admin,
+      next.id,
+      'approve',
+      {},
+    )
+    expect(approved.statusCode, approved.body).toBe(201)
+    const diff = approved.json().diff
+    expect(diff).toMatchObject({
+      summary: null,
+      summarySource: 'withheld',
+      summaryExposures: null,
+    })
+    expect(diff.summaryWithheldBecause).toMatch(/decision/)
+    expect(JSON.stringify(diff)).not.toContain('requires an administrator')
+    expect(diff.changes.length).toBeGreaterThan(0)
+    expect(operator).toHaveBeenCalled()
+    operator.mockRestore()
+    await deciding.close()
     await ctx.app.close()
   })
 })
@@ -1045,10 +1186,15 @@ describe('R4(d) — the snapshot’s security dimension (P6b Task 8)', () => {
     await ctx.app.close()
   })
 
-  it('asks the reviewer BEFORE the model, so the summary can carry the verdict', async () => {
+  it('asks the reviewer BEFORE the model — and the RECORD carries the verdict, never the model (the D5 plan’s Decision 19)', async () => {
+    /**
+     * P6b's Decision 13 asked the reviewer first so the MODEL could state the verdict; the D5
+     * plan's Task 1 measured every invented verdict arriving after that instruction, and Decision
+     * 19 reversed it. The order stays — a preview's snapshot is one read of both — and the
+     * verdict now reaches the record in its own field, and the model not at all.
+     */
     const ctx = await releasedProject('order-labs')
     const order: string[] = []
-    const asked: unknown[] = []
     const reviewer: Reviewer = {
       name: 'ordered-reviewer',
       review: () => {
@@ -1060,17 +1206,17 @@ describe('R4(d) — the snapshot’s security dimension (P6b Task 8)', () => {
         })
       },
     }
+    const model = structuredModel(
+      () => 'The app may reach a new host it could not before.',
+    )
     const app = await buildServer({
       ...ctx.deps,
       reviewer,
       llm: {
-        get: () => Promise.reject(new Error('never')),
-        post: <T>(_path: string, body: unknown) => {
+        get: model.get,
+        post: <T>(path: string, body: unknown) => {
           order.push('model')
-          asked.push(body)
-          return Promise.resolve({
-            choices: [{ message: { content: 'The app may reach a new host.' } }],
-          } as T)
+          return model.post<T>(path, body)
         },
       },
     })
@@ -1080,12 +1226,21 @@ describe('R4(d) — the snapshot’s security dimension (P6b Task 8)', () => {
       'egress:',
       '  allow: [x.example.org]',
     ])
-    expect((await approve(app, ctx, next.id)).statusCode).toBe(201)
+    const approved = await approve(app, ctx, next.id)
+    expect(approved.statusCode, approved.body).toBe(201)
     expect(order).toEqual(['reviewer', 'reviewer', 'model'])
-    const user = (asked[0] as { messages: { content: string }[] }).messages.at(
-      -1,
-    )!.content
-    expect(user).toContain('Code review: 3 checked, no findings')
+    // THE RECORD CARRIES THE VERDICT…
+    expect(approved.json().diff.review).toMatchObject({
+      state: 'clean',
+      reviewer: 'ordered-reviewer',
+      detail: '3 checked, no findings',
+    })
+    expect(approved.json().diff.summarySource).toBe('llm')
+    // …AND THE MODEL WAS NEVER TOLD IT, nor the coverage limit.
+    const sent = JSON.stringify(model.asked[0])
+    expect(sent).not.toContain('3 checked')
+    expect(sent).not.toContain('ordered-reviewer')
+    expect(sent).not.toContain(COVERAGE_LIMIT)
     await app.close()
     await ctx.app.close()
   })

@@ -2958,13 +2958,53 @@
             ]
           },
           "summarySource": {
-            "description": "`llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff. `no-changes`: nothing in manifest.yaml changed, and the summary is the platform’s fixed sentence — no model wrote it.",
+            "description": "`llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff. `no-changes`: nothing in manifest.yaml changed, and the summary is the platform’s fixed sentence — no model wrote it. `withheld`: the model answered, and its answer broke the schema it was given or stated a decision, so it is not shown — `summaryWithheldBecause` names the rule, and the diff, the security notes and the reviewer’s verdict are the record.",
             "type": "string",
             "enum": [
               "llm",
               "unavailable",
               "no-previous-release",
-              "no-changes"
+              "no-changes",
+              "withheld"
+            ]
+          },
+          "summaryWithheldBecause": {
+            "description": "Which rule a `withheld` answer broke, in the platform’s words — never the model’s text, which could carry an app’s own words. Null for every other `summarySource`.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "summaryExposures": {
+            "description": "One sentence per change, in `changes`’ order, written by a language model: what that change could expose. The model is given the changes and the security notes only — never the verdict — and fills a schema with no place for one (the D5 plan’s Decision 19). The change lines are the record; these are the model’s reading of them, and a reading can get a fact wrong. Null unless `summarySource` is `llm`, and for a record made before it existed, whose `summary` is one string.",
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "description": "The change it is about — one of `changes`’ own paths.",
+                      "type": "string"
+                    },
+                    "sentence": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "path",
+                    "sentence"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "baselineReleaseId": {
@@ -3071,6 +3111,8 @@
           "resources",
           "summary",
           "summarySource",
+          "summaryWithheldBecause",
+          "summaryExposures",
           "baselineReleaseId",
           "sensitiveFields",
           "security",

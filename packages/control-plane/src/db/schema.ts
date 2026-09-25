@@ -614,8 +614,21 @@ export interface DiffSnapshotColumn {
   resources: Record<string, string | number | null>
   /** Decision 7: null when the model could not be reached. NOT an empty string. */
   summary: string | null
-  /** `no-changes` (P6b Task 8): the fixed sentence for an empty diff, which no model wrote. */
-  summarySource: 'llm' | 'unavailable' | 'no-previous-release' | 'no-changes'
+  /**
+   * `no-changes` (P6b Task 8): the fixed sentence for an empty diff, which no model wrote.
+   * `withheld` (the D5 plan's Task 13): the model answered, and its answer broke the schema
+   * or stated a decision, so it is not shown — `summaryWithheldBecause` says which rule.
+   */
+  summarySource: 'llm' | 'unavailable' | 'no-previous-release' | 'no-changes' | 'withheld'
+  /**
+   * The D5 plan's Task 13 (Decision 19): the model's one sentence per change, in the diff's
+   * order — what the console lays out under each change line. **Written, like `summary`, so
+   * never a fact** (`releases/preview.ts`'s `factsOf` names it). Null unless the source is
+   * `llm`; ABSENT on every row written before the task. No migration: a type over jsonb.
+   */
+  exposures?: { path: string; sentence: string }[] | null
+  /** The rule a `withheld` answer broke, in the platform's words — never the model's text. */
+  summaryWithheldBecause?: string
   /**
    * R4(d) (P6b Task 8): what the release was compared WITH, which of §7's fields changed,
    * a deterministic note for each, and D33's coverage limit. **OPTIONAL, because P6a's

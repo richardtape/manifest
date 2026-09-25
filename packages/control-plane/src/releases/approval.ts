@@ -7,6 +7,7 @@ import {
   builds,
   projects,
   releases,
+  users,
   type Db,
 } from '../db/index.js'
 // TYPES ONLY, and that is load-bearing: `launch/readiness.ts` imports this module at
@@ -79,6 +80,16 @@ export async function recordApproval(
     })
     .returning()
 
+  // F14 (P6b sitting 7): THE FEED NAMES A PERSON, NOT A PUID — the name P6b's Decision 18
+  // already gives the Approval's `decidedByName`, read the same way. The PUID only when the
+  // name is empty: the column is NOT NULL, and an empty name must not make a message that
+  // names nobody.
+  const [who] = await db
+    .select({ name: users.displayName })
+    .from(users)
+    .where(eq(users.id, input.actor.userId))
+  const name = who !== undefined && who.name.trim() !== '' ? who.name : input.actor.puid
+
   await publishEvent(
     db,
     bus,
@@ -97,8 +108,8 @@ export async function recordApproval(
       },
       humanMessage:
         input.decision === 'approved'
-          ? `${input.actor.puid} approved this release for production.`
-          : `${input.actor.puid} did not approve this release: ${input.reason}`,
+          ? `${name} approved this release for production.`
+          : `${name} did not approve this release: ${input.reason}`,
     },
     makeRedactor([]),
   )
@@ -368,7 +379,8 @@ export function unsatisfiedReason(verdict: ProductionApproval, digest: string): 
 
 /**
  * D33's coverage limit (P6b Task 8, R4(d)), written into every record so no reader mistakes an
- * approval for a code review — and handed to the model, which is told not to imply otherwise.
+ * approval for a code review. Never handed to the model (the D5 plan's Decision 19): the record
+ * states it, in its own field.
  */
 export const COVERAGE_LIMIT =
   'An administrator sees a first launch and any release that changes a sensitive field (§7). A release that changes none reaches production without an administrator, and its code is reviewed by nothing (§13’s residual risk); containment is the control (§20).'
@@ -383,6 +395,10 @@ export const COVERAGE_LIMIT =
  * its preview's, so the two agree whenever both exist. Newest by `created_at` / `decided_at`,
  * with `id` breaking a tie among the approvals (`latestApprovalFor`'s order).
  *
+ * **IT SAYS WHICH SOURCE, AND WHEN** (F13, the D5 plan's Task 13): the checklist said *"recorded
+ * when an administrator decided on this release"* whatever it had read, and since P6b Task 9
+ * the newest source is usually a preview nobody has decided on yet.
+ *
  * **Caller:** `launch/readiness.ts`'s `code-review` item — which reads it through `releases/`,
  * never the tables themselves: `launch/` already imports `releases/` at runtime, and the
  * reverse would be a cycle.
@@ -390,7 +406,9 @@ export const COVERAGE_LIMIT =
 export async function latestReviewFor(
   db: Db,
   releaseId: string,
-): Promise<DiffSnapshot['review'] | undefined> {
+): Promise<
+  { review: DiffSnapshot['review']; from: 'preview' | 'approval'; at: Date } | undefined
+> {
   const [decided, [previewed]] = await Promise.all([
     latestApprovalFor(db, releaseId),
     db
@@ -400,11 +418,19 @@ export async function latestReviewFor(
       .orderBy(desc(approvalPreviews.createdAt), desc(approvalPreviews.id))
       .limit(1),
   ])
-  if (previewed === undefined) return decided?.diffSnapshot.review
-  if (decided === undefined) return previewed.snapshot.review
-  return previewed.at > decided.decidedAt
-    ? previewed.snapshot.review
-    : decided.diffSnapshot.review
+  const fromPreview = previewed && {
+    review: previewed.snapshot.review,
+    from: 'preview' as const,
+    at: previewed.at,
+  }
+  const fromApproval = decided && {
+    review: decided.diffSnapshot.review,
+    from: 'approval' as const,
+    at: decided.decidedAt,
+  }
+  if (fromPreview === undefined || fromApproval === undefined)
+    return fromPreview ?? fromApproval
+  return fromPreview.at > fromApproval.at ? fromPreview : fromApproval
 }
 
 export interface SnapshotDeps {
@@ -431,7 +457,10 @@ export interface SnapshotDeps {
  * preview differs in. NEVER the summary or the verdict: both are model-written or
  * time-dependent, and the record copies the preview's instead.
  */
-export type DiffFacts = Omit<DiffSnapshot, 'summary' | 'summarySource' | 'review'>
+export type DiffFacts = Omit<
+  DiffSnapshot,
+  'summary' | 'summarySource' | 'exposures' | 'summaryWithheldBecause' | 'review'
+>
 
 /**
  * §13: the approval record captures "image digest, `manifest.yaml` diff, services requested,
@@ -500,15 +529,21 @@ export async function diffFactsFor(
  * model that answers differently on every call would otherwise record a sentence nobody read
  * (Rich, 2026-09-22; P6b *Read this first* 13).
  *
- * **R4(d): THE REVIEWER FIRST**, so the summary is written knowing the verdict — and the record
- * carries the verdict whatever the model then says (Decision 13). The model is told the facts'
- * own security notes, the verdict and the coverage limit.
+ * **R4(d): THE REVIEWER FIRST**, and the record carries its verdict in its own field. **The model
+ * is told the facts and their security notes, and NOT the verdict or the coverage limit** (the
+ * D5 plan's Decision 19, reversing P6b's Decision 13 on a measurement: every invented verdict
+ * came after the instruction to state one).
  */
 export async function annotate(
   deps: SnapshotDeps,
   release: ReleaseRow,
   facts: DiffFacts,
-): Promise<Pick<DiffSnapshot, 'summary' | 'summarySource' | 'review'>> {
+): Promise<
+  Pick<
+    DiffSnapshot,
+    'summary' | 'summarySource' | 'exposures' | 'summaryWithheldBecause' | 'review'
+  >
+> {
   const review = await reviewOf(deps, release, facts.changes)
   // A first launch has no baseline: nothing to summarise, and a state rather than a failure.
   if (facts.baselineReleaseId === null || facts.baselineReleaseId === undefined)

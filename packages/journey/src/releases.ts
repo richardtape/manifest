@@ -507,11 +507,21 @@ async function readPreview(
     d.review.state === 'not_performed',
     JSON.stringify(d.review),
   )
+  // THE D5 PLAN'S TASK 13: the model fills a schema, one sentence per change — and an answer
+  // that breaks it or states a decision is WITHHELD, which is the platform working, not failing,
+  // so it passes WITH its reason (and the reason is printed). A model's answer must cover
+  // exactly the changes the preview names, in their order.
   checks.ok(
-    'the summary is the model’s, or unavailable (offline)',
-    (d.summarySource === 'llm' && (d.summary ?? '').length > 0) ||
+    'the summary is the model’s — one sentence per change — withheld with a reason, or unavailable (offline)',
+    (d.summarySource === 'llm' &&
+      (d.summary ?? '').length > 0 &&
+      JSON.stringify((d.summaryExposures ?? []).map((e) => e.path)) ===
+        JSON.stringify(d.changes.map((c) => c.path))) ||
+      (d.summarySource === 'withheld' &&
+        d.summary === null &&
+        (d.summaryWithheldBecause ?? '').length > 0) ||
       d.summarySource === 'unavailable',
-    `${d.summarySource}: ${d.summary}`,
+    `${d.summarySource}: ${d.summary ?? d.summaryWithheldBecause}`,
   )
   checks.ok(
     'compared with the last approved release, derived through the contract',

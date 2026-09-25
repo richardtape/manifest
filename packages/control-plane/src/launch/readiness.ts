@@ -258,37 +258,49 @@ async function codeReviewItem(
   db: Db,
   candidate: LaunchCandidate | undefined,
 ): Promise<LaunchItem> {
-  const review =
+  const latest =
     candidate === undefined ? undefined : await latestReviewFor(db, candidate.release.id)
-  if (review === undefined)
+  if (latest === undefined)
     return {
       ...CODE_REVIEW_BASE,
       state: 'not_built',
       builtBy: CODE_REVIEWER_BUILT_BY,
       why: `No reviewer has looked at this release. A reviewer runs when an administrator previews a release for approval — a first launch or a re-escalation — and never for a self-serve release (D33). ${NOTHING_REVIEWS_CODE}`,
     }
+  const { review } = latest
+  // F13 (P6b sitting 7; the D5 plan's Task 13): WHERE THE VERDICT WAS RECORDED, as
+  // `latestReviewFor` read it. It said "when an administrator decided" whatever it had read,
+  // and a reviewer runs when a preview is TAKEN — so the usual source is a preview nobody
+  // has decided on yet.
+  const recorded = `recorded when ${
+    latest.from === 'preview'
+      ? 'this release was previewed'
+      : 'an administrator decided on this release'
+  } on ${latest.at.toISOString().slice(0, 10)}`
   switch (review.state) {
     case 'clean':
       return {
         ...CODE_REVIEW_BASE,
         state: 'met',
-        why: `${review.reviewer}: ${review.detail}. Recorded when an administrator decided on this release; it does not block a launch (D33).`,
+        why: `${review.reviewer}: ${review.detail}. ${capitalised(recorded)}; it does not block a launch (D33).`,
       }
     case 'findings':
       return {
         ...CODE_REVIEW_BASE,
         state: 'unmet',
-        why: `${review.detail} — ${review.reviewer}. Recorded when an administrator decided on this release; advisory, so it does not block a launch (D33).`,
+        why: `${review.detail} — ${review.reviewer}. ${capitalised(recorded)}; advisory, so it does not block a launch (D33).`,
       }
     case 'not_performed':
       return {
         ...CODE_REVIEW_BASE,
         state: 'not_built',
         builtBy: CODE_REVIEWER_BUILT_BY,
-        why: `${review.detail} (${review.reviewer === 'none' ? 'no reviewer' : review.reviewer}, recorded when an administrator decided on this release).`,
+        why: `${review.detail} (${review.reviewer === 'none' ? 'no reviewer' : review.reviewer}, ${recorded}).`,
       }
   }
 }
+
+const capitalised = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1)
 
 const CODE_REVIEW_BASE = {
   id: 'code-review' as const,

@@ -122,12 +122,16 @@ describe('the console’s data layer against manifest-mock', () => {
       // Every item carries why it is in that state and which plan builds it (§13).
       expect(readiness.items.every((i) => i.why.length > 0)).toBe(true)
       // §13's DECISION, as the approval screen renders it (P6a Task 18): the digest it binds,
-      // the diff it was made on — and the summary's SOURCE, because a null summary is a state
-      // with three meanings and the screen writes a sentence for each rather than a blank.
+      // the diff it was made on — and the summary's SOURCE, which the screen writes a sentence
+      // for. Since the D5 plan's Task 13 the served fixture is the model's one sentence per
+      // change, which the screen lays out under each change line — keyed by the change's path.
       const approval = await a.getApproval(RELEASE_ID)
       expect(approval.imageDigest).toBe(approval.diff.imageDigest)
-      expect(approval.diff.summary).toBeNull()
-      expect(approval.diff.summarySource).toBe('unavailable')
+      expect(approval.diff.summarySource).toBe('llm')
+      expect(approval.diff.summaryExposures?.map((e) => e.path)).toEqual(
+        approval.diff.changes.map((c) => c.path),
+      )
+      expect(approval.diff.summaryWithheldBecause).toBeNull()
       // R4(b): the verdict is shown even when nothing reviewed anything, in the PLATFORM's
       // words — `NullReviewer`'s reason, which the fixture now carries verbatim.
       expect(approval.diff.review.state).toBe('not_performed')

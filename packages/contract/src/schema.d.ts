@@ -831,10 +831,18 @@ export interface components {
             /** @description The AI-written plain-English summary of what changed. **Null is a state, not an error** (Decision 7): an approval gate that fails closed on a language model being down is an outage, not a control. `summarySource` says why. */
             summary: string | null;
             /**
-             * @description `llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff. `no-changes`: nothing in manifest.yaml changed, and the summary is the platform’s fixed sentence — no model wrote it.
+             * @description `llm`: the model wrote it. `unavailable`: it could not be produced, and the diff beside it is the control. `no-previous-release`: this is a first launch, so there is nothing to diff. `no-changes`: nothing in manifest.yaml changed, and the summary is the platform’s fixed sentence — no model wrote it. `withheld`: the model answered, and its answer broke the schema it was given or stated a decision, so it is not shown — `summaryWithheldBecause` names the rule, and the diff, the security notes and the reviewer’s verdict are the record.
              * @enum {string}
              */
-            summarySource: "llm" | "unavailable" | "no-previous-release" | "no-changes";
+            summarySource: "llm" | "unavailable" | "no-previous-release" | "no-changes" | "withheld";
+            /** @description Which rule a `withheld` answer broke, in the platform’s words — never the model’s text, which could carry an app’s own words. Null for every other `summarySource`. */
+            summaryWithheldBecause: string | null;
+            /** @description One sentence per change, in `changes`’ order, written by a language model: what that change could expose. The model is given the changes and the security notes only — never the verdict — and fills a schema with no place for one (the D5 plan’s Decision 19). The change lines are the record; these are the model’s reading of them, and a reading can get a fact wrong. Null unless `summarySource` is `llm`, and for a record made before it existed, whose `summary` is one string. */
+            summaryExposures: {
+                /** @description The change it is about — one of `changes`’ own paths. */
+                path: string;
+                sentence: string;
+            }[] | null;
             /** @description The last approved release this one was compared with (§13 D9.2) — null for a first launch, and for a record made before P6b. */
             baselineReleaseId: string | null;
             /** @description Which of §7’s sensitive fields changed since that release — what re-escalated it to an administrator. Empty for a first launch. */

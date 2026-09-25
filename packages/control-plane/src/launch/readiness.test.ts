@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import {
+  approvalPreviews,
   approvals,
   appSpecs,
   builds,
@@ -595,10 +596,94 @@ describe('the code-review item — R4’s seam, NON-blocking (D33, Decision 13)'
       },
     })
   }
+  /** A stored PREVIEW's verdict — `latestReviewFor`'s second source (P6b Task 9). */
+  async function recordPreview(
+    tx: Db,
+    projectId: string,
+    releaseId: string,
+    createdBy: string,
+    review: {
+      state: 'not_performed' | 'clean' | 'findings'
+      reviewer: string
+      detail: string
+    },
+    createdAt: Date,
+  ): Promise<void> {
+    await tx.insert(approvalPreviews).values({
+      releaseId,
+      projectId,
+      createdBy,
+      createdAt,
+      expiresAt: new Date(createdAt.getTime() + 30 * 60 * 1000),
+      imageDigest: `sha256:${'b'.repeat(64)}`,
+      diffSnapshot: {
+        imageDigest: `sha256:${'b'.repeat(64)}`,
+        changes: [],
+        services: [],
+        attributes: [],
+        resources: {},
+        summary: null,
+        summarySource: 'no-previous-release',
+        review,
+      },
+    })
+  }
   const codeReview = async (tx: Db, projectId: string) =>
     (await computeLaunchReadiness(tx, projectId)).items.find(
       (i) => i.id === 'code-review',
     )!
+
+  /**
+   * F13 (P6b sitting 7): the item said its verdict was *"recorded when an administrator decided
+   * on this release"* — and since P6b Task 9 its newest source can be a PREVIEW, taken before
+   * anybody decided (the green runs printed the sentence at `gateA`, before any decision). It
+   * now names the source `latestReviewFor` actually read. **BOTH CASES IN ONE TEST, for each
+   * state**: a sentence that always said "previewed" would pass a preview-only test.
+   */
+  it.each(['not_performed', 'clean', 'findings'] as const)(
+    'F13: a %s verdict says where it was recorded — a preview, then a decision',
+    async (state) => {
+      await withProject(async (tx, { projectId, ownerId }) => {
+        const releaseId = await serving(tx, projectId, ownerId, scan(1, false))
+        const review = {
+          state,
+          reviewer: state === 'not_performed' ? 'none' : 'semgrep',
+          detail:
+            state === 'not_performed'
+              ? 'No code reviewer is configured.'
+              : state === 'clean'
+                ? '12 checked, no findings'
+                : '1 finding(s): [advise] x',
+        }
+        await recordPreview(
+          tx,
+          projectId,
+          releaseId,
+          ownerId,
+          review,
+          new Date('2026-09-20T00:00:00Z'),
+        )
+        const previewed = await codeReview(tx, projectId)
+        expect(previewed.why).toMatch(
+          /recorded when this release was previewed on 2026-09-20/i,
+        )
+        expect(previewed.why).not.toContain('decided')
+        await recordVerdict(
+          tx,
+          projectId,
+          releaseId,
+          ownerId,
+          review,
+          new Date('2026-09-21T00:00:00Z'),
+        )
+        const decided = await codeReview(tx, projectId)
+        expect(decided.why).toMatch(
+          /recorded when an administrator decided on this release on 2026-09-21/i,
+        )
+        expect(decided.why).not.toContain('previewed')
+      })
+    },
+  )
 
   it('code-review reads the newest verdict recorded for the candidate: clean → met, still non-blocking', async () => {
     await withProject(async (tx, { projectId, ownerId }) => {

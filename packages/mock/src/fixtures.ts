@@ -40,6 +40,8 @@ export const APP_SPEC_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 export const STUDENT_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 export const APPROVAL_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 export const APPROVAL_PREVIEW_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+export const WITHHELD_PREVIEW_ID = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd2'
+export const UNAVAILABLE_PREVIEW_ID = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd3'
 
 export const ME: Schemas['Me'] = {
   id: USER_ID,
@@ -346,13 +348,12 @@ export const RELEASES: Schemas['ReleaseList'] = [RELEASE]
 /**
  * §13's approval (P6a Task 10), as a console screen reads it at decision time.
  *
- * **THE DIFF IS POPULATED AND THE SUMMARY IS NOT.** `summarySource: 'unavailable'` is the
- * state Decision 7 exists for — a model that could not be reached — and it is the one a
- * screen is most likely to render wrongly, because the obvious layout has nowhere to put
- * "there is no summary, and the diff beside it is the control". A fixture that always had
- * a summary would hide that.
- */
-/**
+ * **THE SUMMARY IS THE MODEL'S ONE SENTENCE PER CHANGE** (the D5 plan's Task 13): what the
+ * screen now lays out under each change line, labelled as the model's — the layout a
+ * front-end developer must build. The two states that have NO summary, and that the obvious
+ * layout has nowhere to put, are `WITHHELD_APPROVAL_PREVIEW` and `UNAVAILABLE_APPROVAL_PREVIEW`
+ * below: validated against the document like every fixture, and never a blank space.
+ *
  * THE DIFF AN ADMINISTRATOR READS, ONCE (P6b Task 9): the preview carries it and the approval
  * COPIES it, which is the platform's rule — so the mock's two fixtures share one object rather
  * than two literals that could drift into a preview and a record that disagree.
@@ -370,8 +371,17 @@ const APPROVAL_DIFF: Schemas['ApprovalDiff'] = {
   services: ['mongodb@7.0'],
   attributes: ['givenName', 'mail', 'ubcEduCwlPuid'],
   resources: { cpu: 1, memory: '512Mi', disk: '1Gi', pids: 64 },
-  summary: null,
-  summarySource: 'unavailable',
+  summary:
+    'The app can hold twice as much in memory, which raises its cost and how much a fault in it can take down with it.',
+  summarySource: 'llm',
+  summaryWithheldBecause: null,
+  summaryExposures: [
+    {
+      path: 'resources.memory',
+      sentence:
+        'The app can hold twice as much in memory, which raises its cost and how much a fault in it can take down with it.',
+    },
+  ],
   // `NullReviewer`'s reason VERBATIM (`launch/review.ts`), which is what `describeVerdict`
   // stores for `not_performed` — the screen renders this sentence as the platform's own,
   // so a paraphrase here would teach a front-end developer a sentence the platform never says.
@@ -416,6 +426,41 @@ export const APPROVAL_PREVIEW: Schemas['ApprovalPreview'] = {
   expiresAt: new Date(Date.parse(ISO) + 30 * 60 * 1000).toISOString(),
   imageDigest: BUILD.imageDigest as string,
   diff: APPROVAL_DIFF,
+}
+
+/**
+ * THE MODEL'S ANSWER, WITHHELD (the D5 plan's Task 13): it stated a decision, so the platform
+ * stored no summary and named the rule — in `summary.ts`'s `checkExposure` words, verbatim —
+ * and never the model's sentence. The screen says so where the summary would be.
+ */
+export const WITHHELD_APPROVAL_PREVIEW: Schemas['ApprovalPreview'] = {
+  ...APPROVAL_PREVIEW,
+  id: WITHHELD_PREVIEW_ID,
+  diff: {
+    ...APPROVAL_DIFF,
+    summary: null,
+    summarySource: 'withheld',
+    summaryWithheldBecause:
+      'a sentence states or suggests a decision, a verdict or an approval, which is the administrator’s and the record’s, never the model’s',
+    summaryExposures: null,
+  },
+}
+
+/**
+ * Decision 7's state: the model could not be reached. Until the D5 plan's Task 13 this was
+ * the served preview, and the reason for it still stands — it is the one a screen is most
+ * likely to render wrongly — so it stays in the validated table.
+ */
+export const UNAVAILABLE_APPROVAL_PREVIEW: Schemas['ApprovalPreview'] = {
+  ...APPROVAL_PREVIEW,
+  id: UNAVAILABLE_PREVIEW_ID,
+  diff: {
+    ...APPROVAL_DIFF,
+    summary: null,
+    summarySource: 'unavailable',
+    summaryWithheldBecause: null,
+    summaryExposures: null,
+  },
 }
 
 export const APPROVAL: Schemas['Approval'] = {
@@ -818,4 +863,6 @@ export const FIXTURES: [string, unknown][] = [
   // exactly the check this table exists to make without one.
   ['Approval', APPROVAL],
   ['ApprovalPreview', APPROVAL_PREVIEW],
+  ['ApprovalPreview', WITHHELD_APPROVAL_PREVIEW],
+  ['ApprovalPreview', UNAVAILABLE_APPROVAL_PREVIEW],
 ]

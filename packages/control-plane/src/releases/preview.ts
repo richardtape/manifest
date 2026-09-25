@@ -24,14 +24,19 @@ export type PreviewRow = typeof approvalPreviews.$inferSelect
  * The deterministic half of a stored snapshot — what the approval compares. NEVER the summary
  * or the verdict (Decision 10).
  *
- * The three are taken out BY NAME, so a key added to `DiffSnapshot` later is a fact by default
- * and compared — the conservative direction: a new field that moved refuses a stale preview
- * rather than letting it through.
+ * The written keys are taken out BY NAME, so a key added to `DiffSnapshot` later is a fact by
+ * default and compared — the conservative direction: a new field that moved refuses a stale
+ * preview rather than letting it through. **Which is exactly what the D5 plan's Task 13's two
+ * keys did until they were named here**: the model's per-change sentences and the rule a
+ * withheld answer broke are written, and facts recomputed at decision time carry neither, so
+ * every preview with a model answer compared stale and its decision was refused.
  */
 export function factsOf(snapshot: DiffSnapshot): DiffFacts {
   const {
     summary: _summary,
     summarySource: _source,
+    exposures: _exposures,
+    summaryWithheldBecause: _because,
     review: _review,
     ...facts
   } = snapshot
