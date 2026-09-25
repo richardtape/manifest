@@ -1,6 +1,6 @@
 # D5's Driver 2 — the GitHub Source Driver Implementation Plan
 
-> **WRITTEN 2026-09-24. SITTING 1 (TASK 1, THE MEASUREMENTS), SITTING 2 (TASKS 2 AND 3) AND SITTING 3 (TASKS 4, 5 AND 6 — THE FAKE, ITS CONTAINER AND THE CONFORMANCE RUN, REAL LEG INCLUDED) RAN ON 2026-09-24. Which sitting is next is stated by the sittings table below (and ORIENTATION §7e), and nowhere else.** **Sitting 3's real conformance leg MET SPEC ACTION 3'S CONDITION** — a token scoped to another repository created one, so GitHub does not confine creation to a token's repositories — **and Rich chose option (b) the same evening: §20's bullet 1 is corrected** (*Spec actions*, 3). Every premise held, and the measurements found that one rewrite of GitHub's `main` freezes the mirror's (F6) — corrected in Tasks 7, 9 and 11 — and that Task 13's check crosses its own line (F7). **Rich decided F7 the same day: the summary becomes STRUCTURED OUTPUT, and Task 13 is rewritten for it (Decisions 19 and 22); he also switched the chat model to `qwen3.5:4b`, with thinking off.** No sitting boundary moved. The `[M<n>]` blocks at the top of Tasks 2, 4, 5, 7, 8, 9, 11 and 13 are the corrections; [`spikes/d5-baseline/`](../spikes/d5-baseline/README.md) is the record. **Its three spec actions were approved by Rich and APPLIED the same day** (*Spec actions*, below): §20's push-time sentence as option (a), §21's inventory row, and §20's one unscoped token — the last *unless the conformance run says otherwise*. *What executing this plan found* is where every sitting's record goes.
+> **WRITTEN 2026-09-24. SITTING 1 (TASK 1, THE MEASUREMENTS), SITTING 2 (TASKS 2 AND 3), SITTING 3 (TASKS 4, 5 AND 6 — THE FAKE, ITS CONTAINER AND THE CONFORMANCE RUN, REAL LEG INCLUDED) AND SITTING 4 (TASKS 7 AND 8 — THE DRIVER AND ITS WIRING) RAN ON 2026-09-24. Which sitting is next is stated by the sittings table below (and ORIENTATION §7e), and nowhere else.** **Sitting 3's real conformance leg MET SPEC ACTION 3'S CONDITION** — a token scoped to another repository created one, so GitHub does not confine creation to a token's repositories — **and Rich chose option (b) the same evening: §20's bullet 1 is corrected** (*Spec actions*, 3). Every premise held, and the measurements found that one rewrite of GitHub's `main` freezes the mirror's (F6) — corrected in Tasks 7, 9 and 11 — and that Task 13's check crosses its own line (F7). **Rich decided F7 the same day: the summary becomes STRUCTURED OUTPUT, and Task 13 is rewritten for it (Decisions 19 and 22); he also switched the chat model to `qwen3.5:4b`, with thinking off.** No sitting boundary moved. The `[M<n>]` blocks at the top of Tasks 2, 4, 5, 7, 8, 9, 11 and 13 are the corrections; [`spikes/d5-baseline/`](../spikes/d5-baseline/README.md) is the record. **Its three spec actions were approved by Rich and APPLIED the same day** (*Spec actions*, below): §20's push-time sentence as option (a), §21's inventory row, and §20's one unscoped token — the last *unless the conformance run says otherwise*. *What executing this plan found* is where every sitting's record goes.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
 
@@ -38,8 +38,8 @@
 | 1 | 1 | **The measurements this plan rests on.** Measured while the plan was written, and to be re-measured: the smart-HTTP transport, the credential-leak paths, the webhook's route, the stateless token format the secret gate misses, the model's F9 rate. **To be measured for the first time:** whether a new workspace package links offline, whether an installation token can be scoped to a repository it has just created, how `compose down` treats a profiled service, and the four gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | **DONE 2026-09-24** — every premise held; F6 (one rewrite freezes the mirror's `main`) corrects Tasks 7, 9 and 11; F7 decided by Rich the same day — structured output, Task 13 rewritten; the contract bump moves to Task 2 (F8); no boundary moved |
 | 2 | 2, 3 | **The build path behind `SourceDriver`** — `localGitDir`, `RepoRef` without a path, and the source-driver contract suite, which driver 1 passes — and **the App key's custody**: one owner-only rule for both keys, the App JWT, the fake App's credentials minted by `make up`, and the GitHub settings | **Yes** — `releases/`, `build/` callers, `secrets/` | **DONE 2026-09-24** (`5758330`, `ef464a3`) — the builder and reviewer ask `localGitDir`; the suite is eleven cases, with an `extra` hook Task 7 uses; `SOURCE_FOREIGN_REPO` retired; contract `1.2.0`; a `644` master key refuses boot; `make up` mints the fake App's four files; no boundary moved |
 | 3 | 4, 5, **6** | **The fake** — App JWT → installation tokens, private org repositories and git over HTTP, all held to GitHub's own schemas — **its container** (`--profile github`, 7110, built by `make seed`), and **the conformance run** against GitHub's recorded answers, with a real App at Rich's yes. **If it runs long, stop after Task 5 and sweep** | **Yes** — `infra/`, a `*.docker.test.ts` | **DONE 2026-09-24** (`038cdf4`, `f10f895`, `a874895`) — `@manifest/github-fake` held to GitHub's schemas; `manifest-github-fake:local` behind `--profile github` on `127.0.0.1:7110`, doctor 20 and verify 57; **the real leg ran at Rich's yes** (App 5068172, both repositories deleted) and golden now holds GitHub's measured answers — three differed and the fake was corrected; **C7s met Spec action 3's condition — Rich chose (b), §20 corrected**; no boundary moved |
-| 4 | 7, 8 | **The GitHub driver** — mirror, tokens that never leave the process, the contract suite green against the fake — and **its wiring**: boot, `source_repositories` (migration), the provider mismatch refusal, `SOURCE_UNREACHABLE` as `503`, the contract to `1.2.0`, and a real build through the fake | **Yes** — `api/`, `build/` callers, a `*.docker.test.ts` | not started ← next — nothing of Rich's is needed to START it |
-| 5 | 9, 10 | **Webhooks** — the fake delivers signed events; the receiver refuses an ABSENT signature, a malformed one and a wrong one by code, records a delivery once, and syncs off the request; a rewritten `main` is refused by the mirror and reported — and **enforced-private**: a repository found public is made private again, reported, and not built while public | **Yes** — `observability/`, `projects/`, a `*.docker.test.ts` | not started |
+| 4 | 7, 8 | **The GitHub driver** — mirror, tokens that never leave the process, the contract suite green against the fake — and **its wiring**: boot, `source_repositories` (migration), the provider mismatch refusal, `SOURCE_UNREACHABLE` as `503`, the contract to `1.2.0`, and a real build through the fake | **Yes** — `api/`, `build/` callers, a `*.docker.test.ts` | **DONE 2026-09-24** (`ac96f7b`, `f51bd54`, and the fix `c47bdf0`) — driver 2 passes Task 2's suite unchanged against the fake, boots by `MANIFEST_SOURCE_DRIVER=github`, and builds from its mirror online and offline to the same digest; `repositoryOf` refuses another driver's project — without it driver 2 BUILT a driver-1 project (F6); `sync` tolerates a rewrite rather than throwing (F3) and runs one fetch at a time per mirror (F19); migration 0024; no boundary moved |
+| 5 | 9, 10 | **Webhooks** — the fake delivers signed events; the receiver refuses an ABSENT signature, a malformed one and a wrong one by code, records a delivery once, and syncs off the request; a rewritten `main` is refused by the mirror and reported — and **enforced-private**: a repository found public is made private again, reported, and not built while public | **Yes** — `observability/`, `projects/`, a `*.docker.test.ts` | not started ← next — nothing of Rich's is needed to START it |
 | 6 | 11, 12 | **Push-time secret scanning** on every path Manifest can see — its own commits before they leave, driver 1's pushes by a hook, and driver 2's pushes on arrival — with the stateless token pattern, and **`main` protected** on both drivers, and **the repository link** on `Project` and the console | **Yes** — `build/`, `projects/` | not started |
 | 7 | 13, 14 | **P6b's inherited findings**: F9 (the model invents a verdict — fixed by making the summary STRUCTURED OUTPUT with no place for one), F13 and F14 on the server, and F11, F12 and F15 in the console | **Yes** — `releases/`, `launch/` | not started |
 | 8 | 15 | **The acceptance**: `make demo-github` against a GitHub-mode control plane — green three times, offline, with its offline-acceptance and `ci-acceptance` steps — `make github-conformance` at Rich's yes, `make demo` still green on driver 1, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | not started |
@@ -2379,6 +2379,26 @@ git commit -m "feat(source): boot builds the driver by config; every project rec
 > content type. The fake sends JSON; **a real App must be registered with content type
 > `application/json`**, which belongs in the RUNBOOK's registration steps beside *What Rich does* 2's.
 
+> **SITTING 4 — WHAT TASKS 7 AND 8 BUILT, WHICH THIS TASK CONSUMES (2026-09-24).** **`sync` is SERIALISED per mirror**
+> (`c47bdf0`, sitting 4's F19: concurrent fetches after a push lost git's ref lock five times in six) — this task's
+> queue serialises DELIVERIES on top of that, and needs no lock of its own for the mirror. **`sync` does not throw on a
+> rewrite any more** (sitting 4's F3): it fetches `refs/heads/*` non-forced and `+refs/heads/*:refs/manifest/upstream/*`
+> forced, with `acceptExit: [1]` on `gitWithToken`, and TOLERATES a `! <old> <new> refs/heads/<b>` line exactly when
+> `refs/manifest/upstream/<b>` now holds `<new>` — any other refused ref still throws `SOURCE_GIT_FAILED`. **So the
+> porcelain is already in hand**: this task turns that tolerance into `rewritten`, parses the shadow's lines as the
+> `[M14]` block above says, and reports. **Task 7's control (f) — the history refspec forced — is ALREADY red** in
+> `github/driver.test.ts`'s F6 case (the history keeper's `refs/heads/main` must stay the first commit); this task's
+> *a rewritten main is refused by the mirror and reported* should name it too, not replace it. Also built: `sync` is
+> private to `createGithubSourceDriver` and every method is wrapped so a `SourceError` leaving it is redacted with
+> every token `TokenCache.redact` holds — **a method this task adds (`sync` on the interface) is wrapped by the same
+> loop**; `githubTestDeps(fake, { reposRoot? })` (share a root to model a laptop that switched drivers — sitting
+> 4's F6); `startFakeContainer()` takes NO options yet — this task adds `webhookUrl`; `describeRepository(repo)` (not
+> the plan's `webUrlOf`) reads `manifest.fullName` and `manifest.webUrl` off the mirror; the fake's `startFake` has
+> test-only `port`, `appKeyPem` and `quirks.createPublic` — `refusePrivatize` is Task 10's. **Every `GithubDriverOptions`
+> builder** `tsc` will name when `observer` becomes required: `src/index.ts`, `api/testing.ts`'s `githubTestDeps`,
+> `github/driver.test.ts`'s harness and `github/build.docker.test.ts` — four; `projects/source-repositories.test.ts`
+> builds through `githubTestDeps`, so it needs nothing of its own.
+
 **§20: *"Webhook payloads verified by HMAC before any processing."*** And ORIENTATION §7e's lesson from 2026-09-24, which is this task's design constraint: **node-saml verified a signature that was PRESENT and accepted one that was ABSENT, while every test fired garbage and passed.** So this task's tests send a real signed delivery, an unsigned one, a SHA-1-only one, a malformed one and a wrongly-signed one, and assert each refusal's CODE beside the accepted one. It also makes the mirror's sync report instead of fail: a rewritten branch is refused and named, a fast-forward lands, and both reach the one observer (Decision 11).
 
 **Files:**
@@ -3965,3 +3985,205 @@ wrong in detail (Task 5's (e): red one step earlier than predicted).
   (`qwen3.5:4b` and `nomic-embed-text` unloaded at close). `docker-simple-saml-saml-idp-1` is `Exited (0) 2 weeks
   ago`, as found; the other three must-survive containers are up. Snapshot diff (19:12 → 20:24): uptimes, the edge's
   restart, 6 app images and the fake's, free disk 113 → 110 GiB, `HEAD`, and this sitting's own files.
+
+### Sitting 4 — Tasks 7 and 8, the GitHub driver and its wiring — 2026-09-24
+
+**D5'S DRIVER 2 EXISTS AND BOOTS, AND THE PROVIDER CHECK IS THE ONLY THING STANDING BETWEEN THE TWO DRIVERS — MEASURED.**
+Task 7 (`ac96f7b`): `createGithubSourceDriver` keeps a bare MIRROR at driver 1's path, fetched with TWO refspecs in one
+fetch — `refs/heads/*` non-forced, the history keeper, and `+refs/heads/*:refs/manifest/upstream/*` forced, GitHub now —
+so one rewrite of GitHub's `main` no longer freezes `headCommit`, `listBranches` or `commitFiles` (sitting 1's F6, now a
+case in the contract suite's `extra`); installation tokens are minted per repository and purpose, kept in memory, handed
+to git only through `GIT_CONFIG_*` with `GIT_TRACE_REDACT` forced, and every `SourceError` leaving the driver is redacted
+with every token it holds — a canary and an argv recorder hold that; a repository is created private or deleted,
+never adopted, and offline a mirrored commit still builds while `headCommit` is `SOURCE_UNREACHABLE`. **Task 2's suite
+passes unchanged against the in-process fake**, plus one case both drivers now keep: `readFile` at a commit the
+repository lacks — or at a symbolic name — is `SOURCE_COMMIT_NOT_FOUND`, never "no such file". Task 8 (`f51bd54`):
+`MANIFEST_SOURCE_DRIVER=github` boots driver 2 (the boot line says `"source":"github"`); `source_repositories`
+(migration 0024, backfilling `local`) records every project's provider, and `builds`, `validateSpec` and the approval
+preview's reviewer name a repository only through `repositoryOf`, which refuses another driver's project `409
+SOURCE_PROVIDER_MISMATCH` — **without it, on the repository root both drivers share, driver 2 took a driver-1 bare
+repository for its mirror and BUILT it** (F6); `SOURCE_UNREACHABLE` is a `503`; and a real BuildKit build ran from the
+mirror of a repository in the fake's IMAGE, then again with the fake stopped, to the same digest. **And one defect
+this sitting's own code had, found by measurement after Task 8 and fixed in its own commit (`c47bdf0`, F19): concurrent
+reads of one project after a push failed five times in six**, until `sync` ran one fetch at a time per mirror. **No task
+boundary moved.** Nothing of Rich's was needed; the network stayed off.
+
+#### The decisions this sitting made
+
+Each is a `Ruling:` line in the ledger with what it costs if wrong; the ones a later task inherits:
+
+**1. `sync` TOLERATES a rewrite's `!` rather than throwing** (F3): a refused `refs/heads/<b>` is expected exactly when
+`refs/manifest/upstream/<b>` holds the refused commit; any other refused ref throws `SOURCE_GIT_FAILED`. Task 9 reports
+it. *Rejected:* the `[M14]` block's "still a throw", which makes the same block's demanded case impossible.
+
+**2. `readFile` names a COMMIT on both drivers**: the new contract case also refuses `main`, `HEAD` and an abbreviated
+id. On driver 2 a symbolic name resolves to the history keeper, which a rewrite freezes. Every caller passes a full id.
+
+**3. `describeRepository(repo) → { fullName, webUrl }`, not the plan's `webUrlOf`** (F9). Driver 2 writes both from
+GitHub's CREATE answer onto the mirror; Task 12 folds it into the repository link.
+
+**4. `githubTestDeps(fake, { reposRoot })`**, so the mismatch test SHARES the root, as a laptop that switched drivers
+does (F6). **5. `startFake` gains test-only `port` and `appKeyPem`** beside `quirks.createPublic` (F11). **6. No
+`GithubApiError`** — nothing would throw or catch it (F17). **7. No `GRANT` in 0024** — `ensure-app-role.sh`'s default
+privileges cover it, measured on the live database. **8. `createApprovalPreview` lists `SOURCE_PROVIDER_MISMATCH`
+without a route test of its own** — the property is `repositoryOf`'s, held by the builds and spec cases.
+
+#### The findings
+
+**F1 — GIT'S TWO `show` MESSAGES ARE THE SAME, SO THE PLAN'S "SPLIT DRIVER 1 ON THEM" CANNOT WORK.** Measured (git
+2.50.1): `git show <sha>:missing` → `fatal: path 'missing' does not exist in '<sha>'`, and `git show <absent-sha>:a.txt`
+→ `fatal: path 'a.txt' does not exist in '<absent-sha>'`, both exit 128. Both drivers check `cat-file -e
+<sha>^{commit}` first (`assertCommit`, `present`), then read the path.
+
+**F2 — A TOKEN GITHUB REFUSES IS `could not read Username … terminal prompts disabled`, NOT `Authentication failed`.**
+Measured against the fake: with the credential in `http.extraHeader` and no helper, git answers the `401` by asking for
+a username. The plan's re-mint trigger would never have fired; `isAuthRefusal` matches both, and control (j) holds it.
+
+**F3 — THE `[M14]` BLOCK CONTRADICTS ITSELF.** It keeps `sync` "a throw, as written" on a `!` and demands a case where
+`headCommit` answers the push after a rewrite — and after a rewrite EVERY fetch exits 1 with `! <first> <rewrite>
+refs/heads/main` (re-measured through the real driver). Decision 1 above; control (f2) is the throwing form, red.
+
+**F4 — THE PLAN'S CONTROL (a) COULD NOT FAIL AS PREDICTED.** It predicted the header in argv would turn the canary and
+`git.test.ts`'s case 2 red; both build their message from git's STDERR (the plan's code does too), and git never prints
+its own argv — only `String(error)` and `ps` see it. Found by reading before running. `git.test.ts` gained *never puts
+the token in an argument*: a `git` first on PATH records `"$@"`. Control (a) is red there and only there.
+
+**F5 — TASK 7'S `readFile` REFUSAL CHANGED `validateSpec`, AND NOTHING SAW IT.** A `commitSha` the repository lacks was
+`201` with an INVALID spec recorded for a commit never read (the `null`); after Task 7 it is `409
+SOURCE_COMMIT_NOT_FOUND` — and 1851 tests were green with the route's `errors:` list not saying so. Task 8 lists it
+and adds the route case (nothing recorded, beside the seeded commit validating); control (i) is its red.
+
+**F6 — DECISION 3'S HAZARD, MEASURED: DRIVER 2 BUILDS A DRIVER-1 PROJECT.** Both drivers keep repositories at
+`config.reposRoot`, so driver 1's bare repository is exactly where driver 2's mirror would be. With the provider check
+removed and the root shared, a GitHub-mode control plane answered **`202` and built** the driver-1 project — the
+commit was "in the mirror". With the separate temp roots the plan's harness gives, the same break answers a harmless
+`409 SOURCE_GIT_FAILED` and hides it. The test shares the root.
+
+**F7 — ADOPTING AN ORPHAN WOULD DELETE IT.** Task 7's control (d): with the `422` branch adopting, the seed push is
+refused non-fast-forward (`SOURCE_CONFLICT`) and the create's own cleanup then DELETES the repository it adopted —
+somebody's code. Decision 16, measured.
+
+**F8 — TASK 7'S CONTROL (f) WAS PREDICTED "NOTHING RED"; THE F6 CASE HOLDS IT NOW.** The history refspec forced turns
+the F6 case red at the history keeper (`refs/heads/main` became the rewrite). Task 9's case should still name it.
+
+**F9 — THE PLAN'S `webUrlOf` LEFT THE ROW'S `fullName` TO THE ROUTE**, where `${org}/${slug}` is driver knowledge in
+the API — the D5 leak. Decision 3 above.
+
+**F10 — THERE ARE TWO TRUNCATION LISTS.** The plan names `db/testing.ts`'s `TABLES`; `vitest.global-setup.ts` has its
+own. `source_repositories` is in both (belt and braces — the CASCADE empties it unnamed).
+
+**F11 — THE RE-MINT CASE NEEDS THE SAME GITHUB BACK, AND `startFake` COULD NOT GIVE IT.** "Restart the fake over the SAME
+dataDir" generated a new App key and a new port, so the driver's JWT and URL would break for the wrong reason.
+
+**F12 — `startFakeContainer`'S PLANNED INTERFACE COULD NOT SERVE TASK 5'S TEST**, which now imports it: it needs the URL,
+the container's name, the key's path and `replace()` (rm + run on the same volume — Task 5's own ruling).
+
+**F13 — THE CONTROL PLANE CANNOT RUN FROM ITS TYPESCRIPT SOURCE UNDER NODE'S TYPE STRIPPING.** Probing the real driver
+outside Vitest: `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` on `SourceError`'s parameter property. Compiled into the scratchpad
+instead (TRAPS.md has the recipe).
+
+**F14 — MY OWN CONTROL (c) WAS RED FOR THE WRONG REASON.** The backfill helper read every entry of `drizzle/`, and
+`meta/` is a directory: with the backfill removed it crashed `EISDIR` rather than saying "no migration backfills". In
+the green run `find` stopped at 0024 before reaching `meta/`. Fixed (`.sql` only), amended, re-run: the right reason.
+
+**F15 — ZSH EXPANDED MY PROBE'S `$SHA:a.txt` AS A HISTORY MODIFIER** (`:a`, "absolute path"), and git was handed a file
+path. `$SHA:missing` worked only because `:m` is not a modifier.
+
+**F16 — TASK 8'S CONTROL (e) WAS PREDICTED GREEN ("the stop IS the control"); IT IS RED**, because the Docker test also
+asserts `headCommit` is `SOURCE_UNREACHABLE` after the stop — the stop is asserted, not assumed.
+
+**F17 — `GithubApiError` HAS NO CALLER** — Task 7's Files list names it; `refusal()` builds the `SourceError` directly.
+
+**F18 — THE DOCKER TEST'S FIXTURE IS `fixtures/fixture-app`, NOT A `fixture-node` TREE** — what `fixtureBareRepo` seeds
+from, as the plan's own hedge said to check.
+
+**F19 — CONCURRENT READS OF ONE PROJECT AFTER A PUSH FAILED FIVE TIMES IN SIX — `sync` WAS NOT SERIALISED.** Measured
+while the Docker tier ran, through the compiled driver: after a person's push, six concurrent `headCommit` calls, ten
+rounds — **50 of 60 failed `SOURCE_GIT_FAILED`** (`! <old> <new> refs/manifest/upstream/main`: every fetch tried to move
+the same refs, and all but one lost git's ref lock); quiet syncs were 60 of 60 fine, which is why no test had seen it.
+Two parallel API calls on one project — a validate beside a build, an agent's parallel reads — would fail one. **Fixed
+in its own commit**: `sync` runs one fetch at a time per mirror, each caller its own fetch after the one before (never
+the previous one's answer, which may predate a push the caller was told about), and a previous sync's failure is its
+own caller's. The case *serialises its syncs* was watched red (`[ 'SOURCE_GIT_FAILED', …(5) ]`) and is green three
+times in a row; the probe re-measured **0 of 60**. Task 9's serial queue serialises DELIVERIES; this serialises the
+mirror, which every read path shares.
+
+#### Negative controls
+
+Every one after its task's commit, predicted first, restored with `git checkout <path>`, `git status` clean after each;
+the substitution scripts assert each pattern matched exactly once.
+
+| Task | # | Break | Predicted | Measured |
+|---|---|---|---|---|
+| 7 | (a) | the header in argv | the plan: canary + case 2 red; mine: only the argv test | **only the argv test** — F4 |
+| 7 | (b) | the message from `String(error)` | all green (the token is in the environment) | all 27 green |
+| 7 | (ab) | both | only the argv test (the redactor masks the message) | as predicted |
+| 7 | (abr) | both, redactor neutered | 5 red | canary, redact unit, unreachable, authenticates, argv |
+| 7 | (c) | no private check | *refuses … not private* red | `expected 'resolved' to be 'SOURCE_REPOSITORY_NOT_PRIVATE'` |
+| 7 | (d) | the `422` adopts | *never adopts* red | `SOURCE_CONFLICT` — and the cleanup deletes it (F7) |
+| 7 | (e) | unreachable swallowed | the offline case's last line | `expected 'SOURCE_COMMIT_NOT_FOUND' to be 'SOURCE_UNREACHABLE'` |
+| 7 | (f) | the history refspec forced | the plan: nothing; mine: the F6 case | **the F6 case red** — F8 |
+| 7 | (f2) | `sync` throws on every `!` | the F6 case red | `git fetch refused 1 ref(s) … refs/heads/main` — F3 |
+| 7 | (g) | `forRepository` installation-wide | *scopes every token* red | 4 wide mints, not 1 |
+| 7 | (h) | `headCommit` reads `refs/heads/*` | the F6 case red | the frozen head, not the rewrite |
+| 7 | (i) | no `GIT_TRACE_REDACT` | the trace-file case red | the base64 in the file |
+| 7 | (j) | no re-mint | the re-mint case red | `could not read Username …` — F2 |
+| 7 | (l) | the mirror's hook exits 0 | *the mirror refuses a push* red | `expected 'accepted' to contain 'mirror of GitHub'` |
+| 8 | (a) | `repositoryOf` without the comparison | the plan: `201`; mine: `202` at `/builds` | **`202`** — the builds route |
+| 8 | (b) | no `503` branch | the mapping case | **two red**: that and the registry's status case |
+| 8 | (c) | the backfill removed from 0024 | the backfill case | `EISDIR` first (F14), then *no migration backfills* |
+| 8 | (f) | no `recordRepository` | both row cases + the mismatch case | 3 red; the mismatch case `500 INTERNAL` |
+| 8 | (h) | `validateSpec` on `repositoryFor` | `/spec` `409 SOURCE_GITHUB_REFUSED` | as predicted |
+| 8 | (i) | driver 1's `readFile` without `assertCommit` | the validate case `201` | as predicted — F5's red |
+| 8 | (e) | the Docker test without `fake.stop()` | the plan: green; mine: red at `headCommit` | **red** — F16 |
+| fix | — | `sync` calls `fetchInto` directly (after `c47bdf0`) | *serialises its syncs* red | `[ 'SOURCE_GIT_FAILED', …(5) ]` — F19 |
+
+**One control of mine was red for the wrong reason** (Task 8's (c), F14 — fixed and re-run). **Three of the plan's
+predictions were wrong**: Task 7's (a) and (f) and Task 8's (e), each in the direction of a control that can fail.
+
+#### Step 6, and what it left
+
+**Step 6, through the real HTTP surface (dist from `f51bd54`).** `make github-up`; the control plane booted with
+`MANIFEST_SOURCE_DRIVER=github` read `{"driver":"docker","source":"github","github":"127.0.0.1:7110","githubOrg":"manifest-apps"}`.
+A real CWL sign-in (`instructor`), then `POST /v1/projects` → `201`, spec valid; its row `github | manifest-apps/<slug> |
+http://127.0.0.1:7110/manifest-apps/<slug>`; **read back ON THE FAKE with `faculty-dev`'s token: `private: true`,
+`visibility: private`, and GitHub's `main` = the project's spec commit** = the mirror's shadow. A build through the API
+**succeeded**, `sha256:5859299c65fa`; with the fake STOPPED the same commit **built again to the same digest**, and
+`POST …/spec` at `HEAD` answered **`503 SOURCE_UNREACHABLE`** with its hint and no token. Then on driver 1 (the variable
+unset): the boot line reads `"source":"local"`; the driver-2 project is **`409 SOURCE_PROVIDER_MISMATCH`**, naming both
+drivers and the restart that fixes it; and control (c)'s real-machine half — a project whose row is deleted, as a missing
+backfill would leave it — answers **`500 INTERNAL`** with the operator line *"project '…' has no source_repositories row;
+every project has one since migration 0024"*. Control (d) — `index.ts` building driver 1 whatever the config says —
+turned no test red, as the plan predicted: the boot line read `"source":"local"` with the variable set to `github`, and
+that line (and Task 15's step 0) is what holds it. **Everything Step 6 made was removed**: the three repositories it
+created under `.manifest/repos/`, the fake's container and its volume (the machine had neither at open).
+
+#### The gates, and the machine at close — queried, not recalled
+
+- **`pnpm test` 1851 in 134 after Task 7, 1857 in 135 after Task 8 and 1858 in 135 after the F19 fix, twice each** —
+  each as predicted (Task 7: 1818 + 1 contract case on driver 1 + 22 in `driver.test.ts` + 5 in `git.test.ts` + 5 in
+  `tokens.test.ts`, three new files; Task 8: + 4 in `source-repositories.test.ts`, 1 mapping case, 1 validate case; the
+  fix: + 1). **At close: 1858 passed in 135 files, twice (224 s, 206 s)**; `pnpm lint`, `pnpm typecheck` and `pnpm
+  format:check` clean. At open: 1818 in 131, twice (186 s, 188 s), all four clean.
+- **`pnpm test:docker` 207 in 33, twice** — owed by Task 8 (1177.2 s) and again by the fix to `source/` (1166.4 s), green
+  both times, up one test in one file (`github/build.docker.test.ts`). Chat model warmed first; S6's probe 14 passed.
+  **`make verify` 57/0 straight after both** — sitting 2's F19 did not recur.
+- **`make doctor` 20 / 0 / 0 and `make verify` 57 / 0 / 0** at open and at close. `scripts/ci-acceptance.sh` reads
+  `1858 / 135 / 20 / 57`. Contract `1.2.0`.
+- **Cleanups**: after each tier, `dead-app-resources.sh` found the usual **7 dead networks and 1 volume** and
+  `litellm-orphans.sh` **`p4b-probe-user`**; both `--apply` were ALLOWED (once, after the second tier) and re-measured
+  clean: `mf- containers=6 networks=2 volumes=4`.
+- **The database is EMPTY** (0 projects, builds, releases, specs and `source_repositories` rows; **25 migrations**) —
+  the close's `pnpm test` truncated it. `launch-app`'s six containers still run with no project row; `.manifest/repos/`
+  holds the same six bare repositories. Nothing listens on 7100, 7102, 7104 or 7110; three addresses on `lo0`.
+- **The GitHub fake**: `manifest-github-fake:local` is built (`98a310f686a7`); no container and no volume.
+  **`infra/secrets/`**: `master.key`, the four `github-fake-*` files, `github-app.pem` and `github-conformance.json`, all
+  `-rw-------`, owner `rich`. **Real GitHub was not called.**
+- **Images**: `docker images -q` **245**, `sort -u` **237**, `127.0.0.1:7107/local/*` **197** — the two tiers and Step 6
+  added 17 app images (180 → 197); no script sweeps app images. **Ollama with no model resident** (both unloaded at
+  close). `docker-simple-saml-saml-idp-1` is `Exited (0) 2 weeks ago`, as found; the other three must-survive
+  containers are up. Snapshot diff (20:42 → 22:24): uptimes, the edge's restart (last 22:08, the second tier), 17 app
+  images, `HEAD`, and this sitting's own files.
+- **The final whole-branch review is DEFERRED to the plan's end (sitting 8)**, as sittings 1–3 ruled: this sitting's
+  controls — 23, every one predicted (22 in the table, and Task 8's (d) through the boot line in Step 6), three of the
+  plan's predictions wrong and one of mine red for the wrong reason until fixed — are its per-sitting check.

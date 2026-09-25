@@ -1535,6 +1535,47 @@ it belongs among the traps the next sitting is most likely to hit.
   creates a PUBLIC repository (documented default). **The org `Manifest-local-dev` and the App's bot
   `manifest-local-dev[bot]` share a name**, so a normaliser that replaces a bare org name case-insensitively
   rewrites the bot's login too.
+- **`git show <sha>:<path>` SAYS THE SAME THING FOR A MISSING PATH AND A MISSING COMMIT** (2026-09-24, the D5 plan's
+  sitting 4, git 2.50.1). Both are `fatal: path '<p>' does not exist in '<sha>'`, exit 128 — the commit
+  `eeee…` that does not exist reads exactly like a file that is not in a tree. So a caller that turns a `show`
+  failure into "no such file" (`readFile`'s `null`) also turns a commit nobody has into "no such file", and the
+  validate route then RECORDED an invalid spec for a commit it never read. Check the commit first — `git cat-file
+  -e <sha>^{commit}` — and only then read the path; both drivers now do (`assertCommit`, `present`).
+- **A TOKEN GIT WAS HANDED IN A HEADER, AND THE SERVER REFUSED, IS `could not read Username … terminal prompts
+  disabled` — NOT `Authentication failed`** (2026-09-24, the D5 plan's sitting 4). With the credential in
+  `http.extraHeader` and no credential helper, git answers the server's `401` by asking for a username, which
+  `GIT_TERMINAL_PROMPT=0` forbids. `Authentication failed` is git's line only when a HELPER supplied the
+  credential. A re-mint-on-401 that matches only the latter never fires (`isAuthRefusal` in
+  `source/github/git.ts` matches both, and `The requested URL returned error: 401`).
+- **A GIT ERROR BUILT FROM STDERR NEVER SHOWS ARGV — SO A TOKEN IN `-c` IS INVISIBLE TO EVERY MESSAGE TEST, AND
+  VISIBLE TO `ps`** (2026-09-24, the D5 plan's sitting 4). The plan predicted that putting the header in argv
+  would turn the canary test red; it cannot, because git never prints its own arguments and only `String(error)`
+  (`Command failed: git <every argument>`) carries them. The property "no token in an argument" needs a test that
+  can SEE argv: `source/github/git.test.ts` puts a `git` first on PATH that records `"$@"` and execs the real one.
+- **THE CONTROL PLANE CANNOT RUN FROM ITS TYPESCRIPT SOURCE UNDER NODE'S TYPE STRIPPING** (2026-09-24, the D5 plan's
+  sitting 4). `node x.ts` (Node 24.12.0, strip-only) refuses `SourceError`'s `constructor(readonly code: string)`
+  with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` — parameter properties are not erasable. The fake runs from source
+  because it has `erasableSyntaxOnly`; the control plane does not. To drive the real driver from a probe:
+  `pnpm exec tsc --outDir <scratch>/dist` from `packages/control-plane`, symlink its `node_modules` beside the
+  output, and set a dummy `MANIFEST_DATABASE_URL` (`db/client.ts` reads it at import, through
+  `secrets/index.js`).
+- **ZSH EXPANDS `$VAR:a` AS A HISTORY MODIFIER** (2026-09-24, the D5 plan's sitting 4, a probe of mine).
+  `git show $SHA:a.txt` in the tool shell (zsh) passed git an ABSOLUTE PATH — `:a` is zsh's "make absolute"
+  modifier on a parameter — and git answered `ambiguous argument '/…/<sha>.txt'`. `$SHA:missing` worked only
+  because `:m` is not a modifier. Write `${SHA}:a.txt`, or run the probe under `bash`.
+- **ON A LAPTOP THAT SWITCHED DRIVERS, DRIVER 1'S BARE REPOSITORY IS EXACTLY WHERE DRIVER 2'S MIRROR WOULD BE — AND
+  DRIVER 2 WILL BUILD IT** (2026-09-24, the D5 plan's sitting 4, measured). Both drivers use
+  `config.reposRoot`. With the provider check removed, a GitHub-mode control plane answered `202` and built a
+  driver-1 project from its bare repository, which it took for a mirror because the commit was there. The only
+  thing standing between the two is `repositoryOf`'s `SOURCE_PROVIDER_MISMATCH`, and its test shares the root on
+  purpose (`githubTestDeps(fake, { reposRoot })`); with separate roots the same break answers a harmless
+  `SOURCE_GIT_FAILED` and hides the hazard.
+- **TWO `git fetch`ES INTO ONE REPOSITORY AT ONCE RACE FOR ITS REF LOCKS, AND ONE LOSES — BUT ONLY WHEN A REF MOVES**
+  (2026-09-24, the D5 plan's sitting 4, F19). Six concurrent syncs of driver 2's mirror after a push: 50 of 60
+  failed, porcelain `! <old> <new> refs/manifest/upstream/main` (git could not lock the ref another fetch held); the
+  same six with nothing to fetch: 60 of 60 fine — so a test that never pushes between concurrent reads never sees it.
+  Serialise per repository in process (`source/github/driver.ts`'s `sync`); a second PROCESS on the same mirror
+  would still race, which is why there is one control plane per machine.
 
 ## Images already pulled
 

@@ -340,6 +340,38 @@ make github-down      # stops it; its repositories survive in manifest-github-fa
 - **It needs the network once**, when `make seed` builds it (`apk add git` — there is no apk
   mirror). An image that was never built cannot be built offline; `make doctor` says so.
 
+### The control plane on driver 2
+
+*Added by the D5 plan's sitting 4, 2026-09-24 (Tasks 7–8).* **One driver per control-plane
+process.** Start the fake, then start the control plane exactly as *Running the control plane*
+says, with one more variable:
+
+```bash
+make github-up
+export MANIFEST_SOURCE_DRIVER=github     # every MANIFEST_GITHUB_* default is the fake's
+pnpm --filter @manifest/control-plane dev
+```
+
+**Read the boot line**: it says `"source":"github"`, the API's host (`"github":"127.0.0.1:7110"`)
+and `"githubOrg":"manifest-apps"`. The App's private key is read at boot through the master key's
+custody rule, so a key its group can read refuses the boot, naming the file.
+
+- **A project keeps the driver it was created with.** Each one's `source_repositories` row says
+  which; on the other driver every source operation — a build, a validate, an approval preview —
+  answers **`409 SOURCE_PROVIDER_MISMATCH`**, naming both. **Every demo today is a driver-1 demo**:
+  on driver 2, `launch-app` is refused that way, and a demo that pushes into `.manifest/repos/` is
+  refused by the mirror's hook. Restart on driver 1 (unset the variable) before any `make demo*`,
+  and never read that red as a regression. Driver 2's own acceptance, `make demo-github`, is the
+  D5 plan's Task 15.
+- **The mirror lives where driver 1's repositories do**, `.manifest/repos/<slug>.git`. It refuses
+  every push (*"this repository is a mirror of GitHub"*) — push to the fake instead, at
+  `http://127.0.0.1:7110/manifest-apps/<slug>.git` with `infra/secrets/github-fake-developer.token`
+  in `http.extraHeader`, never in the URL.
+- **With the fake stopped**, a commit the mirror already has still builds; anything that needs
+  GitHub NOW — creating a project, validating at `HEAD` — answers **`503 SOURCE_UNREACHABLE`**.
+- **A name GitHub already holds is never adopted**: `409 SOURCE_REPOSITORY_EXISTS`, and the project
+  is not created. The fake's repositories outlive `pnpm test`; `make reset` removes them.
+
 ## The conformance run — the fake against REAL GitHub
 
 *Added by the D5 plan's sitting 3, 2026-09-24 (Task 6). **Opt-in, with the network on, and
@@ -577,7 +609,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 20 / 0 and `make verify` 57 / 0**
-(**All four were re-measured on 2026-09-24 at the close of the D5 plan's sitting 3: `pnpm test` **1818 passed** in 131 files, up 40 and six files (the GitHub fake's package — its schemas, App auth, repositories, git over HTTP and the conformance run), `make doctor` 20 with **0 warnings** — up one, the fake's image; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57, up two (the fake's credentials are owner-only; compose mounts it no private key and publishes it on loopback only), and `pnpm test:docker` **206 in 32** (the fake's IMAGE; owed and run).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured on 2026-09-24 at the close of the D5 plan's sitting 4: `pnpm test` **1858 passed** in 135 files, up 40 and four files (the GitHub driver — its git, token and client modules and the contract suite run against the fake — and `source_repositories`), `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57, and `pnpm test:docker` **207 in 33** (a real BuildKit build from driver 2's mirror, online and with the fake stopped; owed and run).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has TWELVE steps, 1 to 12, after step 0's offline check** — P5a sitting 12 added `make demo-journey` as step 8,
