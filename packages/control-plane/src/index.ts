@@ -404,6 +404,15 @@ const recovery = await recoverAtBoot({ db, driver, retirer, bus })
  */
 const pendingActionsExpired = await expirePendingActions(db)
 
+/**
+ * D5's repositories, made what they must be NOW (the D5 plan's Task 11) — BEFORE `listen`, so
+ * no push lands in a repository still carrying an older list: driver 1 re-renders every bare
+ * repository's secret-scanning `pre-receive` from the current list, driver 2 every mirror's
+ * refusing hook. A repository the other driver made in the same root is left alone. The count
+ * is on the boot line, because a preparation nobody can see is indistinguishable from none.
+ */
+const sourcePrepared = await source.prepare()
+
 await app.listen({ port: config.port, host: '127.0.0.1' })
 
 // Which driver actually booted is the one fact this file decides, and every
@@ -443,6 +452,8 @@ console.log(
     // indistinguishable from one that never ran, which is what the line above says
     // about the recovery and is why this is beside it.
     pendingActionsExpired,
+    // Task 11: how many repositories the source driver gave today's hooks.
+    sourceRepositoriesPrepared: sourcePrepared.repositories,
     msg: 'control plane ready',
     // How many names §23's list reserves: 0 would mean nothing is reserved.
     reservedLabels: reservedLabels.size,

@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { execFile } from 'node:child_process'
-import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { promisify } from 'node:util'
+import { SAMPLE_SECRETS } from '../build/testing.js'
 import { describeSourceDriver } from './driver-contract.js'
 import type { RepoRef } from './git-driver.js'
 import { SourceError, createLocalSourceDriver } from './local-driver.js'
@@ -118,6 +119,94 @@ describe('the local bare-repo source driver (D5 driver 1)', () => {
     const repo = await driver.createRepository('chem-labs', seed)
     await driver.destroyRepository(repo)
     await expect(stat(join(root, 'chem-labs.git'))).rejects.toThrow()
+  })
+})
+
+/**
+ * §20, as applied: *a push to a driver-1 repository is refused by that repository's own hook*
+ * (the D5 plan's Task 11, Decision 14 (b)). The hook is rendered from THE list at creation,
+ * and re-rendered at every boot by `prepare()` — so a repository made before this task, or
+ * before a rule was added, has the current list once the control plane has started.
+ */
+describe('driver 1 refuses a secret in a PERSON’s push, by the repository’s own hook (Task 11)', () => {
+  const hookOf = (slug: string) => join(root, `${slug}.git`, 'hooks', 'pre-receive')
+  const key = SAMPLE_SECRETS['an AWS access key id']
+
+  it('installs the hook at creation, and a person’s push of a key is refused by it — a clean one lands', async () => {
+    const driver = createLocalSourceDriver(root)
+    const repo = await driver.createRepository('chem-labs', seed)
+    expect((await stat(hookOf('chem-labs'))).mode & 0o777).toBe(0o755)
+    const head = await driver.headCommit(repo)
+    const refused = await pushByHand(
+      join(root, 'chem-labs.git'),
+      { 'config/aws.js': `module.exports = '${key}'\n` },
+      'a key',
+    ).then(
+      () => '',
+      (e: unknown) => String((e as { stderr?: unknown }).stderr ?? e),
+    )
+    expect(refused).toContain(
+      'Manifest refused this push (§20): config/aws.js:1 looks like an AWS access key id',
+    )
+    expect(refused).not.toContain(key)
+    expect(await driver.headCommit(repo)).toBe(head)
+    // The positive control: the hook refuses a KEY, not every push.
+    const pushed = await pushByHand(
+      join(root, 'chem-labs.git'),
+      { 'b.txt': 'b\n' },
+      'clean',
+    )
+    expect(await driver.headCommit(repo)).toBe(pushed)
+  })
+
+  it('prepare() gives every repository of ITS OWN the current hook, and leaves a driver-2 mirror’s refusing hook alone', async () => {
+    const driver = createLocalSourceDriver(root)
+    await driver.createRepository('chem-labs', seed)
+    await driver.createRepository('bio-labs', seed)
+    // A repository from before this task: no hook at all.
+    await rm(hookOf('bio-labs'))
+    // A driver-2 MIRROR in the same root (a laptop that switched drivers — Decision 3): its
+    // hook refuses EVERY push, because a commit pushed into a mirror is one GitHub never saw.
+    const mirror = join(root, 'gh-app.git')
+    await run('git', ['init', '-q', '--bare', '-b', 'main', mirror])
+    await run('git', [
+      '--git-dir',
+      mirror,
+      'config',
+      'manifest.fullName',
+      'manifest-apps/gh-app',
+    ])
+    const refuseAll = '#!/bin/sh\necho mirror >&2\nexit 1\n'
+    await writeFile(join(mirror, 'hooks', 'pre-receive'), refuseAll, { mode: 0o755 })
+    // Not a repository at all: ignored.
+    await mkdir(join(root, 'notes'))
+
+    expect(await driver.prepare()).toEqual({ repositories: 2 })
+    expect((await stat(hookOf('bio-labs'))).mode & 0o777).toBe(0o755)
+    expect(await readFile(hookOf('bio-labs'), 'utf8')).toBe(
+      await readFile(hookOf('chem-labs'), 'utf8'),
+    )
+    expect(await readFile(join(mirror, 'hooks', 'pre-receive'), 'utf8')).toBe(refuseAll)
+    // Idempotent: a second boot changes nothing and counts the same.
+    expect(await driver.prepare()).toEqual({ repositories: 2 })
+  })
+
+  it('prepare() on a machine with no repositories yet answers none, and creates nothing', async () => {
+    const driver = createLocalSourceDriver(join(root, 'never-made'))
+    expect(await driver.prepare()).toEqual({ repositories: 0 })
+    await expect(stat(join(root, 'never-made'))).rejects.toThrow()
+  })
+
+  it('syncs to an advance with no findings: this repository IS the source, and its hook is the scan', async () => {
+    const driver = createLocalSourceDriver(root)
+    const repo = await driver.createRepository('chem-labs', seed)
+    expect(await driver.sync(repo)).toEqual({
+      projectSlug: 'chem-labs',
+      updated: [],
+      rewritten: [],
+      visibility: null,
+      findings: [],
+    })
   })
 })
 

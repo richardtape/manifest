@@ -1,12 +1,15 @@
 import { execFile } from 'node:child_process'
 import { createPrivateKey } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
 import { startFake, type StartedFake } from '@manifest/github-fake/testing'
+import { assembleContext, runMandatoryGates } from '../../build/index.js'
+import { SAMPLE_SECRETS } from '../../build/testing.js'
 import { describeSourceDriver } from '../driver-contract.js'
 import { SourceError, type MirrorAdvance } from '../git-driver.js'
 import { pushAsPerson, recordingObserver, rewriteAsPerson } from '../testing.js'
@@ -424,6 +427,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
         updated: [{ ref: MAIN, from: seed, to: pushed }],
         rewritten: [],
         visibility: READ_PRIVATE,
+        findings: [],
       }
       expect(advance).toEqual(expected)
       expect(h.advances).toEqual([expected])
@@ -433,6 +437,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
         updated: [],
         rewritten: [],
         visibility: READ_PRIVATE,
+        findings: [],
       })
       expect(await h.driver.headCommit(repo)).toBe(pushed)
       expect(h.advances).toHaveLength(1)
@@ -452,6 +457,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
         updated: [],
         rewritten: [{ ref: MAIN, mirror: first, upstream: rewritten }],
         visibility: READ_PRIVATE,
+        findings: [],
       })
       const pushed = await pushAsPerson(h.fake, 'chem-labs', { 'c.txt': 'c\n' }, 'normal')
       expect(await h.driver.sync(repo)).toEqual({
@@ -459,6 +465,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
         updated: [{ ref: MAIN, from: rewritten, to: pushed }],
         rewritten: [],
         visibility: READ_PRIVATE,
+        findings: [],
       })
       expect(h.advances.map((a) => [a.updated.length, a.rewritten.length])).toEqual([
         [0, 1],
@@ -557,6 +564,7 @@ describe('the GitHub driver keeps every repository PRIVATE — found public, mad
           updated: [],
           rewritten: [],
           visibility: { observed: 'public', enforced: true, result: 'private' },
+          findings: [],
         },
       ])
       const head = await h.driver.headCommit(repo)
@@ -597,6 +605,151 @@ describe('the GitHub driver keeps every repository PRIVATE — found public, mad
         result: 'private',
       })
       expect((await h.driver.localGitDir(repo, head)).commitSha).toBe(head)
+    } finally {
+      await h.cleanup()
+    }
+  })
+})
+
+describe('the GitHub driver scans every commit its mirror learns of, and reports what it finds at least once (Task 11, Decision 14 (c))', () => {
+  const SEED = { 'manifest.yaml': 'manifest: 1\nname: chem-labs\n' }
+  const KEY = SAMPLE_SECRETS['an AWS access key id']
+  const BLUEPRINT_DIR = fileURLToPath(
+    new URL('../../../../../blueprints/fixture-node/', import.meta.url),
+  )
+  /** A person pushing a key STRAIGHT TO GITHUB — which GitHub.com lets them do (§20). */
+  const pushKey = (h: Harness, path = 'config/aws.js') =>
+    pushAsPerson(
+      h.fake,
+      'chem-labs',
+      { [path]: `// config\nmodule.exports = '${KEY}'\n` },
+      'a key',
+    )
+
+  it('names the commit, the path, the line and the rule — never the key — and a second sync reports nothing new', async () => {
+    const h = await harness()
+    try {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const pushed = await pushKey(h)
+      const advance = await h.driver.sync(repo)
+      expect(advance.findings).toEqual([
+        { commit: pushed, path: 'config/aws.js', line: 2, rule: 'an AWS access key id' },
+      ])
+      expect(JSON.stringify(advance)).not.toContain(KEY)
+      expect(h.advances).toEqual([advance])
+      // Scanned once: the next sync finds nothing new, and reports nothing.
+      expect((await h.driver.sync(repo)).findings).toEqual([])
+      expect(h.advances).toHaveLength(1)
+    } finally {
+      await h.cleanup()
+    }
+  })
+
+  it('reports it even when NO webhook arrived — a read’s sync found it', async () => {
+    const h = await harness()
+    try {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const pushed = await pushKey(h)
+      expect(await h.driver.headCommit(repo)).toBe(pushed)
+      expect(h.advances.flatMap((a) => a.findings)).toEqual([
+        { commit: pushed, path: 'config/aws.js', line: 2, rule: 'an AWS access key id' },
+      ])
+    } finally {
+      await h.cleanup()
+    }
+  })
+
+  it('reports AT LEAST ONCE: an observer that fails leaves the commit unscanned, and the next sync reports it again', async () => {
+    const h = await harness()
+    try {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const pushed = await pushKey(h)
+      h.failObserver(new Error('the database is down'))
+      await expect(h.driver.sync(repo)).rejects.toThrow('the database is down')
+      h.failObserver(undefined)
+      // Nothing MOVED on this sync — the fetch took the push the first time — and the finding
+      // is reported anyway, because the scan is against what was last REPORTED.
+      const again = await h.driver.sync(repo)
+      expect(again.updated).toEqual([])
+      expect(again.findings.map((f) => f.commit)).toEqual([pushed])
+      expect(h.advances).toHaveLength(1)
+    } finally {
+      await h.cleanup()
+    }
+  })
+
+  it('a secret pushed to main AFTER a rewrite is reported — one force-push does not switch scanning off ([M14])', async () => {
+    const h = await harness({ plan: 'free' })
+    try {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      await rewriteAsPerson(h.fake, 'chem-labs')
+      await h.driver.sync(repo)
+      const pushed = await pushKey(h, 'after-rewrite.js')
+      const advance = await h.driver.sync(repo)
+      expect(advance.findings).toEqual([
+        {
+          commit: pushed,
+          path: 'after-rewrite.js',
+          line: 2,
+          rule: 'an AWS access key id',
+        },
+      ])
+    } finally {
+      await h.cleanup()
+    }
+  })
+
+  it('a commit GitHub has with a key in it still cannot be DEPLOYED: the build’s gate refuses its tree', async () => {
+    const h = await harness()
+    const work = await mkdtemp(join(tmpdir(), 'mf-gate-'))
+    try {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const clean = await h.driver.headCommit(repo)
+      const pushed = await pushKey(h)
+      const secrets = async (sha: string) => {
+        const local = await h.driver.localGitDir(repo, sha)
+        const context = await assembleContext({
+          repoPath: local.gitDir,
+          commitSha: local.commitSha,
+          blueprintDir: BLUEPRINT_DIR,
+          workDir: await mkdtemp(join(work, 'w-')),
+        })
+        return (
+          await runMandatoryGates(context, { lockfile: 'package-lock.json' })
+        ).filter((f) => f.gate === 'secret')
+      }
+      expect(await secrets(clean)).toEqual([]) // the positive control
+      expect(await secrets(pushed)).toEqual([
+        expect.objectContaining({
+          path: 'config/aws.js',
+          line: 2,
+          message: 'looks like an AWS access key id',
+        }),
+      ])
+    } finally {
+      await rm(work, { recursive: true, force: true })
+      await h.cleanup()
+    }
+  })
+
+  it('prepare() re-writes each MIRROR’s refusing hook and leaves a driver-1 repository alone', async () => {
+    const h = await harness()
+    try {
+      await h.driver.createRepository('chem-labs', SEED)
+      const hook = join(h.mirrorRoot, 'chem-labs.git', 'hooks', 'pre-receive')
+      const refusing = await readFile(hook, 'utf8')
+      await rm(hook)
+      // A driver-1 repository in the same root (a laptop that switched drivers): not a mirror.
+      const local = join(h.mirrorRoot, 'bio-labs.git')
+      await run('git', ['init', '-q', '--bare', '-b', 'main', local])
+      await writeFile(join(local, 'hooks', 'pre-receive'), '#!/bin/sh\nexit 0\n', {
+        mode: 0o755,
+      })
+      expect(await h.driver.prepare()).toEqual({ repositories: 1 })
+      expect(await readFile(hook, 'utf8')).toBe(refusing)
+      expect(await readFile(join(local, 'hooks', 'pre-receive'), 'utf8')).toBe(
+        '#!/bin/sh\nexit 0\n',
+      )
     } finally {
       await h.cleanup()
     }

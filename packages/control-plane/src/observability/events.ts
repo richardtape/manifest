@@ -100,6 +100,12 @@ export const EVENT_TYPES = [
    * — made private again, or refused, in which case it is not built while it is public.
    */
   'repository.visibility_enforced',
+  /**
+   * §20, push-time secret scanning (the D5 plan's Task 11): a commit GitHub has — pushed straight
+   * to it, which GitHub.com lets through — ADDS a secret-shaped value. Names the commit, the path,
+   * the line and the rule; NEVER the value. Reported at least once per commit.
+   */
+  'repository.secret_detected',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

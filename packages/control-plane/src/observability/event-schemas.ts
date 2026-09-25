@@ -252,4 +252,22 @@ export const EVENT_DETAIL_SCHEMAS = {
     result: z.enum(['private', 'still-public']),
     detail: z.string(),
   }),
+  /**
+   * Task 11. WHERE, AND WHICH RULE — NEVER THE VALUE (§14): a finding carries no text of the
+   * line it was found on. At most 50 per commit; `truncated` says there were more.
+   */
+  'repository.secret_detected': z.strictObject({
+    commit: Sha,
+    findings: z
+      .array(
+        z.strictObject({
+          path: z.string().min(1),
+          line: z.number().int().min(1),
+          rule: z.string().min(1),
+        }),
+      )
+      .min(1)
+      .max(50),
+    truncated: z.boolean(),
+  }),
 } satisfies Record<EventType, z.ZodType>

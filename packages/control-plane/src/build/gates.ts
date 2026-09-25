@@ -1,5 +1,6 @@
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { join, relative } from 'node:path'
+import { scanText } from './secret-patterns.js'
 
 export interface GateFinding {
   gate: 'secret' | 'lockfile'
@@ -33,31 +34,6 @@ export class BuildGateError extends Error {
   }
 }
 
-/**
- * Pattern-based, so it works with the network off and never degrades — §12 draws
- * exactly this line between secret/lockfile scanning and vulnerability scanning.
- * Each entry names what it matches; the match itself is NEVER put in the message,
- * because the message becomes an Event and §14 redacts at capture.
- */
-const SECRET_PATTERNS: { name: string; pattern: RegExp }[] = [
-  { name: 'an AWS access key id', pattern: /\bAKIA[0-9A-Z]{16}\b/ },
-  {
-    name: 'a private key block',
-    pattern: /-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----/,
-  },
-  { name: 'a GitHub token', pattern: /\bgh[pousr]_[A-Za-z0-9]{36,}\b/ },
-  { name: 'a Slack token', pattern: /\bxox[abposr]-[A-Za-z0-9-]{10,}\b/ },
-  { name: 'a Google API key', pattern: /\bAIza[0-9A-Za-z_-]{35}\b/ },
-  {
-    name: 'a JSON Web Token',
-    pattern: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/,
-  },
-  {
-    name: 'a generic assigned secret',
-    pattern: /\b(?:secret|password|passwd|api[_-]?key)\s*[:=]\s*['"][^'"\s]{12,}['"]/i,
-  },
-]
-
 const SKIP = new Set(['node_modules', '.git', 'dist', 'build', '.next', 'coverage'])
 
 async function* walk(root: string, dir = root): AsyncGenerator<string> {
@@ -69,6 +45,12 @@ async function* walk(root: string, dir = root): AsyncGenerator<string> {
   }
 }
 
+/**
+ * §12's secret gate over a build context: every file read as text and handed to THE list
+ * (`secret-patterns.ts` — the D5 plan's Task 11), so what a build refuses and what a push is
+ * refused for are one answer. The finding's message names the rule and never the match: it
+ * becomes an Event, and §14 redacts at capture.
+ */
 export async function scanForSecrets(dir: string): Promise<GateFinding[]> {
   const findings: GateFinding[] = []
   for await (const file of walk(dir)) {
@@ -76,21 +58,14 @@ export async function scanForSecrets(dir: string): Promise<GateFinding[]> {
     // the gate the slowest part of a build.
     if ((await stat(file)).size > 2 * 1024 * 1024) continue
     const text = await readFile(file, 'utf8').catch(() => '')
-    const lines = text.split('\n')
-    for (const [index, line] of lines.entries()) {
-      for (const { name, pattern } of SECRET_PATTERNS) {
-        if (!pattern.test(line)) continue
-        findings.push({
-          gate: 'secret',
-          severity: 'block',
-          // The matched text is deliberately absent. Putting it here would push
-          // the secret into the Event stream this gate exists to protect.
-          message: `looks like ${name}`,
-          path: relative(dir, file),
-          line: index + 1,
-        })
-        break
-      }
+    for (const f of scanText(text, relative(dir, file))) {
+      findings.push({
+        gate: 'secret',
+        severity: 'block',
+        message: `looks like ${f.rule}`,
+        path: f.path,
+        line: f.line,
+      })
     }
   }
   return findings

@@ -5,6 +5,7 @@ import type { FastifyInstance } from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { startFake, type StartedFake } from '@manifest/github-fake/testing'
 import { appSpecs, db, events, webhookDeliveries } from '../db/index.js'
+import { SAMPLE_SECRETS } from '../build/testing.js'
 import { resetDatabase } from '../db/testing.js'
 import { pushAsPerson, rewriteAsPerson } from '../source/testing.js'
 import { buildServer, type ServerDeps } from './index.js'
@@ -448,5 +449,64 @@ describe('enforced private — a repository found public is made private again, 
     await ctx.deps.source.sync(ctx.deps.source.repositoryFor(SLUG))
     expect(await isPrivate(ctx)).toBe(true)
     expect((await build(ctx)).statusCode).toBe(202)
+  })
+})
+
+describe('push-time secret scanning — a key pushed straight to GitHub is REPORTED, never repeated (Task 11, §20)', () => {
+  const KEY = SAMPLE_SECRETS['an AWS access key id']
+
+  it('a person pushes a key to GitHub: ONE repository.secret_detected names the commit, path, line and rule — never the key', async () => {
+    const ctx = await setup()
+    const repo = ctx.deps.source.repositoryFor(SLUG)
+    const before = await ctx.deps.source.headCommit(repo)
+    const after = await pushAsPerson(
+      ctx.fake,
+      SLUG,
+      { 'config/aws.js': `// config\nmodule.exports = '${KEY}'\n` },
+      'a key',
+    )
+    const res = await deliver(ctx, {
+      event: 'push',
+      body: await ctx.fake.pushPayload(SLUG, before, after),
+    })
+    expect(res.statusCode, res.body).toBe(202)
+    await ctx.deps.sourceSync.idle()
+    expect(await eventsOf(ctx.projectId, 'repository.secret_detected')).toEqual([
+      {
+        commit: after,
+        findings: [{ path: 'config/aws.js', line: 2, rule: 'an AWS access key id' }],
+        truncated: false,
+      },
+    ])
+    const [row] = await db
+      .select()
+      .from(events)
+      .where(
+        and(
+          eq(events.projectId, ctx.projectId),
+          eq(events.type, 'repository.secret_detected'),
+        ),
+      )
+    expect(row!.humanMessage).toContain(after.slice(0, 12))
+    expect(row!.humanMessage).toContain('config/aws.js:2')
+    expect(row!.humanMessage).toContain('rotate')
+    expect(JSON.stringify(row)).not.toContain(KEY)
+    // The push itself is still reported, as every push is: the scan adds an event, it does
+    // not replace one.
+    expect(await eventsOf(ctx.projectId, 'repository.pushed')).toEqual([
+      { ref: MAIN, from: before, to: after },
+    ])
+    // Scanned once: a later read reports nothing new.
+    await ctx.deps.source.headCommit(repo)
+    expect(await eventsOf(ctx.projectId, 'repository.secret_detected')).toHaveLength(1)
+  })
+
+  it('a clean push reports no secret — the positive control', async () => {
+    const ctx = await setup()
+    const { body } = await personPushes(ctx)
+    expect((await deliver(ctx, { event: 'push', body })).statusCode).toBe(202)
+    await ctx.deps.sourceSync.idle()
+    expect(await eventsOf(ctx.projectId, 'repository.pushed')).toHaveLength(1)
+    expect(await eventsOf(ctx.projectId, 'repository.secret_detected')).toEqual([])
   })
 })

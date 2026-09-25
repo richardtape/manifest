@@ -380,6 +380,9 @@ export const ERROR_CODES = {
   SOURCE_REPOSITORY_PUBLIC: source(
     'The repository was last read PUBLIC on GitHub and could not be made private; it is not built while it is public (§20, the D5 plan’s Task 10).',
   ),
+  SOURCE_SECRET_DETECTED: source(
+    'A commit Manifest was asked to make carries a secret-shaped value, and nothing was committed; the message names path:line and the rule, never the value (§20, the D5 plan’s Task 11).',
+  ),
   // NOT a state conflict: a client retries a 503 and does not "fix" a 409 (Decision 18).
   SOURCE_UNREACHABLE: {
     status: 503,

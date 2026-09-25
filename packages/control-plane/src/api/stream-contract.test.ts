@@ -57,6 +57,7 @@ const PUBLISHED_ELSEWHERE = {
   'repository.history_rewritten': 'api/webhooks.test.ts — a rewritten main',
   'repository.visibility_enforced':
     'api/webhooks.test.ts — a repository made public (Task 10)',
+  'repository.secret_detected': 'api/webhooks.test.ts — a key pushed to GitHub (Task 11)',
 } as const
 
 /**

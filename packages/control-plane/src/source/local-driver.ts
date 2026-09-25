@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
+import { existsSync } from 'node:fs'
 import { dirname, join, resolve, sep } from 'node:path'
 import { promisify } from 'node:util'
 import {
@@ -10,6 +11,8 @@ import {
   SourceError,
   type SourceDriver,
 } from './git-driver.js'
+import { installPreReceiveHook } from './pre-receive.js'
+import { assertNoSecrets } from './scan-commits.js'
 
 const run = promisify(execFile)
 
@@ -150,14 +153,20 @@ export function createLocalSourceDriver(root: string): SourceDriver {
 
     async createRepository(projectSlug: string, seed: SeedFiles): Promise<RepoRef> {
       const path = pathFor(projectSlug)
+      // Before ANYTHING is written (Task 11): a refused seed leaves no repository behind.
+      assertNoSecrets(seed)
       await mkdir(repoRoot, { recursive: true })
       await git(repoRoot, ['init', '--bare', '--initial-branch=main', path])
+      // The hook BEFORE the first push, so every commit this repository ever takes — the
+      // seed's too — has been through it (§20: refused by the repository's own hook).
+      await installPreReceiveHook(path)
       await commitThroughWorktree(path, seed, 'chore: seed from blueprint skeleton', true)
       return { projectSlug, provider: 'local' }
     },
 
     async commitFiles(repo, files, message) {
       const path = assertOwned(repo)
+      assertNoSecrets(files)
       return commitThroughWorktree(path, files, message, false)
     },
 
@@ -217,6 +226,7 @@ export function createLocalSourceDriver(root: string): SourceDriver {
         updated: [],
         rewritten: [],
         visibility: null,
+        findings: [],
       }
     },
 
@@ -224,5 +234,63 @@ export function createLocalSourceDriver(root: string): SourceDriver {
       const path = assertOwned(repo)
       await rm(path, { recursive: true, force: true })
     },
+
+    /**
+     * Every bare repository of driver 1's under the root gets the CURRENT hook — so a
+     * repository made before Task 11, or before a rule was added to the list, scans with
+     * today's list from the next boot. **A driver-2 mirror in the same root is left alone**:
+     * a laptop that switched drivers keeps both kinds side by side (Decision 3), and a mirror's
+     * hook refuses EVERY push — replacing it would let a commit GitHub never saw into a
+     * mirror. A mirror is known by the `manifest.fullName` its creation writes (Task 8).
+     */
+    async prepare() {
+      let repositories = 0
+      for (const dir of await ownRepositories(repoRoot, false)) {
+        await installPreReceiveHook(dir)
+        repositories += 1
+      }
+      return { repositories }
+    },
   }
+}
+
+/**
+ * The bare repositories under `root` that are — `mirrors: true` — or are not driver 2's
+ * mirrors: a `<slug>.git` directory with a `HEAD`, told apart by the `manifest.fullName` a
+ * mirror's creation writes. No root yet is none; any other failure to read it is thrown.
+ */
+export async function ownRepositories(root: string, mirrors: boolean): Promise<string[]> {
+  const entries = await readdir(root, { withFileTypes: true }).catch((error: unknown) => {
+    if ((error as { code?: unknown }).code === 'ENOENT') return []
+    throw error
+  })
+  const out: string[] = []
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !entry.name.endsWith('.git')) continue
+    if (!SLUG.test(entry.name.slice(0, -'.git'.length))) continue
+    const dir = join(root, entry.name)
+    if (!existsSync(join(dir, 'HEAD'))) continue
+    // `config --get` exits 1 for a key that is not set, and only then is it "not a mirror".
+    // Any other failure means the directory cannot be told apart, so NEITHER driver touches
+    // it — and one broken directory never stops a boot — with an operator line.
+    const isMirror = await run('git', [
+      '--git-dir',
+      dir,
+      'config',
+      '--local',
+      '--get',
+      'manifest.fullName',
+    ]).then(
+      () => true,
+      (error: unknown) => {
+        if ((error as { code?: unknown }).code === 1) return false
+        console.error(
+          `source: ${dir} could not be read as a repository (${String((error as { stderr?: unknown }).stderr ?? error).trim()}); it is left as it is`,
+        )
+        return undefined
+      },
+    )
+    if (isMirror === mirrors) out.push(dir)
+  }
+  return out.sort()
 }

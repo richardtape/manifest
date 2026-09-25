@@ -194,4 +194,9 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     result: 'private',
     detail: 'made private again',
   },
+  'repository.secret_detected': {
+    commit: SHA,
+    findings: [{ path: 'config/aws.js', line: 2, rule: 'an AWS access key id' }],
+    truncated: false,
+  },
 }

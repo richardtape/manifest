@@ -2,7 +2,7 @@ import type { KeyObject } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve, sep } from 'node:path'
+import { basename, dirname, join, resolve, sep } from 'node:path'
 import {
   type LocalGitDir,
   type MirrorAdvance,
@@ -12,6 +12,8 @@ import {
   type SourceDriver,
   type SourceObserver,
 } from '../git-driver.js'
+import { ownRepositories } from '../local-driver.js'
+import { assertNoSecrets, scanNewCommits } from '../scan-commits.js'
 import { createGithubClient } from './client.js'
 import { gitWithToken, isAuthRefusal } from './git.js'
 import { createTokenCache, type TokenPermissions } from './tokens.js'
@@ -60,6 +62,14 @@ const UPSTREAM = 'refs/manifest/upstream'
  * nor a branch deleted on GitHub can then make a built commit unreachable to `gc`.
  */
 const KEPT = 'refs/manifest/kept'
+
+/**
+ * Where the mirror records, per branch, the last head whose new commits were SCANNED AND
+ * REPORTED (Task 11, Decision 11): moved only after the observer resolves, so a finding is
+ * reported at least once and never skipped. Compared against the SHADOW (`[M14]`), so one
+ * force-push cannot switch scanning off.
+ */
+const SCANNED = 'refs/manifest/scanned'
 
 /** One line of `git fetch --porcelain`: flag, old, new, local ref. The flag may be a SPACE. */
 const PORCELAIN = /^([ +*!=t-]) ([0-9a-f]{40}) ([0-9a-f]{40}) (\S+)$/
@@ -233,6 +243,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
       updated: [],
       rewritten: [],
       visibility: null,
+      findings: [],
     }
     const refused: string[] = []
     for (const line of out.split('\n')) {
@@ -314,12 +325,68 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
     return exclusively(slug, async () => {
       const advance = await fetchInto(slug, mirror)
       advance.visibility = await enforcePrivate(slug, mirror)
+      if (!how.report) return advance
+      const scan = await scanUnreported(slug, mirror)
+      advance.findings = scan.findings
       const moved = advance.updated.length > 0 || advance.rewritten.length > 0
-      if (how.report && (moved || advance.visibility?.observed === 'public')) {
+      if (
+        moved ||
+        advance.visibility?.observed === 'public' ||
+        advance.findings.length > 0
+      ) {
         await o.observer.advanced(advance)
+      }
+      // ONLY NOW, with the report made: an observer that throws leaves these where they
+      // were, and the next sync scans and reports the same commits again.
+      for (const [branch, sha] of scan.heads) {
+        await local(mirror, ['update-ref', `${SCANNED}/${branch}`, sha])
       }
       return advance
     })
+  }
+
+  /** Every ref under `prefix`, by branch name. */
+  async function refsUnder(mirror: string, prefix: string): Promise<Map<string, string>> {
+    const out = await local(mirror, [
+      'for-each-ref',
+      '--format=%(refname) %(objectname)',
+      `${prefix}/`,
+    ])
+    const refs = new Map<string, string>()
+    for (const line of out.split('\n')) {
+      const [ref, sha] = line.trim().split(' ')
+      if (ref !== undefined && sha !== undefined)
+        refs.set(ref.slice(prefix.length + 1), sha)
+    }
+    return refs
+  }
+
+  /**
+   * PUSH-TIME SECRET SCANNING, driver 2's half (Task 11, Decision 14 (c)): GitHub.com runs no
+   * custom pre-receive hook, so a push made straight to GitHub cannot be blocked from here —
+   * only found, as soon as Manifest learns of it, whatever taught it: a webhook, a read, or its
+   * own commit. What is scanned is every commit the SHADOW has and no `scanned` ref reaches,
+   * so a rewritten history is new content and is scanned too (`[M14]`).
+   */
+  async function scanUnreported(
+    slug: string,
+    mirror: string,
+  ): Promise<{ findings: MirrorAdvance['findings']; heads: Map<string, string> }> {
+    const heads = await refsUnder(mirror, UPSTREAM)
+    const scanned = await refsUnder(mirror, SCANNED)
+    const fresh = [...heads].filter(([branch, sha]) => scanned.get(branch) !== sha)
+    if (fresh.length === 0) return { findings: [], heads }
+    const scan = await scanNewCommits(
+      mirror,
+      fresh.map(([, sha]) => sha),
+      [...scanned.values()],
+    )
+    if (scan.truncated) {
+      console.error(
+        `github driver: ${o.org}/${slug}: only the newest ${scan.commits} new commits were scanned for secrets; older ones were NOT — the build's gate still scans every tree it builds`,
+      )
+    }
+    return { findings: scan.findings, heads }
   }
 
   /** What GitHub says of the repository's visibility NOW: `true` private, `false` public. */
@@ -446,7 +513,18 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
     await gitWithToken(['init', '-q', '--bare', '--initial-branch=main', mirror], {
       cwd: root,
     })
+    await writeMirrorHook(mirror, slug)
+    await local(mirror, ['config', 'manifest.visibility', 'private'])
+    // What GitHub ANSWERED it is called — read back by `describeRepository` for the
+    // project's row (Task 8), never rebuilt from the configuration by hand.
+    await local(mirror, ['config', 'manifest.fullName', named.fullName])
+    await local(mirror, ['config', 'manifest.webUrl', named.webUrl])
+  }
+
+  /** The mirror's hook: it refuses EVERY push. Written at creation and at every boot. */
+  async function writeMirrorHook(mirror: string, slug: string): Promise<void> {
     const hook = join(mirror, 'hooks', 'pre-receive')
+    await mkdir(dirname(hook), { recursive: true })
     await writeFile(
       hook,
       '#!/bin/sh\n' +
@@ -454,11 +532,6 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
         'exit 1\n',
     )
     await chmod(hook, 0o755)
-    await local(mirror, ['config', 'manifest.visibility', 'private'])
-    // What GitHub ANSWERED it is called — read back by `describeRepository` for the
-    // project's row (Task 8), never rebuilt from the configuration by hand.
-    await local(mirror, ['config', 'manifest.fullName', named.fullName])
-    await local(mirror, ['config', 'manifest.webUrl', named.webUrl])
   }
 
   async function deleteOnGithub(slug: string): Promise<void> {
@@ -481,6 +554,8 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
 
     async createRepository(projectSlug, seed) {
       const mirror = pathFor(projectSlug)
+      // Before ANYTHING is asked of GitHub (Task 11): once pushed, a value is on GitHub for ever.
+      assertNoSecrets(seed)
       // A mirror already here is a repository this machine made once and did not delete —
       // refused, never reused or removed (Decision 16).
       if (existsSync(mirror)) {
@@ -520,7 +595,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
             `GitHub created ${o.org}/${projectSlug} ${String(body.visibility ?? 'without a visibility')}; it has been deleted`,
           )
         }
-        await commitAndPush(
+        const seeded = await commitAndPush(
           projectSlug,
           undefined,
           seed,
@@ -537,6 +612,12 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
           webUrl: body.html_url,
         })
         await sync(projectSlug, mirror, { report: false })
+        // The seed was scanned before it left (`assertNoSecrets`), so it is marked scanned:
+        // the first REPORTED sync scans only what came after it — a person's push in the
+        // moment between, included.
+        await exclusively(projectSlug, () =>
+          local(mirror, ['update-ref', `${SCANNED}/main`, seeded]),
+        )
       } catch (error) {
         await deleteOnGithub(projectSlug).catch((cleanup: unknown) => {
           // An orphan on GitHub is never silent: the next create of this slug is refused.
@@ -552,6 +633,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
 
     async commitFiles(repo, files, message) {
       const mirror = mirrorOf(repo)
+      assertNoSecrets(files)
       await sync(repo.projectSlug, mirror)
       const sha = await commitAndPush(repo.projectSlug, { mirror }, files, message)
       await sync(repo.projectSlug, mirror)
@@ -644,6 +726,20 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
       await deleteOnGithub(repo.projectSlug)
       tokens.forget(repo.projectSlug)
       await rm(mirror, { recursive: true, force: true })
+    },
+
+    /**
+     * Every MIRROR under the root gets its refusing hook again (Task 11) — and a driver-1
+     * repository in the same root is left exactly as it is (Decision 3): replacing its
+     * secret-scanning hook with a mirror's would refuse every push its owner makes.
+     */
+    async prepare() {
+      let repositories = 0
+      for (const dir of await ownRepositories(root, true)) {
+        await writeMirrorHook(dir, basename(dir, '.git'))
+        repositories += 1
+      }
+      return { repositories }
     },
   }
 

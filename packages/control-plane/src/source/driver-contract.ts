@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { SAMPLE_SECRETS } from '../build/testing.js'
 import { SourceError, type SourceDriver } from './git-driver.js'
 
 /** What one driver's run of the suite is handed (this plan's Task 2). */
@@ -176,6 +177,51 @@ export function describeSourceDriver(
       expect(
         await code(h.driver.commitFiles(repo, { '../outside.txt': 'x' }, 'escape')),
       ).toBe('SOURCE_PATH_ESCAPE')
+    })
+
+    /**
+     * §20, as applied (Spec action 1, option (a)): *a push Manifest makes is scanned before it
+     * leaves and refused*. Refused with its OWN code before anything is written — on driver 1
+     * the repository's hook would refuse the push anyway, but as `SOURCE_GIT_FAILED` carrying
+     * git's stderr; the early scan is what makes it a `409` a client can act on, the same on
+     * both drivers (the D5 plan's Task 11).
+     */
+    it('refuses to commit a secret, and the head does not move (Task 11, §20)', async () => {
+      const key = SAMPLE_SECRETS['an AWS access key id']
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const head = await h.driver.headCommit(repo)
+      const refused = await h.driver
+        .commitFiles(
+          repo,
+          { 'config/keys.js': `const a = 1\nconst k = '${key}'\n` },
+          'oops',
+        )
+        .then(
+          () => undefined,
+          (e: unknown) => e,
+        )
+      expect(refused).toBeInstanceOf(SourceError)
+      expect((refused as SourceError).code).toBe('SOURCE_SECRET_DETECTED')
+      expect((refused as SourceError).message).toContain('config/keys.js:2')
+      expect((refused as SourceError).message).toContain('an AWS access key id')
+      expect((refused as SourceError).message).not.toContain(key)
+      expect(await h.driver.headCommit(repo)).toBe(head)
+      // The positive control: the same commit without the key moves the head.
+      const clean = await h.driver.commitFiles(
+        repo,
+        { 'config/keys.js': 'const a = 1\n' },
+        'ok',
+      )
+      expect(await h.driver.headCommit(repo)).toBe(clean)
+      // A SEED carrying one is refused the same way — and leaves NOTHING behind, so the same
+      // slug is then created cleanly.
+      expect(
+        await code(
+          h.driver.createRepository('bio-labs', { ...SEED, '.env': `AWS=${key}\n` }),
+        ),
+      ).toBe('SOURCE_SECRET_DETECTED')
+      const created = await h.driver.createRepository('bio-labs', SEED)
+      expect(created).toEqual({ projectSlug: 'bio-labs', provider: h.driver.name })
     })
 
     it('refuses a reference another provider made', async () => {

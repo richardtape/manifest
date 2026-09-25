@@ -22,6 +22,8 @@ export {
   scanForSecrets,
 } from './gates.js'
 export type { GateFinding } from './gates.js'
+export { SECRET_PATTERNS, scanText } from './secret-patterns.js'
+export type { SecretFinding, SecretPattern } from './secret-patterns.js'
 export {
   STALENESS_THRESHOLD_DAYS,
   ScanError,

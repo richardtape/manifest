@@ -12,6 +12,8 @@ import type { MirrorAdvance, SourceObserver } from '../source/index.js'
  * One Event per branch: `repository.pushed` for a branch that moved, and
  * `repository.history_rewritten` for one GitHub rewrote and the mirror refused. **Commit ids
  * and a ref, nothing else** — an author and a message are an app author's free text (§14).
+ * And one `repository.secret_detected` per commit that added a secret-shaped value (Task 11):
+ * the path, the line and the rule, never the value.
  *
  * **A mirror with no project is a platform defect**, thrown rather than dropped: the driver
  * awaits this inside its sync, so the read that synced fails loudly instead of the report
@@ -91,6 +93,40 @@ export function createSourceObserver(deps: { db: Db; bus: EventBus }): SourceObs
           redact,
         )
       }
+      // PUSH-TIME SECRET SCANNING (Task 11): ONE event per commit that added a secret-shaped
+      // value — where and which rule, never the value (§14).
+      const byCommit = new Map<string, MirrorAdvance['findings']>()
+      for (const f of advance.findings) {
+        byCommit.set(f.commit, [...(byCommit.get(f.commit) ?? []), f])
+      }
+      for (const [commit, found] of byCommit) {
+        const first = found[0]!
+        const more = found.length - 1
+        await publishEvent(
+          deps.db,
+          deps.bus,
+          {
+            projectId: project.id,
+            subject,
+            type: 'repository.secret_detected',
+            machineDetail: {
+              commit,
+              findings: found
+                .slice(0, SECRET_FINDINGS_PER_EVENT)
+                .map((f) => ({ path: f.path, line: f.line, rule: f.rule })),
+              truncated: found.length > SECRET_FINDINGS_PER_EVENT,
+            },
+            humanMessage:
+              `A secret-shaped value was pushed to GitHub in ${commit.slice(0, 12)} ` +
+              `(${first.path}:${first.line}, ${first.rule}${more > 0 ? `, and ${more} more` : ''}). ` +
+              'It is on GitHub now: treat it as exposed and rotate it. Manifest will not build a commit that carries it.',
+          },
+          redact,
+        )
+      }
     },
   }
 }
+
+/** How many findings one `repository.secret_detected` names; past it, `truncated`. */
+const SECRET_FINDINGS_PER_EVENT = 50

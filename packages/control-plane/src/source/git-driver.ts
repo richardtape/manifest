@@ -47,6 +47,21 @@ export interface MirrorAdvance {
     enforced: boolean
     result: 'private' | 'still-public'
   } | null
+  /**
+   * PUSH-TIME SECRET SCANNING (the D5 plan's Task 11, Decision 14 (c)): every secret-shaped
+   * line ADDED by a commit the mirror has not yet REPORTED scanned — a person's push straight
+   * to GitHub, which GitHub.com lets through and Manifest can only find. Where, which rule,
+   * which commit; never the value. Driver 1's is always empty: its hook refuses the push.
+   */
+  findings: CommitFinding[]
+}
+
+/** A secret-shaped value in a commit's added lines (`source/scan-commits.ts`). */
+export interface CommitFinding {
+  commit: string
+  path: string
+  line: number
+  rule: string
 }
 
 /**
@@ -67,8 +82,9 @@ export interface SourceObserver {
  * and `SOURCE_PROVIDER_MISMATCH` (a reference another driver made — Decision 3); driver 2
  * those and `SOURCE_UNREACHABLE`, `SOURCE_CONFLICT`, `SOURCE_GITHUB_REFUSED`,
  * `SOURCE_REPOSITORY_EXISTS`, `SOURCE_REPOSITORY_NOT_PRIVATE` and `SOURCE_REPOSITORY_PUBLIC`
- * (a repository last read public is never built — Task 10). Each is registered in
- * `api/error-codes.ts`.
+ * (a repository last read public is never built — Task 10). Both refuse
+ * `SOURCE_SECRET_DETECTED` — a commit of Manifest's own carrying a secret-shaped value, before
+ * it leaves (Task 11). Each is registered in `api/error-codes.ts`.
  */
 export class SourceError extends Error {
   constructor(
@@ -126,4 +142,12 @@ export interface SourceDriver {
    */
   sync(repo: RepoRef): Promise<MirrorAdvance>
   destroyRepository(repo: RepoRef): Promise<void>
+  /**
+   * BOOT (the D5 plan's Task 11): make every repository THIS driver owns under its root what it
+   * must be now — driver 1's secret-scanning `pre-receive`, rendered from the current list;
+   * driver 2's mirror hook, which refuses every push. A repository the OTHER driver made in
+   * the same root is left exactly as it is (Decision 3). Idempotent; called before the control
+   * plane listens, and the count is on the boot line.
+   */
+  prepare(): Promise<{ repositories: number }>
 }
