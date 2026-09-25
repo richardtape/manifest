@@ -20,7 +20,7 @@ Manifest runs on one Mac. **Almost everything is a container**; two things run o
 | **LiteLLM** | `http://127.0.0.1:7106`, dashboard at `/ui` | The AI gateway every app's key goes through |
 | **Ollama** | `http://127.0.0.1:11434` — on the host | The models LiteLLM serves: `qwen3.5:4b` (a thinking model: thinking off under `default-chat` and `default-chat-onprem`, on under their `-reasoning` names) and `nomic-embed-text` |
 | Also | Postgres (`7103`), the image registry (`7107`), an npm mirror, DNS, an egress proxy | Plumbing — `make doctor` and `make verify` check it |
-| **The GitHub fake** | `http://127.0.0.1:7110` — **only after `make github-up`** | A GitHub-compatible FAKE for D5's driver 2 (App tokens, private repositories, git over HTTP, signed webhooks to the control plane — `GET /_fake/deliveries` lists them — and `main`'s protection by plan, enforced in GitHub's GH006 words), checked against real GitHub's recorded answers. **Used only by a control plane started with `MANIFEST_SOURCE_DRIVER=github`** (driver 2, since the D5 plan's sitting 4); every demo today runs on driver 1. RUNBOOK's *The GitHub fake* and *The control plane on driver 2* |
+| **The GitHub fake** | `http://127.0.0.1:7110` — **only after `make github-up`** | A GitHub-compatible FAKE for D5's driver 2 (App tokens, private repositories, git over HTTP, signed webhooks to the control plane — `GET /_fake/deliveries` lists them — and `main`'s protection by plan, enforced in GitHub's GH006 words), checked against real GitHub's recorded answers. **Used only by a control plane started with `MANIFEST_SOURCE_DRIVER=github`** (driver 2, since the D5 plan's sitting 4); **`make demo-github` is driver 2's acceptance, and every other demo runs on driver 1**. Its repository pages say, in their own words, that they are **not GitHub**. RUNBOOK's *The GitHub fake*, *The control plane on driver 2* and *`make demo-github`* |
 | **The proof app** | `https://proof-app.staging.manifest.internal` | §16's application: CWL sign-in, private notes, an AI answer |
 | **The fixture app** | `https://fixture-app.staging.manifest.internal` | P3's trivial app — proves a build and a deploy, nothing more |
 
@@ -80,7 +80,12 @@ make demo-journey     # P5a's acceptance: §22's journey, all 8 steps, through t
 make demo-token       # P5b's acceptance: an agent runs the build loop on a token, and a human answers it
 make demo-production  # P6a's acceptance: an app reaches PRODUCTION with every launch item honestly met
 make demo-releases    # P6b's acceptance: a LAUNCHED app's next release — self-serve, re-escalated, and the IAM change request
+make demo-github      # the D5 plan's acceptance: an app whose code is on (fake) GitHub — ONLY on a control plane on DRIVER 2
 ```
+
+**`make demo-github` needs the control plane started on driver 2** (`MANIFEST_SOURCE_DRIVER=github`,
+RUNBOOK's *The control plane on driver 2*), and every other demo above needs it WITHOUT that variable:
+one driver per control-plane process. On driver 1 it stops at its step 0 and creates nothing.
 
 **`make demo-redeploy` passes, and it is P4c's acceptance — green since sitting 7, and run
 again straight afterwards and from a `make reset` machine in sitting 8, 2026-09-16.** It was written first,
@@ -231,6 +236,24 @@ nobody signs in. RUNBOOK's *Running `manifest-mock`* has the commands and, more 
 green run against it does **not** prove: among other things it does not know §23's reserved
 labels, so row 3's refusal cannot be seen there.
 
+### An application whose code is on GitHub, clicked — driver 2
+
+*Added by the D5 plan's sitting 8, 2026-09-25 (Task 15).* On a control plane started on **driver 2**, after
+`make demo-github` (which leaves `github-app` with a push, a visibility enforcement and a secret found on its
+stream); then `make demo-console`, and sign in as `instructor`.
+
+| # | Click | What must be true |
+|---|---|---|
+| 1 | open `github-app` | **Code**: *`manifest-apps/github-app` on GitHub — private, `main` protected* — the repository's name a link |
+| 2 | follow that link | the GitHub FAKE's page (`http://127.0.0.1:7110/manifest-apps/github-app`): **"This is not GitHub."**, the repository named and *private*, and no code |
+| 3 | **Activity** | in plain words: *main moved on GitHub to …*; *github-app's repository was found PUBLIC on GitHub and was made private again.*; *A secret-shaped value was pushed to GitHub in … (aws-credentials.txt:1, an AWS access key id, and 1 more). It is on GitHub now: treat it as exposed and rotate it…* — **and no secret's text anywhere on the page** |
+
+**What the repository line says on driver 1** is *a repository on this machine* — never a laptop path. On a
+FREE GitHub organisation, where GitHub will not protect a private repository's `main`, it says *main NOT
+protected* in red with GitHub's own words beneath, and the stream carries `repository.protection_unavailable`.
+**A push is validated, never built**: nothing on the stream announces the validation itself (only project
+creation publishes `spec.validated`), so the Spec panel — `GET …/spec` — is where a person sees it.
+
 ### Manifest itself — the control plane
 
 **https://console.manifest.internal/auth/login?returnTo=/v1/me** → sign in as `instructor` /
@@ -337,6 +360,7 @@ streams `instance.provisioning`, then `instance.starting`, then `instance.health
 | `make demo-journey` | **P5a's acceptance** — §22's journey through the edge by nothing but the client generated from the OpenAPI document, **all 8 steps**: sign in, create, stream, build, release, deploy, enter the app with CWL, be refused production with §13's checklist, and read the fleet as an administrator. Green three times on 2026-09-17, the third from a `make reset` machine, and now step 8 of `scripts/offline-acceptance.sh` | `make up` and the control plane | ~4 min |
 | `make demo-production` | **P6a's acceptance** — the first production launch through the edge, on `launch-app`: refused production, both external records recorded along §9's steps, the rehearsal, the approval refused until step-up, approved against the digest, deployed — and the app answers on `127.0.0.3` as the instance the deploy started and not on `127.0.0.2`. A second run re-uses `launch-app` (nothing deletes a project) and says so. **Green from a `make reset` machine and step 11 of the offline acceptance** (2026-09-22). A second run on a LAUNCHED `launch-app` checks what a launched project durably is and stops (P6b). **It leaves the launch release serving both staging and production** (its old step 10, a rebuild, was removed in P6b sitting 4) — so a production deploy clicked afterwards redeploys it self-serve, and a NEW release goes to production with no administrator unless it changes a sensitive field | `make up`, `127.0.0.3` on `lo0`, and the control plane | ~3 min |
 | `make demo-token` | **P5b's acceptance** — D24's loop through the edge, on `token-app`: an instructor mints a delegated token, the agent holding it builds and deploys to staging on its own authority, is refused the fleet and a production promotion, asks to add a member and is handed a question, the instructor confirms it, and the agent's own retry succeeds **once** — then a fresh ask is rejected and the token is revoked. **It is green from a `make reset` machine and is step 9 of the offline acceptance** (Task 13, 2026-09-18) | `make up` and the control plane | ~30 s |
+| `make demo-github` | **The D5 plan's acceptance** — driver 2 end to end against the GitHub FAKE, offline, on `github-app`: an unsigned delivery says which driver answers (driver 1: stop, creating nothing); the project's code on GitHub, private, `main` protected; a person's push reaching Manifest by a SIGNED webhook — validated, never built; built from the mirror and deployed to staging, the page the push changed; the same commit built again with GitHub stopped, while HEAD answers `503 SOURCE_UNREACHABLE`; the repository made public and private again; two secret-shaped values found and never quoted, their build failed at the gate; a force-push refused `GH006`; and the webhook's refusals, each by its own code, beside GitHub's redelivery recorded once. Step 13 of the offline acceptance | `make github-up` and the control plane **on driver 2** | ~70 s re-used, ~2 min fresh |
 | `scripts/offline-acceptance.sh` | C1: all of it with the network off | **a person** — turning the network off cuts an agent off too | not yet run end to end |
 
 **All four gates must be clean before a commit**, and `pnpm test:docker` too when a change

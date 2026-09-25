@@ -12,9 +12,10 @@
 #
 # IT IS NOT scripts/offline-acceptance.sh. That one is C1's — run by hand with the network
 # OFF, because turning the network off from a tool call cuts the agent off too — and its
-# thirteen `=== n.` headings are numbered 0 to 12, where 0 is the precondition and 1-12 are
+# fourteen `=== n.` headings are numbered 0 to 13, where 0 is the precondition and 1-13 are
 # the work (this line said "ten, 0 to 9" through P5c's step 10; P6a Task 19 found it; P6b
-# Task 11 added step 12, `make demo-releases`).
+# Task 11 added step 12, `make demo-releases`; the D5 plan's Task 15 step 13, `make
+# demo-github`).
 # This one runs with the network on and asserts the gates' COUNTS as well.
 #
 # EVERY STEP REPORTS RATHER THAN EXITS (P4c Decision 26), so a red run is a MEASUREMENT of
@@ -69,7 +70,9 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then the D5 plan's sitting 2 (2026-09-24): +36 and two files — the source-driver contract
 # suite (11) and startBuild's absent-commit refusal (1), then the key custody rule (11), the
 # App JWT and key loader (8) and the source driver's settings (5).
-EXPECT_TESTS=2000
+# Then the D5 plan's sitting 8 (2026-09-25): +2, no new file — the GitHub fake's not-GitHub page
+# at a repository's html_url (1) and its delivery log kept across a restart (1).
+EXPECT_TESTS=2002
 EXPECT_FILES=145
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57
@@ -77,6 +80,7 @@ EXPECT_VERIFY=57
 STEPS=""
 FAILED=0
 MOVED=0
+NOT_RUN=0
 
 # record <name> <status> <note>
 record() {
@@ -84,6 +88,7 @@ record() {
 "
   [ "$2" = FAIL ] && FAILED=$((FAILED + 1))
   [ "$2" = MOVED ] && MOVED=$((MOVED + 1))
+  [ "$2" = "NOT RUN" ] && NOT_RUN=$((NOT_RUN + 1))
   return 0
 }
 
@@ -187,10 +192,49 @@ run "build @manifest/mock" pnpm --filter @manifest/mock build
 #                     leaves (and runs it first on a machine where launch-app has not launched);
 #                     LAST, because it leaves `launch-app` on its leg C release in production.
 #                     It adds no test either.
-run "make demo-journey" make demo-journey
-run "make demo-token" make demo-token
-run "make demo-production" make demo-production
-run "make demo-releases" make demo-releases
+#
+# ONE SOURCE DRIVER PER CONTROL-PLANE PROCESS (the D5 plan's Decision 3), and these four are
+# DRIVER 1's: on driver 2, `launch-app` is refused SOURCE_PROVIDER_MISMATCH by design — and
+# worse, a demo whose project does not exist yet would CREATE it on driver 2, where no route
+# can delete it and driver 1 would refuse it for ever. `make demo-github` is DRIVER 2's. So the
+# control plane is asked which it runs, the way `make demo-github` asks it (an unsigned
+# delivery), and the other driver's steps read NOT RUN — which is NOT a pass, and the summary
+# says so.
+source_driver() {
+  local answer
+  answer="$(curl -sS -m 5 -X POST -H 'content-type: application/json' -d '{}' \
+    "http://127.0.0.1:7100/webhooks/github" 2>/dev/null || true)"
+  case "$answer" in
+    *'"WEBHOOKS_NOT_CONFIGURED"'*) echo local ;;
+    *'"WEBHOOK_SIGNATURE_MISSING"'*) echo github ;;
+    *) echo none ;;
+  esac
+}
+DRIVER="$(source_driver)"
+bold "=== the control plane's source driver: $DRIVER ==="
+if [ "$DRIVER" = github ]; then
+  for demo in demo-journey demo-token demo-production demo-releases; do
+    record "make $demo" "NOT RUN" "the control plane runs driver 2, and this demo is driver 1's — restart it without MANIFEST_SOURCE_DRIVER"
+  done
+else
+  run "make demo-journey" make demo-journey
+  run "make demo-token" make demo-token
+  run "make demo-production" make demo-production
+  run "make demo-releases" make demo-releases
+fi
+
+# ---------------------------------------------------------------- 6. driver 2's acceptance
+#   demo-github     — D5's driver 2 end to end against the GitHub fake (the D5 plan's Task 15):
+#                     a person's push reaches Manifest by a signed webhook, is built from the
+#                     mirror (and again with GitHub gone), a repository made public is made
+#                     private again, a pushed secret is found and never quoted, `main` cannot
+#                     be rewritten, and the webhook's refusals each have their own code. It adds
+#                     no test either.
+case "$DRIVER" in
+  github) run "make demo-github" make demo-github ;;
+  local) record "make demo-github" "NOT RUN" "the control plane runs driver 1 — demo-github needs MANIFEST_SOURCE_DRIVER=github (RUNBOOK)" ;;
+  *) record "make demo-github" "NOT RUN" "no control plane answered the driver probe at 127.0.0.1:7100" ;;
+esac
 
 # ---------------------------------------------------------------- the summary
 bold "=== summary ==="
@@ -199,11 +243,15 @@ printf '%s' "$STEPS" | while IFS='|' read -r name status note; do
   case "$status" in
     PASS) printf '  %s  %-28s %s\n' "$(green PASS)" "$name" "$note" ;;
     MOVED) printf '  %s %-28s %s\n' "$(printf '\033[33m%s\033[0m' MOVED)" "$name" "$note" ;;
+    "NOT RUN") printf '  %s %-24s %s\n' "$(printf '\033[33m%s\033[0m' 'NOT RUN')" "$name" "$note" ;;
     *) printf '  %s  %-28s %s\n' "$(red FAIL)" "$name" "$note" ;;
   esac
 done
 
-printf '\n  %d failed, %d moved\n' "$FAILED" "$MOVED"
+printf '\n  %d failed, %d moved, %d not run\n' "$FAILED" "$MOVED" "$NOT_RUN"
+if [ "$NOT_RUN" -gt 0 ]; then
+  echo "  NOT RUN IS NOT A PASS: those steps need the control plane on the other source driver."
+fi
 cat <<'TAIL'
 
   WHAT THIS DOES NOT COVER, deliberately:
@@ -213,7 +261,9 @@ cat <<'TAIL'
      services/, build/, releases/, identity/, sso/, secrets/, projects/, blueprints/,
      ai/, observability/, infra/ or a *.docker.test.ts;
    - the OFFLINE acceptance — `scripts/offline-acceptance.sh`, run by hand with the
-     network off, whose steps 0-12 include `make demo-identity` and `make demo-ai`.
+     network off, whose steps 0-13 include `make demo-identity` and `make demo-ai`;
+   - BOTH source drivers in one run — one driver per control-plane process, so a run on
+     driver 1 reads `make demo-github` NOT RUN, and a run on driver 2 the other four.
 TAIL
 
 [ "$FAILED" -eq 0 ]

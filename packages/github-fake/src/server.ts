@@ -170,6 +170,7 @@ export function createFakeServer(config: FakeConfig): FakeServer {
     appId: config.appId,
     installationId: config.installationId,
     now,
+    dataDir: config.dataDir,
   })
 
   const sameOrg = (org: string) => org.toLowerCase() === state.org.toLowerCase()
@@ -603,6 +604,33 @@ export function createFakeServer(config: FakeConfig): FakeServer {
     throw notFound()
   }
 
+  /**
+   * A repository's `html_url` — where a PERSON lands from `Project.repository.webUrl` (the D5
+   * plan's Task 15). GitHub shows the code there; **the fake says, in its own words, that it is
+   * not GitHub, and shows none.** A STATED DIVERGENCE: GitHub answers an anonymous visitor to a
+   * private repository 404, and this page names a repository the fake holds and its visibility
+   * — on a loopback-only port, and nothing Manifest calls reads it.
+   */
+  function repositoryPage(res: ServerResponse, owner: string, name: string): void {
+    const repo = sameOrg(owner) ? repoOf(name) : undefined
+    const esc = (v: string) => v.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
+    const held =
+      repo === undefined
+        ? `<p>It holds no repository named <code>${esc(owner)}/${esc(name)}</code>.</p>`
+        : `<p>It holds <code>${esc(state.org)}/${esc(repo.name)}</code>, which is <strong>${repo.private ? 'private' : 'PUBLIC'}</strong>. ` +
+          `Its code is not shown here: clone <code>${esc(config.urls().gitUrl)}/${esc(state.org)}/${esc(repo.name)}.git</code> with a token.</p>`
+    res.writeHead(repo === undefined ? 404 : 200, {
+      'content-type': 'text/html; charset=utf-8',
+    })
+    res.end(
+      `<!doctype html>\n<meta charset="utf-8">\n<title>${esc(owner)}/${esc(name)} — not GitHub</title>\n` +
+        `<h1>This is not GitHub.</h1>\n` +
+        `<p>This page is served by <code>manifest-github-fake</code>, the GitHub-compatible fake that Manifest's ` +
+        `GitHub source driver is accepted against on one laptop, offline (the D5 plan). A real GitHub organisation ` +
+        `would show the repository's code here; the fake has no web interface.</p>\n${held}\n`,
+    )
+  }
+
   const server = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://fake')
     if (url.pathname === '/_fake/health') {
@@ -676,6 +704,14 @@ export function createFakeServer(config: FakeConfig): FakeServer {
         },
       })
       return
+    }
+    const page = /^\/([^/]+)\/([^/]+)\/?$/.exec(url.pathname)
+    if (page !== null && req.method === 'GET') {
+      return repositoryPage(
+        res,
+        decodeURIComponent(page[1]!),
+        decodeURIComponent(page[2]!),
+      )
     }
     json(res, 404, new HttpError(404, 'Not Found').body)
   })

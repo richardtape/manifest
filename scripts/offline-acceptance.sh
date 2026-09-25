@@ -14,6 +14,39 @@
 # Known gaps, and the check is not weakened to make it pass.
 cd "$(dirname "$0")/.."
 
+# WHICH SOURCE DRIVER the control plane runs (the D5 plan's Decision 3: ONE per process), asked
+# the way `make demo-github` asks it — an unsigned delivery: `local`, `github`, or `none`. Steps 6
+# to 12 are DRIVER 1's and step 13 is DRIVER 2's; run a driver-1 demo on driver 2 and it CREATES
+# its project there, where no route can delete it (P6a F5) and driver 1 refuses it for ever.
+source_driver() {
+  local answer
+  answer="$(curl -sS -m 5 -X POST -H 'content-type: application/json' -d '{}' \
+    http://127.0.0.1:7100/webhooks/github 2>/dev/null || true)"
+  case "$answer" in
+    *'"WEBHOOKS_NOT_CONFIGURED"'*) echo local ;;
+    *'"WEBHOOK_SIGNATURE_MISSING"'*) echo github ;;
+    *) echo none ;;
+  esac
+}
+# 0 when a control plane on driver $1 (`local` or `github`) answers through the edge; otherwise
+# SKIP_WHY says why not, for the step's SKIPPED line.
+SKIP_WHY=""
+control_plane_on() {
+  local got
+  if ! curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
+    SKIP_WHY="no control plane behind https://console.manifest.internal"
+    return 1
+  fi
+  got="$(source_driver)"
+  [ "$got" = "$1" ] && return 0
+  case "$got" in
+    github) SKIP_WHY="the control plane runs driver 2 (MANIFEST_SOURCE_DRIVER=github), and this step is driver 1's" ;;
+    local) SKIP_WHY="the control plane runs driver 1, and this step is driver 2's" ;;
+    *) SKIP_WHY="the control plane answers through the edge, and not at 127.0.0.1:7100/webhooks/github" ;;
+  esac
+  return 1
+}
+
 echo "=== 0. confirming the machine really is offline ==="
 if curl -sf -m 5 https://registry.npmjs.org/ >/dev/null 2>&1; then
   echo "STILL ONLINE — turn the network off first, or this proves nothing."
@@ -59,10 +92,10 @@ echo "=== 6. P4a's acceptance: a real CWL login, offline ==="
 # It needs the control plane RUNNING, which `make up` does not start — see
 # RUNBOOK's "Running the control plane". If it is not up, this reports that and
 # the rest of the run still stands.
-if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
+if control_plane_on local; then
   make demo-identity; echo "demo-identity exit=$?"
 else
-  echo "  SKIPPED: no control plane behind https://console.manifest.internal. Start it (RUNBOOK: Running the"
+  echo "  SKIPPED: $SKIP_WHY. Start it on driver 1 (RUNBOOK: Running the"
   echo "  control plane) and re-run this step — a skipped acceptance is not a"
   echo "  passed one, and it is the step most likely to need the network."
 fi
@@ -75,10 +108,10 @@ echo "=== 7. P4b's acceptance: the proof app answers a question, offline ==="
 # host.docker.internal:11434. If this is the step that fails, check `ollama list`
 # holds qwen3.5:4b and nomic-embed-text before blaming the platform. It also
 # reads LiteLLM's spend log, which needs no network.
-if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
+if control_plane_on local; then
   make demo-ai; echo "demo-ai exit=$?"
 else
-  echo "  SKIPPED: no control plane behind https://console.manifest.internal — the same rule as step 6."
+  echo "  SKIPPED: $SKIP_WHY — the same rule as step 6."
 fi
 
 echo
@@ -92,10 +125,10 @@ echo "=== 8. P5a's acceptance: §22's journey through the edge, by nothing but t
 # builds it, deploys it, signs in inside it with CWL, asks for production and
 # reads the fleet. If the step that needs a route out is this one, that is the
 # finding — the same rule as step 6.
-if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
+if control_plane_on local; then
   make demo-journey; echo "demo-journey exit=$?"
 else
-  echo "  SKIPPED: no control plane behind https://console.manifest.internal — the same rule as step 6."
+  echo "  SKIPPED: $SKIP_WHY — the same rule as step 6."
 fi
 
 echo
@@ -111,10 +144,10 @@ echo "=== 9. P5b's acceptance: D24's loop — an agent on a delegated token, and
 #
 # It leaves ONE `pending` question behind on purpose (the production promotion nobody
 # answers), which is what Task 10's expiry exists for. Do not read it as a leak.
-if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
+if control_plane_on local; then
   make demo-token; echo "demo-token exit=$?"
 else
-  echo "  SKIPPED: no control plane behind https://console.manifest.internal — the same rule as step 6."
+  echo "  SKIPPED: $SKIP_WHY — the same rule as step 6."
 fi
 
 echo
@@ -132,10 +165,10 @@ echo "=== 10. P5c's acceptance, the half a script can run: the console builds of
 # it. The flag stops it once the edge has answered with the console's own document — and
 # that assertion reads the BODY for `<div id="root">`, because the wildcard answers 200
 # with `manifest OK host=…` for any name (P4b finding 193).
-if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
+if control_plane_on local; then
   MANIFEST_CONSOLE_PREFLIGHT_ONLY=1 make demo-console; echo "demo-console preflight exit=$?"
 else
-  echo "  SKIPPED: no control plane behind https://console.manifest.internal — the same rule as step 6."
+  echo "  SKIPPED: $SKIP_WHY — the same rule as step 6."
 fi
 
 echo
@@ -151,10 +184,10 @@ echo "=== 11. P6a's acceptance: the first production launch, offline ==="
 # that is Decision 7 being DEMONSTRATED rather than argued: the approval is recorded with
 # the diff and without the words, and the launch goes ahead. Do not read it as a failure.
 # (On a first launch it reads `no-previous-release` whatever the network does.)
-if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
+if control_plane_on local; then
   make demo-production; echo "demo-production exit=$?"
 else
-  echo "  SKIPPED: no control plane behind https://console.manifest.internal — the same rule as step 6."
+  echo "  SKIPPED: $SKIP_WHY — the same rule as step 6."
 fi
 
 echo
@@ -172,10 +205,44 @@ echo "=== 12. P6b's acceptance: subsequent releases, offline ==="
 # of copying the preview — CANNOT FAIL, because both summaries are null. That control is proved
 # online (P6b sitting 7), not here. The run host's egress probe reads `500 Unable to connect`
 # offline, which is tinyproxy LETTING IT THROUGH to a name nothing resolves: not a failure.
-if curl -sS -m 5 https://console.manifest.internal/v1/me 2>/dev/null | grep -q UNAUTHENTICATED; then
+if control_plane_on local; then
   make demo-releases; echo "demo-releases exit=$?"
 else
-  echo "  SKIPPED: no control plane behind https://console.manifest.internal — the same rule as step 6."
+  echo "  SKIPPED: $SKIP_WHY — the same rule as step 6."
+fi
+
+echo
+echo "=== 13. The D5 plan's acceptance: an app whose code is on (fake) GitHub, offline ==="
+# APPENDED, like steps 7 to 12, and for the same reason. WHAT THIS PROVES OFFLINE THAT THE OTHER
+# TWELVE DO NOT: D5's driver 2 — the GitHub FAKE in its container, a person's push reaching
+# Manifest by a SIGNED webhook through host.docker.internal (never through the edge), the MIRROR
+# building a commit with GitHub stopped while anything needing GitHub NOW answers 503, a
+# repository made private again, a pushed secret found and never quoted, and `main` protected.
+# The fake's image needed the network ONCE, at `make seed` (apk add git) — an image that was never
+# built cannot be built offline, and `make doctor` says so.
+#
+# IT NEEDS THE CONTROL PLANE ON DRIVER 2, and steps 6 to 12 need it on driver 1: one driver per
+# control-plane process. So reached on driver 1, this step prints both restart commands and is
+# SKIPPED — a skipped acceptance is not a passed one: restart on driver 2 and run it by hand.
+if control_plane_on github; then
+  make demo-github; echo "demo-github exit=$?"
+else
+  echo "  SKIPPED: $SKIP_WHY."
+  cat <<'RESTART'
+  Stop the control plane (Ctrl-C in its terminal), then start it on DRIVER 2 — RUNBOOK's
+  'The control plane on driver 2':
+
+      make github-up
+      export MANIFEST_SOURCE_DRIVER=github     # every MANIFEST_GITHUB_* default is the fake's
+      pnpm --filter @manifest/control-plane dev
+
+  and run `make demo-github`. Afterwards, back to DRIVER 1 — RUNBOOK's 'Running the control
+  plane' — so every other demo runs where it belongs:
+
+      unset MANIFEST_SOURCE_DRIVER
+      pnpm --filter @manifest/control-plane dev
+      make github-down
+RESTART
 fi
 
 echo

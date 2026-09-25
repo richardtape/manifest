@@ -82,6 +82,15 @@
       },
       "why": "git over HTTPS with an installation token (username x-access-token) holding contents: write for the repository. `status` is git's exit code. MEASURED 2026-09-24 (github.com-2026-09-24.json). It agreed with the documentation."
     },
+    "C9r": {
+      "status": 0,
+      "facts": {
+        "mirror_flag": "!",
+        "shadow_flag": "+",
+        "fetch_exit": 1
+      },
+      "why": "[M19](f), the D5 plan's sitting 1 question (sitting 3's F16; added by Task 15): after C9's commit, a bare MIRROR fetches -a with driver 2's two refspecs; main is amended and FORCE-PUSHED (exit 0 — no protection is set until C13, on either plan); a `git fetch --porcelain` with the same refspecs then prints `!` for the mirror's non-forced refs/heads/main (refused, exit 1) and `+` for the forced shadow refs/manifest/upstream/main — which is what F6's fix rests on. From git's documentation and a local measurement (git 2.50.1, file transport, 2026-09-25); not yet measured against github.com."
+    },
     "C10": {
       "status": 404,
       "facts": {

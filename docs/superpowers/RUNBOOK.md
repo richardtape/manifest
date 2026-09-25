@@ -333,7 +333,9 @@ make github-down      # stops it; its repositories survive in manifest-github-fa
   the unit tier starts its own fakes in process, on random ports.
 - **What it is NOT.** It is not GitHub, and it does not try to be more of GitHub than
   driver 2 calls: no pull requests, no users beyond the App's installation and
-  `faculty-dev`, no web pages (its `html_url` goes nowhere). Its answers are held to
+  `faculty-dev`, and **no web interface**: a repository's `html_url` — what `Project.repository.webUrl`
+  links to — serves one plain page saying, in its own words, **"This is not GitHub."**, naming the
+  repository and its visibility and showing no code (since the D5 plan's Task 15). Its answers are held to
   **GitHub's own schemas** in the unit tier, and to a real App's recorded answers by the
   conformance run (*The conformance run*, below). A repository created without
   `private: true` is **public**, as on GitHub.
@@ -361,8 +363,8 @@ custody rule, so a key its group can read refuses the boot, naming the file.
   answers **`409 SOURCE_PROVIDER_MISMATCH`**, naming both. **Every demo today is a driver-1 demo**:
   on driver 2, `launch-app` is refused that way, and a demo that pushes into `.manifest/repos/` is
   refused by the mirror's hook. Restart on driver 1 (unset the variable) before any `make demo*`,
-  and never read that red as a regression. Driver 2's own acceptance, `make demo-github`, is the
-  D5 plan's Task 15.
+  and never read that red as a regression. **Driver 2's own acceptance is `make demo-github`**
+  (below, and the D5 plan's Task 15).
 - **The mirror lives where driver 1's repositories do**, `.manifest/repos/<slug>.git`. It refuses
   every push (*"this repository is a mirror of GitHub"*) — push to the fake instead, at
   `http://127.0.0.1:7110/manifest-apps/<slug>.git` with `infra/secrets/github-fake-developer.token`
@@ -410,8 +412,8 @@ force-push is refused `non-fast-forward`. An edit to the hook does not survive t
 *Added by the D5 plan's sitting 3, 2026-09-24 (Task 6). **Opt-in, with the network on, and
 at Rich's yes EACH TIME**: it acts on a real GitHub account.*
 
-`packages/github-fake/src/conformance.ts` is one request script — sixteen steps, C1 to
-C14 with C5b and C7s — that records a **normalised** answer per step (a status and a few
+`packages/github-fake/src/conformance.ts` is one request script — seventeen steps, C1 to
+C14 with C5b, C7s and C9r — that records a **normalised** answer per step (a status and a few
 facts; never a token, a key or a per-run id). It runs against two targets:
 
 - **the in-process fake, on every `pnpm test`** (`conformance.test.ts`), compared with
@@ -419,7 +421,9 @@ facts; never a token, a key or a per-run id). It runs against two targets:
   answers** since the first real run, 2026-09-24;
 - **real GitHub, from `make github-conformance`**, with `Manifest (local dev)`. It creates
   two private repositories named `mf-conformance-<timestamp>-a` and `-b` in the App's
-  organisation, pushes one commit, **deletes both in a `finally`** (printing their names if
+  organisation, pushes one commit, **force-pushes a rewrite of it to `-a` (C9r**, added by the D5
+  plan's Task 15: what a real `git fetch --porcelain` with driver 2's two refspecs prints — `!` for
+  the mirror's `main`, `+` for the shadow's), **deletes both in a `finally`** (printing their names if
   a delete fails, so they can be removed by hand), and writes
   `conformance/github.com-<date>.json` beside golden, printing every step that differs.
   **It never makes a repository public.** ~12 s.
@@ -649,13 +653,16 @@ and the current numbers are **`make doctor` 20 / 0 and `make verify` 57 / 0**
 (**All four were re-measured on 2026-09-25 at the close of the D5 plan's sitting 7: `pnpm test` **2000 passed** in 145 files, up 28 and one file (the approval summary as structured output, F13's source and F14's name; the console's three pure functions for F11, F12 and F15), ~6 minutes a run; `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57, clean after the Docker tier, and `pnpm test:docker` **208 in 34**, green first time.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
-disabling Wi-Fi cuts an agent off too. **It now has TWELVE steps, 1 to 12, after step 0's offline check** — P5a sitting 12 added `make demo-journey` as step 8,
+disabling Wi-Fi cuts an agent off too. **It now has THIRTEEN steps, 1 to 13, after step 0's offline check** — P5a sitting 12 added `make demo-journey` as step 8,
 P5b sitting 9 added `make demo-token` as step 9, P5c sitting 9 added the console's
 preflight as step 10 (2026-09-19), and P6a sitting 11 added `make demo-production` as step 11
 (2026-09-22), and P6b sitting 7 added `make demo-releases` as step 12 (2026-09-23) — whose
 approval summaries may legitimately read `unavailable` offline — or `withheld`, with the rule the
 model's answer broke, since the D5 plan's sitting 7 — which is Decision 7 working, not a failure — all guarded by the same control-plane check as steps 6
-and 7. The evidence is left exactly as recorded — a run is a run — and this
+and 7. **The D5 plan's sitting 8 added `make demo-github` as step 13 (2026-09-25), and the guards now ask
+WHICH SOURCE DRIVER the control plane runs**: steps 6 to 12 are driver 1's and step 13 is driver 2's, so a
+run reaches step 13 on driver 1 and prints both restart commands, SKIPPED — restart on driver 2 and run it
+by hand, then restart on driver 1. The evidence is left exactly as recorded — a run is a run — and this
 note exists so nobody reads it as today's baseline.
 
 **Offline: PASSED, 2026-09-05.** Wi-Fi disabled on `en0` (the machine's only
@@ -900,6 +907,57 @@ attribute backwards (ORIENTATION §8, *Decided*: its fix comes after the D5 plan
 staging and production, the registration `active` five-wide, two more approvals** (three on a fresh
 machine, counting the launch), **and three more commits in its repository** — one per leg.
 
+## `make demo-github` — the D5 plan's acceptance: an application whose code is on GitHub
+
+*Added by the D5 plan's sitting 8, 2026-09-25 (Task 15).*
+
+D5's driver 2 end to end, through the edge, against the **GitHub fake**, offline, on `github-app`. **It
+needs the control plane on DRIVER 2** — every other demo needs it on driver 1, and one process runs one
+driver (the plan's Decision 3):
+
+```bash
+make github-up                            # `make demo-github` runs it too
+export MANIFEST_SOURCE_DRIVER=github      # every MANIFEST_GITHUB_* default is the fake's
+pnpm --filter @manifest/control-plane dev # the boot line says "source":"github"
+make demo-github                          # ~70 s re-used, ~2 min fresh; each phase ends `every check passed`
+```
+
+and afterwards, **back to driver 1 before any other demo**:
+
+```bash
+unset MANIFEST_SOURCE_DRIVER
+pnpm --filter @manifest/control-plane dev # "source":"local"
+make github-down                          # the fake's repositories survive until `make reset`
+```
+
+**Step 0 asks which driver answers**, with an UNSIGNED delivery to `http://127.0.0.1:7100/webhooks/github`
+(push-shaped, for a repository no project holds): `401 WEBHOOK_SIGNATURE_MISSING` is driver 2, and the
+demo goes on; **`404 WEBHOOKS_NOT_CONFIGURED` is driver 1, and it stops, printing the restart commands and
+CREATING NOTHING** — no route deletes a project (P6a F5), so a `github-app` made on driver 1 would block it
+for ever.
+
+| Step | What happens | What must be true |
+|---|---|---|
+| 1–3 | the instructor signs in; an orphan `github-app` is cleared (`clear_orphan_repository` — its mirror, and its repository ON THE FAKE, deleted as `faculty-dev` would, when no project holds the slug); `github-app` created from `proof-app`, or re-used | `repository` is exactly `{ provider: github, fullName: manifest-apps/github-app, webUrl: http://127.0.0.1:7110/manifest-apps/github-app, mainProtected: true, protectionDetail: null }`, and the fake, asked by a person, says `private: true` |
+| 4 | `faculty-dev` clones from the fake and pushes a page change (the token in git's ENVIRONMENT, never a URL) | within 30 s `repository.pushed` for that commit on the stream; the project's newest validation is that commit; **no build started**; the fake's log shows ONE push delivery, answered `202` |
+| 5 | build it; release; deploy to staging | a commit nobody has is first refused `409 SOURCE_COMMIT_NOT_FOUND`; the build `succeeded`; staging `healthy`; the app answers **as the new instance** with **the pushed page text** — the shape, not a `200` |
+| 6 | `docker stop manifest-github-fake`; build the same commit; validate HEAD; build a commit nobody has; `docker start` | the build `succeeded` **to the same digest**, from the mirror (C1); HEAD `503 SOURCE_UNREACHABLE`; the unknown commit `503 SOURCE_UNREACHABLE` too — never `NOT_FOUND`, because GitHub cannot be asked (Decision 18); the fake back within 30 s |
+| 7 | `faculty-dev` makes the repository PUBLIC | within 30 s the fake reads `private: true` again, and a new `repository.visibility_enforced { observed: public, result: private }` |
+| 8 | `faculty-dev` pushes an AWS-key-shaped value and a stateless-format installation token, **made at run time** | ONE `repository.secret_detected` naming both files and both rules, **its JSON holding neither value**; that commit's build `failed` at `[secret]`, its reason quoting neither; then both files are removed |
+| 9 | `faculty-dev` force-pushes a rewritten `main` | git refuses, `GH006: Protected branch update failed for refs/heads/main.` (the fake's `team` plan), and `main` is unchanged on the fake. **Were it accepted**, the phase asserts the mirror refused it: `repository.history_rewritten` naming what Manifest kept |
+| 10 | SHA-1 only; malformed; a wrong signature; then the fake REDELIVERS step 4's delivery | `401 WEBHOOK_SIGNATURE_MISSING`, `…_MALFORMED`, `…_INVALID`, beside step 4's `202`; the redelivery answered **`200 {"duplicate":true}`** (the fake's log keeps the answer's body), and **still exactly one `repository.pushed`** for step 4's commit |
+
+**A red phase after step 3 does not stop it**: each phase records itself and the run goes on, exiting 1 at
+the end naming every phase that failed — so a negative control is seen at every step it reaches. Steps 0
+and 3 stop it. **It leaves `github-app` in staging on this run's page, four more commits on the fake**
+(the page, the two values, their removal — the values stay in GitHub's history, as they would on GitHub, and
+the build gate refuses only a TREE that holds one), and the fake's delivery log in its volume.
+
+**What it does not cover, by design** (the plan's Decision 17): a PRODUCTION launch on driver 2 — `releases/`,
+`launch/` and `spec/` import nothing from `source/`, so it would re-prove P6a over another git host; and the
+control plane's OWN commit carrying a secret, which nothing in the contract makes before the authoring API
+(the source-driver contract suite holds it on both drivers).
+
 ## `make ci-acceptance` and `make demo-console` — 1c's acceptance, in two halves
 
 *Added by P5c sitting 8, 2026-09-19 (Task 13).*
@@ -925,8 +983,17 @@ purpose must not fail the run; what must not happen is that it moves and nobody 
 Every step **reports rather than exits** (P4c Decision 26), so a red run is a measurement
 of everything that is broken rather than a stop at the first thing. It runs, in order:
 `make doctor`, `make verify`, `pnpm lint`, `pnpm typecheck`, `pnpm format:check`,
-`pnpm test`, the three package builds, then `make demo-journey`, `make demo-token` and — last,
-because it leaves `launch-app` in production — `make demo-production`.
+`pnpm test`, the three package builds, then `make demo-journey`, `make demo-token`, `make demo-production`
+and — last of driver 1's, because it leaves `launch-app` on its leg C release — `make demo-releases`, and
+then `make demo-github`. *(This line named three demos until the D5 plan's sitting 8 found it; P6b sitting 7
+had added `make demo-releases` to the script and not to this sentence.)*
+
+**It asks the control plane which SOURCE DRIVER it runs first** (the D5 plan's Task 15), with the unsigned
+delivery `make demo-github` asks with. **On driver 1** — the normal case — the four driver-1 demos run, and
+`make demo-github` reads **`NOT RUN — the control plane runs driver 1`**. **On driver 2** the four read NOT
+RUN and `make demo-github` runs — because a driver-1 demo whose project does not exist yet would CREATE it
+on driver 2, where no route can delete it and driver 1 then refuses it for ever. **NOT RUN is not a pass**:
+the summary counts it on its own line and says so; the exit status is still the FAILED count's.
 
 **`pnpm test` runs BEFORE the demos and the order is load-bearing**: it TRUNCATES the
 control plane's §6 tables. The other way round it would empty the database the demos had
@@ -944,7 +1011,8 @@ that invoke it.
 |---|---|
 | The CLICKED journey | `make demo-console`, run by a person. The Chrome extension will not type a password, even a test user's (ORIENTATION §4) |
 | `pnpm test:docker` (~13 min) | Owed only by a change to `runtime/`, `routing/`, `services/`, `build/`, `releases/`, `identity/`, `sso/`, `secrets/`, `projects/`, `blueprints/`, `ai/`, `observability/`, `infra/` or a `*.docker.test.ts` |
-| The OFFLINE acceptance | `scripts/offline-acceptance.sh`, run by hand with the network off — its steps are numbered **0 to 9**, where 0 is the precondition. It is the only thing that runs `make demo-identity` and `make demo-ai` |
+| The OFFLINE acceptance | `scripts/offline-acceptance.sh`, run by hand with the network off — its steps are numbered **0 to 13**, where 0 is the precondition. It is the only thing that runs `make demo-identity` and `make demo-ai` |
+| BOTH source drivers in one run | one driver per control-plane process: a run on driver 1 reads `make demo-github` NOT RUN, and a run on driver 2 reads the other four NOT RUN. Run it once on each |
 
 **`make demo-console` signs nobody in.** It builds the contract and the console, checks
 the control plane answers `UNAUTHENTICATED` through the edge, starts `vite preview` on

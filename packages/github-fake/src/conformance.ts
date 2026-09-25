@@ -36,7 +36,7 @@ export interface ConformanceTarget {
 
 export type Fact = string | number | boolean | null
 
-/** For an HTTP step `status` is the HTTP status; for a git step (C9, C11) it is git's exit code. */
+/** For an HTTP step `status` is the HTTP status; for a git step (C9, C9r, C11) it is git's exit code. */
 export interface StepAnswer {
   step: string
   status: number
@@ -319,6 +319,57 @@ export async function runConformance(t: ConformanceTarget): Promise<StepAnswer[]
       const ls = await git(['ls-remote', remote(repoA), 'main'], { token: writeToken })
       record('C9', push.code, {
         ls_remote_shows_commit: sha !== '' && ls.stdout.includes(sha),
+      })
+    })
+    // [M19](f) — sitting 1's question, which no step asked until the D5 plan's Task 15: when
+    // GitHub's `main` is REWRITTEN, what does a real `git fetch --porcelain` with driver 2's two
+    // refspecs print? The mirror's NON-forced `refs/heads/*` must refuse it (`!`) and the
+    // forced shadow `refs/manifest/upstream/*` must take it (`+`): F6's fix reads the shadow.
+    // Inside `-a` alone, the one repository C9 pushed to; C13 protects `main` later, so the
+    // force-push is accepted on either plan.
+    await step('C9r', async () => {
+      const src = join(work, 'src')
+      const mirror = join(work, 'mirror.git')
+      const refspecs = [
+        'refs/heads/*:refs/heads/*',
+        '+refs/heads/*:refs/manifest/upstream/*',
+      ]
+      await git(['init', '-q', '--bare', mirror])
+      await git(['fetch', '-q', remote(repoA), ...refspecs], {
+        cwd: mirror,
+        token: writeToken,
+      })
+      await git(
+        [
+          '-c',
+          'user.name=Manifest conformance',
+          '-c',
+          'user.email=conformance@manifest.invalid',
+          '-c',
+          'commit.gpgsign=false',
+          'commit',
+          '-q',
+          '--amend',
+          '-m',
+          'conformance, rewritten',
+        ],
+        { cwd: src },
+      )
+      const force = await git(['push', '-q', '--force', remote(repoA), 'main'], {
+        cwd: src,
+        token: writeToken,
+      })
+      const fetched = await git(['fetch', '--porcelain', remote(repoA), ...refspecs], {
+        cwd: mirror,
+        token: writeToken,
+      })
+      // `<flag> <old> <new> <local ref>`, one line per ref.
+      const flag = (ref: string) =>
+        fetched.stdout.split('\n').find((l) => l.endsWith(` ${ref}`))?.[0] ?? null
+      record('C9r', force.code, {
+        mirror_flag: flag('refs/heads/main'),
+        shadow_flag: flag('refs/manifest/upstream/main'),
+        fetch_exit: fetched.code,
       })
     })
     await step('C10', async () => {

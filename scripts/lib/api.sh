@@ -43,29 +43,54 @@ field() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const
 
 json() { node -e 'console.log(JSON.stringify(process.argv[1]))' "$1"; }
 
-# Removes the bare repository for slug $1 when NO PROJECT HOLDS THE NAME (P5a Task 11).
+# Removes what an ORPHAN slug $1 left behind when NO PROJECT HOLDS THE NAME (P5a Task 11): its
+# bare repository here — which on driver 2 is its MIRROR, at the same path — and, since the D5
+# plan's Task 15, its repository on the GitHub FAKE.
 #
-# `pnpm test` and `make reset` empty the control plane's tables and leave
-# .manifest/repos behind, so a demo's next `POST /v1/projects` finds its slug's old
-# repository. Until Task 11 that creation failed AFTER committing the project row, and
-# the demos carried on by reusing it; since Task 11 the project is deleted when its
-# repository cannot be created (Decision 29), so there is nothing to reuse, and every
-# demo after a `pnpm test` would stop at step 2.
+# `pnpm test` and `make reset` empty the control plane's tables and leave .manifest/repos
+# behind, so a demo's next `POST /v1/projects` finds its slug's old repository. Until Task 11
+# that creation failed AFTER committing the project row, and the demos carried on by reusing
+# it; since Task 11 the project is deleted when its repository cannot be created (Decision 29),
+# so there is nothing to reuse, and every demo after a `pnpm test` would stop at step 2. The
+# fake's repositories outlive `pnpm test` the same way (its volume is `make reset`'s), and
+# driver 2 answers a name GitHub already holds `409 SOURCE_REPOSITORY_EXISTS` — never adopting
+# it (the D5 plan's Decision 16) — so a driver-2 demo would stop there too.
 #
 # The proof that nothing is lost is the CONTRACT's, not a guess from the filesystem:
 # `GET /v1/slugs/{slug}` answering `available` means no project holds the name — a
 # project that does is SLUG_TAKEN, and a reserved or malformed name is never available.
-# Only then is the repository an orphan. The caller sets CP_JAR and ROOT.
+# Only then is either copy an orphan. **The fake is asked only when it is up and
+# `make up`'s developer token is here** — a driver-1 machine has neither, and this then asks it
+# nothing — and it is asked AS A PERSON (`faculty-dev`, with admin), as someone clearing their
+# own organisation would, never with Manifest's App. **It never talks to real GitHub**: its one
+# address is the fake's. The token goes to curl on its STDIN (`-K -`), never an argument.
+# The caller sets CP_JAR and ROOT.
 clear_orphan_repository() {
   local slug="$1" repos="${MANIFEST_REPOS_ROOT:-$ROOT/.manifest/repos}" available
+  local fake="${MANIFEST_FAKE_URL:-http://127.0.0.1:7110}" org=manifest-apps
+  local token_file="$ROOT/infra/secrets/github-fake-developer.token" on_fake="" status
   case "$slug" in
     '' | *[!a-z0-9-]*) echo "clear_orphan_repository: '$slug' is not a project slug" >&2; return 1 ;;
   esac
-  [ -d "$repos/$slug.git" ] || return 0
+  if [ -r "$token_file" ] && [ "$(curl -sS -m 2 "$fake/_fake/health" 2>/dev/null)" = ok ]; then
+    on_fake=1
+  fi
+  [ -d "$repos/$slug.git" ] || [ -n "$on_fake" ] || return 0
   available="$(api GET "/v1/slugs/$slug" | field available)" || return 1
-  if [ "$available" = true ]; then
+  [ "$available" = true ] || return 0
+  if [ -d "$repos/$slug.git" ]; then
     rm -rf "${repos:?}/$slug.git"
     echo "  removed $repos/$slug.git — no project holds '$slug' (pnpm test and make reset leave repositories behind)"
+  fi
+  if [ -n "$on_fake" ]; then
+    status="$(printf 'header = "authorization: token %s"\n' "$(cat "$token_file")" \
+      | curl -sS -K - -o /dev/null -w '%{http_code}' -m 10 -X DELETE \
+        -H 'accept: application/vnd.github+json' "$fake/api/v3/repos/$org/$slug" || true)"
+    case "$status" in
+      204) echo "  removed $org/$slug on the GitHub fake — no project holds '$slug' (pnpm test leaves the fake's repositories behind)" ;;
+      404) ;;
+      *) echo "clear_orphan_repository: the GitHub fake answered DELETE $org/$slug with $status" >&2; return 1 ;;
+    esac
   fi
 }
 

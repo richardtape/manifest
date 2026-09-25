@@ -190,4 +190,24 @@ describe('the fake serves an organisation’s repositories the way GitHub does',
       `${fake.org}/named`,
     ])
   })
+
+  // The D5 plan's Task 15: a person who follows `Project.repository.webUrl` — GitHub's
+  // `html_url` — must land on a page that says, in its own words, that it is NOT GitHub.
+  it('serves a page at a repository’s html_url that says it is NOT GitHub, and shows no code', async () => {
+    const created = await (await create('with-page')).json()
+    const page = await fetch(created.html_url)
+    expect(page.status).toBe(200)
+    expect(page.headers.get('content-type')).toBe('text/html; charset=utf-8')
+    const html = await page.text()
+    expect(html).toContain('This is not GitHub.')
+    expect(html).toContain(`${fake.org}/with-page`)
+    expect(html).toContain('private')
+    // The positive control's other half: a name the fake does not hold is 404, in the same
+    // words — and says nothing about any repository.
+    const none = await fetch(`${fake.gitUrl}/${fake.org}/no-such-repository`)
+    expect(none.status).toBe(404)
+    const text = await none.text()
+    expect(text).toContain('This is not GitHub.')
+    expect(text).not.toContain('private')
+  })
 })

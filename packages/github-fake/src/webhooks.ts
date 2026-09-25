@@ -1,5 +1,7 @@
 import { execFile } from 'node:child_process'
 import { createHmac, randomUUID } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { fullRepository, nodeId, simpleUser, type Urls } from './repos.js'
 import type { FakeRepo } from './state.js'
@@ -37,6 +39,12 @@ export interface Delivery {
   url: string
   /** The receiver's status, or `null` when there was no answer — `error` says why. */
   status: number | null
+  /**
+   * The receiver's answer BODY, its first 300 characters (the D5 plan's Task 15): a status
+   * alone cannot tell a `200 { duplicate: true }` from a ping's `200`. GitHub's own delivery
+   * log shows the response body too. Absent when there was no answer.
+   */
+  answer?: string
   error?: string
   deliveredAt: string
 }
@@ -52,18 +60,62 @@ export interface Webhooks {
   idle(): Promise<void>
 }
 
+/** GitHub's own window: *"You can redeliver a webhook delivery from the past 3 days."* */
+const KEPT_MS = 3 * 24 * 60 * 60 * 1000
+const FILE = 'deliveries.json'
+
+interface Saved {
+  log: Delivery[]
+  sent: { id: string; event: string; body: string; at: string }[]
+}
+
 export function createWebhooks(o: {
   secret: string
   url: string | undefined
   appId: string
   installationId: string
   now?: () => Date
+  /**
+   * Where the log and every delivery's bytes are KEPT (the D5 plan's Task 15), so a restarted
+   * fake can still list and redeliver them, as GitHub can — three days of them. None: memory.
+   */
+  dataDir?: string
 }): Webhooks {
   const now = o.now ?? (() => new Date())
   let url = o.url
-  const log: Delivery[] = []
-  const sent = new Map<string, { event: string; body: Buffer }>()
+  const saved: Saved =
+    o.dataDir !== undefined && existsSync(join(o.dataDir, FILE))
+      ? (JSON.parse(readFileSync(join(o.dataDir, FILE), 'utf8')) as Saved)
+      : { log: [], sent: [] }
+  const log: Delivery[] = saved.log
+  const sent = new Map<string, { event: string; body: Buffer; at: string }>(
+    saved.sent.map((d) => [
+      d.id,
+      { event: d.event, body: Buffer.from(d.body, 'base64'), at: d.at },
+    ]),
+  )
   const inFlight = new Set<Promise<void>>()
+  /** Written to a temporary file and renamed over, as the state is; older than 3 days: gone. */
+  function save(): void {
+    if (o.dataDir === undefined) return
+    const since = now().getTime() - KEPT_MS
+    const kept = (at: string) => Date.parse(at) >= since
+    const next: Saved = {
+      log: log.filter((d) => kept(d.deliveredAt)),
+      sent: [...sent]
+        .filter(([, d]) => kept(d.at))
+        .map(([id, d]) => ({
+          id,
+          event: d.event,
+          body: d.body.toString('base64'),
+          at: d.at,
+        })),
+    }
+    mkdirSync(o.dataDir, { recursive: true })
+    const tmp = join(o.dataDir, `${FILE}.tmp`)
+    writeFileSync(tmp, JSON.stringify(next))
+    renameSync(tmp, join(o.dataDir, FILE))
+  }
 
   function send(id: string, event: string, body: Buffer): void {
     if (url === undefined) return
@@ -85,8 +137,16 @@ export function createWebhooks(o: {
       signal: AbortSignal.timeout(10_000),
     }).then(
       async (res) => {
-        await res.arrayBuffer().catch(() => undefined) // drain; the answer's body is not kept
-        log.push({ id, event, url: target, status: res.status, deliveredAt: stamp() })
+        const answer = (await res.text().catch(() => '')).slice(0, 300)
+        log.push({
+          id,
+          event,
+          url: target,
+          status: res.status,
+          answer,
+          deliveredAt: stamp(),
+        })
+        save()
       },
       (error: unknown) => {
         const message = error instanceof Error ? error.message : String(error)
@@ -98,6 +158,7 @@ export function createWebhooks(o: {
           error: message,
           deliveredAt: stamp(),
         })
+        save()
       },
     )
     inFlight.add(attempt)
@@ -110,7 +171,8 @@ export function createWebhooks(o: {
       if (url === undefined) return
       const id = randomUUID()
       const body = Buffer.from(JSON.stringify(payload))
-      sent.set(id, { event, body })
+      sent.set(id, { event, body, at: stamp() })
+      save()
       send(id, event, body)
     },
     redeliver(id) {

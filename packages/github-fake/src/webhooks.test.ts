@@ -158,12 +158,14 @@ describe('the fake delivers a signed push after every push it accepts', () => {
     expect(p.commits[0]).toMatchObject({ id: sha, added: ['manifest.yaml'] })
     expect(p.head_commit).toMatchObject({ id: sha })
 
-    // The log: the answer the receiver gave, the id and the event.
+    // The log: the answer the receiver gave — its status AND its body, so a caller can tell a
+    // `200 { duplicate: true }` from any other 200 (the D5 plan's Task 15) — the id and the event.
     expect(fake.deliveries()).toEqual([
       expect.objectContaining({
         id: r.headers['x-github-delivery'],
         event: 'push',
         status: 202,
+        answer: '{}',
       }),
     ])
   })
@@ -209,6 +211,55 @@ describe('the fake delivers a signed push after every push it accepts', () => {
       id: string
     }[]
     expect(listed.map((d) => d.id)).toEqual([first!.id, first!.id])
+  })
+
+  // The D5 plan's Task 15: `make demo-github` stops the fake's CONTAINER (step 6) and then asks
+  // it to redeliver step 4's delivery (step 10). GitHub keeps three days of an App's deliveries
+  // and redelivers any of them whatever it has restarted in between; an in-memory log did not.
+  it('keeps its delivery log across a RESTART, as GitHub keeps three days of it — and redelivers from it', async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), 'github-fake-restart-'))
+    const first = await startFake({ dataDir, webhookUrl: receiverUrl })
+    try {
+      const res = await fetch(`${first.apiUrl}/orgs/${first.org}/repos`, {
+        method: 'POST',
+        headers: {
+          authorization: `token ${first.developerToken}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ name: 'kept', private: true }),
+      })
+      expect(res.status).toBe(201)
+      // A publicize is one delivery with no git involved.
+      await fetch(`${first.apiUrl}/repos/${first.org}/kept`, {
+        method: 'PATCH',
+        headers: {
+          authorization: `token ${first.developerToken}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ private: false }),
+      })
+      await first.webhooksIdle()
+    } finally {
+      await first.stop()
+    }
+    const [sent] = received
+    const again = await startFake({ dataDir, webhookUrl: receiverUrl })
+    try {
+      const [logged] = again.deliveries()
+      expect(logged).toMatchObject({ event: 'repository', status: 202, answer: '{}' })
+      const res = await fetch(`${again.url}/_fake/deliveries/${logged!.id}/redeliver`, {
+        method: 'POST',
+      })
+      expect(res.status).toBe(200)
+      await again.webhooksIdle()
+      expect(received).toHaveLength(2)
+      expect(received[1]!.headers['x-github-delivery']).toBe(logged!.id)
+      expect(received[1]!.body.equals(sent!.body)).toBe(true)
+      expect(again.deliveries().map((d) => d.id)).toEqual([logged!.id, logged!.id])
+    } finally {
+      await again.stop()
+      rmSync(dataDir, { recursive: true, force: true })
+    }
   })
 
   it('records a receiver that is down, and the push still succeeds', async () => {
