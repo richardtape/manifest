@@ -1,6 +1,6 @@
 {
   "name": "@manifest/contract",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Manifest's public API: the OpenAPI document generated from the control plane's routes, and a TypeScript client generated from that document.",
   "private": true,
   "type": "module",

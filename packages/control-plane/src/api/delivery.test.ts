@@ -206,6 +206,37 @@ describe('a build answers at once and finishes on the stream (R6, P5a Task 13)',
     expect(refused.json().error.message).toContain('commitSha')
     await app.close()
   })
+
+  /**
+   * THE D5 PLAN'S TASK 2: the builder is handed `localGitDir`'s answer, which refuses a
+   * commit the repository does not have. Until then a well-formed id nobody had pushed was a
+   * `202` and a build that failed later, at `git archive`, as the builder's fault.
+   */
+  it('refuses a commit the repository does not have as 409 SOURCE_COMMIT_NOT_FOUND, and starts nothing', async () => {
+    const { app, deps, cookies, project } = await projectFor('bio_prof')
+    const post = (commitSha: string) =>
+      app.inject({
+        method: 'POST',
+        url: `/v1/projects/${project.id}/builds`,
+        cookies,
+        headers: mutationHeaders(deps),
+        payload: { commitSha },
+      })
+    const refused = await post('f'.repeat(40))
+    expect(refusal(refused)).toEqual({ status: 409, code: 'SOURCE_COMMIT_NOT_FOUND' })
+    const none = await app.inject({
+      method: 'GET',
+      url: `/v1/projects/${project.id}/builds`,
+      cookies,
+    })
+    expect(none.json()).toEqual([])
+
+    // The positive control: the commit the project's spec was validated at is there.
+    const started = await post(project.spec.commitSha)
+    expect(started.statusCode, started.body).toBe(202)
+    await deps.builds.idle()
+    await app.close()
+  })
 })
 
 describe('what the event stream carries (P4b Task 15)', () => {

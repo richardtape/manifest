@@ -53,6 +53,7 @@ export const buildRoutes = [
       'SPEC_NOT_FOUND',
       'SPEC_INVALID',
       'BLUEPRINT_NOT_FOUND',
+      'SOURCE_COMMIT_NOT_FOUND',
     ],
     handler: async ({ deps, actor, params, body }) => {
       await assertCapability(deps.db, actor, params.projectId, 'build:create')
@@ -93,18 +94,27 @@ export const buildRoutes = [
         descriptor,
       )
       if (incompatible.length > 0) throw new SpecInvalidError(incompatible)
+      const commitSha = body.commitSha ?? spec.commitSha
+      // D5's seam (the D5 plan's Task 2): the builder is handed a LOCAL bare repository that
+      // holds this commit, from the driver — never a path read off a reference. Driver 2
+      // fetches it into its mirror first; driver 1 checks it is there. Either refuses
+      // SOURCE_COMMIT_NOT_FOUND, here, rather than a build that fails later at `git archive`.
+      const local = await deps.source.localGitDir(
+        deps.source.repositoryFor(project.slug),
+        commitSha,
+      )
       const started = await deps.builds.start({
         projectId: params.projectId,
         projectSlug: project.slug,
         appSpecId: spec.id,
-        commitSha: body.commitSha ?? spec.commitSha,
+        commitSha,
         blueprintRef: project.blueprintRef,
-        // The PATH, from D5's driver, not a hand-built `file://` URL: the driver hands it
-        // to `git --git-dir=`, which refuses a URL (`fatal: not a git repository`). Nothing
+        // A DIRECTORY, not a hand-built `file://` URL: the builder hands it to
+        // `git --git-dir=`, which refuses a URL (`fatal: not a git repository`). Nothing
         // caught that while the export was a shell pipeline whose exit status was `tar`'s,
         // so the build ran on an EMPTY context and failed at the lockfile gate naming a file
         // the repository has. Both halves fixed 2026-09-07.
-        repoPath: deps.source.repositoryFor(project.slug).path,
+        repoPath: local.gitDir,
       })
       return toBuild(started)
     },

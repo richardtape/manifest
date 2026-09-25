@@ -410,8 +410,12 @@ export interface SnapshotDeps {
   db: Db
   /** §10's admin transport. Absent under `MANIFEST_AI_ENABLED=0` (Decision 7). */
   llm: LiteLlmClient | undefined
-  /** Where a project's code lives, so the reviewer is told a real repository path. */
-  source: Pick<SourceDriver, 'repositoryFor'>
+  /**
+   * Where a project's code lives, so the reviewer is told a real repository path — the
+   * BUILD's commit, present locally, from the driver (the D5 plan's Task 2), never a path
+   * read off a reference.
+   */
+  source: Pick<SourceDriver, 'repositoryFor' | 'localGitDir'>
   /**
    * R4's seam (D33, §15). `NullReviewer` at boot, whose verdict is an honest
    * `not_performed`; a real one is a one-line change where `ServerDeps` is built.
@@ -568,7 +572,12 @@ async function reviewOf(
     releaseId: release.id,
     changes,
     source: {
-      repoPath: deps.source.repositoryFor(origin.slug).path,
+      repoPath: (
+        await deps.source.localGitDir(
+          deps.source.repositoryFor(origin.slug),
+          origin.commitSha,
+        )
+      ).gitDir,
       commitSha: origin.commitSha,
     },
   })

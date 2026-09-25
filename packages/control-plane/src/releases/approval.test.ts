@@ -738,7 +738,12 @@ describe('R4’s seam — the snapshot’s review comes from the injected review
       releaseId: ctx.release.id,
       changes: [],
       source: {
-        repoPath: ctx.deps.source.repositoryFor('review-labs').path,
+        repoPath: (
+          await ctx.deps.source.localGitDir(
+            ctx.deps.source.repositoryFor('review-labs'),
+            ctx.build.commitSha,
+          )
+        ).gitDir,
         commitSha: ctx.build.commitSha,
       },
     })

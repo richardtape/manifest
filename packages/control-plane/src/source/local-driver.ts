@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve, sep } from 'node:path'
 import { promisify } from 'node:util'
 import {
+  type LocalGitDir,
   type RepoRef,
   type SeedFiles,
   SourceError,
@@ -53,15 +54,20 @@ export function createLocalSourceDriver(root: string): SourceDriver {
     return path
   }
 
+  /**
+   * A reference is this driver's when it names THIS provider and a slug this driver could
+   * have made — and the path is derived from the slug, never read off the reference (the
+   * D5 plan's Task 2). A GitHub-made reference is refused rather than guessed at: treating
+   * a mirror as a repository, or the reverse, is exactly what Decision 3 forbids.
+   */
   function assertOwned(repo: RepoRef): string {
-    const expected = pathFor(repo.projectSlug)
-    if (resolve(repo.path) !== expected) {
+    if (repo.provider !== 'local') {
       throw new SourceError(
-        'SOURCE_FOREIGN_REPO',
-        `refusing to operate on '${repo.path}', which this driver did not create`,
+        'SOURCE_PROVIDER_MISMATCH',
+        `'${repo.projectSlug}' is a ${repo.provider} repository and this is the local driver`,
       )
     }
-    return expected
+    return pathFor(repo.projectSlug)
   }
 
   async function git(cwd: string, args: string[]): Promise<string> {
@@ -115,8 +121,8 @@ export function createLocalSourceDriver(root: string): SourceDriver {
     name: 'local',
 
     repositoryFor(projectSlug: string): RepoRef {
-      const path = pathFor(projectSlug)
-      return { projectSlug, path, url: `file://${path}` }
+      pathFor(projectSlug)
+      return { projectSlug, provider: 'local' }
     },
 
     async createRepository(projectSlug: string, seed: SeedFiles): Promise<RepoRef> {
@@ -124,7 +130,7 @@ export function createLocalSourceDriver(root: string): SourceDriver {
       await mkdir(repoRoot, { recursive: true })
       await git(repoRoot, ['init', '--bare', '--initial-branch=main', path])
       await commitThroughWorktree(path, seed, 'chore: seed from blueprint skeleton', true)
-      return { projectSlug, path, url: `file://${path}` }
+      return { projectSlug, provider: 'local' }
     },
 
     async commitFiles(repo, files, message) {
@@ -158,6 +164,32 @@ export function createLocalSourceDriver(root: string): SourceDriver {
         .split('\n')
         .map((line) => line.trim())
         .filter((line) => line.length > 0)
+    },
+
+    /**
+     * Driver 1's repository IS the bare repository the builder reads, so there is nothing
+     * to fetch: the commit is checked to be there, and the directory handed back.
+     */
+    async localGitDir(repo, commitSha): Promise<LocalGitDir> {
+      const path = assertOwned(repo)
+      // Checked BEFORE git sees it: `cat-file -e` accepts any revision expression, so
+      // `main` or `HEAD~3` would pass it and the builder would archive whatever that
+      // names when the build starts, rather than the commit that was validated.
+      if (!/^[0-9a-f]{40}$/.test(commitSha)) {
+        throw new SourceError(
+          'SOURCE_COMMIT_NOT_FOUND',
+          `'${commitSha}' is not a commit id — a build names a full 40-character commit`,
+        )
+      }
+      try {
+        await run('git', ['--git-dir', path, 'cat-file', '-e', `${commitSha}^{commit}`])
+      } catch {
+        throw new SourceError(
+          'SOURCE_COMMIT_NOT_FOUND',
+          `${repo.projectSlug} has no commit ${commitSha.slice(0, 12)}`,
+        )
+      }
+      return { gitDir: path, commitSha }
     },
 
     async destroyRepository(repo) {

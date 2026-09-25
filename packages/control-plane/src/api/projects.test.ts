@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs'
 import { asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { events, projects } from '../db/index.js'
@@ -1028,7 +1027,11 @@ describe('the model catalogue a spec is validated against', () => {
       cookies,
     })
     expect(check.json().available).toBe(true)
-    expect(existsSync(deps.source.repositoryFor('journey-app').path)).toBe(false)
+    // No repository: the driver has no head for the slug (a reference has no path to
+    // check on disk since the D5 plan's Task 2 — the driver is the only one who knows).
+    await expect(
+      deps.source.headCommit(deps.source.repositoryFor('journey-app')),
+    ).rejects.toMatchObject({ code: 'SOURCE_GIT_FAILED' })
     expect(await deps.db.select().from(events)).toEqual([])
     await app.close()
   })

@@ -24,11 +24,19 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
  * `1.0.0` without one (P6b *Read this first* 11). This bump covers those seven and every
  * additive change P6b makes, once, because nothing is published between tasks.
  *
+ * **`1.2.0` SINCE THE D5 PLAN'S TASK 2 (2026-09-24)**, one task earlier than that plan was
+ * written to expect: every route's `errors:` list is printed into its operation's `default`
+ * response, and `startBuild` now answers `SOURCE_COMMIT_NOT_FOUND` (the plan's sitting 1,
+ * F8). The `ErrorCode` enum gains it and `SOURCE_PROVIDER_MISMATCH`, and loses
+ * `SOURCE_FOREIGN_REPO`, which no driver can raise once a reference carries no path — a
+ * code no server sends breaks no reader. This bump covers every additive change the D5
+ * plan makes, once, because nothing is published between its tasks (P6b Decision 15).
+ *
  * Three files carry it and two tests hold them together: this constant,
  * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,
  * never edited) and `packages/contract/package.json`.
  */
-export const CONTRACT_VERSION = '1.1.0'
+export const CONTRACT_VERSION = '1.2.0'
 
 type JsonSchema = Record<string, unknown>
 

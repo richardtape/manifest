@@ -327,11 +327,18 @@ export const ERROR_CODES = {
     'The app has launched, so a rehearsal would put an unapproved candidate on its live production listener (P6b Decision 16). A registration change is proved by UBC IAM’s change request.',
   ),
 
-  // source/ — every one is 409
-  SOURCE_FOREIGN_REPO: source('The repository reference was not made by this driver.'),
+  // source/ — every one is 409. `SOURCE_FOREIGN_REPO` retired in the D5 plan's Task 2: a
+  // reference no longer carries a path, so it cannot name a directory the driver did not
+  // make, and the one foreign reference left — another driver's — is PROVIDER_MISMATCH.
+  SOURCE_COMMIT_NOT_FOUND: source(
+    'The repository has no such commit — or what was named is not a full commit id — so there is nothing to build from it.',
+  ),
   SOURCE_GIT_FAILED: source('git failed; the message names the operation.'),
   SOURCE_INVALID_SLUG: source('The slug cannot name a repository.'),
   SOURCE_PATH_ESCAPE: source('The slug resolves outside the repository root.'),
+  SOURCE_PROVIDER_MISMATCH: source(
+    'The project’s repository was made by a different source driver from the one this control plane runs; the message names both (the D5 plan’s Decision 3).',
+  ),
 
   // config.ts — mapped by toErrorResponse, raised at boot
   CONFIG_INVALID: config('A setting failed validation.'),
