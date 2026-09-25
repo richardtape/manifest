@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs'
 import { dirname, join, resolve, sep } from 'node:path'
 import { promisify } from 'node:util'
 import {
+  type CreatedRepository,
   type LocalGitDir,
   type RepoRef,
   type SeedFiles,
@@ -108,6 +109,17 @@ export function createLocalSourceDriver(root: string): SourceDriver {
     }
   }
 
+  /**
+   * `main` — every branch — PROTECTED BY GIT ITSELF (the D5 plan's Task 12, Decision 13; `[M14]`
+   * measured both): a person's force-push is refused `denying non-fast-forward`, a deletion
+   * `denying ref deletion`. So a commit a release names cannot be rewritten away and then lost
+   * to `gc` (sitting 2's F3's window, closed). Set at creation and at every boot.
+   */
+  async function protectHistory(path: string): Promise<void> {
+    await git(path, ['config', 'receive.denyNonFastForwards', 'true'])
+    await git(path, ['config', 'receive.denyDeletes', 'true'])
+  }
+
   /** Writes files in a throwaway worktree and pushes them into the bare repo. */
   async function commitThroughWorktree(
     bare: string,
@@ -151,17 +163,31 @@ export function createLocalSourceDriver(root: string): SourceDriver {
       return { projectSlug, provider: 'local' }
     },
 
-    async createRepository(projectSlug: string, seed: SeedFiles): Promise<RepoRef> {
+    async createRepository(
+      projectSlug: string,
+      seed: SeedFiles,
+    ): Promise<CreatedRepository> {
       const path = pathFor(projectSlug)
       // Before ANYTHING is written (Task 11): a refused seed leaves no repository behind.
       assertNoSecrets(seed)
       await mkdir(repoRoot, { recursive: true })
       await git(repoRoot, ['init', '--bare', '--initial-branch=main', path])
-      // The hook BEFORE the first push, so every commit this repository ever takes — the
-      // seed's too — has been through it (§20: refused by the repository's own hook).
+      // The hook and git's protection BEFORE the first push, so every commit this repository
+      // ever takes — the seed's too — has been through both (§20; Task 12, Decision 13).
       await installPreReceiveHook(path)
+      await protectHistory(path)
       await commitThroughWorktree(path, seed, 'chore: seed from blueprint skeleton', true)
-      return { projectSlug, provider: 'local' }
+      return {
+        ref: { projectSlug, provider: 'local' },
+        link: {
+          provider: 'local',
+          // A laptop path is not an address (Decision 15): the slug, and no URL.
+          fullName: projectSlug,
+          webUrl: null,
+          mainProtected: true,
+          protectionDetail: null,
+        },
+      }
     },
 
     async commitFiles(repo, files, message) {
@@ -213,11 +239,6 @@ export function createLocalSourceDriver(root: string): SourceDriver {
       return { gitDir: path, commitSha }
     },
 
-    async describeRepository(repo) {
-      assertOwned(repo)
-      return { fullName: repo.projectSlug, webUrl: null }
-    },
-
     /** Nothing to bring up to date: this bare repository IS the source (Task 9). */
     async sync(repo) {
       assertOwned(repo)
@@ -236,9 +257,9 @@ export function createLocalSourceDriver(root: string): SourceDriver {
     },
 
     /**
-     * Every bare repository of driver 1's under the root gets the CURRENT hook — so a
-     * repository made before Task 11, or before a rule was added to the list, scans with
-     * today's list from the next boot. **A driver-2 mirror in the same root is left alone**:
+     * Every bare repository of driver 1's under the root gets the CURRENT hook and git's
+     * protection of its history — so a repository made before Task 11 or 12, or before a
+     * rule was added to the list, is today's from the next boot. **A driver-2 mirror in the same root is left alone**:
      * a laptop that switched drivers keeps both kinds side by side (Decision 3), and a mirror's
      * hook refuses EVERY push — replacing it would let a commit GitHub never saw into a
      * mirror. A mirror is known by the `manifest.fullName` its creation writes (Task 8).
@@ -247,6 +268,7 @@ export function createLocalSourceDriver(root: string): SourceDriver {
       let repositories = 0
       for (const dir of await ownRepositories(repoRoot, false)) {
         await installPreReceiveHook(dir)
+        await protectHistory(dir)
         repositories += 1
       }
       return { repositories }

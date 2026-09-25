@@ -9,6 +9,7 @@ import {
   projectViews,
   recordRepository,
 } from '../../projects/index.js'
+import type { RepositoryLink } from '../../source/index.js'
 import { declaresModels, validateSpec } from '../../spec/index.js'
 import type { ValidationContext } from '../../spec/index.js'
 import { requireSession } from '../actor.js'
@@ -197,14 +198,15 @@ export const createProjectRoutes = [
       // 5. The repository — and no project without one (P4b finding 178, Decision 29).
       let commitSha: string
       let yamlText: string
+      let link: RepositoryLink
       try {
-        const repo = await deps.source.createRepository(body.slug, seed)
-        // Which driver made it, and what its host calls it (the D5 plan's Decision 3): every
-        // later source operation checks the provider against the running driver's.
-        await recordRepository(deps.db, project.id, {
-          provider: deps.source.name,
-          ...(await deps.source.describeRepository(repo)),
-        })
+        const created = await deps.source.createRepository(body.slug, seed)
+        const repo = created.ref
+        link = created.link
+        // Which driver made it, what its host calls it and whether `main` is protected there
+        // (the D5 plan's Decision 3, Task 12): every later source operation checks the
+        // provider against the running driver's, and `Project.repository` reads the rest.
+        await recordRepository(deps.db, project.id, link)
         commitSha = await deps.source.headCommit(repo)
         yamlText = (await deps.source.readFile(repo, commitSha, 'manifest.yaml')) ?? ''
       } catch (error) {
@@ -283,6 +285,31 @@ export const createProjectRoutes = [
         },
         redact,
       )
+
+      // `main` NOT protected where the code lives (Task 12, Decision 13) — NEVER SILENTLY, and
+      // LAST, with the creation's other events, after every row that can fail (sitting 5's
+      // F3: `audit.events` RESTRICTs the delete that undoes a failed creation). GitHub's own
+      // words stay on the link; the event carries Manifest's.
+      if (!link.mainProtected) {
+        await publishEvent(
+          deps.db,
+          deps.bus,
+          {
+            projectId: project.id,
+            subject: `repository:${project.slug}`,
+            type: 'repository.protection_unavailable',
+            machineDetail: {
+              ref: 'refs/heads/main',
+              detail:
+                'the host would not protect main; a person can rewrite or delete it there',
+            },
+            humanMessage:
+              `${link.fullName}'s main is NOT protected: GitHub would not protect it (see the project's repository), ` +
+              'so a person can force-push or delete it on GitHub. Manifest keeps every commit a release names either way.',
+          },
+          redact,
+        )
+      }
 
       const [view] = await projectViews(deps.db, [project.id])
       return {

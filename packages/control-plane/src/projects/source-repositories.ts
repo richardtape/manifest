@@ -3,34 +3,44 @@ import { projects, sourceRepositories, type Db } from '../db/index.js'
 import {
   SourceError,
   type RepoRef,
+  type RepositoryLink,
   type SourceDriver,
   type SourceProvider,
 } from '../source/index.js'
 
 /**
  * WHERE A PROJECT'S CODE LIVES, as the driver that created it recorded it (the D5 plan's
- * Decision 3, Task 8). One row per project, written by `POST /v1/projects` after the
- * repository exists; every project older than migration 0024 was backfilled `local`, the
- * only driver there was. `webUrl` is `null` for driver 1: a laptop path is not an address,
- * and publishing it would tell a client the host's filesystem layout (Decision 15).
+ * Decision 3, Task 8) — and, since Task 12, whether its `main` is protected there. One row per
+ * project, written by `POST /v1/projects` from the LINK `createRepository` answered; every
+ * project older than migration 0024 was backfilled `local`, the only driver there was, and
+ * migration 0028 backfilled driver 1's `main_protected` true. `webUrl` is `null` for driver 1:
+ * a laptop path is not an address, and publishing it would tell a client the host's
+ * filesystem layout (Decision 15).
  */
-export interface StoredRepository {
-  provider: SourceProvider
-  fullName: string
-  webUrl: string | null
-}
-
 export async function recordRepository(
   db: Db,
   projectId: string,
-  r: StoredRepository,
+  link: RepositoryLink,
 ): Promise<void> {
   await db.insert(sourceRepositories).values({
     projectId,
-    provider: r.provider,
-    fullName: r.fullName,
-    webUrl: r.webUrl,
+    provider: link.provider,
+    fullName: link.fullName,
+    webUrl: link.webUrl,
+    mainProtected: link.mainProtected,
+    protectionDetail: link.protectionDetail,
   })
+}
+
+/** The link as a client reads it — from the row, which the CHECK holds to the two providers. */
+export function linkOf(row: typeof sourceRepositories.$inferSelect): RepositoryLink {
+  return {
+    provider: row.provider as SourceProvider,
+    fullName: row.fullName,
+    webUrl: row.webUrl,
+    mainProtected: row.mainProtected,
+    protectionDetail: row.protectionDetail,
+  }
 }
 
 /**

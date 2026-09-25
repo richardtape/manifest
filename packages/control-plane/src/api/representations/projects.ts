@@ -21,6 +21,43 @@ export const Audience = representation(
   }),
 )
 
+/**
+ * WHERE THE CODE LIVES (the D5 plan's Task 12, Decision 15) — the authoring brief's §3.1 gap —
+ * and whether `main` is protected there, recorded honestly where the host would not (Decision 13).
+ */
+export const RepositoryLink = representation(
+  'RepositoryLink',
+  z.object({
+    provider: z
+      .enum(['local', 'github'])
+      .describe(
+        'Which of D5’s drivers holds it: a repository on this machine, or GitHub.',
+      ),
+    fullName: z
+      .string()
+      .describe(
+        'The slug on this machine; `<org>/<slug>` on GitHub, as GitHub names it.',
+      ),
+    webUrl: z
+      .string()
+      .nullable()
+      .describe(
+        'Where a person opens it; null on this machine, where a path is not an address.',
+      ),
+    mainProtected: z
+      .boolean()
+      .describe(
+        'Whether a person’s force-push or deletion of `main` is refused where the code lives.',
+      ),
+    protectionDetail: z
+      .string()
+      .nullable()
+      .describe(
+        'The host’s own words when it would not protect `main`; null when it did.',
+      ),
+  }),
+)
+
 export const Project = representation(
   'Project',
   z.object({
@@ -43,6 +80,7 @@ export const Project = representation(
     launchedAt: Timestamp.nullable().describe(
       'When it first went to production (§13 D9) — null until then; never cleared.',
     ),
+    repository: RepositoryLink,
     environments: z
       .array(Environment)
       .optional()
@@ -123,6 +161,7 @@ export function toProject(
           },
     createdAt: view.project.createdAt.toISOString(),
     launchedAt: view.project.launchedAt?.toISOString() ?? null,
+    repository: view.repository,
     ...(environments === undefined ? {} : { environments }),
   }
 }

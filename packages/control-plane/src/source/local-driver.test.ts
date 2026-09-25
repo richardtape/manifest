@@ -33,6 +33,8 @@ describeSourceDriver('local', async () => {
     driver: createLocalSourceDriver(repos),
     pushAsPerson: async (slug, files, message) =>
       pushByHand(join(repos, `${slug}.git`), files, message),
+    forcePushMainAsPerson: async (slug) => forcePushByHand(join(repos, `${slug}.git`)),
+    deleteMainAsPerson: async (slug) => deleteMainByHand(join(repos, `${slug}.git`)),
     cleanup: () => rm(repos, { recursive: true, force: true }),
   }
 })
@@ -40,7 +42,7 @@ describeSourceDriver('local', async () => {
 describe('the local bare-repo source driver (D5 driver 1)', () => {
   it('creates a bare repository seeded with the blueprint skeleton', async () => {
     const driver = createLocalSourceDriver(root)
-    const repo = await driver.createRepository('chem-labs', seed)
+    const { ref: repo } = await driver.createRepository('chem-labs', seed)
 
     expect(repo.projectSlug).toBe('chem-labs')
     const sha = await driver.headCommit(repo)
@@ -56,7 +58,7 @@ describe('the local bare-repo source driver (D5 driver 1)', () => {
 
   it('returns null for a path that is not in the tree', async () => {
     const driver = createLocalSourceDriver(root)
-    const repo = await driver.createRepository('chem-labs', seed)
+    const { ref: repo } = await driver.createRepository('chem-labs', seed)
     const sha = await driver.headCommit(repo)
     expect(await driver.readFile(repo, sha, 'not-there.yaml')).toBeNull()
   })
@@ -65,7 +67,7 @@ describe('the local bare-repo source driver (D5 driver 1)', () => {
   // pass every other test here and silently build the wrong source.
   it('reads a file as it was at an older commit, not as it is at HEAD', async () => {
     const driver = createLocalSourceDriver(root)
-    const repo = await driver.createRepository('chem-labs', seed)
+    const { ref: repo } = await driver.createRepository('chem-labs', seed)
     const first = await driver.headCommit(repo)
 
     await driver.commitFiles(
@@ -86,7 +88,7 @@ describe('the local bare-repo source driver (D5 driver 1)', () => {
 
   it('lists the default branch', async () => {
     const driver = createLocalSourceDriver(root)
-    const repo = await driver.createRepository('chem-labs', seed)
+    const { ref: repo } = await driver.createRepository('chem-labs', seed)
     expect(await driver.listBranches(repo)).toEqual(['main'])
   })
 
@@ -105,7 +107,7 @@ describe('the local bare-repo source driver (D5 driver 1)', () => {
    */
   it('names a repository by its slug alone, so a reference cannot point it elsewhere', async () => {
     const driver = createLocalSourceDriver(root)
-    const repo = await driver.createRepository('chem-labs', seed)
+    const { ref: repo } = await driver.createRepository('chem-labs', seed)
     const head = await driver.headCommit(repo)
     const smuggled = { ...repo, path: '/etc', url: 'file:///etc' } as RepoRef
     expect(await driver.headCommit(smuggled)).toBe(head)
@@ -116,7 +118,7 @@ describe('the local bare-repo source driver (D5 driver 1)', () => {
 
   it('destroys a repository', async () => {
     const driver = createLocalSourceDriver(root)
-    const repo = await driver.createRepository('chem-labs', seed)
+    const { ref: repo } = await driver.createRepository('chem-labs', seed)
     await driver.destroyRepository(repo)
     await expect(stat(join(root, 'chem-labs.git'))).rejects.toThrow()
   })
@@ -134,7 +136,7 @@ describe('driver 1 refuses a secret in a PERSON’s push, by the repository’s 
 
   it('installs the hook at creation, and a person’s push of a key is refused by it — a clean one lands', async () => {
     const driver = createLocalSourceDriver(root)
-    const repo = await driver.createRepository('chem-labs', seed)
+    const { ref: repo } = await driver.createRepository('chem-labs', seed)
     expect((await stat(hookOf('chem-labs'))).mode & 0o777).toBe(0o755)
     const head = await driver.headCommit(repo)
     const refused = await pushByHand(
@@ -199,7 +201,7 @@ describe('driver 1 refuses a secret in a PERSON’s push, by the repository’s 
 
   it('syncs to an advance with no findings: this repository IS the source, and its hook is the scan', async () => {
     const driver = createLocalSourceDriver(root)
-    const repo = await driver.createRepository('chem-labs', seed)
+    const { ref: repo } = await driver.createRepository('chem-labs', seed)
     expect(await driver.sync(repo)).toEqual({
       projectSlug: 'chem-labs',
       updated: [],
@@ -243,6 +245,59 @@ async function pushByHand(
     )
     await git('push', '-q', 'origin', 'HEAD:main')
     return await git('rev-parse', 'HEAD')
+  } finally {
+    await rm(work, { recursive: true, force: true })
+  }
+}
+
+/** git as a PERSON, answering whether the bare repository TOOK it and what it said. */
+async function tried(
+  cwd: string,
+  args: string[],
+): Promise<{ ok: boolean; said: string }> {
+  return run('git', args, { cwd }).then(
+    () => ({ ok: true, said: '' }),
+    (e: unknown) => ({
+      ok: false,
+      said: String((e as { stderr?: unknown }).stderr ?? e),
+    }),
+  )
+}
+
+/** A PERSON rewriting `main` — an amend, force-pushed — into the bare repository (Task 12). */
+async function forcePushByHand(bare: string): Promise<{ ok: boolean; said: string }> {
+  const work = await mkdtemp(join(tmpdir(), 'manifest-person-'))
+  try {
+    await run('git', ['clone', '-q', bare, '.'], { cwd: work })
+    await run(
+      'git',
+      [
+        '-c',
+        'user.name=person',
+        '-c',
+        'user.email=person@example.org',
+        '-c',
+        'commit.gpgsign=false',
+        'commit',
+        '-q',
+        '--amend',
+        '-m',
+        'rewritten',
+      ],
+      { cwd: work },
+    )
+    return await tried(work, ['push', '-q', '--force', 'origin', 'HEAD:main'])
+  } finally {
+    await rm(work, { recursive: true, force: true })
+  }
+}
+
+/** A PERSON deleting `main` in the bare repository (`git push <bare> :main`). */
+async function deleteMainByHand(bare: string): Promise<{ ok: boolean; said: string }> {
+  const work = await mkdtemp(join(tmpdir(), 'manifest-person-'))
+  try {
+    await run('git', ['init', '-q'], { cwd: work })
+    return await tried(work, ['push', '-q', bare, ':refs/heads/main'])
   } finally {
     await rm(work, { recursive: true, force: true })
   }

@@ -12,7 +12,13 @@ import { assembleContext, runMandatoryGates } from '../../build/index.js'
 import { SAMPLE_SECRETS } from '../../build/testing.js'
 import { describeSourceDriver } from '../driver-contract.js'
 import { SourceError, type MirrorAdvance } from '../git-driver.js'
-import { pushAsPerson, recordingObserver, rewriteAsPerson } from '../testing.js'
+import {
+  pushAsPerson,
+  recordingObserver,
+  rewriteAsPerson,
+  tryDeleteMainAsPerson,
+  tryForcePushMainAsPerson,
+} from '../testing.js'
 import { createGithubSourceDriver } from './driver.js'
 import { gitWithToken } from './git.js'
 
@@ -137,50 +143,112 @@ async function lsRemoteMain(fake: StartedFake, slug: string): Promise<string> {
 
 // D5's contract, UNCHANGED (Task 2), against the in-process fake — plus the one case only a
 // remote driver can meet (sitting 1's F6), inside the same describe and harness.
-let current: Harness
 describeSourceDriver(
   'github',
   async () => {
-    current = await harness()
-    const h = current
+    const h = await harness()
     return {
       driver: h.driver,
       pushAsPerson: (slug, files, message) => pushAsPerson(h.fake, slug, files, message),
+      forcePushMainAsPerson: (slug) => tryForcePushMainAsPerson(h.fake, slug),
+      deleteMainAsPerson: (slug) => tryDeleteMainAsPerson(h.fake, slug),
       cleanup: h.cleanup,
     }
   },
-  (h) => {
+  () => {
+    // A rewrite GitHub TAKES needs a FREE organisation, where a private repository's main
+    // cannot be protected (Read this first 8): the suite's own harness is a team plan, whose
+    // main is protected since Task 12 — so this case brings its own GitHub.
     it("answers GitHub's head after a rewrite AND a normal push — never the mirror's frozen main (F6)", async () => {
-      const repo = await h().driver.createRepository('chem-labs', {
-        'manifest.yaml': 'manifest: 1\nname: chem-labs\n',
-      })
-      const first = await h().driver.headCommit(repo)
-      const rewritten = await rewriteAsPerson(current.fake, 'chem-labs')
-      expect(rewritten).not.toBe(first)
-      expect(await h().driver.headCommit(repo)).toBe(rewritten)
-      const pushed = await h().pushAsPerson(
-        'chem-labs',
-        { 'README.md': 'after the rewrite\n' },
-        'a normal push',
-      )
-      expect(await h().driver.headCommit(repo)).toBe(pushed)
-      expect(await h().driver.listBranches(repo)).toEqual(['main'])
-      // The history keeper kept what a release may name (Decision 1), and it still builds.
-      const mirror = join(current.mirrorRoot, 'chem-labs.git')
-      const kept = await run('git', ['--git-dir', mirror, 'rev-parse', 'refs/heads/main'])
-      expect(kept.stdout.trim()).toBe(first)
-      expect((await h().driver.localGitDir(repo, first)).commitSha).toBe(first)
-      // And Manifest's own commit lands on GitHub NOW, not on the frozen main — as written
-      // first it was SOURCE_CONFLICT for ever, however often the caller retried.
-      const mine = await h().driver.commitFiles(repo, { 'x.txt': 'x\n' }, 'after')
-      expect(await h().driver.headCommit(repo)).toBe(mine)
-      expect(await lsRemoteMain(current.fake, 'chem-labs')).toBe(mine)
+      const g = await harness({ plan: 'free' })
+      try {
+        const { ref: repo } = await g.driver.createRepository('chem-labs', {
+          'manifest.yaml': 'manifest: 1\nname: chem-labs\n',
+        })
+        const first = await g.driver.headCommit(repo)
+        const rewritten = await rewriteAsPerson(g.fake, 'chem-labs')
+        expect(rewritten).not.toBe(first)
+        expect(await g.driver.headCommit(repo)).toBe(rewritten)
+        const pushed = await pushAsPerson(
+          g.fake,
+          'chem-labs',
+          { 'README.md': 'after the rewrite\n' },
+          'a normal push',
+        )
+        expect(await g.driver.headCommit(repo)).toBe(pushed)
+        expect(await g.driver.listBranches(repo)).toEqual(['main'])
+        // The history keeper kept what a release may name (Decision 1), and it still builds.
+        const mirror = join(g.mirrorRoot, 'chem-labs.git')
+        const kept = await run('git', [
+          '--git-dir',
+          mirror,
+          'rev-parse',
+          'refs/heads/main',
+        ])
+        expect(kept.stdout.trim()).toBe(first)
+        expect((await g.driver.localGitDir(repo, first)).commitSha).toBe(first)
+        // And Manifest's own commit lands on GitHub NOW, not on the frozen main — as written
+        // first it was SOURCE_CONFLICT for ever, however often the caller retried.
+        const mine = await g.driver.commitFiles(repo, { 'x.txt': 'x\n' }, 'after')
+        expect(await g.driver.headCommit(repo)).toBe(mine)
+        expect(await lsRemoteMain(g.fake, 'chem-labs')).toBe(mine)
+      } finally {
+        await g.cleanup()
+      }
     })
   },
 )
 
 describe('the GitHub driver keeps what only a REMOTE driver has to promise', () => {
   const SEED = { 'manifest.yaml': 'manifest: 1\nname: chem-labs\n' }
+
+  /**
+   * Decision 13, WHERE GITHUB WILL NOT (`[M10]`(b), measured by conformance C13): a FREE
+   * organisation cannot protect a private repository's branch. The link says so in GitHub's own
+   * words — never a protection GitHub refused — and a rewrite GitHub TAKES is still refused by
+   * the mirror, so the history a release names holds on the free plan too.
+   */
+  it('free plan: main is recorded NOT protected, in GitHub’s words — and a force-push GitHub takes is still refused by the mirror', async () => {
+    const h = await harness({ plan: 'free' })
+    try {
+      const created = await h.driver.createRepository('chem-labs', SEED)
+      expect(created.link).toEqual({
+        provider: 'github',
+        fullName: `${h.fake.org}/chem-labs`,
+        webUrl: expect.stringMatching(/\/chem-labs$/),
+        mainProtected: false,
+        protectionDetail:
+          'Upgrade to GitHub Pro or make this repository public to enable this feature.',
+      })
+      const first = await h.driver.headCommit(created.ref)
+      const forced = await tryForcePushMainAsPerson(h.fake, 'chem-labs')
+      expect(forced).toEqual({ ok: true, said: '' }) // GitHub took it
+      await h.driver.sync(created.ref)
+      const mirror = join(h.mirrorRoot, 'chem-labs.git')
+      const kept = await run('git', ['--git-dir', mirror, 'rev-parse', 'refs/heads/main'])
+      expect(kept.stdout.trim()).toBe(first)
+      expect((await h.driver.localGitDir(created.ref, first)).commitSha).toBe(first)
+    } finally {
+      await h.cleanup()
+    }
+  })
+
+  it('team plan: GitHub’s own GH006 is what refuses a person’s force-push and deletion of main', async () => {
+    const h = await harness({ plan: 'team' })
+    try {
+      await h.driver.createRepository('chem-labs', SEED)
+      const forced = await tryForcePushMainAsPerson(h.fake, 'chem-labs')
+      expect(forced.ok).toBe(false)
+      expect(forced.said).toContain(
+        'GH006: Protected branch update failed for refs/heads/main',
+      )
+      const deleted = await tryDeleteMainAsPerson(h.fake, 'chem-labs')
+      expect(deleted.ok).toBe(false)
+      expect(deleted.said).toContain('GH006')
+    } finally {
+      await h.cleanup()
+    }
+  })
   const codeOf = (p: Promise<unknown>) =>
     p.then(
       () => 'resolved',
@@ -190,7 +258,7 @@ describe('the GitHub driver keeps what only a REMOTE driver has to promise', () 
   it('never puts a token where a person can read it — the canary', async () => {
     const h = await harness()
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       expect(h.minted.length).toBeGreaterThan(0) // the positive control: tokens WERE minted
       await h.fake.stop() // GitHub goes away mid-life
       const failure = await h.driver.headCommit(repo).catch((e: unknown) => e)
@@ -212,7 +280,7 @@ describe('the GitHub driver keeps what only a REMOTE driver has to promise', () 
   it('scopes every token to ONE repository and the least permission, except the one that creates it', async () => {
     const h = await harness()
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       await h.driver.commitFiles(repo, { 'x.txt': 'x\n' }, 'one more')
       await h.driver.destroyRepository(repo)
       const wide = h.mints.filter((m) => m.repositories === undefined)
@@ -291,7 +359,7 @@ describe('the GitHub driver keeps what only a REMOTE driver has to promise', () 
   it('offline: a mirrored commit still builds, and HEAD is 503, never stale', async () => {
     const h = await harness()
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const head = await h.driver.headCommit(repo)
       await h.fake.stop()
       expect((await h.driver.localGitDir(repo, head)).commitSha).toBe(head)
@@ -308,7 +376,7 @@ describe('the GitHub driver keeps what only a REMOTE driver has to promise', () 
   it('the mirror refuses a push, so it can never hold a commit GitHub has not seen', async () => {
     const h = await harness()
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const before = await h.driver.headCommit(repo)
       const mirror = join(h.mirrorRoot, 'chem-labs.git')
       const work = await mkdtemp(join(tmpdir(), 'mirror-push-'))
@@ -336,7 +404,7 @@ describe('the GitHub driver keeps what only a REMOTE driver has to promise', () 
   it('re-mints once after GitHub forgets a token (a restarted fake), and succeeds', async () => {
     const h = await harness()
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const head = await h.driver.headCommit(repo)
       const read = JSON.stringify({ contents: 'read' })
       const readsBefore = h.mints.filter(
@@ -364,7 +432,7 @@ describe('the GitHub driver keeps what only a REMOTE driver has to promise', () 
   it('serialises its syncs: concurrent reads after a push all answer the push', async () => {
     const h = await harness()
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const pushed = await pushAsPerson(h.fake, 'chem-labs', { 'b.txt': 'b\n' }, 'a push')
       const heads = await Promise.allSettled(
         Array.from({ length: 6 }, () => h.driver.headCommit(repo)),
@@ -407,7 +475,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
   it("does not report the creation's own first fetch — `repository.seeded` is that event, published LAST", async () => {
     const h = await harness()
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       expect(await h.driver.headCommit(repo)).toMatch(/^[0-9a-f]{40}$/)
       expect(h.advances).toEqual([])
     } finally {
@@ -418,7 +486,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
   it("reports a person's push ONCE, as updated from → to, and a quiet sync not at all", async () => {
     const h = await harness()
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const seed = await h.driver.headCommit(repo)
       const pushed = await pushAsPerson(h.fake, 'chem-labs', { 'b.txt': 'b\n' }, 'a push')
       const advance = await h.driver.sync(repo)
@@ -449,7 +517,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
   it('reports a rewrite ONCE, as rewritten — and the next normal push as updated, never as another rewrite ([M14])', async () => {
     const h = await harness({ plan: 'free' })
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const first = await h.driver.headCommit(repo)
       const rewritten = await rewriteAsPerson(h.fake, 'chem-labs')
       expect(await h.driver.sync(repo)).toEqual({
@@ -482,7 +550,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
   it('pins every commit it hands the builder: one GitHub rewrote away still builds after gc', async () => {
     const h = await harness({ plan: 'free' })
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       // X is GitHub's main after a rewrite: reachable in the mirror only through the shadow.
       const x = await rewriteAsPerson(h.fake, 'chem-labs')
       expect((await h.driver.localGitDir(repo, x)).commitSha).toBe(x)
@@ -502,7 +570,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
   it('an observer that fails fails the read that synced — a report is never swallowed', async () => {
     const h = await harness()
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       await pushAsPerson(h.fake, 'chem-labs', { 'b.txt': 'b\n' }, 'a push')
       h.failObserver(new Error('the database is down'))
       await expect(h.driver.headCommit(repo)).rejects.toThrow('the database is down')
@@ -543,7 +611,7 @@ describe('the GitHub driver keeps every repository PRIVATE — found public, mad
   it('reads visibility on every sync — a repository nobody touched reads private, and nothing is reported (the positive control)', async () => {
     const h = await harness()
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       expect((await h.driver.sync(repo)).visibility).toEqual(PRIVATE)
       expect(h.advances).toEqual([])
     } finally {
@@ -554,7 +622,7 @@ describe('the GitHub driver keeps every repository PRIVATE — found public, mad
   it('with NO webhook, a read’s sync finds it public and makes it private again, and reports it once', async () => {
     const h = await harness()
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       await makePublic(h.fake, 'chem-labs')
       await h.driver.headCommit(repo)
       expect(await isPrivate(h.fake, 'chem-labs')).toBe(true)
@@ -579,7 +647,7 @@ describe('the GitHub driver keeps every repository PRIVATE — found public, mad
     const quirks = { refusePrivatize: true }
     const h = await harness({ quirks })
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const head = await h.driver.headCommit(repo)
       await makePublic(h.fake, 'chem-labs')
       expect((await h.driver.sync(repo)).visibility).toEqual({
@@ -629,7 +697,7 @@ describe('the GitHub driver scans every commit its mirror learns of, and reports
   it('names the commit, the path, the line and the rule — never the key — and a second sync reports nothing new', async () => {
     const h = await harness()
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const pushed = await pushKey(h)
       const advance = await h.driver.sync(repo)
       expect(advance.findings).toEqual([
@@ -648,7 +716,7 @@ describe('the GitHub driver scans every commit its mirror learns of, and reports
   it('reports it even when NO webhook arrived — a read’s sync found it', async () => {
     const h = await harness()
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const pushed = await pushKey(h)
       expect(await h.driver.headCommit(repo)).toBe(pushed)
       expect(h.advances.flatMap((a) => a.findings)).toEqual([
@@ -662,7 +730,7 @@ describe('the GitHub driver scans every commit its mirror learns of, and reports
   it('reports AT LEAST ONCE: an observer that fails leaves the commit unscanned, and the next sync reports it again', async () => {
     const h = await harness()
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const pushed = await pushKey(h)
       h.failObserver(new Error('the database is down'))
       await expect(h.driver.sync(repo)).rejects.toThrow('the database is down')
@@ -681,7 +749,7 @@ describe('the GitHub driver scans every commit its mirror learns of, and reports
   it('a secret pushed to main AFTER a rewrite is reported — one force-push does not switch scanning off ([M14])', async () => {
     const h = await harness({ plan: 'free' })
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       await rewriteAsPerson(h.fake, 'chem-labs')
       await h.driver.sync(repo)
       const pushed = await pushKey(h, 'after-rewrite.js')
@@ -703,7 +771,7 @@ describe('the GitHub driver scans every commit its mirror learns of, and reports
     const h = await harness()
     const work = await mkdtemp(join(tmpdir(), 'mf-gate-'))
     try {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const clean = await h.driver.headCommit(repo)
       const pushed = await pushKey(h)
       const secrets = async (sha: string) => {

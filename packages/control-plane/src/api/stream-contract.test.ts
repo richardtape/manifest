@@ -58,6 +58,10 @@ const PUBLISHED_ELSEWHERE = {
   'repository.visibility_enforced':
     'api/webhooks.test.ts — a repository made public (Task 10)',
   'repository.secret_detected': 'api/webhooks.test.ts — a key pushed to GitHub (Task 11)',
+  // Task 12: published by POST /v1/projects on a free organisation — this lifecycle runs on
+  // driver 1, whose main git itself protects.
+  'repository.protection_unavailable':
+    'api/repository-link.test.ts — a free organisation (Task 12)',
 } as const
 
 /**

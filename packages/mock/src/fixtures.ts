@@ -128,6 +128,17 @@ export const PROJECT: Schemas['Project'] = {
   audience: AUDIENCE,
   createdAt: ISO,
   launchedAt: null,
+  // D5's DRIVER 2, on a FREE organisation (the D5 plan's Task 12): GitHub would not protect a
+  // private repository's main there, so the console's warning is what a front-end developer
+  // sees against the mock — the case that must never be hidden.
+  repository: {
+    provider: 'github',
+    fullName: 'manifest-apps/mock-app',
+    webUrl: 'https://github.com/manifest-apps/mock-app',
+    mainProtected: false,
+    protectionDetail:
+      'Upgrade to GitHub Pro or make this repository public to enable this feature.',
+  },
 }
 
 /** What `?expand=environments` adds (D23.1) — the project screen always asks for it. */

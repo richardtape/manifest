@@ -1020,6 +1020,7 @@ export interface components {
             createdAt: string;
             /** @description When it first went to production (§13 D9) — null until then; never cleared. */
             launchedAt: string | null;
+            repository: components["schemas"]["RepositoryLink"];
             environments: components["schemas"]["Environment"][];
             spec: components["schemas"]["SpecValidation"];
         };
@@ -1864,6 +1865,28 @@ export interface components {
              * @description An instant, ISO 8601 in UTC.
              */
             createdAt: string;
+        } | {
+            /** @constant */
+            kind: "event";
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /** @constant */
+            type: "repository.protection_unavailable";
+            /** @description For a person (§14). Never parse it. */
+            humanMessage: string;
+            machineDetail: {
+                ref: string;
+                detail: string;
+            };
+            /**
+             * Format: date-time
+             * @description An instant, ISO 8601 in UTC.
+             */
+            createdAt: string;
         };
         /** @description §26’s fleet, administrators only. Not yet: department, custom domains, AI spend this month. */
         Fleet: {
@@ -2149,6 +2172,7 @@ export interface components {
             createdAt: string;
             /** @description When it first went to production (§13 D9) — null until then; never cleared. */
             launchedAt: string | null;
+            repository: components["schemas"]["RepositoryLink"];
             /** @description Present with `?expand=environments` (D23.1). */
             environments?: components["schemas"]["Environment"][];
         };
@@ -2327,6 +2351,21 @@ export interface components {
             };
         };
         ReleaseList: components["schemas"]["Release"][];
+        RepositoryLink: {
+            /**
+             * @description Which of D5’s drivers holds it: a repository on this machine, or GitHub.
+             * @enum {string}
+             */
+            provider: "local" | "github";
+            /** @description The slug on this machine; `<org>/<slug>` on GitHub, as GitHub names it. */
+            fullName: string;
+            /** @description Where a person opens it; null on this machine, where a path is not an address. */
+            webUrl: string | null;
+            /** @description Whether a person’s force-push or deletion of `main` is refused where the code lives. */
+            mainProtected: boolean;
+            /** @description The host’s own words when it would not protect `main`; null when it did. */
+            protectionDetail: string | null;
+        };
         /** @description §12’s scan of the image a build produced (§6 `Build.scan`). */
         ScanSummary: {
             /** @description The scanner and its version — `fake` from the in-memory driver. */

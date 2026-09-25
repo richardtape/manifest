@@ -12,6 +12,12 @@ export interface SourceDriverHarness {
     files: Record<string, string>,
     message: string,
   ): Promise<string>
+  /**
+   * A PERSON rewriting `main` (an amend, force-pushed) and deleting it, outside the driver —
+   * each answering whether the host TOOK it, and what it said (Task 12).
+   */
+  forcePushMainAsPerson(slug: string): Promise<{ ok: boolean; said: string }>
+  deleteMainAsPerson(slug: string): Promise<{ ok: boolean; said: string }>
   cleanup(): Promise<void>
 }
 
@@ -56,7 +62,7 @@ export function describeSourceDriver(
     })
 
     it('creates a repository seeded with the files it was given, and names it by slug and provider', async () => {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       expect(repo).toEqual({ projectSlug: 'chem-labs', provider: h.driver.name })
       const sha = await h.driver.headCommit(repo)
       expect(sha).toMatch(/^[0-9a-f]{40}$/)
@@ -66,13 +72,49 @@ export function describeSourceDriver(
       expect(await h.driver.readFile(repo, sha, 'not-there.yaml')).toBeNull()
     })
 
-    it('names a repository it already made the same way it named it at creation', async () => {
+    /**
+     * THE REPOSITORY LINK (Task 12, Decision 15): where the code lives, for a client — and
+     * whether `main` is protected there, which on this suite's hosts it is: git's own
+     * configuration on driver 1, a team-plan organisation on driver 2.
+     */
+    it('answers a LINK with the repository: its provider, its name, and main protected (Task 12)', async () => {
       const created = await h.driver.createRepository('chem-labs', SEED)
+      expect(created.link).toEqual({
+        provider: h.driver.name,
+        fullName: expect.stringMatching(/chem-labs$/),
+        webUrl:
+          h.driver.name === 'local'
+            ? null
+            : expect.stringMatching(/^https?:\/\/.+chem-labs$/),
+        mainProtected: true,
+        protectionDetail: null,
+      })
+    })
+
+    /**
+     * §13's buildable history, where the code lives (Decision 13): a person can NEITHER rewrite
+     * `main` NOR delete it — refused by git's configuration on driver 1 and by the host's
+     * branch protection on driver 2 — and a normal push still lands (the positive control).
+     */
+    it('a person cannot force-push main, or delete it — and a normal push still lands (Task 12)', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const head = await h.driver.headCommit(repo)
+      const forced = await h.forcePushMainAsPerson('chem-labs')
+      expect(forced.ok, forced.said).toBe(false)
+      const deleted = await h.deleteMainAsPerson('chem-labs')
+      expect(deleted.ok, deleted.said).toBe(false)
+      expect(await h.driver.headCommit(repo)).toBe(head)
+      const pushed = await h.pushAsPerson('chem-labs', { 'n.txt': 'n\n' }, 'normal')
+      expect(await h.driver.headCommit(repo)).toBe(pushed)
+    })
+
+    it('names a repository it already made the same way it named it at creation', async () => {
+      const { ref: created } = await h.driver.createRepository('chem-labs', SEED)
       expect(h.driver.repositoryFor('chem-labs')).toEqual(created)
     })
 
     it('reads a file AT a commit, not at HEAD', async () => {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const first = await h.driver.headCommit(repo)
       const second = await h.driver.commitFiles(
         repo,
@@ -90,7 +132,7 @@ export function describeSourceDriver(
     })
 
     it('sees a commit a PERSON pushed outside the driver', async () => {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const before = await h.driver.headCommit(repo)
       const pushed = await h.pushAsPerson(
         'chem-labs',
@@ -103,7 +145,7 @@ export function describeSourceDriver(
     })
 
     it('hands the builder a local bare repository that holds the commit', async () => {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const sha = await h.driver.headCommit(repo)
       const local = await h.driver.localGitDir(repo, sha)
       expect(local.commitSha).toBe(sha)
@@ -116,7 +158,7 @@ export function describeSourceDriver(
     })
 
     it('refuses a commit the repository does not have, with its code', async () => {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       expect(await code(h.driver.localGitDir(repo, 'f'.repeat(40)))).toBe(
         'SOURCE_COMMIT_NOT_FOUND',
       )
@@ -128,7 +170,7 @@ export function describeSourceDriver(
      * starts, rather than what was validated — so only a full commit id is a commit id.
      */
     it('refuses a symbolic name where a commit id belongs', async () => {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const head = await h.driver.headCommit(repo)
       expect((await h.driver.localGitDir(repo, head)).commitSha).toBe(head) // positive control
       for (const name of [
@@ -151,7 +193,7 @@ export function describeSourceDriver(
      * `main` in the mirror is the history keeper, which a rewrite freezes (sitting 1's F6).
      */
     it('refuses to read at a commit the repository does not have, and at a name that is not a commit', async () => {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const head = await h.driver.headCommit(repo)
       expect(await h.driver.readFile(repo, head, 'manifest.yaml')).toContain('chem-labs') // positive control
       expect(await code(h.driver.readFile(repo, 'f'.repeat(40), 'manifest.yaml'))).toBe(
@@ -164,7 +206,7 @@ export function describeSourceDriver(
     })
 
     it('lists the default branch', async () => {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       expect(await h.driver.listBranches(repo)).toEqual(['main'])
     })
 
@@ -173,7 +215,7 @@ export function describeSourceDriver(
         expect(await code(h.driver.createRepository(slug, SEED))).toBe(
           'SOURCE_INVALID_SLUG',
         )
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       expect(
         await code(h.driver.commitFiles(repo, { '../outside.txt': 'x' }, 'escape')),
       ).toBe('SOURCE_PATH_ESCAPE')
@@ -188,7 +230,7 @@ export function describeSourceDriver(
      */
     it('refuses to commit a secret, and the head does not move (Task 11, §20)', async () => {
       const key = SAMPLE_SECRETS['an AWS access key id']
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       const head = await h.driver.headCommit(repo)
       const refused = await h.driver
         .commitFiles(
@@ -220,7 +262,7 @@ export function describeSourceDriver(
           h.driver.createRepository('bio-labs', { ...SEED, '.env': `AWS=${key}\n` }),
         ),
       ).toBe('SOURCE_SECRET_DETECTED')
-      const created = await h.driver.createRepository('bio-labs', SEED)
+      const { ref: created } = await h.driver.createRepository('bio-labs', SEED)
       expect(created).toEqual({ projectSlug: 'bio-labs', provider: h.driver.name })
     })
 
@@ -235,7 +277,7 @@ export function describeSourceDriver(
     })
 
     it('syncs a repository nothing has moved to an EMPTY advance that names it (Task 9)', async () => {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       // What visibility reads is the DRIVER's (Task 10): null on driver 1, whose repository has
       // none, and GitHub's answer on driver 2 — asserted in that driver's own file.
       expect(await h.driver.sync(repo)).toMatchObject({
@@ -246,7 +288,7 @@ export function describeSourceDriver(
     })
 
     it('destroys a repository, after which it has no head', async () => {
-      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
       await h.driver.destroyRepository(repo)
       // A SourceError, not merely a throw: a driver that crashed on the missing repository
       // would satisfy `toBeDefined()` with 'not a SourceError: …'.

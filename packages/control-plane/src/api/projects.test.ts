@@ -93,6 +93,7 @@ describe('POST /v1/projects (§22 steps 2–3, P5a Task 11)', () => {
         'id',
         'launchedAt',
         'owner',
+        'repository',
         'slug',
         'spec',
         'starter',
@@ -412,6 +413,7 @@ describe('project reads answer representations (P5a Task 8)', () => {
     'id',
     'launchedAt',
     'owner',
+    'repository',
     'slug',
     'starter',
   ]

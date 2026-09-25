@@ -121,6 +121,16 @@ export const sourceRepositories = pgTable(
     provider: text('provider').notNull(),
     fullName: text('full_name').notNull(),
     webUrl: text('web_url'),
+    /**
+     * Whether a person's force-push or deletion of `main` is refused where the code lives (the
+     * D5 plan's Task 12, Decision 13): git's own configuration on driver 1, GitHub's branch
+     * protection on driver 2 — which a free organisation's private repository does not get.
+     * `false` unless something made it true: migration 0028 backfills driver 1's rows `true`,
+     * because `prepare()` protects every driver-1 repository at boot, before the API listens.
+     */
+    mainProtected: boolean('main_protected').notNull().default(false),
+    /** GitHub's own words when it would not protect `main`; null otherwise. */
+    protectionDetail: text('protection_detail'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -863,7 +873,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.protection_unavailable')`,
     ),
   ],
 )

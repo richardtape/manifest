@@ -13,6 +13,30 @@ export interface RepoRef {
   provider: SourceProvider
 }
 
+/**
+ * WHERE A PROJECT'S CODE LIVES, for a client (the D5 plan's Task 12, Decision 15) — and whether
+ * its `main` is protected there, RECORDED HONESTLY where the host would not protect it
+ * (Decision 13): GitHub will not protect a private repository's branch on a free organisation,
+ * and the link says so in GitHub's own words rather than claiming a protection it refused.
+ */
+export interface RepositoryLink {
+  provider: SourceProvider
+  /** Driver 1: the slug. Driver 2: GitHub's `full_name`, as GitHub answered it at creation. */
+  fullName: string
+  /** Driver 1: null — a laptop path is not an address (Decision 15). Driver 2: `html_url`. */
+  webUrl: string | null
+  /** Whether a PERSON's force-push or deletion of `main` is refused where the code lives. */
+  mainProtected: boolean
+  /** The host's own words when it would not protect `main`; null when it did. */
+  protectionDetail: string | null
+}
+
+/** What `createRepository` answers: the reference, and the link the project records. */
+export interface CreatedRepository {
+  ref: RepoRef
+  link: RepositoryLink
+}
+
 /** A commit, present in a bare repository on THIS machine — what `git --git-dir=` is handed. */
 export interface LocalGitDir {
   gitDir: string
@@ -102,7 +126,11 @@ export class SourceError extends Error {
  */
 export interface SourceDriver {
   readonly name: SourceProvider
-  createRepository(projectSlug: string, seed: SeedFiles): Promise<RepoRef>
+  /**
+   * A NEW repository, seeded, with `main` protected where the host allows it (Task 12) — and
+   * the link that says where it lives and whether it was, which `POST /v1/projects` records.
+   */
+  createRepository(projectSlug: string, seed: SeedFiles): Promise<CreatedRepository>
   /**
    * The reference for a repository this platform already provisioned.
    *
@@ -129,13 +157,6 @@ export interface SourceDriver {
    * this and nothing else.
    */
   localGitDir(repo: RepoRef, commitSha: string): Promise<LocalGitDir>
-  /**
-   * What the repository's HOST calls it, for the project's `source_repositories` row (the D5
-   * plan's Task 8): driver 1 its slug and no address — a laptop path is not an address
-   * (Decision 15) — driver 2 the full name and `html_url` GitHub answered at creation, kept
-   * on the mirror. No network. Task 12 folds it into the repository link.
-   */
-  describeRepository(repo: RepoRef): Promise<{ fullName: string; webUrl: string | null }>
   /**
    * Bring the local copy up to date with the provider, and report what moved (Decision 11).
    * Driver 1's repository IS the source, so its answer is always empty.

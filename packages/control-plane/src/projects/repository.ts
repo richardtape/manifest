@@ -6,12 +6,15 @@ import {
   projectMembers,
   projects,
   routes,
+  sourceRepositories,
   users,
 } from '../db/index.js'
+import type { RepositoryLink } from '../source/index.js'
 import { type Config, hostnameFor } from '../config.js'
 import type { Actor, ProjectRole } from './authz.js'
 import type { ReservedLabels } from './reserved-labels.js'
 import { assertSlugAvailable, SlugRefusedError, slugTaken } from './slugs.js'
+import { linkOf } from './source-repositories.js'
 
 export type Project = typeof projects.$inferSelect
 export type Environment = typeof environments.$inferSelect
@@ -129,24 +132,50 @@ export async function getProject(
 export interface ProjectView {
   project: Project
   owner: { id: string; displayName: string }
+  /** Where its code lives, and whether `main` is protected there (the D5 plan's Task 12). */
+  repository: RepositoryLink
 }
 
-/** Projects with their owners' names, in the order asked for. */
+/**
+ * Projects with their owners' names and their repository links, in the order asked for.
+ *
+ * **A project with no `source_repositories` row is a platform defect** — every project has one
+ * since migration 0024 — so it is THROWN, naming the project (a `500` and an operator line),
+ * never answered without a link: `Project.repository` is required, and a client told nothing
+ * about where the code lives would be told something false by omission.
+ */
 export async function projectViews(
   db: Db,
   projectIds: readonly string[],
 ): Promise<ProjectView[]> {
   if (projectIds.length === 0) return []
   const rows = await db
-    .select({ project: projects, ownerId: users.id, ownerName: users.displayName })
+    .select({
+      project: projects,
+      ownerId: users.id,
+      ownerName: users.displayName,
+      repository: sourceRepositories,
+    })
     .from(projects)
     .innerJoin(users, eq(projects.ownerId, users.id))
+    .leftJoin(sourceRepositories, eq(sourceRepositories.projectId, projects.id))
     .where(inArray(projects.id, [...projectIds]))
   const byId = new Map(
-    rows.map((r) => [
-      r.project.id,
-      { project: r.project, owner: { id: r.ownerId, displayName: r.ownerName } },
-    ]),
+    rows.map((r) => {
+      if (r.repository === null) {
+        throw new Error(
+          `project '${r.project.slug}' (${r.project.id}) has no source_repositories row; every project has one since migration 0024`,
+        )
+      }
+      return [
+        r.project.id,
+        {
+          project: r.project,
+          owner: { id: r.ownerId, displayName: r.ownerName },
+          repository: linkOf(r.repository),
+        },
+      ]
+    }),
   )
   return projectIds.flatMap((id) => byId.get(id) ?? [])
 }

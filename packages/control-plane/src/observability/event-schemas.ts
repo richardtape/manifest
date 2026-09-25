@@ -270,4 +270,12 @@ export const EVENT_DETAIL_SCHEMAS = {
       .max(50),
     truncated: z.boolean(),
   }),
+  /**
+   * Task 12. `detail` is MANIFEST's sentence; GitHub's own words are on the project's
+   * repository link, not in an event (a GitHub body never goes into one verbatim).
+   */
+  'repository.protection_unavailable': z.strictObject({
+    ref: z.string().regex(/^refs\/heads\/.+$/),
+    detail: z.string(),
+  }),
 } satisfies Record<EventType, z.ZodType>

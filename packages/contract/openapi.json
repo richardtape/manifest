@@ -3618,6 +3618,9 @@
               }
             ]
           },
+          "repository": {
+            "$ref": "#/components/schemas/RepositoryLink"
+          },
           "environments": {
             "type": "array",
             "items": {
@@ -3637,6 +3640,7 @@
           "audience",
           "createdAt",
           "launchedAt",
+          "repository",
           "environments",
           "spec"
         ],
@@ -6426,6 +6430,71 @@
               "createdAt"
             ],
             "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "const": "repository.protection_unavailable"
+              },
+              "humanMessage": {
+                "description": "For a person (§14). Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "type": "object",
+                "properties": {
+                  "ref": {
+                    "type": "string",
+                    "pattern": "^refs\\/heads\\/.+$"
+                  },
+                  "detail": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ref",
+                  "detail"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt"
+            ],
+            "additionalProperties": false
           }
         ]
       },
@@ -7589,6 +7658,9 @@
               }
             ]
           },
+          "repository": {
+            "$ref": "#/components/schemas/RepositoryLink"
+          },
           "environments": {
             "description": "Present with `?expand=environments` (D23.1).",
             "type": "array",
@@ -7605,7 +7677,8 @@
           "owner",
           "audience",
           "createdAt",
-          "launchedAt"
+          "launchedAt",
+          "repository"
         ],
         "additionalProperties": false
       },
@@ -8342,6 +8415,57 @@
         "items": {
           "$ref": "#/components/schemas/Release"
         }
+      },
+      "RepositoryLink": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "description": "Which of D5’s drivers holds it: a repository on this machine, or GitHub.",
+            "type": "string",
+            "enum": [
+              "local",
+              "github"
+            ]
+          },
+          "fullName": {
+            "description": "The slug on this machine; `<org>/<slug>` on GitHub, as GitHub names it.",
+            "type": "string"
+          },
+          "webUrl": {
+            "description": "Where a person opens it; null on this machine, where a path is not an address.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mainProtected": {
+            "description": "Whether a person’s force-push or deletion of `main` is refused where the code lives.",
+            "type": "boolean"
+          },
+          "protectionDetail": {
+            "description": "The host’s own words when it would not protect `main`; null when it did.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "provider",
+          "fullName",
+          "webUrl",
+          "mainProtected",
+          "protectionDetail"
+        ],
+        "additionalProperties": false
       },
       "ScanSummary": {
         "description": "§12’s scan of the image a build produced (§6 `Build.scan`).",

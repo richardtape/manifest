@@ -104,7 +104,6 @@
       "why": "PATCH /repos/{owner}/{repo} { private: true } on a private repository: a no-op that answers full-repository. MEASURED 2026-09-24 (github.com-2026-09-24.json). It agreed with the documentation."
     },
     "C13": {
-      "pendingTask": 12,
       "byPlan": {
         "team": {
           "status": 200,
@@ -119,7 +118,7 @@
           }
         }
       },
-      "why": "[M19](b), MEASURED 2026-09-24 on a FREE organisation: 403 with the documented upgrade message — the free-plan answer. The TEAM answer (200) is still the description's, not measured: the real organisation is free. The fake implements protection in Task 12."
+      "why": "[M19](b), MEASURED 2026-09-24 on a FREE organisation: 403 with the documented upgrade message — the free-plan answer. The TEAM answer (200) is still the description's, not measured: the real organisation is free. The fake implements protection since Task 12 (2026-09-25): it answers both, by plan, and its own pre-receive enforces what it records — which the control plane's contract suite witnesses, not this step (the API's 200 says nothing about enforcement)."
     },
     "C14": {
       "status": 204,

@@ -106,6 +106,12 @@ export const EVENT_TYPES = [
    * the line and the rule; NEVER the value. Reported at least once per commit.
    */
   'repository.secret_detected',
+  /**
+   * §20, `main` protected (the D5 plan's Task 12, Decision 13): GitHub would NOT protect the
+   * new repository's `main` — a private repository on a free organisation — so a person can
+   * rewrite or delete it on GitHub. Published by `POST /v1/projects`, LAST, never silently.
+   */
+  'repository.protection_unavailable',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

@@ -6,6 +6,7 @@ import { basename, dirname, join, resolve, sep } from 'node:path'
 import {
   type LocalGitDir,
   type MirrorAdvance,
+  type RepositoryLink,
   type RepoRef,
   type SeedFiles,
   SourceError,
@@ -515,8 +516,8 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
     })
     await writeMirrorHook(mirror, slug)
     await local(mirror, ['config', 'manifest.visibility', 'private'])
-    // What GitHub ANSWERED it is called — read back by `describeRepository` for the
-    // project's row (Task 8), never rebuilt from the configuration by hand.
+    // What GitHub ANSWERED it is called — never rebuilt from the configuration by hand — and
+    // what tells a mirror from a driver-1 repository in a shared root (`prepare`, Task 11).
     await local(mirror, ['config', 'manifest.fullName', named.fullName])
     await local(mirror, ['config', 'manifest.webUrl', named.webUrl])
   }
@@ -532,6 +533,51 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
         'exit 1\n',
     )
     await chmod(hook, 0o755)
+  }
+
+  /**
+   * `main` PROTECTED WHERE GITHUB WILL (Task 12, Decision 13) — against rewriting and deletion,
+   * and nothing more: no required reviews and no push restrictions, so faculty keep pushing
+   * `main`. The body is conformance C13's. GitHub's `200` is protected. Its `403`/`404` — a
+   * PRIVATE repository on a FREE organisation (`[M10]`(b), measured by C13) — is RECORDED,
+   * with GitHub's own words, and never claimed as protected; the route publishes
+   * `repository.protection_unavailable` for it. Anything else refuses the creation, which is
+   * then undone. The mirror's non-forced history keeps what a release names on either plan.
+   */
+  async function protectMain(
+    slug: string,
+  ): Promise<Pick<RepositoryLink, 'mainProtected' | 'protectionDetail'>> {
+    const res = await restAs(
+      slug,
+      { administration: 'write' },
+      'PUT',
+      `/repos/${o.org}/${slug}/branches/main/protection`,
+      {
+        required_status_checks: null,
+        enforce_admins: false,
+        required_pull_request_reviews: null,
+        restrictions: null,
+        allow_force_pushes: false,
+        allow_deletions: false,
+      },
+    )
+    if (res.status === 200) return { mainProtected: true, protectionDetail: null }
+    if (res.status === 403 || res.status === 404) {
+      const said = (res.json as { message?: unknown } | undefined)?.message
+      return {
+        mainProtected: false,
+        // GitHub's own sentence, as a person would read it on GitHub — bounded, and with no
+        // control characters, because it is shown on the project.
+        protectionDetail:
+          typeof said === 'string' && said.trim() !== ''
+            ? said
+                .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+                .trim()
+                .slice(0, 500)
+            : `GitHub answered ${res.status} and gave no reason`,
+      }
+    }
+    throw client.refusal(`protect main on ${o.org}/${slug}`, res)
   }
 
   async function deleteOnGithub(slug: string): Promise<void> {
@@ -564,6 +610,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
           `${projectSlug} already has a mirror on this machine; it is never reused or removed by a create`,
         )
       }
+      let link: RepositoryLink
       const admin = await tokens.installationWide({ administration: 'write' })
       const created = await client.asToken(admin, 'POST', `/orgs/${o.org}/repos`, {
         name: projectSlug,
@@ -607,6 +654,14 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
             created,
           )
         }
+        // After the seed push — protection names a branch that must exist — and before the
+        // mirror's first sync.
+        link = {
+          provider: 'github',
+          fullName: body.full_name,
+          webUrl: body.html_url,
+          ...(await protectMain(projectSlug)),
+        }
         await makeMirror(mirror, projectSlug, {
           fullName: body.full_name,
           webUrl: body.html_url,
@@ -628,7 +683,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
         await rm(mirror, { recursive: true, force: true })
         throw error
       }
-      return { projectSlug, provider: 'github' }
+      return { ref: { projectSlug, provider: 'github' }, link }
     },
 
     async commitFiles(repo, files, message) {
@@ -706,15 +761,6 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
         local(mirror, ['update-ref', `${KEPT}/${commitSha}`, commitSha]),
       )
       return { gitDir: mirror, commitSha }
-    },
-
-    async describeRepository(repo) {
-      const mirror = mirrorOf(repo)
-      const read = (key: string) => local(mirror, ['config', key]).then((v) => v.trim())
-      return {
-        fullName: await read('manifest.fullName'),
-        webUrl: await read('manifest.webUrl'),
-      }
     },
 
     async sync(repo) {

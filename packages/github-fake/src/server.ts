@@ -17,7 +17,14 @@ import {
 } from './app-auth.js'
 import { gitRouteOf, serveGit } from './git-http.js'
 import { fullRepository, orgUser, nodeId, validRepoName, type Urls } from './repos.js'
-import { loadState, repoDir, saveState, type FakeRepo, type FakeState } from './state.js'
+import {
+  loadState,
+  repoDir,
+  saveState,
+  type FakeRepo,
+  type FakeState,
+  type Protection,
+} from './state.js'
 import {
   changesBetween,
   createWebhooks,
@@ -27,6 +34,7 @@ import {
   type RefChange,
   type Webhooks,
 } from './webhooks.js'
+import { installProtectionHook, writeProtection } from './protection.js'
 
 const run = promisify(execFile)
 
@@ -403,6 +411,9 @@ export function createFakeServer(config: FakeConfig): FakeServer {
         GIT_CONFIG_GLOBAL: '/dev/null',
       },
     })
+    // Branch protection is enforced by the repository's own hook (Task 12): installed now,
+    // it refuses nothing until a rule is PUT.
+    await installProtectionHook(dir)
     state.repos[repo.name.toLowerCase()] = repo
     save()
     return repoJson(repo, g)
@@ -469,6 +480,91 @@ export function createFakeServer(config: FakeConfig): FakeServer {
     })
   }
 
+  /**
+   * BRANCH PROTECTION, BY PLAN (the D5 plan's Task 12, Decision 13). On a FREE organisation a
+   * PRIVATE repository cannot be protected: `403` with GitHub's upgrade message (measured,
+   * conformance C13, 2026-09-24) — a public one can. On `team`, any can. Permission first, as
+   * everywhere here: without `administration` it is GitHub's integration refusal. The fake
+   * protects `main` only — the one branch Manifest protects — and says so for any other,
+   * loudly rather than silently different.
+   */
+  function protectable(
+    req: IncomingMessage,
+    owner: string,
+    name: string,
+    branch: string,
+    level: Permission,
+  ): FakeRepo {
+    const g = requireGrant(req)
+    const repo = repoOf(name)
+    if (!sameOrg(owner) || repo === undefined || !canSee(g, repo.name)) throw notFound()
+    if (!can(g, repo.name, 'administration', level)) {
+      throw new HttpError(403, 'Resource not accessible by integration')
+    }
+    if (state.plan === 'free' && repo.private) {
+      throw new HttpError(
+        403,
+        'Upgrade to GitHub Pro or make this repository public to enable this feature.',
+      )
+    }
+    if (branch !== 'main') {
+      throw new HttpError(422, 'The GitHub fake protects only main (D5 plan, Task 12).')
+    }
+    return repo
+  }
+
+  /** GitHub's `protected-branch`, as much of it as the fake keeps — held to its schema. */
+  function protectionJson(
+    repo: FakeRepo,
+    protection: Protection,
+  ): Record<string, unknown> {
+    const url = `${config.urls().apiUrl}/repos/${state.org}/${repo.name}/branches/main/protection`
+    return {
+      url,
+      enforce_admins: { url: `${url}/enforce_admins`, enabled: false },
+      required_linear_history: { enabled: false },
+      allow_force_pushes: { enabled: protection.allowForcePushes },
+      allow_deletions: { enabled: protection.allowDeletions },
+      block_creations: { enabled: false },
+      required_conversation_resolution: { enabled: false },
+      lock_branch: { enabled: false },
+      allow_fork_syncing: { enabled: false },
+    }
+  }
+
+  async function protectBranch(
+    req: IncomingMessage,
+    owner: string,
+    name: string,
+    branch: string,
+  ) {
+    const repo = protectable(req, owner, name, branch, 'write')
+    const body = await readJson(req)
+    const protection: Protection = {
+      allowForcePushes: body.allow_force_pushes === true,
+      allowDeletions: body.allow_deletions === true,
+    }
+    repo.protection = protection
+    save()
+    await writeProtection(
+      repoDir(config.dataDir, state.org, repo.name),
+      branch,
+      protection,
+    )
+    return protectionJson(repo, protection)
+  }
+
+  function readProtection(
+    req: IncomingMessage,
+    owner: string,
+    name: string,
+    branch: string,
+  ) {
+    const repo = protectable(req, owner, name, branch, 'read')
+    if (repo.protection === null) throw new HttpError(404, 'Branch not protected')
+    return protectionJson(repo, repo.protection)
+  }
+
   async function api(req: IncomingMessage, path: string): Promise<[number, unknown]> {
     const method = req.method ?? 'GET'
     let m: RegExpExecArray | null
@@ -489,6 +585,11 @@ export function createFakeServer(config: FakeConfig): FakeServer {
     }
     if ((m = /^\/orgs\/([^/]+)\/repos$/.exec(path)) && method === 'POST') {
       return [201, await createRepo(req, m[1]!)]
+    }
+    if ((m = /^\/repos\/([^/]+)\/([^/]+)\/branches\/([^/]+)\/protection$/.exec(path))) {
+      const [owner, name, branch] = [m[1]!, m[2]!, decodeURIComponent(m[3]!)]
+      if (method === 'PUT') return [200, await protectBranch(req, owner, name, branch)]
+      if (method === 'GET') return [200, readProtection(req, owner, name, branch)]
     }
     if ((m = /^\/repos\/([^/]+)\/([^/]+)$/.exec(path))) {
       const [owner, name] = [m[1]!, m[2]!]

@@ -144,6 +144,50 @@ function Overview({
           <Field label="Created">
             <Instant at={project.createdAt} />
           </Field>
+          {/*
+            WHERE THE CODE LIVES (the D5 plan's Task 12): GitHub's address, or "a repository on
+            this machine" for driver 1 — never a laptop path, which the API does not carry.
+          */}
+          <Field label="Code">
+            {project.repository.provider === 'github' ? (
+              <>
+                {project.repository.webUrl === null ? (
+                  <code>{project.repository.fullName}</code>
+                ) : (
+                  <a href={project.repository.webUrl}>
+                    <code>{project.repository.fullName}</code>
+                  </a>
+                )}{' '}
+                on GitHub — private,{' '}
+                {project.repository.mainProtected ? (
+                  <>
+                    <code>main</code> protected
+                  </>
+                ) : (
+                  <Pill tone="bad">main NOT protected</Pill>
+                )}
+              </>
+            ) : (
+              'a repository on this machine'
+            )}
+          </Field>
+          {/*
+            A `main` the host would not protect is SAID, in the refusal's style — never hidden
+            (Decision 13): a person can rewrite or delete it there, and the host's own words say
+            why. Manifest's mirror still keeps every commit a release names.
+          */}
+          {!project.repository.mainProtected && (
+            <div className="refusal">
+              <p>
+                <code>main</code> is not protected where the code lives: a person can
+                force-push or delete it there. Manifest keeps every commit a release names
+                either way.
+              </p>
+              {project.repository.protectionDetail !== null && (
+                <p className="hint">{project.repository.protectionDetail}</p>
+              )}
+            </div>
+          )}
           {/* §24, and it is NULL for a project created before the question existed. */}
           <Field label="Who it is for">
             {project.audience === null

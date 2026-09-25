@@ -67,6 +67,55 @@ export async function rewriteAsPerson(fake: Github, slug: string): Promise<strin
   }
 }
 
+/** What a person's push was answered: whether GitHub TOOK it, and what it said. */
+export interface PersonPush {
+  ok: boolean
+  said: string
+}
+
+/**
+ * A person force-pushing an amended `main` to GitHub — which branch protection refuses, and a
+ * free organisation's private repository cannot stop (Task 12). Answers; never throws.
+ */
+export async function tryForcePushMainAsPerson(
+  fake: Github,
+  slug: string,
+): Promise<PersonPush> {
+  const work = await mkdtemp(join(tmpdir(), 'person-'))
+  const as = asPerson(fake, work)
+  try {
+    await gitWithToken(['clone', '-q', `${fake.gitUrl}/${fake.org}/${slug}.git`, '.'], as)
+    await gitWithToken([...PERSON, 'commit', '-q', '--amend', '-m', 'rewritten'], as)
+    return await gitWithToken(['push', '-q', '--force', 'origin', 'HEAD:main'], as).then(
+      () => ({ ok: true, said: '' }),
+      (e: unknown) => ({ ok: false, said: String((e as Error).message) }),
+    )
+  } finally {
+    await rm(work, { recursive: true, force: true })
+  }
+}
+
+/** A person deleting `main` on GitHub (`git push origin :main`). Answers; never throws. */
+export async function tryDeleteMainAsPerson(
+  fake: Github,
+  slug: string,
+): Promise<PersonPush> {
+  const work = await mkdtemp(join(tmpdir(), 'person-'))
+  const as = asPerson(fake, work)
+  try {
+    await gitWithToken(['init', '-q'], as)
+    return await gitWithToken(
+      ['push', '-q', `${fake.gitUrl}/${fake.org}/${slug}.git`, ':refs/heads/main'],
+      as,
+    ).then(
+      () => ({ ok: true, said: '' }),
+      (e: unknown) => ({ ok: false, said: String((e as Error).message) }),
+    )
+  } finally {
+    await rm(work, { recursive: true, force: true })
+  }
+}
+
 /** A `SourceObserver` that keeps every advance it is handed — or fails, when told to. */
 export function recordingObserver(): SourceObserver & {
   advances: MirrorAdvance[]

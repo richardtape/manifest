@@ -79,7 +79,7 @@ describeDocker(
         ...fake.options,
         observer: recordingObserver(),
       })
-      const repo = await source.createRepository(SLUG, treeOf(FIXTURE))
+      const { ref: repo } = await source.createRepository(SLUG, treeOf(FIXTURE))
       const sha = await source.headCommit(repo)
       await withRollback(async (db) => {
         const [user] = await db
