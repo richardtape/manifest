@@ -334,6 +334,9 @@ export const ERROR_CODES = {
     'The repository has no such commit — or what was named is not a full commit id — so there is nothing to build from it.',
   ),
   SOURCE_GIT_FAILED: source('git failed; the message names the operation.'),
+  SOURCE_GITHUB_KEY_UNREADABLE: source(
+    'The GitHub App’s private key cannot be read, or is not an RSA key; the message names the file (the D5 plan’s Decision 5).',
+  ),
   SOURCE_INVALID_SLUG: source('The slug cannot name a repository.'),
   SOURCE_PATH_ESCAPE: source('The slug resolves outside the repository root.'),
   SOURCE_PROVIDER_MISMATCH: source(
@@ -342,6 +345,9 @@ export const ERROR_CODES = {
 
   // config.ts — mapped by toErrorResponse, raised at boot
   CONFIG_INVALID: config('A setting failed validation.'),
+  CONFIG_GITHUB_INSECURE_URL: config(
+    'A GitHub URL is plain http beyond loopback, so an installation token would cross the network in plaintext (the D5 plan’s Decision 4).',
+  ),
   CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED: config(
     'MANIFEST_BUILD_CREDENTIAL_SECRET is required outside development.',
   ),

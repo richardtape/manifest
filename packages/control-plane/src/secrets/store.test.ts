@@ -236,6 +236,11 @@ describe('the secret store (§6, §12)', () => {
     const dir = await mkdtemp(join(tmpdir(), 'manifest-master-key-'))
     const path = join(dir, 'master.key')
     await writeFile(path, '{"v":1,"publicKey":"not-base64!!"}', 'utf8')
-    await expect(loadMasterKeypair(path)).rejects.toThrow(/master key/i)
+    // Owner-only, so what is refused is the CONTENT: since the D5 plan's Task 3 a file at
+    // the default umask (644) is refused first, for its mode, and this would pass for that.
+    await chmod(path, 0o600)
+    await expect(loadMasterKeypair(path)).rejects.toMatchObject({
+      code: 'SECRET_MASTER_KEY_INVALID',
+    })
   })
 })

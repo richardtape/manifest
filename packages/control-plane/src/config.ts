@@ -277,6 +277,36 @@ const envSchema = z.object({
   // confinement: it gates whether the catalogue is fetched (Task 6), never whether a
   // key carries allowed_routes (Task 7). '0' or '1' only — `false` is a truthy string.
   MANIFEST_AI_ENABLED: z.enum(['0', '1']).default('1'),
+  /**
+   * D5's two drivers, ONE per control-plane process (the D5 plan's Decision 3): `local`,
+   * bare repositories under MANIFEST_REPOS_ROOT (driver 1), or `github`, an organisation
+   * behind a GitHub App with a local mirror at the same path (driver 2). Switching is a
+   * restart, and a project keeps the provider it was created with.
+   */
+  MANIFEST_SOURCE_DRIVER: z.enum(['local', 'github']).default('local'),
+  /**
+   * Driver 2's GitHub. Every default is the FAKE's (`packages/github-fake`, Task 4, on
+   * `127.0.0.1:7110`), so switching a laptop to driver 2 is one variable. A real App sets
+   * `https://api.github.com` and `https://github.com`, and the plan's *What Rich does* has
+   * the rest. `/api/v3` is GitHub Enterprise Server's layout, which the fake serves.
+   */
+  MANIFEST_GITHUB_API_URL: z.string().url().default('http://127.0.0.1:7110/api/v3'),
+  MANIFEST_GITHUB_GIT_URL: z.string().url().default('http://127.0.0.1:7110'),
+  MANIFEST_GITHUB_ORG: z.string().min(1).default('manifest-apps'),
+  MANIFEST_GITHUB_APP_ID: z.string().regex(/^\d+$/).default('1000001'),
+  MANIFEST_GITHUB_INSTALLATION_ID: z.string().regex(/^\d+$/).default('2000001'),
+  /**
+   * The App's PRIVATE key, in the master key's custody class (§20) — a file, never a value
+   * in the environment. Repo-relative for the reason `fromRepoRoot` records; the fake's is
+   * minted by `make up` (`infra/lib/ensure-github-fake.sh`), a real App's is Rich's to place
+   * at `infra/secrets/github-app.pem`.
+   */
+  MANIFEST_GITHUB_APP_KEY: z.string().min(1).default('infra/secrets/github-fake-app.pem'),
+  /** The App's webhook secret (§20: "verified by HMAC before any processing"), a file. */
+  MANIFEST_GITHUB_WEBHOOK_SECRET: z
+    .string()
+    .min(1)
+    .default('infra/secrets/github-fake-webhook.secret'),
 })
 
 export interface Config {
@@ -357,6 +387,22 @@ export interface Config {
     masterKey?: string
     /** Whether the catalogue is fetched. Never whether a key is confined. */
     enabled: boolean
+  }
+  /** Which of D5's drivers this process runs (the D5 plan's Decision 3). */
+  sourceDriver: 'local' | 'github'
+  /**
+   * Driver 2's settings. BUILT WHATEVER THE DRIVER (the webhook route reads the secret's
+   * path in both modes) and READ only by driver 2, so a driver-1 control plane boots on a
+   * machine that has never minted the fake's files — `loadConfig` reads no file.
+   */
+  github: {
+    apiUrl: string
+    gitUrl: string
+    org: string
+    appId: string
+    installationId: string
+    appKeyPath: string
+    webhookSecretPath: string
   }
 }
 
@@ -456,6 +502,26 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     )
   }
 
+  // An installation token over plaintext is a token on the network (the D5 plan's Decision
+  // 4). Loopback only — which is where the fake is. Both URLs are already URLs (the schema).
+  for (const [name, value] of [
+    ['MANIFEST_GITHUB_API_URL', raw.MANIFEST_GITHUB_API_URL],
+    ['MANIFEST_GITHUB_GIT_URL', raw.MANIFEST_GITHUB_GIT_URL],
+  ] as const) {
+    const u = new URL(value)
+    if (
+      u.protocol === 'http:' &&
+      u.hostname !== '127.0.0.1' &&
+      u.hostname !== 'localhost'
+    ) {
+      throw new ConfigError(
+        'CONFIG_GITHUB_INSECURE_URL',
+        `${name} is '${value}': a GitHub installation token may cross only loopback in ` +
+          'plaintext; use https',
+      )
+    }
+  }
+
   return {
     env: raw.MANIFEST_ENV,
     databaseUrl: raw.MANIFEST_DATABASE_URL,
@@ -511,6 +577,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
         ? {}
         : { masterKey: raw.MANIFEST_LITELLM_MASTER_KEY }),
       enabled: raw.MANIFEST_AI_ENABLED === '1',
+    },
+    sourceDriver: raw.MANIFEST_SOURCE_DRIVER,
+    github: {
+      apiUrl: raw.MANIFEST_GITHUB_API_URL,
+      gitUrl: raw.MANIFEST_GITHUB_GIT_URL,
+      org: raw.MANIFEST_GITHUB_ORG,
+      appId: raw.MANIFEST_GITHUB_APP_ID,
+      installationId: raw.MANIFEST_GITHUB_INSTALLATION_ID,
+      appKeyPath: fromRepoRoot(raw.MANIFEST_GITHUB_APP_KEY),
+      webhookSecretPath: fromRepoRoot(raw.MANIFEST_GITHUB_WEBHOOK_SECRET),
     },
   }
 }

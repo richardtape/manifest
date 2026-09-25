@@ -334,3 +334,89 @@ describe('configuration', () => {
     expect(zoneFor(config, 'production')).toBe('manifest.internal')
   })
 })
+
+/**
+ * The D5 plan's Task 3: the source driver and driver 2's GitHub settings. ONE driver per
+ * control-plane process (Decision 3), defaulted to driver 1, and GitHub's settings default
+ * to the FAKE, so switching a laptop to driver 2 is one variable.
+ */
+describe('the source driver and its GitHub settings (D5, the D5 plan’s Task 3)', () => {
+  const codeOf = (fn: () => unknown) => {
+    try {
+      fn()
+      return 'accepted'
+    } catch (e) {
+      return e instanceof ConfigError ? e.code : `not a ConfigError: ${String(e)}`
+    }
+  }
+
+  it('runs driver 1 unless told otherwise', () => {
+    expect(loadConfig({ ...base }).sourceDriver).toBe('local')
+  })
+
+  it('points driver 2 at the fake by default — seven settings, the two key paths repo-rooted', () => {
+    const config = loadConfig({ ...base, MANIFEST_SOURCE_DRIVER: 'github' })
+    expect(config.sourceDriver).toBe('github')
+    expect(config.github).toEqual({
+      apiUrl: 'http://127.0.0.1:7110/api/v3',
+      gitUrl: 'http://127.0.0.1:7110',
+      org: 'manifest-apps',
+      appId: '1000001',
+      installationId: '2000001',
+      appKeyPath: expect.stringMatching(/^\/.+\/infra\/secrets\/github-fake-app\.pem$/),
+      webhookSecretPath: expect.stringMatching(
+        /^\/.+\/infra\/secrets\/github-fake-webhook\.secret$/,
+      ),
+    })
+  })
+
+  /**
+   * `config.github` is built whatever the driver (Task 9's webhook route reads the secret's
+   * path) and is only READ by driver 2, so a driver-1 control plane boots on a machine that
+   * has never minted the fake's files. `loadConfig` reads no file; this holds it to that.
+   */
+  it('builds the GitHub settings on driver 1 without needing any GitHub file to exist', () => {
+    const config = loadConfig({
+      ...base,
+      MANIFEST_GITHUB_APP_KEY: '/nonexistent/github-app.pem',
+      MANIFEST_GITHUB_WEBHOOK_SECRET: '/nonexistent/webhook.secret',
+    })
+    expect(config.sourceDriver).toBe('local')
+    expect(config.github.appKeyPath).toBe('/nonexistent/github-app.pem')
+    expect(config.github.webhookSecretPath).toBe('/nonexistent/webhook.secret')
+  })
+
+  // An installation token over plaintext is a token on the network (Decision 4).
+  it('refuses http beyond loopback for either GitHub URL, and accepts https and loopback', () => {
+    for (const name of ['MANIFEST_GITHUB_API_URL', 'MANIFEST_GITHUB_GIT_URL']) {
+      expect(
+        codeOf(() => loadConfig({ ...base, [name]: 'http://github.example.org' })),
+      ).toBe('CONFIG_GITHUB_INSECURE_URL')
+      expect(codeOf(() => loadConfig({ ...base, [name]: 'http://10.0.0.5:7110' }))).toBe(
+        'CONFIG_GITHUB_INSECURE_URL',
+      )
+    }
+    // The positive controls, in the same test: GitHub itself, and the fake on loopback.
+    const real = loadConfig({
+      ...base,
+      MANIFEST_GITHUB_API_URL: 'https://api.github.com',
+      MANIFEST_GITHUB_GIT_URL: 'https://github.com',
+    })
+    expect(real.github.apiUrl).toBe('https://api.github.com')
+    expect(real.github.gitUrl).toBe('https://github.com')
+    expect(
+      codeOf(() =>
+        loadConfig({ ...base, MANIFEST_GITHUB_GIT_URL: 'http://localhost:7110' }),
+      ),
+    ).toBe('accepted')
+  })
+
+  it('refuses a driver it does not have, and a GitHub URL that is not a URL', () => {
+    expect(codeOf(() => loadConfig({ ...base, MANIFEST_SOURCE_DRIVER: 'gitlab' }))).toBe(
+      'CONFIG_INVALID',
+    )
+    expect(
+      codeOf(() => loadConfig({ ...base, MANIFEST_GITHUB_API_URL: 'not a url' })),
+    ).toBe('CONFIG_INVALID')
+  })
+})

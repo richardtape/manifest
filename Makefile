@@ -46,6 +46,7 @@ up: .env  ## Boot the platform. Works offline after `make seed`.
 	@bash infra/lib/ensure-idp-keypair.sh
 	@bash infra/lib/ensure-cp-sp-keypair.sh
 	@bash infra/lib/ensure-master-key.sh
+	@bash infra/lib/ensure-github-fake.sh
 	@$(COMPOSE) up -d --wait
 	@bash infra/lib/ensure-caddy-config.sh
 	@bash infra/lib/ensure-idp-sql.sh
@@ -103,9 +104,10 @@ reset: .env  ## Destroy projects, volumes and registry contents. KEEPS the seed 
 	@$(COMPOSE) up -d --wait registry >/dev/null
 	@bash infra/seed/mirror-images.sh
 	@echo "reset done. THE DATABASE IS EMPTY: re-apply migrations before \`pnpm test\`"
-	@echo "  or the control plane — README's 'Running the control plane' has the command."
-	@echo "infra/secrets/master.key was NOT removed — every stored secret is sealed"
-	@echo "to it, so destroying it is not a reset (§20, separate custody)."
+	@echo "  or the control plane — RUNBOOK's 'Running the control plane' has the command."
+	@echo "infra/secrets/ was NOT removed — master.key seals every stored secret,"
+	@echo "and the fake GitHub App's credentials live beside it (§20's one custody class)."
+	@echo "Destroying master.key is not a reset: every stored secret is sealed to it (§20)."
 	@echo "manifest-caddy-data was NOT removed — the trusted CA lives there,"
 	@echo "and the mirrored base images are back, so the machine is still offline-capable."
 	@echo "Run: make up"

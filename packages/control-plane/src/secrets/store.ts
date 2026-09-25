@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { and, eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { secrets } from '../db/index.js'
+import { assertOwnerOnly } from './custody.js'
 import {
   openSecret,
   sealSecret,
@@ -236,6 +237,9 @@ export async function loadMasterKeypair(path: string): Promise<MasterKeypair> {
         'infra/lib/ensure-master-key.sh.',
     )
   }
+  // §20's custody class, AFTER the read (the D5 plan's Task 3): a MISSING file still
+  // answers UNREADABLE with the `make up` hint above, rather than an ENOENT from `stat`.
+  await assertOwnerOnly(path, 'SECRET_MASTER_KEY_PERMISSIONS')
   const decode = (field: 'publicKey' | 'privateKey'): Uint8Array => {
     const value = parsed[field]
     if (typeof value !== 'string') {

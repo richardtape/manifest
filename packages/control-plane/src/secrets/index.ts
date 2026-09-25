@@ -22,3 +22,4 @@ export {
   type SecretScope,
 } from './store.js'
 export { SECRET_ENV_NAMES, scrubSecretEnv } from './scrub.js'
+export { assertOwnerOnly } from './custody.js'
