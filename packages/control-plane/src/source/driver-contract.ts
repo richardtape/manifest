@@ -190,7 +190,9 @@ export function describeSourceDriver(
 
     it('syncs a repository nothing has moved to an EMPTY advance that names it (Task 9)', async () => {
       const repo = await h.driver.createRepository('chem-labs', SEED)
-      expect(await h.driver.sync(repo)).toEqual({
+      // What visibility reads is the DRIVER's (Task 10): null on driver 1, whose repository has
+      // none, and GitHub's answer on driver 2 — asserted in that driver's own file.
+      expect(await h.driver.sync(repo)).toMatchObject({
         projectSlug: 'chem-labs',
         updated: [],
         rewritten: [],

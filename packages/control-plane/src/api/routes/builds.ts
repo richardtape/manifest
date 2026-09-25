@@ -60,6 +60,7 @@ export const buildRoutes = [
       'BLUEPRINT_NOT_FOUND',
       'SOURCE_COMMIT_NOT_FOUND',
       'SOURCE_PROVIDER_MISMATCH',
+      'SOURCE_REPOSITORY_PUBLIC',
       'SOURCE_UNREACHABLE',
     ],
     handler: async ({ deps, actor, params, body }) => {

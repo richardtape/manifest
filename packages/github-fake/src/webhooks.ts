@@ -268,6 +268,49 @@ export async function pushPayload(ctx: {
   }
 }
 
+/**
+ * GitHub's `repository` payload for a visibility change (Task 10): `publicized` is
+ * `webhook repository-publicized` in `github-schemas.json`, which holds it; `privatized` is
+ * the same shape with the other action.
+ */
+export function repositoryPayload(ctx: {
+  action: 'publicized' | 'privatized'
+  repo: FakeRepo
+  org: string
+  orgId: number
+  urls: Urls
+  installationId: string
+  sender: Pusher
+}): Record<string, unknown> {
+  const repository = fullRepository(ctx.repo, {
+    org: ctx.org,
+    orgId: ctx.orgId,
+    urls: ctx.urls,
+    permissions: {
+      admin: false,
+      maintain: false,
+      push: false,
+      triage: false,
+      pull: true,
+    },
+  })
+  delete repository.permissions
+  return {
+    action: ctx.action,
+    repository,
+    sender: simpleUser(
+      ctx.sender.login,
+      USER_IDS[ctx.sender.kind],
+      ctx.sender.kind === 'installation' ? 'Bot' : 'User',
+      ctx.urls,
+    ),
+    installation: {
+      id: Number(ctx.installationId),
+      node_id: nodeId('MDIz', Number(ctx.installationId)),
+    },
+  }
+}
+
 const SEP = '\u001f'
 const END = '\u001e'
 

@@ -23,6 +23,7 @@ import {
   createWebhooks,
   pushPayload,
   refsOf,
+  repositoryPayload,
   type RefChange,
   type Webhooks,
 } from './webhooks.js'
@@ -60,7 +61,7 @@ export interface FakeConfig {
   urls: () => Urls
   now?: () => Date
   /** TEST-ONLY misbehaviour (`testing.ts`); `main.ts` never sets it. */
-  quirks?: { createPublic?: boolean }
+  quirks?: { createPublic?: boolean; refusePrivatize?: boolean }
 }
 
 /** The App's permissions — exactly what `Manifest (local dev)` is registered with. */
@@ -423,8 +424,32 @@ export function createFakeServer(config: FakeConfig): FakeServer {
     }
     const body = await readJson(req)
     if (body.private !== undefined || body.visibility !== undefined) {
-      repo.private = visibilityOf(body, repo.private) === 'private'
+      const wasPrivate = repo.private
+      const nowPrivate = visibilityOf(body, repo.private) === 'private'
+      if (nowPrivate && !wasPrivate && config.quirks?.refusePrivatize === true) {
+        // TEST-ONLY (Task 10): the revert refused, as an organisation's policy could refuse it.
+        throw new HttpError(
+          422,
+          'Visibility cannot be changed to private (the GitHub fake’s refusePrivatize quirk).',
+        )
+      }
+      repo.private = nowPrivate
       save()
+      // GitHub tells an App's webhook when a repository's visibility CHANGED (Task 10).
+      if (nowPrivate !== wasPrivate) {
+        webhooks.deliver(
+          'repository',
+          repositoryPayload({
+            action: nowPrivate ? 'privatized' : 'publicized',
+            repo,
+            org: state.org,
+            orgId: ORG_ID,
+            urls: config.urls(),
+            installationId: config.installationId,
+            sender: { login: g.login, kind: g.kind },
+          }),
+        )
+      }
     }
     return repoJson(repo, g)
   }

@@ -377,6 +377,9 @@ export const ERROR_CODES = {
   SOURCE_REPOSITORY_NOT_PRIVATE: source(
     'GitHub did not create the repository private, so it was deleted (the D5 plan’s Decision 12).',
   ),
+  SOURCE_REPOSITORY_PUBLIC: source(
+    'The repository was last read PUBLIC on GitHub and could not be made private; it is not built while it is public (§20, the D5 plan’s Task 10).',
+  ),
   // NOT a state conflict: a client retries a 503 and does not "fix" a 409 (Decision 18).
   SOURCE_UNREACHABLE: {
     status: 503,

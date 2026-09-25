@@ -189,4 +189,9 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
   },
   'repository.pushed': { ref: 'refs/heads/main', from: SHA, to: SHA },
   'repository.history_rewritten': { ref: 'refs/heads/main', mirror: SHA, upstream: SHA },
+  'repository.visibility_enforced': {
+    observed: 'public',
+    result: 'private',
+    detail: 'made private again',
+  },
 }

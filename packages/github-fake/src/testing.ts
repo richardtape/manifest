@@ -81,8 +81,10 @@ export interface StartFakeOptions {
   /**
    * TEST-ONLY MISBEHAVIOUR, never set by `main.ts`. `createPublic` makes every repository
    * PUBLIC whatever was asked — the answer Decision 12's check must refuse (Task 7).
+   * `refusePrivatize` refuses a change TO private `422`, as an organisation's policy could
+   * (Task 10). The object is read at each request, so a test may change it mid-run.
    */
-  quirks?: { createPublic?: boolean }
+  quirks?: { createPublic?: boolean; refusePrivatize?: boolean }
 }
 
 export async function startFake(options: StartFakeOptions = {}): Promise<StartedFake> {

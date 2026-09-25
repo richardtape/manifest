@@ -183,6 +183,13 @@
       "when": 1790316012699,
       "tag": "0025_optimal_kate_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790319734309,
+      "tag": "0026_typical_multiple_man",
+      "breakpoints": true
     }
   ]
 }

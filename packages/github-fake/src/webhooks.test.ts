@@ -242,3 +242,110 @@ describe('the fake delivers a signed push after every push it accepts', () => {
     expect(received).toHaveLength(1)
   })
 })
+
+describe('the fake delivers `repository` when a visibility change lands (Task 10)', () => {
+  let received: Received[]
+  let receiver: Server
+  let url: string
+  beforeEach(async () => {
+    received = []
+    receiver = createServer((req, res) => {
+      const chunks: Buffer[] = []
+      req.on('data', (c: Buffer) => chunks.push(c))
+      req.on('end', () => {
+        received.push({ headers: req.headers, body: Buffer.concat(chunks) })
+        res.writeHead(202)
+        res.end()
+      })
+    })
+    await new Promise<void>((resolve) => receiver.listen(0, '127.0.0.1', resolve))
+    url = `http://127.0.0.1:${(receiver.address() as AddressInfo).port}/webhooks/github`
+  })
+  afterEach(async () => {
+    await new Promise<void>((resolve) => receiver.close(() => resolve()))
+  })
+  async function asPerson(
+    fake: StartedFake,
+    method: string,
+    path: string,
+    body?: unknown,
+  ) {
+    return fetch(`${fake.apiUrl}${path}`, {
+      method,
+      headers: {
+        authorization: `token ${fake.developerToken}`,
+        'content-type': 'application/json',
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    })
+  }
+
+  it('sends publicized, then privatized, GitHub-shaped — and nothing for a PATCH that changes nothing', async () => {
+    const fake = await startFake({ webhookUrl: url })
+    try {
+      expect(
+        (
+          await asPerson(fake, 'POST', `/orgs/${fake.org}/repos`, {
+            name: 'app',
+            private: true,
+          })
+        ).status,
+      ).toBe(201)
+      expect(
+        (await asPerson(fake, 'PATCH', `/repos/${fake.org}/app`, { private: false }))
+          .status,
+      ).toBe(200)
+      expect(
+        (await asPerson(fake, 'PATCH', `/repos/${fake.org}/app`, { private: false }))
+          .status,
+      ).toBe(200)
+      expect(
+        (await asPerson(fake, 'PATCH', `/repos/${fake.org}/app`, { private: true }))
+          .status,
+      ).toBe(200)
+      await fake.webhooksIdle()
+      expect(received.map((r) => r.headers['x-github-event'])).toEqual([
+        'repository',
+        'repository',
+      ])
+      const [publicized, privatized] = received.map(
+        (r) => JSON.parse(r.body.toString('utf8')) as Record<string, unknown>,
+      )
+      expectGitHubShape('webhook repository-publicized', publicized)
+      expect(publicized).toMatchObject({
+        action: 'publicized',
+        repository: { full_name: `${fake.org}/app`, private: false },
+        sender: { login: 'faculty-dev' },
+      })
+      expect(privatized).toMatchObject({
+        action: 'privatized',
+        repository: { private: true },
+      })
+    } finally {
+      await fake.stop()
+    }
+  })
+
+  it('refusePrivatize (TEST-ONLY): a PATCH to private is refused 422, it stays public, and nothing is delivered', async () => {
+    const fake = await startFake({ webhookUrl: url, quirks: { refusePrivatize: true } })
+    try {
+      await asPerson(fake, 'POST', `/orgs/${fake.org}/repos`, {
+        name: 'app',
+        private: true,
+      })
+      await asPerson(fake, 'PATCH', `/repos/${fake.org}/app`, { private: false })
+      const refused = await asPerson(fake, 'PATCH', `/repos/${fake.org}/app`, {
+        private: true,
+      })
+      expect(refused.status).toBe(422)
+      const read = await asPerson(fake, 'GET', `/repos/${fake.org}/app`)
+      expect(((await read.json()) as { private: boolean }).private).toBe(false)
+      await fake.webhooksIdle()
+      expect(received.map((r) => JSON.parse(r.body.toString('utf8')).action)).toEqual([
+        'publicized',
+      ])
+    } finally {
+      await fake.stop()
+    }
+  })
+})

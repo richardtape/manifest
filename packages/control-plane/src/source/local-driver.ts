@@ -212,7 +212,12 @@ export function createLocalSourceDriver(root: string): SourceDriver {
     /** Nothing to bring up to date: this bare repository IS the source (Task 9). */
     async sync(repo) {
       assertOwned(repo)
-      return { projectSlug: repo.projectSlug, updated: [], rewritten: [] }
+      return {
+        projectSlug: repo.projectSlug,
+        updated: [],
+        rewritten: [],
+        visibility: null,
+      }
     },
 
     async destroyRepository(repo) {

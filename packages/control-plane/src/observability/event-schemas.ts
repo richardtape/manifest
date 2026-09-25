@@ -246,4 +246,10 @@ export const EVENT_DETAIL_SCHEMAS = {
     mirror: Sha,
     upstream: Sha,
   }),
+  /** `detail` is Manifest's own sentence — never GitHub's error body (Task 10). */
+  'repository.visibility_enforced': z.strictObject({
+    observed: z.literal('public'),
+    result: z.enum(['private', 'still-public']),
+    detail: z.string(),
+  }),
 } satisfies Record<EventType, z.ZodType>

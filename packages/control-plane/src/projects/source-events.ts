@@ -64,6 +64,33 @@ export function createSourceObserver(deps: { db: Db; bus: EventBus }): SourceObs
           redact,
         )
       }
+      // ENFORCED PRIVATE (Task 10): reported whenever the repository was READ public — made
+      // private again, or not. `detail` is Manifest's own sentence, never GitHub's body.
+      const v = advance.visibility
+      if (v !== null && v.observed === 'public') {
+        await publishEvent(
+          deps.db,
+          deps.bus,
+          {
+            projectId: project.id,
+            subject,
+            type: 'repository.visibility_enforced',
+            machineDetail: {
+              observed: v.observed,
+              result: v.result,
+              detail:
+                v.result === 'private'
+                  ? 'made private again'
+                  : 'GitHub refused to make it private; it is not built while it is public',
+            },
+            humanMessage:
+              v.result === 'private'
+                ? `${advance.projectSlug}'s repository was found PUBLIC on GitHub and was made private again.`
+                : `${advance.projectSlug}'s repository is PUBLIC on GitHub and could not be made private; it will not be built until it is private.`,
+          },
+          redact,
+        )
+      }
     },
   }
 }

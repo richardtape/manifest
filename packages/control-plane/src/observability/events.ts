@@ -95,6 +95,11 @@ export const EVENT_TYPES = [
    * commits an approved release may name (§13). Reported once per rewrite, not per push.
    */
   'repository.history_rewritten',
+  /**
+   * §20, enforced private (the D5 plan's Task 10): the repository was found PUBLIC on GitHub
+   * — made private again, or refused, in which case it is not built while it is public.
+   */
+  'repository.visibility_enforced',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

@@ -422,6 +422,8 @@ export const releaseRoutes = [
       // The reviewer is handed the build's commit through `repositoryOf` (the D5 plan's
       // Task 8): a project another driver made is refused, on a laptop that switched drivers.
       'SOURCE_PROVIDER_MISMATCH',
+      // …and, on driver 2, a repository last read public is never handed over (Task 10).
+      'SOURCE_REPOSITORY_PUBLIC',
     ],
     handler: async ({ deps, request, params }) => {
       // requireSession FIRST, as `decide()`: a token learns nothing about which releases exist.

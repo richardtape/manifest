@@ -36,6 +36,17 @@ export interface MirrorAdvance {
    * rewrite itself, never every later push onto it (`[M14]`).
    */
   rewritten: { ref: string; mirror: string; upstream: string }[]
+  /**
+   * ENFORCED PRIVATE (the D5 plan's Task 10, Decision 12): what the sync READ of the
+   * repository's visibility, whether it tried to make it private again, and what GitHub
+   * said AFTER. `null` when it was not read — driver 1, whose repository has no visibility,
+   * or GitHub unreachable after the fetch.
+   */
+  visibility: {
+    observed: 'private' | 'public'
+    enforced: boolean
+    result: 'private' | 'still-public'
+  } | null
 }
 
 /**
@@ -55,7 +66,8 @@ export interface SourceObserver {
  * `SOURCE_INVALID_SLUG`, `SOURCE_PATH_ESCAPE`, `SOURCE_GIT_FAILED`, `SOURCE_COMMIT_NOT_FOUND`
  * and `SOURCE_PROVIDER_MISMATCH` (a reference another driver made — Decision 3); driver 2
  * those and `SOURCE_UNREACHABLE`, `SOURCE_CONFLICT`, `SOURCE_GITHUB_REFUSED`,
- * `SOURCE_REPOSITORY_EXISTS` and `SOURCE_REPOSITORY_NOT_PRIVATE`. Each is registered in
+ * `SOURCE_REPOSITORY_EXISTS`, `SOURCE_REPOSITORY_NOT_PRIVATE` and `SOURCE_REPOSITORY_PUBLIC`
+ * (a repository last read public is never built — Task 10). Each is registered in
  * `api/error-codes.ts`.
  */
 export class SourceError extends Error {

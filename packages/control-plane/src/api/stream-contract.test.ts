@@ -55,6 +55,8 @@ const PUBLISHED_ELSEWHERE = {
   // this lifecycle runs on driver 1, whose repository is the source and never advances.
   'repository.pushed': 'api/webhooks.test.ts — a person’s push, delivered by the fake',
   'repository.history_rewritten': 'api/webhooks.test.ts — a rewritten main',
+  'repository.visibility_enforced':
+    'api/webhooks.test.ts — a repository made public (Task 10)',
 } as const
 
 /**

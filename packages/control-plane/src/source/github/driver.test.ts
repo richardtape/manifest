@@ -396,6 +396,8 @@ describe('the GitHub driver keeps what only a REMOTE driver has to promise', () 
 describe('the GitHub driver reports every advance of its mirror, once, to ONE observer (Task 9, Decision 11)', () => {
   const SEED = { 'manifest.yaml': 'manifest: 1\nname: chem-labs\n' }
   const MAIN = 'refs/heads/main'
+  /** What every sync reads since Task 10: GitHub says private, and nothing was done. */
+  const READ_PRIVATE = { observed: 'private', enforced: false, result: 'private' }
   const gitIn = (mirror: string, args: string[]) =>
     run('git', ['--git-dir', mirror, ...args]).then((r) => r.stdout.trim())
 
@@ -421,6 +423,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
         projectSlug: 'chem-labs',
         updated: [{ ref: MAIN, from: seed, to: pushed }],
         rewritten: [],
+        visibility: READ_PRIVATE,
       }
       expect(advance).toEqual(expected)
       expect(h.advances).toEqual([expected])
@@ -429,6 +432,7 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
         projectSlug: 'chem-labs',
         updated: [],
         rewritten: [],
+        visibility: READ_PRIVATE,
       })
       expect(await h.driver.headCommit(repo)).toBe(pushed)
       expect(h.advances).toHaveLength(1)
@@ -447,12 +451,14 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
         projectSlug: 'chem-labs',
         updated: [],
         rewritten: [{ ref: MAIN, mirror: first, upstream: rewritten }],
+        visibility: READ_PRIVATE,
       })
       const pushed = await pushAsPerson(h.fake, 'chem-labs', { 'c.txt': 'c\n' }, 'normal')
       expect(await h.driver.sync(repo)).toEqual({
         projectSlug: 'chem-labs',
         updated: [{ ref: MAIN, from: rewritten, to: pushed }],
         rewritten: [],
+        visibility: READ_PRIVATE,
       })
       expect(h.advances.map((a) => [a.updated.length, a.rewritten.length])).toEqual([
         [0, 1],
@@ -493,6 +499,104 @@ describe('the GitHub driver reports every advance of its mirror, once, to ONE ob
       await pushAsPerson(h.fake, 'chem-labs', { 'b.txt': 'b\n' }, 'a push')
       h.failObserver(new Error('the database is down'))
       await expect(h.driver.headCommit(repo)).rejects.toThrow('the database is down')
+    } finally {
+      await h.cleanup()
+    }
+  })
+})
+
+describe('the GitHub driver keeps every repository PRIVATE — found public, made private again, never built public (Task 10, Decision 12)', () => {
+  const SEED = { 'manifest.yaml': 'manifest: 1\nname: chem-labs\n' }
+  const PRIVATE = { observed: 'private', enforced: false, result: 'private' }
+  const codeOf = (p: Promise<unknown>) =>
+    p.then(
+      () => 'resolved',
+      (e: unknown) => (e instanceof SourceError ? e.code : String(e)),
+    )
+  /** A PERSON changing visibility on GitHub, as anyone with admin can. */
+  async function makePublic(fake: StartedFake, slug: string): Promise<void> {
+    const res = await fetch(`${fake.apiUrl}/repos/${fake.org}/${slug}`, {
+      method: 'PATCH',
+      headers: {
+        authorization: `token ${fake.developerToken}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ private: false }),
+    })
+    expect(res.status).toBe(200)
+    expect(((await res.json()) as { private: boolean }).private).toBe(false)
+  }
+  async function isPrivate(fake: StartedFake, slug: string): Promise<boolean> {
+    const res = await fetch(`${fake.apiUrl}/repos/${fake.org}/${slug}`, {
+      headers: { authorization: `token ${fake.developerToken}` },
+    })
+    return ((await res.json()) as { private: boolean }).private
+  }
+
+  it('reads visibility on every sync — a repository nobody touched reads private, and nothing is reported (the positive control)', async () => {
+    const h = await harness()
+    try {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      expect((await h.driver.sync(repo)).visibility).toEqual(PRIVATE)
+      expect(h.advances).toEqual([])
+    } finally {
+      await h.cleanup()
+    }
+  })
+
+  it('with NO webhook, a read’s sync finds it public and makes it private again, and reports it once', async () => {
+    const h = await harness()
+    try {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      await makePublic(h.fake, 'chem-labs')
+      await h.driver.headCommit(repo)
+      expect(await isPrivate(h.fake, 'chem-labs')).toBe(true)
+      expect(h.advances).toEqual([
+        {
+          projectSlug: 'chem-labs',
+          updated: [],
+          rewritten: [],
+          visibility: { observed: 'public', enforced: true, result: 'private' },
+        },
+      ])
+      const head = await h.driver.headCommit(repo)
+      expect((await h.driver.localGitDir(repo, head)).commitSha).toBe(head)
+      expect(h.advances).toHaveLength(1)
+    } finally {
+      await h.cleanup()
+    }
+  })
+
+  it('a revert GitHub REFUSES stays still-public, and the mirror refuses a build — offline too — until a sync reads private', async () => {
+    const quirks = { refusePrivatize: true }
+    const h = await harness({ quirks })
+    try {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const head = await h.driver.headCommit(repo)
+      await makePublic(h.fake, 'chem-labs')
+      expect((await h.driver.sync(repo)).visibility).toEqual({
+        observed: 'public',
+        enforced: true,
+        result: 'still-public',
+      })
+      expect(await isPrivate(h.fake, 'chem-labs')).toBe(false)
+      expect(await codeOf(h.driver.localGitDir(repo, head))).toBe(
+        'SOURCE_REPOSITORY_PUBLIC',
+      )
+      // GitHub gone: the LAST KNOWN state holds — a build needs no network to be refused.
+      await h.fake.stop()
+      expect(await codeOf(h.driver.localGitDir(repo, head))).toBe(
+        'SOURCE_REPOSITORY_PUBLIC',
+      )
+      // GitHub back, and the organisation's policy lifted: the next sync makes it private.
+      quirks.refusePrivatize = false
+      await h.restart()
+      expect((await h.driver.sync(repo)).visibility).toEqual({
+        observed: 'public',
+        enforced: true,
+        result: 'private',
+      })
+      expect((await h.driver.localGitDir(repo, head)).commitSha).toBe(head)
     } finally {
       await h.cleanup()
     }

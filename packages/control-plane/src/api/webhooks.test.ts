@@ -39,13 +39,14 @@ let open: Ctx | undefined
 afterEach(async () => {
   if (open === undefined) return
   await open.deps.sourceSync.idle()
+  await open.deps.builds.idle()
   await open.app.close()
   await open.fake.stop()
   open = undefined
 })
 
 /** A driver-2 server over an in-process fake, and `hook-app` created through the API. */
-async function setup(options: { plan?: 'free' | 'team' } = {}): Promise<Ctx> {
+async function setup(options: Parameters<typeof startFake>[0] = {}): Promise<Ctx> {
   await resetDatabase()
   const fake = await startFake(options)
   const deps = await githubTestDeps(fake)
@@ -356,5 +357,96 @@ describe('POST /webhooks/github — verified, recorded once, and synced off the 
     ])
     expect(await eventsOf(ctx.projectId, 'repository.history_rewritten')).toHaveLength(1)
     expect(await specAt(ctx.projectId, y)).toBe(1)
+  })
+})
+
+describe('enforced private — a repository found public is made private again, reported, and never built while public (Task 10, §20)', () => {
+  async function makePublic(ctx: Ctx): Promise<void> {
+    const res = await fetch(`${ctx.fake.apiUrl}/repos/${ctx.fake.org}/${SLUG}`, {
+      method: 'PATCH',
+      headers: {
+        authorization: `token ${ctx.fake.developerToken}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ private: false }),
+    })
+    expect(res.status).toBe(200)
+  }
+  async function isPrivate(ctx: Ctx): Promise<boolean> {
+    const res = await fetch(`${ctx.fake.apiUrl}/repos/${ctx.fake.org}/${SLUG}`, {
+      headers: { authorization: `token ${ctx.fake.developerToken}` },
+    })
+    return ((await res.json()) as { private: boolean }).private
+  }
+  const build = (ctx: Ctx) =>
+    loginAs(ctx.deps, 'bio_prof').then((cookies) =>
+      ctx.app.inject({
+        method: 'POST',
+        url: `/v1/projects/${ctx.projectId}/builds`,
+        payload: {},
+        cookies,
+        headers: mutationHeaders(ctx.deps),
+      }),
+    )
+  /** The fake's deliveries, the syncs they queue, and the deliveries THOSE cause, all settled. */
+  async function settle(ctx: Ctx): Promise<void> {
+    for (let i = 0; i < 3; i++) {
+      await ctx.fake.webhooksIdle()
+      await ctx.deps.sourceSync.idle()
+    }
+  }
+  async function listening(ctx: Ctx): Promise<void> {
+    await ctx.app.listen({ host: '127.0.0.1', port: 0 })
+    const port = (ctx.app.server.address() as AddressInfo).port
+    ctx.fake.setWebhookUrl(`http://127.0.0.1:${port}/webhooks/github`)
+  }
+
+  it('a repository nobody touched: the sync’s GET reads private, and nothing is reported (the positive control)', async () => {
+    const ctx = await setup()
+    const advance = await ctx.deps.source.sync(ctx.deps.source.repositoryFor(SLUG))
+    expect(advance.visibility).toEqual({
+      observed: 'private',
+      enforced: false,
+      result: 'private',
+    })
+    expect(await eventsOf(ctx.projectId, 'repository.visibility_enforced')).toEqual([])
+    expect((await build(ctx)).statusCode).toBe(202)
+  })
+
+  it('a person makes it public, GitHub delivers publicized, and the sync makes it private again — reported once; a build is accepted', async () => {
+    const ctx = await setup()
+    await listening(ctx)
+    await makePublic(ctx)
+    await settle(ctx)
+    expect(await isPrivate(ctx)).toBe(true)
+    expect(await eventsOf(ctx.projectId, 'repository.visibility_enforced')).toEqual([
+      expect.objectContaining({ observed: 'public', result: 'private' }),
+    ])
+    // publicized was queued; privatized — the revert's own delivery — was verified and ignored.
+    expect(ctx.fake.deliveries().map((d) => [d.event, d.status])).toEqual([
+      ['repository', 202],
+      ['repository', 202],
+    ])
+    expect((await build(ctx)).statusCode).toBe(202)
+  })
+
+  it('a revert GitHub refuses: still-public is reported, a build is 409 SOURCE_REPOSITORY_PUBLIC — and accepted once a sync reads private', async () => {
+    const quirks = { refusePrivatize: true }
+    const ctx = await setup({ quirks })
+    await listening(ctx)
+    await makePublic(ctx)
+    await settle(ctx)
+    expect(await isPrivate(ctx)).toBe(false)
+    expect(await eventsOf(ctx.projectId, 'repository.visibility_enforced')).toEqual([
+      expect.objectContaining({ observed: 'public', result: 'still-public' }),
+    ])
+    expect(refusal(await build(ctx))).toEqual({
+      status: 409,
+      code: 'SOURCE_REPOSITORY_PUBLIC',
+    })
+    quirks.refusePrivatize = false
+    await ctx.deps.source.sync(ctx.deps.source.repositoryFor(SLUG))
+    expect(await isPrivate(ctx)).toBe(true)
+    expect((await build(ctx)).statusCode).toBe(202)
   })
 })

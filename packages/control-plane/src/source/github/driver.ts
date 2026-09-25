@@ -228,7 +228,12 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
         { cwd: mirror, token, acceptExit: [1] },
       ),
     )
-    const advance: MirrorAdvance = { projectSlug: slug, updated: [], rewritten: [] }
+    const advance: MirrorAdvance = {
+      projectSlug: slug,
+      updated: [],
+      rewritten: [],
+      visibility: null,
+    }
     const refused: string[] = []
     for (const line of out.split('\n')) {
       if (line.trim() === '') continue
@@ -308,11 +313,75 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
   ): Promise<MirrorAdvance> {
     return exclusively(slug, async () => {
       const advance = await fetchInto(slug, mirror)
-      if (how.report && (advance.updated.length > 0 || advance.rewritten.length > 0)) {
+      advance.visibility = await enforcePrivate(slug, mirror)
+      const moved = advance.updated.length > 0 || advance.rewritten.length > 0
+      if (how.report && (moved || advance.visibility?.observed === 'public')) {
         await o.observer.advanced(advance)
       }
       return advance
     })
+  }
+
+  /** What GitHub says of the repository's visibility NOW: `true` private, `false` public. */
+  async function readPrivate(slug: string): Promise<boolean> {
+    const res = await restAs(slug, { contents: 'read' }, 'GET', `/repos/${o.org}/${slug}`)
+    if (res.status !== 200) throw client.refusal(`read ${o.org}/${slug}`, res)
+    // FAIL CLOSED: only GitHub's own `true` is private; anything else is treated as public.
+    return (res.json as { private?: unknown }).private === true
+  }
+
+  /**
+   * ENFORCED PRIVATE (Task 10, Decision 12) — on EVERY sync, whatever caused it: a webhook's
+   * `publicized`, a read, or Manifest's own commit, so a laptop's real App, which never
+   * receives a delivery, enforces it too. Read; if PUBLIC, make it private again with an
+   * `administration: write` token for this repository alone; then READ AGAIN, because what
+   * counts is what GitHub now says, not what was asked (as `createRepository` does). The last
+   * read is kept on the mirror (`manifest.visibility`), where `localGitDir` refuses a build
+   * while it says public — offline too.
+   *
+   * **GitHub unreachable after the fetch** leaves the answer `null` and the mirror's last
+   * read as it was. A refused revert is an operator line with GitHub's STATUS — never its
+   * body — and `still-public`, which the observer reports and the build path refuses.
+   */
+  async function enforcePrivate(
+    slug: string,
+    mirror: string,
+  ): Promise<MirrorAdvance['visibility']> {
+    let isPrivate: boolean
+    try {
+      isPrivate = await readPrivate(slug)
+    } catch (error) {
+      if (error instanceof SourceError && error.code === 'SOURCE_UNREACHABLE') return null
+      throw error
+    }
+    if (isPrivate) {
+      await local(mirror, ['config', 'manifest.visibility', 'private'])
+      return { observed: 'private', enforced: false, result: 'private' }
+    }
+    const patched = await restAs(
+      slug,
+      { administration: 'write' },
+      'PATCH',
+      `/repos/${o.org}/${slug}`,
+      { private: true },
+    )
+    if (patched.status !== 200) {
+      console.error(
+        `github driver: ${o.org}/${slug} was found PUBLIC, and GitHub refused to make it private again (HTTP ${patched.status}); it will not be built while it is public`,
+      )
+    }
+    const now = await readPrivate(slug).catch((error: unknown) => {
+      console.error(
+        `github driver: ${o.org}/${slug}: the read after the revert failed (${error instanceof Error ? error.message : String(error)}); treated as still PUBLIC`,
+      )
+      return false
+    })
+    await local(mirror, ['config', 'manifest.visibility', now ? 'private' : 'public'])
+    return {
+      observed: 'public',
+      enforced: true,
+      result: now ? 'private' : 'still-public',
+    }
   }
 
   /** Writes files in a throwaway worktree, commits, and pushes `main` to GitHub, non-forced. */
@@ -537,6 +606,18 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
     async localGitDir(repo, commitSha): Promise<LocalGitDir> {
       const mirror = mirrorOf(repo)
       await present(repo, mirror, commitSha)
+      // NEVER BUILT PUBLIC (Task 10, Decision 12): the LAST read of GitHub's visibility,
+      // kept on the mirror, so the refusal holds with the network off.
+      const visibility = await local(mirror, ['config', 'manifest.visibility']).then(
+        (v) => v.trim(),
+        () => '',
+      )
+      if (visibility === 'public') {
+        throw new SourceError(
+          'SOURCE_REPOSITORY_PUBLIC',
+          `${o.org}/${repo.projectSlug} was last read PUBLIC on GitHub, and a public repository is never built (§20). Make it private on GitHub; the next sync reads it again.`,
+        )
+      }
       // PINNED before it is handed out (Task 9): a commit a build used stays reachable
       // whatever GitHub does to its branches (§13 — a release's commit stays buildable).
       await exclusively(repo.projectSlug, () =>
