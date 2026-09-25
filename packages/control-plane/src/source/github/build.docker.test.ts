@@ -16,6 +16,7 @@ import { describeDocker, dockerDriverForTests } from '../../runtime/testing.js'
 import type { SeedFiles } from '../git-driver.js'
 import { createGithubSourceDriver } from './driver.js'
 import { startFakeContainer, type FakeContainer } from './testing.js'
+import { recordingObserver } from '../testing.js'
 
 /**
  * A REAL BUILDKIT BUILD FROM DRIVER 2'S MIRROR, AND C1 ON DRIVER 2 (the D5 plan's Task 8).
@@ -72,7 +73,12 @@ describeDocker(
     }, 60_000)
 
     it('builds from the mirror, and builds the same commit again with GitHub gone', async () => {
-      const source = createGithubSourceDriver({ mirrorRoot, ...fake.options })
+      // A recording observer (Task 9): this test is about the build, not the report.
+      const source = createGithubSourceDriver({
+        mirrorRoot,
+        ...fake.options,
+        observer: recordingObserver(),
+      })
       const repo = await source.createRepository(SLUG, treeOf(FIXTURE))
       const sha = await source.headCommit(repo)
       await withRollback(async (db) => {

@@ -96,6 +96,28 @@ export const ERROR_CODES = {
     404,
     'No route has this method and path. Resource routes are under /v1/.',
   ),
+  // POST /webhooks/github (the D5 plan's Task 9, Decision 9) — FOUR refusals, four codes: with
+  // one shared code, deleting the absent-signature branch would leave every test green.
+  WEBHOOK_SIGNATURE_MISSING: api(
+    401,
+    'The delivery carries no X-Hub-Signature-256 — including one that carries only the legacy SHA-1 X-Hub-Signature.',
+  ),
+  WEBHOOK_SIGNATURE_MALFORMED: api(
+    401,
+    'X-Hub-Signature-256 is not exactly one sha256= and 64 lowercase hex characters.',
+  ),
+  WEBHOOK_SIGNATURE_INVALID: api(
+    401,
+    'X-Hub-Signature-256 is well formed and does not match the body under the App’s webhook secret.',
+  ),
+  WEBHOOK_PAYLOAD_INVALID: api(
+    400,
+    'A correctly signed delivery whose body is not a JSON object, or which lacks X-GitHub-Delivery or X-GitHub-Event.',
+  ),
+  WEBHOOKS_NOT_CONFIGURED: api(
+    404,
+    'This control plane runs the local source driver, which receives no webhooks.',
+  ),
   IDEMPOTENCY_KEY_REUSED: api(
     409,
     'This Idempotency-Key was used on this route with a different body.',

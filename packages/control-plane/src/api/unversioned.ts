@@ -42,4 +42,9 @@ export const UNVERSIONED = [
     path: '/internal/registry/token',
     why: 'The registry token realm, OAuth2 form grant. Same callers, same reason.',
   },
+  {
+    method: 'POST',
+    path: '/webhooks/github',
+    why: "GitHub's deliveries (D5 driver 2, the D5 plan's Task 9): its caller is GitHub, never a Manifest client, and its credential is the delivery's HMAC signature rather than a session or a token (§20). Reached at 127.0.0.1:7100 directly, as the edge itself reaches the control plane — never through the edge, which forwards only /v1/* and /auth/*. On driver 1 it answers every delivery 404 WEBHOOKS_NOT_CONFIGURED.",
+  },
 ] as const satisfies readonly { method: 'GET' | 'POST'; path: string; why: string }[]

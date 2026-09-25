@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod/v4'
 import { appSpecs, environments, users, type Db } from '../../db/index.js'
 import {
@@ -12,11 +12,10 @@ import {
   listProjectsFor,
   projectViews,
   removeMember,
-  repositoryOf,
   servingInstanceOf,
 } from '../../projects/index.js'
-import { isSensitiveDiff, validateSpec, type ManifestSpec } from '../../spec/index.js'
 import { defineRoute, NO_BODY, NO_PARAMS, NO_QUERY } from '../contract/route.js'
+import { validateAndRecord } from '../spec-validation.js'
 import { BadRequestError, LastOwnerError, SpecInvalidError } from '../errors.js'
 import {
   Environment,
@@ -31,7 +30,6 @@ import {
 } from '../representations/members.js'
 import { Project, ProjectList, toProject } from '../representations/projects.js'
 import { Spec, SpecValidation, ValidateSpecRequest } from '../representations/specs.js'
-import { modelPolicy, validationContext } from './projects.js'
 
 const ProjectParams = z.strictObject({ projectId: z.uuid() })
 /** The member routes that name a person: `userId` is the §6 `users.id`, not a PUID. */
@@ -353,52 +351,8 @@ export const projectReadRoutes = [
       const project = await getProject(deps.db, params.projectId)
       if (project === undefined)
         throw new AuthorizationError('NOT_FOUND', `no project '${params.projectId}'`)
-      // THE NEWEST VALID SPEC, not the newest row (P6b sitting 1, F7). Compared only with
-      // the immediately previous row, an invalid commit in between made the route answer
-      // `{sensitive: false}` — the answer a genuine no-change gets — for a change it had
-      // never compared, so any sensitive change after a broken commit reported as none.
-      const [previous] = await deps.db
-        .select()
-        .from(appSpecs)
-        .where(and(eq(appSpecs.projectId, params.projectId), eq(appSpecs.valid, true)))
-        .orderBy(desc(appSpecs.createdAt))
-        .limit(1)
-      // The provider first (Decision 3), then HEAD — GitHub's NOW, or 503 — then the file AT
-      // that commit, which refuses a commit the repository lacks rather than reading `null`
-      // and recording an invalid spec for a commit it never read (the D5 plan's Task 7).
-      const repo = await repositoryOf(deps, project)
-      const commitSha = body.commitSha ?? (await deps.source.headCommit(repo))
-      const yamlText =
-        (await deps.source.readFile(repo, commitSha, 'manifest.yaml')) ?? ''
-      // Still before the spec row is written, and after the manifest is read: the
-      // catalogue is consulted only if this manifest declares a model.
-      const models = await modelPolicy(deps.catalogue, yamlText)
-      const result = validateSpec(
-        yamlText,
-        validationContext(project.slug, project.quota as Record<string, unknown>, models),
-      )
-      const [appSpec] = await deps.db
-        .insert(appSpecs)
-        .values({
-          projectId: params.projectId,
-          commitSha,
-          parsed: result.valid ? result.spec : {},
-          schemaVersion: 1,
-          valid: result.valid,
-          errors: result.valid ? [] : result.errors,
-        })
-        .returning()
-      const sensitiveDiff =
-        result.valid && previous !== undefined
-          ? isSensitiveDiff(previous.parsed as ManifestSpec, result.spec)
-          : { sensitive: false, fields: [] }
-      return {
-        appSpecId: appSpec!.id,
-        commitSha,
-        valid: result.valid,
-        errors: result.valid ? [] : result.errors,
-        sensitiveDiff,
-      }
+      // The body is `validateAndRecord`'s, which a GitHub push also calls (Task 9).
+      return validateAndRecord(deps, project, body.commitSha)
     },
   }),
 ]

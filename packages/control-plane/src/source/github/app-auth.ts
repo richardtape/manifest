@@ -45,6 +45,35 @@ export async function loadAppKey(path: string): Promise<KeyObject> {
   return key
 }
 
+/**
+ * The App's WEBHOOK SECRET — what GitHub signs every delivery with (§20, the D5 plan's Task 9)
+ * — in the same custody class as the App key and the master key: `assertOwnerOnly`'s THIRD
+ * caller. GitHub holds it as a string, so it is the file's text without its trailing newline.
+ * **An empty secret is refused**: an HMAC under an empty key is one anybody can compute, and
+ * a receiver that accepted it would verify a forgery.
+ */
+export async function loadWebhookSecret(path: string): Promise<Buffer> {
+  let text: string
+  try {
+    text = await readFile(path, 'utf8')
+  } catch {
+    throw new SourceError(
+      'SOURCE_GITHUB_KEY_UNREADABLE',
+      `cannot read the GitHub App's webhook secret at '${path}'. For the fake, \`make up\` ` +
+        `mints it; for a real App, it is the secret the App's webhook was registered with.`,
+    )
+  }
+  await assertOwnerOnly(path, 'SECRET_GITHUB_WEBHOOK_SECRET_PERMISSIONS')
+  const secret = text.replace(/\r?\n$/, '')
+  if (secret.length === 0) {
+    throw new SourceError(
+      'SOURCE_GITHUB_KEY_UNREADABLE',
+      `the webhook secret at '${path}' is empty; a signature under an empty key proves nothing`,
+    )
+  }
+  return Buffer.from(secret, 'utf8')
+}
+
 const b64url = (v: unknown) =>
   Buffer.from(typeof v === 'string' ? v : JSON.stringify(v)).toString('base64url')
 

@@ -3,12 +3,13 @@ import { createPrivateKey } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
 import { startFake, type StartedFake } from '@manifest/github-fake/testing'
 import { describeSourceDriver } from '../driver-contract.js'
-import { SourceError } from '../git-driver.js'
+import { SourceError, type MirrorAdvance } from '../git-driver.js'
+import { pushAsPerson, recordingObserver, rewriteAsPerson } from '../testing.js'
 import { createGithubSourceDriver } from './driver.js'
 import { gitWithToken } from './git.js'
 
@@ -27,6 +28,10 @@ interface Harness {
   /** What each mint ASKED for — the scope rule's evidence. */
   mints: Mint[]
   driver: ReturnType<typeof createGithubSourceDriver>
+  /** Every advance the driver reported to its ONE observer (Task 9), in order. */
+  advances: MirrorAdvance[]
+  /** Makes the observer throw from now on (`undefined` stops it). */
+  failObserver(error: Error | undefined): void
   /** The same GitHub, restarted: same data, same App key, same port — and a new token key. */
   restart(): Promise<void>
   cleanup(): Promise<void>
@@ -38,6 +43,7 @@ async function harness(options: Parameters<typeof startFake>[0] = {}): Promise<H
   const minted: string[] = []
   const mints: Mint[] = []
   let fake = await startFake({ ...options, dataDir })
+  const observer = recordingObserver()
   // A spy on the wire. It never changes an answer.
   const spyFetch: typeof fetch = async (input, init) => {
     const res = await fetch(input, init)
@@ -62,6 +68,7 @@ async function harness(options: Parameters<typeof startFake>[0] = {}): Promise<H
     installationId: fake.installationId,
     appKey: createPrivateKey(fake.appKeyPem),
     fetch: spyFetch,
+    observer,
   })
   const h: Harness = {
     get fake() {
@@ -71,6 +78,8 @@ async function harness(options: Parameters<typeof startFake>[0] = {}): Promise<H
     minted,
     mints,
     driver,
+    advances: observer.advances,
+    failObserver: (error) => observer.fail(error),
     async restart() {
       const port = Number(new URL(fake.url).port)
       await fake.stop()
@@ -95,47 +104,6 @@ const PERSON = [
   '-c',
   'commit.gpgsign=false',
 ]
-
-/** A person pushing straight to GitHub. Returns the commit. */
-async function pushAsPerson(
-  fake: StartedFake,
-  slug: string,
-  files: Record<string, string>,
-  message: string,
-): Promise<string> {
-  const work = await mkdtemp(join(tmpdir(), 'person-'))
-  const as = asPerson(fake, work)
-  try {
-    await gitWithToken(['clone', '-q', `${fake.gitUrl}/${fake.org}/${slug}.git`, '.'], as)
-    for (const [path, content] of Object.entries(files)) {
-      await mkdir(dirname(join(work, path)), { recursive: true })
-      await writeFile(join(work, path), content)
-    }
-    await gitWithToken(['add', '-A'], as)
-    await gitWithToken([...PERSON, 'commit', '-qm', message], as)
-    await gitWithToken(['push', '-q', 'origin', 'HEAD:main'], as)
-    return (await gitWithToken(['rev-parse', 'HEAD'], as)).trim()
-  } finally {
-    await rm(work, { recursive: true, force: true })
-  }
-}
-
-/**
- * A person REWRITING GitHub's `main` — an amend and a force-push, which a free organisation
- * cannot stop on a private repository (`[M10]`). Returns the rewritten head.
- */
-async function rewriteAsPerson(fake: StartedFake, slug: string): Promise<string> {
-  const work = await mkdtemp(join(tmpdir(), 'person-'))
-  const as = asPerson(fake, work)
-  try {
-    await gitWithToken(['clone', '-q', `${fake.gitUrl}/${fake.org}/${slug}.git`, '.'], as)
-    await gitWithToken([...PERSON, 'commit', '-q', '--amend', '-m', 'rewritten'], as)
-    await gitWithToken(['push', '-q', '--force', 'origin', 'HEAD:main'], as)
-    return (await gitWithToken(['rev-parse', 'HEAD'], as)).trim()
-  } finally {
-    await rm(work, { recursive: true, force: true })
-  }
-}
 
 async function createAsPerson(fake: StartedFake, slug: string): Promise<void> {
   const res = await fetch(`${fake.apiUrl}/orgs/${fake.org}/repos`, {
@@ -419,6 +387,112 @@ describe('the GitHub driver keeps what only a REMOTE driver has to promise', () 
       )
       expect(existsSync(join(stale, 'marker'))).toBe(true)
       expect(await getAsPerson(h.fake, 'chem-labs')).toBe(404) // nothing made on GitHub
+    } finally {
+      await h.cleanup()
+    }
+  })
+})
+
+describe('the GitHub driver reports every advance of its mirror, once, to ONE observer (Task 9, Decision 11)', () => {
+  const SEED = { 'manifest.yaml': 'manifest: 1\nname: chem-labs\n' }
+  const MAIN = 'refs/heads/main'
+  const gitIn = (mirror: string, args: string[]) =>
+    run('git', ['--git-dir', mirror, ...args]).then((r) => r.stdout.trim())
+
+  it("does not report the creation's own first fetch — `repository.seeded` is that event, published LAST", async () => {
+    const h = await harness()
+    try {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      expect(await h.driver.headCommit(repo)).toMatch(/^[0-9a-f]{40}$/)
+      expect(h.advances).toEqual([])
+    } finally {
+      await h.cleanup()
+    }
+  })
+
+  it("reports a person's push ONCE, as updated from → to, and a quiet sync not at all", async () => {
+    const h = await harness()
+    try {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const seed = await h.driver.headCommit(repo)
+      const pushed = await pushAsPerson(h.fake, 'chem-labs', { 'b.txt': 'b\n' }, 'a push')
+      const advance = await h.driver.sync(repo)
+      const expected = {
+        projectSlug: 'chem-labs',
+        updated: [{ ref: MAIN, from: seed, to: pushed }],
+        rewritten: [],
+      }
+      expect(advance).toEqual(expected)
+      expect(h.advances).toEqual([expected])
+      // Nothing moved: an empty answer, and nothing handed to the observer.
+      expect(await h.driver.sync(repo)).toEqual({
+        projectSlug: 'chem-labs',
+        updated: [],
+        rewritten: [],
+      })
+      expect(await h.driver.headCommit(repo)).toBe(pushed)
+      expect(h.advances).toHaveLength(1)
+    } finally {
+      await h.cleanup()
+    }
+  })
+
+  it('reports a rewrite ONCE, as rewritten — and the next normal push as updated, never as another rewrite ([M14])', async () => {
+    const h = await harness({ plan: 'free' })
+    try {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const first = await h.driver.headCommit(repo)
+      const rewritten = await rewriteAsPerson(h.fake, 'chem-labs')
+      expect(await h.driver.sync(repo)).toEqual({
+        projectSlug: 'chem-labs',
+        updated: [],
+        rewritten: [{ ref: MAIN, mirror: first, upstream: rewritten }],
+      })
+      const pushed = await pushAsPerson(h.fake, 'chem-labs', { 'c.txt': 'c\n' }, 'normal')
+      expect(await h.driver.sync(repo)).toEqual({
+        projectSlug: 'chem-labs',
+        updated: [{ ref: MAIN, from: rewritten, to: pushed }],
+        rewritten: [],
+      })
+      expect(h.advances.map((a) => [a.updated.length, a.rewritten.length])).toEqual([
+        [0, 1],
+        [1, 0],
+      ])
+      // The history keeper still holds what a release may name (Task 7's control (f)).
+      const mirror = join(h.mirrorRoot, 'chem-labs.git')
+      expect(await gitIn(mirror, ['rev-parse', MAIN])).toBe(first)
+    } finally {
+      await h.cleanup()
+    }
+  })
+
+  it('pins every commit it hands the builder: one GitHub rewrote away still builds after gc', async () => {
+    const h = await harness({ plan: 'free' })
+    try {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      // X is GitHub's main after a rewrite: reachable in the mirror only through the shadow.
+      const x = await rewriteAsPerson(h.fake, 'chem-labs')
+      expect((await h.driver.localGitDir(repo, x)).commitSha).toBe(x)
+      const mirror = join(h.mirrorRoot, 'chem-labs.git')
+      expect(await gitIn(mirror, ['rev-parse', `refs/manifest/kept/${x}`])).toBe(x)
+      // GitHub rewrites again: the shadow moves off X, and gc runs in the mirror.
+      await rewriteAsPerson(h.fake, 'chem-labs')
+      await h.driver.sync(repo)
+      await gitIn(mirror, ['reflog', 'expire', '--expire=now', '--all'])
+      await gitIn(mirror, ['gc', '-q', '--prune=now'])
+      expect((await h.driver.localGitDir(repo, x)).commitSha).toBe(x)
+    } finally {
+      await h.cleanup()
+    }
+  })
+
+  it('an observer that fails fails the read that synced — a report is never swallowed', async () => {
+    const h = await harness()
+    try {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      await pushAsPerson(h.fake, 'chem-labs', { 'b.txt': 'b\n' }, 'a push')
+      h.failObserver(new Error('the database is down'))
+      await expect(h.driver.headCommit(repo)).rejects.toThrow('the database is down')
     } finally {
       await h.cleanup()
     }

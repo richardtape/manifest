@@ -84,6 +84,17 @@ export const EVENT_TYPES = [
   'release.approval_rejected',
   /** §13 D9 (P6b Task 4): the app's first production launch — recorded once, by the deploy that made it true. */
   'project.launched',
+  /**
+   * D5 driver 2 (the D5 plan's Task 9): a branch moved on GitHub and the mirror took it —
+   * whatever caused the sync, a webhook or a read. Commit ids only: never an author or a
+   * message, which are an app author's free text.
+   */
+  'repository.pushed',
+  /**
+   * GitHub's history for a branch was REWRITTEN, and the mirror refused it: it kept the
+   * commits an approved release may name (§13). Reported once per rewrite, not per push.
+   */
+  'repository.history_rewritten',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

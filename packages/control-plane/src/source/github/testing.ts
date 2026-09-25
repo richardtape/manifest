@@ -25,7 +25,12 @@ export interface FakeContainer {
   name: string
   /** The App's PRIVATE key file, `600` — what `loadAppKey` reads. */
   appKeyPath: string
-  /** Everything `createGithubSourceDriver` needs but its mirror root (and, from Task 9, its observer). */
+  /** The webhook secret both sides hold, `600` — what `loadWebhookSecret` reads (Task 9). */
+  webhookSecretPath: string
+  /** `http://127.0.0.1:<port>` — `org` and the git URL a person pushes to (`pushAsPerson`). */
+  gitUrl: string
+  org: string
+  /** Everything `createGithubSourceDriver` needs but its mirror root and its observer. */
   options: Pick<
     GithubDriverOptions,
     'apiUrl' | 'gitUrl' | 'org' | 'appId' | 'installationId' | 'appKey'
@@ -53,7 +58,21 @@ async function freePort(): Promise<number> {
   return p
 }
 
-export async function startFakeContainer(): Promise<FakeContainer> {
+export async function startFakeContainer(
+  o: {
+    /**
+     * Where the fake delivers (Task 9) — the control plane on the host, as the container sees
+     * it: `http://host.docker.internal:<port>/webhooks/github`, the edge's own way in
+     * (Decision 8). None: nothing is delivered.
+     */
+    webhookUrl?: string
+    /**
+     * A Docker network to join — `manifest-platform`, the compose service's, for the test that
+     * makes `[M7]`'s measurement permanent. None: Docker's default bridge, as Tasks 5 and 8 ran.
+     */
+    network?: string
+  } = {},
+): Promise<FakeContainer> {
   const tag = randomBytes(4).toString('hex')
   const name = `github-fake-docker-test-${tag}`
   const volume = `github-fake-docker-test-${tag}`
@@ -99,6 +118,10 @@ export async function startFakeContainer(): Promise<FakeContainer> {
       name,
       '-p',
       `127.0.0.1:${port}:7110`,
+      // As compose gives the profile's service (`infra/compose.yaml`): the host, by name.
+      '--add-host',
+      'host.docker.internal:host-gateway',
+      ...(o.network === undefined ? [] : ['--network', o.network]),
       '-v',
       `${volume}:/data`,
       '-v',
@@ -123,6 +146,7 @@ export async function startFakeContainer(): Promise<FakeContainer> {
       'FAKE_WEBHOOK_SECRET_FILE=/run/fake/webhook.secret',
       '-e',
       'FAKE_DEVELOPER_TOKEN_FILE=/run/fake/developer.token',
+      ...(o.webhookUrl === undefined ? [] : ['-e', `FAKE_WEBHOOK_URL=${o.webhookUrl}`]),
       IMAGE,
     ])
     await healthy()
@@ -141,6 +165,9 @@ export async function startFakeContainer(): Promise<FakeContainer> {
     url,
     name,
     appKeyPath,
+    webhookSecretPath: join(dir, 'webhook.secret'),
+    gitUrl: url,
+    org: 'manifest-apps',
     options: {
       apiUrl: `${url}/api/v3`,
       gitUrl: url,

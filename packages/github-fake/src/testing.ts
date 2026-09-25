@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { AddressInfo } from 'node:net'
 import { createFakeServer } from './server.js'
+import type { Delivery } from './webhooks.js'
 
 /**
  * AN IN-PROCESS FAKE for the unit tier: a fresh App keypair, token key, developer token and
@@ -38,6 +39,21 @@ export interface StartedFake {
   plan: 'free' | 'team'
   /** Where the fake keeps its state and its bare repositories. */
   dataDir: string
+  /** (Task 9) Every webhook delivery attempted, with the answer it got. */
+  deliveries(): Delivery[]
+  /** (Task 9) Where deliveries go from now on; `undefined` stops them. */
+  setWebhookUrl(url: string | undefined): void
+  /** (Task 9) Resolves when no delivery is in flight. A push that has returned has its deliveries in flight. */
+  webhooksIdle(): Promise<void>
+  /**
+   * (Task 9) The `push` payload GitHub would send for `refs/heads/main` moving `before` →
+   * `after` in `slug`, pushed by `faculty-dev` — for a test that delivers by hand.
+   */
+  pushPayload(
+    slug: string,
+    before: string,
+    after: string,
+  ): Promise<Record<string, unknown>>
   stop(): Promise<void>
 }
 
@@ -60,6 +76,8 @@ export interface StartFakeOptions {
    */
   port?: number
   appKeyPem?: string
+  /** (Task 9) The control plane's `/webhooks/github`; none, and nothing is delivered until `setWebhookUrl`. */
+  webhookUrl?: string
   /**
    * TEST-ONLY MISBEHAVIOUR, never set by `main.ts`. `createPublic` makes every repository
    * PUBLIC whatever was asked — the answer Decision 12's check must refuse (Task 7).
@@ -80,8 +98,9 @@ export async function startFake(options: StartFakeOptions = {}): Promise<Started
   const appId = '1000001'
   const installationId = '2000001'
   const developerToken = classicPat()
+  const webhookSecret = randomBytes(32).toString('hex')
   let url = ''
-  const { server } = createFakeServer({
+  const { server, webhooks, pushPayloadFor } = createFakeServer({
     dataDir,
     org,
     plan,
@@ -90,6 +109,8 @@ export async function startFake(options: StartFakeOptions = {}): Promise<Started
     appPublicKey: publicKey,
     tokenKey: randomBytes(32),
     developerToken,
+    webhookSecret,
+    ...(options.webhookUrl === undefined ? {} : { webhookUrl: options.webhookUrl }),
     urls: () => ({ apiUrl: `${url}/api/v3`, gitUrl: url }),
     ...(options.quirks === undefined ? {} : { quirks: options.quirks }),
   })
@@ -106,10 +127,15 @@ export async function startFake(options: StartFakeOptions = {}): Promise<Started
     appId,
     installationId,
     appKeyPem: privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
-    webhookSecret: randomBytes(32).toString('hex'),
+    webhookSecret,
     developerToken,
     plan,
     dataDir,
+    deliveries: () => webhooks.deliveries(),
+    setWebhookUrl: (next) => webhooks.setUrl(next),
+    webhooksIdle: () => webhooks.idle(),
+    pushPayload: (slug, before, after) =>
+      pushPayloadFor(slug, { ref: 'refs/heads/main', before, after }),
     async stop() {
       server.closeAllConnections()
       await new Promise<void>((resolve) => server.close(() => resolve()))

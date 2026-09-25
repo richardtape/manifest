@@ -187,4 +187,6 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     instanceId: UUID,
     imageDigest: `sha256:${'a'.repeat(64)}`.slice(0, 19),
   },
+  'repository.pushed': { ref: 'refs/heads/main', from: SHA, to: SHA },
+  'repository.history_rewritten': { ref: 'refs/heads/main', mirror: SHA, upstream: SHA },
 }

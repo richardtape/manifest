@@ -230,4 +230,20 @@ export const EVENT_DETAIL_SCHEMAS = {
         'The first 19 characters — recognisable, and never mistaken for the binding.',
       ),
   }),
+  /**
+   * D5 driver 2 (the D5 plan's Task 9). COMMIT IDS AND A REF, NOTHING ELSE: no author, no
+   * message and no GitHub body, which are free text somebody else wrote (§14). `from` is
+   * null for a branch that appeared.
+   */
+  'repository.pushed': z.strictObject({
+    ref: z.string().regex(/^refs\/heads\/.+$/),
+    from: Sha.nullable(),
+    to: Sha,
+  }),
+  /** `mirror` is what Manifest kept (§13's buildable history); `upstream` is GitHub's now. */
+  'repository.history_rewritten': z.strictObject({
+    ref: z.string().regex(/^refs\/heads\/.+$/),
+    mirror: Sha,
+    upstream: Sha,
+  }),
 } satisfies Record<EventType, z.ZodType>

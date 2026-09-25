@@ -11,7 +11,11 @@ import Fastify, {
 import type { Db } from '../db/index.js'
 import type { Config } from '../config.js'
 import type { Driver } from '../runtime/index.js'
-import type { SourceDriver } from '../source/index.js'
+import {
+  loadWebhookSecret,
+  type SerialQueue,
+  type SourceDriver,
+} from '../source/index.js'
 import type { BlueprintRegistry } from '../blueprints/index.js'
 import type { ServiceCredentialResolver } from '../services/index.js'
 import type { AppSecretResolver } from '../secrets/index.js'
@@ -32,6 +36,7 @@ import type { AiKeyService, LiteLlmClient, ModelCatalogue } from '../ai/index.js
 import type { BuildRunner, Retirer } from '../releases/index.js'
 import type { Reviewer } from '../launch/index.js'
 import { registryTokenRoutes } from './routes/registry-token.js'
+import { webhookRoutes } from './routes/webhooks.js'
 import { registerRoutes } from './contract/route.js'
 import { ROUTE_DEFINITIONS } from './routes/index.js'
 import { requireActor } from './actor.js'
@@ -120,6 +125,13 @@ export interface ServerDeps {
    * answers 202; `idle()` is what a test waits on.
    */
   builds: BuildRunner
+  /**
+   * D5 driver 2's webhook work (the D5 plan's Task 9, Decision 10): a verified delivery is
+   * recorded and answered on the request, and its sync runs HERE — one job at a time across
+   * the process, because GitHub gives a delivery ten seconds. One per process, built at boot
+   * like the build runner; `idle()` is what a test waits on.
+   */
+  sourceSync: SerialQueue
   /** §23's reserved labels, loaded once at boot (P5a Task 9). */
   reservedLabels: ReservedLabels
   /** In-process request limits, one limiter per purpose, shared by every request (P5a Task 9). */
@@ -409,6 +421,20 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
       issuer: 'manifest-control-plane',
       service: 'manifest-registry',
       buildCredentialSecret: deps.config.buildCredentialSecret,
+    }),
+  )
+
+  // GitHub's deliveries (D5 driver 2, the D5 plan's Task 9): a plugin of its own, for its raw
+  // body and its own size limit. Registered on BOTH drivers — driver 1 answers every delivery
+  // `404 WEBHOOKS_NOT_CONFIGURED`, which is how a caller asks which driver it is talking to
+  // (Decision 17). The secret is read here, once, in the App key's custody class.
+  await app.register(
+    webhookRoutes({
+      server: deps,
+      secret:
+        deps.config.sourceDriver === 'github'
+          ? await loadWebhookSecret(deps.config.github.webhookSecretPath)
+          : undefined,
     }),
   )
 

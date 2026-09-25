@@ -4,7 +4,9 @@ import { testDeps } from './testing.js'
 import { UNVERSIONED } from './unversioned.js'
 
 describe('the /v1 prefix (D23.8)', () => {
-  it('serves every route under /v1/ except the five it names, and those five exactly', async () => {
+  // The count is DERIVED from the list, never restated: the title said "five" while the list
+  // held seven (the D5 plan's Task 9 — a restated number drifts, ORIENTATION §9).
+  it(`serves every route under /v1/ except the ${UNVERSIONED.length} unversioned.ts names, and those exactly`, async () => {
     const app = await buildServer(await testDeps())
     const outside = app.registeredRoutes
       .filter((route) => !route.url.startsWith('/v1/'))

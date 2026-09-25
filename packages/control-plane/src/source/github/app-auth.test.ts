@@ -3,7 +3,7 @@ import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { appJwt, loadAppKey } from './app-auth.js'
+import { appJwt, loadAppKey, loadWebhookSecret } from './app-auth.js'
 
 describe("the App's JWT (GitHub: RS256, iss = App ID, exp within ten minutes)", () => {
   const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
@@ -107,5 +107,46 @@ describe("the App's key is loaded in the master key's custody class (§20, Decis
     const body = text.split('\n')[1]!
     expect(refused).toContain('RSA')
     expect(refused).not.toContain(body)
+  })
+})
+
+describe("the App's WEBHOOK SECRET is the same custody class — the rule's third caller (Task 9)", () => {
+  let dir: string
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'webhook-secret-'))
+  })
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+  const codeOf = async (p: Promise<unknown>) =>
+    p.then(
+      () => 'accepted',
+      (e: { code?: string; message?: string }) => e.code ?? `no code: ${e.message}`,
+    )
+  async function secretFile(content: string, mode: number): Promise<string> {
+    const f = join(dir, 'github-webhook.secret')
+    await writeFile(f, content)
+    await chmod(f, mode)
+    return f
+  }
+
+  it('reads an owner-only secret as GitHub holds it — the string, without its newline', async () => {
+    const secret = await loadWebhookSecret(await secretFile('It’s a secret\n', 0o600))
+    expect(secret.equals(Buffer.from('It’s a secret'))).toBe(true)
+  })
+  it('refuses the same secret once others can read it, by its own custody code', async () => {
+    expect(await codeOf(loadWebhookSecret(await secretFile('s3cret\n', 0o644)))).toBe(
+      'SECRET_GITHUB_WEBHOOK_SECRET_PERMISSIONS',
+    )
+  })
+  it('refuses an EMPTY secret — an HMAC under an empty key is one anybody can compute', async () => {
+    expect(await codeOf(loadWebhookSecret(await secretFile('\n', 0o600)))).toBe(
+      'SOURCE_GITHUB_KEY_UNREADABLE',
+    )
+  })
+  it('refuses a missing secret, naming the file and what mints it', async () => {
+    const missing = join(dir, 'absent.secret')
+    await expect(loadWebhookSecret(missing)).rejects.toThrow(`'${missing}'`)
+    await expect(loadWebhookSecret(missing)).rejects.toThrow('make up')
   })
 })

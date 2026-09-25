@@ -18,6 +18,14 @@ import {
 import { gitRouteOf, serveGit } from './git-http.js'
 import { fullRepository, orgUser, nodeId, validRepoName, type Urls } from './repos.js'
 import { loadState, repoDir, saveState, type FakeRepo, type FakeState } from './state.js'
+import {
+  changesBetween,
+  createWebhooks,
+  pushPayload,
+  refsOf,
+  type RefChange,
+  type Webhooks,
+} from './webhooks.js'
 
 const run = promisify(execFile)
 
@@ -28,8 +36,9 @@ const run = promisify(execFile)
  *
  * It serves exactly what D5's driver 2 calls, and nothing more: the App (`GET /app`), its
  * installation, installation tokens, and an organisation's repositories — create, read,
- * change visibility, delete. Every JSON answer is held to GitHub's own schema by the unit
- * tier; webhooks are Task 9's, visibility events Task 10's and branch protection Task 12's.
+ * change visibility, delete — and, after every push it accepts, one signed `push` webhook per
+ * ref that moved (Task 9, `webhooks.ts`). Every JSON answer and payload is held to GitHub's
+ * own schema by the unit tier; visibility events are Task 10's and protection Task 12's.
  */
 
 export interface FakeConfig {
@@ -43,6 +52,10 @@ export interface FakeConfig {
   /** The HMAC key installation tokens are signed with; only the fake holds it. */
   tokenKey: Buffer
   developerToken: string
+  /** What GitHub and the App's webhook both hold: every delivery is signed with it (Task 9). */
+  webhookSecret: string
+  /** Where deliveries go — the control plane's `/webhooks/github`. None: nothing is sent. */
+  webhookUrl?: string
   /** The URLs the fake advertises in its answers — the HOST's view (Task 5). */
   urls: () => Urls
   now?: () => Date
@@ -131,6 +144,9 @@ function can(
 export interface FakeServer {
   server: Server
   state: FakeState
+  webhooks: Webhooks
+  /** TEST SUPPORT: the `push` GitHub would send for this change, made by `faculty-dev`. */
+  pushPayloadFor(name: string, change: RefChange): Promise<Record<string, unknown>>
 }
 
 export function createFakeServer(config: FakeConfig): FakeServer {
@@ -138,6 +154,14 @@ export function createFakeServer(config: FakeConfig): FakeServer {
   const state = loadState(config.dataDir, { org: config.org, plan: config.plan })
   const save = () => saveState(config.dataDir, state)
   save()
+
+  const webhooks = createWebhooks({
+    secret: config.webhookSecret,
+    url: config.webhookUrl,
+    appId: config.appId,
+    installationId: config.installationId,
+    now,
+  })
 
   const sameOrg = (org: string) => org.toLowerCase() === state.org.toLowerCase()
   const repoOf = (name: string): FakeRepo | undefined => state.repos[name.toLowerCase()]
@@ -460,6 +484,15 @@ export function createFakeServer(config: FakeConfig): FakeServer {
       res.end('ok\n')
       return
     }
+    if (url.pathname === '/_fake/deliveries' && req.method === 'GET') {
+      return json(res, 200, webhooks.deliveries())
+    }
+    const again = /^\/_fake\/deliveries\/([^/]+)\/redeliver$/.exec(url.pathname)
+    if (again !== null && req.method === 'POST') {
+      return webhooks.redeliver(again[1]!)
+        ? json(res, 200, { redelivered: again[1] })
+        : json(res, 404, new HttpError(404, 'Not Found').body)
+    }
     if (url.pathname === '/api/v3' || url.pathname.startsWith('/api/v3/')) {
       api(req, url.pathname.slice('/api/v3'.length))
         .then(([status, body]) => json(res, status, body))
@@ -491,11 +524,29 @@ export function createFakeServer(config: FakeConfig): FakeServer {
             fullName: `${state.org}/${repo.name}`,
           }
         },
-        onPushed: (r) => {
+        onPushed: async (r, pusher, previous) => {
           const repo = repoOf(r.repo)
           if (repo === undefined) return
           repo.pushedAt = timestamp(now())
           save()
+          // ONE `push` per ref that moved, as GitHub sends them.
+          const dir = repoDir(config.dataDir, state.org, repo.name)
+          for (const change of changesBetween(previous, await refsOf(dir))) {
+            webhooks.deliver(
+              'push',
+              await pushPayload({
+                dir,
+                repo,
+                org: state.org,
+                orgId: ORG_ID,
+                urls: config.urls(),
+                installationId: config.installationId,
+                change,
+                previous,
+                pusher: { login: pusher.login, kind: pusher.kind },
+              }),
+            )
+          }
         },
       })
       return
@@ -503,7 +554,23 @@ export function createFakeServer(config: FakeConfig): FakeServer {
     json(res, 404, new HttpError(404, 'Not Found').body)
   })
 
-  return { server, state }
+  async function pushPayloadFor(name: string, change: RefChange) {
+    const repo = repoOf(name)
+    if (repo === undefined) throw new Error(`the fake has no repository '${name}'`)
+    return pushPayload({
+      dir: repoDir(config.dataDir, state.org, repo.name),
+      repo,
+      org: state.org,
+      orgId: ORG_ID,
+      urls: config.urls(),
+      installationId: config.installationId,
+      change,
+      previous: new Map(),
+      pusher: { login: 'faculty-dev', kind: 'person' },
+    })
+  }
+
+  return { server, state, webhooks, pushPayloadFor }
 }
 
 function inaccessible() {

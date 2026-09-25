@@ -176,6 +176,13 @@
       "when": 1790309538440,
       "tag": "0024_kind_fantastic_four",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790316012699,
+      "tag": "0025_optimal_kate_bishop",
+      "breakpoints": true
     }
   ]
 }

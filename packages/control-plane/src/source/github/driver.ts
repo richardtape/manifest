@@ -5,10 +5,12 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve, sep } from 'node:path'
 import {
   type LocalGitDir,
+  type MirrorAdvance,
   type RepoRef,
   type SeedFiles,
   SourceError,
   type SourceDriver,
+  type SourceObserver,
 } from '../git-driver.js'
 import { createGithubClient } from './client.js'
 import { gitWithToken, isAuthRefusal } from './git.js'
@@ -23,6 +25,12 @@ export interface GithubDriverOptions {
   appId: string
   installationId: string
   appKey: KeyObject
+  /**
+   * REQUIRED, with no default (Task 9, Decision 11): every advance of the mirror is reported
+   * here, and a driver built without one would advance silently. `src/index.ts` passes the
+   * one that publishes Events; a test passes a recording one.
+   */
+  observer: SourceObserver
   /** A test's spy; production uses the global. */
   fetch?: typeof fetch
   now?: () => Date
@@ -46,6 +54,15 @@ const GIT_IDENTITY = [
 
 /** Where the mirror keeps what GitHub has NOW (sitting 1's F6): forced, one per branch. */
 const UPSTREAM = 'refs/manifest/upstream'
+
+/**
+ * Where the mirror PINS every commit it has handed the builder (Task 9): neither a rewrite
+ * nor a branch deleted on GitHub can then make a built commit unreachable to `gc`.
+ */
+const KEPT = 'refs/manifest/kept'
+
+/** One line of `git fetch --porcelain`: flag, old, new, local ref. The flag may be a SPACE. */
+const PORCELAIN = /^([ +*!=t-]) ([0-9a-f]{40}) ([0-9a-f]{40}) (\S+)$/
 
 /**
  * D5'S DRIVER 2 — an organisation on GitHub, behind a GitHub App, with a LOCAL MIRROR at the
@@ -177,17 +194,27 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
     }
   }
 
+  /** A ref's commit in the mirror, or `''` when it has none. */
+  const commitOf = (mirror: string, ref: string) =>
+    local(mirror, ['rev-parse', '--verify', '--quiet', ref]).then(
+      (out) => out.trim(),
+      () => '',
+    )
+
   /**
    * EVERY ADVANCE OF THE MIRROR GOES THROUGH HERE (Decision 11). One fetch, two refspecs:
    * `refs/heads/*` non-forced (the history keeper) and `refs/manifest/upstream/*` forced
    * (GitHub now). Never `--prune`: a branch deleted on GitHub keeps its ref here, so nothing
    * a release built from becomes unreachable and is lost to `gc`.
    *
-   * git exits 1 when it refused a ref and updated the others. A refusal of `refs/heads/<b>`
-   * whose shadow now holds the refused commit is a REWRITE, kept out of history on purpose —
-   * Task 9 reports it; until then it is not an error. Any other refusal is.
+   * **WHAT MOVED IS READ FROM THE SHADOW'S LINES** (`[M14]`): after a rewrite, `refs/heads/<b>`
+   * is refused (`!`) on EVERY later fetch, so reading it would report a rewrite on every push
+   * for ever. The shadow's ` ` (fast-forward) and `*` (new) are `updated`; its `+` (forced) is
+   * the rewrite, reported once, with what the history keeper kept. A refused
+   * `refs/heads/<b>` is expected exactly when the shadow now holds the refused commit (sitting
+   * 4's F3); git exits 1 for it, and any OTHER refusal is `SOURCE_GIT_FAILED`.
    */
-  async function fetchInto(slug: string, mirror: string): Promise<void> {
+  async function fetchInto(slug: string, mirror: string): Promise<MirrorAdvance> {
     const out = await withToken(slug, { contents: 'read' }, (token) =>
       gitWithToken(
         [
@@ -201,24 +228,41 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
         { cwd: mirror, token, acceptExit: [1] },
       ),
     )
+    const advance: MirrorAdvance = { projectSlug: slug, updated: [], rewritten: [] }
     const refused: string[] = []
     for (const line of out.split('\n')) {
-      const m = /^! [0-9a-f]+ ([0-9a-f]+) refs\/heads\/(.+)$/.exec(line.trim())
+      if (line.trim() === '') continue
+      const m = PORCELAIN.exec(line)
       if (m === null) {
         if (line.startsWith('!')) refused.push(line.trim())
         continue
       }
-      const [, to, branch] = m as unknown as [string, string, string]
-      const upstream = await local(mirror, [
-        'rev-parse',
-        '--verify',
-        '--quiet',
-        `${UPSTREAM}/${branch}`,
-      ]).then(
-        (s) => s.trim(),
-        () => '',
-      )
-      if (upstream !== to) refused.push(line.trim())
+      const [, flag, from, to, ref] = m as unknown as [
+        string,
+        string,
+        string,
+        string,
+        string,
+      ]
+      if (ref.startsWith(`${UPSTREAM}/`)) {
+        const branch = `refs/heads/${ref.slice(UPSTREAM.length + 1)}`
+        if (flag === ' ' || flag === '*') {
+          advance.updated.push({ ref: branch, from: flag === '*' ? null : from, to })
+        } else if (flag === '+') {
+          advance.rewritten.push({
+            ref: branch,
+            mirror: await commitOf(mirror, branch),
+            upstream: to,
+          })
+        } else if (flag === '!') {
+          refused.push(line.trim())
+        }
+        // `=` is up to date; `-` (pruned) and `t` (a tag) never happen with these refspecs.
+      } else if (flag === '!') {
+        const branch = ref.slice('refs/heads/'.length)
+        if ((await commitOf(mirror, `${UPSTREAM}/${branch}`)) !== to)
+          refused.push(line.trim())
+      }
     }
     if (refused.length > 0) {
       throw new SourceError(
@@ -226,29 +270,49 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
         `git fetch refused ${refused.length} ref(s) into ${slug}'s mirror: ${refused.join('; ')}`,
       )
     }
+    return advance
   }
 
   /**
-   * `fetchInto`, ONE AT A TIME PER MIRROR, in this process (sitting 4, measured): concurrent
-   * fetches into one mirror race for git's ref locks, and after a push 50 of 60 concurrent
-   * reads failed `SOURCE_GIT_FAILED` (`! … refs/manifest/upstream/main`). Each caller waits for
-   * the sync before it and then runs its own — never reuses the previous one's answer, which
-   * may predate a push the caller has been told about. A previous sync's FAILURE is its own
+   * ONE THING AT A TIME PER MIRROR, in this process (sitting 4, measured): concurrent fetches
+   * into one mirror race for git's ref locks, and after a push 50 of 60 concurrent reads
+   * failed `SOURCE_GIT_FAILED` (`! … refs/manifest/upstream/main`). A job waits for the one
+   * before it and then runs its OWN — a sync never reuses the previous one's answer, which
+   * may predate a push the caller has been told about. A previous job's FAILURE is its own
    * caller's to report (that caller awaits it); it does not fail the next one.
    */
-  const syncing = new Map<string, Promise<void>>()
-  function sync(slug: string, mirror: string): Promise<void> {
-    const before = syncing.get(slug) ?? Promise.resolve()
-    const next = before.then(
-      () => fetchInto(slug, mirror),
-      () => fetchInto(slug, mirror),
-    )
-    syncing.set(slug, next)
+  const busy = new Map<string, Promise<unknown>>()
+  function exclusively<T>(slug: string, job: () => Promise<T>): Promise<T> {
+    const before = busy.get(slug) ?? Promise.resolve()
+    const next = before.then(job, job)
+    busy.set(slug, next)
     const done = () => {
-      if (syncing.get(slug) === next) syncing.delete(slug)
+      if (busy.get(slug) === next) busy.delete(slug)
     }
     next.then(done, done)
     return next
+  }
+
+  /**
+   * A fetch, and — when something moved — the observer, BOTH inside the mirror's turn, so
+   * advances are reported in the order they happened and a report that fails fails this
+   * sync's caller rather than vanishing (Decision 11). `report: false` is the creation's own
+   * first fetch alone: that commit is `repository.seeded`, which the route publishes LAST,
+   * because an event row would stop `deleteProject` undoing a failed creation (audit rows
+   * are `ON DELETE RESTRICT`).
+   */
+  function sync(
+    slug: string,
+    mirror: string,
+    how: { report: boolean } = { report: true },
+  ): Promise<MirrorAdvance> {
+    return exclusively(slug, async () => {
+      const advance = await fetchInto(slug, mirror)
+      if (how.report && (advance.updated.length > 0 || advance.rewritten.length > 0)) {
+        await o.observer.advanced(advance)
+      }
+      return advance
+    })
   }
 
   /** Writes files in a throwaway worktree, commits, and pushes `main` to GitHub, non-forced. */
@@ -403,7 +467,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
           fullName: body.full_name,
           webUrl: body.html_url,
         })
-        await sync(projectSlug, mirror)
+        await sync(projectSlug, mirror, { report: false })
       } catch (error) {
         await deleteOnGithub(projectSlug).catch((cleanup: unknown) => {
           // An orphan on GitHub is never silent: the next create of this slug is refused.
@@ -473,6 +537,11 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
     async localGitDir(repo, commitSha): Promise<LocalGitDir> {
       const mirror = mirrorOf(repo)
       await present(repo, mirror, commitSha)
+      // PINNED before it is handed out (Task 9): a commit a build used stays reachable
+      // whatever GitHub does to its branches (§13 — a release's commit stays buildable).
+      await exclusively(repo.projectSlug, () =>
+        local(mirror, ['update-ref', `${KEPT}/${commitSha}`, commitSha]),
+      )
       return { gitDir: mirror, commitSha }
     },
 
@@ -483,6 +552,10 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
         fullName: await read('manifest.fullName'),
         webUrl: await read('manifest.webUrl'),
       }
+    },
+
+    async sync(repo) {
+      return sync(repo.projectSlug, mirrorOf(repo))
     },
 
     async destroyRepository(repo) {

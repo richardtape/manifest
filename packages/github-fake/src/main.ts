@@ -7,7 +7,9 @@ import { createFakeServer } from './server.js'
  * THE CONTAINER'S ENTRY (Task 5): the environment → a fake on `FAKE_PORT`. Every value the
  * in-process `startFake()` generates is read here instead — the App's PUBLIC key, the
  * webhook secret and the developer token from read-only mounted files (`make up` mints
- * them into `infra/secrets/`), and the state from the `/data` volume.
+ * them into `infra/secrets/`), and the state from the `/data` volume. `FAKE_WEBHOOK_URL`
+ * (Task 9) is where deliveries go — compose sets the control plane's, through
+ * `host.docker.internal` — and without it nothing is delivered.
  *
  * The App's PRIVATE key is never given to the fake: GitHub holds only the public half.
  */
@@ -38,6 +40,7 @@ const port = Number(process.env.FAKE_PORT ?? '7110')
 const plan = process.env.FAKE_PLAN === 'free' ? 'free' : 'team'
 const apiUrl = required('FAKE_API_URL')
 const gitUrl = required('FAKE_GIT_URL')
+const webhookUrl = process.env.FAKE_WEBHOOK_URL || undefined
 
 /**
  * The key installation tokens are signed with, kept in the volume beside the state: a token
@@ -62,13 +65,15 @@ const { server, state } = createFakeServer({
   appPublicKey: createPublicKey(fileOf('FAKE_APP_PUBLIC_KEY_FILE')),
   tokenKey: tokenKey(),
   developerToken: fileOf('FAKE_DEVELOPER_TOKEN_FILE'),
+  webhookSecret: fileOf('FAKE_WEBHOOK_SECRET_FILE'),
+  ...(webhookUrl === undefined ? {} : { webhookUrl }),
   urls: () => ({ apiUrl, gitUrl }),
 })
 
 server.listen(port, '0.0.0.0', () => {
   console.log(
     `github-fake: NOT GitHub — org ${state.org} (${plan}), ${Object.keys(state.repos).length} ` +
-      `repositories, API ${apiUrl}, git ${gitUrl}, listening on ${port}`,
+      `repositories, API ${apiUrl}, git ${gitUrl}, webhooks ${webhookUrl ?? 'OFF'}, listening on ${port}`,
   )
 })
 

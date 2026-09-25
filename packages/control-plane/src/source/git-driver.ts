@@ -22,6 +22,33 @@ export interface LocalGitDir {
 export type SeedFiles = Readonly<Record<string, string>>
 
 /**
+ * WHAT ONE SYNC MOVED (the D5 plan's Task 9, Decision 11) — commit ids only: no author and no
+ * message text, which are an app author's free text (§14's redaction applies to an event).
+ * `ref` is GitHub's name for the branch, `refs/heads/<b>`.
+ */
+export interface MirrorAdvance {
+  projectSlug: string
+  /** Branches that moved (or appeared) on the provider, as the mirror now has them. */
+  updated: { ref: string; from: string | null; to: string }[]
+  /**
+   * Branches the provider REWROTE, which the mirror's history REFUSED: it keeps `mirror`
+   * (what an approved release may name), and GitHub has `upstream`. Reported ONCE — the
+   * rewrite itself, never every later push onto it (`[M14]`).
+   */
+  rewritten: { ref: string; mirror: string; upstream: string }[]
+}
+
+/**
+ * THE ONE PLACE A MIRROR'S ADVANCE IS REPORTED (Decision 11): built at boot with the database
+ * and the bus (`projects/source-events.ts`), so a git driver never holds either. Called
+ * inside the sync, before it resolves — so a failure to report is the caller's failure,
+ * never swallowed — and only when something moved.
+ */
+export interface SourceObserver {
+  advanced(advance: MirrorAdvance): Promise<void>
+}
+
+/**
  * A source driver's refusal. `api/errors.ts` answers every one as `409 { code, message }` —
  * but `SOURCE_UNREACHABLE`, a `503` (the D5 plan's Decision 18) — so **the message goes on
  * the wire** and a driver never puts a credential in it. Driver 1 throws
@@ -81,5 +108,10 @@ export interface SourceDriver {
    * on the mirror. No network. Task 12 folds it into the repository link.
    */
   describeRepository(repo: RepoRef): Promise<{ fullName: string; webUrl: string | null }>
+  /**
+   * Bring the local copy up to date with the provider, and report what moved (Decision 11).
+   * Driver 1's repository IS the source, so its answer is always empty.
+   */
+  sync(repo: RepoRef): Promise<MirrorAdvance>
   destroyRepository(repo: RepoRef): Promise<void>
 }

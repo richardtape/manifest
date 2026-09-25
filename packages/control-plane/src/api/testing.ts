@@ -2,7 +2,12 @@ import { db, type Db } from '../db/index.js'
 import { loadConfig } from '../config.js'
 import { testIssuer } from '../runtime/testing.js'
 import { createFakeDriver } from '../runtime/index.js'
-import { createGithubSourceDriver, createLocalSourceDriver } from '../source/index.js'
+import {
+  createGithubSourceDriver,
+  createLocalSourceDriver,
+  createSerialQueue,
+} from '../source/index.js'
+import { createSourceObserver } from '../projects/index.js'
 import type { StartedFake } from '@manifest/github-fake/testing'
 import { loadBlueprints } from '../blueprints/index.js'
 import { createServiceCredentials } from '../services/index.js'
@@ -32,7 +37,7 @@ import {
 import { declaredCatalogue } from '../ai/testing.js'
 import { createEventBus, makeRedactor, publishEvent } from '../observability/index.js'
 import { createPrivateKey, randomUUID } from 'node:crypto'
-import { mkdir, mkdtemp } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
@@ -759,6 +764,9 @@ export async function testDeps(): Promise<ServerDeps> {
      * A test that replaces `driver` must replace this too, or its builds run on this one.
      */
     builds: createBuildRunner({ db, driver, bus }),
+    // A REAL queue (the D5 plan's Task 9), one per server, as the boot builds one: a test that
+    // reads what a webhook caused awaits `sourceSync.idle()`.
+    sourceSync: createSerialQueue(),
     reservedLabels: await testReservedLabels(),
     // The production limit, so a test of the limit tests the number the boot uses.
     limits: {
@@ -876,6 +884,12 @@ export async function githubTestDeps(
     options.reposRoot === undefined
       ? base
       : { ...base, config: { ...base.config, reposRoot: options.reposRoot } }
+  // The fake's webhook secret, where `buildServer` reads it on driver 2 — `600`, because the
+  // loader holds it to the master key's custody rule, as `make up` mints the real one.
+  const secretDir = await mkdtemp(join(TEST_REPOS_ROOT, 'webhook-secret-'))
+  const webhookSecretPath = join(secretDir, 'github-webhook.secret')
+  await writeFile(webhookSecretPath, `${fake.webhookSecret}\n`)
+  await chmod(webhookSecretPath, 0o600)
   const github = {
     ...deps.config.github,
     apiUrl: fake.apiUrl,
@@ -883,6 +897,7 @@ export async function githubTestDeps(
     org: fake.org,
     appId: fake.appId,
     installationId: fake.installationId,
+    webhookSecretPath,
   }
   return {
     ...deps,
@@ -895,6 +910,9 @@ export async function githubTestDeps(
       appId: github.appId,
       installationId: github.installationId,
       appKey: createPrivateKey(fake.appKeyPem),
+      // THE BOOT'S OWN OBSERVER, not a recording one (Task 9): what a route test reads is the
+      // Events it publishes. `source/testing.ts`' recording observer is the driver tests'.
+      observer: createSourceObserver({ db: deps.db, bus: deps.bus }),
     }),
   }
 }

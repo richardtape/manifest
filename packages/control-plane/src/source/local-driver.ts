@@ -209,6 +209,12 @@ export function createLocalSourceDriver(root: string): SourceDriver {
       return { fullName: repo.projectSlug, webUrl: null }
     },
 
+    /** Nothing to bring up to date: this bare repository IS the source (Task 9). */
+    async sync(repo) {
+      assertOwned(repo)
+      return { projectSlug: repo.projectSlug, updated: [], rewritten: [] }
+    },
+
     async destroyRepository(repo) {
       const path = assertOwned(repo)
       await rm(path, { recursive: true, force: true })

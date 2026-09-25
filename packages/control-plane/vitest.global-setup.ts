@@ -47,6 +47,8 @@ const TABLES = [
   // The D5 plan's Task 8: references `projects` ON DELETE cascade, so the CASCADE empties it
   // unnamed — named anyway, as belt and braces, like `routes`.
   'source_repositories',
+  // The D5 plan's Task 9: references nothing, so NAMED — the CASCADE cannot reach it.
+  'webhook_deliveries',
   'projects',
   'audit.role_changes',
   'users',

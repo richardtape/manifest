@@ -183,6 +183,18 @@ export function describeSourceDriver(
       expect(
         await code(h.driver.headCommit({ projectSlug: 'chem-labs', provider: other })),
       ).toBe('SOURCE_PROVIDER_MISMATCH')
+      expect(
+        await code(h.driver.sync({ projectSlug: 'chem-labs', provider: other })),
+      ).toBe('SOURCE_PROVIDER_MISMATCH')
+    })
+
+    it('syncs a repository nothing has moved to an EMPTY advance that names it (Task 9)', async () => {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      expect(await h.driver.sync(repo)).toEqual({
+        projectSlug: 'chem-labs',
+        updated: [],
+        rewritten: [],
+      })
     })
 
     it('destroys a repository, after which it has no head', async () => {

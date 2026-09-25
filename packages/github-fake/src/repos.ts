@@ -16,15 +16,29 @@ export interface Urls {
 
 /** An organisation as GitHub's `simple-user` describes one (`type: 'Organization'`). */
 export function orgUser(org: string, orgId: number, u: Urls): Record<string, unknown> {
-  const api = `${u.apiUrl}/users/${org}`
+  return simpleUser(org, orgId, 'Organization', u)
+}
+
+/**
+ * GitHub's `simple-user`: an organisation, a person (`User`) or an App's installation acting
+ * as itself (`Bot`, whose login is `<app-slug>[bot]` — escaped in its URLs, as GitHub does).
+ */
+export function simpleUser(
+  login: string,
+  id: number,
+  type: 'Organization' | 'User' | 'Bot',
+  u: Urls,
+): Record<string, unknown> {
+  const name = encodeURIComponent(login)
+  const api = `${u.apiUrl}/users/${name}`
   return {
-    login: org,
-    id: orgId,
-    node_id: nodeId('O_', orgId),
-    avatar_url: `${u.gitUrl}/avatars/${org}`,
+    login,
+    id,
+    node_id: nodeId(type === 'Organization' ? 'O_' : type === 'Bot' ? 'BOT_' : 'U_', id),
+    avatar_url: `${u.gitUrl}/avatars/${name}`,
     gravatar_id: '',
     url: api,
-    html_url: `${u.gitUrl}/${org}`,
+    html_url: `${u.gitUrl}/${name}`,
     followers_url: `${api}/followers`,
     following_url: `${api}/following{/other_user}`,
     gists_url: `${api}/gists{/gist_id}`,
@@ -34,7 +48,7 @@ export function orgUser(org: string, orgId: number, u: Urls): Record<string, unk
     repos_url: `${api}/repos`,
     events_url: `${api}/events{/privacy}`,
     received_events_url: `${api}/received_events`,
-    type: 'Organization',
+    type,
     user_view_type: 'public',
     site_admin: false,
   }

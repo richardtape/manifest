@@ -13,10 +13,11 @@ import { createDockerDriver, createEngineClient } from './runtime/index.js'
 import {
   createGithubSourceDriver,
   createLocalSourceDriver,
+  createSerialQueue,
   loadAppKey,
 } from './source/index.js'
 import { createBuildRunner, createRetirer, recoverAtBoot } from './releases/index.js'
-import { loadReservedLabels } from './projects/index.js'
+import { createSourceObserver, loadReservedLabels } from './projects/index.js'
 import { expirePendingActions } from './tokens/index.js'
 import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/index.js'
 import { createServiceCredentials } from './services/index.js'
@@ -293,6 +294,10 @@ const builds = createBuildRunner({ db, driver, bus })
  * key its group can read refuses the boot, naming the file, rather than the first create.
  * Its mirror lives at `config.reposRoot`, where driver 1's repositories do (Decision 1); a
  * project another driver made is refused by `repositoryOf`, never taken for a mirror.
+ *
+ * **Its OBSERVER is required and built here, once** (Task 9, Decision 11): every advance of
+ * the mirror — a webhook's, a read's, Manifest's own commit — is published as an Event by
+ * `createSourceObserver`, which holds the database and the bus so the driver holds neither.
  */
 const source =
   config.sourceDriver === 'github'
@@ -304,8 +309,16 @@ const source =
         appId: config.github.appId,
         installationId: config.github.installationId,
         appKey: await loadAppKey(config.github.appKeyPath),
+        observer: createSourceObserver({ db, bus }),
       })
     : createLocalSourceDriver(config.reposRoot)
+
+/**
+ * GitHub's deliveries are verified and recorded on the request and SYNCED HERE, one job at a
+ * time across the process (Task 9, Decision 10). Built on both drivers: driver 1 answers every
+ * delivery `404` and never enqueues.
+ */
+const sourceSync = createSerialQueue()
 
 const app = await buildServer({
   db,
@@ -341,6 +354,7 @@ const app = await buildServer({
   bus,
   retirer,
   builds,
+  sourceSync,
   reservedLabels,
   // §23: the slug check is asked while a person types (P5a Decision 26).
   limits: {

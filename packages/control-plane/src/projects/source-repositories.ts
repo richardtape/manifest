@@ -1,5 +1,5 @@
-import { eq } from 'drizzle-orm'
-import { sourceRepositories, type Db } from '../db/index.js'
+import { and, eq } from 'drizzle-orm'
+import { projects, sourceRepositories, type Db } from '../db/index.js'
 import {
   SourceError,
   type RepoRef,
@@ -62,4 +62,28 @@ export async function repositoryOf(
     )
   }
   return deps.source.repositoryFor(project.slug)
+}
+
+/**
+ * The project whose repository the PROVIDER calls `fullName` — the name GitHub answered at
+ * creation and names in every delivery (Task 9's receiver). Matched on the stored name, never
+ * rebuilt from the configured organisation: GitHub keeps an organisation's own capitals
+ * (`Manifest-local-dev`), and a configuration written in lower case would miss them.
+ */
+export async function projectForRepository(
+  db: Db,
+  provider: SourceProvider,
+  fullName: string,
+): Promise<{ id: string; slug: string; quota: unknown } | undefined> {
+  const [row] = await db
+    .select({ id: projects.id, slug: projects.slug, quota: projects.quota })
+    .from(sourceRepositories)
+    .innerJoin(projects, eq(projects.id, sourceRepositories.projectId))
+    .where(
+      and(
+        eq(sourceRepositories.provider, provider),
+        eq(sourceRepositories.fullName, fullName),
+      ),
+    )
+  return row
 }

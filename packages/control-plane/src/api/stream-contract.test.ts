@@ -51,6 +51,10 @@ const PUBLISHED_ELSEWHERE = {
   // P6b Task 4: published by the first healthy production deploy for purpose `launch`, which
   // this lifecycle never makes.
   'project.launched': 'releases/releases.test.ts — the launch (P6b Decision 1)',
+  // The D5 plan's Task 9: published by driver 2's observer when its MIRROR advances, and
+  // this lifecycle runs on driver 1, whose repository is the source and never advances.
+  'repository.pushed': 'api/webhooks.test.ts — a person’s push, delivered by the fake',
+  'repository.history_rewritten': 'api/webhooks.test.ts — a rewritten main',
 } as const
 
 /**

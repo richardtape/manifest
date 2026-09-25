@@ -128,6 +128,19 @@ export const sourceRepositories = pgTable(
   ],
 )
 
+/**
+ * GITHUB'S DELIVERIES, EACH RECORDED ONCE (the D5 plan's Task 9, Decision 10): a delivery is
+ * written here only AFTER its signature verified, keyed by GitHub's `X-GitHub-Delivery`, and
+ * a repeat of an id already here changes nothing (`ON CONFLICT DO NOTHING`). No project
+ * reference: a `ping`, or a push for a repository this platform does not hold, is recorded
+ * too, and a delivery outlives nothing it describes.
+ */
+export const webhookDeliveries = pgTable('webhook_deliveries', {
+  deliveryId: text('delivery_id').primaryKey(),
+  event: text('event').notNull(),
+  receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const appSpecs = pgTable('app_specs', {
   id: uuid('id').primaryKey().defaultRandom(),
   projectId: uuid('project_id')
@@ -850,7 +863,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'iam_registration.recorded', 'privacy_assessment.recorded', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'project.launched', 'repository.pushed', 'repository.history_rewritten')`,
     ),
   ],
 )

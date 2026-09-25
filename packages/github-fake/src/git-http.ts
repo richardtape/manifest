@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { createGunzip } from 'node:zlib'
 import type { Grant } from './app-auth.js'
+import { refsOf } from './webhooks.js'
 
 /**
  * GIT OVER HTTP — git's "smart" protocol, served by core git alone (the plan's *Read this
@@ -45,8 +46,12 @@ export interface GitContext {
   /** Whether the Authorization header named a credential the fake does not recognise. */
   grant: Grant | undefined
   authorizationPresent: boolean
-  /** Called once a push has been accepted by receive-pack. */
-  onPushed(route: GitRoute): void
+  /**
+   * Called once receive-pack has ACCEPTED a push, with who pushed and every ref's commit
+   * BEFORE it (Task 9: one `push` webhook per ref that moved). The response to git is ended
+   * only after this resolves, so a push that has returned has its deliveries in flight.
+   */
+  onPushed(route: GitRoute, pusher: Grant, before: Map<string, string>): Promise<void>
 }
 
 const pkt = (s: string) => (s.length + 4).toString(16).padStart(4, '0') + s
@@ -131,20 +136,61 @@ export function serveGit(
     return
   }
 
+  if (service === 'git-receive-pack') {
+    void receive(req, res, route, found.dir, grant, ctx)
+    return
+  }
   res.writeHead(200, {
     'content-type': `application/x-${service}-result`,
     'cache-control': 'no-cache',
   })
   const p = spawn('git', [verb, '--stateless-rpc', found.dir], { env: gitEnv() })
   wire(p, res, verb)
-  const body = req.headers['content-encoding'] === 'gzip' ? req.pipe(createGunzip()) : req
-  body.pipe(p.stdin)
+  bodyOf(req).pipe(p.stdin)
   p.stdout.pipe(res)
-  if (service === 'git-receive-pack') {
-    p.on('close', (code) => {
-      if (code === 0) ctx.onPushed(route)
-    })
+}
+
+const bodyOf = (req: IncomingMessage) =>
+  req.headers['content-encoding'] === 'gzip' ? req.pipe(createGunzip()) : req
+
+/**
+ * A PUSH: the refs snapshotted first, then receive-pack, then — only if it accepted the push
+ * — `onPushed` with that snapshot, and only then the end of the response.
+ */
+async function receive(
+  req: IncomingMessage,
+  res: ServerResponse,
+  route: GitRoute,
+  dir: string,
+  grant: Grant,
+  ctx: GitContext,
+): Promise<void> {
+  let before: Map<string, string>
+  try {
+    before = await refsOf(dir)
+  } catch (error) {
+    console.error(`github-fake: cannot read the refs of ${dir}: ${String(error)}`)
+    return plain(res, 500, 'the repository cannot be read\n')
   }
+  res.writeHead(200, {
+    'content-type': 'application/x-git-receive-pack-result',
+    'cache-control': 'no-cache',
+  })
+  const p = spawn('git', ['receive-pack', '--stateless-rpc', dir], { env: gitEnv() })
+  wire(p, res, 'receive-pack')
+  bodyOf(req).pipe(p.stdin)
+  p.stdout.pipe(res, { end: false })
+  p.on('close', (code) => {
+    if (code !== 0) return void res.end()
+    ctx.onPushed(route, grant, before).then(
+      () => res.end(),
+      (error: unknown) => {
+        // The push itself succeeded; a webhook the fake could not build is its operator's.
+        console.error(`github-fake: after a push to ${dir}: ${String(error)}`)
+        res.end()
+      },
+    )
+  })
 }
 
 /**

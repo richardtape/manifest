@@ -1408,6 +1408,30 @@ const ROUTES: RouteCase[] = [
       'token-privileged': 'pass',
     },
   },
+  /**
+   * GITHUB'S DELIVERIES (the D5 plan's Task 9). Like the registry realm it carries no
+   * session and calls no `requireActor`: its caller is GitHub, and its credential is the
+   * delivery's HMAC signature, verified inside the route and held by `api/webhooks.test.ts`
+   * (four refusal codes beside an accepted delivery). This table runs on DRIVER 1, where the
+   * route answers every caller alike — so the claim worth asserting is that authorization is
+   * IRRELEVANT here, by CODE: a session or a token buys nothing a stranger lacks.
+   */
+  {
+    method: 'POST',
+    url: '/webhooks/github',
+    request: () => ({ url: '/webhooks/github', payload: { zen: 'x' } }),
+    expect: {
+      owner: { status: 404, code: 'WEBHOOKS_NOT_CONFIGURED' } as const,
+      collaborator: { status: 404, code: 'WEBHOOKS_NOT_CONFIGURED' } as const,
+      stranger: { status: 404, code: 'WEBHOOKS_NOT_CONFIGURED' } as const,
+      admin: { status: 404, code: 'WEBHOOKS_NOT_CONFIGURED' } as const,
+      anonymous: { status: 404, code: 'WEBHOOKS_NOT_CONFIGURED' } as const,
+      'token-capable': { status: 404, code: 'WEBHOOKS_NOT_CONFIGURED' } as const,
+      'token-incapable': { status: 404, code: 'WEBHOOKS_NOT_CONFIGURED' } as const,
+      'token-other-project': { status: 404, code: 'WEBHOOKS_NOT_CONFIGURED' } as const,
+      'token-privileged': { status: 404, code: 'WEBHOOKS_NOT_CONFIGURED' } as const,
+    },
+  },
 ]
 
 export function describeAuthorizationContract(
