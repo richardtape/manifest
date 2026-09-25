@@ -869,7 +869,7 @@ spec write path makes D9's sensitive-diff re-escalation load-bearing for the fir
 is what builds it. **This is one of two instances of the same rule** — see *D5's driver 2* below:
 *anything that widens who can change a spec goes after the gate that inspects spec changes.*
 
-### D5's driver 2 — the GitHub source driver. PLACED AFTER P6b, 2026-09-19 — **WRITTEN 2026-09-24: [`2026-09-24-d5-github-source-driver.md`](./2026-09-24-d5-github-source-driver.md), 15 tasks in Rich's eight sittings. SITTING 1 — THE MEASUREMENTS — SITTING 2 — THE BUILD PATH AND THE KEY'S CUSTODY — SITTING 3 — THE FAKE, ITS CONTAINER AND THE CONFORMANCE RUN — SITTING 4 — THE DRIVER AND ITS WIRING — RAN 2026-09-24, SITTING 5 — WEBHOOKS AND ENFORCED-PRIVATE — RAN OVER MIDNIGHT INTO 2026-09-25, AND SITTING 6 — PUSH-TIME SECRET SCANNING, `main` PROTECTED AND THE REPOSITORY LINK — RAN 2026-09-25** *(which sitting is next: the plan's sittings table, and ORIENTATION §7e)*
+### D5's driver 2 — the GitHub source driver. PLACED AFTER P6b, 2026-09-19 — **WRITTEN 2026-09-24: [`2026-09-24-d5-github-source-driver.md`](./2026-09-24-d5-github-source-driver.md), 15 tasks in Rich's eight sittings. SITTING 1 — THE MEASUREMENTS — SITTING 2 — THE BUILD PATH AND THE KEY'S CUSTODY — SITTING 3 — THE FAKE, ITS CONTAINER AND THE CONFORMANCE RUN — SITTING 4 — THE DRIVER AND ITS WIRING — RAN 2026-09-24, SITTING 5 — WEBHOOKS AND ENFORCED-PRIVATE — RAN OVER MIDNIGHT INTO 2026-09-25, SITTING 6 — PUSH-TIME SECRET SCANNING, `main` PROTECTED AND THE REPOSITORY LINK — AND SITTING 7 — P6b's INHERITED FINDINGS — RAN 2026-09-25** *(which sitting is next: the plan's sittings table, and ORIENTATION §7e)*
 
 **WRITTEN 2026-09-24, at `7045a99`.** Fifteen tasks in the eight sittings Rich chose. The conformance run is placed in sitting 3 as the fake's own check, with an overflow rule that moves it to sitting 4 if sitting 3 runs long. **Writing it measured, on this machine, the facts its *Read this first* lists** — each re-run by its Task 1 into `spikes/d5-baseline/` — and the ones that shaped it are:
 - Gitea (1.27-dev, 342 paths) and Forgejo (16.0-dev, 326) expose **no** GitHub App endpoint.
@@ -895,6 +895,19 @@ is what builds it. **This is one of two instances of the same rule** — see *D5
 
 
 **SITTING 6 — Tasks 11 and 12, push-time secret scanning, `main` protected and the repository link — RAN 2026-09-25** (`3a890ee`, `089ebdf`; the count is in the defect-rate table). **§20's push-time sentence is built on every path Manifest can see, from ONE list of rules**: the build gate's seven plus GitHub's stateless installation token — which the gate missed, and which this plan puts into circulation — and the fine-grained PAT, read four ways: the build gate; Manifest's own commits before they leave (`409 SOURCE_SECRET_DETECTED`); driver 1's `pre-receive`, rendered from the list and re-rendered at every boot by the new `SourceDriver.prepare()`; and driver 2's mirror, which scans every commit it learns of and reports each finding at least once (`repository.secret_detected`). **`main` is protected on both drivers** — by git on driver 1, by GitHub on driver 2 where GitHub will, and recorded honestly where it will not (a private repository on a free organisation: `mainProtected: false`, GitHub's words, `repository.protection_unavailable`) — and **`Project.repository` is required** in the contract and shown in the console. Executing it found that the plan's walk could not see a merge's own additions (`--cc` now), that its scan input could not keep its own at-least-once promise, and that its `prepare()` would have given every mirror on a laptop that switched drivers the scanning hook; both Step 4 checks ran by hand on this machine's six real repositories. **One cost is Rich's to weigh: the unit suite is ~55% slower** (240 s → 372 s), because every driver-1 push now runs the hook — kept, because the hook is the backstop for Manifest's own commits too. No task boundary moved.
+
+**SITTING 7 — Tasks 13 and 14, P6b's inherited findings — RAN 2026-09-25** (`f771b66`, `eead192`; the count is in the
+defect-rate table). **The approval summary is structured output** (Rich's decision of 2026-09-24): the model is handed
+the diff's facts and fills a schema with one sentence per change and no place for a verdict, and an answer that breaks
+it or uses decision words is withheld with its rule — 40 of 40 kept on `qwen3.5:4b` through the shipped function, 5 of 5
+withheld with `response_format` removed. The code-review item names where its verdict was recorded (F13) and the feed
+names the approver (F14); in the console a decision names its preview and disarms its buttons (F11), a rejection reason
+survives the step-up (F12), and a self-serve release offers no approval link (F15) — **all clicked on driver 1**, Rich
+typing the passwords. Executing it found two readers the plan did not name: the stale-preview comparison, which would have
+refused every decision after a model-written preview, and the acceptance's closed vocabularies, which would have turned
+`make demo-releases` red on an honest `withheld`. **One question is Rich's**: 5 of 40 model sentences reversed a removed
+CWL attribute into an added one — shown under the deterministic line and labelled, but wrong (ORIENTATION §8). No task
+boundary moved.
 
 **ITS TWO QUESTIONS ARE DECIDED (Rich, 2026-09-24; ORIENTATION §8):** a GitHub-compatible FAKE in a container for the acceptance, plus an opt-in conformance check against a real GitHub App; **eight sittings**. And the console's sign-out (P6b's F10) is fixed in its own sitting first, not in this plan.
 
@@ -1241,6 +1254,7 @@ makes the third move a one-line edit instead of a six-document sweep. *(A prose 
 | D5 driver 2 Tasks 7–8 (sitting 4, the GitHub driver and its wiring — and one fix of its own, `c47bdf0`) | 2 | 19 | 9.5 |
 | D5 driver 2 Tasks 9–10 (sitting 5, webhooks and enforced-private) | 2 | 16 | 8.0 |
 | D5 driver 2 Tasks 11–12 (sitting 6, push-time secret scanning, `main` protected and the repository link) | 2 | 18 | 9.0 |
+| D5 driver 2 Tasks 13–14 (sitting 7, P6b's inherited findings — the summary as structured output, and the console — clicked) | 2 | 17 | 8.5 |
 
 ***P5a's total and every P5b row above were added on 2026-09-18, by P5b sitting 6.** They had
 been missing since P5a finished — five consecutive P5b sittings closed out without them, each

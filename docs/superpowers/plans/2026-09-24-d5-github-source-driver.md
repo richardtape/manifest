@@ -1,6 +1,6 @@
 # D5's Driver 2 — the GitHub Source Driver Implementation Plan
 
-> **WRITTEN 2026-09-24. SITTING 1 (TASK 1, THE MEASUREMENTS), SITTING 2 (TASKS 2 AND 3), SITTING 3 (TASKS 4, 5 AND 6 — THE FAKE, ITS CONTAINER AND THE CONFORMANCE RUN, REAL LEG INCLUDED) AND SITTING 4 (TASKS 7 AND 8 — THE DRIVER AND ITS WIRING) RAN ON 2026-09-24; SITTING 5 (TASKS 9 AND 10 — WEBHOOKS AND ENFORCED-PRIVATE) RAN OVER MIDNIGHT INTO 2026-09-25, AND SITTING 6 (TASKS 11 AND 12 — PUSH-TIME SECRET SCANNING, `main` PROTECTED AND THE REPOSITORY LINK) RAN ON 2026-09-25. Which sitting is next is stated by the sittings table below (and ORIENTATION §7e), and nowhere else.** **Sitting 3's real conformance leg MET SPEC ACTION 3'S CONDITION** — a token scoped to another repository created one, so GitHub does not confine creation to a token's repositories — **and Rich chose option (b) the same evening: §20's bullet 1 is corrected** (*Spec actions*, 3). Every premise held, and the measurements found that one rewrite of GitHub's `main` freezes the mirror's (F6) — corrected in Tasks 7, 9 and 11 — and that Task 13's check crosses its own line (F7). **Rich decided F7 the same day: the summary becomes STRUCTURED OUTPUT, and Task 13 is rewritten for it (Decisions 19 and 22); he also switched the chat model to `qwen3.5:4b`, with thinking off.** No sitting boundary moved. The `[M<n>]` blocks at the top of Tasks 2, 4, 5, 7, 8, 9, 11 and 13 are the corrections; [`spikes/d5-baseline/`](../spikes/d5-baseline/README.md) is the record. **Its three spec actions were approved by Rich and APPLIED the same day** (*Spec actions*, below): §20's push-time sentence as option (a), §21's inventory row, and §20's one unscoped token — the last *unless the conformance run says otherwise*. *What executing this plan found* is where every sitting's record goes.
+> **WRITTEN 2026-09-24. SITTING 1 (TASK 1, THE MEASUREMENTS), SITTING 2 (TASKS 2 AND 3), SITTING 3 (TASKS 4, 5 AND 6 — THE FAKE, ITS CONTAINER AND THE CONFORMANCE RUN, REAL LEG INCLUDED) AND SITTING 4 (TASKS 7 AND 8 — THE DRIVER AND ITS WIRING) RAN ON 2026-09-24; SITTING 5 (TASKS 9 AND 10 — WEBHOOKS AND ENFORCED-PRIVATE) RAN OVER MIDNIGHT INTO 2026-09-25, SITTING 6 (TASKS 11 AND 12 — PUSH-TIME SECRET SCANNING, `main` PROTECTED AND THE REPOSITORY LINK) AND SITTING 7 (TASKS 13 AND 14 — P6b's INHERITED FINDINGS: THE SUMMARY AS STRUCTURED OUTPUT, AND THE CONSOLE) RAN ON 2026-09-25. Which sitting is next is stated by the sittings table below (and ORIENTATION §7e), and nowhere else.** **Sitting 3's real conformance leg MET SPEC ACTION 3'S CONDITION** — a token scoped to another repository created one, so GitHub does not confine creation to a token's repositories — **and Rich chose option (b) the same evening: §20's bullet 1 is corrected** (*Spec actions*, 3). Every premise held, and the measurements found that one rewrite of GitHub's `main` freezes the mirror's (F6) — corrected in Tasks 7, 9 and 11 — and that Task 13's check crosses its own line (F7). **Rich decided F7 the same day: the summary becomes STRUCTURED OUTPUT, and Task 13 is rewritten for it (Decisions 19 and 22); he also switched the chat model to `qwen3.5:4b`, with thinking off.** No sitting boundary moved. The `[M<n>]` blocks at the top of Tasks 2, 4, 5, 7, 8, 9, 11 and 13 are the corrections; [`spikes/d5-baseline/`](../spikes/d5-baseline/README.md) is the record. **Its three spec actions were approved by Rich and APPLIED the same day** (*Spec actions*, below): §20's push-time sentence as option (a), §21's inventory row, and §20's one unscoped token — the last *unless the conformance run says otherwise*. *What executing this plan found* is where every sitting's record goes.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
 
@@ -41,8 +41,8 @@
 | 4 | 7, 8 | **The GitHub driver** — mirror, tokens that never leave the process, the contract suite green against the fake — and **its wiring**: boot, `source_repositories` (migration), the provider mismatch refusal, `SOURCE_UNREACHABLE` as `503`, the contract to `1.2.0`, and a real build through the fake | **Yes** — `api/`, `build/` callers, a `*.docker.test.ts` | **DONE 2026-09-24** (`ac96f7b`, `f51bd54`, and the fix `c47bdf0`) — driver 2 passes Task 2's suite unchanged against the fake, boots by `MANIFEST_SOURCE_DRIVER=github`, and builds from its mirror online and offline to the same digest; `repositoryOf` refuses another driver's project — without it driver 2 BUILT a driver-1 project (F6); `sync` tolerates a rewrite rather than throwing (F3) and runs one fetch at a time per mirror (F19); migration 0024; no boundary moved |
 | 5 | 9, 10 | **Webhooks** — the fake delivers signed events; the receiver refuses an ABSENT signature, a malformed one and a wrong one by code, records a delivery once, and syncs off the request; a rewritten `main` is refused by the mirror and reported — and **enforced-private**: a repository found public is made private again, reported, and not built while public | **Yes** — `observability/`, `projects/`, a `*.docker.test.ts` | **DONE 2026-09-25** (`786cc80`, `3cbf937`) — `POST /webhooks/github` refuses an absent, a malformed and a wrong signature each by its own code beside an accepted delivery, records a delivery once and syncs off the request; every mirror advance goes to ONE required observer, a rewrite reported once; a form-encoded delivery was `500` until the plugin dropped its inherited parsers (F1); a repository found public is made private again, reported, and not built while public — offline too; migrations 0025 and 0026; no boundary moved |
 | 6 | 11, 12 | **Push-time secret scanning** on every path Manifest can see — its own commits before they leave, driver 1's pushes by a hook, and driver 2's pushes on arrival — with the stateless token pattern, and **`main` protected** on both drivers, and **the repository link** on `Project` and the console | **Yes** — `build/`, `projects/` | **DONE 2026-09-25** (`3a890ee`, `089ebdf`) — one list of rules read four ways (the build gate, Manifest's own commits before they leave, driver 1's rendered `pre-receive`, driver 2's mirror scan — at least once); `SourceDriver.prepare()` at boot; `main` protected by git on driver 1 and by GitHub where it will on driver 2, recorded honestly where it will not; `Project.repository` required; migrations 0027 and 0028; both Step 4 checks run by hand on this machine's six repositories; the unit suite is ~55% slower (F6, Rich's call); no boundary moved |
-| 7 | 13, 14 | **P6b's inherited findings**: F9 (the model invents a verdict — fixed by making the summary STRUCTURED OUTPUT with no place for one), F13 and F14 on the server, and F11, F12 and F15 in the console | **Yes** — `releases/`, `launch/` | not started ← next — nothing of Rich's is needed to START it |
-| 8 | 15 | **The acceptance**: `make demo-github` against a GitHub-mode control plane — green three times, offline, with its offline-acceptance and `ci-acceptance` steps — `make github-conformance` at Rich's yes, `make demo` still green on driver 1, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | not started |
+| 7 | 13, 14 | **P6b's inherited findings**: F9 (the model invents a verdict — fixed by making the summary STRUCTURED OUTPUT with no place for one), F13 and F14 on the server, and F11, F12 and F15 in the console | **Yes** — `releases/`, `launch/` | **DONE 2026-09-25** (`f771b66`, `eead192`) — the summary is structured output: the model fills a schema built from the diff with no place for a verdict, and an answer that breaks it or decides something is withheld with its rule — 40 of 40 kept on `qwen3.5:4b` through the shipped function, 5 of 5 withheld without `response_format`; F13's source and date, F14's name; F11, F12 and F15 as pure functions the screens call; **clicked on driver 1**, Rich typing the passwords; two readers the plan missed (`factsOf`, the journey); no boundary moved |
+| 8 | 15 | **The acceptance**: `make demo-github` against a GitHub-mode control plane — green three times, offline, with its offline-acceptance and `ci-acceptance` steps — `make github-conformance` at Rich's yes, `make demo` still green on driver 1, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | not started ← next — needs Rich's network and yes for the real conformance run, and his hands for the clicked half |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -3263,6 +3263,19 @@ Rich types the passwords. Record each row as the screen showed it.
 ---
 ## Task 15: The acceptance — `make demo-github`, against a control plane on driver 2, offline
 
+> **SITTING 7 (2026-09-25) — WHAT TASKS 13 AND 14 LEAVE THE CLICKED HALF ON DRIVER 1.** **Every row of Step 5's driver-1
+> list held in sitting 7's click** (its record has each row as the screen showed it) — this sitting re-proves them, it
+> does not discover them. **(1) `make demo-releases` does not leave the states those rows need** (sitting 7's F12): its
+> candidate is leg C, an APPROVED sensitive release. Stage a re-escalation to preview and reject (a push to
+> `.manifest/repos/launch-app.git` changing `egress.allow`, then validate, build, release and deploy to staging as the
+> instructor — the demos' own route), and for F15's row put a SELF-SERVE release in staging (a code-only commit, or
+> redeploy one) — **do F15's row first, or redeploy afterwards**: staging a re-escalation replaces the candidate.
+> **(2) The Chrome extension is refused on `idp.manifest.internal`** (F13, §4 trap 6): Rich types every password — the
+> sign-in and each step-up. **(3) Read a controlled input's value, and a button's `disabled`, from the screenshot or the
+> DOM**, never from the extension's `find` or accessibility tree (F14, F15): `find` called the surviving reason "empty".
+> **(4) The preview's summary may honestly read `withheld`** with its reason (the journey accepts it; Step 5's row says
+> *either*); on `qwen3.5:4b` sitting 7 measured 40 of 40 kept. **(5) `pnpm test` is 2000 in 145.**
+
 > **SITTING 6 (2026-09-25) — WHAT TASKS 11 AND 12 BUILT, WHICH THE ACCEPTANCE DRIVES.** **The fake's container is a
 > TEAM plan** (`FAKE_PLAN: team`), so `createRepository` PROTECTS `main` there and *a force-push refused* is the
 > fake's own `pre-receive` answering `GH006: Protected branch update failed for refs/heads/main.` — the demo must not
@@ -4638,3 +4651,202 @@ clean after each; every substitution asserts its pattern matched exactly once (`
 - **The final whole-branch review is DEFERRED to the plan's end (sitting 8)**, as sittings 1–5 ruled: this sitting's 15
   controls — every one predicted, one of the plan's predictions wrong and one incomplete, one of mine too narrow, none
   green where it should be red — are its per-sitting check.
+
+### Sitting 7 — Tasks 13 and 14, P6b's inherited findings: the summary as structured output, and the console — 2026-09-25
+
+**THE MODEL NO LONGER STATES A VERDICT, BECAUSE THE SHAPE IT ANSWERS IN HAS NO PLACE FOR ONE — AND A PERSON CLICKED
+EVERY ONE OF P6b's FINDINGS FIXED.** Task 13 (`f771b66`): `summariseChanges` hands the model the diff's facts as JSON —
+each change and the security notes, never the reviewer's verdict or the coverage limit — and asks it, through LiteLLM's
+`response_format`, to fill a schema built from the diff: one `exposure` sentence per change, `path` an enum of the diff's
+own paths. An answer that is not JSON, breaks the schema, describes a change twice or leaves one out, or uses decision
+words is **withheld** (`summarySource: 'withheld'`, the rule it broke, one operator line — never the model's text). The
+code-review item names where its verdict was recorded (F13), and the approval events name the person (F14).
+`ApprovalDiff` gains `summaryExposures` and `summaryWithheldBecause` inside `1.2.0`, and the console lays each sentence
+under its change line, labelled as the model's. **Measured on `qwen3.5:4b` through the SHIPPED function: 40 of 40 kept,
+0 withheld** — and with `response_format` removed, 5 of 5 withheld: the fail-safe, seen. Task 14 (`eead192`): three pure
+functions the approvals and launch screens call (F11, F12, F15). **The click (Task 14's Step 5)** ran on driver 1 against
+a fresh `make demo-releases`, Rich typing the operator's password twice; every row held. **No task boundary moved.
+Nothing of Rich's was needed but the two passwords; the network stayed off.**
+
+#### The decisions this sitting made
+
+Each is a `Ruling:` line in the ledger with what it costs if wrong; the ones a later task or plan inherits:
+
+**1. `$schema` is kept in the request** — measured (F5). **2. The new snapshot keys are the WRITTEN half**, named in
+`factsOf`, `DiffFacts` and `annotate` (F1). **3. `exposures`/`summaryWithheldBecause` are present on `llm` and
+`withheld` and absent on the other three sources**, read as `null` by the mapper; the representation's fields are
+required-nullable, as P6b's are. **4. The journey accepts `withheld` only with its reason**, and an `llm` answer must
+cover exactly the preview's changes, in order (F2). **5. F13's three sentences all read the source, and its date.**
+**6. The mock serves the NEW layout** (`llm`, one exposure) and keeps the withheld and unavailable previews in the
+validated table; it gains a launched, self-serve checklist in the platform's words. **7. `approvalLinkWanted` reads the
+checklist alone** — its blind spot is named (F11). **8. The buttons stay disarmed after a reload**: `decidedWithPreview`
+is the preview decided here, else the latest RECORDED decision's. **9. F12's storage is read inside a `try`** — reading
+`window.sessionStorage` can itself throw — and a change of release re-reads that release's draft. **10. Task 14 was
+committed BEFORE its click**, because the controls restore by `git checkout` and every Vitest run truncates the rows the
+click needs (F16).
+
+#### The findings
+
+**F1 — THE PLAN'S TWO NEW SNAPSHOT KEYS WOULD HAVE MADE EVERY APPROVAL WITH A MODEL ANSWER STALE.** Found by reading
+before any code: `releases/preview.ts`'s `factsOf` takes the written half out BY NAME and treats every other key as a
+fact, *"the conservative direction"* — so `exposures` and `summaryWithheldBecause`, which the facts recomputed at
+decision time never carry, made `sameFacts` false for every preview whose summary was `llm` or `withheld`, and every
+decision naming one would have been refused `APPROVAL_PREVIEW_STALE`. The plan's **Files** did not name `preview.ts`.
+Both keys are named now; `factsOf`'s test carries both, and control (h) is its seven reds.
+
+**F2 — TWO CLOSED VOCABULARIES IN THE ACCEPTANCE WOULD HAVE TURNED `make demo-releases` RED ON AN HONEST `withheld`.**
+`packages/journey/src/releases.ts` (*"the model's, or unavailable (offline)"*) and `production.ts`'s closed list — a
+published enum value two callers reject, neither in the plan's **Files**. Both accept `withheld` only with its reason;
+an `llm` answer must carry one `summaryExposures` entry per change. The fresh `make demo-releases` ran them green.
+
+**F3 — F13 IS THREE SENTENCES, NOT `readiness.ts:288`'s ONE.** `clean`, `findings` and `not_performed` all said
+*"recorded when an administrator decided on this release"*. All three now read `latestReviewFor`'s `from`, and its `at`
+as a date, so `at` has a reader.
+
+**F4 — P6b'S OWN TEST ASSERTED THE BEHAVIOUR DECISION 19 REVERSES.** *"asks the reviewer BEFORE the model, so the
+summary can carry the verdict"* asserted the request contained `Code review: 3 checked, no findings`. Rewritten: the
+order stays (one read of both), the RECORD carries the verdict, and the request carries neither the verdict, the
+reviewer's name nor `COVERAGE_LIMIT` — control (f) is its red.
+
+**F5 — STEP 1: `$schema` IS KEPT, AND THE SCHEMA IS ENFORCED WITH IT — MEASURED.** `z.toJSONSchema` adds `$schema:
+https://json-schema.org/draft/2020-12/schema` and writes `.length(n)` as `minItems`/`maxItems`; nothing else differs
+from sitting 1's hand-written schema. Sent with it: `200`, 2327 ms, 49 completion tokens of 260, conforming. **The
+control**: `exposure` renamed `risk_line` in the schema alone → the model used `risk_line` 3 of 3. Nothing is stripped;
+`summary.ts`'s `requestSchema` says why.
+
+**F6 — STEP 5: 40 OF 40 KEPT, 0 WITHHELD — THROUGH THE SHIPPED FUNCTION.** `probes/structured.mjs` now imports
+`summariseChanges` from `summary.ts` itself (Node 24.12.0 strips its types; its one runtime import, `zod/v4`, resolves
+beside it) through a stand-in for the admin transport with its 10 s timeout. Three changes (leg A + `resources.memory`),
+20 runs: `llm` 20, 2315 / 2993 / 5100 ms (min / median / max). Two changes, 20 runs: `llm` 20, 1587 / 1880 / 3411 ms.
+The plan's stop line — more than 5 of 20 withheld — is nowhere near. Raw: `spikes/d5-baseline/results-t13-step5-{3,2}.txt`.
+
+**F7 — THE RESIDUAL IS ACCURACY, AND IT IS NOW COUNTED: 5 OF 40 SENTENCES REVERSE THE `sn` CHANGE.** Of 40
+`auth.attributes` sentences — the change REMOVES `sn` — five say the app now RECEIVES it (*"The app receives the sn
+(surname) attribute…"*; *"…in addition to other personal details…, expanding the personal information it collects"*;
+*"receives the student ID (sn)… instead of only…"*; *"may receive the surname…"*; *"will receive the user's surname
+instead of only…"*), four only restate the security note, and one calls `sn` a *"student ID"*. No rule sees a wrong
+fact, and the decision check must not try. The console puts the deterministic change line FIRST and labels the sentence
+as a model's reading, as the plan designed; **whether one reversal in eight on a personal-information change is
+acceptable under that label is Rich's** (ORIENTATION §8, *Open*). Both of the fresh demo's live previews read right.
+
+**F8 — CONTROL (b) AS THE PLAN WROTE IT COULD NOT FAIL AT ITS NAMED TEST.** *"`path` as `z.string()` … *a path that is
+not in the diff* red"*: that case's answer has THREE items, and `.length(2)` refuses it with or without the enum — it
+stayed green, as I predicted. The enum is held by the request test (no `enum` sent) and `exposureSchema`'s own test (a
+wrong path in a two-item answer parses). The five further reds are the test doubles, which read the request's enum to
+answer.
+
+**F9 — CONTROL (c) IS A CRASH, NOT A KEPT SUMMARY.** Without the each-once check, `egress.allow` twice parses and the
+missing change's sentence is `undefined` — `summariseChanges` throws out of the route (a `500` on preview) rather than
+keeping an `llm` summary. The check is what stops it.
+
+**F10 — THE PLAN'S `packages/contract/src/schema.ts` IS `schema.d.ts`.** Regenerated: `openapi.json` +46 lines,
+`schema.d.ts` +12, inside `1.2.0`.
+
+**F11 — `approvalLinkWanted` CANNOT SEE ONE DECISION, NAMED.** Read from the checklist alone (the plan's signature),
+*"a decision exists"* is every state the platform derives from one — a rejection, an approved sensitive change, a
+launch release covered by its own approval — but an administrator who decides on a SELF-SERVE release anyway (nothing
+refuses it) leaves the checklist reading self-serve, and the link is not offered. The record is still at
+`/releases/<id>/approval`. Named in the function's comment, not fixed.
+
+**F12 — STEP 5 NEEDS TWO STATES `make demo-releases` DOES NOT LEAVE.** Its candidate is leg C — an APPROVED sensitive
+release, whose approval link is rightly shown — so F15's self-serve candidate and a fresh re-escalation to reject both
+had to be staged, by the demos' own route (a push to the bare repository, then validate, build, release and deploy to
+staging through the API as the instructor; the scratchpad's `stage-release.sh`). Staging the re-escalation first lost
+the self-serve candidate; redeploying the self-serve release to staging brought it back. **Sitting 8's clicked half
+inherits exactly this** (Task 15's block says so).
+
+**F13 — §4 TRAP 6, CONFIRMED: THE EXTENSION IS REFUSED ON THE IdP.** Every action on `idp.manifest.internal` answered
+*"Permission denied for this action on this domain"*. Rich had given permission to type the local passwords, and a
+password is not an agent's to type in any case — so Rich typed both (the sign-in and the step-up).
+
+**F14 — THE EXTENSION'S `find` SAID THE REASON WAS GONE AFTER THE STEP-UP; THE SCREEN SAID IT WAS THERE.** Asked for the
+reason input's value on the way back, `find` answered *"current value is empty (placeholder shows…)"*; the screenshot
+showed the typed reason in the input. An accessibility summary of a controlled input is not evidence of its value —
+the screenshot, or the DOM's `.value`, is (TRAPS.md).
+
+**F15 — A DISARMED BUTTON IS READ FROM THE DOM, NEVER BY PRESSING IT.** The accessibility tree does not expose
+`disabled`, and pressing a live Approve to find out would record a second decision. `button.disabled` read through
+the page's own JavaScript answered `true` for both, and again after a reload.
+
+**F16 — THE PLAN'S STEP ORDER FOR TASK 14 CANNOT BE FOLLOWED AS WRITTEN.** Step 5 (click) before Step 6 (commit), and
+Step 7's controls after the commit: but the controls restore by `git checkout` and every Vitest run truncates the rows
+the click needs, and §7e says to run the demo immediately before the click. Ruled: gates → commit → controls → demo →
+click (decision 10 above).
+
+**F17 — FOUND BY THE POST-SWEEP CHECK: MY §7e TOLD SITTING 8 TO RUN A DEMO THAT DOES NOT EXIST.** It said *"`make
+demo-github` against a control plane on driver 2, green three times"* — and `grep demo-github Makefile` answers nothing:
+the script, the journey phases, the target, the offline acceptance's step 13 and `ci-acceptance`'s step are all Task
+15's own **Files**. A cold agent reading it would have looked for a target and read its absence as breakage. §7e now
+says BUILD it, and names the five pieces. The same check also found §7e naming `git merge-base` for the final review,
+which names nothing on `main`; it now names Task 1's BASE, `a2885ed`, from the ledger.
+
+#### Negative controls
+
+Every one after its task's commit, predicted first in the ledger, restored with `git checkout <path>`, `git status`
+clean after each; every substitution asserted to match exactly once (`ctl13.py`, `ctl14.py`).
+
+| Task | # | Break | Predicted | Measured |
+|---|---|---|---|---|
+| 13 | (a) | `response_format` removed | 6 red: the request test and the five structured fakes (they read the enum); the plan named one | **as predicted**; against the REAL model 5 of 5 withheld — 4 not JSON (three fenced, one prose), 1 schema |
+| 13 | (b) | `path` as `z.string()` | 2 red — NOT the plan's named case, which `.length(2)` still refuses | **7 red**: my two, plus the same five doubles; the plan's case green, as predicted — F8 |
+| 13 | (c) | the each-once check removed | the duplicate case red, by a `TypeError`, not "kept as `llm`" | as predicted — F9 |
+| 13 | (d) | `checkExposure` answers `null` | 3 red: the verdict case, the vocabulary test, the route's withheld case | as predicted |
+| 13 | (e) | `blocked` in the vocabulary | 2 red: *previously blocked*, the vocabulary's negative list | as predicted |
+| 13 | (f) | the verdict in the user message | 2 red: *facts only*, and the route's reviewer-order case | as predicted |
+| 13 | (g) | the PUID first | F14's test red | as predicted |
+| 13 | (h) | `factsOf` without the two names | 7 red: `factsOf`, `sameFacts`, every decision after an `llm`/`withheld` preview | as predicted — F1 |
+| 13 | (i) | readiness ignores `from` | F13 ×3 red | as predicted |
+| 14 | (a) | `canDecide` ignores `decidedWithPreview` | its second case red | as predicted |
+| 14 | (b) | `reasonDraft`'s read without its `try` | *a storage that throws* red, `SecurityError` | as predicted |
+| 14 | (c) | `approvalLinkWanted`'s last line always `true` | 1 red — corrected from 2 BEFORE the run (the no-candidate case returns first) | as predicted (corrected) |
+
+**12 controls; one of the plan's predictions could not happen (Task 13's (b)); one of mine was too narrow (13 (b)) and
+one I corrected before running it (14 (c)).** None stayed green where it should have gone red.
+
+#### The click — Task 14's Step 5, each row as the screen showed it
+
+On driver 1, the console under `preview`, after a fresh `make demo-releases`; a re-escalation staged (`egress.allow` +
+`s7-1790364908.example.org`, release `be18dbb6`), and the self-serve release (`d89a3f20`) redeployed for the last row.
+
+| Finding | What the screen showed |
+|---|---|
+| F9 / Task 13 | the preview: *Summary: The model's reading of each change is under that change, below.*; under *Changes*, *"What each change could expose — written by a language model; the change lines are the record."*, the change line first and under it *"The application may now send data to s7-1790364908.example.org, a host it previously could not reach."* |
+| F13 (before) | *"No code reviewer is configured… (no reviewer, recorded when this release was previewed on 2026-09-25)"* |
+| F12 | a reason typed; **Reject** → `STEP_UP_REQUIRED` and *Confirm it is you, then try again*; CWL asked again; back on the SAME preview (`?preview=` unchanged, *Taken 2m ago*) **with the reason still in the input** |
+| F11 | **Reject** → *rejected … by Test Operator*, the reason, *"Binds sha256:25742ab60d2b… bound to preview 7899f46c taken 3m ago"*; Approve and Reject `disabled`; *Decide again — take a new preview* the one live control; still disabled after a reload |
+| F14 | the activity feed: *"Test Operator did not approve this release: …"* and *"Test Operator approved this release for production."* — no PUID |
+| F13 (after) | *"…(no reviewer, recorded when an administrator decided on this release on 2026-09-25)"* |
+| F15 | the self-serve candidate: *Release approved by a platform administrator* `met` — *"…goes to production self-serve (D9)…"* — and **no approval link** (no `/approval` anchor on the page) |
+
+The browser captured the click (35 frames); it was not exported, because an export downloads a file — Rich's to allow.
+
+#### The gates, and the machine at close — queried, not recalled
+
+- **`pnpm test` 1987 in 144 after Task 13 and 2000 in 145 after Task 14, twice each — each exactly as predicted** (Task
+  13: 1972 + 10 in `summary.test.ts` (8 → 18) + 3 F13 cases + 2 in `approval.test.ts`; Task 14: + 13 in the new
+  `approval-state.test.ts`). **At close: 2000 passed in 145 files, twice (342 s, 336 s)**; `pnpm lint`, `pnpm typecheck`
+  (six packages) and `pnpm format:check` clean. At open: 1972 in 144, twice (358 s, 356 s), all four clean.
+- **`pnpm test:docker` 208 in 34, owed once (Task 13) and green first time, 1201 s**, chat model warmed (`200`), load
+  ~2–5. Nothing under `packages/github-fake/src` changed, so the fake's image was not rebuilt.
+- **`make demo-releases` green on its FRESH path, 184 s** (it ran `make demo-production` first), 15 phases each
+  *every check passed*; both previews' summaries `llm` and accurate — the journey's widened checks, run.
+- **`make verify` 57 / 0 / 0 after the tier (the edge trap did not recur) and at close**, `mf- containers=6 networks=2
+  volumes=4`. **`make doctor` 20 / 0 / 0** (the vulnerability database 1.5 days old, fresh until 2026-10-01).
+  `scripts/ci-acceptance.sh` reads `2000 / 145 / 20 / 57`. Contract `1.2.0`.
+- **Cleanups**: after the tier, the usual 7 dead networks, 1 volume and `p4b-probe-user`; at close, two LiteLLM users
+  orphaned by the fresh demo's re-created `launch-app` (`mf-3b6cb394-…`). Every `--apply` ALLOWED and re-measured clean.
+- **The database is EMPTY** (0 projects, builds, releases, specs, `source_repositories` and `webhook_deliveries`; **29
+  migrations**, none this sitting) — the close's `pnpm test` truncated it. `launch-app`'s six containers run with no
+  project row — staging on the self-serve release `d89a3f20`, production on `0e798a04` — and `.manifest/repos/` holds the
+  same six bare repositories, `launch-app.git` with this sitting's two staged commits on top of the demo's. Nothing
+  listens on 7100, 7102, 7104 or 7110; three addresses on `lo0`.
+- **The GitHub fake**: `manifest-github-fake:local` is `a8061e66ee74`, unchanged; no container, no volume.
+  **`infra/secrets/`**: the same seven files, all `-rw-------`, owner `rich`. **Real GitHub was not called.**
+- **Images**: `docker images -q` **289**, `sort -u` **281**, `127.0.0.1:7107/local/*` **241** — the tier and the demo
+  added 13 app images (228 → 241); no script sweeps app images. **Ollama with no model resident** (`qwen3.5:4b` and
+  `nomic-embed-text` unloaded at close). `docker-simple-saml-saml-idp-1` is `Exited (0) 2 weeks ago`, as found; the other
+  three must-survive containers are up. Snapshot diff (11:08 → 12:56): timestamps, 2 GiB of disk, 13 app images,
+  `launch-app`'s replaced instances, `HEAD`, and this sitting's own files.
+- **The final whole-branch review is DEFERRED to the plan's end (sitting 8)**, as sittings 1–6 ruled: this sitting's 12
+  controls — every one predicted, one of the plan's predictions impossible, one of mine too narrow and one corrected
+  before its run, none green where it should be red — and a person's click are its per-sitting check.

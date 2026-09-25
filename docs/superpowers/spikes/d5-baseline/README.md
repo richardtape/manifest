@@ -457,3 +457,20 @@ sitting's record in the plan, where its answer is written down.*
   its revisions that way.
 - **`probes/hookcost.sh`** — the rendered `pre-receive` costs ~40 ms a push (91 → 130 ms over 20 pushes). Sitting 6's
   F6. Needs `.env` for the database URL, because importing `source/` loads the database client (F7).
+
+*Sitting 7's (2026-09-25, Task 13) — its record in the plan has the findings; the raw answers are the two results files
+named below.*
+
+- **`probes/structured.mjs` — REWRITTEN to drive the SHIPPED function** (Task 13, Step 5). It imports `summariseChanges`
+  from `packages/control-plane/src/releases/summary.ts` itself — Node 24.12.0 strips the file's types, and its one
+  runtime import, `zod/v4`, resolves beside it — and calls it through a stand-in for the admin transport with the real
+  client's 10 s timeout, so the prompt, the JSON facts, `z.toJSONSchema(exposureSchema(changes))`, `max_tokens` and
+  every check on the answer are exactly what the control plane runs. `node …/structured.mjs <runs> <2|3>`. **Three
+  changes, 20 runs: `llm` 20, withheld 0, 2315 / 2993 / 5100 ms** (`results-t13-step5-3.txt`); **two changes, 20 runs:
+  `llm` 20, withheld 0, 1587 / 1880 / 3411 ms** (`results-t13-step5-2.txt`). **With `response_format` removed from
+  `summary.ts`** (control (a), restored after): 5 of 5 withheld — four not JSON (three ```` ```json ```` fences, one
+  prose), one a bare array. **The residual is accuracy**: of the 40 `auth.attributes` sentences, 5 reverse the removal
+  of `sn` (F7; ORIENTATION §8, *Open*). The first version of the probe, with a hand-written schema, is in git history.
+- **Step 1, `z.toJSONSchema`'s own output** (a scratch copy of the probe, not kept): identical to the hand-written
+  schema plus `$schema: https://json-schema.org/draft/2020-12/schema`; sent with it, `200`, 2327 ms, 49 completion
+  tokens, conforming; `exposure` renamed `risk_line` in the schema alone → used 3 of 3. So `$schema` stays (F5).

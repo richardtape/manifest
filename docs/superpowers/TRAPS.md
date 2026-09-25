@@ -1628,6 +1628,23 @@ it belongs among the traps the next sitting is most likely to hit.
   re-run it alone**: `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker
   src/runtime/docker/driver.docker.test.ts -t "a retire waits for a request that is in flight"` — **which leaves one
   dead app network behind** (`mf-chem-labs-staging-net`); run the cleanup script again after it.
+- **THE CHROME EXTENSION'S `find` AND ACCESSIBILITY TREE MISREPORT A CONTROLLED INPUT — AND OMIT `disabled`** (2026-09-25,
+  the D5 plan's sitting 7, F14 and F15). Back from the step-up, `find` described the approval screen's reason input as
+  *"current value is empty (placeholder shows…)"* while the screenshot showed the typed reason in it; `read_page` lists a
+  disabled button with no `disabled` at all. **Evidence of a value is the screenshot or the DOM** — `javascript_tool`
+  with `document.querySelector(…).value` / `button.disabled` — and **never press a button to find out whether it is
+  disarmed**: on the approvals screen a live one records a decision.
+- **THE PREVIEW'S SUMMARY IS STRUCTURED OUTPUT, AND A NEW KEY THE MODEL WRITES MUST BE NAMED IN `factsOf`** (2026-09-25, the
+  D5 plan's sitting 7, F1). `releases/preview.ts`'s `factsOf` compares every snapshot key it does not name as a FACT;
+  a model-written key left unnamed makes every preview that carries it `409 APPROVAL_PREVIEW_STALE` at decision time.
+  And a test double standing in for the model must fill the schema it is SENT (the request's
+  `response_format.json_schema.schema…path.enum`) — a double that answers prose is now `withheld`, and its test goes
+  red for a reason that has nothing to do with what it tests.
+- **`make demo-releases` LEAVES `launch-app`'s CANDIDATE APPROVED — A CLICK THAT NEEDS A RE-ESCALATION OR A SELF-SERVE
+  CANDIDATE MUST STAGE ONE** (2026-09-25, the D5 plan's sitting 7, F12). Leg C's release is approved and serving
+  staging, so its approval link is rightly shown and nothing waits to be decided. Push to
+  `.manifest/repos/launch-app.git`, validate that commit, build, release and deploy to staging as the instructor — the
+  demos' own route — and **stage a self-serve candidate LAST, or redeploy one**: staging anything replaces the candidate.
 
 ## Images already pulled
 

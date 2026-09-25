@@ -213,15 +213,17 @@ sign in once more and sign out again.
 | 1 | instructor | open `launch-app` | **Request production**: *Launched* **yes** — *releases go to production without an administrator unless they change a sensitive field (D9)*; *Ready* **yes** |
 | 2 | instructor | **Deploy to production** (a code-only release in staging) | `STEP_UP_REQUIRED` with **Confirm it is you**; CWL asks again; then the deploy streams to **healthy** — and the release has no approval at all |
 | 3 | instructor | stage a release that changes `egress.allow`; **Deploy to production** | `RELEASE_REESCALATED`, *"This release changes egress.allow since the last approved release…"*, and a link to **this release's approval** |
-| 4 | operator | open that approval | a **Preview — what your decision will record**, before any decision: who took it, *valid until in 30m*, the summary, *Compared with* the last approved release, the field and its security note, the change, *Code review: not performed* |
-| 5 | operator | **Approve for production** | `STEP_UP_REQUIRED`; CWL asks again; back on **the same preview** (`?preview=` unchanged, *Taken 1m ago*), **the same words** |
-| 6 | operator | **Approve for production** again | *Decision approved … by Test Operator*, the digest, and the summary word for word |
+| 4 | operator | open that approval | a **Preview — what your decision will record**, before any decision: who took it, *valid until in 30m*, *Compared with* the last approved release, the field and its security note, the change line and **under it the model's sentence**, labelled *written by a language model; the change lines are the record* (or *The model's summary was withheld: …*), *Code review: not performed*; the checklist's code-review item says *recorded when this release was previewed* |
+| 5 | operator | type a reason; **Approve for production** (or **Reject**) | `STEP_UP_REQUIRED`; CWL asks again; back on **the same preview** (`?preview=` unchanged, *Taken 1m ago*), **the same words, and the reason you typed still in its box** |
+| 6 | operator | **Approve for production** again | *Decision approved … by Test Operator*, the digest *bound to preview <id> taken …*, and the preview word for word; **Approve and Reject greyed out**, *Decide again — take a new preview* the one live button; the feed says *Test Operator approved this release…* |
 | 7 | operator | take a preview of one release; approve a DIFFERENT release of the project in a second tab; approve the first | `APPROVAL_PREVIEW_STALE … Moved: changes, baselineReleaseId`, **Take a new preview**, and its *Compared with* has moved |
 | 8 | operator | *Launch records*: record `change_requested` with a wider *Requested attributes*; then `submitted`; then `active` with the wider list as *Registered* | registered and requested side by side — *"asked for, not yet registered"* — then *no change request on file* |
 
-**Read the summary as a reviewer would.** The model has written Markdown the prompt forbids and has
-invented *"The administrator's verdict was: …"* before anybody decided (F9). The record keeps what was
-shown, verbatim — so it is a finding, not something to strip.
+**Read the model's sentences as a reviewer would.** Since the D5 plan's sitting 7 the model fills a schema with one
+sentence per change and has nowhere to write a verdict — P6b's *"The administrator's verdict was: …"* (F9) cannot be
+expressed — and an answer that decides anything is withheld, saying so. What remains is accuracy: about one sentence in
+eight has been measured getting a removed CWL attribute backwards, so the change line above each sentence is the
+record. And a code-only release in staging (row 2's) offers **no** approval link on the checklist at all.
 
 **Driving the console with no platform at all.** `manifest-mock` serves the same contract from
 fixtures in one process — no Docker, no Postgres, no control plane, and it signs its own cookie so

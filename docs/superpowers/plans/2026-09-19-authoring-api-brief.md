@@ -12,6 +12,16 @@ caller. Nothing in the contract can change a line of an app's code, or a line of
 `manifest.yaml`. As far as any API client is concerned, an app's source is whatever its starter
 seeded, permanently.
 
+> **WHAT THE D5 PLAN HANDS THIS ONE — added 2026-09-25, at the close of its sitting 7.** The plan that writes the authoring
+> API inherits, from [`2026-09-24-d5-github-source-driver.md`](./2026-09-24-d5-github-source-driver.md): **`SourceDriver.commitFiles`
+> on both drivers, with a pre-push secret scan** that refuses `409 SOURCE_SECRET_DETECTED` before anything is written
+> (its Task 11 — the write primitive §3 names, now load-bearing); **Decision 22, that a platform model call whose answer is
+> read or shown is STRUCTURED OUTPUT** — a zod schema that is both the request and the check, facts in, no field for
+> anything the model must not say, withheld when broken (ORIENTATION §3) — which any model call this API adds must
+> follow; and **`releases/preview.ts`'s `factsOf` rule**: a new model-written key on an approval snapshot must be named
+> there, or every preview carrying it compares stale (sitting 7's F1). §2 and §3 below are as read on 2026-09-19 and
+> were not re-read.
+
 ---
 
 ## 1. Why this brief exists, and the spec's own answer

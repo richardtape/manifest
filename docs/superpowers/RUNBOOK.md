@@ -646,15 +646,15 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 20 / 0 and `make verify` 57 / 0**
-(**All four were re-measured on 2026-09-25 at the close of the D5 plan's sitting 6: `pnpm test` **1972 passed** in 144 files, up 53 and five files (push-time secret scanning — the list, the commit scan, driver 1's rendered hook — and `main` protected with the repository link), **and ~6 minutes a run, up from ~4, because every driver-1 push in the suite now runs that hook**; `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57, clean after both Docker tiers, and `pnpm test:docker` **208 in 34** (one load-dependent red at load 15, green re-run alone at ~6).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured on 2026-09-25 at the close of the D5 plan's sitting 7: `pnpm test` **2000 passed** in 145 files, up 28 and one file (the approval summary as structured output, F13's source and F14's name; the console's three pure functions for F11, F12 and F15), ~6 minutes a run; `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57, clean after the Docker tier, and `pnpm test:docker` **208 in 34**, green first time.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has TWELVE steps, 1 to 12, after step 0's offline check** — P5a sitting 12 added `make demo-journey` as step 8,
 P5b sitting 9 added `make demo-token` as step 9, P5c sitting 9 added the console's
 preflight as step 10 (2026-09-19), and P6a sitting 11 added `make demo-production` as step 11
 (2026-09-22), and P6b sitting 7 added `make demo-releases` as step 12 (2026-09-23) — whose
-approval summaries may legitimately read `unavailable` offline, which is
-Decision 7 working, not a failure — all guarded by the same control-plane check as steps 6
+approval summaries may legitimately read `unavailable` offline — or `withheld`, with the rule the
+model's answer broke, since the D5 plan's sitting 7 — which is Decision 7 working, not a failure — all guarded by the same control-plane check as steps 6
 and 7. The evidence is left exactly as recorded — a run is a run — and this
 note exists so nobody reads it as today's baseline.
 
@@ -889,9 +889,12 @@ preview; the three egress answers; the loop's counts and its instance sequence; 
 errors; and the registration after each record.
 
 **The preview's summary may read `unavailable` offline** — Decision 7: the record carries the diff and a
-security note per field without the model's words, and the approval goes ahead. Online, read it: the
-model has written emphasis asterisks and has called the code reviewer's verdict "the administrator's"
-(P6b sitting 7) — the record is what was shown, verbatim, so that is a finding, not something stripped.
+security note per field without the model's words, and the approval goes ahead. **Since the D5 plan's sitting 7 it is
+STRUCTURED OUTPUT**: the model is handed the diff's facts and fills a schema with one sentence per change and no place
+for a verdict, so an online run reads `summarySource llm` and prints the sentences joined — or `withheld` with the rule
+the answer broke, which the journey accepts WITH its reason. P6b sitting 7's invented *"administrator's verdict"* (F9)
+cannot be expressed in that shape. Read the sentences anyway: one in eight has been measured getting a removed CWL
+attribute backwards (ORIENTATION §8, *Open*), which is why the console shows them under the deterministic change line.
 
 **A red phase stops the script** (`set -e`). **It leaves `launch-app` launched, on its leg C release in
 staging and production, the registration `active` five-wide, two more approvals** (three on a fresh
