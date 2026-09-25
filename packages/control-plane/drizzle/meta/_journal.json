@@ -169,6 +169,13 @@
       "when": 1790221034818,
       "tag": "0023_lethal_namora",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790309538440,
+      "tag": "0024_kind_fantastic_four",
+      "breakpoints": true
     }
   ]
 }

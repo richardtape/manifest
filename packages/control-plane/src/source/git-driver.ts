@@ -22,11 +22,14 @@ export interface LocalGitDir {
 export type SeedFiles = Readonly<Record<string, string>>
 
 /**
- * A source driver's refusal. `api/errors.ts` answers every one as `409 { code, message }`,
- * so **the message goes on the wire** — a driver never puts a credential in it. Driver 1
- * throws `SOURCE_INVALID_SLUG`, `SOURCE_PATH_ESCAPE`, `SOURCE_GIT_FAILED`,
- * `SOURCE_COMMIT_NOT_FOUND` and `SOURCE_PROVIDER_MISMATCH` (a reference another driver
- * made — the D5 plan's Decision 3); each is registered in `api/error-codes.ts`.
+ * A source driver's refusal. `api/errors.ts` answers every one as `409 { code, message }` —
+ * but `SOURCE_UNREACHABLE`, a `503` (the D5 plan's Decision 18) — so **the message goes on
+ * the wire** and a driver never puts a credential in it. Driver 1 throws
+ * `SOURCE_INVALID_SLUG`, `SOURCE_PATH_ESCAPE`, `SOURCE_GIT_FAILED`, `SOURCE_COMMIT_NOT_FOUND`
+ * and `SOURCE_PROVIDER_MISMATCH` (a reference another driver made — Decision 3); driver 2
+ * those and `SOURCE_UNREACHABLE`, `SOURCE_CONFLICT`, `SOURCE_GITHUB_REFUSED`,
+ * `SOURCE_REPOSITORY_EXISTS` and `SOURCE_REPOSITORY_NOT_PRIVATE`. Each is registered in
+ * `api/error-codes.ts`.
  */
 export class SourceError extends Error {
   constructor(
@@ -71,5 +74,12 @@ export interface SourceDriver {
    * this and nothing else.
    */
   localGitDir(repo: RepoRef, commitSha: string): Promise<LocalGitDir>
+  /**
+   * What the repository's HOST calls it, for the project's `source_repositories` row (the D5
+   * plan's Task 8): driver 1 its slug and no address — a laptop path is not an address
+   * (Decision 15) — driver 2 the full name and `html_url` GitHub answered at creation, kept
+   * on the mirror. No network. Task 12 folds it into the repository link.
+   */
+  describeRepository(repo: RepoRef): Promise<{ fullName: string; webUrl: string | null }>
   destroyRepository(repo: RepoRef): Promise<void>
 }

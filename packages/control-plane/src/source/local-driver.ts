@@ -204,6 +204,11 @@ export function createLocalSourceDriver(root: string): SourceDriver {
       return { gitDir: path, commitSha }
     },
 
+    async describeRepository(repo) {
+      assertOwned(repo)
+      return { fullName: repo.projectSlug, webUrl: null }
+    },
+
     async destroyRepository(repo) {
       const path = assertOwned(repo)
       await rm(path, { recursive: true, force: true })

@@ -862,8 +862,20 @@ export async function testDeps(): Promise<ServerDeps> {
  * `source.localGitDir` for the directory and hands it over (Task 2) — so it cannot run on the
  * other driver's paths. `testDeps`' rule is about the RUNTIME driver, which is unchanged here.
  */
-export async function githubTestDeps(fake: StartedFake): Promise<ServerDeps> {
-  const deps = await testDeps()
+export async function githubTestDeps(
+  fake: StartedFake,
+  /**
+   * Another server's repository root, SHARED — as `config.reposRoot` is shared by both
+   * drivers on a real laptop, where driver 1's bare repository sits exactly where driver 2's
+   * mirror would (Decision 3's hazard, measured by `source-repositories.test.ts`).
+   */
+  options: { reposRoot?: string } = {},
+): Promise<ServerDeps> {
+  const base = await testDeps()
+  const deps =
+    options.reposRoot === undefined
+      ? base
+      : { ...base, config: { ...base.config, reposRoot: options.reposRoot } }
   const github = {
     ...deps.config.github,
     apiUrl: fake.apiUrl,

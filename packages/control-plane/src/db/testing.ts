@@ -102,6 +102,9 @@ const TABLES = [
   'pending_actions',
   'delegated_tokens',
   'project_members',
+  // The D5 plan's Task 8: references `projects` ON DELETE cascade, so the CASCADE empties it
+  // unnamed — named anyway, as belt and braces, like `routes`.
+  'source_repositories',
   'projects',
   // P5a Task 16. BEFORE `users`, and named for the reason `audit.incidents` is: a role
   // change references a user ON DELETE restrict, and manifest_app cannot truncate it.

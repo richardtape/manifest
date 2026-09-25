@@ -636,6 +636,22 @@ function mapError(error: unknown): { status: number; body: ErrorEnvelope } {
     }
   }
 
+  // A git host that cannot be reached is not a state conflict (the D5 plan's Decision 18): a
+  // client retries a 503 and does not "fix" a 409. The message names the host and never a
+  // token (driver 2 redacts every one it holds); the hint says what still works.
+  if (error instanceof SourceError && error.code === 'SOURCE_UNREACHABLE') {
+    return {
+      status: 503,
+      body: {
+        error: {
+          code: error.code,
+          message: error.message,
+          hint: 'The git host did not answer. A commit already mirrored still builds; try again when it is reachable.',
+        },
+      },
+    }
+  }
+
   // The state-conflict family.
   if (
     error instanceof ReleaseError ||

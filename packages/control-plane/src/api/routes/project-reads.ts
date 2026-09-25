@@ -12,6 +12,7 @@ import {
   listProjectsFor,
   projectViews,
   removeMember,
+  repositoryOf,
   servingInstanceOf,
 } from '../../projects/index.js'
 import { isSensitiveDiff, validateSpec, type ManifestSpec } from '../../spec/index.js'
@@ -340,7 +341,10 @@ export const projectReadRoutes = [
     errors: [
       'NOT_FOUND',
       'FORBIDDEN',
+      'SOURCE_COMMIT_NOT_FOUND',
       'SOURCE_GIT_FAILED',
+      'SOURCE_PROVIDER_MISMATCH',
+      'SOURCE_UNREACHABLE',
       'AI_BACKEND_UNAVAILABLE',
       'AI_CATALOGUE_EMPTY',
     ],
@@ -359,7 +363,10 @@ export const projectReadRoutes = [
         .where(and(eq(appSpecs.projectId, params.projectId), eq(appSpecs.valid, true)))
         .orderBy(desc(appSpecs.createdAt))
         .limit(1)
-      const repo = deps.source.repositoryFor(project.slug)
+      // The provider first (Decision 3), then HEAD — GitHub's NOW, or 503 — then the file AT
+      // that commit, which refuses a commit the repository lacks rather than reading `null`
+      // and recording an invalid spec for a commit it never read (the D5 plan's Task 7).
+      const repo = await repositoryOf(deps, project)
       const commitSha = body.commitSha ?? (await deps.source.headCommit(repo))
       const yamlText =
         (await deps.source.readFile(repo, commitSha, 'manifest.yaml')) ?? ''

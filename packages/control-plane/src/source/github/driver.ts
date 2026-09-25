@@ -281,7 +281,11 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
    * GitHub never saw (the plan's *Read this first* 15). Hooks do not run on fetch, so `sync`
    * is unaffected (`[M14]`).
    */
-  async function makeMirror(mirror: string, slug: string, webUrl: string): Promise<void> {
+  async function makeMirror(
+    mirror: string,
+    slug: string,
+    named: { fullName: string; webUrl: string },
+  ): Promise<void> {
     await mkdir(root, { recursive: true })
     await gitWithToken(['init', '-q', '--bare', '--initial-branch=main', mirror], {
       cwd: root,
@@ -295,8 +299,10 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
     )
     await chmod(hook, 0o755)
     await local(mirror, ['config', 'manifest.visibility', 'private'])
-    // Task 8 reads it back for the project's repository row (its `webUrlOf`).
-    await local(mirror, ['config', 'manifest.webUrl', webUrl])
+    // What GitHub ANSWERED it is called — read back by `describeRepository` for the
+    // project's row (Task 8), never rebuilt from the configuration by hand.
+    await local(mirror, ['config', 'manifest.fullName', named.fullName])
+    await local(mirror, ['config', 'manifest.webUrl', named.webUrl])
   }
 
   async function deleteOnGithub(slug: string): Promise<void> {
@@ -348,6 +354,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
           private?: unknown
           visibility?: unknown
           html_url?: unknown
+          full_name?: unknown
         }
         // ENFORCED PRIVATE starts here (Decision 12): GitHub's default is PUBLIC, and what
         // it answered is what counts, not what was asked.
@@ -363,11 +370,16 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
           seed,
           'chore: seed from blueprint skeleton',
         )
-        await makeMirror(
-          mirror,
-          projectSlug,
-          typeof body.html_url === 'string' ? body.html_url : '',
-        )
+        if (typeof body.full_name !== 'string' || typeof body.html_url !== 'string') {
+          throw client.refusal(
+            `create ${o.org}/${projectSlug} (no name in the answer)`,
+            created,
+          )
+        }
+        await makeMirror(mirror, projectSlug, {
+          fullName: body.full_name,
+          webUrl: body.html_url,
+        })
         await sync(projectSlug, mirror)
       } catch (error) {
         await deleteOnGithub(projectSlug).catch((cleanup: unknown) => {
@@ -439,6 +451,15 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
       const mirror = mirrorOf(repo)
       await present(repo, mirror, commitSha)
       return { gitDir: mirror, commitSha }
+    },
+
+    async describeRepository(repo) {
+      const mirror = mirrorOf(repo)
+      const read = (key: string) => local(mirror, ['config', key]).then((v) => v.trim())
+      return {
+        fullName: await read('manifest.fullName'),
+        webUrl: await read('manifest.webUrl'),
+      }
     },
 
     async destroyRepository(repo) {

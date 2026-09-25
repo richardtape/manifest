@@ -13,6 +13,7 @@ import {
 // RUNTIME, so a value imported back from `launch/` would be an import cycle.
 import type { Reviewer, ReviewVerdict } from '../launch/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
+import { repositoryOf } from '../projects/index.js'
 import type { SourceDriver } from '../source/index.js'
 import {
   describeDiff,
@@ -415,7 +416,7 @@ export interface SnapshotDeps {
    * BUILD's commit, present locally, from the driver (the D5 plan's Task 2), never a path
    * read off a reference.
    */
-  source: Pick<SourceDriver, 'repositoryFor' | 'localGitDir'>
+  source: Pick<SourceDriver, 'name' | 'repositoryFor' | 'localGitDir'>
   /**
    * R4's seam (D33, §15). `NullReviewer` at boot, whose verdict is an honest
    * `not_performed`; a real one is a one-line change where `ServerDeps` is built.
@@ -572,9 +573,10 @@ async function reviewOf(
     releaseId: release.id,
     changes,
     source: {
+      // `repositoryOf` (Decision 3): a project another driver made is refused, never read.
       repoPath: (
         await deps.source.localGitDir(
-          deps.source.repositoryFor(origin.slug),
+          await repositoryOf(deps, { id: release.projectId, slug: origin.slug }),
           origin.commitSha,
         )
       ).gitDir,

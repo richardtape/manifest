@@ -419,6 +419,9 @@ export const releaseRoutes = [
       'FORBIDDEN',
       'TOKEN_CREDENTIAL_REFUSED',
       'RELEASE_DIGEST_MISSING',
+      // The reviewer is handed the build's commit through `repositoryOf` (the D5 plan's
+      // Task 8): a project another driver made is refused, on a laptop that switched drivers.
+      'SOURCE_PROVIDER_MISMATCH',
     ],
     handler: async ({ deps, request, params }) => {
       // requireSession FIRST, as `decide()`: a token learns nothing about which releases exist.

@@ -7,6 +7,7 @@ import {
   createProject,
   deleteProject,
   projectViews,
+  recordRepository,
 } from '../../projects/index.js'
 import { declaresModels, validateSpec } from '../../spec/index.js'
 import type { ValidationContext } from '../../spec/index.js'
@@ -112,6 +113,10 @@ export const createProjectRoutes = [
       'BLUEPRINT_NOT_FOUND',
       'STARTER_NOT_FOUND',
       'SOURCE_GIT_FAILED',
+      'SOURCE_GITHUB_REFUSED',
+      'SOURCE_REPOSITORY_EXISTS',
+      'SOURCE_REPOSITORY_NOT_PRIVATE',
+      'SOURCE_UNREACHABLE',
       'AI_BACKEND_UNAVAILABLE',
       'AI_CATALOGUE_EMPTY',
       'TOKEN_CREDENTIAL_REFUSED',
@@ -193,6 +198,12 @@ export const createProjectRoutes = [
       let yamlText: string
       try {
         const repo = await deps.source.createRepository(body.slug, seed)
+        // Which driver made it, and what its host calls it (the D5 plan's Decision 3): every
+        // later source operation checks the provider against the running driver's.
+        await recordRepository(deps.db, project.id, {
+          provider: deps.source.name,
+          ...(await deps.source.describeRepository(repo)),
+        })
         commitSha = await deps.source.headCommit(repo)
         yamlText = (await deps.source.readFile(repo, commitSha, 'manifest.yaml')) ?? ''
       } catch (error) {

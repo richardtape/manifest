@@ -1,10 +1,10 @@
 import { asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { events, projects } from '../db/index.js'
+import { appSpecs, events, projects } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { SourceError } from '../source/index.js'
 import { buildServer } from './server.js'
-import { loginAs, mutationHeaders, projectBody, testDeps } from './testing.js'
+import { loginAs, mutationHeaders, projectBody, refusal, testDeps } from './testing.js'
 import type { TestUserPuid } from '../identity/testing.js'
 import { AI_CODES, AiError, disabledCatalogue, type ModelCatalogue } from '../ai/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
@@ -677,6 +677,46 @@ describe('POST /v1/projects/:id/spec', () => {
     expect(latest.json().spec.services).toEqual([
       { name: 'db', type: 'mongo', version: '7' },
     ])
+    await app.close()
+  })
+
+  /**
+   * A COMMIT THE REPOSITORY DOES NOT HAVE IS NOT AN INVALID MANIFEST (the D5 plan's Task 7,
+   * its route consequence recorded in Task 8). Until `readFile` refused it, the route read
+   * `null`, validated an empty manifest and RECORDED an invalid spec for a commit it never
+   * read — a row that says a person's commit is broken when it does not exist.
+   */
+  it('refuses a commit the repository does not have, and records nothing — beside one it has', async () => {
+    const { app, deps, session } = await loggedIn()
+    const created = await app.inject({
+      ...create('chem-labs'),
+      cookies: { manifest_session: session },
+      headers: mutationHeaders(deps),
+    })
+    const projectId = created.json().id as string
+    const validate = (commitSha: string) =>
+      app.inject({
+        method: 'POST',
+        url: `/v1/projects/${projectId}/spec`,
+        payload: { commitSha },
+        cookies: { manifest_session: session },
+        headers: mutationHeaders(deps),
+      })
+    const before = await deps.db
+      .select()
+      .from(appSpecs)
+      .where(eq(appSpecs.projectId, projectId))
+    const missing = await validate('f'.repeat(40))
+    expect(refusal(missing)).toEqual({ status: 409, code: 'SOURCE_COMMIT_NOT_FOUND' })
+    const after = await deps.db
+      .select()
+      .from(appSpecs)
+      .where(eq(appSpecs.projectId, projectId))
+    expect(after).toHaveLength(before.length)
+    // The positive control: the seeded commit, named the same way, validates.
+    const seeded = await validate(created.json().spec.commitSha as string)
+    expect(seeded.statusCode, seeded.body).toBe(201)
+    expect(seeded.json().valid).toBe(true)
     await app.close()
   })
 

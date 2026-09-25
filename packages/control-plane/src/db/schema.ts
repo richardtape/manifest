@@ -103,6 +103,31 @@ export const projectMembers = pgTable(
   (t) => [primaryKey({ columns: [t.projectId, t.userId] })],
 )
 
+/**
+ * WHERE A PROJECT'S CODE LIVES (the D5 plan's Decision 3, Task 8): which of D5's drivers made
+ * its repository, and what that repository's host calls it. One row per project, written by
+ * `POST /v1/projects` after the repository exists; migration 0024 backfilled `local` for every
+ * project older than it — driver 1 was the only driver there was. A source operation on a
+ * project whose provider is not the running driver's is refused `SOURCE_PROVIDER_MISMATCH`
+ * (`projects/source-repositories.ts`), never guessed at. `web_url` is null for driver 1: a
+ * laptop path is not an address (Decision 15).
+ */
+export const sourceRepositories = pgTable(
+  'source_repositories',
+  {
+    projectId: uuid('project_id')
+      .primaryKey()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull(),
+    fullName: text('full_name').notNull(),
+    webUrl: text('web_url'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('source_repositories_provider', sql`${t.provider} in ('local', 'github')`),
+  ],
+)
+
 export const appSpecs = pgTable('app_specs', {
   id: uuid('id').primaryKey().defaultRandom(),
   projectId: uuid('project_id')

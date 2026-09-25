@@ -186,6 +186,30 @@ describe('the error-code registry (§20, D23.7)', () => {
     expect(body.error.code).not.toBe('FORBIDDEN')
   })
 
+  /**
+   * A GIT HOST THAT CANNOT BE REACHED IS NOT A STATE CONFLICT (the D5 plan's Decision 18,
+   * Task 8): a client retries a `503` and does not "fix" a `409`. The code is the same on
+   * both sides of this change and only the STATUS moves, which is why this asserts both —
+   * and the hint, because what the client may still do (build a mirrored commit) is the
+   * useful half of the answer. `SOURCE_CONFLICT` beside it stays a conflict.
+   */
+  it('answers an unreachable git host 503 SOURCE_UNREACHABLE with a hint, and a moved branch 409', () => {
+    const unreachable = toErrorResponse(
+      new SourceError('SOURCE_UNREACHABLE', 'GitHub could not be reached (git fetch)'),
+    )
+    expect({ status: unreachable.status, code: unreachable.body.error.code }).toEqual({
+      status: 503,
+      code: 'SOURCE_UNREACHABLE',
+    })
+    expect(unreachable.body.error.hint).toMatch(/mirrored/)
+    expect(ERROR_CODES.SOURCE_UNREACHABLE.status).toBe(503)
+    const conflict = toErrorResponse(new SourceError('SOURCE_CONFLICT', 'moved'))
+    expect({ status: conflict.status, code: conflict.body.error.code }).toEqual({
+      status: 409,
+      code: 'SOURCE_CONFLICT',
+    })
+  })
+
   it('reports an unregistered code on the operator’s stderr — the code, never the message', () => {
     // The test above is the gate; this is the copy for a code that reached the wire anyway.
     const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined)

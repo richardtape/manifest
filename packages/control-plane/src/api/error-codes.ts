@@ -327,7 +327,7 @@ export const ERROR_CODES = {
     'The app has launched, so a rehearsal would put an unapproved candidate on its live production listener (P6b Decision 16). A registration change is proved by UBC IAM’s change request.',
   ),
 
-  // source/ — every one is 409 (the D5 plan's Task 8 gives SOURCE_UNREACHABLE its 503).
+  // source/ — every one is 409 but SOURCE_UNREACHABLE, a 503 (the D5 plan's Task 8).
   // `SOURCE_FOREIGN_REPO` retired in the D5 plan's Task 2: a
   // reference no longer carries a path, so it cannot name a directory the driver did not
   // make, and the one foreign reference left — another driver's — is PROVIDER_MISMATCH.
@@ -355,9 +355,13 @@ export const ERROR_CODES = {
   SOURCE_REPOSITORY_NOT_PRIVATE: source(
     'GitHub did not create the repository private, so it was deleted (the D5 plan’s Decision 12).',
   ),
-  SOURCE_UNREACHABLE: source(
-    'The git host did not answer. A commit already mirrored still builds (the D5 plan’s Decision 18).',
-  ),
+  // NOT a state conflict: a client retries a 503 and does not "fix" a 409 (Decision 18).
+  SOURCE_UNREACHABLE: {
+    status: 503,
+    families: ['SourceError'],
+    summary:
+      'The git host did not answer. A commit already mirrored still builds (the D5 plan’s Decision 18).',
+  },
 
   // config.ts — mapped by toErrorResponse, raised at boot
   CONFIG_INVALID: config('A setting failed validation.'),

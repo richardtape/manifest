@@ -10,7 +10,11 @@ import { loadConfig } from './config.js'
 import { db } from './db/index.js'
 import { createCaddyClient } from './routing/index.js'
 import { createDockerDriver, createEngineClient } from './runtime/index.js'
-import { createLocalSourceDriver } from './source/index.js'
+import {
+  createGithubSourceDriver,
+  createLocalSourceDriver,
+  loadAppKey,
+} from './source/index.js'
 import { createBuildRunner, createRetirer, recoverAtBoot } from './releases/index.js'
 import { loadReservedLabels } from './projects/index.js'
 import { expirePendingActions } from './tokens/index.js'
@@ -282,11 +286,32 @@ const retirer = createRetirer({
  */
 const builds = createBuildRunner({ db, driver, bus })
 
+/**
+ * D5'S DRIVER, ONE PER PROCESS (the D5 plan's Decision 3, Task 8): `MANIFEST_SOURCE_DRIVER`
+ * picks it, and the boot line says which ran. Driver 2's App key is read HERE, before the
+ * listener opens, and held to the master key's custody rule (`loadAppKey`, Decision 5) — so a
+ * key its group can read refuses the boot, naming the file, rather than the first create.
+ * Its mirror lives at `config.reposRoot`, where driver 1's repositories do (Decision 1); a
+ * project another driver made is refused by `repositoryOf`, never taken for a mirror.
+ */
+const source =
+  config.sourceDriver === 'github'
+    ? createGithubSourceDriver({
+        mirrorRoot: config.reposRoot,
+        apiUrl: config.github.apiUrl,
+        gitUrl: config.github.gitUrl,
+        org: config.github.org,
+        appId: config.github.appId,
+        installationId: config.github.installationId,
+        appKey: await loadAppKey(config.github.appKeyPath),
+      })
+    : createLocalSourceDriver(config.reposRoot)
+
 const app = await buildServer({
   db,
   config,
   driver,
-  source: createLocalSourceDriver(config.reposRoot),
+  source,
   blueprints,
   secrets,
   appSecrets,
@@ -379,6 +404,12 @@ await app.listen({ port: config.port, host: '127.0.0.1' })
 console.log(
   JSON.stringify({
     driver: driver.name,
+    // D5's driver (Decision 3) — and, for driver 2, WHICH GitHub: the API's host and the
+    // organisation, never a key or a token.
+    source: source.name,
+    ...(source.name === 'github'
+      ? { github: new URL(config.github.apiUrl).host, githubOrg: config.github.org }
+      : {}),
     port: config.port,
     // Where a person reaches it (P5a Task 3): the edge's console origin by default. A
     // demo reads this before it signs in, because a control plane booted at another

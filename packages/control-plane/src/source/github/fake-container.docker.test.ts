@@ -1,19 +1,19 @@
 import { execFile } from 'node:child_process'
-import { generateKeyPairSync, randomBytes } from 'node:crypto'
-import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { createServer } from 'node:net'
+import { generateKeyPairSync } from 'node:crypto'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import { describeDocker } from '../../runtime/testing.js'
 import { appJwt, loadAppKey } from './app-auth.js'
+import { startFakeContainer, type FakeContainer } from './testing.js'
 
 /**
  * THE IMAGE, NOT THE IN-PROCESS COPY (the D5 plan, Task 5). A THROWAWAY container from
- * `manifest-github-fake:local` — not the profile's service, so this test owns what it
- * creates and removes it — with its own keypair, secret and token in a temp directory, and
- * its own named volume. It asserts the four things only the image can answer:
+ * `manifest-github-fake:local` — `startFakeContainer()`, extracted from this file by Task 8 —
+ * with its own keypair, secret and token, and its own named volume. It asserts the four
+ * things only the image can answer:
  *
  *  - **the control plane's own `appJwt` (Task 3) is accepted by the IMAGE** — the first
  *    cross-check between the two sides that was not written in one file;
@@ -28,10 +28,6 @@ import { appJwt, loadAppKey } from './app-auth.js'
  */
 
 const run = promisify(execFile)
-const IMAGE = 'manifest-github-fake:local'
-const TAG = randomBytes(4).toString('hex')
-const NAME = `github-fake-docker-test-${TAG}`
-const VOLUME = `github-fake-docker-test-${TAG}`
 const IDENTITY = [
   '-c',
   'user.name=Fake Test',
@@ -41,82 +37,15 @@ const IDENTITY = [
   'commit.gpgsign=false',
 ]
 
+let fake: FakeContainer
 let dir = ''
-let port = 0
-let base = ''
-let keyPath = ''
-
-async function freePort(): Promise<number> {
-  const server = createServer()
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
-  const p = (server.address() as { port: number }).port
-  await new Promise<void>((resolve) => server.close(() => resolve()))
-  return p
-}
-
-async function startContainer(): Promise<void> {
-  await run('docker', [
-    'run',
-    '-d',
-    '--name',
-    NAME,
-    '-p',
-    `127.0.0.1:${port}:7110`,
-    '-v',
-    `${VOLUME}:/data`,
-    '-v',
-    `${join(dir, 'app.pub.pem')}:/run/fake/app.pub.pem:ro`,
-    '-v',
-    `${join(dir, 'webhook.secret')}:/run/fake/webhook.secret:ro`,
-    '-v',
-    `${join(dir, 'developer.token')}:/run/fake/developer.token:ro`,
-    '-e',
-    'FAKE_ORG=manifest-apps',
-    '-e',
-    'FAKE_APP_ID=1000001',
-    '-e',
-    'FAKE_INSTALLATION_ID=2000001',
-    '-e',
-    `FAKE_API_URL=${base}/api/v3`,
-    '-e',
-    `FAKE_GIT_URL=${base}`,
-    '-e',
-    'FAKE_APP_PUBLIC_KEY_FILE=/run/fake/app.pub.pem',
-    '-e',
-    'FAKE_WEBHOOK_SECRET_FILE=/run/fake/webhook.secret',
-    '-e',
-    'FAKE_DEVELOPER_TOKEN_FILE=/run/fake/developer.token',
-    IMAGE,
-  ])
-  for (let i = 0; i < 60; i++) {
-    const ok = await fetch(`${base}/_fake/health`).then(
-      (r) => r.ok,
-      () => false,
-    )
-    if (ok) return
-    await new Promise((resolve) => setTimeout(resolve, 250))
-  }
-  const logs = await run('docker', ['logs', NAME]).then(
-    (r) => r.stdout + r.stderr,
-    () => '',
-  )
-  throw new Error(`the fake's container never answered /_fake/health:\n${logs}`)
-}
-
-async function removeContainer(): Promise<void> {
-  await run('docker', ['rm', '-f', '-v', NAME]).catch((error: unknown) => {
-    // A container that was never created is fine; anything else is an operator line.
-    if (!String(error).includes('No such container'))
-      console.error(`rm ${NAME}: ${String(error)}`)
-  })
-}
 
 async function jwt(): Promise<string> {
-  return appJwt({ appId: '1000001', key: await loadAppKey(keyPath) })
+  return appJwt({ appId: '1000001', key: await loadAppKey(fake.appKeyPath) })
 }
 
 async function mint(body: Record<string, unknown>): Promise<string> {
-  const res = await fetch(`${base}/api/v3/app/installations/2000001/access_tokens`, {
+  const res = await fetch(`${fake.url}/api/v3/app/installations/2000001/access_tokens`, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${await jwt()}`,
@@ -150,43 +79,23 @@ async function git(args: string[], opts: { cwd?: string; token?: string } = {}) 
 
 describeDocker('the GitHub fake’s IMAGE (the D5 plan, Task 5)', () => {
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), 'github-fake-image-'))
-    const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
-    keyPath = join(dir, 'app.pem')
-    await writeFile(keyPath, privateKey.export({ type: 'pkcs8', format: 'pem' }))
-    await chmod(keyPath, 0o600) // loadAppKey holds it to the master key's custody rule
-    await writeFile(
-      join(dir, 'app.pub.pem'),
-      publicKey.export({ type: 'spki', format: 'pem' }),
-    )
-    await writeFile(join(dir, 'webhook.secret'), randomBytes(32).toString('hex'))
-    await writeFile(
-      join(dir, 'developer.token'),
-      `ghp_${randomBytes(18).toString('hex')}`,
-    )
-    for (const f of ['app.pub.pem', 'webhook.secret', 'developer.token'])
-      await chmod(join(dir, f), 0o600)
-    port = await freePort()
-    base = `http://127.0.0.1:${port}`
-    await startContainer()
+    dir = await mkdtemp(join(tmpdir(), 'github-fake-image-work-'))
+    fake = await startFakeContainer()
   })
   afterAll(async () => {
-    await removeContainer()
-    await run('docker', ['volume', 'rm', '-f', VOLUME]).catch((error: unknown) =>
-      console.error(`volume rm ${VOLUME}: ${String(error)}`),
-    )
+    await fake.remove()
     await rm(dir, { recursive: true, force: true })
   })
 
   it('accepts the control plane’s own appJwt — and refuses a JWT signed by another key', async () => {
-    const app = await fetch(`${base}/api/v3/app`, {
+    const app = await fetch(`${fake.url}/api/v3/app`, {
       headers: { authorization: `Bearer ${await jwt()}` },
     })
     expect(app.status).toBe(200)
     expect(((await app.json()) as { id: number }).id).toBe(1000001)
     const other = generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey
     const forged = appJwt({ appId: '1000001', key: other })
-    const refused = await fetch(`${base}/api/v3/app`, {
+    const refused = await fetch(`${fake.url}/api/v3/app`, {
       headers: { authorization: `Bearer ${forged}` },
     })
     expect(refused.status).toBe(401)
@@ -194,7 +103,7 @@ describeDocker('the GitHub fake’s IMAGE (the D5 plan, Task 5)', () => {
 
   it('lets a token minted that way push over git, and a clone gets the commit back', async () => {
     const admin = await mint({ permissions: { administration: 'write' } })
-    const created = await fetch(`${base}/api/v3/orgs/manifest-apps/repos`, {
+    const created = await fetch(`${fake.url}/api/v3/orgs/manifest-apps/repos`, {
       method: 'POST',
       headers: { authorization: `token ${admin}`, 'content-type': 'application/json' },
       body: JSON.stringify({ name: 'image-app', private: true }),
@@ -210,12 +119,12 @@ describeDocker('the GitHub fake’s IMAGE (the D5 plan, Task 5)', () => {
       repositories: ['image-app'],
       permissions: { contents: 'write' },
     })
-    await git(['push', '-q', `${base}/manifest-apps/image-app.git`, 'main'], {
+    await git(['push', '-q', `${fake.url}/manifest-apps/image-app.git`, 'main'], {
       cwd: src,
       token: write,
     })
     await git(
-      ['clone', '-q', `${base}/manifest-apps/image-app.git`, join(dir, 'clone')],
+      ['clone', '-q', `${fake.url}/manifest-apps/image-app.git`, join(dir, 'clone')],
       { token: write },
     )
     // The CONTENT, never the exit code: a clone of a HEAD naming `master` exits 0 empty ([M4]).
@@ -228,7 +137,7 @@ describeDocker('the GitHub fake’s IMAGE (the D5 plan, Task 5)', () => {
   })
 
   it('runs its process as a user that is not root', async () => {
-    const { stdout } = await run('docker', ['exec', NAME, 'id', '-u'])
+    const { stdout } = await run('docker', ['exec', fake.name, 'id', '-u'])
     expect(stdout.trim()).not.toBe('0')
     expect(stdout.trim()).toBe('1000') // `node`, the Dockerfile's USER
   })
@@ -239,15 +148,14 @@ describeDocker('the GitHub fake’s IMAGE (the D5 plan, Task 5)', () => {
       permissions: { contents: 'read' },
     })
     const head = (
-      await git(['ls-remote', `${base}/manifest-apps/image-app.git`, 'main'], {
+      await git(['ls-remote', `${fake.url}/manifest-apps/image-app.git`, 'main'], {
         token: before,
       })
     ).stdout
     expect(head).toMatch(/^[0-9a-f]{40}\trefs\/heads\/main/)
-    await removeContainer()
-    await startContainer()
+    await fake.replace()
     const after = (
-      await git(['ls-remote', `${base}/manifest-apps/image-app.git`, 'main'], {
+      await git(['ls-remote', `${fake.url}/manifest-apps/image-app.git`, 'main'], {
         token: before,
       })
     ).stdout

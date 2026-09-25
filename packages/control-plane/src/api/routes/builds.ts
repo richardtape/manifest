@@ -3,7 +3,12 @@ import { z } from 'zod/v4'
 import { checkBlueprintCompatibility } from '../../blueprints/index.js'
 import { appSpecs, builds, projects, type Db } from '../../db/index.js'
 import { readBuildLog } from '../../observability/index.js'
-import { assertCapability, AuthorizationError, type Actor } from '../../projects/index.js'
+import {
+  assertCapability,
+  AuthorizationError,
+  repositoryOf,
+  type Actor,
+} from '../../projects/index.js'
 import { getBuild } from '../../releases/index.js'
 import type { ManifestSpec } from '../../spec/index.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
@@ -54,6 +59,8 @@ export const buildRoutes = [
       'SPEC_INVALID',
       'BLUEPRINT_NOT_FOUND',
       'SOURCE_COMMIT_NOT_FOUND',
+      'SOURCE_PROVIDER_MISMATCH',
+      'SOURCE_UNREACHABLE',
     ],
     handler: async ({ deps, actor, params, body }) => {
       await assertCapability(deps.db, actor, params.projectId, 'build:create')
@@ -99,8 +106,11 @@ export const buildRoutes = [
       // holds this commit, from the driver — never a path read off a reference. Driver 2
       // fetches it into its mirror first; driver 1 checks it is there. Either refuses
       // SOURCE_COMMIT_NOT_FOUND, here, rather than a build that fails later at `git archive`.
+      // `repositoryOf` first (Decision 3): on a laptop that switched drivers, driver 1's bare
+      // repository sits where driver 2's mirror would, and holds the commit — without the
+      // check, driver 2 took it for a mirror and BUILT it (measured, the D5 plan's Task 8).
       const local = await deps.source.localGitDir(
-        deps.source.repositoryFor(project.slug),
+        await repositoryOf(deps, project),
         commitSha,
       )
       const started = await deps.builds.start({
