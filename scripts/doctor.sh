@@ -410,6 +410,22 @@ check_registry_has_bases() {
 }
 check "base images are IN the local registry, not merely pulled"  check_registry_has_bases
 
+# THE GITHUB FAKE'S IMAGE (the D5 plan, Task 5). It is behind the `github` profile, and a
+# plain `compose build` SKIPS a profiled service (measured 2026-09-24, [M13]) — so a
+# `make seed` that forgot the profile would leave it unbuilt, and `make github-up` would
+# then try to build it, which needs the network for `apk add git`. Checked whether or not
+# the fake runs: it is seed state, like the base images above. (Its port, 7110, needs no
+# entry in the port check: `manifest_own_ports` reads every `manifest-*` container's
+# published ports from `docker ps`, and read 7110 as Manifest's own the first time the
+# fake ran — measured before this check existed.)
+check_github_fake_image() {
+  local id
+  id=$(docker image inspect manifest-github-fake:local --format '{{.Id}}' 2>/dev/null) \
+    || { echo "manifest-github-fake:local is not built — run: make seed (it needs the network, for apk add git)"; return 1; }
+  echo "manifest-github-fake:local ${id:7:12}"
+}
+check "the GitHub fake's image is built (make seed, profile github)"  check_github_fake_image
+
 # A WARNING, never a check: §12 says a stale database warns rather than blocks, and
 # a doctor that fails here would stop an offline developer for the one gate that is
 # explicitly allowed to degrade.

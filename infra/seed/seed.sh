@@ -11,7 +11,10 @@ else cp .env.example .env; echo "     created .env from .env.example"; fi
 set -a; . ./.env; set +a
 
 echo "2/6  building the platform images"
-$COMPOSE build
+# `--profile github`: a plain `compose build` SKIPS a service behind a profile (measured
+# 2026-09-24, the D5 plan's [M13]), so without it the GitHub fake is never built — and it
+# cannot be built offline afterwards, because its `apk add git` needs the network.
+$COMPOSE --profile github build
 
 # §13's gate integrity. Must run BEFORE any `compose up`: the registry
 # bind-mounts token.crt, and Docker creates a directory at a missing bind source.

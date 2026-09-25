@@ -872,6 +872,9 @@ which is why P1's **offline** acceptance can only run after a successful seed.
 - Ports in use by other things: **6122** (`docker-simple-saml`), **27017** (mongodb),
   **6333/6334** (qdrant), **8081** (mongo-express), **11434** (Ollama), plus 80/443/53.
   The **7100–7199** block was entirely free.
+- **7110 is the GitHub fake's** (the D5 plan, Task 5): `make github-up`, published on
+  `127.0.0.1` only, behind the `github` profile. `make doctor` counts it Manifest's own
+  without being told — its port map is every `manifest-*` container's published ports.
 - Docker VM memory is **8.32 GB decimal / 7.75 GiB binary** — passes or fails §21's
   "≥8 GB" floor *depending on the unit*, which is why the spec now states the unit.
 - Host: 36 GiB RAM, 12 cores, ~163 GiB free. **macOS 26.6.2 (build 25G83)** — the

@@ -291,6 +291,46 @@ services:
       # on this machine (§21).
       - "127.0.0.1:7122:80"
 
+  # ---------------------------------------------------------------------------
+  # D5's driver 2, locally: a GitHub-compatible FAKE (the D5 plan, Decision 6).
+  # BEHIND A PROFILE — `make up` never starts it, so a developer on driver 1 runs
+  # nine containers, as §21 says. `make github-up` starts it; `make seed` builds it
+  # (`--profile github build`, because a plain `compose build` skips a profiled
+  # service — measured 2026-09-24). NO HOSTNAME: nothing in a container calls it.
+  # The App's PRIVATE key is NOT mounted — GitHub holds only the public half, and
+  # `make verify` asserts this list.
+  # ---------------------------------------------------------------------------
+  github-fake:
+    build: { context: ../packages/github-fake }
+    image: manifest-github-fake:local
+    container_name: manifest-github-fake
+    profiles: [github]
+    restart: unless-stopped
+    networks: [platform]
+    extra_hosts:
+      # Its webhooks go where the edge's own traffic goes: the control plane on the
+      # host, 127.0.0.1:7100 (the plan's Read this first 5). Never through the edge.
+      - "host.docker.internal:host-gateway"
+    environment:
+      FAKE_ORG: manifest-apps
+      FAKE_APP_ID: "1000001"
+      FAKE_INSTALLATION_ID: "2000001"
+      FAKE_PLAN: team
+      # The HOST's view: the host is who reads `clone_url` and calls the API.
+      FAKE_API_URL: http://127.0.0.1:7110/api/v3
+      FAKE_GIT_URL: http://127.0.0.1:7110
+      FAKE_WEBHOOK_URL: http://host.docker.internal:7100/webhooks/github
+      FAKE_APP_PUBLIC_KEY_FILE: /run/fake/app.pub.pem
+      FAKE_WEBHOOK_SECRET_FILE: /run/fake/webhook.secret
+      FAKE_DEVELOPER_TOKEN_FILE: /run/fake/developer.token
+    volumes:
+      - github-fake-data:/data
+      - ./secrets/github-fake-app.pub.pem:/run/fake/app.pub.pem:ro
+      - ./secrets/github-fake-webhook.secret:/run/fake/webhook.secret:ro
+      - ./secrets/github-fake-developer.token:/run/fake/developer.token:ro
+    ports:
+      - "127.0.0.1:7110:7110"
+
 volumes:
   caddy-data:
     name: manifest-caddy-data
@@ -302,3 +342,6 @@ volumes:
     name: manifest-verdaccio-storage
   pgdata:
     name: manifest-pgdata
+  # The fake's organisation and repositories — project state, so `make reset` removes it.
+  github-fake-data:
+    name: manifest-github-fake-data

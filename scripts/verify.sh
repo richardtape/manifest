@@ -1132,6 +1132,42 @@ no_emulated_containers() {
 check "no platform container runs under emulation"  no_emulated_containers
 
 echo
+echo "GitHub fake — D5's driver 2, locally (the D5 plan, Task 5)"
+# TWO STATIC CHECKS, run whether or not the fake is up, so the count does not depend on the
+# `github` profile. The fake is a TEST DOUBLE on loopback, but the credentials it is given
+# are the same custody class as the master key (§20, Decision 5), and the one it must
+# never be given is the App's PRIVATE key — GitHub holds only the public half.
+
+github_fake_credentials_owner_only() {
+  local f mode owner bad="" me
+  me=$(id -un)
+  for f in github-fake-app.pem github-fake-app.pub.pem github-fake-webhook.secret github-fake-developer.token; do
+    [ -f "infra/secrets/$f" ] || { bad="$bad $f(missing — run make up)"; continue; }
+    mode=$(stat -f '%Lp' "infra/secrets/$f"); owner=$(stat -f '%Su' "infra/secrets/$f")
+    [ "$mode" = 600 ] && [ "$owner" = "$me" ] || bad="$bad $f($mode $owner)"
+  done
+  [ -z "$bad" ] && { echo "all four infra/secrets/github-fake-* are 600 and $me's"; return 0; }
+  echo "NOT OWNER-ONLY:$bad — make up mints them 600; chmod 600 each (§20's custody class)"
+  return 1
+}
+check "the GitHub fake's four credential files are owner-only"  github_fake_credentials_owner_only
+
+# Read through `compose config` — what Compose will actually run, profile included — never
+# by grepping the YAML, whose indentation and anchors a grep would have to re-derive.
+github_fake_compose_is_narrow() {
+  local cfg keys ports
+  cfg=$($COMPOSE --profile github config --format json 2>/dev/null) \
+    || { echo "docker compose config failed"; return 1; }
+  keys=$(printf '%s' "$cfg" | jq -r '.services["github-fake"].volumes[]?.source // empty' \
+    | grep -E '(^|/)(github-fake-app|github-app)\.pem$' || true)
+  ports=$(printf '%s' "$cfg" | jq -r '.services["github-fake"].ports[]? | "\(.host_ip // "*"):\(.published)"')
+  [ -n "$keys" ] && { echo "a PRIVATE key is mounted into the fake: $keys"; return 1; }
+  [ "$ports" = "127.0.0.1:7110" ] \
+    || { echo "the fake publishes '${ports:-nothing}', not exactly 127.0.0.1:7110"; return 1; }
+  echo "no App private key mounted; published on 127.0.0.1:7110 only"
+}
+check "compose gives the fake no App private key, and publishes it on 127.0.0.1 only"  github_fake_compose_is_narrow
+
 echo "Per-app resources (P3)"
 
 # S1 lost a live app's route by restarting Caddy. §12 gained a sentence for it and

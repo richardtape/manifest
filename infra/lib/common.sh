@@ -80,6 +80,9 @@ PORT_EGRESS=7109
 PORT_CADDY_ADMIN=7119
 PORT_IDP=7122
 PORT_DNS=7153
+# The D5 plan's GitHub FAKE, behind the `github` profile (Task 5). Published on loopback
+# only; nothing in a container calls it.
+PORT_GITHUB_FAKE=7110
 
 # The whole reserved block, checked by doctor.
 PORT_BLOCK_START=7100

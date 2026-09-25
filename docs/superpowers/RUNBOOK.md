@@ -160,10 +160,10 @@ gitignored, and — like the IdP keypair and the envelope master key — **not r
 
 | | |
 |---|---|
-| `make seed` | The only step that needs network. Pulls and **pushes** base images into the local registry, warms the npm mirror, mints the CA, pulls the Ollama models. |
+| `make seed` | The only step that needs network. Pulls and **pushes** base images into the local registry, warms the npm mirror, mints the CA, pulls the Ollama models — and builds every platform image **including the GitHub fake's** (`--profile github build`; its `apk add git` is why it cannot be built offline). |
 | `make up` | Boots the platform and waits for every healthcheck. Re-adds **both** loopback aliases, prompting for `sudo` **only** when one is genuinely missing. Mints, once, the keys that live on this machine — among them `infra/secrets/master.key` and, since the D5 plan's Task 3, the **fake** GitHub App's four credentials beside it (`github-fake-*`, all `600`: its private key, public half, webhook secret and `faculty-dev`'s token). A second run changes none of them. |
-| `make down` | Stops everything. Data, the seed cache and the CA all survive. |
-| `make reset` | Destroys project data, the databases and the registry's contents. **Keeps** the Caddy CA, everything in `infra/secrets/` (the master key, and the fake GitHub App's credentials beside it), the npm mirror cache, `infra/images.lock` and the Ollama models, and re-pushes the base images from the local daemon — so the machine stays offline-capable. |
+| `make down` | Stops everything — **the GitHub fake too** (`--profile github down`: a bare `compose down` exits 0 and leaves a profiled service running, measured 2026-09-24). Data, the seed cache and the CA all survive. |
+| `make reset` | Destroys project data, the databases, the registry's contents **and the GitHub fake's repositories** (`manifest-github-fake-data`). **Keeps** the Caddy CA, everything in `infra/secrets/` (the master key, and the fake GitHub App's credentials beside it), the npm mirror cache, `infra/images.lock` and the Ollama models, and re-pushes the base images from the local daemon — so the machine stays offline-capable. |
 
 Plus `make doctor` (*can this machine run the platform?* — works with nothing up) and
 `make verify` (*is the running platform correct?* — needs `make up` first).
@@ -302,6 +302,43 @@ platform (the P5 brief's §8). Specifically:
 
 **Stop it by port** when you are done —
 `lsof -nP -iTCP:7102 -sTCP:LISTEN -t | xargs kill`.
+
+## The GitHub fake — D5's driver 2, locally
+
+*Added by the D5 plan's sitting 3, 2026-09-24 (Task 5). Rich's decision: **a fake in a
+container, plus an opt-in check against real GitHub** (the plan's* Decided by Rich*).*
+
+`manifest-github-fake` is a GitHub-compatible **FAKE** — App JWTs, stateless `ghs_`
+installation tokens scoped to repositories and permissions, an organisation's private
+repositories, and git over HTTP — so driver 2 can be built and accepted **offline**. It is
+the package `packages/github-fake`, run from its TypeScript source by Node 22 in a
+container, **behind the `github` profile**: `make up` never starts it, so a developer on
+driver 1 never runs it.
+
+```bash
+make github-up        # `make up`, then the fake: http://127.0.0.1:7110 (loopback only)
+curl -s http://127.0.0.1:7110/_fake/health            # ok
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:7110/api/v3/app   # 401 — no JWT
+make github-down      # stops it; its repositories survive in manifest-github-fake-data
+```
+
+- **Its organisation is `manifest-apps`, its App `1000001`, its installation `2000001`**, and
+  its API is under `/api/v3` — GitHub Enterprise Server's layout, so one host serves the API
+  and git. Clone URLs are `http://127.0.0.1:7110/manifest-apps/<repo>.git`.
+- **Its credentials are `make up`'s**, in `infra/secrets/` beside `master.key`, all `600`:
+  it is given the App's **public** key, the webhook secret and `faculty-dev`'s token,
+  read-only. **It is never given the App's private key** — GitHub holds only the public
+  half — and `make verify` asserts both that and its loopback-only port.
+- **`make reset` destroys its repositories** (they are project state). `pnpm test` does not:
+  the unit tier starts its own fakes in process, on random ports.
+- **What it is NOT.** It is not GitHub, and it does not try to be more of GitHub than
+  driver 2 calls: no pull requests, no users beyond the App's installation and
+  `faculty-dev`, no web pages (its `html_url` goes nowhere). Its answers are held to
+  **GitHub's own schemas** in the unit tier, and to a real App's recorded answers by the
+  conformance run (*The conformance run*, below). A repository created without
+  `private: true` is **public**, as on GitHub.
+- **It needs the network once**, when `make seed` builds it (`apk add git` — there is no apk
+  mirror). An image that was never built cannot be built offline; `make doctor` says so.
 
 ## `make demo` — an app, from a bare repository to a URL
 

@@ -16,7 +16,7 @@ LITELLM_DIGEST := $(shell awk '$$1 ~ /berriai\/litellm/ {print $$2}' infra/image
 LITELLM_DIGEST := $(or $(LITELLM_DIGEST),sha256:0000000000000000000000000000000000000000000000000000000000000000)
 COMPOSE := LITELLM_DIGEST=$(LITELLM_DIGEST) docker compose -f infra/compose.yaml -p manifest --env-file .env
 
-.PHONY: help seed refresh-vulndb up down reset doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-console ci-acceptance host-setup host-undo
+.PHONY: help seed refresh-vulndb up down reset github-up github-down doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-console ci-acceptance host-setup host-undo
 
 # Every compose target needs .env to exist — `--env-file` on a missing file is a
 # hard error, not a warning. `make seed` also writes it; this makes `make up` on
@@ -55,8 +55,18 @@ up: .env  ## Boot the platform. Works offline after `make seed`.
 	@echo "  platform up. Next: make doctor && make verify"
 	@echo "  edge: https://edge.manifest.internal/   console and API: https://console.manifest.internal/v1/"
 
+# `--profile github`: a bare `compose down` EXITS 0 and leaves a profiled service running,
+# with the platform network "still in use" (measured 2026-09-24, the D5 plan's [M13]) — so
+# without it the GitHub fake would survive `make down` and nothing would say so.
 down:  ## Stop everything. Data, seed cache and CA survive.
-	@$(COMPOSE) down
+	@$(COMPOSE) --profile github down
+
+github-up: up  ## D5 driver 2's GitHub fake (profile github), on 127.0.0.1:7110.
+	@$(COMPOSE) --profile github up -d --wait github-fake
+	@echo "  GitHub fake up on http://127.0.0.1:7110 — start the control plane with MANIFEST_SOURCE_DRIVER=github to use it"
+
+github-down:  ## Stop the GitHub fake. Its repositories survive until `make reset`.
+	@$(COMPOSE) --profile github stop github-fake
 
 # manifest-verdaccio-storage is deliberately NOT destroyed, for the same reason
 # manifest-caddy-data is not: it is seed output, not project state. Its config
@@ -65,11 +75,11 @@ down:  ## Stop everything. Data, seed cache and CA survive.
 # The registry IS wiped because it also holds per-app images; the base images
 # are pushed back afterwards from the daemon, which needs no network.
 reset: .env  ## Destroy projects, volumes and registry contents. KEEPS the seed cache and the CA.
-	@echo "This destroys all project data, the registry contents and the databases."
+	@echo "This destroys all project data, the registry contents, the databases and the GitHub fake's repositories."
 	@echo "It KEEPS infra/images.lock, the Ollama models, the npm mirror cache and the Caddy CA."
 	@read -p "Type 'reset' to continue: " ans; [ "$$ans" = reset ] || exit 1
-	@$(COMPOSE) down
-	@docker volume rm -f manifest-pgdata manifest-registry-data manifest-buildkit-cache 2>/dev/null || true
+	@$(COMPOSE) --profile github down
+	@docker volume rm -f manifest-pgdata manifest-registry-data manifest-buildkit-cache manifest-github-fake-data 2>/dev/null || true
 # Per-app resources. `mf-` is ours and per-app; `manifest-` is the platform's;
 # everything else on this machine belongs to somebody else and is NEVER touched —
 # `docker-simple-saml-saml-idp-1`, `qdrant-local-dev`, `mongodb` and

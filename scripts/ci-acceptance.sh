@@ -71,8 +71,8 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # App JWT and key loader (8) and the source driver's settings (5).
 EXPECT_TESTS=1813
 EXPECT_FILES=130
-EXPECT_DOCTOR=19
-EXPECT_VERIFY=55
+EXPECT_DOCTOR=20
+EXPECT_VERIFY=57
 
 STEPS=""
 FAILED=0
