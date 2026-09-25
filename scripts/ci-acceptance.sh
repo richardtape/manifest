@@ -69,7 +69,7 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then the D5 plan's sitting 2 (2026-09-24): +36 and two files — the source-driver contract
 # suite (11) and startBuild's absent-commit refusal (1), then the key custody rule (11), the
 # App JWT and key loader (8) and the source driver's settings (5).
-EXPECT_TESTS=1857
+EXPECT_TESTS=1858
 EXPECT_FILES=135
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57

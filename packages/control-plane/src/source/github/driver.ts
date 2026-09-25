@@ -187,7 +187,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
    * whose shadow now holds the refused commit is a REWRITE, kept out of history on purpose —
    * Task 9 reports it; until then it is not an error. Any other refusal is.
    */
-  async function sync(slug: string, mirror: string): Promise<void> {
+  async function fetchInto(slug: string, mirror: string): Promise<void> {
     const out = await withToken(slug, { contents: 'read' }, (token) =>
       gitWithToken(
         [
@@ -226,6 +226,29 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
         `git fetch refused ${refused.length} ref(s) into ${slug}'s mirror: ${refused.join('; ')}`,
       )
     }
+  }
+
+  /**
+   * `fetchInto`, ONE AT A TIME PER MIRROR, in this process (sitting 4, measured): concurrent
+   * fetches into one mirror race for git's ref locks, and after a push 50 of 60 concurrent
+   * reads failed `SOURCE_GIT_FAILED` (`! … refs/manifest/upstream/main`). Each caller waits for
+   * the sync before it and then runs its own — never reuses the previous one's answer, which
+   * may predate a push the caller has been told about. A previous sync's FAILURE is its own
+   * caller's to report (that caller awaits it); it does not fail the next one.
+   */
+  const syncing = new Map<string, Promise<void>>()
+  function sync(slug: string, mirror: string): Promise<void> {
+    const before = syncing.get(slug) ?? Promise.resolve()
+    const next = before.then(
+      () => fetchInto(slug, mirror),
+      () => fetchInto(slug, mirror),
+    )
+    syncing.set(slug, next)
+    const done = () => {
+      if (syncing.get(slug) === next) syncing.delete(slug)
+    }
+    next.then(done, done)
+    return next
   }
 
   /** Writes files in a throwaway worktree, commits, and pushes `main` to GitHub, non-forced. */

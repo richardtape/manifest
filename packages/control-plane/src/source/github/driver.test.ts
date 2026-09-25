@@ -384,6 +384,30 @@ describe('the GitHub driver keeps what only a REMOTE driver has to promise', () 
     }
   })
 
+  /**
+   * ONE SYNC AT A TIME PER MIRROR (sitting 4, measured before it was fixed): after a push,
+   * six concurrent reads of one project — what a validate and a build side by side are —
+   * failed 50 times in 60 with SOURCE_GIT_FAILED, because every fetch tried to move the same
+   * refs and all but one lost git's ref lock (`! … refs/manifest/upstream/main`).
+   */
+  it('serialises its syncs: concurrent reads after a push all answer the push', async () => {
+    const h = await harness()
+    try {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const pushed = await pushAsPerson(h.fake, 'chem-labs', { 'b.txt': 'b\n' }, 'a push')
+      const heads = await Promise.allSettled(
+        Array.from({ length: 6 }, () => h.driver.headCommit(repo)),
+      )
+      expect(
+        heads.map((x) =>
+          x.status === 'fulfilled' ? x.value : (x.reason as SourceError).code,
+        ),
+      ).toEqual(Array(6).fill(pushed))
+    } finally {
+      await h.cleanup()
+    }
+  })
+
   it('refuses a stale mirror directory rather than deleting it', async () => {
     const h = await harness()
     try {
