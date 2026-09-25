@@ -16,8 +16,10 @@ import { waitFor } from './wait.js'
  *
  *   node packages/journey/dist/token.js
  *
- * Reads MANIFEST_ORIGIN (default the console's) and MANIFEST_SESSION — the instructor's
- * session, which `scripts/demo-token.sh` obtained through the one CWL flow.
+ * Reads MANIFEST_ORIGIN (default the console's), MANIFEST_SESSION — the instructor's
+ * session, which `scripts/demo-token.sh` obtained through the one CWL flow — and
+ * MANIFEST_SESSION_STEPPED, the same person after §20's step-up, which step 7's confirmation
+ * needs since P6a (the plain one is refused there, and that refusal is asserted).
  *
  * WHY THIS IS A SIBLING OF `main.ts` AND NOT A PHASE OF IT. §22's journey is one person
  * doing one thing with one credential, and every function in `main.ts` closes over the
@@ -35,8 +37,9 @@ import { waitFor } from './wait.js'
  */
 const origin = process.env.MANIFEST_ORIGIN ?? 'https://console.manifest.internal'
 const session = process.env.MANIFEST_SESSION
-if (session === undefined) {
-  console.error('usage: MANIFEST_SESSION=… node dist/token.js')
+const sessionStepped = process.env.MANIFEST_SESSION_STEPPED
+if (session === undefined || sessionStepped === undefined) {
+  console.error('usage: MANIFEST_SESSION=… MANIFEST_SESSION_STEPPED=… node dist/token.js')
   process.exit(2)
 }
 
@@ -58,6 +61,8 @@ const AGENT_CAPABILITIES = [
 
 /** The person who signed in. Every mutation of theirs carries the console's Origin (§20). */
 const human = createManifestClient({ origin, session })
+/** The same person, stepped up (§20) — for step 7's confirmation alone. */
+const humanSteppedUp = createManifestClient({ origin, session: sessionStepped })
 const checks = new Checks()
 
 /** Past the builder's own 900 s timeout, so a stalled build fails this step (P5a). */
@@ -578,8 +583,24 @@ async function step7Confirmed(): Promise<void> {
     describe(byTheAgent),
   )
 
+  // SINCE P6a (`f989fcb`, 2026-09-20) CONFIRMING one of D24's privileged actions is one of §20's
+  // step-up capabilities: the person's PLAIN session is refused, and only a stepped-up one
+  // confirms. This step confirmed with the plain session and was red from that day until the D5
+  // plan's sitting 8 ran it again — nothing had run `make demo-token` since P5c.
+  const plain = await human.POST('/v1/pending-actions/{pendingActionId}/confirm', {
+    params: {
+      path: { pendingActionId },
+      header: { 'Idempotency-Key': idempotencyKey() },
+    },
+    body: {},
+  })
+  checks.ok(
+    'a plain session may not confirm it — 403 STEP_UP_REQUIRED (§20)',
+    refusal(plain, 403, 'STEP_UP_REQUIRED') !== undefined,
+    describe(plain),
+  )
   const confirmed = unwrap(
-    await human.POST('/v1/pending-actions/{pendingActionId}/confirm', {
+    await humanSteppedUp.POST('/v1/pending-actions/{pendingActionId}/confirm', {
       params: {
         path: { pendingActionId },
         header: { 'Idempotency-Key': idempotencyKey() },

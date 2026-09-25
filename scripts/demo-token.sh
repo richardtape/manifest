@@ -83,6 +83,20 @@ SESSION="$(session_of "$CP_JAR")"
 [ -n "$SESSION" ] || fail "the sign-in left no manifest_session cookie"
 echo "  signed in as the instructor"
 
+say "1b. The instructor steps up (§20) — confirming a privileged action needs it, since P6a"
+# Since P6a (`f989fcb`, 2026-09-20) confirming one of D24's privileged actions is a step-up
+# capability, so step 7 needs a stepped-up session; without one it was refused STEP_UP_REQUIRED,
+# red and unseen until the D5 plan's sitting 8 (nothing had run this demo since P5c). Sessions are
+# stateless (P6a Decision 8): the cookie from BEFORE the step-up stays a valid, un-stepped session,
+# which is what lets step 7 prove the refusal and the confirmation in one run. A step-up lasts ten
+# minutes, and this demo takes about thirty seconds. The IdP must RE-PROMPT, which idp_login asserts.
+idp_login "$CP_JAR" "$IDP_JAR" "$ORIGIN/auth/step-up" instructor instructor \
+  "$ORIGIN/auth/saml/callback" "$CA"
+SESSION_STEPPED="$(session_of "$CP_JAR")"
+[ -n "$SESSION_STEPPED" ] && [ "$SESSION_STEPPED" != "$SESSION" ] \
+  || fail "the step-up left the session unchanged — the callback did not re-sign it"
+echo "  stepped up"
+
 say "1a. Sign the STUDENT in once, so there is somebody to add (step 6's precondition)"
 # A person must exist in `users` before they can be made a member, and `pnpm test` and
 # `make reset` both empty that table. The session is thrown away immediately — all this
@@ -104,4 +118,4 @@ say "D24's loop, through @manifest/contract"
 # without it every call is `fetch failed` (P5a sitting 2). It reaches the DEPLOYED APP's
 # hostname too, at step 5, which the same CA signs.
 NODE_EXTRA_CA_CERTS="$CA" MANIFEST_ORIGIN="$ORIGIN" MANIFEST_SESSION="$SESSION" \
-  node packages/journey/dist/token.js
+  MANIFEST_SESSION_STEPPED="$SESSION_STEPPED" node packages/journey/dist/token.js
