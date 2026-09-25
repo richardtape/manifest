@@ -92,14 +92,15 @@ each sitting left them, dated, and they deliberately do not move.
   12, `make demo-releases`** — whose preview summary may legitimately read `unavailable` offline, and whose control
   (c) cannot fail then. **A skipped acceptance is not a passed one.**
 - **The second-machine clean clone** — no second Mac has been available; `RUNBOOK.md`'s *Known gaps* records it.
-- **Registering `Manifest (local dev)` — OPTIONAL, and wanted no earlier than the D5 plan's Task 6 (sitting 3), no
-  later than its sitting 8.**
-  - It goes on a **free ORGANISATION**, not the personal account: GitHub's own description marks `POST /user/repos`
-    as not available to Apps, so an installation token cannot create a repository there.
-  - The exact settings, and where the key goes (`infra/secrets/github-app.pem`, mode 600), are in the plan's *What
-    Rich does*.
-  - The conformance run it enables creates two private repositories and deletes them, and runs **only at Rich's
-    yes, each time**.
+- **`Manifest (local dev)` — REGISTERED 2026-09-24, before the D5 plan's sitting 3**, on the free organisation
+  **`Manifest-local-dev`** (the plan's *What Rich does* 2). Checked locally the same evening, never printing the key:
+  `infra/secrets/github-app.pem` is a 2048-bit RSA private key and `github-conformance.json` holds exactly `appId`,
+  `installationId` and `org`, both `-rw-------` and owned by `rich`, git-ignored, and no copy left in `~/Downloads`; a
+  JWT signed with the key verifies under its own public half. **Not yet checked against GitHub** — whether the ids
+  and permissions are what GitHub holds is Task 6's real leg to find out.
+  - **What is still Rich's:** the conformance run creates two private repositories and deletes them, and runs **only
+    at his yes, with the network on, each time** (sittings 3 and 8). **Never install this App on UBC's
+    organisation**; to revoke it, delete the key or the App on its GitHub page.
 - **Refreshing the vulnerability database — weekly, with the network on: `make refresh-vulndb`** (added 2026-09-24
   at Rich's request; `scripts/refresh-vulndb.sh` re-reads Grype's own status afterwards and names the new build
   date). **DONE 2026-09-24 by running it; NEXT DUE after 2026-10-01.** The database is now built
@@ -1262,10 +1263,11 @@ start):
   Makefile's `LITELLM_DIGEST=…` prefix compose warns *"The LITELLM_DIGEST variable is not set"* and still parses the
   file — measured at sitting 2's close with `config --quiet`, before the `github-fake` service existed; the build
   itself is Task 5's to measure.
-- **Has he registered `Manifest (local dev)`, and does he want Task 6's real leg run?** It runs only with the App
-  registered AND his yes AND the network on. At sitting 2's close `infra/secrets/` held no `github-app.pem` and no
-  `github-conformance.json`, so unless that has changed the real leg reads `SKIPPED — no real App configured`, which is
-  not a failure.
+- **Does he want Task 6's real leg run, with the network on?** The App IS registered (2026-09-24, organisation
+  **`Manifest-local-dev`** — capitals included: GitHub treats a login case-insensitively and echoes it in its own
+  case, so Task 6's normaliser must not compare org names or `full_name` literally). Its two files are in
+  `infra/secrets/` and were checked locally (§2, *Outstanding*). The real leg creates two private repositories and
+  deletes them, so it runs **only at his yes**; without it, it reads `SKIPPED`, which is not a failure.
 - **If no answer comes:** Task 4 needs neither (it is offline end to end), so do Task 4, commit it, then stop at that
   task boundary and sweep, saying what waits on him — **never stop inside Task 5**: its build is Step 4 and its
   commit Step 7, and the plan's rule is that a stop between tasks is recoverable and one inside a task is not.
@@ -1321,8 +1323,8 @@ the step a session limit eats. Finish by telling Rich what landed, what you rule
   `.manifest/repos/` still holds the same six bare repositories. **`make demo-releases` and `make demo-production`
   start from the fresh path**, and `clear_orphan_repository` handles the leftover repository.
 - **Nothing listens on 7100, 7102, 7104 or 7110**; three addresses on `lo0`. **7110 is still free** — Task 5 takes it.
-- **`infra/secrets/`**: `master.key` and the four `github-fake-*` files, all `-rw-------`, owner `rich`; **no
-  `github-app.pem` and no `github-conformance.json`** (the real App is not registered).
+- **`infra/secrets/`**: `master.key` and the four `github-fake-*` files, all `-rw-------`, owner `rich` — **and, since
+  Rich registered the App after the close, `github-app.pem` and `github-conformance.json`**, both `-rw-------`.
 - **`manifest-caddy` was RESTARTED at close** (`docker restart`, F19) — so no runtime route is applied; `make verify`
   55/0 and `make doctor` 19/0/0 after it. Both cleanup scripts read clean after `--apply` (7 networks, 1 volume and
   `p4b-probe-user` came back after the Docker tier, as always): `mf- containers=6 networks=2 volumes=4`.

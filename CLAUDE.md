@@ -37,8 +37,7 @@ found* is its record; this file keeps none of it.
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
 turning the network off from a tool call cuts the agent off too; **it now has TWELVE steps**, the
 newest being `make demo-releases` — a launched app's next release, whose preview summary may
-legitimately read `unavailable` offline), the second-machine clean clone, registering the optional `Manifest (local dev)`
-GitHub App on a free organisation (the D5 plan's *What Rich does*), starting the UBC external track
+legitimately read `unavailable` offline), the second-machine clean clone, starting the UBC external track
 (its trigger fired on 2026-09-15, and **P6a's R1 makes it more urgent, not less** — P6a builds
 the objects a real IAM registration and PIA would populate; **since 2026-09-20 its item 5,
 access to UBC's staging IdP, is the ONLY part of a first production launch this platform
