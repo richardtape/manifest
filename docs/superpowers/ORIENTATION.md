@@ -1197,6 +1197,11 @@ curl -s --cacert infra/ca/manifest-root.crt \
   https://idp.manifest.internal/module.php/saml/idp/metadata | head -3   # signed metadata, entityID …/idp/shibboleth
 ```
 
+**Reading the big files.** This file is ~1,700 lines and the current plan ~3,700, many of them long: one Read of a
+few hundred plan lines can exceed the tool's 25k-token limit and fail. Outline first — `grep -n '^## \|^### '
+<file>` — then read by section with an offset and a limit of ~150–250 lines. The plan's Tasks are `## Task N:`
+headings; read the one you are on in full, never from memory.
+
 **`pnpm test:docker`** (~15 minutes, `make up` first, §2's box has the count) is owed by any change to `runtime/`,
 `routing/`, `services/`, `build/`, `releases/`, `identity/`, `sso/`, `secrets/`, `projects/`, `blueprints/`, `ai/`,
 `observability/`, `infra/` or a `*.docker.test.ts` — and whenever the current plan's sittings rule says so, which
@@ -1249,12 +1254,21 @@ plan found*); then **Tasks 4, 5 and 6 in full, each starting with the `[M<n>]` b
 Tasks 4 and 5 have one, Task 6 none. The measurements behind every block are in
 [`spikes/d5-baseline/README.md`](spikes/d5-baseline/README.md).
 
-**WHAT RICH DOES THIS SITTING — ASK, NEVER ASSUME:**
-- **The network, for Task 5's image** (`apk add git` runs when the image is built — there is no apk mirror). Ask, then
-  build the ONE image with the command in *What Rich does* 1, not a whole `make seed`.
-- **Task 6's real leg runs only if Rich registered `Manifest (local dev)` AND says yes, with the network on.** At
-  sitting 2's close `infra/secrets/` held no `github-app.pem` and no `github-conformance.json` — so unless that has
-  changed, the real leg reads `SKIPPED — no real App configured`, which is not a failure.
+**ASK RICH TWO THINGS IN YOUR FIRST MESSAGE — BEFORE THE FIRST TEN MINUTES, NOT WHEN TASK 5 REACHES THEM.** He may
+give the instruction and step away, and a question asked an hour in stalls the sitting (sitting 1 asked once, at the
+start):
+- **May the network be on for Task 5's image build?** (`apk add git` runs when the image is built — there is no apk
+  mirror.) At the yes, build the ONE image with the command in *What Rich does* 1, not a whole `make seed`; without the
+  Makefile's `LITELLM_DIGEST=…` prefix compose warns *"The LITELLM_DIGEST variable is not set"* and still parses the
+  file — measured at sitting 2's close with `config --quiet`, before the `github-fake` service existed; the build
+  itself is Task 5's to measure.
+- **Has he registered `Manifest (local dev)`, and does he want Task 6's real leg run?** It runs only with the App
+  registered AND his yes AND the network on. At sitting 2's close `infra/secrets/` held no `github-app.pem` and no
+  `github-conformance.json`, so unless that has changed the real leg reads `SKIPPED — no real App configured`, which is
+  not a failure.
+- **If no answer comes:** Task 4 needs neither (it is offline end to end), so do Task 4, commit it, then stop at that
+  task boundary and sweep, saying what waits on him — **never stop inside Task 5**: its build is Step 4 and its
+  commit Step 7, and the plan's rule is that a stop between tasks is recoverable and one inside a task is not.
 
 **WHAT SITTING 2 CHANGED FOR YOU:**
 - **`infra/secrets/` now holds the fake App's four files**, minted by `make up` (`github-fake-app.pem`, `.pub.pem`,
@@ -1288,6 +1302,18 @@ the order after this plan (the authoring API, then the vulnerability database); 
   patterns on their own `:` and changed nothing (F17). Assert the substitution matched, then read `git diff --stat`.
 - **The tool shell is zsh** (`${PIPESTATUS[0]}` is empty — run multi-line probes with `bash`); **ESLint reads
   `docs/superpowers/spikes/`**; **other agents commit on `main`** — stage your own paths by name.
+- **Run `make verify` after the Docker tier, before you trust the machine** — at sitting 2's close the tier's own edge
+  restart left every host→edge check reset (12 red, container half green) until `docker restart manifest-caddy`.
+- **`docker-simple-saml-saml-idp-1` is `Exited (0)` and has been for weeks.** "Must survive" means it must still EXIST;
+  do not start it.
+
+**WHERE THE SITTING STOPS, AND HOW IT ENDS.** **Stop after Task 6** — or after Task 5 under the overflow rule — **and
+do not start sitting 4**, whatever `superpowers:executing-plans` says about executing continuously: one sitting per
+session, with a check-in at each boundary (§3). Then the plan's *EVERY SITTING ENDS THE SAME WAY* — the four gates
+(`pnpm test` twice), the owed Docker tier, the dated record in *What executing this plan found*, the sittings table —
+and §6 rule 8's sweep, **ending with the re-read of the §7e you wrote, checking each claim by opening what it names**.
+Budget about an hour for all of it: the two `pnpm test` runs are ~6 minutes, the Docker tier ~19, and the sweep is
+the step a session limit eats. Finish by telling Rich what landed, what you ruled, and what sitting 4 needs from him.
 
 **THE MACHINE, AS SITTING 2 LEFT IT (2026-09-24, queried at its close — query every one again):**
 - **The database is EMPTY: 0 projects, builds, releases and specs**, because the close's `pnpm test` truncated it.
