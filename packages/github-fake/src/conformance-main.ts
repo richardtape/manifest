@@ -28,7 +28,7 @@ const conf = JSON.parse(readFileSync(confPath, 'utf8')) as {
 const date = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD, local
 const label = `github.com ${date}, App ${conf.appId}`
 console.log(
-  `conformance: against REAL GitHub (${label}), org ${conf.org} — creates two private repositories, pushes one commit, deletes both`,
+  `conformance: against REAL GitHub (${label}), org ${conf.org} — creates two private repositories, pushes one commit, force-pushes a rewrite of it (C9r), deletes both`,
 )
 
 const answers = await runConformance({

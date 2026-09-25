@@ -19,8 +19,8 @@ import { promisify } from 'node:util'
  * plane or the fake's server, so a defect in either cannot be reproduced here and agree
  * with itself.
  *
- * **It creates at most two repositories, pushes one commit, and deletes both in a
- * `finally`**, printing their names if a delete fails. It never makes a repository public
+ * **It creates at most two repositories, pushes one commit, force-pushes a rewrite of it to `-a`
+ * (C9r), and deletes both in a `finally`**, printing their names if a delete fails. It never makes a repository public
  * (Decision 21).
  */
 

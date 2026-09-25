@@ -2,7 +2,8 @@
 # scripts/github-conformance.sh — the fake's answers against REAL GitHub (Rich's decision, 2026-09-24;
 # the D5 plan, Task 6). OPT-IN: needs infra/secrets/github-conformance.json and
 # infra/secrets/github-app.pem (the plan's "What Rich does" 2), the network, and Rich's yes — it
-# creates two private repositories in his organisation, pushes one commit, and deletes both.
+# creates two private repositories in his organisation, pushes one commit, force-pushes a rewrite of it (C9r,
+# added by the D5 plan's Task 15) and deletes both.
 # SKIPPED, exit 0, when any of those is missing: the offline acceptance must never fail on it.
 set -euo pipefail
 cd "$(dirname "$0")/.."

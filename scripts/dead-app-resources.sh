@@ -47,9 +47,12 @@ esac
 
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 
-# The two the platform attaches to every app network by design. A network with only these
-# two attached is holding nothing; a network with a third is in use.
-NEIGHBOURS="manifest-caddy manifest-dns-containers"
+# What the platform attaches to an app network by design: the edge and the containers' resolver to
+# EVERY one, and the AI gateway (`AI_GATEWAY_NEIGHBOUR`, runtime/docker/networks.ts) to every app that
+# declares a model. A network with only these attached is holding nothing; one with anything else is in
+# use. `manifest-litellm` was missing until the D5 plan's sitting 8, so every dead network of an AI app —
+# the proof-app starter's, which every demo but `make demo` uses — read as held (F19).
+NEIGHBOURS="manifest-caddy manifest-dns-containers manifest-litellm"
 
 # `mf-` is ours and per-app. `manifest-` is the platform's and is NEVER considered here;
 # neither is anything without the prefix — `docker-simple-saml-saml-idp-1`, `qdrant-local-dev`,
