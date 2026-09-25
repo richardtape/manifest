@@ -20,7 +20,7 @@ Manifest runs on one Mac. **Almost everything is a container**; two things run o
 | **LiteLLM** | `http://127.0.0.1:7106`, dashboard at `/ui` | The AI gateway every app's key goes through |
 | **Ollama** | `http://127.0.0.1:11434` — on the host | The models LiteLLM serves: `qwen3.5:4b` (a thinking model: thinking off under `default-chat` and `default-chat-onprem`, on under their `-reasoning` names) and `nomic-embed-text` |
 | Also | Postgres (`7103`), the image registry (`7107`), an npm mirror, DNS, an egress proxy | Plumbing — `make doctor` and `make verify` check it |
-| **The GitHub fake** | `http://127.0.0.1:7110` — **only after `make github-up`** | A GitHub-compatible FAKE for D5's driver 2 (App tokens, private repositories, git over HTTP, and signed webhooks to the control plane — `GET /_fake/deliveries` lists them), checked against real GitHub's recorded answers. **Used only by a control plane started with `MANIFEST_SOURCE_DRIVER=github`** (driver 2, since the D5 plan's sitting 4); every demo today runs on driver 1. RUNBOOK's *The GitHub fake* and *The control plane on driver 2* |
+| **The GitHub fake** | `http://127.0.0.1:7110` — **only after `make github-up`** | A GitHub-compatible FAKE for D5's driver 2 (App tokens, private repositories, git over HTTP, signed webhooks to the control plane — `GET /_fake/deliveries` lists them — and `main`'s protection by plan, enforced in GitHub's GH006 words), checked against real GitHub's recorded answers. **Used only by a control plane started with `MANIFEST_SOURCE_DRIVER=github`** (driver 2, since the D5 plan's sitting 4); every demo today runs on driver 1. RUNBOOK's *The GitHub fake* and *The control plane on driver 2* |
 | **The proof app** | `https://proof-app.staging.manifest.internal` | §16's application: CWL sign-in, private notes, an AI answer |
 | **The fixture app** | `https://fixture-app.staging.manifest.internal` | P3's trivial app — proves a build and a deploy, nothing more |
 
@@ -180,7 +180,7 @@ launch can be clicked as one person. What you will actually see, from P6a sittin
 | # | Click | What must be true |
 |---|---|---|
 | 1 | **Sign in with CWL** (`operator` / `operator`) | the header reads **Test Operator** `opr000001` · **administrator** |
-| 2 | create `click-launch` (or any free name) from `node-ts-mongo@1` + `proof-app` | the project screen; three events in Activity |
+| 2 | create `click-launch` (or any free name) from `node-ts-mongo@1` + `proof-app` | the project screen, whose **Code** line reads *a repository on this machine* (driver 1; since the D5 plan's Task 12 — on driver 2 it names the repository on GitHub and whether `main` is protected); three events in Activity |
 | 3 | **Build**, wait for `succeeded`, **Release this build**, **Deploy to staging** | staging reads `healthy`; **Request production** below now names that release as the *Candidate release* — without a reload |
 | 4 | **Record what UBC IAM said**, state `active`, straight from nothing | refused: `LAUNCH_TRANSITION_INVALID — an IAM registration cannot go from 'draft' to 'active' — from 'draft' it can only become 'submitted'` |
 | 5 | the same form: entity ID `https://manifest.internal/sp/<name>/production`, ACS `https://<name>.manifest.internal/auth/ubcshib/callback`, SLO `…/auth/logout`, attributes `ubcEduCwlPuid, mail, eduPersonAffiliation, givenName, sn`; **Record** as `submitted`, then again as `active` | the record reads `active`, five attributes; the release's own request is shown beside the field *for comparison only* |

@@ -1,6 +1,6 @@
 # D5's Driver 2 — the GitHub Source Driver Implementation Plan
 
-> **WRITTEN 2026-09-24. SITTING 1 (TASK 1, THE MEASUREMENTS), SITTING 2 (TASKS 2 AND 3), SITTING 3 (TASKS 4, 5 AND 6 — THE FAKE, ITS CONTAINER AND THE CONFORMANCE RUN, REAL LEG INCLUDED) AND SITTING 4 (TASKS 7 AND 8 — THE DRIVER AND ITS WIRING) RAN ON 2026-09-24; SITTING 5 (TASKS 9 AND 10 — WEBHOOKS AND ENFORCED-PRIVATE) RAN OVER MIDNIGHT INTO 2026-09-25. Which sitting is next is stated by the sittings table below (and ORIENTATION §7e), and nowhere else.** **Sitting 3's real conformance leg MET SPEC ACTION 3'S CONDITION** — a token scoped to another repository created one, so GitHub does not confine creation to a token's repositories — **and Rich chose option (b) the same evening: §20's bullet 1 is corrected** (*Spec actions*, 3). Every premise held, and the measurements found that one rewrite of GitHub's `main` freezes the mirror's (F6) — corrected in Tasks 7, 9 and 11 — and that Task 13's check crosses its own line (F7). **Rich decided F7 the same day: the summary becomes STRUCTURED OUTPUT, and Task 13 is rewritten for it (Decisions 19 and 22); he also switched the chat model to `qwen3.5:4b`, with thinking off.** No sitting boundary moved. The `[M<n>]` blocks at the top of Tasks 2, 4, 5, 7, 8, 9, 11 and 13 are the corrections; [`spikes/d5-baseline/`](../spikes/d5-baseline/README.md) is the record. **Its three spec actions were approved by Rich and APPLIED the same day** (*Spec actions*, below): §20's push-time sentence as option (a), §21's inventory row, and §20's one unscoped token — the last *unless the conformance run says otherwise*. *What executing this plan found* is where every sitting's record goes.
+> **WRITTEN 2026-09-24. SITTING 1 (TASK 1, THE MEASUREMENTS), SITTING 2 (TASKS 2 AND 3), SITTING 3 (TASKS 4, 5 AND 6 — THE FAKE, ITS CONTAINER AND THE CONFORMANCE RUN, REAL LEG INCLUDED) AND SITTING 4 (TASKS 7 AND 8 — THE DRIVER AND ITS WIRING) RAN ON 2026-09-24; SITTING 5 (TASKS 9 AND 10 — WEBHOOKS AND ENFORCED-PRIVATE) RAN OVER MIDNIGHT INTO 2026-09-25, AND SITTING 6 (TASKS 11 AND 12 — PUSH-TIME SECRET SCANNING, `main` PROTECTED AND THE REPOSITORY LINK) RAN ON 2026-09-25. Which sitting is next is stated by the sittings table below (and ORIENTATION §7e), and nowhere else.** **Sitting 3's real conformance leg MET SPEC ACTION 3'S CONDITION** — a token scoped to another repository created one, so GitHub does not confine creation to a token's repositories — **and Rich chose option (b) the same evening: §20's bullet 1 is corrected** (*Spec actions*, 3). Every premise held, and the measurements found that one rewrite of GitHub's `main` freezes the mirror's (F6) — corrected in Tasks 7, 9 and 11 — and that Task 13's check crosses its own line (F7). **Rich decided F7 the same day: the summary becomes STRUCTURED OUTPUT, and Task 13 is rewritten for it (Decisions 19 and 22); he also switched the chat model to `qwen3.5:4b`, with thinking off.** No sitting boundary moved. The `[M<n>]` blocks at the top of Tasks 2, 4, 5, 7, 8, 9, 11 and 13 are the corrections; [`spikes/d5-baseline/`](../spikes/d5-baseline/README.md) is the record. **Its three spec actions were approved by Rich and APPLIED the same day** (*Spec actions*, below): §20's push-time sentence as option (a), §21's inventory row, and §20's one unscoped token — the last *unless the conformance run says otherwise*. *What executing this plan found* is where every sitting's record goes.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
 
@@ -40,8 +40,8 @@
 | 3 | 4, 5, **6** | **The fake** — App JWT → installation tokens, private org repositories and git over HTTP, all held to GitHub's own schemas — **its container** (`--profile github`, 7110, built by `make seed`), and **the conformance run** against GitHub's recorded answers, with a real App at Rich's yes. **If it runs long, stop after Task 5 and sweep** | **Yes** — `infra/`, a `*.docker.test.ts` | **DONE 2026-09-24** (`038cdf4`, `f10f895`, `a874895`) — `@manifest/github-fake` held to GitHub's schemas; `manifest-github-fake:local` behind `--profile github` on `127.0.0.1:7110`, doctor 20 and verify 57; **the real leg ran at Rich's yes** (App 5068172, both repositories deleted) and golden now holds GitHub's measured answers — three differed and the fake was corrected; **C7s met Spec action 3's condition — Rich chose (b), §20 corrected**; no boundary moved |
 | 4 | 7, 8 | **The GitHub driver** — mirror, tokens that never leave the process, the contract suite green against the fake — and **its wiring**: boot, `source_repositories` (migration), the provider mismatch refusal, `SOURCE_UNREACHABLE` as `503`, the contract to `1.2.0`, and a real build through the fake | **Yes** — `api/`, `build/` callers, a `*.docker.test.ts` | **DONE 2026-09-24** (`ac96f7b`, `f51bd54`, and the fix `c47bdf0`) — driver 2 passes Task 2's suite unchanged against the fake, boots by `MANIFEST_SOURCE_DRIVER=github`, and builds from its mirror online and offline to the same digest; `repositoryOf` refuses another driver's project — without it driver 2 BUILT a driver-1 project (F6); `sync` tolerates a rewrite rather than throwing (F3) and runs one fetch at a time per mirror (F19); migration 0024; no boundary moved |
 | 5 | 9, 10 | **Webhooks** — the fake delivers signed events; the receiver refuses an ABSENT signature, a malformed one and a wrong one by code, records a delivery once, and syncs off the request; a rewritten `main` is refused by the mirror and reported — and **enforced-private**: a repository found public is made private again, reported, and not built while public | **Yes** — `observability/`, `projects/`, a `*.docker.test.ts` | **DONE 2026-09-25** (`786cc80`, `3cbf937`) — `POST /webhooks/github` refuses an absent, a malformed and a wrong signature each by its own code beside an accepted delivery, records a delivery once and syncs off the request; every mirror advance goes to ONE required observer, a rewrite reported once; a form-encoded delivery was `500` until the plugin dropped its inherited parsers (F1); a repository found public is made private again, reported, and not built while public — offline too; migrations 0025 and 0026; no boundary moved |
-| 6 | 11, 12 | **Push-time secret scanning** on every path Manifest can see — its own commits before they leave, driver 1's pushes by a hook, and driver 2's pushes on arrival — with the stateless token pattern, and **`main` protected** on both drivers, and **the repository link** on `Project` and the console | **Yes** — `build/`, `projects/` | not started ← next — nothing of Rich's is needed to START it |
-| 7 | 13, 14 | **P6b's inherited findings**: F9 (the model invents a verdict — fixed by making the summary STRUCTURED OUTPUT with no place for one), F13 and F14 on the server, and F11, F12 and F15 in the console | **Yes** — `releases/`, `launch/` | not started |
+| 6 | 11, 12 | **Push-time secret scanning** on every path Manifest can see — its own commits before they leave, driver 1's pushes by a hook, and driver 2's pushes on arrival — with the stateless token pattern, and **`main` protected** on both drivers, and **the repository link** on `Project` and the console | **Yes** — `build/`, `projects/` | **DONE 2026-09-25** (`3a890ee`, `089ebdf`) — one list of rules read four ways (the build gate, Manifest's own commits before they leave, driver 1's rendered `pre-receive`, driver 2's mirror scan — at least once); `SourceDriver.prepare()` at boot; `main` protected by git on driver 1 and by GitHub where it will on driver 2, recorded honestly where it will not; `Project.repository` required; migrations 0027 and 0028; both Step 4 checks run by hand on this machine's six repositories; the unit suite is ~55% slower (F6, Rich's call); no boundary moved |
+| 7 | 13, 14 | **P6b's inherited findings**: F9 (the model invents a verdict — fixed by making the summary STRUCTURED OUTPUT with no place for one), F13 and F14 on the server, and F11, F12 and F15 in the console | **Yes** — `releases/`, `launch/` | not started ← next — nothing of Rich's is needed to START it |
 | 8 | 15 | **The acceptance**: `make demo-github` against a GitHub-mode control plane — green three times, offline, with its offline-acceptance and `ci-acceptance` steps — `make github-conformance` at Rich's yes, `make demo` still green on driver 1, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | not started |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
@@ -3014,6 +3014,17 @@ The API tests, over both drivers, cover:
 ---
 ## Task 13: F9, F13 and F14 on the server — the summary becomes STRUCTURED OUTPUT with no place for a verdict, an answer that breaks it is withheld, and the record names people
 
+> **SITTING 6 (2026-09-25) — WHAT TASKS 11 AND 12 LEAVE THIS SITTING.** Nothing Tasks 13 and 14 touch changed in
+> shape, but three things will cost you if you do not know them. **(1) `pnpm test` now takes ~6 min a run, not ~4**
+> (sitting 6's F6: every driver-1 push in the suite runs the rendered secret-scanning hook, and every driver-2
+> creation asks for branch protection) — budget two runs per commit at ~12.5 min. **(2) `Project` has a REQUIRED
+> `repository`** (Task 12): the mock's one project is driver 2's on a FREE organisation, `main` NOT protected, so the
+> console against the mock shows the unprotected-`main` refusal on the project screen — that is the fixture, not a
+> regression — and any new fixture of `Schemas['Project']` needs the field or the mock's `validate.test.ts` goes red.
+> **(3) Two new event types** — `repository.secret_detected` and `repository.protection_unavailable` — are in
+> `EVENT_TYPES`, the CHECK (migrations 0027, 0028; 29 migrations), `EXAMPLE_DETAILS` and `PUBLISHED_ELSEWHERE`; a
+> new one here needs the same four edits (ORIENTATION §3, *One event stream per project*).
+
 > **`[M15]` — RICH CHOSE STRUCTURED OUTPUT, 2026-09-24 (F7; Decisions 19 and 22). THIS TASK WAS REWRITTEN FOR
 > IT the same day, and the prose prompt and `checkSummary` it first specified are gone.** Why: Task 1 measured
 > the prose design withholding **14 of 20** summaries under its own prompt, **none of them a verdict** (11
@@ -3043,7 +3054,7 @@ The API tests, over both drivers, cover:
 - Modify: `packages/console/src/screens/approvals.tsx` — each change's model sentence under its own change line; a withheld summary shown as withheld
 - Modify: `packages/mock/src/fixtures.ts` — previews with `summaryExposures`, and one whose summary is withheld
 - Modify: `packages/contract/openapi.json`, `packages/contract/src/schema.ts` — regenerated (additive, inside Task 2's `1.2.0`)
-- Modify: `docs/superpowers/spikes/d5-baseline/probes/structured.mjs` — Step 4 re-runs it against the schema `summary.ts` actually builds
+- Modify: `docs/superpowers/spikes/d5-baseline/probes/structured.mjs` — **Step 5** re-runs it against the schema `summary.ts` actually builds *(this line said Step 4 until sitting 6's post-sweep check; Step 4 is Implement)*
 
 **Interfaces:**
 - Consumes: P6b's `summariseChanges(ai, changes, context)`, `SummaryContext`, `DiffSnapshotColumn`; `SpecChange` (`spec/diff.ts`).
@@ -3251,6 +3262,19 @@ Rich types the passwords. Record each row as the screen showed it.
 
 ---
 ## Task 15: The acceptance — `make demo-github`, against a control plane on driver 2, offline
+
+> **SITTING 6 (2026-09-25) — WHAT TASKS 11 AND 12 BUILT, WHICH THE ACCEPTANCE DRIVES.** **The fake's container is a
+> TEAM plan** (`FAKE_PLAN: team`), so `createRepository` PROTECTS `main` there and *a force-push refused* is the
+> fake's own `pre-receive` answering `GH006: Protected branch update failed for refs/heads/main.` — the demo must not
+> itself force-push anything it later needs. **A secret pushed straight to GitHub is found by the mirror's scan** on
+> the next sync, whatever caused it, and reported once per commit as `repository.secret_detected` (commit, path,
+> line, rule — never the value); the build of that commit still fails at the build gate. **Driver 1's bare
+> repositories — every demo's — now carry a rendered `pre-receive` and git's `receive.deny*`**, set at every boot by
+> `prepare()` (the boot line's `sourceRepositoriesPrepared`): a demo that pushes a secret-shaped value to one is
+> refused in the hook's words, and one that force-pushes is refused `non-fast-forward`. `Project.repository` is what
+> *"what the repository line says"* (this task's WALKTHROUGH line, in **Files** below) reads: *"Code: `<org>/<slug>` on GitHub — private, `main`
+> protected"*, or *"a repository on this machine"*. **The fake's image changed**: rebuild it before a Docker run
+> (`manifest-github-fake:local` is `a8061e66ee74` at sitting 6's close). **`pnpm test` is ~6 min a run** (sitting 6's F6).
 
 > **SITTING 3 (2026-09-24): `[M19](f)` IS STILL UNMEASURED, AND IS THIS SITTING'S TO MEASURE.** Task 6's
 > script has no step that rewrites a branch — sitting 1 added (f) to `[M19]` and no step was added to Task 6.
@@ -4401,3 +4425,216 @@ absent (Task 10's (c)); two of mine were too narrow.** None stayed green.
 - **The final whole-branch review is DEFERRED to the plan's end (sitting 8)**, as sittings 1–4 ruled: this sitting's
   20 controls, every one predicted — one of the plan's predictions wrong, one of its premises absent, two of mine too
   narrow, none green — are its per-sitting check.
+
+### Sitting 6 — Tasks 11 and 12, push-time secret scanning, `main` protected and the repository link — 2026-09-25
+
+**§20'S PUSH-TIME SENTENCE IS BUILT ON EVERY PATH MANIFEST CAN SEE, AND `main` IS PROTECTED ON BOTH DRIVERS — HONESTLY
+WHERE GITHUB WILL NOT.** Task 11 (`3a890ee`): one list of rules, `build/secret-patterns.ts` — the build gate's seven,
+moved verbatim, plus GitHub's stateless `ghs_<APPID>_<JWT>` installation token and the fine-grained PAT, appended —
+read four ways: the build gate; a pre-push scan of Manifest's own commits on both drivers (`409
+SOURCE_SECRET_DETECTED`, before anything is written); driver 1's `pre-receive`, RENDERED from the list and
+re-rendered at every boot by the new `SourceDriver.prepare()`; and driver 2's scan of every commit its mirror learns
+of, reported once per commit as `repository.secret_detected` (migration 0027) and AT LEAST once — the
+`refs/manifest/scanned/*` refs move only after the report. Task 12 (`089ebdf`): driver 1 refuses a force-push and a
+deletion by git's own `receive.deny*`, at creation and at every boot; driver 2 asks GitHub for branch protection
+after the seed push and, where GitHub refuses it (a private repository on a free organisation), records
+`mainProtected: false` with GitHub's words and publishes `repository.protection_unavailable` LAST; `createRepository`
+answers `{ ref, link }`, `source_repositories` gains the two columns (migration 0028, with its backfill), and
+`Project.repository` is REQUIRED in the contract and shown in the console. The fake protects `main` by plan and
+enforces it with GitHub's GH006. **Both Step 4 checks were run by hand on this machine's six real repositories**:
+after one boot each has the hook and git's protection (none had either before), a key pushed to `launch-app` is
+refused in the hook's words, and a force-push to it is refused — `launch-app` untouched both times. **No task
+boundary moved. Nothing of Rich's was needed; the network stayed off** — the fake's image was rebuilt from
+BuildKit's cache.
+
+#### The decisions this sitting made
+
+Each is a `Ruling:` line in the ledger with what it costs if wrong; the ones a later task inherits:
+
+**1. The hook is one file, and it finds Node before it scans** (F5): a POSIX `sh` half tries the control plane's own
+Node binary (rendered in at boot), then `PATH`, and otherwise REFUSES in Manifest's words; the JavaScript half runs
+under `node -e`. **2. Both walks read `git log -p --cc`** with explicit prefixes and every diff option pinned (F1), no
+`--diff-filter`. **3. The hook reads every incoming commit** — a gate that stops reading lets the rest through — and
+refuses a patch over 256 MB or a git failure; the mirror's scan caps at 1000 commits / 20 MB and says `truncated` on
+an operator line. **4. What driver 2 scans is every commit the SHADOW has and no `scanned` ref reaches, on every
+reported sync — not the plan's `updated`** (F2); the creation marks `scanned/main` at the SEED (scanned before it
+left), so a person's push in the moment between is still scanned. **5. Each driver's `prepare()` touches only its own
+repositories** in the shared root (F4): a mirror is known by the `manifest.fullName` its creation writes; a
+directory that cannot be read is left alone with an operator line. **6. `CommitFinding` lives in `git-driver.ts`**, so
+the interface does not import `build/`. **7. `createRepository` answers `{ ref, link }`; `describeRepository` is
+gone** — the link is what the route records. **8. The fake's protection is a `sh` hook reading a plain file of
+denials**, not the plan's `protection.json` — its image has `sh`, `awk` and `git` and nothing more is needed; it
+protects `main` only and says so (`422`) for any other branch. **9. GitHub's `protectionDetail` is kept verbatim on
+the link, bounded and without control characters; the event carries Manifest's sentence.** **10. `projectViews`
+throws for a project with no `source_repositories` row** — a `500` naming it — never a project without a link.
+**11. The mock's one project is driver 2's on a free organisation**, `main` not protected, so the console's warning is
+what a front-end developer sees against the mock. **12. The contract suite's harness gains a person's force-push and
+deletion of `main`**; driver 2's F6 case brings its own free-plan GitHub (F14).
+
+#### The findings
+
+**F1 — THE PLAN'S WALK COULD NOT SEE A MERGE'S OWN ADDITIONS.** Measured before any code (`probes/attr.sh`, git
+2.50.1): `git log -p` shows a merge commit NO diff, so a secret added by the merge itself — an "evil merge", in
+neither parent — was invisible to the plan's `-p -U0 --diff-filter=AM`, in the hook and in the mirror's scan. `--cc`
+shows exactly the merge's own additions (`++` lines, `@@@ … +c,d @@@`) and not the side branch's again, which is what
+the plan's own case (*a merge commit's added lines are scanned once*) needs. Control (h) is its red.
+
+**F2 — THE PLAN'S SCAN INPUT COULD NOT KEEP ITS OWN AT-LEAST-ONCE PROMISE.** *"`scanNewCommits(mirror, updated.map(u =>
+u.to), …)` … If the observer throws, the refs do not move and the next sync reports again"* — but the next sync's
+`updated` is EMPTY (the failing sync's fetch already took the push), so it would scan nothing and the finding was
+lost for good, with the `scanned` refs faithfully unmoved. The scan's heads are the shadow's, compared against every
+`scanned` ref, on every reported sync — `[M14]`'s block pointed there — and *reports AT LEAST ONCE* is the case that
+holds it: controls (d) and (i) are its two reds.
+
+**F3 — AN IN-TREE `.gitattributes` DOES NOT BLIND THE SCAN — MEASURED, NOT ASSUMED.** A pusher controls
+`.gitattributes`; `secret.txt -diff` makes a WORK TREE's `git log -p` print *Binary files differ*. In a BARE repository
+— driver 1's, and driver 2's mirror — git 2.50.1 does not read the tree's attributes, and the lines show. What still
+hides a file is git's own binary test (a NUL in its first 8000 bytes): such a file is skipped at push time, by design
+(*a binary file is skipped*) — **and the build gate still reads it as text, so it is never built.** Named, not fixed.
+
+**F4 — THE PLAN'S `prepare()` WOULD HAVE UN-MIRRORED EVERY MIRROR ON A LAPTOP THAT SWITCHED DRIVERS.** *"`prepare()`
+re-renders it in every `<slug>.git` under the root"* — and driver 1's root IS driver 2's (Decision 1), so driver 1's
+boot would replace each mirror's refuse-everything hook with the secret scan, and a clean push into a mirror — a
+commit GitHub never saw (*Read this first* 15) — would land. Decision 5 above; control (g): 2 red.
+
+**F5 — `#!/usr/bin/env node` WOULD REFUSE EVERY PUSH FROM A CLIENT WHOSE `PATH` HAS NO NODE** — a GUI git client, a
+terminal without nvm — in `env`'s words. Decision 1 above; its test renders a Node path that does not exist and pushes
+with `PATH=/usr/bin:/bin`.
+
+**F6 — THE UNIT SUITE IS HALF AS SLOW AGAIN: 240 s → 320 s (Task 11) → 372 s (Task 12), MEASURED FILE BY FILE.** Every
+driver-1 push in the suite — every project an API test creates, every `commitManifest` — now runs the hook, ~40 ms
+more per push (`probes/hookcost.sh`: 91 → 130 ms over 20 pushes), spread over every file that creates a project
+(`delegation` +13 s, `subsequent-releases` +6 s…); Task 12 added a protection `PUT` per driver-2 creation (driver 2's
+file +15.5 s) and two `git config` per driver-1 creation, at load 5.5–7. **Kept, deliberately**: the hook sees every
+push, Manifest's own too — which is what makes control (e) a `SOURCE_GIT_FAILED` rather than a secret committed. The
+alternative, Manifest's own commits FETCHED into the bare repository (which runs no hook), would buy back ~75 s a run
+for that backstop — **Rich's call if suite time matters more**.
+
+**F7 — `source/` NOW LOADS `build/index`, AND WITH IT `runtime/`, `services/` AND THE DATABASE CLIENT.** Importing
+`pre-receive.ts` outside the process needs `MANIFEST_DATABASE_URL` — the first cost probe failed exactly that way. No
+cycle back into `source/` (grepped). The list could live below `build/` if that ever matters.
+
+**F8 — CONTROL (a) WAS WIDER THAN PREDICTED, AND THE PLAN'S PREDICTION WAS NOT A RED.** Deleting the stateless rule
+turned three cases red, not two: the gate-equals-`scanText` case fell at its own non-vacuity guard. And *"the corpus
+test's stateless entry is ACCEPTED by the hook — the measured miss, back"* is true and is not a red: the hook and
+`scanText` read ONE list, so they agree the token is clean, and the corpus test asserts agreement. **Only the list's
+own test sees a rule deleted** — which is the argument for that test.
+
+**F9 — TWO CASES WERE GREEN BEFORE THE FEATURE, BY DESIGN**: driver 2's *a commit GitHub has with a key in it still
+cannot be DEPLOYED* (the build gate already refused an AWS key — the case holds that the new path bypasses nothing),
+and the route's clean-push positive control.
+
+**F10 — A KNOWN LIMITATION, NAMED: A PUSH'S `repository.pushed` IS STILL LOST WHEN THE OBSERVER FAILS.** Task 11 makes
+FINDINGS at-least-once; a push's `updated` is still reported by the sync that fetched it or never — the next sync
+sees nothing moved. Task 9's rule (a failed report fails the read) makes it loud, not silent. Read, not fixed.
+
+**F11 — MY SLIP, THE 2026-09-14 TRAP AGAIN: MIGRATION 0028 WAS APPLIED WITHOUT ITS BACKFILL.** `F=$(ls
+drizzle/0028*.sql)` captured the ALIASED long listing (§4 trap 2), the append wrote nowhere, and `db:migrate` applied
+what drizzle generated — no `UPDATE`. Replayed exactly as TRAPS prescribes: the row deleted by `created_at`, both
+columns dropped, the line appended by the file's literal name, migrated again; the stored hash is now the file's
+SHA-256 (checked). The table held 0 rows, so nothing was at risk here — but on a machine with driver-1 projects the
+backfill is the difference between `main_protected` true and a link that says git does not protect what it does.
+
+**F12 — THE PLAN'S CONTROL (d) PREDICTED A RED THAT CANNOT HAPPEN.** *"`repository` made optional … the API test's
+shape assertion red"*: the mapper still sets the field, so every API answer carries it and every API test stays green.
+What holds REQUIRED is the console's `tsc` (`project.repository` possibly undefined) — and the mock's `validate.test.ts`,
+which was red until the fixture carried the field and, with the field optional, goes green without it (the plan's
+second half, right).
+
+**F13 — `receive.denyNonFastForwards` CLOSES SITTING 2'S F3.** Sitting 2 left the approval preview able to answer
+`SOURCE_COMMIT_NOT_FOUND`, reachable only on driver 1 after a force-push and git's prune, and asked Task 12 to re-read
+it: every driver-1 repository now refuses both, at creation and — measured on this machine's six — at every boot. The
+preview's `errors:` list stays as it is; documenting a closed window would document it.
+
+**F14 — TASK 12 MADE THE CONTRACT SUITE'S OWN F6 CASE UNRUNNABLE ON ITS HARNESS.** The case (sitting 1's F6: a rewrite
+AND a normal push, and `headCommit` answers the push) force-pushes `main`, and the suite's driver-2 harness is a TEAM
+plan, whose `main` is now protected — the rewrite was refused GH006. It brings its own free-plan GitHub now (Decision
+12); every other rewrite in the unit tier already ran on `plan: 'free'`.
+
+**F15 — THE FAKE TAKES A DELETION OF THE DEFAULT BRANCH ON A FREE PLAN, WHICH GITHUB IS REPORTED TO REFUSE.** GitHub
+refuses a push that deletes a repository's default branch whatever its protection (documented, not measured here);
+the fake refuses one only when protection says so. Nothing in Manifest relies on either answer — the mirror never
+prunes — and the contract's deletion case runs on the team plan. Named, not modelled.
+
+**F16 — THE DOCKER TIER'S ONE WALL-CLOCK CASE WAS RED AGAIN, AT LOAD 15, AND GREEN AT 6 — TWICE IN TWO SITTINGS NOW.**
+Task 12's tier: 207 of 208, the red *a retire waits for a request that is in flight*
+(`runtime/docker/driver.docker.test.ts`, `expected false to be true` at `driver-contract.ts:408` — the held request not
+finished inside the drain's bound), in code this sitting did not touch, which had passed in Task 11's tier. **Load 15.7**
+at the tier's end — `zoom.us` 45% CPU with the camera on, WindowServer 43%, the Docker VM 29% — and red again re-run
+alone at 12–15; **green re-run alone at ~6** (22.98 s), once Zoom had closed. Sitting 5's F15 was the same case at load
+12. A wall-clock bound is a load gauge; `TRAPS.md` now says so, with the re-run command.
+
+**F17 — FOUND BY THE POST-SWEEP CHECK: THE PLAN NAMED THE WRONG STEP, AND MY §7e COPIED IT.** Task 13's **Files** said
+*"`probes/structured.mjs` — Step 4 re-runs it"*; Step 4 is *Implement*, and the real-model re-run is **Step 5**. §7e
+repeated it until the check opened Task 13's steps. Both corrected.
+
+**F18 — FOUND BY THE POST-SWEEP CHECK: MY §7e WOULD HAVE HAD SITTING 7 RUN ITS DEMO FIRST, AND THEN TRUNCATE IT.** It
+said *"Run the demo before any Vitest run"* — true of §4 trap 7 in general, and wrong for a sitting whose clicked check
+(Task 14's Step 5) comes AFTER Task 13's Vitest runs, contract regeneration and Docker tier and Task 14's own gates, each
+of which truncates the rows `make demo-releases` leaves. §7e now says to run the demo immediately before the click.
+And it said the Docker tier was owed by both tasks; it is Task 13's (Step 6) — Task 14 is the console's.
+
+#### Negative controls
+
+Every one after its task's commit, predicted first in the ledger, restored with `git checkout <path>`, `git status`
+clean after each; every substitution asserts its pattern matched exactly once (`ctl11.py`, `ctl12.py`; (d) by hand).
+
+| Task | # | Break | Predicted | Measured |
+|---|---|---|---|---|
+| 11 | (a) | the stateless-token rule deleted | 2 red in the list's test; the hook's corpus GREEN (one list, one answer) — the plan: the hook "ACCEPTS" it | **3 red** — the gate-equality case too, at its non-vacuity guard; corpus green, as predicted — F8 |
+| 11 | (b) | the hook reads the TIP commit only (`-1`) | *added and deleted in the same push* red | as predicted — pushed |
+| 11 | (c) | the hook's loop without its `break` | the corpus's two-rules line red | as predicted — two rules where `scanText` names one |
+| 11 | (d) | `scanned` refs moved BEFORE the observer | *reports AT LEAST ONCE* red | as predicted — `[]` where `[pushed]` |
+| 11 | (e) | driver 1 without the pre-push scan | the contract case red with `SOURCE_GIT_FAILED` | as predicted — the hook refused it; the CODE is what the early scan buys |
+| 11 | (f) | `prepare()` not called at boot | no unit test red; the six repositories have no hook | as predicted — none had one before the boot, all six after (Step 4) |
+| 11 | (g) | `prepare()` blind to mirrors | driver 1's and driver 2's `prepare` cases red | as predicted — `{3}` vs `{2}`, `{2}` vs `{1}` |
+| 11 | (h) | the walk without `--cc` | the merge case red | as predicted — the evil merge's line missing |
+| 11 | (i) | the observer condition without `findings` | *reports AT LEAST ONCE* red | as predicted — advances 0 |
+| 12 | (a) | driver 1 without `receive.denyNonFastForwards` | driver 1's contract case red, driver 2's green | as predicted |
+| 12 | (b) | driver 2 takes GitHub's `403` as protected | the free-plan driver case and the free-plan API case red | as predicted — a protection claimed that GitHub refused |
+| 12 | (c) | the fake's hook refuses nothing | driver 2's contract and GH006 cases red; the fake's package and conformance C13 GREEN | as predicted — enforcement is witnessed by the contract suite, not conformance |
+| 12 | (d) | `repository` made `.optional()`, contract regenerated | the plan: the API shape assertion red; mine: API green, the console's `tsc` red, the mock green without the field | **mine** — F12 |
+| 12 | (e) | `protection_unavailable` published FIRST, inside the creation | the free-plan API case red at its order assertion | as predicted — 118 ms before `project.created` |
+| 12 | (g) | driver 1's `prepare()` without git's protection | no unit test red; the six repositories unprotected | as predicted — `receive.deny*` unset on all six before the boot, `true` after (Step 4) |
+
+**15 controls, every one predicted; one of the plan's predictions was wrong (Task 12's (d)) and one incomplete (Task
+11's (a)); one of mine was too narrow (Task 11's (a)).** None stayed green where it should have gone red.
+
+#### The gates, and the machine at close — queried, not recalled
+
+- **`pnpm test` 1960 in 142 after Task 11 and 1972 in 144 after Task 12, twice each — each exactly as predicted** (Task
+  11: 1919 + 5 list + 6 scan-commits + 16 hook + 2 contract + 4 driver-1 + 6 driver-2 + 2 route, three new files; Task
+  12: + 4 contract (2 cases × 2 drivers) + 2 driver-2 + 3 link API + 3 fake protection, two new files). **At close: 1972
+  passed in 144 files, twice (351 s, 380 s)**; `pnpm lint`, `pnpm typecheck` (six packages) and `pnpm format:check`
+  clean. At open: 1919 in 139, twice (243 s, 240 s), all four clean — F6 is the difference in time.
+- **`pnpm test:docker` 208 in 34, owed twice and run twice** — after Task 11 **green, 1246 s**; after Task 12 **207 green
+  and one load-dependent red** (F16), re-run alone green at load ~6. Chat model warmed before each (`200`). The fake's
+  image was REBUILT before Task 12's tier (`1fd2def86a3f` → `a8061e66ee74`, offline, `apk add git` `CACHED`).
+- **Nothing the demos push is secret-shaped** — `scripts/demo*.sh`, `scripts/lib/`, `blueprints/node-ts-mongo/` and
+  `fixtures/fixture-app/` grepped for every shape in the list (the only hits are comments saying *private key*), and
+  every blueprint seed passes the pre-push scan whenever the suite creates a project — so no demo should meet the
+  hook's refusal; sitting 7's `make demo-releases` is the first to push through it.
+- **`make verify` 57 / 0 / 0 after both tiers — the edge trap (sitting 5's F16) did not recur either time**; at close
+  57 / 0 / 0 with `mf- containers=6 networks=2 volumes=4`. **`make doctor` 20 / 0 / 0** (the vulnerability database 1.4
+  days old, fresh until 2026-10-01). `scripts/ci-acceptance.sh` reads `1972 / 144 / 20 / 57`. Contract `1.2.0`.
+- **Cleanups**: after the second tier `dead-app-resources.sh` found the usual **7 dead networks and 1 volume** and
+  `litellm-orphans.sh` **`p4b-probe-user`**; both `--apply` were ALLOWED and re-measured clean. My second re-run of the
+  retire case then left ONE network (`mf-chem-labs-staging-net`); applied again, ALLOWED — `networks=2 volumes=4`, and
+  the orphans script reads *Nothing to delete*.
+- **The database is EMPTY** (0 projects, builds, releases, specs, `source_repositories` and `webhook_deliveries`
+  rows; **29 migrations**, the newest 0028) — the close's `pnpm test` truncated it. `launch-app`'s six containers
+  still run with no project row. **`.manifest/repos/` holds the same six bare repositories — now each with the
+  rendered `hooks/pre-receive` and `receive.denyNonFastForwards` / `receive.denyDeletes` true** (the two Step 4 boots —
+  the intended effect of Tasks 11 and 12, and what every later boot re-applies; `launch-app`'s `main` is `c3d299ec…`,
+  unchanged). Nothing listens on 7100, 7102, 7104 or 7110; three addresses on `lo0`.
+- **The GitHub fake**: `manifest-github-fake:local` is **`a8061e66ee74`** (`1fd2def86a3f` is gone); no container and no
+  volume. **`infra/secrets/`**: `master.key`, the four `github-fake-*` files, `github-app.pem` and
+  `github-conformance.json`, all `-rw-------`, owner `rich`. **Real GitHub was not called.**
+- **Images**: `docker images -q` **276**, `sort -u` **268**, `127.0.0.1:7107/local/*` **228** — the two tiers and the
+  re-run added 16 app images (212 → 228); no script sweeps app images. **Ollama with no model resident** (`qwen3.5:4b`
+  and `nomic-embed-text` unloaded at close). `docker-simple-saml-saml-idp-1` is `Exited (0) 2 weeks ago`, as found; the
+  other three must-survive containers are up. Snapshot diff (08:32 → 10:37): uptimes, the edge's restart (the second
+  tier's), 16 app images, the fake's image, 4 GiB of disk, `HEAD`, and this sitting's own files.
+- **The final whole-branch review is DEFERRED to the plan's end (sitting 8)**, as sittings 1–5 ruled: this sitting's 15
+  controls — every one predicted, one of the plan's predictions wrong and one incomplete, one of mine too narrow, none
+  green where it should be red — are its per-sitting check.

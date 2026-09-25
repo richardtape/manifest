@@ -444,3 +444,16 @@ different ref. Sitting 2 gains the contract bump, which is one `contract:write` 
 
 See the plan's *What executing this plan found*, sitting 1, which records the close's gate run, the
 snapshot diff and the cleanup scripts' output after they ran.
+
+## Probes added by later sittings
+
+*Task 1's measurements end above. These three are sitting 6's (2026-09-25, Tasks 11 and 12) — each is cited by that
+sitting's record in the plan, where its answer is written down.*
+
+- **`probes/attr.sh`** — in a BARE repository (git 2.50.1), does an in-tree `.gitattributes` (`-diff`, `binary`) hide a
+  file's added lines from `git log -p`? **No** (a work tree hides them). And a merge: plain `-p` shows it NO diff;
+  `--cc` shows only its own additions (`++` lines under `@@@ … +c,d @@@`). Sitting 6's F1 and F3.
+- **`probes/stdin.sh`** — `git rev-list --stdin` and `git log --stdin` accept `--not` lines. The mirror's scan feeds
+  its revisions that way.
+- **`probes/hookcost.sh`** — the rendered `pre-receive` costs ~40 ms a push (91 → 130 ms over 20 pushes). Sitting 6's
+  F6. Needs `.env` for the database URL, because importing `source/` loads the database client (F7).

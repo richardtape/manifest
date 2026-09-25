@@ -398,7 +398,9 @@ it belongs among the traps the next sitting is most likely to hit.
   `GRANT` never reached the file — `F=$(ls drizzle/0005_*.sql)` captured a long listing, because `ls` is aliased —
   and `drizzle-kit migrate` created the table with no privilege for `manifest_app`. Appending the line afterwards
   changes nothing on that database. Delete its row from `drizzle.__drizzle_migrations` by `created_at`, drop what
-  it created, fix the file, and migrate it as it ships. Check with `\dp`.
+  it created, fix the file, and migrate it as it ships. Check with `\dp`. **RECURRED 2026-09-25** (the D5 plan's
+  sitting 6, F11): migration 0028's hand-appended backfill, the same `F=$(ls …)`, the same remedy — and the check is
+  that `drizzle.__drizzle_migrations.hash` equals `shasum -a 256` of the file. **Name the file literally.**
 - **zsh does not word-split an unquoted variable.** `PSQL='docker exec … psql'` then `$PSQL …` runs one command
   whose name is the whole string — `command not found`. Use a shell function. Measured 2026-09-14.
 - **A single-connection transaction hides an ordering race.** Inside `withRollback` every query runs on one
@@ -1596,6 +1598,36 @@ it belongs among the traps the next sitting is most likely to hit.
   (2026-09-25, the D5 plan's sitting 5, F6). Its `code` is `ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH`; a test that greps
   the message for the code finds nothing. It throws for ANY length mismatch — a well-formed `sha256=…` header
   compared as a 71-byte string against a 32-byte digest throws on every call.
+- **EVERY PUSH TO A DRIVER-1 REPOSITORY NOW RUNS MANIFEST'S RENDERED `pre-receive` — AND A FORCE-PUSH OR A DELETION IS
+  REFUSED** (2026-09-25, the D5 plan's sitting 6). Since the first boot of Task 11/12's code, every
+  `.manifest/repos/<slug>.git` carries `hooks/pre-receive` (a secret scan, run by Node) and `receive.denyNonFastForwards`
+  / `receive.denyDeletes`, re-set at every boot by `prepare()` (the boot line's `sourceRepositoriesPrepared`). A push
+  carrying a secret-shaped value is refused `Manifest refused this push (§20): <path>:<line> looks like <rule> in
+  <sha12>`, and an amend force-pushed is refused `non-fast-forward`. **Edits to the hook do not survive a boot.** The
+  hook finds Node by the control plane's own binary first, then `PATH`; with neither it refuses the push and says so.
+- **`pnpm test` TAKES ~6 MINUTES A RUN, NOT ~4** (2026-09-25, the D5 plan's sitting 6, F6): 240 s → 320 s → 372 s, measured
+  file by file. Every project a test creates on driver 1 pushes through the hook (~40 ms more a push), and every
+  driver-2 creation asks the fake for branch protection. Budget ~12.5 min for the twice-per-commit gate.
+- **ON THE FAKE'S `team` PLAN — ITS DEFAULT, AND THE CONTAINER'S — `main` IS PROTECTED, SO A TEST THAT REWRITES `main`
+  NEEDS `plan: 'free'`** (2026-09-25, the D5 plan's sitting 6, F14). `createRepository` asks for protection, the fake's
+  own `pre-receive` then refuses a force-push or a deletion with `GH006: Protected branch update failed for
+  refs/heads/main.`, and `rewriteAsPerson` throws. `tryForcePushMainAsPerson` / `tryDeleteMainAsPerson` in
+  `source/testing.ts` answer `{ ok, said }` instead of throwing.
+- **IMPORTING ANYTHING UNDER `source/` FROM A SCRIPT NEEDS `MANIFEST_DATABASE_URL`** (2026-09-25, the D5 plan's sitting 6,
+  F7): `source/` imports `build/index`, which loads `runtime/` and `services/`, and the database client throws at
+  import with no URL. Node's own type stripping also refuses `build/context.ts`'s parameter properties — run with
+  `--experimental-transform-types` and the fake's `resolve-ts.mjs` (`probes/hookcost.sh` does).
+- **THE MOCK'S PROJECT IS DRIVER 2'S WITH `main` NOT PROTECTED — BY DESIGN** (2026-09-25, the D5 plan's Task 12). The
+  console against `manifest-mock` shows a refusal-style box on the project screen (*`main` is not protected where the
+  code lives*) and a `main NOT protected` pill: that is the fixture exercising the case the console must never hide,
+  not a regression.
+- **THE DOCKER TIER'S *a retire waits for a request that is in flight* IS A LOAD GAUGE — RED AT LOAD 12–15, GREEN AT ~6,
+  IN TWO SITTINGS RUNNING** (the D5 plan's sitting 5, F15, and sitting 6, F16). A wall-clock drain bound
+  (`runtime/driver-contract.ts:408`, `expected false to be true`). Both times the load was other applications — a Zoom
+  call with the camera on, WindowServer, the Docker VM. **Read `uptime` and the top of `ps -Ao pcpu,comm -r`, wait, and
+  re-run it alone**: `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker
+  src/runtime/docker/driver.docker.test.ts -t "a retire waits for a request that is in flight"` — **which leaves one
+  dead app network behind** (`mf-chem-labs-staging-net`); run the cleanup script again after it.
 
 ## Images already pulled
 

@@ -387,6 +387,23 @@ custody rule, so a key its group can read refuses the boot, naming the file.
   with the developer token) and the next sync — the fake's `publicized` delivery, or any read —
   makes it private again and publishes `repository.visibility_enforced`. If it cannot, a build is
   **`409 SOURCE_REPOSITORY_PUBLIC`** until a sync reads it private, with the network off too.
+- **A secret pushed straight to GitHub is FOUND, not blocked** (sitting 6, Task 11): GitHub.com runs no
+  custom hook, so the next sync — any cause — scans every commit it has not reported and publishes
+  `repository.secret_detected` per commit (commit, path, line, rule; never the value). The build of
+  that commit still fails at the build gate. A commit MANIFEST makes is refused before it leaves:
+  **`409 SOURCE_SECRET_DETECTED`**.
+- **`main` is protected where GitHub will protect it** (sitting 6, Task 12): the fake's container
+  runs the `team` plan, so a person's force-push or deletion of `main` is refused
+  `GH006: Protected branch update failed for refs/heads/main.` On a FREE organisation GitHub will not
+  protect a private repository — the project's `repository` says `mainProtected: false` with
+  GitHub's words, `repository.protection_unavailable` is on its stream, and the console shows it.
+
+**Driver 1's bare repositories are guarded too, since sitting 6** (Tasks 11 and 12): every
+`.manifest/repos/<slug>.git` has a `pre-receive` hook RENDERED from the build gate's list of secret
+rules, and git's `receive.denyNonFastForwards` / `receive.denyDeletes` — both set at creation and
+re-set at every boot by `prepare()` (the boot line's `sourceRepositoriesPrepared`). A demo or a
+person pushing a secret-shaped value to one is refused *"Manifest refused this push (§20): …"*; a
+force-push is refused `non-fast-forward`. An edit to the hook does not survive the next boot.
 
 ## The conformance run — the fake against REAL GitHub
 
@@ -629,7 +646,7 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 20 / 0 and `make verify` 57 / 0**
-(**All four were re-measured on 2026-09-25 at the close of the D5 plan's sitting 5: `pnpm test` **1919 passed** in 139 files, up 61 and four files (GitHub's webhooks — the signature, the serial queue, the route and the fake's deliveries — and enforced-private), `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57 (after a `docker restart manifest-caddy`: the second Docker tier left the host unable to reach the edge), and `pnpm test:docker` **208 in 34** (a delivery from the fake's image to the host's loopback; one load-dependent red at load 12, green re-run alone).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured on 2026-09-25 at the close of the D5 plan's sitting 6: `pnpm test` **1972 passed** in 144 files, up 53 and five files (push-time secret scanning — the list, the commit scan, driver 1's rendered hook — and `main` protected with the repository link), **and ~6 minutes a run, up from ~4, because every driver-1 push in the suite now runs that hook**; `make doctor` 20 with **0 warnings**; the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 57, clean after both Docker tiers, and `pnpm test:docker` **208 in 34** (one load-dependent red at load 15, green re-run alone at ~6).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
 disabling Wi-Fi cuts an agent off too. **It now has TWELVE steps, 1 to 12, after step 0's offline check** — P5a sitting 12 added `make demo-journey` as step 8,
