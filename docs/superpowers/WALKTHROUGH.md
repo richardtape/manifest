@@ -20,6 +20,7 @@ Manifest runs on one Mac. **Almost everything is a container**; two things run o
 | **LiteLLM** | `http://127.0.0.1:7106`, dashboard at `/ui` | The AI gateway every app's key goes through |
 | **Ollama** | `http://127.0.0.1:11434` — on the host | The models LiteLLM serves: `qwen3.5:4b` (a thinking model: thinking off under `default-chat` and `default-chat-onprem`, on under their `-reasoning` names) and `nomic-embed-text` |
 | Also | Postgres (`7103`), the image registry (`7107`), an npm mirror, DNS, an egress proxy | Plumbing — `make doctor` and `make verify` check it |
+| **The GitHub fake** | `http://127.0.0.1:7110` — **only after `make github-up`** | A GitHub-compatible FAKE for D5's driver 2 (App tokens, private repositories, git over HTTP), checked against real GitHub's recorded answers. **Nothing uses it yet**: the driver is the D5 plan's next sitting. RUNBOOK's *The GitHub fake* |
 | **The proof app** | `https://proof-app.staging.manifest.internal` | §16's application: CWL sign-in, private notes, an AI answer |
 | **The fixture app** | `https://fixture-app.staging.manifest.internal` | P3's trivial app — proves a build and a deploy, nothing more |
 
@@ -399,8 +400,8 @@ ORIENTATION §6 and any plan's negative controls.
 | | |
 |---|---|
 | Stop the control plane | `Ctrl-C` in its terminal |
-| `make down` | Stops the platform. Data, the mirror and the CA survive |
-| `make reset` | **Destroys every project's data** — databases, registry contents, every `mf-` container, network and volume. Asks you to type `reset`. Keeps the CA, the master key (and the fake GitHub App's credentials beside it) and the npm mirror. Afterwards: `make up`, then `db:migrate` before the control plane |
+| `make down` | Stops the platform, the GitHub fake included. Data, the mirror and the CA survive |
+| `make reset` | **Destroys every project's data** — databases, registry contents, the GitHub fake's repositories, every `mf-` container, network and volume. Asks you to type `reset`. Keeps the CA, the master key (and the fake GitHub App's credentials beside it) and the npm mirror. Afterwards: `make up`, then `db:migrate` before the control plane |
 | `make host-undo` | Reverses the three host changes `make host-setup` made. Valet is untouched |
 
 ---

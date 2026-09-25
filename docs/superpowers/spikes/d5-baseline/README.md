@@ -372,6 +372,18 @@ No earlier measurement can answer these, and Task 6's real leg can, at Rich's ye
   does the real `git fetch --porcelain` print the shadow's `+` exactly as host git does against a bare
   repository? A single `git fetch` against GitHub settles it.
 
+> **ANSWERED BY TASK 6'S REAL LEG, 2026-09-24** (sitting 3; `packages/github-fake/conformance/github.com-2026-09-24.json`,
+> App 5068172, organisation `Manifest-local-dev`, free plan): **(a) YES** — C8, `201`, `repository_selection:
+> selected`, one second after C6. **(b) `403`**, *"Upgrade to GitHub Pro or make this repository public to
+> enable this feature."* — C13, as documented. **(c)** git exits 128 and prints **`remote: Write access to
+> repository not granted.`** — C11; NOT the community-reported *"Permission to … denied to …[bot]"*, and
+> the fake was corrected. **(d) `404`** `Not Found` — C10. **(e) STATELESS** — C5, `ghs_<APPID>_eyJ…`, 60
+> minutes. **(f) NOT MEASURED**: Task 6's script has no step that rewrites a branch — sitting 1 added (f)
+> here and no step was added to Task 6 — so it is owed to sitting 8's real run (Task 15). **And two the
+> plan did not ask, which Spec action 3 is conditional on**: a token cannot name a repository that does not
+> exist (C5b, `422`), and **a token SCOPED to another repository, holding `administration: write`, CREATES a
+> repository** (C7s, `201`) — the plan's *Spec actions*, 3, has what that means and Rich's options.
+
 ---
 
 ## Negative controls, and which of them could not fail

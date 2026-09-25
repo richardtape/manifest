@@ -1512,6 +1512,29 @@ it belongs among the traps the next sitting is most likely to hit.
   not the script's lines.
 - **Vitest's `it.each(…)('… %o')` formats a number as an OBJECT — in decimal.** A file-mode row `0o640` reads
   *"refuses mode 416"* in a red run. Label it: `.map((m) => [m.toString(8), m])` and `%s`.
+- **A FILE YOU WRITE INTO THE TREE WHILE A BACKGROUNDED GATE RUN IS GOING IS READ BY ITS `lint`, `typecheck` AND
+  `format:check`** (2026-09-24, the D5 plan's sitting 3). The open-of-sitting gates run `pnpm test` twice and then
+  the three static gates, ~7 minutes in all; a new workspace package written meanwhile would have turned all three
+  red for work that was not the tree's — `pnpm -r typecheck` iterates every `packages/*` with a `package.json`,
+  linked or not. **Write in the scratchpad until the gates finish**, or move the work aside before the static
+  gates start. `pnpm test` itself is safe: Vitest collects its files when it starts.
+- **`node:22-alpine` IS NOT `alpine:3.22`** (2026-09-24, the D5 plan's Task 5). `node:22-alpine` is **Alpine
+  3.24.1**, so `apk add git` in it installs **git 2.54.0** — the plan had measured `apk add git` in `alpine:3.22`
+  (3.22.5, git 2.49.1) and predicted that. Measure a package's version IN THE IMAGE THAT WILL RUN IT: `docker exec
+  <c> cat /etc/alpine-release`.
+- **GITHUB'S `full-repository` SCHEMA DOES NOT REQUIRE `visibility`** (2026-09-24, the D5 plan's Task 4). Its 75
+  required keys include `private` and not `visibility`, so a fake that drops `visibility` is caught by a VALUE
+  assertion, never by `expectGitHubShape`. A negative control meant to prove the schema check is live must remove
+  a REQUIRED key — read the list first: `node -e 'console.log(require("./packages/github-fake/conformance/github-schemas.json").components.schemas["full-repository"].required)'`.
+- **REAL GITHUB, MEASURED 2026-09-24 — FOUR ANSWERS THE DOCUMENTATION DID NOT GIVE** (the D5 plan's Task 6;
+  `packages/github-fake/conformance/golden.json`): an installation token's `permissions` answer ADDS `metadata:
+  read` to what was requested; **a token SCOPED to one repository, holding `administration: write`, CAN CREATE
+  another repository** (GitHub does not confine creation to a token's repositories); a `contents: read` token's
+  push is refused `remote: Write access to repository not granted.` (not *"Permission to … denied"*); and a
+  token CAN name a repository one second after creating it. `POST /orgs/{org}/repos` without `private: true`
+  creates a PUBLIC repository (documented default). **The org `Manifest-local-dev` and the App's bot
+  `manifest-local-dev[bot]` share a name**, so a normaliser that replaces a bare org name case-insensitively
+  rewrites the bot's login too.
 
 ## Images already pulled
 

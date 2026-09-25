@@ -1,6 +1,6 @@
 # D5's Driver 2 — the GitHub Source Driver Implementation Plan
 
-> **WRITTEN 2026-09-24. SITTING 1 (TASK 1, THE MEASUREMENTS) AND SITTING 2 (TASKS 2 AND 3) RAN ON 2026-09-24. Which sitting is next is stated by the sittings table below (and ORIENTATION §7e), and nowhere else.** Every premise held, and the measurements found that one rewrite of GitHub's `main` freezes the mirror's (F6) — corrected in Tasks 7, 9 and 11 — and that Task 13's check crosses its own line (F7). **Rich decided F7 the same day: the summary becomes STRUCTURED OUTPUT, and Task 13 is rewritten for it (Decisions 19 and 22); he also switched the chat model to `qwen3.5:4b`, with thinking off.** No sitting boundary moved. The `[M<n>]` blocks at the top of Tasks 2, 4, 5, 7, 8, 9, 11 and 13 are the corrections; [`spikes/d5-baseline/`](../spikes/d5-baseline/README.md) is the record. **Its three spec actions were approved by Rich and APPLIED the same day** (*Spec actions*, below): §20's push-time sentence as option (a), §21's inventory row, and §20's one unscoped token — the last *unless the conformance run says otherwise*. *What executing this plan found* is where every sitting's record goes.
+> **WRITTEN 2026-09-24. SITTING 1 (TASK 1, THE MEASUREMENTS), SITTING 2 (TASKS 2 AND 3) AND SITTING 3 (TASKS 4, 5 AND 6 — THE FAKE, ITS CONTAINER AND THE CONFORMANCE RUN, REAL LEG INCLUDED) RAN ON 2026-09-24. Which sitting is next is stated by the sittings table below (and ORIENTATION §7e), and nowhere else.** **Sitting 3's real conformance leg MET SPEC ACTION 3'S CONDITION** — a token scoped to another repository created one, so GitHub does not confine creation to a token's repositories — and that is Rich's to decide (*Spec actions*, 3). Every premise held, and the measurements found that one rewrite of GitHub's `main` freezes the mirror's (F6) — corrected in Tasks 7, 9 and 11 — and that Task 13's check crosses its own line (F7). **Rich decided F7 the same day: the summary becomes STRUCTURED OUTPUT, and Task 13 is rewritten for it (Decisions 19 and 22); he also switched the chat model to `qwen3.5:4b`, with thinking off.** No sitting boundary moved. The `[M<n>]` blocks at the top of Tasks 2, 4, 5, 7, 8, 9, 11 and 13 are the corrections; [`spikes/d5-baseline/`](../spikes/d5-baseline/README.md) is the record. **Its three spec actions were approved by Rich and APPLIED the same day** (*Spec actions*, below): §20's push-time sentence as option (a), §21's inventory row, and §20's one unscoped token — the last *unless the conformance run says otherwise*. *What executing this plan found* is where every sitting's record goes.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
 
@@ -8,7 +8,7 @@
 
 **Architecture:** D5's `SourceDriver` gets its second implementation, and **the build path goes behind the interface** for the first time. Today two callers read a laptop path straight off `RepoRef` (roadmap finding 2). They now ask `localGitDir(repo, commitSha)` for the commit, present in a bare repository on this machine. **The GitHub driver keeps a LOCAL MIRROR at exactly the path driver 1's bare repository has** (roadmap finding 1), so `build/` does not change, a mirrored commit builds with the network off (C1), and §13's *same source → same digest* holds. GitHub is the durable copy. The mirror is what builds, and it is fetched with a **non-forced** refspec, so a rewritten upstream `main` can never take away the history an approved release names. **One driver per control-plane process** (`MANIFEST_SOURCE_DRIVER`, default `local`). Each project records its provider, and an operation on a project the running driver did not create is refused rather than guessed at. **Webhooks reach the control plane the way the edge itself does** — `host.docker.internal:7100`, never through the edge. They are verified by HMAC before anything else, recorded once by delivery id, and processed off the request by one per-process queue. **Every advance of the mirror, whatever caused it, goes through one observer**, which is where history rewrites, a repository found public and secrets found in pushed commits become Events. The fake is **our own**. It is a zero-dependency workspace package, run from TypeScript source by Node 22 in a container on the platform network. Three things its author did not write hold it honest: GitHub's own OpenAPI schemas, GitHub's published HMAC test vector, and the golden answers of the real App.
 
-**Tech Stack:** TypeScript on Node **24.12.0** (host) and **22.23.2** (`node:22-alpine`, the fake's container — measured 2026-09-24). Fastify **5.12.3** (installed, the only version in the store — *its own `fastify.version` constant says `5.12.2`*, which is where this line first came from; Task 1 `[M2]`, F1), Drizzle over Postgres 16, `zod/v4`, Vitest 2.1, TypeScript **5.9.3**, `git` **2.50.1** (Apple, host) and **2.49.1** (Alpine 3.22's package, in the fake). React 19 + Vite in `packages/console`, and `@manifest/contract` generated by `openapi-typescript` and driven through `openapi-fetch`. Ajv **8.20.0**, already in the store for `@manifest/mock`. **No new external package is installed.** `packages/github-fake` is a new *workspace* package with zero runtime dependencies. Linking it is `pnpm install --offline`, and Task 1 measures that before Task 4 relies on it. The JWT is signed with `node:crypto`; there is no `jsonwebtoken` and no Octokit.
+**Tech Stack:** TypeScript on Node **24.12.0** (host) and **22.23.2** (`node:22-alpine`, the fake's container — measured 2026-09-24). Fastify **5.12.3** (installed, the only version in the store — *its own `fastify.version` constant says `5.12.2`*, which is where this line first came from; Task 1 `[M2]`, F1), Drizzle over Postgres 16, `zod/v4`, Vitest 2.1, TypeScript **5.9.3**, `git` **2.50.1** (Apple, host) and **2.54.0** (in the fake — `node:22-alpine` is **Alpine 3.24.1**, measured by Task 5; the 2.49.1 first written here was `alpine:3.22`'s, which is not the fake's base). React 19 + Vite in `packages/console`, and `@manifest/contract` generated by `openapi-typescript` and driven through `openapi-fetch`. Ajv **8.20.0**, already in the store for `@manifest/mock`. **No new external package is installed.** `packages/github-fake` is a new *workspace* package with zero runtime dependencies. Linking it is `pnpm install --offline`, and Task 1 measures that before Task 4 relies on it. The JWT is signed with `node:crypto`; there is no `jsonwebtoken` and no Octokit.
 
 **Spec:** [`../specs/2026-08-29-manifest-platform-design.md`](../specs/2026-08-29-manifest-platform-design.md). Read these sections: **D5** and **D14** in §4; **§20 *Git driver*** (all five bullets), *Key management*, *Credential classes* and the *Control map*'s confused-deputy and secret-exfiltration rows; **§12 *Supply chain*** (the secret gate is pattern-based and runs offline); **§21** *Platform inventory*, *Honest divergences* 8 (platform containers can reach the host, app containers cannot) and *Commands*; **§13 *Integrity of the gate*** (a release's commit must stay buildable); §5's module map (`source/  git provider drivers (local, github)`); §6's `Project`.
 
@@ -37,8 +37,8 @@
 |---|---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on.** Measured while the plan was written, and to be re-measured: the smart-HTTP transport, the credential-leak paths, the webhook's route, the stateless token format the secret gate misses, the model's F9 rate. **To be measured for the first time:** whether a new workspace package links offline, whether an installation token can be scoped to a repository it has just created, how `compose down` treats a profiled service, and the four gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | **DONE 2026-09-24** — every premise held; F6 (one rewrite freezes the mirror's `main`) corrects Tasks 7, 9 and 11; F7 decided by Rich the same day — structured output, Task 13 rewritten; the contract bump moves to Task 2 (F8); no boundary moved |
 | 2 | 2, 3 | **The build path behind `SourceDriver`** — `localGitDir`, `RepoRef` without a path, and the source-driver contract suite, which driver 1 passes — and **the App key's custody**: one owner-only rule for both keys, the App JWT, the fake App's credentials minted by `make up`, and the GitHub settings | **Yes** — `releases/`, `build/` callers, `secrets/` | **DONE 2026-09-24** (`5758330`, `ef464a3`) — the builder and reviewer ask `localGitDir`; the suite is eleven cases, with an `extra` hook Task 7 uses; `SOURCE_FOREIGN_REPO` retired; contract `1.2.0`; a `644` master key refuses boot; `make up` mints the fake App's four files; no boundary moved |
-| 3 | 4, 5, **6** | **The fake** — App JWT → installation tokens, private org repositories and git over HTTP, all held to GitHub's own schemas — **its container** (`--profile github`, 7110, built by `make seed`), and **the conformance run** against GitHub's recorded answers, with a real App at Rich's yes. **If it runs long, stop after Task 5 and sweep** | **Yes** — `infra/`, a `*.docker.test.ts` | not started ← next — **Rich's network for Task 5's image, and his yes for Task 6's real leg** (*What Rich does* 1 and 3) |
-| 4 | 7, 8 | **The GitHub driver** — mirror, tokens that never leave the process, the contract suite green against the fake — and **its wiring**: boot, `source_repositories` (migration), the provider mismatch refusal, `SOURCE_UNREACHABLE` as `503`, the contract to `1.2.0`, and a real build through the fake | **Yes** — `api/`, `build/` callers, a `*.docker.test.ts` | not started |
+| 3 | 4, 5, **6** | **The fake** — App JWT → installation tokens, private org repositories and git over HTTP, all held to GitHub's own schemas — **its container** (`--profile github`, 7110, built by `make seed`), and **the conformance run** against GitHub's recorded answers, with a real App at Rich's yes. **If it runs long, stop after Task 5 and sweep** | **Yes** — `infra/`, a `*.docker.test.ts` | **DONE 2026-09-24** (`038cdf4`, `f10f895`, `a874895`) — `@manifest/github-fake` held to GitHub's schemas; `manifest-github-fake:local` behind `--profile github` on `127.0.0.1:7110`, doctor 20 and verify 57; **the real leg ran at Rich's yes** (App 5068172, both repositories deleted) and golden now holds GitHub's measured answers — three differed and the fake was corrected; **C7s met Spec action 3's condition — Rich's**; no boundary moved |
+| 4 | 7, 8 | **The GitHub driver** — mirror, tokens that never leave the process, the contract suite green against the fake — and **its wiring**: boot, `source_repositories` (migration), the provider mismatch refusal, `SOURCE_UNREACHABLE` as `503`, the contract to `1.2.0`, and a real build through the fake | **Yes** — `api/`, `build/` callers, a `*.docker.test.ts` | not started ← next — nothing of Rich's is needed to START it (his answer on Spec action 3 changes no code in it) |
 | 5 | 9, 10 | **Webhooks** — the fake delivers signed events; the receiver refuses an ABSENT signature, a malformed one and a wrong one by code, records a delivery once, and syncs off the request; a rewritten `main` is refused by the mirror and reported — and **enforced-private**: a repository found public is made private again, reported, and not built while public | **Yes** — `observability/`, `projects/`, a `*.docker.test.ts` | not started |
 | 6 | 11, 12 | **Push-time secret scanning** on every path Manifest can see — its own commits before they leave, driver 1's pushes by a hook, and driver 2's pushes on arrival — with the stateless token pattern, and **`main` protected** on both drivers, and **the repository link** on `Project` and the console | **Yes** — `build/`, `projects/` | not started |
 | 7 | 13, 14 | **P6b's inherited findings**: F9 (the model invents a verdict — fixed by making the summary STRUCTURED OUTPUT with no place for one), F13 and F14 on the server, and F11, F12 and F15 in the console | **Yes** — `releases/`, `launch/` | not started |
@@ -1850,6 +1850,30 @@ git commit -m "feat(github-fake): the conformance run — the fake against GitHu
 > `SourceDriverHarness` is exported from `driver-contract.ts`, not `./index.js`. **`SOURCE_FOREIGN_REPO` no
 > longer exists** (retired, sitting 2's F1). The harness call below is unchanged by any of this.
 
+> **SITTING 3 — WHAT TASKS 4–6 BUILT, WHICH THIS TASK CONSUMES, AND WHAT REAL GITHUB SAID (2026-09-24).**
+> **The fake:** `import { startFake, type StartedFake } from '@manifest/github-fake/testing'` — so the
+> control plane needs `"@manifest/github-fake": "workspace:*"` in its `devDependencies` and `pnpm install
+> --offline` (stage `pnpm-lock.yaml`). `StartedFake` has `url`, `apiUrl` (`…/api/v3`), `gitUrl`, `org`
+> (`manifest-apps`), `appId`, `installationId`, `appKeyPem`, `webhookSecret`, `developerToken`, `plan`,
+> **`dataDir`** and `stop()` — **no `deliveries()`, `setWebhookUrl` or `quirks` yet**: `quirks.createPublic`
+> is THIS task's to add, `refusePrivatize` Task 10's, the delivery log Task 9's. **No `/_fake/reset`**
+> either (Task 15 adds it with its caller). **Measured against real GitHub and folded into the fake** (golden,
+> `source: github.com 2026-09-24, App 5068172`): (i) a token's `permissions` answer ADDS `metadata: read`;
+> (ii) **creation needs `administration: write` and nothing else — a token SCOPED to another repository
+> creates one** (C7s), so every per-repository `administration` token this task mints for visibility and
+> protection can create repositories in the organisation — Decision 4's installation-wide creation token
+> still stands (an empty organisation has no repository to scope to), and the token must never leave the
+> process, which Decision 20 already demands; (iii) a token CAN name a repository one second after
+> creating it (C8), so `createRepository`'s follow-up per-repository tokens need no retry; (iv) a
+> `contents: read` token's push is refused `remote: Write access to repository not granted.`; (v) a token
+> cannot name a repository that does not exist — `422` (C5b). **The fake keeps GitHub's documented DEFAULT:
+> `POST /orgs/{org}/repos` WITHOUT `private: true` creates a PUBLIC repository** — Decision 12's check is
+> what catches a driver that forgets it. **A duplicate name is `422`** with `message: 'Repository creation
+> failed.'` and `errors: [{ field: 'name', message: 'name already exists on this account' }]` — Decision
+> 16's `SOURCE_REPOSITORY_EXISTS` keys on that (documentation; the real leg never collided). Error bodies
+> are GitHub's `{ message, documentation_url, status }`. A bare repository lives at `<dataDir>/<org
+> lowercased>/<name lowercased>.git`, `HEAD` → `main`.
+
 **D5's driver 2.** It passes Task 2's contract suite **unchanged** against the in-process fake, and then the promises only a remote driver has to keep: Decisions 1, 4, 12 (at creation), 16 and 18. **The build path does not change**: `localGitDir` returns the mirror.
 
 **Files:**
@@ -3185,6 +3209,12 @@ Rich types the passwords. Record each row as the screen showed it.
 ---
 ## Task 15: The acceptance — `make demo-github`, against a control plane on driver 2, offline
 
+> **SITTING 3 (2026-09-24): `[M19](f)` IS STILL UNMEASURED, AND IS THIS SITTING'S TO MEASURE.** Task 6's
+> script has no step that rewrites a branch — sitting 1 added (f) to `[M19]` and no step was added to Task 6.
+> **Add one to `conformance.ts` before the real run** (C9r: force-push a rewritten `main` to `-a`, then
+> `git fetch --porcelain` it into a mirror with Task 7's two refspecs, and record whether the shadow
+> reports `+`), keep it inside the two repositories Rich's yes covers, and make the fake answer it too.
+
 **ALONE, AND LAST.** It drives driver 2's whole delivery path through `@manifest/contract`: a project whose code is on (fake) GitHub, private; a person's push that reaches Manifest by a signed webhook, is validated and is built from the mirror; a build with GitHub gone; a repository made public and made private again; a secret pushed straight to GitHub and found; a force-push refused; and the webhook's four refusals. It is **green three times**, it is a step of the offline acceptance and of `ci-acceptance`, and it is **clicked by a person**. Then `make github-conformance` runs at Rich's yes, and **`make demo` runs on driver 1 with no GitHub at all** (C1).
 
 **Files:**
@@ -3312,6 +3342,26 @@ It reads *"installation tokens are short-lived and scoped per repository."* **Cr
 > - GitHub App private key held in the same custody class as the master key; installation tokens are short-lived and scoped per repository — **except the one that creates a repository, which cannot name it yet: it carries the administration permission alone, is used for that one call, and is never kept.**
 
 *Rich's approval is CONDITIONAL on Task 6's real leg (steps C5–C8). If it measures that GitHub accepts a not-yet-existing name, or scopes creation some other way, the applied sentence is wrong: **bring the measurement to Rich with the reverting edit, and do not revert it unasked.** Decision 4's exception then goes with it.*
+
+> **THE CONDITION IS MET — MEASURED 2026-09-24 BY TASK 6'S REAL LEG, AND NOT REVERTED: RICH'S** (sitting 3's
+> F10; `packages/github-fake/conformance/github.com-2026-09-24.json`, App 5068172, `Manifest-local-dev`).
+> **(1) A not-yet-existing name is REFUSED** — C5b, a token naming one: `422` *"There is at least one
+> repository that does not exist or is not accessible to the parent installation."* That half of the
+> sentence holds: the token that creates a repository cannot name it. **(2) But creation IS scoped "some
+> other way" — by nothing at all.** C7s: a token minted with `repositories: [<-a>]` and `administration:
+> write` **created `-b`** (`201`). GitHub does not confine creation to a token's repositories, so the
+> sentence's implication — that the other tokens, being per repository, cannot create — is false: **every
+> token holding `administration: write`, including the per-repository ones Decision 4 mints for visibility
+> and protection, can create a repository in the organisation.** *The options, for Rich:* **(a) revert** to
+> the sentence as it stood — *"installation tokens are short-lived and scoped per repository"* — which is
+> silent on creation; **(b) correct it** — *"…scoped per repository — though GitHub does not confine
+> creation to a token's repositories: any token holding the administration permission can create one in
+> the organisation, so the token that creates a repository carries that permission alone, is used for that
+> one call, and is never kept, and no administration token ever leaves the control plane"*; **(c) keep it**,
+> recording the measurement here only. **Recommended: (b)** — it states what GitHub measurably does, keeps
+> Decision 4's exception (still needed: an empty organisation has no repository to scope to), and names the
+> control that actually holds (Decision 20's). *Changing course later* is one sentence. **Decision 4 does not
+> change under any of the three**; Task 7 builds it as written.
 
 **Not proposed, deliberately:**
 
@@ -3733,3 +3783,180 @@ after each.
   unloaded at close. `docker-simple-saml-saml-idp-1` is `Exited (0) 2 weeks ago`, as found; the other three
   must-survive containers are up. Snapshot diff (17:33 → 18:41): uptimes, the edge's restart, 6 app images, free disk
   115 → 113 GiB, `HEAD`, and this sitting's own files.
+
+### Sitting 3 — Tasks 4, 5 and 6, the fake, its container and the conformance run — 2026-09-24
+
+**RICH'S DECISION IS BUILT, AND THE REAL LEG RAN: THE FAKE NOW ANSWERS WHAT GITHUB MEASURABLY ANSWERS — AND ONE OF
+THOSE ANSWERS MEETS SPEC ACTION 3'S CONDITION.** Task 4 (`038cdf4`): `@manifest/github-fake`, a zero-dependency
+workspace package run from TypeScript source, answers App JWTs by GitHub's rules, mints stateless `ghs_<APPID>_<JWT>`
+installation tokens scoped to repositories and permissions, serves an organisation's repositories (create, read,
+change visibility, delete — `404`, never `403`, for one a token cannot see) and git over HTTP through core git's
+`--stateless-rpc`; every JSON answer is validated against GitHub's own schemas, and it imports nothing from the
+control plane. Task 5 (`f10f895`): `manifest-github-fake:local` behind `--profile github` on `127.0.0.1:7110`,
+built by `make seed`, stopped by `make down` and emptied by `make reset`; `make doctor` 20, `make verify` 57; a
+Docker-tier test holds the IMAGE to the control plane's own `appJwt`. Task 6 (`a874895`): one request script
+against a target — the fake on every `pnpm test`, real GitHub at Rich's yes — and **the real leg ran**
+(`Manifest (local dev)`, App 5068172, `Manifest-local-dev`, free plan; both repositories deleted): `golden.json`
+now holds GitHub's measured answers, three differed from the documentation and **the fake was corrected**, and
+**C7s — a step this sitting added — met Spec action 3's condition**, which is Rich's (*Spec actions*, 3; ORIENTATION
+§8, *Open*). **No task boundary moved.** Rich said yes to both questions in his first message.
+
+#### The decisions this sitting made
+
+Each is a `Ruling:` line in the ledger with what it costs if wrong; the ones a later task inherits:
+
+**1. The fake keeps GitHub's documented DEFAULT: a repository created without `private: true` is PUBLIC** (F4). Task
+7's Decision 12 check is what catches a driver that forgets it. *Rejected:* the task prose's *"private unless asked
+otherwise"*, which would make the fake kinder than GitHub exactly where the driver must not be careless.
+
+**2. The token key persists in the fake's volume** (`<dataDir>/token.key`, `600`), so a token minted before a
+container restart verifies after it, as GitHub's do — without it Task 7's in-memory token cache would break on
+every fake restart. Task 5's Docker test asserts it.
+
+**3. `/_fake/reset` is not built.** Its only caller is Task 15's demo; a module with no caller is not built.
+
+**4. The conformance script has SIXTEEN steps, not fourteen: C5b and C7s** ask the two questions Spec action 3 is
+conditional on, inside the two repositories Rich's yes covers (F9). C14 deletes only what the run created.
+
+**5. Task 5's control (d) was witnessed with `compose build --dry-run`** rather than a real bare build, which would
+re-resolve every platform image's base with the network on and could rebuild them (F15); the doctor half was real.
+
+**6. `make down` was not run against the live platform** to re-witness `[M13]`: launch-app's two egress sidecars
+share `manifest-platform`. The `[M13]` probe measured both forms; the Makefile names the profile in `down` and
+`reset`.
+
+#### The findings
+
+**F1 — GITHUB'S `full-repository` DOES NOT REQUIRE `visibility`, SO TASK 4'S CONTROL (c) COULD NOT SHOW WHAT IT
+CLAIMED.** Its 75 required keys include `private` and not `visibility` (read from `github-schemas.json` before the
+control ran). Dropping `visibility` turned three VALUE assertions red and no schema check; the plan predicted the
+schema. Control (c′), dropping `private`, turned four red, every one in `expectGitHubShape` (*"must have required
+property 'private'"*) — Decision 7's first mechanism is live, and now shown by a control that can show it.
+
+**F2 — THE PLAN'S `grantFor` IS A `tsc` ERROR.** `{ metadata: 'read', ...c.perms }` is TS2783 (*'metadata' is
+specified more than once*): `Grant['permissions']` makes the key always present. Vitest strips types, so every test
+was green. Now `{ ...c.perms, metadata: c.perms.metadata ?? 'read' }`.
+
+**F3 — THE PLAN'S `verifyAppJwt` ANSWERS `500` TO AN INSTALLATION TOKEN SENT AS `Bearer`.** A `ghs_…` token matches
+its three-part regex, and it `JSON.parse`d a part that is not base64 JSON with no guard — `SyntaxError`, a `500`
+where GitHub's `401` belongs. Guarded; control (f) measured the plan's code (`expected 500 to be 401`).
+
+**F4 — THE TASK'S PROSE CONTRADICTS GITHUB'S DEFAULT.** *"Organisation repositories that are private unless asked
+otherwise"* — GitHub's `POST /orgs/{org}/repos` documents `private` default `false`. Decision 1 above.
+
+**F5 — THE PLAN'S DUPLICATE-NAME TEST EXPECTS A MESSAGE NAMING THE NAME; GITHUB'S DOCUMENTED `422` NAMES THE
+FIELD.** `message: 'Repository creation failed.'`, `errors: [{ field: 'name', message: 'name already exists on this
+account' }]`. The test asserts that body; the real leg never collided, so it is documentation.
+
+**F6 — TWO OF MY OWN TESTS WERE WRONG ON THEIR FIRST GREEN RUN.** `git rev-parse --abbrev-ref HEAD HEAD` abbreviates
+BOTH revisions (`['main','main']`), and `expectGitHubShape(root, {})` was expected to throw for every root while
+`webhook ping` requires nothing. Both caught by the run, not by reading.
+
+**F7 — `node:22-alpine` IS ALPINE 3.24.1, SO THE FAKE'S GIT IS 2.54.0, NOT 2.49.1.** Task 5 Step 4 predicted 2.49.1
+from Task 1's `apk add git` in `alpine:3.22` (3.22.5) — not the fake's base. Still no `git-http-backend`, as
+predicted. The header's Tech Stack is corrected; TRAPS.md has it.
+
+**F8 — `make doctor` NEEDED NO PORT-MAP ENTRY FOR 7110.** The plan said doctor must learn 7110 is the fake's, as it
+learned 7104; measured before any change, `manifest_own_ports` read 7110 as Manifest's own the first time the fake
+ran, because it derives the list from every `manifest-*` container's published ports. 7104 was a HOST process.
+
+**F9 — THE CONFORMANCE SCRIPT AS PLANNED NEVER ASKED THE TWO QUESTIONS SPEC ACTION 3 IS CONDITIONAL ON.** *"If it
+measures that GitHub accepts a not-yet-existing name, or scopes creation some other way"* — no step minted a token
+naming a repository that does not exist, and none tried creation with a scoped token (C6 used an installation-wide
+one). C5b and C7s added (Decision 4 above).
+
+**F10 — SPEC ACTION 3'S CONDITION IS MET: A TOKEN SCOPED TO ANOTHER REPOSITORY CREATED A REPOSITORY.** C7s, real
+GitHub: a token minted with `repositories: [<-a>]` and `administration: write` answered `201` to `POST
+/orgs/Manifest-local-dev/repos` for `-b`. **GitHub does not confine creation to a token's repositories**, so every
+token holding `administration: write` — including the per-repository ones Decision 4 mints for visibility and
+protection — can create a repository in the organisation. C5b confirms the other half: a token cannot name a
+repository that does not exist (`422`). **Brought to Rich with three options and a recommendation, not reverted**
+(*Spec actions*, 3). No code waits on it; Decision 4 stands under all three.
+
+**F11 — GITHUB ADDS `metadata: read` TO A TOKEN'S `permissions` ANSWER.** C5: `administration:write,metadata:read`
+for a request of `administration: write`. The plan's own test asserted exactly `{ administration: 'write' }`; the
+fake and the test now follow GitHub.
+
+**F12 — GITHUB REFUSES A READ-ONLY TOKEN'S PUSH `remote: Write access to repository not granted.`** C11 — not the
+community-reported *"Permission to … denied to …[bot]."* that the plan's test and golden carried. The fake answers
+an installation token in GitHub's words (a person keeps the *Permission* line).
+
+**F13 — MY FIRST NORMALISER WOULD HAVE REWRITTEN THE BOT'S LOGIN.** The real org `Manifest-local-dev` and the App's
+bot `manifest-local-dev[bot]` share a name; replacing a bare org case-insensitively turns GitHub's line into
+`<org>[bot]` and the fake's not. Caught by reading before the real run; only the `<org>/<repo>` path is replaced.
+
+**F14 — THE OPEN-OF-SITTING GATES WOULD HAVE READ THIS SITTING'S WORK IN PROGRESS.** The package was being written
+while `pnpm test` ran in the background; `lint`, `typecheck` and `format:check` came next and would have gone red on
+it. Moved to the scratchpad before they started. TRAPS.md has it.
+
+**F15 — TASK 5'S CONTROL (d) AS WRITTEN WOULD REBUILD THE WHOLE PLATFORM WITH THE NETWORK ON.** *"`seed.sh` without
+`--profile github` … then `make seed`'s step 2 alone"* is a bare `compose build`, which re-resolves every base
+image's tag — and could rebuild caddy, egress, idp and dnsmasq on new bases. Witnessed with `--dry-run` (bare: five
+images, no `github-fake`; with the profile: six) and a real image removal for doctor's half.
+
+**F16 — `[M19](f)` HAS NO STEP.** Sitting 1 added *"does the real `git fetch --porcelain` print the shadow's `+`"*
+to `[M19]`, and no step was added to Task 6's script, so the real leg could not answer it. Owed to sitting 8; a
+note at the top of Task 15 says what to add.
+
+**F17 — THE POST-SWEEP CHECK: §7e SAID TASK 7 HAS THREE BLOCKS AT ITS TOP, AND A READER WOULD HAVE COUNTED TWO.**
+This sitting's own note was appended to sitting 2's blockquote with a `>` line, so the two read as one block.
+Found by opening Task 7 and counting, after the sweep; separated.
+
+#### Negative controls
+
+Every one after its task's commit, predicted first, restored with `git checkout <path>` (or `chmod 600`), `git
+status` clean after each; the substitution script asserts each pattern matched exactly once.
+
+| Task | # | Break | Predicted | Measured |
+|---|---|---|---|---|
+| 4 | (a) | no `exp > t + 600` rule | *exp more than ten minutes out* red | as predicted (`200` vs `401`) |
+| 4 | (b) | `canSee` true for any grant | REST *A reading B* + git *another repository* red | as predicted |
+| 4 | (c) | no `visibility` | the plan: the schema; mine: value assertions | **3 value assertions, no schema** — F1 |
+| 4 | (c′) | no `private` | the schema, first | 4 red, all `expectGitHubShape` |
+| 4 | (d) | schemas emptied | files fail to load | 3 files, `TypeError` — not green |
+| 4 | (e) | HMAC compared with `===` | green | green — held by reading |
+| 4 | (f) | `verifyAppJwt` without its guard | `500` | `500` vs `401` — F3 |
+| 5 | (a) | the App's PRIVATE key mounted | verify (2) red, naming it | as predicted, 57/1 |
+| 5 | (b) | `7110:7110` | verify (2) red | `'*:7110', not exactly 127.0.0.1:7110` |
+| 5 | (c) | webhook secret `644` | verify (1) red | as predicted; back to `600` |
+| 5 | (d) | the profile trap; the image removed | bare build skips it; doctor red | `--dry-run` 5 vs 6 images; doctor 20/1 with the `make seed` remedy — F15 |
+| 5 | (e) | no `apk add git` | 2 red at create | 2 red — the second at MINT (`422`, the repository never existed); `sh: git: not found` |
+| 6 | (a) | C10 answered `403` | golden red at C10, both plans | as predicted (+ two REST cases) |
+| 6 | (b) | golden's C6 `visibility: public` | red at C6 | as predicted |
+| 6 | (c) | the conformance JSON moved away | `SKIPPED`, exit 0 | as predicted |
+| 6 | (d) | C5 keeps the token | the no-secret rule red, naming it | every `runConformance` case red, *"ghs_1000001_…"* (twelve characters only) |
+| 6 | (e) | the fake's pre-measurement creation rule | golden red at C7s | `403` vs `201` + the REST creation case |
+
+**No control could not fail. One prediction was the plan's and wrong** — Task 4's (c), F1 — and one of mine was
+wrong in detail (Task 5's (e): red one step earlier than predicted).
+
+#### The gates, and the machine at close — queried, not recalled
+
+- **`pnpm test` 1813 in 130 after Task 4 and after Task 5, and 1818 in 131 after Task 6, twice each** — each as
+  predicted (Task 4: 1778 + 35 in five new files, one more than the plan's four, for `schemas.test.ts`; Task 5: no
+  unit test; Task 6: the package's 35 → 40 in six files). **At close: 1818 passed in 131 files, twice (187.6 s,
+  184.5 s)**; `pnpm lint`, `pnpm typecheck` (which lists `@manifest/github-fake`) and `pnpm format:check` clean. At
+  open: 1778 in 125, twice (178.8 s, 179.0 s), all four clean — the work in progress moved out of the tree first
+  (F14).
+- **`pnpm test:docker` 206 in 32, 1143.4 s** — owed (`infra/`, a `*.docker.test.ts`), green first time, up four in one
+  file (the fake's IMAGE). Chat model warmed first; S6's probe 14 passed. **`make verify` 57/0 straight after — the
+  tier's edge restart did not cut the host off this time** (sitting 2's F19 did not recur).
+- **`make doctor` 20 / 0 / 0 and `make verify` 57 / 0 / 0** at close (19/0/0 and 55/0/0 at open). `scripts/ci-acceptance.sh`
+  reads `1818 / 131 / 20 / 57`.
+- **Cleanups**: after the tier, `dead-app-resources.sh` found the usual **7 dead networks and 1 volume** and
+  `litellm-orphans.sh` **`p4b-probe-user`**; both `--apply` were ALLOWED and re-measured clean: `mf- containers=6
+  networks=2 volumes=4`.
+- **The database is EMPTY** (0 projects, builds, releases, specs; **24 migrations**) — the close's `pnpm test`
+  truncated it. `launch-app`'s six containers still run with no project row; `.manifest/repos/` holds the same six
+  bare repositories. Nothing listens on 7100, 7102, 7104 or 7110; three addresses on `lo0`.
+- **The GitHub fake**: `manifest-github-fake:local` is built (`98a310f686a7` — rebuilt from cache after control (e);
+  git 2.54.0, uid 1000); **its container and its volume were removed** — the volume held only `state.json` and
+  `token.key`, and this sitting created both — so the machine has the image and nothing else of it.
+- **`infra/secrets/`**: `master.key`, the four `github-fake-*` files, `github-app.pem` and `github-conformance.json`,
+  all `-rw-------`, owner `rich`. **Real GitHub**: C14 answered `204` twice, so neither conformance repository
+  remains in `Manifest-local-dev`.
+- **Images**: `docker images -q` **228**, `sort -u` **220**, `127.0.0.1:7107/local/*` **180** — the tier added 6 app
+  images (174 → 180) and Task 5 the fake's; no script sweeps app images. **Ollama with no model resident**
+  (`qwen3.5:4b` and `nomic-embed-text` unloaded at close). `docker-simple-saml-saml-idp-1` is `Exited (0) 2 weeks
+  ago`, as found; the other three must-survive containers are up. Snapshot diff (19:12 → 20:24): uptimes, the edge's
+  restart, 6 app images and the fake's, free disk 113 → 110 GiB, `HEAD`, and this sitting's own files.

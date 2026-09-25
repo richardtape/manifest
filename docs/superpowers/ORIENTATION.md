@@ -10,12 +10,13 @@ on one laptop, offline. The plan being executed now is **D5's GitHub source driv
 ([`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md)) — its sittings table
 says how far it has got. The roadmap's ledger outranks every document on status.
 
-*Last verified 2026-09-24, at the close of the D5 plan's sitting 2 (Tasks 2 and 3). `pnpm test` **1778 passed, 0
-skipped, in 125 files**, twice, identical — up 36 and two files. **`make doctor` 19 checks, 0 failed, 0 warnings** —
-the vulnerability database goes stale again after 2026-10-01 (`make refresh-vulndb`). **`make verify` 55.** `pnpm
-test:docker` **202 in 31**, 1129.3 s, unchanged — owed and run, green first time; after it `make verify` read 12
-host→edge failures until `docker restart manifest-caddy` (TRAPS.md, *THE HOST CAN LOSE THE EDGE*).
-`scripts/ci-acceptance.sh` reads `1778 / 125 / 19 / 55`. **This line states only the latest sitting** — each sitting's numbers are in its plan's *What executing this plan found*, dated, where they cannot
+*Last verified 2026-09-24, at the close of the D5 plan's sitting 3 (Tasks 4, 5 and 6). `pnpm test` **1818 passed, 0
+skipped, in 131 files**, twice, identical — up 40 and six files (the GitHub fake's package). **`make doctor` 20 checks,
+0 failed, 0 warnings** — up one, the fake's image; the vulnerability database goes stale again after 2026-10-01
+(`make refresh-vulndb`). **`make verify` 57** — up two, the fake's credentials and its compose narrowness. `pnpm
+test:docker` **206 in 32**, 1143.4 s — up four and one file (the fake's IMAGE), owed and run, green first time; this
+time the edge's restart did NOT cut the host off (`make verify` 57/0 straight after). `scripts/ci-acceptance.sh`
+reads `1818 / 131 / 20 / 57`. **This line states only the latest sitting** — each sitting's numbers are in its plan's *What executing this plan found*, dated, where they cannot
 drift.*
 
 **Short of context? Read §7e, §2's numbers box, §6 and §4's curated traps, in that order.** The full trap catalogue
@@ -62,21 +63,21 @@ roadmap's table — every plan self-reviewed first. The roadmap's defect-rate ta
 a written plan as a hypothesis (§9).
 
 **The four numbers you will check first, re-measured 2026-09-24 on this machine at the open AND the close of the D5
-plan's sitting 2 (Tasks 2 and 3; its record is in the plan). `pnpm test` **1778** in **125** files, up 36 and two
-files (1742 in 123, twice, at the open); `make doctor` **19** with **0 warnings**; `make verify` **55**; `pnpm
-test:docker` **202** in 31, unchanged, owed and run:**
+plan's sitting 3 (Tasks 4, 5 and 6; its record is in the plan). `pnpm test` **1818** in **131** files, up 40 and six
+files (1778 in 125, twice, at the open); `make doctor` **20** with **0 warnings**; `make verify` **57**; `pnpm
+test:docker` **206** in 32, owed and run:**
 
 | Gate | What it reads now |
 |---|---|
-| `pnpm test` (from the **repo root**) | **1778 passed, 0 skipped, 125 files**, ~175 s. Run it twice alone, and identical, after each code commit and at every close; `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **1778**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
-| `pnpm test:docker` | **202 tests, 0 SKIPPED, 31 files, 1129.3 s** on its last run (2026-09-24, the D5 plan's sitting 2). Owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — fails rather than skips, and **outlasts the agent's 10-minute tool limit: run it in the background**. It restarts the edge (dropping every runtime route), truncates the tables and re-registers the platform's SP row: **restart the control plane afterwards**, then run the two cleanup scripts, because it regenerates seven dead app networks and one volume every time — **and then `make verify`**: once, the edge's restart left the host unable to reach it (12 host→edge failures, fixed by `docker restart manifest-caddy`). Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
-| `make doctor` | **19 checks, 0 failed, 0 warnings** — the vulnerability database is fresh until **2026-10-01**; after that doctor warns, and §13's `scans` item refuses every production launch until `make refresh-vulndb` runs with the network on (*Outstanding*, below). Its `127.0.0.3` checks assert what dnsmasq answers, so **it cannot tell you production is REACHABLE** |
-| `make verify` | **55 checks, 0 failed, 0 warnings.** Straight after `make reset` it reads ONE red — the audit grant — until the control plane has migrated the empty database. Its INFO line reads `mf- containers=6 networks=2 volumes=4` today (`launch-app`'s alone). *Runtime routes currently applied* counts the internal listener (`srv0`) only, so it never sees a production route |
+| `pnpm test` (from the **repo root**) | **1818 passed, 0 skipped, 131 files**, ~180 s. Run it twice alone, and identical, after each code commit and at every close; `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **1818**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
+| `pnpm test:docker` | **206 tests, 0 SKIPPED, 32 files, 1143.4 s** on its last run (2026-09-24, the D5 plan's sitting 3). Owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — fails rather than skips, and **outlasts the agent's 10-minute tool limit: run it in the background**. It restarts the edge (dropping every runtime route), truncates the tables and re-registers the platform's SP row: **restart the control plane afterwards**, then run the two cleanup scripts, because it regenerates seven dead app networks and one volume every time — **and then `make verify`**: once, the edge's restart left the host unable to reach it (12 host→edge failures, fixed by `docker restart manifest-caddy`). Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
+| `make doctor` | **20 checks, 0 failed, 0 warnings** — one of them the GitHub fake's image (`make seed`, profile `github`); the vulnerability database is fresh until **2026-10-01**; after that doctor warns, and §13's `scans` item refuses every production launch until `make refresh-vulndb` runs with the network on (*Outstanding*, below). Its `127.0.0.3` checks assert what dnsmasq answers, so **it cannot tell you production is REACHABLE** |
+| `make verify` | **57 checks, 0 failed, 0 warnings** — two of them the GitHub fake's, static, whether or not it runs. Straight after `make reset` it reads ONE red — the audit grant — until the control plane has migrated the empty database. Its INFO line reads `mf- containers=6 networks=2 volumes=4` today (`launch-app`'s alone). *Runtime routes currently applied* counts the internal listener (`srv0`) only, so it never sees a production route |
 | `make demo-production` | P6a's acceptance: ~1 min fresh, three phases each ending `every check passed`; ~4 s on the re-use path, where `launch-app` has launched. Step 11 of `scripts/offline-acceptance.sh`. Last green 2026-09-24, as the first half of a fresh `make demo-releases` |
 | `make demo-releases` | P6b's acceptance: ~2 min re-used, ~3 fresh (it runs `make demo-production` first when `launch-app` has not launched). Step 12 of the offline acceptance and the last step of `make ci-acceptance`. It leaves `launch-app` on its leg C release. Last green 2026-09-24 |
 | `make demo-token` | P5b's acceptance, ~30 s; step 9 of the offline acceptance |
 | `make demo-journey` | P5a's acceptance: all eight steps, ~51 s, over the contract; last run by P6b sitting 4 |
-| `make ci-acceptance` | The headless half of 1c's acceptance, ~15 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases`. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines are this box's numbers in code — `1778 / 125 / 19 / 55` — and move with it** (§6) |
+| `make ci-acceptance` | The headless half of 1c's acceptance, ~15 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases`. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines are this box's numbers in code — `1818 / 131 / 20 / 57` — and move with it** (§6) |
 
 **A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is
 cheaper before you start than after. **This box is the only current one in this file**; the same four numbers are
@@ -100,9 +101,11 @@ each sitting left them, dated, and they deliberately do not move.
   read-only calls** (no installation token minted): `GET /app` → `200`, App id `5068172` = the file's, permissions
   exactly `administration: write`, `contents: write`, `metadata: read`, no events, **installed once**; `GET
   /orgs/Manifest-local-dev/installation` → `200`, installation `164652178` = the file's, `repository_selection: all`,
-  not suspended. Task 6's real leg is the first thing to mint a token or create a repository with it.
+  not suspended. **Its first real conformance run was the D5 plan's sitting 3, 2026-09-24, at Rich's yes**
+  (`make github-conformance`, ~12 s, both repositories deleted; `packages/github-fake/conformance/github.com-2026-09-24.json`)
+  — and its C7s answer is §8's open Spec action 3 question.
   - **What is still Rich's:** the conformance run creates two private repositories and deletes them, and runs **only
-    at his yes, with the network on, each time** (sittings 3 and 8). **Never install this App on UBC's
+    at his yes, with the network on, each time** — next in sitting 8. **Never install this App on UBC's
     organisation**; to revoke it, delete the key or the App on its GitHub page.
 - **Refreshing the vulnerability database — weekly, with the network on: `make refresh-vulndb`** (added 2026-09-24
   at Rich's request; `scripts/refresh-vulndb.sh` re-reads Grype's own status afterwards and names the new build
@@ -128,7 +131,9 @@ each sitting left them, dated, and they deliberately do not move.
   access arrives, and no code does.
 - **§8's open questions.**
 
-**The spec is current, with one open follow-up** (§8, *Open*: a §19 row that §20's new bullet 4 points at). Every
+**The spec is current, with two open follow-ups** (§8, *Open*: a §19 row that §20's new bullet 4 points at, and
+**Spec action 3's condition, met by the D5 plan's real conformance run on 2026-09-24** — §20's bullet 1, with three
+options and a recommendation). Every
 spec change has been applied only after Rich approved it — **most recently the chat-model switch's two, on
 2026-09-24**: §7's `-reasoning` names, and §21's *"the local chat model must stream content"*. The roadmap's *Spec
 actions raised by…* sections list every one, with its wording, and say which shared HTML pages were swept.
@@ -214,6 +219,9 @@ infra/reserved-labels/            §23's reserved labels, loaded at boot
 packages/control-plane/src/       the control plane — below
 packages/contract/                openapi.json (GENERATED) and @manifest/contract, the client generated from it
 packages/journey/                 §22's journey through that client — make demo-journey
+packages/github-fake/             D5's GitHub FAKE (the D5 plan, Tasks 4–6): App JWTs, scoped tokens, repositories,
+                                  git over HTTP — held to GitHub's own schemas and a real App's answers (golden.json);
+                                  run from TS source in manifest-github-fake:local, --profile github, 127.0.0.1:7110
 ```
 
 `packages/control-plane/src/` — one directory per §5 module, and **`module-boundaries.test.ts` refuses an import of
@@ -344,6 +352,12 @@ defect even when every test is green.**
   SOURCE_COMMIT_NOT_FOUND`, which `startBuild` answers before anything starts) and another driver's reference
   (`SOURCE_PROVIDER_MISMATCH`). `source/driver-contract.ts`'s `describeSourceDriver` is the contract; every driver
   runs it unchanged.
+- **The GitHub fake answers what GitHub MEASURABLY answers, and a disagreement goes to the fake** (the D5 plan,
+  Tasks 4–6, Decision 7). `@manifest/github-fake` imports nothing from the control plane (`boundary.test.ts`); every
+  JSON answer it gives is validated against GitHub's own schemas (`conformance/github-schemas.json`, verbatim); and
+  `conformance.test.ts` holds it to `conformance/golden.json` — **GitHub's recorded answers since the first real
+  run, 2026-09-24** — on every `pnpm test`. `make github-conformance` re-records them at Rich's yes. **It keeps
+  GitHub's defaults, not kinder ones**: a repository created without `private: true` is public.
 - **A deploy reads only the `ResolvedConfig` frozen at release (§13)**, never `app_specs.parsed` — a second source
   of truth is the defect shape P3 paid for seven times.
 - **A release freezes its BUILD's spec, and only its own project's build** (P6b Task 3, Decision 6). `POST
@@ -1246,49 +1260,46 @@ named in the row below.*
 | **P5b** | [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md) — **EXECUTED 2026-09-18**, all nine sittings | `make demo-token` — green three times, the third from a `make reset` machine; step 9 of the offline acceptance | 116 findings in nine sittings. **Sitting 9's F1 is the newest one to read, and it is a lesson about PREDICTIONS**: sitting 8 predicted Task 13's control (a) would be invisible to the acceptance, and it turns three checks red — the reasoning was about the FIXTURE token, which holds the privileged capability and is refused identically either way, while every REAL token lacks it and is refused by a different rule with a different code. **Sitting 9's F3** is the second: replacing the token secret's constant-time comparison with `===` left all 1342 tests AND all nine demo steps green, so the property was asserted by nothing; it is now asserted at the source, and the first draft of that assertion could not fail. **Sitting 9's F8**: one `pnpm test:docker` run recreates exactly the seven dead app networks cleared by hand the same day. **Sitting 8's F1 is the newest one to read**, and it is what the first integration client is for: **`subscribe` could not carry a delegated token at all**, so an agent could start a build through the generated client and had nothing to watch it end on — the route had accepted a bearer all along, and nothing server-side could see the hole. **Sitting 8's F4 and F5** are the second: **three of its five negative controls answer `403` for the WRONG REASON** — the privileged rule disabled makes the refusal a dead-end `403 FORBIDDEN`, confirm reverted answers `403 TOKEN_ACTION_PENDING`, the fleet reverted answers `403 FORBIDDEN` — so a status-only demo passes all three. **Sitting 7's F4**, and it is a JavaScript trap rather than a platform one: `toToken` was given an optional `now: Date = new Date()`, and `api/routes/tokens.ts` maps it as `.map(toToken)` — so `now` arrived as the ARRAY INDEX, `0`, and every token in every list read `expired: false`, including one that had expired an hour before. Only the assertion about an expired token could see it. **Sitting 7's F2** is the one after that: the plan's own `Promise.all` control for a read-then-insert **passed against the defect**, because `pg.Pool` establishes a connection per acquire and the five calls serialised — a warm pool is what makes a pooled race observable, and a deterministic SQLSTATE test belongs beside it. **Sitting 6's F5:** two of that sitting's own four new tests were green before the feature, because both were *"is not limited"* claims — and a claim that something is NOT refused is true of a platform that refuses nothing. A negative claim needs a positive control in the same test. **Sitting 4's F1** is the one to read: the plan's own negative control for the ORDER of the two token checks could not fail against any of the 31 tests that existed, because every test writes a token holding the privileged capability and **no token the platform can mint can hold one** — so the swapped order answers a dead-end `403 FORBIDDEN` for every real token, with D24's loop unable to start, and all 31 green. **Sitting 2's F1**: the plan's token parser split on `_` while base64url's alphabet contains it, so it refused 47.5% of the tokens the same file minted — and the round-trip test minted ONE token, so it would have gone red about half the time and read as a flaky harness. **Sitting 2's F14**: the plan's own TRUNCATE negative control cannot fail, because the statement's CASCADE reaches both new tables unnamed. **Sitting 3's F1**: `DELETE /v1/tokens/{tokenId}` is the API's first bodyless mutation, and the contract layer could not carry one — the route answered `400` before its handler ran and the OpenAPI document could not be generated for it at all, because both kept on `method === 'GET'` rather than on the body schema. **Sitting 3's F13**: three of that sitting's own negative controls answer `403` for the WRONG REASON, so a status-only assertion is green through all of them. |
 | **P6a** | [`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md), with [the P6 brief](plans/2026-09-19-p6-brief.md) — **EXECUTED 2026-09-22**, all eleven sittings | `make demo-production` — green on the fresh path, the re-use path and from a `make reset` machine; step 11 of the offline acceptance; **and a whole launch clicked by a person** | **Sitting 11's F6 is the one to read**: the acceptance's own control (e) stayed GREEN because `applyRoute` patched an existing route in place, so a production route kept whatever listener held it — a fail-open in the control the plan exists to build, found only by asking why a control was green. **Sitting 11's F2** is its mirror image in the instrument: a pooled keep-alive socket reported the production app on the internal listener when it was not there, and in the other order would have hidden a real leak. **Sitting 9's F5**: §8 sends a production app to real UBC Shibboleth, so R2's rehearsal could not pass on this laptop until `InjectionContext.purpose` existed. **Sitting 10's F17 and sitting 11's F10**: two console defects no gate could see, both found by clicking. |
 | **P6b** | [`plans/2026-09-22-p6b-subsequent-releases.md`](plans/2026-09-22-p6b-subsequent-releases.md) — **EXECUTED 2026-09-23**, all seven sittings | `make demo-releases` — green fresh, re-use and from a `make reset` machine; step 12 of the offline acceptance; **clicked by a person, stale path included** | **Sitting 7's F3 is the one to read**: the acceptance's own baseline derivation used release order where the platform uses decision order, agreed on every path until the first run after the clicked half, and would have gone red for the wrong reason there — a client that re-derives a platform rule must implement THE rule. **Sitting 7's F9 and F10** are what the next plan inherits: the model's summary invented an administrator's verdict before anyone decided, and the console's *Sign out* leaves the IdP session alive. **Sitting 1's F1** is the plan's best: the egress proxy never re-rendered its allowlist, so a removed host stayed reachable — found by a measurement, fixed as Task 5a, and held by the acceptance's control (i). |
-### 7e. Execute sitting 3 of the D5 GitHub source driver plan — Tasks 4, 5 and 6 ← **START HERE**
+### 7e. Execute sitting 4 of the D5 GitHub source driver plan — Tasks 7 and 8 ← **START HERE**
 
-**SITTINGS 1 AND 2 RAN ON 2026-09-24:** [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md)
-— D5's driver 2, **15 tasks in Rich's eight sittings**. **Your job is sitting 3: Task 4 (the fake, in process — App JWTs,
-installation tokens, private organisation repositories and git over HTTP, held to GitHub's own schemas), Task 5 (its
-container: `--profile github`, `127.0.0.1:7110`, built by `make seed`) and Task 6 (the conformance run).** **If it runs
-long, stop after Task 5 and sweep — Task 6 then opens sitting 4** (the plan's sittings table says so). Use
-`superpowers:executing-plans` (or subagent-driven), and **commit on `main`, one commit per task**.
+**SITTINGS 1, 2 AND 3 RAN ON 2026-09-24:** [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md)
+— D5's driver 2, **15 tasks in Rich's eight sittings**. **Your job is sitting 4: Task 7 (the GitHub driver — a local
+mirror, tokens that never leave the process, and Task 2's contract suite passing UNCHANGED against the in-process
+fake) and Task 8 (its wiring — boot by `MANIFEST_SOURCE_DRIVER`, `source_repositories` and its migration, `409
+SOURCE_PROVIDER_MISMATCH`, `SOURCE_UNREACHABLE` as `503`, and a real BuildKit build from a repository in the fake's
+IMAGE, again with the fake stopped).** Use `superpowers:executing-plans` (or subagent-driven), and **commit on
+`main`, one commit per task**.
 
-**READ, IN THIS ORDER:** the plan's header and sittings table; *Decided by Rich*; ***What Rich does*** — **this sitting
-needs Rich twice**; *Global Constraints*; **sittings 1 and 2's records** at the end of the plan (*What executing this
-plan found*); then **Tasks 4, 5 and 6 in full, each starting with the `[M<n>]` block at its top where it has one** —
-Tasks 4 and 5 have one, Task 6 none. The measurements behind every block are in
-[`spikes/d5-baseline/README.md`](spikes/d5-baseline/README.md).
+**READ, IN THIS ORDER:** the plan's header and sittings table; *Decided by Rich*; *Global Constraints*; **sittings
+1–3's records** at the end of the plan (*What executing this plan found*); then **Tasks 7 and 8 in full, each
+starting with the blocks at its top** — Task 7 has THREE (`[M5]`/`[M14]`'s two corrections, *SITTING 2 — what Task 2
+built*, and ***SITTING 3 — what Tasks 4–6 built, and what real GitHub said***), Task 8 one (`[M17]`). The
+measurements behind every `[M<n>]` block are in [`spikes/d5-baseline/README.md`](spikes/d5-baseline/README.md).
 
-**ASK RICH TWO THINGS IN YOUR FIRST MESSAGE — BEFORE THE FIRST TEN MINUTES, NOT WHEN TASK 5 REACHES THEM.** He may
-give the instruction and step away, and a question asked an hour in stalls the sitting (sitting 1 asked once, at the
-start):
-- **May the network be on for Task 5's image build?** (`apk add git` runs when the image is built — there is no apk
-  mirror.) At the yes, build the ONE image with the command in *What Rich does* 1, not a whole `make seed`; without the
-  Makefile's `LITELLM_DIGEST=…` prefix compose warns *"The LITELLM_DIGEST variable is not set"* and still parses the
-  file — measured at sitting 2's close with `config --quiet`, before the `github-fake` service existed; the build
-  itself is Task 5's to measure.
-- **Does he want Task 6's real leg run, with the network on?** The App IS registered (2026-09-24, organisation
-  **`Manifest-local-dev`** — capitals included: GitHub treats a login case-insensitively and echoes it in its own
-  case, so Task 6's normaliser must not compare org names or `full_name` literally). Its two files are in
-  `infra/secrets/`, checked locally and against GitHub's `GET /app` and installation (§2, *Outstanding*). The real leg creates two private repositories and
-  deletes them, so it runs **only at his yes**; without it, it reads `SKIPPED`, which is not a failure.
-- **If no answer comes:** Task 4 needs neither (it is offline end to end), so do Task 4, commit it, then stop at that
-  task boundary and sweep, saying what waits on him — **never stop inside Task 5**: its build is Step 4 and its
-  commit Step 7, and the plan's rule is that a stop between tasks is recoverable and one inside a task is not.
+**ASK RICH NOTHING TO START.** Sitting 4 is offline end to end — the unit tier starts fakes in process, and Task 8's
+Docker test and its Step 6 run the fake's IMAGE, which is built (`manifest-github-fake:local`). **One question is
+his and waiting, and no code in this sitting depends on it: §8's *Spec action 3's condition is MET*** (sitting 3's
+F10). If he has answered it when you open, apply only what he chose, in the wording he read, and sweep it (the
+roadmap's *Spec actions raised by the D5 plan*, the plan's *Spec actions* 3, and §8); if he has not, leave it —
+**Decision 4 stands under all three options**, so Task 7 builds it as written.
 
-**WHAT SITTING 2 CHANGED FOR YOU:**
-- **`infra/secrets/` now holds the fake App's four files**, minted by `make up` (`github-fake-app.pem`, `.pub.pem`,
-  `-webhook.secret`, `-developer.token`), all `-rw-------`, owned by `rich`. Task 5 mounts the public key and the token
-  into the fake read-only, and **its Step 1 measures whether the container's non-root user can read a `600` file owned
-  by uid 501** — that was left open on purpose.
-- **The contract is already `1.2.0`** (Tasks 2 and 3), so a document change needs no bump. **Registering an error code
-  moves `openapi.json` with no route touched** — the `ErrorCode` enum IS the registry (sitting 2's F9): run `pnpm
-  contract:write && pnpm contract:generate` and stage BOTH generated files, `openapi.json` and
-  **`packages/contract/src/schema.d.ts`** (a `.d.ts`).
-- **`make reset`'s `$(COMPOSE) down` is `Makefile:71` now** — Task 5's `[M13]` names the line it changes.
-- Task 7 carries a sitting-2 note at its top (the suite's `extra` hook). Not yours.
+**WHAT SITTING 3 CHANGED FOR YOU:**
+- **`@manifest/github-fake` exists** — `startFake({ dataDir?, plan? })` from `@manifest/github-fake/testing`. Task 7's
+  Step 1 adds `"@manifest/github-fake": "workspace:*"` to the control plane's `devDependencies`, links it with `pnpm
+  install --offline` and stages `pnpm-lock.yaml`. **It has no `quirks` yet** — `createPublic` is Task 7's to add;
+  **no `deliveries()`/`setWebhookUrl`** (Task 9) and **no `/_fake/reset`** (Task 15).
+- **The fake answers what REAL GitHub measurably answers** (golden, `source: github.com 2026-09-24, App 5068172`), and
+  four of those answers bear on Task 7: a token's `permissions` answer includes `metadata: read`; **creation needs
+  `administration: write` alone — even a token scoped to ANOTHER repository creates one**; a token can name a
+  repository one second after creating it; and a read-only push is refused `remote: Write access to repository not
+  granted.` **A repository created without `private: true` is PUBLIC**, as on GitHub — Decision 12's check is what
+  must catch it.
+- **Task 5's Docker test is what Task 8's `startFakeContainer()` is extracted from**
+  (`src/source/github/fake-container.docker.test.ts`): a free port picked on the host, the three credentials written
+  `600` in a temp directory, a NAMED volume, and health polled — it REPLACES the container on the same volume where
+  Task 8's `stop()`/`start()` are `docker stop`/`docker start`. `make github-up` runs `make up` first, then the fake.
+- **Gate numbers:** `pnpm test` 1818 in 131, `make doctor` 20, `make verify` 57, `pnpm test:docker` 206 in 32 — §2's box;
+  `scripts/ci-acceptance.sh`'s `EXPECT_` lines already read `1818 / 131 / 20 / 57`.
 
 **DECIDED BY RICH — DO NOT RE-ASK** (§8, *Decided*): the fake in a container plus an opt-in real conformance check;
 eight sittings — **if a task breaks the split, WRITE TO RICH with the measurement and a proposed re-cut, and wait**;
@@ -1296,48 +1307,54 @@ the order after this plan (the authoring API, then the vulnerability database); 
 (Tasks 13 and 14).
 
 **THINGS MOST LIKELY TO COST YOU:**
-- **`pnpm test:docker` IS OWED THIS SITTING** (`infra/`, a `*.docker.test.ts`), ~19 min — background it. **Warm the chat
-  model first** (§2's box has the `curl`); it restarts the edge and truncates the tables — restart the control plane
-  afterwards if one was running — and it brings back seven dead networks, a volume and `p4b-probe-user`.
-- **Task 4 adds a workspace package**: `pnpm install --offline` links it (`[M18]` measured that offline) and
-  `pnpm-lock.yaml` changes — stage it. `packages/github-fake` has `erasableSyntaxOnly`: **no constructor parameter
-  properties**, no `enum`.
-- **Task 4's `[M4]`: a bare repository's `HEAD` is `master`** — `git init --bare -b main`, and assert a clone's CONTENT,
-  never its exit code. **`[M11]`: Ajv cannot compile two of GitHub's schemas** without the load-time normaliser, and
-  `ajv-formats` is required.
-- **Task 5's `[M13]`: a bare `compose down` exits 0 with the profiled fake still running.** Assert on the container.
-- **A negative control that never applied reads as "cannot fail"** — sitting 2's first run of two controls split its
-  patterns on their own `:` and changed nothing (F17). Assert the substitution matched, then read `git diff --stat`.
-- **The tool shell is zsh** (`${PIPESTATUS[0]}` is empty — run multi-line probes with `bash`); **ESLint reads
+- **Task 7's `[M5]` and `[M14]` corrections are the plan's two most expensive findings**: force `GIT_TRACE_REDACT=1`
+  AFTER the `process.env` spread, and fetch with TWO refspecs (`refs/heads/*` non-forced, `+refs/heads/*:refs/manifest/upstream/*`
+  forced) — every read of "what GitHub has now" uses the second.
+- **`pnpm test:docker` IS OWED THIS SITTING** (`api/`, `build/` callers, a `*.docker.test.ts`), ~19 min — background
+  it. **Warm the chat model first** (§2's box has the `curl`); it restarts the edge and truncates the tables, and it
+  brings back seven dead networks, a volume and `p4b-probe-user`. **Then `make verify`** — sitting 2's close needed
+  `docker restart manifest-caddy` (TRAPS.md, *THE HOST CAN LOSE THE EDGE*).
+- **A new migration** (Task 8's `source_repositories`): `db:generate`, then READ what it wrote, and hand-append the
+  backfill; **`db:migrate` needs `MANIFEST_ADMIN_DATABASE_URL` exported** (§3). There are **24** migrations today.
+- **Registering an error code moves `openapi.json`** — `pnpm contract:write && pnpm contract:generate`, and stage
+  BOTH generated files: `openapi.json` and **`packages/contract/src/schema.d.ts`** (Task 8's Files list says
+  `schema.ts`). The contract is already `1.2.0`.
+- **Never write into the tree while a backgrounded gate run is going** — its `lint`, `typecheck` and `format:check`
+  read your work in progress (TRAPS.md, sitting 3's F14). Write in the scratchpad until it finishes.
+- **A negative control that never applied reads as "cannot fail"** — assert the substitution matched, then read `git
+  diff --stat`. **The tool shell is zsh** (`$COMPOSE` does not word-split — run it under `bash -c`); **ESLint reads
   `docs/superpowers/spikes/`**; **other agents commit on `main`** — stage your own paths by name.
-- **Run `make verify` after the Docker tier, before you trust the machine** — at sitting 2's close the tier's own edge
-  restart left every host→edge check reset (12 red, container half green) until `docker restart manifest-caddy`.
 - **`docker-simple-saml-saml-idp-1` is `Exited (0)` and has been for weeks.** "Must survive" means it must still EXIST;
   do not start it.
 
-**WHERE THE SITTING STOPS, AND HOW IT ENDS.** **Stop after Task 6** — or after Task 5 under the overflow rule — **and
-do not start sitting 4**, whatever `superpowers:executing-plans` says about executing continuously: one sitting per
-session, with a check-in at each boundary (§3). Then the plan's *EVERY SITTING ENDS THE SAME WAY* — the four gates
-(`pnpm test` twice), the owed Docker tier, the dated record in *What executing this plan found*, the sittings table —
-and §6 rule 8's sweep, **ending with the re-read of the §7e you wrote, checking each claim by opening what it names**.
-Budget about an hour for all of it: the two `pnpm test` runs are ~6 minutes, the Docker tier ~19, and the sweep is
-the step a session limit eats. Finish by telling Rich what landed, what you ruled, and what sitting 4 needs from him.
+**WHERE THE SITTING STOPS, AND HOW IT ENDS.** **Stop after Task 8, and do not start sitting 5**, whatever
+`superpowers:executing-plans` says about executing continuously: one sitting per session, with a check-in at each
+boundary (§3). Then the plan's *EVERY SITTING ENDS THE SAME WAY* — the four gates (`pnpm test` twice), the owed Docker
+tier, the dated record in *What executing this plan found*, the sittings table — and §6 rule 8's sweep, **ending with
+the re-read of the §7e you wrote, checking each claim by opening what it names**. Budget about an hour for all of
+it. **Task 8's Step 6 starts the fake (`make github-up`) and boots the control plane on driver 2 — stop both and
+restart on driver 1 before you close** (the plan's *two traps*, 1). Finish by telling Rich what landed, what you
+ruled, and what sitting 5 needs from him.
 
-**THE MACHINE, AS SITTING 2 LEFT IT (2026-09-24, queried at its close — query every one again):**
-- **The database is EMPTY: 0 projects, builds, releases and specs**, because the close's `pnpm test` truncated it.
-  **24 migrations** — this sitting added none. `launch-app`'s six containers still run with no project row, and
-  `.manifest/repos/` still holds the same six bare repositories. **`make demo-releases` and `make demo-production`
-  start from the fresh path**, and `clear_orphan_repository` handles the leftover repository.
-- **Nothing listens on 7100, 7102, 7104 or 7110**; three addresses on `lo0`. **7110 is still free** — Task 5 takes it.
-- **`infra/secrets/`**: `master.key` and the four `github-fake-*` files, all `-rw-------`, owner `rich` — **and, since
-  Rich registered the App after the close, `github-app.pem` and `github-conformance.json`**, both `-rw-------`.
-- **`manifest-caddy` was RESTARTED at close** (`docker restart`, F19) — so no runtime route is applied; `make verify`
-  55/0 and `make doctor` 19/0/0 after it. Both cleanup scripts read clean after `--apply` (7 networks, 1 volume and
-  `p4b-probe-user` came back after the Docker tier, as always): `mf- containers=6 networks=2 volumes=4`.
-- **Images: `docker images -q` 221, `sort -u` 213, `127.0.0.1:7107/local/*` 174** — this sitting's tier added 6 app
-  images, which no script sweeps. **Ollama 0.34.4 with no model resident** (both unloaded at close).
-- The gates at the close: `pnpm test` 1778 in 125 (twice), lint, typecheck and format clean, `make doctor` 19/0/0,
-  `make verify` 55/0, `pnpm test:docker` 202 in 31. Contract `1.2.0`.
+**THE MACHINE, AS SITTING 3 LEFT IT (2026-09-24, queried at its close — query every one again):**
+- **The database is EMPTY: 0 projects, builds, releases and specs** (`docker exec manifest-postgres psql …`), because
+  the close's `pnpm test` truncated it. **24 migrations** — sitting 3 added none; Task 8 adds the next. `launch-app`'s
+  six containers still run with no project row, and `.manifest/repos/` still holds the same six bare repositories.
+- **Nothing listens on 7100, 7102, 7104 or 7110**; three addresses on `lo0`.
+- **The GitHub fake: its image `manifest-github-fake:local` is BUILT** (`98a310f686a7`, git 2.54.0 on Alpine 3.24.1,
+  from `node:22-alpine@sha256:1ef15d33…`); **no container, and no `manifest-github-fake-data` volume** — this
+  sitting created both and removed them, so `make github-up` starts from nothing. **The image cannot be rebuilt
+  offline** unless BuildKit still caches its `apk add git` layer.
+- **`infra/secrets/`**: `master.key`, the four `github-fake-*` files, `github-app.pem` and `github-conformance.json`,
+  all `-rw-------`, owner `rich`.
+- **`manifest-caddy` was restarted by the Docker tier** (~20:11) and `make verify` read 57/0 straight after — F19 did
+  not recur. `make doctor` 20/0/0. Both cleanup scripts read clean after `--apply` (7 networks, 1 volume and
+  `p4b-probe-user` came back after the tier, as always; both applies ALLOWED): `mf- containers=6 networks=2
+  volumes=4`.
+- **Images: `docker images -q` 228, `sort -u` 220, `127.0.0.1:7107/local/*` 180** — the tier added 6 app images and
+  Task 5 the fake's, and no script sweeps app images. **Ollama with no model resident** (both unloaded at close).
+- The gates at the close: `pnpm test` 1818 in 131 (twice), lint, typecheck and format clean, `make doctor` 20/0/0,
+  `make verify` 57/0, `pnpm test:docker` 206 in 32. Contract `1.2.0`.
 - **Docker Desktop may not be running when you open** (`open -a Docker`, §4).
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
@@ -1358,6 +1375,20 @@ reasoning is recorded.**
 
 ### Open
 
+- **Spec action 3's condition is MET — the one §20 sentence Rich approved *"unless the conformance run says
+  otherwise"*. RAISED 2026-09-24, by the D5 plan's sitting 3 (Task 6's real leg, F10).** §20's applied bullet 1
+  reads *"…installation tokens are short-lived and scoped per repository — except the one that creates a
+  repository, which cannot name it yet: it carries the administration permission alone, is used for that one
+  call, and is never kept."* **Measured against real GitHub** (App 5068172, `Manifest-local-dev`;
+  `packages/github-fake/conformance/github.com-2026-09-24.json`): a token cannot name a repository that does not
+  exist (C5b, `422`) — that half holds — **but a token SCOPED to another repository, holding `administration:
+  write`, CREATED a repository** (C7s, `201`). GitHub does not confine creation to a token's repositories, so
+  every administration token — including the per-repository ones for visibility and protection — can create one.
+  **Options: (a) revert** to *"…scoped per repository"*; **(b) correct it** to say GitHub does not confine
+  creation, and that no administration token ever leaves the control plane; **(c) keep it** and record the
+  measurement only. **Recommended: (b).** The exact wording is in the plan's *Spec actions*, 3. **Nothing was
+  reverted**, as the approval's own condition requires, and **no code waits on it**: Decision 4 stands under all
+  three.
 - **§19 needs a row for the production GitHub organisation — RAISED 2026-09-24, while applying the D5 plan's Spec
   action 1.** §20's applied bullet 4 ends *"…which the production organisation enables (§19)"*, and **§19 has no
   such row**, so the pointer points at nothing. It was a drafting miss in the plan, and the approved wording was
