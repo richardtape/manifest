@@ -222,6 +222,42 @@ export function describeSourceDriver(
     })
 
     /**
+     * THE WORKTREE'S OWN `.git` IS NOT A PLACE TO WRITE (the D5 plan's final review, Important
+     * 1). A path that stays INSIDE the worktree can still be `.git/config`, and
+     * `core.fsmonitor = <command>` there runs as the control plane on the very next `git add`.
+     * macOS's filesystem ignores case, so `.GIT/…` is the same file. Nothing supplies an
+     * arbitrary path yet; the authoring API's commits will.
+     */
+    it('refuses a path into the worktree’s own .git, in any case, and writes nothing', async () => {
+      const { ref: repo } = await h.driver.createRepository('chem-labs', SEED)
+      const before = await h.driver.headCommit(repo)
+      for (const path of [
+        '.git/config',
+        '.GIT/hooks/post-commit',
+        'sub/.git/config',
+        '.Git',
+      ]) {
+        expect(
+          await code(
+            h.driver.commitFiles(repo, { [path]: '[core]\n\tfsmonitor = true\n' }, 'x'),
+          ),
+          path,
+        ).toBe('SOURCE_PATH_ESCAPE')
+      }
+      expect(
+        await code(h.driver.createRepository('chem-seed', { '.git/config': 'x' })),
+      ).toBe('SOURCE_PATH_ESCAPE')
+      expect(await h.driver.headCommit(repo)).toBe(before)
+      // The positive control: names that merely START with `.git` are ordinary files.
+      const sha = await h.driver.commitFiles(
+        repo,
+        { '.gitignore': 'node_modules\n', '.github/CODEOWNERS': '* @x\n' },
+        'dotfiles',
+      )
+      expect(await h.driver.readFile(repo, sha, '.github/CODEOWNERS')).toBe('* @x\n')
+    })
+
+    /**
      * §20, as applied (Spec action 1, option (a)): *a push Manifest makes is scanned before it
      * leaves and refused*. Refused with its OWN code before anything is written — on driver 1
      * the repository's hook would refuse the push anyway, but as `SOURCE_GIT_FAILED` carrying

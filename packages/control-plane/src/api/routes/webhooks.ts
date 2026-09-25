@@ -1,5 +1,6 @@
+import { and, count, eq } from 'drizzle-orm'
 import type { FastifyPluginAsync } from 'fastify'
-import { webhookDeliveries } from '../../db/index.js'
+import { appSpecs, webhookDeliveries } from '../../db/index.js'
 import { projectForRepository, repositoryOf } from '../../projects/index.js'
 import type { ServerDeps } from '../server.js'
 import { validateAndRecord } from '../spec-validation.js'
@@ -46,6 +47,8 @@ const REFUSALS = {
 
 interface GithubPayload {
   action?: unknown
+  /** A push's branch — read AFTER verification, to know that `main` moved (Important 2). */
+  ref?: unknown
   repository?: { full_name?: unknown }
 }
 
@@ -150,7 +153,7 @@ export const webhookRoutes =
           (event === 'repository' && payload.action === 'publicized')
         ) {
           deps.sourceSync.enqueue(`webhook ${event} ${project.slug} ${deliveryId}`, () =>
-            processDelivery(deps, project, event),
+            processDelivery(deps, project, event, payload.ref === 'refs/heads/main'),
           )
           return reply.status(202).send({ queued: true })
         }
@@ -170,11 +173,28 @@ async function processDelivery(
   deps: ServerDeps,
   project: { id: string; slug: string; quota: unknown },
   event: string,
+  mainPushed: boolean,
 ): Promise<void> {
-  const advance = await deps.source.sync(await repositoryOf(deps, project))
+  const repo = await repositoryOf(deps, project)
+  const advance = await deps.source.sync(repo)
   if (event !== 'push') return
   const main =
     advance.updated.find((u) => u.ref === 'refs/heads/main')?.to ??
     advance.rewritten.find((r) => r.ref === 'refs/heads/main')?.upstream
-  if (main !== undefined) await validateAndRecord(deps, project, main)
+  if (main !== undefined) {
+    await validateAndRecord(deps, project, main)
+    return
+  }
+  // A READ'S SYNC CAN TAKE A PUSH'S ADVANCE BEFORE ITS DELIVERY LANDS (the plan's final review,
+  // Important 2; sitting 5's F9): the console asking for HEAD in the seconds after a push, and
+  // this sync then moves nothing. `main` moved on GitHub all the same, so GitHub's `main` NOW
+  // is validated unless it already has been — NOW, not the payload's `after`, because a late
+  // delivery of an older push must never record an older commit as the newest validation.
+  if (!mainPushed) return
+  const head = await deps.source.headCommit(repo)
+  const [recorded] = await deps.db
+    .select({ n: count() })
+    .from(appSpecs)
+    .where(and(eq(appSpecs.projectId, project.id), eq(appSpecs.commitSha, head)))
+  if (recorded!.n === 0) await validateAndRecord(deps, project, head)
 }

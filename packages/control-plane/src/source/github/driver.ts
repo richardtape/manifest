@@ -14,7 +14,7 @@ import {
   type SourceObserver,
 } from '../git-driver.js'
 import { ownRepositories } from '../local-driver.js'
-import { assertNoSecrets, scanNewCommits } from '../scan-commits.js'
+import { assertNoSecrets, assertWritablePaths, scanNewCommits } from '../scan-commits.js'
 import { createGithubClient } from './client.js'
 import { gitWithToken, isAuthRefusal } from './git.js'
 import { createTokenCache, type TokenPermissions } from './tokens.js'
@@ -601,6 +601,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
     async createRepository(projectSlug, seed) {
       const mirror = pathFor(projectSlug)
       // Before ANYTHING is asked of GitHub (Task 11): once pushed, a value is on GitHub for ever.
+      assertWritablePaths(seed)
       assertNoSecrets(seed)
       // A mirror already here is a repository this machine made once and did not delete —
       // refused, never reused or removed (Decision 16).
@@ -688,6 +689,7 @@ export function createGithubSourceDriver(o: GithubDriverOptions): SourceDriver {
 
     async commitFiles(repo, files, message) {
       const mirror = mirrorOf(repo)
+      assertWritablePaths(files)
       assertNoSecrets(files)
       await sync(repo.projectSlug, mirror)
       const sha = await commitAndPush(repo.projectSlug, { mirror }, files, message)

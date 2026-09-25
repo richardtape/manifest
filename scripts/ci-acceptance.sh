@@ -71,8 +71,10 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # suite (11) and startBuild's absent-commit refusal (1), then the key custody rule (11), the
 # App JWT and key loader (8) and the source driver's settings (5).
 # Then the D5 plan's sitting 8 (2026-09-25): +2, no new file — the GitHub fake's not-GitHub page
-# at a repository's html_url (1) and its delivery log kept across a restart (1).
-EXPECT_TESTS=2002
+# at a repository's html_url (1) and its delivery log kept across a restart (1); then its final
+# review's fix pass: +3 — a path into the worktree's own .git refused (1 contract case × 2
+# drivers) and a push a read synced first still validated (1).
+EXPECT_TESTS=2005
 EXPECT_FILES=145
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57

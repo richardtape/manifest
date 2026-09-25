@@ -212,6 +212,27 @@ export async function scanNewCommits(
  * value would be on GitHub for ever. The message names `path:line` and the rule — never the
  * value, because it goes on the wire.
  */
+/**
+ * THE WORKTREE'S OWN `.git` IS NEVER WRITTEN (the D5 plan's final review, Important 1): a path
+ * that stays inside the worktree can still be `.git/config`, and `core.fsmonitor = <command>`
+ * there is a command the control plane runs on its very next `git add`. Refused — before
+ * anything is written, on both drivers, beside the secret scan — when ANY component is `.git`
+ * in any case, because macOS's filesystem folds case and `.GIT/config` is the same file. Each
+ * driver's own check that a path stays inside the worktree is the other half.
+ */
+export function assertWritablePaths(files: Readonly<Record<string, string>>): void {
+  const into = Object.keys(files).filter((path) =>
+    path.split('/').some((part) => part.toLowerCase() === '.git'),
+  )
+  if (into.length === 0) return
+  throw new SourceError(
+    'SOURCE_PATH_ESCAPE',
+    `Manifest never writes inside a repository's own .git directory, and nothing was committed: ${into
+      .map((p) => `'${p}'`)
+      .join(', ')}`,
+  )
+}
+
 export function assertNoSecrets(files: Readonly<Record<string, string>>): void {
   const found = Object.entries(files).flatMap(([path, content]) =>
     scanText(content, path),

@@ -13,7 +13,7 @@ import {
   type SourceDriver,
 } from './git-driver.js'
 import { installPreReceiveHook } from './pre-receive.js'
-import { assertNoSecrets } from './scan-commits.js'
+import { assertNoSecrets, assertWritablePaths } from './scan-commits.js'
 
 const run = promisify(execFile)
 
@@ -169,6 +169,7 @@ export function createLocalSourceDriver(root: string): SourceDriver {
     ): Promise<CreatedRepository> {
       const path = pathFor(projectSlug)
       // Before ANYTHING is written (Task 11): a refused seed leaves no repository behind.
+      assertWritablePaths(seed)
       assertNoSecrets(seed)
       await mkdir(repoRoot, { recursive: true })
       await git(repoRoot, ['init', '--bare', '--initial-branch=main', path])
@@ -192,6 +193,7 @@ export function createLocalSourceDriver(root: string): SourceDriver {
 
     async commitFiles(repo, files, message) {
       const path = assertOwned(repo)
+      assertWritablePaths(files)
       assertNoSecrets(files)
       return commitThroughWorktree(path, files, message, false)
     },

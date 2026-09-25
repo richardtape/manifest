@@ -153,6 +153,32 @@ describe('POST /webhooks/github — verified, recorded once, and synced off the 
     expect(await specAt(ctx.projectId, after)).toBe(1)
   })
 
+  /**
+   * THE PLAN'S FINAL REVIEW, IMPORTANT 2 (sitting 5's F9, which deferred it): a READ that syncs
+   * between a person's push and GitHub's delivery — the console asking for HEAD, a branch list
+   * — takes the push's advance, and the delivery's own sync then moves nothing. `main` moved on
+   * GitHub all the same, so the push must still be validated: otherwise the newest validation
+   * stays the OLD commit, and a build that names no commit builds that.
+   */
+  it('validates a pushed main even when a READ synced it before the delivery arrived — once', async () => {
+    const ctx = await setup()
+    const { repo, before, after, body } = await personPushes(ctx)
+    expect(await ctx.deps.source.headCommit(repo)).toBe(after)
+    expect(await eventsOf(ctx.projectId, 'repository.pushed')).toEqual([
+      { ref: MAIN, from: before, to: after },
+    ])
+    expect(await specAt(ctx.projectId, after)).toBe(0)
+    const res = await deliver(ctx, { event: 'push', body })
+    expect(res.statusCode, res.body).toBe(202)
+    await ctx.deps.sourceSync.idle()
+    expect(await specAt(ctx.projectId, after)).toBe(1)
+    // …and once: a second delivery of the same push (a new id, so not a duplicate) finds it
+    // validated and records nothing more.
+    expect((await deliver(ctx, { event: 'push', body })).statusCode).toBe(202)
+    await ctx.deps.sourceSync.idle()
+    expect(await specAt(ctx.projectId, after)).toBe(1)
+  })
+
   it('refuses an absent signature and records NOTHING — no row, no sync, no event, no spec', async () => {
     const ctx = await setup()
     const { after, body } = await personPushes(ctx)
