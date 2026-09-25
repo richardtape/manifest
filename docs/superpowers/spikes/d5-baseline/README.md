@@ -470,7 +470,7 @@ named below.*
   `llm` 20, withheld 0, 1587 / 1880 / 3411 ms** (`results-t13-step5-2.txt`). **With `response_format` removed from
   `summary.ts`** (control (a), restored after): 5 of 5 withheld — four not JSON (three ```` ```json ```` fences, one
   prose), one a bare array. **The residual is accuracy**: of the 40 `auth.attributes` sentences, 5 reverse the removal
-  of `sn` (F7; ORIENTATION §8, *Open*). The first version of the probe, with a hand-written schema, is in git history.
+  of `sn` (F7; ORIENTATION §8, *Decided*: shown and labelled, fixed after the plan). The first version of the probe, with a hand-written schema, is in git history.
 - **Step 1, `z.toJSONSchema`'s own output** (a scratch copy of the probe, not kept): identical to the hand-written
   schema plus `$schema: https://json-schema.org/draft/2020-12/schema`; sent with it, `200`, 2327 ms, 49 completion
   tokens, conforming; `exposure` renamed `risk_line` in the schema alone → used 3 of 3. So `$schema` stays (F5).

@@ -130,10 +130,11 @@ each sitting left them, dated, and they deliberately do not move.
   access arrives, and no code does.
 - **§8's open questions.**
 
-**The spec is current, with one open follow-up** (§8, *Open*: a §19 row that §20's new bullet 4 points at). Every
-spec change has been applied only after Rich approved it — **most recently §20's git-driver bullet 1, corrected
-on the evening of 2026-09-24** (option (b), after the D5 plan's real conformance run met Spec action 3's
-condition; §8, *Decided*), and before it the chat-model switch's two the same day. The roadmap's *Spec
+**The spec is current, with no open follow-up.** Every spec change has been applied only after Rich approved it —
+**most recently §19's row for the production GitHub organisation, applied 2026-09-25** (the row §20's bullet 4 points
+at; the D5 plan's Spec action 4; §8, *Decided*), and before it §20's git-driver bullet 1, corrected on the evening of
+2026-09-24 (option (b), after the D5 plan's real conformance run met Spec action 3's condition), and the chat-model
+switch's two the same day. The roadmap's *Spec
 actions raised by…* sections list every one, with its wording, and say which shared HTML pages were swept.
 
 ---
@@ -1354,7 +1355,8 @@ github-conformance` at Rich's yes, `make demo` on driver 1 with the fake stopped
 reading `NOT RUN — the control plane runs driver 1`), the offline acceptance's new step 13 left runnable, and the
 clicked half — then the plan marked EXECUTED.** Use `superpowers:executing-plans` (or subagent-driven), **commit on
 `main`**, and — because sittings 1–7 each deferred it to the plan's end — **run the skill's final whole-branch review with
-a fresh reviewer**, ruling on each finding as the skill says. There is no branch, so `git merge-base` names nothing: the
+a fresh reviewer** — **Rich has allowed ONE fresh reviewer agent, on the most capable model, for exactly this** (§8,
+*Decided*, 2026-09-25) — ruling on each finding as the skill says. There is no branch, so `git merge-base` names nothing: the
 range starts at **`a2885ed`**, Task 1's BASE in the ledger (`.superpowers/sdd/2026-09-24-d5-github-source-driver/progress.md`,
 whose `Task N: complete` lines name each task's own commits) — and it includes other sessions' commits, which are not
 this plan's to review.
@@ -1383,14 +1385,18 @@ password is not an agent's to type whatever he permits. Everything before the cl
 - **Read an input's value and a button's `disabled` from a screenshot or the DOM**, never from the extension's `find`
   (F14: it called a surviving value "empty") — and never by pressing a button to see (F15).
 - **Gate numbers:** `pnpm test` 2000 in 145, `make doctor` 20, `make verify` 57, `pnpm test:docker` 208 in 34 — §2's box;
-  `scripts/ci-acceptance.sh`'s `EXPECT_` lines read `2000 / 145 / 20 / 57`. **One question sitting 7 raised is Rich's**
-  (§8, *Open*: the model's sentence reversed a removed attribute 5 times in 40) — do not change the summary's design
-  for it without asking.
+  `scripts/ci-acceptance.sh`'s `EXPECT_` lines read `2000 / 145 / 20 / 57`. **The model's sentence reversed a removed
+  attribute 5 times in 40 (sitting 7's F7), and Rich has decided it is NOT sitting 8's** (§8, *Decided*): its fix comes
+  after the plan — do not touch the summary in Task 15.
+- **The spec has no open follow-up**: §19's row for the production GitHub organisation was approved and applied on
+  2026-09-25 (the plan's *Spec actions*, 4). Task 15's Step 6 sweeps the HTML pages "for any spec action Rich has
+  applied by then" — none restates §19, which sitting 7 checked.
 
 **DECIDED BY RICH — DO NOT RE-ASK** (§8, *Decided*): the stand-in is a FAKE plus an opt-in REAL check; eight sittings —
 **if Task 15 breaks, WRITE TO RICH with the measurement, and wait**; the order after this plan (the authoring API, then
-the vulnerability database); the summary as structured output and the chat model `qwen3.5:4b` with thinking off.
-**Sitting 6's F6 (the ~55% slower unit suite) and sitting 7's F7 (the reversal rate) are his too** (§8, *Open*).
+the vulnerability database); the summary as structured output and the chat model `qwen3.5:4b` with thinking off;
+**sitting 7's F7 (the reversal rate) waits for after the plan; §19's row is applied; one fresh reviewer agent for the
+final review** (all 2026-09-25). **Sitting 6's F6 (the ~55% slower unit suite) is still his** (§8, *Open*).
 
 **THINGS MOST LIKELY TO COST YOU:**
 - **ONE DRIVER PER CONTROL-PLANE PROCESS, AND EVERY OTHER DEMO IS DRIVER 1'S.** `make demo-github` needs
@@ -1466,16 +1472,6 @@ reasoning is recorded.**
 
 ### Open
 
-- **Is one reversal in eight acceptable in the model's per-change sentence, under its label? — RAISED 2026-09-25 (the D5
-  plan's sitting 7, F7).** The structured summary fixed F9 — 40 of 40 answers kept, none stating a verdict — but the
-  residual is ACCURACY: of 40 sentences about a change that REMOVES the CWL attribute `sn`, **5 said the app now
-  receives it** (*"…in addition to other personal details…, expanding the personal information it collects"*), 4 only
-  restated the security note, and one called `sn` a *"student ID"*. No rule can see a wrong fact. **Decided for now,
-  and reversible: shown** — under the deterministic change line, which comes first and is the record, and labelled once
-  as *"written by a language model; the change lines are the record."* *The alternatives:* (a) hand the model the
-  attribute sets' ADDED and REMOVED halves as their own fields (a prompt-input change, measured before adopting it);
-  (b) show the model's sentence only for non-attribute changes; (c) drop the sentence and keep the deterministic lines
-  alone. `results-t13-step5-{3,2}.txt` has all 40.
 - **Should Manifest's OWN commits on driver 1 skip the secret-scanning hook, to win back ~75 s a unit-suite run? —
   RAISED 2026-09-25 (the D5 plan's sitting 6, F6).** Since Task 11 every push into a driver-1 bare repository runs the
   rendered `pre-receive` (~40 ms a push, measured), and the suite pushes on every project a test creates: `pnpm test`
@@ -1483,15 +1479,6 @@ reasoning is recorded.**
   Manifest's own commits, which is exactly what makes the plan's control (e) a `SOURCE_GIT_FAILED` rather than a secret
   committed. *The alternative:* driver 1 FETCHES its own commits into the bare repository (a fetch runs no hook), so
   only a person's push meets the hook — faster, and one layer thinner. One function changes either way.
-- **§19 needs a row for the production GitHub organisation — RAISED 2026-09-24, while applying the D5 plan's Spec
-  action 1.** §20's applied bullet 4 ends *"…which the production organisation enables (§19)"*, and **§19 has no
-  such row**, so the pointer points at nothing. It was a drafting miss in the plan, and the approved wording was
-  applied as approved rather than edited. **Proposed, one row in §19's table:**
-
-  > | **The production GitHub organisation for manifested apps** (D5's driver 2, §20) — dedicated to Manifest; members may not create public repositories or make one public; GitHub push protection on (GitHub Secret Protection, a paid Team or Enterprise add-on), with Manifest's secret rules as custom patterns | Needed before driver 2 serves UBC; not needed locally | UBC IT + Manifest team |
-
-  It matches the external track's new item 10. *The alternative:* remove *"(§19)"* from the applied sentence, which
-  is also a spec edit, and loses the dependency from the one table that lists them.
 - **Does the ADMIN CONSOLE get real design effort? — the spec says no, Rich says yes. RAISED
   2026-09-19.** §26's *Scope* reads *"Rudimentary and deliberately so… an operations tool for the
   team running the platform, **not a product surface**, and it inherits `console/`'s quality bar
@@ -1539,6 +1526,21 @@ reasoning is recorded.**
 
 ### Decided
 
+- **§19's row for the production GitHub organisation — APPROVED AND APPLIED 2026-09-25** (Rich, at the close of the D5
+  plan's sitting 7, taking the recommendation). §20's bullet 4 ends *"…which the production organisation enables
+  (§19)"*, and §19 now has that row: dedicated to Manifest; members may not create or publicise public repositories;
+  GitHub push protection on, with Manifest's secret rules as custom patterns; needed before driver 2 serves UBC; UBC IT
+  + Manifest team. The plan's *Spec actions*, 4, has the wording; no HTML page restates §19.
+- **The model's per-change sentence stays SHOWN AND LABELLED; the reversal rate is fixed AFTER the D5 plan — DECIDED
+  2026-09-25** (Rich, taking the recommendation, on the plan's sitting 7 F7: 5 of 40 sentences got a removed CWL
+  attribute backwards). **Not in sitting 8**, which stays the acceptance alone. The fix to try is option (a): hand the
+  model each attribute change's ADDED and REMOVED halves as their own fields, and measure it over 40 answers before
+  adopting it — a small follow-up after the plan, or the authoring API plan's first task. *Rejected for now:* (b) no
+  sentence for attribute changes; (c) no sentences at all. The measurement is in the plan's sitting 7 record.
+- **The D5 plan's final whole-branch review may use ONE fresh reviewer agent, on the most capable model — DECIDED
+  2026-09-25** (Rich, taking the recommendation). `superpowers:executing-plans` requires a fresh-context review at the
+  plan's end, sittings 1–7 each deferred it to sitting 8, and the session's own rule is not to spawn an agent unless
+  Rich asks — **this is him asking**, for that one review. It reads from `a2885ed` (Task 1's BASE in the ledger).
 - **§20's git-driver bullet 1 is CORRECTED — option (b), DECIDED AND APPLIED 2026-09-24** (Rich, answering the D5
   plan's sitting 3 F10 the same evening). The real conformance run met Spec action 3's condition — a token scoped
   to another repository created one (C7s) — so the bullet now says GitHub does not confine creation to a token's

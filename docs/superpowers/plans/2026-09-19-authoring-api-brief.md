@@ -19,8 +19,11 @@ seeded, permanently.
 > read or shown is STRUCTURED OUTPUT** — a zod schema that is both the request and the check, facts in, no field for
 > anything the model must not say, withheld when broken (ORIENTATION §3) — which any model call this API adds must
 > follow; and **`releases/preview.ts`'s `factsOf` rule**: a new model-written key on an approval snapshot must be named
-> there, or every preview carrying it compares stale (sitting 7's F1). §2 and §3 below are as read on 2026-09-19 and
-> were not re-read.
+> there, or every preview carrying it compares stale (sitting 7's F1). **And one decided follow-up may land as its first
+> task** (Rich, 2026-09-25; ORIENTATION §8, *Decided*): the approval summary's per-change sentence reversed a removed CWL
+> attribute 5 times in 40 (sitting 7's F7), and the fix to try is handing the model each attribute change's added and
+> removed halves as their own facts, measured over 40 answers before it is adopted. §2 and §3 below are as read on
+> 2026-09-19 and were not re-read.
 
 ---
 

@@ -894,7 +894,7 @@ STRUCTURED OUTPUT**: the model is handed the diff's facts and fills a schema wit
 for a verdict, so an online run reads `summarySource llm` and prints the sentences joined — or `withheld` with the rule
 the answer broke, which the journey accepts WITH its reason. P6b sitting 7's invented *"administrator's verdict"* (F9)
 cannot be expressed in that shape. Read the sentences anyway: one in eight has been measured getting a removed CWL
-attribute backwards (ORIENTATION §8, *Open*), which is why the console shows them under the deterministic change line.
+attribute backwards (ORIENTATION §8, *Decided*: its fix comes after the D5 plan), which is why the console shows them under the deterministic change line.
 
 **A red phase stops the script** (`set -e`). **It leaves `launch-app` launched, on its leg C release in
 staging and production, the registration `active` five-wide, two more approvals** (three on a fresh

@@ -118,7 +118,7 @@ default-embed                    max_classification: internal
 
 *It also corrects a fact:* the sentence it replaces says `make doctor` makes that assertion; the check is `make verify`'s (`scripts/verify.sh:445-455`, *a streamed completion returns non-empty content*).
 
-### Spec actions raised by the D5 plan — ✅ ALL THREE APPROVED AND APPLIED 2026-09-24
+### Spec actions raised by the D5 plan — ✅ ALL THREE APPROVED AND APPLIED 2026-09-24, AND ITS FOLLOW-UP (§19's row) APPLIED 2026-09-25
 
 Written in [the D5 plan's *Spec actions*](./2026-09-24-d5-github-source-driver.md), each with its exact wording. **Rich answered all three on 2026-09-24, the day the plan was written, and said to apply them. They are APPLIED in the wording he read**: 1 as option (a), 2 as written, and 3 *"unless the conformance run says otherwise"*. **No shared HTML page restates §20's git-driver bullets or §21's inventory** (checked: `manifest-decisions.html`'s D5 card is the only related text, and it is still true), so none moved. **Found while applying:** action 1's wording points at §19 for the production GitHub organisation, and §19 has no such row. A one-row addition is raised with Rich (ORIENTATION §8, *Open*), not applied. The external track gained item 10, which is what option (a) makes UBC's.
 1. **§20 *Git driver* bullet 4 — Rich's decision, from two options.** *"A detected secret blocks the push"* cannot hold on GitHub.com, which runs no custom pre-receive hooks. The recommended wording says what each path does: Manifest blocks every push it makes and every push to driver 1, and FINDS every commit pushed straight to GitHub, raising an Event and refusing to build it. Blocking a direct push becomes GitHub's push protection on UBC's organisation, an external-track item. The alternative keeps the sentence and requires GitHub Secret Protection (paid, per committer) as a precondition of driver 2.
@@ -133,6 +133,15 @@ Written in [the D5 plan's *Spec actions*](./2026-09-24-d5-github-source-driver.m
    kept, and no administration token ever leaves the control plane."* No shared HTML page restates §20's
    git-driver bullets (checked again: no *installation token* or *scoped per repository* in `specs/*.html`), so
    none moved. Decision 4 is unchanged.
+4. **The follow-up: §19's row for the production GitHub organisation — RAISED 2026-09-24 while applying action 1,
+   APPROVED BY RICH AND APPLIED 2026-09-25** (at the close of the plan's sitting 7). Action 1's applied sentence ends
+   *"…which the production organisation enables (§19)"*, and §19 had no such row — a drafting miss in the plan. The row
+   was applied as proposed, as §19's last: *"**The production GitHub organisation for manifested apps** (D5's driver
+   2, §20) — dedicated to Manifest; members may not create public repositories or make one public; GitHub push
+   protection on (GitHub Secret Protection, a paid Team or Enterprise add-on), with Manifest's secret rules as custom
+   patterns | Needed before driver 2 serves UBC; not needed locally | UBC IT + Manifest team"*. No shared HTML page
+   restates §19 (no *§19*, *push protection* or *GitHub organisation* in `specs/*.html`), so none moved;
+   `docs/external-track.md`'s item 10 now cites the row.
 
 ### Spec action raised by P6b — ✅ APPROVED 2026-09-22, APPLIED 2026-09-24
 
@@ -905,8 +914,7 @@ names the approver (F14); in the console a decision names its preview and disarm
 survives the step-up (F12), and a self-serve release offers no approval link (F15) — **all clicked on driver 1**, Rich
 typing the passwords. Executing it found two readers the plan did not name: the stale-preview comparison, which would have
 refused every decision after a model-written preview, and the acceptance's closed vocabularies, which would have turned
-`make demo-releases` red on an honest `withheld`. **One question is Rich's**: 5 of 40 model sentences reversed a removed
-CWL attribute into an added one — shown under the deterministic line and labelled, but wrong (ORIENTATION §8). No task
+`make demo-releases` red on an honest `withheld`. **Rich decided its one question the same day**: 5 of 40 model sentences reversed a removed CWL attribute into an added one — they stay shown under the deterministic line and labelled, and the fix (the attribute's added and removed halves as their own facts, measured) comes after the plan; he also approved §19's row (Spec action 4) and one fresh reviewer agent for the plan's final review (ORIENTATION §8, *Decided*). No task
 boundary moved.
 
 **ITS TWO QUESTIONS ARE DECIDED (Rich, 2026-09-24; ORIENTATION §8):** a GitHub-compatible FAKE in a container for the acceptance, plus an opt-in conformance check against a real GitHub App; **eight sittings**. And the console's sign-out (P6b's F10) is fixed in its own sitting first, not in this plan.

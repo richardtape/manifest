@@ -3386,7 +3386,7 @@ Record each row as the screen showed it, and record it as a GIF, as every clicke
 
 ## Spec actions
 
-**THREE — ALL APPROVED BY RICH AND APPLIED ON 2026-09-24**, the day this plan was written, each in the exact wording below, which he read first: action 1 as option (a), action 2 as written, and action 3 *"unless the conformance run says otherwise"*. **Found while applying:** action 1's approved wording ends *"which the production organisation enables (§19)"*, and §19 has no row for the production GitHub organisation, so the pointer points at nothing. That was this plan's drafting miss. **The wording was applied as approved**, and a one-row §19 addition is raised with Rich separately (ORIENTATION §8, *Open*) rather than applied unread. Every spec change this project has made was approved by Rich first, and applied only after he had read the words. **A spec action is not finished when the spec changes**: the four shared HTML pages restate §20 and §21 in plain language (`manifest-decisions.html` above all) and are swept with it.
+**THREE — ALL APPROVED BY RICH AND APPLIED ON 2026-09-24**, the day this plan was written, each in the exact wording below, which he read first: action 1 as option (a), action 2 as written, and action 3 *"unless the conformance run says otherwise"*. **Found while applying:** action 1's approved wording ends *"which the production organisation enables (§19)"*, and §19 has no row for the production GitHub organisation, so the pointer points at nothing. That was this plan's drafting miss. **The wording was applied as approved**, and a one-row §19 addition was raised with Rich separately rather than applied unread — **he approved it on 2026-09-25, at the close of sitting 7, and it is APPLIED** (action 4 below). Every spec change this project has made was approved by Rich first, and applied only after he had read the words. **A spec action is not finished when the spec changes**: the four shared HTML pages restate §20 and §21 in plain language (`manifest-decisions.html` above all) and are swept with it.
 
 ### 1. §20 *Git driver*, bullet 4 — what "a detected secret blocks the push" can mean on GitHub.com — ✅ **RICH CHOSE (a), 2026-09-24; APPLIED**
 
@@ -3445,6 +3445,18 @@ It reads *"installation tokens are short-lived and scoped per repository."* **Cr
 > Decision 4's exception (still needed: an empty organisation has no repository to scope to), and names the
 > control that actually holds (Decision 20's). *Changing course later* is one sentence. **Decision 4 does not
 > change under any of the three**; Task 7 builds it as written.
+
+### 4. §19 — a row for the production GitHub organisation, which action 1's sentence points at — ✅ **APPROVED BY RICH AND APPLIED 2026-09-25**
+
+Action 1's applied wording ends *"…which the production organisation enables (§19)"*, and §19 had no such row. Raised
+2026-09-24 (ORIENTATION §8, *Open*), approved by Rich on 2026-09-25 at the close of sitting 7, and applied as §19's last
+row, in these words:
+
+> | **The production GitHub organisation for manifested apps** (D5's driver 2, §20) — dedicated to Manifest; members may not create public repositories or make one public; GitHub push protection on (GitHub Secret Protection, a paid Team or Enterprise add-on), with Manifest's secret rules as custom patterns | Needed before driver 2 serves UBC; not needed locally | UBC IT + Manifest team |
+
+No shared HTML page restates §19 (grepped: no *§19*, *push protection* or *GitHub organisation* in `specs/*.html`), so
+none moved; `docs/external-track.md`'s item 10 now cites the row. *The alternative, not taken:* remove *"(§19)"* from
+action 1's sentence.
 
 **Not proposed, deliberately:**
 
@@ -4727,7 +4739,7 @@ The plan's stop line — more than 5 of 20 withheld — is nowhere near. Raw: `s
 instead of only…"*), four only restate the security note, and one calls `sn` a *"student ID"*. No rule sees a wrong
 fact, and the decision check must not try. The console puts the deterministic change line FIRST and labels the sentence
 as a model's reading, as the plan designed; **whether one reversal in eight on a personal-information change is
-acceptable under that label is Rich's** (ORIENTATION §8, *Open*). Both of the fresh demo's live previews read right.
+acceptable under that label was Rich's** — **decided the same day: shown and labelled, and fixed AFTER the plan** (*After the sitting*, below; ORIENTATION §8, *Decided*). Both of the fresh demo's live previews read right.
 
 **F8 — CONTROL (b) AS THE PLAN WROTE IT COULD NOT FAIL AT ITS NAMED TEST.** *"`path` as `z.string()` … *a path that is
 not in the diff* red"*: that case's answer has THREE items, and `.length(2)` refuses it with or without the enum — it
@@ -4850,3 +4862,14 @@ The browser captured the click (35 frames); it was not exported, because an expo
 - **The final whole-branch review is DEFERRED to the plan's end (sitting 8)**, as sittings 1–6 ruled: this sitting's 12
   controls — every one predicted, one of the plan's predictions impossible, one of mine too narrow and one corrected
   before its run, none green where it should be red — and a person's click are its per-sitting check.
+
+#### After the sitting — Rich's three decisions, the same day (2026-09-25)
+
+Asked which open decisions would help sitting 8, Rich took all three recommendations:
+
+**1. §19 gains its row for the production GitHub organisation — APPLIED** (*Spec actions*, 4). The spec has no open
+follow-up. **2. F7 is not sitting 8's**: the model's sentences stay shown under the deterministic change line and
+labelled, and the fix — each attribute change's added and removed halves handed to the model as their own facts,
+measured over 40 answers before it is adopted — comes after this plan (a small follow-up, or the authoring API plan's
+first task). **3. The plan's final whole-branch review may use ONE fresh reviewer agent, on the most capable model**,
+reading from `a2885ed`. ORIENTATION §8 *Decided* records all three; §7e hands them to sitting 8.

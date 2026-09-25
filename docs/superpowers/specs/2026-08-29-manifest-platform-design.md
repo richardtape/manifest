@@ -1664,6 +1664,7 @@ Each phase ends in something demonstrable in a browser.
 | **Incident response ownership.** When a manifested app is breached at 3am, who responds? The faculty owner cannot. | Must be named before public launch | To be assigned |
 | Breach notification procedure, and data disposal on app sunset | Required before public launch | UBC Privacy Office |
 | Private package registry mirror (§12 supply chain) | Needed at Phase 1 | Manifest team |
+| **The production GitHub organisation for manifested apps** (D5's driver 2, §20) — dedicated to Manifest; members may not create public repositories or make one public; GitHub push protection on (GitHub Secret Protection, a paid Team or Enterprise add-on), with Manifest's secret rules as custom patterns | Needed before driver 2 serves UBC; not needed locally | UBC IT + Manifest team |
 
 
 ---
