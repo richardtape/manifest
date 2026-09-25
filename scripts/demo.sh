@@ -158,11 +158,23 @@ GET $API/v1/environments/$ENV_ID/incidents, signed in as the instructor."
 echo "  instance $STATE"
 
 say "8. Refuse production — §13's checklist, not a button"
+# TWO REFUSALS, IN THIS ORDER, since P6a (`f989fcb`, 2026-09-20): a production deploy is one of §20's
+# step-up capabilities, and the step-up is asked BEFORE the checklist — so a plain session is refused
+# `STEP_UP_REQUIRED`, and only a stepped-up one reaches §13's checklist. This step asked for the
+# checklist's code alone, got the step-up's, and was RED from that day until the D5 plan's sitting 8
+# ran `make demo` again (nothing else runs it: neither `make ci-acceptance` nor the offline acceptance).
 PROD_ID="$(environment production)"
 PROD="$(api POST "/v1/environments/$PROD_ID/deploy" "{\"releaseId\":\"$RELEASE_ID\"}")"
+[ "$(printf '%s' "$PROD" | field error.code)" = STEP_UP_REQUIRED ] \
+  || fail "a plain session was not asked to step up for production (§20): $PROD"
+echo "  refused: STEP_UP_REQUIRED — a second CWL round trip first (§20)"
+# §20's second round trip — the IdP must RE-PROMPT (ForceAuthn), which idp_login asserts for free.
+idp_login "$JAR" "$IDP_JAR" "$ORIGIN/auth/step-up" instructor instructor \
+  "$ORIGIN/auth/saml/callback" "$CA"
+PROD="$(api POST "/v1/environments/$PROD_ID/deploy" "{\"releaseId\":\"$RELEASE_ID\"}")"
 [ "$(printf '%s' "$PROD" | field error.code)" = RELEASE_PRODUCTION_GATE_UNAVAILABLE ] \
-  || fail "production was NOT refused, which is a §13 defect: $PROD"
-echo "  refused: RELEASE_PRODUCTION_GATE_UNAVAILABLE"
+  || fail "production was NOT refused by §13's checklist once stepped up, which is a §13 defect: $PROD"
+echo "  refused, stepped up: RELEASE_PRODUCTION_GATE_UNAVAILABLE"
 
 URL="https://$SLUG.staging.$ZONE"
 say "9. Reach it — from a container, through the edge, verifying the platform CA"
