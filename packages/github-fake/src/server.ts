@@ -303,7 +303,9 @@ export function createFakeServer(config: FakeConfig): FakeServer {
     return {
       token,
       expires_at: expiresAt,
-      permissions,
+      // GitHub ADDS metadata: read to what it answers, whatever was requested (measured
+      // 2026-09-24, conformance C5 — the documentation-first golden said only the request).
+      permissions: { ...permissions, metadata: 'read' },
       repository_selection: repositories === 'all' ? 'all' : 'selected',
       ...(repositories === 'all'
         ? {}
@@ -314,10 +316,11 @@ export function createFakeServer(config: FakeConfig): FakeServer {
   async function createRepo(req: IncomingMessage, org: string) {
     const g = requireGrant(req)
     if (!sameOrg(org)) throw notFound()
-    // A token scoped to NAMED repositories cannot name the one being created, so creating
-    // needs an installation-wide token — the fake's conservative guess at [M19](a), which
-    // the real App's conformance run measures.
-    if (g.permissions.administration !== 'write' || g.repositories !== 'all') {
+    // administration: write, and NOTHING ELSE: GitHub does not confine creation to a token's
+    // repositories. Measured 2026-09-24 (conformance C7s): a token SCOPED to one existing
+    // repository created another. The fake first refused it — its guess at [M19](a) — and
+    // follows GitHub now.
+    if (g.permissions.administration !== 'write') {
       throw new HttpError(403, 'Resource not accessible by integration')
     }
     const body = await readJson(req)

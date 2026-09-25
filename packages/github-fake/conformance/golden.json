@@ -1,0 +1,132 @@
+{
+  "source": "github.com 2026-09-24, App 5068172",
+  "note": "What GitHub is expected to answer to conformance.ts's script, written first from GitHub's REST description 1.1.4 (github-schemas.json) and docs.github.com, then REPLACED by the real App's answers on the first real run (github.com-2026-09-24.json, `Manifest (local dev)`, App 5068172, org Manifest-local-dev, a FREE organisation) — every step but C13's `team` answer is now measured (the D5 plan, Task 6, Decision 7). The fake is held to it on every `pnpm test`. The first real run (`make github-conformance`) writes github.com-<date>.json beside this file; a person then replaces these entries with GitHub's answers, sets `source` to `github.com <date>, App <id>`, and the FAKE is fixed until the test is green again. A disagreement goes to the fake, never to this file — unless the real run shows this file wrong. `unknown: true` means the documentation is silent and the test asserts nothing for that step; `pendingTask: N` means the fake does not implement it until Task N, and the test skips it by name.",
+  "steps": {
+    "C1": {
+      "status": 200,
+      "facts": {
+        "slug_present": true,
+        "permission_keys": "administration,contents,metadata"
+      },
+      "why": "GET /app with a valid App JWT answers `integration`; the App is registered with exactly these three permissions (the plan's What Rich does 2). MEASURED 2026-09-24 (github.com-2026-09-24.json). It agreed with the documentation."
+    },
+    "C2": {
+      "status": 401,
+      "facts": {
+        "message": "'Expiration time' claim ('exp') is too far in the future"
+      },
+      "why": "docs.github.com, Generating a JSON Web Token for a GitHub App: exp no more than 10 minutes into the future. The message is as community answers report it, not measured. MEASURED 2026-09-24 (github.com-2026-09-24.json). It agreed with the documentation."
+    },
+    "C3": {
+      "status": 401,
+      "facts": {
+        "message": "A JSON web token could not be decoded"
+      },
+      "why": "A JWT whose signature does not verify under the App's public key. The message is as community answers report it, not measured. MEASURED 2026-09-24 (github.com-2026-09-24.json). It agreed with the documentation."
+    },
+    "C4": {
+      "status": 200,
+      "facts": {
+        "repository_selection": "all"
+      },
+      "why": "GET /orgs/{org}/installation answers `installation`; the App is installed on All repositories (What Rich does 2). MEASURED 2026-09-24 (github.com-2026-09-24.json). It agreed with the documentation."
+    },
+    "C5": {
+      "status": 201,
+      "facts": {
+        "token_class": "stateless",
+        "expires_in_minutes": 60,
+        "permissions": "administration:write,metadata:read",
+        "repository_selection": "all"
+      },
+      "why": "POST /app/installations/{id}/access_tokens: a token expires after one hour, in the stateless ghs_APPID_JWT format ([M19](e): THIS App gets it). MEASURED 2026-09-24 (github.com-2026-09-24.json). GitHub ADDS metadata:read to the permissions it answers — the documentation-first golden said only what was requested."
+    },
+    "C5b": {
+      "status": 422,
+      "facts": {
+        "message": "There is at least one repository that does not exist or is not accessible to the parent installation."
+      },
+      "why": "Spec action 3's premise: a token cannot be granted access to a repository the installation does not have (the description: 'cannot be granted access to repositories that the installation was not granted access to'). The message is as community answers report it. MEASURED 2026-09-24 (github.com-2026-09-24.json). It agreed with the documentation."
+    },
+    "C6": {
+      "status": 201,
+      "facts": {
+        "private": true,
+        "visibility": "private",
+        "default_branch": "main"
+      },
+      "why": "POST /orgs/{org}/repos with private: true (enabledForGitHubApps: true); an organisation's default branch name is main. MEASURED 2026-09-24 (github.com-2026-09-24.json). It agreed with the documentation."
+    },
+    "C7s": {
+      "status": 201,
+      "facts": {
+        "message": null
+      },
+      "why": "Spec action 3's condition, MEASURED 2026-09-24: an installation token SCOPED to an existing repository (-a), holding administration: write, CREATED another repository (-b). GitHub does not confine creation to a token's repositories — so every token holding administration: write can create a repository in the organisation. The documentation-first golden said unknown; the fake refused it 403 and is corrected."
+    },
+    "C7": {
+      "status": 201,
+      "why": "The second repository — on GitHub it was already created by C7s, so C7 records C7s's 201. MEASURED 2026-09-24 (github.com-2026-09-24.json)."
+    },
+    "C8": {
+      "status": 201,
+      "facts": {
+        "repository_selection": "selected"
+      },
+      "why": "[M19](a), MEASURED 2026-09-24: a token CAN name a repository one second after the same installation created it."
+    },
+    "C9": {
+      "status": 0,
+      "facts": {
+        "ls_remote_shows_commit": true
+      },
+      "why": "git over HTTPS with an installation token (username x-access-token) holding contents: write for the repository. `status` is git's exit code. MEASURED 2026-09-24 (github.com-2026-09-24.json). It agreed with the documentation."
+    },
+    "C10": {
+      "status": 404,
+      "facts": {
+        "message": "Not Found"
+      },
+      "why": "[M19](d): GitHub hides a private repository a credential cannot see — 404, not 403. MEASURED 2026-09-24 (github.com-2026-09-24.json). It agreed with the documentation."
+    },
+    "C11": {
+      "status": 128,
+      "facts": {
+        "first_line": "remote: Write access to repository not granted."
+      },
+      "why": "[M19](c), MEASURED 2026-09-24: a contents: read installation token pushing. git exits 128; GitHub's line is 'Write access to repository not granted.', NOT the community-reported 'Permission to … denied to …[bot].' the documentation-first golden carried."
+    },
+    "C12": {
+      "status": 200,
+      "facts": {
+        "private": true
+      },
+      "why": "PATCH /repos/{owner}/{repo} { private: true } on a private repository: a no-op that answers full-repository. MEASURED 2026-09-24 (github.com-2026-09-24.json). It agreed with the documentation."
+    },
+    "C13": {
+      "pendingTask": 12,
+      "byPlan": {
+        "team": {
+          "status": 200,
+          "facts": {
+            "message": null
+          }
+        },
+        "free": {
+          "status": 403,
+          "facts": {
+            "message": "Upgrade to GitHub Pro or make this repository public to enable this feature."
+          }
+        }
+      },
+      "why": "[M19](b), MEASURED 2026-09-24 on a FREE organisation: 403 with the documented upgrade message — the free-plan answer. The TEAM answer (200) is still the description's, not measured: the real organisation is free. The fake implements protection in Task 12."
+    },
+    "C14": {
+      "status": 204,
+      "facts": {
+        "statuses": "204,204"
+      },
+      "why": "DELETE /repos/{owner}/{repo} with administration: write answers 204 No Content. MEASURED 2026-09-24 (github.com-2026-09-24.json). It agreed with the documentation."
+    }
+  }
+}

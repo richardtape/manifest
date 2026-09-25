@@ -16,7 +16,7 @@ LITELLM_DIGEST := $(shell awk '$$1 ~ /berriai\/litellm/ {print $$2}' infra/image
 LITELLM_DIGEST := $(or $(LITELLM_DIGEST),sha256:0000000000000000000000000000000000000000000000000000000000000000)
 COMPOSE := LITELLM_DIGEST=$(LITELLM_DIGEST) docker compose -f infra/compose.yaml -p manifest --env-file .env
 
-.PHONY: help seed refresh-vulndb up down reset github-up github-down doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-console ci-acceptance host-setup host-undo
+.PHONY: help seed refresh-vulndb up down reset github-up github-down github-conformance doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-console ci-acceptance host-setup host-undo
 
 # Every compose target needs .env to exist — `--env-file` on a missing file is a
 # hard error, not a warning. `make seed` also writes it; this makes `make up` on
@@ -67,6 +67,12 @@ github-up: up  ## D5 driver 2's GitHub fake (profile github), on 127.0.0.1:7110.
 
 github-down:  ## Stop the GitHub fake. Its repositories survive until `make reset`.
 	@$(COMPOSE) --profile github stop github-fake
+
+# REAL GitHub, at Rich's yes and with the network on, EACH TIME: it creates two private
+# repositories in his organisation and deletes them (the D5 plan, Task 6). SKIPPED — not a
+# failure — without a registered App or the network.
+github-conformance:  ## The GitHub fake checked against REAL GitHub. Opt-in; network; Rich's yes.
+	@bash scripts/github-conformance.sh
 
 # manifest-verdaccio-storage is deliberately NOT destroyed, for the same reason
 # manifest-caddy-data is not: it is seed output, not project state. Its config

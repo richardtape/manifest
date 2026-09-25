@@ -102,7 +102,8 @@ describe('the fake authenticates a GitHub App the way GitHub does', () => {
     )
     expect(body.token.length).toBeGreaterThan(40)
     expect(Date.parse(body.expires_at) - Date.now()).toBeGreaterThan(59 * 60_000)
-    expect(body.permissions).toEqual({ administration: 'write' })
+    // GitHub ADDS metadata: read to what was requested (measured 2026-09-24, conformance C5).
+    expect(body.permissions).toEqual({ administration: 'write', metadata: 'read' })
     expect(body.repository_selection).toBe('all')
   })
 

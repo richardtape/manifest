@@ -93,21 +93,26 @@ describe('the fake serves an organisation’s repositories the way GitHub does',
     ])
   })
 
-  it('refuses to create with a token scoped to named repositories, or one without administration', async () => {
+  it('creates with ANY token holding administration — even one scoped to another repository — and refuses one without', async () => {
+    // GitHub does not confine creation to a token's repositories: a token SCOPED to one
+    // existing repository created another (measured 2026-09-24, conformance C7s).
     expect((await create('seed')).status).toBe(201)
     const scoped = await token({
       repositories: ['seed'],
       permissions: { administration: 'write' },
     })
+    const byScoped = await call('POST', `/orgs/${fake.org}/repos`, scoped, {
+      name: 'other',
+      private: true,
+    })
+    expect(byScoped.status).toBe(201)
     const contents = await token({ permissions: { contents: 'write' } })
-    for (const auth of [scoped, contents]) {
-      const res = await call('POST', `/orgs/${fake.org}/repos`, auth, {
-        name: 'other',
-        private: true,
-      })
-      expect(res.status).toBe(403)
-      expect((await res.json()).message).toBe('Resource not accessible by integration')
-    }
+    const res = await call('POST', `/orgs/${fake.org}/repos`, contents, {
+      name: 'third',
+      private: true,
+    })
+    expect(res.status).toBe(403)
+    expect((await res.json()).message).toBe('Resource not accessible by integration')
   })
 
   it('answers 404 Not Found — never 403 — to a token scoped to A reading B', async () => {

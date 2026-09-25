@@ -147,7 +147,7 @@ describe('the fake serves git over HTTP with GitHub’s scope and permission rul
     expect([branch.stdout.trim(), head.stdout.trim()]).toEqual(['main', sha])
   })
 
-  it('refuses a push with a contents: read token — git fails naming Permission', async () => {
+  it('refuses a push with a contents: read token — in GitHub’s measured words', async () => {
     await createRepo('app')
     await localCommit('src', 'x\n')
     const t = await token({ repositories: ['app'], permissions: { contents: 'read' } })
@@ -156,7 +156,8 @@ describe('the fake serves git over HTTP with GitHub’s scope and permission rul
       token: t,
     })
     expect(push.code).not.toBe(0)
-    expect(push.stderr).toMatch(/Permission to manifest-apps\/app\.git denied/)
+    // GitHub's line to an App's token, measured 2026-09-24 (conformance C11).
+    expect(push.stderr).toMatch(/remote: Write access to repository not granted\./)
     // …while the same token CAN read: the refusal is the permission, not the token.
     expect((await git(['ls-remote', remote('app')], { token: t })).code).toBe(0)
   })

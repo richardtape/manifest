@@ -1,0 +1,108 @@
+{
+  "source": "github.com 2026-09-24, App 5068172",
+  "ranAt": "2026-09-25T02:51:45.268Z",
+  "steps": {
+    "C1": {
+      "status": 200,
+      "facts": {
+        "slug_present": true,
+        "permission_keys": "administration,contents,metadata"
+      }
+    },
+    "C2": {
+      "status": 401,
+      "facts": {
+        "message": "'Expiration time' claim ('exp') is too far in the future"
+      }
+    },
+    "C3": {
+      "status": 401,
+      "facts": {
+        "message": "A JSON web token could not be decoded"
+      }
+    },
+    "C4": {
+      "status": 200,
+      "facts": {
+        "repository_selection": "all"
+      }
+    },
+    "C5": {
+      "status": 201,
+      "facts": {
+        "token_class": "stateless",
+        "expires_in_minutes": 60,
+        "permissions": "administration:write,metadata:read",
+        "repository_selection": "all"
+      }
+    },
+    "C5b": {
+      "status": 422,
+      "facts": {
+        "message": "There is at least one repository that does not exist or is not accessible to the parent installation."
+      }
+    },
+    "C6": {
+      "status": 201,
+      "facts": {
+        "private": true,
+        "visibility": "private",
+        "default_branch": "main"
+      }
+    },
+    "C7s": {
+      "status": 201,
+      "facts": {
+        "message": null
+      }
+    },
+    "C7": {
+      "status": 201,
+      "facts": {
+        "created_by": "C7s"
+      }
+    },
+    "C8": {
+      "status": 201,
+      "facts": {
+        "repository_selection": "selected"
+      }
+    },
+    "C9": {
+      "status": 0,
+      "facts": {
+        "ls_remote_shows_commit": true
+      }
+    },
+    "C10": {
+      "status": 404,
+      "facts": {
+        "message": "Not Found"
+      }
+    },
+    "C11": {
+      "status": 128,
+      "facts": {
+        "first_line": "remote: Write access to repository not granted."
+      }
+    },
+    "C12": {
+      "status": 200,
+      "facts": {
+        "private": true
+      }
+    },
+    "C13": {
+      "status": 403,
+      "facts": {
+        "message": "Upgrade to GitHub Pro or make this repository public to enable this feature."
+      }
+    },
+    "C14": {
+      "status": 204,
+      "facts": {
+        "statuses": "204,204"
+      }
+    }
+  }
+}

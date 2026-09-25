@@ -340,6 +340,56 @@ make github-down      # stops it; its repositories survive in manifest-github-fa
 - **It needs the network once**, when `make seed` builds it (`apk add git` — there is no apk
   mirror). An image that was never built cannot be built offline; `make doctor` says so.
 
+## The conformance run — the fake against REAL GitHub
+
+*Added by the D5 plan's sitting 3, 2026-09-24 (Task 6). **Opt-in, with the network on, and
+at Rich's yes EACH TIME**: it acts on a real GitHub account.*
+
+`packages/github-fake/src/conformance.ts` is one request script — sixteen steps, C1 to
+C14 with C5b and C7s — that records a **normalised** answer per step (a status and a few
+facts; never a token, a key or a per-run id). It runs against two targets:
+
+- **the in-process fake, on every `pnpm test`** (`conformance.test.ts`), compared with
+  `packages/github-fake/conformance/golden.json` — which holds **GitHub's measured
+  answers** since the first real run, 2026-09-24;
+- **real GitHub, from `make github-conformance`**, with `Manifest (local dev)`. It creates
+  two private repositories named `mf-conformance-<timestamp>-a` and `-b` in the App's
+  organisation, pushes one commit, **deletes both in a `finally`** (printing their names if
+  a delete fails, so they can be removed by hand), and writes
+  `conformance/github.com-<date>.json` beside golden, printing every step that differs.
+  **It never makes a repository public.** ~12 s.
+
+```bash
+make github-conformance     # SKIPPED (exit 0) without a registered App or the network
+```
+
+**Afterwards:** commit the dated file as evidence; fold any difference into golden (its
+`source` names the run); **fix the fake until `pnpm test` is green again** — a
+disagreement goes to the fake, never to golden, unless the run shows golden wrong.
+
+**What it needs — `Manifest (local dev)`, registered once** (the D5 plan's *What Rich does*
+2 has every setting): a **free organisation** of its own (an installation token cannot
+create a repository on a personal account); a GitHub App registered under it with
+**Administration: read and write, Contents: read and write, Metadata: read-only**, nothing
+else, **no webhook** and *Only on this account*; installed on *All repositories*; its key
+at `infra/secrets/github-app.pem` (`chmod 600` — the script refuses a looser one) and
+`infra/secrets/github-conformance.json` holding `{"appId": …, "installationId": …, "org":
+"…"}`. **Never install it on UBC's organisation**: its key mints a token for every
+installation of the App. To revoke it, delete the key or the App on its GitHub page.
+
+**What the first run measured (2026-09-24, App 5068172, organisation `Manifest-local-dev`,
+free plan)** — the fake was corrected for the first three:
+
+- a token's `permissions` answer ADDS `metadata: read` to what was requested (C5);
+- **a token SCOPED to one existing repository, holding `administration: write`, CREATED
+  another repository** (C7s): GitHub does not confine creation to a token's repositories;
+- a `contents: read` token's push is refused with `remote: Write access to repository not
+  granted.` (C11);
+- a token CAN name a repository one second after it was created (C8); the stateless
+  `ghs_<APPID>_<JWT>` format is what this App gets (C5); a token cannot name a repository
+  that does not exist (C5b, `422`); a free organisation refuses protection on a private
+  repository with the documented upgrade message (C13).
+
 ## `make demo` — an app, from a bare repository to a URL
 
 *Added by P3 Task 17. First run green 2026-09-07.*

@@ -16,7 +16,7 @@ import type { Grant } from './app-auth.js'
  *  - a credential that cannot SEE the repository → `404` `Repository not found.` — GitHub
  *    hides a private repository's existence, from git as from the REST API;
  *  - `upload-pack` needs `contents: read` and `receive-pack` `contents: write`; short of it
- *    → `403` `Permission to <org>/<repo>.git denied to <login>.`;
+ *    → `403` in GitHub's words — to an App's token, `Write access to repository not granted.`;
  *  - git runs with no system or global config, so the host's `~/.gitconfig` cannot change
  *    what the fake serves.
  *
@@ -104,10 +104,15 @@ export function serveGit(
   const held = grant.permissions.contents
   const allowed = service === 'git-upload-pack' ? held !== undefined : held === 'write'
   if (!allowed) {
+    // GitHub's own words to an installation token, measured 2026-09-24 (conformance C11) —
+    // not the "Permission to <repo> denied to <login>" that community answers report, which
+    // is its answer to a PERSON.
     return plain(
       res,
       403,
-      `Permission to ${found.fullName}.git denied to ${grant.login}.\n`,
+      grant.kind === 'installation'
+        ? 'Write access to repository not granted.\n'
+        : `Permission to ${found.fullName}.git denied to ${grant.login}.\n`,
     )
   }
 
