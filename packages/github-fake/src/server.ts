@@ -46,6 +46,8 @@ export interface FakeConfig {
   /** The URLs the fake advertises in its answers — the HOST's view (Task 5). */
   urls: () => Urls
   now?: () => Date
+  /** TEST-ONLY misbehaviour (`testing.ts`); `main.ts` never sets it. */
+  quirks?: { createPublic?: boolean }
 }
 
 /** The App's permissions — exactly what `Manifest (local dev)` is registered with. */
@@ -355,7 +357,8 @@ export function createFakeServer(config: FakeConfig): FakeServer {
         ],
       })
     }
-    const visibility = visibilityOf(body, false)
+    const visibility =
+      config.quirks?.createPublic === true ? 'public' : visibilityOf(body, false)
     const createdAt = timestamp(now())
     const repo: FakeRepo = {
       id: state.nextRepoId++,

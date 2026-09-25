@@ -1,4 +1,9 @@
-import { generateKeyPairSync, randomBytes } from 'node:crypto'
+import {
+  createPrivateKey,
+  createPublicKey,
+  generateKeyPairSync,
+  randomBytes,
+} from 'node:crypto'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -44,10 +49,30 @@ function classicPat(): string {
   return `ghp_${[...bytes].map((b) => ALNUM[b % ALNUM.length]).join('')}`
 }
 
-export async function startFake(
-  options: { dataDir?: string; plan?: 'free' | 'team' } = {},
-): Promise<StartedFake> {
-  const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
+export interface StartFakeOptions {
+  dataDir?: string
+  plan?: 'free' | 'team'
+  /**
+   * THE SAME GITHUB, RESTARTED (the D5 plan's Task 7): the port and the App key a previous
+   * fake had, so a driver built against it keeps its URL and its key. The token key is new
+   * every start, so every token minted before is refused — GitHub forgetting a token. The
+   * container keeps its token key in its volume (Task 5); this is the in-process fake only.
+   */
+  port?: number
+  appKeyPem?: string
+  /**
+   * TEST-ONLY MISBEHAVIOUR, never set by `main.ts`. `createPublic` makes every repository
+   * PUBLIC whatever was asked — the answer Decision 12's check must refuse (Task 7).
+   */
+  quirks?: { createPublic?: boolean }
+}
+
+export async function startFake(options: StartFakeOptions = {}): Promise<StartedFake> {
+  const privateKey =
+    options.appKeyPem === undefined
+      ? generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey
+      : createPrivateKey(options.appKeyPem)
+  const publicKey = createPublicKey(privateKey)
   const ownsDir = options.dataDir === undefined
   const dataDir = options.dataDir ?? mkdtempSync(join(tmpdir(), 'github-fake-'))
   const plan = options.plan ?? 'team'
@@ -66,10 +91,11 @@ export async function startFake(
     tokenKey: randomBytes(32),
     developerToken,
     urls: () => ({ apiUrl: `${url}/api/v3`, gitUrl: url }),
+    ...(options.quirks === undefined ? {} : { quirks: options.quirks }),
   })
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
-    server.listen(0, '127.0.0.1', () => resolve())
+    server.listen(options.port ?? 0, '127.0.0.1', () => resolve())
   })
   url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
   return {

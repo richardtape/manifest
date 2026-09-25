@@ -142,6 +142,26 @@ export function describeSourceDriver(
         )
     })
 
+    /**
+     * A read at a commit the repository does not have is NOT "no such file" (the D5 plan's
+     * Task 7). Answered as `null`, the validate route would record an invalid spec for a
+     * commit it never read — and on driver 2 a commit GitHub has and the mirror lacks is
+     * exactly that. A symbolic name is refused as `localGitDir` refuses it: on driver 2,
+     * `main` in the mirror is the history keeper, which a rewrite freezes (sitting 1's F6).
+     */
+    it('refuses to read at a commit the repository does not have, and at a name that is not a commit', async () => {
+      const repo = await h.driver.createRepository('chem-labs', SEED)
+      const head = await h.driver.headCommit(repo)
+      expect(await h.driver.readFile(repo, head, 'manifest.yaml')).toContain('chem-labs') // positive control
+      expect(await code(h.driver.readFile(repo, 'f'.repeat(40), 'manifest.yaml'))).toBe(
+        'SOURCE_COMMIT_NOT_FOUND',
+      )
+      for (const name of ['main', 'HEAD', head.slice(0, 12)])
+        expect(await code(h.driver.readFile(repo, name, 'manifest.yaml'))).toBe(
+          'SOURCE_COMMIT_NOT_FOUND',
+        )
+    })
+
     it('lists the default branch', async () => {
       const repo = await h.driver.createRepository('chem-labs', SEED)
       expect(await h.driver.listBranches(repo)).toEqual(['main'])

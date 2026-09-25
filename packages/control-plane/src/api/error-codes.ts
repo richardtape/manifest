@@ -327,20 +327,36 @@ export const ERROR_CODES = {
     'The app has launched, so a rehearsal would put an unapproved candidate on its live production listener (P6b Decision 16). A registration change is proved by UBC IAM’s change request.',
   ),
 
-  // source/ — every one is 409. `SOURCE_FOREIGN_REPO` retired in the D5 plan's Task 2: a
+  // source/ — every one is 409 (the D5 plan's Task 8 gives SOURCE_UNREACHABLE its 503).
+  // `SOURCE_FOREIGN_REPO` retired in the D5 plan's Task 2: a
   // reference no longer carries a path, so it cannot name a directory the driver did not
   // make, and the one foreign reference left — another driver's — is PROVIDER_MISMATCH.
   SOURCE_COMMIT_NOT_FOUND: source(
     'The repository has no such commit — or what was named is not a full commit id — so there is nothing to build from it.',
   ),
+  SOURCE_CONFLICT: source(
+    'GitHub’s branch moved between the read and the push; read it again and retry (the D5 plan’s driver 2).',
+  ),
   SOURCE_GIT_FAILED: source('git failed; the message names the operation.'),
   SOURCE_GITHUB_KEY_UNREADABLE: source(
     'The GitHub App’s private key cannot be read, or is not an RSA key; the message names the file (the D5 plan’s Decision 5).',
+  ),
+  SOURCE_GITHUB_REFUSED: source(
+    'GitHub refused the request; the message carries GitHub’s own message and nothing else of its answer.',
   ),
   SOURCE_INVALID_SLUG: source('The slug cannot name a repository.'),
   SOURCE_PATH_ESCAPE: source('The slug resolves outside the repository root.'),
   SOURCE_PROVIDER_MISMATCH: source(
     'The project’s repository was made by a different source driver from the one this control plane runs; the message names both (the D5 plan’s Decision 3).',
+  ),
+  SOURCE_REPOSITORY_EXISTS: source(
+    'A repository of that name already exists — on GitHub, or as a mirror on this machine — and Manifest never adopts one it did not create (the D5 plan’s Decision 16).',
+  ),
+  SOURCE_REPOSITORY_NOT_PRIVATE: source(
+    'GitHub did not create the repository private, so it was deleted (the D5 plan’s Decision 12).',
+  ),
+  SOURCE_UNREACHABLE: source(
+    'The git host did not answer. A commit already mirrored still builds (the D5 plan’s Decision 18).',
   ),
 
   // config.ts — mapped by toErrorResponse, raised at boot

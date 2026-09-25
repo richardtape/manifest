@@ -70,6 +70,29 @@ export function createLocalSourceDriver(root: string): SourceDriver {
     return pathFor(repo.projectSlug)
   }
 
+  /**
+   * A full commit id the repository has — or `SOURCE_COMMIT_NOT_FOUND`. Checked BEFORE git
+   * sees it: `cat-file -e` accepts any revision expression, so `main` or `HEAD~3` would pass
+   * it, and the builder would archive whatever that names when the build starts rather than
+   * the commit that was validated. `localGitDir` and `readFile` both name a COMMIT.
+   */
+  async function assertCommit(path: string, repo: RepoRef, commitSha: string) {
+    if (!/^[0-9a-f]{40}$/.test(commitSha)) {
+      throw new SourceError(
+        'SOURCE_COMMIT_NOT_FOUND',
+        `'${commitSha}' is not a commit id — a build names a full 40-character commit`,
+      )
+    }
+    try {
+      await run('git', ['--git-dir', path, 'cat-file', '-e', `${commitSha}^{commit}`])
+    } catch {
+      throw new SourceError(
+        'SOURCE_COMMIT_NOT_FOUND',
+        `${repo.projectSlug} has no commit ${commitSha.slice(0, 12)}`,
+      )
+    }
+  }
+
   async function git(cwd: string, args: string[]): Promise<string> {
     try {
       const { stdout } = await run('git', args, { cwd, maxBuffer: 32 * 1024 * 1024 })
@@ -145,10 +168,15 @@ export function createLocalSourceDriver(root: string): SourceDriver {
 
     async readFile(repo, commitSha, filePath) {
       const path = assertOwned(repo)
+      // The COMMIT first, then the path (the D5 plan's Task 7): `git show` says
+      // `path '<p>' does not exist in '<sha>'` for a missing path AND for a missing commit —
+      // the same words, both exit 128 (measured, git 2.50.1) — so its stderr cannot tell a
+      // file that is not there from a commit that is not.
+      await assertCommit(path, repo, commitSha)
       try {
         return await git(path, ['show', `${commitSha}:${filePath}`])
       } catch {
-        // git exits non-zero for "path not in tree", which is a normal answer here.
+        // The commit is here, so git's non-zero exit is "path not in tree" — a normal answer.
         return null
       }
     },
@@ -172,23 +200,7 @@ export function createLocalSourceDriver(root: string): SourceDriver {
      */
     async localGitDir(repo, commitSha): Promise<LocalGitDir> {
       const path = assertOwned(repo)
-      // Checked BEFORE git sees it: `cat-file -e` accepts any revision expression, so
-      // `main` or `HEAD~3` would pass it and the builder would archive whatever that
-      // names when the build starts, rather than the commit that was validated.
-      if (!/^[0-9a-f]{40}$/.test(commitSha)) {
-        throw new SourceError(
-          'SOURCE_COMMIT_NOT_FOUND',
-          `'${commitSha}' is not a commit id — a build names a full 40-character commit`,
-        )
-      }
-      try {
-        await run('git', ['--git-dir', path, 'cat-file', '-e', `${commitSha}^{commit}`])
-      } catch {
-        throw new SourceError(
-          'SOURCE_COMMIT_NOT_FOUND',
-          `${repo.projectSlug} has no commit ${commitSha.slice(0, 12)}`,
-        )
-      }
+      await assertCommit(path, repo, commitSha)
       return { gitDir: path, commitSha }
     },
 

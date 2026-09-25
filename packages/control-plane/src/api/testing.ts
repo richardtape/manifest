@@ -2,7 +2,8 @@ import { db, type Db } from '../db/index.js'
 import { loadConfig } from '../config.js'
 import { testIssuer } from '../runtime/testing.js'
 import { createFakeDriver } from '../runtime/index.js'
-import { createLocalSourceDriver } from '../source/index.js'
+import { createGithubSourceDriver, createLocalSourceDriver } from '../source/index.js'
+import type { StartedFake } from '@manifest/github-fake/testing'
 import { loadBlueprints } from '../blueprints/index.js'
 import { createServiceCredentials } from '../services/index.js'
 import { createAppSecrets, generateMasterKeypair } from '../secrets/index.js'
@@ -30,7 +31,7 @@ import {
 } from '../sso/index.js'
 import { declaredCatalogue } from '../ai/testing.js'
 import { createEventBus, makeRedactor, publishEvent } from '../observability/index.js'
-import { randomUUID } from 'node:crypto'
+import { createPrivateKey, randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -848,6 +849,40 @@ export async function testDeps(): Promise<ServerDeps> {
       idpCertificatePem: idp.certificatePem,
       privateKeyPem: keypair.privateKeyPem,
       certificatePem: keypair.certificatePem,
+    }),
+  }
+}
+
+/**
+ * `testDeps()` ON D5'S DRIVER 2 (the D5 plan's Task 7): `source` is a GitHub driver over an
+ * in-process fake, with its mirror where `testDeps()` puts driver 1's repositories, and the
+ * config says so. The caller owns the fake (`startFake()`) and stops it.
+ *
+ * `builds` is REUSED, not rebuilt: the build runner holds no source driver — the route asks
+ * `source.localGitDir` for the directory and hands it over (Task 2) — so it cannot run on the
+ * other driver's paths. `testDeps`' rule is about the RUNTIME driver, which is unchanged here.
+ */
+export async function githubTestDeps(fake: StartedFake): Promise<ServerDeps> {
+  const deps = await testDeps()
+  const github = {
+    ...deps.config.github,
+    apiUrl: fake.apiUrl,
+    gitUrl: fake.gitUrl,
+    org: fake.org,
+    appId: fake.appId,
+    installationId: fake.installationId,
+  }
+  return {
+    ...deps,
+    config: { ...deps.config, sourceDriver: 'github', github },
+    source: createGithubSourceDriver({
+      mirrorRoot: deps.config.reposRoot,
+      apiUrl: github.apiUrl,
+      gitUrl: github.gitUrl,
+      org: github.org,
+      appId: github.appId,
+      installationId: github.installationId,
+      appKey: createPrivateKey(fake.appKeyPem),
     }),
   }
 }
