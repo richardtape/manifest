@@ -400,7 +400,7 @@ ORIENTATION §6 and any plan's negative controls.
 |---|---|
 | Stop the control plane | `Ctrl-C` in its terminal |
 | `make down` | Stops the platform. Data, the mirror and the CA survive |
-| `make reset` | **Destroys every project's data** — databases, registry contents, every `mf-` container, network and volume. Asks you to type `reset`. Keeps the CA, the master key and the npm mirror. Afterwards: `make up`, then `db:migrate` before the control plane |
+| `make reset` | **Destroys every project's data** — databases, registry contents, every `mf-` container, network and volume. Asks you to type `reset`. Keeps the CA, the master key (and the fake GitHub App's credentials beside it) and the npm mirror. Afterwards: `make up`, then `db:migrate` before the control plane |
 | `make host-undo` | Reverses the three host changes `make host-setup` made. Valet is untouched |
 
 ---

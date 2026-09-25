@@ -66,8 +66,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # refusing a decision that names no preview (1). Then the F10 sitting (2026-09-24): +19, no new
 # file — the session's IdP handle (3), the SLO route's signed-only refusals and the console
 # sign-out's round trip (10), the console's `signOut` (5) and the mock's answer (1).
-EXPECT_TESTS=1742
-EXPECT_FILES=123
+# Then the D5 plan's sitting 2 (2026-09-24): +36 and two files — the source-driver contract
+# suite (11) and startBuild's absent-commit refusal (1), then the key custody rule (11), the
+# App JWT and key loader (8) and the source driver's settings (5).
+EXPECT_TESTS=1778
+EXPECT_FILES=125
 EXPECT_DOCTOR=19
 EXPECT_VERIFY=55
 

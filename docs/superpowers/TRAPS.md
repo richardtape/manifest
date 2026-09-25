@@ -1012,6 +1012,11 @@ it belongs among the traps the next sitting is most likely to hit.
   **The rule to carry: after a reset, run `make verify` BEFORE any demo.** Host-side edge
   checks red while the container-side one is green means restart the edge, not debug the
   control plane.
+  **IT ALSO FOLLOWS `pnpm test:docker`'s OWN EDGE RESTART** (2026-09-24, the D5 plan's sitting 2, F19): after a
+  green 202-in-31 run, `make verify` read **55 checks, 12 failed** in exactly this shape and `make doctor` warned
+  *host Node trusts the CA … ECONNRESET*; `manifest-caddy` had started at 18:21:25, inside the tier's window. A
+  parallel session's tier two hours earlier had NOT caused it. `docker restart manifest-caddy` → 55/0 and 19/0/0.
+  **So run `make verify` after every Docker tier, not only after a reset.**
 
 - **`db:migrate` NEEDS THE ADMIN URL IN THE SHELL, and says so in no useful way.**
   `MANIFEST_ADMIN_DATABASE_URL` is DERIVED in README's export block, not stored in `.env`, so
@@ -1495,6 +1500,18 @@ it belongs among the traps the next sitting is most likely to hit.
   <schema>`, and a field renamed in the schema alone was used 3 times in 3. Without a schema the model invents its
   own keys, and wraps them in a Markdown fence about 1 time in 3. The D5 plan's Decision 22 makes the schema the
   rule.
+- **REGISTERING AN ERROR CODE MOVES `openapi.json`, EVEN WITH NO ROUTE CHANGED** (2026-09-24, the D5 plan's sitting
+  2, F9). The document's `ErrorCode` enum IS `api/error-codes.ts`'s registry, and every route's `errors:` list is
+  printed into its operation's `default` description — so a task that registers a code, or retires one, turns
+  `document.test.ts` red (*"openapi.json is stale from line …"*) until `pnpm contract:write && pnpm contract:generate`
+  run and BOTH generated files are staged: `packages/contract/openapi.json` and `packages/contract/src/schema.d.ts`
+  (a `.d.ts` — plans have named it `schema.ts`). Twice in two sittings a plan's commit step named neither.
+- **`openssl genpkey -out` WRITES A PRIVATE KEY `600` WHATEVER THE UMASK** (2026-09-24, both Homebrew OpenSSL 3.6.3
+  and LibreSSL 3.3.6). So a negative control that removes a mint script's `umask 077` and `chmod 600` cannot fail
+  for the private key itself — only for the files written with `>` or `printf` beside it. Check each file's mode,
+  not the script's lines.
+- **Vitest's `it.each(…)('… %o')` formats a number as an OBJECT — in decimal.** A file-mode row `0o640` reads
+  *"refuses mode 416"* in a red run. Label it: `.map((m) => [m.toString(8), m])` and `%s`.
 
 ## Images already pulled
 

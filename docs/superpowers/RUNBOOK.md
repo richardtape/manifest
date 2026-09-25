@@ -161,9 +161,9 @@ gitignored, and — like the IdP keypair and the envelope master key — **not r
 | | |
 |---|---|
 | `make seed` | The only step that needs network. Pulls and **pushes** base images into the local registry, warms the npm mirror, mints the CA, pulls the Ollama models. |
-| `make up` | Boots the platform and waits for every healthcheck. Re-adds **both** loopback aliases, prompting for `sudo` **only** when one is genuinely missing. |
+| `make up` | Boots the platform and waits for every healthcheck. Re-adds **both** loopback aliases, prompting for `sudo` **only** when one is genuinely missing. Mints, once, the keys that live on this machine — among them `infra/secrets/master.key` and, since the D5 plan's Task 3, the **fake** GitHub App's four credentials beside it (`github-fake-*`, all `600`: its private key, public half, webhook secret and `faculty-dev`'s token). A second run changes none of them. |
 | `make down` | Stops everything. Data, the seed cache and the CA all survive. |
-| `make reset` | Destroys project data, the databases and the registry's contents. **Keeps** the Caddy CA, the npm mirror cache, `infra/images.lock` and the Ollama models, and re-pushes the base images from the local daemon — so the machine stays offline-capable. |
+| `make reset` | Destroys project data, the databases and the registry's contents. **Keeps** the Caddy CA, everything in `infra/secrets/` (the master key, and the fake GitHub App's credentials beside it), the npm mirror cache, `infra/images.lock` and the Ollama models, and re-pushes the base images from the local daemon — so the machine stays offline-capable. |
 
 Plus `make doctor` (*can this machine run the platform?* — works with nothing up) and
 `make verify` (*is the running platform correct?* — needs `make up` first).
@@ -490,13 +490,14 @@ Manifest binds only `127.0.0.2:80/443`, `127.0.0.3:443`, `127.0.0.1:7119` and
 **These are dated measurements, not current counts.** The check totals below are
 what those commands reported *on 2026-09-05*; P3 and then P4a have since added checks,
 and the current numbers are **`make doctor` 19 / 0 and `make verify` 55 / 0**
-(**All four were re-measured on 2026-09-24 after the D5 plan's sitting 1 and Rich's switch of the chat model to `qwen3.5:4b`: `pnpm test` **1742 passed** in 123 files, `make doctor` 19 with **0 warnings** — the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 55, and `pnpm test:docker` **202 in 31**, up 2 (owed by the switch and run: the two tests that hold the `think: false` pin and the `-reasoning` names).** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
+(**All four were re-measured on 2026-09-24 at the close of the D5 plan's sitting 2: `pnpm test` **1778 passed** in 125 files, up 36 and two files (the source-driver contract suite, `startBuild`'s absent-commit refusal, the key custody rule, the App JWT and the source settings), `make doctor` 19 with **0 warnings** — the vulnerability database goes stale again after 2026-10-01; refresh it with `make refresh-vulndb` — `make verify` 55, and `pnpm test:docker` **202 in 31**, unchanged (owed and run). After that Docker tier `make verify` first read 12 failed, host→edge only, until `docker restart manifest-caddy` — TRAPS.md's *THE HOST CAN LOSE THE EDGE*.** This parenthetical states only the LATEST sitting — it had grown to 6 KB of per-sitting history before sitting 8 replaced it, and every sitting's numbers are in its own plan record, dated.) ORIENTATION §2's box is the maintained copy of those; if this
 line disagrees with it, that box wins. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
-disabling Wi-Fi cuts an agent off too. **It now has ELEVEN steps** — P5a sitting 12 added `make demo-journey` as step 8,
+disabling Wi-Fi cuts an agent off too. **It now has TWELVE steps, 1 to 12, after step 0's offline check** — P5a sitting 12 added `make demo-journey` as step 8,
 P5b sitting 9 added `make demo-token` as step 9, P5c sitting 9 added the console's
 preflight as step 10 (2026-09-19), and P6a sitting 11 added `make demo-production` as step 11
-(2026-09-22) — whose approval summary may legitimately read `unavailable` offline, which is
+(2026-09-22), and P6b sitting 7 added `make demo-releases` as step 12 (2026-09-23) — whose
+approval summaries may legitimately read `unavailable` offline, which is
 Decision 7 working, not a failure — all guarded by the same control-plane check as steps 6
 and 7. The evidence is left exactly as recorded — a run is a run — and this
 note exists so nobody reads it as today's baseline.

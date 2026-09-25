@@ -10,14 +10,12 @@ on one laptop, offline. The plan being executed now is **D5's GitHub source driv
 ([`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md)) — its sittings table
 says how far it has got. The roadmap's ledger outranks every document on status.
 
-*Last verified 2026-09-24, after the D5 plan's sitting 1 (the measurements) AND Rich's switch of the chat model to
-`qwen3.5:4b` the same afternoon, its request-proof `think: false` pin and its two `-reasoning` names. `pnpm test`
-**1742 passed, 0 skipped, in 123 files**, twice after each change, identical. **`make doctor` 19 checks, 0 failed,
-0 warnings** — the vulnerability database goes stale again after 2026-10-01 (`make refresh-vulndb`). **`make
-verify` 55.** `pnpm test:docker` **202 in 31**, 1126.8 s — **up 2**: `ai-path.docker.test.ts`'s two new tests (a
-request cannot turn the default names' thinking on; the `-reasoning` names do think), owed by `infra/` and run,
-green first time. `scripts/ci-acceptance.sh` reads `1742 / 123 / 19 / 55`. **This line states only the latest
-sitting** — each sitting's numbers are in its plan's *What executing this plan found*, dated, where they cannot
+*Last verified 2026-09-24, at the close of the D5 plan's sitting 2 (Tasks 2 and 3). `pnpm test` **1778 passed, 0
+skipped, in 125 files**, twice, identical — up 36 and two files. **`make doctor` 19 checks, 0 failed, 0 warnings** —
+the vulnerability database goes stale again after 2026-10-01 (`make refresh-vulndb`). **`make verify` 55.** `pnpm
+test:docker` **202 in 31**, 1129.3 s, unchanged — owed and run, green first time; after it `make verify` read 12
+host→edge failures until `docker restart manifest-caddy` (TRAPS.md, *THE HOST CAN LOSE THE EDGE*).
+`scripts/ci-acceptance.sh` reads `1778 / 125 / 19 / 55`. **This line states only the latest sitting** — each sitting's numbers are in its plan's *What executing this plan found*, dated, where they cannot
 drift.*
 
 **Short of context? Read §7e, §2's numbers box, §6 and §4's curated traps, in that order.** The full trap catalogue
@@ -64,22 +62,21 @@ roadmap's table — every plan self-reviewed first. The roadmap's defect-rate ta
 a written plan as a hypothesis (§9).
 
 **The four numbers you will check first, re-measured 2026-09-24 on this machine at the open AND the close of the D5
-plan's sitting 1 (the measurements; its record is in the plan). `pnpm test` **1742** in **123** files, unmoved
-(twice at the open, twice at the close); `make doctor` **19** with **0 warnings**; `make verify` **55**; `pnpm
-test:docker` **202** in 31, up 2 — run after Rich's switch of the chat model to `qwen3.5:4b` and its `-reasoning`
-names the same afternoon:**
+plan's sitting 2 (Tasks 2 and 3; its record is in the plan). `pnpm test` **1778** in **125** files, up 36 and two
+files (1742 in 123, twice, at the open); `make doctor` **19** with **0 warnings**; `make verify` **55**; `pnpm
+test:docker` **202** in 31, unchanged, owed and run:**
 
 | Gate | What it reads now |
 |---|---|
-| `pnpm test` (from the **repo root**) | **1742 passed, 0 skipped, 123 files**, ~180 s. Run it twice alone, and identical, after each code commit and at every close; `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **1742**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
-| `pnpm test:docker` | **202 tests, 0 SKIPPED, 31 files, 1126.8 s** on its last run (2026-09-24, after the chat model's `-reasoning` names). Owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — fails rather than skips, and **outlasts the agent's 10-minute tool limit: run it in the background**. It restarts the edge (dropping every runtime route), truncates the tables and re-registers the platform's SP row: **restart the control plane afterwards**, then run the two cleanup scripts, because it regenerates seven dead app networks and one volume every time. Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
+| `pnpm test` (from the **repo root**) | **1778 passed, 0 skipped, 125 files**, ~175 s. Run it twice alone, and identical, after each code commit and at every close; `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **1778**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
+| `pnpm test:docker` | **202 tests, 0 SKIPPED, 31 files, 1129.3 s** on its last run (2026-09-24, the D5 plan's sitting 2). Owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — fails rather than skips, and **outlasts the agent's 10-minute tool limit: run it in the background**. It restarts the edge (dropping every runtime route), truncates the tables and re-registers the platform's SP row: **restart the control plane afterwards**, then run the two cleanup scripts, because it regenerates seven dead app networks and one volume every time — **and then `make verify`**: once, the edge's restart left the host unable to reach it (12 host→edge failures, fixed by `docker restart manifest-caddy`). Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
 | `make doctor` | **19 checks, 0 failed, 0 warnings** — the vulnerability database is fresh until **2026-10-01**; after that doctor warns, and §13's `scans` item refuses every production launch until `make refresh-vulndb` runs with the network on (*Outstanding*, below). Its `127.0.0.3` checks assert what dnsmasq answers, so **it cannot tell you production is REACHABLE** |
 | `make verify` | **55 checks, 0 failed, 0 warnings.** Straight after `make reset` it reads ONE red — the audit grant — until the control plane has migrated the empty database. Its INFO line reads `mf- containers=6 networks=2 volumes=4` today (`launch-app`'s alone). *Runtime routes currently applied* counts the internal listener (`srv0`) only, so it never sees a production route |
 | `make demo-production` | P6a's acceptance: ~1 min fresh, three phases each ending `every check passed`; ~4 s on the re-use path, where `launch-app` has launched. Step 11 of `scripts/offline-acceptance.sh`. Last green 2026-09-24, as the first half of a fresh `make demo-releases` |
 | `make demo-releases` | P6b's acceptance: ~2 min re-used, ~3 fresh (it runs `make demo-production` first when `launch-app` has not launched). Step 12 of the offline acceptance and the last step of `make ci-acceptance`. It leaves `launch-app` on its leg C release. Last green 2026-09-24 |
 | `make demo-token` | P5b's acceptance, ~30 s; step 9 of the offline acceptance |
 | `make demo-journey` | P5a's acceptance: all eight steps, ~51 s, over the contract; last run by P6b sitting 4 |
-| `make ci-acceptance` | The headless half of 1c's acceptance, ~15 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases`. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines are this box's numbers in code — `1742 / 123 / 19 / 55` — and move with it** (§6) |
+| `make ci-acceptance` | The headless half of 1c's acceptance, ~15 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases`. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines are this box's numbers in code — `1778 / 125 / 19 / 55` — and move with it** (§6) |
 
 **A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is
 cheaper before you start than after. **This box is the only current one in this file**; the same four numbers are
@@ -176,7 +173,7 @@ docs/superpowers/
 │   ├── 2026-09-19-interface-design-brief.md      for a DESIGN agent: the faculty product and the admin console
 │   ├── 2026-09-19-p6a-first-production-launch.md  P6a — executed 2026-09-22
 │   ├── 2026-09-22-p6b-subsequent-releases.md      P6b — executed 2026-09-23; its *What this plan does not build* is the next plan's input
-│   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — WRITTEN 2026-09-24, 15 tasks in eight sittings; sitting 1 next
+│   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — WRITTEN 2026-09-24, 15 tasks in eight sittings; EXECUTING — its sittings table says which is next
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -226,7 +223,7 @@ another module except through its `index.ts` or `testing.ts`**:
 | `db/` | Drizzle schema and client, `locks.ts`, `testing.ts` — `withRollback` isolates a test from its OWN writes only; `resetDatabase` is for a test that drives a real server, whose rows are committed |
 | `runtime/` | §11's `Driver`, the fake driver, **`driver-contract.ts`**, the state machine; `runtime/docker/` is the one real driver |
 | `routing/` | §23 hostnames → Caddy routes; readiness and identity probes run from inside the edge. `caddy.ts` speaks `node:http`, not `fetch` — Caddy's admin API refuses any request carrying an `Origin` header |
-| `build/`, `services/`, `source/` | the build context, §12's gates and scan; per-app Mongo; bare git repositories (D5 driver 1) |
+| `build/`, `services/`, `source/` | the build context, §12's gates and scan; per-app Mongo; D5's `SourceDriver` — bare git repositories (driver 1), `driver-contract.ts` (the suite every driver passes) and `github/` (driver 2, being built by the D5 plan) |
 | `identity/`, `sso/`, `secrets/` | sessions and Manifest's own SAML SP; per-app SP registration in the IdP; envelope encryption |
 | `projects/` | §13 authorization (`authz.ts`), the repository, reserved labels, `checkSlug` and §26's `fleet.ts` |
 | `releases/` | build (the `BuildRunner` a build runs on), release, deploy, retire, recover-at-boot |
@@ -302,6 +299,11 @@ defect even when every test is green.**
   the application erase the trail. `recordEvent` takes its redactor as a PARAMETER, so nothing writes an unredacted
   row, and **every event goes through `publishEvent`**, which records it and streams it; a database CHECK closes
   the event types.
+- **The master key and the GitHub App key are ONE custody class, enforced** (§20; the D5 plan's Task 3):
+  `secrets/custody.ts`'s `assertOwnerOnly` refuses a key file its group or others can touch, or another user owns,
+  and both `loadMasterKeypair` and `loadAppKey` call it — **so a control plane handed a `644` master key refuses to
+  boot** (`SECRET_MASTER_KEY_PERMISSIONS`, naming the file; measured). A test that writes a key file must `chmod 600`
+  it. `make up` mints the fake App's four credentials into `infra/secrets/` beside `master.key`, once.
 - **`secrets/` is libsodium envelope encryption over a `secrets` table**; service credentials and each app's
   `SESSION_SECRET` are STORED, not derived; `process.env` is scrubbed at boot. Tests use `withSecretScope`
   (`secrets/testing.ts`). **`deriveCredentials` survives on purpose**: a service created before credentials were
@@ -331,6 +333,13 @@ defect even when every test is green.**
   root-owned with the blueprint's `run_as_uid` as its group. **§16's drift tier reads the blueprint's SOURCE**,
   comments stripped, against the renderer's output; `ALLOWED_UNSET` and `PLATFORM_ONLY` are deliberately empty.
   *(P4a Tasks 10–13.)*
+- **The build path goes through D5's driver, never a path** (the D5 plan's Task 2). `RepoRef` is `{ projectSlug,
+  provider }` — no path, no URL — so the builder and the code reviewer ask `SourceDriver.localGitDir(repo, sha)` for
+  the commit, present in a bare repository on this machine, and a reader of a laptop path off a reference is a `tsc`
+  error. `localGitDir` refuses anything but a full 40-character id the repository has (`409
+  SOURCE_COMMIT_NOT_FOUND`, which `startBuild` answers before anything starts) and another driver's reference
+  (`SOURCE_PROVIDER_MISMATCH`). `source/driver-contract.ts`'s `describeSourceDriver` is the contract; every driver
+  runs it unchanged.
 - **A deploy reads only the `ResolvedConfig` frozen at release (§13)**, never `app_specs.parsed` — a second source
   of truth is the defect shape P3 paid for seven times.
 - **A release freezes its BUILD's spec, and only its own project's build** (P6b Task 3, Decision 6). `POST
@@ -918,8 +927,9 @@ and is not repeated here.*
     Prove the break applied (assert the match, read the `git diff`), and assert the refusal's CODE. *(TRAPS:
     `matches nothing`, `status-only`, `ENGLISH PROSE`, `GIT REPOSITORY`)*
 12. **`packages/contract/openapi.json` is generated.** A route change is the definition, then `pnpm contract:write`
-    (which truncates), then `pnpm contract:generate`; a stale copy turns `pnpm test` red. *(TRAPS: `GENERATED from
-    the route`)*
+    (which truncates), then `pnpm contract:generate`; a stale copy turns `pnpm test` red. **So does registering or
+    retiring an ERROR CODE, with no route touched** — the `ErrorCode` enum is the registry — and the generated client
+    is `schema.d.ts`. *(TRAPS: `GENERATED from the route`, `REGISTERING AN ERROR CODE`)*
 13. **An applied migration is never re-run, and one applied with a line missing is replayed, not patched.** New SQL
     needs a new migration. `db:migrate` needs RUNBOOK's whole export block (*Running the control plane*) — the admin URL is derived, not in `.env`
     — and fails naming neither. *(TRAPS: `APPLIED drizzle`, `REPLAYED`, `ADMIN URL`)*
@@ -1224,75 +1234,76 @@ named in the row below.*
 | **P5b** | [`plans/2026-09-17-p5b-delegated-tokens.md`](plans/2026-09-17-p5b-delegated-tokens.md) — **EXECUTED 2026-09-18**, all nine sittings | `make demo-token` — green three times, the third from a `make reset` machine; step 9 of the offline acceptance | 116 findings in nine sittings. **Sitting 9's F1 is the newest one to read, and it is a lesson about PREDICTIONS**: sitting 8 predicted Task 13's control (a) would be invisible to the acceptance, and it turns three checks red — the reasoning was about the FIXTURE token, which holds the privileged capability and is refused identically either way, while every REAL token lacks it and is refused by a different rule with a different code. **Sitting 9's F3** is the second: replacing the token secret's constant-time comparison with `===` left all 1342 tests AND all nine demo steps green, so the property was asserted by nothing; it is now asserted at the source, and the first draft of that assertion could not fail. **Sitting 9's F8**: one `pnpm test:docker` run recreates exactly the seven dead app networks cleared by hand the same day. **Sitting 8's F1 is the newest one to read**, and it is what the first integration client is for: **`subscribe` could not carry a delegated token at all**, so an agent could start a build through the generated client and had nothing to watch it end on — the route had accepted a bearer all along, and nothing server-side could see the hole. **Sitting 8's F4 and F5** are the second: **three of its five negative controls answer `403` for the WRONG REASON** — the privileged rule disabled makes the refusal a dead-end `403 FORBIDDEN`, confirm reverted answers `403 TOKEN_ACTION_PENDING`, the fleet reverted answers `403 FORBIDDEN` — so a status-only demo passes all three. **Sitting 7's F4**, and it is a JavaScript trap rather than a platform one: `toToken` was given an optional `now: Date = new Date()`, and `api/routes/tokens.ts` maps it as `.map(toToken)` — so `now` arrived as the ARRAY INDEX, `0`, and every token in every list read `expired: false`, including one that had expired an hour before. Only the assertion about an expired token could see it. **Sitting 7's F2** is the one after that: the plan's own `Promise.all` control for a read-then-insert **passed against the defect**, because `pg.Pool` establishes a connection per acquire and the five calls serialised — a warm pool is what makes a pooled race observable, and a deterministic SQLSTATE test belongs beside it. **Sitting 6's F5:** two of that sitting's own four new tests were green before the feature, because both were *"is not limited"* claims — and a claim that something is NOT refused is true of a platform that refuses nothing. A negative claim needs a positive control in the same test. **Sitting 4's F1** is the one to read: the plan's own negative control for the ORDER of the two token checks could not fail against any of the 31 tests that existed, because every test writes a token holding the privileged capability and **no token the platform can mint can hold one** — so the swapped order answers a dead-end `403 FORBIDDEN` for every real token, with D24's loop unable to start, and all 31 green. **Sitting 2's F1**: the plan's token parser split on `_` while base64url's alphabet contains it, so it refused 47.5% of the tokens the same file minted — and the round-trip test minted ONE token, so it would have gone red about half the time and read as a flaky harness. **Sitting 2's F14**: the plan's own TRUNCATE negative control cannot fail, because the statement's CASCADE reaches both new tables unnamed. **Sitting 3's F1**: `DELETE /v1/tokens/{tokenId}` is the API's first bodyless mutation, and the contract layer could not carry one — the route answered `400` before its handler ran and the OpenAPI document could not be generated for it at all, because both kept on `method === 'GET'` rather than on the body schema. **Sitting 3's F13**: three of that sitting's own negative controls answer `403` for the WRONG REASON, so a status-only assertion is green through all of them. |
 | **P6a** | [`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md), with [the P6 brief](plans/2026-09-19-p6-brief.md) — **EXECUTED 2026-09-22**, all eleven sittings | `make demo-production` — green on the fresh path, the re-use path and from a `make reset` machine; step 11 of the offline acceptance; **and a whole launch clicked by a person** | **Sitting 11's F6 is the one to read**: the acceptance's own control (e) stayed GREEN because `applyRoute` patched an existing route in place, so a production route kept whatever listener held it — a fail-open in the control the plan exists to build, found only by asking why a control was green. **Sitting 11's F2** is its mirror image in the instrument: a pooled keep-alive socket reported the production app on the internal listener when it was not there, and in the other order would have hidden a real leak. **Sitting 9's F5**: §8 sends a production app to real UBC Shibboleth, so R2's rehearsal could not pass on this laptop until `InjectionContext.purpose` existed. **Sitting 10's F17 and sitting 11's F10**: two console defects no gate could see, both found by clicking. |
 | **P6b** | [`plans/2026-09-22-p6b-subsequent-releases.md`](plans/2026-09-22-p6b-subsequent-releases.md) — **EXECUTED 2026-09-23**, all seven sittings | `make demo-releases` — green fresh, re-use and from a `make reset` machine; step 12 of the offline acceptance; **clicked by a person, stale path included** | **Sitting 7's F3 is the one to read**: the acceptance's own baseline derivation used release order where the platform uses decision order, agreed on every path until the first run after the clicked half, and would have gone red for the wrong reason there — a client that re-derives a platform rule must implement THE rule. **Sitting 7's F9 and F10** are what the next plan inherits: the model's summary invented an administrator's verdict before anyone decided, and the console's *Sign out* leaves the IdP session alive. **Sitting 1's F1** is the plan's best: the egress proxy never re-rendered its allowlist, so a removed host stayed reachable — found by a measurement, fixed as Task 5a, and held by the acceptance's control (i). |
-### 7e. Execute sitting 2 of the D5 GitHub source driver plan — Tasks 2 and 3 ← **START HERE**
+### 7e. Execute sitting 3 of the D5 GitHub source driver plan — Tasks 4, 5 and 6 ← **START HERE**
 
-**THE PLAN IS WRITTEN (2026-09-24, `7045a99`) AND ITS SITTING 1 RAN THE SAME DAY:**
-[`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md) — D5's driver 2, **15
-tasks in Rich's eight sittings**. **Your job is sitting 2: Task 2 (the build path behind `SourceDriver` —
-`localGitDir`, a `RepoRef` with no path, the source-driver contract suite) and Task 3 (the App key's custody —
-`assertOwnerOnly` for both keys, the App JWT, the GitHub settings, and the fake App's credentials minted by `make
-up`).** Use `superpowers:executing-plans` (or subagent-driven), and **commit on `main`, one commit per task**.
+**SITTINGS 1 AND 2 RAN ON 2026-09-24:** [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md)
+— D5's driver 2, **15 tasks in Rich's eight sittings**. **Your job is sitting 3: Task 4 (the fake, in process — App JWTs,
+installation tokens, private organisation repositories and git over HTTP, held to GitHub's own schemas), Task 5 (its
+container: `--profile github`, `127.0.0.1:7110`, built by `make seed`) and Task 6 (the conformance run).** **If it runs
+long, stop after Task 5 and sweep — Task 6 then opens sitting 4** (the plan's sittings table says so). Use
+`superpowers:executing-plans` (or subagent-driven), and **commit on `main`, one commit per task**.
 
-**READ, IN THIS ORDER:** the plan's header and sittings table; *Decided by Rich*; *Global Constraints*; **sitting
-1's record** at the end of the plan (*What executing this plan found*); then **Task 2 and Task 3 in full, each
-starting with the `[M<n>]` block at its top where it has one**. Task 2 has one; Task 3 has none. The measurements
-behind every block are in [`spikes/d5-baseline/README.md`](spikes/d5-baseline/README.md).
+**READ, IN THIS ORDER:** the plan's header and sittings table; *Decided by Rich*; ***What Rich does*** — **this sitting
+needs Rich twice**; *Global Constraints*; **sittings 1 and 2's records** at the end of the plan (*What executing this
+plan found*); then **Tasks 4, 5 and 6 in full, each starting with the `[M<n>]` block at its top where it has one** —
+Tasks 4 and 5 have one, Task 6 none. The measurements behind every block are in
+[`spikes/d5-baseline/README.md`](spikes/d5-baseline/README.md).
 
-**WHAT SITTING 1 CHANGED FOR YOU:**
-- **Task 2 takes the contract's `1.2.0` bump** (`[M17]`, F8). Every route's `errors:` list is printed into the
-  OpenAPI document, and Task 2 adds `SOURCE_COMMIT_NOT_FOUND` to `startBuild`'s. So run `pnpm contract:write &&
-  pnpm contract:generate`, bump `CONTRACT_VERSION` and `packages/contract/package.json`, and **stage
-  `api/contract/document.ts` and `packages/contract/package.json` too** — Task 2's own commit step names only the
-  two generated files.
-- **F6 does not touch your tasks, but Task 2's contract suite is where Task 7 will add its case** (*after a rewrite
-  and a normal push, `headCommit` answers the push*). Write the suite so a driver-2-only case can be added.
-- Nothing moved a sitting boundary. **F7 is decided** (Rich, the same day): Task 13's summary becomes STRUCTURED
-  OUTPUT, and Task 13 is rewritten for it (Decisions 19 and 22). Not yours until sitting 7.
-- **Rich switched the chat model to `qwen3.5:4b` after sitting 1** — a THINKING model, run with thinking off by
-  Ollama's `think: false` pinned in `infra/litellm/config.yaml` (§4), and the same model with thinking ON is served
-  as `default-chat-reasoning` and `default-chat-onprem-reasoning`. If anything AI-shaped streams nothing, check
-  that line first.
+**WHAT RICH DOES THIS SITTING — ASK, NEVER ASSUME:**
+- **The network, for Task 5's image** (`apk add git` runs when the image is built — there is no apk mirror). Ask, then
+  build the ONE image with the command in *What Rich does* 1, not a whole `make seed`.
+- **Task 6's real leg runs only if Rich registered `Manifest (local dev)` AND says yes, with the network on.** At
+  sitting 2's close `infra/secrets/` held no `github-app.pem` and no `github-conformance.json` — so unless that has
+  changed, the real leg reads `SKIPPED — no real App configured`, which is not a failure.
 
-**DECIDED BY RICH — DO NOT RE-ASK** (§8, *Decided*): the fake in a container plus an opt-in real conformance
-check; eight sittings — **if a task breaks the split, WRITE TO RICH with the measurement and a proposed re-cut,
-and wait**; the order after this plan (the authoring API, then the vulnerability database); F10 fixed, F9 and
-F11–F15 inherited (Tasks 13 and 14).
+**WHAT SITTING 2 CHANGED FOR YOU:**
+- **`infra/secrets/` now holds the fake App's four files**, minted by `make up` (`github-fake-app.pem`, `.pub.pem`,
+  `-webhook.secret`, `-developer.token`), all `-rw-------`, owned by `rich`. Task 5 mounts the public key and the token
+  into the fake read-only, and **its Step 1 measures whether the container's non-root user can read a `600` file owned
+  by uid 501** — that was left open on purpose.
+- **The contract is already `1.2.0`** (Tasks 2 and 3), so a document change needs no bump. **Registering an error code
+  moves `openapi.json` with no route touched** — the `ErrorCode` enum IS the registry (sitting 2's F9): run `pnpm
+  contract:write && pnpm contract:generate` and stage BOTH generated files, `openapi.json` and
+  **`packages/contract/src/schema.d.ts`** (a `.d.ts`).
+- **`make reset`'s `$(COMPOSE) down` is `Makefile:71` now** — Task 5's `[M13]` names the line it changes.
+- Task 7 carries a sitting-2 note at its top (the suite's `extra` hook). Not yours.
+
+**DECIDED BY RICH — DO NOT RE-ASK** (§8, *Decided*): the fake in a container plus an opt-in real conformance check;
+eight sittings — **if a task breaks the split, WRITE TO RICH with the measurement and a proposed re-cut, and wait**;
+the order after this plan (the authoring API, then the vulnerability database); F10 fixed, F9 and F11–F15 inherited
+(Tasks 13 and 14).
 
 **THINGS MOST LIKELY TO COST YOU:**
-- **`pnpm test:docker` IS OWED THIS SITTING** (`releases/`, the build callers, `secrets/`), ~20 min. **It restarts
-  the edge and truncates the tables — restart the control plane afterwards.** **S6's probe 14 needs the chat model
-  RESIDENT — `qwen3.5:4b` since 2026-09-24**: warm it first (§2's `pnpm test:docker` row has the `curl`, with
-  `"think":false`), or read a `000` there as that precondition, not a regression.
-- **`assertOwnerOnly` will run on the MASTER key at every boot once Task 3 lands.** Queried at sitting 1's close:
-  `infra/secrets` is `drwx------`, `master.key` is `-rw-------`, both owned by `rich` — so boot passes. A test that
-  writes a key file must set its mode, because the default umask makes it `644` and the check will refuse it,
-  correctly.
-- **Task 3 changes `make up`** (it mints `infra/secrets/github-fake-*` beside the master key). `infra/secrets/` is
-  gitignored (`.gitignore:48`), and `make reset` must keep the files, as it keeps the master key.
-- **The tool shell is zsh**: `${PIPESTATUS[0]}` is bash's and reads EMPTY there — sitting 1 lost one exit code
-  that way. Run anything that needs a pipeline's status under `bash`.
-- **ESLint reads `docs/superpowers/spikes/`** — sitting 1's `pnpm lint` went red at close on two of its own probes.
-  A throwaway `.mjs` you leave in the tree is linted.
-- **Other agents commit on `main` while you work** — stage your own paths by name (the rule below).
+- **`pnpm test:docker` IS OWED THIS SITTING** (`infra/`, a `*.docker.test.ts`), ~19 min — background it. **Warm the chat
+  model first** (§2's box has the `curl`); it restarts the edge and truncates the tables — restart the control plane
+  afterwards if one was running — and it brings back seven dead networks, a volume and `p4b-probe-user`.
+- **Task 4 adds a workspace package**: `pnpm install --offline` links it (`[M18]` measured that offline) and
+  `pnpm-lock.yaml` changes — stage it. `packages/github-fake` has `erasableSyntaxOnly`: **no constructor parameter
+  properties**, no `enum`.
+- **Task 4's `[M4]`: a bare repository's `HEAD` is `master`** — `git init --bare -b main`, and assert a clone's CONTENT,
+  never its exit code. **`[M11]`: Ajv cannot compile two of GitHub's schemas** without the load-time normaliser, and
+  `ajv-formats` is required.
+- **Task 5's `[M13]`: a bare `compose down` exits 0 with the profiled fake still running.** Assert on the container.
+- **A negative control that never applied reads as "cannot fail"** — sitting 2's first run of two controls split its
+  patterns on their own `:` and changed nothing (F17). Assert the substitution matched, then read `git diff --stat`.
+- **The tool shell is zsh** (`${PIPESTATUS[0]}` is empty — run multi-line probes with `bash`); **ESLint reads
+  `docs/superpowers/spikes/`**; **other agents commit on `main`** — stage your own paths by name.
 
-**THE MACHINE, AS SITTING 1 LEFT IT (2026-09-24, queried at its close — query every one again):**
-- **The database is EMPTY: 0 projects, releases, approvals, specs and builds**, because the close's `pnpm test`
-  truncated it. **24 migrations.** `launch-app`'s six containers still run with no project row, and
-  `.manifest/repos/` still holds six bare repositories (`click-launch`, `journey-app`, `launch-app`,
-  `p5c-acceptance`, `proof-app`, `token-app`). **`make demo-releases` and `make demo-production` start from the
-  fresh path** — the F10 sitting ran `make demo-releases` from exactly this state (containers up, tables truncated
-  by a test run) and it re-launched `launch-app` — and `demo-production.sh:112`'s `clear_orphan_repository` handles
-  the leftover repository.
-- **Nothing listens on 7100, 7102, 7104 or 7110**; three addresses on `lo0` (`127.0.0.1`, `.2`, `.3`).
-- After each of the two Docker tiers run for the model changes: **seven dead networks and one volume, and one
-  LiteLLM orphan, came back and were cleared with `--apply`**; both scripts then read clean. `make verify`'s line:
-  `mf- containers=6 networks=2 volumes=4`.
-- **Images: `docker images -q` 204, `sort -u` 196, `127.0.0.1:7107/local/*` 157** — up twelve in two Docker tiers,
-  the app images the tier builds, which no script sweeps. Ollama 0.34.4 with **no model resident** (both unloaded
-  at close).
-- The gates at the close: `pnpm test` 1742 in 123 (twice), lint, typecheck and format clean, `make doctor` 19/0/0,
-  `make verify` 55/0, `pnpm test:docker` 202 in 31. The chat model is `qwen3.5:4b` (five logical names, two of them
-  `-reasoning`); `ministral-3` is still on disk, unused.
+**THE MACHINE, AS SITTING 2 LEFT IT (2026-09-24, queried at its close — query every one again):**
+- **The database is EMPTY: 0 projects, builds, releases and specs**, because the close's `pnpm test` truncated it.
+  **24 migrations** — this sitting added none. `launch-app`'s six containers still run with no project row, and
+  `.manifest/repos/` still holds the same six bare repositories. **`make demo-releases` and `make demo-production`
+  start from the fresh path**, and `clear_orphan_repository` handles the leftover repository.
+- **Nothing listens on 7100, 7102, 7104 or 7110**; three addresses on `lo0`. **7110 is still free** — Task 5 takes it.
+- **`infra/secrets/`**: `master.key` and the four `github-fake-*` files, all `-rw-------`, owner `rich`; **no
+  `github-app.pem` and no `github-conformance.json`** (the real App is not registered).
+- **`manifest-caddy` was RESTARTED at close** (`docker restart`, F19) — so no runtime route is applied; `make verify`
+  55/0 and `make doctor` 19/0/0 after it. Both cleanup scripts read clean after `--apply` (7 networks, 1 volume and
+  `p4b-probe-user` came back after the Docker tier, as always): `mf- containers=6 networks=2 volumes=4`.
+- **Images: `docker images -q` 221, `sort -u` 213, `127.0.0.1:7107/local/*` 174** — this sitting's tier added 6 app
+  images, which no script sweeps. **Ollama 0.34.4 with no model resident** (both unloaded at close).
+- The gates at the close: `pnpm test` 1778 in 125 (twice), lint, typecheck and format clean, `make doctor` 19/0/0,
+  `make verify` 55/0, `pnpm test:docker` 202 in 31. Contract `1.2.0`.
 - **Docker Desktop may not be running when you open** (`open -a Docker`, §4).
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
