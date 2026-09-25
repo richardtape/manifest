@@ -14,11 +14,11 @@ the only two a sitting changes. ORIENTATION §2's box is the only current statem
 numbers, and the roadmap's ledger (`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every
 other document on status.*
 
-**The design is approved and complete, five spikes are done, and eleven plans are executed** — Phase 1c,
-and Phase 2's first two plans, P6a (the first production launch) and P6b (subsequent releases). Every one
-has an acceptance that passes. **The plan being executed now is D5's GitHub source driver**
-(`docs/superpowers/plans/2026-09-24-d5-github-source-driver.md`). Each plan's *What executing this plan
-found* is its record; this file keeps none of it.
+**The design is approved and complete, five spikes are done, and twelve plans are executed** — Phase 1c,
+and Phase 2's first three plans, P6a (the first production launch), P6b (subsequent releases) and D5's
+GitHub source driver. Every one has an acceptance that passes. **No plan is being executed now**: the next
+job is to WRITE the authoring API's plan (ORIENTATION §7e). Each plan's *What executing this plan found* is
+its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
 |---|---|---|---|
@@ -33,10 +33,12 @@ found* is its record; this file keeps none of it.
 | P5c | 2026-09-19 | The clients: `manifest-mock`, `console/` behind its import boundary, the CI acceptance script — and Phase 1c's acceptance | §22's journey clicked by a person **and** run headlessly, over one contract |
 | P6a | 2026-09-22 | The first production launch: §12's public listener, the two external records, the rehearsal, step-up, an approval bound to a digest | `make demo-production`, **and a launch clicked by a person** |
 | P6b | 2026-09-23 | Subsequent releases: self-serve unless sensitive, re-escalation approved from a stored preview, the egress proxy following its release, §9's IAM change request, the person-only class | `make demo-releases`, **and a person clicking it** |
+| D5 driver 2 | 2026-09-25 | An app's code in a GitHub organisation: private and kept private, pushes by HMAC-verified webhook, every commit scanned for secrets, `main` protected, built offline from a mirror — against a GitHub fake, checked against a real App | `make demo-github` (driver 2), **and a person clicking both drivers** |
 
 **Outstanding, and Rich's:** the offline acceptance (`scripts/offline-acceptance.sh` —
-turning the network off from a tool call cuts the agent off too; **it now has TWELVE steps**, the
-newest being `make demo-releases` — a launched app's next release, whose preview summary may
+turning the network off from a tool call cuts the agent off too; **it now has THIRTEEN steps**, the
+newest being `make demo-github`, which needs the control plane on DRIVER 2 while steps 6 to 12 need
+driver 1 — each step asks which answers and reads SKIPPED on the wrong one; step 12's preview summary may
 legitimately read `unavailable` offline), the second-machine clean clone, starting the UBC external track
 (its trigger fired on 2026-09-15, and **P6a's R1 makes it more urgent, not less** — P6a builds
 the objects a real IAM registration and PIA would populate; **since 2026-09-20 its item 5,

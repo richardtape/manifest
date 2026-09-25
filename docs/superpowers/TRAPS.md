@@ -1645,6 +1645,45 @@ it belongs among the traps the next sitting is most likely to hit.
   staging, so its approval link is rightly shown and nothing waits to be decided. Push to
   `.manifest/repos/launch-app.git`, validate that commit, build, release and deploy to staging as the instructor — the
   demos' own route — and **stage a self-serve candidate LAST, or redeploy one**: staging anything replaces the candidate.
+- **A DEMO NOBODY RUNS GOES RED AND STAYS RED: `make demo` AND `make demo-token` WERE BOTH RED FOR FIVE DAYS**
+  (2026-09-25, the D5 plan's sitting 8, F15 and F16). P6a's `f989fcb` (2026-09-20) put a production deploy and the
+  confirmation of D24's privileged actions behind §20's step-up, asked BEFORE anything else — and `make demo` (P3's
+  acceptance) asked a plain session for §13's checklist refusal, `make demo-token` confirmed with a plain session. Both
+  answered `403 STEP_UP_REQUIRED`. **Neither `make ci-acceptance` nor anyone had run them since P5c**, and `make demo` is
+  in no acceptance at all. Both now step up and assert both refusals in order. **When a plan adds a rule in front of
+  every request of a kind, run EVERY demo once** — `make demo`, `demo-identity`, `demo-ai`, `demo-redeploy`,
+  `demo-journey`, `demo-token`, `demo-production`, `demo-releases`, `demo-github` (on driver 2) — not only its own.
+- **`make demo-github` IS DRIVER 2'S; EVERY OTHER DEMO IS DRIVER 1'S — AND A DRIVER-1 DEMO RUN ON DRIVER 2 CREATES ITS
+  PROJECT THERE FOR EVER** (2026-09-25, the D5 plan's sitting 8, F9). One source driver per control-plane process.
+  `make demo-github` asks first (an unsigned delivery: `401 WEBHOOK_SIGNATURE_MISSING` is driver 2, `404
+  WEBHOOKS_NOT_CONFIGURED` driver 1) and on driver 1 stops, creating nothing. `make ci-acceptance` and the offline
+  acceptance ask the same way and read the other driver's steps `NOT RUN` / `SKIPPED`. **The individual `make demo*`
+  targets do not ask**: run `make demo-journey` on driver 2 after a `pnpm test` and `journey-app` is CREATED on the fake,
+  no route deletes it, and driver 1 answers it `SOURCE_PROVIDER_MISMATCH` from then on. Read the boot line's `"source"`.
+- **THE CONTROL PLANE'S `dev` SCRIPT IS `pnpm run build && node dist/index.js` — NOTHING WATCHES THE SOURCE** (2026-09-25,
+  the D5 plan's sitting 8). A negative control that edits `packages/control-plane/src/` needs the process STOPPED and
+  started again (it rebuilds), and so does the restore — **a control plane still running a control's build after `git
+  checkout` is the broken code, answering as if it were the committed one.** Stop it by the pid on 7100 (`lsof -nP
+  -iTCP:7100 -sTCP:LISTEN -t`), and read the fresh boot line each time.
+- **THE GITHUB FAKE'S DELIVERY LOG LIVES IN ITS VOLUME** (2026-09-25, the D5 plan's sitting 8, F7): `deliveries.json`
+  beside `state.json`, three days of it, with each delivery's bytes and the receiver's answer body — so `GET
+  /_fake/deliveries` and a redelivery survive `docker stop`/`start`, as GitHub's do. Until then it was in memory, and
+  `make demo-github`'s step 6 emptied it. `make reset` removes it with the volume.
+- **CONTROL (b) OF `make demo-github` LEAVES THE FAKE'S REPOSITORY PUBLIC** (2026-09-25, the D5 plan's sitting 8). With the
+  revert removed nothing makes it private again, and the mirror keeps `manifest.visibility public`: the next run's step 3
+  is red (GitHub says public) and its builds `409 SOURCE_REPOSITORY_PUBLIC`. Set it private as a person would —
+  `faculty-dev`'s `PATCH { private: true }` to `127.0.0.1:7110/api/v3/repos/manifest-apps/github-app`, the token on curl's
+  stdin (`-K -`) — and the next run's push syncs the mirror private. A `privatized` delivery alone syncs nothing.
+- **ONE WHOLE `pnpm test` IN ELEVEN TIMED OUT `source/github/driver.test.ts`'s *"reports AT LEAST ONCE"* AT 5 s**
+  (2026-09-25, the D5 plan's sitting 8, F18) — a case that runs ~1.2–1.4 s, green ten times alone and in the next whole
+  run, at load ~5. Not diagnosed: two syncs and two git fetches inside a 5 s bound. Re-run it alone (`pnpm exec vitest run
+  --project unit packages/control-plane/src/source/github/driver.test.ts -t "reports AT LEAST ONCE"`) and read `uptime`
+  before believing it — and if it recurs at LOW load, it is a stall to chase, not a flake.
+- **`scripts/dead-app-resources.sh` READ A DEAD AI APP'S NETWORK AS IN USE** until 2026-09-25 (the D5 plan's sitting 8,
+  F19): the driver attaches `manifest-litellm` to every app that declares a model, and the script's neighbour list named
+  only the edge and the resolver. After a demo's apps are removed, their networks are held by the three platform
+  neighbours alone; the script now names all three. The Docker tier's dead networks never showed it — its apps declare no
+  model.
 
 ## Images already pulled
 

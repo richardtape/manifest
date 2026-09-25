@@ -1,5 +1,7 @@
 # D5's Driver 2 — the GitHub Source Driver Implementation Plan
 
+> **✅ EXECUTED 2026-09-25 — ALL FIFTEEN TASKS IN RICH'S EIGHT SITTINGS.** Sitting 8 (Task 15, the acceptance, alone and last) built `make demo-github`, ran it green three times — fresh, re-use and from a `make reset` machine — with all seven of its controls as predicted, ran the plan's final whole-branch review and fixed its two Important findings red-first, ran the real conformance leg at Rich's yes (seventeen of seventeen as golden), and a person clicked both halves. Its record is the last section of this file.
+>
 > **WRITTEN 2026-09-24. SITTING 1 (TASK 1, THE MEASUREMENTS), SITTING 2 (TASKS 2 AND 3), SITTING 3 (TASKS 4, 5 AND 6 — THE FAKE, ITS CONTAINER AND THE CONFORMANCE RUN, REAL LEG INCLUDED) AND SITTING 4 (TASKS 7 AND 8 — THE DRIVER AND ITS WIRING) RAN ON 2026-09-24; SITTING 5 (TASKS 9 AND 10 — WEBHOOKS AND ENFORCED-PRIVATE) RAN OVER MIDNIGHT INTO 2026-09-25, SITTING 6 (TASKS 11 AND 12 — PUSH-TIME SECRET SCANNING, `main` PROTECTED AND THE REPOSITORY LINK) AND SITTING 7 (TASKS 13 AND 14 — P6b's INHERITED FINDINGS: THE SUMMARY AS STRUCTURED OUTPUT, AND THE CONSOLE) RAN ON 2026-09-25. Which sitting is next is stated by the sittings table below (and ORIENTATION §7e), and nowhere else.** **Sitting 3's real conformance leg MET SPEC ACTION 3'S CONDITION** — a token scoped to another repository created one, so GitHub does not confine creation to a token's repositories — **and Rich chose option (b) the same evening: §20's bullet 1 is corrected** (*Spec actions*, 3). Every premise held, and the measurements found that one rewrite of GitHub's `main` freezes the mirror's (F6) — corrected in Tasks 7, 9 and 11 — and that Task 13's check crosses its own line (F7). **Rich decided F7 the same day: the summary becomes STRUCTURED OUTPUT, and Task 13 is rewritten for it (Decisions 19 and 22); he also switched the chat model to `qwen3.5:4b`, with thinking off.** No sitting boundary moved. The `[M<n>]` blocks at the top of Tasks 2, 4, 5, 7, 8, 9, 11 and 13 are the corrections; [`spikes/d5-baseline/`](../spikes/d5-baseline/README.md) is the record. **Its three spec actions were approved by Rich and APPLIED the same day** (*Spec actions*, below): §20's push-time sentence as option (a), §21's inventory row, and §20's one unscoped token — the last *unless the conformance run says otherwise*. *What executing this plan found* is where every sitting's record goes.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
@@ -42,7 +44,7 @@
 | 5 | 9, 10 | **Webhooks** — the fake delivers signed events; the receiver refuses an ABSENT signature, a malformed one and a wrong one by code, records a delivery once, and syncs off the request; a rewritten `main` is refused by the mirror and reported — and **enforced-private**: a repository found public is made private again, reported, and not built while public | **Yes** — `observability/`, `projects/`, a `*.docker.test.ts` | **DONE 2026-09-25** (`786cc80`, `3cbf937`) — `POST /webhooks/github` refuses an absent, a malformed and a wrong signature each by its own code beside an accepted delivery, records a delivery once and syncs off the request; every mirror advance goes to ONE required observer, a rewrite reported once; a form-encoded delivery was `500` until the plugin dropped its inherited parsers (F1); a repository found public is made private again, reported, and not built while public — offline too; migrations 0025 and 0026; no boundary moved |
 | 6 | 11, 12 | **Push-time secret scanning** on every path Manifest can see — its own commits before they leave, driver 1's pushes by a hook, and driver 2's pushes on arrival — with the stateless token pattern, and **`main` protected** on both drivers, and **the repository link** on `Project` and the console | **Yes** — `build/`, `projects/` | **DONE 2026-09-25** (`3a890ee`, `089ebdf`) — one list of rules read four ways (the build gate, Manifest's own commits before they leave, driver 1's rendered `pre-receive`, driver 2's mirror scan — at least once); `SourceDriver.prepare()` at boot; `main` protected by git on driver 1 and by GitHub where it will on driver 2, recorded honestly where it will not; `Project.repository` required; migrations 0027 and 0028; both Step 4 checks run by hand on this machine's six repositories; the unit suite is ~55% slower (F6, Rich's call); no boundary moved |
 | 7 | 13, 14 | **P6b's inherited findings**: F9 (the model invents a verdict — fixed by making the summary STRUCTURED OUTPUT with no place for one), F13 and F14 on the server, and F11, F12 and F15 in the console | **Yes** — `releases/`, `launch/` | **DONE 2026-09-25** (`f771b66`, `eead192`) — the summary is structured output: the model fills a schema built from the diff with no place for a verdict, and an answer that breaks it or decides something is withheld with its rule — 40 of 40 kept on `qwen3.5:4b` through the shipped function, 5 of 5 withheld without `response_format`; F13's source and date, F14's name; F11, F12 and F15 as pure functions the screens call; **clicked on driver 1**, Rich typing the passwords; two readers the plan missed (`factsOf`, the journey); no boundary moved |
-| 8 | 15 | **The acceptance**: `make demo-github` against a GitHub-mode control plane — green three times, offline, with its offline-acceptance and `ci-acceptance` steps — `make github-conformance` at Rich's yes, `make demo` still green on driver 1, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | not started ← next — needs Rich's network and yes for the real conformance run, and his hands for the clicked half |
+| 8 | 15 | **The acceptance**: `make demo-github` against a GitHub-mode control plane — green three times, offline, with its offline-acceptance and `ci-acceptance` steps — `make github-conformance` at Rich's yes, `make demo` still green on driver 1, **and a clicked half by a person**. **Alone, and last** | **Yes** if any code changes | **DONE 2026-09-25** (`cc27486`, `843fb3c`, `61c9d54`, `501dc41`, and the record) — `make demo-github` green three times, all seven controls as predicted; the final review's two Important fixed red-first, one ruled; `make demo` and `make demo-token` found red since P6a's step-up and fixed; `make ci-acceptance` green on driver 1 with `demo-github` NOT RUN; the real conformance leg at Rich's yes, 17 of 17; **clicked on both drivers**, Rich typing the passwords. **THE PLAN IS EXECUTED** |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -151,7 +153,7 @@
 
 **Decision 15. The repository link is `Project.repository`, a required field, and the contract becomes `1.2.0` once.** The link is `{ provider: 'local' | 'github', fullName, webUrl, mainProtected, protectionDetail }`. `webUrl` is `null` for driver 1: a laptop path is not an address, and publishing it would tell a client the host's filesystem layout. **The first task whose change reaches `openapi.json` bumps `CONTRACT_VERSION`, `openapi.json` and `packages/contract/package.json` to `1.2.0`, and covers every later additive change in this plan** — P6b's Decision 15, applied again, because nothing is published between tasks. Task 1 predicted that task is Task 8; **it measured Task 2** (`[M17]`, F8 — every route's `errors:` list is printed into the document, and Task 2 adds one). *Rejected:* **a bump per task**, because nothing is published between tasks. **`webUrl` as the bare repository's path**, for the reason above.
 
-**Decision 16. An orphan repository is never adopted.** When `POST /orgs/{org}/repos` answers `422` because the name exists — `pnpm test` and `make reset` empty the tables and leave the fake's repositories behind, and on GitHub it can be anyone's — `createRepository` answers **`409 SOURCE_REPOSITORY_EXISTS`**, and the project is deleted as P4b's Decision 29 already does. **Adopting it could hand a new project another person's code and history.** Demos and tests clear it through the fake's own `/_fake/reset`, which GitHub does not have. On real GitHub an administrator removes it by hand. *Rejected:* **adopting it when empty**, because *empty* is a race.
+**Decision 16. An orphan repository is never adopted.** When `POST /orgs/{org}/repos` answers `422` because the name exists — `pnpm test` and `make reset` empty the tables and leave the fake's repositories behind, and on GitHub it can be anyone's — `createRepository` answers **`409 SOURCE_REPOSITORY_EXISTS`**, and the project is deleted as P4b's Decision 29 already does. **Adopting it could hand a new project another person's code and history.** Demos and tests clear it through the fake's own `/_fake/reset`, which GitHub does not have. *(Never built — sitting 3's decision 3: tests use a fresh in-process fake, and `make demo-github`'s `clear_orphan_repository` DELETEs an orphan as `faculty-dev` would; sitting 8's F3.)* On real GitHub an administrator removes it by hand. *Rejected:* **adopting it when empty**, because *empty* is a race.
 
 **Decision 17. The acceptance is `make demo-github`, on its own project, against a control plane started on driver 2, and it asks the control plane which driver it runs.** Step 0 sends an unsigned `POST /webhooks/github`. `401 WEBHOOK_SIGNATURE_MISSING` means driver 2, and it is also the first negative control. `404 WEBHOOKS_NOT_CONFIGURED` means driver 1, and the demo stops with the restart command, **creating nothing**. That matters because no route deletes a project (P6a F5), so a `github-app` created on driver 1 would block the demo for ever. **Every other acceptance stays on driver 1** (*Read this first* 20), and `ci-acceptance`'s new step reports **`NOT RUN — the control plane runs driver 1`**, which is not a pass. *Rejected:* **a second control plane on another port**, which clobbers the platform's SP row exactly as the Docker tier does (and must restart it afterwards). **Making every demo driver-agnostic**, which is a rewrite of three demos to prove that a git host is a git host. *The breadth this trades, stated* (ORIENTATION §9, *the demo is the deliverable*): driver 2's acceptance deploys to STAGING, not production. The release and launch path is measured source-independent (the roadmap: `releases/`, `launch/` and `spec/` import nothing from `source/`), so a production launch on driver 2 would re-prove P6a over a different git host.
 
@@ -338,7 +340,7 @@ export function startFake(options?: {
 **THE TWO TRAPS THAT WILL COST A SITTING IF NOT DISARMED:**
 
 1. **A GitHub-mode control plane refuses every driver-1 project** (Decision 3), and `launch-app` is one. Restarting on driver 2 therefore puts `make demo-releases` and `make demo-production` red by design. **Restart on driver 1 before running either**, and never treat that red as a regression.
-2. **The fake's repositories outlive `pnpm test` and `make reset` unless the volume goes too**, and the next create of the same slug is then `409 SOURCE_REPOSITORY_EXISTS` (Decision 16). Task 5 puts the volume in `make reset`. Tests use a fresh in-process fake. Demos call `/_fake/reset`.
+2. **The fake's repositories outlive `pnpm test` and `make reset` unless the volume goes too**, and the next create of the same slug is then `409 SOURCE_REPOSITORY_EXISTS` (Decision 16). Task 5 puts the volume in `make reset`. Tests use a fresh in-process fake. Demos call `/_fake/reset`. *(Never built: `clear_orphan_repository` deletes the orphan as `faculty-dev` — sitting 8's F3.)*
 
 ---
 ## Task 1: Measure what this plan rests on — before any of it is built
@@ -3307,7 +3309,7 @@ Rich types the passwords. Record each row as the screen showed it.
 
 **Interfaces:** consumes everything above. Produces nothing later tasks use: this is the last one.
 
-- [ ] **Step 1: The phases, and what each asserts — the shape of every answer, and every refusal's code**
+- [x] **Step 1: The phases, and what each asserts — the shape of every answer, and every refusal's code**
 
 | Step | What happens | Asserted |
 |---|---|---|
@@ -3325,7 +3327,7 @@ Rich types the passwords. Record each row as the screen showed it.
 
 **The re-use path** (`github-app` exists) skips step 3's creation and asserts the same `repository` read. Every other step runs again, and each makes a new commit, so no step depends on the last run. **The control plane's own commit carrying a secret is NOT in this demo**: nothing in the contract commits files before the authoring API. It is held by the contract suite on both drivers (Task 11) — **named here as the breadth this acceptance does not cover**.
 
-- [ ] **Step 2: The negative controls — predicted in writing BEFORE the first run, each run on the committed tree, restored, and re-run green**
+- [x] **Step 2: The negative controls — predicted in writing BEFORE the first run, each run on the committed tree, restored, and re-run green**
 
 | # | Break | Predict |
 |---|---|---|
@@ -3337,16 +3339,16 @@ Rich types the passwords. Record each row as the screen showed it.
 | (f) | the delivery table's `ON CONFLICT DO NOTHING` removed | step 10's redelivery answers `500`, or two `pushed` events — predict which, and record it |
 | (g) | the fake's protection hook removed | step 9 red: the force-push is accepted — **and the mirror still refuses it**, so assert `repository.history_rewritten` in that red run too |
 
-- [ ] **Step 3: Green three times** — fresh (a machine with no `github-app`), re-use, and **from an `echo reset | make reset` machine**. `make reset` removes the fake's volume (Task 5) and leaves the mirrors, which `clear_orphan_repository` handles. Each run's time and check count go in the record.
+- [x] **Step 3: Green three times** — fresh (a machine with no `github-app`), re-use, and **from an `echo reset | make reset` machine**. `make reset` removes the fake's volume (Task 5) and leaves the mirrors, which `clear_orphan_repository` handles. Each run's time and check count go in the record.
 
-- [ ] **Step 4: The rest of the acceptance**
+- [x] **Step 4: The rest of the acceptance**
 
 1. **`make github-conformance` at Rich's yes**, with the network on. If the App exists, commit the dated answers and a golden corrected to them, and **fix the fake until `pnpm test` is green** before this sitting closes. If Rich says no, the record says *the fake is held to GitHub's documentation only* — plainly.
 2. **Restart on driver 1, and run `make demo`** — green with the fake stopped (`make github-down`). **C1: driver 2 is optional, and the laptop needs no GitHub at all.**
 3. **`make ci-acceptance` on driver 1**: every earlier step green, and the new step reading **`NOT RUN — the control plane runs driver 1`**. That is not a pass, and the summary line says so.
 4. **The offline acceptance's step 13** is Rich's, by hand, with the network off. Leave it runnable: its preamble says it needs the control plane on driver 2 and prints both restart commands.
 
-- [ ] **Step 5: The clicked half — a person, a browser, and Rich's passwords**
+- [x] **Step 5: The clicked half — a person, a browser, and Rich's passwords**
 
 **On driver 2:**
 - `github-app`'s project page shows the repository line — *"Code: manifest-apps/github-app on GitHub — private, `main` protected"*. Its link opens the fake's page, which says in its own words that it is **not GitHub**;
@@ -3362,7 +3364,7 @@ Rich types the passwords. Record each row as the screen showed it.
 
 Record each row as the screen showed it, and record it as a GIF, as every clicked acceptance since P5c has been.
 
-- [ ] **Step 6: Commit** — `git commit -m "feat(journey): make demo-github — D5's driver 2 end to end against the GitHub fake, offline"` — then the sitting's record, the plan marked **EXECUTED**, and the full ORIENTATION §6 sweep, **including `manifest-decisions.html` and `manifest-schematic.html`** for any spec action Rich has applied by then.
+- [x] **Step 6: Commit** — `git commit -m "feat(journey): make demo-github — D5's driver 2 end to end against the GitHub fake, offline"` — then the sitting's record, the plan marked **EXECUTED**, and the full ORIENTATION §6 sweep, **including `manifest-decisions.html` and `manifest-schematic.html`** for any spec action Rich has applied by then.
 
 ---
 
@@ -3380,6 +3382,29 @@ Record each row as the screen showed it, and record it as a GIF, as every clicke
 - **Every other demo on driver 2.** `make demo-releases` and `make demo-production` run on a driver-1 project (`launch-app`), and a driver-2 control plane refuses it by design (Decision 3).
 - **Moving a project between drivers.** A project keeps the provider it was created with. A migration from laptop repositories to an organisation is a tool nobody has asked for.
 - **Master-key and App-key custody on UBC infrastructure** (Vault/KMS, §20). The loaders are the one place it changes.
+- **Added at the close, from the acceptance and the plan's final review (sitting 8, 2026-09-25):**
+  - **The mirror's push-time scan past its cap** — 1000 commits or 20 MiB of patch per sync, after which `scanned`
+    moves to the head anyway, so what lay past the cap is never scanned and a person is told only by an operator
+    line (the final review's Important 3, ruled not fixed: paging the scan behind a topologically ordered boundary,
+    or an event saying a scan was incomplete — a migration and contract surface). What BUILDS is unaffected: the
+    gate scans every tree.
+  - **A validation announced to nobody**: `validateAndRecord` publishes no `spec.validated` — only project creation
+    does — so a push that makes `manifest.yaml` invalid is seen only by `GET …/spec` (found by the acceptance's first
+    run).
+  - **A driver-1 demo run on a driver-2 control plane** creates its project THERE, where no route deletes it and
+    driver 1 then refuses it `SOURCE_PROVIDER_MISMATCH` for ever. `make ci-acceptance` and the offline acceptance now
+    ask which driver answers and read the other driver's steps NOT RUN / SKIPPED; the individual `make demo*` targets
+    other than `make demo-github` do not ask.
+  - **A PUID in a launch-record event** (sitting 8's F17, clicked): `iam_registration.recorded` reads *"opr000001
+    recorded this app's UBC IAM registration as active…"* — P6b's F14 gave the approval events the person's name and
+    not these.
+  - **GitHub's other `repository` actions** — `deleted`, `renamed`, `transferred`, `archived` — are ignored by the
+    receiver (only `publicized` syncs).
+  - **The final review's deferred minors**: a bodyless POST with a well-formed signature answers `500`, not a
+    refusal (`api/routes/webhooks.ts`, the HMAC over `undefined`); `localGitDir` fails OPEN on a mirror with no
+    `manifest.visibility` key; the console's *Code* line says *private* whatever GitHub last said; no production guard
+    against the fake's `MANIFEST_GITHUB_*` defaults; `gitWithToken` inherits `GIT_CONFIG_PARAMETERS`; `SummaryContext`
+    still carries two fields the summary no longer reads.
 - **P6b's list, still open:** binding the manifest's `blueprint:` to the project's pin; `startBuild`'s pairing of `body.commitSha` with the newest spec (**sharper now**, because a webhook records a validation for every push to `main`); D16's *every environment*; database-level non-repudiation for `approvals` and `approval_previews`; a real `Reviewer`; a run against real UBC Shibboleth for a changed registration; a rollback operation; per-instance egress proxies; `make verify`'s runtime-route meter on the public listener; a route that deletes a project; IAM change-request generation (P8); certificate expiry alerts (D20).
 
 ---
@@ -4873,3 +4898,264 @@ labelled, and the fix — each attribute change's added and removed halves hande
 measured over 40 answers before it is adopted — comes after this plan (a small follow-up, or the authoring API plan's
 first task). **3. The plan's final whole-branch review may use ONE fresh reviewer agent, on the most capable model**,
 reading from `a2885ed`. ORIENTATION §8 *Decided* records all three; §7e hands them to sitting 8.
+
+### Sitting 8 — Task 15, the acceptance, alone and last; and the plan's final review — 2026-09-25
+
+**D5'S DRIVER 2 IS ACCEPTED END TO END, OFFLINE, AND THE PLAN'S ONE FRESH REVIEW FOUND TWO THINGS WORTH FIXING BEFORE
+ANYTHING RELIES ON IT.** Task 15 (`cc27486`): `make demo-github` — `packages/journey/src/github.ts` through
+`@manifest/contract`, raw `fetch` only for the webhook route and the fake, and `scripts/demo-github.sh` for the sign-in,
+a person's pushes and `docker stop` — drives a project whose code is on the GitHub fake, private and `main` protected,
+through a person's push reaching Manifest by a SIGNED webhook (validated, never built), a build from the mirror and a
+staging deploy serving the pushed page, the same commit built again to the same digest with GitHub stopped while HEAD
+answers `503`, a repository made public and made private again, two secret-shaped values found and never quoted, a
+force-push refused `GH006`, and the receiver's refusals each by its own code beside GitHub's redelivery recorded once.
+**Green three times on the final tree** — fresh 67 s, re-use 66 s, and from an `echo reset | make reset` machine 80 s —
+**with all seven of its negative controls predicted in writing before the first run and every one measured as
+predicted**. The fake gained what the acceptance needed and GitHub has: a page at a repository's `html_url` saying it is
+**not GitHub**, and a delivery log that keeps the receiver's answer and survives a restart. `make ci-acceptance` and the
+offline acceptance now ask which source driver answers. **The final review** (one fresh reviewer, Rich's allowance,
+from `a2885ed`) returned 0 Critical, 3 Important and 8 Minor: two Important fixed red-first (`843fb3c`), one ruled for
+the next plan, the minors named. **And `make demo` had been red since P6a's step-up, unseen for five days** — fixed
+(`61c9d54`), and so had `make demo-token` (`501dc41`). **Then, at Rich's yes, the real conformance leg: all seventeen
+steps answered as golden says, C9r measured against github.com for the first time. And a person clicked both halves** —
+driver 1's six P6b rows on `launch-app`, Rich typing the operator's password twice, and driver 2's project page, the
+fake's own page and the feed. Every row held; the click found one more sibling of P6b's F14. **The plan is EXECUTED.**
+
+#### The decisions this sitting made
+
+Each is a `Ruling:` line in the ledger with what it costs if wrong; the ones a later plan inherits:
+
+**1. The demo measures past a failed phase** (after step 3): each phase records itself and the run exits 1 at the end
+naming every phase that failed, where `demo-releases` stops at the first. It is what let control (d) be seen at FOUR
+steps. Steps 0 and 3 still stop it. **2. The fake serves a not-GitHub page** at a repository's `html_url` — a stated
+divergence (GitHub answers an anonymous visitor to a private repository `404`), loopback only, read by nothing Manifest
+calls. **3. The fake's delivery log keeps the receiver's answer body and persists three days of deliveries** in its
+volume, as GitHub keeps them. **4. Step 5 and step 6 ask for a commit NOBODY has** — `409 SOURCE_COMMIT_NOT_FOUND` with
+GitHub up, `503 SOURCE_UNREACHABLE` with it gone — Decision 18's other half, which the plan's control (e) cannot reach.
+**5. C9r was added to the conformance run** (`[M19](f)`): after a rewrite of `main`, a `git fetch --porcelain` with
+driver 2's two refspecs prints `!` for the mirror's `main` and `+` for the shadow's. **6. `ci-acceptance` and the offline
+acceptance ask the control plane which source driver it runs**, with the unsigned delivery `make demo-github` asks with:
+on driver 1 `make demo-github` reads `NOT RUN` (not a pass) and on driver 2 the four driver-1 demos do. **7. The final
+reviewer ran on Fable 5.1** — the session's environment lists it first, above Opus 5.5, which I read as the most
+capable; Rich's allowance named "the most capable model" and no model. **8. Important 3 is ruled, not fixed** — below.
+
+#### The findings
+
+**F1 — THE CLICKED HALF'S LINK WENT NOWHERE.** Step 5 needs *"the fake's page, which says in its own words that it is
+not GitHub"*, and the fake served no page: `Project.repository.webUrl` is its `html_url`, `<gitUrl>/<org>/<repo>`, and a
+GET there answered the fake's JSON `404` (RUNBOOK: *"no web pages (its `html_url` goes nowhere)"*). The plan's File
+Structure lists `/<org>/<repo>` in the fake's routing; Task 15's **Files** did not name the fake. Built, with a test and
+its positive control (a name the fake does not hold: `404`, the same words, nothing about any repository).
+
+**F2 — THE REDELIVERY'S ANSWER COULD NOT BE ASSERTED BY ITS SHAPE.** Row 10 asserts `200 { duplicate: true }`, and the
+fake's delivery log kept the status only — and a ping answers `200` too. The log now keeps the receiver's answer body
+(its first 300 characters), as GitHub's delivery log shows it.
+
+**F3 — `/_fake/reset` DOES NOT EXIST.** Decision 16 and the plan's trap 2 say demos clear a fake repository through it;
+Task 4 never built it, and Task 15's own **Files** say `clear_orphan_repository` deletes as `faculty-dev` would — which
+is what was built (the token on curl's STDIN, never an argument).
+
+**F4 — THE PLAN'S CONTROL (e) CANNOT HAPPEN AS PREDICTED.** *"`docker stop` moved to before step 5 → step 5's build
+answers `503` — the commit was never mirrored"*: step 4 waits for `repository.pushed`, which the mirror reports only after
+it has synced that commit, so the commit IS mirrored before step 5 and its build succeeds with GitHub gone. Measured
+exactly so: the build, release, deploy and page green. **What turns (e) red is the check this sitting added** — a commit
+nobody has, `409 SOURCE_COMMIT_NOT_FOUND` with GitHub up, answered `503 SOURCE_UNREACHABLE`.
+
+**F5 — `[M19](f)`, MEASURED.** C9r, added to `conformance.ts` before the real run (sitting 3's F16): locally (git 2.50.1,
+file transport) and against the in-process fake on both plans, the force-push exits 0, the fetch exits 1, the mirror's
+`refs/heads/main` reads `!` and the shadow's `refs/manifest/upstream/main` reads `+` — the shape F6's fix rests on.
+**And against github.com, at Rich's yes** (`github.com-2026-09-25.json`, App 5068172): exactly the same — the first real
+answer to `[M19](f)`, now golden's.
+
+**F6 — A VALIDATION IS ANNOUNCED TO NOBODY.** The first run's step 4 went red at MY check, *"spec.validated for the same
+commit"*: `validateAndRecord` publishes no event — only project creation publishes `spec.validated` — so a push's
+validation is RECORDED (`GET …/spec` names the commit, the plan's own assertion, green) and a person watching the feed
+does not learn that their push made `manifest.yaml` invalid. The check was removed; the gap is named in *What this plan
+does not build* and in the authoring API brief, whose commits it affects too.
+
+**F7 — THE FAKE'S DELIVERY LOG DIED WITH ITS PROCESS.** The first run's step 10: *"the fake redelivered f37e4c16"* →
+`404`, and step 4's delivery absent from the log — step 6's `docker stop`/`start` had emptied the in-memory log, while
+GitHub keeps three days of an App's deliveries and redelivers any of them. The fake now keeps its log and each
+delivery's bytes in its volume (`deliveries.json`, pruned past three days); a test restarts a fake on the same data and
+redelivers (red first: *"expected undefined to match object"*). The image was rebuilt offline twice (`a8061e66ee74` →
+`d7a72b0677c9` → `0e50aa18bb58`, `apk add git` `CACHED`).
+
+**F8 — STEP 10'S COUNT READS A BOUNDED REPLAY.** *"Still exactly one `repository.pushed`"* is counted in the stream's
+replay, the newest 50 events; under control (d) it read *"0 in the replay of 50 frames"*. A run that published more than
+~50 events after step 4 would read 0 and go RED — fail-safe, never a false green. Named, not changed.
+
+**F9 — A DRIVER-1 DEMO RUN ON DRIVER 2 WOULD CREATE ITS PROJECT THERE FOR EVER.** `make ci-acceptance` ran four driver-1
+demos with no driver check: on driver 2, `launch-app` is refused `SOURCE_PROVIDER_MISMATCH`, but `journey-app` and
+`token-app` — absent after any `pnpm test` — would be CREATED on driver 2, where no route deletes a project and driver 1
+then refuses them for ever. `ci-acceptance` and the offline acceptance now ask which driver answers; the individual
+`make demo*` targets do not (named).
+
+**F10 — RUNBOOK'S `ci-acceptance` SECTION WAS TWO CHANGES BEHIND.** It named three demos (P6b sitting 7 added `make
+demo-releases` to the script and not to the sentence) and numbered the offline acceptance's steps *"0 to 9"*. Both
+corrected with this sitting's.
+
+**F11 — THE FINAL REVIEW'S IMPORTANT 1: A `.git/` PATH COULD BE WRITTEN ON BOTH DRIVERS.** `commitFiles` refused only a
+path resolving OUTSIDE the worktree, and `.git/config` resolves inside: `core.fsmonitor = <command>` there is a command
+the control plane runs on its very next `git add` (macOS folds case, so `.GIT/…` is the same file). Latent — nothing
+supplies an arbitrary path until the authoring API — and fixed now: `assertWritablePaths`, beside the pre-push secret
+scan, refuses any path with a `.git` component as `SOURCE_PATH_ESCAPE` before anything is written. **The contract suite's
+new case was red on BOTH drivers** — `expected 'SOURCE_GIT_FAILED'`: the write went through and git choked on the
+injected config.
+
+**F12 — THE FINAL REVIEW'S IMPORTANT 2: A PUSH A READ SYNCED FIRST WAS NEVER VALIDATED.** A read that syncs between a
+person's push and GitHub's delivery (the console asking for HEAD) takes the advance, and the delivery's own sync then
+moves nothing — so nothing validated the push, the newest validation stayed the OLD commit, and a build naming no commit
+built that. Sitting 5's F9 named the race and deferred it to this sitting. The receiver now reads the verified payload's
+`ref` and, when it is `main` and its sync moved nothing, validates GitHub's `main` NOW unless a spec is recorded for it —
+NOW, not the payload's `after`, so a late delivery of an older push never becomes the newest validation. Red first:
+*"expected +0 to be 1"*.
+
+**F13 — THE FINAL REVIEW'S IMPORTANT 3, RULED NOT FIXED: THE MIRROR'S SCAN PAST ITS CAP.** 1000 commits or 20 MiB of patch
+per sync, after which `refs/manifest/scanned/*` moves to the head anyway: what lay past the cap is never scanned, and a
+person is told only by an operator line. The honest fix is a design change — paging the scan behind a topologically
+ordered boundary, or an event that says a scan was incomplete (a migration and contract surface) — so it goes to the next
+plan's inheritance. What BUILDS is unaffected: the gate scans every tree.
+
+**F14 — THE FINAL REVIEW'S EIGHT MINORS, DEFERRED AND NAMED** (*What this plan does not build*): a bodyless POST with a
+well-formed signature answers `500`; `localGitDir` fails OPEN on a mirror with no `manifest.visibility`; the console's
+*Code* line says *private* whatever GitHub last said; `webhook_deliveries` has no retention; no production guard against
+the fake's `MANIFEST_GITHUB_*` defaults; `gitWithToken` inherits `GIT_CONFIG_PARAMETERS`; F3's stale `/_fake/reset`; and
+two fields `SummaryContext` no longer needs. The reviewer's *Declined to judge* lines were each ruled in the ledger.
+
+**F15 — `make demo` HAD BEEN RED FOR FIVE DAYS.** Step 4 runs it on driver 1 with the fake stopped, and its step 8 failed:
+*"production was NOT refused, which is a §13 defect: STEP_UP_REQUIRED…"*. P6a's `f989fcb` (2026-09-20) put a production
+deploy among §20's step-up capabilities, asked BEFORE the checklist, and `make demo` asked a plain session for the
+checklist's refusal. **Nothing that runs routinely runs `make demo`** — not `ci-acceptance`, not the offline acceptance.
+The platform was right and P3's acceptance stale: it now asserts both refusals, in order, and is green (33 s).
+
+**F16 — AND SO HAD `make demo-token`.** The first `make ci-acceptance` on driver 1 was green in every step but one:
+*"confirmPendingAction failed with 403 STEP_UP_REQUIRED: 'members:manage' needs a second authentication round trip
+(§20)"* — the same `f989fcb`, the same five days: confirming one of D24's privileged actions is a step-up capability,
+and the demo confirmed with a plain session. Nothing had run `make demo-token` or `make ci-acceptance` since P5c. The
+script now steps the instructor up and hands the journey both sessions; step 7 asserts the PLAIN session's
+`STEP_UP_REQUIRED` before the stepped-up confirmation (`501dc41`). **So every other demo was run once too**:
+`make demo-identity` (43 s), `make demo-ai` (48 s) and the console's preflight (6 s) are green on driver 1 — Rich's
+offline acceptance will not be red for a reason that is not the network.
+
+**F17 — F14 FIXED THE APPROVAL EVENTS AND NOT THEIR SIBLINGS.** Clicked: the feed that names *Test Operator* on both
+approval events also reads *"opr000001 recorded this app's UBC IAM registration as active (ticket IAM-ACCEPTANCE)."* —
+`iam_registration.recorded` still puts the PUID in its human message. The same fix (the recorder's display name) belongs
+in the launch-record events; named for the next plan, not fixed.
+
+**F18 — ONE WHOLE-SUITE RUN IN ELEVEN TIMED OUT ONE CASE, AND IT WOULD NOT DO IT AGAIN.** The close's second `pnpm test`:
+`source/github/driver.test.ts` *"reports AT LEAST ONCE: an observer that fails leaves the commit unscanned, and the next
+sync reports it again"* — *Test timed out in 5000ms* (5002 ms), at load ~5. It runs 1.19–1.33 s in every other whole-suite
+run this sitting that recorded it, 1.22–1.42 s in ten runs alone (all green), and 1.37 s in the third whole run, which was
+green. Two syncs and two git fetches against an in-process fake inside a 5 s bound: a timing outlier or a rare stall —
+**named, not diagnosed**. The close rests on the first and third runs; the second is recorded as red.
+
+**F19 — THE CLEANUP SCRIPT DID NOT KNOW THE AI GATEWAY IS A NEIGHBOUR.** At the close, four app networks with no app
+container read as *in use*: `scripts/dead-app-resources.sh` treats a network holding only `manifest-caddy` and
+`manifest-dns-containers` as dead, and the driver ALSO attaches `manifest-litellm` to every app that declares a model
+(`AI_GATEWAY_NEIGHBOUR`, `runtime/docker/networks.ts`) — the proof-app starter's, which every demo but `make demo` uses.
+The Docker tier's dead networks never showed it (its apps declare no model). The script now names all three; re-run, it
+found the four dead and removed them.
+
+**F20 — FOUND BY THE POST-SWEEP CHECK: THE SWEEP'S FIRST DRAFT DESCRIBED A SITTING THAT HAD NOT FINISHED YET.** The top
+box's *Last verified* line called this sitting's acceptance *"its headless half"* — written while Rich was away, before he
+came back and the clicked half and the conformance run happened — and §3's *executing a plan* row still sent a reader to
+*"the current plan, which §7e names"* when no plan is being executed. Both corrected; every other claim §7e makes was
+opened and holds.
+
+#### Negative controls
+
+Predicted in the ledger before the first run; each on the committed tree `cc27486`, the re-use path, restored (`git
+checkout`, or the fake's hook moved back), `git status` clean after each; every substitution asserted to match exactly
+once (`ctl15.py`). **All seven as predicted.**
+
+| # | Break | Plan predicted | I predicted | Measured |
+|---|---|---|---|---|
+| (a) | `verifySignature` answers `valid` for an absent header | step 0 stops, `202 { ignored: 'unknown repository' }` | the same — and the unsigned delivery RECORDED | **as predicted**: step 0 stopped, `202 {"ignored":"unknown repository"}`, nothing created, the delivery row written |
+| (b) | the revert removed | step 7 red: `private: false` | step 7 red twice (still public; the event says `still-public`) AND step 8's build `409 SOURCE_REPOSITORY_PUBLIC` | **as predicted, 3 red** — the fake left public, set private by hand as a person would |
+| (c) | the stateless-token rule removed | step 8: one rule where two belong | step 8 red twice (one file, one rule); the build still fails at the gate | **as predicted** |
+| (d) | a no-op observer | steps 4, 7, 8 red | 4, 7, 8 AND 10 (the count reads 0) | **as predicted — seen at four steps because the demo measures past a failed phase** |
+| (e) | `docker stop` before step 5 | step 5's build `503` | the plan's cannot happen; step 5 red at ONE check, the unknown commit's `503` | **as predicted** (F4) |
+| (f) | `ON CONFLICT DO NOTHING` removed | `500`, or two `pushed` events — predict which | `500 INTERNAL` at the redelivery; the count stays 1 | **as predicted**: the log's `500` with the INTERNAL envelope, the operator line the duplicate insert |
+| (g) | the fake's protection hook removed | step 9 red; the mirror still refuses: `history_rewritten` | step 9 red twice; the red half GREEN | **as predicted** — and the next run met F6's case live, GitHub's `main` rewritten once, green |
+
+**None stayed green where it should have gone red; the plan's (e) could not happen, and (b) and (d) were red wider than
+the plan said, as I predicted.** The final review's two fixes were each red first (F11, F12).
+
+#### The acceptance's other steps
+
+- **`make github-conformance`, the REAL LEG, at Rich's yes** (github.com, App 5068172, `Manifest-local-dev`, ~15 s):
+  **all seventeen steps `same` as golden** — C1 to C14 with C5b, C7s and C9r — and C14 deleted both repositories
+  (`204,204`). C9r: the force-push exited 0, the fetch 1, `!` for the mirror's `main` and `+` for the shadow's. The
+  dated answers are committed beside golden, whose C9r now reads *MEASURED*; the fake needed no change.
+- **`make demo` on driver 1, the fake stopped**: green, 33 s, after F15.
+- **`make ci-acceptance` on driver 1** — run twice. The first (752 s) found F16; after its fix, **the second, run whole
+  (732 s): every step PASS** — doctor 20, verify 57, the three fast gates, `pnpm test` 2005 in 145, the three package
+  builds, `demo-journey`, `demo-token`, `demo-production` (FRESH) and `demo-releases` — **and `make demo-github` reads
+  `NOT RUN — the control plane runs driver 1`**; the summary says `0 failed, 0 moved, 1 not run` and *NOT RUN IS NOT A
+  PASS*.
+- **The offline acceptance's step 13** is Rich's, by hand, with the network off; it is runnable — on driver 1 it prints
+  both restart commands and reads SKIPPED, and steps 6 to 12 read SKIPPED on driver 2.
+- **The clicked half** — below.
+
+#### The click — Task 15's Step 5, each row as the screen showed it
+
+**On driver 1**, after a fresh `make demo-releases`, the console under `preview`, signed in as `operator` (Rich typed the
+password twice: the sign-in and the step-up; the extension was refused on the step-up's CWL page, §4 trap 6). The two
+states were staged by `scripts/stage-release.sh` — a self-serve release `e6c288de`, then a re-escalation `defdeda2`
+(`egress.allow` + `click-1790377670.example.org`):
+
+| Finding | What the screen showed |
+|---|---|
+| F15 | the self-serve candidate: `met` *Release approved by a platform administrator… No sensitive field (§7) changed since the last approved release, so this release goes to production self-serve (D9)…*, and **0 `/approval` links** in the DOM |
+| F13 (before) | `not_built` *Code reviewed for safety — No reviewer has looked at this release. A reviewer runs when an administrator previews a release for approval — a first launch or a re-escalation — and never for a self-serve release (D33)…* |
+| F9 | the re-escalation's preview (`?preview=8e929602…`): *Summary: The model's reading of each change is under that change, below.*; *What each change could expose — written by a language model; the change lines are the record.*; the change line first and under it *"The app may now send data to click-1790377670.example.org, a host previously inaccessible under default-deny egress rules."* — accurate |
+| F12 | a reason typed; **Reject** → *STEP_UP_REQUIRED — 'release:approve' needs a second authentication round trip (§20)*, *Confirm it is you, then try again*; CWL asked again, Rich typed it; back on **the same preview** (`?preview=` unchanged, *Taken 2m ago*) **with the reason still in the input** (the screenshot) |
+| F11 | **Reject** (Rich's OK in chat) → *rejected 0s ago by Test Operator*, the reason verbatim, *Binds sha256:2fa4ade40074… bound to preview 8e929602 taken 3m ago*; the DOM: *Approve for production* `disabled=true`, *Reject* `disabled=true`, *Decide again — take a new preview* the one live control — and still so after a reload |
+| F14 | the feed: *"Test Operator did not approve this release: click-1790377670.example.org is not in the ticket…"* and *"Test Operator approved this release for production."* — no PUID. **But the same feed's `iam_registration.recorded` reads *"opr000001 recorded this app's UBC IAM registration as active…"*** (F17) |
+| F13 (after) | *"…(no reviewer, recorded when an administrator decided on this release on 2026-09-25)."* |
+
+**On driver 2**, after a restart with `MANIFEST_SOURCE_DRIVER=github` and a fresh `make demo-github` (65 ok, 62 s). *Sign
+in with CWL* signed the operator back in with no password — the IdP's session outlived the control plane's restart — so
+these rows were read as the administrator, not the instructor the plan names, and Rich typed nothing more:
+
+| Row | What the screen showed |
+|---|---|
+| the repository line | **Code**: *`manifest-apps/github-app` on GitHub — private, `main` protected*, the name a link to `http://127.0.0.1:7110/manifest-apps/github-app` |
+| the link | the fake's page, titled *"manifest-apps/github-app — not GitHub"*: *"This is not GitHub. This page is served by manifest-github-fake, the GitHub-compatible fake that Manifest's GitHub source driver is accepted against on one laptop, offline…"*; *"It holds manifest-apps/github-app, which is private. Its code is not shown here…"* (read as page text: the extension may not screenshot `127.0.0.1:7110`) |
+| the feed | *"main moved on GitHub to 1fe052d7ed79."*, *"github-app's repository was found PUBLIC on GitHub and was made private again."*, *"A secret-shaped value was pushed to GitHub in 1fe052d7ed79 (aws-credentials.txt:1, an AWS access key id, and 1 more). It is on GitHub now: treat it as exposed and rotate it. Manifest will not build a commit that carries it."* — and **the page's whole HTML matches neither an AWS key id nor a stateless installation token** |
+
+The browser captured the click (40 frames); it was not exported, because an export downloads a file.
+
+#### The gates, and the machine at close — queried, not recalled
+
+- **`pnpm test` 2002 in 145 after Task 15 and 2005 in 145 after the fix pass, twice each — each exactly as predicted**
+  (+1 the fake's page, +1 its log across a restart; then +2 the `.git` contract case on both drivers, +1 the push a read
+  synced first). **At close: 2005 passed in 145 files at the first run (361 s) and the third (378 s); the second had ONE
+  timeout** (F18). `pnpm lint`, `pnpm typecheck` (six packages) and `pnpm format:check` clean. At open: 2000 in 145, twice
+  (383 s, 376 s).
+- **`pnpm test:docker` 208 in 34, owed once and green first time, 1341 s** (load 5 → 16, the Docker VM itself). `make
+  verify` 57 / 0 / 0 after it — the edge trap did not recur.
+- **`make doctor` 20 / 0 / 0** (the vulnerability database fresh until 2026-10-01); **`make verify` 57 / 0 / 0**, `mf-
+  containers=6 networks=2 volumes=4`, one runtime route — as at the open. `scripts/ci-acceptance.sh` reads `2005 / 145 /
+  20 / 57`. Contract `1.2.0`, unchanged.
+- **Cleanups — every `--apply` ALLOWED**: after the tier, the usual 7 networks, 1 volume and two LiteLLM orphans; at the
+  close, this sitting's five demo apps (`fixture-app`, `github-app`, `journey-app`, `proof-app`, `token-app`, created after
+  its `make reset`) removed with their containers' volumes, then 11 LiteLLM orphans and — after F19's fix — four dead
+  networks; the five apps' stale edge routes deleted by id; `.manifest/repos/`'s two orphans (`fixture-app.git`, the
+  `github-app` mirror) removed. Both scripts re-measured clean.
+- **The database is EMPTY** (0 projects, releases, `source_repositories` and `webhook_deliveries` rows; **29 migrations**,
+  none added by this sitting) — the close's `pnpm test` truncated it. **`launch-app`'s six containers run with no project
+  row, RECREATED by this sitting** (its `make reset` destroyed the previous six): staging on the rejected re-escalation
+  `defdeda2`, production on `5ceb2431`. `.manifest/repos/` holds the same six bare repositories as at the open. Nothing
+  listens on 7100, 7102, 7104 or 7110; three addresses on `lo0`.
+- **The GitHub fake**: `manifest-github-fake:local` is **`0b2e8c95daef`** (`a8061e66ee74` → `d7a72b0677c9` →
+  `0e50aa18bb58` → `0b2e8c95daef`, every build offline, `apk add git` `CACHED`); **no container and no volume**, as at the
+  open. **`infra/secrets/`**: the same seven files, all `-rw-------`, owner `rich`. **Real GitHub was called once, at
+  Rich's yes**: the conformance run, both repositories deleted.
+- **`make reset` ran once** (Step 3): the platform's containers were recreated, `pgdata`, the registry and the BuildKit
+  cache emptied and the base images re-mirrored; `caddy-data`, `grype-db`, `verdaccio-storage` and `infra/secrets/` kept.
+- **Images**: `docker images -q` **333**, `sort -u` **324**, `127.0.0.1:7107/local/*` **285** — 44 app images added by the
+  tier, the demos and the reset's rebuilds; no script sweeps app images. **Ollama with no model resident** (both unloaded
+  at close). `docker-simple-saml-saml-idp-1` is `Exited (0) 3 weeks ago`, as found; the other three must-survive
+  containers are up. Snapshot diff (13:31 → 16:39): timestamps, the reset's recreated platform, `launch-app`'s recreated
+  instances, 44 app images, 10 GiB of disk, `HEAD`, and this sitting's own files.

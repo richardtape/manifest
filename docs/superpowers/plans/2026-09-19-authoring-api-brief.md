@@ -24,6 +24,20 @@ seeded, permanently.
 > attribute 5 times in 40 (sitting 7's F7), and the fix to try is handing the model each attribute change's added and
 > removed halves as their own facts, measured over 40 answers before it is adopted. §2 and §3 below are as read on
 > 2026-09-19 and were not re-read.
+>
+> **AND WHAT ITS SITTING 8 (THE ACCEPTANCE, AND THE PLAN'S FINAL REVIEW) ADDS — 2026-09-25.** **`commitFiles` now refuses a
+> path into the worktree's own `.git`** (`assertWritablePaths`, beside the secret scan, on both drivers — the final
+> review's Important 1: `.git/config` with `core.fsmonitor` is a command the control plane would run): every path this
+> API accepts must reach the repository through `commitFiles`, never by writing a worktree another way. **A validation is
+> RECORDED and announced to nobody**: `validateAndRecord` publishes no `spec.validated` (only project creation does), so
+> a push — or this API's own commit — that makes `manifest.yaml` invalid is seen only by `GET …/spec`; decide whether a
+> validation publishes an event. **The mirror's push-time scan caps at 1000 commits / 20 MiB per sync and then marks the
+> branch scanned** (the final review's Important 3, ruled not fixed): paging it, or an event that says a scan was
+> incomplete, is owed before anything relies on the scan being whole. **The receiver now reads the payload's `ref`**
+> (the final review's Important 2: a push a READ synced first is still validated, as GitHub's `main` NOW). **The click
+> found `iam_registration.recorded` still naming a PUID** where P6b's F14 gave the approval events the person's name
+> (sitting 8's F17). And the review's deferred minors are in the D5 plan's *What this plan does not build*, each with
+> its file.
 
 ---
 
