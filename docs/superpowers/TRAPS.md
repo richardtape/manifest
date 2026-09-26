@@ -1718,6 +1718,21 @@ it belongs among the traps the next sitting is most likely to hit.
   but expected <base>` — not `[rejected] (non-fast-forward)` (measured 3 of 3, driver 1). To tell a lost race from a real
   refusal, read the BRANCH afterwards, not git's words.
 
+- **A PATH HANDED TO GIT IS A PATHSPEC, NOT A PATH** (2026-09-25, the authoring API plan's sitting 3, F3). `git ls-tree
+  <commit> -- ':(top)README.md'` answers `README.md` — pathspec magic — and `-- src/` answers what is INSIDE `src`, not
+  `src` (measured, git 2.50.1). Anything that turns a client's path into a git argument sets `GIT_LITERAL_PATHSPECS=1`
+  AND matches the answer by exact path; either alone is one layer (`source/reading.ts`'s control (c) shows the literal
+  flag cannot fail while the exact match holds).
+- **A HISTORY PAGED BY "START THE NEXT PAGE AT THE ONE AFTER" LOSES COMMITS ACROSS A MERGE** (2026-09-25, the authoring
+  API plan's sitting 3, F2). `git log M` walks BOTH parents by date, so a page that ends where the next commit is a
+  merge's newer SIDE parent hands that as the cursor, and `git log <side>` never reaches the first-parent line: `base →
+  a → merge(a, side)` paged one at a time answered 3 commits of 4. `--first-parent` makes the cursor exact.
+- **A NEW `/v1` OPERATION TURNS TWO PACKAGE GATES RED** (2026-09-25, the authoring API plan's sitting 3, F8): the
+  console's `coverage.test.ts` (every operation has a caller in `src/api.ts`, or a `DELIBERATELY_UNCALLED` line naming
+  its remover) and `manifest-mock`'s `server.test.ts` (every operation has a scripted answer or a document EXAMPLE). Give
+  the route an `examples` entry and park it, or build its console caller, in the same task — `pnpm test` from the root
+  runs both; a `--project unit` run does not.
+
 ## Images already pulled
 
 `postgres:16-alpine`, `registry:2`, `verdaccio/verdaccio:6`, `vimagick/tinyproxy`,

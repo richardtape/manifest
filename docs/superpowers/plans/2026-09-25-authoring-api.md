@@ -52,8 +52,8 @@
 |---|---|---|---|---|
 | 1 | 1 | **The measurements this plan rests on.** Measured while it was written, and to be re-measured: the symlink escape and `fsmonitor` through a worktree, the plumbing commit, `--index-info`'s silent replacements, the documentation baseline, a JSON Schema for `manifest.yaml`. **To be measured for the first time:** the HTML renderer's candidates offline (**network at Rich's yes**), the two store packages offline, a tree listing's cost at 10,000 files, the build context on a very large tree, `exec` against a real container (the brief's §7), and the four gate numbers. **Alone, and first** | **No** — nothing under the owing paths changes | **DONE 2026-09-25** — every premise holds and no boundary moves; the renderer is Scalar 1.72.0; `zod-to-json-schema`, no v4 port; `[M<n>]` blocks on Tasks 2, 3, 4, 9, 11 |
 | 2 | 2, 3 | **F7**: an attribute change's added and removed halves handed to the model as their own facts, measured over 40 answers and adopted only if it wins — and **the write primitive rebuilt**: plumbing commits with no worktree, planned against the base tree, verified, pushed non-forced, on both drivers, with the attacks of *Read this first* 1 and 3 as contract cases. **If it runs long, stop after Task 2 and sweep** | **Yes** — `source/` (the build path runs through it), `releases/` | **DONE 2026-09-25** — F7's option (a) measured over 320 answers and NOT adopted — then, at Rich's answer, option (b): no model sentence for a CWL attribute change; `added`/`removed` published, contract `1.3.0`; every commit on both drivers built with plumbing and no worktree, the attacks contract cases; Docker tier green |
-| 3 | 4, 5 | **The read primitives** — a tree, a text file, a history, one commit's changes — on both drivers, and **reading over the API**: four operations, their representations, the matrix's rows, the contract regenerated INSIDE `1.3.0` (Task 2 already took the plan's one bump) | **Yes** — `source/`, `projects/` | ← **next** |
-| 4 | 6, 7 | **Committing over the API** — `createCommit` with its dry run, `source:write`, `manifest.yaml` validated before anything is written, the commit attributed by the platform's own record, `repository.committed`, `repository.secret_refused`, `spec.validated` on every validation — and **builds of the right spec**: a build of a commit uses that commit's validation, and a manifest may not name another blueprint | **Yes** — `releases/`, `projects/`, `observability/`, `spec/` | |
+| 3 | 4, 5 | **The read primitives** — a tree, a text file, a history, one commit's changes — on both drivers, and **reading over the API**: four operations, their representations, the matrix's rows, the contract regenerated INSIDE `1.3.0` (Task 2 already took the plan's one bump) | **Yes** — `source/`, `projects/` | **DONE 2026-09-25** — both drivers read a tree, a text file, a first-parent history and one commit's changes; `getTree`, `getFile`, `listCommits` and `getCommit` published inside `1.3.0` with examples; the mock answers them from the document (Task 10's Step 1, done early) and the console parks them for Task 10 |
+| 4 | 6, 7 | **Committing over the API** — `createCommit` with its dry run, `source:write`, `manifest.yaml` validated before anything is written, the commit attributed by the platform's own record, `repository.committed`, `repository.secret_refused`, `spec.validated` on every validation — and **builds of the right spec**: a build of a commit uses that commit's validation, and a manifest may not name another blueprint | **Yes** — `releases/`, `projects/`, `observability/`, `spec/` | ← **next** |
 | 5 | 8 | **App secret values**: write-only, per environment; injection renders them; a deploy refuses a declared secret with no value; redaction covers them; production per Spec action 2 | **Yes** — `secrets/`, `releases/`, `spec/` | |
 | 6 | 9 | **The reference, completed**: a description on every operation, parameter, schema and property; an example on every operation; every error code's meaning and remedy; every event type; `manifest.yaml`'s JSON Schema; no internal plan names in public text; a completeness gate and an independent linter | **No** — unless a change reaches the owing paths | |
 | 7 | 10 | **The console and the mock**: a Code screen (tree, file, edit, delete, commit, history, one commit) and a Secrets screen; the mock answers every new operation from the document's own examples; both coverage gates | **No** | |
@@ -1275,6 +1275,17 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 
 ## Task 6: Committing over the API — `createCommit`, its dry run, `source:write`, the manifest validated first, and the platform's own record of who
 
+> **`[S3]` — WHAT TASKS 4 AND 5 BUILT THAT THIS TASK EXTENDS (2026-09-25, sitting 3; its record).**
+> `routes/source.ts` holds `repositoryFor(deps, actor, projectId)` (`project:read`, the project, `repositoryOf`) and
+> `READ_ERRORS`, **which includes `SOURCE_GIT_FAILED`** (F10). `CommitSummary` has seven fields today; **`madeThrough` is
+> this task's, and each operation's `examples` must gain it too** — `api/source.test.ts`'s *every example is an answer
+> its own representation accepts* parses them. **`listCommits` walks FIRST PARENTS** (F2), so `madeThroughFor`'s join
+> is over exactly the commits a page lists. **EVERY NEW OPERATION NOW NEEDS TWO THINGS OR TWO GATES GO RED** (F8):
+> an **`examples`** entry — `manifest-mock` answers an operation with no fixture from the document's example (Task 10's
+> Step 1, done in sitting 3), and its gate names one with neither — and a line in the console's
+> `DELIBERATELY_UNCALLED` naming Task 10 as its remover, beside the four sitting 3 parked. For `createCommit` the example
+> carries `request` AND `response`. `RouteDefinition.examples` is `{ request?: unknown; response: unknown }`.
+
 > **`[S2]` (2026-09-25, sitting 2):** Task 3 built `commit`, `writesOf` and `assertNoSecrets(files: { path, content }[])`
 > as this task's snippets assume, and `assertWritablePaths(paths)` already refuses the escape shapes Decision 4's schema
 > refuses first (F9). **`SOURCE_CONFLICT` now also answers a race lost inside receive-pack** (F11), so *refuses a stale
@@ -1587,6 +1598,10 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 
 ## Task 8: App secret values — write-only, per environment, rendered at deploy, and refused when a declared one is missing
 
+> **`[S3]` (2026-09-25, sitting 3, F8):** each of the three operations needs an **`examples`** entry (the mock answers
+> from it; its gate names an operation with neither a fixture nor an example) and a **`DELIBERATELY_UNCALLED`** line in
+> `packages/console/src/coverage.test.ts` naming Task 10 as its remover. Task 6's `[S3]` block has the rest.
+
 **Spec action 2 must be answered before this task starts** (*What Rich does* 2). The steps below build the recommended answer — **a production value is set only in an interactive session with step-up** — and say what changes if Rich chooses otherwise.
 
 **Files:**
@@ -1814,6 +1829,14 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 
 ## Task 10: The console and the mock — a Code screen, a Secrets screen, and the mock answering every new operation from the document's own examples
 
+> **`[S3]` — STEP 1 IS DONE (2026-09-25, sitting 3, F8).** Task 5's four operations would have left the mock's gate
+> red for four sittings, so `exampleOf` was built there: `packages/mock/src/server.ts` answers `ANSWERS[id] ??` the
+> document's success example, through the same Ajv check, and `server.test.ts`'s gate reads *"a scripted answer or a
+> document example"*, with a `getTree` case over a real socket. **Step 5 must EMPTY `DELIBERATELY_UNCALLED`**: sitting 3
+> parked `getTree`, `getFile`, `listCommits` and `getCommit` there naming this task, and Tasks 6 and 8 park theirs — the
+> gate refuses a park whose operation has a caller (a *stale park*), so adding the callers without removing the parks is
+> red. Step 6's second control (`exampleOf` answers nothing) was run in sitting 3: the gate named the four.
+
 **D22's rule makes this task compulsory, not cosmetic**: `packages/console/src/coverage.test.ts` refuses an operation with no caller in `src/api.ts`, and `DELIBERATELY_UNCALLED` is empty. The screens are **plain but presentable** (§22's quality bar) — the product is the front-end project's.
 
 **Files:**
@@ -1845,6 +1868,10 @@ spikes/authoring-baseline/    NEW (T1) the measurements' record
 ---
 
 ## Task 11: The guides, served — `docs/api/`, examples that are run, a generated reference, the journey as a gate, `/v1/docs`, `/v1/openapi.json`, `llms.txt`, a console Docs screen, and the HTML reference page
+
+> **`[S3]` (2026-09-25, sitting 3, F8):** `listDocs`, `getDoc` and `getOpenApiDocument` each need an **`examples`**
+> entry and a console caller or a `DELIBERATELY_UNCALLED` line (Task 6's `[S3]` block). The console's Docs screen is this
+> task's own, so the caller can land with the route.
 
 > **`[M9]` — MEASURED (2026-09-25, sitting 1; F8, F9, F10, F16): THE RENDERER IS SCALAR, `@scalar/api-reference` 1.72.0
 > (MIT).** Redoc 2.5.4 fails the hard offline criterion — its side menu's *API docs by Redocly* footer fetches
@@ -2546,3 +2573,182 @@ orphans — `p4b-probe-user` and the previous `launch-app`'s two — and 17 app 
 **Swept:** ORIENTATION's two boxes, §2's demo rows, §7e and §8 (*Decided*); RUNBOOK (the gate parenthetical, and
 `make demo-releases`' summary paragraph); WALKTHROUGH (the model's sentences); `scripts/ci-acceptance.sh`
 (`2037 / 146 / 20 / 57`); the roadmap's ledger; this plan's *Decided by Rich* and sittings table. No new finding.
+
+### Sitting 3 — Task 4 (the read primitives) and Task 5 (reading over the API) — 2026-09-25
+
+**BOTH DRIVERS NOW READ A COMMIT'S TREE, A TEXT FILE, A FIRST-PARENT HISTORY AND ONE COMMIT'S CHANGES, AND THE API
+PUBLISHES THEM.** Task 4 put the four reads in `source/reading.ts`, over a git dir each driver resolves (driver 1's bare
+repository; driver 2's mirror, the commit `present` first), and gave `SourceDriver` `resolveRef`, `listTree`,
+`readText`, `history` and `describeCommit` — `headCommit` kept as `resolveRef`'s alias. Task 5 published `getTree`,
+`getFile`, `listCommits` and `getCommit` (tag `source`, `project:read`) with five described representations and an
+example each, inside `1.3.0`. **Three of the plan's own choices did not survive measurement**: the history's cursor lost a
+commit across a merge (F2), a path handed to `ls-tree` is a pathspec (F3), and the plan did not foresee that four new
+operations turn two package gates red until its Task 10 (F8). Commits `bddfc8d` (Task 4) and `ea30832` (Task 5).
+
+#### The decisions this sitting made
+
+**1. The history walks first parents** (F2) — the cursor is then exact, and the walk is `main`'s own, each merge once,
+described (as the plan already said) against its first parent. *Changing course* is one flag and a sentence in
+`listCommits`' description; what it costs is a side branch's commits not being listed one by one.
+
+**2. `headCommit` is kept as a one-line alias of `resolveRef`** (Step 3 asked for the choice): its callers are
+`api/spec-validation.ts`, `api/routes/projects.ts`, `api/routes/webhooks.ts`, `source/testing.ts` and the tests.
+
+**3. A read is literal AND exact** (F3): `GIT_LITERAL_PATHSPECS=1` and the answer matched by path — two layers, one of
+which (the literal flag) cannot fail while the other holds (control (c)).
+
+**4. Task 10's Step 1 — `exampleOf` in `manifest-mock` — is built here, and the console PARKS the four** (F8). The mock
+answers an operation with no fixture from the document's own example (Decision 15), which Task 5 had just written, so its
+gate stays at full strength; the console's `DELIBERATELY_UNCALLED` names Task 10 as the four's remover (P6b Task 9's
+precedent), and the gate already refuses a stale park. *Rejected:* hand-written mock fixtures now (Decision 15's two
+statements of one answer); a parking list in the mock's gate (a weaker gate for four sittings).
+
+**5. `runGit` answers `bytes` beside `stdout`** (F5); **every read route lists `SOURCE_GIT_FAILED`** (F10); **a
+`project:read`-alone token case and an example-parses case** in `api/source.test.ts` (F9). Each is a `Ruling:` line in
+the ledger.
+
+#### The findings
+
+**F1 — `resolveRef` ANSWERED A REPOSITORY THAT IS NOT THERE AS A MISSING BRANCH.** The first full run's one red:
+`api/projects.test.ts:1082` expects `headCommit` to fail `SOURCE_GIT_FAILED` for a project whose repository was never
+made, and driver 1's new `resolveRef` said `SOURCE_REF_NOT_FOUND` — *"has no branch 'main'"* — which would send a client
+looking for a typo. Driver 1 now checks the repository exists first, as driver 2's `mirrorOf` already did, and the
+contract's *destroys a repository* case, which accepted any `SOURCE_*`, holds both drivers to `SOURCE_GIT_FAILED` (red on
+driver 1 first). My own grep for callers depending on the old code missed it: the assertion was not on a `headCommit` line.
+
+**F2 — THE PLAN'S HISTORY CURSOR LOSES COMMITS ACROSS A MERGE.** *"`next` = the id of the `limit+1`th … the next page
+starts AT it"* is exact only for a linear history: `git log M` walks both parents by date, so with `base → a → merge(a,
+side)` and `side` newer than `a`, a page of one ends at `merge`, hands `side` as the cursor, and `git log side` never
+reaches `a` — paged, 3 commits; in one page, 4. Measured red in `reading.test.ts` before the fix; `--first-parent` makes
+the two equal, and agrees with `describeCommit`'s first-parent diff (Decision 1).
+
+**F3 — `ls-tree` TAKES A PATH AS A PATHSPEC.** Measured on git 2.50.1: `ls-tree <c> -- ':(top)README.md'` answers
+`README.md` (pathspec magic), and `-- src/` answers `src/index.js`, what is INSIDE `src`. The plan's `readText` row
+(`git ls-tree -z --full-tree <commit> -- <path>`) would have read a file the client did not name. Both layers now, and
+TRAPS.md has it.
+
+**F4 — `TextDecoder` STRIPS A BYTE-ORDER MARK BY DEFAULT.** *"The file's text, exactly"* was not exact for a file that
+starts with one: a client reading it and committing it back would drop three bytes. `ignoreBOM: true`; a unit case writes
+BOM + CRLF bytes and compares them.
+
+**F5 — `runGit`'s stdout is already decoded, lossily.** A blob read through it has every invalid UTF-8 sequence replaced
+before the UTF-8 check can see it, so the plan's `SOURCE_FILE_NOT_TEXT` for a Latin-1 file could never fire. `runGit`
+answers `bytes` too.
+
+**F6 — THE PLAN'S SORT ASSERTION CANNOT FAIL ON ITS OWN FIXTURE.** The contract's tree case checks the listing is sorted
+by path, but on its fixture (`img/logo.bin`, `link`, `manifest.yaml`, `src/index.js`) git's tree order IS path order.
+They differ only where a name sorts between a directory and its contents — git lists `src.txt` before `src`, `src/a.js`
+(measured) — so a unit case builds exactly that, and the listing sorts explicitly.
+
+**F7 — THE PLAN'S REASON FOR CHECKING A BRANCH NAME IS NOT THE ONE THAT HOLDS.** It says a name beginning `-` in git's
+argv is an option; on driver 1 the name is only ever `refs/heads/<name>`, which is never an option. Control (g) removed
+the check on both drivers: `-x` stayed `SOURCE_REF_NOT_FOUND`, and **`main^` resolved to `main`'s parent** — revision
+syntax is what the check actually stops.
+
+**F8 — FOUR NEW OPERATIONS TURN TWO PACKAGE **`pnpm test` moved twice: 2059 in 147 after Task 4, then 2103 passed in 148 files after Task 5**, each twice, alone and
+identical (390 s and 397 s; 402 s and 400 s) — +66 and two files: Task 4's read cases (4 contract cases × 2 drivers) and
+`source/reading.test.ts` (14); Task 5's `api/source.test.ts` (7), four rows in the authorization matrix (36) and the mock
+answering from the document (1). The open read 2037 in 146 (385 s). **Task 4's first full run was one red — F1 — and a
+second run was stopped part-way when F2 was found mid-run**, so no code changed under a running suite (sitting 2's F1).
+`pnpm lint`, `pnpm typecheck` and `pnpm format:check` clean. **`make doctor` 20/0/0** at the open and the close; **`make
+verify` 57/0/0** at the open, after the Docker tier and at the close; **`pnpm test:docker` 208 in 34, 0 skipped, 895 s,
+green first time** — owed by `source/`, run on `ea30832`, at load 3.7–4.8; the host reached the edge afterwards with no
+restart. **Contract `1.3.0`**: `ErrorCode` +4 (Task 4); four operations, five schemas, the tag `source`, and one lifted
+parameter description, `getBuildLog`'s `tail` (Task 5).
+
+**Driven through the edge** (CLAUDE.md's first *Before you trust a green result*): the control plane started per RUNBOOK
+(`"driver":"docker","source":"local"`, origin `https://console.manifest.internal`), then a scratch script — a real CWL
+sign-in as `ins000001`, `POST /v1/projects` for `reads-drive`, and the four reads through `https://console.manifest.internal`:
+`getTree` at the seed (4 entries), `getFile` of `manifest.yaml` (97 bytes, `name: reads-drive`), `listCommits` (the seed,
+by `Manifest`, `next: null`, no `@` anywhere), `getCommit` (four files added, `manifest.yaml +6`), and `?ref=-x` →
+`REQUEST_INVALID`, `?path=nope` → `SOURCE_PATH_NOT_FOUND`, `?ref=no-such` → `SOURCE_REF_NOT_FOUND`. Every check passed; the
+control plane was stopped after (it was not running at the open). RED, AND THE PLAN LEAVES THEM RED FOR FOUR SITTINGS.** The console's
+`coverage.test.ts` (every operation has a caller, `DELIBERATELY_UNCALLED` empty) and `manifest-mock`'s `server.test.ts`
+(every operation has an entry) both named the four, as predicted; Task 5's Files list touches neither, and Task 10 — the
+fix for both — is sitting 7. Decision 4 above. **Tasks 6, 8 and 11 meet the same two gates**: their `[S3]` blocks say so.
+
+**F9 — THE AUTHORIZATION MATRIX CANNOT SEE WHICH CAPABILITY A READ ASSERTS.** Step 6's own control (`project:write`
+for `project:read`) left all 505 matrix cases green, because every actor that passes — owner, collaborator, admin,
+`token-capable`, `token-privileged` — holds both, and `token-incapable` holds neither. Only a token minted with
+`project:read` ALONE can show it; `api/source.test.ts` mints one through the route, and it is what went red (`403
+FORBIDDEN … not minted with 'project:write'`).
+
+**F10 — THE PLAN'S `errors:` LISTS OMIT `SOURCE_GIT_FAILED`**, which a read throws (`reading.ts`'s `read`, driver 2's
+`mirrorOf`). Every read route lists it.
+
+**F11 — THE FIXTURE BLUEPRINT'S SKELETON HAS NO DIRECTORY** (`server.js`, `package.json`, `package-lock.json` and the
+manifest), so the plan's *"`?path=<a directory in the fixture blueprint>`"* had nothing to name; the test writes
+`src/app.js` first.
+
+**F12 — TWO CODES' SUMMARIES DRIFTED THE MOMENT READS EXISTED**: `SOURCE_PATH_NOT_FOUND` said *"A deletion names a path
+the base commit does not have"* and `SOURCE_COMMIT_NOT_FOUND` *"…nothing to build from it"*. Both now say read too.
+
+**Measured, and not a defect:** in a bare repository git 2.50.1's `diff --numstat` ignores a pushed `.gitattributes`
+(`*.txt -diff` left `a.txt` text), so a person cannot make the listing call a text file binary; `%B` is the stored message
+exactly (no newline added); `--end-of-options` keeps `-x` a revision (`fatal: bad revision '-x'`); `limit` printed as an
+integer with a default of 30, bounded 1–100, as Step 3 asked to check.
+
+#### Negative controls — each predicted in writing before it ran, on the committed tree
+
+| # | Break | Predicted | Seen |
+|---|---|---|---|
+| T4 (a) | the listing's `binary` always false | the contract's tree case red on BOTH drivers at `img/logo.bin`; no unit case | exactly that — `expected { path: 'img/logo.bin', …(4) } to match object { type: 'file', binary: true }` ×2 |
+| T4 (b) | `readText` skips the size check | the unit case red at its first assertion; NO contract case (no fixture over 1 MiB) | `expected undefined to be 'SOURCE_FILE_TOO_LARGE'`, alone |
+| T4 (b′) *(added)* | the size refused AFTER `cat-file` | red at the argv spy, the code still right | `expected [ [ 'cat-file', 'blob', …(1) ] ] to deeply equal []` |
+| T4 (c) *(added)* | literal pathspecs off | GREEN — the exact match holds | green, 14 of 14: **cannot fail alone, by construction** |
+| T4 (d) *(added)* | the exact match off | red at `src/` | `src/: expected undefined to be 'SOURCE_PATH_NOT_FOUND'` |
+| T4 (c)+(d) | both | red at `:(top)README.md` | exactly that |
+| T4 (e) *(added)* | `ignoreBOM` false | the BOM case red | red |
+| T4 (f) *(added)* | no `--first-parent` | the merge-paging case red | seen red in TDD: 3 commits paged, 4 in one page |
+| T4 (g) *(added)* | the branch-name check off, both drivers | red at `main^` on both; `-x` held by the `refs/heads/` prefix | red at `driver-contract.ts:618`, `main^`, both drivers (F7) |
+| T5 (a) | the reads assert `project:write` (THE PLAN'S) | the matrix ALL GREEN; the `project:read`-alone token red at `/tree` | 505 of 505 green; that case alone red, `403 FORBIDDEN` (F9) |
+| T5 (b) *(added)* | `getTree`'s example `mode: '644'` | the example case red naming `getTree` | exactly that |
+| T5 (c) *(added)* | the mock's `exampleOf` answers nothing | the mock's gate names the four; `getTree` `501` | exactly that |
+| T5 (d) *(added)* | no parameter description lifted | the document drift test red | `openapi.json is stale from line 264` |
+
+**Which could not fail, and why:** T4 (c), by construction — the exact-path match refuses everything the literal flag
+does, for `readText`. The matrix's rows for the four reads cannot tell `project:read` from `project:write` (F9).
+
+#### The gates, and the machine, at the close
+
+**`pnpm test` moved twice: 2059 in 147 after Task 4, then 2103 passed in 148 files after Task 5**, each twice, alone and
+identical (390 s and 397 s; 402 s and 400 s) — +66 and two files: Task 4's read cases (4 contract cases × 2 drivers) and
+`source/reading.test.ts` (14); Task 5's `api/source.test.ts` (7), four rows in the authorization matrix (36) and the mock
+answering from the document (1). The open read 2037 in 146 (385 s). **Task 4's first full run was one red — F1 — and a
+second run was stopped part-way when F2 was found mid-run**, so no code changed under a running suite (sitting 2's F1).
+`pnpm lint`, `pnpm typecheck` and `pnpm format:check` clean. **`make doctor` 20/0/0** at the open and the close; **`make
+verify` 57/0/0** at the open, after the Docker tier and at the close; **`pnpm test:docker` 208 in 34, 0 skipped, 895 s,
+green first time** — owed by `source/`, run on `ea30832`, at load 3.7–4.8; the host reached the edge afterwards with no
+restart. **Contract `1.3.0`**: `ErrorCode` +4 (Task 4); four operations, five schemas, the tag `source`, and one lifted
+parameter description, `getBuildLog`'s `tail` (Task 5).
+
+**Driven through the edge** (CLAUDE.md's first *Before you trust a green result*): the control plane started per RUNBOOK
+(`"driver":"docker","source":"local"`, origin `https://console.manifest.internal`), then a scratch script — a real CWL
+sign-in as `ins000001`, `POST /v1/projects` for `reads-drive`, and the four reads through `https://console.manifest.internal`:
+`getTree` at the seed (4 entries), `getFile` of `manifest.yaml` (97 bytes, `name: reads-drive`), `listCommits` (the seed,
+by `Manifest`, `next: null`, no `@` anywhere), `getCommit` (four files added, `manifest.yaml +6`), and `?ref=-x` →
+`REQUEST_INVALID`, `?path=nope` → `SOURCE_PATH_NOT_FOUND`, `?ref=no-such` → `SOURCE_REF_NOT_FOUND`. Every check passed; the
+control plane was stopped after (it was not running at the open).
+
+**The machine, queried at the close** (`psql`, `docker`, `lsof`, Ollama's `/api/ps`, `make verify`): the control database
+holds **`reads-drive` alone** — the drive's project, 0 releases, 29 migrations — with its bare repository in
+`.manifest/repos/`; the open's `launch-app` rows were truncated by this sitting's first `pnpm test`, as §7e said they would
+be, so **`launch-app`'s six `mf-launch-app-*` containers run with no rows behind them** and **0 runtime routes** are applied
+(the Docker tier restarted the edge). Nothing listens on 7100 or 7104; the GitHub fake is not running (it was not at the
+open). **The three cleanup scripts, run bare and then `--apply` by this session** (allowed): the tier's 7 networks and 1
+volume, the `p4b-probe-user` LiteLLM orphan and 12 app images removed, each re-measured bare — `none dead`, 0 orphans, 0
+dead images; `make verify`'s per-app line `containers=6 networks=2 volumes=4`. The chat and embedding models were warmed
+for the tier and unloaded after (`keep_alive: 0`); none was resident at the open. `diff` of `scripts/snapshot-machine.sh`
+against the opening snapshot: uptimes, the edge's restart, `HEAD`, this sitting's files, and free disk 97 → 95 GiB.
+
+#### The sweep
+
+This plan's sittings table, this record, and `[S3]` blocks at the heads of Tasks 6, 8, 10 and 11 (Task 6: what Tasks 4
+and 5 built, and that every new operation needs an example and a console park; Task 10: its Step 1 is done and its Step 5
+must empty the park); the roadmap's ledger (the section's heading and its sitting-3 sentence) and its defect-rate table
+(the count derived with the command above); ORIENTATION's top box and §2's box (the unit count moved), §3 (`reading.ts` in
+the module table, and *Every read of source names a commit, and says which*), and §7e (rewritten for sitting 4, which must
+ask Spec action 2 at its close); RUNBOOK's gate parenthetical; `scripts/ci-acceptance.sh` (`2103 / 148 / 20 / 57`, and its
+history comment); TRAPS.md (three traps: F3, F2, F8). **CLAUDE.md's *State* unchanged** — no plan started or finished and no
+*Outstanding* item moved. **The four shared HTML pages were checked and left alone**: none states the authoring API's status,
+a gate count, or anything about reading source.

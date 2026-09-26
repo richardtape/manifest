@@ -78,8 +78,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # (2) and its lock (1); `source/plumbing.test.ts` (12: the planner, the builder, pushVerdict);
 # and the write primitive's seven contract cases × 2 drivers (14). Then, the same evening, +3 for
 # F7's option (b): no model sentence for a CWL attribute change (3).
-EXPECT_TESTS=2037
-EXPECT_FILES=146
+# Then the authoring API plan's sitting 3 (2026-09-25): +66 and two files — Task 4's read cases
+# (4 contract cases × 2 drivers, 8) and `source/reading.test.ts` (14); Task 5's `api/source.test.ts`
+# (7), its four rows in the authorization matrix (36) and the mock answering from the document (1).
+EXPECT_TESTS=2103
+EXPECT_FILES=148
 EXPECT_DOCTOR=20
 EXPECT_VERIFY=57
 
