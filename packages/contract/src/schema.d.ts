@@ -347,7 +347,7 @@ export interface paths {
         put?: never;
         /**
          * Commit changes to main
-         * @description Writes and deletes text files on the project’s `main`, as one commit computed from `baseCommit`. Every change is checked before anything is written — the paths, the text, secret-shaped values, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.
+         * @description Writes and deletes text files on the project’s `main`, as one commit computed from `baseCommit`. Every change is checked before anything is written — the paths, the text, secret-shaped values in the files and in the message, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.
          */
         post: operations["createCommit"];
         delete?: never;

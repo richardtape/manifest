@@ -445,7 +445,7 @@ export const sourceRoutes = [
     tag: 'source',
     summary: 'Commit changes to main',
     description:
-      'Writes and deletes text files on the project’s `main`, as one commit computed from `baseCommit`. Every change is checked before anything is written — the paths, the text, secret-shaped values, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.',
+      'Writes and deletes text files on the project’s `main`, as one commit computed from `baseCommit`. Every change is checked before anything is written — the paths, the text, secret-shaped values in the files and in the message, the base, the tree, and the manifest.yaml the commit would leave, which must be valid. `dryRun: true` runs every check and writes nothing. A retry with the same Idempotency-Key answers the first commit again. Who made the commit is the platform’s own record (`madeThrough` on the history), never the commit’s text.',
     params: ProjectParams,
     query: NO_QUERY,
     body: CreateCommitRequest,
@@ -486,8 +486,13 @@ export const sourceRoutes = [
       const repo = await repositoryOf(deps, project)
       const dryRun = body.dryRun === true
       const changes: Change[] = body.changes
-      // 1. Secrets — found HERE, as data, so the refusal is published without the value.
-      const findings = secretFindings(writesOf(changes))
+      // 1. Secrets — found HERE, as data, so the refusal is published without the value. The
+      // MESSAGE too: it goes into git history and its subject into `repository.committed`'s
+      // sentence, where the redactor's heuristics miss an AWS key id — and no driver scans it.
+      const findings = secretFindings([
+        ...writesOf(changes),
+        { path: '(the commit message)', content: body.message },
+      ])
       if (findings.length > 0) {
         if (!dryRun) await publishSecretRefused(deps, project, actor, findings)
         throw secretRefusal(findings)

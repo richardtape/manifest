@@ -350,6 +350,47 @@ describe('createCommit — changes checked before anything is written (Task 6)',
     })
   })
 
+  /**
+   * THE MESSAGE IS PART OF THE COMMIT (Review Focus 4): it goes into git history — and GitHub's,
+   * on driver 2 — and its subject into `repository.committed`'s sentence, where the redactor's
+   * heuristics do not catch an AWS key id (20 characters; the entropy rule starts at 24 — Task
+   * 6's control (b′)). No driver's scan reads a message, so the route does.
+   */
+  it('refuses a secret in the commit MESSAGE too — the value in neither history nor the record', async () => {
+    await withProjectServer(async (ctx) => {
+      const value = SAMPLE_SECRETS['an AWS access key id']
+      const res = await post(ctx, {
+        baseCommit: ctx.commitSha,
+        message: `use the key ${value}`,
+        changes: [{ op: 'write', path: 'a.txt', content: 'a\n' }],
+      })
+      expect(refusal(res)).toEqual({ status: 409, code: 'SOURCE_SECRET_DETECTED' })
+      expect(res.body).not.toContain(value)
+      expect(await headOf(ctx)).toBe(ctx.commitSha)
+      const refused = await eventsOf(ctx, [
+        'repository.secret_refused',
+        'repository.committed',
+      ])
+      expect(refused.map((e) => [e.type, e.machineDetail])).toEqual([
+        [
+          'repository.secret_refused',
+          {
+            findings: [
+              { path: '(the commit message)', line: 1, rule: 'an AWS access key id' },
+            ],
+          },
+        ],
+      ])
+      expect(JSON.stringify(refused)).not.toContain(value)
+      // The positive control: the same commit with an ordinary message.
+      const ok = await post(
+        ctx,
+        commitBody(ctx.commitSha, [{ op: 'write', path: 'a.txt', content: 'a\n' }]),
+      )
+      expect(ok.statusCode, ok.body).toBe(201)
+    })
+  })
+
   it('a retried commit — the same Idempotency-Key — is one commit and one event', async () => {
     await withProjectServer(async (ctx) => {
       const headers = mutationHeaders(ctx.deps)
