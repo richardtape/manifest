@@ -1684,6 +1684,26 @@ it belongs among the traps the next sitting is most likely to hit.
   only the edge and the resolver. After a demo's apps are removed, their networks are held by the three platform
   neighbours alone; the script now names all three. The Docker tier's dead networks never showed it — its apps declare no
   model.
+- **NODE 24'S TYPE STRIPPING CANNOT LOAD `source/` — A PARAMETER PROPERTY** (2026-09-25, the authoring API plan's sitting 1,
+  F1). A scratch probe importing control-plane source dies `SyntaxError [ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX]: TypeScript
+  parameter property is not supported in strip-only mode` at `SourceError`'s `constructor(readonly code: string, …)`
+  (`source/git-driver.ts`). Run it `node --experimental-transform-types --import ./packages/github-fake/resolve-ts.mjs
+  <probe>.ts` (one ExperimentalWarning). A module with no such class — `spec/schema.ts`, `releases/summary.ts` — strips fine.
+- **IMPORTING `source/` BUILDS THE DATABASE POOL** (2026-09-25, the authoring API plan's sitting 1, F2): its hook and scan
+  modules import `build/index.js`, whose barrel reaches `db/client.ts`, which THROWS at import without
+  `MANIFEST_DATABASE_URL`. For a probe that needs no database, set it to `postgres://nobody:nobody@127.0.0.1:1/unreachable`
+  — `pg.Pool` connects lazily, so nothing is dialled — never to the real one.
+- **pnpm 11 EXITS 1 ON AN INSTALL WHOSE BUILD SCRIPTS IT IGNORED — WITH EVERY PACKAGE INSTALLED** (2026-09-25, the authoring
+  API plan's sitting 1, F10): `ERR_PNPM_IGNORED_BUILDS: vue-demi@0.14.10` (`@scalar/api-reference`), `core-js@3.50.0`
+  (`redoc`). Read the `+ <pkg> <version>` line, not the exit code, and settle each in `allowBuilds` (`true` or `false`, with
+  a reason) before a workspace install depends on it. **And `--offline` auto-installs a peer at the NEWEST version pnpm's
+  cached metadata knows**, which the store may lack (`ERR_PNPM_NO_OFFLINE_TARBALL … zod-4.6.5.tgz` for
+  `zod-to-json-schema`) — or may have, since sitting 1 fetched it: then the wrong peer links silently. Read the lockfile's
+  peer suffix.
+- **A PROBE UNDER `docs/` IS LINTED** (2026-09-25, the authoring API plan's sitting 1, F17): `pnpm lint` is `eslint .`, and
+  typescript-eslint's `recommended` forbids `require()`, so a `.cjs` probe turns the gate red. Write probes as `.mjs` or
+  `.ts`; to wrap a builtin that CommonJS code calls, import its DEFAULT export (`import dns from 'node:dns'`) — the same
+  object `require` returns — never the namespace, which is frozen.
 
 ## Images already pulled
 

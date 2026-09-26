@@ -16,8 +16,8 @@ other document on status.*
 
 **The design is approved and complete, five spikes are done, and twelve plans are executed** — Phase 1c,
 and Phase 2's first three plans, P6a (the first production launch), P6b (subsequent releases) and D5's
-GitHub source driver. Every one has an acceptance that passes. **No plan is being executed now**: the
-authoring API's plan is WRITTEN (2026-09-25) and not started — ORIENTATION §7e says what is next. Each plan's
+GitHub source driver. Every one has an acceptance that passes. **The authoring API's plan is being
+executed** — written 2026-09-25, its ten sittings approved by Rich the same day — ORIENTATION §7e says what is next. Each plan's
 *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |

@@ -6,17 +6,16 @@ the gates read; it deliberately states no job and no sitting's story (Rich, 2026
 
 **Where things stand.** The design is approved and complete, five spikes are done, and **twelve plans are
 executed** (§2's table): an application goes from a bare repository to a production launch, authenticated with CWL,
-on one laptop, offline — and its code can live in a GitHub organisation instead (D5's driver 2, the newest). **No plan
-is being executed**; §7e says what is next. The roadmap's ledger outranks every document on status.
+on one laptop, offline — and its code can live in a GitHub organisation instead (D5's driver 2, the newest). **The authoring
+API's plan is being executed**; §7e says what is next. The roadmap's ledger outranks every document on status.
 
-*Last verified 2026-09-25, at the close of the D5 plan's sitting 8 (Task 15, the acceptance, and the plan's final
-review — the plan is EXECUTED); the authoring API's writing session the same evening changed no code and re-measured nothing. `pnpm test` **2005 passed, 0 skipped, in 145 files**, twice, identical — up 5 and no file (the
-fake's not-GitHub page and its delivery log across a restart; the final review's `.git` guard on both drivers and the
-push a read synced first), ~6 minutes a run. **`make doctor` 20 checks, 0 failed, 0 warnings**; the vulnerability
-database goes stale again after 2026-10-01 (`make refresh-vulndb`). **`make verify` 57**, clean after the Docker tier and
-after a `make reset`. `pnpm test:docker` **208 in 34**, owed once and green first time (1341 s). `scripts/ci-acceptance.sh`
-reads `2005 / 145 / 20 / 57`. **This line states only the latest sitting** — each sitting's numbers are in its plan's
-*What executing this plan found*, dated, where they cannot drift.*
+*Last verified 2026-09-25, at the close of the authoring API plan's sitting 1 (Task 1, the measurements — no code
+changed). `pnpm test` **2005 passed, 0 skipped, in 145 files** at the open and twice at the close, identical, ~6 minutes a
+run (359 s, 369 s, 371 s). **`make doctor` 20 checks, 0 failed, 0 warnings**; the vulnerability database goes stale
+again after 2026-10-01 (`make refresh-vulndb`). **`make verify` 57**, clean at the open and after the Docker tier.
+`pnpm test:docker` **208 in 34**, not owed, run at the open for the baseline and green first time (906 s).
+`scripts/ci-acceptance.sh` reads `2005 / 145 / 20 / 57`. **This line states only the latest sitting** — each sitting's
+numbers are in its plan's *What executing this plan found*, dated, where they cannot drift.*
 
 **Short of context? Read §7e, §2's numbers box, §6 and §4's curated traps, in that order.** The full trap catalogue
 is [`TRAPS.md`](TRAPS.md), meant to be searched, not read through.
@@ -62,15 +61,15 @@ browser after sitting 7, which no tier had ever looked at — **116 in P5b's 13*
 roadmap's table — every plan self-reviewed first. The roadmap's defect-rate table has every plan and sitting. Treat
 a written plan as a hypothesis (§9).
 
-**The four numbers you will check first, re-measured 2026-09-25 on this machine at the open AND the close of the D5
-plan's sitting 8 (Task 15; its record is in the plan). `pnpm test` **2005** in **145** files, up 5 (2000 in 145, twice, at
-the open); `make doctor` **20** with **0 warnings**; `make verify` **57**; `pnpm test:docker` **208** in 34, owed once and
-green:**
+**The four numbers you will check first, re-measured 2026-09-25 on this machine at the open AND the close of the
+authoring API plan's sitting 1 (Task 1, the measurements; its record is in the plan). None moved: `pnpm test` **2005** in
+**145** files (once at the open, twice at the close); `make doctor` **20** with **0 warnings**; `make verify` **57**;
+`pnpm test:docker` **208** in 34, run at the open and green:**
 
 | Gate | What it reads now |
 |---|---|
 | `pnpm test` (from the **repo root**) | **2005 passed, 0 skipped, 145 files**, **~6 min (340–360 s) — up from ~240 s before the D5 plan's sitting 6**, because every driver-1 push in the suite runs the rendered secret-scanning hook (that sitting's F6). Run it twice alone, and identical, after each code commit and at every close; `scripts/ci-acceptance.sh`'s `EXPECT_TESTS` is **2005**. It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`**, not `manifest` (§3). **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
-| `pnpm test:docker` | **208 tests, 0 SKIPPED, 34 files** (2026-09-25, the D5 plan's sitting 8: 1341 s, green first time after its fix pass, at load 5–16 — the Docker VM itself; sitting 7's 1201 s at load ~2–5. Its one wall-clock case — *a retire waits for a request that is in flight*, a drain bound — was red at load 12–15 in sittings 5 and 6 and green re-run alone at ~6; TRAPS.md has the re-run command, which leaves one dead network behind). Owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — fails rather than skips, and **outlasts the agent's 10-minute tool limit: run it in the background**. It restarts the edge (dropping every runtime route), truncates the tables and re-registers the platform's SP row: **restart the control plane afterwards**, then run the cleanup scripts, because it regenerates seven dead app networks and one volume every time — and about thirteen app images, which `scripts/app-images.sh` removes — **and then `make verify`**: TWICE now — D5 sittings 2 and 5 — the edge's restart left the host unable to reach it (12, then 11, host→edge failures, `curl: (35) Recv failure: Connection reset by peer`; fixed each time by `docker restart manifest-caddy`; sitting 6's two tiers did not show it). Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
+| `pnpm test:docker` | **208 tests, 0 SKIPPED, 34 files** (2026-09-25, the authoring API plan's sitting 1: 906 s, green first time, at load 4–6; the D5 plan's sitting 8's 1341 s at load 5–16 — the Docker VM itself — and its sitting 7's 1201 s at load ~2–5. Its one wall-clock case — *a retire waits for a request that is in flight*, a drain bound — was red at load 12–15 in sittings 5 and 6 and green re-run alone at ~6; TRAPS.md has the re-run command, which leaves one dead network behind). Owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — fails rather than skips, and **outlasts the agent's 10-minute tool limit: run it in the background**. It restarts the edge (dropping every runtime route), truncates the tables and re-registers the platform's SP row: **restart the control plane afterwards**, then run the cleanup scripts, because it regenerates seven dead app networks and one volume every time — and about thirteen app images, which `scripts/app-images.sh` removes — **and then `make verify`**: TWICE now — D5 sittings 2 and 5 — the edge's restart left the host unable to reach it (12, then 11, host→edge failures, `curl: (35) Recv failure: Connection reset by peer`; fixed each time by `docker restart manifest-caddy`; sitting 6's two tiers did not show it). Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
 | `make doctor` | **20 checks, 0 failed, 0 warnings** — one of them the GitHub fake's image (`make seed`, profile `github`); the vulnerability database is fresh until **2026-10-01**; after that doctor warns, and §13's `scans` item refuses every production launch until `make refresh-vulndb` runs with the network on (*Outstanding*, below). Its `127.0.0.3` checks assert what dnsmasq answers, so **it cannot tell you production is REACHABLE** |
 | `make verify` | **57 checks, 0 failed, 0 warnings** — two of them the GitHub fake's, static, whether or not it runs. Straight after `make reset` it reads ONE red — the audit grant — until the control plane has migrated the empty database. Its INFO line reads `mf- containers=6 networks=2 volumes=4` today (`launch-app`'s alone). *Runtime routes currently applied* counts the internal listener (`srv0`) only, so it never sees a production route |
 | `make demo-production` | P6a's acceptance: ~1 min fresh, three phases each ending `every check passed`; ~4 s on the re-use path, where `launch-app` has launched. Step 11 of `scripts/offline-acceptance.sh`. Last green 2026-09-25 (the D5 plan's sitting 8), FRESH, in `make ci-acceptance`'s second run |
@@ -155,7 +154,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | You are… | Read |
 |---|---|
 | **new, any role** | This file — §7e and §2 first. Then the roadmap's ledger and its *Lessons*. |
-| **executing a plan** | **None is being executed** — the authoring API's plan is WRITTEN and its sittings split awaits Rich's approval (§7e); its sitting 1 is the job after that. When one is: **the current plan, which §7e names.** Its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
+| **executing a plan** | **The authoring API's plan** — [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md), which §7e names. **The current plan is always the one §7e names.** Its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
 | **writing a plan** | **None is due.** The authoring API's was written on 2026-09-25 — [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md). The next to write is the vulnerability database in the console, or Spec action 1's (a running app's recent output) if Rich places it first (§8). House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or the newest, [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md). |
 | **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md) — `make seed && make host-setup && make up`, every demo step by step, and *Known gaps*. Its *Running the control plane* is the export block to start it with. |
@@ -191,7 +190,7 @@ docs/superpowers/
 │   ├── 2026-09-19-p6a-first-production-launch.md  P6a — executed 2026-09-22
 │   ├── 2026-09-22-p6b-subsequent-releases.md      P6b — executed 2026-09-23; its *What this plan does not build* is the next plan's input
 │   ├── 2026-09-24-d5-github-source-driver.md       D5's driver 2 — EXECUTED 2026-09-25, 15 tasks in eight sittings; its *What this plan does not build* is the next plan's input
-│   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — WRITTEN 2026-09-25, 13 tasks in a PROPOSED ten sittings; NOT STARTED (§7e)
+│   ├── 2026-09-25-authoring-api.md                THE AUTHORING API — WRITTEN 2026-09-25, 13 tasks in ten sittings; BEING EXECUTED (§7e)
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
     ├── S7, S2, S1, S3, S6-findings.md   each one's answer is its first sentence (§5)
@@ -200,7 +199,8 @@ docs/superpowers/
     │                                   Each README.md is one section per measurement with its raw
     │                                   answer; the results-*.txt beside it is every command's full
     │                                   output. Read the CURRENT plan's before its sitting 2
-    ├── authoring-baseline/probes/     the authoring API plan's writing-session probes; its Task 1 re-runs them
+    ├── authoring-baseline/            THE AUTHORING API'S MEASUREMENT SITTING (its Task 1, 2026-09-25): README.md,
+    │                                   results-task1-2026-09-25.txt and probes/ — the writing session's and Task 1's
     ├── START-HERE.md                   the ORIGINAL spike briefing. Historical; its §6 is wrong
     └── HANDOFF-2026-08-3*.md           dated handoffs, SUPERSEDED by this file; do not act on either
 ```
@@ -1373,59 +1373,66 @@ named in the row below.*
 | **P6a** | [`plans/2026-09-19-p6a-first-production-launch.md`](plans/2026-09-19-p6a-first-production-launch.md), with [the P6 brief](plans/2026-09-19-p6-brief.md) — **EXECUTED 2026-09-22**, all eleven sittings | `make demo-production` — green on the fresh path, the re-use path and from a `make reset` machine; step 11 of the offline acceptance; **and a whole launch clicked by a person** | **Sitting 11's F6 is the one to read**: the acceptance's own control (e) stayed GREEN because `applyRoute` patched an existing route in place, so a production route kept whatever listener held it — a fail-open in the control the plan exists to build, found only by asking why a control was green. **Sitting 11's F2** is its mirror image in the instrument: a pooled keep-alive socket reported the production app on the internal listener when it was not there, and in the other order would have hidden a real leak. **Sitting 9's F5**: §8 sends a production app to real UBC Shibboleth, so R2's rehearsal could not pass on this laptop until `InjectionContext.purpose` existed. **Sitting 10's F17 and sitting 11's F10**: two console defects no gate could see, both found by clicking. |
 | **P6b** | [`plans/2026-09-22-p6b-subsequent-releases.md`](plans/2026-09-22-p6b-subsequent-releases.md) — **EXECUTED 2026-09-23**, all seven sittings | `make demo-releases` — green fresh, re-use and from a `make reset` machine; step 12 of the offline acceptance; **clicked by a person, stale path included** | **Sitting 7's F3 is the one to read**: the acceptance's own baseline derivation used release order where the platform uses decision order, agreed on every path until the first run after the clicked half, and would have gone red for the wrong reason there — a client that re-derives a platform rule must implement THE rule. **Sitting 7's F9 and F10** are what the next plan inherits: the model's summary invented an administrator's verdict before anyone decided, and the console's *Sign out* leaves the IdP session alive. **Sitting 1's F1** is the plan's best: the egress proxy never re-rendered its allowlist, so a removed host stayed reachable — found by a measurement, fixed as Task 5a, and held by the acceptance's control (i). |
 | **D5 driver 2** | [`plans/2026-09-24-d5-github-source-driver.md`](plans/2026-09-24-d5-github-source-driver.md) — **EXECUTED 2026-09-25**, all eight sittings | `make demo-github` (driver 2) — green fresh, re-use and from a `make reset` machine; step 13 of the offline acceptance; `NOT RUN` in `make ci-acceptance` on driver 1; **clicked by a person on both drivers**; the real conformance leg 17 of 17 | **Sitting 8's F11 and F12 are the ones to read**, found by the plan's one fresh whole-branch review: a path into a worktree's own `.git` could be written on both drivers (`core.fsmonitor` is code execution — latent until the authoring API supplies paths), and a push a read synced first was never validated. **Sitting 8's F15/F16**: `make demo` and `make demo-token` were red for five days after P6a's step-up because nothing ran them. **Sitting 1's F6**: one rewrite of GitHub's `main` froze a non-forced mirror's `main` for ever — the two-refspec mirror is its fix. **Sitting 4's F6**: without `repositoryOf`, a GitHub-mode control plane BUILT a driver-1 project. |
-### 7e. The authoring API's plan: Rich approves its split, then execute its sitting 1 ← **START HERE**
+### 7e. Execute sitting 2 of the authoring API plan — Tasks 2 and 3 ← **START HERE**
 
-**The authoring API's plan is WRITTEN** (2026-09-25, `d109d0e`): [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md)
-— 13 tasks in a **PROPOSED** ten sittings, nine and eleven offered. **Its split is NOT yet approved, and no sitting has run.**
-It makes an app CREATABLE through the API (a project's tree, files, history and commits; app secrets set write-only; a
-build of exactly the commit written), documents all of it well enough for a human and an agent to drive the API from the
-docs alone, and is accepted by an agent building a bulletin board from the bare skeleton through the API, on both drivers.
-Rich executes it over the weekend of 2026-09-26/27.
+**The authoring API's plan is being executed**: [`plans/2026-09-25-authoring-api.md`](plans/2026-09-25-authoring-api.md) — 13
+tasks in the **ten sittings Rich approved on 2026-09-25** (the plan's *How this plan is to be executed* has his four answers;
+§8 *Decided*). It makes an app CREATABLE through the API, documents all of it well enough for a human and an agent to drive
+the API from the docs alone, and is accepted by an agent building a bulletin board from the bare skeleton, on both drivers.
+**Sitting 1 — Task 1, the measurements — is DONE** (2026-09-25): every premise holds, no boundary moved, and the corrections
+are `[M<n>]` blocks at the head of Tasks 2, 3, 4, 9 and 11. Its record is the plan's *What executing this plan found*,
+*Sitting 1*, and [`spikes/authoring-baseline/README.md`](spikes/authoring-baseline/README.md).
 
-**ASK RICH IN YOUR FIRST MESSAGE — unless the plan's sittings table already says he approved:** **(1)** the split — ten
-sittings, as the table proposes (heavy: 2 and 6). **(2)** That **sitting 1's Step 6 needs the network and his yes**, to fetch
-the two HTML-renderer candidates (Scalar, Redoc) into the store. **(3)** That **Spec action 2 must be answered before sitting
-5** (a production secret set only in a session with step-up — the plan's *Spec actions*); Spec actions 1 and 3 can wait
-until sitting 10's sweep, and Spec action 1's own plan wants placing (the plan recommends straight after this one).
-**Record his answers in the plan's sittings table and §8 before executing anything.**
+**NOTHING NEEDS ASKING BEFORE SITTING 2.** Spec action 2 (production secrets) is still open and is needed before **sitting
+5**; if it is still open at the close of sitting 4, ask then. Spec actions 1 and 3 wait for sitting 10.
 
-**THEN EXECUTE SITTING 1 — TASK 1, THE MEASUREMENTS, ALONE.** Use `superpowers:executing-plans` (or
-`subagent-driven-development` if Rich asks for it), **commit on `main`**. **Read, in this order:** the plan from its header to
-the end of *The fixtures and helpers*, then **Task 1 in full**. Its *Read this first* is what Task 1 re-measures, and **the
-writing session's probes are committed** in [`spikes/authoring-baseline/probes/`](spikes/authoring-baseline/probes/),
-each with its usage on its first lines. Task 1 changes nothing under `packages/`, so **no `pnpm test:docker` is owed**.
+**EXECUTE SITTING 2 — TASK 2 (F7), THEN TASK 3 (THE WRITE PRIMITIVE, REBUILT).** `superpowers:executing-plans`, inline, no
+subagent per task (Rich, 2026-09-25); **commit on `main`**. **Read, in this order:** the plan's header to the end of *The
+fixtures and helpers*; *What executing this plan found*, *Sitting 1*; then **Task 2 in full, starting with its `[M15]`
+block**, and **Task 3 in full, starting with its `[M1]`… block**. The plan's ledger is
+`.superpowers/sdd/2026-09-25-authoring-api/progress.md` (git-ignored; `Task 1: complete` and seven `Ruling:` lines).
 
-**WHERE THE SITTING STOPS, AND HOW IT ENDS.** It stops when Task 1's record is committed and every task a measurement
-contradicts carries its `[M<n>]` block — **and if a measurement breaks the split, it stops there and asks Rich** (the plan's
-*How this plan is to be executed*). Then the close-out (§6): the plan's sittings table, the roadmap's defect-rate table
-(sitting 1's count, derived), §7e rewritten to *"execute sitting 2 of the authoring API plan"*, and §2's numbers box only if
-a gate moved. **Re-read the §7e you wrote as a cold agent, opening every file and command it names.**
+- **Task 2 needs the chat model for 120 answers** — 40 in Step 1, then 40 with two changes and 40 with three in Step 5 —
+  so warm it first (§2's box has the `curl`).
+  **Run its probe from the repository root as `node docs/superpowers/spikes/authoring-baseline/probes/f7.mjs 40 2`** — the
+  task's text omits `docs/superpowers/` (F15). It moves `openapi.json` to **`1.3.0`** whatever Step 5 decides.
+- **Task 3 is the heavy one** — both drivers' write paths replaced by git plumbing, 18 call sites (measured exactly), and the
+  attack cases as contract cases. **If sitting 2 runs long, stop after Task 2 and sweep; Task 3 then opens sitting 3.**
+- **`pnpm test:docker` IS OWED** (`source/`, `releases/`) — 906 s at its last run, background it, restart the control plane
+  afterwards if one ran, then the three cleanup scripts and `make verify`.
 
-**WHAT THE WRITING SESSION FOUND THAT THE NEXT SITTINGS MUST NOT LOSE** (each is in the plan's *Read this first*):
-- **The D5 plan's path guard does not hold against a symlink a person pushed**: through a worktree, a write of `meta/config`
-  where `meta → .git` replaced `.git/config`, and its `core.fsmonitor` command RAN during `git add` (git 2.50.1). Latent — only a
-  new project's seed commits today — and live the day an API commits. **Task 3 removes the worktree**, and nothing may ship
-  the write surface before it.
-- **`update-index --index-info` silently REPLACES**: a file named `src` deleted the directory `src/`. The plan's planner and its
-  tree check exist because of this; a sitting that "simplifies" either reopens it.
-- **`push --porcelain` puts its verdict on stdout**, not stderr.
-- **`startBuild` pairs a commit with the newest spec**, and **an app's `secret: true` setting is dropped at injection** with no
-  refusal — Tasks 7 and 8.
+**WHERE THE SITTING STOPS, AND HOW IT ENDS.** After Task 3's commit and its three controls (or after Task 2, if it runs long).
+Then the plan's *every sitting ends the same way*: the four gates (`pnpm test` twice), the Docker tier, the dated record,
+the sittings table, and the close-out (§6) — the roadmap's defect-rate table with the count DERIVED, this §7e rewritten for
+the next sitting, and §2's box only if a gate moved. **Re-read the §7e you wrote as a cold agent, opening every file and
+command it names.**
+
+**WHAT SITTING 1 FOUND THAT THE NEXT SITTINGS MUST NOT LOSE** (each is a finding in the plan's record):
+- **Both write-path holes are real in the SHIPPED driver 1, and `commitFiles` throws only AFTER the damage** — a file written
+  outside, a `fsmonitor` command run and a commit made (F3). Task 3's attack cases assert the filesystem and a canary,
+  never the refusal alone; nothing may ship the write surface before Task 3.
+- **A scratch probe against `source/` needs `node --experimental-transform-types`** (a parameter property defeats
+  strip-only mode) **and `MANIFEST_DATABASE_URL` pointed at an unreachable address** (`source/` builds the pool at import)
+  — F1, F2; TRAPS has both.
+- **`zod@4.6.5` is now in the pnpm store** (a Scalar peer), so an offline `pnpm add` can link the wrong zod without a word:
+  read the lockfile's peer suffix (Task 9's `[M7]`). **pnpm 11 exits 1 on ignored build scripts** with everything installed
+  (Task 11's `[M9]`: `vue-demi`).
+- **The renderer is Scalar 1.72.0, and its offline configuration needs `agent: { disabled: true }`** — a key its types file
+  does not name; without it the page offers *Ask AI* (F9). What was measured is its standalone bundle (F16).
 
 **THINGS MOST LIKELY TO COST YOU:**
-- **Rich may be testing by hand in parallel** (he was on 2026-09-25): never run `pnpm test`, `pnpm contract:write`, a demo or
-  `make reset` without checking what is running, and restart nothing he started.
-- **ONE SOURCE DRIVER PER CONTROL-PLANE PROCESS** — a driver-1 demo run on driver 2 creates its project there for ever (TRAPS);
-  Task 12 makes every demo refuse the wrong driver, and until then check the boot line's `"source"`.
-- **The vulnerability database goes stale after 2026-10-01** — past it `make demo-production` goes red; `make refresh-vulndb`
-  is Rich's (network).
-- **Every refusal asserts its CODE**, and **every negative control is predicted before it runs** — the plan's controls name
-  which layer should catch each break, and two of them are designed to show a layer that is green alone.
+- **Rich may be testing by hand in parallel**: never run `pnpm test`, `pnpm contract:write`, a demo or `make reset` without
+  checking what is running (`lsof -nP -iTCP:7100 -sTCP:LISTEN`, `docker ps`), and restart nothing he started.
+- **ONE SOURCE DRIVER PER CONTROL-PLANE PROCESS** — until Task 12, check the boot line's `"source"` before any demo.
+- **The vulnerability database goes stale after 2026-10-01** — past it `make demo-production` goes red; `make
+  refresh-vulndb` is Rich's (network).
+- **Every refusal asserts its CODE, and every negative control is predicted before it runs** — Task 3's Step 8 has three.
 
-**THE MACHINE, AS THE WRITING SESSION LEFT IT (2026-09-25):** it changed no code, ran no gate, touched no container, no table
-and no repository, and left only its commit and the probes. **The D5 plan's sitting 8 is the last state anybody queried**
-(its record): the database was then EMPTY after its `pnpm test`, nothing listened on 7100, and `launch-app`'s six containers
-ran. **Rich was testing by hand afterwards, so query everything again at open** — `psql`, `docker ps`, `lsof -i :7100`.
+**THE MACHINE, AS SITTING 1 LEFT IT (queried at its close, 2026-09-25):** the control database is EMPTY (0 projects, 29
+migrations — the close's `pnpm test` truncated it); nothing listens on 7100 or 7104; `launch-app`'s six `mf-launch-app-*`
+containers run with no rows behind them and **no runtime route** (the Docker tier restarted the edge); the GitHub fake is
+stopped; **no model is resident** (Task 2 warms `qwen3.5:4b`); the three cleanup scripts read clean. **Rich may test by
+hand afterwards, so query everything again at open** — `psql`, `docker ps`, `lsof -nP -iTCP:7100 -sTCP:LISTEN`.
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
 Constraints*:
