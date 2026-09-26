@@ -62,6 +62,12 @@ export interface RouteDefinition<
   success: { status: SuccessStatus; description: string; schema: R }
   /** Codes this operation can answer beyond the ones every route can (document.ts). */
   errors: readonly ErrorCode[]
+  /**
+   * WHAT A CALL LOOKS LIKE (the authoring API plan's Task 5): printed into the document as the
+   * request body's and the success response's `example` — a real answer, captured and
+   * shortened. Optional until Task 9 makes it required and parses each through its schema.
+   */
+  examples?: { request?: unknown; response: unknown }
   handler: (
     ctx: RouteContext<z.output<P>, z.output<Q>, z.output<B>>,
   ) => Promise<z.input<R>>

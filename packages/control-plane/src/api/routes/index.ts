@@ -9,6 +9,7 @@ import { projectReadRoutes } from './project-reads.js'
 import { createProjectRoutes } from './projects.js'
 import { releaseRoutes } from './releases.js'
 import { slugRoutes } from './slugs.js'
+import { sourceRoutes } from './source.js'
 import { tokenRoutes } from './tokens.js'
 
 /**
@@ -22,6 +23,7 @@ export const ROUTE_DEFINITIONS: readonly AnyRoute[] = [
   ...createProjectRoutes,
   ...slugRoutes,
   ...blueprintRoutes,
+  ...sourceRoutes,
   ...buildRoutes,
   ...releaseRoutes,
   ...launchRoutes,

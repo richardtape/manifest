@@ -42,6 +42,9 @@
       "name": "projects"
     },
     {
+      "name": "source"
+    },
+    {
       "name": "tokens"
     }
   ],
@@ -258,6 +261,7 @@
           {
             "name": "tail",
             "in": "query",
+            "description": "Only the last this-many lines, 1 to 10000.",
             "required": false,
             "schema": {
               "description": "Only the last this-many lines, 1 to 10000.",
@@ -1092,6 +1096,220 @@
         ]
       }
     },
+    "/v1/projects/{projectId}/commits": {
+      "get": {
+        "operationId": "listCommits",
+        "tags": [
+          "source"
+        ],
+        "summary": "The history of the project’s repository",
+        "description": "The history of `ref`, newest first, `limit` at a time: its FIRST-PARENT history — the commits the branch itself moved through, each merge once — so paging never skips a commit. `next` is the id to pass as `cursor` for the next page; the page starts AT the cursor, which must be a commit of this repository. The author is what git recorded, and is never an email address.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project whose repository is read.",
+            "required": true,
+            "schema": {
+              "description": "The project whose repository is read.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page; the page starts at this commit.",
+            "required": false,
+            "schema": {
+              "description": "The `next` of the previous page; the page starts at this commit.",
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many commits to answer, 1 to 100.",
+            "required": false,
+            "schema": {
+              "description": "How many commits to answer, 1 to 100.",
+              "default": 30,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "ref",
+            "in": "query",
+            "description": "A branch name, or a full 40-character commit id. Defaults to `main`.",
+            "required": false,
+            "schema": {
+              "default": "main",
+              "description": "A branch name, or a full 40-character commit id. Defaults to `main`.",
+              "type": "string",
+              "pattern": "^(?!-)(?!.*\\.\\.)[A-Za-z0-9._/-]{1,255}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of the history, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommitList"
+                },
+                "example": {
+                  "ref": "main",
+                  "commits": [
+                    {
+                      "commitSha": "c2ac2119650fef9d6d37212ede7138ade14f0377",
+                      "parents": [
+                        "f01a0cb5fe74b5ca6c817e85f2fb62d394f40241"
+                      ],
+                      "subject": "Greet the world",
+                      "message": "Greet the world",
+                      "messageTruncated": false,
+                      "authorName": "Ada Lovelace",
+                      "authoredAt": "2026-09-26T06:23:51.000Z"
+                    },
+                    {
+                      "commitSha": "f01a0cb5fe74b5ca6c817e85f2fb62d394f40241",
+                      "parents": [
+                        "85418f2fa9748ca708ee1ca3725c5cac4a1018c6"
+                      ],
+                      "subject": "Add the greeting module",
+                      "message": "Add the greeting module",
+                      "messageTruncated": false,
+                      "authorName": "Ada Lovelace",
+                      "authoredAt": "2026-09-26T06:23:51.000Z"
+                    }
+                  ],
+                  "next": "85418f2fa9748ca708ee1ca3725c5cac4a1018c6"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "FORBIDDEN",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_INVALID",
+          "SOURCE_COMMIT_NOT_FOUND",
+          "SOURCE_GIT_FAILED",
+          "SOURCE_PROVIDER_MISMATCH",
+          "SOURCE_REF_NOT_FOUND",
+          "SOURCE_UNREACHABLE",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/commits/{commitSha}": {
+      "get": {
+        "operationId": "getCommit",
+        "tags": [
+          "source"
+        ],
+        "summary": "One commit, and what it changed",
+        "description": "The commit and every file it changed against its first parent, with git’s line counts and a unified diff per text file — until 256 KiB of diff has been given, after which `patchesTruncated` is true and later patches are null.",
+        "parameters": [
+          {
+            "name": "commitSha",
+            "in": "path",
+            "description": "The commit to describe.",
+            "required": true,
+            "schema": {
+              "description": "The commit to describe.",
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project whose repository is read.",
+            "required": true,
+            "schema": {
+              "description": "The project whose repository is read.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The commit and its changes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommitDetail"
+                },
+                "example": {
+                  "commitSha": "c2ac2119650fef9d6d37212ede7138ade14f0377",
+                  "parents": [
+                    "f01a0cb5fe74b5ca6c817e85f2fb62d394f40241"
+                  ],
+                  "subject": "Greet the world",
+                  "message": "Greet the world",
+                  "messageTruncated": false,
+                  "authorName": "Ada Lovelace",
+                  "authoredAt": "2026-09-26T06:23:51.000Z",
+                  "changes": [
+                    {
+                      "path": "src/app.js",
+                      "status": "modified",
+                      "binary": false,
+                      "additions": 1,
+                      "deletions": 1,
+                      "patch": "diff --git a/src/app.js b/src/app.js\nindex c8ecfb6..ab8ad63 100644\n--- a/src/app.js\n+++ b/src/app.js\n@@ -1 +1 @@\n-export const greeting = 'hello'\n+export const greeting = 'hello, world'\n"
+                    }
+                  ],
+                  "patchesTruncated": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "FORBIDDEN",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_INVALID",
+          "SOURCE_COMMIT_NOT_FOUND",
+          "SOURCE_GIT_FAILED",
+          "SOURCE_PROVIDER_MISMATCH",
+          "SOURCE_UNREACHABLE",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
     "/v1/projects/{projectId}/environments": {
       "get": {
         "operationId": "listEnvironments",
@@ -1210,6 +1428,102 @@
             "4404": "Not found — or not yours."
           }
         }
+      }
+    },
+    "/v1/projects/{projectId}/file": {
+      "get": {
+        "operationId": "getFile",
+        "tags": [
+          "source"
+        ],
+        "summary": "Read one text file of the project’s repository",
+        "description": "The file at `path`, at `ref`, exactly as its UTF-8 bytes — with the commit it was read at and git’s id for its content. Only regular text files are read: a directory, symlink or submodule, a binary or non-UTF-8 file, and a file larger than 1 MiB are each refused with their own code.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project whose repository is read.",
+            "required": true,
+            "schema": {
+              "description": "The project whose repository is read.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "description": "The file’s path from the repository root, `/`-separated.",
+            "required": true,
+            "schema": {
+              "description": "The file’s path from the repository root, `/`-separated.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            }
+          },
+          {
+            "name": "ref",
+            "in": "query",
+            "description": "A branch name, or a full 40-character commit id. Defaults to `main`.",
+            "required": false,
+            "schema": {
+              "default": "main",
+              "description": "A branch name, or a full 40-character commit id. Defaults to `main`.",
+              "type": "string",
+              "pattern": "^(?!-)(?!.*\\.\\.)[A-Za-z0-9._/-]{1,255}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file, and the commit it was read at.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceFile"
+                },
+                "example": {
+                  "ref": "main",
+                  "commitSha": "c2ac2119650fef9d6d37212ede7138ade14f0377",
+                  "path": "src/app.js",
+                  "content": "export const greeting = 'hello, world'\n",
+                  "size": 39,
+                  "mode": "100644",
+                  "blobSha": "ab8ad63341ecd0ef59bca0c95797269774a62583"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_FILE_NOT_TEXT, SOURCE_FILE_TOO_LARGE, SOURCE_GIT_FAILED, SOURCE_PATH_NOT_A_FILE, SOURCE_PATH_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "FORBIDDEN",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_INVALID",
+          "SOURCE_COMMIT_NOT_FOUND",
+          "SOURCE_FILE_NOT_TEXT",
+          "SOURCE_FILE_TOO_LARGE",
+          "SOURCE_GIT_FAILED",
+          "SOURCE_PATH_NOT_A_FILE",
+          "SOURCE_PATH_NOT_FOUND",
+          "SOURCE_PROVIDER_MISMATCH",
+          "SOURCE_REF_NOT_FOUND",
+          "SOURCE_UNREACHABLE",
+          "UNAUTHENTICATED"
+        ]
       }
     },
     "/v1/projects/{projectId}/launch-readiness": {
@@ -2196,6 +2510,112 @@
           "REQUEST_MEDIA_TYPE_UNSUPPORTED",
           "TOKEN_CAPABILITY_FORBIDDEN",
           "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/tree": {
+      "get": {
+        "operationId": "getTree",
+        "tags": [
+          "source"
+        ],
+        "summary": "List the files of the project’s repository",
+        "description": "Every entry of the tree at `ref` — files, directories, symlinks and submodules — sorted by path, with the commit the ref resolved to. Past 10,000 entries the first 10,000 are listed and `truncated` is true. A binary file is marked, so a client can say so rather than try to read it.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project whose repository is read.",
+            "required": true,
+            "schema": {
+              "description": "The project whose repository is read.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "ref",
+            "in": "query",
+            "description": "A branch name, or a full 40-character commit id. Defaults to `main`.",
+            "required": false,
+            "schema": {
+              "default": "main",
+              "description": "A branch name, or a full 40-character commit id. Defaults to `main`.",
+              "type": "string",
+              "pattern": "^(?!-)(?!.*\\.\\.)[A-Za-z0-9._/-]{1,255}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tree, and the commit it is of.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceTree"
+                },
+                "example": {
+                  "ref": "main",
+                  "commitSha": "c2ac2119650fef9d6d37212ede7138ade14f0377",
+                  "entries": [
+                    {
+                      "path": "manifest.yaml",
+                      "type": "file",
+                      "mode": "100644",
+                      "size": 102,
+                      "binary": false
+                    },
+                    {
+                      "path": "server.js",
+                      "type": "file",
+                      "mode": "100644",
+                      "size": 2155,
+                      "binary": false
+                    },
+                    {
+                      "path": "src",
+                      "type": "directory",
+                      "mode": "040000",
+                      "size": null,
+                      "binary": null
+                    },
+                    {
+                      "path": "src/app.js",
+                      "type": "file",
+                      "mode": "100644",
+                      "size": 39,
+                      "binary": false
+                    }
+                  ],
+                  "truncated": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "FORBIDDEN",
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_INVALID",
+          "SOURCE_COMMIT_NOT_FOUND",
+          "SOURCE_GIT_FAILED",
+          "SOURCE_PROVIDER_MISMATCH",
+          "SOURCE_REF_NOT_FOUND",
+          "SOURCE_UNREACHABLE",
           "UNAUTHENTICATED"
         ]
       }
@@ -3535,6 +3955,223 @@
         "required": [
           "buildId",
           "lines"
+        ],
+        "additionalProperties": false
+      },
+      "CommitDetail": {
+        "type": "object",
+        "properties": {
+          "commitSha": {
+            "description": "A full 40-character commit id.",
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "parents": {
+            "description": "Its parents, first parent first; empty for the first commit.",
+            "type": "array",
+            "items": {
+              "description": "A full 40-character commit id.",
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "subject": {
+            "description": "The first line of the commit message.",
+            "type": "string"
+          },
+          "message": {
+            "description": "The whole commit message, cut at 4096 characters.",
+            "type": "string"
+          },
+          "messageTruncated": {
+            "description": "True when `message` was cut.",
+            "type": "boolean"
+          },
+          "authorName": {
+            "description": "The author git recorded. For a commit made through the API this is the person's name; for any other push it is whatever the pusher's git said, and is not verified.",
+            "type": "string"
+          },
+          "authoredAt": {
+            "description": "When git says the commit was authored, in UTC.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "changes": {
+            "description": "Every file the commit changed, by path.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "description": "The file’s path.",
+                  "type": "string"
+                },
+                "status": {
+                  "description": "What happened to it, against the commit's first parent.",
+                  "type": "string",
+                  "enum": [
+                    "added",
+                    "modified",
+                    "deleted",
+                    "type_changed"
+                  ]
+                },
+                "binary": {
+                  "description": "Whether git calls the file binary; a binary file has no patch and no line counts.",
+                  "type": "boolean"
+                },
+                "additions": {
+                  "description": "Lines added; null for a binary file.",
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "deletions": {
+                  "description": "Lines removed; null for a binary file.",
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "patch": {
+                  "description": "A unified diff with three lines of context; null for a binary file, or once 256 KiB of patch has been given.",
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "path",
+                "status",
+                "binary",
+                "additions",
+                "deletions",
+                "patch"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "patchesTruncated": {
+            "description": "True when some `patch` is null because the 256 KiB budget was spent.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "commitSha",
+          "parents",
+          "subject",
+          "message",
+          "messageTruncated",
+          "authorName",
+          "authoredAt",
+          "changes",
+          "patchesTruncated"
+        ],
+        "additionalProperties": false
+      },
+      "CommitList": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "description": "A branch name, or a full 40-character commit id. Defaults to `main`.",
+            "type": "string",
+            "pattern": "^(?!-)(?!.*\\.\\.)[A-Za-z0-9._/-]{1,255}$"
+          },
+          "commits": {
+            "description": "Newest first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommitSummary"
+            }
+          },
+          "next": {
+            "description": "Pass as `cursor` for the next page; null on the last page.",
+            "anyOf": [
+              {
+                "description": "A full 40-character commit id.",
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "ref",
+          "commits",
+          "next"
+        ],
+        "additionalProperties": false
+      },
+      "CommitSummary": {
+        "type": "object",
+        "properties": {
+          "commitSha": {
+            "description": "A full 40-character commit id.",
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "parents": {
+            "description": "Its parents, first parent first; empty for the first commit.",
+            "type": "array",
+            "items": {
+              "description": "A full 40-character commit id.",
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "subject": {
+            "description": "The first line of the commit message.",
+            "type": "string"
+          },
+          "message": {
+            "description": "The whole commit message, cut at 4096 characters.",
+            "type": "string"
+          },
+          "messageTruncated": {
+            "description": "True when `message` was cut.",
+            "type": "boolean"
+          },
+          "authorName": {
+            "description": "The author git recorded. For a commit made through the API this is the person's name; for any other push it is whatever the pusher's git said, and is not verified.",
+            "type": "string"
+          },
+          "authoredAt": {
+            "description": "When git says the commit was authored, in UTC.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "commitSha",
+          "parents",
+          "subject",
+          "message",
+          "messageTruncated",
+          "authorName",
+          "authoredAt"
         ],
         "additionalProperties": false
       },
@@ -8729,6 +9366,141 @@
         "required": [
           "slug",
           "available"
+        ],
+        "additionalProperties": false
+      },
+      "SourceFile": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "description": "A branch name, or a full 40-character commit id. Defaults to `main`.",
+            "type": "string",
+            "pattern": "^(?!-)(?!.*\\.\\.)[A-Za-z0-9._/-]{1,255}$"
+          },
+          "commitSha": {
+            "description": "The commit the file was read at.",
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "path": {
+            "description": "The file’s path from the repository root.",
+            "type": "string"
+          },
+          "content": {
+            "description": "The file’s text, exactly — UTF-8, at most 1 MiB.",
+            "type": "string"
+          },
+          "size": {
+            "description": "The file’s size in bytes.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "mode": {
+            "description": "`100644`, or `100755` for an executable file — kept when the file is changed.",
+            "type": "string",
+            "pattern": "^[0-7]{6}$"
+          },
+          "blobSha": {
+            "description": "git's id for this content; equal ids mean equal bytes.",
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          }
+        },
+        "required": [
+          "ref",
+          "commitSha",
+          "path",
+          "content",
+          "size",
+          "mode",
+          "blobSha"
+        ],
+        "additionalProperties": false
+      },
+      "SourceTree": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "description": "A branch name, or a full 40-character commit id. Defaults to `main`.",
+            "type": "string",
+            "pattern": "^(?!-)(?!.*\\.\\.)[A-Za-z0-9._/-]{1,255}$"
+          },
+          "commitSha": {
+            "description": "The commit the ref resolved to — what this listing is OF. Send it as `baseCommit` when committing changes computed from it.",
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "entries": {
+            "description": "Every entry of the tree, sorted by path.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "description": "The path from the repository root, `/`-separated.",
+                  "type": "string"
+                },
+                "type": {
+                  "description": "What git records at this path. The API reads and writes `file`s only.",
+                  "type": "string",
+                  "enum": [
+                    "file",
+                    "directory",
+                    "symlink",
+                    "submodule"
+                  ]
+                },
+                "mode": {
+                  "description": "git's mode: `100644` a file, `100755` an executable file, `120000` a symlink, `040000` a directory, `160000` a submodule.",
+                  "type": "string",
+                  "pattern": "^[0-7]{6}$"
+                },
+                "size": {
+                  "description": "Bytes, for a file or a symlink; null otherwise.",
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "binary": {
+                  "description": "Whether git calls this file binary — such a file is not readable or writable through the API in v1. Null for anything that is not a file.",
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "path",
+                "type",
+                "mode",
+                "size",
+                "binary"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "truncated": {
+            "description": "True when the tree has more than 10,000 entries and only the first 10,000, by path, are listed.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ref",
+          "commitSha",
+          "entries",
+          "truncated"
         ],
         "additionalProperties": false
       },

@@ -20,9 +20,10 @@ import { createValidator, type Validate } from './validate.js'
  * here by hand, so the mock's idea of where an operation lives cannot drift from the
  * contract's — a whole class of "the mock answers 404 and the platform answers 200" that
  * hand-written patterns invite. `server.test.ts` asserts the other direction: every
- * operation the document declares has an entry in `ANSWERS`.
+ * operation the document declares has an entry in `ANSWERS` OR a success `example` in the
+ * document itself, which it is then answered with (the authoring API plan's Decision 15).
  *
- * AN OPERATION WITH NO ENTRY ANSWERS `501`, DELIBERATELY (Task 2's stub, kept), and a path
+ * AN OPERATION WITH NEITHER ANSWERS `501`, DELIBERATELY (Task 2's stub, kept), and a path
  * the document does not declare answers `404 ROUTE_NOT_FOUND` exactly as the platform does.
  * The two are different facts and the mock says which: a mock that answers a plausible
  * `200` to everything is the stand-in that produces a real-looking failure (P4c finding 74).
@@ -238,6 +239,12 @@ interface Operation {
   names: string[]
   /** Every mutation the document gives a required `Idempotency-Key` header parameter. */
   needsIdempotencyKey: boolean
+  /**
+   * THE DOCUMENT'S OWN ANSWER (the authoring API plan's Decision 15): the success response's
+   * `example`, its status and the component it claims to be — what an operation with no
+   * scripted answer in `ANSWERS` is answered with, through the same Ajv check as any other.
+   */
+  example?: Answer
 }
 
 interface Document {
@@ -248,9 +255,35 @@ interface Document {
       {
         operationId?: string
         parameters?: { in: string; name: string; required?: boolean }[]
+        responses?: Record<
+          string,
+          { content?: Record<string, { schema?: { $ref?: string }; example?: unknown }> }
+        >
       }
     >
   >
+}
+
+/**
+ * An operation's success EXAMPLE as an answer: the 2xx response whose JSON content carries both
+ * an `example` and a `$ref` to the component it is — or undefined. **It echoes nothing of the
+ * request** (P5c Decision 9's reason: a console that sent the wrong thing must not look right).
+ */
+export function exampleOf(
+  responses: NonNullable<Document['paths'][string][string]['responses']>,
+): Answer | undefined {
+  for (const [status, response] of Object.entries(responses)) {
+    if (!/^2\d\d$/.test(status)) continue
+    const json = response.content?.['application/json']
+    const ref = json?.schema?.$ref
+    if (json === undefined || !('example' in json) || ref === undefined) continue
+    return {
+      status: Number(status),
+      schema: ref.slice(ref.lastIndexOf('/') + 1),
+      body: json.example,
+    }
+  }
+  return undefined
 }
 
 /** `/v1/projects/{projectId}/members/{userId}` → `^/v1/projects/([^/]+)/members/([^/]+)$`. */
@@ -282,6 +315,10 @@ export function operationsOf(document: Document): Operation[] {
         needsIdempotencyKey: (operation.parameters ?? []).some(
           (p) => p.in === 'header' && p.name === 'Idempotency-Key' && p.required === true,
         ),
+        ...(() => {
+          const example = exampleOf(operation.responses ?? {})
+          return example === undefined ? {} : { example }
+        })(),
       })
     }
   }
@@ -439,7 +476,10 @@ export function createMockServer(options: MockOptions = {}): Server {
       }
 
       const { operation, m } = match
-      const answer = ANSWERS[operation.operationId]
+      const { example } = operation
+      const answer: Answerer | undefined =
+        ANSWERS[operation.operationId] ??
+        (example === undefined ? undefined : () => structuredClone(example))
       if (answer === undefined) {
         // DOCUMENTED AND NOT ANSWERED — the one case Task 2's 501 is for, and it means the
         // contract has grown a route this mock has not caught up with.
@@ -447,7 +487,7 @@ export function createMockServer(options: MockOptions = {}): Server {
           501,
           'INTERNAL',
           `manifest-mock does not serve ${operation.operationId} yet`,
-          'The document declares this operation and packages/mock has no fixture for it.',
+          'The document declares this operation with no example, and packages/mock has no fixture for it.',
         )
       }
 

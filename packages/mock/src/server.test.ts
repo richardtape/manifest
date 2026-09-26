@@ -11,11 +11,16 @@ import { ANSWERED, createMockServer, operationsOf, readDocument } from './server
  * cannot use rather than as a mock they must extend.
  */
 describe('manifest-mock answers the whole document', () => {
-  it('has an entry for every operation the contract declares', async () => {
+  /**
+   * A SCRIPTED ANSWER OR THE DOCUMENT'S OWN EXAMPLE (the authoring API plan's Decision 15,
+   * Task 10's Step 1 — built in its Task 5, which wrote the first examples): one source for an
+   * answer, validated twice. An operation with NEITHER is named here.
+   */
+  it('has a scripted answer or a document example for every operation the contract declares', async () => {
     const operations = operationsOf(await readDocument())
     const missing = operations
+      .filter((o) => !ANSWERED.includes(o.operationId) && o.example === undefined)
       .map((o) => o.operationId)
-      .filter((id) => !ANSWERED.includes(id))
     expect(missing).toEqual([])
     // A document that failed to parse has no operations and no missing ones. Say which.
     expect(
@@ -93,6 +98,31 @@ describe('manifest-mock refuses what the platform refuses', () => {
     expect(((await response.json()) as { error: { code: string } }).error.code).toBe(
       'ROUTE_NOT_FOUND',
     )
+  })
+
+  it('answers an operation it has no fixture for with the DOCUMENT’s example — getTree', async () => {
+    const document = (await readDocument()) as unknown as {
+      paths: Record<
+        string,
+        {
+          get: {
+            responses: Record<string, { content: Record<string, { example?: unknown }> }>
+          }
+        }
+      >
+    }
+    const example =
+      document.paths['/v1/projects/{projectId}/tree']!.get.responses['200']!.content[
+        'application/json'
+      ]!.example
+    expect(example).toBeDefined()
+    expect(ANSWERED).not.toContain('getTree')
+    const response = await fetch(
+      `${origin}/v1/projects/22222222-2222-4222-8222-222222222222/tree`,
+      { headers: session },
+    )
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual(example)
   })
 
   it('answers the stream’s plain GET 426 EVENTS_UPGRADE_REQUIRED', async () => {

@@ -106,11 +106,16 @@ function parameters(route: AnyRoute): JsonSchema[] {
       required?: string[]
     }
     for (const name of Object.keys(schema.properties ?? {}).sort()) {
+      const property = strip(schema.properties![name]!)
+      // OpenAPI reads a parameter's description off the PARAMETER (the authoring API plan's
+      // Task 5): on its schema alone, a reference generator shows the parameter undescribed.
+      const { description } = property as { description?: unknown }
       list.push({
         name,
         in: where,
+        ...(typeof description === 'string' ? { description } : {}),
         required: where === 'path' || (schema.required ?? []).includes(name),
-        schema: strip(schema.properties![name]!),
+        schema: property,
       })
     }
   }
@@ -159,6 +164,9 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
               content: {
                 'application/json': {
                   schema: ref(requests, route.body, `${route.operationId}'s body`),
+                  ...(route.examples?.request === undefined
+                    ? {}
+                    : { example: route.examples.request }),
                 },
               },
             },
@@ -174,6 +182,9 @@ export function openApiDocument(routes: readonly AnyRoute[]): JsonSchema {
                 route.success.schema,
                 `${route.operationId}'s response`,
               ),
+              ...(route.examples === undefined
+                ? {}
+                : { example: route.examples.response }),
             },
           },
         },

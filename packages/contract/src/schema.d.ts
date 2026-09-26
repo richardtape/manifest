@@ -332,6 +332,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/projects/{projectId}/commits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The history of the project’s repository
+         * @description The history of `ref`, newest first, `limit` at a time: its FIRST-PARENT history — the commits the branch itself moved through, each merge once — so paging never skips a commit. `next` is the id to pass as `cursor` for the next page; the page starts AT the cursor, which must be a commit of this repository. The author is what git recorded, and is never an email address.
+         */
+        get: operations["listCommits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/commits/{commitSha}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One commit, and what it changed
+         * @description The commit and every file it changed against its first parent, with git’s line counts and a unified diff per text file — until 256 KiB of diff has been given, after which `patchesTruncated` is true and later patches are null.
+         */
+        get: operations["getCommit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects/{projectId}/environments": {
         parameters: {
             query?: never;
@@ -364,6 +404,26 @@ export interface paths {
          * @description Upgrade to a WebSocket. Builds, their log lines, instance state transitions, incidents and every other audit event for this project, as StreamFrames: the newest events first as a replay, then the ready frame, then live. A session-bearing upgrade must carry Origin (§20). A plain GET answers 426.
          */
         get: operations["streamProjectEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one text file of the project’s repository
+         * @description The file at `path`, at `ref`, exactly as its UTF-8 bytes — with the commit it was read at and git’s id for its content. Only regular text files are read: a directory, symlink or submodule, a binary or non-UTF-8 file, and a file larger than 1 MiB are each refused with their own code.
+         */
+        get: operations["getFile"];
         put?: never;
         post?: never;
         delete?: never;
@@ -602,6 +662,26 @@ export interface paths {
          * @description D24: a credential an agent holds, scoped to this project and to an explicit capability set, with an expiry. The secret is in the response and nowhere else — the platform stores only a hash of it and cannot show it again. A token may never hold members:manage, release:promote, quota:set or secret:read, nor release:approve or launch:record, which are person-only: a person does them, and no confirmation grants them. And never more than the person minting it holds themselves.
          */
         post: operations["mintToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the files of the project’s repository
+         * @description Every entry of the tree at `ref` — files, directories, symlinks and submodules — sorted by path, with the commit the ref resolved to. Past 10,000 entries the first 10,000 are listed and `truncated` is true. A binary file is marked, so a client can say so rather than try to read it.
+         */
+        get: operations["getTree"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -988,6 +1068,72 @@ export interface components {
                  */
                 at: string;
             }[];
+        };
+        CommitDetail: {
+            /** @description A full 40-character commit id. */
+            commitSha: string;
+            /** @description Its parents, first parent first; empty for the first commit. */
+            parents: string[];
+            /** @description The first line of the commit message. */
+            subject: string;
+            /** @description The whole commit message, cut at 4096 characters. */
+            message: string;
+            /** @description True when `message` was cut. */
+            messageTruncated: boolean;
+            /** @description The author git recorded. For a commit made through the API this is the person's name; for any other push it is whatever the pusher's git said, and is not verified. */
+            authorName: string;
+            /**
+             * Format: date-time
+             * @description When git says the commit was authored, in UTC.
+             */
+            authoredAt: string;
+            /** @description Every file the commit changed, by path. */
+            changes: {
+                /** @description The file’s path. */
+                path: string;
+                /**
+                 * @description What happened to it, against the commit's first parent.
+                 * @enum {string}
+                 */
+                status: "added" | "modified" | "deleted" | "type_changed";
+                /** @description Whether git calls the file binary; a binary file has no patch and no line counts. */
+                binary: boolean;
+                /** @description Lines added; null for a binary file. */
+                additions: number | null;
+                /** @description Lines removed; null for a binary file. */
+                deletions: number | null;
+                /** @description A unified diff with three lines of context; null for a binary file, or once 256 KiB of patch has been given. */
+                patch: string | null;
+            }[];
+            /** @description True when some `patch` is null because the 256 KiB budget was spent. */
+            patchesTruncated: boolean;
+        };
+        CommitList: {
+            /** @description A branch name, or a full 40-character commit id. Defaults to `main`. */
+            ref: string;
+            /** @description Newest first. */
+            commits: components["schemas"]["CommitSummary"][];
+            /** @description Pass as `cursor` for the next page; null on the last page. */
+            next: string | null;
+        };
+        CommitSummary: {
+            /** @description A full 40-character commit id. */
+            commitSha: string;
+            /** @description Its parents, first parent first; empty for the first commit. */
+            parents: string[];
+            /** @description The first line of the commit message. */
+            subject: string;
+            /** @description The whole commit message, cut at 4096 characters. */
+            message: string;
+            /** @description True when `message` was cut. */
+            messageTruncated: boolean;
+            /** @description The author git recorded. For a commit made through the API this is the person's name; for any other push it is whatever the pusher's git said, and is not verified. */
+            authorName: string;
+            /**
+             * Format: date-time
+             * @description When git says the commit was authored, in UTC.
+             */
+            authoredAt: string;
         };
         /** @description Ends the replay: everything after it is live. */
         ControlFrame: {
@@ -2432,6 +2578,46 @@ export interface components {
                 hint: string;
             }[];
         };
+        SourceFile: {
+            /** @description A branch name, or a full 40-character commit id. Defaults to `main`. */
+            ref: string;
+            /** @description The commit the file was read at. */
+            commitSha: string;
+            /** @description The file’s path from the repository root. */
+            path: string;
+            /** @description The file’s text, exactly — UTF-8, at most 1 MiB. */
+            content: string;
+            /** @description The file’s size in bytes. */
+            size: number;
+            /** @description `100644`, or `100755` for an executable file — kept when the file is changed. */
+            mode: string;
+            /** @description git's id for this content; equal ids mean equal bytes. */
+            blobSha: string;
+        };
+        SourceTree: {
+            /** @description A branch name, or a full 40-character commit id. Defaults to `main`. */
+            ref: string;
+            /** @description The commit the ref resolved to — what this listing is OF. Send it as `baseCommit` when committing changes computed from it. */
+            commitSha: string;
+            /** @description Every entry of the tree, sorted by path. */
+            entries: {
+                /** @description The path from the repository root, `/`-separated. */
+                path: string;
+                /**
+                 * @description What git records at this path. The API reads and writes `file`s only.
+                 * @enum {string}
+                 */
+                type: "file" | "directory" | "symlink" | "submodule";
+                /** @description git's mode: `100644` a file, `100755` an executable file, `120000` a symlink, `040000` a directory, `160000` a submodule. */
+                mode: string;
+                /** @description Bytes, for a file or a symlink; null otherwise. */
+                size: number | null;
+                /** @description Whether git calls this file binary — such a file is not readable or writable through the API in v1. Null for anything that is not a file. */
+                binary: boolean | null;
+            }[];
+            /** @description True when the tree has more than 10,000 entries and only the first 10,000, by path, are listed. */
+            truncated: boolean;
+        };
         Spec: {
             /** Format: uuid */
             appSpecId: string;
@@ -2624,6 +2810,7 @@ export interface operations {
     getBuildLog: {
         parameters: {
             query?: {
+                /** @description Only the last this-many lines, 1 to 10000. */
                 tail?: number;
             };
             header?: never;
@@ -3086,6 +3273,133 @@ export interface operations {
             };
         };
     };
+    listCommits: {
+        parameters: {
+            query?: {
+                /** @description The `next` of the previous page; the page starts at this commit. */
+                cursor?: string;
+                /** @description How many commits to answer, 1 to 100. */
+                limit?: number;
+                /** @description A branch name, or a full 40-character commit id. Defaults to `main`. */
+                ref?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The project whose repository is read. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the history, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "ref": "main",
+                     *       "commits": [
+                     *         {
+                     *           "commitSha": "c2ac2119650fef9d6d37212ede7138ade14f0377",
+                     *           "parents": [
+                     *             "f01a0cb5fe74b5ca6c817e85f2fb62d394f40241"
+                     *           ],
+                     *           "subject": "Greet the world",
+                     *           "message": "Greet the world",
+                     *           "messageTruncated": false,
+                     *           "authorName": "Ada Lovelace",
+                     *           "authoredAt": "2026-09-26T06:23:51.000Z"
+                     *         },
+                     *         {
+                     *           "commitSha": "f01a0cb5fe74b5ca6c817e85f2fb62d394f40241",
+                     *           "parents": [
+                     *             "85418f2fa9748ca708ee1ca3725c5cac4a1018c6"
+                     *           ],
+                     *           "subject": "Add the greeting module",
+                     *           "message": "Add the greeting module",
+                     *           "messageTruncated": false,
+                     *           "authorName": "Ada Lovelace",
+                     *           "authoredAt": "2026-09-26T06:23:51.000Z"
+                     *         }
+                     *       ],
+                     *       "next": "85418f2fa9748ca708ee1ca3725c5cac4a1018c6"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CommitList"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getCommit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The commit to describe. */
+                commitSha: string;
+                /** @description The project whose repository is read. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The commit and its changes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "commitSha": "c2ac2119650fef9d6d37212ede7138ade14f0377",
+                     *       "parents": [
+                     *         "f01a0cb5fe74b5ca6c817e85f2fb62d394f40241"
+                     *       ],
+                     *       "subject": "Greet the world",
+                     *       "message": "Greet the world",
+                     *       "messageTruncated": false,
+                     *       "authorName": "Ada Lovelace",
+                     *       "authoredAt": "2026-09-26T06:23:51.000Z",
+                     *       "changes": [
+                     *         {
+                     *           "path": "src/app.js",
+                     *           "status": "modified",
+                     *           "binary": false,
+                     *           "additions": 1,
+                     *           "deletions": 1,
+                     *           "patch": "diff --git a/src/app.js b/src/app.js\nindex c8ecfb6..ab8ad63 100644\n--- a/src/app.js\n+++ b/src/app.js\n@@ -1 +1 @@\n-export const greeting = 'hello'\n+export const greeting = 'hello, world'\n"
+                     *         }
+                     *       ],
+                     *       "patchesTruncated": false
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CommitDetail"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     listEnvironments: {
         parameters: {
             query?: never;
@@ -3145,6 +3459,54 @@ export interface operations {
                 };
             };
             /** @description Refused before the upgrade, in the D23.7 envelope: UNAUTHENTICATED, NOT_FOUND (a stranger, or no such project), CSRF_ORIGIN_REFUSED, INTERNAL. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getFile: {
+        parameters: {
+            query: {
+                /** @description The file’s path from the repository root, `/`-separated. */
+                path: string;
+                /** @description A branch name, or a full 40-character commit id. Defaults to `main`. */
+                ref?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The project whose repository is read. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file, and the commit it was read at. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "ref": "main",
+                     *       "commitSha": "c2ac2119650fef9d6d37212ede7138ade14f0377",
+                     *       "path": "src/app.js",
+                     *       "content": "export const greeting = 'hello, world'\n",
+                     *       "size": 39,
+                     *       "mode": "100644",
+                     *       "blobSha": "ab8ad63341ecd0ef59bca0c95797269774a62583"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SourceFile"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_FILE_NOT_TEXT, SOURCE_FILE_TOO_LARGE, SOURCE_GIT_FAILED, SOURCE_PATH_NOT_A_FILE, SOURCE_PATH_NOT_FOUND, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -3659,6 +4021,78 @@ export interface operations {
                 };
             };
             /** @description An error, in the D23.7 envelope. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CAPABILITY_FORBIDDEN, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getTree: {
+        parameters: {
+            query?: {
+                /** @description A branch name, or a full 40-character commit id. Defaults to `main`. */
+                ref?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The project whose repository is read. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tree, and the commit it is of. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "ref": "main",
+                     *       "commitSha": "c2ac2119650fef9d6d37212ede7138ade14f0377",
+                     *       "entries": [
+                     *         {
+                     *           "path": "manifest.yaml",
+                     *           "type": "file",
+                     *           "mode": "100644",
+                     *           "size": 102,
+                     *           "binary": false
+                     *         },
+                     *         {
+                     *           "path": "server.js",
+                     *           "type": "file",
+                     *           "mode": "100644",
+                     *           "size": 2155,
+                     *           "binary": false
+                     *         },
+                     *         {
+                     *           "path": "src",
+                     *           "type": "directory",
+                     *           "mode": "040000",
+                     *           "size": null,
+                     *           "binary": null
+                     *         },
+                     *         {
+                     *           "path": "src/app.js",
+                     *           "type": "file",
+                     *           "mode": "100644",
+                     *           "size": 39,
+                     *           "binary": false
+                     *         }
+                     *       ],
+                     *       "truncated": false
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SourceTree"];
+                };
+            };
+            /** @description An error, in the D23.7 envelope. This operation can answer: FORBIDDEN, INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, SOURCE_COMMIT_NOT_FOUND, SOURCE_GIT_FAILED, SOURCE_PROVIDER_MISMATCH, SOURCE_REF_NOT_FOUND, SOURCE_UNREACHABLE, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

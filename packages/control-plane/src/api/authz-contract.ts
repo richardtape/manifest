@@ -547,6 +547,75 @@ const ROUTES: RouteCase[] = [
       'token-privileged': 'pass',
     },
   },
+  /**
+   * READING SOURCE (the authoring API plan's Task 5): `project:read`, as every other read of
+   * a project is — so the shape of `GET …/spec`'s row. `token-incapable` holds only
+   * `project:delete`, which is what makes its `403` the capability refusal.
+   */
+  {
+    method: 'GET',
+    url: '/v1/projects/:projectId/tree',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/tree` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  {
+    method: 'GET',
+    url: '/v1/projects/:projectId/file',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/file?path=manifest.yaml` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  {
+    method: 'GET',
+    url: '/v1/projects/:projectId/commits',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/commits` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  {
+    method: 'GET',
+    url: '/v1/projects/:projectId/commits/:commitSha',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/commits/${f.commitSha}` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
   {
     // Re-validates manifest.yaml at a commit. `project:write`, so a collaborator
     // passes and a stranger is hidden — the same shape as every other write on a
