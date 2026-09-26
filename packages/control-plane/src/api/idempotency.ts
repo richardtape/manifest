@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHmac } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { idempotencyKeys } from '../db/index.js'
@@ -13,6 +13,13 @@ export interface IdempotencyParams {
   userId: string
   /** `METHOD /path` — part of the key, so one key cannot span two operations. */
   route: string
+  /**
+   * The server-held secret the body's fingerprint is keyed with — `config.sessionSecret`, which
+   * the database never holds (the authoring API plan's Task 8). REQUIRED, so `tsc` names every
+   * caller: a body can BE a secret (`setAppSecret`'s is the value), and an unkeyed hash of it
+   * in `idempotency_keys` lets anyone who reads the table check a guess against it.
+   */
+  hashKey: string
   body: unknown
 }
 
@@ -24,8 +31,15 @@ export class IdempotencyConflictError extends Error {
   }
 }
 
-function hashOf(body: unknown): string {
-  return createHash('sha256')
+/**
+ * The body's fingerprint: an HMAC under a key the database does not hold, never a bare hash.
+ * The prefix separates this use of the key from any other. Changing the key (rotating
+ * `MANIFEST_SESSION_SECRET`) makes a retry that spans the change a `409 IDEMPOTENCY_KEY_REUSED`,
+ * which a client resolves with a new key — the cost of the record saying nothing on its own.
+ */
+function hashOf(hashKey: string, body: unknown): string {
+  return createHmac('sha256', hashKey)
+    .update('manifest idempotency request v1\0')
     .update(JSON.stringify(body ?? null))
     .digest('hex')
 }
@@ -40,7 +54,7 @@ export async function replayOrStore(
   params: IdempotencyParams,
   handler: () => Promise<StoredResponse>,
 ): Promise<StoredResponse> {
-  const requestHash = hashOf(params.body)
+  const requestHash = hashOf(params.hashKey, params.body)
 
   const [existing] = await db
     .select()

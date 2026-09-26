@@ -144,7 +144,7 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
         baseUrl: 'https://idp.manifest.internal',
         spEntityBase: 'https://manifest.internal',
       },
-      secrets: { sessionSecret: 'roundtrip-session-secret' },
+      secrets: { sessionSecret: 'roundtrip-session-secret', appEnv: new Map() },
       services: [{ type: 'mongo', endpoint: service.endpoint }],
     }),
     port: 8080,

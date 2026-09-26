@@ -207,6 +207,21 @@ describe('the stream in the contract (D23.2)', () => {
     })
     expect(refusedSecret.statusCode, refusedSecret.body).toBe(409)
 
+    // AN APP SECRET (the authoring API plan's Task 8): set and cleared on staging, so
+    // `app_secret.set` and `app_secret.cleared` are REACHED and parsed here too. The name is
+    // declared by nothing, so the deploys below are untouched by it.
+    const secretUrl = `/v1/environments/${staging.id}/secrets/STREAM_CONTRACT_KEY`
+    for (const method of ['PUT', 'DELETE'] as const) {
+      const res = await app.inject({
+        method,
+        url: secretUrl,
+        cookies,
+        headers: mutationHeaders(deps),
+        ...(method === 'PUT' ? { payload: { value: 'stream-contract-value' } } : {}),
+      })
+      expect(res.statusCode, `${method} ${secretUrl}: ${res.body}`).toBe(200)
+    }
+
     // The unit tier's whole lifecycle, as `delivery.test.ts` drives it, plus a redeploy so
     // the retirer publishes too: a build that fails, one that succeeds, a release, a
     // healthy deploy, a second that replaces it, and one whose instance never starts.

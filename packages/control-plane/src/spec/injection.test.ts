@@ -51,6 +51,7 @@ function ctx(
     resolved?: ResolvedConfig
     services?: InjectionContext['services']
     purpose?: InjectionContext['purpose']
+    appEnv?: InjectionContext['secrets']['appEnv']
   } = {},
 ): InjectionContext {
   const kind = over.kind ?? 'staging'
@@ -78,7 +79,7 @@ function ctx(
           },
         }
       : {}),
-    secrets: { sessionSecret: 'a'.repeat(64) },
+    secrets: { sessionSecret: 'a'.repeat(64), appEnv: over.appEnv ?? new Map() },
     services: over.services ?? [
       {
         type: 'mongo',
@@ -347,6 +348,38 @@ describe('§8 injection contract', () => {
 
   it('keeps the app’s own variables that collide with nothing', () => {
     expect(renderInjection(ctx()).COURSE_CODE).toBe('CHEM_121')
+  })
+
+  /** An app declaring `SIS_API_KEY` as §7's `secret: true`, beside a plain value. */
+  const withSecret = manifestSchema.parse(
+    parse(
+      yaml({
+        env: '  - { name: COURSE_CODE, value: CHEM_121 }\n  - { name: SIS_API_KEY, secret: true }',
+      }),
+    ),
+  )
+
+  it('renders a declared secret from the store, beside the app’s own values (the authoring API plan’s Task 8)', () => {
+    const env = renderInjection(
+      ctx({ spec: withSecret, appEnv: new Map([['SIS_API_KEY', 'sis-value-7c2e']]) }),
+    )
+    expect(env.SIS_API_KEY).toBe('sis-value-7c2e')
+    expect(env.COURSE_CODE).toBe('CHEM_121')
+  })
+
+  it('refuses to render a declared secret that has no value — never renders it absent (Task 8)', () => {
+    // Until Task 8 it was DROPPED here, and the app started without it.
+    expect(() => renderInjection(ctx({ spec: withSecret }))).toThrow(
+      /INJECTION_SECRET_MISSING/,
+    )
+  })
+
+  it('renders a value for a DECLARED name only (Task 8)', () => {
+    const env = renderInjection(
+      ctx({ appEnv: new Map([['NOT_DECLARED', 'nd-value-7c2e']]) }),
+    )
+    expect(env.COURSE_CODE).toBe('CHEM_121')
+    expect(env).not.toHaveProperty('NOT_DECLARED')
   })
 
   it('names every platform variable as reserved, so validation can say so', () => {

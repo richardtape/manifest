@@ -309,6 +309,38 @@ export async function deployRelease(
         'unapproved release on its live production listener',
     )
 
+  const resolved = (release.resolvedConfig as ResolvedConfigSet)[environment.kind]
+
+  /**
+   * THE APP'S DECLARED SECRETS, READ AND REFUSED **BEFORE ANYTHING** (the authoring API plan's
+   * Task 8, Decision 13) — for the digest check's reason above: an instance row, a service, a
+   * Service Provider and a network are all side effects, and a refusal after any of them has
+   * left something behind. Until Task 8 a declared secret was DROPPED at injection and the app
+   * started without it; now a release whose FROZEN config declares a `secret: true` name with no
+   * value stored for THIS environment is refused, naming every missing name and never a value.
+   * The rehearsal deploys through this function, so it inherits the refusal (as
+   * `REHEARSAL_DEPLOY_FAILED`, the reason in its message). A value takes effect at the next
+   * deploy: setting one redeploys nothing.
+   */
+  const declaredSecrets = resolved.env.filter((e) => e.secret === true).map((e) => e.name)
+  const stored =
+    declaredSecrets.length === 0
+      ? new Map<string, string>()
+      : await deps.appSecrets.envSecrets(db, {
+          projectId: environment.projectId,
+          environmentKind: environment.kind,
+        })
+  const unset = declaredSecrets.filter((name) => !stored.has(name))
+  if (unset.length > 0)
+    throw new ReleaseError(
+      'RELEASE_SECRET_NOT_SET',
+      `this release declares ${unset.join(', ')} with secret: true, and no value is set ` +
+        `for ${environment.kind}. Set ${unset.length === 1 ? 'it' : 'each'} with PUT ` +
+        `/v1/environments/${environment.id}/secrets/{name}, then deploy again: a deploy never ` +
+        'starts an app without a secret it declares.',
+    )
+  const appEnv = new Map(declaredSecrets.map((name) => [name, stored.get(name)!]))
+
   // §23 gives the hostname as `<slug>.<zone>`, so the first label is the slug.
   const projectSlug = environment.hostname.split('.')[0]!
   // THE REPOSITORY THE BUILD RECORDED, never one re-derived here. This was
@@ -334,8 +366,6 @@ export async function deployRelease(
   // registry host appearing in the repository; the error class and code are P2's,
   // unchanged, which is why P2's own test still passes.
   assertPromotable(driver, { repository, digest })
-
-  const resolved = (release.resolvedConfig as ResolvedConfigSet)[environment.kind]
 
   // The PROJECT's blueprint reference, which is what the build was made against
   // (`startBuild` takes `project.blueprintRef`). Read here rather than from the
@@ -675,7 +705,7 @@ export async function deployRelease(
           // that found it.
           ...(input.purpose === undefined ? {} : { purpose: input.purpose }),
           ...(registration !== undefined ? { spEntity: registration.entity } : {}),
-          secrets: { sessionSecret },
+          secrets: { sessionSecret, appEnv },
           services: boundServices,
           ...(ai === undefined ? {} : { ai }),
         }),

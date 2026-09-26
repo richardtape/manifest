@@ -8,18 +8,25 @@ export {
   type MasterKeypair,
   type SecretEnvelope,
 } from './envelope.js'
+export { createAppSecrets, type AppSecretResolver } from './resolver.js'
 export {
-  createAppSecrets,
   deleteSecret,
   ensureSessionSecret,
   getSecret,
   loadMasterKeypair,
   putSecret,
   secretValuesFor,
-  type AppSecretResolver,
   type EnvironmentKind,
   type Secret,
   type SecretScope,
 } from './store.js'
+export {
+  appEnvSecretValues,
+  appSecretStatuses,
+  clearAppSecret,
+  setAppSecret,
+  type AppEnvScope,
+  type AppSecretState,
+} from './app-env.js'
 export { SECRET_ENV_NAMES, scrubSecretEnv } from './scrub.js'
 export { assertOwnerOnly } from './custody.js'

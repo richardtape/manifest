@@ -187,7 +187,7 @@ function fullContext(kind: EnvironmentKind = 'staging'): InjectionContext {
       sloUrl: `https://${hostname}${spec.auth.logout}`,
       attributes: [...spec.auth.attributes],
     },
-    secrets: { sessionSecret: 'd'.repeat(48) },
+    secrets: { sessionSecret: 'd'.repeat(48), appEnv: new Map() },
     services: [
       { type: 'mongo', endpoint: 'mongodb://app:pw@mf-svc-db:27017/chem_labs_staging' },
     ],

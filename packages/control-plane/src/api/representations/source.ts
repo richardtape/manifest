@@ -187,7 +187,7 @@ export const RepoPath = z
   )
 
 /** A lone surrogate: `JSON.parse` accepts one, and it would be written as U+FFFD, silently. */
-const LONE_SURROGATE = /\p{Surrogate}/u
+export const LONE_SURROGATE = /\p{Surrogate}/u
 
 const WriteChange = z.strictObject({
   op: z.literal('write').describe('Create the file, or replace its content.'),

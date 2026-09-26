@@ -157,7 +157,7 @@ describeDocker('node-ts-mongo@1 builds, deploys and authenticates (Task 12)', ()
         spEntityBase: 'https://manifest.internal',
       },
       spEntity,
-      secrets: { sessionSecret: 'n'.repeat(48) },
+      secrets: { sessionSecret: 'n'.repeat(48), appEnv: new Map() },
       services: [{ type: 'mongo', endpoint: service.endpoint }],
     }),
     port: 8080,

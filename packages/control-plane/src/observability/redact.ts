@@ -10,7 +10,7 @@ export const REDACTED = '[REDACTED]'
  * configuration problem — the refusal is deliberate and it is silent by design,
  * because raising here would turn a weak password into a failed deploy.
  */
-const MIN_SECRET_LENGTH = 6
+export const MIN_SECRET_LENGTH = 6
 
 export type Redactor = (value: unknown) => unknown
 

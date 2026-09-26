@@ -31,6 +31,14 @@ const DELIBERATELY_UNCALLED: Record<string, string> = {
   // …and the WRITE the same screen makes, parked by that plan's Task 6 (sitting 4) beside them.
   createCommit:
     'the authoring API plan, Task 10 (the Code screen) — parked by its Task 6',
+  // …and an app's declared secrets, parked by that plan's Task 8 (sitting 5) for the Secrets
+  // screen the same Task 10 builds.
+  listAppSecrets:
+    'the authoring API plan, Task 10 (the Secrets screen) — parked by its Task 8',
+  setAppSecret:
+    'the authoring API plan, Task 10 (the Secrets screen) — parked by its Task 8',
+  clearAppSecret:
+    'the authoring API plan, Task 10 (the Secrets screen) — parked by its Task 8',
   //
   // **WAS EMPTY, AND THAT WAS A MEASUREMENT** — all 43 operations had a caller (P6b Task 10).
   // It was empty through the whole of P5c (34 operations) and again from P6a Task 18 (41).

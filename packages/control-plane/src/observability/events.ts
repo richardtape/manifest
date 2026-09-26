@@ -123,6 +123,14 @@ export const EVENT_TYPES = [
    * (Decision 10). Where and which rule — never the value. Not published for a dry run.
    */
   'repository.secret_refused',
+  /**
+   * AN APP'S DECLARED SECRET WAS SET for one environment (the authoring API plan's Task 8,
+   * Decision 13) — by whom, and which name. NEVER THE VALUE. Published for every set, an
+   * unchanged value included: it is a person, or their agent, acting on a credential.
+   */
+  'app_secret.set',
+  /** …and CLEARED. Published only when a value was there to clear: clearing is idempotent. */
+  'app_secret.cleared',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

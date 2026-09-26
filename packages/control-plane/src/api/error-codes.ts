@@ -256,6 +256,10 @@ export const ERROR_CODES = {
   TOKEN_CAPABILITY_FORBIDDEN: bad(
     'A mint asked for one of D24’s four privileged capabilities, or for one of its two person-only ones; the message names which.',
   ),
+  // The authoring API plan's Task 8: its own code, so an agent told it stops asking.
+  SECRET_NAME_RESERVED: bad(
+    'That variable is one the platform sets for every app (§8) — the platform’s value always wins — so it cannot be an app secret. Choose another name.',
+  ),
 
   // projects/slugs.ts — §23. The check answers them in a 200; creation refuses with them.
   SLUG_INVALID: {
@@ -316,6 +320,10 @@ export const ERROR_CODES = {
   RELEASE_NOT_FOUND: release('No release with this id.'),
   RELEASE_PROJECT_NOT_FOUND: release(
     'The environment names a project that does not exist.',
+  ),
+  // The authoring API plan's Task 8: refused BEFORE anything starts, naming the names.
+  RELEASE_SECRET_NOT_SET: release(
+    'The release’s manifest.yaml declares a secret (`secret: true`) that has no value in this environment, so nothing was started. Set each name the message lists with `setAppSecret`, then deploy again.',
   ),
 
   // launch/ — §9's two state machines, as the arrows that exist (P6a Task 5)

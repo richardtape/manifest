@@ -34,9 +34,10 @@ import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 type Capability = Schemas['MintTokenRequest']['capabilities'][number]
 
 /**
- * THE THIRTEEN, HELD TO THE DOCUMENT BY `tsc` IN BOTH DIRECTIONS — eleven until P6a Task 6
- * added `launch:record`, which `tsc` caught here and `pnpm test` could not see at all, and
- * twelve until the authoring API plan's Task 6 added `source:write`, caught here again. A capability renamed or
+ * THE FOURTEEN, HELD TO THE DOCUMENT BY `tsc` IN BOTH DIRECTIONS — eleven until P6a Task 6
+ * added `launch:record`, which `tsc` caught here and `pnpm test` could not see at all,
+ * twelve until the authoring API plan's Task 6 added `source:write`, caught here again, and
+ * thirteen until its Task 8 added `secret:write`. A capability renamed or
  * removed from `MintTokenRequest.capabilities` makes the array un-assignable; one ADDED makes
  * `Exclude<Capability, T[number]>` non-`never`, which collapses the parameter's type to
  * `never` and refuses the call. So this list cannot silently drift from the contract, which
@@ -58,6 +59,13 @@ const CAPABILITIES = everyCapability([
    * capability an agent that writes an app needs.
    */
   'source:write',
+  /**
+   * Setting the values of the app's declared secrets (the authoring API plan's Task 8).
+   * Mintable — but a token's covers SANDBOX AND STAGING only: a production value is set in
+   * an interactive session with step-up, and the platform refuses a token that asks (§20,
+   * D24). Nothing reads a value back, so nothing here can either.
+   */
+  'secret:write',
   'members:manage',
   'build:create',
   'release:create',

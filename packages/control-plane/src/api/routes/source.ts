@@ -1,7 +1,7 @@
 import { z } from 'zod/v4'
 import { makeRedactor, publishEvent } from '../../observability/index.js'
 import {
-  actorNames,
+  actorPhrase,
   assertCapability,
   AuthorizationError,
   authorFor,
@@ -91,12 +91,6 @@ async function manifestAfter(
   return (await deps.source.readFile(repo, base, 'manifest.yaml')) ?? ''
 }
 
-/** *"Ada Lovelace"*, or *"Ada Lovelace's agent (token 'claude-code')"* — never a PUID. */
-async function who(deps: ServerDeps, actor: Actor): Promise<string> {
-  const { name, tokenName } = await actorNames(deps.db, actor)
-  return tokenName === null ? name : `${name}'s agent (token '${tokenName}')`
-}
-
 /** A commit message's subject: its first line, cut at 72 characters. */
 const subjectOf = (message: string): string => {
   const line = message.split('\n', 1)[0]!.trim()
@@ -133,7 +127,7 @@ async function publishCommitted(
         userId: actor.userId,
         tokenId: actor.credential === 'token' ? actor.tokenId : null,
       },
-      humanMessage: `${await who(deps, actor)} committed ${n} change${n === 1 ? '' : 's'} to main: ${subjectOf(message)}`,
+      humanMessage: `${await actorPhrase(deps.db, actor)} committed ${n} change${n === 1 ? '' : 's'} to main: ${subjectOf(message)}`,
     },
     makeRedactor([]),
   )
@@ -160,7 +154,7 @@ async function publishSecretRefused(
       machineDetail: {
         findings: findings.map((f) => ({ path: f.path, line: f.line, rule: f.rule })),
       },
-      humanMessage: `${await who(deps, actor)} tried to commit a secret-shaped value to main, at ${where}; nothing was committed.`,
+      humanMessage: `${await actorPhrase(deps.db, actor)} tried to commit a secret-shaped value to main, at ${where}; nothing was committed.`,
     },
     makeRedactor([]),
   )

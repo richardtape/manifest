@@ -528,6 +528,9 @@ export const releaseRoutes = [
       // §13's *Integrity of the gate*: the approval binds a digest and the deploy verifies
       // it before anything starts. A rebuild since the approval is refused with this.
       'RELEASE_DIGEST_NOT_APPROVED',
+      // The authoring API plan's Task 8: the release declares a secret this environment has no
+      // value for — refused before anything starts, naming the names.
+      'RELEASE_SECRET_NOT_SET',
       // D24 (P5b Task 6): a token deploying to PRODUCTION asks for `release:promote`,
       // which is privileged — and is refused here, before the launch gate above.
       'TOKEN_ACTION_PENDING',

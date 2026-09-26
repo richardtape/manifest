@@ -263,8 +263,13 @@ export interface InjectionContext {
   purpose?: 'launch' | 'rehearsal'
   /** Absent when `auth.provider` is `none`; Task 7's derivation when it is `cwl`. */
   spEntity?: InjectedSpEntity
-  /** The session secret. Container-side paths are this module's own constants. */
-  secrets: { sessionSecret: string }
+  /**
+   * The session secret, and the values of the app's OWN declared secrets for this environment
+   * (the authoring API plan's Task 8) — every `secret: true` name in `resolved.env`, and only
+   * those, read from the store by `deployRelease`. Container-side paths are this module's own
+   * constants.
+   */
+  secrets: { sessionSecret: string; appEnv: ReadonlyMap<string, string> }
   /** What `ensureService` returned, paired with what was declared. */
   services: InjectedService[]
   /**
@@ -381,18 +386,43 @@ export function renderInjection(ctx: InjectionContext): Record<string, string> {
 
   const appUrl = `https://${ctx.hostname}`
 
+  /**
+   * THE APP'S DECLARED SECRETS (the authoring API plan's Task 8): §7's `secret: true` — *"value
+   * held by Manifest, never in git"*. **UNTIL TASK 8 THEY WERE DROPPED HERE, SILENTLY**: the
+   * filter below kept only entries with a `value`, so an app that declared `SIS_API_KEY` started
+   * without it and failed its first call. `deployRelease` refuses such a deploy first, before
+   * anything starts (`RELEASE_SECRET_NOT_SET`); this is the second, independent read, and it
+   * refuses rather than render a declared variable absent — the same rule as the AI key above.
+   */
+  const declaredSecret = (name: string): string => {
+    const value = ctx.secrets.appEnv.get(name)
+    if (value === undefined) {
+      throw new InjectionError(
+        'INJECTION_SECRET_MISSING',
+        `'${ctx.projectSlug}' declares ${name} with secret: true and no value was supplied ` +
+          `for ${ctx.environmentKind}. \`deployRelease\` refuses such a deploy before anything ` +
+          'starts; an app rendered without it would start and fail its first use of it.',
+      )
+    }
+    return value
+  }
+
   const env: Record<string, string> = {
-    // The APP's own, FIRST. Everything below is the platform's and overwrites
-    // them: §12 makes application code untrusted input, so a declared
-    // MONGODB_URI must not be able to point the app at a database of its
-    // choosing while it appears bound to its own. `spec/policy.ts` refuses these
-    // names at validation, which is the other read of the same list — this one
-    // is the one that has to hold even for a release frozen before that check
-    // existed.
+    // The APP's own, FIRST — its plain values and its declared secrets. Everything
+    // below is the platform's and overwrites them: §12 makes application code
+    // untrusted input, so a declared MONGODB_URI must not be able to point the app
+    // at a database of its choosing while it appears bound to its own.
+    // `spec/policy.ts` refuses these names at validation, which is the other read
+    // of the same list — this one is the one that has to hold even for a release
+    // frozen before that check existed.
     ...Object.fromEntries(
-      resolved.env
-        .filter((e) => e.value !== undefined)
-        .map((e) => [e.name, e.value!] as const),
+      resolved.env.flatMap((e) =>
+        e.secret === true
+          ? [[e.name, declaredSecret(e.name)] as const]
+          : e.value === undefined
+            ? []
+            : [[e.name, e.value] as const],
+      ),
     ),
     MANIFEST_ENV: ctx.environmentKind,
     MANIFEST_APP_URL: appUrl,

@@ -39,6 +39,10 @@ const sleep = (ms: number): Promise<void> =>
 const appSecrets: AppSecretResolver = {
   sessionSecret: () => Promise.resolve('not-used-here'),
   secretValues: () => Promise.resolve([]),
+  envSecrets: () => Promise.resolve(new Map()),
+  setEnvSecret: () => {
+    throw new Error('no test here sets an app secret')
+  },
 }
 
 /**

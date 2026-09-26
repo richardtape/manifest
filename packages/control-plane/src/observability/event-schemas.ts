@@ -37,6 +37,14 @@ import type { EventType } from './events.js'
 const Kind = z.enum(environmentKind.enumValues)
 const Uuid = z.uuid()
 const Sha = z.string().regex(/^[0-9a-f]{40}$/)
+/** Task 8's two events share one shape: which name, where, and who — never the value. */
+const AppSecretChange = z.strictObject({
+  environmentKind: Kind,
+  name: z.string().regex(/^[A-Z][A-Z0-9_]{0,127}$/),
+  via: z.enum(['session', 'token']),
+  userId: Uuid,
+  tokenId: Uuid.nullable(),
+})
 
 const InstanceDetail = z.strictObject({
   instanceId: Uuid,
@@ -305,4 +313,11 @@ export const EVENT_DETAIL_SCHEMAS = {
       )
       .min(1),
   }),
+  /**
+   * The authoring API plan's Task 8. The environment and the NAME — never the value — and who:
+   * `userId` is the person (for a token, its minter) and `tokenId` the token or null, because
+   * `audit.events` has no actor column and a sentence is not a record (Task 6's reason).
+   */
+  'app_secret.set': AppSecretChange,
+  'app_secret.cleared': AppSecretChange,
 } satisfies Record<EventType, z.ZodType>

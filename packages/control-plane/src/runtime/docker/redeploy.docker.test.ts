@@ -242,7 +242,7 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
         baseUrl: 'https://idp.manifest.internal',
         spEntityBase: 'https://manifest.internal',
       },
-      secrets: { sessionSecret: 'redeploy-session-secret' },
+      secrets: { sessionSecret: 'redeploy-session-secret', appEnv: new Map() },
       services: [],
     }),
     port: PORT,

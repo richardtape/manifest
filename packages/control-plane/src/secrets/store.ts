@@ -177,39 +177,6 @@ export async function ensureSessionSecret(
   return value
 }
 
-/**
- * `ensureSessionSecret` with the master keypair already bound.
- *
- * `releases/` holds a resolver rather than key material, exactly as it does for
- * service credentials and for the SP registrar — three bound objects, none of
- * which lets the module that deploys read the secret store directly.
- */
-export interface AppSecretResolver {
-  sessionSecret(
-    db: Db,
-    scope: { projectId: string; environmentKind: EnvironmentKind },
-  ): Promise<string>
-  /**
-   * Every secret stored for one app+environment, as plaintext: the exact-match half of
-   * §14's redactor for what `releases/` records about the app — an Incident (P4b Task
-   * 13). VALUES, not `secretValuesFor`'s Map: a Map is iterable too, as `[name, value]`
-   * pairs, and a redactor built over those matches nothing (P4b sitting 1, divergence 5).
-   */
-  secretValues(
-    db: Db,
-    scope: { projectId: string; environmentKind: EnvironmentKind },
-  ): Promise<string[]>
-}
-
-export function createAppSecrets(keys: MasterKeypair): AppSecretResolver {
-  return {
-    sessionSecret: (db, scope) => ensureSessionSecret(db, scope, keys),
-    secretValues: async (db, scope) => [
-      ...(await secretValuesFor(db, scope, keys)).values(),
-    ],
-  }
-}
-
 interface MasterKeyFile {
   v: 1
   publicKey: string

@@ -28,6 +28,16 @@ export const CAPABILITIES = [
    * holds the sensitive fields at production, which is where the spec puts the control.
    */
   'source:write',
+  /**
+   * SETTING AN APP'S DECLARED SECRETS — the values of the `env` entries `manifest.yaml` marks
+   * `secret: true` (the authoring API plan's Task 8, Decision 13). WRITE-ONLY: no route answers
+   * a value, and `secret:read` stays out of this list. Owner, collaborator and administrator
+   * hold it, and it is mintable — **but a production value is set only in an interactive
+   * session with step-up** (§20 and D24, Spec action 2, option (a)): the route calls
+   * `requireSession` and `assertStepUp` for production and neither for sandbox or staging, so
+   * a token is refused production outright, and is not offered a pending action.
+   */
+  'secret:write',
   'members:manage',
   'build:create',
   'release:create',
@@ -157,6 +167,10 @@ export const STEP_UP_GUARDED: ReadonlySet<PrivilegedCapability> = new Set([
   'secret:read',
   'quota:set',
   'members:manage',
+  // §20, since the authoring API plan's Task 8: *"plus setting the value of a production
+  // secret"*. The route asks for it for PRODUCTION only — `assertStepUp` is a call site's
+  // decision, and sandbox and staging values are a token's to set (D24).
+  'secret:write',
 ])
 
 /**
@@ -311,6 +325,7 @@ const OWNER: readonly Capability[] = [
   'project:write',
   'project:delete',
   'source:write',
+  'secret:write',
   'members:manage',
   'build:create',
   'release:create',

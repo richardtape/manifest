@@ -26,7 +26,7 @@ export {
   sensitiveViewOfSpec,
   stable,
 } from './diff.js'
-export { resolveConfig } from './resolve.js'
+export { resolveConfig, resolveEnv } from './resolve.js'
 export {
   INJECTED_FILE_PATHS,
   INJECTION_CONTRACT_VERSION,

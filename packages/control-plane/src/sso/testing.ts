@@ -219,7 +219,7 @@ function samlSpEnv(input: {
       sloUrl: `https://${input.hostname}${auth.logout}`,
       attributes: [...input.row.attributes],
     },
-    secrets: { sessionSecret: 'saml-fixture-session-secret' },
+    secrets: { sessionSecret: 'saml-fixture-session-secret', appEnv: new Map() },
     services: [],
   })
   /**

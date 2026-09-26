@@ -79,15 +79,36 @@ function defined<T extends object>(value: T | undefined): Present<T> {
   ) as Present<T>
 }
 
+/**
+ * §7's overrides for one kind: staging and production only; sandbox always takes the base
+ * spec. Task 2's schema has no `sandbox` key, so this narrowing is required for the index to
+ * typecheck, not merely defensive.
+ */
+const overrideFor = (spec: ManifestSpec, kind: EnvironmentKind) =>
+  kind === 'sandbox' ? undefined : spec.environments[kind]
+
+/**
+ * One environment's `env`: the base list with that environment's override entries replacing
+ * same-named ones and appended otherwise. **THE ONE PRODUCER** — `resolveConfig` below, and the
+ * authoring API plan's Task 8, which reads the `secret: true` names an environment declares
+ * without a blueprint's resource defaults it has no use for.
+ */
+export function resolveEnv(spec: ManifestSpec, kind: EnvironmentKind): ResolvedEnvVar[] {
+  const env: ResolvedEnvVar[] = spec.env.map((entry) => ({ ...entry }))
+  for (const entry of overrideFor(spec, kind)?.env ?? []) {
+    const existing = env.findIndex((candidate) => candidate.name === entry.name)
+    if (existing >= 0) env[existing] = { ...entry }
+    else env.push({ ...entry })
+  }
+  return env
+}
+
 export function resolveConfig(
   spec: ManifestSpec,
   kind: EnvironmentKind,
   defaults: ResourceDefaults,
 ): ResolvedConfig {
-  // §7 permits overrides for staging and production only; sandbox always takes the
-  // base spec. Task 2's schema has no `sandbox` key, so this narrowing is required
-  // for the index to typecheck, not merely defensive.
-  const override = kind === 'sandbox' ? undefined : spec.environments[kind]
+  const override = overrideFor(spec, kind)
 
   const resources: ResolvedConfig['resources'] = {
     ...defaults,
@@ -95,12 +116,7 @@ export function resolveConfig(
     ...defined(override?.resources),
   }
 
-  const env: ResolvedEnvVar[] = spec.env.map((entry) => ({ ...entry }))
-  for (const entry of override?.env ?? []) {
-    const existing = env.findIndex((candidate) => candidate.name === entry.name)
-    if (existing >= 0) env[existing] = { ...entry }
-    else env.push({ ...entry })
-  }
+  const env = resolveEnv(spec, kind)
 
   return {
     environmentKind: kind,

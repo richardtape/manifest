@@ -1,7 +1,12 @@
+import { createHash } from 'node:crypto'
+import { eq } from 'drizzle-orm'
 import { describe, expect, it, vi } from 'vitest'
 import { withRollback } from '../db/testing.js'
-import { users } from '../db/index.js'
+import { idempotencyKeys, users } from '../db/index.js'
 import { IdempotencyConflictError, replayOrStore } from './idempotency.js'
+
+/** The server-held key a request's fingerprint is made with — `config.sessionSecret` at boot. */
+const HASH_KEY = 'h'.repeat(32)
 
 async function aUser(db: Parameters<typeof replayOrStore>[0]) {
   const [user] = await db
@@ -22,6 +27,7 @@ describe('idempotency (D23.6)', () => {
         key: 'abc',
         userId: user.id,
         route: 'POST /projects',
+        hashKey: HASH_KEY,
         body: { slug: 'x' },
       }
 
@@ -42,7 +48,13 @@ describe('idempotency (D23.6)', () => {
         .mockResolvedValue({ status: 201, body: { id: 'project-1' } })
       await replayOrStore(
         db,
-        { key: 'abc', userId: user.id, route: 'POST /projects', body: { slug: 'x' } },
+        {
+          key: 'abc',
+          userId: user.id,
+          route: 'POST /projects',
+          hashKey: HASH_KEY,
+          body: { slug: 'x' },
+        },
         handler,
       )
       await expect(
@@ -52,6 +64,7 @@ describe('idempotency (D23.6)', () => {
             key: 'abc',
             userId: user.id,
             route: 'POST /projects',
+            hashKey: HASH_KEY,
             body: { slug: 'DIFFERENT' },
           },
           handler,
@@ -80,12 +93,24 @@ describe('idempotency (D23.6)', () => {
 
       const first = await replayOrStore(
         db,
-        { key: 'same', userId: one.id, route: 'POST /projects', body: {} },
+        {
+          key: 'same',
+          userId: one.id,
+          route: 'POST /projects',
+          hashKey: HASH_KEY,
+          body: {},
+        },
         handler,
       )
       const second = await replayOrStore(
         db,
-        { key: 'same', userId: two!.id, route: 'POST /projects', body: {} },
+        {
+          key: 'same',
+          userId: two!.id,
+          route: 'POST /projects',
+          hashKey: HASH_KEY,
+          body: {},
+        },
         handler,
       )
       expect(first.body).toEqual({ id: 'a' })
@@ -93,11 +118,57 @@ describe('idempotency (D23.6)', () => {
     })
   })
 
+  /**
+   * A REQUEST'S FINGERPRINT IS KEYED (the authoring API plan's Task 8). A mutation's body can BE
+   * a secret — `setAppSecret`'s is the value — and an unkeyed SHA-256 of it in this table lets
+   * anyone who can read the database check a guess against it, which §20's separate custody of
+   * the master key exists to prevent. Keyed with a secret the database does not hold, the
+   * stored hash says nothing on its own.
+   */
+  it('stores a KEYED hash of the body — never one a reader of the table could check a guess against', async () => {
+    await withRollback(async (db) => {
+      const user = await aUser(db)
+      const body = { value: 'swordfish-7c2e' }
+      const params = {
+        key: 'secret-set',
+        userId: user.id,
+        route: 'PUT /v1/environments/:environmentId/secrets/:name',
+        hashKey: HASH_KEY,
+        body,
+      }
+      const handler = vi.fn().mockResolvedValue({ status: 200, body: { set: true } })
+      await replayOrStore(db, params, handler)
+      const [row] = await db
+        .select()
+        .from(idempotencyKeys)
+        .where(eq(idempotencyKeys.key, 'secret-set'))
+      const unkeyed = createHash('sha256').update(JSON.stringify(body)).digest('hex')
+      expect(row!.requestHash).toMatch(/^[0-9a-f]{64}$/)
+      expect(row!.requestHash).not.toBe(unkeyed)
+      // The positive controls: the same body under the same server key still replays…
+      expect(await replayOrStore(db, params, handler)).toEqual({
+        status: 200,
+        body: { set: true },
+      })
+      expect(handler).toHaveBeenCalledTimes(1)
+      // …and under ANOTHER server key it does not match — the hash depends on the key.
+      await expect(
+        replayOrStore(db, { ...params, hashKey: 'g'.repeat(32) }, handler),
+      ).rejects.toThrow(IdempotencyConflictError)
+    })
+  })
+
   it('does not store a response when the handler throws', async () => {
     await withRollback(async (db) => {
       const user = await aUser(db)
       const failing = vi.fn().mockRejectedValue(new Error('boom'))
-      const params = { key: 'abc', userId: user.id, route: 'POST /projects', body: {} }
+      const params = {
+        key: 'abc',
+        userId: user.id,
+        route: 'POST /projects',
+        hashKey: HASH_KEY,
+        body: {},
+      }
       await expect(replayOrStore(db, params, failing)).rejects.toThrow('boom')
 
       // A retry after a failure must actually retry, not replay a failure.

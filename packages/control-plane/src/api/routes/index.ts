@@ -8,6 +8,7 @@ import { pendingActionReads, pendingActionRoutes } from './pending-actions.js'
 import { projectReadRoutes } from './project-reads.js'
 import { createProjectRoutes } from './projects.js'
 import { releaseRoutes } from './releases.js'
+import { secretRoutes } from './secrets.js'
 import { slugRoutes } from './slugs.js'
 import { sourceRoutes } from './source.js'
 import { tokenRoutes } from './tokens.js'
@@ -26,6 +27,7 @@ export const ROUTE_DEFINITIONS: readonly AnyRoute[] = [
   ...sourceRoutes,
   ...buildRoutes,
   ...releaseRoutes,
+  ...secretRoutes,
   ...launchRoutes,
   ...fleetRoutes,
   ...tokenRoutes,

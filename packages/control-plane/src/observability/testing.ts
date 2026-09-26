@@ -216,4 +216,18 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
   'repository.secret_refused': {
     findings: [{ path: 'config.js', line: 1, rule: 'an AWS access key id' }],
   },
+  'app_secret.set': {
+    environmentKind: 'staging',
+    name: 'SIS_API_KEY',
+    via: 'session',
+    userId: UUID,
+    tokenId: null,
+  },
+  'app_secret.cleared': {
+    environmentKind: 'staging',
+    name: 'SIS_API_KEY',
+    via: 'token',
+    userId: UUID,
+    tokenId: UUID,
+  },
 }

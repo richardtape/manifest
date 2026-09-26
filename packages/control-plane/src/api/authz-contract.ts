@@ -1306,6 +1306,115 @@ const ROUTES: RouteCase[] = [
     },
   },
   /**
+   * AN APP'S DECLARED SECRETS (the authoring API plan's Task 8). Listing the NAMES is
+   * `project:read`; setting and clearing a value is `secret:write`, which the owner, a
+   * collaborator and an administrator hold and which `token-capable` holds because the mint
+   * route would give it (said at `CAPABLE` below). Every passing actor sets or clears the SAME
+   * name, and both are idempotent, so no actor's answer depends on another's.
+   */
+  {
+    method: 'GET',
+    url: '/v1/environments/:environmentId/secrets',
+    request: (f) => ({ url: `/v1/environments/${f.environmentId.staging}/secrets` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  {
+    method: 'PUT',
+    url: '/v1/environments/:environmentId/secrets/:name',
+    label: 'staging',
+    request: (f) => ({
+      url: `/v1/environments/${f.environmentId.staging}/secrets/MATRIX_KEY`,
+      payload: { value: 'matrix-value' },
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  /**
+   * PRODUCTION (§20 and D24, Spec action 2, option (a)): only an interactive session that has
+   * stepped up — and the sessions this table builds have NOT, so every person who may is
+   * `STEP_UP`. A token that holds `secret:write` is refused for the CREDENTIAL CLASS
+   * (`SESSION_ONLY`), never offered a pending action — it is not one of D24's four. A token
+   * that does not hold it is `403` first: the capability is asked before the credential, so a
+   * stranger's `404` stays the same for every environment id.
+   */
+  {
+    method: 'PUT',
+    url: '/v1/environments/:environmentId/secrets/:name',
+    label: 'production',
+    request: (f) => ({
+      url: `/v1/environments/${f.environmentId.production}/secrets/MATRIX_KEY`,
+      payload: { value: 'matrix-value' },
+    }),
+    expect: {
+      owner: STEP_UP,
+      collaborator: STEP_UP,
+      stranger: 404,
+      admin: STEP_UP,
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
+  {
+    method: 'DELETE',
+    url: '/v1/environments/:environmentId/secrets/:name',
+    label: 'staging',
+    request: (f) => ({
+      url: `/v1/environments/${f.environmentId.staging}/secrets/MATRIX_KEY`,
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  {
+    method: 'DELETE',
+    url: '/v1/environments/:environmentId/secrets/:name',
+    label: 'production',
+    request: (f) => ({
+      url: `/v1/environments/${f.environmentId.production}/secrets/MATRIX_KEY`,
+    }),
+    expect: {
+      owner: STEP_UP,
+      collaborator: STEP_UP,
+      stranger: 404,
+      admin: STEP_UP,
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
+  /**
    * D23.2's event stream (P4b Task 14). A plain GET is what this suite can send, and the
    * route answers it with the SAME authorization hook the upgrade goes through — so 426
    * is the pass here, and it is spelled out rather than folded into `pass`: `pass` means
@@ -1660,6 +1769,11 @@ export function describeAuthorizationContract(
         // here the matrix still cannot tell `source:write` from `project:write`, because this
         // actor holds both; `api/source-commit.test.ts`'s `project:write`-alone token can.
         'source:write',
+        // Task 8: the mint route gives it too (neither privileged nor person-only), so the
+        // secrets rows' `token-capable: 'pass'` for staging means something — and production's
+        // `SESSION_ONLY` is the credential-class refusal, not a missing capability. The
+        // `secret:write`-alone and `project:write`-alone tokens are `api/secrets.test.ts`'s.
+        'secret:write',
       ]
       const tokenFor = async (
         actor: TokenActor,

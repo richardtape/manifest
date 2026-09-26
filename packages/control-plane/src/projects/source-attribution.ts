@@ -46,6 +46,16 @@ export async function actorNames(
 }
 
 /**
+ * Who acted, as an event's sentence begins: *"Ada Lovelace"*, or *"Ada Lovelace's agent (token
+ * 'claude-code')"* — never a PUID. ONE phrasing for every sentence that names an actor: a commit
+ * (Task 6) and an app secret set or cleared (the authoring API plan's Task 8).
+ */
+export async function actorPhrase(db: Db, actor: Actor): Promise<string> {
+  const { name, tokenName } = await actorNames(db, actor)
+  return tokenName === null ? name : `${name}'s agent (token '${tokenName}')`
+}
+
+/**
  * THE AUTHOR an API commit carries: the person's name — for a token, *"Ada Lovelace (via token
  * 'claude-code')"* — at `<userId>@users.manifest.internal`, an address in the platform's own
  * zone that is nobody's mailbox, so neither a PUID nor a real email reaches git history (or

@@ -53,15 +53,28 @@ export async function sensitiveAgainstNewestValid(
   spec: ManifestSpec | null,
 ): Promise<{ sensitive: boolean; fields: string[] }> {
   if (spec === null) return { sensitive: false, fields: [] }
-  const [previous] = await db
+  const previous = await newestValidSpec(db, projectId)
+  return previous === undefined
+    ? { sensitive: false, fields: [] }
+    : isSensitiveDiff(previous, spec)
+}
+
+/**
+ * The project's NEWEST VALID `manifest.yaml`, parsed — never the newest row, which may be an
+ * invalid commit's. THE ONE QUERY: the sensitive diff above, and the names an environment's
+ * secrets list calls declared (the authoring API plan's Task 8). `undefined` before any.
+ */
+export async function newestValidSpec(
+  db: Db,
+  projectId: string,
+): Promise<ManifestSpec | undefined> {
+  const [row] = await db
     .select()
     .from(appSpecs)
     .where(and(eq(appSpecs.projectId, projectId), eq(appSpecs.valid, true)))
     .orderBy(desc(appSpecs.createdAt))
     .limit(1)
-  return previous === undefined
-    ? { sensitive: false, fields: [] }
-    : isSensitiveDiff(previous.parsed as ManifestSpec, spec)
+  return row === undefined ? undefined : (row.parsed as ManifestSpec)
 }
 
 /**
