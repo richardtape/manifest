@@ -214,12 +214,37 @@ function sourceStamp(source: string): string {
  * that looks correct in the working copy. `fixtureBareRepo` has had a stamp since
  * P4a for exactly this reason.
  */
+/**
+ * Whether a CACHED bare repository is still whole — every object `HEAD` reaches is present.
+ *
+ * **A STAMP THAT SURVIVED SAYS NOTHING ABOUT THE FILES BESIDE IT** (the authoring API plan's
+ * sitting 5): macOS removes files in the temporary directories that nobody has read for about
+ * three days, one file at a time. Measured on 2026-09-26 — two fixtures built on the 22nd had
+ * lost `HEAD`, `config`, their refs and most of their objects at 03:35, while their stamp
+ * files, read on every run, survived: the cache looked current, `git rev-parse HEAD` answered
+ * *"not a git repository"*, and `sso/login.docker.test.ts` failed before its first test.
+ */
+function intactRepository(repoPath: string): boolean {
+  try {
+    execFileSync(
+      'git',
+      [`--git-dir=${repoPath}`, 'rev-list', '--objects', '--quiet', 'HEAD'],
+      {
+        stdio: 'ignore',
+      },
+    )
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function ensureContractRepo(repoPath = '/tmp/repo'): void {
   const skeletonDir = join(REPO_ROOT, 'blueprints/fixture-node/skeleton')
   const stamp = sourceStamp(skeletonDir)
   const stampFile = join(repoPath, 'manifest-contract-stamp')
   const current = existsSync(stampFile) ? readFileSync(stampFile, 'utf8').trim() : ''
-  if (existsSync(join(repoPath, 'HEAD')) && current === stamp) return
+  if (current === stamp && intactRepository(repoPath)) return
   // A repo built before the stamp existed has no stamp file, so it is rebuilt once —
   // which is correct: nothing knows whether the skeleton moved under it.
   rmSync(repoPath, { recursive: true, force: true })
@@ -320,7 +345,7 @@ export function fixtureBareRepo(
       : `${stampOfSource}-${createHash('sha256').update(extraStamp).digest('hex').slice(0, 16)}`
   const stampFile = join(repoPath, 'manifest-fixture-stamp')
   const current = existsSync(stampFile) ? readFileSync(stampFile, 'utf8').trim() : ''
-  if (current !== stamp) {
+  if (current !== stamp || !intactRepository(repoPath)) {
     rmSync(repoPath, { recursive: true, force: true })
     const work = mkdtempSync(join(tmpdir(), 'mf-fixture-src-'))
     try {
